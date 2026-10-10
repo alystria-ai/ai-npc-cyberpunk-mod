@@ -686,16 +686,25 @@ Changed (Lua only, CET reload; `mod/companion-gestures.lua`, `mod/gesture-worksp
 
 To check live: V looks at a companion who had a stance or idle earlier, she turns, V sends a message: she stays facing V in the stance (`probe.log` `begin` then `play`, no `device-replaced` normally); V walks off 10 m and asks again: no relocation at the begin.
 
-## Round 5f (October 10, night): the slide when a message is sent is the ambient-to-stance crossing
+## Round 5f (October 10, night): the bridge itself was the slide, so the bridge is gone
 
-Live report on Lizzy after Round 5e (she now faces V and stays facing V, no pop after walking): when V sends a message she "goes back a bit smoothly, like she is sliding, just a bit".
+Live report on Lizzy and then Evelyn after Round 5e: she faces V, but when a message is sent she "goes back a bit smoothly, like she is sliding, just a bit". A first guess (the ambient clip's blend-out, 2.4 s) did not change it live.
 
-Cause, checked against `movement-trace.ndjson` and `probe.log` (last 15 min): it is not a translation. Her entity position is constant across the begin in the trace, there is no `device-replaced` line, and the device placement check passes at once. What moves is the animation: the bridge starts on the ambient `idle_stand` and jumps to the stance loop two seconds later (`bridge-in`). Offline the two poses differ by feet midpoint z 9.3 vs 2.9 cm (per-foot up to 15.5 cm, mean 9.7), hips 1.8 cm higher, head about 3.4 cm forward and 3 cm up, and the old `lz3` capture shows it as a smooth 9 px horizontal and 7 px vertical shift over about 0.7 s. That is the "slide": a smooth ambient-to-stance glide, inherent to any stance (offsetting the device would only move the whole body instead).
+Measured live on Evelyn (her own copy under the face-stage kill switch, workspots driven directly by a temporary probe file, 36 fps window capture, phase correlation on head and body with the constant per-frame bias fitted out; half-resolution pixels, about 190 px per metre):
 
-Changed (assets + Lua; needs the archive installed, a game restart and a CET reload; nothing was installed):
+| Workspot entered | What the capture shows |
+|---|---|
+| `convai_talk_on_sides` (the bridge: gang `idle_stand` first, jump to the stance 2 s later), two runs | after the play call she moves about 8-13 px down and 4-5 px sideways over about 1.2 s (the enter blend from her own idle to the gang ambient), then a second quick 4-5 px shift at the jump that settles over 1-1.8 s |
+| `convai_talk_on_sides_plain` (no bridge, the stance loop is the first sequence) | nothing beyond +/-1.5 px of ordinary sway |
 
-1. **Slower ambient fade-out.** The ambient clip in the bridge sequence now blends out over 2.4 s (`blend.ambientOut` in `assets/gestures/gestures.json`, emitted as `bridge.blendOut` in the catalog) instead of 0.9 s. The hypothesis is that the length of the jump blend follows the departing clip's blend-out time, so the crossing is spread over a longer time and reads as a settle rather than a slide. This is unverified live.
-2. **Longer settle before the first gesture.** After `bridge-in` the controller waits `max(bridgeBlend, blendOut + 0.2)` (2.6 s) before the first gesture so that gestures do not stack on the crossing.
-3. Tests: the bridge test checks the slow fade-out and that no gesture plays during it; the two reply-length tests run longer reply windows because the first gesture comes about 1.6 s later.
+The entity itself never moves: its world position and yaw were logged every tick during the whole bridge run and stay constant to 0.01 cm with `inWorkspot` true, `probe.log` has no `device-replaced`, and the movement trace is flat. The slide is the animation: the gang ambient's root and pose differ from her own idle by several centimetres, and the bridge makes her blend there first and then across to the stance. The Round 5d jolt metric (largest change in a 0.2 s window) could not see a slow glide of this kind, which is why the bridge looked fine then.
 
-To check live (needs a go-ahead and a staged copy): capture the torso over the begin with the new archive; if the crossing does not lengthen, A/B against the `on_sides_plain` family (no bridge, enter inertialization 1.5 s).
+Since Round 5d the stance workspots have no entry clips, so the reason for the bridge (the entry lurch) is gone and a stance loop can be entered directly, as `woman_sides` and the plain variant always were.
+
+Changed (archive, game restart, then a CET reload; `assets/gestures/gestures.json`, `scripts/Build-GestureAssets.mjs`, `mod/companion-gestures.lua`, `mod/gesture-catalog.lua`):
+
+1. `on_sides` and `arms_crossed` lose `bridge`: the stance loop is the first sequence (ids 100/101), the ambient `idle_stand` sequence and the loose locomotion animsets of those two families are gone. `on_sides_plain` is removed (identical now).
+2. The controller no longer has the bridge machinery (jump in after the enter blend, `bridge-out` before the exit, the `leaving` phase, `bridgeBlend`/`bridgeLead`, the 5f settle). The first gesture again waits only for the enter blend (1.5 s) plus `firstClipMargin`; the exit is the native fast exit. Signature idles and combat or transport exits never used the bridge.
+3. Tests: the bridge tests are replaced by one that checks a stance is entered directly, gestures come after the enter blend and the exit is the plain fast exit, and that no family has a bridge.
+
+To check live after the restart: send a message to a companion standing still; she should keep her place and only her arms settle into the stance (no downward drift, no second shift about 2 s later).

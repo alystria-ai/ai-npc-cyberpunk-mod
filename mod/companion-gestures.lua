@@ -8,8 +8,8 @@
 local workspot = dofile('gesture-workspot.lua')
 local selection = dofile('gesture-selection.lua')
 local M = {}
-local HOLDING = {spawning = true, starting = true, active = true, leaving = true, exiting = true, recovering = true}
-M.policy = {bridgeBlend = 1.0, bridgeLead = 1.0, firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourAfterTalk = 45, linger = 2.5, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
+local HOLDING = {spawning = true, starting = true, active = true, exiting = true, recovering = true}
+M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourAfterTalk = 45, linger = 2.5, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
     nearStart = 4.0, nearKeep = 4.5, socialPhases = {settled = true, attend = true}, faceWithin = 35, deviceSettle = 1.5, deviceRetry = .4,
     wedgeAfter = 1.5, healthWindow = 10, recoveryHold = .9, recoveryLimit = 2, failureCooldown = 30, minimumSpeech = 5,
     -- Signature idle flavour (characters marked flavour in the catalog only):
@@ -195,7 +195,6 @@ function M.new(options)
         s.flavourUntil = flavour and self.clock + between(policy.flavourLength) or nil
         s.known, s.family, s.rig, s.character, s.familyKey = known, family, known.rig, known.key, familyKey
         s.deviceMoved, s.clip, s.exitAt, s.playerAnchor, s.unsettledSince = false, nil, nil, copy(self.playerPosition), nil
-        s.bridged, s.bridgedAt, s.leaveAt, s.leaveReason = false, nil, nil, nil
         s.recovery, s.playAt = recovery == true, nil
         note(s, recovery and 'recovery-begin' or (flavour and 'flavour-begin') or 'begin', {family = known.talk, component = s.component})
     end
@@ -225,17 +224,7 @@ function M.new(options)
             if s.phase == 'starting' and s.entry.npc then native.exit(s.entry.npc, true) end
             finish(s, reason); return
         end
-        if s.phase == 'leaving' and instant then s.phase = 'active' end
         if s.phase ~= 'active' and s.phase ~= 'recovering' then return end
-        -- A bridge family stands on the companion's own relaxed idle at both ends of the stance: cross
-        -- back to it first, then leave, so the exit blend starts from the pose she came from.
-        local bridge = s.family and s.family.bridge
-        if bridge and not instant and not s.flavour and s.bridged and s.phase == 'active' and s.entry.npc
-            and native.jump(s.entry.npc, bridge.name, true) then
-            s.bridged, s.clip, s.phase, s.leaveAt, s.leaveReason = false, nil, 'leaving', self.clock, reason
-            note(s, 'bridge-out', {reason = reason})
-            return
-        end
         s.phase, s.exitAt, s.exitReason, s.escalated = 'exiting', self.clock, reason, nil
         native.exit(s.entry.npc, instant)
         note(s, 'exit', {reason = reason, instant = instant == true})
@@ -244,13 +233,6 @@ function M.new(options)
     -- The first clip waits until the enter blend into the stance is over: a
     -- gesture landing 0.1-0.4 s into the blend read as a body twitch (Oct 10).
     local function enterBlend(s) return (s.family and s.family.blend and tonumber(s.family.blend.enter)) or 1.1 end
-
-    -- After the bridge-in jump the ambient loop is still fading out (the crossing is a visible glide of the
-    -- feet); gestures wait until it is over.
-    local function bridgeSettle(s)
-        local bridge = s.family and s.family.bridge
-        return math.max(policy.bridgeBlend, (bridge and tonumber(bridge.blendOut) or 0) + .2)
-    end
 
     local function clipDuration(clip, rig) return clip.perRig and clip.perRig[rig] and clip.perRig[rig].duration or 3 end
 
@@ -311,11 +293,6 @@ function M.new(options)
             if waited > policy.giveUp then s.playAt = nil; fail(s, 'still in the workspot after exit') end
             return
         end
-        if s.phase == 'leaving' then
-            if context.combat then requestExit(s, 'combat', true); return end
-            if self.clock - s.leaveAt >= policy.bridgeLead then s.phase = 'active'; requestExit(s, s.leaveReason, false) end
-            return
-        end
         if s.phase ~= 'active' then return end
         -- Leave on combat (instantly), on a native guard, on real movement, or
         -- after the reply ends plus a short linger.
@@ -344,23 +321,12 @@ function M.new(options)
             native.jump(npc, s.family.idle.name, false)
             s.clip = nil
         end
-        -- Bridge family: the workspot entered on her own idle; cross to the stance loop once the enter
-        -- blend is over, and play gestures only after that crossing.
-        local bridge = s.family.bridge
-        if bridge and not s.bridged and self.clock >= (s.activeAt or 0) + enterBlend(s) + policy.firstClipMargin then
-            if native.jump(npc, s.family.idle.name, true) then
-                s.bridged, s.bridgedAt = true, self.clock
-                note(s, 'bridge-in', {})
-            end
-        end
-        if bridge and not s.bridged then return end
         if not s.clip and (mode == 'speaking' or mode == 'listening') then
             local pick = selection.next(s.sel, {now = self.clock, mode = mode, rig = s.rig, character = s.character,
                 family = info and info.family, scale = info and info.scale, remaining = info and info.remaining,
                 total = info and info.total, reply = info and info.requestId, phraseAt = info and info.phraseAt,
                 phraseAge = info and info.phraseAge, clips = s.family.clips,
-                busyUntil = math.max((s.activeAt or 0) + enterBlend(s) + policy.firstClipMargin,
-                    s.bridgedAt and s.bridgedAt + bridgeSettle(s) or 0)})
+                busyUntil = (s.activeAt or 0) + enterBlend(s) + policy.firstClipMargin})
             if pick then
                 -- Instant jump (still blended by the workspot's inertialization):
                 -- a queued jump waits for the 22-25 s idle loop to end (Oct 7 capture).

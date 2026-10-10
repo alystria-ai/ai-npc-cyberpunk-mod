@@ -205,14 +205,14 @@ test('never starts for a copy left behind or not in a social stance; leaves when
 
 test('a long reply streamed phrase by phrase is judged by its text, and gestures keep coming', () => run(`
   local words={}
-  for i=1,52 do words[#words+1]='word' end
+  for i=1,26 do words[#words+1]='word' end
   c.replyText=function() return table.concat(words,' ') end
-  -- each phrase reports only its own 2.5 s; the text says about 20 s
+  -- each phrase reports only its own 2.5 s; the text says about 10 s
   speaking={knownEnd=2.5,at=0}
   local n=0
-  for i=1,260 do
+  for i=1,140 do
     step(.1)
-    if speaking.at>=speaking.knownEnd and speaking.knownEnd<20 then speaking.knownEnd=speaking.knownEnd+2.5 end
+    if speaking.at>=speaking.knownEnd and speaking.knownEnd<10 then speaking.knownEnd=speaking.knownEnd+2.5 end
   end
   local cat=load(catalogSource)()
   local durations={}
@@ -222,7 +222,7 @@ test('a long reply streamed phrase by phrase is judged by its text, and gestures
     if call.name=='jump' and durations[call.clip] then n=n+1;covered=covered+durations[call.clip] end
   end
   assert(count('play')==1,'entered once')
-  assert(n>=2 and covered>=4.5,'gestures '..n..' covering '..covered..' s of a 20 s reply')
+  assert(n>=2 and covered>=4.5,'gestures '..n..' covering '..covered..' s of a 10 s reply')
   c.replyText=function() return 'short reply here' end
 `));
 
@@ -382,7 +382,7 @@ test('with phrase timing from the face timeline, gestures start on phrase starts
   end
   speaking={knownEnd=30,at=0,offset=0,phrases={{start=0},{start=4.2},{start=9.1},{start=13.4},{start=18.8},{start=23.5}}}
   step(29)
-  assert(#starts>=2,'gestures at phrase starts: '..#starts)
+  assert(#starts>=3,'gestures at phrase starts: '..#starts)
   for _,at in ipairs(starts) do
     local latest=0
     for _,span in ipairs(speaking.phrases) do if span.start<=at+1e-9 then latest=span.start end end
@@ -432,54 +432,25 @@ test('the signature idle stays away from the end of a reply', () => run(`
   assert(after>before,'it comes back later')
 `));
 
-test('a bridge family enters on her own idle, crosses to the stance loop, gestures after that, and crosses back before leaving', () => run(`
+test('a stance enters directly on the stance loop: no ambient idle first, gestures after the enter blend, a plain exit', () => run(`
   local cat=load(catalogSource)()
+  for key,fam in pairs(cat.families) do assert(fam.bridge==nil,key..' has no ambient bridge') end
+  assert(cat.families.on_sides_plain==nil,'the plain variant is gone, on_sides is plain now')
   local fam=cat.families.arms_crossed
-  assert(fam.bridge and fam.bridge.name=='idle_stand' and fam.idle.sequenceId==fam.bridge.sequenceId+2,'catalog carries the bridge')
   speaking={knownEnd=20,at=0};step(1.0)
-  assert(held and last('play') and count('jump')==0,'on the ambient idle first: no jump during the enter blend')
-  step(1.2)
-  assert(count('jump')==1 and last('jump').clip==fam.idle.name and last('jump').instant,'crosses to the stance loop')
-  assert(lastLog('bridge-in'),'logged')
-  assert(fam.bridge.blendOut and fam.bridge.blendOut>=2,'the ambient loop fades out slowly')
-  step(2.0)
-  assert(count('jump')==1,'no gesture while the ambient loop is still fading out')
-  step(4.5)
-  assert(count('jump')>=2,'gestures follow the crossing')
-  speaking=nil;step(2.4)
-  assert(count('exit')==0 and not lastLog('bridge-out'),'still lingering')
-  step(.8)
-  assert(lastLog('bridge-out') and count('exit')==0,'crossed back to her own idle first')
-  assert(held and last('jump').clip==fam.bridge.name and last('jump').instant)
-  step(1.2)
-  assert(count('exit')==1 and not last('exit').instant,'then the native fast exit')
-  step(.5)
+  assert(held and last('play') and count('jump')==0,'no jump during the enter blend')
+  step(3.0)
+  assert(count('jump')>=1,'a gesture follows the enter blend')
+  assert(not lastLog('bridge-in') and not lastLog('bridge-out'),'no crossing logged')
+  speaking=nil;step(6)
+  assert(count('exit')==1 and not last('exit').instant,'the native fast exit, nothing before it')
   assert(not held and lastLog('finished').fields.reason=='reply ended')
 `));
 
-test('combat and transport leave a bridge stance at once, without crossing back', () => run(`
+test('combat leaves a stance at once', () => run(`
   speaking={knownEnd=20,at=0};step(3.5)
-  assert(lastLog('bridge-in'))
   context.combat=true;step(.3)
-  assert(count('exit')==1 and last('exit').instant and not lastLog('bridge-out'),'instant exit in combat')
-`));
-
-test('every family that carries a bridge has its own idle on every rig it plays on', () => run(`
-  local cat=load(catalogSource)()
-  for key,fam in pairs(cat.families) do
-    if fam.bridge then
-      for _,rig in ipairs(fam.rigs) do assert(fam.bridge.perRig[rig] and fam.idle.perRig[rig],key..' bridge and stance on '..rig) end
-    end
-  end
-  assert(cat.families.on_sides.bridge and cat.families.arms_crossed.bridge)
-`));
-
-test('the plain on_sides variant has the same clips and ids as on_sides but no bridge', () => run(`
-  local cat=load(catalogSource)()
-  local a,b=cat.families.on_sides,cat.families.on_sides_plain
-  assert(b and not b.bridge and a.bridge,'plain variant has no bridge')
-  assert(b.clips==a.clips or #b.clips==#a.clips,'same clip list')
-  assert(b.idle.sequenceId==a.idle.sequenceId and b.component~=a.component,'same ids, own component')
+  assert(count('exit')==1 and last('exit').instant,'instant exit in combat')
 `));
 
 test('a kept device that has not followed her yet is not played; a device that never follows is replaced', () => run(`

@@ -112,25 +112,21 @@
       "component": "convai_talk_on_sides",
       "workspot": "cyberpunk_convai\\gestures\\convai_talk_on_sides.workspot",
       "idle": "stand__2h_on_sides__01",
-      "bridge": "idle_stand",
       "prefixes": [
         "stand__2h_on_sides__01__"
       ],
       "templateEntries": true,
       "animsets": {
         "woman_base": [
-          "base\\animations\\npc\\gameplay\\woman_average\\gang\\unarmed\\wa_gang_unarmed_locomotion_relaxed.anims",
           "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_average_female_stand_2h_on_sides.anims",
           "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_average_female_stand__2h_on_sides.anims",
           "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_average_female_transitions.anims"
         ],
         "man_base": [
-          "base\\animations\\npc\\gameplay\\man_average\\gang\\unarmed\\ma_gang_unarmed_locomotion_relaxed.anims",
           "base\\animations\\npc\\generic_characters\\male_average\\interactive_scene\\generic_male_average__stand__2h_on_sides__01.anims",
           "base\\animations\\npc\\generic_characters\\male_average\\interactive_scene\\generic_average_male_transitions.anims"
         ],
         "man_big": [
-          "base\\animations\\npc\\gameplay\\man_big\\gang\\unarmed\\mb_gang_unarmed_locomotion_relaxed.anims",
           "base\\animations\\npc\\main_characters\\jackie\\interactive_scene\\jackie__stand__2h_on_sides.anims",
           "base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_big_male_stand_2h_on_sides.anims",
           "base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_big_male_transitions.anims",
@@ -138,17 +134,10 @@
         ]
       }
     },
-    "on_sides_plain": {
-      "like": "on_sides",
-      "bridge": null,
-      "component": "convai_talk_on_sides_plain",
-      "workspot": "cyberpunk_convai\\gestures\\convai_talk_on_sides_plain.workspot"
-    },
     "arms_crossed": {
       "component": "convai_talk_arms_crossed",
       "workspot": "cyberpunk_convai\\gestures\\convai_talk_arms_crossed.workspot",
       "idle": "stand__arms_crossed_front__01",
-      "bridge": "idle_stand",
       "prefixes": [
         "stand__arms_crossed_front__01__",
         "judy__stand_2h_arms_crossed__01__gesture",
@@ -156,17 +145,14 @@
       ],
       "animsets": {
         "woman_base": [
-          "base\\animations\\npc\\main_characters\\judy\\locomotion\\wa_judy_unarmed_locomotion_relaxed.anims",
           "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_female_average__stand__arms_crossed_front__01.anims",
           "base\\animations\\npc\\main_characters\\judy\\interactive_scene\\judy__stand_2h_arms_crossed__01__gestures__01.anims"
         ],
         "man_base": [
-          "base\\animations\\npc\\gameplay\\man_average\\gang\\unarmed\\ma_gang_unarmed_locomotion_relaxed.anims",
           "base\\animations\\npc\\generic_characters\\male_average\\interactive_scene\\generic_male_average__stand__arms_crossed_front__01.anims",
           "base\\animations\\npc\\main_characters\\johnny\\interactive_scene\\johnny__stand__arms_crossed_front__01.anims"
         ],
         "man_big": [
-          "base\\animations\\npc\\gameplay\\man_big\\gang\\unarmed\\mb_gang_unarmed_locomotion_relaxed.anims",
           "base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_male_big__stand__arms_crossed_front__01.anims"
         ]
       }
@@ -710,8 +696,7 @@
     "exitNatural": 1.4,
     "exitForced": 0.5,
     "transition": 1.2,
-    "clipOut": 0.9,
-    "ambientOut": 2.4
+    "clipOut": 0.9
   },
   "seatWorkspots": {
     "couch": "base\\workspots\\common\\couch\\generic__sit_couch__sit_around__02.workspot",
