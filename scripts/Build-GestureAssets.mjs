@@ -212,6 +212,12 @@ for (const [bodyType, rig] of Object.entries(source.generic?.bodyTypes ?? {})) {
     if (!source.idleWorkspots[row.idle]) fail(`generic: idle ${row.idle} has no workspot`);
     const checked = source.idleSources?.[row.idle];
     if (!checked || !checked[2].split(',').includes(rig)) fail(`generic: idle ${row.idle} is not checked on ${rig}`);
+    // The random pool of clean idles for this rig (also mixed into catalogued characters when generic.mix is set).
+    for (const key of row.idles ?? []) {
+        if (!source.idleWorkspots[key]) fail(`generic: pool idle ${key} has no workspot`);
+        const poolChecked = source.idleSources?.[key];
+        if (!poolChecked || !poolChecked[2].split(',').includes(rig)) fail(`generic: pool idle ${key} is not checked on ${rig}`);
+    }
 }
 const seatWorkspots = source.seatWorkspots ?? {};
 for (const [key, depot] of Object.entries(seatWorkspots)) requirePath(depot, `${key} seat workspot`);
@@ -522,7 +528,7 @@ const catalog = {
     seatComponents: Object.fromEntries(Object.keys(seatWorkspots).map((key) => [key, `convai_sit_${key}`])),
     characters: source.characters,
     // Fallback for records not in 'characters': body type -> rig -> talk family and idle (mod/companion-gestures.lua).
-    generic: source.generic ? { bodyTypes: source.generic.bodyTypes, rigs: source.generic.rigs,
+    generic: source.generic ? { bodyTypes: source.generic.bodyTypes, rigs: source.generic.rigs, mix: source.generic.mix === true,
         never: Object.fromEntries((source.generic.never ?? []).map((record) => [record, true])) } : undefined,
 };
 for (const [key] of aliases) delete catalog.families[key].clips;

@@ -9,12 +9,13 @@ local workspot = dofile('gesture-workspot.lua')
 local selection = dofile('gesture-selection.lua')
 local M = {}
 local HOLDING = {spawning = true, starting = true, active = true, exiting = true, recovering = true}
-M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourAfterTalk = 45, linger = 2.5, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
+M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourAfterTalk = 5, linger = 2.5, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
     nearStart = 4.0, nearKeep = 4.5, socialPhases = {settled = true, attend = true}, faceWithin = 35, deviceSettle = 1.5, deviceRetry = .4,
     wedgeAfter = 1.5, healthWindow = 10, recoveryHold = .9, recoveryLimit = 2, failureCooldown = 30, minimumSpeech = 5,
-    -- Signature idle flavour (characters marked flavour in the catalog only):
-    -- after this long settled, now and then, for a short while.
-    flavourSettled = 20, flavourFirst = {45, 90}, flavourGap = {60, 150}, flavourLength = {18, 30}}
+    -- Idle flavour (characters marked flavour in the catalog, and the generic fallback): she goes into an idle as
+    -- soon as she has been settled for a moment (a copy that never talked included), for a while, then again after a
+    -- short gap measured from the end of the last one; five seconds after a reply ends (flavourAfterTalk).
+    flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {10, 25}, flavourLength = {25, 50}}
 
 local function distance(a, b)
     if not a or not b then return 0 end
@@ -84,9 +85,38 @@ function M.new(options)
         local rig = config.bodyTypes and config.bodyTypes[body]
         local row = rig and config.rigs and config.rigs[rig]
         if not row then self.generic[entry.serial] = false; return nil end
-        local known = {key = 'generic', rig = rig, talk = row.talk, idle = row.idle, flavour = true, fallback = row.talk, generic = true}
+        local known = {key = 'generic', rig = rig, talk = row.talk, idle = row.idle, idles = row.idles, flavour = true, fallback = row.talk, generic = true}
         self.generic[entry.serial] = known
         return known
+    end
+    -- The idles a copy may take: its own signature idle, its explicit pool, and (catalog.generic.mix) the clean generic
+    -- idles of its rig. Cached per row; only idles the archive has a component for.
+    self.pools = self.pools or {}
+    local function poolOf(known)
+        local cached = self.pools[known]
+        if cached then return cached end
+        local pool, seen = {}, {}
+        local function add(key)
+            if key and not seen[key] and self.catalog.idleComponents[key] then seen[key] = true; pool[#pool + 1] = key end
+        end
+        add(known.idle)
+        for _, key in ipairs(known.idles or {}) do add(key) end
+        local config = self.catalog.generic
+        if config and config.mix and not known.generic then
+            local row = config.rigs and config.rigs[known.rig]
+            for _, key in ipairs(row and row.idles or {}) do add(key) end
+        end
+        self.pools[known] = pool
+        return pool
+    end
+    -- A random idle from the pool, never the one she just had when there is a choice.
+    local function pickIdle(s, known)
+        local pool = poolOf(known)
+        if #pool == 0 then return nil end
+        local choices = {}
+        for _, key in ipairs(pool) do if key ~= s.lastIdle or #pool == 1 then choices[#choices + 1] = key end end
+        local key = choices[math.min(#choices, math.floor(((self.random or math.random)()) * #choices) + 1)]
+        return key
     end
     local function characterOf(entry)
         local known = self.catalog.characters and self.catalog.characters[entry.record] or genericOf(entry)
@@ -218,7 +248,9 @@ function M.new(options)
     local function begin(s, known, family, recovery, flavour, familyKey)
         s.phase, s.since = recovery and 'recovering' or 'spawning', self.clock
         s.flavour = flavour == true
-        s.component = flavour and self.catalog.idleComponents[known.idle] or family.component
+        s.idleKey = flavour and pickIdle(s, known) or nil
+        s.lastIdle = s.idleKey or s.lastIdle
+        s.component = flavour and s.idleKey and self.catalog.idleComponents[s.idleKey] or family.component
         s.flavourUntil = flavour and self.clock + between(policy.flavourLength) or nil
         s.known, s.family, s.rig, s.character, s.familyKey = known, family, known.rig, known.key, familyKey
         s.deviceMoved, s.clip, s.exitAt, s.playerAnchor, s.unsettledSince = false, nil, nil, copy(self.playerPosition), nil
@@ -236,7 +268,8 @@ function M.new(options)
         if reason ~= 'reply ended' and reason ~= 'conversation' and reason ~= 'flavour ended' and reason ~= 'disabled' then
             s.talkNotBefore = self.clock + policy.reenterDelay
         end
-        if not s.flavour then s.nextFlavourAt = math.max(s.nextFlavourAt or 0, self.clock + policy.flavourAfterTalk) end
+        if s.flavour then s.nextFlavourAt = self.clock + between(policy.flavourGap)
+        else s.nextFlavourAt = math.max(s.nextFlavourAt or 0, self.clock + policy.flavourAfterTalk) end
     end
     local function fail(s, reason)
         note(s, 'failed', {reason = reason})
@@ -414,8 +447,8 @@ function M.new(options)
                 local talking = mode == 'speaking' or mode == 'listening' or mode == 'thinking'
                 if not talking then
                     local known = characterOf(entry)
-                    if mode ~= nil or not known or not known.flavour or not known.idle
-                        or not self.catalog.idleComponents[known.idle] or not s.settledSince then return end
+                    if mode ~= nil or not known or not known.flavour or not s.settledSince
+                        or #poolOf(known) == 0 then return end
                     s.nextFlavourAt = s.nextFlavourAt or self.clock + between(policy.flavourFirst)
                     if self.clock - s.settledSince < policy.flavourSettled or self.clock < s.nextFlavourAt then return end
                     flavour = true
@@ -425,7 +458,7 @@ function M.new(options)
                     or self.clock < (s.talkNotBefore or 0)) then return end
                 -- The stance is placed at her pose and yaw: not while she is still turning toward V
                 -- (her attention turn runs for a second or two after V looks at her).
-                if talking and (tonumber(entry.facingError) or 0) > policy.faceWithin then return end
+                if (talking or flavour) and (tonumber(entry.facingError) or 0) > policy.faceWithin then return end
                 if not (context.idle and context.settled) or context.combat then return end
                 -- Only beside V, in a social stance: never for a copy left behind.
                 if (tonumber(entry.playerGap) or math.huge) > policy.nearStart then return end
@@ -436,7 +469,6 @@ function M.new(options)
                 local allowed = self.allowed(entry.npc, self.player)
                 if not allowed then return end
                 begin(s, known, family, false, flavour, familyKey)
-                if flavour then s.nextFlavourAt = self.clock + between(policy.flavourGap) end
             end
             if not self.enabled() and s.phase == 'active' then requestExit(s, 'disabled', false) end
             advance(s, context, mode, info)

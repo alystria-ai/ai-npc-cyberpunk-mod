@@ -27,6 +27,8 @@ end
 local calls,logs={}, {}
 local function count(name) local n=0;for _,c in ipairs(calls) do if c.name==name then n=n+1 end end;return n end
 local function last(name) for i=#calls,1,-1 do if calls[i].name==name then return calls[i] end end end
+local function talks() local n=0 for _,c in ipairs(calls) do if c.name=='play' and c.component:find('convai_talk',1,true) then n=n+1 end end return n end
+local function idles() local n=0 for _,c in ipairs(calls) do if c.name=='play' and c.component:find('convai_idle',1,true) then n=n+1 end end return n end
 local npc={inside=false}
 local native={TAG='t'}
 function native.inWorkspot(n) return n.inside end
@@ -77,10 +79,9 @@ step(1.2);seed=7
 test('off by default setting, idle and short replies never enter a stance', () => run(`
   enabled=false;speaking={knownEnd=12,at=0};step(2)
   assert(count('play')==0 and not held,'disabled')
-  enabled=true;speaking=nil;step(3)
-  assert(count('play')==0,'idle keeps the vanilla idle')
+  enabled=true;speaking=nil;step(.1)
   speaking={knownEnd=3,at=0};step(3)
-  assert(count('play')==0,'short replies do not gesture')
+  assert(talks()==0,'short replies do not enter a talk stance')
 `));
 
 test('a long reply enters the character stance family, gestures, and leaves after the reply', () => run(`
@@ -173,19 +174,18 @@ test('unknown characters are left alone', () => run(`
   assert(count('play')==0)
 `));
 
-test('Johnny takes his signature idle now and then when settled, and talks from hands at sides', () => run(`
-  entry.record='Character.Somebody';step(130)
-  assert(count('play')==0,'an unknown character keeps its vanilla idle')
+test('Johnny goes into an idle as soon as he is settled, again after a short gap, and talks from hands at sides', () => run(`
+  entry.record='Character.Somebody';step(30)
+  assert(count('play')==0,'an unknown character with no readable body type keeps its vanilla idle')
   entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
-  step(115)
+  step(3)
   local began=lastLog('flavour-begin')
-  assert(began and began.fields.component=='convai_idle_johnny','signature idle component')
-  step(31)
+  assert(began and idles()==1,'an idle right after settling, no timer')
+  step(51)
   assert(lastLog('finished') and lastLog('finished').fields.reason=='flavour ended')
-  step(160)
-  assert(#(function() local n={};for _,l in ipairs(logs) do if l.kind=='flavour-begin' then n[#n+1]=l end end;return n end)()>=2,'repeats with a gap')
+  step(30)
+  assert(#(function() local n={};for _,l in ipairs(logs) do if l.kind=='flavour-begin' then n[#n+1]=l end end;return n end)()>=2,'repeats after a short gap')
   speaking={knownEnd=20,at=0};step(.3)
-  if lastLog('flavour-begin') and not lastLog('exit') then end
   step(1.5)
   assert(last('play').component=='convai_talk_on_sides','Johnny talks from hands at sides like his idle: '..tostring(last('play').component))
 `));
@@ -344,7 +344,9 @@ test('every character with a signature or generic idle resolves it on its own ri
         c2.observe(e2,context,.1)
         if localCalls[1] then break end
       end
-      assert(localCalls[1]=='convai_idle_'..known.idle,record..' played '..tostring(localCalls[1]))
+      local pool={['convai_idle_'..known.idle]=true}
+      for _,key in ipairs(cat.generic.rigs[known.rig].idles) do pool['convai_idle_'..key]=true end
+      assert(pool[localCalls[1] or ''],record..' played '..tostring(localCalls[1]))
       checked=checked+1
     end
   end
@@ -415,21 +417,20 @@ test('after movement pushes her out, the stance is not re-entered at once; it wa
   assert(held and count('play')==2,'re-entered once settled')
 `));
 
-test('the signature idle stays away from the end of a reply', () => run(`
+test('the idle waits five seconds after the end of a reply', () => run(`
   entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
-  step(1.5)
-  speaking={knownEnd=8,at=0};step(.5)
+  speaking={knownEnd=8,at=0};step(1.6)
   assert(held)
   step(10)
   speaking=nil;step(4)
   assert(lastLog('finished').fields.reason=='reply ended')
   local before=0 for _,l in ipairs(logs) do if l.kind=='flavour-begin' then before=before+1 end end
-  step(35)
+  step(3)
   local mid=0 for _,l in ipairs(logs) do if l.kind=='flavour-begin' then mid=mid+1 end end
-  assert(mid==before,'no hand-on-hip entry within 45 s of the reply')
-  step(120)
+  assert(mid==before,'no idle within 5 s of the reply')
+  step(4)
   local after=0 for _,l in ipairs(logs) do if l.kind=='flavour-begin' then after=after+1 end end
-  assert(after>before,'it comes back later')
+  assert(after>before,'it follows five seconds after the reply')
 `));
 
 test('a stance enters directly on the stance loop: no ambient idle first, gestures after the enter blend, a plain exit', () => run(`
@@ -455,36 +456,50 @@ test('combat leaves a stance at once', () => run(`
 
 // The generic fallback: a record the catalog does not list gets its rig's own talk family and a hip or folded-arms
 // idle from its body type (catalog.generic).
-for (const [bodyType, family, component, idle, rig] of [
-  ['WomanAverage', 'woman_sides', 'convai_talk_woman_sides', 'convai_idle_generic_hip', 'woman_base'],
-  ['ManAverage', 'man_sides', 'convai_talk_man_sides', 'convai_idle_generic_arms_crossed', 'man_base'],
-  ['ManBig', 'big_sides', 'convai_talk_big_sides', 'convai_idle_generic_hips_big', 'man_big']]) {
-  test(`an uncatalogued ${bodyType} copy talks from ${family} and idles with ${idle}`, () => run(`
-    entry.record='Character.sq017_blue_moon'
+for (const [bodyType, rig, pool] of [
+  ['WomanAverage', 'woman_base', ['convai_idle_jackie_hips', 'convai_idle_panam_hips', 'convai_idle_generic_hips']],
+  ['ManAverage', 'man_base', ['convai_idle_generic_arms_crossed', 'convai_idle_generic']],
+  ['ManBig', 'man_big', ['convai_idle_generic_hips_big', 'convai_idle_generic', 'convai_idle_jackie_hips']]]) {
+  test(`an uncatalogued ${bodyType} copy talks from on_sides and idles from its rig's pool`, () => run(`
+    entry.record='Character.sq017_blue_moon_x'
     local reads=0
     function native.bodyType() reads=reads+1;return '${bodyType.toLowerCase()}' end
     speaking={knownEnd=14,at=0};step(.5)
-    assert(last('play') and last('play').component=='${component}','talk family: '..tostring(last('play') and last('play').component))
+    assert(last('play') and last('play').component=='convai_talk_on_sides','talk family: '..tostring(last('play') and last('play').component))
     assert(held,'movement waits while in the stance')
     step(8)
     assert(count('jump')>=2,'gestures played: '..count('jump'))
     local cat=load(catalogSource)()
-    local fam=cat.families.${family}
+    local fam=cat.families.on_sides
     for _,call in ipairs(calls) do
       if call.name=='jump' and call.clip~=fam.idle.name then
         local found
         for _,clip in ipairs(fam.clips) do if clip.name==call.clip then found=clip end end
-        assert(found and found.perRig.${rig} and found.character==nil and found.category~='idlebreak','clip valid: '..call.clip)
+        assert(found and found.perRig.${rig} and found.category~='idlebreak','clip valid: '..call.clip)
       end
     end
     speaking=nil;step(4)
     assert(count('exit')==1 and not held and lastLog('finished').fields.reason=='reply ended')
     assert(reads==1,'the body type is read once per copy: '..reads)
-    -- and the hip idle after a long settle
-    local before=count('play')
-    step(150)
-    local flavour=lastLog('flavour-begin')
-    assert(flavour and last('play').component=='${idle}' and count('play')>before,'signature idle: '..tostring(last('play').component))
+    -- the idle five seconds after the reply, a random one of the rig's pool, never the same twice in a row
+    local inPool={}
+    for _,key in ipairs({${pool.map((k) => `'${k}'`).join(',')}}) do inPool[key]=true end
+    local seen={}
+    for round=1,6 do
+      local before=idles()
+      local waited=0
+      while idles()==before and waited<160 do step(.5);waited=waited+1 end
+      assert(idles()==before+1,'an idle follows: '..idles()..' vs '..before)
+      if round==1 then assert(waited<=16,'the first idle follows the reply within about five seconds: '..waited) end
+      local component=last('play').component
+      assert(inPool[component],'idle from the rig pool: '..component)
+      seen[component]=true
+      step(50)
+    end
+    local order={} for _,l in ipairs(logs) do if l.kind=='flavour-begin' then order[#order+1]=l.fields.component end end
+    for i=2,#order do assert(order[i]~=order[i-1] or ${pool.length}==1,'not the same idle twice in a row: '..order[i]) end
+    local kinds=0 for _ in pairs(seen) do kinds=kinds+1 end
+    assert(kinds>=${Math.min(pool.length, 2)},'more than one idle used: '..kinds)
     assert(reads==1,'still one read')
   `));
 }
@@ -507,7 +522,7 @@ test('an uncatalogued copy with a body type the catalog has no rig for, or one t
   assert(reads==2,'retried after 5 s: '..reads)
   function native.bodyType() return 'womanaverage' end
   step(6)
-  assert(last('play') and last('play').component=='convai_talk_woman_sides','readable now: '..tostring(last('play') and last('play').component))
+  assert(last('play') and last('play').component=='convai_talk_on_sides','readable now: '..tostring(last('play') and last('play').component))
 `));
 
 test('records on the catalog never list are left alone even when their body type matches', () => run(`
@@ -601,3 +616,22 @@ test('the real body type read understands a CName (NameToString, or the name ins
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
   lua.lua_close(vm); assert.equal(result, lua.LUA_OK, error);
 });
+
+test('a catalogued character rotates her own idle with the rig\'s clean generic idles and does not turn while still facing away', () => run(`
+  entry.record='Character.sq017_blue_moon';entry.serial=3;calls={};logs={}
+  entry.facingError=80;step(5)
+  assert(idles()==0,'no idle while she is still turning toward V')
+  entry.facingError=5;step(3)
+  assert(idles()==1,'idle as soon as she has turned')
+  local seen={}
+  for round=1,10 do step(40) end
+  for _,l in ipairs(logs) do if l.kind=='flavour-begin' then seen[l.fields.component]=true end end
+  assert(seen.convai_idle_uscracks_cute,'her signature idle is in the rotation')
+  assert(seen.convai_idle_jackie_hips or seen.convai_idle_panam_hips or seen.convai_idle_generic_hips,'and the clean generic idles')
+  assert(not seen.convai_idle_generic_hip,'the lurching generic_hip is not part of the generic pool')
+  local order={} for _,l in ipairs(logs) do if l.kind=='flavour-begin' then order[#order+1]=l.fields.component end end
+  for i=2,#order do assert(order[i]~=order[i-1],'no repeat in a row') end
+  -- a talk stance for her uses on_sides (the gang-loop family drifted on her live)
+  speaking={knownEnd=14,at=0};step(2)
+  assert(last('play').component=='convai_talk_on_sides','talks from on_sides: '..tostring(last('play').component))
+`));

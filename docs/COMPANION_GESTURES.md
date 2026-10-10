@@ -739,3 +739,31 @@ Live result and fix (same day): the first CET reload did nothing for Blue Moon (
 To check live (CET reload): invite Blue Moon, stand beside her, send a typed message: she enters the hands-at-sides talk stance (`begin` with `convai_talk_woman_sides` in `probe.log`), gestures during a reply, and after about 45-90 s of standing she takes the hand-on-hip idle.
 
 Real signature idles for tier-2 characters need their own vanilla workspot or animset (found by quest id: sq017 Blue Moon, sq021 Joss, sq023 Rachel, q101 Spider Murphy, mq303 Lina and Shank, mq019 Liam, mq038 Dennis, mq040 Cynthia and so on), a gestures.json idle row plus `idleSources` check, and a rebuilt archive (game restart). The Round 5 survey only covered tier-1 names, so those workspots are not extracted yet.
+
+
+## Round 6b (October 11): Blue Moon's slide, idles from the start, a pool per rig
+
+Live with the Round 6 fallback installed: Blue Moon "slides back" on the talk entry. The movement trace shows her entity does not move (x -1606.502, y 356.153, z 49.2 through every entry), so it is a pose blend, the same kind as 5f.
+
+**Measurement** (Blue Moon staged under the face-stage kill switch, each workspot driven directly through a temporary probe, 36 fps captures, torso tracked by its dominant clothing colour: area, centre x and y over the 3 s after `play`; `scripts` scratch tooling, files removed afterwards; the vertical-jolt number of Round 5 cannot see a depth or sideways drift):
+
+| Workspot on Blue Moon | Torso drift 0-3 s after play (half-resolution px) |
+|---|---|
+| `convai_talk_woman_sides` (loop = gang `idle_stand`), two runs | centre -15 x, +6..10 y, area +8-9 %, steady, no recovery |
+| `convai_talk_on_sides` (stance loop), two runs | -4 / -7 x, area 0.97-0.99 |
+| `convai_talk_on_hips` | +4 x, area 0.97 |
+| `convai_idle_jackie_hips`, `panam_hips`, `alt` | within 6 px on entry and exit |
+| `convai_idle_generic_hip` (Evelyn's and the Round 6 fallback idle) | 40-59 px sideways swing at 2 s, back by 3.5 s, in both runs |
+| `generic_hips`, `generic_back`, `generic_hold`, `bodyguard_*`, arms-crossed idles | varies with the idle's own break clips or changes the torso shape too much to judge this way |
+
+The `woman_sides` loop is the gang `idle_stand`; it matched Evelyn's ambient pose but not Blue Moon's, so the 1.5 s enter blend crossed from one to the other. The `on_sides` stance loop is what every catalogued character uses and showed no drift.
+
+Changed (Lua, catalog, no archive change beyond the Blue Moon idle component):
+- The generic fallback talks from `on_sides` on all three rigs, not from `woman_sides`, `man_sides` or `big_sides` (those families stay in the archive, unused).
+- A pool of idles per rig (`generic.rigs[rig].idles`): women `jackie_hips`, `panam_hips`, `generic_hips`; men `generic_arms_crossed`, `generic`; big men `generic_hips_big`, `generic`, `jackie_hips`. `generic_hip` is out of the generic pool (the lurch). Each is checked on its rig by the build. With `generic.mix` the pool is also added to every catalogued character's own idle, so each one rotates; the controller picks a random one each time and never the one she just had when there is a choice.
+- Idles start as soon as she has been settled for 1.5 s (a copy that never talked included), no first-idle timer; the gap to the next one is 10-25 s after the end of the last (idle length 25-50 s); five seconds after the end of a reply (`flavourAfterTalk`, was 45); the idle also waits until she has turned toward V (`facingError` within 35 degrees, like the talk stance). Nothing is added per frame.
+- Blue Moon is a catalogued character now: `Character.sq017_blue_moon`, talk `on_sides`, signature idle `uscracks_cute` (the sq017_18 US Cracks stage workspot `uscracks__stand_stage__cute__01`: the dirtgirl hip loop with shuffles, a spin and poses, no props).
+
+Signature-idle survey of the Top 11 (workspot and animset names by quest id, offline; extracted to `E:\CyberpunkConvai-offload\work\signature-tier2\`): only Blue Moon has a prop-free standing idle of her own (US Cracks, sq017). Yorinobu (q113: fallen, sitting on the ground), T-Bug (q005 sitting), Spider Murphy (q101: cyberdeck, q304: aiming a gun), Joss (sq021: at the microwave), Rachel (sq023: leaning on a car), Lina (mq303: chair), Shank (mq303: mop, bar, cell), Carol (sq027/q202: chair, tablet), Aaron (mq306: seated, lying in a chair) and Coach Fred (no workspot found) have none that stands without a prop or a piece of furniture, so they keep the generic fallback and its pool.
+
+To check live (archive and Lua installed, game restarted): Blue Moon enters the talk stance without sliding back, takes an idle about 1.5 s after she settles beside V and five seconds after each reply, and the idle never repeats twice in a row.

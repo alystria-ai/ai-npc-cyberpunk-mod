@@ -34810,6 +34810,7 @@ local catalog = {
         generic_hold = "convai_idle_generic_hold",
         ripperdoc_arms = "convai_idle_ripperdoc_arms",
         generic_arms_crossed_b = "convai_idle_generic_arms_crossed_b",
+        uscracks_cute = "convai_idle_uscracks_cute",
     },
     idleSources = {
         judy = {
@@ -35023,6 +35024,13 @@ local catalog = {
         generic_arms_crossed_b = {
             kind = "generic",
             what = "arms crossed (generic 08, 8 break clips)",
+            rigs = {
+                "woman_base",
+            },
+        },
+        uscracks_cute = {
+            kind = "character workspot",
+            what = "US Cracks stage idle (sq017_18): dirtgirl hip loop with shuffles, a spin and poses, no props",
             rigs = {
                 "woman_base",
             },
@@ -35328,6 +35336,16 @@ local catalog = {
             note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Rig from the entity's animated component (Oct 9).",
             idleSource = "generic",
         },
+        ["Character.sq017_blue_moon"] = {
+            key = "blue-moon",
+            rig = "woman_base",
+            talk = "on_sides",
+            idle = "uscracks_cute",
+            flavour = true,
+            fallback = "on_sides",
+            note = "Added Oct 11 (tier-2 signature survey): the US Cracks stage idle from sq017 (hip pose with shuffles, a spin and poses). Talk uses on_sides: woman_sides (gang idle_stand loop) drifted 15 px over the enter blend on her live, on_sides did not.",
+            idleSource = "character workspot",
+        },
     },
     generic = {
         bodyTypes = {
@@ -35337,18 +35355,33 @@ local catalog = {
         },
         rigs = {
             woman_base = {
-                talk = "woman_sides",
-                idle = "generic_hip",
+                talk = "on_sides",
+                idle = "jackie_hips",
+                idles = {
+                    "jackie_hips",
+                    "panam_hips",
+                    "generic_hips",
+                },
             },
             man_base = {
-                talk = "man_sides",
+                talk = "on_sides",
                 idle = "generic_arms_crossed",
+                idles = {
+                    "generic_arms_crossed",
+                    "generic",
+                },
             },
             man_big = {
-                talk = "big_sides",
+                talk = "on_sides",
                 idle = "generic_hips_big",
+                idles = {
+                    "generic_hips_big",
+                    "generic",
+                    "jackie_hips",
+                },
             },
         },
+        mix = true,
         never = {
             ["Character.Smasher"] = true,
             ["Character.Dexter"] = true,

@@ -365,18 +365,34 @@
     }
   },
   "generic": {
-    "note": "Fallback for every companion whose record is not in 'characters' (the tier-2 and named contacts, any model-only copy). The controller reads the copy's body type once (npc:GetBodyType, lower case without separators), takes the rig and with it a talk family whose loop is that rig's own relaxed idle_stand (no stance entry shuffle) and a signature-less hip or folded-arms idle. Body types not listed (ManFat, ManMassive, mechs, animals, anything unreadable) get nothing. 'never' lists records the catalog deliberately leaves out whatever their body type reads as: Adam Smasher (man_massive) and Dexter (the man_fat rig has no talk families), Round 5.",
+    "note": "Fallback for every companion whose record is not in 'characters' (the tier-2 and named contacts, any model-only copy). The controller reads the copy's body type once (NameToString of npc:GetBodyType, lower case without separators), takes the rig and with it the on_sides talk family (the stance loop every catalogued character uses; the gang idle_stand loop of woman_sides drifted 15 px over the enter blend on Blue Moon, live Oct 11) and a random pick among the rig's clean idles. 'idles' is that pool; with 'mix' it is also added to every catalogued character's own idle, so nobody has one idle only. Body types not listed (ManFat, ManMassive, mechs, animals, anything unreadable) get nothing. 'never' lists records the catalog deliberately leaves out whatever their body type reads as: Adam Smasher (man_massive) and Dexter (the man_fat rig has no talk families), Round 5.",
+    "mix": true,
     "bodyTypes": {
       "womanaverage": "woman_base",
       "manaverage": "man_base",
       "manbig": "man_big"
     },
     "rigs": {
-      "woman_base": { "talk": "woman_sides", "idle": "generic_hip" },
-      "man_base": { "talk": "man_sides", "idle": "generic_arms_crossed" },
-      "man_big": { "talk": "big_sides", "idle": "generic_hips_big" }
+      "woman_base": {
+        "talk": "on_sides",
+        "idle": "jackie_hips",
+        "idles": ["jackie_hips", "panam_hips", "generic_hips"]
+      },
+      "man_base": {
+        "talk": "on_sides",
+        "idle": "generic_arms_crossed",
+        "idles": ["generic_arms_crossed", "generic"]
+      },
+      "man_big": {
+        "talk": "on_sides",
+        "idle": "generic_hips_big",
+        "idles": ["generic_hips_big", "generic", "jackie_hips"]
+      }
     },
-    "never": ["Character.Smasher", "Character.Dexter"]
+    "never": [
+      "Character.Smasher",
+      "Character.Dexter"
+    ]
   },
   "characters": {
     "Character.Judy": {
@@ -668,6 +684,16 @@
       "fallback": "on_sides",
       "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Rig from the entity's animated component (Oct 9).",
       "idleSource": "generic"
+    },
+    "Character.sq017_blue_moon": {
+      "key": "blue-moon",
+      "rig": "woman_base",
+      "talk": "on_sides",
+      "idle": "uscracks_cute",
+      "flavour": true,
+      "fallback": "on_sides",
+      "note": "Added Oct 11 (tier-2 signature survey): the US Cracks stage idle from sq017 (hip pose with shuffles, a spin and poses). Talk uses on_sides: woman_sides (gang idle_stand loop) drifted 15 px over the enter blend on her live, on_sides did not.",
+      "idleSource": "character workspot"
     }
   },
   "idleWorkspots": {
@@ -701,6 +727,8 @@
     "generic_hold": "base\\workspots\\common\\ground\\generic__stand_ground__stand_around__07.workspot",
     "ripperdoc_arms": "base\\workspots\\main_characters\\ripperdoc\\ground\\ripperdoc__stand_ground_arms_crossed__talk__01.workspot",
     "generic_arms_crossed_b": "base\\workspots\\common\\ground\\generic__stand_ground__stand_around__08.workspot"
+,
+    "uscracks_cute": "base\\workspots\\quest\\side_quests\\sq017\\sq017_18_uscracks_premiere_video\\uscracks__stand_stage__cute__01.workspot"
   },
   "experimentalIdles": [
     "johnny_smoke"
@@ -831,7 +859,8 @@
     "bodyguard_back": ["generic", "formal, hands behind the back (bodyguard, no break clips)", "woman_base,man_base,man_big"],
     "generic_hold": ["generic", "hands raised and held in front (gesture_hold)", "woman_base,man_base,man_big"],
     "ripperdoc_arms": ["generic", "arms crossed (ripperdoc, no break clips)", "woman_base,man_base,man_big"],
-    "generic_arms_crossed_b": ["generic", "arms crossed (generic 08, 8 break clips)", "woman_base"]
+    "generic_arms_crossed_b": ["generic", "arms crossed (generic 08, 8 break clips)", "woman_base"],
+    "uscracks_cute": ["character workspot", "US Cracks stage idle (sq017_18): dirtgirl hip loop with shuffles, a spin and poses, no props", "woman_base"]
   },
   "conversationFit": {
     "note": "Oct 9 audit (Judy feedback: pointing that made no sense). Each clip is classified for conversation: centred (moving hands stay in front of the body, between hips and chest), neutral, or excluded as directional (pointing, indicating a side, behind or across), turn (torso or head turned away from V) or sweep (broad or overhead arms). Name rules first, then the measured shape (assets/gestures/clip-shape.json, scripts/Measure-GestureShape.py) on every rig that has the clip; excluded clips keep their workspot sequence (the probe can still play them) but never play in conversation.",
