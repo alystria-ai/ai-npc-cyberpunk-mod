@@ -62,12 +62,14 @@ test('with the setting off nothing is prepared and the short wait notice never m
   `);
 });
 
-test('with the setting on a wait is silent: no notice before or after the warm-up finishes', () => {
+test('with the setting on the wait notice still shows until the character is connected', () => {
   run(`${fixture}
+    setting = true
     local auto = make()
-    assert(auto.talkNotice('judy-alvarez', 'Judy') == nil, 'a warm-up announced itself')
+    assert(auto.talkNotice('judy-alvarez', 'Judy') == 'Preparing connection to Judy…', 'the wait with the setting on was silent')
+    assert(auto.talkNotice('panam', 'Panam') == 'Preparing connection to Panam…')
     readyKeys['judy-alvarez'] = true
-    assert(auto.talkNotice('judy-alvarez', 'Judy') == nil)
+    assert(auto.talkNotice('judy-alvarez', 'Judy') == nil, 'a connected character still showed the wait notice')
   `);
 });
 

@@ -7,10 +7,10 @@
 -- or scenes, with a cooldown after a release; an unused one is released after
 -- a while. The wanted list is published to runtime/nearby-connections.json and
 -- the bridge (bridge/nearby-warm.mjs) opens the connections and prepares the
--- voices. Nothing here touches the world, the party or a conversation, and it is silent: no notice
--- announces a warm-up, and a player who talks before one finishes just waits.
--- Off: nothing is prepared ahead. When the player starts talking to a character that is not connected
--- yet, talkNotice() returns the short wait notice (no hint about this setting).
+-- voices. Nothing here touches the world, the party or a conversation, and no notice
+-- announces a warm-up. A player who talks before one finishes sees the short wait notice.
+-- Off: nothing is prepared ahead. The same wait notice shows when the player starts talking to a
+-- character that is not connected yet: talkNotice() returns it with the setting on or off (no hint about the setting).
 --
 -- Ranking of the two slots: a looked-at character first (looking is intent; it may replace the idlest unwanted
 -- one), then nearby characters by prominence (tier-1 named, other named, generic residents and archetypes), then
@@ -234,11 +234,10 @@ function M.new(options)
         look.seen = clock
     end
 
-    -- The notice for the wait at the start of a conversation: only while the
-    -- setting is off and the character is not connected yet. With the setting
-    -- on the wait is silent.
+    -- The notice for the wait at the start of a conversation: shown whenever the
+    -- character is not connected yet, with the setting on or off.
     function A.talkNotice(key, name)
-        if not key or enabled() or ready(key) then return nil end
+        if not key or ready(key) then return nil end
         return ui.t('Preparing connection to {name}…', {name = name})
     end
 

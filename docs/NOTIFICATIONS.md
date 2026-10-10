@@ -23,7 +23,7 @@ CLOSE PHONE"), the character's spoken reply and subtitles (`ConvaiShowReply`), a
 
 Invitation: "{name} joined your group." when the companion arrives (every time, quick or slow), and "{name} could not prepare/join: {reason}" on a failure.
 Companion invitations (manager, phone and party) show no progress in any mode: no "Preparing", "Connecting", ready or "joining" text, to a player or a developer. The party list shows each copy's stage, and the mod log keeps every stage. A player sees "joined" and failures, and so does a developer.
-Talking: "Preparing connection to {name}…" (only while Auto-connect nearby characters is off and the character is not connected),
+Talking: "Preparing connection to {name}…" (whenever the character is not connected yet, with Auto-connect nearby characters on or off),
 "Connecting microphone - wait for Listening", "Listening - press {key} again to finish". Failures: the conversation service starting, missing
 its key, stopped or failed; no reply; the microphone unavailable or timed out; a companion action that was refused; a voice engine that fell
 back (once; an OmniVoice that is only being loaded again says "not ready yet" and its return is silent). Hints for a key press that did nothing: no one to talk to, group chat needs two characters, finish the recording with the other key.
@@ -65,7 +65,7 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `talk-no-target` | Player | Face a nearby character to talk. | The talk key is pressed with no one in range | 20 |
 | `talk-no-profile` | Player | {name} does not have a conversation profile configured yet. | The talk key is pressed at a character without a profile | 20 |
 | `group-needs-two` | Player | Group chat needs two characters nearby. Use {key} for one person. | The group key is pressed with fewer than two characters | 20 |
-| `talk-connecting` | Player | Preparing connection to {name}… | A conversation starts with a character that is not connected yet (Auto-connect nearby characters off) | 10 |
+| `talk-connecting` | Player | Preparing connection to {name}… | A conversation starts with a character that is not connected yet (Auto-connect nearby characters on or off) | 10 |
 | `mic-connecting` | Player | Connecting microphone - wait for Listening | The voice key is pressed | none |
 | `mic-listening` | Player | Listening - press {key} again to finish | The microphone is recording | none |
 | `mic-finish-hint` | Player | Use {key} to finish this recording. | The other chat's voice key is pressed during a recording | 10 |
@@ -110,3 +110,5 @@ no "bridge", no "eight metres"). Earlier: 248c14c, a20c7a1, e7e9760 (calmer invi
 2026-10-10 (no progress text): companion invitations post no progress in any mode, Developer mode included: no "Preparing", "Connecting", ready or "joining" line on the board, in the manager status line, the MCM banner or the phone. The phone acknowledgement of an accepted invitation is removed, and `invite-joining` and `phone-invite-ack` leave `mod/notices.lua`. A player and a developer see "{name} joined your group." and failures only.
 
 2026-10-10 (driving preparing line): "Your companion is preparing to drive." is removed in every mode. A queued driving request posts nothing: `companion-vehicles.lua` returns no text, `gameplay-actions.lua` reports the queued drive with an empty reason, and `init.lua` posts no `action-queued` notice for an empty reason.
+
+2026-10-10 (wait notice back): "Preparing connection to {name}…" shows whenever a character the player talks to is not connected yet, with Auto-connect nearby characters on or off. Since the settings review (2026-10-07) it was silent with the setting on, so a wait looked unexplained. The text and its translations are unchanged; the warm-up itself is still silent.

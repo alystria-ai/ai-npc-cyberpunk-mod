@@ -331,7 +331,7 @@ the first reply.
 
 - **Off:** connect on talk, as before. Starting a text or voice chat with a world character that is not
   connected yet shows `Preparing connection to Judy…` (there is no hint about the setting any more). With the
-  setting **On** that wait is silent: no connecting or ready notice for a warm-up. A character already connected (a copy in the party, or one the bridge reports ready in
+  setting **On** that wait shows as well: no connecting or ready notice announces a warm-up. A character already connected (a copy in the party, or one the bridge reports ready in
   `runtime/party-connection-state.json`) shows nothing. Group chat shows no wait notice. With a voice chat
   the line is joined to `Connecting microphone - wait for Listening`.
 - **On** (`mod/auto-connect.lua`): a character with a profile that V looks at for 0.6 s (the existing gaze

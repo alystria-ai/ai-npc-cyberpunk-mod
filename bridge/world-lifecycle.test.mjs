@@ -605,10 +605,11 @@ for _ = 1, 12 do events.onUpdate(0.1) end
 local list = assert(published(), 'no nearby-connections publication')
 assert(#list.profiles == 1 and list.profiles[1] == 'judy-alvarez')
 assert(list.updated == clock * 1000)
--- With Auto-connect on a talk before the warm-up finishes is silent: no wait notice, no hint.
+-- With Auto-connect on a talk before the warm-up finishes shows the same wait notice (no hint, no warm-up notice).
 local noticesBefore = #feedback()
 hotkeys.cyberpunk_convai_text(); assert(player.composerOpen); player.composerOpen = false; events.onUpdate(0.1)
-assert(#feedback() == noticesBefore, 'a warm-up wait posted a notice')
+assert(#feedback() == noticesBefore + 1 and feedback()[#feedback()] == 'Preparing connection to Judy…',
+    'a talk before the warm-up showed no wait notice: ' .. table.concat(feedback(), ' | '))
 -- The setting off releases it at once.
 manager.autoConnectNearby = function() return false end
 events.onUpdate(0.1)

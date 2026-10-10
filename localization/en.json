@@ -4023,7 +4023,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/auto-connect.lua:242"
+        "mod/auto-connect.lua:241"
       ]
     },
     "Preparing to drive": {

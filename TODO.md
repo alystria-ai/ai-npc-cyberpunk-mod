@@ -137,6 +137,8 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 
 ## Captain's log
 
+**2026-10-10 (wait notice back): "Preparing connection to {name}…" shows again with Auto-connect nearby characters on as well as off (silent with it on since 2026-10-07); Lua only, CET reload.**
+
 **2026-10-10 (end of night): installed in the closed game; live checks for the next session.**
 - **Installed from HEAD, game not relaunched:** `convai_gestures.archive` (`e38a8184`: bridge workspots and endless seats), `convai_facial.archive` (`5d8750c5`: speech owns the mouth), `FaceFeature.reds`, and Lua `companion-gestures`, `facial-playback`, `gesture-catalog`, `manager`, `mcm`. The bridge (third-person fix, own-key work, rebuilt voice client) loads with the game. Backups are in the session scratchpad `game-backup-1010-restart3`.
 - **To check live:**
