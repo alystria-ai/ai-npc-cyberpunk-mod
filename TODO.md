@@ -156,21 +156,18 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 - Upload: 72 originals and 72 twins verified (no creates, no failures, no language-box items). Memory settings unchanged apart from server-computed credit estimates. Read-back of aaron, nele-springer, yorinobu-arasaka and nix: original equals roster, twin equals original apart from its marker.
 - Probe (evelyn-parker, fixed end user `appearance-probe-fixed`, two independent sessions): "Why blue hair?" and "Nice jacket, where's it from?". Both answers are in the first person, neither names another character, and neither contradicts the description. Memories wiped; zero remain. Replies in `runtime/third-person-probe/appearance-evelyn-*.json`.
 
-**2026-10-10 (end of night): installed in the closed game; live checks for the next session.**
-- **Installed from HEAD, game not relaunched:** `convai_gestures.archive` (`e38a8184`: bridge workspots and endless seats), `convai_facial.archive` (`5d8750c5`: speech owns the mouth), `FaceFeature.reds`, and Lua `companion-gestures`, `facial-playback`, `gesture-catalog`, `manager`, `mcm`. The bridge (third-person fix, own-key work, rebuilt voice client) loads with the game. Backups are in the session scratchpad `game-backup-1010-restart3`.
+**2026-10-10 (end of day): installed in the closed game; live checks for the next session.**
+- **Installed from HEAD, game closed (not relaunched):** `convai_gestures.archive` `a71aa51e` (Round 5f: stance loop entered directly, no ambient bridge), `convai_facial.archive` `5d8750c5`, all HEAD Lua except `diagnostics.lua` (incl. `gesture-catalog` matching the new archive, `manager-party`, `auto-connect`, `init`). Bridge at HEAD (`433500d` own-key adopts the account's memory user, `c272430` connect on join on a player key) loads with the game. Backups: session scratchpad `game-backup-1010-restart6`.
+- **Confirmed live today:** mouth opens every reply; no jolt on send; smooth hand-on-hip entry; stays seated, sits quickly, wide seated head turn; first person in replies; own key pastes, replies, and keeps memory (adopts the existing playground end user); Alex/Lizzy keep facing V and no pop after walking (Round 5e).
 - **To check live:**
-  - The mouth opens on every reply, with and without gestures; `lastSpeech.ownedFrames` is close to `frames`.
-  - Stance entry on Evelyn when V sends a typed message: still twitched with the installed `e38a8184` archive (its `on_sides` kept the walk-to-stand entry clips, so it never started on the ambient loop). Fixed in the Round 5d archive (built, not installed; see the Captain's log entry below); check it after that restart.
-  - She stays seated for 5+ minutes, with no `seat-left-on-own`.
-  - The seated look reaches about 130° on couch, chair and bench.
-  - Only "joined" shows.
-  - Settings > Development shows the own-key rows.
-  - Lift v2 boarding.
-  - Alt live.
+  - No backward slide when a message is sent to a standing companion (Evelyn), and Judy's arms-crossed entry is quiet (Round 5f).
+  - Spawn sequence: "Preparing connection to {name}..." then "{name} joined your group."; nothing when merely looking at someone; the wait notice only on a talk start with an unconnected character.
+  - Lift v2 boarding; Alt live.
 - **Open:**
-  - Run the test end-user cleanup: stop all probes, then `scratchpad/cleanup-test-end-users.mjs --apply --limit 1`, and check the LTM counter drops before running it on the rest.
-  - Live A/B of `convai_talk_on_sides` (bridge) against `convai_talk_on_sides_plain` on a staged copy after the Round 5d restart; keep the quieter one.
-  - Ask Convai for launch headroom and the Gamer plan changes (`Downloads/Gamer Plan Asks.txt`).
+  - The user runs the test end-user cleanup (2,876 test ids, 2,698 from third-person-probe): `scratchpad/cleanup-test-end-users.mjs --recent-minutes 0 --apply --limit 1`, check the counter drops, then without `--limit`.
+  - Free-key limits (one connection at a time, one memory user) are left to Convai's new plan.
+  - `jesse` has no appearance text (identity unconfirmed).
+  - Release prep for Sun 18 Oct 11:00 UTC: package and test a release build; Skippy and Delamain add-ons (Oct 20, Oct 25).
 
 **2026-10-10 (night, later still): stale gesture device pulled Alex to its old spot and yaw (Lua only; CET reload).** Live on Alex: she talked facing elsewhere after turning toward V, and once she was relocated 12 m back at the begin, then walked back. Cause: the kept device was moved and played in the same tick, and the workspot plays at the device's previous transform (the teleport lands later). Fixed: the device is moved, compared with her actual pose (0.12 m, 8 degrees) and played only when it matches (re-sent every 0.4 s, replaced by a new device after 1.5 s), and the talk stance waits until her angle to V is within 35 degrees. An earlier 6 m recovery relocation at 09:03:09Z (`stranded`, gap 13.5, no gesture active) is `companions.lua`, not this. Round 5e in `docs/COMPANION_GESTURES.md`; check it live (look at a companion who had a stance before, send a message; walk off 10 m and ask again).
 **2026-10-10 (night, last): the slide on send was the bridge, now removed (archive + Lua; needs install, game restart, CET reload).** Evelyn/Lizzy slid back a few cm when a message was sent. Live capture on a staged Evelyn: the bridge workspot (gang `idle_stand` first, jump to the stance 2 s later) drifts her about 8-13 px down and 4-5 px sideways over 1.2 s and shifts again at the jump; `convai_talk_on_sides_plain` shows nothing beyond sway; the entity position and yaw never change (logged every tick). The Round 5d metric was blind to slow glides. The bridge is removed from `on_sides` and `arms_crossed` (archive), the controller's bridge machinery and the 5f settle are removed (Lua), `on_sides_plain` is gone. Archive `runtime/gestures/package/convai_gestures.archive` sha256 `A71AA51E295D584F5BB27457E7BC3BB444CDC9128D96F7BCD5F11F92D621F6E4`, not installed. Open: confirm live that the slide is gone (and that Judy's arms-crossed entry is also quiet). Round 5f in `docs/COMPANION_GESTURES.md`.
