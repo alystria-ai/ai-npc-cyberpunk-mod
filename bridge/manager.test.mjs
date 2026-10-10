@@ -4049,3 +4049,55 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     assert(notice({text = 'Hello'}) == nil and notice({error = 'plain failure'}) == nil and notice({keyNotice = 'other'}) == nil)
   `);
 });
+
+// A companion the repo knows is invited only when the installed copies of the roster (conversation-characters.json) and
+// manager-characters.json carry her too. A stale install of those data files answered "That character model is unavailable."
+// for Alt Cunningham on 2026-10-11, so this pins what the committed data must resolve and what the stale shape looks like.
+function luaLiteral(value) {
+  if (Array.isArray(value)) return '{' + value.map(luaLiteral).join(',') + '}';
+  if (value && typeof value === 'object') {
+    return '{' + Object.entries(value).map(([key, item]) => `[${JSON.stringify(key)}]=${luaLiteral(item)}`).join(',') + '}';
+  }
+  return JSON.stringify(value);
+}
+const repoJson = name => JSON.parse(readFileSync(new URL('../' + name, import.meta.url), 'utf8'));
+
+test('every manager-characters.json row resolves, with its profile, from the committed roster, and Alt Cunningham can be invited', () => {
+  const roster = repoJson('characters/roster.json');
+  const profiles = (Array.isArray(roster) ? roster : roster.characters || roster.profiles)
+    .map(row => ({key: row.key, name: row.name, records: row.records}));
+  const rows = repoJson('characters/manager-characters.json');
+  assert(rows.some(row => row.key === 'alt-cunningham' && row.record === 'Character.Alt'), 'Alt has a manager row');
+  assert(profiles.some(row => row.key === 'alt-cunningham' && row.records.includes('Character.Alt')), 'Alt is in the roster');
+  run(`${managerFixture}
+    files['manager-characters.json'] = 'extras'
+    extras = ${luaLiteral(rows)}
+    manager.configure(api, ${luaLiteral(profiles)})
+    for _, row in ipairs(extras) do
+      local definition = api.definition(row.key)
+      assert(definition and definition.id == row.record, row.key .. ' has no companion definition')
+      assert(definition.profileKey == (row.profileKey or row.key), row.key .. ' lost its conversation profile')
+    end
+    local alt = api.definition('alt-cunningham')
+    assert(alt.id == 'Character.Alt' and alt.profileKey == 'alt-cunningham' and alt.name == 'Alt Cunningham')
+    local queue = (function() ${queueSource} end)().new(api)
+    queue.bind('player-1')
+    assert(queue.invite('alt-cunningham') == true)
+  `);
+});
+
+test('a stale install without Alt (roster and manager-characters from before 2026-10-10) is refused with the model-unavailable notice', () => {
+  const roster = repoJson('characters/roster.json');
+  const profiles = (Array.isArray(roster) ? roster : roster.characters || roster.profiles)
+    .filter(row => row.key !== 'alt-cunningham').map(row => ({key: row.key, name: row.name, records: row.records}));
+  const rows = repoJson('characters/manager-characters.json').filter(row => row.key !== 'alt-cunningham');
+  run(`${managerFixture}
+    files['manager-characters.json'] = 'extras'
+    extras = ${luaLiteral(rows)}
+    manager.configure(api, ${luaLiteral(profiles)})
+    local queue = (function() ${queueSource} end)().new(api)
+    queue.bind('player-1')
+    local ok, message = queue.invite('alt-cunningham')
+    assert(ok == false and message == 'That character model is unavailable.', tostring(message))
+  `);
+});
