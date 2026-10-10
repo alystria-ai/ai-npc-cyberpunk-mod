@@ -2445,7 +2445,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1287"
+        "mod/init.lua:1285"
       ]
     },
     "Continue from game dialogue": {
@@ -2477,7 +2477,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1707"
+        "mod/init.lua:1705"
       ]
     },
     "Convai voice": {
@@ -2753,7 +2753,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1955"
+        "mod/init.lua:1953"
       ]
     },
     "Cyberpunk Convai: group text chat": {
@@ -2761,7 +2761,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1952"
+        "mod/init.lua:1950"
       ]
     },
     "Cyberpunk Convai: group voice chat": {
@@ -2769,7 +2769,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1954"
+        "mod/init.lua:1952"
       ]
     },
     "Cyberpunk Convai: talk by text": {
@@ -2777,7 +2777,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1951"
+        "mod/init.lua:1949"
       ]
     },
     "Cyberpunk Convai: talk by voice": {
@@ -2785,7 +2785,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1953"
+        "mod/init.lua:1951"
       ]
     },
     "DETAILS  {page} / {pages}": {
@@ -3684,7 +3684,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2331"
+        "mod/init.lua:2334"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -4023,7 +4023,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/auto-connect.lua:241"
+        "mod/auto-connect.lua:239"
       ]
     },
     "Preparing to drive": {
@@ -4057,7 +4057,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1244"
+        "mod/init.lua:1243"
       ]
     },
     "Press your Talk by voice shortcut to finish recording.": {
@@ -4065,7 +4065,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1245"
+        "mod/init.lua:1244"
       ]
     },
     "Previous": {
@@ -5044,7 +5044,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1703"
+        "mod/init.lua:1701"
       ]
     },
     "The conversation service could not start. Restart the game, or see Help in Settings.": {
@@ -5639,7 +5639,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:1242"
+        "mod/init.lua:1241"
       ]
     },
     "V changed seats or vehicles.": {
@@ -6013,7 +6013,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1705"
+        "mod/init.lua:1703"
       ]
     },
     "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.": {
@@ -6021,7 +6021,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1709"
+        "mod/init.lua:1707"
       ]
     },
     "Your Convai plan has no room for conversation memory, so companions will not remember past talks.": {
@@ -6029,7 +6029,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1717"
+        "mod/init.lua:1715"
       ]
     },
     "Your car has no free passenger seat for V.": {
@@ -6365,7 +6365,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1898"
+        "mod/init.lua:1896"
       ]
     },
     "{name} joined your group.": {
@@ -6950,7 +6950,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:1242"
+        "mod/init.lua:1241"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7088,7 +7088,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1898"
+        "mod/init.lua:1896"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

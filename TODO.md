@@ -137,6 +137,8 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 
 ## Captain's log
 
+**2026-10-10 (wait notice, gaze and party): "Preparing connection to {name}…" now shows once per connection for the character V keeps facing while she warms, and for a party copy still connecting when a conversation starts (Lizzy Wizzy: the composer skipped party copies, so the 2026-10-10 talks were silent); Lua only, CET reload.**
+
 **2026-10-10 (wait notice back): "Preparing connection to {name}…" shows again with Auto-connect nearby characters on as well as off (silent with it on since 2026-10-07); Lua only, CET reload.**
 
 **2026-10-10: appearance in the Convai bios is live for 72 characters (originals and twins).**

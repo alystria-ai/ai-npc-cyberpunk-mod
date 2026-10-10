@@ -1187,8 +1187,7 @@ local function beginText(groupMode)
         if conversationServiceBlocked(player) then return end
         local npc, key, name, bodyType, identity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
         -- A character that is not connected yet makes V wait: say so (mod/auto-connect.lua).
-        local connectNote = autoConnect and not participants and not companions.owns(npc)
-            and autoConnect.talkNotice(key, name) or nil
+        local connectNote = autoConnect and not participants and autoConnect.talkNotice(key, name) or nil
         generation = generation + 1
         if not player:ConvaiOpenComposer(name) then
             log('Native composer unavailable (check redscript and Codeware)')
@@ -1256,8 +1255,7 @@ local function toggleVoice(groupMode)
         if not primary then return end
         if conversationServiceBlocked(player) then return end
         local npc, key, name, body, entity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
-        local connectNote = autoConnect and not participants and not companions.owns(npc)
-            and autoConnect.talkNotice(key, name) or nil
+        local connectNote = autoConnect and not participants and autoConnect.talkNotice(key, name) or nil
         generation = generation + 1
         cancelAutomatic('microphone')
         tactics.interrupt('microphone')
@@ -2306,6 +2304,11 @@ registerForEvent('onUpdate', function(delta)
             talkingId = (active and active.entity) or (pending and pending.entity)
                 or (microphone.context and microphone.context.entity) or nil})
         if not ok then log('Auto-connect update failed: ' .. tostring(err)) end
+        -- Wait notices queued by the gaze warm-up (once per connection, mod/auto-connect.lua).
+        local okNotes, texts = pcall(autoConnect.takeNotices)
+        if okNotes and type(texts) == 'table' and player then
+            for _, text in ipairs(texts) do convaiNotices.send(player, 'talk-connecting', text) end
+        end
     end
     if pending then
         local currentOwner = knowledgeOwner(refreshKnowledgeFrame())

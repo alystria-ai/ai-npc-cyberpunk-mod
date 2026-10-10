@@ -572,22 +572,29 @@ local function talk()
 end
 talk(); talk(); talk()
 local posted = feedback()
--- The same wait notice is not repeated within 10 s (notices.lua), however often a conversation starts.
+-- Once per connection (auto-connect.lua): however often a conversation starts while she is not ready, the wait notice is posted once.
 assert(#posted == 1, #posted)
 assert(posted[1] == 'Preparing connection to Judy…', 'no hint about the setting')
 clock = clock + 12; talk()
 posted = feedback()
-assert(#posted == 2 and posted[2] == posted[1], 'the wait notice did not return after its window')
+assert(#posted == 1, 'the wait notice repeated within one connection')
 -- Once the bridge reports the connection ready, nothing is said.
 files['runtime/party-connection-state.json'] = json.encode({connections = {{profile = 'judy-alvarez', scope = 'private', state = 'ready'}}})
 clock = clock + 12
-talk(); assert(#feedback() == 2, 'a connected character still showed the wait notice')
+talk(); assert(#feedback() == 1, 'a connected character still showed the wait notice')
 `));
 
-test('a copy in the party never shows the connection wait notice', () => run(`${worldCharacterFixture}
+test('a party copy shows the wait notice once while it connects, and nothing once it is ready', () => run(`${worldCharacterFixture}
 companions.owns = function() return true end
-hotkeys.cyberpunk_convai_text(); assert(player.composerOpen)
-assert(#feedback() == 0)
+local function talk()
+    hotkeys.cyberpunk_convai_text(); assert(player.composerOpen)
+    player.composerOpen = false; events.onUpdate(0.1); clock = clock + 12
+end
+talk(); talk()
+assert(#feedback() == 1 and feedback()[1] == 'Preparing connection to Judy…', 'a connecting party copy showed no wait notice: ' .. table.concat(feedback(), ' | '))
+files['runtime/party-connection-state.json'] = json.encode({connections = {{profile = 'judy-alvarez', scope = 'private', state = 'ready'}}})
+talk()
+assert(#feedback() == 1, 'a ready party copy showed the wait notice')
 `));
 
 test('with Auto-connect on, looking at a world character publishes it for the bridge and releasing publishes an empty list', () => run(`${worldCharacterFixture}
@@ -614,6 +621,15 @@ assert(#feedback() == noticesBefore + 1 and feedback()[#feedback()] == 'Preparin
 manager.autoConnectNearby = function() return false end
 events.onUpdate(0.1)
 assert(#published().profiles == 0)
+`));
+
+test('with Auto-connect on, looking at a world character posts her wait notice once while she warms', () => run(`${worldCharacterFixture}
+manager.autoConnectNearby = function() return true end
+for _ = 1, 30 do events.onUpdate(0.1) end
+local posted = feedback()
+assert(#posted == 1 and posted[1] == 'Preparing connection to Judy…', 'looking did not post the wait notice: ' .. table.concat(posted, ' | '))
+for _ = 1, 30 do events.onUpdate(0.1) end
+assert(#feedback() == 1, 'the wait notice repeated within one connection')
 `));
 
 test('a phone invitation shows no acknowledgement or progress with Developer mode on either', () => run(`${phoneNoticeFixture}
@@ -842,7 +858,7 @@ events.onInit(); events.onUpdate(0); privateConversation()
 stats.developer = ${developer}
 local function notes()
     local out = {}
-    for _, item in ipairs(stats.trace) do if item.kind == 'feedback' then out[#out + 1] = item.value end end
+    for _, item in ipairs(stats.trace) do if item.kind == 'feedback' and string.find(item.value, 'driv') then out[#out + 1] = item.value end end
     return out
 end
 hotkeys.cyberpunk_convai_text()
@@ -851,7 +867,7 @@ local input = json.decode(assert(files['runtime/last-input.json']))
 replyFor(input); events.onUpdate(0.1)
 files['runtime/companion-actions.json'] = json.encode(drivePacket(input)); events.onUpdate(0.1); events.onUpdate(0.1)
 assert(#stats.driveCalls == 1, 'the driving request was not queued')
-assert(#notes() == 0, 'a queued drive posted a notice: ' .. table.concat(notes(), ' | '))
+assert(#notes() == 0, 'a queued drive posted a driving notice: ' .. table.concat(notes(), ' | '))
 `;
 test('a queued driving request posts no preparing notice with Developer mode off', () => run(drivePreparingNotice(false)));
 test('a queued driving request posts no preparing notice with Developer mode on', () => run(drivePreparingNotice(true)));

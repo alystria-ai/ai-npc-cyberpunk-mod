@@ -55,10 +55,43 @@ test('with the setting off nothing is prepared and the short wait notice never m
     for _ = 1, 20 do auto.look('judy-alvarez', 'e1', 'Judy', 0.2) end
     step(auto, 5)
     assert(scans == 0 and #published == 0 and #auto.active() == 0, 'the setting off still warmed a character')
-    for _ = 1, 4 do assert(auto.talkNotice('judy-alvarez', 'Judy') == 'Preparing connection to Judy…', 'no hint about the setting') end
+    assert(auto.talkNotice('judy-alvarez', 'Judy') == 'Preparing connection to Judy…', 'no hint about the setting')
+    for _ = 1, 3 do assert(auto.talkNotice('judy-alvarez', 'Judy') == nil, 'the wait notice repeated within one connection') end
     assert(auto.talkNotice('panam', 'Panam') == 'Preparing connection to Panam…')
     readyKeys['judy-alvarez'] = true
     assert(auto.talkNotice('judy-alvarez', 'Judy') == nil, 'a connected character still showed the wait notice')
+  `);
+});
+
+test('the character V keeps facing gets one wait notice per connection, while she is being warmed', () => {
+  run(`${fixture}
+    setting = true; nearby = {}
+    local auto = make()
+    for _ = 1, 25 do auto.look('judy-alvarez', 'e1', 'Judy', 0.2) end
+    step(auto, 0.2)
+    local notes = auto.takeNotices()
+    assert(#notes == 1 and notes[1] == 'Preparing connection to Judy…', 'no wait notice for the looked-at character: ' .. #notes)
+    for _ = 1, 10 do auto.look('judy-alvarez', 'e1', 'Judy', 0.2) end
+    step(auto, 0.2)
+    assert(#auto.takeNotices() == 0, 'the wait notice repeated within one connection')
+    readyKeys['judy-alvarez'] = true
+    step(auto, 0.2)
+    assert(#auto.takeNotices() == 0, 'a ready character still announced a wait')
+  `);
+});
+
+test('a released warm-up that never connected announces its wait again when V looks again', () => {
+  run(`${fixture}
+    setting = true; nearby = {}
+    local auto = make()
+    for _ = 1, 25 do auto.look('judy-alvarez', 'e1', 'Judy', 0.2) end
+    step(auto, 0.2)
+    assert(#auto.takeNotices() == 1, 'the first look showed no wait notice')
+    step(auto, 90)
+    assert(#auto.active() == 0, 'the idle warm-up was not released')
+    for _ = 1, 25 do auto.look('judy-alvarez', 'e1', 'Judy', 0.2) end
+    step(auto, 0.2)
+    assert(#auto.takeNotices() == 1, 'the new connection attempt showed no wait notice')
   `);
 });
 
