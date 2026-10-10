@@ -158,6 +158,19 @@ local function note(entry,kind,fields)
     if entry.playerGap and not fields.gap then fields.gap=math.floor(entry.playerGap*10+.5)/10 end
     pcall(M.recoveryLog,kind,fields)
 end
+-- GetBodyType returns a CName; tostring() of one prints 'ToCName{ hash_lo = ..., hash_hi = ... --[[ WomanAverage --]] }'.
+-- This gives the plain name ('WomanAverage'), or '' when there is none.
+local function bodyName(value)
+    if value == nil then return '' end
+    if type(value) == 'string' then return value end
+    if type(NameToString) == 'function' then
+        local ok, name = pcall(NameToString, value)
+        if ok and type(name) == 'string' and name ~= '' and name ~= 'None' then return name end
+    end
+    local raw = tostring(value)
+    return raw:match('%-%-%[%[%s*(.-)%s*%-%-%]%]') or raw
+end
+
 local function rounded(value) return value and math.floor(value*10+.5)/10 or nil end
 local vehicleHooks = {
     release = function(entry)
@@ -607,7 +620,7 @@ function M.conversationCandidates(player, radius)
             if distance <= radius then
                 result[#result + 1] = {npc = entry.npc, entity = tostring(entry.entityID.hash),
                     profileKey = entry.profileKey, name = entry.profileName,
-                    bodyType = tostring(entry.npc:GetBodyType() or ''), distance = distance}
+                    bodyType = bodyName(entry.npc:GetBodyType()), distance = distance}
             end
         end
     end

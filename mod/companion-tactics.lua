@@ -44,6 +44,19 @@ local function clipLine(text)
     return text
 end
 
+-- GetBodyType returns a CName; tostring() of one prints 'ToCName{ hash_lo = ..., hash_hi = ... --[[ WomanAverage --]] }'.
+-- This gives the plain name ('WomanAverage'), or '' when there is none.
+local function bodyName(value)
+    if value == nil then return '' end
+    if type(value) == 'string' then return value end
+    if type(NameToString) == 'function' then
+        local ok, name = pcall(NameToString, value)
+        if ok and type(name) == 'string' and name ~= '' and name ~= 'None' then return name end
+    end
+    local raw = tostring(value)
+    return raw:match('%-%-%[%[%s*(.-)%s*%-%-%]%]') or raw
+end
+
 -- CET adapter for the native effects this module owns.
 function M.nativeAdapter()
     local N = {}
@@ -69,7 +82,7 @@ function M.nativeAdapter()
     function N.playerMounted(player) return player:GetMountedVehicle() ~= nil end
     function N.hostileToPlayer(npc, player) return attitudeName(npc, player) == 'AIA_Hostile' end
     function N.name(npc) return tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC') end
-    function N.bodyType(npc) return tostring(npc:GetBodyType() or '') end
+    function N.bodyType(npc) return bodyName(npc:GetBodyType()) end
     -- Fight: agent-level hostility in both directions (never the whole attitude
     -- group, which would turn V's group against everyone of the target's group),
     -- then a persistent hostile threat so the companion's combat AI engages.

@@ -355,3 +355,17 @@ test('companions hand exactly one owned copy to the tactic decision and resume f
   owned=false; tick(3)
   local count=decisions; tick(2); assert(decisions==count,'released copies return to the follower behavior')
 `));
+
+test('the native body type is the plain name, not the CName hash form', () => {
+  run(`
+    local Tactics=(function() ${tacticsSource} end)()
+    local N=Tactics.nativeAdapter()
+    local raw='ToCName{ hash_lo = 0x02871D38, hash_hi = 0xA1219CE9 --[[ WomanAverage --]] }'
+    local cname=setmetatable({}, {__tostring=function() return raw end})
+    NameToString=nil
+    assert(N.bodyType({GetBodyType=function() return cname end})=='WomanAverage', 'comment name')
+    NameToString=function() return 'ManBig' end
+    assert(N.bodyType({GetBodyType=function() return cname end})=='ManBig', 'NameToString')
+    assert(N.bodyType({GetBodyType=function() return nil end})=='', 'none')
+  `);
+});
