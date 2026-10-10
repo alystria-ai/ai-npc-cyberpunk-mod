@@ -231,7 +231,7 @@ No MCM source or saved preferences are modified.
 
 An invitation is ready, and the companion spawns and is announced as joined, only once her Convai connection is open. On a player's own Convai key (one connection at a time) the invitation opens her connection alone, one invitation at a time; the other party members' connections open when V talks to them, which is when the `Preparing connection to {name}…` notice can show. The notice never shows from looking at a character.
 
-While an invitation prepares with the manager open, the status banner shows nothing for it: the progress lines (**Preparing**, **Connecting**, **ready to join**) are removed in every mode. A preparation failure still shows there (**{name}: preparation failed. Cancel and invite again.**). The banner tracks the latest requested pending copy and revision; cancelling that copy, spawning it or resetting the world clears it, and it does not restore an older copy's banner after cancellation. Memory, dismissal and trip results keep priority over the banner.
+While an invitation prepares, the notice board posts **Preparing connection to {name}…** once (the wait notice's own string; it is skipped when her connection is already open) and **{name} joined your group.** when she has joined; the lines below describe what the in-menu banner shows. While an invitation prepares with the manager open, the status banner shows nothing for it: the progress lines (**Preparing**, **Connecting**, **ready to join**) are removed in every mode. A preparation failure still shows there (**{name}: preparation failed. Cancel and invite again.**). The banner tracks the latest requested pending copy and revision; cancelling that copy, spawning it or resetting the world clears it, and it does not restore an older copy's banner after cancellation. Memory, dismissal and trip results keep priority over the banner.
 
 `manager-party.lua` exposes this as a read-only preparation snapshot, separate
 from notices delivered after gameplay resumes. MCM samples it from top-level
@@ -250,7 +250,7 @@ the manager does not create a new HUD widget. These popups track the latest
 manager-requested copy independently of the footer and other manager actions.
 Direct phone invitations use the same rules.
 
-**Which notices a player sees** (the same in every mode, Developer mode included). A player is told only that a companion joined, and about failures. Companion invitations post no progress lines at all, for manager and phone invitations alike: no **Preparing**, **Connecting**, **ready to join** or **is joining your party** text. The Current party list shows each copy's stage (preparing, connecting, ready, joining) as its row state, and the mod log keeps every stage.
+**Which notices a player sees** (the same in every mode, Developer mode included). A player is told that a companion's connection is being prepared (**Preparing connection to {name}…**, once per join, skipped when it is already open), that she joined, and about failures. Companion invitations post no other progress lines, for manager and phone invitations alike: no **Connecting**, **ready to join** or **is joining your party** text. The Current party list shows each copy's stage (preparing, connecting, ready, joining) as its row state, and the mod log keeps every stage.
 
 - **joined your group**, for every companion that arrives, quick or slow (developers see it too);
 - every failure and error, including a driving failure and the reply to Stop trip.
@@ -277,7 +277,7 @@ Manager and phone invitations share one **notice board** (`M.newBoard` in
 the board turns all of them into ONE compact notice that replaces the previous one instead of
 a stream of per-character popups:
 
-- One invitation reads `Judy joined your group.`: no progress line appears before it, quick or slow.
+- One invitation reads `Preparing connection to Judy…` (once, unless her connection is already open) and then `Judy joined your group.`; no other progress line appears before it, quick or slow. Several companions preparing together share one notice with a line each.
 - Several at once end in one notice: `Judy and Johnny joined your group.`. Up to three names are listed;
   more are summarised (`Judy, Johnny and 3 others joined your group.`).
 - A failure is mentioned beside the successes in the same notice (`Johnny joined your group.` /
@@ -295,7 +295,7 @@ a stream of per-character popups:
   is logged to `runtime/mcm.log` with each invitation's stage. A joined or failed outcome that the
   paused menu hides is shown once more in gameplay, and nothing is replayed after cancellation or a
   world change (`queue.bind` resets the board).
-- Visibility: joined and every failure show in every mode; no progress is posted in any mode.
+- Visibility: the preparing line (once per join), joined and every failure show in every mode; no other progress is posted in any mode.
 - `mod/mcm.lua` posts the board's note from its top-level update (and commits it only after the
   native call succeeded); `mod/init.lua` (`updatePhoneInvitationFeedback`) asks the same board for
   phone invitations, so whichever runs first posts and the other finds nothing new.

@@ -21,7 +21,7 @@ local PLAYER, DEVELOPER, REMOVED = 'player', 'developer', 'removed'
 -- repeatS: seconds in which an identical text of this id is not shown again (Developer mode off).
 M.catalog = {
     -- Invitations
-    ['invite-board'] = {class = PLAYER},               -- joined / failed, one merged notice; no progress text in any mode
+    ['invite-board'] = {class = PLAYER},               -- preparing connection (once per join), joined and failed, one merged notice; no other progress text
     ['party-joined'] = {class = PLAYER},               -- a joined outcome, merged into the board
     ['party-failed'] = {class = PLAYER},               -- could not prepare / could not join
     ['party-dismiss-failed'] = {class = PLAYER},

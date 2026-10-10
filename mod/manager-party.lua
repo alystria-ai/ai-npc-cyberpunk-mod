@@ -13,9 +13,11 @@ end
 -- one entry, and the board turns the outcomes of all of them into ONE compact
 -- notice that replaces the previous one: "Judy and Johnny joined your group.".
 -- A lone invitation keeps its original wording.
--- Visibility rules (the classes live in notices.lua, docs/NOTIFICATIONS.md): a player sees
--- "joined" and failures, and so does a developer. No progress text (preparing, connecting, ready,
--- joining) is posted in any mode: the party list shows the stage, and the mod log keeps every stage.
+-- Visibility rules (the classes live in notices.lua, docs/NOTIFICATIONS.md): a player and a developer
+-- see the same three kinds of line: "Preparing connection to {name}…" while her connection is being
+-- prepared (once per join, and not at all when it is already open), "joined", and failures. No other
+-- progress text (connecting, ready, joining) is posted in any mode: the party list shows the stage,
+-- and the mod log keeps every stage.
 -- Calm rules, because each notice replaces the last one on screen:
 -- * A posted notice stays up for at least MIN_SHOW_MS (FINAL_SHOW_MS after a
 --   final outcome, so a "joined" is never cut short): a change arriving sooner
@@ -69,6 +71,20 @@ local function listNames(names)
         return ui.t('{first}, {second} and {third}', {first = names[1], second = names[2], third = names[3]})
     end
     return ui.t('{first}, {second} and {count} others', {first = names[1], second = names[2], count = count - 2})
+end
+
+-- True when the bridge already holds this character's private connection (mod/auto-connect.lua reads
+-- runtime/party-connection-state.json). Read once per invitation, when it is first seen.
+local function openConnection(options, key)
+    if type(key) ~= 'string' then return false end
+    local reader = options.connected
+    if type(reader) ~= 'function' then
+        local ok, autoConnect = pcall(function() return convaiAutoConnect end)
+        reader = ok and type(autoConnect) == 'table' and autoConnect.connected or nil
+    end
+    if type(reader) ~= 'function' then return false end
+    local ok, value = pcall(reader, key)
+    return ok and value == true
 end
 
 local function newBurst()
@@ -152,6 +168,12 @@ function M.newBoard(options)
                     entry.stage, entry.ignored = stage, nil
                 end
                 entry.sameRevision = entry.revision
+                -- Decided once, when the invitation is first seen: a preparing line is wanted only while a
+                -- profile's connection is still being prepared and is not open yet.
+                if entry.prepWanted == nil then
+                    entry.prepWanted = (stage == 'memory' or stage == 'connecting') and type(current.profileKey) == 'string'
+                        and not openConnection(options, current.profileKey)
+                end
             end
         end
         for _, entry in ipairs(entries) do if not entry.failed then inflight[#inflight + 1] = entry end end
@@ -163,7 +185,18 @@ function M.newBoard(options)
         return #burst.joined > 0 and #active > 0 and burst.joinedAt ~= nil and at - burst.joinedAt < JOIN_HOLD_MS
     end
 
-    local function compose(holding)
+    -- The invitations whose connection is still being prepared and that wait for their one preparing line.
+    local function preparing(active)
+        local list = {}
+        for _, entry in ipairs(active) do
+            if entry.prepWanted and entry.name and (entry.stage == 'memory' or entry.stage == 'connecting') then
+                list[#list + 1] = entry
+            end
+        end
+        return list
+    end
+
+    local function compose(holding, waiting)
         local lines = {}
         if #burst.joined > 0 and not holding then
             -- "Joined" is the one notice a normal invitation gives, so it is always shown.
@@ -184,6 +217,11 @@ function M.newBoard(options)
             end
             lines[#lines + 1] = failure.message
         end
+        -- One line per character: two copies of one character share it (each copy is still announced once).
+        for index, name in ipairs(uniqueNames(waiting)) do
+            if index > MAX_LISTED then break end
+            lines[#lines + 1] = ui.t('Preparing connection to {name}…', {name = name})
+        end
         return table.concat(lines, '\n')
     end
 
@@ -194,7 +232,8 @@ function M.newBoard(options)
         local at = now()
         local active = sample(worldReady)
         local holding = holdingJoined(active, at)
-        local text = compose(holding)
+        local waiting = preparing(active)
+        local text = compose(holding, waiting)
         if text == '' then
             if #active == 0 then burst = newBurst() end
             return nil
@@ -202,6 +241,8 @@ function M.newBoard(options)
         local core = table.concat({text, tostring(ui.revision())}, '|')
         -- A new outcome is announced even when its text equals the previous notice (two copies of one character).
         local fresh = burst.fresh and not (holding and #burst.failures == 0)
+        -- A preparing line not announced yet shows even when its text equals the previous notice (two copies of one character).
+        for index, entry in ipairs(waiting) do if index <= MAX_LISTED and not entry.prepAnnounced then fresh = true end end
         if not fresh and core == shownCore and (not worldReady or core == shownGameplayCore) then
             if #active == 0 then burst = newBurst() end
             return nil
@@ -221,6 +262,7 @@ function M.newBoard(options)
             -- A final outcome (joined or failed, nothing else going) stays up longer.
             lastHold = (#active == 0 and (#burst.joined > 0 or #burst.failures > 0)) and FINAL_SHOW_MS or MIN_SHOW_MS
             for _, failure in ipairs(burst.failures) do failure.announced = true end
+            for index, entry in ipairs(waiting) do if index <= MAX_LISTED then entry.prepAnnounced = true end end
             if worldReady then shownGameplayCore = core end
             burst.fresh = false
             if #active == 0 then burst = newBurst() end
@@ -335,7 +377,7 @@ function M.new(companions, readiness, options)
                 if status.state == 'error' then
                     message = ui.t('{name}: preparation failed. Cancel and invite again.', {name = job.name})
                 end
-                return {id = job.id, revision = job.revision, name = job.name, state = status.state,
+                return {id = job.id, revision = job.revision, name = job.name, state = status.state, profileKey = job.profileKey,
                     message = message, failed = status.state == 'error',
                     signature = table.concat({job.id, tostring(job.revision), status.state}, '|')}
             end

@@ -27,8 +27,8 @@ const fixture = `
   local function realBoard()
     board = module.newBoard({now = function() return clock end, feedback = function(id) return states[id] end})
   end
-  local function set(id, name, state, revision)
-    states[id] = {id = id, name = name, state = state, revision = revision or 1, failed = state == 'error'}
+  local function set(id, name, state, revision, profile)
+    states[id] = {id = id, name = name, state = state, revision = revision or 1, failed = state == 'error', profileKey = profile}
   end
   local function post(world)
     local note = board.take(world == true)
@@ -60,6 +60,67 @@ test('no progress is posted for a lone invitation at any stage, and its joined l
     states.a = nil; joined('Judy')
     assert(post(true) == 'Judy joined your group.', 'joined did not show')
     assert(post(true) == nil and #board.inspect().entries == 0 and board.inspect().joined == 0)
+  `);
+});
+
+test('a profile invitation posts "Preparing connection to {name}…" once, then its joined line, and nothing for the later stages', () => {
+  run(`${fixture}
+    set('a', 'Judy', 'memory', 1, 'judy-alvarez'); board.track('a', 'manager')
+    assert(post() == 'Preparing connection to Judy…', 'no preparing line')
+    for _, state in ipairs({'memory', 'connecting', 'connecting', 'ready'}) do
+      clock = clock + 5000; set('a', 'Judy', state, 1, 'judy-alvarez')
+      assert(post(state == 'ready') == nil, 'a later stage posted: ' .. state)
+    end
+    clock = clock + 5000
+    assert(post(true) == nil, 'the joining step posted')
+    states.a = nil; joined('Judy')
+    assert(post(true) == 'Judy joined your group.', 'joined did not follow')
+  `);
+});
+
+test('a profile invitation whose connection is already open, or first seen ready, posts only joined', () => {
+  run(`${fixture}
+    local open = {['judy-alvarez'] = true}
+    board = module.newBoard({now = function() return clock end, feedback = function(id) return states[id] end,
+      connected = function(key) return open[key] == true end})
+    set('a', 'Judy', 'memory', 1, 'judy-alvarez'); board.track('a', 'manager')
+    assert(post() == nil, 'an open connection was announced as preparing')
+    clock = clock + 5000; set('a', 'Judy', 'connecting', 1, 'judy-alvarez'); assert(post() == nil)
+    -- A ticket first seen already ready has no preparing line either.
+    set('b', 'Johnny', 'ready', 1, 'johnny-silverhand'); board.track('b', 'phone')
+    clock = clock + 5000; assert(post() == nil)
+    states.a = nil; states.b = nil; joined('Judy'); joined('Johnny')
+    assert(post() == 'Judy and Johnny joined your group.', 'joined did not show alone')
+  `);
+});
+
+test('the preparing line is read from the connection once per invitation, and an unreadable state means it is shown', () => {
+  run(`${fixture}
+    local reads = 0
+    board = module.newBoard({now = function() return clock end, feedback = function(id) return states[id] end,
+      connected = function(key) reads = reads + 1; return false end})
+    set('a', 'Judy', 'memory', 1, 'judy-alvarez'); board.track('a', 'manager')
+    for _ = 1, 6 do post(); clock = clock + 5000 end
+    assert(reads == 1, 'the connection state was read ' .. reads .. ' times')
+    board = module.newBoard({now = function() return clock end, feedback = function(id) return states[id] end,
+      connected = function() error('state file unreadable') end})
+    set('b', 'Panam', 'memory', 1, 'panam-palmer'); board.track('b', 'manager')
+    assert(post() == 'Preparing connection to Panam…')
+  `);
+});
+
+test('several companions preparing together share one notice with a line each, and two copies of one character share a line', () => {
+  run(`${fixture}
+    set('a', 'Judy', 'memory', 1, 'judy-alvarez'); board.track('a', 'manager')
+    assert(post() == 'Preparing connection to Judy…')
+    clock = clock + 5000
+    set('b', 'Johnny', 'memory', 1, 'johnny-silverhand'); board.track('b', 'manager')
+    assert(post() == 'Preparing connection to Judy…\\nPreparing connection to Johnny…')
+    clock = clock + 5000
+    set('c', 'Judy', 'memory', 1, 'judy-alvarez'); board.track('c', 'manager')
+    assert(post() == 'Preparing connection to Judy…\\nPreparing connection to Johnny…', 'a second copy was not announced')
+    clock = clock + 5000
+    assert(post() == nil, 'the same preparing notice repeated')
   `);
 });
 

@@ -493,28 +493,29 @@ assert((stats.loads['diagnostics.lua'] or 0) == 1, 'the request file did not sta
 assert(files['runtime/diagnostic-response.txt'] == 'probe-1')
 `));
 
-test('a phone invitation shows a player no progress at any wait; the acknowledgement is Developer-only, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
--- A player sees no progress, however long the invitation waits; the bridge answers every few seconds.
-assert(#feedback() == 0, 'progress showed to a player')
+test('a phone invitation shows a player the preparing line once at any wait and nothing else; the acknowledgement is gone, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
+-- The first sight of the invitation posts one preparing line; no other progress shows, however long it waits.
+local prepared = 'Preparing connection to Judy…'
+assert(#feedback() == 1 and feedback()[1] == prepared, 'no single preparing line: ' .. table.concat(feedback(), ' | '))
 clock = clock + 7; receipt('memory'); events.onUpdate(0)
-assert(#feedback() == 0, 'Preparing showed to a player after a long wait')
-events.onUpdate(0); assert(#feedback() == 0)
+assert(#feedback() == 1, 'the preparing line repeated after a long wait')
+events.onUpdate(0); assert(#feedback() == 1)
 clock = clock + 4; receipt('connecting'); events.onUpdate(0)
-assert(#feedback() == 0, 'Connecting showed to a player')
+assert(#feedback() == 1, 'Connecting showed to a player')
 clock = clock + 4; receipt('ready'); events.onUpdate(0)
-assert(#feedback() == 0, 'the ready line showed to a player')
+assert(#feedback() == 1, 'the ready line showed to a player')
 assert(partyQueue.list()[1].state == 'ready-to-join')
 -- Failure first seen while the phone is open: no popup, no consumed claim.
 receipt('error'); events.onUpdate(0); events.onUpdate(0); events.onUpdate(0)
-assert(partyQueue.list()[1].state == 'failed' and #feedback() == 0, 'the open phone consumed the failure notice')
+assert(partyQueue.list()[1].state == 'failed' and #feedback() == 1, 'the open phone consumed the failure notice')
 player.phoneOpen = false; events.onUpdate(0.1)
 local posted = feedback()
-assert(#posted == 1 and posted[1]:find('could not prepare', 1, true), 'gameplay did not post the single failure notice')
+assert(#posted == 2 and posted[2]:find('could not prepare', 1, true), 'gameplay did not post the single failure notice')
 for _ = 1, 3 do events.onUpdate(0.1); player.phoneOpen = true; events.onUpdate(0); player.phoneOpen = false end
-assert(#feedback() == 1 and stats.spawned == 0, 'the failed attempt notified again')
+assert(#feedback() == 2 and stats.spawned == 0, 'the failed attempt notified again')
 `));
 
-test('two phone invitations show a player no progress while they wait', () => run(`
+test('two phone invitations show their preparing lines once while they wait', () => run(`
 events.onInit(); events.onUpdate(0)
 local function feedback()
     local out = {}
@@ -540,11 +541,12 @@ answer('memory', 4)
 player.phoneRequest = '+johnny'; events.onUpdate(0)
 receipt('memory'); events.onUpdate(0)
 answer('memory', 12)
-assert(#feedback() == 0, 'progress showed to a player while two invitations waited')
+assert(#feedback() == 2, 'unexpected notices while two invitations waited: ' .. table.concat(feedback(), ' | '))
+assert(feedback()[1] == 'Preparing connection to Judy…' and feedback()[2]:find('Judy', 1, true) and feedback()[2]:find('Johnny', 1, true), table.concat(feedback(), ' | '))
 answer('connecting', 4)
 answer('ready', 4)
-assert(#feedback() == 0, 'the ready line showed to a player')
-events.onUpdate(0); assert(#feedback() == 0)
+assert(#feedback() == 2, 'the ready line showed to a player')
+events.onUpdate(0); assert(#feedback() == 2)
 `));
 
 const worldCharacterFixture = `
@@ -642,13 +644,13 @@ hotkeys.cyberpunk_convai_text(); assert(player.composerOpen); player.composerOpe
 assert(#feedback() == 0, 'a connected character showed a notice: ' .. table.concat(feedback(), ' | '))
 `));
 
-test('a phone invitation shows no acknowledgement or progress with Developer mode on either', () => run(`${phoneNoticeFixture}
+test('a phone invitation shows the same single preparing line with Developer mode on, and no acknowledgement or other progress', () => run(`${phoneNoticeFixture}
 `.replace('events.onInit();', 'stats.developer = true; events.onInit();') + `
-assert(early == 0 and #feedback() == 0, 'the acknowledgement or a progress line showed with Developer mode on: ' .. table.concat(feedback(), ' | '))
+assert(early <= 1 and #feedback() == 1 and feedback()[1] == 'Preparing connection to Judy…', 'Developer mode changed the preparing line or added an acknowledgement: ' .. table.concat(feedback(), ' | '))
 clock = clock + 4; receipt('connecting'); events.onUpdate(0)
-assert(#feedback() == 0, 'Connecting showed to a developer: ' .. table.concat(feedback(), ' | '))
+assert(#feedback() == 1, 'Connecting showed to a developer: ' .. table.concat(feedback(), ' | '))
 clock = clock + 4; receipt('ready'); events.onUpdate(0); events.onUpdate(0)
-assert(#feedback() == 0, 'the ready line showed to a developer: ' .. table.concat(feedback(), ' | '))
+assert(#feedback() == 1, 'the ready line showed to a developer: ' .. table.concat(feedback(), ' | '))
 `));
 
 test('phone cancellation and save restoration reject earlier ready invitation receipts', () => run(`
