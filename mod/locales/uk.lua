@@ -374,6 +374,7 @@ return {
     ["Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}."] = "Для «Багатомовних розмов» потрібен голос, що говорить усіма мовами, тому «{setting}» переключено на «{voice}».",
     ["Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud."] = "Поки ввімкнено «Багатомовні розмови», «Природному мовленню» та «Виразним емоціям» потрібен пакет OmniVoice: хмарний голос Convai зачитував би їхні теги вголос.",
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "«Природне мовлення» та «Виразні емоції» вимкнено: хмарний голос Convai зачитував би їхні теги вголос. З пакетом OmniVoice усі три працюють разом.",
+    ["The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off."] = "Хмарний голос Convai не працює з параметрами «Природне мовлення» та «Виразні емоції», тому їх вимкнено.",
     ["That character model is unavailable."] = "Ця модель персонажа недоступна.",
     ["That companion is no longer ready to drive."] = "Цей компаньйон більше не готовий вести авто.",
     ["That confirmation is no longer active."] = "Це підтвердження більше не активне.",

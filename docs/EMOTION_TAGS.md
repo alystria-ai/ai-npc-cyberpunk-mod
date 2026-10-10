@@ -6,8 +6,9 @@ what the block now says.
 ## What exists
 
 The feature is the **Expressive emotions** setting (Settings > Voices, **on by default since October 11, 2026**, `expressiveEmotions` in the settings
-file; it was off by default until then. A missing key means on, except beside an explicitly saved Convai cloud voice, which is
-kept: nothing is switched and no notice is shown. A saved choice is always kept). Nothing new was added for the player. On a spoken turn the dynamic context carries a short block that asks the character
+file; it was off by default until then. A missing key means on, except beside a saved Convai cloud voice, where it is off
+(the cloud voice can never use it); nothing is switched and no notice is shown. A saved choice is kept, except that a saved
+`true` beside the cloud voice loads as off, with the voice kept). Nothing new was added for the player. On a spoken turn the dynamic context carries a short block that asks the character
 to write feeling tags inline; the bridge removes them from every text a player or an engine sees and keeps only where each one
 sits, and the face follows those marks.
 
@@ -37,9 +38,13 @@ The parser is lenient about what a model writes: aliases (`{angry}`, `{Joy}`, `{
 
 The block is sent only when **all** of these hold: Expressive emotions is on, the turn is spoken (not phone chat, not silent
 playback), and the voice that will speak it is a local one (OmniVoice or Pocket). With the Convai cloud voice nothing is sent,
-because Convai would read the braces aloud. The mod already enforces the pairing: applying Expressive emotions while the cloud
-voice is chosen switches Companion voices to Pocket TTS with a notice (`mod/manager.lua`), and Multilingual with the cloud voice
-turns the setting off. So there is no extra player setting and no new interplay.
+because Convai would read the braces aloud. The mod already enforces the pairing (`mod/manager.lua`, decided 2026-10-11):
+**choosing the cloud voice keeps it and turns Expressive emotions (and Natural speech) off**, with one notice only if the
+player had set one of them (turning just the default off is silent); turning Expressive emotions on while the cloud voice is
+saved moves Companion voices to Pocket TTS with a notice; one Apply that changes the voice to the cloud voice and turns it on
+lets the voice win. Multilingual with the cloud voice turns the setting off too. The bridge needs no pairing check: it
+decides per turn from the engine that speaks (`contextFor({engine})`), so even a leftover `true` in the settings file, or a
+fallback to the cloud voice mid-session, sends no block. So there is no extra player setting and no new interplay.
 
 Mid-session safety (a character that wrote tags for a while, then the voice switches to Convai and the block stops): in a
 test of 3 characters, 12 turns with the block and then 18 without, every one of the 36 turns with the block carried tags and

@@ -1134,12 +1134,14 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 else return {ok = false, error = ui.t('That setting is read-only.')} end
                 applied[#applied + 1] = key
             end
-            local ok, err, notice = manager.applySettings(player(), values)
-            -- A voice switched for Natural speech is told to the player here (the status line) and, once back in
-            -- gameplay, as a notice; the page reloads so the voice list shows the voice that was actually saved.
-            if ok and notice then actionFeedback, refreshQueued = notice, true end
+            local ok, err, notice, reload = manager.applySettings(player(), values)
+            -- A voice switched for Natural speech, or tag settings turned off for the cloud voice, is told to the player
+            -- here (the status line) and, once back in gameplay, as a notice; the page reloads so the lists and toggles
+            -- show what was actually saved. A quiet turn-off (only the default was on) reloads without a notice.
+            if ok and notice then actionFeedback = notice end
+            if ok and (notice or reload) then refreshQueued = true end
             return {ok = ok, error = ui.t(err), atomic = true, partial = false, appliedIds = ok and applied or {},
-                schemaChanged = ok and notice ~= nil}
+                schemaChanged = ok and (notice ~= nil or reload == true)}
         end,
     }
 end

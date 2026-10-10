@@ -374,6 +374,7 @@ return {
     ["Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}."] = "Rozmowy wielojęzyczne wymagają głosu mówiącego we wszystkich językach, więc zmieniono ustawienie {setting} na: {voice}.",
     ["Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud."] = "Naturalna mowa i Wyraziste emocje wymagają pakietu OmniVoice, gdy włączone są Rozmowy wielojęzyczne: głos w chmurze Convai czytałby ich znaczniki na głos.",
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "Naturalna mowa i Wyraziste emocje zostały wyłączone: głos w chmurze Convai czytałby ich znaczniki na głos. Z pakietem OmniVoice wszystkie trzy działają razem.",
+    ["The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off."] = "Głos w chmurze Convai nie może używać ustawień „Naturalna mowa” i „Wyraziste emocje”, więc zostały wyłączone.",
     ["That character model is unavailable."] = "Ten model postaci jest niedostępny.",
     ["That companion is no longer ready to drive."] = "Ten towarzysz nie jest już gotowy do prowadzenia.",
     ["That confirmation is no longer active."] = "To potwierdzenie nie jest już aktywne.",

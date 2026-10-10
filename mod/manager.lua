@@ -31,8 +31,8 @@ local OMNI_LABELS = {
 }
 local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
--- Natural speech needs a local voice (the Convai cloud voice would read its tags aloud). The pending "switched to
--- Pocket TTS" notice, once, after an Apply that had to change the voice.
+-- Natural speech and Expressive emotions need a local voice (the Convai cloud voice would read their tags aloud). The
+-- pending notice, once, after an Apply that switched the voice or turned the two settings off.
 local naturalSpeechNotice = nil
 local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
 -- Lip sync delay (Bluetooth), in ms; 'auto' lets the bridge detect a Bluetooth
@@ -422,14 +422,18 @@ local function loadSettings()
     if type(settings.keepPreparedVoices) ~= 'boolean' then settings.keepPreparedVoices, settingsNeedSave = true, true end
     -- On by default: unnamed gang members, police, vendors and residents can be talked to (docs/NPC_ARCHETYPES.md).
     if type(settings.archetypeConversations) ~= 'boolean' then settings.archetypeConversations, settingsNeedSave = true, true end
-    -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the voice moves to Pocket TTS.
+    -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the cloud voice is kept (it is the
+    -- player's voice) and the setting is turned off below.
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
     -- Expressive emotions (the character marks its own feelings; on by default) needs a local voice for the same reason.
-    -- A missing key defaults to on, except beside an explicitly saved Convai cloud voice: that choice is kept, so the default
-    -- never moves the voice (the new-install default voice is Pocket, so a new install gets it on).
+    -- A missing key defaults to on, except beside a saved Convai cloud voice, which can never use it (the new-install
+    -- default voice is Pocket, so a new install gets it on).
     if type(settings.expressiveEmotions) ~= 'boolean' then
         settings.expressiveEmotions, settingsNeedSave = settings.voiceProvider ~= 'convai', true
     end
+    -- Whether the player ever set Expressive emotions themselves (an Apply that carried it). Only that makes turning it
+    -- off, for the cloud voice, worth a notice; the default being switched off is silent.
+    if type(settings.expressiveEmotionsChosen) ~= 'boolean' then settings.expressiveEmotionsChosen = false end
     -- Follow-up questions (on by default, key followUpInterest: the retired followUpQuestions key above is a different, dropped
     -- setting): characters sometimes show interest in the player. Works with any voice.
     if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = true, true end
@@ -440,10 +444,10 @@ local function loadSettings()
     if settings.multilingualConversations and settings.voiceProvider == 'pocket' then
         settings.voiceProvider, settingsNeedSave = 'convai', true
     end
+    -- A saved cloud voice with a tag setting on (an older save): the voice is kept and the tag settings are turned off,
+    -- with Multilingual conversations on or off alike. Apply never writes this pairing.
     if (settings.naturalSpeech or settings.expressiveEmotions) and settings.voiceProvider == 'convai' then
-        if settings.multilingualConversations then
-            settings.naturalSpeech, settings.expressiveEmotions, settingsNeedSave = false, false, true
-        else settings.voiceProvider, settingsNeedSave = 'pocket', true end
+        settings.naturalSpeech, settings.expressiveEmotions, settingsNeedSave = false, false, true
     end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
@@ -544,7 +548,8 @@ function M.takeVoiceFallbackNotice()
         requested = M.voiceLabel(pending.from, pending.steps, pending.reference), voice = M.voiceLabel(pending.to)})
 end
 
--- Once, after an Apply that switched the voice because Natural speech needs a local one.
+-- Once, after an Apply that switched the voice (a tag setting was turned on beside the cloud voice) or that turned a tag
+-- setting off (the cloud voice was chosen).
 function M.takeNaturalSpeechNotice()
     local pending = naturalSpeechNotice
     naturalSpeechNotice = nil
@@ -587,10 +592,11 @@ end
 -- emotions tags aloud. Judged on the settings as they will be after this Apply (`after` is changed in place):
 --   - turning it on moves the voice to OmniVoice · Balanced (16 steps, short reference: the lightest Omni) when the pack
 --     is installed, or to the cloud voice otherwise; an OmniVoice tier is kept, and so is a cloud voice chosen in the
---     same Apply;
+--     same Apply (honourCloudVoice has already turned the tag settings off by then);
 --   - without the pack, Multilingual wins: the two tag settings are turned off, and turning one on later is refused;
 --   - while it is on, choosing Pocket TTS is refused (turning Multilingual off is the player's own choice to make);
---   - with the pack, a tag setting with the cloud voice moves the voice to OmniVoice · Balanced, never to Pocket.
+--   - with the pack, a tag setting turned on beside a saved cloud voice moves the voice to OmniVoice · Balanced, never to
+--     Pocket. (Choosing the cloud voice keeps it and turns the tag settings off, as without Multilingual.)
 -- Turning it off leaves the voice as it is. Returns an error to refuse the Apply, and the notices to show.
 local function resolveMultilingualVoice(before, after, values, packInstalled)
     local result = {notices = {}}
@@ -611,8 +617,8 @@ local function resolveMultilingualVoice(before, after, values, packInstalled)
             or ui.t('Expressive emotions need a local voice, so {setting} was switched to {voice}.', named)
     end
     if not packInstalled then
-        local newlyOn = (values.naturalSpeech == true and before.naturalSpeech ~= true)
-            or (values.expressiveEmotions == true and before.expressiveEmotions ~= true)
+        local newlyOn = (values.naturalSpeech == true and after.naturalSpeech == true and before.naturalSpeech ~= true)
+            or (values.expressiveEmotions == true and after.expressiveEmotions == true and before.expressiveEmotions ~= true)
         if newlyOn and not turningOn then
             result.error = ui.t('Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud.')
             return result
@@ -635,6 +641,25 @@ local function resolveMultilingualVoice(before, after, values, packInstalled)
     return result
 end
 M.resolveMultilingualVoice = resolveMultilingualVoice
+
+-- Choosing the Convai cloud voice honours the voice: Natural speech and Expressive emotions would make it read their tags
+-- aloud, so they are turned off instead of the voice being refused or moved (`after` is changed in place). Applies only
+-- when this Apply changes the voice to the cloud voice. That includes the same Apply turning a tag setting on: the voice
+-- choice wins. If the cloud voice is already saved, the voice is not being chosen, and a tag setting turned on beside it
+-- wins instead (the voice moves to a local one, as before). Returns the one notice to show, or nil: only when a setting
+-- the player had set themselves was turned off (Natural speech is off by default, so on means chosen; Expressive emotions
+-- is on by default, so only when an earlier or this Apply carried it). Turning only the default off is silent, and then
+-- the second result is true so the caller can still ask the open page to reload.
+local function honourCloudVoice(before, after, values)
+    if values.voiceProvider ~= 'convai' or before.voiceProvider == 'convai' or after.voiceProvider ~= 'convai' then return nil end
+    local speech, emotions = after.naturalSpeech == true, after.expressiveEmotions == true
+    if not speech and not emotions then return nil end
+    after.naturalSpeech, after.expressiveEmotions = false, false
+    if speech or after.expressiveEmotionsChosen == true then
+        return ui.t('The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.')
+    end
+    return nil, true
+end
 
 function M.relationshipChoices()
     loadSettings()
@@ -1251,6 +1276,7 @@ function M.applySettings(player, values)
     nextSettings.relationshipModes = {}
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     for key, value in pairs(values) do
+        if key == 'expressiveEmotions' then nextSettings.expressiveEmotionsChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'gameDialogueContext'
@@ -1308,9 +1334,12 @@ function M.applySettings(player, values)
             end
         else return false, ui.t('Unknown setting: {setting}',{setting=tostring(key)}) end
     end
-    -- Natural speech needs a local voice. Both settings are judged as they will be after this Apply, so turning it on
-    -- while the cloud voice is saved, choosing the cloud voice while it is on, or both in one Apply, ends on Pocket TTS.
+    -- Natural speech and Expressive emotions need a local voice. They are judged as they will be after this Apply:
+    -- choosing the cloud voice keeps it and turns both off (honourCloudVoice: one notice, only if the player had set one),
+    -- while turning one on beside a saved cloud voice moves the voice to Pocket TTS with a notice. A tag setting turned on
+    -- in the same Apply that changes the voice to the cloud voice loses to the voice.
     -- With Multilingual conversations on, the voice is resolved by its own rules below instead (never Pocket TTS).
+    local cloudNotice, cloudQuiet = honourCloudVoice(settings, nextSettings, values)
     local multilingual = resolveMultilingualVoice(settings, nextSettings, values, M.omniPack().installed)
     if multilingual.error then return false, multilingual.error end
     local switchedVoice = nextSettings.multilingualConversations ~= true
@@ -1332,8 +1361,9 @@ function M.applySettings(player, values)
         end
     end
     if companions.onPartyChanged then pcall(companions.onPartyChanged) end
-    if switchedVoice or #multilingual.notices > 0 then
+    if switchedVoice or cloudNotice or #multilingual.notices > 0 then
         local notices = {}
+        if cloudNotice then notices[#notices + 1] = cloudNotice end
         if switchedVoice then
             local named = {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')}
             notices[#notices + 1] = nextSettings.naturalSpeech == true
@@ -1346,7 +1376,8 @@ function M.applySettings(player, values)
         return true, nil, naturalSpeechNotice
     end
     say('Settings saved.')
-    return true
+    -- A quiet turn-off still changes settings the open page shows: ask for a reload without a notice.
+    return true, nil, nil, cloudQuiet == true
 end
 
 function M.update(player, delta)

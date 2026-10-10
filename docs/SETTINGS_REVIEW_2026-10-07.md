@@ -497,9 +497,10 @@ Three settings that this review lists as Off by default are On by default for la
   install (no file) therefore ends on Pocket with all three On, with no voice switch, notice or feedback on first load.
 - With Multilingual conversations on, the existing rule is unchanged: with the cloud voice the tag settings are dropped
   (Expressive emotions off); with an OmniVoice choice Expressive emotions stays on.
-- Choosing the Convai cloud voice in Settings while Expressive emotions is on still ends on Pocket TTS with the notice
-  ("Expressive emotions need a local voice..."). Because Expressive emotions is now on by default, a player who wants the cloud
-  voice turns Expressive emotions off first (or in the same Apply).
+- Superseded later on 2026-10-11: choosing the Convai cloud voice in Settings now keeps the voice and turns Expressive emotions
+  (and Natural speech) off, with one notice only if the player had set one of them (docs/MANAGER_UI.md, "Cloud voice and the tag
+  settings"). Turning Expressive emotions on beside a saved cloud voice still moves the voice to Pocket TTS with the notice
+  ("Expressive emotions need a local voice..."). A missing key beside a saved cloud voice still defaults to Off.
 - The bridge (`bridge/expressive-emotions.mjs`, `bridge/follow-up.mjs`) treats a missing key as On (only a saved `false`
   turns it off), so it agrees with Lua before the Lua side has rewritten the file.
 - The settings page (`mod/mcm.lua`) marks the three as default On (reset to default turns them On). The descriptions of Expressive

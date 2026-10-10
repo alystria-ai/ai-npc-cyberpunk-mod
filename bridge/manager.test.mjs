@@ -3337,7 +3337,7 @@ test('a temporary fallback is announced once as not ready yet, the return to Omn
   `);
 });
 
-test('Natural speech is off by default and a saved pairing with the Convai cloud voice cannot stand', () => {
+test('Natural speech is off by default and a saved pairing with the Convai cloud voice keeps the voice and turns it off', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
     assert(saved.naturalSpeech == false and manager.naturalSpeech() == false)
@@ -3347,17 +3347,16 @@ test('Natural speech is off by default and a saved pairing with the Convai cloud
       if case[1] ~= 'missing' then seed.naturalSpeech = case[1] end
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
-      local on = case[1] == true
+      -- Natural speech needs a local voice: beside the cloud voice it is turned off and the voice is kept (2026-10-11).
+      local on = case[1] == true and case[2] ~= 'convai'
       assert(manager.naturalSpeech() == on and saved.naturalSpeech == on, tostring(case[1]))
-      -- Natural speech needs a local voice: only the cloud voice with the setting on is moved, to Pocket TTS.
-      local expected = (on and case[2] == 'convai') and 'pocket' or case[2]
-      assert(saved.voiceProvider == expected and manager.snapshot(player).settings.voiceProvider == expected)
+      assert(saved.voiceProvider == case[2] and manager.snapshot(player).settings.voiceProvider == case[2])
       assert(saved.future.keep == 'unchanged')
     end
   `);
 });
 
-test('Natural speech applies with the voice in one Apply: the cloud voice is switched to Pocket TTS, once, with a clear notice', () => {
+test('Natural speech and the cloud voice: choosing the cloud voice keeps it and turns Natural speech off with one notice; turning it on beside the saved cloud voice moves the voice to Pocket TTS', () => {
   run(`${mcmFixture}
     local clock = 5000
     os.clock = function() return clock end
@@ -3367,13 +3366,15 @@ test('Natural speech applies with the voice in one Apply: the cloud voice is swi
     local entry = row('naturalSpeech')
     assert(entry and entry.type == 'bool' and entry.value == false and entry.defaultValue == false, 'off by default')
     local NOTICE = 'Natural speech needs a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
-    -- The menu positions of the cloud voice and of the first OmniVoice entry, wherever the list puts them.
-    local CLOUD, OMNI
+    local OFF = 'The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.'
+    -- The menu positions of the cloud voice, of Pocket and of the first OmniVoice entry, wherever the list puts them.
+    local CLOUD, OMNI, POCKET
     for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
       if choice.provider == 'convai' then CLOUD = index end
+      if choice.provider == 'pocket' then POCKET = index end
       if choice.provider == 'omni' and not OMNI then OMNI = index end
     end
-    assert(CLOUD and OMNI)
+    assert(CLOUD and OMNI and POCKET)
     local function apply(...)
       clock = clock + 2
       local changes = {}
@@ -3386,45 +3387,57 @@ test('Natural speech applies with the voice in one Apply: the cloud voice is swi
     local result = apply({'naturalSpeech', true})
     assert(result.ok and manager.naturalSpeech() and saved.naturalSpeech == true and saved.voiceProvider == 'pocket')
     assert(result.schemaChanged == false and manager.takeNaturalSpeechNotice() == nil)
-    -- Choosing the cloud voice while it is on ends on Pocket TTS, and says so.
+    -- Choosing the cloud voice while it is on keeps the voice, turns Natural speech off, and says so once.
     result = apply({'voiceProvider', CLOUD})
-    assert(result.ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true)
-    assert(manager.snapshot(player).settings.voiceProvider == 'pocket' and result.schemaChanged == true)
-    assert(manager.snapshot(player).feedback == NOTICE, manager.snapshot(player).feedback)
+    assert(result.ok and saved.voiceProvider == 'convai' and saved.naturalSpeech == false and not manager.naturalSpeech())
+    assert(manager.snapshot(player).settings.voiceProvider == 'convai' and manager.snapshot(player).settings.naturalSpeech == false)
+    assert(result.schemaChanged == true, 'the page reloads so the toggle shows off')
+    assert(manager.snapshot(player).feedback == OFF, manager.snapshot(player).feedback)
     mcm.update(player, true)
     assert(#sent == 0, 'the popup is Developer-only: the Settings status line already says it')
     mcm.update(player, true); assert(#sent == 0)
+    -- Turning it on while the cloud voice is saved is the player asking for the tags: the voice moves to Pocket, with a notice.
     -- Developer mode shows it once, in gameplay.
     convaiNotices.configure(function() return true end)
-    assert(apply({'naturalSpeech', false}).ok and apply({'voiceProvider', CLOUD}).ok)
-    assert(apply({'naturalSpeech', true}).ok and saved.voiceProvider == 'pocket')
+    result = apply({'naturalSpeech', true})
+    assert(result.ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true and result.schemaChanged == true)
     mcm.update(player, true)
     assert(#sent == 1 and sent[1] == NOTICE, 'the notice reaches a developer in gameplay: ' .. tostring(sent[1]))
     mcm.update(player, true); assert(#sent == 1, 'announced once')
     convaiNotices.configure(function() return false end)
-    -- Natural speech off: the cloud voice is allowed again.
+    -- Natural speech off: the cloud voice is chosen with nothing to turn off, so there is no notice.
     assert(apply({'naturalSpeech', false}).ok and not manager.naturalSpeech())
     assert(apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai' and manager.takeNaturalSpeechNotice() == nil)
     -- Turning it on while the cloud voice is saved switches the voice in the same Apply.
     result = apply({'naturalSpeech', true})
     assert(result.ok and saved.naturalSpeech == true and saved.voiceProvider == 'pocket' and result.schemaChanged == true)
     assert(manager.takeNaturalSpeechNotice() == NOTICE and manager.takeNaturalSpeechNotice() == nil)
-    -- Both staged together (drafts are applied as one batch): natural speech on and the cloud voice picked.
+    -- Both staged together while the cloud voice is already saved: the voice is not being changed, so the setting wins.
     assert(apply({'naturalSpeech', false}).ok)
     assert(apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai')
     result = apply({'voiceProvider', CLOUD}, {'naturalSpeech', true})
     assert(result.ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true)
     assert(manager.takeNaturalSpeechNotice() == NOTICE)
+    -- Both staged together while the voice changes to the cloud voice: the voice choice wins and Natural speech is turned off.
+    assert(apply({'naturalSpeech', false}).ok and saved.voiceProvider == 'pocket')
+    result = apply({'voiceProvider', CLOUD}, {'naturalSpeech', true})
+    assert(result.ok and saved.voiceProvider == 'convai' and saved.naturalSpeech == false and result.schemaChanged == true)
+    assert(manager.takeNaturalSpeechNotice() == OFF and manager.takeNaturalSpeechNotice() == nil)
     -- Both staged together, but the voice moves to an OmniVoice choice instead: it is kept.
-    assert(apply({'naturalSpeech', false}).ok and apply({'voiceProvider', CLOUD}).ok)
     result = apply({'voiceProvider', OMNI}, {'naturalSpeech', true})
     assert(result.ok and saved.voiceProvider == 'omni' and saved.naturalSpeech == true)
     assert(manager.takeNaturalSpeechNotice() == nil and result.schemaChanged == false)
-    -- A failed save changes nothing and sends no notice.
+    -- A failed save changes nothing and sends no notice, in either direction.
     assert(apply({'naturalSpeech', false}).ok and apply({'voiceProvider', CLOUD}).ok)
     failSave = true
     result = apply({'voiceProvider', CLOUD}, {'naturalSpeech', true})
     assert(result.ok == false and saved.voiceProvider == 'convai' and not manager.naturalSpeech())
+    assert(manager.takeNaturalSpeechNotice() == nil)
+    failSave = false
+    assert(apply({'voiceProvider', POCKET}, {'naturalSpeech', true}).ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech)
+    failSave = true
+    result = apply({'voiceProvider', CLOUD})
+    assert(result.ok == false and saved.voiceProvider == 'pocket' and manager.naturalSpeech())
     assert(manager.takeNaturalSpeechNotice() == nil)
     failSave = false
     assert(registered.applyBatch('manager', {{id = 'naturalSpeech', value = 'yes'}}).ok == false)
@@ -3455,7 +3468,7 @@ test('Natural speech sits in the Voices category and Auto Apply cannot commit it
   `);
 });
 
-test('Expressive emotions is on by default (2026-10-11), a saved choice is kept, and a saved pairing with the Convai cloud voice cannot stand', () => {
+test('Expressive emotions is on by default (2026-10-11), a saved choice is kept, and a saved pairing with the Convai cloud voice keeps the voice and turns it off', () => {
   run(`${managerFixture}
     -- A new install (no settings file): Pocket, Expressive emotions, Follow-up questions and Body gestures on, no voice switch,
     -- no notice and no feedback on the first load.
@@ -3465,8 +3478,8 @@ test('Expressive emotions is on by default (2026-10-11), a saved choice is kept,
     assert(saved.voiceProvider == 'pocket' and saved.followUpInterest == true and saved.bodyGestures == true)
     assert(saved.naturalSpeech == false and saved.multilingualConversations == false)
     assert(manager.takeNaturalSpeechNotice() == nil and (manager.snapshot(player).feedback or '') == '', 'no voice switch notice on first load')
-    -- A missing key is the default (on) except beside an explicitly saved cloud voice, which is kept (the default never moves
-    -- the voice); a non-boolean is a missing key; a saved true with the cloud voice is the old rule (moved to Pocket TTS).
+    -- A missing key is the default (on) except beside a saved cloud voice, which can never use it; a non-boolean is a missing
+    -- key; a saved true with the cloud voice (an older save) keeps the cloud voice and turns the setting off. The voice never moves.
     for _, case in ipairs({{'missing', 'convai'}, {'missing', 'pocket'}, {'missing', 'omni'}, {true, 'convai'}, {true, 'pocket'},
         {true, 'omni'}, {false, 'convai'}, {false, 'pocket'}, {'yes', 'convai'}, {'yes', 'pocket'}}) do
       seed = {version = 2, voiceProvider = case[2], enabledByKey = {}, future = {keep = 'unchanged'}}
@@ -3474,11 +3487,12 @@ test('Expressive emotions is on by default (2026-10-11), a saved choice is kept,
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
       local on
-      if case[1] == true or case[1] == false then on = case[1] else on = case[2] ~= 'convai' end
+      if case[1] == true or case[1] == false then on = case[1] else on = true end
+      if case[2] == 'convai' then on = false end
       local label = tostring(case[1]) .. ' / ' .. case[2]
       assert(manager.expressiveEmotions() == on and saved.expressiveEmotions == on, label)
-      local expected = (on and case[2] == 'convai') and 'pocket' or case[2]
-      assert(saved.voiceProvider == expected and manager.snapshot(player).settings.voiceProvider == expected, label)
+      assert(saved.voiceProvider == case[2] and manager.snapshot(player).settings.voiceProvider == case[2], label)
+      assert(manager.takeNaturalSpeechNotice() == nil and (manager.snapshot(player).feedback or '') == '', 'a load is silent: ' .. label)
       assert(saved.future.keep == 'unchanged')
     end
     -- Multilingual conversations on: the existing rule still drops the tag settings with the cloud voice (a Pocket voice moves to
@@ -3492,7 +3506,7 @@ test('Expressive emotions is on by default (2026-10-11), a saved choice is kept,
   `);
 });
 
-test('Expressive emotions needs a local voice too: the cloud voice is switched to Pocket TTS in the same Apply, with its own notice, and both settings coexist', () => {
+test('Expressive emotions and the cloud voice: choosing the cloud voice keeps it and turns the setting off (silently if only the default was on); turning it on beside the saved cloud voice moves the voice to Pocket TTS', () => {
   run(`${mcmFixture}
     local clock = 5000
     os.clock = function() return clock end
@@ -3511,9 +3525,11 @@ test('Expressive emotions needs a local voice too: the cloud voice is switched t
         and entry.description:find('local voice', 1, true))
     local EMOTIONS = 'Expressive emotions need a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
     local SPEECH = 'Natural speech needs a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
-    local CLOUD, OMNI
+    local OFF = 'The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.'
+    local CLOUD, OMNI, POCKET
     for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
       if choice.provider == 'convai' then CLOUD = index end
+      if choice.provider == 'pocket' then POCKET = index end
       if choice.provider == 'omni' and not OMNI then OMNI = index end
     end
     local function apply(...)
@@ -3522,40 +3538,61 @@ test('Expressive emotions needs a local voice too: the cloud voice is switched t
       for _, change in ipairs({...}) do changes[#changes + 1] = {id = change[1], value = change[2]} end
       return registered.applyBatch('manager', changes)
     end
-    -- On by default with Pocket; switching it off and on again with a local voice changes nothing else and announces nothing.
+    -- Only the default is on (the player never set it): choosing the cloud voice keeps the voice and turns the setting off
+    -- without a notice. The open page still reloads, so the toggle shows off.
     assert(manager.expressiveEmotions() and saved.voiceProvider == 'pocket' and saved.expressiveEmotions == true)
-    assert(apply({'expressiveEmotions', false}).ok and not manager.expressiveEmotions())
-    local result = apply({'expressiveEmotions', true})
-    assert(result.ok and manager.expressiveEmotions() and saved.expressiveEmotions == true and saved.voiceProvider == 'pocket')
-    assert(result.schemaChanged == false and manager.takeNaturalSpeechNotice() == nil and not manager.naturalSpeech())
-    -- Choosing the cloud voice while it is on ends on Pocket TTS and says so.
-    result = apply({'voiceProvider', CLOUD})
+    local result = apply({'voiceProvider', CLOUD})
+    assert(result.ok and saved.voiceProvider == 'convai' and saved.expressiveEmotions == false and not manager.expressiveEmotions())
+    assert(result.schemaChanged == true and manager.takeNaturalSpeechNotice() == nil)
+    assert(manager.snapshot(player).settings.voiceProvider == 'convai' and manager.snapshot(player).settings.expressiveEmotions == false)
+    mcm.update(player, true)
+    assert(#sent == 0, 'the default being switched off is silent')
+    -- Turning it on beside the saved cloud voice is the player asking for it: the voice moves to Pocket TTS, with a notice.
+    result = apply({'expressiveEmotions', true})
     assert(result.ok and saved.voiceProvider == 'pocket' and saved.expressiveEmotions == true and result.schemaChanged == true)
     assert(manager.snapshot(player).feedback == EMOTIONS, manager.snapshot(player).feedback)
     mcm.update(player, true)
     assert(#sent == 1 and sent[1] == EMOTIONS and not manager.takeNaturalSpeechNotice(), tostring(sent[1]))
-    -- Off: the cloud voice is allowed again. Turning it on while the cloud voice is saved switches the voice in that Apply.
-    assert(apply({'expressiveEmotions', false}).ok and apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai')
-    assert(manager.takeNaturalSpeechNotice() == nil)
+    -- With a local voice, switching it off and on again changes nothing else and announces nothing.
+    assert(apply({'expressiveEmotions', false}).ok and not manager.expressiveEmotions())
     result = apply({'expressiveEmotions', true})
-    assert(result.ok and saved.voiceProvider == 'pocket' and result.schemaChanged == true)
-    assert(manager.takeNaturalSpeechNotice() == EMOTIONS)
-    -- Both staged together: the setting on and the cloud voice picked, in one batch.
-    assert(apply({'expressiveEmotions', false}).ok and apply({'voiceProvider', CLOUD}).ok)
+    assert(result.ok and manager.expressiveEmotions() and saved.expressiveEmotions == true and saved.voiceProvider == 'pocket')
+    assert(result.schemaChanged == false and manager.takeNaturalSpeechNotice() == nil and not manager.naturalSpeech())
+    -- The player set it, so choosing the cloud voice now says it was turned off, once.
+    result = apply({'voiceProvider', CLOUD})
+    assert(result.ok and saved.voiceProvider == 'convai' and saved.expressiveEmotions == false and result.schemaChanged == true)
+    assert(manager.snapshot(player).feedback == OFF, manager.snapshot(player).feedback)
+    mcm.update(player, true)
+    assert(#sent == 2 and sent[2] == OFF and not manager.takeNaturalSpeechNotice(), tostring(sent[2]))
+    -- Off: nothing to turn off when the cloud voice is chosen, so no notice.
+    assert(apply({'voiceProvider', POCKET}).ok and saved.voiceProvider == 'pocket')
+    assert(apply({'expressiveEmotions', false}).ok)
+    assert(apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai' and manager.takeNaturalSpeechNotice() == nil)
+    -- Both staged together while the voice changes to the cloud voice: the voice choice wins, the setting is turned off.
+    assert(apply({'voiceProvider', POCKET}).ok)
+    result = apply({'voiceProvider', CLOUD}, {'expressiveEmotions', true})
+    assert(result.ok and saved.voiceProvider == 'convai' and saved.expressiveEmotions == false and result.schemaChanged == true)
+    assert(manager.takeNaturalSpeechNotice() == OFF)
+    -- Both staged together while the cloud voice is already saved: the voice is not changing, so the setting wins.
     result = apply({'voiceProvider', CLOUD}, {'expressiveEmotions', true})
     assert(result.ok and saved.voiceProvider == 'pocket' and saved.expressiveEmotions == true)
     assert(manager.takeNaturalSpeechNotice() == EMOTIONS)
-    -- Both settings on together stay together; the voice moves once, and the notice names Natural speech.
-    assert(apply({'expressiveEmotions', false}).ok and apply({'voiceProvider', CLOUD}).ok)
+    -- Both settings turned on together beside the saved cloud voice stay together; the voice moves once, and the notice names Natural speech.
+    assert(apply({'expressiveEmotions', false}).ok and apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai')
     result = apply({'expressiveEmotions', true}, {'naturalSpeech', true})
     assert(result.ok and saved.voiceProvider == 'pocket' and saved.expressiveEmotions == true and saved.naturalSpeech == true)
     assert(manager.takeNaturalSpeechNotice() == SPEECH and manager.takeNaturalSpeechNotice() == nil)
-    -- With Natural speech still on, turning Expressive emotions off leaves the voice rule in force for the other one.
-    assert(apply({'expressiveEmotions', false}).ok and manager.naturalSpeech() and not manager.expressiveEmotions())
+    -- Choosing the cloud voice with both on turns both off, with one notice.
     result = apply({'voiceProvider', CLOUD})
-    assert(result.ok and saved.voiceProvider == 'pocket' and manager.takeNaturalSpeechNotice() == SPEECH)
+    assert(result.ok and saved.voiceProvider == 'convai' and saved.expressiveEmotions == false and saved.naturalSpeech == false)
+    assert(manager.takeNaturalSpeechNotice() == OFF and manager.takeNaturalSpeechNotice() == nil)
+    -- With only Natural speech on (always set by the player), the choice still says so.
+    assert(apply({'voiceProvider', POCKET}, {'expressiveEmotions', false}, {'naturalSpeech', true}).ok and saved.voiceProvider == 'pocket')
+    result = apply({'voiceProvider', CLOUD})
+    assert(result.ok and saved.voiceProvider == 'convai' and saved.naturalSpeech == false)
+    assert(manager.takeNaturalSpeechNotice() == OFF)
     -- OmniVoice is a local voice: it is kept with both on.
-    result = apply({'voiceProvider', OMNI}, {'expressiveEmotions', true})
+    result = apply({'voiceProvider', OMNI}, {'expressiveEmotions', true}, {'naturalSpeech', true})
     assert(result.ok and saved.voiceProvider == 'omni' and saved.expressiveEmotions == true and saved.naturalSpeech == true)
     assert(manager.takeNaturalSpeechNotice() == nil and result.schemaChanged == false)
     -- A failed save changes nothing and sends no notice; a non-boolean is refused.
@@ -3563,6 +3600,12 @@ test('Expressive emotions needs a local voice too: the cloud voice is switched t
     failSave = true
     result = apply({'voiceProvider', CLOUD}, {'expressiveEmotions', true})
     assert(result.ok == false and saved.voiceProvider == 'convai' and not manager.expressiveEmotions())
+    assert(manager.takeNaturalSpeechNotice() == nil)
+    failSave = false
+    assert(apply({'voiceProvider', POCKET}, {'expressiveEmotions', true}).ok and saved.voiceProvider == 'pocket')
+    failSave = true
+    result = apply({'voiceProvider', CLOUD})
+    assert(result.ok == false and saved.voiceProvider == 'pocket' and manager.expressiveEmotions())
     assert(manager.takeNaturalSpeechNotice() == nil)
     failSave = false
     assert(registered.applyBatch('manager', {{id = 'expressiveEmotions', value = 'yes'}}).ok == false)
@@ -3702,6 +3745,7 @@ const multilingualApplyFixture = `
     end
     local SWITCH = 'Multilingual conversations needs a voice that speaks every language, so Companion voices was switched to '
     local OFF = 'Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together.'
+    local CLOUD_OFF = 'The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.'
     local NO_POCKET = 'Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.'
     local NO_TAGS = 'Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud.'
     assert(invoke('tab:settings').ok)
@@ -3741,9 +3785,13 @@ test('with the Omni pack, turning Multilingual on moves Pocket to OmniVoice · B
     assert(apply({'voiceProvider', ULTRA}).ok and saved.omniSteps == 32 and saved.omniReference == 'long')
     assert(apply({'naturalSpeech', true}, {'expressiveEmotions', true}).ok and saved.voiceProvider == 'omni')
     assert(manager.takeNaturalSpeechNotice() == nil and saved.naturalSpeech and saved.expressiveEmotions)
-    -- The cloud voice chosen while a tag setting is on moves to OmniVoice · Balanced, never to Pocket.
+    -- The cloud voice chosen while a tag setting is on is kept (2026-10-11): both tag settings are turned off, with one notice.
     result = apply({'voiceProvider', CLOUD})
-    assert(result.ok and saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'short')
+    assert(result.ok and saved.voiceProvider == 'convai' and not saved.naturalSpeech and not saved.expressiveEmotions)
+    assert(result.schemaChanged == true and manager.takeNaturalSpeechNotice() == CLOUD_OFF)
+    -- A tag setting turned on beside the saved cloud voice moves the voice to OmniVoice · Balanced, never to Pocket.
+    result = apply({'naturalSpeech', true})
+    assert(result.ok and saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'short' and saved.naturalSpeech)
     assert(manager.takeNaturalSpeechNotice() == 'Natural speech needs a local voice, so Companion voices was switched to OmniVoice · Balanced.')
     assert(apply({'naturalSpeech', false}, {'expressiveEmotions', false}).ok)
     assert(apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai' and manager.takeNaturalSpeechNotice() == nil)
@@ -3765,11 +3813,15 @@ test('with the Omni pack, turning Multilingual on moves Pocket to OmniVoice · B
     assert(apply({'multilingualConversations', false}, {'voiceProvider', POCKET}).ok)
     result = apply({'multilingualConversations', true}, {'voiceProvider', CLOUD})
     assert(result.ok and saved.voiceProvider == 'convai' and manager.takeNaturalSpeechNotice() == nil)
-    -- With Natural speech on, a cloud voice chosen with it still ends on Omni (it needs a local voice).
+    -- With Natural speech on, a cloud voice chosen in the same Apply is kept and Natural speech is turned off.
     assert(apply({'multilingualConversations', false}, {'voiceProvider', POCKET}).ok and apply({'naturalSpeech', true}).ok)
     result = apply({'multilingualConversations', true}, {'voiceProvider', CLOUD})
-    assert(result.ok and saved.voiceProvider == 'omni' and saved.naturalSpeech == true)
-    assert(manager.takeNaturalSpeechNotice() == NOTICE)
+    assert(result.ok and saved.voiceProvider == 'convai' and saved.naturalSpeech == false)
+    assert(manager.takeNaturalSpeechNotice() == CLOUD_OFF)
+    -- Without choosing the cloud voice, turning Multilingual on beside a saved local voice with the tags on keeps them (Omni).
+    assert(apply({'multilingualConversations', false}, {'voiceProvider', ULTRA}).ok and apply({'naturalSpeech', true}).ok)
+    result = apply({'multilingualConversations', true})
+    assert(result.ok and saved.voiceProvider == 'omni' and saved.naturalSpeech == true and manager.takeNaturalSpeechNotice() == nil)
   `);
 });
 
@@ -3799,6 +3851,12 @@ test('without the Omni pack, Multilingual moves to the cloud voice and wins over
     assert(apply({'multilingualConversations', true}, {'naturalSpeech', true}).ok)
     assert(saved.multilingualConversations and saved.voiceProvider == 'convai' and saved.naturalSpeech == false)
     assert(manager.takeNaturalSpeechNotice() == OFF, 'already on the cloud voice: only the settings notice')
+    -- Multilingual off, Pocket, then the cloud voice chosen with Natural speech turned on in the same Apply, Multilingual on:
+    -- the voice choice wins and the tag is dropped with the cloud-voice notice (not the OmniVoice-pack refusal).
+    assert(apply({'multilingualConversations', false}, {'voiceProvider', POCKET}).ok)
+    result = apply({'multilingualConversations', true}, {'voiceProvider', CLOUD}, {'naturalSpeech', true})
+    assert(result.ok and saved.voiceProvider == 'convai' and saved.naturalSpeech == false, tostring(result.error))
+    assert(manager.takeNaturalSpeechNotice() == CLOUD_OFF)
     -- A failed save changes nothing.
     assert(apply({'multilingualConversations', false}, {'voiceProvider', POCKET}).ok and apply({'naturalSpeech', true}).ok)
     failSave = true

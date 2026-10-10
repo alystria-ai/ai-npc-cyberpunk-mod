@@ -548,6 +548,7 @@ return {
     ["Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}."] = "多言語の会話にはすべての言語を話せる音声が必要なため、{setting}を{voice}に切り替えました。",
     ["Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud."] = "多言語の会話がオンの間、自然な話し方と感情表現にはOmniVoiceパックが必要です。Convaiクラウド音声はタグを読み上げてしまいます。",
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "自然な話し方と感情表現をオフにしました。Convaiクラウド音声はタグを読み上げてしまいます。OmniVoiceパックがあれば、3つすべてを併用できます。",
+    ["The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off."] = "Convaiクラウド音声では「自然な話し方」と「感情表現」を使えないため、オフにしました。",
     ["Voice status"] = "音声の状態",
     ["Who can talk"] = "会話できる相手",
     ["That action is not available."] = "その操作は利用できません。",

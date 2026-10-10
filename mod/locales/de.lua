@@ -548,6 +548,7 @@ return {
     ["Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}."] = "Mehrsprachige Gespräche braucht eine Stimme, die alle Sprachen spricht, deshalb wurde {setting} auf {voice} umgestellt.",
     ["Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud."] = "Natürliche Sprechweise und Ausdrucksstarke Emotionen brauchen das OmniVoice-Paket, solange Mehrsprachige Gespräche eingeschaltet ist: Die Convai-Cloud-Stimme würde ihre Tags vorlesen.",
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "Natürliche Sprechweise und Ausdrucksstarke Emotionen wurden ausgeschaltet: Die Convai-Cloud-Stimme würde ihre Tags vorlesen. Mit dem OmniVoice-Paket funktionieren alle drei zusammen.",
+    ["The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off."] = "Die Convai-Cloud-Stimme kann „Natürliche Sprechweise“ und „Ausdrucksstarke Emotionen“ nicht nutzen, deshalb wurden sie ausgeschaltet.",
     ["Voice status"] = "Sprachstatus",
     ["Who can talk"] = "Wer sprechen darf",
     ["That action is not available."] = "Diese Aktion ist nicht verfügbar.",

@@ -548,6 +548,7 @@ return {
     ["Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}."] = "다국어 대화에는 모든 언어를 말할 수 있는 음성이 필요하므로 {setting}을(를) {voice}(으)로 변경했습니다.",
     ["Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud."] = "다국어 대화가 켜져 있는 동안 자연스러운 말투와 감정 표현에는 OmniVoice 팩이 필요합니다. Convai 클라우드 음성은 태그를 그대로 읽어 버립니다.",
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "자연스러운 말투와 감정 표현을 껐습니다. Convai 클라우드 음성은 태그를 그대로 읽어 버립니다. OmniVoice 팩이 있으면 세 가지를 모두 함께 사용할 수 있습니다.",
+    ["The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off."] = "Convai 클라우드 음성은 “자연스러운 말투”와 “감정 표현”을 사용할 수 없어 두 설정을 껐습니다.",
     ["Voice status"] = "음성 상태",
     ["Who can talk"] = "대화할 수 있는 캐릭터",
     ["That action is not available."] = "해당 동작을 사용할 수 없습니다.",

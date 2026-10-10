@@ -35,7 +35,17 @@ no longer open it.
   for normal play). The global voice choices are **Pocket · Performance (the default), OmniVoice · Balanced,
   OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality and Convai · Cloud voice**, in that order,
   with service readiness alongside. Without the optional OmniVoice pack the four OmniVoice entries read
-  "needs Omni pack" and cannot be applied. If the chosen voice cannot run, the status line
+  "needs Omni pack" and cannot be applied.
+  **Cloud voice and the tag settings** (`manager.applySettings`, `honourCloudVoice`; 2026-10-11): choosing Convai · Cloud voice
+  always keeps it. Natural speech and Expressive emotions would make it read their tags aloud, so both are turned off. A
+  notice ("The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.") is shown only
+  when a setting the player had set was turned off: Natural speech on, or Expressive emotions that an Apply ever carried
+  (`expressiveEmotionsChosen` in `runtime/settings.json`). If only the Expressive emotions default was on, nothing is said, and
+  `applySettings` returns a fourth value so the open page reloads and the toggle shows Off. Turning a tag setting on while the
+  cloud voice is already saved still moves the voice to Pocket · Performance with the "needs a local voice" notice. One Apply that
+  changes the voice to the cloud voice and turns a tag setting on: the voice wins (tag off, notice). A saved cloud voice with a
+  tag setting on (older save) loads with the tag settings off and the voice kept, silently. Multilingual conversations follows the same
+  rule (the voice is kept, never moved, when the player chooses it). If the chosen voice cannot run, the status line
   names the voice in use (for example "Ready · Using Pocket · Performance, OmniVoice · Balanced
   unavailable") and one gameplay notice says so once. Relationship choices read Auto / Romantic / Ordinary
   (Auto / Casual / Ordinary for Meredith Stout); the saved values stay `auto`, `on` and `off`.

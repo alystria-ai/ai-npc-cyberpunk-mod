@@ -548,6 +548,7 @@ return {
     ["Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}."] = "Для функции «Многоязычные беседы» нужен голос, говорящий на всех языках, поэтому параметр «{setting}» переключён на «{voice}».",
     ["Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud."] = "Пока включены «Многоязычные беседы», для «Естественной речи» и «Выразительных эмоций» нужен пакет OmniVoice: облачный голос Convai зачитывал бы их теги вслух.",
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "«Естественная речь» и «Выразительные эмоции» отключены: облачный голос Convai зачитывал бы их теги вслух. С пакетом OmniVoice все три функции работают вместе.",
+    ["The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off."] = "Облачный голос Convai не работает с параметрами «Естественная речь» и «Выразительные эмоции», поэтому они отключены.",
     ["Voice status"] = "Состояние озвучивания",
     ["Who can talk"] = "Кто может говорить",
     ["That action is not available."] = "Это действие недоступно.",

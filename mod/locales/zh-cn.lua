@@ -548,6 +548,7 @@ return {
     ["Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}."] = "多语言对话需要能说所有语言的语音，因此{setting}已切换为{voice}。",
     ["Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud."] = "开启多语言对话时，自然说话和情绪表达需要 OmniVoice 扩展包：Convai 云端语音会把它们的标签直接读出来。",
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "自然说话和情绪表达已关闭：Convai 云端语音会把它们的标签直接读出来。安装 OmniVoice 扩展包后，三者可以同时使用。",
+    ["The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off."] = "Convai 云端语音无法使用“自然说话”和“情绪表达”，因此已将它们关闭。",
     ["Voice status"] = "语音状态",
     ["Who can talk"] = "谁可以说话",
     ["That action is not available."] = "该操作不可用。",

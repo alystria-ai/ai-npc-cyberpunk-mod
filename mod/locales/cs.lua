@@ -374,6 +374,7 @@ return {
     ["Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}."] = "Vícejazyčné konverzace vyžadují hlas, který mluví všemi jazyky, proto byla volba {setting} přepnuta na {voice}.",
     ["Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud."] = "Přirozená řeč a Výrazné emoce vyžadují balíček OmniVoice, dokud jsou zapnuty Vícejazyčné konverzace: cloudový hlas Convai by četl jejich značky nahlas.",
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "Přirozená řeč a Výrazné emoce byly vypnuty: cloudový hlas Convai by četl jejich značky nahlas. S balíčkem OmniVoice fungují všechny tři společně.",
+    ["The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off."] = "Cloudový hlas Convai nemůže používat „Přirozená řeč“ ani „Výrazné emoce“, proto byly vypnuty.",
     ["That character model is unavailable."] = "Tento model postavy není k dispozici.",
     ["That companion is no longer ready to drive."] = "Tento společník už není připraven řídit.",
     ["That confirmation is no longer active."] = "Toto potvrzení už není aktivní.",

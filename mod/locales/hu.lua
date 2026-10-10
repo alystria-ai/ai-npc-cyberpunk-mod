@@ -374,6 +374,7 @@ return {
     ["Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}."] = "A Többnyelvű beszélgetésekhez olyan hang kell, amely minden nyelven beszél, ezért a beállítás ({setting}) erre váltott: {voice}.",
     ["Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud."] = "A Természetes beszéd és a Kifejező érzelmek az OmniVoice-csomagot igénylik, amíg a Többnyelvű beszélgetések be van kapcsolva: a Convai felhőhang felolvasná a címkéiket.",
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "A Természetes beszéd és a Kifejező érzelmek ki lettek kapcsolva: a Convai felhőhang felolvasná a címkéiket. Az OmniVoice-csomaggal mindhárom együtt működik.",
+    ["The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off."] = "A Convai felhőhang nem tudja használni a „Természetes beszéd” és a „Kifejező érzelmek” beállítást, ezért ki lettek kapcsolva.",
     ["That character model is unavailable."] = "Ez a karaktermodell nem elérhető.",
     ["That companion is no longer ready to drive."] = "Ez a társ már nem áll készen a vezetésre.",
     ["That confirmation is no longer active."] = "Ez a megerősítés már nem aktív.",

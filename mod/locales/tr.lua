@@ -374,6 +374,7 @@ return {
     ["Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}."] = "Çok dilli konuşmalar her dili konuşan bir ses gerektirir, bu yüzden {setting} ayarı {voice} olarak değiştirildi.",
     ["Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud."] = "Çok dilli konuşmalar açıkken Doğal konuşma ve İfadeli duygular OmniVoice paketini gerektirir: Convai bulut sesi etiketleri yüksek sesle okurdu.",
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "Doğal konuşma ve İfadeli duygular kapatıldı: Convai bulut sesi etiketleri yüksek sesle okurdu. OmniVoice paketiyle üçü birlikte çalışır.",
+    ["The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off."] = "Convai bulut sesi “Doğal konuşma” ve “İfadeli duygular” ile kullanılamaz, bu yüzden ikisi kapatıldı.",
     ["That character model is unavailable."] = "Bu karakter modeli kullanılamıyor.",
     ["That companion is no longer ready to drive."] = "O yoldaş artık sürmeye hazır değil.",
     ["That confirmation is no longer active."] = "Bu onay artık etkin değil.",
