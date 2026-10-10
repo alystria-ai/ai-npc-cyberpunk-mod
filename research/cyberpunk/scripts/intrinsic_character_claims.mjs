@@ -4166,12 +4166,22 @@ function limitsFor(claim) {
   return values.map(value => value.trim());
 }
 
-function diskLoader(root) {
+// The 2026-10-05 disk offload moved research/cyberpunk/cache here; the repo path is a junction to it.
+export const OFFLOAD_ROOT = 'E:\\CyberpunkConvai-offload';
+function within(directory, target) {
+  const distance = relative(directory, target);
+  return distance !== '' && !isAbsolute(distance) && distance.split(/[\\/]/)[0] !== '..';
+}
+export function diskLoader(root, {offloadRoot = OFFLOAD_ROOT} = {}) {
+  // A resolved target is acceptable inside the evidence root or inside the offload folder; anything else escapes.
+  function offloaded(target) {
+    try { return within(realpathSync(offloadRoot), target); } catch { return false; }
+  }
   function bytes(name) {
     if (!safeSourcePath(name)) fail('Uncontained source path');
     const target = realpathSync(resolve(root, name));
     const inside = relative(root, target).replaceAll('\\', '/');
-    if (!safeSourcePath(inside)) fail('Source junction escapes the evidence roots');
+    if (!safeSourcePath(inside) && !offloaded(target)) fail('Source junction escapes the evidence roots');
     const info = statSync(target);
     if (!info.isFile() || info.size > LIMIT.artifactBytes) fail('Native artifact size limit');
     return readFileSync(target);

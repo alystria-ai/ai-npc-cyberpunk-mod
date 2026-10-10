@@ -96,13 +96,16 @@ const key = /^api-key\s*=\s*(\S+)\s*$/i.exec((await readFile(resolve(root, 'runt
 if (!key) throw Error('Local key is missing.');
 const baseContext = contextFile ? (await readFile(resolve(contextFile), 'utf8')).trim() : undefined;
 const ids = await read('runtime/characters.json');
+const roster = await read('characters/roster.json');
 const player = await read('runtime/player-memory.json');
 // ONE FIXED test identity for every job, never a new one: each new end-user id creates a long-term-memory end user on the account
 // (limit 10,000 a month), and an earlier version of this script made one per sample (about 2,200 in a day). Convai's memory is per
 // end user and character, so the character's memories of this identity are wiped after every job (the endpoint schedules the
 // deletion, so a job that starts right after another on the same character can still see a trace: keep --concurrency low).
 // Never the player's identity.
-const FIXED_IDENTITY = 'third-person-probe-fixed';
+// --identity overrides the end-user id for other probes (one id for every turn of a run, never the player's).
+const FIXED_IDENTITY = option('--identity', 'third-person-probe-fixed');
+if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(FIXED_IDENTITY)) throw Error('Bad --identity.');
 if (FIXED_IDENTITY === player.endUserId) throw Error('The probe identity must not be the player.');
 const memory = new ConvaiMemoryAdapter({key, enabled: true});
 const speech = new NaturalSpeech(), emotions = new ExpressiveEmotions();

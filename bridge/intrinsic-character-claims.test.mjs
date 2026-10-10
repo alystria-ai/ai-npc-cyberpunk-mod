@@ -1,13 +1,15 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync, readdirSync} from 'node:fs';
+import {readFileSync, readdirSync, mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {buildProfiles} from '../research/cyberpunk/scripts/build_research.mjs';
 import {compileIntrinsicCharacterPacks, intrinsicProfileMaterial, normalizeIntrinsicCharacterPack,
   adoptedIntrinsicKeys, requireAdoptedIntrinsicPacks, requireAdoptedIntrinsicMaterial,
   REVIEWED_INTRINSIC_SUBJECT_BINDINGS, REVIEWED_HELD_IDENTITY_BINDINGS, verifyIntrinsicAttribution,
-  verifyReviewedLivePropertyEvidence, resolveIntrinsicActorRecord}
+  verifyReviewedLivePropertyEvidence, resolveIntrinsicActorRecord, diskLoader}
   from '../research/cyberpunk/scripts/intrinsic_character_claims.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -828,3 +830,34 @@ if (process.env.CYBERPUNK_WAVE3_SOURCE_CHECK === '1') {
     }
   });
 }
+
+test('evidence reads accept a junction into the disk offload and reject every other escaping target', () => {
+  const base = mkdtempSync(join(tmpdir(), 'evidence-loader-'));
+  try {
+    const offload = join(base, 'CyberpunkConvai-offload');
+    const targets = {offload: join(offload, 'research', 'cyberpunk', 'cache'),
+      sibling: join(base, 'CyberpunkConvai-offload-evil', 'cache'), elsewhere: join(base, 'elsewhere', 'cache')};
+    for (const folder of Object.values(targets)) {
+      mkdirSync(join(folder, 'game'), {recursive: true});
+      writeFileSync(join(folder, 'game', 'raw.bin'), 'raw bytes');
+      writeFileSync(join(folder, 'game', 'doc.json'), '{}');
+    }
+    // The evidence name must sit under research/cyberpunk/cache/game/ (safeSourcePath); only the junction's target varies.
+    const repoFor = (name, target) => {
+      const repo = join(base, name), cacheParent = join(repo, 'research', 'cyberpunk');
+      mkdirSync(cacheParent, {recursive: true});
+      symlinkSync(target, join(cacheParent, 'cache'), 'junction');
+      return repo;
+    };
+    const names = {rawPath: 'research/cyberpunk/cache/game/raw.bin', jsonPath: 'research/cyberpunk/cache/game/doc.json'};
+    const accepted = diskLoader(repoFor('repo-offload', targets.offload), {offloadRoot: offload})(names);
+    assert.equal(accepted.raw.toString(), 'raw bytes');
+    assert.equal(accepted.jsonRaw.toString(), '{}');
+    for (const name of ['sibling', 'elsewhere']) {
+      assert.throws(() => diskLoader(repoFor(`repo-${name}`, targets[name]), {offloadRoot: offload})(names),
+        /escapes the evidence roots/, name);
+    }
+  } finally {
+    rmSync(base, {recursive: true, force: true});
+  }
+});
