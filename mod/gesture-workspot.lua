@@ -12,6 +12,16 @@ function M.inWorkspot(npc)
     return value == true
 end
 
+-- The copy's body type, lower case without separators ('womanaverage', 'manbig', ...), or nil when it cannot be
+-- read. One native read; callers cache it per copy.
+function M.bodyType(npc)
+    local ok, value = call(function() return npc:GetBodyType() end)
+    if not ok or value == nil then return nil end
+    local text = tostring(value):lower():gsub('[^a-z0-9]', '')
+    if text == '' then return nil end
+    return text
+end
+
 -- An invisible, non-persistent gameObject carrying the gesture workspot
 -- components, placed exactly at the companion.
 function M.spawnDevice(npc, template)

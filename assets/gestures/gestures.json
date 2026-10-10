@@ -364,6 +364,20 @@
       }
     }
   },
+  "generic": {
+    "note": "Fallback for every companion whose record is not in 'characters' (the tier-2 and named contacts, any model-only copy). The controller reads the copy's body type once (npc:GetBodyType, lower case without separators), takes the rig and with it a talk family whose loop is that rig's own relaxed idle_stand (no stance entry shuffle) and a signature-less hip or folded-arms idle. Body types not listed (ManFat, ManMassive, mechs, animals, anything unreadable) get nothing. 'never' lists records the catalog deliberately leaves out whatever their body type reads as: Adam Smasher (man_massive) and Dexter (the man_fat rig has no talk families), Round 5.",
+    "bodyTypes": {
+      "womanaverage": "woman_base",
+      "manaverage": "man_base",
+      "manbig": "man_big"
+    },
+    "rigs": {
+      "woman_base": { "talk": "woman_sides", "idle": "generic_hip" },
+      "man_base": { "talk": "man_sides", "idle": "generic_arms_crossed" },
+      "man_big": { "talk": "big_sides", "idle": "generic_hips_big" }
+    },
+    "never": ["Character.Smasher", "Character.Dexter"]
+  },
   "characters": {
     "Character.Judy": {
       "key": "judy",

@@ -202,6 +202,17 @@ for (const [record, known] of Object.entries(source.characters)) {
     const checked = source.idleSources?.[known.idle];
     if (!checked || !checked[2].split(',').includes(known.rig)) fail(`${record}: idle ${known.idle} is not checked on ${known.rig}`);
 }
+// The generic fallback (companions not in 'characters'): every body type maps to a rig that has a talk family
+// and an idle checked on that rig.
+for (const [bodyType, rig] of Object.entries(source.generic?.bodyTypes ?? {})) {
+    const row = source.generic.rigs?.[rig];
+    if (!row) fail(`generic: body type ${bodyType} maps to ${rig}, which has no row`);
+    if (bodyType !== bodyType.toLowerCase().replace(/[^a-z0-9]/g, '')) fail(`generic: body type ${bodyType} must be lower case without separators`);
+    if (!source.families[row.talk]?.animsets?.[rig] && !(source.families[row.talk]?.like && source.families[source.families[row.talk].like]?.animsets?.[rig])) fail(`generic: family ${row.talk} has no animset for ${rig}`);
+    if (!source.idleWorkspots[row.idle]) fail(`generic: idle ${row.idle} has no workspot`);
+    const checked = source.idleSources?.[row.idle];
+    if (!checked || !checked[2].split(',').includes(rig)) fail(`generic: idle ${row.idle} is not checked on ${rig}`);
+}
 const seatWorkspots = source.seatWorkspots ?? {};
 for (const [key, depot] of Object.entries(seatWorkspots)) requirePath(depot, `${key} seat workspot`);
 
@@ -510,6 +521,9 @@ const catalog = {
     experimentalIdles: source.experimentalIdles ?? [],
     seatComponents: Object.fromEntries(Object.keys(seatWorkspots).map((key) => [key, `convai_sit_${key}`])),
     characters: source.characters,
+    // Fallback for records not in 'characters': body type -> rig -> talk family and idle (mod/companion-gestures.lua).
+    generic: source.generic ? { bodyTypes: source.generic.bodyTypes, rigs: source.generic.rigs,
+        never: Object.fromEntries((source.generic.never ?? []).map((record) => [record, true])) } : undefined,
 };
 for (const [key] of aliases) delete catalog.families[key].clips;
 const aliasLines = aliases.map(([key, parent]) => `catalog.families.${key}.clips = catalog.families.${parent}.clips`);

@@ -61,8 +61,35 @@ function M.new(options)
         for _, rig in ipairs(family.rigs) do if rig == known.rig then return family, key end end
         return nil
     end
+    -- A record the catalog does not list (tier 2, named contacts, model-only copies) falls back to its body type:
+    -- the rig's own talk family and hip or folded-arms idle (catalog.generic). Decided once per copy and cached;
+    -- an unreadable body type is retried at most every 5 s, an unlisted one (fat, massive, mech, animal) never.
+    self.generic = self.generic or {}
+    local function genericOf(entry)
+        local config = self.catalog.generic
+        if not config or (config.never and config.never[entry.record]) then return nil end
+        local cached = self.generic[entry.serial]
+        if cached ~= nil then
+            if cached then return cached end
+            return nil
+        end
+        local retry = self.genericRetry and self.genericRetry[entry.serial]
+        if retry and self.clock < retry then return nil end
+        local body = entry.npc and native.bodyType and native.bodyType(entry.npc)
+        if body == nil then
+            self.genericRetry = self.genericRetry or {}
+            self.genericRetry[entry.serial] = self.clock + 5
+            return nil
+        end
+        local rig = config.bodyTypes and config.bodyTypes[body]
+        local row = rig and config.rigs and config.rigs[rig]
+        if not row then self.generic[entry.serial] = false; return nil end
+        local known = {key = 'generic', rig = rig, talk = row.talk, idle = row.idle, flavour = true, fallback = row.talk, generic = true}
+        self.generic[entry.serial] = known
+        return known
+    end
     local function characterOf(entry)
-        local known = self.catalog.characters and self.catalog.characters[entry.record]
+        local known = self.catalog.characters and self.catalog.characters[entry.record] or genericOf(entry)
         if not known then return nil end
         local family, key = familyFor(known, known.talk)
         if not family then family, key = familyFor(known, known.fallback) end

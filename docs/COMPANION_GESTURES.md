@@ -720,3 +720,19 @@ Changed (Lua only, CET reload; `mod/companions.lua`): at attach, before she is f
 Tests: a copy 30 cm high is lowered once at attach and keeps her yaw; one 1 cm high is left alone; the query-budget test now counts the one extra ray per attach (144 to 152).
 
 To check live (needs a fresh invite: Leave V's Party, then follow again, or a restart): the new copy stands on the floor at once (movement trace z = floor, no 0.3 higher value), and a stance neither lifts her nor drops her at the exit.
+
+## Round 6 (October 11): gestures and a hip idle for every companion not in the catalog
+
+Live: Blue Moon (a tier-2 contact, record `Character.sq017_blue_moon`) showed no signature idle and no gestures, because the controller only acts for records listed under `characters` (29 of them, all tier-1). Every other contact, every model-only copy and any record added later had nothing.
+
+Changed (Lua only, CET reload, no archive; `assets/gestures/gestures.json` `generic`, the generated `mod/gesture-catalog.lua`, `mod/companion-gestures.lua`, `mod/gesture-workspot.lua`): a fallback for any record that is not in `characters`.
+
+- The copy's body type is read once (`npc:GetBodyType()`, lower case without separators) and cached per copy; an unreadable value is retried at most every 5 s, an unmapped one never. Nothing runs per frame beyond a table lookup: the decision sits behind the same checks as before (setting on, settled beside V, speech or a flavour due).
+- `womanaverage` takes the `woman_sides` talk family and the one-hand-on-hip idle (`generic_hip`); `manaverage` takes `man_sides` and the folded-arms idle (`generic_arms_crossed`); `manbig` takes `big_sides` and the hands-on-hips idle for big bodies (`generic_hips_big`). The talk loop of those families is the rig's own relaxed `idle_stand`, so entering shows no pose change (Round 5d), and only clips that checked clean on that rig play (the same pools as the tier-1 `on_sides`, centred and neutral hand gestures). Each idle is only used on rigs where `idleSources` says it checked clean, which the build enforces.
+- Left out on purpose: `ManFat` and `ManMassive` bodies and anything unmapped (mechs, animals, unreadable), and the records in `generic.never`: Adam Smasher (man_massive) and Dexter (the man_fat rig has no talk families), both rejected in Round 5. A record that is in `characters` never reads the body type.
+- The catalog only gained the `generic` block; the families and sequence ids are unchanged, so the installed Round 5f archive (`a71aa51e...`) is still the right one.
+- Tests: each of the three body types talks from its family, gestures only with valid clips, leaves, reads the body type once and takes its hip idle after a long settle; ManFat gets nothing and is decided once; an unreadable body type is retried after 5 s and works when readable; Smasher and Dexter never read it; Judy still uses her own catalog row; the catalog's mapping is complete and checked.
+
+To check live (CET reload): invite Blue Moon, stand beside her, send a typed message: she enters the hands-at-sides talk stance (`begin` with `convai_talk_woman_sides` in `probe.log`), gestures during a reply, and after about 45-90 s of standing she takes the hand-on-hip idle.
+
+Real signature idles for tier-2 characters need their own vanilla workspot or animset (found by quest id: sq017 Blue Moon, sq021 Joss, sq023 Rachel, q101 Spider Murphy, mq303 Lina and Shank, mq019 Liam, mq038 Dennis, mq040 Cynthia and so on), a gestures.json idle row plus `idleSources` check, and a rebuilt archive (game restart). The Round 5 survey only covered tier-1 names, so those workspots are not extracted yet.

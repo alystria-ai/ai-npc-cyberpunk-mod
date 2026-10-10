@@ -35329,5 +35329,30 @@ local catalog = {
             idleSource = "generic",
         },
     },
+    generic = {
+        bodyTypes = {
+            womanaverage = "woman_base",
+            manaverage = "man_base",
+            manbig = "man_big",
+        },
+        rigs = {
+            woman_base = {
+                talk = "woman_sides",
+                idle = "generic_hip",
+            },
+            man_base = {
+                talk = "man_sides",
+                idle = "generic_arms_crossed",
+            },
+            man_big = {
+                talk = "big_sides",
+                idle = "generic_hips_big",
+            },
+        },
+        never = {
+            ["Character.Smasher"] = true,
+            ["Character.Dexter"] = true,
+        },
+    },
 }
 return catalog

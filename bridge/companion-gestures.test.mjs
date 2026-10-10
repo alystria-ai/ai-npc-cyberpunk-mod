@@ -453,6 +453,100 @@ test('combat leaves a stance at once', () => run(`
   assert(count('exit')==1 and last('exit').instant,'instant exit in combat')
 `));
 
+// The generic fallback: a record the catalog does not list gets its rig's own talk family and a hip or folded-arms
+// idle from its body type (catalog.generic).
+for (const [bodyType, family, component, idle, rig] of [
+  ['WomanAverage', 'woman_sides', 'convai_talk_woman_sides', 'convai_idle_generic_hip', 'woman_base'],
+  ['ManAverage', 'man_sides', 'convai_talk_man_sides', 'convai_idle_generic_arms_crossed', 'man_base'],
+  ['ManBig', 'big_sides', 'convai_talk_big_sides', 'convai_idle_generic_hips_big', 'man_big']]) {
+  test(`an uncatalogued ${bodyType} copy talks from ${family} and idles with ${idle}`, () => run(`
+    entry.record='Character.sq017_blue_moon'
+    local reads=0
+    function native.bodyType() reads=reads+1;return '${bodyType.toLowerCase()}' end
+    speaking={knownEnd=14,at=0};step(.5)
+    assert(last('play') and last('play').component=='${component}','talk family: '..tostring(last('play') and last('play').component))
+    assert(held,'movement waits while in the stance')
+    step(8)
+    assert(count('jump')>=2,'gestures played: '..count('jump'))
+    local cat=load(catalogSource)()
+    local fam=cat.families.${family}
+    for _,call in ipairs(calls) do
+      if call.name=='jump' and call.clip~=fam.idle.name then
+        local found
+        for _,clip in ipairs(fam.clips) do if clip.name==call.clip then found=clip end end
+        assert(found and found.perRig.${rig} and found.character==nil and found.category~='idlebreak','clip valid: '..call.clip)
+      end
+    end
+    speaking=nil;step(4)
+    assert(count('exit')==1 and not held and lastLog('finished').fields.reason=='reply ended')
+    assert(reads==1,'the body type is read once per copy: '..reads)
+    -- and the hip idle after a long settle
+    local before=count('play')
+    step(150)
+    local flavour=lastLog('flavour-begin')
+    assert(flavour and last('play').component=='${idle}' and count('play')>before,'signature idle: '..tostring(last('play').component))
+    assert(reads==1,'still one read')
+  `));
+}
+
+test('an uncatalogued copy with a body type the catalog has no rig for, or one that cannot be read, gets nothing', () => run(`
+  entry.record='Character.some_fat_man'
+  local reads=0
+  function native.bodyType() reads=reads+1;return 'manfat' end
+  speaking={knownEnd=14,at=0};step(3)
+  assert(count('play')==0 and not held,'fat body: no stance')
+  step(150)
+  assert(count('play')==0 and reads==1,'no idle either, and decided once: '..reads)
+  entry.serial=2;reads=0
+  function native.bodyType() reads=reads+1;return nil end
+  speaking={knownEnd=14,at=0};step(2)
+  assert(reads==1 and count('play')==0,'read once, nothing yet: '..reads)
+  step(3)
+  assert(count('play')==0 and reads==1,'an unreadable body type is retried at most every 5 s: '..reads)
+  step(3)
+  assert(reads==2,'retried after 5 s: '..reads)
+  function native.bodyType() return 'womanaverage' end
+  step(6)
+  assert(last('play') and last('play').component=='convai_talk_woman_sides','readable now: '..tostring(last('play') and last('play').component))
+`));
+
+test('records on the catalog never list are left alone even when their body type matches', () => run(`
+  local cat=load(catalogSource)()
+  assert(type(cat.generic)=='table' and cat.generic.never~=nil,'catalog carries the fallback and its never list')
+  entry.record='Character.Judy'
+  function native.bodyType() error('a catalogued record must not read the body type') end
+  speaking={knownEnd=14,at=0};step(.5)
+  assert(last('play').component=='convai_talk_arms_crossed','catalogued Judy is unchanged')
+`));
+
+test('Adam Smasher and Dexter, which the catalog deliberately leaves out, never get the fallback', () => run(`
+  local cat=load(catalogSource)()
+  assert(cat.generic.never['Character.Smasher'] and cat.generic.never['Character.Dexter'])
+  function native.bodyType() error('a never-listed record must not even read the body type') end
+  for _,record in ipairs({'Character.Smasher','Character.Dexter'}) do
+    entry.record=record
+    speaking={knownEnd=14,at=0};step(3)
+    assert(count('play')==0 and not held,record)
+    speaking=nil
+  end
+`));
+
+test('the catalog fallback maps every body type to a rig with a talk family and an idle checked on it', () => run(`
+  local cat=load(catalogSource)()
+  for body,rig in pairs(cat.generic.bodyTypes) do
+    assert(body==body:lower():gsub('[^a-z0-9]',''),body)
+    local row=cat.generic.rigs[rig]
+    assert(row,rig)
+    local fam=cat.families[row.talk]
+    assert(fam,row.talk)
+    local ok=false for _,r in ipairs(fam.rigs) do if r==rig then ok=true end end
+    assert(ok,row.talk..' on '..rig)
+    assert(cat.idleComponents[row.idle],row.idle)
+    local checked=false for _,r in ipairs(cat.idleSources[row.idle].rigs) do if r==rig then checked=true end end
+    assert(checked,row.idle..' checked on '..rig)
+  end
+`));
+
 test('a kept device that has not followed her yet is not played; a device that never follows is replaced', () => run(`
   speaking={knownEnd=14,at=0};step(.5)
   assert(count('play')==1 and count('spawn')==1,'first stance on a fresh device')
