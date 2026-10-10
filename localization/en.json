@@ -3684,7 +3684,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2334"
+        "mod/init.lua:2329"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -4023,7 +4023,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/auto-connect.lua:239"
+        "mod/auto-connect.lua:241"
       ]
     },
     "Preparing to drive": {

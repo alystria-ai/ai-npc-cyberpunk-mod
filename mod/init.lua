@@ -2304,11 +2304,6 @@ registerForEvent('onUpdate', function(delta)
             talkingId = (active and active.entity) or (pending and pending.entity)
                 or (microphone.context and microphone.context.entity) or nil})
         if not ok then log('Auto-connect update failed: ' .. tostring(err)) end
-        -- Wait notices queued by the gaze warm-up (once per connection, mod/auto-connect.lua).
-        local okNotes, texts = pcall(autoConnect.takeNotices)
-        if okNotes and type(texts) == 'table' and player then
-            for _, text in ipairs(texts) do convaiNotices.send(player, 'talk-connecting', text) end
-        end
     end
     if pending then
         local currentOwner = knowledgeOwner(refreshKnowledgeFrame())

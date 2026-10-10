@@ -572,25 +572,25 @@ local function talk()
 end
 talk(); talk(); talk()
 local posted = feedback()
--- Once per connection (auto-connect.lua): however often a conversation starts while she is not ready, the wait notice is posted once.
+-- The same wait notice is not repeated within 10 s (notices.lua), however often a conversation starts.
 assert(#posted == 1, #posted)
 assert(posted[1] == 'Preparing connection to Judy…', 'no hint about the setting')
 clock = clock + 12; talk()
 posted = feedback()
-assert(#posted == 1, 'the wait notice repeated within one connection')
+assert(#posted == 2 and posted[2] == posted[1], 'the wait notice did not return after its window')
 -- Once the bridge reports the connection ready, nothing is said.
 files['runtime/party-connection-state.json'] = json.encode({connections = {{profile = 'judy-alvarez', scope = 'private', state = 'ready'}}})
 clock = clock + 12
-talk(); assert(#feedback() == 1, 'a connected character still showed the wait notice')
+talk(); assert(#feedback() == 2, 'a connected character still showed the wait notice')
 `));
 
-test('a party copy shows the wait notice once while it connects, and nothing once it is ready', () => run(`${worldCharacterFixture}
+test('a party copy that is still connecting shows the wait notice when V starts talking, and nothing once it is ready', () => run(`${worldCharacterFixture}
 companions.owns = function() return true end
 local function talk()
     hotkeys.cyberpunk_convai_text(); assert(player.composerOpen)
     player.composerOpen = false; events.onUpdate(0.1); clock = clock + 12
 end
-talk(); talk()
+talk()
 assert(#feedback() == 1 and feedback()[1] == 'Preparing connection to Judy…', 'a connecting party copy showed no wait notice: ' .. table.concat(feedback(), ' | '))
 files['runtime/party-connection-state.json'] = json.encode({connections = {{profile = 'judy-alvarez', scope = 'private', state = 'ready'}}})
 talk()
@@ -623,13 +623,23 @@ events.onUpdate(0.1)
 assert(#published().profiles == 0)
 `));
 
-test('with Auto-connect on, looking at a world character posts her wait notice once while she warms', () => run(`${worldCharacterFixture}
+test('with Auto-connect on, looking at a world character and warming her posts no notice, and a talk before she is ready posts exactly one', () => run(`${worldCharacterFixture}
 manager.autoConnectNearby = function() return true end
-for _ = 1, 30 do events.onUpdate(0.1) end
-local posted = feedback()
-assert(#posted == 1 and posted[1] == 'Preparing connection to Judy…', 'looking did not post the wait notice: ' .. table.concat(posted, ' | '))
-for _ = 1, 30 do events.onUpdate(0.1) end
-assert(#feedback() == 1, 'the wait notice repeated within one connection')
+for _ = 1, 60 do events.onUpdate(0.1); clock = clock + 0.1 end
+assert(#feedback() == 0, 'the gaze or the warm-up posted a notice: ' .. table.concat(feedback(), ' | '))
+hotkeys.cyberpunk_convai_text(); assert(player.composerOpen); player.composerOpen = false; events.onUpdate(0.1)
+assert(#feedback() == 1 and feedback()[1] == 'Preparing connection to Judy…', 'the talk start posted: ' .. table.concat(feedback(), ' | '))
+for _ = 1, 60 do events.onUpdate(0.1); clock = clock + 0.1 end
+assert(#feedback() == 1, 'a notice was posted after the talk start without a new talk: ' .. table.concat(feedback(), ' | '))
+`));
+
+test('with Auto-connect on, a talk with a character who is already connected posts no notice', () => run(`${worldCharacterFixture}
+manager.autoConnectNearby = function() return true end
+for _ = 1, 30 do events.onUpdate(0.1); clock = clock + 0.1 end
+files['runtime/party-connection-state.json'] = json.encode({connections = {{profile = 'judy-alvarez', scope = 'private', state = 'ready'}}})
+clock = clock + 2
+hotkeys.cyberpunk_convai_text(); assert(player.composerOpen); player.composerOpen = false; events.onUpdate(0.1)
+assert(#feedback() == 0, 'a connected character showed a notice: ' .. table.concat(feedback(), ' | '))
 `));
 
 test('a phone invitation shows no acknowledgement or progress with Developer mode on either', () => run(`${phoneNoticeFixture}

@@ -330,8 +330,8 @@ open only when the chat did (`warmConversation` → `runtime/conversation-prewar
 the first reply.
 
 - **Off:** connect on talk, as before. Starting a text or voice chat with a world character that is not
-  connected yet shows `Preparing connection to Judy…` once per connection, a party copy that is still connecting included (there is no hint about the setting any more). With the
-  setting **On** the same notice also shows while V keeps facing a character for 1.5 s and she is being warmed; no connecting or ready notice announces a warm-up. A character already connected (a copy in the party, or one the bridge reports ready in
+  connected yet shows `Preparing connection to Judy…`, a party copy that is still connecting included (there is no hint about the setting any more). With the
+  setting **On** the same notice shows at the start of the conversation only: looking at a character and her warm-up are silent, and no connecting or ready notice announces a warm-up. A character already connected (a copy in the party, or one the bridge reports ready in
   `runtime/party-connection-state.json`) shows nothing. Group chat shows no wait notice. With a voice chat
   the line is joined to `Connecting microphone - wait for Listening`.
 - **On** (`mod/auto-connect.lua`): a character with a profile that V looks at for 0.6 s (the existing gaze

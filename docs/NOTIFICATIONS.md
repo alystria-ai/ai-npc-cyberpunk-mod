@@ -23,7 +23,7 @@ CLOSE PHONE"), the character's spoken reply and subtitles (`ConvaiShowReply`), a
 
 Invitation: "{name} joined your group." when the companion arrives (every time, quick or slow), and "{name} could not prepare/join: {reason}" on a failure.
 Companion invitations (manager, phone and party) show no progress in any mode: no "Preparing", "Connecting", ready or "joining" text, to a player or a developer. The party list shows each copy's stage, and the mod log keeps every stage. A player sees "joined" and failures, and so does a developer.
-Talking: "Preparing connection to {name}…" (once per connection: when V keeps facing a character for 1.5 s while she warms, with Auto-connect on; and when a conversation starts with a character, a party copy included, who is not connected yet),
+Talking: "Preparing connection to {name}…" (only when V starts a conversation, by the talk key, the composer or voice, with a character, a party copy included, who is not connected yet, with Auto-connect nearby characters on or off; never from gaze or a warm-up),
 "Connecting microphone - wait for Listening", "Listening - press {key} again to finish". Failures: the conversation service starting, missing
 its key, stopped or failed; no reply; the microphone unavailable or timed out; a companion action that was refused; a voice engine that fell
 back (once; an OmniVoice that is only being loaded again says "not ready yet" and its return is silent). Hints for a key press that did nothing: no one to talk to, group chat needs two characters, finish the recording with the other key.
@@ -65,7 +65,7 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `talk-no-target` | Player | Face a nearby character to talk. | The talk key is pressed with no one in range | 20 |
 | `talk-no-profile` | Player | {name} does not have a conversation profile configured yet. | The talk key is pressed at a character without a profile | 20 |
 | `group-needs-two` | Player | Group chat needs two characters nearby. Use {key} for one person. | The group key is pressed with fewer than two characters | 20 |
-| `talk-connecting` | Player | Preparing connection to {name}… | Once per connection: V keeps facing a character for 1.5 s while she warms (Auto-connect on), or a conversation starts with a character, a party copy included, who is not connected yet | 10 |
+| `talk-connecting` | Player | Preparing connection to {name}… | A conversation starts (talk key, composer or voice) with a character, a party copy included, who is not connected yet; never from gaze or a warm-up | 10 |
 | `mic-connecting` | Player | Connecting microphone - wait for Listening | The voice key is pressed | none |
 | `mic-listening` | Player | Listening - press {key} again to finish | The microphone is recording | none |
 | `mic-finish-hint` | Player | Use {key} to finish this recording. | The other chat's voice key is pressed during a recording | 10 |
@@ -113,4 +113,4 @@ no "bridge", no "eight metres"). Earlier: 248c14c, a20c7a1, e7e9760 (calmer invi
 
 2026-10-10 (wait notice back): "Preparing connection to {name}…" shows whenever a character the player talks to is not connected yet, with Auto-connect nearby characters on or off. Since the settings review (2026-10-07) it was silent with the setting on, so a wait looked unexplained. The text and its translations are unchanged; the warm-up itself is still silent.
 
-2026-10-10 (wait notice, gaze and party): the wait notice is posted once per connection. The character V keeps facing (1.5 s) gets it when her warm-up starts, and a talk with a party copy that is still connecting gets it too: a party member was silent before because the composer skipped every party copy, which is why Lizzy Wizzy never showed it. The notice repeats only after the connection was ready and was released again, or after the warm-up was released before she was ready.
+2026-10-10 (wait notice, party copies): a talk with a party copy that is still connecting now shows the wait notice too (the composer skipped every party copy before, which is why Lizzy Wizzy never showed it). A short-lived gaze notice that posted it while V looked at a character being warmed is removed: it showed "Preparing connection" before any talk key was pressed. The notice shows at conversation start only, and a warm-up queues nothing.

@@ -7,9 +7,8 @@
 -- or scenes, with a cooldown after a release; an unused one is released after
 -- a while. The wanted list is published to runtime/nearby-connections.json and
 -- the bridge (bridge/nearby-warm.mjs) opens the connections and prepares the
--- voices. Nothing here touches the world, the party or a conversation. The character V keeps facing
--- gets the wait notice once per connection while she is being warmed (takeNotices); a player who talks
--- before she is ready sees it too (talkNotice), once per connection.
+-- voices. Nothing here touches the world, the party or a conversation, and no notice
+-- announces a warm-up. A player who talks before one finishes sees the short wait notice.
 -- Off: nothing is prepared ahead. The same wait notice shows when the player starts talking to a
 -- character that is not connected yet: talkNotice() returns it with the setting on or off (no hint about the setting).
 --
@@ -29,7 +28,6 @@ local M = {version = 1}
 
 M.DEFAULTS = {
     gazeDwell = 0.6,   -- seconds looking at one character before it is wanted
-    noticeDwell = 1.5, -- seconds looking at one character while she warms before her wait notice (once per connection)
     radius = 5.0,      -- metres: standing this close also wants a character
     scanInterval = 1.0,
     maxWarm = 2,
@@ -117,8 +115,6 @@ function M.new(options)
     local clock, nextScan, lastStart = 0, 0, -math.huge
     local look = {}
     local active, cooling, partners = {}, {}, {}
-    -- Wait notices: characters already announced in this connection attempt, and texts queued for the player.
-    local announced, notices = {}, {}
     local lastSignature, lastPublish = nil, nil
     local publish = options.publish or publishFile
     local ready = options.ready or connectionReady
@@ -178,7 +174,7 @@ function M.new(options)
 
     local function releaseAll(reason)
         if #active > 0 or #partners > 0 then log('Auto-connect released all: ' .. reason) end
-        active, partners, announced = {}, {}, {}
+        active, partners = {}, {}
     end
 
     local function releasePartner(index, reason)
@@ -229,28 +225,6 @@ function M.new(options)
         end
     end
 
-    -- Once per connection: the wait notice for one character is given the first time it is wanted while she
-    -- is not ready, and not again until she is ready or her warm-up is released.
-    local function announce(key, name)
-        if not key then return nil end
-        if ready(key) then announced[key] = nil; return nil end
-        if announced[key] then return nil end
-        announced[key] = true
-        return ui.t('Preparing connection to {name}…', {name = name})
-    end
-
-    -- The character V keeps facing, once her warm-up is running: queue her wait notice.
-    local function announceGaze()
-        if not look.key or look.dwell < cfg.noticeDwell or announced[look.key] then return end
-        for _, entry in ipairs(active) do
-            if entry.key == look.key and entry.reason == 'gaze' then
-                local text = announce(look.key, look.name)
-                if text then notices[#notices + 1] = text end
-                return
-            end
-        end
-    end
-
     -- A gaze sample, about every 0.2 s: the character V is facing (a profile
     -- that is enabled and not already in the party), or nil.
     function A.look(key, entity, name, dt)
@@ -258,20 +232,13 @@ function M.new(options)
         if look.key ~= key or look.entity ~= entity then look = {key = key, entity = entity, name = name, dwell = 0} end
         look.dwell = look.dwell + (tonumber(dt) or 0)
         look.seen = clock
-        announceGaze()
     end
 
-    -- The notice for the wait at the start of a conversation: shown whenever the character is not connected
-    -- yet, with the setting on or off, once per connection.
+    -- The notice for the wait at the start of a conversation: shown whenever the
+    -- character is not connected yet, with the setting on or off.
     function A.talkNotice(key, name)
-        return announce(key, name)
-    end
-
-    -- Texts queued for the player since the last call (init posts them as talk-connecting).
-    function A.takeNotices()
-        local out = notices
-        notices = {}
-        return out
+        if not key or ready(key) then return nil end
+        return ui.t('Preparing connection to {name}…', {name = name})
     end
 
     -- Every frame, also while a menu pauses the game: keeps the list fresh for
@@ -331,7 +298,6 @@ function M.new(options)
             if idle > cfg.hold or age > cfg.maxAge then
                 cooling[entry.key] = clock + (age > cfg.maxAge and cfg.ageCooldown or cfg.cooldown)
                 log('Auto-connect released ' .. entry.key .. (age > cfg.maxAge and ' (unused too long)' or ' (idle)'))
-                announced[entry.key] = nil
                 table.remove(active, index)
             end
         end
@@ -355,7 +321,6 @@ function M.new(options)
                         if item.priority == 1 and idlest then
                             cooling[active[idlest].key] = clock + cfg.cooldown
                             log('Auto-connect released ' .. active[idlest].key .. ' (replaced)')
-                            announced[active[idlest].key] = nil
                             table.remove(active, idlest)
                         end
                     end
@@ -368,14 +333,12 @@ function M.new(options)
                 end
             end
         end
-        announceGaze()
         push(false)
     end
 
     function A.reset()
         local had = #active > 0 or #partners > 0
         active, cooling, look, partners = {}, {}, {}, {}
-        announced, notices = {}, {}
         nextScan, lastStart = 0, -math.huge
         if had or (lastSignature ~= nil and lastSignature ~= '') then push(true) end
     end
