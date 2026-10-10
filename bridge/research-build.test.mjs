@@ -127,3 +127,25 @@ test('malformed outcomes report validation errors rather than crash or claim ful
   assert(result.errors.some(row => row.includes('No researched outcomes')));
   assert.equal(result.coverage.outcomesAuthored, 0);
 });
+
+test('appearance text becomes a second-person section before the ownership marker; empty text adds nothing', () => {
+  const input = fixture(), [plain] = buildProfiles(input.roster, input.dossiers);
+  const [looks] = buildProfiles(input.roster, input.dossiers, {appearance: {judy: {text: 'You have green hair.'}}});
+  assert.equal(looks.backstory.replace('Your appearance:\nYou have green hair.\n\n', ''), plain.backstory);
+  assert.match(looks.backstory, /\n\nYour appearance:\nYou have green hair\.\n\n\[CyberpunkConvai profile v2:judy\]$/);
+  const [blank] = buildProfiles(input.roster, input.dossiers, {appearance: {judy: {text: ' '}}});
+  assert.equal(blank.backstory, plain.backstory);
+  assert.throws(() => buildProfiles(input.roster, input.dossiers, {appearance: {nobody: {text: 'You are nobody.'}}}),
+    /unknown character: nobody/);
+});
+
+test('checked-in appearance texts cover exactly the roster and carry no pose or lighting notes', async () => {
+  const roster = JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8'));
+  const appearance = JSON.parse(await readFile(new URL('../characters/appearance.json', import.meta.url), 'utf8'));
+  assert.deepEqual(Object.keys(appearance).sort(), roster.map(row => row.key).sort());
+  for (const [key, entry] of Object.entries(appearance)) {
+    if (!entry.text) continue;
+    assert.match(entry.text, /^You /, key);
+    assert.doesNotMatch(entry.text, /\b(?:cigarette|folded|crossed|bent|light falls|backdrop|under the light|behind you\b)/i, key);
+  }
+});

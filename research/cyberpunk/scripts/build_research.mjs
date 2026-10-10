@@ -120,8 +120,18 @@ export function validateResearch({roster, dossiers, maps}) {
   }};
 }
 
-export function buildProfiles(roster, dossiers, {intrinsicPacks = [], intrinsicRoot = root, loadIntrinsicArtifact} = {}) {
+// Visible appearance (characters/appearance.json, read by buildResearch). Only a nonempty
+// text adds a section; it is second person ("You have ...") like the rest of the biography.
+function appearanceSection(appearance, key) {
+  const text = appearance[key]?.text?.trim();
+  return text ? ['Your appearance:\n' + text] : [];
+}
+
+export function buildProfiles(roster, dossiers, {intrinsicPacks = [], intrinsicRoot = root, loadIntrinsicArtifact, appearance = {}} = {}) {
   const byKey = new Map(dossiers.map(dossier => [dossier.key, dossier]));
+  for (const key of Object.keys(appearance)) {
+    if (!roster.some(old => old.key === key)) throw Error(`Appearance text for an unknown character: ${key}`);
+  }
   const intrinsic = new Map(compileIntrinsicCharacterPacks(intrinsicPacks,
     {roster, root: intrinsicRoot, loadArtifact: loadIntrinsicArtifact})
     .map(view => [view.key, intrinsicProfileMaterial(view)]));
@@ -140,6 +150,7 @@ export function buildProfiles(roster, dossiers, {intrinsicPacks = [], intrinsicR
         + 'Keep private motives, covert identities and confidences private unless verified context establishes disclosure to this audience. '
         + 'A group invitation or direct question alone does not establish that disclosure.',
       'KNOWLEDGE LIMITS\n' + dossier.knowledge.unknown.join('\n'),
+      ...appearanceSection(appearance, old.key),
       `[CyberpunkConvai profile v2:${old.key}]`].join('\n\n');
     const speakingStyleDescription = [dossier.profile.speakingStyleDescription.trim(),
       'Speak naturally to V, usually in one or two sentences unless asked for detail. '
@@ -168,6 +179,7 @@ async function jsonFiles(path) {
 export async function buildResearch({applyProfiles = false, includeIntrinsicClaims = false, intrinsicPacks,
   loadIntrinsicArtifact, intrinsicRoot = root} = {}) {
   const roster = JSON.parse((await readFile(resolve(root, 'characters/roster.json'), 'utf8')).replace(/^\uFEFF/, ''));
+  const appearance = JSON.parse((await readFile(resolve(root, 'characters/appearance.json'), 'utf8')).replace(/^\uFEFF/, ''));
   const settingsPath = resolve(root, 'characters/profile-settings.json');
   const settings = JSON.parse((await readFile(settingsPath, 'utf8')).replace(/^\uFEFF/, ''));
   const adopted = adoptedIntrinsicKeys(settings, roster);
@@ -187,7 +199,7 @@ export async function buildResearch({applyProfiles = false, includeIntrinsicClai
   // Resolve required native history before any generated outputs are replaced.
   // Explicit opt-in and persisted adoption both reject stale/missing evidence.
   const profiles = result.errors.length ? [] : buildProfiles(roster, dossiers,
-    {intrinsicPacks, loadIntrinsicArtifact, intrinsicRoot});
+    {intrinsicPacks, loadIntrinsicArtifact, intrinsicRoot, appearance});
   if (!result.errors.length) requireAdoptedIntrinsicMaterial(adopted, profiles, roster);
   const nativeIntrinsic = profiles.filter(profile => profile.nativeIntrinsic).map(profile => profile.nativeIntrinsic);
   const generated = resolve(folder, 'generated'); await mkdir(generated, {recursive: true});

@@ -1,0 +1,395 @@
+{
+  "8ug8ear": {
+    "text": "You have bleached-blond hair swept up into a tall, spiky crest. Dark teal markings run across your forehead, cheeks and chin, with matching teal eyeshadow. You wear a rust-red jacket with brass buckle straps.",
+    "source": "https://cyberpunk.fandom.com/wiki/8ug8ear",
+    "image": "appearance-images/8ug8ear.webp"
+  },
+  "aaron": {
+    "text": "You have short black hair cut close to the head and a broad, solid build. You wear a yellow-green mottled leather jacket with silver buckle straps over a grey graphic T-shirt. A red and blue patch is sewn on the chest of the jacket.",
+    "source": "https://cyberpunk.fandom.com/wiki/Aaron_Waines",
+    "image": "appearance-images/aaron.webp"
+  },
+  "adam-smasher": {
+    "text": "You are a towering cyborg with a bald, chrome-plated head and a metal face with glowing red optics. Your body is covered in heavy black armoured plating, with a shield-shaped chest plate. Red-lit cabling runs across your shoulders and neck.",
+    "source": "https://cyberpunk.fandom.com/wiki/Adam_Smasher",
+    "image": "appearance-images/adam-smasher.webp"
+  },
+  "alan-noel": {
+    "text": "You wear a close-fitting teal hood with circuit-like traces and a small device clipped to the side of your head. A sleeveless grey-white vest with a zip front sits over dark knit sleeves, and one of your hands is chrome. Red-trimmed armour guards your forearms.",
+    "source": "https://cyberpunk.fandom.com/wiki/Alan_No%C3%ABl",
+    "image": "appearance-images/alan-noel.webp"
+  },
+  "alex": {
+    "text": "You have short hair swept back, dyed red at the front and blonde on top, with a septum ring and freckles across your face. You wear a red open jacket over a grey shirt, with a beaded necklace and beaded bracelets on your wrists.",
+    "source": "https://cyberpunk.fandom.com/wiki/Alex",
+    "image": "appearance-images/alex.webp"
+  },
+  "alt-cunningham": {
+    "text": "You have long, loose light-brown hair and a steady gaze. You wear a dark leather jacket with bright piping over a white top, with a pendant on a chain at your neck. Your right hand is chrome cyberware with a studded black cuff.",
+    "source": "https://cyberpunk.fandom.com/wiki/Alt_Cunningham",
+    "image": "appearance-images/alt-cunningham.webp"
+  },
+  "ana-friedman": {
+    "text": "You have dark hair pulled up into a high bun with a few loose strands. You wear an olive-khaki button-up shirt, open over a grey tank top, with the sleeves rolled up. Your expression is steady and unsmiling.",
+    "source": "https://cyberpunk.fandom.com/wiki/Ana_Friedman",
+    "image": "appearance-images/ana-friedman.webp"
+  },
+  "arthur-jenkins": {
+    "text": "You have short, dark, slicked-back hair and a clean-shaven face. You wear a charcoal suit with a white shirt and a red-and-black striped tie. A small dark mark sits on your forehead.",
+    "source": "https://cyberpunk.fandom.com/wiki/Arthur_Jenkins",
+    "image": "appearance-images/arthur-jenkins.webp"
+  },
+  "babs-okoye": {
+    "text": "You have a full mass of dark, coiled hair and a lean, muscular build. You wear a yellow-green tactical vest over black armoured pads and fingerless gloves, with a yellow spray-painted B on one shoulder pad. A dark tattoo runs down your forearm.",
+    "source": "https://cyberpunk.fandom.com/wiki/Babs_Okoye",
+    "image": "appearance-images/babs-okoye.webp"
+  },
+  "bill-mitchell": {
+    "text": "You have short, closely cropped dark hair and a stocky frame. You wear a bright blue NCPD polo shirt with white NCPD lettering, and a police ID badge hangs from a chain around your neck. One of your arms is a blue-trimmed cybernetic arm, and thin marks run across your cheeks.",
+    "source": "https://cyberpunk.fandom.com/wiki/Bill_Mitchel",
+    "image": "appearance-images/bill-mitchell.webp"
+  },
+  "blue-moon": {
+    "text": "You have bright turquoise hair gathered into two bun-style buns, with blunt bangs across your forehead. You wear an orange spiked collar over a blue ribbed tank top. Small dark marks sit beside your eyes.",
+    "source": "https://cyberpunk.fandom.com/wiki/Blue_Moon",
+    "image": "appearance-images/blue-moon.webp"
+  },
+  "bob-sagan": {
+    "text": "You have a dark cap with a diamond-shaped badge on the front, and a thick moustache with a goatee. You have broad shoulders and wear a dark leather harness with straps over a grey top.",
+    "source": "https://cyberpunk.fandom.com/wiki/Bob_Sagan",
+    "image": "appearance-images/bob-sagan.webp"
+  },
+  "briana-dolson": {
+    "text": "You have a short black bob with blunt bangs and rimless glasses. You wear a dark denim sleeveless vest covered in round pin badges over a maroon striped shirt. One of your arms is a mechanical cyberarm with exposed chrome parts and an orange housing.",
+    "source": "https://cyberpunk.fandom.com/wiki/Briana_Dolson",
+    "image": "appearance-images/briana-dolson.webp"
+  },
+  "carol-emeka": {
+    "text": "You have dark, shoulder-length hair swept back from your face. You wear red-tinted sunglasses and a dark sleeveless top layered over a grey knit sleeve. A dark strap runs across your chest.",
+    "source": "https://cyberpunk.fandom.com/wiki/Carol_Emeka",
+    "image": "appearance-images/carol-emeka.webp"
+  },
+  "cassidy-righter": {
+    "text": "You wear a dark brown cowboy hat and have a thick brown moustache. You wear a brown-and-black plaid shirt under a brown leather jacket with dark straps across the chest.",
+    "source": "https://cyberpunk.fandom.com/wiki/Cassidy_Righter",
+    "image": "appearance-images/cassidy-righter.webp"
+  },
+  "chang-hoon-nam": {
+    "text": "You have short, dark, messy hair and a broad face. A cybernetic optic sits over one of your eyes, with a red-tinted lens. You wear a dark green-grey jacket with dark purple buttons over a light teal shirt.",
+    "source": "https://cyberpunk.fandom.com/wiki/Chang-Hoon_Nam",
+    "image": "appearance-images/chang-hoon-nam.webp"
+  },
+  "claire-russell": {
+    "text": "You have shoulder-length auburn hair worn loose and pushed back, with a small gold star hoop in one ear. You wear a red ribbed tank top with a grey backpack strap over it, and layered gold and black necklaces with a cross pendant.",
+    "source": "https://cyberpunk.fandom.com/wiki/Claire_Russell",
+    "image": "appearance-images/claire-russell.webp"
+  },
+  "coach-fred": {
+    "text": "You are bald and very muscular, with a broad chest and thick arms. You wear a bright orange sleeveless tank top with a deep scoop neckline. Your skin has a warm, bronzed tone.",
+    "source": "https://cyberpunk.fandom.com/wiki/Coach_Fred",
+    "image": "appearance-images/coach-fred.webp"
+  },
+  "cynthia-najarro": {
+    "text": "You have sleek light-brown hair pulled tightly back from your face, and you wear tinted aviator sunglasses. Large gold hoop earrings and a thin gold bracelet catch the light. You wear a fitted magenta blazer over a cream collared shirt.",
+    "source": "https://cyberpunk.fandom.com/wiki/Cynthia_Najarro",
+    "image": "appearance-images/cynthia-najarro.webp"
+  },
+  "dakota-smith": {
+    "text": "You have dark hair that falls in loose waves past your shoulders. You wear a grey top with a green knit sleeve on one arm, and a dark tattoo covers your forearm. A small mechanical gadget is attached near your wrist.",
+    "source": "https://cyberpunk.fandom.com/wiki/Dakota_Smith",
+    "image": "appearance-images/dakota-smith.webp"
+  },
+  "dennis-cranmer": {
+    "text": "You have short, spiky dark hair with reddish tips. You wear round wire-rimmed glasses and a grey, high-collared jacket over a button-front shirt.",
+    "source": "https://cyberpunk.fandom.com/wiki/Dennis_Cranmer",
+    "image": "appearance-images/dennis-cranmer.webp"
+  },
+  "dexter-deshawn": {
+    "text": "You have a bald head with long braids falling down the back and sides, and a full dark beard. You wear rectangular red-tinted sunglasses and a red-brown chain necklace that catches the light. A dark leather jacket covers your shoulders.",
+    "source": "https://cyberpunk.fandom.com/wiki/Dexter_DeShawn",
+    "image": "appearance-images/dexter-deshawn.webp"
+  },
+  "dino-dinovic": {
+    "text": "You have a mohawk with dark green-tipped hair and shaved sides, with a dark stripe across one side of your head. You wear tinted aviator glasses, a septum ring, and a dark painted mark on your cheek and chin. Your outfit is a black studded leather vest covered in coloured patches and pins, with tattoos visible on your chest.",
+    "source": "https://cyberpunk.fandom.com/wiki/Dino_Dinovic",
+    "image": "appearance-images/dino-dinovic.webp"
+  },
+  "elizabeth-peralez": {
+    "text": "You have dark hair swept back into a sleek style with volume at the top. You wear purple lipstick and violet eyeshadow, long dangling earrings with a pale blue sheen, and a dark metallic neck collar. Your top is white with a textured mauve-grey panel across the chest.",
+    "source": "https://cyberpunk.fandom.com/wiki/Elizabeth_Peralez",
+    "image": "appearance-images/elizabeth-peralez.webp"
+  },
+  "evelyn-parker": {
+    "text": "You have dark-blue hair cut in straight bangs across your forehead, with freckles across your nose and cheeks and dark lipstick. You wear a pink and teal fur collar over a glossy black jacket, with a sparkly patterned bodice underneath and a thin choker-style necklace.",
+    "source": "https://cyberpunk.fandom.com/wiki/Evelyn_Parker",
+    "image": "appearance-images/evelyn-parker.webp"
+  },
+  "frank-nostra": {
+    "text": "You have short brown hair swept back from your forehead and a trimmed reddish-brown beard. Thin wire cyberware with small gold tips runs from your temple past your eye and along your cheek. You wear a dark, glossy collared shirt with dark panel details at the shoulders.",
+    "source": "https://cyberpunk.fandom.com/wiki/Frank_Nostra",
+    "image": "appearance-images/frank-nostra.webp"
+  },
+  "hanako-arasaka": {
+    "text": "You have dark hair pulled back tightly from your face. You wear dark red-brown eyeshadow and deep maroon lipstick. Your outfit is a white high-necked mesh top with gold trim, under a white jacket with reddish-brown shoulder panels and a small gold pin on the lapel.",
+    "source": "https://cyberpunk.fandom.com/wiki/Hanako_Arasaka",
+    "image": "appearance-images/hanako-arasaka.webp"
+  },
+  "iris-tanner": {
+    "text": "You have long dark red-brown hair with the right side of your head shaved into an undercut. You wear long silver feather-shaped earrings and have light freckles across your cheeks. Blue-and-silver goggles with red X markings hang at your chest over a dark grey hooded top and a dark denim-look vest.",
+    "source": "https://cyberpunk.fandom.com/wiki/Iris_Tanner",
+    "image": "appearance-images/iris-tanner.webp"
+  },
+  "jackie-welles": {
+    "text": "You have a close-cropped head with the sides shaved short and a little hair left on top. Dark cybernetic lines with small gold ports run across your cheeks, nose and jaw, and a small red light sits behind your right ear. You wear a dark jacket with a red-lined high collar and a gold cross on a gold chain.",
+    "source": "https://cyberpunk.fandom.com/wiki/Jackie_Welles",
+    "image": "appearance-images/jackie-welles.webp"
+  },
+  "jake-estevez": {
+    "text": "You have a muscular build visible in your arms and a camouflage bandana with white stars over your head. You have a tattoo on your upper arm, leather wristbands, and a black device strapped to your upper right arm. Your outfit is a sleeveless peach-orange vest with teal trim over a grey tank top, grey-and-black camo cargo trousers, and dark boots.",
+    "source": "https://cyberpunk.fandom.com/wiki/Jake_Estevez",
+    "image": "appearance-images/jake-estevez.webp"
+  },
+  "jefferson-peralez": {
+    "text": "You have dark hair slicked back from your forehead. You wear a dark jacket over a grey-blue collared shirt with a pale panel running down the front.",
+    "source": "https://cyberpunk.fandom.com/wiki/Jefferson_Peralez",
+    "image": "appearance-images/jefferson-peralez.webp"
+  },
+  "jesse": {
+    "text": "",
+    "source": "unconfirmed",
+    "image": "appearance-images/jesse.webp"
+  },
+  "jim-jarry": {
+    "text": "",
+    "source": "none"
+  },
+  "johnny-silverhand": {
+    "text": "You have shoulder-length dark hair swept back from a bearded face, with mirrored aviator sunglasses. Your right arm is a bulky chrome cyberarm with exposed plating from shoulder to hand, and dark smudged markings show on your left forearm. You wear a sleeveless dark tactical vest with a dog-tag chain at your neck and a heavy silver ring on your finger.",
+    "source": "https://cyberpunk.fandom.com/wiki/Johnny_Silverhand",
+    "image": "appearance-images/johnny-silverhand.webp"
+  },
+  "joss-kutcher": {
+    "text": "You have dark hair swept back from your face and falling past your shoulders. You wear a blue denim vest with a black leather collar over a red knit sweater and a white top underneath. A silver-metal pendant hangs at your neck.",
+    "source": "https://cyberpunk.fandom.com/wiki/Joss_Kutcher",
+    "image": "appearance-images/joss-kutcher.webp"
+  },
+  "judy-alvarez": {
+    "text": "You have green and pink hair, shaved short on one side and swept over the other, with a cyberport behind your ear. You have red roses tattooed on your neck and chest, a fire-truck tattoo on your chest, and tattoo sleeves on your arms. You wear a light grey tank top.",
+    "source": "https://cyberpunk.fandom.com/wiki/Judy_Alvarez",
+    "image": "appearance-images/judy-alvarez.webp"
+  },
+  "kerry-eurodyne": {
+    "text": "You have spiked, swept-back hair with the sides shaved and a short stubbly beard. Your arms are covered in tattoos, and you wear a black studded leather vest over a white tank top, with layered gold chains and studded leather wristbands.",
+    "source": "https://cyberpunk.fandom.com/wiki/Kerry_Eurodyne",
+    "image": "appearance-images/kerry-eurodyne.webp"
+  },
+  "liam-northom": {
+    "text": "",
+    "source": "none"
+  },
+  "life-coach": {
+    "text": "",
+    "source": "none"
+  },
+  "lina-malina": {
+    "text": "You have spiky magenta and violet hair, with the side of your head shaved and patterned in violet. You wear rimless round tinted glasses, a gold septum ring, and a cross-shaped dangling earring. Your jewellery includes a red-and-gold square-link choker with layered gold chains, and you wear plum lipstick.",
+    "source": "https://cyberpunk.fandom.com/wiki/Lina_Malina",
+    "image": "appearance-images/lina-malina.webp"
+  },
+  "lizzy-wizzy": {
+    "text": "You have a polished chrome face and head with a mirror-like finish, and magenta hair falling to your shoulders. You wear a black choker and a black top under a jacket with a magenta and teal fur collar.",
+    "source": "https://cyberpunk.fandom.com/wiki/Lizzy_Wizzy",
+    "image": "appearance-images/lizzy-wizzy.webp"
+  },
+  "mama-welles": {
+    "text": "You have shoulder-length brown hair with side-swept bangs and a lined, weathered face. You wear a red knit top under a dark brown leather vest with stitched pockets.",
+    "source": "https://cyberpunk.fandom.com/wiki/Guadalupe_Alejandra_Welles",
+    "image": "appearance-images/mama-welles.webp"
+  },
+  "mark-bana": {
+    "text": "",
+    "source": "none"
+  },
+  "meredith-stout": {
+    "text": "You have auburn hair swept back from your forehead, with a thin cybernetic panel and circuit lines over your left temple and cheek. You wear a dark high-collared uniform jacket with grey shoulder plates and a small chest patch.",
+    "source": "https://cyberpunk.fandom.com/wiki/Meredith_Stout",
+    "image": "appearance-images/meredith-stout.webp"
+  },
+  "misty-olszewski": {
+    "text": "You have a short grey-green bob with blunt bangs, smoky dark eye makeup and dark lipstick. You wear a spiked black choker, a blue knit sweater and a layered cord necklace with a skull pendant.",
+    "source": "https://cyberpunk.fandom.com/wiki/Misty_Olszewski",
+    "image": "appearance-images/misty-olszewski.webp"
+  },
+  "mitch-anderson": {
+    "text": "You have a shaved head with dark hair left at the sides and back, and a metal plate set into your scalp above one temple. A metal chin plate with a visible seam sits below your stubbled jaw. You wear a green sleeveless vest with a teal collar and dark padded shoulder straps.",
+    "source": "https://cyberpunk.fandom.com/wiki/Mitch_Anderson",
+    "image": "appearance-images/mitch-anderson.webp"
+  },
+  "mr-hands": {
+    "text": "You have dark hair with grey streaks swept back, a grey moustache and a grey-and-dark beard. A cybernetic panel with small gold-tipped ports runs along your right temple and cheek. You wear a brown patterned jacket with a dark wave-pattern lapel over a white shirt and a thin dark tie.",
+    "source": "https://cyberpunk.fandom.com/wiki/Mr._Hands",
+    "image": "appearance-images/mr-hands.webp"
+  },
+  "muamar-reyes": {
+    "text": "You have straight black hair cut in a heavy fringe that sits just above your eyebrows, with long side pieces falling past your jaw. You wear a gold chain with a cross pendant and a blue pendant at your neck. Your blue pinstriped jacket is open over bare skin, with a tattoo visible on your chest.",
+    "source": "https://cyberpunk.fandom.com/wiki/Muamar_Reyes",
+    "image": "appearance-images/muamar-reyes.webp"
+  },
+  "nancy-hartley": {
+    "text": "You have shoulder-length wavy grey-blonde hair and a camera-like cybernetic eye fitted over one eye, while the eye on the other side glows red. You wear dark lipstick and a dark beaded choker. Your outfit is a sleeveless blue denim jacket over a grey top printed with red lettering.",
+    "source": "https://cyberpunk.fandom.com/wiki/Bes_Isis",
+    "image": "appearance-images/nancy-hartley.webp"
+  },
+  "nele-springer": {
+    "text": "You have shoulder-length blonde hair with choppy bangs and freckles across your face. You wear a dark green leather jacket with black leather shoulders and sleeves, a rust-red knit top underneath, and black leather trousers. A dark red high-necked collar sits at your throat, and you have a slim build.",
+    "source": "https://cyberpunk.fandom.com/wiki/Nele_Springer",
+    "image": "appearance-images/nele-springer.webp"
+  },
+  "nix": {
+    "text": "You have very short light blond hair in a buzz cut and wear round, dark-tinted glasses. Your vest is padded black with yellow honeycomb-patterned fabric showing between the panels. You have a broad, solid build.",
+    "source": "https://cyberpunk.fandom.com/wiki/Nix",
+    "image": "appearance-images/nix.webp"
+  },
+  "ozob-bozo": {
+    "text": "You have a bald crown with dark hair kept at the sides and back, and a broad face. A dark band runs across your nose and cheeks, and you wear a dark padded collar over a dark blue top with a white chain necklace.",
+    "source": "https://cyberpunk.fandom.com/wiki/Ozob_Bozo",
+    "image": "appearance-images/ozob-bozo.webp"
+  },
+  "paco-torres": {
+    "text": "You are muscular, with short, close-cropped dark hair and a dark tattoo on your upper arm. You wear a yellow-green BARGHEST tactical vest with black pouches over bare arms, a grey camo-print scarf at the neck, and black fingerless gloves. A black armored pauldron with yellow markings sits on one shoulder.",
+    "source": "https://cyberpunk.fandom.com/wiki/Paco_Torres",
+    "image": "appearance-images/paco-torres.webp"
+  },
+  "padre-ibarra": {
+    "text": "You are bald, with dark ink tattoos across your scalp, forehead and neck, including the word Repent across your forehead. You have a grey moustache and wear a dark green collared shirt with a heavy gold chain over a dark jacket.",
+    "source": "https://cyberpunk.fandom.com/wiki/Sebastian_Ibarra",
+    "image": "appearance-images/padre-ibarra.webp"
+  },
+  "panam-palmer": {
+    "text": "You have dark hair pulled up into a high bun of braids, with loose strands framing your face and dark eye makeup. You wear an olive knit off-the-shoulder top with a wide tan belt and copper buckle, and a patch on one sleeve.",
+    "source": "https://cyberpunk.fandom.com/wiki/Panam_Palmer",
+    "image": "appearance-images/panam-palmer.webp"
+  },
+  "pepe-najarro": {
+    "text": "You have dark hair slicked back and a full dark beard. You wear a dark sleeveless vest, a heavy silver chain with an ornate cross pendant, and a silver cuff bracelet on your wrist.",
+    "source": "https://cyberpunk.fandom.com/wiki/Pepe_Najarro",
+    "image": "appearance-images/pepe-najarro.webp"
+  },
+  "placide": {
+    "text": "You have dark hair with a pale streak across the crown and a cybernetic fitting at one temple with a small green light. You have warm brown skin and wear a tan leather jacket over a red top.",
+    "source": "https://cyberpunk.fandom.com/wiki/Placide",
+    "image": "appearance-images/placide.webp"
+  },
+  "r3n0": {
+    "text": "You have silver-grey hair spiked up on top with the sides shaved close. You wear a dark jacket with a white front panel over a dark top.",
+    "source": "https://cyberpunk.fandom.com/wiki/R3n0",
+    "image": "appearance-images/r3n0.webp"
+  },
+  "rachel-casich": {
+    "text": "You have copper-red hair swept up into a short crest with the sides shaved. You wear round gold-rimmed glasses and a red-brown choker, with a dark jacket and white collar panel.",
+    "source": "https://cyberpunk.fandom.com/wiki/Rachel_Casich",
+    "image": "appearance-images/rachel-casich.webp"
+  },
+  "regina-jones": {
+    "text": "You have dark hair swept back and wear a black eyepatch over your right eye. You wear a black tactical vest over a light blue shirt, with a small gold cross on a thin chain.",
+    "source": "https://cyberpunk.fandom.com/wiki/Regina_Jones",
+    "image": "appearance-images/regina-jones.webp"
+  },
+  "resident-female": {
+    "text": "",
+    "source": "none"
+  },
+  "resident-male": {
+    "text": "",
+    "source": "none"
+  },
+  "river-ward": {
+    "text": "You have close-cropped dark hair and a brown fur-trimmed vest over a red shirt. A cybernetic eye with a black lens sits in your left eye socket, and you wear a silver feather pendant on a chain and a small drop earring in one ear.",
+    "source": "https://cyberpunk.fandom.com/wiki/River_Ward",
+    "image": "appearance-images/river-ward.webp"
+  },
+  "robert-wilson": {
+    "text": "You have a heavy build with a balding crown, dark hair at the sides, and a thick moustache with a short chin beard. You wear a dark grey tank top under an open brown utility jacket with pockets, with a bullet on a cord around your neck and a holstered pistol at your side.",
+    "source": "https://cyberpunk.fandom.com/wiki/Robert_Wilson",
+    "image": "appearance-images/robert-wilson.webp"
+  },
+  "rogue-amendiares": {
+    "text": "You have long dark hair with blue-tinted strands, swept up on one side. Dark lines are painted across your cheeks, and you wear a bright yellow jacket with a black SURVIVE label across the chest over a dark high collar.",
+    "source": "https://cyberpunk.fandom.com/wiki/Rogue_Amendiares",
+    "image": "appearance-images/rogue-amendiares.webp"
+  },
+  "sandra-dorsett": {
+    "text": "You have sandy-blonde hair with the sides shaved close and thin dark marks running down your cheeks below each eye. You wear a black suit jacket over a cream high-collared shirt, with a gold name badge on the lapel.",
+    "source": "https://cyberpunk.fandom.com/wiki/Sandra_Dorsett",
+    "image": "appearance-images/sandra-dorsett.webp"
+  },
+  "santiago": {
+    "text": "You have long, dark, swept-back hair and a full brown beard. You wear round dark-tinted sunglasses and an orange-and-black tiger-stripe jacket with buckled straps and patches on the chest.",
+    "source": "https://cyberpunk.fandom.com/wiki/Nomad_Santiago",
+    "image": "appearance-images/santiago.webp"
+  },
+  "saul-bright": {
+    "text": "You have shoulder-length dark hair and a short dark beard. You wear a dark blue padded armored vest with a silver emblem on the chest over a grey top.",
+    "source": "https://cyberpunk.fandom.com/wiki/Saul_Bright",
+    "image": "appearance-images/saul-bright.webp"
+  },
+  "sergei-karasinsky": {
+    "text": "You wear a dark cap and glowing cyan-tinted eyewear, with red X marks across a glitch-patterned face. You have a dark green ribbed leather jacket over an orange sweater and a gold chain at your neck.",
+    "source": "https://cyberpunk.fandom.com/wiki/Sergei_Karasinsky",
+    "image": "appearance-images/sergei-karasinsky.webp"
+  },
+  "shank": {
+    "text": "",
+    "source": "none"
+  },
+  "solomon-reed": {
+    "text": "You have short, close-cropped dark hair and a stubbled beard. A thin silver cyberware line runs over your forehead and temple with small red lights along it, and you wear a quilted maroon-collared dark jacket over a light blue shirt, with a glowing ring pendant on a black cord.",
+    "source": "https://cyberpunk.fandom.com/wiki/Solomon_Reed",
+    "image": "appearance-images/solomon-reed.webp"
+  },
+  "songbird": {
+    "text": "You have a magenta bob with a blunt fringe and dark cybernetic lines running across your forehead, nose and cheeks. A black cyber collar sits at your throat, and you wear a grey-beige sleeveless wrap top trimmed with copper.",
+    "source": "https://cyberpunk.fandom.com/wiki/Songbird",
+    "image": "appearance-images/songbird.webp"
+  },
+  "spider-murphy": {
+    "text": "You wear a dark grey combat helmet with a red-tinted visor display over your eyes and grey cheek guards on each side of your jaw. You have a dark grey jacket with red straps and buckles.",
+    "source": "https://cyberpunk.fandom.com/wiki/Spider_Murphy",
+    "image": "appearance-images/spider-murphy.webp"
+  },
+  "steven-santos": {
+    "text": "You have short dark hair, wire-framed glasses, and a green cybernetic implant at one temple. You wear a grey-black ribbed leather jacket open over a white tank top with a black belt.",
+    "source": "https://cyberpunk.fandom.com/wiki/Steven_Santos",
+    "image": "appearance-images/steven-santos.webp"
+  },
+  "t-bug": {
+    "text": "You have a shaved head and dark skin, with dark eye makeup and a defined brow. You wear a black fitted bodysuit with silver buckles and straps across the shoulders and chest.",
+    "source": "https://cyberpunk.fandom.com/wiki/T-Bug",
+    "image": "appearance-images/t-bug.webp"
+  },
+  "takemura": {
+    "text": "You have slicked-back grey-black hair and a short beard along your jaw. Cybernetic cabling and panels run from your neck up along your jaw and cheek, and you wear a white layered jacket with pale stripes.",
+    "source": "https://cyberpunk.fandom.com/wiki/Takemura",
+    "image": "appearance-images/takemura.webp"
+  },
+  "thompson": {
+    "text": "You have swept-back grey-white hair and a blue-grey cybernetic eye on one side of your face. You wear a long light grey coat with textured lapels over a dusty pink crew-neck shirt, with two dog tags on a chain.",
+    "source": "https://cyberpunk.fandom.com/wiki/Thompson",
+    "image": "appearance-images/thompson.webp"
+  },
+  "viktor-vektor": {
+    "text": "You have short dark hair swept back and dark wraparound sunglasses. You wear an open-collared dark button-up shirt with a small pendant on a cord and a stethoscope hanging around your neck.",
+    "source": "https://cyberpunk.fandom.com/wiki/Viktor_Vektor",
+    "image": "appearance-images/viktor-vektor.webp"
+  },
+  "wakako-okada": {
+    "text": "You have grey hair pulled back into a low bun and round gold-rimmed glasses. You wear a dark grey open-collared robe with red trim, and dark tattoo designs show across both shoulders.",
+    "source": "https://cyberpunk.fandom.com/wiki/Wakako_Okada",
+    "image": "appearance-images/wakako-okada.webp"
+  },
+  "yorinobu-arasaka": {
+    "text": "You have short dark hair swept up and back and wear dark rectangular sunglasses. You wear a black-and-white patterned shirt with an open collar and a thin gold chain.",
+    "source": "https://cyberpunk.fandom.com/wiki/Yorinobu_Arasaka",
+    "image": "appearance-images/yorinobu-arasaka.webp"
+  }
+}
