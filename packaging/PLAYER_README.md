@@ -2,6 +2,17 @@
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
+## What's new in 2077.2
+
+- **Alt Cunningham** joins the cast as a companion you can talk to, with her own voice and look.
+- **Many more people to talk to**: ordinary NPCs, vendors and faction members talk through character profiles of their own kind, with several voices each, and shopkeepers you return to remember you. Crowd pedestrians can follow you, and the party has no size limit.
+- **Companions sit with you** on couches, benches, chairs and bar stools, and you can look around freely while seated.
+- **Body gestures** are rebuilt: calmer, timed to the phrase, with no repeats and no pointing, and every companion has talking gestures and idles.
+- **Faces and lip sync**: whole-face emotions, a neutral resting face, a smoother mouth for the local voices and lip sync for vendors and other scene NPCs.
+- **Voices**: Natural speech and Expressive emotions are improved, a Lip sync delay setting helps with Bluetooth audio, and a slow OmniVoice start no longer drops you to the Pocket voice.
+- **Conversation**: characters can continue from the game's own dialogue, speak in the first person, remember what you did together and ask you questions. Each character shows the settings in effect for them in the Companion Manager.
+- **Fewer notices**: you only see when a companion has joined or when something fails.
+
 ## Requirements
 
 - Cyberpunk 2077 2.31 on Windows 10 or 11 (64-bit)

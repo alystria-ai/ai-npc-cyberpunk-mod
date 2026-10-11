@@ -1,5 +1,5 @@
 # Builds the player release packages. Runs only when started by hand (Actions > Release >
-# Run workflow) or when a version tag such as v2077.1 (or v2077.1.1 for a hotfix) is pushed; never on ordinary pushes.
+# Run workflow) or when a version tag such as v2077.2 (or v2077.2.1 for a hotfix) is pushed; never on ordinary pushes.
 #
 # Secrets (Settings > Secrets and variables > Actions):
 #   HF_TOKEN         read access to the private Hugging Face bucket with the trained models
@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version, 2077.N or 2077.N.M for a hotfix (for example 2077.1)
+        description: Release version, 2077.N or 2077.N.M for a hotfix (for example 2077.2)
         required: true
       omni:
         description: Also build the optional OmniVoice pack

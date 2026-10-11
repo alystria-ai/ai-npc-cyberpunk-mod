@@ -25,9 +25,9 @@ Runtime one.
 ## Version numbers
 
 Releases are numbered `2077.N`: the first is 2077.1, then 2077.2, and a hotfix of one release is
-`2077.N.M` (2077.1.1). The tag is `v` + the number (`v2077.1`) and the workflow accepts both forms
-(`v2077.1`, `v2077.1.1`); a manual run takes the number without the `v`. The same string goes into
-the package file names (`CyberpunkConvai-Scripts-2077.1.zip`), the release title, both
+`2077.N.M` (2077.1.1). The tag is `v` + the number (`v2077.2`) and the workflow accepts both forms
+(`v2077.2`, `v2077.2.1`); a manual run takes the number without the `v`. The same string goes into
+the package file names (`CyberpunkConvai-Scripts-2077.2.zip`), the release title, both
 `release.json` files and the OmniVoice `omni-pack.json`. The only version check at run time is
 `start-service.mjs` comparing the Scripts and Runtime strings for equality, so any form works; the
 builder accepts two to four numbers with an optional `-pre`/`+build` suffix
@@ -135,9 +135,9 @@ are split into `.partN` byte ranges with a `.parts.json`, joined on first start.
 ### Local dry run and install test
 
 ```powershell
-node packaging/build-release.mjs --version 2077.1 --dry-run                 # Scripts + Runtime + Omni
-node packaging/build-release.mjs --version 2077.1 --dry-run --packages scripts,runtime
-node packaging/test-release-install.mjs --version 2077.1 --packages dist/release/packages [--omni] [--key-file runtime/convai-key.txt]
+node packaging/build-release.mjs --version 2077.2 --dry-run                 # Scripts + Runtime + Omni
+node packaging/build-release.mjs --version 2077.2 --dry-run --packages scripts,runtime
+node packaging/test-release-install.mjs --version 2077.2 --packages dist/release/packages [--omni] [--key-file runtime/convai-key.txt]
 node --test packaging/release.test.mjs
 ```
 
