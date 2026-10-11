@@ -13,35 +13,45 @@ function run(code) {
 const fixture=`
   local records={
     ['Character.Silverhand']={abilities={'sprint'},entityTemplatePath='johnny.ent'},
-    ['Character.Judy']={abilities={'sprint','shoot','rightHand'},archetypeData='ranged',
+    ['Character.Judy']={abilities={'sprint','Ability.CanShootWhileMoving','rightHand'},archetypeData='ranged',
       primaryEquipment='chaoPool',secondaryEquipment='secondary'},
     ['Character.Grayson']={primaryEquipment='malorianPool'},
     ['Character.Kerry']={entityTemplatePath='base\\\\quest\\\\tertiary_characters\\\\kerry.ent',
       defaultAppearance='kerry_eurodyne__q203__shower'},
-    ranged={},malorianPool={},secondary={}
+    ['Character.alex']={abilities={'Ability.CanCrouch','sprint'},entityTemplatePath='alex.ent'},
+    ['Character.Panam']={abilities={'Ability.CanCrouch','Ability.CanCloseCombat'},entityTemplatePath='panam.ent'},
+    ranged={},malorianPool={},secondary={},chaoPool={}
   }
+  TDBID={ToStringDEBUG=function(id) return id end}
+  TweakDBInterface={GetGameplayAbilityRecord=function(id) return {name=id} end}
   local clones,writes=0,0
   function TweakDB:GetRecord(id)
-    if records[id] then return {IsA=function() return true end} end
+    if records[id] then return {IsA=function() return true end,
+      AbilitiesContains=function(_,ability)
+        for _,have in ipairs(records[id].abilities or {}) do if have==ability.name then return true end end
+        return false
+      end} end
   end
   function TweakDB:GetFlat(path)
     local record,field=path:match('^(.*)%.([^%.]+)$')
     return records[record] and records[record][field]
   end
   function TweakDB:CloneRecord(target,source)
-    assert(target=='CyberpunkConvai.JohnnyCompanion')
+    assert(target:find('^CyberpunkConvai%.'),'cloned into a game record')
     assert(not records[target]); records[target]={}
     for key,value in pairs(records[source]) do records[target][key]=value end
     clones=clones+1; return true
   end
   function TweakDB:SetFlats(target,values)
-    assert(target=='CyberpunkConvai.JohnnyCompanion','mutated a game record')
+    assert(target:find('^CyberpunkConvai%.'),'mutated a game record')
     writes=writes+1
     for key,value in pairs(values) do records[target][key]=value end
     return true
   end
   companions.registerDefinition('johnny-silverhand',{
     id='Character.Silverhand',name='Johnny',profileKey='johnny-silverhand'})
+  companions.registerDefinition('alex',{id='Character.alex',name='Alex',profileKey='alex'})
+  companions.registerDefinition('panam-palmer',{id='Character.Panam',name='Panam',profileKey='panam-palmer'})
   companions.registerDefinition('kerry-eurodyne',{
     id='Character.Kerry',name='Kerry',profileKey='kerry-eurodyne'})
 `;
@@ -187,4 +197,36 @@ test('dismissal releases exact-copy presentation before deleting its live entity
   assert(companions.dismiss(rows[1].serial))
   assert(#released==1 and released[1]~=tostring(second:GetEntityID().hash))
   assert(#companions.list()==1)
+`));
+
+test('a quest-base record without shooting abilities (Alex) spawns from a private armed clone and stays in combat',()=>run(`
+  local alex=spawn('alex')
+  assert(alex.spec.recordID=='CyberpunkConvai.Armed_Character_alex' or alex.spec.recordID:find('^CyberpunkConvai%.Armed_'),tostring(alex.spec.recordID))
+  local clone=records[alex.spec.recordID]
+  assert(clone.entityTemplatePath=='alex.ent','the clone keeps her template and identity')
+  local have={} for _,a in ipairs(clone.abilities) do have[a]=true end
+  assert(have['Ability.CanCrouch'] and have['sprint'],'own abilities are kept')
+  assert(have['Ability.CanShootWhileMoving'] and have['rightHand'],'the working ranged set is added')
+  assert(#clone.abilities==4,'a shared ability is not duplicated')
+  assert(clone.primaryEquipment=='chaoPool' and clone.secondaryEquipment=='secondary' and clone.archetypeData=='ranged')
+  assert(#records['Character.alex'].abilities==2 and not records['Character.alex'].primaryEquipment,'the game record is untouched')
+  assert(#records['Character.Judy'].abilities==3)
+  local second=spawn('alex'); assert(second.spec.recordID==alex.spec.recordID and clones==1 and writes==1,'one clone is reused')
+  alex.combat=true; tick(2)
+  assert(#active(alex)==0,'social movement still yields to native combat')
+`));
+
+test('records that already fight, or cannot be read, are never cloned; a failed clone still spawns the original',()=>run(`
+  local judy=spawn('judy-alvarez'); assert(judy.spec.recordID=='Character.Judy')
+  local panam=spawn('panam-palmer'); assert(panam.spec.recordID=='Character.Panam','a melee-capable record is left alone')
+  assert(clones==0 and writes==0)
+  local get=TweakDB.GetRecord
+  function TweakDB:GetRecord(id) if id=='Character.alex' then return {IsA=function() return true end} end return get(self,id) end
+  assert(spawn('alex').spec.recordID=='Character.alex','an unreadable record adapts nothing')
+  assert(clones==0 and writes==0)
+  TweakDB.GetRecord=get
+  companions.registerDefinition('alex-two',{id='Character.alex',name='Alex',profileKey='alex'})
+  local apply=TweakDB.SetFlats; TweakDB.SetFlats=function() return false end
+  assert(spawn('alex-two').spec.recordID=='Character.alex','a failed write falls back to the original record')
+  TweakDB.SetFlats=apply
 `));

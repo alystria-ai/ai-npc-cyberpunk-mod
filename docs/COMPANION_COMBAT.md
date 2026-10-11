@@ -103,6 +103,12 @@ These files are under the installed game's
 They explain a missing prerequisite for fighting; the native runtime and visible
 combat result still need verification.
 
+## Alex ran away — October 11
+
+The user was attacked by gangers and Alex ran away (a movement trace showed both copies in native combat, our commands released, sprinting directly away from V; `Automatic battle reaction` then released with `speaker-missing`). The same defect as Johnny: in the installed REDmod data `alex : Quest_NPC_Base` (`ep1/.../primary_characters.tweak`) has the `Invulnerable` tag, `reactionPreset = NoReaction` and `GenericRangedT2`, but `Quest_NPC_Base` adds only `CanCrouch` and `CanSprint`; the shooting and hand abilities live in `Gameplay_NPC_Base`, which she does not inherit, and she has no `primaryEquipment`. The game's no-weapon combat branch (`NoWeaponCombatConditions`, `aiAutonomousConditions.script`) is the likely place the unarmed copy flees; that last step is inferred from the observed behaviour and the Johnny precedent, not read from a script.
+
+`mod/companion-records.lua` now generalizes the Johnny adaptation. Any spawn record (after the crowd clone, if one was needed) that has none of `CanShootWhileMoving`, `CanCloseCombat` or `HasChargeJump` is cloned into `CyberpunkConvai.Armed_<name>`, keeps its own abilities and gains Judy's ranged set, archetype, primary (Chao pistol) and secondary equipment. Records that already fight, or whose abilities cannot be read, are never touched, and a clone that fails leaves the original record in use (the copy still spawns). Shared game records are only read. Existing copies need a re-invite. Which roster characters are affected depends on their base record; check the probe log for `Armed_` names after spawning.
+
 ## Scoped adaptation
 
 `mod/companion-records.lua` resolves the selected model before entity creation.

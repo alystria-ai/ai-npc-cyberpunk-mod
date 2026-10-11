@@ -48,12 +48,89 @@ local function nonCrowd(source)
     return crowdCopies[key], result
 end
 
+-- Quest-base records (Quest_NPC_Base: Alex, Johnny, ...) add only crouch and
+-- sprint: no shooting or hand abilities, no combat archetype, no weapon. In
+-- combat the game's autonomous AI then has nothing to fight with and the copy
+-- runs away (Alex, 2026-10-11; Johnny, docs/COMPANION_COMBAT.md). Such a record
+-- is spawned from a private clone with the known working ranged set of Judy
+-- added to its own abilities. Shared game records are only read. A record that
+-- already has a combat ability, or one that cannot be read, is left alone, and a
+-- clone that fails leaves the original record in use (the copy may then flee,
+-- but it still spawns). nil = no adaptation; otherwise the clone's id and name.
+local combatDonor = 'Character.Judy'
+local combatAbilities = {'Ability.CanShootWhileMoving', 'Ability.CanCloseCombat', 'Ability.HasChargeJump'}
+local armedCopies = {}
+local function combatCapable(source)
+    local ok, result = pcall(function()
+        local record = TweakDB:GetRecord(source)
+        if not record then error('missing record') end
+        local known = 0
+        for _, name in ipairs(combatAbilities) do
+            local ability = TweakDBInterface.GetGameplayAbilityRecord(TweakDBID.new(name))
+            if ability then
+                known = known + 1
+                if record:AbilitiesContains(ability) then return true end
+            end
+        end
+        if known == 0 then error('no ability records') end
+        return false
+    end)
+    if ok then return result end
+    return nil
+end
+local function armed(source)
+    local key = tostring(source)
+    local cached = armedCopies[key]
+    if cached ~= nil then return cached and cached.id, cached and cached.name end
+    if combatCapable(source) ~= false then armedCopies[key] = false; return nil end
+    local made, result = pcall(function()
+        local changes = {}
+        for _, field in ipairs({'abilities', 'archetypeData', 'primaryEquipment', 'secondaryEquipment'}) do
+            local value = TweakDB:GetFlat(combatDonor .. '.' .. field)
+            if value == nil then error('Missing ' .. combatDonor .. '.' .. field) end
+            if field == 'archetypeData' or field == 'primaryEquipment' then
+                if not TweakDB:GetRecord(value) then error('Missing combat record for ' .. field) end
+            end
+            changes[field] = value
+        end
+        if #changes.abilities == 0 then error('Ranged companion abilities are empty') end
+        local label = tostring(TDBID.ToStringDEBUG(source) or ''):gsub('^Character%.', ''):gsub('[^%w_]', '_')
+        if label == '' or label:find('^<') then label = tostring(source.hash) .. '_' .. tostring(source.length) end
+        local name = 'CyberpunkConvai.Armed_' .. label
+        if not TweakDB:GetRecord(name) and not TweakDB:CloneRecord(name, source) then error('clone failed') end
+        -- Keep the record's own abilities and add the donor's that it lacks.
+        local merged = {}
+        for _, group in ipairs({TweakDB:GetFlat(name .. '.abilities') or {}, changes.abilities}) do
+            for _, ability in ipairs(group) do
+                local present = false
+                for _, have in ipairs(merged) do if have == ability then present = true; break end end
+                if not present then merged[#merged + 1] = ability end
+            end
+        end
+        changes.abilities = merged
+        if TweakDB:SetFlats(name, changes) == false then error('Could not apply combat capabilities') end
+        local actual = TweakDB:GetFlat(name .. '.abilities')
+        if not actual or #actual ~= #merged then error('Abilities were not applied') end
+        for field, expected in pairs(changes) do
+            if field ~= 'abilities' and TweakDB:GetFlat(name .. '.' .. field) ~= expected then
+                error('Combat readback differs: ' .. field)
+            end
+        end
+        return name
+    end)
+    if not made then armedCopies[key] = false; return nil end
+    armedCopies[key] = {id = TweakDBID.new(result), name = result}
+    return armedCopies[key].id, result
+end
+
 function M.resolve(source)
     if source == TweakDBID.new(kerrySource) then return source, nil, nil, kerryAppearance end
     if source ~= TweakDBID.new(johnnySource) then
         local copy, name = nonCrowd(source)
-        if copy then return copy, nil, name end
         if copy == false then return nil, 'This character cannot be copied as a companion.' end
+        local armedId, armedName = armed(copy or source)
+        if armedId then return armedId, nil, armedName end
+        if copy then return copy, nil, name end
         return source
     end
     if prepared and TweakDB:GetRecord(prepared) then return prepared, nil, johnnyCopy, johnnyAppearance end
