@@ -204,9 +204,13 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
     assert(manager.snapshot(player).settings.omniSteps == 16 and saved.omniSteps == 16)
     assert(manager.snapshot(player).settings.omniReference == 'long' and saved.omniReference == 'long')
     assert(manager.snapshot(player).settings.keepPreparedVoices == true and saved.keepPreparedVoices == true)
-    assert(manager.battleReactions() and manager.snapshot(player).settings.battleReactions)
-    assert(manager.lootReactions() and manager.snapshot(player).settings.lootReactions)
+    assert(not manager.battleReactions() and manager.snapshot(player).settings.battleReactions == false, 'battle reactions default off')
+    assert(not manager.lootReactions() and manager.snapshot(player).settings.lootReactions == false, 'loot reactions default off')
     assert(manager.followUpQuestions == nil and manager.snapshot(player).settings.followUpQuestions == nil)
+    assert(manager.applySettings(player, {lootReactions = true}))
+    assert(manager.lootReactions() and saved.lootReactions == true)
+    assert(manager.applySettings(player, {battleReactions = true}))
+    assert(manager.battleReactions() and saved.battleReactions == true)
     assert(manager.applySettings(player, {lootReactions = false}))
     assert(not manager.lootReactions() and saved.lootReactions == false)
     assert(manager.applySettings(player, {lootReactions = 'on'}) == false)
@@ -2158,7 +2162,8 @@ test('the Characters sidebar shows the settings in effect for each character, no
   assert(description('judy-alvarez'):find('Relationship: Auto', 1, true), 'Judy has a relationship line')
   -- Judy in the party on OmniVoice, with the speech settings, Multilingual and a memory of the player.
   assert(manager.applySettings(player, {voiceProvider = 'omni', omniSteps = 16, omniReference = 'short', naturalSpeech = true,
-    expressiveEmotions = true, followUpInterest = true, multilingualConversations = true, relationshipModes = {['judy-alvarez'] = 'on'}}))
+    expressiveEmotions = true, followUpInterest = true, multilingualConversations = true, relationshipModes = {['judy-alvarez'] = 'on'},
+    battleReactions = true, lootReactions = true}))
   jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'omni', omniSteps = 16, omniReference = 'short',
     routedProfiles = {'judy-alvarez'}, updated = memoryClock * 1000.0}
   files['runtime/local-voice-state.json'] = 'voice-runtime'
