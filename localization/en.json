@@ -601,7 +601,7 @@
     "Waiting for your passenger seat to be released.": "Waiting for your passenger seat to be released.",
     "Waiting for your previous message to finish.": "Waiting for your previous message to finish.",
     "Walking commands did not release in time.": "Walking commands did not release in time.",
-    "Want more conversations? The shared plan has a daily conversation limit, and there are two free ways to keep talking. Convai (recommended, better quality responses): get a free API key at convai.com, copy it, choose Paste Convai API key below, turn this on and choose Apply. A free Convai plan has a small monthly allowance, one connection at a time and only a few memory users, so companions open one at a time and Multilingual conversations and memory management are unavailable. Mistral (free; signup needs phone verification): get a free key at console.mistral.ai, copy it, choose Paste Mistral key, then set Conversation provider to Mistral and choose Apply. Memory stays on this computer. The change waits until no conversation is running.": "Want more conversations? The shared plan has a daily conversation limit, and there are two free ways to keep talking. Convai (recommended, better quality responses): get a free API key at convai.com, copy it, choose Paste Convai API key below, turn this on and choose Apply. A free Convai plan has a small monthly allowance, one connection at a time and only a few memory users, so companions open one at a time and Multilingual conversations and memory management are unavailable. Mistral (free; signup needs phone verification): get a free key at console.mistral.ai, copy it, choose Paste Mistral key, then set Conversation provider to Mistral and choose Apply. Memory stays on this computer. The change waits until no conversation is running.",
+    "Want more conversations? The shared plan has a daily conversation limit, and there are two free ways to keep talking. Convai key (recommended, better quality responses): get a free API key at convai.com, copy it, choose Paste Convai API key below, turn this on and choose Apply. A free Convai plan has a small monthly allowance, one connection at a time and only a few memory users, so companions open one at a time and Multilingual conversations and memory management are unavailable. Mistral key: free, but signing up needs phone verification. Get a key from Mistral, set Conversation provider to Mistral (free plan), choose Paste Mistral key and choose Apply; memory stays on this computer. Changes wait until no conversation is running.": "Want more conversations? The shared plan has a daily conversation limit, and there are two free ways to keep talking. Convai key (recommended, better quality responses): get a free API key at convai.com, copy it, choose Paste Convai API key below, turn this on and choose Apply. A free Convai plan has a small monthly allowance, one connection at a time and only a few memory users, so companions open one at a time and Multilingual conversations and memory management are unavailable. Mistral key: free, but signing up needs phone verification. Get a key from Mistral, set Conversation provider to Mistral (free plan), choose Paste Mistral key and choose Apply; memory stays on this computer. Changes wait until no conversation is running.",
     "What to do": "What to do",
     "When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default.": "When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default.",
     "Where the logs are": "Where the logs are",
@@ -635,7 +635,7 @@
     "Your party is empty": "Your party is empty",
     "Your party is empty. Add a character or model to create a companion copy.": "Your party is empty. Add a character or model to create a companion copy.",
     "Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.": "Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.",
-    "You’ve reached today’s free conversation limit. Add your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development to keep talking.": "You’ve reached today’s free conversation limit. Add your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development to keep talking.",
+    "You’ve reached today’s free conversation limit. To keep talking, paste your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development, then choose Apply.": "You’ve reached today’s free conversation limit. To keep talking, paste your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development, then choose Apply.",
     "all characters you have talked to": "all characters you have talked to",
     "the game folder": "the game folder",
     "the runtime folder of the mod project, or the data folder inside the mod folder": "the runtime folder of the mod project, or the data folder inside the mod folder",
@@ -1131,7 +1131,7 @@
       "Talk to ordinary NPCs",
       "Use my own Convai API key",
       "Voice playback",
-      "Want more conversations? The shared plan has a daily conversation limit, and there are two free ways to keep talking. Convai (recommended, better quality responses): get a free API key at convai.com, copy it, choose Paste Convai API key below, turn this on and choose Apply. A free Convai plan has a small monthly allowance, one connection at a time and only a few memory users, so companions open one at a time and Multilingual conversations and memory management are unavailable. Mistral (free; signup needs phone verification): get a free key at console.mistral.ai, copy it, choose Paste Mistral key, then set Conversation provider to Mistral and choose Apply. Memory stays on this computer. The change waits until no conversation is running.",
+      "Want more conversations? The shared plan has a daily conversation limit, and there are two free ways to keep talking. Convai key (recommended, better quality responses): get a free API key at convai.com, copy it, choose Paste Convai API key below, turn this on and choose Apply. A free Convai plan has a small monthly allowance, one connection at a time and only a few memory users, so companions open one at a time and Multilingual conversations and memory management are unavailable. Mistral key: free, but signing up needs phone verification. Get a key from Mistral, set Conversation provider to Mistral (free plan), choose Paste Mistral key and choose Apply; memory stays on this computer. Changes wait until no conversation is running.",
       "When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."
     ],
     "mcm.validation": [
@@ -1243,7 +1243,7 @@
       "Waiting for the conversation service.",
       "Waiting for your previous message to finish.",
       "Write a message...  /  Enter to send  /  Esc to stop typing",
-      "You’ve reached today’s free conversation limit. Add your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development to keep talking."
+      "You’ve reached today’s free conversation limit. To keep talking, paste your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development, then choose Apply."
     ],
     "phone.feedback": [
       "{name} is not in your group.",
@@ -1462,7 +1462,7 @@
       "Your own key",
       "Your own key, without memory",
       "Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.",
-      "You’ve reached today’s free conversation limit. Add your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development to keep talking.",
+      "You’ve reached today’s free conversation limit. To keep talking, paste your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development, then choose Apply.",
       "all characters you have talked to",
       "the game folder",
       "the runtime folder of the mod project, or the data folder inside the mod folder",
@@ -2568,7 +2568,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1860"
+        "mod/init.lua:1865"
       ]
     },
     "Convai voice": {
@@ -3636,8 +3636,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1879",
-        "mod/phone-chat-style.lua:45",
+        "mod/init.lua:1880",
+        "mod/phone-chat-style.lua:46",
         "mod/phone-chat.lua:10"
       ]
     },
@@ -3646,7 +3646,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1886"
+        "mod/init.lua:1887"
       ]
     },
     "Mistral key": {
@@ -3662,7 +3662,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1888"
+        "mod/init.lua:1889"
       ]
     },
     "Mistral: free limit reached for now": {
@@ -3695,8 +3695,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1881",
-        "mod/phone-chat-style.lua:46",
+        "mod/init.lua:1882",
+        "mod/phone-chat-style.lua:47",
         "mod/phone-chat.lua:11"
       ]
     },
@@ -5180,8 +5180,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1883",
-        "mod/phone-chat-style.lua:47",
+        "mod/init.lua:1884",
+        "mod/phone-chat-style.lua:48",
         "mod/phone-chat.lua:12"
       ]
     },
@@ -5322,7 +5322,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1856"
+        "mod/init.lua:1861"
       ]
     },
     "The conversation service could not start. Restart the game, or see Help in Settings.": {
@@ -6205,7 +6205,7 @@
         "mod/companion-chauffeur.lua:310"
       ]
     },
-    "Want more conversations? The shared plan has a daily conversation limit, and there are two free ways to keep talking. Convai (recommended, better quality responses): get a free API key at convai.com, copy it, choose Paste Convai API key below, turn this on and choose Apply. A free Convai plan has a small monthly allowance, one connection at a time and only a few memory users, so companions open one at a time and Multilingual conversations and memory management are unavailable. Mistral (free; signup needs phone verification): get a free key at console.mistral.ai, copy it, choose Paste Mistral key, then set Conversation provider to Mistral and choose Apply. Memory stays on this computer. The change waits until no conversation is running.": {
+    "Want more conversations? The shared plan has a daily conversation limit, and there are two free ways to keep talking. Convai key (recommended, better quality responses): get a free API key at convai.com, copy it, choose Paste Convai API key below, turn this on and choose Apply. A free Convai plan has a small monthly allowance, one connection at a time and only a few memory users, so companions open one at a time and Multilingual conversations and memory management are unavailable. Mistral key: free, but signing up needs phone verification. Get a key from Mistral, set Conversation provider to Mistral (free plan), choose Paste Mistral key and choose Apply; memory stays on this computer. Changes wait until no conversation is running.": {
       "contexts": [
         "mcm.setting"
       ],
@@ -6334,7 +6334,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1858"
+        "mod/init.lua:1863"
       ]
     },
     "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.": {
@@ -6342,7 +6342,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1862"
+        "mod/init.lua:1867"
       ]
     },
     "Your Convai plan has no room for conversation memory, so companions will not remember past talks.": {
@@ -6484,14 +6484,14 @@
         "mod/mcm.lua:597"
       ]
     },
-    "You’ve reached today’s free conversation limit. Add your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development to keep talking.": {
+    "You’ve reached today’s free conversation limit. To keep talking, paste your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development, then choose Apply.": {
       "contexts": [
         "phone.chat",
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1869",
-        "mod/phone-chat-style.lua:48",
+        "mod/init.lua:1856",
+        "mod/phone-chat-style.lua:45",
         "mod/phone-chat.lua:7"
       ]
     },

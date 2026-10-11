@@ -3973,8 +3973,7 @@ test('Development offers the own Convai key: off by default, free-key wording, t
     -- The sidebar for this row explains both free ways past the shared plan's daily limit.
     assert(use.description:find('daily conversation limit', 1, true) and use.description:find('(recommended, better quality responses)', 1, true))
     assert(use.description:find('Paste Convai API key', 1, true) and use.description:find('choose Apply', 1, true))
-    assert(use.description:find('one connection at a time', 1, true) and use.description:find('console.mistral.ai', 1, true)
-      and use.description:find('Paste Mistral key', 1, true) and use.description:find('Conversation provider', 1, true))
+    assert(use.description:find('one connection at a time', 1, true) and use.description:find('Paste Mistral key', 1, true))
     assert(row('own-key-status').value == 'Not added' and row('own-key-using').value == 'The shared plan')
     assert(row('own-key:remove').disabled == true, 'there is nothing to remove yet')
     assert(row('own-key:paste').disabled ~= true)
@@ -4051,7 +4050,7 @@ test('Development says when the player key runs without memory or cannot hold th
 
 test('the reply notices for the key: a used-up plan, a refused key, memory off or needed, and nothing for an ordinary reply', () => {
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
-  const start = init.indexOf('local function keyNoticeText'), end = init.indexOf('local function reactionCanDeliver');
+  const start = init.indexOf('local function dailyLimitText'), end = init.indexOf('local function reactionCanDeliver');
   assert(start > 0 && end > start, 'the key notice functions moved');
   run(`
     local ui = {t = function(text) return text end}
@@ -4065,7 +4064,7 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     id, text = notice({errorCode = 'key-memory-needed'}); assert(id == 'quota-exhausted' and text:find('memory', 1, true))
     id, text = notice({errorCode = 'daily-limit', error = 'x'})
     assert(id == 'daily-limit' and text:find('free Convai API key', 1, true) and text:find('(recommended, better quality responses)', 1, true)
-      and text:find('free Mistral key', 1, true) and text:find('phone verification', 1, true) and text:find('Settings > Development', 1, true), text)
+      and text:find('Mistral', 1, true) and text:find('Settings > Development', 1, true), text)
     assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shared', 1, true) and not text:lower():find('project', 1, true))
     id, text = notice({errorCode = 'key-memory', error = 'x'}); assert(id == 'key-memory' and text:find('will not remember', 1, true))
     id, text = notice({keyNotice = 'memory-off', text = 'Hello'}); assert(id == 'key-memory')

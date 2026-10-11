@@ -1851,6 +1851,11 @@ end
 -- The bridge adds errorCode to a failed reply when Convai refused it for the plan or the key (bridge/convai-quota.mjs), and
 -- keyNotice to the first reply that ran without long-term memory on a limited plan (bridge/convai-key.mjs). The text says
 -- what to do; it never names where the shared key comes from.
+-- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). Phone Chat words the same line (phone-chat.lua).
+local function dailyLimitText()
+    return ui.t('You’ve reached today’s free conversation limit. To keep talking, paste your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development, then choose Apply.')
+end
+
 local function keyNoticeText(code)
     if code == 'quota-shared' then
         return ui.t('The conversation limit has been reached. Get a free API key at convai.com, then add it in Settings > Development.')
@@ -1864,16 +1869,12 @@ local function keyNoticeText(code)
     return nil
 end
 
--- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). Phone Chat words the same line (phone-chat.lua).
-local function dailyLimitText()
-    return ui.t('You’ve reached today’s free conversation limit. Add your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development to keep talking.')
-end
-
 -- id and text of the notice a reply calls for, or nil for an ordinary reply.
 local function keyReplyNotice(reply)
     if reply.errorCode == 'key-memory' or reply.keyNotice == 'memory-off' then
         return 'key-memory', ui.t('Your Convai plan has no room for conversation memory, so companions will not remember past talks.')
     end
+    if reply.errorCode == 'daily-limit' then return 'daily-limit', dailyLimitText() end
     -- Mistral: three failures the bridge names, and two one-time notices on the first reply.
     if reply.errorCode == 'mistral-key' then
         return 'mistral-key', ui.t('Mistral did not accept your key. Check it in Settings > Development.')
@@ -1887,7 +1888,6 @@ local function keyReplyNotice(reply)
     elseif reply.keyNotice == 'mistral-voice' then
         return 'mistral-voice', ui.t('Mistral replies are spoken by a local voice instead of the Convai cloud voice.')
     end
-    if reply.errorCode == 'daily-limit' then return 'daily-limit', dailyLimitText() end
     local text = keyNoticeText(reply.errorCode)
     if text then return 'quota-exhausted', text end
     return nil
