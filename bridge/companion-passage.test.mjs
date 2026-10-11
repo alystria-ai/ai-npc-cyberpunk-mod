@@ -769,3 +769,31 @@ test('a leg into the car that every body size refuses still ends in the placemen
   assert(boarding and boarding.swept=='blocked','the refusal was not logged'..dump())
   assert(boarding.blocked and boarding.blocked.by,'what blocked the leg was not logged')
 `));
+
+// Live 2026-10-11 (Bob Sagan): "he teleports in instead of walking", while the
+// log said lift-boarded how=walked with no relocation. The boarded line now
+// carries the time and distance of the walk, and an engine warp during a
+// walk is logged as lift-walk-jump.
+test('a boarding walk reports its time and distance, and a warp during the walk is logged',()=>run(world+car+`
+  npc.pos=Vector4.new(-1,3,0)
+  enterCar(); play(14)
+  local boarded=logged('lift-boarded')
+  assert(boarded and boarded.fields.secs and boarded.fields.metres and boarded.fields.metres>2,'no walk time/distance'..dump())
+  assert(not logged('lift-walk-jump'),'a normal walk was reported as a warp')
+`));
+
+test('an engine warp during the boarding walk is logged as lift-walk-jump',()=>run(world+car+`
+  walls[#walls+1]={-8,-1,8,-1}
+  local plain=npc.ai.onSend
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AIMoveToCommand' then
+      -- The engine "walks" her there in one step.
+      local t=cmd.movementTarget.position
+      npc.pos=Vector4.new(t.x,t.y,npc.pos.z)
+    end
+    return plain(cmd)
+  end
+  npc.pos=Vector4.new(-5,-6,0)
+  enterCar(); play(14)
+  assert(logged('lift-walk-jump'),'a warp was not noticed'..dump())
+`));

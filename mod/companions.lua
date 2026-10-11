@@ -1515,9 +1515,14 @@ local function walkLeg(entry,walk,from)
             if gait=='Sprint' and (walk.navigate or walk.next) then gait='Run' end
         end
     end
+    local startX,startY=from.x,from.y
     local sent=actuator.board(entry.motor,walk.target,{navigate=walk.navigate,gait=gait})
     if sent then
         stopPace(entry)
+        -- Start of the whole walk (door leg and leg in count as one): the
+        -- boarded line reports how long it took and how far she went.
+        walk.t0,walk.from=walk.t0 or runtimeClock,walk.from or space.copy(from)
+        walk.lastAt,walk.lastX,walk.lastY=runtimeClock,startX,startY
         walk.deadline=runtimeClock+gap/separation.carWalkSpeed+3
         walk.best,walk.bestAt=gap,runtimeClock
     end
@@ -1582,6 +1587,17 @@ local function liftPassage(entry,player,v,rise,flat)
     local inside=s.inCar
     local walk=entry.carWalk
     if walk then
+        -- A copy that moves faster than any gait (a sprint is 5.4 m/s) between
+        -- two updates was warped by the engine, not walked: say so.
+        local at=entry.position
+        if walk.lastAt and walk.lastX then
+            local dt=runtimeClock-walk.lastAt
+            local moved=math.sqrt((at.x-walk.lastX)^2+(at.y-walk.lastY)^2)
+            if moved>7*dt+.75 then
+                note(entry,'lift-walk-jump',{metres=rounded(moved),secs=rounded(dt),purpose=walk.purpose})
+            end
+        end
+        walk.lastAt,walk.lastX,walk.lastY=runtimeClock,at.x,at.y
         local gap=space.ground(entry.position,walk.target)
         local level=math.abs(entry.position.z-walk.target.z)<.6
         local reached=gap<(walk.exact and .3 or walk.navigate and .8 or .55) and level
@@ -1599,7 +1615,8 @@ local function liftPassage(entry,player,v,rise,flat)
             if deferred then return true end
             if not clear then walk.blocked=blockedBy(rejection) end
             if clear then
-                local leg={purpose='board',target=walk.next,visit=walk.visit,final=true,gait=walk.gait}
+                local leg={purpose='board',target=walk.next,visit=walk.visit,final=true,gait=walk.gait,
+                    t0=walk.t0,from=walk.from,blocked=walk.blocked}
                 local sent=walkLeg(entry,leg,entry.position)
                 if sent==nil then return true end
                 if sent then entry.carWalk=leg; return true end
@@ -1608,7 +1625,9 @@ local function liftPassage(entry,player,v,rise,flat)
         end
         if reached then
             entry.carWalk=nil
-            note(entry,walk.purpose=='board' and 'lift-boarded' or 'lift-exited',{how='walked'})
+            note(entry,walk.purpose=='board' and 'lift-boarded' or 'lift-exited',{how='walked',
+                secs=walk.t0 and rounded(runtimeClock-walk.t0) or nil,
+                metres=walk.from and rounded(space.ground(walk.from,entry.position)) or nil})
             if walk.purpose~='board' then entry.carExit=nil; return false end
             entry.carVisit=walk.visit
         elseif not stuck and valid then
