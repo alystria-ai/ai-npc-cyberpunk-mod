@@ -412,7 +412,7 @@ local function spawnCopy(key, invitation, returning)
     local spawnPosition, placementError, deferred = placement.find(player, preferred,occupiedPositions(),body)
     if deferred then return nil,nil,true end
     if not spawnPosition then return nil, placementError end
-    local spawnRecord, recordError, spawnRecordName, spawnAppearance = spawnRecords.resolve(recordID)
+    local spawnRecord, recordError, spawnRecordName, spawnAppearance, spawnFallback = spawnRecords.resolve(recordID)
     if not spawnRecord then return nil, recordError end
     local spec = NewObject('DynamicEntitySpec')
     spec.recordID = spawnRecord
@@ -438,6 +438,12 @@ local function spawnCopy(key, invitation, returning)
     -- an ambient or quest actor's graph based only on their character record.
     spec.tags = {CName.new('CyberpunkConvaiCompanion')}
     local created, entityID = pcall(function() return system:CreateEntity(spec) end)
+    if (not created or not entityID or tostring(entityID.hash):match('^0+[uUlL]*$')) and spawnFallback then
+        -- The private armed clone could not be spawned: use the record the character had before.
+        if spawnRecords.log then pcall(spawnRecords.log, 'Companion spawn record: the armed clone could not be created; using the original record') end
+        spec.recordID = spawnFallback
+        created, entityID = pcall(function() return system:CreateEntity(spec) end)
+    end
     if not created or not entityID or tostring(entityID.hash):match('^0+[uUlL]*$') then
         return nil, 'The game could not create a copy of this model.'
     end

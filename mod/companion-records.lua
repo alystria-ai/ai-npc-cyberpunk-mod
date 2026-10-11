@@ -57,6 +57,19 @@ end
 -- already has a combat ability, or one that cannot be read, is left alone, and a
 -- clone that fails leaves the original record in use (the copy may then flee,
 -- but it still spawns). nil = no adaptation; otherwise the clone's id and name.
+-- One probe.log line per spawn record decision (rare; never per frame). M.log may be replaced.
+M.log = function(line)
+    local file = io.open('runtime/probe.log', 'a')
+    if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', line, '\n'); file:close() end
+end
+local function note(line) if M.log then pcall(M.log, line) end end
+-- Switch off without a code change: create runtime/armed-clones-off (read at each spawn).
+local function armedDisabled()
+    if M.armedClones == false then return true end
+    local ok, file = pcall(io.open, 'runtime/armed-clones-off', 'rb')
+    if ok and file then file:close(); return true end
+    return false
+end
 local combatDonor = 'Character.Judy'
 local combatAbilities = {'Ability.CanShootWhileMoving', 'Ability.CanCloseCombat', 'Ability.HasChargeJump'}
 local armedCopies = {}
@@ -82,7 +95,12 @@ local function armed(source)
     local key = tostring(source)
     local cached = armedCopies[key]
     if cached ~= nil then return cached and cached.id, cached and cached.name end
-    if combatCapable(source) ~= false then armedCopies[key] = false; return nil end
+    local capable = combatCapable(source)
+    if capable ~= false then
+        armedCopies[key] = false
+        note('Companion spawn record: original (' .. (capable == true and 'already combat-capable' or 'abilities unreadable') .. ')')
+        return nil
+    end
     local made, result = pcall(function()
         local changes = {}
         for _, field in ipairs({'abilities', 'archetypeData', 'primaryEquipment', 'secondaryEquipment'}) do
@@ -118,7 +136,12 @@ local function armed(source)
         end
         return name
     end)
-    if not made then armedCopies[key] = false; return nil end
+    if not made then
+        armedCopies[key] = false
+        note('Companion spawn record: armed clone failed (' .. tostring(result):sub(1, 160) .. '); using the original record')
+        return nil
+    end
+    note('Companion spawn record: ' .. result .. ' (armed clone)')
     armedCopies[key] = {id = TweakDBID.new(result), name = result}
     return armedCopies[key].id, result
 end
@@ -128,8 +151,13 @@ function M.resolve(source)
     if source ~= TweakDBID.new(johnnySource) then
         local copy, name = nonCrowd(source)
         if copy == false then return nil, 'This character cannot be copied as a companion.' end
+        if armedDisabled() then
+            if copy then return copy, nil, name end
+            return source
+        end
+        -- The fifth value is the record to fall back to if the entity cannot be created from the clone.
         local armedId, armedName = armed(copy or source)
-        if armedId then return armedId, nil, armedName end
+        if armedId then return armedId, nil, armedName, nil, copy or source end
         if copy then return copy, nil, name end
         return source
     end

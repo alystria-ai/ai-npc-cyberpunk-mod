@@ -22,6 +22,14 @@ const fixture=`
     ['Character.Panam']={abilities={'Ability.CanCrouch','Ability.CanCloseCombat'},entityTemplatePath='panam.ent'},
     ranged={},malorianPool={},secondary={},chaoPool={}
   }
+  probeLines,armedOff={},false
+  io.open=function(path)
+    if path=='runtime/probe.log' then
+      return {write=function(_,...) probeLines[#probeLines+1]=table.concat({...}) end,close=function() end}
+    end
+    if path=='runtime/armed-clones-off' and armedOff then return {close=function() end} end
+    return nil
+  end
   TDBID={ToStringDEBUG=function(id) return id end}
   TweakDBInterface={GetGameplayAbilityRecord=function(id) return {name=id} end}
   local clones,writes=0,0
@@ -228,5 +236,29 @@ test('records that already fight, or cannot be read, are never cloned; a failed 
   companions.registerDefinition('alex-two',{id='Character.alex',name='Alex',profileKey='alex'})
   local apply=TweakDB.SetFlats; TweakDB.SetFlats=function() return false end
   assert(spawn('alex-two').spec.recordID=='Character.alex','a failed write falls back to the original record')
+  TweakDB.SetFlats=apply
+`));
+
+test('every spawn logs which record it used; a clone that cannot be created falls back to the original record',()=>run(`
+  local function has(text) for _,l in ipairs(probeLines) do if l:find(text,1,true) then return true end end return false end
+  spawn('judy-alvarez'); assert(has('Companion spawn record: original (already combat-capable)'),'capable original logged')
+  local alex=spawn('alex'); assert(has('Companion spawn record: CyberpunkConvai.Armed_'),'clone logged')
+  local sys=Game.GetDynamicEntitySystem(); local create=sys.CreateEntity
+  function sys:CreateEntity(spec) if tostring(spec.recordID):find('Armed_',1,true) then error('invalid record') end return create(self,spec) end
+  companions.registerDefinition('alex-three',{id='Character.alex',name='Alex',profileKey='alex'})
+  local third=spawn('alex-three')
+  assert(third.spec.recordID=='Character.alex','creation failure fell back to the original record')
+  assert(has('the armed clone could not be created; using the original record'))
+`));
+
+test('a failed clone is logged with its reason, and runtime/armed-clones-off disables the clone without a code change',()=>run(`
+  local function has(text) for _,l in ipairs(probeLines) do if l:find(text,1,true) then return true end end return false end
+  armedOff=true
+  assert(spawn('alex').spec.recordID=='Character.alex' and clones==0 and writes==0,'switched off: no clone is attempted')
+  assert(not has('armed clone'))
+  armedOff=false
+  local apply=TweakDB.SetFlats; TweakDB.SetFlats=function() return false end
+  companions.registerDefinition('alex-two',{id='Character.alex',name='Alex',profileKey='alex'})
+  assert(spawn('alex-two').spec.recordID=='Character.alex'); assert(has('armed clone failed'),'failure logged'); assert(has('using the original record'))
   TweakDB.SetFlats=apply
 `));
