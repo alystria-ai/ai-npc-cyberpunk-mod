@@ -15,7 +15,7 @@ M.preferred = {
     ['rogue-amendiares'] = {record='Vehicle.v_sport2_quadra_type66_player',
         appearance='quadra_type66__basic_rogue_01', name="Rogue's Type-66"},
 }
--- AMM's Mackinaw seat exception is enforced by the native adapter for both
+-- The Mackinaw seat exception is enforced by the native adapter for both
 -- appearances. River's quest-template truck is not a generic car fallback.
 local modelKeys={['Character.Panam']='panam-palmer',['Character.Claire']='claire-russell',
     ['Character.Judy']='judy-alvarez',['Character.Kerry']='kerry-eurodyne',

@@ -59,7 +59,7 @@ function M.inspect(vehicle)
     local records=set and set:VehSeats() or {}
     local seats={}
     local ai=entity:GetAIComponent()
-    -- AMM GetVehicleSeats explicitly restricts this shared record to three
+    -- This shared record has only three usable
     -- slots. Panam and Claire appearances use the same vehicle record.
     local mackinaw=entity:GetRecordID()==TweakDBID.new('Vehicle.v_standard3_thorton_mackinaw_ncu_player')
     for _,seatRecord in ipairs(records) do

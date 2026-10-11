@@ -121,8 +121,7 @@ movement controller already releases its own commands/gaze when the actor
 enters combat. This change does not introduce attack targets, automatic fights,
 new movement rules, invulnerability, or changes to quest Johnny.
 
-The capability fields also agree with the weaponization path in
-[AMM's spawn module](https://github.com/MaximiliumM/appearancemenumod/blob/main/Release/bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceMenuMod/Modules/spawn.lua).
+The capability fields also agree with the game's own weaponization path.
 The implementation here uses a private clone rather than modifying the selected
 game record in place.
 

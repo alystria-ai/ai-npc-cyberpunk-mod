@@ -97,13 +97,13 @@ The reflected command layouts were checked against RED4ext SDK commit
 | Seat records | [VehicleComponent](https://github.com/CDPR-Modding-Documentation/Cyberpunk-Scripts/blob/fce9ab7e6a608b0d729290d898003589515900e1/scripts/core/components/scriptComponents/vehicleComponent.script), `GetSeats`: `GetRecord().VehDataPackage().VehSeatSet().VehSeats(out seats)`; each `VehicleSeat_Record.SeatName()` supplies the slot |
 | Physical slots and occupants | [VehicleObject](https://github.com/CDPR-Modding-Documentation/Cyberpunk-Scripts/blob/fce9ab7e6a608b0d729290d898003589515900e1/scripts/core/gameplay/vehicles.script): `HasOccupantSlot(CName)`; `VehicleComponent.IsSlotOccupied` uses `GetMountingInfoSingleWithIds(emptyChildID, vehicleID, MountingSlotId)` and `childId`; native `GetFirstAvailableSlot` also tests `vehicle.GetAIComponent().IsSeatReserved(slotName)` |
 | Actual mounting | `GetMountingInfoSingleWithObjects(npc)` returns `MountingInfo.parentId` and `slotId.id`; [reflected MountingInfo](https://github.com/WopsS/RED4ext.SDK/blob/ad7277714ad30d6885d7050c5ba24fa0102f6920/include/RED4ext/Scripting/Natives/Generated/game/mounting/MountingInfo.hpp) confirms the fields |
-| Mount and unmount | [AMM `AssignSeats`](https://github.com/MaximiliumM/appearancemenumod/blob/54272353d7e4a5c85ab32248eff3c2d8d2541cd7/Release/bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceMenuMod/Modules/scan.lua), lines 708-734: `AIMountCommand`/`AIUnmountCommand`, `MountEventData`, `Copy()`, NPC AI `SendCommand`; [MountEventData reflection](https://github.com/WopsS/RED4ext.SDK/blob/ad7277714ad30d6885d7050c5ba24fa0102f6920/include/RED4ext/Scripting/Natives/Generated/game/MountEventData.hpp) includes `allowFailsafeTeleport` |
-| Follow | [AIVehicleFollowCommand reflection](https://github.com/WopsS/RED4ext.SDK/blob/ad7277714ad30d6885d7050c5ba24fa0102f6920/include/RED4ext/Scripting/Natives/Generated/AI/VehicleFollowCommand.hpp), base `VehicleCommand`, and AMM `SetDriverVehicleToFollow`: target, spacing, stop flag, traffic options, `needDriver`, `useKinematic`; native `VehicleObject.GetAIComponent()` gives the command owner |
+| Mount and unmount | `AIMountCommand`/`AIUnmountCommand`, `MountEventData`, `Copy()`, NPC AI `SendCommand`; [MountEventData reflection](https://github.com/WopsS/RED4ext.SDK/blob/ad7277714ad30d6885d7050c5ba24fa0102f6920/include/RED4ext/Scripting/Natives/Generated/game/MountEventData.hpp) includes `allowFailsafeTeleport` |
+| Follow | [AIVehicleFollowCommand reflection](https://github.com/WopsS/RED4ext.SDK/blob/ad7277714ad30d6885d7050c5ba24fa0102f6920/include/RED4ext/Scripting/Natives/Generated/AI/VehicleFollowCommand.hpp), base `VehicleCommand`: target, spacing, stop flag, traffic options, `needDriver`, `useKinematic`; native `VehicleObject.GetAIComponent()` gives the command owner |
 | Cancel | [AIComponent](https://github.com/CDPR-Modding-Documentation/Cyberpunk-Scripts/blob/fce9ab7e6a608b0d729290d898003589515900e1/scripts/core/components/aiComponent.script): `GetCommandState`, `StopExecutingCommand(cmd, success)`, `CancelCommand(cmd)`; [aiVehicle](https://github.com/CDPR-Modding-Documentation/Cyberpunk-Scripts/blob/fce9ab7e6a608b0d729290d898003589515900e1/scripts/cyberpunk/ai/Tasks/aiVehicle.script) cancels the vehicle's exact command in `InterruptVehicleCommand` |
 | Stop before exit | `VehicleObject.ForceBrakesUntilStoppedOrFor(Float)`; native `WaitBeforeExiting` checks speed below 0.5 |
 | Nonpersistent copies | [Codeware DynamicEntitySpec](https://github.com/psiberx/cp2077-codeware/blob/main/scripts/World/DynamicEntitySpec.reds): `recordID`, optional `appearanceName`, position/orientation, `persistState=false`, `persistSpawn=false`, tags; [DynamicEntitySystem](https://github.com/psiberx/cp2077-codeware/blob/main/scripts/World/DynamicEntitySystem.reds): CreateEntity, IsManaged, IsTagged, DeleteEntity |
-| Ground and clearance | AMM `init.lua` uses CET's `SyncRaycastByCollisionGroup(start,end,group,false/true,false/true)` with the Boolean plus `TraceResult` return; native NPC `IsInVehicle` recovery code uses `SpatialQueriesSystem.Overlap(extents,position,EulerAngles,group,out trace)` |
-| Fast travel intent and completion | [FastTravelSystem](https://github.com/CDPR-Modding-Documentation/Cyberpunk-Scripts/blob/fce9ab7e6a608b0d729290d898003589515900e1/scripts/core/systems/fastTravelSystem.script): `OnPerformFastTravelRequest` calls `PerformFastTravel`, which requires a registered point and a destination different from the `FastTRavelSystem.StartingPoint` blackboard value before `TeleportToNode`; `OnLoadingScreenFinished(value)` completes only for `true`. AMM also observes this completion; [CET Kit GameUI](https://github.com/psiberx/cp2077-cet-kit/blob/main/GameUI.lua) observes the request and completion methods |
+| Ground and clearance | CET's `SyncRaycastByCollisionGroup(start,end,group,false/true,false/true)` (Boolean plus `TraceResult` return); native NPC `IsInVehicle` recovery code uses `SpatialQueriesSystem.Overlap(extents,position,EulerAngles,group,out trace)` |
+| Fast travel intent and completion | [FastTravelSystem](https://github.com/CDPR-Modding-Documentation/Cyberpunk-Scripts/blob/fce9ab7e6a608b0d729290d898003589515900e1/scripts/core/systems/fastTravelSystem.script): `OnPerformFastTravelRequest` calls `PerformFastTravel`, which requires a registered point and a destination different from the `FastTRavelSystem.StartingPoint` blackboard value before `TeleportToNode`; `OnLoadingScreenFinished(value)` completes only for `true`. [CET Kit GameUI](https://github.com/psiberx/cp2077-cet-kit/blob/main/GameUI.lua) observes the request and completion methods |
 | Fresh command reacquisition | `AIComponent.GetEnqueuedOrExecutingCommand(CName, Bool)` and `IsCommandActive(Uint32)` in the same native AI source allow a fresh component handle to be matched against an exact saved command ID. A different command ID is never cancelled |
 | Confirmed deletion | [Codeware DynamicEntitySystem.cpp](https://github.com/psiberx/cp2077-codeware/blob/main/src/App/World/DynamicEntitySystem.cpp), `DeleteEntity`: marks the state deleted and starts despawning before returning true. Companion removal waits for `IsManaged(id)==false`; its original fleet receipt remains owned while despawn is pending |
 
@@ -120,9 +120,7 @@ native driving behavior.
 
 ## Car model evidence
 
-These pairs are explicit rows in the AMM source database at commit
-`54272353d7e4a5c85ab32248eff3c2d8d2541cd7`,
-[db.sqlite3](https://github.com/MaximiliumM/appearancemenumod/blob/54272353d7e4a5c85ab32248eff3c2d8d2541cd7/Release/bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceMenuMod/db.sqlite3).
+These pairs come from a community vehicle database.
 Its downloaded SHA-256 is
 `DBA28847A86378415998CD208947635AB956102C1EB5BF1980BF8C4044DF8FC8`.
 The names, records, and appearance parameters came from those rows; the
@@ -144,9 +142,9 @@ carpools when an earlier car has room. Record existence/type, mounted slots and
 native vehicle AI are checked at runtime. The `_player` suffix does not add
 these dynamic copies to V's garage.
 
-AMM's `GetVehicleSeats` explicitly limits the Mackinaw record identified by
-`0x04201D05, 47` to front-left, front-right and back-left. Its database maps both
-Panam and Claire appearances to this same record. The adapter therefore
+The Mackinaw record identified by
+`0x04201D05, 47` is limited to front-left, front-right and back-left. Panam's and
+Claire's appearances both map to this same record. The adapter therefore
 excludes back-right even if the generic record claims it, and also requires
 `HasOccupantSlot` for every allowed slot. Native boarding animation for all
 these appearance/seat combinations remains a live acceptance item.

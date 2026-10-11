@@ -337,7 +337,7 @@ local function finish(s, reason, forceDelete)
     s.suspended = false
     -- Hypothesis under test: deleting the device right after the exit may leave
     -- the AI waiting on a workspot owner that no longer exists. keepdevice=on
-    -- (default) keeps it, like AMM, until clear/release/the next start.
+    -- (default) keeps it until clear/release/the next start.
     if forceDelete or not s.keepDevice then deleteDevice(s) end
     log('finished', {serial = s.serial, reason = reason, phase = s.phase,
         exitLatency = s.exitRequestedAt and (now() - s.exitRequestedAt) or nil,
