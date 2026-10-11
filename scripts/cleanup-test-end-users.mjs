@@ -4,6 +4,7 @@
 //   node scripts/cleanup-test-end-users.mjs --count-memories      also sample memory counts (bounded, throttled)
 //   node scripts/cleanup-test-end-users.mjs --apply --limit 1     delete ONE end user, verify, show the usage counter
 //   node scripts/cleanup-test-end-users.mjs --apply               delete every confident test end user
+//   (a full run is paced by the account's delete limit, about 10 deletes a minute; it prints progress and an ETA every 25)
 //
 // Endpoints used (all JSON POST to https://api.convai.com, header CONVAI-API-KEY):
 //   /user/user-api-usage     usage counters incl. ltm_end_users            (read-only)
@@ -49,20 +50,65 @@ protectedIds.delete(undefined);
 if (!registry.endUserId) { console.log('no real endUserId in runtime/player-memory.json; refusing'); process.exit(1); }
 const realId = registry.endUserId;
 
-// ---- throttled, retrying POST (the API rate-limits per minute with HTTP 429) ----
+// ---- throttled, retrying POST ----
+// Measured 2026-10-11: the API answers HTTP 429 ("request limit per minute") with no Retry-After header, and the limit is per
+// endpoint. Only /user/end-users/delete is tight: a FIXED WINDOW of 10 deletes per ~60 s (the window opens at the first
+// accepted delete; refused calls do not extend it, and get/list/usage keep working while delete is refused). So deletion is
+// paced by that window (see deleteEndUser), not by a gap; every other call just keeps a small gap. A 429 never aborts the run:
+// it waits (Retry-After if the server ever sends it, else the rest of our window, else exponential backoff) and retries.
 let lastCall = 0;
-async function post(path, body) {
-  for (let attempt = 0; attempt < 8; attempt++) {
-    const wait = lastCall + 700 - Date.now(); if (wait > 0) await sleep(wait);
+const DELETE_WINDOW_MS = numArg('--window-ms', 60000);
+let deletesPerWindow = numArg('--per-window', 10);
+let limitedCount = 0;
+async function rawPost(path, body, gap = 700) {
+  for (let transport = 0; ; transport++) {
+    const wait = lastCall + gap - Date.now(); if (wait > 0) await sleep(wait);
     lastCall = Date.now();
-    const response = await fetch(API + path, {method: 'POST', headers: {'CONVAI-API-KEY': key, 'Content-Type': 'application/json'},
-      body: JSON.stringify(body), signal: AbortSignal.timeout(30000)});
-    if (response.status === 429) { await sleep(15000); continue; }
-    const text = await response.text();
+    let response, text;
+    try {
+      response = await fetch(API + path, {method: 'POST', headers: {'CONVAI-API-KEY': key, 'Content-Type': 'application/json'},
+        body: JSON.stringify(body), signal: AbortSignal.timeout(30000)});
+      text = await response.text();
+    } catch (cause) {
+      if (transport >= 8) throw Error(`transport failed on ${path}: ${cause.name}`);
+      await sleep(Math.min(30000, 1000 * 2 ** transport)); continue;
+    }
     let json; try { json = JSON.parse(text); } catch { /* not JSON */ }
-    return {status: response.status, json, text};
+    const header = response.headers.get('retry-after');
+    const retryAfterMs = header === null ? null : Number.isFinite(+header) ? +header * 1000 : Math.max(0, Date.parse(header) - Date.now()) || null;
+    return {status: response.status, json, text, retryAfterMs};
   }
-  throw Error(`rate limited too long on ${path}`);
+}
+async function post(path, body) {
+  for (let backoff = 2000; ; backoff = Math.min(backoff * 2, 60000)) {
+    const result = await rawPost(path, body);
+    if (result.status !== 429) return result;
+    limitedCount++; await sleep(result.retryAfterMs ?? backoff);
+  }
+}
+// Windowed delete: send up to deletesPerWindow, then sleep out the rest of the window instead of provoking 429s.
+const pacer = {start: 0, used: 0};
+async function deleteEndUser(id) {
+  let backoff = 2000;
+  for (;;) {
+    if (pacer.start && Date.now() - pacer.start >= DELETE_WINDOW_MS) { pacer.start = 0; pacer.used = 0; }
+    if (pacer.used >= deletesPerWindow) { await sleep(pacer.start + DELETE_WINDOW_MS + 250 - Date.now()); pacer.start = 0; pacer.used = 0; }
+    const sentAt = Date.now();
+    const result = await rawPost('/user/end-users/delete', {end_user_id: id}, 0);
+    if (result.status === 429) {
+      limitedCount++;
+      let wait;
+      if (result.retryAfterMs !== null) wait = result.retryAfterMs;
+      else if (pacer.start) {                        // our window is spent sooner than assumed: learn the real size, wait out the window
+        if (pacer.used > 0 && pacer.used < deletesPerWindow) { console.log(`window allowed only ${pacer.used} deletes; using that from now on`); deletesPerWindow = pacer.used; }
+        wait = Math.max(500, pacer.start + DELETE_WINDOW_MS + 250 - Date.now());
+      } else { wait = backoff; backoff = Math.min(backoff * 2, 8000); }    // window unknown: short exponential backoff (refused calls are free)
+      await sleep(wait); pacer.start = 0; pacer.used = 0; continue;
+    }
+    if (!pacer.start) pacer.start = sentAt;           // an accepted delete opens the window
+    pacer.used++;
+    return result;
+  }
 }
 const ltmUsage = async () => (await post('/user/user-api-usage', {})).json?.usage?.ltm_end_users;
 
@@ -204,28 +250,48 @@ if (!APPLY) {
 
 // ---- apply ----
 const targets = deletable.slice(0, LIMIT);
+const minutesFor = n => Math.ceil(n / deletesPerWindow * DELETE_WINDOW_MS / 60000);
 console.log(`\napplying: deleting ${targets.length} end-user records (each also removes that user's memories on every character)`);
-let deleted = 0, failed = 0, consecutiveFailures = 0;
+console.log(`pace: ${deletesPerWindow} deletes per ${DELETE_WINDOW_MS / 1000} s window, so about ${minutesFor(targets.length)} min (${(minutesFor(targets.length) / 60).toFixed(1)} h)`);
+let deleted = 0, alreadyGone = 0, failed = 0, consecutiveFailures = 0, refused = 0;
+const runStart = Date.now();
+const duration = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 3600)}h${String(Math.floor(s % 3600 / 60)).padStart(2, '0')}m`; };
+const progress = () => {
+  const done = deleted + alreadyGone, elapsed = Date.now() - runStart, remaining = targets.length - done - refused;
+  const perMinute = done / Math.max(elapsed / 60000, 1 / 60);
+  console.log(`[${new Date().toISOString().slice(11, 19)}] ${done}/${targets.length} done (${deleted} deleted, ${alreadyGone} already gone, ${failed} failed), `
+    + `${perMinute.toFixed(1)}/min, elapsed ${duration(elapsed)}, ETA ${perMinute > 0 ? duration(remaining / perMinute * 60000) : '?'}, 429s ${limitedCount}`);
+};
 for (const r of targets) {
   const id = r.end_user_id;
   // Hard guards, re-checked at the moment of deletion.
-  if (ALL ? (id === realId && !INCLUDE_PLAYER) : (protectedIds.has(id) || id === realId || classify(id, recorded).kind !== 'test')) { console.log(`REFUSED ${id.slice(0, 12)}... (protected or not a confident test id)`); continue; }
-  const result = await post('/user/end-users/delete', {end_user_id: id});
+  if (ALL ? (id === realId && !INCLUDE_PLAYER) : (protectedIds.has(id) || id === realId || classify(id, recorded).kind !== 'test')) { console.log(`REFUSED ${id.slice(0, 12)}... (protected or not a confident test id)`); refused++; continue; }
+  const result = await deleteEndUser(id);
   const ok = result.status === 200 && result.json?.deleted !== false;
   if (ok) {
-    const check = await post('/user/end-users/get', {end_user_id: id});
-    const gone = check.status === 404 || check.status === 400 || /not found/i.test(check.text);
     deleted++; consecutiveFailures = 0;
-    if (deleted <= 3 || deleted % 100 === 0) console.log(`deleted ${id.slice(0, 24)} HTTP ${result.status} response ${result.text.slice(0, 100)} | verified gone: ${gone}`);
-    if (deleted === 1 && !gone) { console.log('first delete did not verify as gone (maybe asynchronous); stopping so you can inspect'); break; }
+    if (deleted <= 3) {   // verify the first few with a (cheap, unmetered) get; the rest is checked by the final recount
+      const check = await post('/user/end-users/get', {end_user_id: id});
+      const gone = check.status === 404 || check.status === 400 || /not found/i.test(check.text);
+      console.log(`deleted ${id.slice(0, 24)} HTTP ${result.status} response ${result.text.slice(0, 100)} | verified gone: ${gone}`);
+      if (deleted === 1 && !gone) { console.log('first delete did not verify as gone (maybe asynchronous); stopping so you can inspect'); break; }
+    }
+  } else if (result.status === 404 && /not found|already deleted/i.test(result.text)) {
+    alreadyGone++; consecutiveFailures = 0;
   } else {
     failed++; consecutiveFailures++;
     console.log(`delete failed for ${id.slice(0, 24)}: HTTP ${result.status} ${result.text.slice(0, 160)}`);
     if (consecutiveFailures >= 3 || deleted === 0) { console.log('stopping after failures; the delete request shape may be wrong'); break; }
   }
+  if ((deleted + alreadyGone) % 25 === 0 && (deleted + alreadyGone) > 0) progress();
 }
+progress();
 const usageAfter = await ltmUsage();
-console.log(`\ndeleted ${deleted}, failed ${failed}`);
+const {total: totalAfter, users: usersAfter} = await listAll();
+const remainingTest = usersAfter.filter(u => classify(u.end_user_id, recorded).kind === 'test').length;
+console.log(`\ndeleted ${deleted}, already gone ${alreadyGone}, failed ${failed}, refused ${refused}`);
+console.log(`end-user records: before ${users.length}, after ${usersAfter.length} (server total_count ${totalAfter}); confident test ids still present: ${remainingTest}`);
+console.log(`real player id still present: ${usersAfter.some(u => u.end_user_id === realId) ? 'yes' : 'NO'}`);
 console.log(`LTM end users usage counter: before ${usageBefore?.usage}, after ${usageAfter?.usage} (limit ${usageAfter?.limit})`);
 console.log(usageAfter?.usage < usageBefore?.usage ? 'the counter dropped: deleting frees quota'
   : 'the counter did not drop (other activity may also move it; compare with a quiet account)');
