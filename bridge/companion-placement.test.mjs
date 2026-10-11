@@ -129,33 +129,49 @@ test('an engine shift into a prop within the old two metre tolerance is rejected
   assert(entities[1]==nil and companions.list()[1].state=='failed')
 `));
 
-test('a fresh copy standing 30 cm above the real floor (navmesh height) is lowered a moment after attach, and re-checked once',()=>run(`${companionEngine}
+test('a fresh copy is created on the floor when a ray finds it 30 cm under the navmesh point',()=>run(`${companionEngine}
+  local rays,navZ=0,nil
+  Game.GetSpatialQueriesSystem=function() return {Overlap=function() return false,{} end,
+    SyncRaycastByCollisionGroup=function(_,from,to,group)
+      rays=rays+1
+      assert(group=='Static' and from.z>to.z and from.x==to.x,'one Static ray straight down')
+      navZ=navZ or from.z-.6
+      return true,{position=Vector4.new(from.x,from.y,from.z-.6-.3,1)}
+    end} end
+  assert(companions.spawn('judy-alvarez'))
+  local npc=entities[1]
+  assert(navZ and math.abs(npc.spec.position.z-(navZ-.3))<1e-6,'created 30 cm below the navmesh point, on the floor: '..tostring(npc.spec.position.z))
+`));
+
+test('a copy the engine puts back on the navmesh is lowered by an owned AI teleport, held for it, and re-checked once',()=>run(`${companionEngine}
   assert(companions.spawn('judy-alvarez'))
   local npc=entities[1]
   local floor=npc.pos.z
   npc.pos=Vector4.new(npc.pos.x,npc.pos.y,floor+.3)
-  function npc:GetWorldOrientation() return {ToEulerAngles=function() return {roll=0,pitch=0,yaw=0} end} end
-  local rays,moves=0,{}
-  local undone=true
+  local rays,teleports,facility=0,{},0
   Game.GetSpatialQueriesSystem=function() return {Overlap=function() return false,{} end,
     SyncRaycastByCollisionGroup=function(_,from,to,group)
       rays=rays+1
       assert(group=='Static' and from.z>to.z and from.x==to.x,'one Static ray straight down')
       return true,{position=Vector4.new(from.x,from.y,floor,1)}
     end} end
-  Game.GetTeleportationFacility=function() return {Teleport=function(_,who,at,angles) moves[#moves+1]=at; who.pos=at; assert(angles.yaw==0,'keeps her facing') end} end
+  Game.GetTeleportationFacility=function() return {Teleport=function() facility=facility+1 end} end
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AITeleportCommand' then teleports[#teleports+1]=cmd.position; npc.pos=cmd.position; cmd.state='Success' end
+  end
   companions.update(player,.5)
   assert(companions.list()[1].state=='ready','still attached')
-  assert(#moves==0,'nothing inside attachFollower: the AI setup that follows would undo it')
+  assert(#teleports==0,'nothing inside attachFollower: the AI setup that follows would undo it')
   companions.update(player,.5)
-  assert(#moves==1 and math.abs(moves[1].z-floor)<1e-6,'lowered to the floor after attach: '..#moves)
+  assert(#teleports==1 and math.abs(teleports[1].z-floor)<1e-6,'lowered by an AI teleport after attach: '..#teleports)
+  assert(facility==0,'never a transform teleport: the AI undoes it')
   -- the engine puts her back on the navmesh once: a second lowering, then it stops
   npc.pos=Vector4.new(npc.pos.x,npc.pos.y,floor+.3)
-  companions.update(player,.5); companions.update(player,.5)
-  assert(#moves==2,'one re-check lowers her again: '..#moves)
+  companions.update(player,.5); companions.update(player,.5); companions.update(player,.5)
+  assert(#teleports==2,'one re-check lowers her again: '..#teleports)
   npc.pos=Vector4.new(npc.pos.x,npc.pos.y,floor+.3)
-  for i=1,6 do companions.update(player,.5) end
-  assert(#moves==2 and companions.list()[1].loweredBy~=nil,'at most two lowerings: '..#moves)
+  for i=1,8 do companions.update(player,.5) end
+  assert(#teleports==2 and companions.list()[1].loweredBy~=nil,'at most two lowerings: '..#teleports)
 `));
 
 test('a copy that holds on the floor after the first lowering is not touched again',()=>run(`${companionEngine}
@@ -163,17 +179,17 @@ test('a copy that holds on the floor after the first lowering is not touched aga
   local npc=entities[1]
   local floor=npc.pos.z
   npc.pos=Vector4.new(npc.pos.x,npc.pos.y,floor+.3)
-  function npc:GetWorldOrientation() return {ToEulerAngles=function() return {roll=0,pitch=0,yaw=0} end} end
   local rays,moves=0,0
   Game.GetSpatialQueriesSystem=function() return {Overlap=function() return false,{} end,
     SyncRaycastByCollisionGroup=function(_,from)
       rays=rays+1
       return true,{position=Vector4.new(from.x,from.y,floor,1)}
     end} end
-  Game.GetTeleportationFacility=function() return {Teleport=function(_,who,at) moves=moves+1; who.pos=at end} end
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AITeleportCommand' then moves=moves+1; npc.pos=cmd.position; cmd.state='Success' end
+  end
   for i=1,10 do companions.update(player,.5) end
   assert(moves==1,'one lowering: '..moves)
-  assert(rays==2,'one lowering ray and one confirming ray, then no more: '..rays)
 `));
 
 test('a fresh copy already on the floor, or with no floor found, is left where it is',()=>run(`${companionEngine}

@@ -266,20 +266,36 @@ end
 -- Live 2026-10-11 (Alt): a teleport made inside attachFollower is undone, because the AI role and `ai:OnAttach()` that
 -- follow it put the copy back on the navmesh; she stayed at 49.50 for six seconds, then settled by herself when she
 -- first turned. So the lowering runs a moment after attach (settleOnFloor), once the AI is set up.
-local function lowerToFloor(npc, actual)
+-- The Static floor 5-35 cm below a point, or nil. false when the frame's budget is spent. One ray.
+local function floorBelow(at)
     if not clearance.take(1) then return false end
-    local ok, drop = pcall(function()
+    local ok, floor = pcall(function()
         local hit, trace = Game.GetSpatialQueriesSystem():SyncRaycastByCollisionGroup(
-            Vector4.new(actual.x, actual.y, actual.z + .6, 1), Vector4.new(actual.x, actual.y, actual.z - .8, 1),
-            CName.new('Static'), false, false)
+            Vector4.new(at.x, at.y, at.z + .6, 1), Vector4.new(at.x, at.y, at.z - .8, 1), CName.new('Static'), false, false)
         if hit ~= true or not trace or not trace.position then return nil end
-        local drop = actual.z - trace.position.z
+        local drop = at.z - trace.position.z
         if drop < .05 or drop > .35 then return nil end
-        Game.GetTeleportationFacility():Teleport(npc, Vector4.new(actual.x, actual.y, trace.position.z, 1),
-            npc:GetWorldOrientation():ToEulerAngles())
-        return drop
+        return trace.position.z
     end)
-    return ok and drop or nil
+    if not ok then return nil end
+    return floor
+end
+
+local function lowerToFloor(entry, npc, actual)
+    local floor = floorBelow(actual)
+    if not floor then return floor end
+    local ok, sent = pcall(function()
+        -- An AI teleport command, not TeleportationFacility: a transform teleport on an AI-driven copy is undone by
+        -- its own locomotion (companion-actuator.lua, Oct 5 trace; live again 2026-10-11: Alex and Judy were put back
+        -- at 49.50 each time). nil: the previous command is still being cancelled, try again next tick.
+        local angles = Quaternion.ToEulerAngles(npc:GetWorldOrientation())
+        return actuator.teleport(entry.motor, Vector4.new(actual.x, actual.y, floor, 1), angles and angles.yaw or 0)
+    end)
+    if not ok then return nil end
+    if sent == nil then return false end
+    if not sent then return nil end
+    entry.floorTeleport = {z = floor, at = runtimeClock}
+    return actual.z - floor
 end
 
 -- After attach (AI role set, OnAttach done) bring a copy that hovers above the floor down onto it: first try 0.5 s after
@@ -290,7 +306,7 @@ local function settleOnFloor(entry)
     if not fix or runtimeClock < fix.at then return end
     local npc = entry.npc
     if not npc then entry.floorFix = nil; return end
-    local lowered = lowerToFloor(npc, npc:GetWorldPosition())
+    local lowered = lowerToFloor(entry, npc, npc:GetWorldPosition())
     if lowered == false then return end
     fix.tries = fix.tries + 1
     if lowered and fix.tries < floorSettle.tries then
@@ -405,7 +421,11 @@ local function spawnCopy(key, invitation, returning)
     if appearance and spawnRecordName and spawnAppearance then appearance=nil end
     if appearance then spec.appearanceName = CName.new(appearance)
     elseif spawnAppearance then spec.appearanceName = CName.new(spawnAppearance) end
-    spec.position = spawnPosition
+    -- The navmesh stands up to 30 cm above the real floor in some interiors; the AI undoes any later transform
+    -- teleport, so a fresh copy is created on the floor itself when one ray finds it just below the navmesh point.
+    local floorZ=floorBelow(spawnPosition)
+    if floorZ==false then return nil,nil,true end
+    spec.position = floorZ and Vector4.new(spawnPosition.x,spawnPosition.y,floorZ,1) or spawnPosition
     spec.orientation = adoption and adoption.orientation or player:GetWorldOrientation()
     spec.spawnInView = true
     spec.active = true
@@ -2092,6 +2112,12 @@ function M.update(player,delta,focusEntity)
             -- Seating owns its copy from the walk to the seat until she stands
             -- clear again (docs/COMPANION_SEATING.md): no recovery teleport then.
             local seated=M.bodyAnimation and M.bodyAnimation.owns and M.bodyAnimation.owns(entry)
+            -- The AI teleport that lowers a fresh copy onto the floor runs before any new decision retires it.
+            local lowering=entry.floorTeleport
+            if lowering then
+                if math.abs(entry.position.z-lowering.z)<.05 or runtimeClock-lowering.at>2 then entry.floorTeleport=nil
+                else return end
+            end
             if not tactic and not departing and not seated and recoverDistant(entry,player) then return end
             local id=tostring(entry.entityID.hash)
             local lane=travel.laneFrame(groupFrame,entry.lane)

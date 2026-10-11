@@ -13,9 +13,9 @@ M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourA
     nearStart = 4.0, nearKeep = 4.5, socialPhases = {settled = true, attend = true}, faceWithin = 35, deviceSettle = 1.5, deviceRetry = .4,
     wedgeAfter = 1.5, healthWindow = 10, recoveryHold = .9, recoveryLimit = 2, failureCooldown = 30, minimumSpeech = 5,
     -- Idle flavour (characters marked flavour in the catalog, and the generic fallback): she goes into an idle as
-    -- soon as she has been settled for a moment (a copy that never talked included), for a while, then again after a
-    -- short gap measured from the end of the last one; five seconds after a reply ends (flavourAfterTalk).
-    flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {10, 25}, flavourLength = {25, 50}}
+    -- soon as she has been settled for a moment (a copy that never talked included), for 45-90 s, then again after a
+    -- gap of 20-45 s measured from the end of the last one; five seconds after a reply ends (flavourAfterTalk).
+    flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {20, 45}, flavourLength = {45, 90}}
 
 local function distance(a, b)
     if not a or not b then return 0 end

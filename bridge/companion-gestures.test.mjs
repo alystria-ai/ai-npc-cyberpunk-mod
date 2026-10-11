@@ -174,16 +174,16 @@ test('unknown characters are left alone', () => run(`
   assert(count('play')==0)
 `));
 
-test('Johnny goes into an idle as soon as he is settled, again after a short gap, and talks from hands at sides', () => run(`
+test('Johnny goes into an idle as soon as he is settled, again after a gap, and talks from hands at sides', () => run(`
   entry.record='Character.Somebody';step(30)
   assert(count('play')==0,'an unknown character with no readable body type keeps its vanilla idle')
   entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
   step(3)
   local began=lastLog('flavour-begin')
   assert(began and idles()==1,'an idle right after settling, no timer')
-  step(51)
+  step(91)
   assert(lastLog('finished') and lastLog('finished').fields.reason=='flavour ended')
-  step(30)
+  step(46)
   assert(#(function() local n={};for _,l in ipairs(logs) do if l.kind=='flavour-begin' then n[#n+1]=l end end;return n end)()>=2,'repeats after a short gap')
   speaking={knownEnd=20,at=0};step(.3)
   step(1.5)
