@@ -168,6 +168,7 @@ function M.abandon()
     M.anchor, M.projectionReady, M.pendingProjection, M.rootVisibility = nil, nil, nil, nil
     M.revealAfterFrame = nil
     M.lingering, M.lineLost, M.restores, M.retiring = nil, nil, nil, nil
+    M.live = nil
 end
 
 local function headAnchor(actor)
@@ -199,6 +200,8 @@ function M.ownsUtterance()
     -- A reading hold after the audio has finished owns nothing: the next
     -- speaker, turn or reaction replaces it at once.
     if M.lingering then return false end
+    -- V's own live words are not a reply: they own no utterance.
+    if M.live then return false end
     return M.pages ~= nil or M.timed ~= nil or M.line ~= nil
 end
 
@@ -474,6 +477,29 @@ end
 function M.show(speaker, text, actor, expected)
     if prepare(speaker, text, actor, expected) then return showPage() end
     return false
+end
+-- V's own words while V speaks by voice, shown as one dialogue-HUD line that is replaced as the recognised words grow.
+-- Each update is the same page swap a paginated reply uses (the old line is hidden once the new one has rendered, so
+-- there is no empty frame); it runs only when new words arrive, never per frame. The next reply's caption (show or
+-- beginTimed) clears it, and with no update it expires on its own like any caption. Returns false when subtitles are
+-- off or the text is empty, so the caller can fall back to a notice.
+function M.showLive(speaker, text)
+    if type(text) ~= 'string' then return false end
+    text = clean(text)
+    if text == '' or not M.enabled() then return false end
+    if M.live and M.playerID and identity(Game.GetPlayer()) ~= M.playerID then M.clear() end
+    if not M.live then
+        if not prepare(speaker, text, nil, nil) then return false end
+        M.live = true
+    else
+        local pages, ranges = M.split(text, M.paginationStyle or 'dialogue')
+        if #pages == 0 then return false end
+        M.pages, M.pageRanges = pages, ranges
+    end
+    M.page = #M.pages
+    local shown = showPage()
+    if shown and M.remaining then M.remaining = math.max(M.remaining, 6) end
+    return shown
 end
 function M.beginTimed(speaker, text, duration, actor, expected, captions)
     if not finite(duration) or duration <= 0 or duration > 120 then return M.show(speaker, text, actor, expected) end

@@ -207,3 +207,27 @@ test('the heard words travel page, host, session, bridge file and game without a
   assert.match(source, /microphone-heard\.json/);
   assert.doesNotMatch(source, /onUpdate|GameSession|Cron/);
 });
+
+test('heard words go to V\'s subtitle line when the game shows them there, and to the notice line otherwise', () => check(`
+ local clock=10;mic.clock=function()return clock end
+ local spoken={};local subtitlesOn=true
+ mic.onHeard=function(text)if not subtitlesOn then return false end spoken[#spoken+1]=text;return true end
+ local context=input(false);assert(mic.begin(context));state('recording');mic.update(player)
+ local shown=#feedback
+ local function heard(text)files['runtime/microphone-heard.json']=json.encode({requestId='voice-1',text=text})end
+ heard('what do');mic.update(player)
+ assert(#spoken==1 and spoken[1]=='what do' and #feedback==shown,'subtitles replace the notice line')
+ subtitlesOn=false;clock=11;heard('what do you');mic.update(player)
+ assert(feedback[#feedback]=='You: what do you','subtitles off: the notice line')
+ mic.onHeard=function()error('subtitle failure')end
+ clock=12;heard('what do you think');mic.update(player)
+ assert(feedback[#feedback]=='You: what do you think','a failing subtitle call never loses the words')
+`));
+
+test('a stale voice client bundle is reported once with the fix, and the first heard words are logged', () => {
+  const host = readFileSync(new URL('./realtime-host.mjs', import.meta.url), 'utf8');
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(host, /window\.convaiRealtime\.heard \? window\.convaiRealtime\.heard\(\) : null/);
+  assert.match(host, /run npm run build:voice and restart the bridge/);
+  assert.match(bridge, /reading heard words for/); assert.match(bridge, /first heard words/);
+});

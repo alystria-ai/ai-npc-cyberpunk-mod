@@ -149,7 +149,13 @@ local function showHeard(player)
     if not ok or type(value) ~= 'table' or value.requestId ~= M.context.requestId
         or type(value.text) ~= 'string' or value.text == '' then return end
     M.heardAt = now
-    convaiNotices.send(player, 'mic-heard', ui.t('You: {text}', {text = value.text}))
+    -- V's line in the cinematic subtitles when they are on (the caller replaces it in place); the notice line otherwise.
+    local shown = false
+    if type(M.onHeard) == 'function' then
+        local called, result = pcall(M.onHeard, value.text)
+        shown = called and result == true
+    end
+    if not shown then convaiNotices.send(player, 'mic-heard', ui.t('You: {text}', {text = value.text})) end
 end
 
 function M.update(player)

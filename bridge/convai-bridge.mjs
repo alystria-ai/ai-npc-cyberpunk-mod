@@ -1054,11 +1054,14 @@ let micObserved = await readFile(micPath, 'utf8').catch(() => '');
 let micPolling = false;
 // What Convai has heard of V's recording so far, for the game to show while V talks (mod/microphone.lua reads it on its
 // own poll). Written only when the words change; the request id keeps a late file from another recording out.
-let heardSent = {id: '', text: ''};
+let heardSent = {id: '', text: ''}, heardPolled = '';
 async function publishHeard(recording) {
   const text = await mic.heard();
   if (mic.current !== recording || stopped) return;
+  // One line per recording shows where the live caption stops: the poll reached it, and when the first words came.
+  if (heardPolled !== recording.requestId) { heardPolled = recording.requestId; console.error('[CyberpunkConvai] Microphone: reading heard words for ' + recording.requestId.slice(-12)); }
   if (heardSent.id === recording.requestId ? heardSent.text === text : !text) return;
+  if (heardSent.id !== recording.requestId) console.error('[CyberpunkConvai] Microphone: first heard words ' + (Date.now() - recording.opened) + ' ms after the device opened (' + [...text].length + ' characters)');
   heardSent = {id: recording.requestId, text};
   await atomic(resolve(runtime, 'microphone-heard.json'), JSON.stringify({requestId: recording.requestId, text, updated: Date.now()}));
 }

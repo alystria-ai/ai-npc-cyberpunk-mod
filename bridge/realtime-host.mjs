@@ -408,7 +408,15 @@ export class RealtimeHost {
   async voiceHeard(owner = this) {
     const lease = this.voiceLease;
     if (!lease || lease.owner !== owner || lease.value.isClosed()) return '';
-    try { return await lease.value.evaluate(() => window.convaiRealtime.heard?.() ?? '') ?? ''; }
+    try {
+      const words = await lease.value.evaluate(() => window.convaiRealtime.heard ? window.convaiRealtime.heard() : null);
+      // null: this page runs a voice client bundle older than the source (npm run build:voice); say so once.
+      if (words === null && !this.heardBundleReported) {
+        this.heardBundleReported = true;
+        console.error('[CyberpunkConvai] Microphone: the voice client bundle has no live transcript yet; run npm run build:voice and restart the bridge');
+      }
+      return typeof words === 'string' ? words : '';
+    }
     catch { return ''; }
   }
   beginVoice(config, options = {}) { return this.observe(this.beginVoiceOnce(config, options), false); }

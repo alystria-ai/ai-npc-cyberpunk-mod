@@ -1130,7 +1130,15 @@ local function voiceTargetValid(npc, context)
     return (pos.x - origin.x)^2 + (pos.y - origin.y)^2 + (pos.z - origin.z)^2 <= 144
 end
 
+-- V's recognised words while speaking by voice: V's line in the cinematic subtitles, replaced in place as the words grow
+-- (event-driven from mod/microphone.lua's poll, nothing per frame). false makes the microphone use the notice line.
+microphone.onHeard = function(text)
+    if not subtitles.enabled() then return false end
+    return subtitles.showLive('V', text) == true
+end
+
 microphone.onCancelled = function(context, reason)
+    if subtitles.live then subtitles.clear() end
     gameplayActions.revoke(reason or 'microphone-cancelled', context.requestId)
     if pending and pending.requestId == context.requestId then pending, pendingKnowledgeOwner = nil, nil end
     local round = groupChat.round

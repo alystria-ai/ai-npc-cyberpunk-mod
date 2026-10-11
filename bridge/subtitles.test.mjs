@@ -1252,3 +1252,30 @@ local c=m.line;m.syncTimed(4.6);local d=m.line
 before=#hidden();m.clear()
 assert(#hidden()==before+2 and m.line==nil and not m.status().retiring)
 `));
+
+test('V\'s live words are one dialogue line swapped in place as they grow, owned by no reply, replaced by the next caption', () => run(setup + `
+ assert(m.showLive('V','what do'))
+ assert(m.status().mode=='dialogue' and m.status().fallback=='speaker-unavailable')
+ local first=shown()[1]
+ assert(first.speakerName=='V' and first.text=='what do' and first.speaker==nil and first.type==scnDialogLineType.OwnerlessRegular)
+ assert(not m.ownsUtterance(),'live words are not a reply')
+ assert(m.showLive('V','what do you think'))
+ local lines=shown()
+ assert(#lines==2 and lines[2].text=='what do you think' and lines[2].id~=lines[1].id)
+ assert(#hidden()==0,'the old line is hidden only after the new one rendered')
+ m.update(.3);assert(#hidden()==1 and hidden()[1]==lines[1].id,'the swap retires exactly the previous line')
+ assert(m.showLive('V','  what   do you think?  '))
+ assert(shown()[3].text=='what do you think?')
+ assert(not m.showLive('V','   ') and not m.showLive('V',nil) and not m.showLive('V',42))
+ enabled=false;assert(not m.showLive('V','subtitles are off'),'caller falls back to a notice');enabled=true
+ local count=#shown()
+ m.show('Judy','The reply takes over.',judy,'201ULL')
+ assert(#shown()==count+1 and shown()[count+1].speakerName=='Judy' and m.ownsUtterance(),'a reply caption replaces V and owns the utterance')
+ assert(m.showLive('V','a second voice message') and not m.ownsUtterance())
+ m.clear();assert(not m.live and not m.ownsUtterance())
+ for _=1,30 do m.update(1) end
+ assert(m.showLive('V','x'..string.rep('long ',60)))
+ local last=shown()[#shown()];assert(#last.text<=200 and last.text:find('long$'),'only the newest page of long speech shows')
+ for _=1,12 do m.update(1) end
+ assert(not m.live and not m.ownsUtterance(),'with no update the caption expires like any other')
+`));
