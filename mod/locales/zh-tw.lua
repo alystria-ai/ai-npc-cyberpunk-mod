@@ -598,7 +598,6 @@ return {
     ["The shared plan"] = "共用方案",
     ["Use my own Convai API key"] = "使用我自己的 Convai API 金鑰",
     ["Use your own free Convai API key instead of the shared plan. Get a free key at convai.com (it includes a small monthly allowance), copy it, choose Paste Convai API key below, then choose Apply. With your own key conversations open one at a time, companions are not pre-connected, and Multilingual conversations and memory management are unavailable. The change waits until no conversation is running."] = "改用你自己的免費 Convai API 金鑰，而不使用共用方案。請在 convai.com 免費取得金鑰（每月含少量額度），複製後在下方選擇「貼上 Convai API 金鑰」，再選擇「套用」。使用自己的金鑰時，對話將逐一進行，伙伴不會預先連線，多語言對話和記憶管理無法使用。更改會等到沒有對話進行時才生效。",
-    ["Which Convai plan pays for conversations right now. Changes wait until no conversation is running."] = "目前由哪個 Convai 方案支付對話費用。更改會等到沒有對話進行時才生效。",
     ["Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development."] = "你的 Convai API 金鑰已達到方案上限。請稍後再試，或在 設定 > 開發 中新增其他金鑰。",
     ["Your key was removed."] = "你的金鑰已移除。",
     ["Your key: not accepted"] = "你的金鑰：未被接受",

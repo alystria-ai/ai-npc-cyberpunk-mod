@@ -37,18 +37,18 @@ M.catalog = {
     ['reply-error'] = {class = PLAYER, repeatS = 15},
     ['key-memory'] = {class = PLAYER, repeatS = 86400},   -- a player's Convai plan has no room for conversation memory: companions go on without it
     ['quota-exhausted'] = {class = PLAYER, repeatS = 86400}, -- the plan is used up or the player's own key is refused: once per game session
-    -- OpenRouter as the text provider (docs/OPENROUTER.md): a turn V asked for fails (an automatic reaction just stops), and two one-time notices
-    ['openrouter-key'] = {class = PLAYER, repeatS = 60},       -- OpenRouter did not accept the saved key
-    ['openrouter-limit'] = {class = PLAYER, repeatS = 60},     -- OpenRouter's free rate or daily limit is reached
-    ['openrouter-model'] = {class = PLAYER, repeatS = 60},     -- the free OpenRouter model is unavailable
-    ['openrouter-no-key'] = {class = PLAYER, repeatS = 86400}, -- OpenRouter is chosen but no key is saved, so Convai is used: once per game session
-    ['openrouter-voice'] = {class = PLAYER, repeatS = 86400},  -- the Convai cloud voice is chosen: a local voice speaks OpenRouter replies, once per game session
+    -- Mistral as the conversation provider: a turn V asked for fails (an automatic reaction just stops), and two one-time notices
+    ['mistral-key'] = {class = PLAYER, repeatS = 60},       -- Mistral did not accept the saved key
+    ['mistral-limit'] = {class = PLAYER, repeatS = 60},     -- Mistral's free limit (about one message a second, plus a monthly allowance) is reached
+    ['mistral-model'] = {class = PLAYER, repeatS = 60},     -- the Mistral model is unavailable
+    ['mistral-no-key'] = {class = PLAYER, repeatS = 86400}, -- Mistral is chosen but no key is saved, so Convai is used: once per game session
+    ['mistral-voice'] = {class = PLAYER, repeatS = 86400},  -- the Convai cloud voice is chosen: a local voice speaks Mistral replies, once per game session
     -- Starting a conversation
     ['talk-no-target'] = {class = PLAYER, repeatS = 20},
     ['talk-no-profile'] = {class = PLAYER, repeatS = 20},
     ['group-needs-two'] = {class = PLAYER, repeatS = 20},
     ['talk-connecting'] = {class = PLAYER, repeatS = 10},
-    ['voice-needs-convai'] = {class = PLAYER, repeatS = 15},   -- the voice key is pressed while OpenRouter is in use and this computer cannot recognise speech
+    ['voice-needs-convai'] = {class = PLAYER, repeatS = 15},   -- the voice key is pressed while Mistral is in use and this computer cannot recognise speech
     ['mic-connecting'] = {class = PLAYER},
     ['mic-listening'] = {class = PLAYER},
     ['mic-finish-hint'] = {class = PLAYER, repeatS = 10},

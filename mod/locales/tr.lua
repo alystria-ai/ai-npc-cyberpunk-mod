@@ -598,7 +598,6 @@ return {
     ["The shared plan"] = "Paylaşılan plan",
     ["Use my own Convai API key"] = "Kendi Convai API anahtarımı kullan",
     ["Use your own free Convai API key instead of the shared plan. Get a free key at convai.com (it includes a small monthly allowance), copy it, choose Paste Convai API key below, then choose Apply. With your own key conversations open one at a time, companions are not pre-connected, and Multilingual conversations and memory management are unavailable. The change waits until no conversation is running."] = "Paylaşılan plan yerine kendi ücretsiz Convai API anahtarını kullan. convai.com adresinden ücretsiz bir anahtar al (aylık küçük bir kullanım hakkı içerir), kopyala, aşağıdaki Convai API anahtarını yapıştır seçeneğini seç, sonra Uygula'yı seç. Kendi anahtarınla konuşmalar tek tek açılır, yoldaşlar önceden bağlanmaz ve Çok dilli konuşmalar ile hafıza yönetimi kullanılamaz. Değişiklik, çalışan hiçbir konuşma kalmadığında uygulanır.",
-    ["Which Convai plan pays for conversations right now. Changes wait until no conversation is running."] = "Şu anda konuşmaların hangi Convai planından karşılandığı. Değişiklikler çalışan konuşma kalmayana kadar bekler.",
     ["Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development."] = "Convai API anahtarın plan limitine ulaştı. Daha sonra tekrar dene ya da Ayarlar > Geliştirme bölümünden başka bir anahtar ekle.",
     ["Your key was removed."] = "Anahtarın kaldırıldı.",
     ["Your key: not accepted"] = "Anahtarın: kabul edilmedi",

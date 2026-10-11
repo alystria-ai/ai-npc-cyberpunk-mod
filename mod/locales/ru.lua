@@ -598,7 +598,6 @@ return {
     ["The shared plan"] = "Общий тариф",
     ["Use my own Convai API key"] = "Использовать мой API-ключ Convai",
     ["Use your own free Convai API key instead of the shared plan. Get a free key at convai.com (it includes a small monthly allowance), copy it, choose Paste Convai API key below, then choose Apply. With your own key conversations open one at a time, companions are not pre-connected, and Multilingual conversations and memory management are unavailable. The change waits until no conversation is running."] = "Используйте собственный бесплатный API-ключ Convai вместо общего тарифа. Получите бесплатный ключ на convai.com (в нём есть небольшой ежемесячный лимит), скопируйте его, ниже выберите «Вставить API-ключ Convai», затем выберите «Применить». С собственным ключом беседы открываются по одной, напарники заранее не подключаются, а многоязычные беседы и управление памятью недоступны. Изменение вступит в силу, когда ни одна беседа не будет идти.",
-    ["Which Convai plan pays for conversations right now. Changes wait until no conversation is running."] = "Какой тариф Convai сейчас оплачивает беседы. Изменения ждут, пока ни одна беседа не запущена.",
     ["Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development."] = "Ваш API-ключ Convai достиг лимита тарифа. Попробуйте позже или добавьте другой ключ в меню Настройки > Разработка.",
     ["Your key was removed."] = "Ваш ключ удалён.",
     ["Your key: not accepted"] = "Ваш ключ: не принят",

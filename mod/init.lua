@@ -1397,7 +1397,7 @@ local function toggleVoice(groupMode)
             -- The reply is overdue: drop it and fall through to begin a fresh recording.
             cancelVoice('voice-retry')
         end
-        -- OpenRouter has no speech recognition on this computer yet: say so instead of recording into nothing. One cheap
+        -- Mistral cannot take a spoken message until this computer can recognise speech: say so instead of recording into nothing. One cheap
         -- boolean, asked only here, when the voice key is pressed.
         if manager.voiceNeedsConvai() then
             convaiNotices.send(player, 'voice-needs-convai',
@@ -1869,28 +1869,28 @@ local function keyReplyNotice(reply)
     if reply.errorCode == 'key-memory' or reply.keyNotice == 'memory-off' then
         return 'key-memory', ui.t('Your Convai plan has no room for conversation memory, so companions will not remember past talks.')
     end
-    -- OpenRouter (docs/OPENROUTER.md): three failures the bridge names, and two one-time notices on the first reply.
-    if reply.errorCode == 'openrouter-key' then
-        return 'openrouter-key', ui.t('OpenRouter did not accept your key. Check it in Settings > Development.')
-    elseif reply.errorCode == 'openrouter-limit' then
-        return 'openrouter-limit', ui.t('OpenRouter’s free limit is reached for now. Try again later, or add your own free Convai key in Settings > Development.')
-    elseif reply.errorCode == 'openrouter-model' then
-        return 'openrouter-model', ui.t('The free OpenRouter model is unavailable right now. Try again in a minute.')
+    -- Mistral: three failures the bridge names, and two one-time notices on the first reply.
+    if reply.errorCode == 'mistral-key' then
+        return 'mistral-key', ui.t('Mistral did not accept your key. Check it in Settings > Development.')
+    elseif reply.errorCode == 'mistral-limit' then
+        return 'mistral-limit', ui.t('Mistral’s free limit is reached for now. Try again in a moment, or add your own free Convai key in Settings > Development.')
+    elseif reply.errorCode == 'mistral-model' then
+        return 'mistral-model', ui.t('The Mistral model is unavailable right now. Try again in a minute.')
     end
-    if reply.keyNotice == 'openrouter-no-key' then
-        return 'openrouter-no-key', ui.t('OpenRouter has no key yet, so Convai is used. Add your key in Settings > Development.')
-    elseif reply.keyNotice == 'openrouter-voice' then
-        return 'openrouter-voice', ui.t('OpenRouter replies are spoken by a local voice instead of the Convai cloud voice.')
+    if reply.keyNotice == 'mistral-no-key' then
+        return 'mistral-no-key', ui.t('Mistral has no key yet, so Convai is used. Add your key in Settings > Development.')
+    elseif reply.keyNotice == 'mistral-voice' then
+        return 'mistral-voice', ui.t('Mistral replies are spoken by a local voice instead of the Convai cloud voice.')
     end
     local text = keyNoticeText(reply.errorCode)
     if text then return 'quota-exhausted', text end
     return nil
 end
 
--- The one-time information the bridge puts on the first reply of a game session when OpenRouter is chosen.
+-- The one-time information the bridge puts on the first reply of a game session when Mistral is chosen.
 local function sendProviderNotice(player, keyId, keyText)
-    if keyId == 'openrouter-no-key' then convaiNotices.send(player, 'openrouter-no-key', keyText)
-    elseif keyId == 'openrouter-voice' then convaiNotices.send(player, 'openrouter-voice', keyText) end
+    if keyId == 'mistral-no-key' then convaiNotices.send(player, 'mistral-no-key', keyText)
+    elseif keyId == 'mistral-voice' then convaiNotices.send(player, 'mistral-voice', keyText) end
 end
 
 local function reactionCanDeliver(context, player)
@@ -2543,14 +2543,14 @@ registerForEvent('onUpdate', function(delta)
                         gameplayActions.revoke('reply-error', pending.requestId)
                         local keyId, keyText = keyReplyNotice(reply)
                         if keyId == 'key-memory' then convaiNotices.send(player, 'key-memory', keyText)
-                        -- OpenRouter failures: a turn V asked for says so; an automatic reaction (battle, loot) just stops.
-                        elseif keyId == 'openrouter-key' then
-                            if not pending.reaction then convaiNotices.send(player, 'openrouter-key', keyText) end
-                        elseif keyId == 'openrouter-limit' then
-                            if not pending.reaction then convaiNotices.send(player, 'openrouter-limit', keyText) end
-                        elseif keyId == 'openrouter-model' then
-                            if not pending.reaction then convaiNotices.send(player, 'openrouter-model', keyText) end
-                        elseif keyId == 'openrouter-no-key' or keyId == 'openrouter-voice' then
+                        -- Mistral failures: a turn V asked for says so; an automatic reaction (battle, loot) just stops.
+                        elseif keyId == 'mistral-key' then
+                            if not pending.reaction then convaiNotices.send(player, 'mistral-key', keyText) end
+                        elseif keyId == 'mistral-limit' then
+                            if not pending.reaction then convaiNotices.send(player, 'mistral-limit', keyText) end
+                        elseif keyId == 'mistral-model' then
+                            if not pending.reaction then convaiNotices.send(player, 'mistral-model', keyText) end
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
                         elseif keyId then convaiNotices.send(player, 'quota-exhausted', keyText)

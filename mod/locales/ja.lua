@@ -598,7 +598,6 @@ return {
     ["The shared plan"] = "共有プラン",
     ["Use my own Convai API key"] = "自分の Convai APIキーを使う",
     ["Use your own free Convai API key instead of the shared plan. Get a free key at convai.com (it includes a small monthly allowance), copy it, choose Paste Convai API key below, then choose Apply. With your own key conversations open one at a time, companions are not pre-connected, and Multilingual conversations and memory management are unavailable. The change waits until no conversation is running."] = "共有プランの代わりに、無料の Convai APIキーを自分で使えます。convai.com で無料のキーを取得（毎月少量の利用枠があります）してコピーし、下の「Convai APIキーを貼り付け」を選んでから「適用」を選んでください。自分のキーを使うと、会話は一度に1つずつ開き、コンパニオンは事前に接続されず、多言語の会話とメモリ管理は使えません。変更は会話が実行中でなくなるまで保留されます。",
-    ["Which Convai plan pays for conversations right now. Changes wait until no conversation is running."] = "現在どの Convai プランで会話の料金をまかなっているかを示します。変更は会話が実行中でなくなるまで保留されます。",
     ["Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development."] = "Convai APIキーがプランの上限に達しました。後でもう一度試すか、設定 > 開発で別のキーを追加してください。",
     ["Your key was removed."] = "キーを削除しました。",
     ["Your key: not accepted"] = "キー：受け付けられませんでした",

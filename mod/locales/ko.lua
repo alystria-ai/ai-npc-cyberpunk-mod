@@ -598,7 +598,6 @@ return {
     ["The shared plan"] = "공유 플랜",
     ["Use my own Convai API key"] = "내 Convai API 키 사용",
     ["Use your own free Convai API key instead of the shared plan. Get a free key at convai.com (it includes a small monthly allowance), copy it, choose Paste Convai API key below, then choose Apply. With your own key conversations open one at a time, companions are not pre-connected, and Multilingual conversations and memory management are unavailable. The change waits until no conversation is running."] = "공유 플랜 대신 내 무료 Convai API 키를 사용하세요. convai.com에서 무료 키를 받아(월간 소량의 사용량 포함) 복사한 뒤, 아래에서 'Convai API 키 붙여넣기'를 고르고 '적용'을 선택하세요. 내 키를 쓰면 대화는 한 번에 하나씩 열리고, 동료는 미리 연결되지 않으며, 다국어 대화와 기억 관리는 사용할 수 없습니다. 변경 사항은 진행 중인 대화가 없을 때 적용됩니다.",
-    ["Which Convai plan pays for conversations right now. Changes wait until no conversation is running."] = "지금 어떤 Convai 플랜이 대화 비용을 내고 있는지 보여줍니다. 변경 사항은 진행 중인 대화가 없을 때까지 대기합니다.",
     ["Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development."] = "Convai API 키가 플랜 한도에 도달했습니다. 나중에 다시 시도하거나 설정 > 개발에서 다른 키를 추가하세요.",
     ["Your key was removed."] = "키가 제거되었습니다.",
     ["Your key: not accepted"] = "내 키: 허용되지 않음",

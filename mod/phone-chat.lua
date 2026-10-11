@@ -3,11 +3,11 @@
 -- guards still prevent a delayed reply from crossing a load or memory reset.
 local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}}
 local LOCAL_HISTORY = 'phone-local-player:v1'
--- The same for the OpenRouter failures the bridge names (docs/OPENROUTER.md); other failures keep the provider's text.
-local OPENROUTER_STATUS = {
-    ['openrouter-key'] = 'OpenRouter did not accept your key. Check it in Settings > Development.',
-    ['openrouter-limit'] = 'OpenRouter’s free limit is reached for now. Try again later, or add your own free Convai key in Settings > Development.',
-    ['openrouter-model'] = 'The free OpenRouter model is unavailable right now. Try again in a minute.',
+-- The same for the Mistral failures the bridge names; other failures keep the provider's text.
+local MISTRAL_STATUS = {
+    ['mistral-key'] = 'Mistral did not accept your key. Check it in Settings > Development.',
+    ['mistral-limit'] = 'Mistral’s free limit is reached for now. Try again in a moment, or add your own free Convai key in Settings > Development.',
+    ['mistral-model'] = 'The Mistral model is unavailable right now. Try again in a minute.',
 }
 local function copy(value)
     if type(value) ~= 'table' then return value end
@@ -545,7 +545,7 @@ function M.update(player, delta)
                 end
             elseif reply.state == 'error' then
                 M.errors = M.errors or {}
-                M.errors[reply.contact] = OPENROUTER_STATUS[reply.errorCode] or tostring(reply.error)
+                M.errors[reply.contact] = MISTRAL_STATUS[reply.errorCode] or tostring(reply.error)
                 if (M.drafts[reply.contact] or '') == '' then
                     M.drafts[reply.contact] = M.pending.text; M.clearDraft = reply.contact
                 end

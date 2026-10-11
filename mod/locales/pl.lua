@@ -598,7 +598,6 @@ return {
     ["The shared plan"] = "Wspólny plan",
     ["Use my own Convai API key"] = "Użyj własnego klucza API Convai",
     ["Use your own free Convai API key instead of the shared plan. Get a free key at convai.com (it includes a small monthly allowance), copy it, choose Paste Convai API key below, then choose Apply. With your own key conversations open one at a time, companions are not pre-connected, and Multilingual conversations and memory management are unavailable. The change waits until no conversation is running."] = "Użyj własnego, darmowego klucza API Convai zamiast wspólnego planu. Zdobądź darmowy klucz na convai.com (zawiera mały miesięczny limit), skopiuj go, wybierz poniżej Wklej klucz API Convai, a potem wybierz Zastosuj. Przy własnym kluczu rozmowy otwierają się po jednej naraz, towarzysze nie są połączeni z wyprzedzeniem, a rozmowy wielojęzyczne i zarządzanie pamięcią są niedostępne. Zmiana czeka, aż żadna rozmowa nie będzie trwać.",
-    ["Which Convai plan pays for conversations right now. Changes wait until no conversation is running."] = "Który plan Convai w tej chwili pokrywa koszty rozmów. Zmiany czekają, aż żadna rozmowa nie będzie trwać.",
     ["Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development."] = "Twój klucz API Convai osiągnął limit planu. Spróbuj ponownie później albo dodaj inny klucz w Ustawieniach > Dla programistów.",
     ["Your key was removed."] = "Twój klucz został usunięty.",
     ["Your key: not accepted"] = "Twój klucz: nie przyjęty",

@@ -598,7 +598,6 @@ return {
     ["The shared plan"] = "Sdílený plán",
     ["Use my own Convai API key"] = "Použít vlastní klíč API Convai",
     ["Use your own free Convai API key instead of the shared plan. Get a free key at convai.com (it includes a small monthly allowance), copy it, choose Paste Convai API key below, then choose Apply. With your own key conversations open one at a time, companions are not pre-connected, and Multilingual conversations and memory management are unavailable. The change waits until no conversation is running."] = "Místo sdíleného plánu použij vlastní bezplatný klíč API Convai. Bezplatný klíč získáš na convai.com (obsahuje malý měsíční limit), zkopíruj ho, níže zvol Vložit klíč API Convai a pak zvol Použít. S vlastním klíčem se konverzace otevírají jen jedna po druhé, společníci nejsou předem připojeni a vícejazyčné konverzace a správa paměti nejsou dostupné. Změna počká, dokud neběží žádná konverzace.",
-    ["Which Convai plan pays for conversations right now. Changes wait until no conversation is running."] = "Který plán Convai právě hradí konverzace. Změny čekají, dokud neběží žádná konverzace.",
     ["Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development."] = "Tvůj klíč API Convai dosáhl limitu plánu. Zkus to později, nebo přidej jiný klíč v Nastavení > Vývoj.",
     ["Your key was removed."] = "Tvůj klíč byl odebrán.",
     ["Your key: not accepted"] = "Tvůj klíč: nepřijat",

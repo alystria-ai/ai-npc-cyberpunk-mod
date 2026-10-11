@@ -638,28 +638,27 @@ local function ownKeyRows(snapshot)
     elseif own.active == 'player' and own.memoryOff then using = ui.t('Your own key, without memory')
     elseif own.active == 'player' then using = ui.t('Your own key')
     else using = ui.t('The shared plan') end
-    -- OpenRouter (docs/OPENROUTER.md): the key status, and which provider answers right now. Turns on OpenRouter or on a
-    -- player's own Convai key are never counted against the shared daily limit (bridge/shared-key-guard.mjs).
-    local router = snapshot.openRouter or {}
-    local routerStatus, routerResult = nil, router.result
-    if routerResult == 'invalid' then routerStatus = ui.t('OpenRouter did not accept that key.')
-    elseif routerResult == 'unreadable' then routerStatus = ui.t('The clipboard could not be read.')
-    elseif routerResult == 'failed' then routerStatus = ui.t('The key could not be saved.')
-    elseif router.saved and router.tail then routerStatus = ui.t('Added (ends in {tail})', {tail = router.tail})
-    elseif router.saved then routerStatus = ui.t('Added')
-    else routerStatus = ui.t('Not added') end
+    -- Mistral: the key status, and which provider answers right now. A player's own Convai key or a Mistral key is
+    -- never counted against the shared daily limit (bridge/shared-key-guard.mjs).
+    local mistral = snapshot.mistral or {}
+    local mistralStatus, mistralResult = nil, mistral.result
+    if mistralResult == 'invalid' then mistralStatus = ui.t('Mistral did not accept that key.')
+    elseif mistralResult == 'unreadable' then mistralStatus = ui.t('The clipboard could not be read.')
+    elseif mistralResult == 'failed' then mistralStatus = ui.t('The key could not be saved.')
+    elseif mistral.saved and mistral.tail then mistralStatus = ui.t('Added (ends in {tail})', {tail = mistral.tail})
+    elseif mistral.saved then mistralStatus = ui.t('Added')
+    else mistralStatus = ui.t('Not added') end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
-    local providerHelp = router.stt
-        and ui.t('Who writes your companions’ replies. Convai is the default and the full experience, with voice and memory as now. OpenRouter uses free text models with your own free OpenRouter key (add it below): replies are text and memory stays on this computer. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.')
-        or ui.t('Who writes your companions’ replies. Convai is the default and the full experience, with voice and memory as now. OpenRouter uses free text models with your own free OpenRouter key (add it below): replies are text and memory stays on this computer. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with OpenRouter, so type your messages. The change waits until no conversation is running; choose Apply.')
-    if router.pending then using = ui.t('Waiting for the conversation to end')
-    elseif router.effective == 'openrouter' then
-        if router.limit == 'rate' then using = ui.t('OpenRouter: free limit reached for now')
-        elseif router.limit == 'daily' then using = ui.t('OpenRouter: daily limit reached')
-        elseif router.limit == 'invalid' then using = ui.t('OpenRouter: key not accepted')
-        elseif router.limit == 'model' then using = ui.t('OpenRouter: free model unavailable')
-        else using = ui.t('OpenRouter (free models)') end
-    elseif snapshot.settings.conversationProvider == 'openrouter' then using = ui.t('Convai: OpenRouter has no key yet') end
+    local providerHelp = mistral.stt
+        and ui.t('Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.')
+        or ui.t('Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with Mistral, so type your messages. The change waits until no conversation is running; choose Apply.')
+    if mistral.pending then using = ui.t('Waiting for the conversation to end')
+    elseif mistral.effective == 'mistral' then
+        if mistral.limit == 'rate' or mistral.limit == 'daily' then using = ui.t('Mistral: free limit reached for now')
+        elseif mistral.limit == 'invalid' then using = ui.t('Mistral: key not accepted')
+        elseif mistral.limit == 'model' then using = ui.t('Mistral: model unavailable')
+        else using = ui.t('Mistral (free plan)') end
+    elseif snapshot.settings.conversationProvider == 'mistral' then using = ui.t('Convai: Mistral has no key yet') end
     return {
         setting('useOwnConvaiKey', 'Use my own Convai API key', 'bool', snapshot.settings.useOwnConvaiKey, false,
             'Use your own free Convai API key instead of the shared plan. Get a free key at convai.com (it includes a small monthly allowance), copy it, choose Paste Convai API key below, then choose Apply. With your own key conversations open one at a time, companions are not pre-connected, and Multilingual conversations and memory management are unavailable. The change waits until no conversation is running.'),
@@ -672,16 +671,16 @@ local function ownKeyRows(snapshot)
             'Deletes the saved key. Conversations go back to the shared plan.',
             function() return manager.removeOwnKey() end, own.saved),
         setting('conversationProvider', 'Conversation provider', 'select',
-            snapshot.settings.conversationProvider == 'openrouter' and 2 or 1, 1, providerHelp,
-            {'Convai', 'OpenRouter'}, {elements = true, description = true}),
-        readonly('openrouter-key-status', 'OpenRouter key', routerStatus,
+            snapshot.settings.conversationProvider == 'mistral' and 2 or 1, 1, providerHelp,
+            {'Convai', 'Mistral (free plan)'}, {elements = true, description = true}),
+        readonly('mistral-key-status', 'Mistral key', mistralStatus,
             'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
-        action('openrouter-key:paste', 'Paste OpenRouter key', 'Paste from clipboard',
-            'Copy your free key on openrouter.ai first. It is read from the clipboard once, checked with OpenRouter and saved on this computer. You can also save it in the file player-openrouter-key.txt in the conversation service folder.',
-            function() return manager.pasteOpenRouterKey() end),
-        action('openrouter-key:remove', 'Remove my OpenRouter key', 'Remove',
+        action('mistral-key:paste', 'Paste Mistral key', 'Paste from clipboard',
+            'Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer. You can also save it in the file player-mistral-key.txt in the conversation service folder.',
+            function() return manager.pasteMistralKey() end),
+        action('mistral-key:remove', 'Remove my Mistral key', 'Remove',
             'Deletes the saved key. Conversations go back to Convai.',
-            function() return manager.removeOpenRouterKey() end, router.saved == true),
+            function() return manager.removeMistralKey() end, mistral.saved == true),
         readonly('own-key-using', 'Conversations use', using,
             'Which provider answers your conversations right now and, for Convai, which plan pays for them. Changes wait until no conversation is running.', {value = true}),
     }
@@ -1128,11 +1127,11 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     end
                     values.audioDelay = delays[change.value]
                 elseif key == 'conversationProvider' then
-                    -- Order: 1 Convai (stored 'convai'), 2 OpenRouter (stored 'openrouter').
+                    -- Order: 1 Convai (stored 'convai'), 2 Mistral (stored 'mistral').
                     if change.value ~= 1 and change.value ~= 2 then
                         return {ok = false, error = ui.t('Choose one of the listed conversation providers.')}
                     end
-                    values.conversationProvider = change.value == 1 and 'convai' or 'openrouter'
+                    values.conversationProvider = change.value == 1 and 'convai' or 'mistral'
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose one of the listed subtitle displays.')} end
                     -- Order: 1 Cinematic subtitles (stored 'dialogue'), 2 Above the speaker (stored 'overhead').
