@@ -1,7 +1,7 @@
 // Builds the player release packages. Run by .github/workflows/release.yml, and locally:
 //
-//   node packaging/build-release.mjs --version 2077.2 --dry-run          (local stand-ins, no secrets)
-//   node packaging/build-release.mjs --version 2077.2 --models hf --key-env CONVAI_API_KEY   (CI)
+//   node packaging/build-release.mjs --version 0.2 --dry-run          (local stand-ins, no secrets)
+//   node packaging/build-release.mjs --version 0.2 --models hf --key-env CONVAI_API_KEY   (CI)
 //
 // Packages (dist/release/packages/):
 //   CyberpunkConvai-Scripts-<v>.zip        text only: CET Lua, redscript, JSON catalogs (for Nexus Mods)

@@ -24,17 +24,18 @@ Runtime one.
 
 ## Version numbers
 
-Releases are numbered `2077.N`: the first is 2077.1, then 2077.2, and a hotfix of one release is
-`2077.N.M` (2077.1.1). The tag is `v` + the number (`v2077.2`) and the workflow accepts both forms
-(`v2077.2`, `v2077.2.1`); a manual run takes the number without the `v`. The same string goes into
-the package file names (`CyberpunkConvai-Scripts-2077.2.zip`), the release title, both
+Releases are numbered `0.N`: 0.1, 0.2, 0.3, ..., and a hotfix of one release is `0.N.M` (0.2.1).
+The first build, `v2077.1` (2026-10-07, a private-repository test of the pipeline), used the earlier
+`2077.N` scheme and stays as it is; the version check still accepts that form. The tag is `v` + the
+number (`v0.2`) and the workflow accepts both forms (`v0.2`, `v0.2.1`); a manual run takes the number
+without the `v`. The same string goes into the package file names (`CyberpunkConvai-Scripts-0.2.zip`), the release title, both
 `release.json` files and the OmniVoice `omni-pack.json`. The only version check at run time is
 `start-service.mjs` comparing the Scripts and Runtime strings for equality, so any form works; the
 builder accepts two to four numbers with an optional `-pre`/`+build` suffix
 (`packaging/lib/version.mjs`, guarded by `release.test.mjs`), and writes a three-part form
-(2077.1.0) only into `app/package.json`, which npm-style tooling wants as semver. The installed-layout
-tool `test-release-install.mjs` matches package files by exact version, so 2077.1 never picks up
-2077.1.1 or 2077.10.
+(0.2.0) only into `app/package.json`, which npm-style tooling wants as semver. The installed-layout
+tool `test-release-install.mjs` matches package files by exact version, so 0.2 never picks up
+0.2.1 or 0.20.
 
 ## Installed layout
 
@@ -135,9 +136,9 @@ are split into `.partN` byte ranges with a `.parts.json`, joined on first start.
 ### Local dry run and install test
 
 ```powershell
-node packaging/build-release.mjs --version 2077.2 --dry-run                 # Scripts + Runtime + Omni
-node packaging/build-release.mjs --version 2077.2 --dry-run --packages scripts,runtime
-node packaging/test-release-install.mjs --version 2077.2 --packages dist/release/packages [--omni] [--key-file runtime/convai-key.txt]
+node packaging/build-release.mjs --version 0.2 --dry-run                 # Scripts + Runtime + Omni
+node packaging/build-release.mjs --version 0.2 --dry-run --packages scripts,runtime
+node packaging/test-release-install.mjs --version 0.2 --packages dist/release/packages [--omni] [--key-file runtime/convai-key.txt]
 node --test packaging/release.test.mjs
 ```
 
@@ -156,8 +157,8 @@ To try a build in the real game, remove the development launcher first
 ## GitHub Actions
 
 `.github/workflows/release.yml` runs only from Actions > Release > Run workflow or on a pushed
-`v2077.N` tag. Job 1 builds and install-tests Scripts + Runtime on `windows-2025`, keeps the Scripts
-zip as a workflow artifact (for Nexus), and creates the GitHub release `v2077.N` in this same
+`v0.N` tag. Job 1 builds and install-tests Scripts + Runtime on `windows-2025`, keeps the Scripts
+zip as a workflow artifact (for Nexus), and creates the GitHub release `v0.N` in this same
 repository, uploading the packages to it. Job 2 builds the OmniVoice pack and adds it to the same
 release. Large packages are not stored as workflow artifacts (private-repository artifact storage
 is small).
@@ -166,8 +167,9 @@ The release is published immediately, not left as a draft (the manual run has a 
 to skip release creation). While the repository is private, only collaborators can see the release
 and its downloads; it becomes visible to everyone when the repository is made public. A manual run
 tags the commit it was started from. The OmniVoice pack arrives a while after the Runtime
-package, because it is built by the second job, so a release can briefly lack it. If `v2077.N`
+package, because it is built by the second job, so a release can briefly lack it. If `v0.N`
 already exists, the workflow only re-uploads (`--clobber`) and leaves its title and notes alone.
+A new release is created with `--latest`: GitHub otherwise ranks "Latest" by version number as well as date, and `v0.2` is lower than the legacy `v2077.1`.
 
 Permissions and secrets: the workflow uses the built-in `GITHUB_TOKEN` with `contents: write`
 (no separate releases repository or token). Repository secrets: `HF_TOKEN` (bucket read) and

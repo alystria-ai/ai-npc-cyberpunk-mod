@@ -1,5 +1,5 @@
 # Builds the player release packages. Runs only when started by hand (Actions > Release >
-# Run workflow) or when a version tag such as v2077.2 (or v2077.2.1 for a hotfix) is pushed; never on ordinary pushes.
+# Run workflow) or when a version tag such as v0.2 (or v0.2.1 for a hotfix) is pushed; never on ordinary pushes.
 #
 # Secrets (Settings > Secrets and variables > Actions):
 #   HF_TOKEN         read access to the private Hugging Face bucket with the trained models
@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version, 2077.N or 2077.N.M for a hotfix (for example 2077.2)
+        description: Release version, 0.N or 0.N.M for a hotfix (for example 0.2 or 0.2.1)
         required: true
       omni:
         description: Also build the optional OmniVoice pack
@@ -115,7 +115,8 @@ jobs:
           $tag = "v$version"
           $notes = Join-Path $env:RUNNER_TEMP 'notes.md'
           # A manual run tags the commit it was started from; a tag run already has its tag.
-          $createArgs = @('release', 'create', $tag, '--repo', $env:GITHUB_REPOSITORY, '--target', $env:GITHUB_SHA, '--title', "Cyberpunk Convai $version", '--notes-file', $notes)
+          # --latest: v0.2 sorts below the legacy v2077.1 by version number, so say explicitly that this is the Latest release.
+          $createArgs = @('release', 'create', $tag, '--repo', $env:GITHUB_REPOSITORY, '--target', $env:GITHUB_SHA, '--title', "Cyberpunk Convai $version", '--notes-file', $notes, '--latest')
           (Get-Content packaging/PLAYER_README.md -Raw) + "`n## Checksums`n`nSHA-256 values for every file are in the SHA256SUMS files below.`n" | Set-Content $notes -Encoding utf8
           Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-runtime.txt"
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
