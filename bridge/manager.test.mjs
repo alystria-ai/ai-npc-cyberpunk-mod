@@ -4,6 +4,8 @@ import {readFileSync, readdirSync} from 'node:fs';
 import path from 'node:path';
 import fengari from 'fengari';
 import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
+import {MistralProvider, MistralControl} from './mistral-key.mjs';
+import {createLocalSpeech} from './local-stt-capture.mjs';
 import {companionModules, companionEngine, flatNavigation, flatSpatial} from './companion-fixture.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
@@ -4175,6 +4177,42 @@ test('the voice key waits for Convai only while Mistral is in use and this compu
     status('e', {provider = 'mistral', effective = 'mistral', saved = true, stt = false})
     choose(1)
     assert(manager.voiceNeedsConvai() == false)
+  `);
+});
+
+test('the voice key follows the status file the bridge really publishes for Mistral, with and without local speech recognition', async () => {
+  const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
+  // The bridge side as convai-bridge.mjs wires it: the recogniser's availability becomes provider.sttAvailable, and the
+  // control publishes the status file that mod/manager.lua reads.
+  async function published(sttAvailable) {
+    const speech = createLocalSpeech({stt: {availability: () => ({available: sttAvailable, reason: sttAvailable ? null : 'model-missing'})}, capture: {}});
+    const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${KEY}\n`, writeText: async () => {}, removeFile: async () => {}});
+    await provider.load();
+    provider.setPreference('mistral'); provider.apply();
+    provider.sttAvailable = speech.available() === true;
+    let status;
+    await new MistralControl({provider, commandPath: 'c.json', publish: value => { status = JSON.parse(JSON.stringify(value)); },
+      model: () => 'mistral-small-latest', read: async () => ''}).publishStatus();
+    return status;
+  }
+  const lua = value => Array.isArray(value) ? '{}' : value === null ? 'nil' : typeof value === 'object'
+    ? '{' + Object.entries(value).map(([k, v]) => `${k}=${lua(v)}`).join(',') + '}' : JSON.stringify(value);
+  const withStt = await published(true), without = await published(false);
+  assert.equal(withStt.stt, true); assert.equal(without.stt, false);
+  assert(!JSON.stringify(withStt).includes(KEY), 'the key never enters the status file');
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function status(tag, value)
+      jsonFixtures['voice-' .. tag] = value
+      files['runtime/mistral-state.json'] = 'voice-' .. tag
+      clock = clock + 2
+    end
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 2}}).ok)
+    status('with', ${lua(withStt)})
+    assert(manager.mistral().effective == 'mistral' and manager.mistral().stt == true)
+    assert(manager.voiceNeedsConvai() == false, 'Mistral with local speech recognition: the voice key works')
+    status('without', ${lua(without)})
+    assert(manager.voiceNeedsConvai() == true, 'Mistral without local speech recognition: the voice key waits for Convai')
   `);
 });
 

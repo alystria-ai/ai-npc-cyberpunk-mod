@@ -219,7 +219,7 @@ local group = {cancel = function() note('group-cancel') end,
 local phone = {configure = function(_, _, options) stats.phoneOptions = options end,
     update = noOp, abandon = function() note('phone-abandon') end}
 local manager = {subtitleStyle = 'game', configure = noOp, interfaceLanguage = function() return 'auto' end, profileEnabled = function() return true end,
-    developerMode = function() return stats.developer == true end, battleReactions = function() return false end, lootReactions = function() return false end,
+    voiceNeedsConvai = function() return stats.voiceNeedsConvai == true end, developerMode = function() return stats.developer == true end, battleReactions = function() return false end, lootReactions = function() return false end,
     update = noOp, reset = function() note('manager-reset') end}
 local partyQueue
 local mcm = {configure = function(_, suppliedCompanions, factory, _, readiness)
@@ -935,6 +935,39 @@ replyFor(finished.input);events.onUpdate(0.1)
 assert(not microphone.context and convaiGameplayActions.inspect().pending)
 files['runtime/companion-actions.json']=json.encode(drivePacket(finished.input,'private-voice'));events.onUpdate(0.1)
 assert(#stats.driveCalls==1)
+`));
+
+test('the voice key says Convai is needed, and records nothing, only while the voice provider check asks for it', () => run(`
+events.onInit();events.onUpdate(0);privateConversation()
+local nativeMic=(function() ${microphoneSource} end)()
+for _,key in ipairs({'captureKnowledge','currentKnowledgeOwner','captureJournal','captureBattle','captureFollowUpQuestions',
+    'captureActions','onCancelled'})do nativeMic[key]=microphone[key] end
+for _,key in ipairs({'begin','finish','cancel','update','received','press'})do
+    local operation=nativeMic[key]
+    microphone[key]=function(...)
+        local result=operation(...)
+        for _,field in ipairs({'context','state','knowledgeOwner','targetValid'})do microphone[field]=nativeMic[field] end
+        return result
+    end
+end
+local function feedback()
+    local out = {}
+    for _, item in ipairs(stats.trace) do if item.kind == 'feedback' then out[#out + 1] = item.value end end
+    return out
+end
+stats.voiceNeedsConvai = true
+hotkeys.cyberpunk_convai_voice()
+assert(files['runtime/microphone-command.json'] == nil, 'no recording starts while voice needs Convai')
+assert(#feedback() == 1, 'one notice, found ' .. #feedback())
+assert(feedback()[1]:find('Convai', 1, true), 'the player is told why')
+-- Local speech recognition (or the Convai provider) makes the same key work again.
+stats.voiceNeedsConvai = false
+clock = clock + 20
+hotkeys.cyberpunk_convai_voice()
+assert(files['runtime/microphone-command.json'], 'the key records again')
+assert(json.decode(files['runtime/microphone-command.json']).action == 'start')
+for _, text in ipairs(feedback()) do assert(text:find('Connecting microphone', 1, true) or text:find('needs Convai', 1, true)) end
+assert(feedback()[#feedback()]:find('Connecting microphone', 1, true), 'the second press connects the microphone instead')
 `));
 
 test('native AutoDrive callbacks observe only an active live trip and detach shutdown performs no native reads', () => run(`
