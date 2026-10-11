@@ -334,10 +334,30 @@ public final func ConvaiChatPresent(lines: array<ref<ConvaiPhoneChatLine>>, stat
     this.m_dialogViewController.ConvaiChatSetLines(lines);
 }
 
+// While the player types, the popup swallows the keys the game would act on.
+// A key-up is different: the game must see the release of a key that was already
+// held when typing began (V strafing right until D is pressed again), so a release
+// is consumed only when it belongs to one of the menu actions this popup listens
+// for (OpenPauseMenu would otherwise open the pause menu when Esc comes up).
+@addMethod(PhoneMessagePopupGameController)
+private final func ConvaiChatSwallowsAction(action: ListenerAction) -> Bool {
+    if !ListenerAction.IsButtonJustReleased(action) { return true; };
+    let name = ListenerAction.GetName(action);
+    return Equals(name, n"OpenPauseMenu") || Equals(name, n"cancel") || Equals(name, n"phone_open_journal")
+        || Equals(name, n"click") || Equals(name, n"call");
+}
+// The popup's pointer callback runs after every key-up (OnPostOnRelease). Only the
+// actions its own handler reacts to are swallowed; any other key-up passes untouched.
+@addMethod(PhoneMessagePopupGameController)
+private final func ConvaiChatSwallowsRelease(evt: ref<inkPointerEvent>) -> Bool {
+    return evt.IsAction(n"cancel") || evt.IsAction(n"phone_open_journal") || evt.IsAction(n"up_button")
+        || evt.IsAction(n"down_button") || evt.IsAction(n"click") || evt.IsAction(n"toggle_menu");
+}
+
 @wrapMethod(PhoneMessagePopupGameController)
 protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsumer) -> Bool {
     if this.ConvaiChatTyping() {
-        ListenerActionConsumer.Consume(consumer);
+        if this.ConvaiChatSwallowsAction(action) { ListenerActionConsumer.Consume(consumer); };
         return false;
     };
     if this.m_data.convaiChat && (Equals(ListenerAction.GetName(action), n"call")
@@ -349,7 +369,10 @@ protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsu
 }
 @wrapMethod(PhoneMessagePopupGameController)
 protected cb func OnHandleMenuInput(evt: ref<inkPointerEvent>) -> Bool {
-    if this.ConvaiChatTyping() { evt.Handle(); evt.Consume(); return false; };
+    if this.ConvaiChatTyping() {
+        if this.ConvaiChatSwallowsRelease(evt) { evt.Handle(); evt.Consume(); };
+        return false;
+    };
     return wrappedMethod(evt);
 }
 @wrapMethod(PhoneMessagePopupGameController)

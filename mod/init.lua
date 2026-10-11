@@ -615,6 +615,20 @@ local function log(line)
     end
     print('[CyberpunkConvai] ' .. line)
 end
+-- V's horizontal speed in m/s, read once when a text box takes the keyboard. If V
+-- keeps walking after typing (a key-up the game never saw), the log line shows
+-- whether V was already moving at that moment. 'n/a' when the game will not say.
+local function playerSpeedText(player)
+    local ok, velocity = pcall(function() return player:GetVelocity() end)
+    if not ok or velocity == nil then return 'n/a' end
+    local okRead, speed = pcall(function() return math.sqrt(velocity.x ^ 2 + velocity.y ^ 2) end)
+    if not okRead or type(speed) ~= 'number' or speed ~= speed then return 'n/a' end
+    return string.format('%.2f', speed)
+end
+-- Phone chat typing opened (mod/phone-chat.lua, 10 Hz tick, one line per typing session).
+phoneChat.typingOpened = function(player, contact)
+    log('Phone chat typing opened: contact=' .. tostring(contact) .. ' speed=' .. playerSpeedText(player))
+end
 -- V's gear: one line per real read (bridge/player-gear.mjs logs the other half per reply), so a test shows what was built.
 if playerGear then playerGear.options.log = log end
 -- Doors, lifts, fast travel and stranded followers: one line per recovery
@@ -1260,6 +1274,7 @@ local function beginText(groupMode)
         -- A character that is not connected yet makes V wait: say so (mod/auto-connect.lua).
         local connectNote = autoConnect and not participants and autoConnect.talkNotice(key, name) or nil
         generation = generation + 1
+        local speedAtOpen = playerSpeedText(player)
         if not player:ConvaiOpenComposer(name) then
             log('Native composer unavailable (check redscript and Codeware)')
             return
@@ -1293,7 +1308,8 @@ local function beginText(groupMode)
         warmConversation(participants, key, identity)
         if connectNote then convaiNotices.send(player, 'talk-connecting', connectNote) end
         pending = nil
-        log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name)
+        log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name
+            .. ' speed=' .. speedAtOpen)
     end)
     if not ok then log('Open failed: ' .. tostring(err)) end
 end

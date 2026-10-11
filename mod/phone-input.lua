@@ -29,9 +29,47 @@ local function phoneOpen()
     return open
 end
 
+-- While the player types, the in-game menu controller must not act on their
+-- keys. A key-up is another matter: a key that was already held when typing began
+-- (V strafing right until D is pressed again) has to be seen coming up by the
+-- game. So a release is consumed only when it is one of the menu actions the
+-- controller listens for (RegisterInputListenersForPlayer in
+-- inGameMenuGameController.script); every other release passes through. Passing a
+-- release the game never saw pressed is harmless.
+local MENU_ACTIONS = {'OpenPauseMenu', 'OpenMapMenu', 'OpenCraftingMenu', 'OpenJournalMenu', 'OpenPerksMenu',
+    'OpenInventoryMenu', 'OpenHubMenu', 'QuickSave', 'QuickLoad', 'FastForward_Hold'}
+-- The controller's global pointer callback (OnPostOnRelease, so every event is a key-up)
+-- reacts to exactly these.
+local MENU_RELEASES = {'back', 'toggle_menu', 'toggle_inventory', 'toggle_perks', 'toggle_journal', 'toggle_map',
+    'toggle_crafting'}
+
+local function isMenuAction(action)
+    for _, name in ipairs(MENU_ACTIONS) do
+        local ok, matched = pcall(ListenerAction.IsAction, action, name)
+        if ok and matched then return true end
+    end
+    return false
+end
+M.isMenuAction = isMenuAction
+
+-- True for the key-up of an action that is not a menu action.
+local function passesRelease(action)
+    local ok, released = pcall(ListenerAction.IsButtonJustReleased, action)
+    return ok and released == true and not isMenuAction(action)
+end
+M.passesRelease = passesRelease
+
+local function menuPointerEvent(event)
+    for _, name in ipairs(MENU_RELEASES) do
+        local ok, matched = pcall(function() return event:IsAction(name) end)
+        if ok and matched then return true end
+    end
+    return false
+end
+
 function M.blocksMenuAction(action)
     local typing, open = phoneState()
-    if typing then return true end
+    if typing then return not passesRelease(action) end
     if not open then return false end
     -- The standard journal binding is J. GetKey also covers menu actions the
     -- player has rebound to either of our phone keys.
@@ -58,6 +96,7 @@ function M.install()
     end)
     Override('gameuiInGameMenuGameController', 'OnHandleMenuInput', function(self, event, wrapped)
         local typing, open = phoneState()
+        if typing and not menuPointerEvent(event) then return false end -- any other key-up reaches the game
         if typing or (open and event:IsAction('toggle_journal')) then
             M.blocked = M.blocked + 1
             event:Handle()
@@ -67,7 +106,7 @@ function M.install()
         return wrapped(event)
     end)
     M.installed = true
-    M.version = 2
+    M.version = 3
 end
 
 convaiPhoneInput = M

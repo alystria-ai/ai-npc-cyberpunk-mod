@@ -435,6 +435,15 @@ function M.update(player, delta)
         M.registered = true
     end
     contact = tostring(contact or '')
+    -- One evidence hook per typing session, on its rising edge. The native read is
+    -- made only while a phone chat is open, on this 10 Hz tick.
+    local typing = false
+    if contact ~= '' then
+        local readable, value = pcall(function() return player:ConvaiPhoneChatTyping() end)
+        typing = readable and value == true
+    end
+    if typing and not M.typingSeen and type(M.typingOpened) == 'function' then pcall(M.typingOpened, player, contact) end
+    M.typingSeen = typing
     local draft = player:ConvaiPhoneChatDraft()
     -- Native stores the last draft before its controller is destroyed or recycled.
     if historyReady and M.captureDrafts and draft and M.catalog[draft.contact] and not M.resetDrafts[draft.contact]
