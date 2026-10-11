@@ -168,7 +168,7 @@ function M.abandon()
     M.anchor, M.projectionReady, M.pendingProjection, M.rootVisibility = nil, nil, nil, nil
     M.revealAfterFrame = nil
     M.lingering, M.lineLost, M.restores, M.retiring = nil, nil, nil, nil
-    M.live = nil
+    M.live, M.liveOwner = nil, nil
 end
 
 local function headAnchor(actor)
@@ -439,7 +439,9 @@ local function showPage()
     -- The exact speaker owns the HUD line too. The native HUD's removal by
     -- data drops every line without an owner whenever any other line ends;
     -- with an owner it drops ours only for this speaker's own native line.
-    line.speaker = M.actor
+    -- V's live words have no speaking actor: the player owns the line, and a nil is never assigned to the native field.
+    local owner = M.actor or M.liveOwner
+    if owner then line.speaker = owner end
     line.speakerName, line.text, line.isPersistent = M.speaker, text, false
     line.duration = duration
     M.line, M.remaining = line, line.duration
@@ -490,7 +492,12 @@ function M.showLive(speaker, text)
     if M.live and M.playerID and identity(Game.GetPlayer()) ~= M.playerID then M.clear() end
     if not M.live then
         if not prepare(speaker, text, nil, nil) then return false end
-        M.live = true
+        -- Always the cinematic dialogue HUD, whatever style replies use: V has no head to hang an overhead caption on.
+        M.mode, M.fallback, M.anchor, M.paginationStyle = 'dialogue', nil, nil, 'dialogue'
+        M.pages, M.pageRanges = M.split(text, 'dialogue')
+        if #M.pages == 0 then M.abandon(); return false end
+        local player = Game.GetPlayer()
+        M.live, M.liveOwner = true, player
     else
         local pages, ranges = M.split(text, M.paginationStyle or 'dialogue')
         if #pages == 0 then return false end

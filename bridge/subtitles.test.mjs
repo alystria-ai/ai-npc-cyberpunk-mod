@@ -1254,10 +1254,11 @@ assert(#hidden()==before+2 and m.line==nil and not m.status().retiring)
 `));
 
 test('V\'s live words are one dialogue line swapped in place as they grow, owned by no reply, replaced by the next caption', () => run(setup + `
+ scnDialogLineData.new=function()return setmetatable({},{__newindex=function(t,k,v)assert(not(k=='speaker' and v==nil),'a nil speaker must never be assigned to the native line');rawset(t,k,v)end})end
  assert(m.showLive('V','what do'))
- assert(m.status().mode=='dialogue' and m.status().fallback=='speaker-unavailable')
+ assert(m.status().mode=='dialogue' and m.status().fallback==nil,'the cinematic dialogue HUD, not an overhead caption')
  local first=shown()[1]
- assert(first.speakerName=='V' and first.text=='what do' and first.speaker==nil and first.type==scnDialogLineType.OwnerlessRegular)
+ assert(first.speakerName=='V' and first.text=='what do' and first.speaker==player and first.type==scnDialogLineType.OwnerlessRegular)
  assert(not m.ownsUtterance(),'live words are not a reply')
  assert(m.showLive('V','what do you think'))
  local lines=shown()

@@ -1143,9 +1143,20 @@ end
 
 -- V's recognised words while speaking by voice: V's line in the cinematic subtitles, replaced in place as the words grow
 -- (event-driven from mod/microphone.lua's poll, nothing per frame). false makes the microphone use the notice line.
+local heardFallbackLogged = {}
+local function heardFallback(reason)
+    if not heardFallbackLogged[reason] then
+        heardFallbackLogged[reason] = true
+        log('Live words: using the notice line (' .. reason .. ')')
+    end
+    return false
+end
 microphone.onHeard = function(text)
-    if not subtitles.enabled() then return false end
-    return subtitles.showLive('V', text) == true
+    if not subtitles.enabled() then return heardFallback('game subtitles are off') end
+    local ok, shown = pcall(subtitles.showLive, 'V', text)
+    if not ok then return heardFallback('subtitle error: ' .. tostring(shown):sub(1, 200)) end
+    if shown ~= true then return heardFallback('subtitle line refused') end
+    return true
 end
 
 microphone.onCancelled = function(context, reason)
