@@ -170,6 +170,7 @@ return {
     ["No reply arrived. The conversation service may not be running."] = "Aucune réponse reçue. Le service de conversation n'est peut-être pas lancé.",
     ["No reply received. Your message is in the draft; press Enter to retry."] = "Aucune réponse reçue. Votre message est conservé en brouillon ; appuyez sur Enter pour réessayer.",
     ["No settings were supplied."] = "Aucun paramètre fourni.",
+    ["You: {text}"] = "Toi: {text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Aucune parole entendue — attendez Écoute, puis parlez avant de terminer.",
     ["Not configured"] = "Non configuré",
     ["Off"] = "Désactivé",

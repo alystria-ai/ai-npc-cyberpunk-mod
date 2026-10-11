@@ -170,6 +170,7 @@ return {
   ["No reply arrived. The conversation service may not be running."] = "답장이 오지 않았습니다. 대화 서비스가 실행 중이 아닐 수 있습니다.",
   ["No reply received. Your message is in the draft; press Enter to retry."] = "답장을 받지 못했습니다. 메시지는 임시 저장되어 있습니다. Enter 키로 다시 시도하세요.",
   ["No settings were supplied."] = "설정이 전달되지 않았습니다.",
+  ["You: {text}"] = "당신: {text}",
   ["No speech was heard. Wait for Listening, then speak before you finish."] = "음성이 들리지 않았습니다 - '듣는 중'이 될 때까지 기다린 뒤, 끝내기 전에 말하세요",
   ["Not configured"] = "미설정",
   ["Off"] = "꺼짐",

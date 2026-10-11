@@ -1638,3 +1638,41 @@ test('a usage-limit-reached message fails the turn with a quota marker, and a co
   finalText(clients[0]); assert.equal((await reply).text, 'Hello V.');
   await api.close();
 });
+
+test('the recognised words of a voice turn are readable while V talks: finalized segments, then the live one, newest words only', async () => {
+  const {api, clients} = fixture({allowMic: true});
+  const request = {...config, ttsEnabled: false};
+  assert.equal(api.heard(), '', 'no turn, nothing heard');
+  await api.beginVoice(request);
+  const live = clients[0].handlers.get('userTranscriptionChange');
+  assert.equal(api.heard(), '');
+  live('what do');
+  assert.equal(api.heard(), 'what do');
+  const speech = {id: 'speech', type: 'user-transcription', content: 'What do you', isStreaming: true};
+  clients[0].chatMessages = [speech];
+  clients[0].handlers.get('messagesChange')([speech]); live('');
+  assert.equal(api.heard(), 'What do you');
+  live('think\u0000 of\n\tit');
+  assert.equal(api.heard(), 'What do you think of it');
+  live('x'.repeat(30) + ' ' + 'word '.repeat(60));
+  const tail = api.heard();
+  assert(tail.startsWith('\u2026') && [...tail].length <= 101, 'long speech keeps only its newest words');
+  assert(tail.endsWith('word'));
+  live(42); assert.equal(api.heard(), 'What do you');
+  const pending = api.finishVoice(request); await flush();
+  clients[0].handlers.get('messagesChange')([{...speech, content: 'What do you think?', isStreaming: false},
+    {id: 'reply', type: 'bot-llm-text', content: 'Hm.', isStreaming: false}]);
+  assert.equal(api.heard(), 'What do you think?', 'the final transcript replaces the live words before the reply is handed over');
+  await pending;
+  assert.equal(api.heard(), '', 'nothing is heard once the turn is over');
+  await api.close();
+});
+
+test('only a microphone turn exposes heard words: a text reply never does', async () => {
+  const {api, clients} = fixture({allowMic: true});
+  const request = {...config, ttsEnabled: false}; await api.warm(request);
+  const pending = api.reply(request); pending.catch(() => {}); await flush();
+  clients[0].handlers.get('userTranscriptionChange')?.('should be ignored');
+  assert.equal(api.heard(), '');
+  finalText(clients[0]); await pending; await api.close();
+});

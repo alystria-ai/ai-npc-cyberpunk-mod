@@ -246,6 +246,7 @@ return {
     ["No reply arrived. The conversation service may not be running."] = "Nepřišla žádná odpověď. Konverzační služba možná neběží.",
     ["No reply received. Your message is in the draft; press Enter to retry."] = "Nepřišla žádná odpověď. Tvoje zpráva je v konceptu; stiskni Enter pro opakování.",
     ["No settings were supplied."] = "Nebyla zadána žádná nastavení.",
+    ["You: {text}"] = "Ty: {text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Nebyla zachycena žádná řeč - počkej na stav Poslouchání, pak mluv, než dokončíš.",
     ["None yet"] = "Zatím žádné",
     ["Not configured"] = "Nenastaveno",

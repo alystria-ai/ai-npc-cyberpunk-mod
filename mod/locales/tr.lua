@@ -246,6 +246,7 @@ return {
     ["No reply arrived. The conversation service may not be running."] = "Yanıt gelmedi. Konuşma servisi çalışmıyor olabilir.",
     ["No reply received. Your message is in the draft; press Enter to retry."] = "Yanıt alınamadı. Mesajın taslakta; yeniden denemek için Enter'a bas.",
     ["No settings were supplied."] = "Hiçbir ayar sağlanmadı.",
+    ["You: {text}"] = "Sen: {text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Konuşma algılanmadı - Dinleniyor yazısını bekle, sonra bitirmeden önce konuş.",
     ["None yet"] = "Henüz yok",
     ["Not configured"] = "Yapılandırılmadı",

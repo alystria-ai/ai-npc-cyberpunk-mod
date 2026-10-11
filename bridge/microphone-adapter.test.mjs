@@ -174,3 +174,36 @@ test('the bridge reports a no-speech recording to the game as its own microphone
   assert.match(client, /NO_SPEECH_ERROR = 'No speech was heard'/);
   assert.match(source, /value\.state == 'no-speech'/);
 });
+
+test('what Convai has heard is shown as a notice on the existing poll: throttled, only for this recording, until the reply starts', () => check(`
+ local clock=10;mic.clock=function()return clock end
+ local context=input(false);assert(mic.begin(context))
+ local function heard(text,id)files['runtime/microphone-heard.json']=json.encode({requestId=id or 'voice-1',text=text})end
+ heard('too early');mic.update(player);assert(#feedback==0,'nothing is shown before Listening');heard('')
+ state('recording');mic.update(player);assert(feedback[#feedback]:find('Listening',1,true))
+ local shown=#feedback
+ heard('what do');mic.update(player)
+ assert(#feedback==shown+1 and feedback[#feedback]=='You: what do')
+ mic.update(player);assert(#feedback==shown+1,'an unchanged file costs no notice')
+ heard('what do you think');mic.update(player);assert(#feedback==shown+1,'throttled inside 0.3 s')
+ clock=10.4;mic.update(player)
+ assert(#feedback==shown+2 and feedback[#feedback]=='You: what do you think','the held text shows on a later poll')
+ heard('someone else',"another");clock=11;mic.update(player);assert(#feedback==shown+2,'words of another recording are ignored')
+ heard('');clock=12;mic.update(player);assert(#feedback==shown+2,'empty words show nothing')
+ now=now+1;clock=13;assert(mic.finish('private')==context and mic.state=='reply')
+ heard('what do you think?');mic.update(player)
+ assert(feedback[#feedback]=='You: what do you think?','the final transcript shows before the reply')
+ assert(mic.received('voice-1') and not mic.context and not mic.heardRaw and not mic.heardAt)
+ heard('late words');clock=14;mic.update(player);assert(feedback[#feedback]=='You: what do you think?')
+`));
+
+test('the heard words travel page, host, session, bridge file and game without a new per-frame path', () => {
+  const read = name => readFileSync(new URL(name, import.meta.url), 'utf8');
+  assert.match(read('./realtime-client.mjs'), /heard: \(\) => heardText\(turn\)/);
+  assert.match(read('./realtime-host.mjs'), /heard: \(\) => this\.voiceHeard\(owner\)/);
+  assert.match(read('./microphone-session.mjs'), /async heard\(\)/);
+  const bridge = read('./convai-bridge.mjs');
+  assert.match(bridge, /microphone-heard\.json/); assert.match(bridge, /else await publishHeard\(recording\)/);
+  assert.match(source, /microphone-heard\.json/);
+  assert.doesNotMatch(source, /onUpdate|GameSession|Cron/);
+});

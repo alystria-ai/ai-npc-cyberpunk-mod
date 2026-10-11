@@ -72,6 +72,7 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `mic-finish-hint` | Player | Use {key} to finish this recording. | The other chat's voice key is pressed during a recording | 10 |
 | `mic-error` | Player | Microphone unavailable. Check your Windows input device. | The recorder reports an error | 15 |
 | `mic-timeout` | Player | Microphone connection timed out. Please try again. | The recorder did not start in 35 s | 15 |
+| `mic-heard` | Player | You: {text} | While V speaks a voice message: the words Convai has recognised so far (newest 100 characters), replaced as they grow, until the reply starts | none |
 | `mic-no-speech` | Player | No speech was heard. Wait for Listening, then speak before you finish. | The recording held no speech: Convai returned no transcript or reply within 15 s of the finish | 15 |
 | `voice-fallback` | Player | {requested} is unavailable. Companions are using {voice} instead. | The chosen voice engine could not run and the bridge fell back for good (not configured, pack missing, Pocket failed, or OmniVoice's background retries ran out), once per fallback | 600 |
 | `voice-fallback` | Player | {requested} is not ready yet. Companions are using {voice} for now. | The chosen OmniVoice failed or timed out; the bridge keeps the next voice and loads OmniVoice again in the background. Once per episode. The switch back at an idle reply boundary posts nothing | 600 |

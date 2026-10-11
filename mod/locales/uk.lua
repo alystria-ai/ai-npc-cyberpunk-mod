@@ -246,6 +246,7 @@ return {
     ["No reply arrived. The conversation service may not be running."] = "Відповіді немає. Можливо, служба розмов не працює.",
     ["No reply received. Your message is in the draft; press Enter to retry."] = "Відповідь не отримано. Твоє повідомлення в чернетці; натисни Enter, щоб повторити.",
     ["No settings were supplied."] = "Налаштування не надано.",
+    ["You: {text}"] = "Ти: {text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Мовлення не почуто — зачекай, поки з’явиться «Слухаю», і говори, доки не завершиш.",
     ["None yet"] = "Поки немає",
     ["Not configured"] = "Не налаштовано",

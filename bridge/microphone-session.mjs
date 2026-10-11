@@ -89,6 +89,13 @@ export class MicrophoneSession {
       if (this.current === session) { this.current = null; await this.onState('off', session.input); }
     }
   }
+  // The words recognised so far in the open recording, or '' (read-only; touches no state).
+  async heard() {
+    const session = this.current;
+    if (!session?.opened || session.intent === 'cancel' || typeof session.host.heard !== 'function') return '';
+    try { const text = await session.host.heard(); return this.current === session && typeof text === 'string' ? text : ''; }
+    catch { return ''; }
+  }
   async cancel() {
     ++this.revision;
     await this.release();

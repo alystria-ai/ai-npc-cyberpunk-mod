@@ -3,6 +3,8 @@ local M = {}
 local MIN_RECORD_S = 0.7
 -- A reply this overdue is dropped by the next press so the player can speak again.
 local RETRY_AFTER_S = 8
+-- The words Convai has heard so far are shown at most this often (seconds).
+local HEARD_EVERY_S = 0.3
 M.clock = os.clock
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 
@@ -41,6 +43,7 @@ end
 local function clear()
     M.context, M.state, M.started, M.knowledgeOwner, M.finishPending = nil, nil, nil, nil, nil
     M.targetValid, M.recordingAt, M.finishedAt = nil, nil, nil
+    M.heardRaw, M.heardAt = nil, nil
 end
 
 function M.cancel(reason)
@@ -131,6 +134,24 @@ function M.finish(mode)
     return context
 end
 
+-- While V talks (and until the reply starts) the bridge writes what Convai's speech recognition has heard so far to
+-- runtime/microphone-heard.json. It is read on this existing poll only, parsed only when it changed, and shown as the
+-- game's notice line, so nothing runs per frame and a quiet recording costs one small file read per poll.
+local function showHeard(player)
+    local f = io.open('runtime/microphone-heard.json', 'rb')
+    if not f then return end
+    local raw = f:read('*a'); f:close()
+    if raw == M.heardRaw then return end
+    local now = M.clock()
+    if M.heardAt and now - M.heardAt < HEARD_EVERY_S then return end
+    M.heardRaw = raw
+    local ok, value = pcall(json.decode, raw)
+    if not ok or type(value) ~= 'table' or value.requestId ~= M.context.requestId
+        or type(value.text) ~= 'string' or value.text == '' then return end
+    M.heardAt = now
+    convaiNotices.send(player, 'mic-heard', ui.t('You: {text}', {text = value.text}))
+end
+
 function M.update(player)
     if not M.context then return nil end
     if not player then M.cancel(); return nil end
@@ -166,6 +187,7 @@ function M.update(player)
             end
         end
     end
+    if M.context and (M.state == 'recording' or M.state == 'reply') then showHeard(player) end
     if M.context and M.finishPending then return M.finish() end
     if M.context and M.state == 'recording' and os.time() - M.started >= 30 then return M.finish() end
     if M.context and M.state == 'starting' and os.time() - M.started >= 35 then

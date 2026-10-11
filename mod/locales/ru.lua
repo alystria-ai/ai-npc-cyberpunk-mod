@@ -170,6 +170,7 @@ return {
     ["No reply arrived. The conversation service may not be running."] = "Ответ не пришёл. Возможно, служба бесед не запущена.",
     ["No reply received. Your message is in the draft; press Enter to retry."] = "Ответ не получен. Ваше сообщение сохранено в черновике; нажмите Enter, чтобы повторить.",
     ["No settings were supplied."] = "Настройки не переданы.",
+    ["You: {text}"] = "Ты: {text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Речь не услышана — дождитесь появления «Запись», затем говорите до завершения.",
     ["Not configured"] = "Не настроено",
     ["Off"] = "Выкл.",

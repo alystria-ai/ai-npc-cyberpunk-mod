@@ -71,6 +71,21 @@ function microphoneTranscript(messages) {
   return text.slice(0, USER_TRANSCRIPT_LIMIT).replace(/[\ud800-\udbff]$/, '').trim() || undefined;
 }
 
+// What Convai's speech recognition has heard of the microphone turn so far, for the game to show while V talks:
+// the finalized segments (turn.userText) plus the segment still being recognised (turn.interim). Short, single-line,
+// and the newest words only; never anything but V's own recognised speech.
+const HEARD_LIMIT = 100;
+function heardText(current) {
+  if (!current?.microphone) return '';
+  const text = [current.userText, current.interim].filter(part => typeof part === 'string' && part).join(' ')
+    .replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+  const points = [...text];
+  if (points.length <= HEARD_LIMIT) return text;
+  const tail = points.slice(-HEARD_LIMIT).join('');
+  const space = tail.indexOf(' ');
+  return '\u2026' + (space > 0 && space < 24 ? tail.slice(space + 1) : tail);
+}
+
 // Convai ends a session whose plan quota is used up with one server message just before it closes the room
 // (usage-limit-reached; quota_type interaction or tts). 'error' is a service configuration fault, not a used-up plan.
 // The returned kind travels in the failure text so the bridge can tell this from an ordinary disconnect.
@@ -414,6 +429,9 @@ async function connect(config) {
     // The SDK marks the LLM message complete on bot-llm-stopped, separately
     // from TTS. Never infer completion from a pause between text tokens.
     turn.textComplete = llm.length > 0 && llm.every(m => m.isStreaming === false);
+  });
+  connection.on('userTranscriptionChange', text => {
+    if (currentConnection() && turn?.microphone) turn.interim = typeof text === 'string' ? text : '';
   });
   connection.on('llmNoResponse', () => { if (currentConnection() && turn) turn.error = 'Convai returned no dialogue'; });
   await connection.connect();
@@ -826,4 +844,5 @@ function readLateEmotion(token) {
 }
 
 window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close, diagnostics,
+  heard: () => heardText(turn),
   continuousSnapshot, continuousControl, lateEmotion: readLateEmotion};

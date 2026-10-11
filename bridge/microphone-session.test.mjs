@@ -246,3 +246,25 @@ test('rapid start, cancel, start leaves only the last recording and no stuck ses
   hosts.at(-1).opening.resolve(); await fourth;
   assert.equal(session.current?.requestId, 'd'); assert.equal(states.at(-1)[1], 'recording');
 });
+
+test('heard words are read from the open recording only, and never from a cancelled or replaced one', async () => {
+  const words = {text: ''};
+  const hosts = [];
+  const session = new MicrophoneSession({minRecordMs: 0,
+    hostFactory: () => { const host = {opening: deferred(), beginVoice() { return host.opening.promise; },
+      finishVoice: async () => ({text: 'ok'}), heard: async () => words.text, close: async () => {}}; hosts.push(host); return host; },
+    onState: async () => {}, onReply: async () => {}, onError: async () => {}});
+  assert.equal(await session.heard(), '', 'nothing recording');
+  const start = session.start(recording({requestId: 'a'}), configuration());
+  await setImmediate(); words.text = 'too early';
+  assert.equal(await session.heard(), '', 'the device is still opening');
+  hosts[0].opening.resolve(); await start;
+  assert.equal(await session.heard(), 'too early');
+  words.text = 'and more'; assert.equal(await session.heard(), 'and more');
+  await session.cancel();
+  assert.equal(await session.heard(), '');
+  const failing = new MicrophoneSession({minRecordMs: 0, hostFactory: () => ({beginVoice: async () => ({}),
+    heard: async () => { throw Error('page closed'); }, close: async () => {}}), onState: async () => {}, onReply: async () => {}, onError: async () => {}});
+  await failing.start(recording({requestId: 'b'}), configuration());
+  assert.equal(await failing.heard(), '', 'a failing page read never throws into the poll');
+});

@@ -69,7 +69,7 @@ json = {encode = function(value)
     serial = serial + 1; local key = tostring(serial); encoded[key] = copy(value); return key
 end, decode = function(raw) return copy(assert(encoded[raw])) end}
 io = {open = function(path, mode)
-    assert(path == 'runtime/microphone-command.json' or path == 'runtime/microphone-state.json',
+    assert(path == 'runtime/microphone-command.json' or path == 'runtime/microphone-state.json' or path == 'runtime/microphone-heard.json',
         'feedback attempted unrelated filesystem work: ' .. path)
     if mode == 'rb' then
         if not files[path] then return nil end

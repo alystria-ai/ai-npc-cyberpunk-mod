@@ -42,7 +42,7 @@
     ]
   },
   "counts": {
-    "strings": 607,
+    "strings": 608,
     "dynamicTemplates": 58,
     "contexts": 35
   },
@@ -590,6 +590,7 @@
     "You are driving. The companion trip was cancelled.": "You are driving. The companion trip was cancelled.",
     "You did not board the car, so the trip was cancelled.": "You did not board the car, so the trip was cancelled.",
     "You moved away from the car. The trip was cancelled.": "You moved away from the car. The trip was cancelled.",
+    "You: {text}": "You: {text}",
     "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development.": "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development.",
     "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.": "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.",
     "Your Convai plan has no room for conversation memory, so companions will not remember past talks.": "Your Convai plan has no room for conversation memory, so companions will not remember past talks.",
@@ -1224,7 +1225,8 @@
       "Microphone unavailable. Check your Windows input device.",
       "No speech was heard. Wait for Listening, then speak before you finish.",
       "This contact has no companion mapping yet.",
-      "Write a message..."
+      "Write a message...",
+      "You: {text}"
     ],
     "phone.native-feedback": [
       "CLOSE PHONE TO CONTINUE",
@@ -1390,6 +1392,7 @@
       "Use {key} to finish this recording.",
       "Voice: {voice}",
       "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.",
+      "You: {text}",
       "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development.",
       "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.",
       "Your Convai plan has no room for conversation memory, so companions will not remember past talks.",
@@ -2519,8 +2522,8 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:33",
-        "mod/phone-chat.lua:258",
-        "mod/phone-chat.lua:386"
+        "mod/phone-chat.lua:261",
+        "mod/phone-chat.lua:389"
       ]
     },
     "Conversation is unavailable for this contact.": {
@@ -2529,7 +2532,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:43",
-        "mod/phone-chat.lua:553"
+        "mod/phone-chat.lua:557"
       ]
     },
     "Conversation profile cleared.": {
@@ -2613,7 +2616,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:36",
-        "mod/phone-chat.lua:462"
+        "mod/phone-chat.lua:465"
       ]
     },
     "Conversations are disabled in Companion Manager.": {
@@ -2622,7 +2625,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:42",
-        "mod/phone-chat.lua:553"
+        "mod/phone-chat.lua:557"
       ]
     },
     "Conversations use": {
@@ -3346,7 +3349,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:159"
+        "mod/microphone.lua:180"
       ]
     },
     "Listening - press {key} again to finish": {
@@ -3355,7 +3358,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/microphone.lua:158"
+        "mod/microphone.lua:179"
       ]
     },
     "Load a save before inviting a companion.": {
@@ -3442,8 +3445,8 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:32",
-        "mod/phone-chat.lua:458",
-        "mod/phone-chat.lua:554"
+        "mod/phone-chat.lua:461",
+        "mod/phone-chat.lua:558"
       ]
     },
     "Memory result": {
@@ -3476,7 +3479,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:40",
-        "mod/phone-chat.lua:551"
+        "mod/phone-chat.lua:555"
       ]
     },
     "Microphone connection timed out. Please try again.": {
@@ -3485,7 +3488,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:172"
+        "mod/microphone.lua:194"
       ]
     },
     "Microphone unavailable. Check your Windows input device.": {
@@ -3494,7 +3497,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:164"
+        "mod/microphone.lua:185"
       ]
     },
     "Mod logs": {
@@ -3701,7 +3704,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:39",
-        "mod/phone-chat.lua:500"
+        "mod/phone-chat.lua:503"
       ]
     },
     "No settings were supplied.": {
@@ -3718,7 +3721,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:161"
+        "mod/microphone.lua:182"
       ]
     },
     "None yet": {
@@ -4408,8 +4411,8 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:31",
-        "mod/phone-chat.lua:452",
-        "mod/phone-chat.lua:555"
+        "mod/phone-chat.lua:455",
+        "mod/phone-chat.lua:559"
       ]
     },
     "Saved at {path}": {
@@ -5531,7 +5534,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:35",
-        "mod/phone-chat.lua:460"
+        "mod/phone-chat.lua:463"
       ]
     },
     "Type your message to the character.": {
@@ -5561,7 +5564,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:38",
-        "mod/phone-chat.lua:493"
+        "mod/phone-chat.lua:496"
       ]
     },
     "Unavailable": {
@@ -5772,7 +5775,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:37",
-        "mod/phone-chat.lua:464"
+        "mod/phone-chat.lua:467"
       ]
     },
     "Wait for your summoned car to arrive.": {
@@ -5932,7 +5935,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:41",
-        "mod/phone-chat.lua:551"
+        "mod/phone-chat.lua:555"
       ]
     },
     "Walking commands did not release in time.": {
@@ -6032,6 +6035,15 @@
       ],
       "references": [
         "mod/companion-chauffeur.lua:304"
+      ]
+    },
+    "You: {text}": {
+      "contexts": [
+        "phone.native",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/microphone.lua:152"
       ]
     },
     "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development.": {
@@ -6767,7 +6779,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/microphone.lua:158"
+        "mod/microphone.lua:179"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

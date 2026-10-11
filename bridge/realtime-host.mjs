@@ -401,7 +401,15 @@ export class RealtimeHost {
     const owner = {}, controller = new AbortController();
     return {beginVoice: config => this.beginVoice(config, {owner, signal: controller.signal}),
       finishVoice: (config, options) => this.finishVoice(owner, config, {...options, signal: controller.signal}),
+      heard: () => this.voiceHeard(owner),
       close: async () => { controller.abort(); await this.cancelVoice(owner); }};
+  }
+  // The recognised words of the running microphone turn (empty when none): one cheap read of the voice page.
+  async voiceHeard(owner = this) {
+    const lease = this.voiceLease;
+    if (!lease || lease.owner !== owner || lease.value.isClosed()) return '';
+    try { return await lease.value.evaluate(() => window.convaiRealtime.heard?.() ?? '') ?? ''; }
+    catch { return ''; }
   }
   beginVoice(config, options = {}) { return this.observe(this.beginVoiceOnce(config, options), false); }
   async beginVoiceOnce(config, {signal, owner = this} = {}) {
