@@ -2,6 +2,84 @@ module CyberpunkConvai
 
 import Codeware.UI.*
 
+// Movement-key tracker. A movement key that is released while a popup owns input
+// never reaches gameplay, so V would keep walking after the popup closes. The game
+// delivers MoveX and MoveY (keyboard A/D and W/S plus the gamepad left stick, see
+// r6/config/inputContexts.xml "MovementActions") to input listeners only when the
+// axis value changes, so this object does no work while the player stands still or
+// holds a steady direction. It stores the two latest values and nothing else.
+public class ConvaiMoveWatch {
+    private let x: Float;
+    private let y: Float;
+
+    protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsumer) -> Bool {
+        let name: CName = ListenerAction.GetName(action);
+        if Equals(name, n"MoveX") {
+            this.x = ListenerAction.GetValue(action);
+        } else {
+            if Equals(name, n"MoveY") {
+                this.y = ListenerAction.GetValue(action);
+            };
+        };
+        return false;
+    }
+
+    public final func IsHeld() -> Bool {
+        return AbsF(this.x) > 0.15 || AbsF(this.y) > 0.15;
+    }
+
+    public final func Forget() -> Void {
+        this.x = 0.0;
+        this.y = 0.0;
+    }
+}
+
+@addField(PlayerPuppet)
+private let m_convaiMoveWatch: ref<ConvaiMoveWatch>;
+
+@addMethod(PlayerPuppet)
+public final func ConvaiMoveWatchStart() -> Void {
+    if IsDefined(this.m_convaiMoveWatch) {
+        return;
+    };
+    this.m_convaiMoveWatch = new ConvaiMoveWatch();
+    this.RegisterInputListener(this.m_convaiMoveWatch, n"MoveX");
+    this.RegisterInputListener(this.m_convaiMoveWatch, n"MoveY");
+}
+
+@wrapMethod(PlayerPuppet)
+protected cb func OnGameAttached() -> Bool {
+    let result: Bool = wrappedMethod();
+    this.ConvaiMoveWatchStart();
+    return result;
+}
+
+@wrapMethod(PlayerPuppet)
+protected cb func OnDetach() -> Bool {
+    if IsDefined(this.m_convaiMoveWatch) {
+        this.UnregisterInputListener(this.m_convaiMoveWatch);
+        this.m_convaiMoveWatch = null;
+    };
+    return wrappedMethod();
+}
+
+// True while a movement axis is held away from centre, as far as the game has
+// reported. A movement key released while a menu or popup owned input is never
+// reported, so this can read held until the next movement event.
+@addMethod(PlayerPuppet)
+public final func ConvaiMoveHeld() -> Bool {
+    return IsDefined(this.m_convaiMoveWatch) && this.m_convaiMoveWatch.IsHeld();
+}
+
+// Gives up on a held reading that did not clear (an unseen key-up), so the next
+// talk request is not delayed by it.
+@addMethod(PlayerPuppet)
+public final func ConvaiMoveForget() -> Void {
+    if IsDefined(this.m_convaiMoveWatch) {
+        this.m_convaiMoveWatch.Forget();
+    };
+}
+
 // The game owns keyboard focus and the textbox. CET only asks this controller
 // to open the composer and collects the result after it closes.
 @addField(PlayerPuppet)

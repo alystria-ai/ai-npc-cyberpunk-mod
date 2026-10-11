@@ -1263,7 +1263,20 @@ local function conversationServiceBlocked(player)
     return true
 end
 
-local function beginText(groupMode)
+-- Talk box start gate. The game's popup takes the keyboard, so a movement key
+-- released while it is open is never seen by gameplay and V keeps walking after it
+-- closes (a Codeware popup cannot hand the key-up back). Composer.reds tracks the
+-- MoveX/MoveY axes from the game's own change events, so the talk key only has to ask
+-- one native bool. When a direction is held the box opens as soon as it is released,
+-- or after TALK_WAIT_MAX seconds at the latest: a talk request is never dropped.
+local TALK_WAIT_MAX = 1.5
+-- 'held', 'free', or 'n/a' when the redscript tracker is not installed.
+local function moveStateText(player)
+    local ok, held = pcall(function() return player:ConvaiMoveHeld() end)
+    if not ok or type(held) ~= 'boolean' then return 'n/a' end
+    return held and 'held' or 'free'
+end
+local function beginTextNow(groupMode, waited)
     local ok, err = pcall(function()
         local player = Game.GetPlayer()
         if not player or not gameplayCanAcquire(player) then return end
@@ -1275,6 +1288,7 @@ local function beginText(groupMode)
         local connectNote = autoConnect and not participants and autoConnect.talkNotice(key, name) or nil
         generation = generation + 1
         local speedAtOpen = playerSpeedText(player)
+        local moveAtOpen = moveStateText(player)
         if not player:ConvaiOpenComposer(name) then
             log('Native composer unavailable (check redscript and Codeware)')
             return
@@ -1309,9 +1323,44 @@ local function beginText(groupMode)
         if connectNote then convaiNotices.send(player, 'talk-connecting', connectNote) end
         pending = nil
         log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name
-            .. ' speed=' .. speedAtOpen)
+            .. ' speed=' .. speedAtOpen .. ' moveAxis=' .. moveAtOpen
+            .. (waited and string.format(' waited=%.2f', waited) or ''))
     end)
     if not ok then log('Open failed: ' .. tostring(err)) end
+end
+
+local function beginText(groupMode)
+    local player = Game.GetPlayer()
+    local gate = convaiTalkGate
+    if player and gate and moveStateText(player) == 'held' then
+        -- A second press while waiting only updates which chat was asked for.
+        local waiting = gate.waiting
+        gate.waiting = {group = groupMode, waited = waiting and waiting.waited or 0}
+        if not waiting then log('Talk box waits for the movement keys to be released') end
+        return
+    end
+    if gate then gate.waiting = nil end
+    beginTextNow(groupMode)
+end
+
+-- Called from onUpdate (a nil check per frame while nobody is waiting). Opens the
+-- box once the axes are released, when the wait runs out, or drops the request when
+-- the world is not playable any more.
+convaiTalkGate = {}
+function convaiTalkGate.update(delta, worldReady)
+    local waiting = convaiTalkGate.waiting
+    if not waiting then return end
+    if not worldReady then convaiTalkGate.waiting = nil; return end
+    local player = Game.GetPlayer()
+    if not player then convaiTalkGate.waiting = nil; return end
+    waiting.waited = waiting.waited + (tonumber(delta) or 0)
+    local stillHeld = moveStateText(player) == 'held'
+    if stillHeld and waiting.waited < TALK_WAIT_MAX then return end
+    convaiTalkGate.waiting = nil
+    -- A reading that never cleared is probably an unseen key-up: forget it so the
+    -- next talk request is not delayed by it, then open the box anyway.
+    if stillHeld then pcall(function() player:ConvaiMoveForget() end) end
+    beginTextNow(waiting.group, waiting.waited)
 end
 
 local function toggleVoice(groupMode)
@@ -2078,6 +2127,7 @@ local function abandonSession(reason,preserveTransit)
     phoneChat.abandon()
     active, pending, focusUntil, focusMode, focusEntity = nil, nil, nil, nil, nil
     pendingKnowledgeOwner = nil
+    if convaiTalkGate then convaiTalkGate.waiting = nil end
     focusedCrowd, releasedCrowd = nil, nil
     if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
     phoneCatalogReady = false
@@ -2257,6 +2307,11 @@ registerForEvent('onUpdate', function(delta)
             and not menuPlayer:ConvaiComposerOpen()
     end)
     worldReady = worldOk and worldReady
+    local talkGate = convaiTalkGate
+    if talkGate and talkGate.waiting then
+        local gateOk, gateError = pcall(talkGate.update, delta, worldReady)
+        if not gateOk then talkGate.waiting = nil; log('Talk gate failed: ' .. tostring(gateError)) end
+    end
     -- Menu updates can have zero simulation delta. Cancel recording/group work
     -- here, before the slower gameplay poll, so pause cannot submit a late turn.
     if not worldReady then gameplayActions.revoke('menu'); cancelVoice('menu') end

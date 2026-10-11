@@ -143,13 +143,14 @@ test('redscript phone popup consumes presses, passes plain key-ups, and keeps me
 
 test('the talk box and phone typing log V speed once per opening, with no per-frame work', () => {
   const init = normalize(initLua), chat = normalize(phoneChatLua);
-  assert.match(init, /local speedAtOpen = playerSpeedText\(player\)\s+if not player:ConvaiOpenComposer\(name\) then/);
-  assert.match(init, /log\('Composer opened: generation=' \.\. generation \.\. ' actor=' \.\. identity \.\. ' name=' \.\. name\s+\.\. ' speed=' \.\. speedAtOpen\)/);
+  assert.match(init, /local speedAtOpen = playerSpeedText\(player\)\s+local moveAtOpen = moveStateText\(player\)\s+if not player:ConvaiOpenComposer\(name\) then/);
+  assert.match(init, /log\('Composer opened: generation=' \.\. generation \.\. ' actor=' \.\. identity \.\. ' name=' \.\. name\s+\.\. ' speed=' \.\. speedAtOpen \.\. ' moveAxis=' \.\. moveAtOpen/);
   assert.match(init, /phoneChat\.typingOpened = function\(player, contact\)\s+log\('Phone chat typing opened: contact='/);
   // edge-triggered inside the existing 10 Hz phone tick, and only while a chat is open
   assert.match(chat, /if contact ~= '' then\s+local readable, value = pcall\(function\(\) return player:ConvaiPhoneChatTyping\(\) end\)/);
   assert.match(chat, /if typing and not M\.typingSeen and type\(M\.typingOpened\) == 'function'/);
-  // no input-flush API is verifiable for the composer close path, so none may be called
+  // no input-flush API is verifiable for the composer close path, so none may be called: the fix avoids
+  // opening the box while a movement key is down instead (see the movement tests below)
   assert.doesNotMatch(composerReds, /ReleaseAllInput|FakeReleaseButton|FakeInputRelease/);
 });
 
@@ -182,4 +183,128 @@ typingNow = true; tick(); tick(); tick(); assert(#seen == 1 and seen[1] == 'judy
 typingNow = false; tick(); typingNow = true; tick(); assert(#seen == 2)
 contact = ''; tick(); typingNow = true; tick(); assert(#seen == 2, 'a closed chat never reports')
 `);
+});
+
+test('redscript tracks only the MoveX and MoveY axes, from change events, with no per-frame work', () => {
+  const source = normalize(composerReds);
+  const watch = source.slice(source.indexOf('public class ConvaiMoveWatch'));
+  const body = watch.slice(0, watch.indexOf('\n}\n'));
+  assert.match(body, /protected cb func OnAction\(action: ListenerAction, consumer: ListenerActionConsumer\) -> Bool/);
+  assert.match(body, /Equals\(name, n"MoveX"\)[\s\S]*this\.x = ListenerAction\.GetValue\(action\)/);
+  assert.match(body, /Equals\(name, n"MoveY"\)[\s\S]*this\.y = ListenerAction\.GetValue\(action\)/);
+  // the listener never swallows an input event
+  assert.doesNotMatch(body, /Consume\(/);
+  // exactly two named registrations; a nameless registration would see every input event
+  const registrations = source.match(/RegisterInputListener\([^)]*\)/g);
+  assert.deepEqual(registrations, ['RegisterInputListener(this.m_convaiMoveWatch, n"MoveX")',
+    'RegisterInputListener(this.m_convaiMoveWatch, n"MoveY")']);
+  assert.match(source, /@wrapMethod\(PlayerPuppet\)\s+protected cb func OnGameAttached\(\) -> Bool \{\s+let result: Bool = wrappedMethod\(\);\s+this\.ConvaiMoveWatchStart\(\);/);
+  assert.match(source, /@wrapMethod\(PlayerPuppet\)\s+protected cb func OnDetach\(\) -> Bool \{\s+if IsDefined\(this\.m_convaiMoveWatch\) \{\s+this\.UnregisterInputListener\(this\.m_convaiMoveWatch\);/);
+  // no timers, polling or update hooks
+  assert.doesNotMatch(source, /DelayCallback|OnUpdate|Tick\(/);
+});
+
+// The Lua half: the talk key waits for a held movement axis and never drops the request.
+const gateSource = () => {
+  const text = normalize(initLua);
+  const start = text.indexOf('local TALK_WAIT_MAX = 1.5');
+  const end = text.indexOf('local function toggleVoice(groupMode)');
+  assert.ok(start > 0 && end > start);
+  const code = text.slice(start, end);
+  // beginTextNow itself needs the whole game adapter; the gate tests replace it with a recorder
+  const open = code.indexOf('local function beginTextNow');
+  const gate = code.indexOf('local function beginText(groupMode)');
+  assert.ok(open > 0 && gate > open);
+  return {state: code.slice(0, open), gate: code.slice(gate)};
+};
+
+const gateHarness = (held, extra = '') => `
+local logs = {}
+local function log(line) logs[#logs + 1] = line end
+local opened = {}
+local held = ${held}
+local forgotten = 0
+local player = {ConvaiMoveHeld = function() return held end, ConvaiMoveForget = function() forgotten = forgotten + 1; held = false end}
+Game = {GetPlayer = function() return player end}
+${gateSource().state}
+local function beginTextNow(groupMode, waited) opened[#opened + 1] = {group = groupMode, waited = waited} end
+${gateSource().gate}
+${extra}
+`;
+
+test('talk key opens at once when no movement axis is held, or the tracker is missing', () => {
+  runLua(gateHarness('false', `
+beginText(false)
+assert(#opened == 1 and opened[1].group == false and opened[1].waited == nil)
+assert(convaiTalkGate.waiting == nil)
+player.ConvaiMoveHeld = nil
+beginText(true)
+assert(#opened == 2 and opened[2].group == true, 'missing redscript opens immediately')
+player.ConvaiMoveHeld = function() error('no such method') end
+beginText(false)
+assert(#opened == 3, 'a failing query opens immediately')
+`));
+});
+
+test('talk key waits for the held axis to be released, then opens once', () => {
+  runLua(gateHarness('true', `
+beginText(false)
+assert(#opened == 0 and convaiTalkGate.waiting, 'held axis defers the box')
+convaiTalkGate.update(0.1, true); convaiTalkGate.update(0.1, true)
+assert(#opened == 0, 'still held and under the cap')
+held = false
+convaiTalkGate.update(0.016, true)
+assert(#opened == 1 and opened[1].group == false)
+assert(math.abs(opened[1].waited - 0.216) < 1e-9)
+assert(convaiTalkGate.waiting == nil and forgotten == 0)
+convaiTalkGate.update(0.016, true)
+assert(#opened == 1, 'opens exactly once')
+`));
+});
+
+test('talk key opens anyway at the cap, forgets the stuck reading, and the next press is not delayed', () => {
+  runLua(gateHarness('true', `
+beginText(true)
+for i = 1, 14 do convaiTalkGate.update(0.1, true) end
+assert(#opened == 0, '1.4 s is still waiting')
+convaiTalkGate.update(0.1, true)
+assert(#opened == 1 and opened[1].group == true and opened[1].waited >= 1.5)
+assert(forgotten == 1 and convaiTalkGate.waiting == nil)
+beginText(false)
+assert(#opened == 2 and opened[2].waited == nil, 'forgotten reading does not delay the next press')
+`));
+});
+
+test('a second press while waiting changes the chat asked for without restarting the wait', () => {
+  runLua(gateHarness('true', `
+beginText(false)
+convaiTalkGate.update(0.9, true)
+beginText(true)
+assert(math.abs(convaiTalkGate.waiting.waited - 0.9) < 1e-9 and convaiTalkGate.waiting.group == true)
+held = false
+convaiTalkGate.update(0.01, true)
+assert(#opened == 1 and opened[1].group == true)
+local waits = 0
+for _, line in ipairs(logs) do if line:find('waits for the movement keys', 1, true) then waits = waits + 1 end end
+assert(waits == 1, 'one log line per wait')
+`));
+});
+
+test('a waiting request is dropped when the world stops being playable', () => {
+  runLua(gateHarness('true', `
+beginText(false)
+convaiTalkGate.update(0.1, false)
+assert(convaiTalkGate.waiting == nil)
+held = false
+convaiTalkGate.update(0.1, true)
+assert(#opened == 0, 'nothing opens after the world paused')
+`));
+});
+
+test('init.lua services the gate only while a request is waiting, and clears it with the session', () => {
+  const init = normalize(initLua);
+  assert.match(init, /local talkGate = convaiTalkGate\s+if talkGate and talkGate\.waiting then\s+local gateOk, gateError = pcall\(talkGate\.update, delta, worldReady\)/);
+  assert.match(init, /pendingKnowledgeOwner = nil\s+if convaiTalkGate then convaiTalkGate\.waiting = nil end/);
+  assert.match(init, /registerHotkey\('cyberpunk_convai_text'[^\n]*beginText\(false\)/);
+  assert.match(init, /registerHotkey\('cyberpunk_convai_group_text'[^\n]*beginText\(true\)/);
 });
