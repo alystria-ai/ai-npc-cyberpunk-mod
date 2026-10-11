@@ -2370,8 +2370,8 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(row('keepPreparedVoices').type == 'bool' and row('keepPreparedVoices').value == true)
     assert(row('voice-pack').value == 'Waiting for voice service' or row('voice-pack').value == 'Installed')
     assert(row('disappearingMessages') == nil)
-    assert(row('battleReactions').type == 'bool' and row('battleReactions').value == true)
-    assert(row('lootReactions').type == 'bool' and row('lootReactions').value == true)
+    assert(row('battleReactions').type == 'bool' and row('battleReactions').value == false)
+    assert(row('lootReactions').type == 'bool' and row('lootReactions').value == false)
     -- The retired follow-up question toggle is no longer offered.
     assert(row('followUpQuestions') == nil)
     assert(registered.applyBatch('manager', {{id = 'lootReactions', value = false}}).ok)

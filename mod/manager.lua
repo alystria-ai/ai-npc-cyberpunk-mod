@@ -397,8 +397,8 @@ local function loadSettings()
     if type(settings.developerMode) ~= 'boolean' then settings.developerMode, settingsNeedSave = false, true end
     -- Off by default: conversations use the shared plan until the player turns their own Convai key on (bridge/convai-key.mjs).
     if type(settings.useOwnConvaiKey) ~= 'boolean' then settings.useOwnConvaiKey, settingsNeedSave = false, true end
-    if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end
-    if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = true, true end
+    if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = false, true end
+    if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = false, true end
     -- On by default (a missing key); an explicitly saved choice is kept.
     if type(settings.bodyGestures) ~= 'boolean' then settings.bodyGestures, settingsNeedSave = true, true end
     -- On by default (a missing key); an explicitly saved choice is kept.
