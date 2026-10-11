@@ -724,3 +724,48 @@ test('a native walk that stops beside the doorway is finished exactly at the doo
   for _,s in ipairs(sent) do if not s.navigate and s.y>5.5 then retry[#retry+1]=s end end
   assert(#retry>=2 and retry[1].gait=='Walk' and retry[2].gait=='Walk','the retry did not walk: '..#retry)
 `));
+
+// Live 2026-10-11 (probe.log 07:18Z), the normal case: V stepped into the car
+// first, and for both companions every straight leg from the doorway into the
+// car was refused by the sweep (swept blocked, then lift-board-walk-failed
+// twice, the retry's door leg stopping 0.4 m short), so neither walked in while
+// V watched. The refusal came from the door frame brushing the 0.8 m wide body
+// box when she stood a little off the doorway line; a slimmer body fits.
+test('a leg into the car that only the full body box refuses is walked with a slimmer body, no placement',()=>run(world+car+`
+  -- Door posts: a gap of 0.8 m at the car's open side.
+  walls[#walls+1]={-1.2,6.8,-.4,6.8}
+  walls[#walls+1]={.4,6.8,1.2,6.8}
+  walls[#walls+1]={-8,-1,8,-1}
+  local plain=npc.ai.onSend
+  local short=0
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AIMoveToCommand' then
+      local t=cmd.movementTarget.position
+      -- Every walk to the doorway ends 0.45 m beside it, as in the log.
+      if t.y<6.6 and short<3 then
+        short=short+1
+        npc.pos=Vector4.new(t.x-.45,t.y,npc.pos.z)
+        cmd.kind='AIMoveToCommandIgnored'
+      end
+    end
+    return plain(cmd)
+  end
+  npc.pos=Vector4.new(-5,-6,0)
+  enterCar(); play(30)
+  assert(short>=1,'no walk to the doorway was cut short'..dump())
+  assert(logged('lift-boarded'),'she never walked into the car'..dump())
+  assert(#teleports==0,'she was placed instead of walking in'..dump())
+  assert(inCar(npc.pos.x,npc.pos.y),'she is not in the car'..dump())
+`));
+
+test('a leg into the car that every body size refuses still ends in the placement, and logs what blocked it',()=>run(world+car+`
+  walls[#walls+1]={-1.2,6.8,1.2,6.8} -- the doors are shut
+  walls[#walls+1]={-8,-1,8,-1}
+  npc.pos=Vector4.new(-5,-6,0)
+  enterCar(); play(12)
+  assert(#teleports==0,'she was teleported while V watched the doors'..dump())
+  local boarding
+  for _,l in ipairs(logs) do if l.kind=='lift-boarding' and l.fields.swept then boarding=l.fields end end
+  assert(boarding and boarding.swept=='blocked','the refusal was not logged'..dump())
+  assert(boarding.blocked and boarding.blocked.by,'what blocked the leg was not logged')
+`));

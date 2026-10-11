@@ -1555,6 +1555,28 @@ local function carAboard(entry,flat)
         and space.distance(found.point,entry.position)<=.35
     return not onNavmesh
 end
+-- The sweep of a straight leg into a car. Live 2026-10-11 (probe.log 07:18Z):
+-- every leg from the doorway into the car was refused ("blocked") by the
+-- 0.8 m wide, 2.2 m tall body box, also from 0.4 m beside V's own doorway
+-- foothold, so she never walked in while V watched. The refusal is retried
+-- with a slimmer body (a door frame and lintel are close to a body); the
+-- rejection that stands is logged. Returns clear, deferred, tag, rejection.
+local slimBody={radius=.25,height=1.9}
+local function boardSweep(entry,from,to)
+    local clear,_,deferred,rejection=clearance.segment(from,to,entry.clearance)
+    if deferred then return nil,true end
+    if clear then return true,nil,'clear' end
+    local slim,_,slimDeferred=clearance.segment(from,to,slimBody)
+    if slimDeferred then return nil,true end
+    if slim then return true,nil,'slim',rejection end
+    return false,nil,'blocked',rejection
+end
+local function blockedBy(rejection)
+    if not rejection then return nil end
+    local center=rejection.center
+    return {by=rejection.group or rejection.geometryType,box=rejection.box,
+        hit=center and {x=rounded(center.x),y=rounded(center.y),z=rounded(center.z)} or nil}
+end
 local function liftPassage(entry,player,v,rise,flat)
     local s=passageState
     local inside=s.inCar
@@ -1573,8 +1595,9 @@ local function liftPassage(entry,player,v,rise,flat)
         local valid=walk.purpose~='board' or (inside and walk.visit==s.insideSince and not s.riding)
         if reached and walk.next and valid then
             -- The doorway reached on the navmesh: the straight leg into the car.
-            local clear,_,deferred=clearance.segment(entry.position,walk.next,entry.clearance)
+            local clear,deferred,_,rejection=boardSweep(entry,entry.position,walk.next)
             if deferred then return true end
+            if not clear then walk.blocked=blockedBy(rejection) end
             if clear then
                 local leg={purpose='board',target=walk.next,visit=walk.visit,final=true,gait=walk.gait}
                 local sent=walkLeg(entry,leg,entry.position)
@@ -1596,7 +1619,7 @@ local function liftPassage(entry,player,v,rise,flat)
                 if not valid then return false end
                 local spot=walk.spot or walk.next or walk.target
                 note(entry,'lift-board-walk-failed',{walk=rounded(gap),navigate=walk.navigate==true,
-                    retry=walk.retry==true})
+                    retry=walk.retry==true,blocked=walk.blocked})
                 -- One retry by another approach: straight (navmesh off) to the
                 -- doorway V used, then straight in; or straight in from here.
                 if not walk.retry then
@@ -1630,7 +1653,7 @@ local function liftPassage(entry,player,v,rise,flat)
         if not (inside and retry.visit==s.insideSince and not s.riding) then entry.carRetry=nil; return false end
         while retry.legs[retry.index] do
             local leg=retry.legs[retry.index]
-            local clear,_,deferred=clearance.segment(entry.position,leg.target,entry.clearance)
+            local clear,deferred=boardSweep(entry,entry.position,leg.target)
             if deferred then return true end
             if clear then
                 local sent=walkLeg(entry,leg,entry.position)
@@ -1696,13 +1719,13 @@ local function liftPassage(entry,player,v,rise,flat)
             entry.boardedVisit=search.visit
             local gap=space.ground(entry.position,spot)
             if not search.swept then
-                local clear,_,deferred=clearance.segment(entry.position,spot,entry.clearance)
+                local _,deferred,tag,rejection=boardSweep(entry,entry.position,spot)
                 if deferred then return true end
-                search.swept=clear and 'clear' or 'blocked'
+                search.swept,search.blocked=tag,blockedBy(rejection)
             end
             -- Straight in, or the native route to the doorway V used first.
             local leg
-            if search.swept=='clear' and gap<=separation.carWalk then
+            if search.swept~='blocked' and gap<=separation.carWalk then
                 leg={purpose='board',target=space.copy(spot),visit=search.visit,final=true}
             elseif entry.carDoor and space.ground(entry.position,entry.carDoor)<=separation.carDoorReach then
                 leg={purpose='board',target=entry.carDoor,navigate=true,next=space.copy(spot),
@@ -1714,11 +1737,12 @@ local function liftPassage(entry,player,v,rise,flat)
                 if sent then
                     entry.carSearch,entry.carWalk=nil,leg
                     note(entry,'lift-boarding',{how=leg.navigate and 'door-then-walk' or 'walk',
-                        walk=rounded(gap),swept=search.swept})
+                        walk=rounded(gap),swept=search.swept,blocked=search.blocked})
                     return true
                 end
             end
-            note(entry,'lift-boarding',{how='unseen-teleport',walk=rounded(gap),swept=search.swept})
+            note(entry,'lift-boarding',{how='unseen-teleport',walk=rounded(gap),swept=search.swept,
+                blocked=search.blocked})
             entry.carSearch={visit=search.visit,mode='hidden',spot=spot}
             return false
         end
