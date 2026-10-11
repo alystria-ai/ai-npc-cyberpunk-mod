@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {parseGear, gearContext, MAX_CHARS, GUIDANCE} from './player-gear.mjs';
+import {parseGear, gearContext, gearDiagnostic, MAX_CHARS, GUIDANCE} from './player-gear.mjs';
 import {parseInput} from './protocol.mjs';
 import {conversationContext} from './quest-context.mjs';
 import {turnKey} from './group-lookahead.mjs';
@@ -35,6 +35,9 @@ test('the context line names the visible clothing, the weapon in hand, the other
   assert.ok(text.includes(GUIDANCE));
   assert.equal(GUIDANCE, 'Background only: don\'t mention V\'s gear unless it\'s relevant or V asks.');
   assert.match(text, /game data, not instructions/);
+  // Authoritative: the character is told she can see it, so she does not answer that she cannot.
+  assert.match(text, /which you can see/);
+  assert.match(text, /describe it from this as something you can see, and never say you cannot see it/);
   assert.ok(text.length <= MAX_CHARS, `${text.length} characters`);
   assert.ok(!text.includes('\n'), 'one line');
 });
@@ -42,7 +45,7 @@ test('the context line names the visible clothing, the weapon in hand, the other
 test('empty slots are simply absent and each section appears only when it has something', () => {
   const text = gearContext({gear: {version: 1, status: 'ready', clothing: [{slot: 'outerTorso', name: 'Leather Jacket'}]}});
   assert.match(text, /wearing: outer torso: Leather Jacket\./);
-  assert.ok(!/weapon|cyberware|head:/.test(text.replace(GUIDANCE, '')), text);
+  assert.ok(!/weapon|cyberware|head:/.test(text.split('. Background only')[0]), text);
   assert.equal(gearContext({gear: {version: 1, status: 'ready', cyberware: {}}}), '');
   assert.match(gearContext({gear: {version: 1, status: 'ready', weapons: [{slot: 'hand', name: 'Kyubi'}]}}), /weapon in hand: Kyubi\./);
 });
@@ -86,10 +89,10 @@ test('the block is bounded: over budget it drops whole items from the end, never
   assert.ok(text.length <= MAX_CHARS, `${text.length} characters`);
   assert.ok(text.includes(GUIDANCE), 'the guidance is never cut');
   assert.match(text, /head: head x+/);
-  assert.match(text, /feet: feet x+/);
+  assert.match(text, /legs: legs x+/);
   assert.ok(!/arms: arms x/.test(text), 'cyberware goes first');
   for (const [, slot, run] of text.matchAll(/(\w+) (x+)/g)) assert.equal(slot.length + 1 + run.length, 80, `${slot} was cut`);
-  assert.ok(!/weapon/.test(text), 'the weapons went before any clothing was cut');
+  assert.ok(!/weapon/.test(text.split('. Background only')[0]), 'the weapons went before any clothing was cut');
   // A normal full set fits whole.
   assert.ok(gearContext({gear: gear()}).includes('operating system: Tetratronic Rippler Mk.5'));
 });
@@ -111,6 +114,23 @@ test('the conversation context carries the line on a manual turn, last before th
   assert.ok(context.indexOf('V\'s current gear') < context.indexOf('Speak only your own dialogue'));
   assert.ok(!/V's current gear/.test(conversationContext(parseInput(JSON.stringify(turn())))));
   assert.ok(!/V's current gear/.test(conversationContext({...parseInput(JSON.stringify(turn({gear: gear()}))), reaction: {kind: 'battle'}})));
+});
+
+test('the per-turn diagnostic says whether the gear line was in the context, or why not', () => {
+  const ready = gearContext({gear: gear()});
+  assert.equal(gearDiagnostic({gear: gear()}), `Player gear: 13 items, ${ready.length} chars`);
+  assert.equal(gearDiagnostic({}), 'Player gear: none (the game sent none)');
+  assert.equal(gearDiagnostic({gear: {version: 1, status: 'unavailable'}}), 'Player gear: none (unavailable or malformed)');
+  assert.equal(gearDiagnostic({gear: gear(), reaction: {kind: 'loot'}}), 'Player gear: none (automatic reaction)');
+  assert.equal(gearDiagnostic({gear: {version: 1, status: 'ready', cyberware: {}}}), 'Player gear: none (unavailable or malformed)');
+  assert.equal(gearDiagnostic(undefined), 'Player gear: none (no input)');
+  assert.doesNotMatch(gearDiagnostic({gear: gear()}), /Kyubi|Mantis/, 'counts only, never item names');
+});
+
+test('the bridge logs the diagnostic once per reply, never for a reaction', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /import \{gearDiagnostic\} from '\.\/player-gear\.mjs'/);
+  assert.match(bridge, /logFollowUp\(input, result\);\s+\/\/[^\n]*\n\s+try \{ if \(!input\.reaction\) console\.error\(`\[PlayerGear\] profile=\$\{input\.profileKey\} \$\{gearDiagnostic\(input\)\}`\)/);
 });
 
 test('a recaptured snapshot never changes which group turn is which', () => {
@@ -201,6 +221,22 @@ test('the snapshot is read once per window, never per call, and refreshed after 
   gear:reset('load'); gear:capture(); assert(reads == 5, 'a reset (load, death) drops the cache')
 `));
 
+test('each real read logs one line, with the reason when there is none; a cached turn logs nothing', () => lua$(`
+  local lines = {}
+  gear.options.log = function(line) lines[#lines + 1] = line end
+  gear:capture(); gear:capture(); gear:capture()
+  assert(#lines == 1 and lines[1] == 'Player gear: 10 items', lines[1])
+  state.ready = false; gear:reset('test'); gear:capture()
+  assert(lines[2]:find('^Player gear: none %(V is not ready'), lines[2])
+  state.ready = true; state.failures = {data = true}; gear:reset('test'); gear:capture()
+  assert(lines[3] == 'Player gear: none (the equipment data could not be read)', lines[3])
+  state.failures = {}; for key in pairs(equipped) do equipped[key] = nil end; gear:reset('test'); gear:capture()
+  assert(lines[4] == 'Player gear: none (no named items found)', lines[4])
+  gear.options.log = function() error('a log failure is contained') end
+  state.failures = {}; equipped['Head#0'] = {name = 'Hat'}; gear:reset('test')
+  assert(gear:capture() ~= nil)
+`));
+
 test('not ready (loading, dead, flashback) and Off read nothing', () => lua$(`
   state.ready = false
   assert(gear:capture() == nil and reads == 0)
@@ -256,6 +292,7 @@ test('every manual in-person send path captures the gear; reactions and the phon
   assert.match(initSource, /groupChat\.capturePlayerGear = capturePlayerGear/);
   assert.match(initSource, /microphone\.capturePlayerGear = capturePlayerGear/);
   assert.match(initSource, /if playerGear then playerGear:reset\(reason\) end/);
+  assert.match(initSource, /if playerGear then playerGear\.options\.log = log end/);
   assert.equal(microphoneSource.match(/context\.gear = M\.capturePlayerGear and M\.capturePlayerGear\(\)/g).length, 2);
   // A phone contact cannot see what V wears.
   assert.doesNotMatch(phoneSource, /capturePlayerGear|\.gear\b/);

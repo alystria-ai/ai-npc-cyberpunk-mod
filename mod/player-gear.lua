@@ -61,7 +61,7 @@ end
 local Instance = {}
 Instance.__index = Instance
 
--- options: now() (seconds), enabled(), native (adapter override).
+-- options: now() (seconds), enabled(), log(line) (one line per real read, never per frame), native (adapter override).
 function M.new(options)
     options = options or {}
     return setmetatable({options = options, native = options.native or nativeAdapter(), snapshot = nil, at = nil}, Instance)
@@ -93,9 +93,9 @@ end
 function Instance:read()
     local N = self.native
     local player = call(N.player)
-    if not player or not call(N.ready, player) then return nil end
+    if not player or not call(N.ready, player) then return nil, 'V is not ready (loading, dead or in a flashback)' end
     local data = call(N.data, player)
-    if data == nil then return nil end
+    if data == nil then return nil, 'the equipment data could not be read' end
     local snapshot, count = {version = 1, status = 'ready'}, 0
     local function add(list, slot, name)
         if not name then return end
@@ -123,8 +123,8 @@ function Instance:read()
         local area = call(N.area, row[2])
         if area ~= nil then add('cyberware', row[1], self:itemName(call(N.equipped, data, area, 0), player)) end
     end
-    if count == 0 then return nil end
-    return snapshot
+    if count == 0 then return nil, 'no named items found' end
+    return snapshot, count
 end
 
 -- The snapshot for this turn, or nil. Reused for MAX_AGE seconds so a burst of turns (a group round, a prefetch,
@@ -136,7 +136,12 @@ function Instance:capture()
     end
     local now = self:now()
     if self.snapshot and self.at and now >= self.at and now - self.at < M.MAX_AGE then return self.snapshot end
-    local ok, snapshot = pcall(self.read, self)
+    local ok, snapshot, detail = pcall(self.read, self)
+    -- One diagnostic line per real read (a turn, at most once per window), so a test shows what the adapter built.
+    if type(self.options.log) == 'function' then
+        pcall(self.options.log, (ok and snapshot) and ('Player gear: ' .. tostring(detail) .. ' items')
+            or ('Player gear: none (' .. tostring(ok and detail or snapshot):sub(1, 160) .. ')'))
+    end
     if not ok or not snapshot then self.snapshot, self.at = nil, nil; return nil end
     self.snapshot, self.at = snapshot, now
     return snapshot

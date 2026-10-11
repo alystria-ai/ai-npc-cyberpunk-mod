@@ -581,6 +581,8 @@ local function log(line)
     end
     print('[CyberpunkConvai] ' .. line)
 end
+-- V's gear: one line per real read (bridge/player-gear.mjs logs the other half per reply), so a test shows what was built.
+if playerGear then playerGear.options.log = log end
 -- Doors, lifts, fast travel and stranded followers: one line per recovery
 -- decision (companions.lua note(), throttled per kind; never per frame).
 companions.recoveryLog = function(kind, fields)
