@@ -266,15 +266,18 @@ end
 -- Live 2026-10-11 (Alt): a teleport made inside attachFollower is undone, because the AI role and `ai:OnAttach()` that
 -- follow it put the copy back on the navmesh; she stayed at 49.50 for six seconds, then settled by herself when she
 -- first turned. So the lowering runs a moment after attach (settleOnFloor), once the AI is set up.
--- The Static floor 5-35 cm below a point, or nil. false when the frame's budget is spent. One ray.
-local function floorBelow(at)
+-- The Static floor 5 cm to maxDrop (default 35 cm) below a point, or nil. false when the frame's budget is spent. One ray.
+-- A spot the placement search returns is the navmesh point plus 10 cm, so a navmesh that stands 30 cm over the floor
+-- leaves the floor 40 cm below it: those callers pass placeDrop.
+local placeDrop = .45
+local function floorBelow(at, maxDrop)
     if not clearance.take(1) then return false end
     local ok, floor = pcall(function()
         local hit, trace = Game.GetSpatialQueriesSystem():SyncRaycastByCollisionGroup(
             Vector4.new(at.x, at.y, at.z + .6, 1), Vector4.new(at.x, at.y, at.z - .8, 1), CName.new('Static'), false, false)
         if hit ~= true or not trace or not trace.position then return nil end
         local drop = at.z - trace.position.z
-        if drop < .05 or drop > .35 then return nil end
+        if drop < .05 or drop > (maxDrop or .35) then return nil end
         return trace.position.z
     end)
     if not ok then return nil end
@@ -423,7 +426,7 @@ local function spawnCopy(key, invitation, returning)
     elseif spawnAppearance then spec.appearanceName = CName.new(spawnAppearance) end
     -- The navmesh stands up to 30 cm above the real floor in some interiors; the AI undoes any later transform
     -- teleport, so a fresh copy is created on the floor itself when one ray finds it just below the navmesh point.
-    local floorZ=floorBelow(spawnPosition)
+    local floorZ=floorBelow(spawnPosition, placeDrop)
     if floorZ==false then return nil,nil,true end
     spec.position = floorZ and Vector4.new(spawnPosition.x,spawnPosition.y,floorZ,1) or spawnPosition
     spec.orientation = adoption and adoption.orientation or player:GetWorldOrientation()
@@ -1481,6 +1484,21 @@ local function relocate(entry,player,rule,watched,lift)
         if index<#plans then entry.placementPlan=index+1; return nil end
         entry.placementPlan=nil
         return false,reason or 'no-spot'
+    end
+    -- The same floor correction as a fresh copy: the spot is the navmesh height plus 10 cm, and an AI-driven copy stays at
+    -- the height she is put at until she first walks (live 2026-10-11: relocated to 49.50 over a 49.20 floor, she stayed
+    -- there for 10 s, and a stance played meanwhile floated her and dropped her at the exit). A lift car floor is not
+    -- Static ground, so lift-board keeps the spot. If this frame's ray budget is spent, retry the same plan twice, then
+    -- place her as found.
+    if rule~='lift-board' then
+        local floorZ=floorBelow(target,placeDrop)
+        if floorZ==false and (entry.floorWaits or 0)<2 then
+            entry.floorWaits=(entry.floorWaits or 0)+1
+            entry.placementPlan=index
+            return nil
+        end
+        entry.floorWaits=nil
+        if floorZ then target=Vector4.new(target.x,target.y,floorZ,1) end
     end
     entry.placementPlan=nil
     local angles=Quaternion.ToEulerAngles(player:GetWorldOrientation())

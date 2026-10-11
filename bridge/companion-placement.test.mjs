@@ -143,6 +143,28 @@ test('a fresh copy is created on the floor when a ray finds it 30 cm under the n
   assert(navZ and math.abs(npc.spec.position.z-(navZ-.3))<1e-6,'created 30 cm below the navmesh point, on the floor: '..tostring(npc.spec.position.z))
 `));
 
+test('a fresh copy is created on the floor when the navmesh stands 30 cm over it (the spot is the navmesh point plus 10 cm)',()=>run(`${companionEngine}
+  local navZ
+  Game.GetSpatialQueriesSystem=function() return {Overlap=function() return false,{} end,
+    SyncRaycastByCollisionGroup=function(_,from,to,group)
+      navZ=navZ or from.z-.6
+      return true,{position=Vector4.new(from.x,from.y,from.z-.6-.4,1)}
+    end} end
+  assert(companions.spawn('judy-alvarez'))
+  assert(math.abs(entities[1].spec.position.z-(navZ-.4))<1e-6,'created 40 cm under the spot, on the floor: '..tostring(entities[1].spec.position.z))
+`));
+
+test('a floor more than 45 cm under the spot is not the floor: the copy is created at the spot',()=>run(`${companionEngine}
+  local spotZ
+  Game.GetSpatialQueriesSystem=function() return {Overlap=function() return false,{} end,
+    SyncRaycastByCollisionGroup=function(_,from)
+      spotZ=spotZ or from.z-.6
+      return true,{position=Vector4.new(from.x,from.y,from.z-.6-.5,1)}
+    end} end
+  assert(companions.spawn('judy-alvarez'))
+  assert(math.abs(entities[1].spec.position.z-spotZ)<1e-6,'left at the spot: '..tostring(entities[1].spec.position.z))
+`));
+
 test('a copy the engine puts back on the navmesh is lowered by an owned AI teleport, held for it, and re-checked once',()=>run(`${companionEngine}
   assert(companions.spawn('judy-alvarez'))
   local npc=entities[1]

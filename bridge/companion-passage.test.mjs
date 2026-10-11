@@ -264,6 +264,33 @@ test('a fast-travel placement that keeps failing hands the copy back, and it sti
   assert(math.sqrt((spot.x-400)^2+spot.y^2)<7,'the copy did not rejoin near V')
 `));
 
+test('a relocation puts her on the Static floor under the spot, not at the navmesh height plus 10 cm',()=>run(world+`
+  local base=Game.GetSpatialQueriesSystem()
+  local floors={}
+  -- The navmesh stands 30 cm over the real floor here (V's apartment: navmesh 49.5, floor 49.2).
+  Game.GetSpatialQueriesSystem=function() return {Overlap=base.Overlap,
+    SyncRaycastByCollisionGroup=function(_,from,to,group)
+      if group=='Static' and from.x==to.x and from.y==to.y then
+        local z=from.z-.6-.4
+        floors[#floors+1]=z
+        return true,{position=Vector4.new(from.x,from.y,z,1)}
+      end
+      return false,{}
+    end} end
+  player.pos=Vector4.new(0,10,6); player.forward=Vector4.new(0,1)
+  play(24,0)
+  assert(logged('relocated','floor-change'),'no relocation'..dump())
+  assert(#teleports>=1 and #floors>=1,'no teleport or no floor ray'..dump())
+  assert(math.abs(teleports[1].spot.z-floors[1])<1e-6,'she was sent to the navmesh height, not the floor: '..teleports[1].spot.z..' vs '..floors[1])
+`));
+
+test('a relocation keeps the navmesh spot when no Static floor is found under it',()=>run(world+`
+  player.pos=Vector4.new(0,10,6); player.forward=Vector4.new(0,1)
+  play(24,0)
+  assert(logged('relocated','floor-change'),'no relocation'..dump())
+  assert(math.abs(teleports[1].spot.z-(6+.1))<.2,'no floor found: the navmesh spot stands: '..teleports[1].spot.z)
+`));
+
 // Recorded case 2026-10-08 (CityCenter, probe.log 08:16-08:18Z): V stood in a
 // stopped lift car whose floor carries no navmesh; the nearest walkable ground
 // was the doorway 2.8 m from V. Judy's routes were refused ('navigation') and
