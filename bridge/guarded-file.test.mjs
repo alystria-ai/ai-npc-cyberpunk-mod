@@ -245,31 +245,31 @@ test('cancellation after a failed rename skips the retry delay', async t => {
 });
 
 for (const code of ['EPERM', 'EACCES', 'EBUSY']) {
-  test(`${code} permits five total rename attempts before a successful replacement`, async t => {
+  test(`${code} permits six total rename attempts before a successful replacement`, async t => {
     const {directory, output} = await fixture(t);
     let attempts = 0, delays = 0;
     assert.equal(await atomicFile(output, 'fresh', {
       files: {rename: (...args) => {
-        if (++attempts < 5) throw failure(code);
+        if (++attempts < 6) throw failure(code);
         renameSync(...args);
       }},
       retryDelay: async () => { delays++; },
     }), true);
-    assert.equal(attempts, 5);
-    assert.equal(delays, 4);
+    assert.equal(attempts, 6);
+    assert.equal(delays, 5);
     await onlyOutput(directory, output, 'fresh');
   });
 }
 
-test('five failed rename attempts preserve the output and clean the owned temporary file', async t => {
+test('six failed rename attempts preserve the output and clean the owned temporary file', async t => {
   const {directory, output} = await fixture(t);
   let attempts = 0, delays = 0;
   await assert.rejects(atomicFile(output, 'stale', {
     files: {rename: async () => { attempts++; throw failure('EPERM'); }},
     retryDelay: async () => { delays++; },
   }), {code: 'EPERM'});
-  assert.equal(attempts, 5);
-  assert.equal(delays, 4);
+  assert.equal(attempts, 6);
+  assert.equal(delays, 5);
   await onlyOutput(directory, output, 'original');
 });
 
@@ -317,4 +317,43 @@ test('an exclusive-open collision cannot remove a foreign temporary file', async
   assert.equal(await fs.readFile(output, 'utf8'), 'original');
   assert.equal(await fs.readFile(foreign, 'utf8'), 'foreign');
   assert.equal((await fs.readdir(directory)).length, 2);
+});
+
+test('a rename that fails with EPERM twice then succeeds replaces the output and leaves no temporary file', async t => {
+  const {directory, output} = await fixture(t);
+  let attempts = 0;
+  assert.equal(await atomicFile(output, 'fresh', {
+    files: {rename: (...args) => {
+      if (++attempts <= 2) throw failure('EPERM');
+      renameSync(...args);
+    }},
+  }), true);
+  assert.equal(attempts, 3);
+  await onlyOutput(directory, output, 'fresh');
+});
+
+test('the default backoff outlasts a short lock and stays under about 400 ms in total', async t => {
+  const {directory, output} = await fixture(t);
+  let attempts = 0;
+  const started = Date.now();
+  await assert.rejects(atomicFile(output, 'stale', {
+    files: {rename: () => { attempts++; throw failure('EBUSY'); }},
+  }), {code: 'EBUSY'});
+  const elapsed = Date.now() - started;
+  assert.equal(attempts, 6);
+  assert.ok(elapsed >= 250 && elapsed < 1500, `backoff took ${elapsed} ms`);
+  await onlyOutput(directory, output, 'original');
+});
+
+test('a rename that always fails keeps the old file, removes the temporary file and reports each error', async t => {
+  const {directory, output} = await fixture(t);
+  const failures = [];
+  for (let round = 0; round < 3; round++) {
+    await atomicFile(output, 'stale', {
+      files: {rename: () => { throw failure('EACCES'); }},
+      retryDelay: 0,
+    }).catch(error => failures.push(error.code));
+  }
+  assert.deepEqual(failures, ['EACCES', 'EACCES', 'EACCES']);
+  await onlyOutput(directory, output, 'original');
 });

@@ -4,11 +4,19 @@ import {randomUUID} from 'node:crypto';
 
 const defaultFiles = {open, rename: renameSync, rm};
 const retryable = new Set(['EPERM', 'EACCES', 'EBUSY']);
+// Windows refuses to rename over a file another process (the game's Lua reader, an
+// indexer, antivirus) has open at that instant. Six tries with this backoff wait
+// about 300 ms in total, which outlasts those short-lived handles.
+const RENAME_ATTEMPTS = 6;
+const RENAME_BACKOFF_MS = [10, 20, 40, 80, 150];
 
-// files may override individual fs methods; retryDelay may be milliseconds or an
-// async delay hook. isCurrentSync must return true to authorize the final commit.
+// files may override individual fs methods; retryDelay may be milliseconds (fixed) or an
+// async delay hook called with the failed attempt index; the default is a short backoff.
+// A rename that keeps failing throws after the previous file is left intact and the
+// temporary file is removed; callers on a poll loop must catch that.
+// isCurrentSync must return true to authorize the final commit.
 // The default rename commits in the same JS turn as that synchronous guard.
-export async function atomicFile(path, data, {signal, isCurrent, isCurrentSync, files, retryDelay = 20} = {}) {
+export async function atomicFile(path, data, {signal, isCurrent, isCurrentSync, files, retryDelay} = {}) {
   const io = {...defaultFiles, ...files};
   const current = async () => {
     if (signal?.aborted) return false;
@@ -28,7 +36,7 @@ export async function atomicFile(path, data, {signal, isCurrent, isCurrentSync, 
     await handle.close();
     handle = undefined;
 
-    for (let attempt = 0; attempt < 5; attempt++) {
+    for (let attempt = 0; attempt < RENAME_ATTEMPTS; attempt++) {
       // This is also the check after close or a retry delay.
       if (!await current() || signal?.aborted) return false;
       if (isCurrentSync && isCurrentSync() !== true) return false;
@@ -41,14 +49,14 @@ export async function atomicFile(path, data, {signal, isCurrent, isCurrentSync, 
         committed = true;
         return true;
       } catch (error) {
-        if (attempt === 4 || !retryable.has(error.code)) throw error;
+        if (attempt === RENAME_ATTEMPTS - 1 || !retryable.has(error.code)) throw error;
         if (!await current() || signal?.aborted) return false;
-        if (typeof retryDelay === 'function') await retryDelay();
-        else await new Promise(done => setTimeout(done, retryDelay));
+        if (typeof retryDelay === 'function') await retryDelay(attempt);
+        else await new Promise(done => setTimeout(done, retryDelay ?? RENAME_BACKOFF_MS[attempt]));
       }
     }
   } finally {
     if (handle) await handle.close().catch(() => {});
-    if (owned && !committed) await io.rm(temp, {force: true}).catch(() => {});
+    if (owned && !committed) await io.rm(temp, {force: true, maxRetries: 3, retryDelay: 25}).catch(() => {});
   }
 }

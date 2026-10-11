@@ -566,3 +566,28 @@ test('publication carries a synchronous owner fence so cancelled receipts cannot
   gate.resolve(); await publishing; assert.deepEqual(committed, []);
   await f.invitations.poll(); assert.deepEqual(committed[0].invitations, []);
 });
+
+test('a failed state-file write never rejects the poll, keeps stage progress and the next poll writes again', async t => {
+  const f = fixture(t); f.ingest([ticket()]); await until(() => f.invitations.snapshot().invitations[0].state === 'ready');
+  const writes = [];
+  let failing = true;
+  f.invitations.publish = async (value, options) => {
+    writes.push(value);
+    if (failing) throw Object.assign(Error('EPERM: operation not permitted, rename'), {code: 'EPERM'});
+    return options.isCurrentSync();
+  };
+  const first = await f.invitations.poll();
+  assert.equal(first.invitations[0].state, 'ready');
+  const second = await f.invitations.poll();
+  assert.equal(second.invitations[0].state, 'ready');
+  assert.equal(writes.length, 2);
+  assert.equal(f.invitations.diagnostic().publishFailures, 2);
+  assert.equal(f.invitations.diagnostic().lastPublishError, 'EPERM');
+  // A synchronous throw from the writer is contained the same way.
+  f.invitations.publish = () => { throw Object.assign(Error('EBUSY'), {code: 'EBUSY'}); };
+  await f.invitations.poll(); await f.invitations.clear('cleared');
+  failing = false;
+  f.invitations.publish = async (value, options) => { writes.push(value); return options.isCurrentSync(); };
+  await f.invitations.poll();
+  assert.equal(writes.at(-1).invitations.length, 0);
+});

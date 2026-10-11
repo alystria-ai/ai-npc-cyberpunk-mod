@@ -359,7 +359,14 @@ export class CompanionInvitations {
           ...(state === 'error' ? {error, ...(lane?.errorCode ? {errorCode: lane.errorCode, errorStage: lane.stage} : {})} : {})};
       }) : []};
   }
-  publishSnapshot(value) {
+  // The game-facing state file can be briefly locked by a reader on Windows. A failed write
+  // keeps the previous file, reports false, and never rejects: the poll loop must go on
+  // (it also drives the other bridge work) and the next poll writes the fresh snapshot.
+  async publishSnapshot(value) {
+    try { return await this.writeSnapshot(value); }
+    catch (error) { this.publishFailures = (this.publishFailures ?? 0) + 1; this.lastPublishError = error?.code ?? 'WRITE_FAILED'; return false; }
+  }
+  writeSnapshot(value) {
     this.publication?.abort();
     const controller = new AbortController(), version = this.version;
     this.publication = controller;
@@ -377,7 +384,8 @@ export class CompanionInvitations {
     return value;
   }
   diagnostic() {
-    return {updated: this.now(), lastClear: this.lastClear, stopped: this.stopped, reservations: this.reservations.length,
+    return {updated: this.now(), lastClear: this.lastClear, stopped: this.stopped,
+      publishFailures: this.publishFailures ?? 0, lastPublishError: this.lastPublishError, reservations: this.reservations.length,
       invitations: [...this.rows.values()].map(row => {
         const lane = row.lane;
         return {id: row.id, revision: row.revision, state: this.snapshot().invitations.find(value => value.id === row.id)?.state ?? 'error',
