@@ -232,7 +232,7 @@ test('every reply path removes emotion tags: display, history, voice text, Omni 
 
 test('the bridge passes every reply through the cleaner, and the game\'s subtitle code strips the same names', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.equal(bridge.match(/transformReply: cleanReply/g).length, 2, 'the conversation host and the phone host');
+  assert.equal(bridge.match(/transformReply: cleanReply/g).length, 3, 'the conversation host, the phone host and the Mistral route');
   assert.match(bridge, /const cleanReply = result => expressiveEmotions\.process\(naturalSpeech\.process\(result\)\)/);
   const subtitles = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
   for (const name of EMOTION_NAMES) assert.ok(subtitles.includes(`'${name}'`), `mod/subtitles.lua strips {${name}}`);

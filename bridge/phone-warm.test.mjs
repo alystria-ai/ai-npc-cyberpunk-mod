@@ -266,7 +266,7 @@ test('the bridge feeds every phone poll to the warm-up and hands the message its
   assert.match(source, /await phone\.accept\(state\);\s*phoneWarm\.observe\(state\);/);
   const reply = source.slice(source.indexOf('const result = await phoneRealtime.reply('), source.indexOf('stagedKnowledgeTurn(prepared);'));
   assert.match(reply, /phoneRealtime\.reply\(phoneWarm\.claim\(memoryPolicy\(/);
-  assert.match(reply, /ttsEnabled: false\}\), options\.profileKey\), \{signal: options\.signal\}\)/);
+  assert.match(reply, /ttsEnabled: false, local: localTurn\(prepared\.input, prepared\)\}\), options\.profileKey\), \{signal: options\.signal\}\)/);
   assert.match(source, /phoneWarm\.interrupt\(options\.profileKey\);\s*const admitted = await admitPlayerConversation/);
 });
 

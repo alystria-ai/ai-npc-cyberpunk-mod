@@ -114,7 +114,7 @@ test('a real automatic conversation after invitation becomes a Forget-all target
   const body = source.slice(source.indexOf('async function admitPlayerConversation('), source.indexOf('async function pollMicrophone()'));
   const prepared = {sendAllowed: true, route: {profileKey: 'judy', channel: 'private', transport: 'private'},
     guard: invited.guard, input: {requestId: 'fixture-loot-reaction', reaction: {kind: 'loot'}}};
-  const admit = runInNewContext('(' + body + ')', {playerMemory: memory, knowledgeRouter: {current: async () => true},
+  const admit = runInNewContext('(' + body + ')', {playerMemory: memory, mistral: {active: false}, knowledgeRouter: {current: async () => true},
     intrinsicHistory: new IntrinsicCharacterContext([]),
     throwIfCancelled: signal => { if (signal?.aborted) throw Error('Cancelled'); }});
   await admit(prepared);
@@ -722,7 +722,7 @@ test('bridge admission takes the session-only fast path for ambient routes and r
   const source = await fs.readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   const body = source.slice(source.indexOf('async function admitPlayerConversation('), source.indexOf('async function pollMicrophone()'));
   const retired = [];
-  const admit = runInNewContext('(' + body + ')', {playerMemory: memory, knowledgeRouter: {current: async () => true},
+  const admit = runInNewContext('(' + body + ')', {playerMemory: memory, mistral: {active: false}, knowledgeRouter: {current: async () => true},
     intrinsicHistory: new IntrinsicCharacterContext([]),
     connections: {needsRetirement: () => false, retireInvitation: async profile => { retired.push(profile); }},
     throwIfCancelled: signal => { if (signal?.aborted) throw Error('Cancelled'); }});
@@ -740,7 +740,7 @@ test('bridge admission takes the session-only fast path for ambient routes and r
   const named = {...ambient, providerMemory: undefined, route: {...ambient.route, profileKey: 'panam'},
     guard: memory.route('panam').guard, input: {requestId: 'panam-1', text: 'Hey'}};
   const host = {refreshIdle: async () => true};
-  const namedAdmit = runInNewContext('(' + body + ')', {playerMemory: memory, knowledgeRouter: {current: async () => true},
+  const namedAdmit = runInNewContext('(' + body + ')', {playerMemory: memory, mistral: {active: false}, knowledgeRouter: {current: async () => true},
     intrinsicHistory: new IntrinsicCharacterContext([]), realtime: host, phoneRealtime: host,
     connections: {needsRetirement: () => false, retireInvitation: async profile => { retired.push(profile); }},
     realtimeConfig: () => ({}), localVoice: {playbackEnabled: true}, turnUsesLocal: () => false,

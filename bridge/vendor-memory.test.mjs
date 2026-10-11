@@ -372,7 +372,7 @@ const flush = () => new Promise(done => setImmediate(done));
 async function bridge(t, {memory} = {}) {
   const {dir, path} = await sandbox(t);
   const f = {dir, path, now: 100000, live: true, calls: [], resets: 0, vendorMemory: memory ?? await open(path)};
-  const sandboxed = {Date: {now: () => f.now}, vendorMemory: f.vendorMemory, vendorMemoryKey,
+  const sandboxed = {Date: {now: () => f.now}, vendorMemory: f.vendorMemory, vendorMemoryKey, mistralMemory: {forget: () => 0, flush: async () => {}},
     readSpeechState: async () => ({}),
     throwIfCancelled: () => {},
     resetLiveRoutes: async () => { f.resets++; },
@@ -539,7 +539,7 @@ test('wiring: if the vendor store cannot be cleared the Forget all fails instead
 });
 
 test('the bridge passes the clear scope to its quiesce callback and flushes before shutdown', () => {
-  assert.match(source, /async function quiescePlayerMemory\(\{signal, scope\} = \{\}\)/);
+  assert.match(source, /async function quiescePlayerMemory\(\{signal, scope, profileKeys\} = \{\}\)/);
   assert.match(source, /await vendorMemory\.idle\(\)\.catch\(\(\) => \{\}\);\r?\n\s+await memoryControl\.close\(\)/);
   assert.match(source, /VendorMemory\.open\(\{path: resolve\(stateDirectory, 'vendor-memory\.json'\)/);
   for (const site of ['{replyText: text}', '{replyText: result.text}', '{replyText: result.text, userText: result.userText}']) {

@@ -62,8 +62,13 @@ import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryReco
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {readKeyFileText} from './key-codec.mjs';
 import {DAILY_LIMIT, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
+import {MISTRAL_KEY_FILE, MistralControl, MistralProvider} from './mistral-key.mjs';
+import {MistralHost, attachMistral} from './mistral-host.mjs';
+import {MistralMemory, MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
+import {PersonaBook} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
+import {DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor} from './mistral-client.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -143,6 +148,11 @@ await mkdir(runtime, {recursive: true});
 const keys = await new ConvaiKeys({sharedKey: key, playerKeyPath: resolve(stateDirectory, PLAYER_KEY_FILE),
   playerUserPath: resolve(stateDirectory, PLAYER_USER_FILE)}).load();
 const quota = new QuotaWatch({keys});
+// The conversation provider (docs/MISTRAL.md): Convai, or the player's own free Mistral key for the text of a reply. The key
+// is stored in this state folder only and is used for requests to api.mistral.ai and nothing else. The provider in use changes at
+// an idle boundary (applyProviderChoice), like the Convai key.
+const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE)}).load();
+const mistralMemory = await MistralMemory.open({path: resolve(stateDirectory, MISTRAL_MEMORY_FILE)});
 // Daily cap and rate limit for the package's shared key; never applied to a player's own key. CYBERPUNK_CONVAI_DAILY_LIMIT
 // sets the cap (a number) or switches the guard off (off); without it only the packaged key is limited, so a development
 // checkout with a plain runtime/convai-key.txt is not. The count is saved twice (state folder, user profile), signed.
@@ -154,10 +164,18 @@ const turnGuard = await new SharedKeyGuard({limit: dailyLimit, applies: () => ke
 if (dailyLimit > 0) console.error(`[CyberpunkConvai] Shared conversation allowance: ${dailyLimit} turns a day, ${turnGuard.snapshot()?.left ?? dailyLimit} left today`);
 const currentKey = () => keys.current();
 // A player's key is a free plan with one conversation connection at a time: no look-ahead, no pre-opened connections.
-const singleSession = () => keys.singleSession;
-const keyNotice = () => { const keyNotice = keys.takeNotice(); return keyNotice ? {keyNotice} : {}; };
+// With Mistral there is no Convai connection to pre-open or to speculate on either.
+const singleSession = () => keys.singleSession || mistral.active;
+const keyNotice = () => {
+  const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'});
+  return keyNotice ? {keyNotice} : {};
+};
 // The game's notice for a failure (docs/NOTIFICATIONS.md). An automatic reaction that hit the daily cap just stops: no notice.
-const keyFailure = (error, input) => { const errorCode = quota.codeFor(error, {automatic: !!input?.reaction}); return errorCode ? {errorCode} : {}; };
+const keyFailure = (error, input) => {
+  // A Mistral failure says what to do about it (key, free limit, model); an automatic reaction (battle, loot) just stops.
+  const errorCode = (input?.reaction ? undefined : mistralCodeFor(error)) ?? quota.codeFor(error, {automatic: !!input?.reaction});
+  return errorCode ? {errorCode} : {};
+};
 
 const knowledgePack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));
 const questCatalog = JSON.parse(await readFile(resolve(project, 'research/cyberpunk/generated/quest-catalog.json'), 'utf8'));
@@ -284,7 +302,7 @@ const phoneSessionPath = resolve(stateDirectory, 'phone-sessions.json');
 let phoneSessions = {};
 try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
 const phone = new PhoneChat({
-  failureCode: error => { const code = quota.codeFor(error); return code === 'daily-limit' ? code : undefined; },
+  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return code === 'daily-limit' || /^mistral-/.test(code ?? '') ? code : undefined; },
   contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
@@ -310,7 +328,7 @@ const phone = new PhoneChat({
       sessionId: admitted.reconnectRequired ? undefined : options.sessionId,
       scope: prepared.scope, ...remote,
       context: conversationContext(prepared.input),
-      text: options.input.text, ttsEnabled: false}), options.profileKey), {signal: options.signal});
+      text: options.input.text, ttsEnabled: false, local: localTurn(prepared.input, prepared)}), options.profileKey), {signal: options.signal});
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
     stagedKnowledgeTurn(prepared);
@@ -397,13 +415,28 @@ const companionActions = new CompanionActions({createToken: () => 'drive-' + ran
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
   transformReply: cleanReply, guard: turnGuard, ...keyHostOptions(() => [phoneRealtime])});
-// The hook for local speech recognition (bridge/local-stt.mjs and local-stt-capture.mjs; docs/LOCAL_STT.md). While the Mistral
-// text provider is in use the voice key needs it: `available()` says whether this computer can recognise speech, `voiceChannel({reply})`
-// returns a channel (beginVoice / finishVoice / heard / close, like RealtimeHost.voiceChannel) whose finished recording is answered
-// through `reply(config)`. The recogniser worker runs only during and just after a recording; the Convai microphone route never touches it.
+// Mistral route (docs/MISTRAL.md): the same text reply path as Convai, with the persona built from characters/*.json and a small
+// local memory. attachMistral makes both hosts answer text turns through it while the provider is Mistral. `localTurn` names
+// the character, the channel and (for an ordinary NPC) its conversation, so the host can recall the right history; the Convai path
+// never sees it.
+const mistralHost = new MistralHost({provider: mistral, memory: mistralMemory, personas: new PersonaBook(roster),
+  transformReply: cleanReply, log: message => console.error('[Mistral] ' + message)});
+// The hook for local speech recognition (bridge/local-stt.mjs and local-stt-capture.mjs; docs/LOCAL_STT.md). While Mistral is the
+// provider the voice key needs it: `available()` says whether this computer can recognise speech, `voiceChannel({reply})` returns
+// a channel (beginVoice / finishVoice / heard / close, like RealtimeHost.voiceChannel) whose finished recording is answered
+// through `reply(config)`. Without it the voice key tells the player that voice needs Convai for now. The recogniser worker runs
+// only during and just after a recording; the Convai microphone route never touches it.
 const mistralSpeech = createLocalSpeech({
   stt: new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable}),
   capture: new LocalSttCapture({getBrowser: hostBrowser(realtime)})});
+for (const host of [realtime, phoneRealtime]) attachMistral(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech});
+function localTurn(input, prepared = preparedInputs.get(input)) {
+  const route = prepared ?? routeFor(input);
+  const channel = route?.route?.channel ?? (input.channel === 'phone' ? 'phone' : input.group ? 'group' : 'private');
+  const ambient = isAmbientProfile(input.profileKey);
+  return {profileKey: input.profileKey, name: profileFor(input, roster)?.name ?? input.name, channel,
+    ...(ambient ? {ambientKey: route?.sessionKey ?? `${input.profileKey}:${input.entity ?? ''}`} : {})};
+}
 let observed = '', observedIdentity = null;
 let lastAcceptedIdentity = '';
 let polling = false, active = null, stopped = false;
@@ -562,7 +595,7 @@ const completeContext = input => JSON.stringify([conversationContext(input), rou
 const realtimeConfig = input => memoryPolicy({key: currentKey(), characterId: routeFor(input)?.guard?.characterId, sessionId: realtimeSessions.get(sessionKey(input)),
   scope: routeFor(input)?.scope || conversationScope(input), ...(routeFor(input)?.remoteConfig || {}),
   context: conversationContext(input), text: battleTrigger(input), reaction: input.reaction,
-  companionAction: companionActions.configFor(input),
+  companionAction: companionActions.configFor(input), local: localTurn(input),
   ttsEnabled: localVoice.playbackEnabled!==false&&!turnUsesLocal(input)});
 const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.configFor(profile, scope,
   {worldToken: worldSession?.token, generation: worldSession?.generation});
@@ -976,7 +1009,8 @@ async function respond(input, profile, {signal, prepared, current} = {}) {
       if (cached) return synthesizeReply(input, cached, signal, current, profile);
     }
     throwIfCancelled(signal);
-    if (!turnUsesLocal(input)) return convaiReply(input, profile, current, signal);
+    // Mistral has no Convai audio: a turn that would use the cloud voice (no local voice available) is a written reply.
+    if (!turnUsesLocal(input) && !mistral.active) return convaiReply(input, profile, current, signal);
     return synthesizeReply(input, {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'}, signal, current, profile);
   }
   prefetch.invalidate(); prepared?.cancel();
@@ -1170,7 +1204,7 @@ async function resetLiveRoutes({cancelTurns = true} = {}) {
   partyObserved = ''; prewarmObserved = ''; prefetchObserved = '';
 }
 
-async function quiescePlayerMemory({signal, scope} = {}) {
+async function quiescePlayerMemory({signal, scope, profileKeys} = {}) {
   throwIfCancelled(signal);
   memoryQuiescing++;
   try {
@@ -1179,6 +1213,9 @@ async function quiescePlayerMemory({signal, scope} = {}) {
     // Forget all memories also forgets what shopkeepers remember of V. PlayerMemory has already persisted the reset
     // epoch and fenced every character, so a turn begun earlier can no longer write; a failed removal fails the clear.
     if (scope === 'all' && (await vendorMemory.forgetAll()).ok !== true) throw Error('Vendor memory could not be cleared');
+    // The Mistral provider keeps its own small conversation memory here (bridge/mistral-memory.mjs): Forget clears it too.
+    mistralMemory.forget({all: scope === 'all', profileKeys: profileKeys ?? []});
+    await mistralMemory.flush().catch(() => {});
     return {quiesced: true};
   } finally { memoryQuiescing--; }
 }
@@ -1210,7 +1247,8 @@ async function admitPlayerConversation(prepared, {signal} = {}) {
   // Generic residents and npc-* archetypes keep Convai long-term memory off (docs/PLAYER_MEMORY.md, "Vendor
   // memory"): record the Forget target locally, never verify or enable provider memory. That verification
   // (character list + get, and an update + readback when off) cost 6.7 s on a first resident turn.
-  if (prepared.providerMemory === 'session-only') {
+  // With Mistral no Convai memory is enabled or checked either: the Forget target is recorded locally, like an ordinary NPC.
+  if (prepared.providerMemory === 'session-only' || mistral.active) {
     await playerMemory.beginSessionConversation(begin);
     throwIfCancelled(signal);
     if (!await knowledgeRouter.current(prepared)) throw Error('Conversation memory changed');
@@ -1715,6 +1753,23 @@ async function applyKeyChoice() {
     await ownKeyControl.publishStatus().catch(() => {});
   } finally { keySwitching = false; }
 }
+// The conversation provider in use changes here, and only when nothing is running (same boundary as the Convai key): Convai
+// sessions belong to the provider that opened them, so they are retired together. The transcript is kept.
+let providerSwitching = false;
+async function applyProviderChoice() {
+  if (providerSwitching || stopped || !mistral.pending || voiceBoundaryBusy() || voiceRouteReservation) return;
+  providerSwitching = true;
+  try {
+    mistral.apply();
+    dropPrefetch(); prefetchObserved = '';
+    await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
+    sessions.clear(); realtimeSessions.clear();
+    await phone.forgetSessions().catch(() => {});
+    console.error(`[CyberpunkConvai] Conversation provider: ${mistral.applied}`);
+    await mistralControl.publishStatus().catch(() => {});
+  } finally { providerSwitching = false; }
+}
+let speechCheckedAt = 0;
 async function pollSettings(checkShutdown = true) {
   if (settingsPolling || stopped) return;
   settingsPolling = true;
@@ -1733,6 +1788,20 @@ async function pollSettings(checkShutdown = true) {
       await applyKeyChoice();
       // Convai's free plans carry no multilingual support: conversations use the original characters, not the twins.
       if (keys.singleSession) settings = {...settings, multilingualConversations: false};
+      // Conversation provider (docs/MISTRAL.md): the setting and the settings page's commands, then the switch itself.
+      if (mistral.setPreference(settings.conversationProvider)) await mistralControl.publishStatus().catch(() => {});
+      await mistralControl.poll().catch(() => {});
+      if (Date.now() - speechCheckedAt > 10000) {
+        speechCheckedAt = Date.now();
+        const stt = mistralSpeech?.available() === true;
+        if (stt !== mistral.sttAvailable) { mistral.sttAvailable = stt; await mistralControl.publishStatus().catch(() => {}); }
+      }
+      await applyProviderChoice();
+      if (mistral.active) {
+        // A local voice: Pocket speaks when the Convai cloud voice is selected (there is no Convai audio), and
+        // the twins (another Convai character per language) are not used.
+        settings = {...settings, multilingualConversations: false, ...(settings.voiceProvider === 'convai' ? {voiceProvider: 'pocket'} : {})};
+      }
     }
     if (settings) { audioDelaySetting = settingDelay(settings); await applyAudioDelay(); }
     // Dialogue level match (docs/DIALOGUE_LEVEL.md): makeup gain for every voice.
@@ -1783,6 +1852,9 @@ async function pollSettings(checkShutdown = true) {
 const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, commandPath: resolve(runtime, 'own-key-command.json'),
   publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
 quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
+const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
+  model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),
   chatResetPath: resolve(runtime, 'memory-chat-resets.json'),
@@ -1791,7 +1863,7 @@ const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
 // Help > Generate report: a redacted zip of versions, status and log tails.
 // The key and provider IDs are passed only so they can be scrubbed from it.
 const supportReport = await SupportReportControl.open({game, runtime, stateDirectory, project,
-  secrets: () => keys.secrets(), knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
+  secrets: () => [...keys.secrets(), ...mistral.secrets()], knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
   bridge: () => ({busy: !!active, microphoneActive: !!mic.current})});
 await companionActions.revoke();
 await status('waiting');
@@ -1826,6 +1898,7 @@ async function shutdown() {
   await relationshipRouteSync.catch(() => {});
   await Promise.allSettled([localVoice.close(), mic.cancel(), connections.clear(), mistralSpeech.close()]);
   await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
+  await mistralMemory.flush().catch(() => {});
   await vendorMemory.idle().catch(() => {});
   await memoryControl.close(); await playerMemory.close();
   await Promise.allSettled([metricsWriting, connectionMetricsWriting, voiceMetricsWriting]);

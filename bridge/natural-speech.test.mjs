@@ -414,7 +414,7 @@ test('the bridge wires Natural speech through the context, the reply transform, 
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /import \{NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases\} from '\.\/natural-speech\.mjs'/);
   assert.match(bridge, /const cleanReply = result => expressiveEmotions\.process\(naturalSpeech\.process\(result\)\)/);
-  assert.equal(bridge.match(/transformReply: cleanReply/g).length, 2, 'text hosts: conversation and phone');
+  assert.equal(bridge.match(/transformReply: cleanReply/g).length, 3, 'text hosts: conversation, phone and Mistral');
   // The block is the last piece of the conversation context and is gated on the committed voice, never on Convai.
   assert.match(bridge, /naturalSpeechContext\(input\), expressiveEmotionsContext\(input\),/);
   assert.match(bridge, /turn: input\?\.requestId \|\| input\?\.id, trait: traitFor\(input\.profileKey\), profile: input\.profileKey,/);
