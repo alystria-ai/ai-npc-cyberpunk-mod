@@ -88,6 +88,8 @@
        "files": ["model.safetensors", "inference.yaml", "tokenizer.json", "receipt.json", "decoder-receipt.json"]},
       {"bucket": "final/lipsync-model/", "local": "runtime/lipsync-model/", "target": "app/models/lipsync/",
        "files": ["face-model.json", "face-model.bin", "face-text.json", "face-text.bin", "face-lexicon.txt.gz", "face-lexicon-NOTICE.txt"]},
+      {"bucket": "final/stt-model/moonshine-tiny-en-int8/", "local": "runtime/stt-model/moonshine-tiny-en-int8/", "target": "app/models/stt/moonshine-tiny-en-int8/",
+       "files": ["preprocess.onnx", "encode.int8.onnx", "uncached_decode.int8.onnx", "cached_decode.int8.onnx", "tokens.txt", "LICENSE"]},
       {"bucket": "final/voice-configs/", "local": "runtime/", "target": "voice-configs/",
        "files": ["pocket-voices.autobest.json", "local-voices.autobest-short.json", "local-voices.autobest-long.json"]}
     ],
@@ -112,7 +114,7 @@
   "bridgeEntries": ["bridge/convai-bridge.mjs", "bridge/bridge-supervisor.mjs"],
   "bridgeWorkers": [
     "bridge/pocket-voice-worker.py", "bridge/pocket_voice_runtime.py",
-    "bridge/resident-voice-worker.py", "bridge/voice-cuda-graph.py"
+    "bridge/resident-voice-worker.py", "bridge/voice-cuda-graph.py", "bridge/local-stt-worker.py"
   ],
   "clientModules": ["continuous-pcm-player.mjs", "continuous-pcm-worklet.mjs", "continuous-pcm-core.mjs", "local-pcm-client.mjs"],
   "nodePackages": ["playwright", "playwright-core"],

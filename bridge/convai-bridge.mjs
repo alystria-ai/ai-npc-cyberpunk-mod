@@ -62,6 +62,8 @@ import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryReco
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {readKeyFileText} from './key-codec.mjs';
 import {DAILY_LIMIT, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
+import {LocalStt} from './local-stt.mjs';
+import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -395,6 +397,13 @@ const companionActions = new CompanionActions({createToken: () => 'drive-' + ran
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
   transformReply: cleanReply, guard: turnGuard, ...keyHostOptions(() => [phoneRealtime])});
+// The hook for local speech recognition (bridge/local-stt.mjs and local-stt-capture.mjs; docs/LOCAL_STT.md). While the Mistral
+// text provider is in use the voice key needs it: `available()` says whether this computer can recognise speech, `voiceChannel({reply})`
+// returns a channel (beginVoice / finishVoice / heard / close, like RealtimeHost.voiceChannel) whose finished recording is answered
+// through `reply(config)`. The recogniser worker runs only during and just after a recording; the Convai microphone route never touches it.
+const mistralSpeech = createLocalSpeech({
+  stt: new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable}),
+  capture: new LocalSttCapture({getBrowser: hostBrowser(realtime)})});
 let observed = '', observedIdentity = null;
 let lastAcceptedIdentity = '';
 let polling = false, active = null, stopped = false;
@@ -1815,7 +1824,7 @@ async function shutdown() {
   await invitations.clear('service-stopped');
   await voiceRouteSync.catch(() => {});
   await relationshipRouteSync.catch(() => {});
-  await Promise.allSettled([localVoice.close(), mic.cancel(), connections.clear()]);
+  await Promise.allSettled([localVoice.close(), mic.cancel(), connections.clear(), mistralSpeech.close()]);
   await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
   await vendorMemory.idle().catch(() => {});
   await memoryControl.close(); await playerMemory.close();

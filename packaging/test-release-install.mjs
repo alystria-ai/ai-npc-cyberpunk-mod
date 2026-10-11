@@ -107,6 +107,24 @@ if (face) {
   report.faceFramesType = frames.constructor?.name;
   await face.close();
 }
+// Local speech recognition (voice input on the Mistral text route): the packaged Python and model transcribe the Pocket speech.
+{
+  const {LocalStt} = await load('bridge/local-stt.mjs');
+  const stt = new LocalStt({project: app, pythonExecutable: config.runtime.pythonExecutable});
+  report.sttAvailable = stt.available();
+  if (report.sttAvailable) {
+    const out = new Int16Array(Math.floor(pcm.length * 16000 / 24000));
+    for (let i = 0; i < out.length; i++) {
+      const p = i * 1.5, lo = Math.floor(p), hi = Math.min(pcm.length - 1, lo + 1), f = p - lo;
+      out[i] = Math.max(-32768, Math.min(32767, Math.round((pcm[lo] * (1 - f) + pcm[hi] * f) * 32767)));
+    }
+    await stt.start('install-test'); stt.pushAudio(out, 'install-test');
+    t = performance.now();
+    const heard = await stt.finish('install-test');
+    report.sttText = heard.text; report.sttMs = Math.round(performance.now() - t);
+    await stt.close();
+  } else report.sttReason = stt.availability().reason;
+}
 if (${withOmni ? 'true' : 'false'}) {
   const {ResidentVoice} = await load('bridge/resident-voice.mjs');
   const omniPath = resolve(state, 'local-voices.autobest-short.json');
@@ -198,6 +216,8 @@ async function main() {
         : smoke.err.slice(-1500));
     check('lip-sync model loads and animates that audio', report.faceLoaded === true && !!report.faceFramesType,
       `text stage ${report.faceText ? 'on' : 'off'}, frames: ${report.faceFramesType} ${report.faceFrames ?? ''}`);
+    check('local speech recognition transcribes that speech from the packaged Python and model', report.sttAvailable === true && /glad|piece|choom|chum/i.test(report.sttText || ''),
+      report.sttAvailable ? `"${report.sttText}" in ${report.sttMs} ms` : `unavailable: ${report.sttReason}`);
     if (omni) check('OmniVoice speaks on the GPU from the pack', report.omniAudioBytes > 10_000,
       `device ${report.omniDevice}, start ${report.omniStartMs} ms, render ${report.omniRenderMs} ms`);
 

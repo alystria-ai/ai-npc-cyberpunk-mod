@@ -50,6 +50,8 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/journal-quest-types.mjs',
   'bridge/key-codec.mjs',
   'bridge/local-pcm-host.mjs',
+  'bridge/local-stt-capture.mjs',
+  'bridge/local-stt.mjs',
   'bridge/loot-context.mjs',
   'bridge/microphone-session.mjs',
   'bridge/multilingual.mjs',
@@ -114,6 +116,7 @@ export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   'bridge/pocket-voice-worker.py',
   'bridge/pocket_voice_runtime.py',
   'bridge/phone-analysis-worker.py',
+  'bridge/local-stt-worker.py',
   'bridge/audio-output-probe.ps1', // Lip sync delay Auto: default output device
 ]);
 // These are the pinned external package entry points, not a replacement for the

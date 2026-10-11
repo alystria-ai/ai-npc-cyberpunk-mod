@@ -1,0 +1,4 @@
+local-stt-sample.wav: a 4.8 s clip (16 kHz, mono, 16-bit) from the LibriSpeech corpus (validation, clean), a reading of
+"Nor is Mr. Quilter's manner less interesting than his matter." Source: hf-internal-testing/librispeech_asr_dummy.
+LibriSpeech is derived from public-domain LibriVox recordings and distributed under CC BY 4.0
+(Panayotov, Chen, Povey, Khudanpur, ICASSP 2015). Used only by tests; never packaged.

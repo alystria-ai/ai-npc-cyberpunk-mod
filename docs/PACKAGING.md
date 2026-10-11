@@ -54,6 +54,7 @@ red4ext/plugins/CyberpunkConvai/
     characters/, research/   data the bridge reads (roster, world knowledge, quest catalog, intrinsic packs)
     models/pocket/           Pocket student v2 + decoder v2 export
     models/lipsync/          lip-sync model, text stage and lexicon
+    models/stt/              Moonshine Tiny English int8 (local speech recognition for the Mistral route; MIT)
     defaults/                templates and managed defaults copied into data/ at start-up
     launcher/                start-service.mjs, prepare-state.mjs, assemble-parts.mjs
     licenses/                third-party notices (Python packages keep theirs in *.dist-info)
@@ -146,7 +147,8 @@ node --test packaging/release.test.mjs
 The dry run uses the developer `runtime/` models and embeds no key. The install test builds a
 stand-in game folder under `%TEMP%` (spaces and non-ASCII in the path), extracts with
 `Expand-Archive`, checks every file, then with a PATH of Windows folders only: speaks with the
-Pocket voice from the packaged Python, runs the lip-sync model on that audio (and OmniVoice on the
+Pocket voice from the packaged Python, recognises that speech again with the local speech-to-text
+worker (packaged Python and `models/stt`), runs the lip-sync model on that audio (and OmniVoice on the
 GPU with `--omni`), and loads the real launcher DLL through `native/autostart/test-host.c`, which
 must start the packaged service and stop it when the "game" exits. With `--key-file` the key is
 copied as the player's own key (never printed) and the bridge must report Ready. Never point it at
@@ -213,7 +215,7 @@ root states the same facts for readers of the repository, and the Runtime packag
 Component facts: VoiceStudio is AGPL-3.0-only (the pack carries its licence and the source
 location). OmniVoice weights are CC-BY-NC and its audio tokenizer uses the Boson Higgs Audio 2
 Community License; both licence files ship with the pack. Chrome for Testing ships without a
-licence file in its zip; the notices point to the Chromium licence. Pocket TTS code is MIT and its
+licence file in its zip; the notices point to the Chromium licence. The speech-recognition model is Moonshine Tiny (MIT) run by sherpa-onnx (Apache-2.0); see docs/LOCAL_STT.md. Pocket TTS code is MIT and its
 weights CC-BY-4.0 (gated on Hugging Face, with a prohibited-use clause covering voice cloning
 without consent); the notices carry the attribution and the change statement the shipped model
 needs. The lip-sync lexicon (CMUdict, BSD-2-Clause, plus espeak-ng-generated game words) ships

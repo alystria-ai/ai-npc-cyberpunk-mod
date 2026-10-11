@@ -1,4 +1,5 @@
-# Pocket TTS worker environment (CPU). Every distribution the worker loads, pinned to the
+# Pocket TTS worker environment (CPU), also the local speech-to-text worker (sherpa-onnx, bridge/local-stt-worker.py).
+# Every distribution the workers load, pinned to the
 # versions of the tested development environment (vendor/pocket-tts-env). Lock: packaging/python/lock.py pocket
 annotated-doc==0.0.5
 annotated-types==0.8.0
@@ -35,6 +36,8 @@ scipy==1.18.1
 sentencepiece==0.2.2
 setuptools==78.1.0
 shellingham==1.5.4
+sherpa-onnx==1.13.6
+sherpa-onnx-core==1.13.6
 sympy==1.14.0
 tokenizers==0.23.2
 torch==2.8.0+cpu

@@ -17,6 +17,8 @@ This file states what each component's published licence says. It is not legal a
 | CPython | 3.12.10 embeddable distribution | PSF License | `app/python/LICENSE.txt` |
 | Python packages | hash-locked in `packaging/python/pocket.lock.txt` | each package's own | each `*.dist-info` folder under `app/python/Lib/site-packages` |
 | Kyutai Pocket TTS source | revision `41cbc84` | MIT | `app/pocket-tts/LICENSE` |
+| Moonshine Tiny speech-recognition model (English, int8 ONNX), used for voice input with the Mistral text route | Useful Sensors / Moonshine AI, 2024 release as converted for sherpa-onnx | MIT, Copyright (c) 2025 Useful Sensors, Inc. (dba Moonshine AI) | `app/models/stt/moonshine-tiny-en-int8/LICENSE` |
+| sherpa-onnx and sherpa-onnx-core (run the Moonshine model on the CPU) | 1.13.6 | Apache-2.0 | `*.dist-info` folders under `app/python/Lib/site-packages` |
 | Playwright, playwright-core | 1.58.2 | Apache-2.0 | `app/node_modules/<name>/LICENSE` |
 | Convai Web SDK (`@convai/web-sdk`), compiled into `app/assets/realtime-client.js` | 1.7.0 | Apache-2.0 | `app/licenses/client/` |
 | CMU Pronouncing Dictionary, inside the lip-sync lexicon | as distributed with CMU Sphinx / Rhubarb Lip Sync | BSD-2-Clause, Copyright (c) 1993-2015 Carnegie Mellon University | `app/models/lipsync/face-lexicon-NOTICE.txt` |

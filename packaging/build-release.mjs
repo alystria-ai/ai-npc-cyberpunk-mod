@@ -330,7 +330,7 @@ async function runtimePackage(source, config, models, key) {
 
   // Trained models (Pocket voice, lip sync) and the default state templates.
   const group = prefix => config.models.groups.find(item => item.target === prefix);
-  for (const target of ['app/models/pocket/', 'app/models/lipsync/']) {
+  for (const target of ['app/models/pocket/', 'app/models/lipsync/', 'app/models/stt/moonshine-tiny-en-int8/']) {
     const item = group(target);
     for (const name of item.files) pkg.file(`${plugin}/${target}${name}`, models.files.get(item.bucket + name));
   }
@@ -363,6 +363,8 @@ async function runtimePackage(source, config, models, key) {
     + ' plus 6553 game-vocabulary pronunciations generated with espeak-ng (espeak-ng is not shipped); see app/models/lipsync/face-lexicon-NOTICE.txt');
   notices.push('Pocket voice model (app/models/pocket/): adapted from Kyutai Pocket TTS (kyutai/pocket-tts), weights CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), code MIT.'
     + ' Changes: the flow language-model tensors are weights trained for this mod and the Mimi decoder tensors are retrained. Kyutai prohibits voice impersonation or cloning without explicit and lawful consent.');
+  notices.push('Local speech recognition (Mistral voice input): Moonshine Tiny, English, int8 ONNX (app/models/stt/moonshine-tiny-en-int8/), MIT, Copyright (c) 2025 Useful Sensors, Inc. (Moonshine AI);'
+    + ' licence text in app/models/stt/moonshine-tiny-en-int8/LICENSE. Run by sherpa-onnx (k2-fsa), Apache-2.0, licence in its *.dist-info folder.');
   notices.push('Pocket voice and lip-sync weights: trained for this mod; free for personal use with the mod.');
   notices.push('Cyberpunk 2077, its audio and voice performances belong to CD PROJEKT RED and the performers; the reference voice clips (voices/) and game archives (archive/pc/mod/) are not licensed by the Cyberpunk Convai Use License.');
   notices.push('Cyberpunk Convai itself: Cyberpunk Convai Use License, see LICENSE.txt in the plugin folder.');
