@@ -257,7 +257,8 @@ function M.new(options)
             local ok, npc, detail = pcall(env.marked, player)
             if ok then target, info = npc, detail end
         end
-        if not target or not info or not info.id then return {available = false, reason = 'No target'} end
+        -- code: the one reason the bridge is told about, so the character does not claim to act on nobody.
+        if not target or not info or not info.id then return {available = false, reason = 'No target', code = 'no-target'} end
         if info.id == entity or not get(native.alive, target) then return {available = false, reason = 'Target unavailable'} end
         local targetAt, playerAt = get(native.position, target), get(native.position, player)
         local gap = targetAt and playerAt and math.sqrt((targetAt.x - playerAt.x)^2 + (targetAt.y - playerAt.y)^2 + (targetAt.z - playerAt.z)^2) or math.huge

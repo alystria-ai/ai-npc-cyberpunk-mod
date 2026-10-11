@@ -50,6 +50,11 @@ export const FOLLOW_UNAVAILABLE = Object.freeze({
   'already-here': 'it is not possible for you to come along right now',
   unavailable: 'it is not possible for you to come along right now',
 });
+// Why the game offers no tactic: nobody valid is tagged or in V's sights. The character must not claim to act.
+export const TACTIC_UNAVAILABLE = Object.freeze({
+  'no-target': "nobody that you could attack or distract is tagged or in V's sights right now",
+});
+export const parseTacticUnavailable = value => typeof value === 'string' && Object.hasOwn(TACTIC_UNAVAILABLE, value) ? value : null;
 export const followActionName = offer => token(offer?.token) ? `${FOLLOW_ACTION} ${offer.token}` : null;
 // One action per offered member (the speaker's own is plain "Leave V's Party"),
 // plus "everyone" when several are offered. Duplicate names get their number.
@@ -148,15 +153,16 @@ export class CompanionActions {
     const tactic = parseTacticOffer(input?.tacticOffer);
     const follow = parseFollowOffer(input?.followOffer), leave = parseLeaveOffer(input?.leaveOffer);
     const refusal = follow ? null : parseFollowUnavailable(input?.followUnavailable);
+    const tacticRefusal = tactic ? null : parseTacticUnavailable(input?.tacticUnavailable);
     const ownedBy = value => !value || (value.actor.id === input.entity && value.actor.key === input.profileKey);
     // A manual group round arms only its first speaker, and only to send companions away.
     const group = typeof source === 'string' && source.startsWith('group-');
     const channel = group ? 'group' : 'private';
-    if ((!offer && !tactic && !follow && !leave && !refusal) || !MANUAL_SOURCES.includes(source)
+    if ((!offer && !tactic && !follow && !leave && !refusal && !tacticRefusal) || !MANUAL_SOURCES.includes(source)
         || prepared?.route?.channel !== channel
         || !prepared.sendAllowed || !prepared.identified || !prepared.remoteConfig?.endUserId
         || input.reaction || input.channel !== channel
-        || (group ? (!object(input.group) || input.group.index !== 1 || !leave || offer || tactic || follow || refusal)
+        || (group ? (!object(input.group) || input.group.index !== 1 || !leave || offer || tactic || follow || refusal || tacticRefusal)
           : input.group !== undefined)
         || source.endsWith('-voice') !== (prepared.route.transport === 'microphone')
         || !ownedBy(offer) || !ownedBy(tactic) || !ownedBy(follow) || !ownedBy(leave)
@@ -174,7 +180,7 @@ export class CompanionActions {
       generation: input.generation, entity: input.entity, profileKey: input.profileKey,
       worldToken: prepared.worldToken, worldGeneration: prepared.generation, source,
       createdAt: issuedAt, expiresAt: issuedAt + CHAUFFEUR_OFFER_TTL_MS, ...(offer ? {offer} : {})};
-    this.pending = {input, packet, tactic, follow, leave, refusal, group, isCurrent, isCurrentSync, signal, accepted: false};
+    this.pending = {input, packet, tactic, follow, leave, refusal, tacticRefusal, group, isCurrent, isCurrentSync, signal, accepted: false};
     return this.configFor(input);
   }
   current(pending) {
@@ -193,6 +199,7 @@ export class CompanionActions {
       ...(pending.leave ? {leave: {members: pending.leave.members.map(member => ({name: member.name,
         self: member.id === pending.leave.actor.id}))}} : {}),
       ...(pending.refusal ? {followUnavailable: pending.refusal} : {}),
+      ...(pending.tacticRefusal ? {tacticUnavailable: pending.tacticRefusal} : {}),
       ...(pending.group ? {group: true} : {})};
   }
   async deliver(message) {
@@ -300,6 +307,13 @@ function followUnavailableText(reason) {
     + 'do not agree or pretend that you are coming along. Do not bring this up unless V asks.';
 }
 
+function tacticUnavailableText(reason) {
+  return "\nCurrent game-verified limit: you cannot go after anyone right now (" + TACTIC_UNAVAILABLE[reason] + "; civilians, "
+    + "named story characters and V's companions are never targets). If V asks you to attack, fight or distract someone, "
+    + "decline briefly in character and tell V to tag an enemy in the scanner or aim at one first; "
+    + "do not agree or pretend that you are doing it. Do not bring this up unless V asks.";
+}
+
 function chauffeurContextText(offered) {
   return '\nCurrent game-verified driving setup: V is on foot beside their stopped, summoned owned car '
     + JSON.stringify(offered.carName ?? "V's car") + '. A destination is already selected on the map: '
@@ -363,10 +377,11 @@ export class CompanionActionWindow {
         || (offer.followUnavailable !== undefined && (!parseFollowUnavailable(offer.followUnavailable) || offer.follow))
         || (offer.group !== undefined && offer.group !== true)
         // A group window carries only a leave offer, from a group source.
+        || (offer.tacticUnavailable !== undefined && (!parseTacticUnavailable(offer.tacticUnavailable) || offer.tactic))
         || (offer.group === true) !== offer.source.startsWith('group-')
-        || (offer.group === true && (offer.drive !== false || offer.tactic || offer.follow || offer.followUnavailable || !offer.leave))
+        || (offer.group === true && (offer.drive !== false || offer.tactic || offer.follow || offer.followUnavailable || offer.tacticUnavailable || !offer.leave))
         || (offer.drive === false && offer.tactic === undefined && offer.follow === undefined
-          && offer.leave === undefined && offer.followUnavailable === undefined)) return false;
+          && offer.leave === undefined && offer.followUnavailable === undefined && offer.tacticUnavailable === undefined)) return false;
     this.pending = {...offer, ...(offer.tactic ? {tactic: {...offer.tactic, kinds: [...offer.tactic.kinds]}} : {}),
       ...(offer.follow ? {follow: {...offer.follow}} : {}),
       ...(offer.leave ? {leave: {members: offer.leave.members.map(member => ({...member}))}} : {})};
@@ -426,11 +441,13 @@ export class CompanionActionWindow {
   static contextText(offer) {
     return (offer?.drive === false ? '' : chauffeurContextText(offer)) + (offer?.tactic ? tacticContextText(offer) : '')
       + (offer?.follow ? followContextText(offer) : '') + (offer?.leave ? leaveContextText(offer) : '')
-      + (offer?.followUnavailable ? followUnavailableText(offer.followUnavailable) : '');
+      + (offer?.followUnavailable ? followUnavailableText(offer.followUnavailable) : '')
+      + (offer?.tacticUnavailable ? tacticUnavailableText(offer.tacticUnavailable) : '');
   }
   static unavailableText(offer) {
     // Only the refusal advisory survives an unavailable action adapter: it needs no action.
-    const advisory = offer?.followUnavailable ? followUnavailableText(offer.followUnavailable) : '';
+    const advisory = (offer?.followUnavailable ? followUnavailableText(offer.followUnavailable) : '')
+      + (offer?.tacticUnavailable ? tacticUnavailableText(offer.tacticUnavailable) : '');
     if (offer?.follow || offer?.leave) return '\nThe game cannot accept a request to join or leave V\'s party from this turn. '
       + 'If V asks for that, say briefly that it will have to wait; do not claim it has happened.'
       + (offer.tactic ? ' The same applies to the marked target.' : '') + advisory;

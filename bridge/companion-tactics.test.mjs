@@ -210,7 +210,7 @@ test('a failed line is retried once, then the ending proceeds without inventing 
 `));
 
 test('offers need a live marked target; distraction needs a voice and no combat; stale offers are refused', () => run(world + `
-  markedTarget=nil; assert(T.offer('44ULL').available==false); markedTarget=target
+  markedTarget=nil; local none=T.offer('44ULL'); assert(none.available==false and none.code=='no-target','the bridge is told no target was found'); markedTarget=target
   assert(T.offer('99ULL').available==false,'only a ready managed companion')
   targetVoice=nil; local offer=T.offer('44ULL'); assert(#offer.kinds==1 and offer.kinds[1]=='fight')
   assert(not T.start('distract-return',offer,'44ULL'),'an unoffered kind is refused'); targetVoice='resident-male'
@@ -294,16 +294,26 @@ native={aimed=function() return aimed end,key=function(o) return o.id end,valid=
 K=Marking.new({native=native,owned=function(o) return o==judy end,log=function(l) logs[#logs+1]=l end})
 `;
 
-test('target: the verdict needs positive combat evidence and rejects civilians, crowd, children, vendors, invulnerable, story, friendly non-police and companions', () => run(`
+test('target: the verdict needs positive combat evidence and rejects civilians, children, vendors, invulnerable, story, friendly non-police and companions', () => run(`
   local Marking=(function() ${markingSource} end)()
   local V=Marking.verdict
   for _,kind in ipairs({'ganger','police','cyberpsycho','machine','armed'}) do local f={} f[kind]=true; assert(V(f)==true,kind) end
   assert(V({})==false and select(2,V({}))=='not-combat-capable' and V(nil)==false)
-  for _,kind in ipairs({'companion','crowd','civilian','children','vendor','invulnerable','story'}) do
+  for _,kind in ipairs({'companion','civilian','children','vendor','invulnerable','story'}) do
     local f={ganger=true,armed=true} f[kind]=true; local ok,reason=V(f); assert(ok==false and reason==(kind=='story' and 'story-controlled' or kind),kind)
   end
   assert(V({ganger=true,friendly=true})==false and select(2,V({ganger=true,friendly=true}))=='friendly')
   assert(V({police=true,friendly=true})==true,'friendly-attitude police stay targets')
+  -- a crowd flag alone only matters for the nearest-NPC guess; a tagged or aimed crowd NPC is judged on the evidence
+  local ok,reason=V({crowd=true,ganger=true}); assert(ok==false and reason=='crowd','the guess never picks crowd')
+  assert(V({crowd=true,ganger=true},true)==true,'a marked crowd gang member is a target')
+  assert(V({crowd=true,armed=true},true)==true and V({crowd=true,hostile=true},true)==true)
+  ok,reason=V({crowd=true},true); assert(ok==false and reason=='not-combat-capable','a plain crowd NPC is no target')
+  for _,kind in ipairs({'civilian','children','vendor','invulnerable','story','companion'}) do
+    local f={crowd=true,ganger=true,hostile=true} f[kind]=true; assert(V(f,true)==false,kind)
+  end
+  assert(V({hostile=true})==true,'anyone already hostile to V counts as a combatant')
+  assert(V({hostile=true,civilian=true})==false,'a hostile civilian is still a civilian')
 `));
 
 test('target: the closest tagged combat-capable NPC wins, even beyond the crosshair and nearer enemies', () => run(markingWorld + `
@@ -314,8 +324,8 @@ test('target: the closest tagged combat-capable NPC wins, even beyond the crossh
   cop.tagged=false; far.tagged=true; far.pos={x=60,y=0,z=0}; current,info=K.current(player); assert(info.source~='tagged','tags beyond 50 m are ignored')
 `));
 
-test('target: tags on civilians, crowd, companions, scripted, invulnerable, dead or out of reach NPCs are ignored', () => run(markingWorld + `
-  for _,o in ipairs({judy,civilian,crowd,ally,scripted,immortal,clerk}) do o.tagged=true end
+test('target: tags on civilians, companions, scripted, invulnerable, dead or out of reach NPCs are ignored', () => run(markingWorld + `
+  for _,o in ipairs({judy,civilian,ally,scripted,immortal,clerk}) do o.tagged=true end
   aimed=nil; local current,info=K.current(player); assert(current==ganger and info.source=='nearest','nothing tagged is eligible: nearest eligible instead')
   ganger.tagged=true; ganger.valid=false; current,info=K.current(player); assert(current~=ganger)
   ganger.valid=true; current,info=K.current(player); assert(current==ganger and info.source=='tagged')
@@ -334,10 +344,48 @@ test('target: untagged falls back to the look-at target within 30 m, else the cl
 `));
 
 test('target: the choice is logged with what was skipped, and unreadable natives never raise', () => run(markingWorld + `
-  K.current(player); assert(#logs==1 and logs[1]:find('nearest Tyger Claw 77ULL') and logs[1]:find('civilian=1') and logs[1]:find('crowd=1') and logs[1]:find('companion=1'),logs[1])
+  K.current(player); assert(#logs==1 and logs[1]:find('nearest Tyger Claw 77ULL') and logs[1]:find('civilian=1') and logs[1]:find('companion=1') and not logs[1]:find('crowd'),logs[1])
   native.facts=function() error('native') end; local current,info=K.current(player); assert(current==nil and logs[2]:find('none') and logs[2]:find('unreadable'))
   native.nearby=function() error('native') end; assert(K.current(player)==nil)
   K.abandon()
+`));
+
+test('target: a tagged crowd gang member is accepted before the crosshair, a crowd civilian never, and crowd is never guessed', () => run(markingWorld + `
+  -- the live failure: the marked ganger was crowd-flagged and every crowd NPC was refused
+  crowd.facts={crowd=true,ganger=true}; crowd.tagged=true; aimed=ganger
+  local current,info=K.current(player); assert(current==crowd and info.source=='tagged' and info.name=='Crowd','marked crowd ganger')
+  crowd.facts={crowd=true,civilian=true}; current,info=K.current(player); assert(current~=crowd and info.source=='aimed','crowd civilian')
+  crowd.facts={crowd=true}; current,info=K.current(player); assert(current~=crowd,'a plain crowd NPC')
+  assert(logs[#logs]:find('tagged Crowd rejected: not%-combat%-capable %[crowd%]'),logs[#logs])
+  crowd.facts={crowd=true,ganger=true,friendly=true}; current,info=K.current(player); assert(current~=crowd,'friendly crowd')
+  crowd.facts={crowd=true,ganger=true}; crowd.tagged=false; aimed=nil
+  current,info=K.current(player); assert(current==ganger and info.source=='nearest','untagged crowd NPCs are not guessed even when closest')
+  aimed=crowd; current,info=K.current(player); assert(current==crowd and info.source=='aimed','aimed crowd gang member')
+  aimed=nil; guard.tagged=true; crowd.tagged=true
+  current=K.current(player); assert(current==crowd,'the closer tagged crowd NPC wins')
+  local protectedOne=crowd
+  K=Marking.new({native=native,owned=function(o) return o==judy end,protected=function(o) return o==protectedOne end})
+  current=K.current(player); assert(current==guard,'a protected crowd NPC is skipped')
+  K=Marking.new({native=native,owned=function(o) return o==judy or o==crowd end})
+  current=K.current(player); assert(current==guard,'a companion crowd NPC is skipped')
+  -- already hostile to V counts as evidence
+  crowd.facts={crowd=true,hostile=true}; K=Marking.new({native=native,owned=function(o) return o==judy end})
+  current=K.current(player); assert(current==crowd,'a hostile marked crowd NPC')
+`));
+
+test('target: when the look-at lands on a companion, the eligible NPC on the crosshair line is chosen', () => run(markingWorld + `
+  aimed=judy
+  native.crosshair=function() return {x=0,y=0,z=1.7},{x=0,y=1,z=0} end
+  K=Marking.new({native=native,owned=function(o) return o==judy end,log=function(l) logs[#logs+1]=l end})
+  ganger.pos={x=3,y=20,z=0}; crowd.facts={crowd=true,ganger=true}; crowd.pos={x=0.1,y=6,z=0}
+  local current,info=K.current(player); assert(current==crowd and info.source=='aimed','the closest to the line wins, crowd included: '..tostring(info and info.name))
+  assert(logs[#logs]:find('aimed%-companion=1'))
+  crowd.facts={crowd=true,civilian=true}; current,info=K.current(player)
+  assert(current==ganger and info.source=='aimed','the crowd civilian is skipped')
+  ganger.pos={x=8,y=20,z=0}; current,info=K.current(player)
+  assert(info.source=='nearest','outside the cone nothing is aimed at: falls to the closest ordinary combatant')
+  native.crosshair=function() error('native') end; current,info=K.current(player); assert(info.source=='nearest')
+  native.crosshair=function() return nil end; current,info=K.current(player); assert(info.source=='nearest')
 `));
 
 test('target: a named or quest-bound game character is never a tactic target, tagged, aimed or nearest', () => run(markingWorld + `

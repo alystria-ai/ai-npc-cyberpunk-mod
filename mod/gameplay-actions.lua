@@ -91,7 +91,7 @@ function M.new(options)
         if not normalized or not ownedOffer(captured, context) then return nil end
         return captured
     end
-    local lastAdvisory
+    local lastAdvisory, lastTacticAdvisory
 
     local function assign(context, from)
         context.chauffeurOffer, context.tacticOffer = copy(from.offer), copy(from.tacticOffer)
@@ -110,7 +110,7 @@ function M.new(options)
     -- leave offer: V may send one or more companions of that round away.
     function Q.capture(context, source)
         if type(context) ~= 'table' then return false end
-        context.chauffeurOffer, context.tacticOffer = nil, nil
+        context.chauffeurOffer, context.tacticOffer, context.tacticUnavailable = nil, nil, nil
         context.followOffer, context.leaveOffer, context.followUnavailable = nil, nil, nil
         local private = source == 'private-text' or source == 'private-voice'
         local group = source == 'group-text' or source == 'group-voice'
@@ -126,16 +126,16 @@ function M.new(options)
         local admission = table.concat({world.worldToken, tostring(world.generation), context.requestId,
             tostring(context.generation), context.entity, context.profileKey, source}, '\n')
         if admission == lastAdmission then
-            context.followUnavailable = lastAdvisory
+            context.followUnavailable, context.tacticUnavailable = lastAdvisory, lastTacticAdvisory
             if lease then assign(context, lease); return true end
             return false
         end
         Q.revoke('new-conversation')
-        lastAdmission, lastAdvisory = admission, nil
-        local drive, tactic, follow, refusal
+        lastAdmission, lastAdvisory, lastTacticAdvisory = admission, nil, nil
+        local drive, tactic, follow, refusal, tacticRefusal
         if private then
             drive = capturedOffer(options.offer, context.entity, context)
-            tactic = capturedOffer(options.tacticOffer, context.entity, context)
+            tactic, tacticRefusal = capturedOffer(options.tacticOffer, context.entity, context)
             follow, refusal = capturedOffer(options.followOffer, context.entity, context)
         end
         local leave = capturedOffer(options.leaveOffer, context.entity, context)
@@ -145,6 +145,12 @@ function M.new(options)
             and FOLLOW_UNAVAILABLE[refusal.reason] then
             lastAdvisory = refusal.reason
             context.followUnavailable = refusal.reason
+        end
+        -- No valid target: the bridge learns it so the character does not claim to attack anyone.
+        if not tactic and type(tacticRefusal) == 'table' and tacticRefusal.available == false
+            and tacticRefusal.code == 'no-target' then
+            lastTacticAdvisory = 'no-target'
+            context.tacticUnavailable = 'no-target'
         end
         if not drive and not tactic and not follow and not leave then return false end
         lease = {requestId = context.requestId, generation = context.generation, entity = context.entity,
@@ -237,7 +243,8 @@ function M.new(options)
         return {pending = lease ~= nil, state = result and result.state or 'idle',
             reason = result and result.reason, drive = lease ~= nil and lease.offer ~= nil,
             tactic = lease ~= nil and lease.tacticOffer ~= nil, follow = lease ~= nil and lease.followOffer ~= nil,
-            leave = lease ~= nil and lease.leaveOffer ~= nil, followUnavailable = lastAdvisory}
+            leave = lease ~= nil and lease.leaveOffer ~= nil, followUnavailable = lastAdvisory,
+            tacticUnavailable = lastTacticAdvisory}
     end
 
     return Q

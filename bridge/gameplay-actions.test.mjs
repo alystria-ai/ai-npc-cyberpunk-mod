@@ -188,3 +188,20 @@ test('a marked-target offer is leased with the request and one offered tactic is
  driveAvailable=true;input=context('request-2');assert(q.capture(input,'private-text'))
  assert(input.chauffeurOffer and input.tacticOffer,'both offers ride on one lease')
 `));
+
+test('no marked target is reported to the bridge as one plain code, and never leases a tactic', () => runTactic(`
+ tactic={available=false,reason='No target',code='no-target'}
+ local input=context();assert(not q.capture(input,'private-text'))
+ assert(input.tacticOffer==nil and input.tacticUnavailable=='no-target' and q.inspect().tacticUnavailable=='no-target')
+ local again=context();again.requestId=input.requestId;assert(not q.capture(again,'private-text'))
+ assert(again.tacticUnavailable=='no-target','the same admission keeps the advisory')
+ tactic={available=false,reason='Target too far away'}
+ input=context('request-2');assert(not q.capture(input,'private-text'))
+ assert(input.tacticUnavailable==nil,'other reasons are not sent')
+ tactic={available=false,reason='No target',code='no-target'}
+ input=context('request-3');assert(not q.capture(input,'group-text'))
+ assert(input.tacticUnavailable==nil,'only a private request carries it')
+ tactic={available=true,actor={serial=2,id='22ULL',key='judy'},target={id='77ULL',name='Tyger Claw',hostile=true,distance=23},kinds={'fight'}}
+ input=context('request-4');assert(q.capture(input,'private-text'))
+ assert(input.tacticOffer and input.tacticUnavailable==nil)
+`));

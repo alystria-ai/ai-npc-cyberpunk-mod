@@ -14,10 +14,15 @@ to the companion, in this order:
 
 Valid means alive (not dead or defeated) and combat-capable: gang members, police,
 corpo and military security, cyberpsychos, drones, mechs, androids, or anyone with
-a weapon in hand. The NPC does not have to be hostile yet. Never targets: managed
-companions or other player companions, crowd and civilians, children, vendors,
-invulnerable NPCs, NPCs under story/scene control, and friendly NPCs other than
-police. Tags on those NPCs are ignored. The game signals read are
+a weapon in hand, or anyone already hostile to V. The NPC does not have to be
+hostile yet. Never targets: managed companions or other player companions,
+civilians, children, vendors, named or quest-bound characters, invulnerable NPCs,
+NPCs under story/scene control, and friendly NPCs other than police. Tags on those
+NPCs are ignored. Ambient gang members are often crowd-flagged, so the crowd flag
+alone does not disqualify an NPC V tagged or aimed at (it still needs a positive
+combat signal); the nearest-NPC fallback never picks a crowd NPC. When the game's
+look-at lands on a companion in the line of sight, the valid NPC closest to the
+crosshair line (within about 12 degrees) is used instead. The game signals read are
 `IsTaggedinFocusMode`, `IsCrowd`, `IsCharacterCivilian`, `IsCharacterChildren`,
 `IsVendor`, `IsInvulnerable` (plus the `IsInvulnerable` stat), `IsOnAutonomousAI`,
 `IsPlayerCompanion`, `IsCharacterGanger`/`Police`/`Cyberpsycho`, `GetNPCType`
@@ -25,7 +30,9 @@ police. Tags on those NPCs are ignored. The game signals read are
 all present in the 2.31 script cache. A signal that errors is skipped (an
 unreadable exclusion never blocks a target, but a target still needs one positive
 combat signal). Every choice is logged as `Tactic target: <source> <name> <id> ...
-skipped crowd=2 civilian=1`.
+skipped civilian=1 companion=1; tagged <name> rejected: <reason> [<signals>]`. When
+nothing valid is found the offer is withheld and the character is told so
+(`tacticUnavailable: "no-target"`), so she declines instead of claiming to attack.
 
 Because civilians are not targets, a distraction of a tagged civilian is not
 offered; the target must be a combat-capable NPC with a conversation profile.

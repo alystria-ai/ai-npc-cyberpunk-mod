@@ -5,7 +5,7 @@ import {battleTrigger, battleContext} from './battle-context.mjs';
 import {followUpContext} from './conversation-style.mjs';
 import {parseDistraction, distractionTrigger} from './distraction-context.mjs';
 import {CompanionActions, CompanionActionWindow, parseTacticOffer, publishCompanionActionContext,
-  TACTIC_ACTIONS, TACTIC_KINDS, tacticActionName, chauffeurActionName} from './companion-actions.mjs';
+  TACTIC_ACTIONS, TACTIC_KINDS, tacticActionName, chauffeurActionName, parseTacticUnavailable} from './companion-actions.mjs';
 
 const tactic = (kinds = [...TACTIC_KINDS]) => ({available: true, actor: {serial: 3, id: '44ULL', key: 'judy'},
   target: {id: '77ULL', name: 'Tyger Claw', hostile: true, distance: 23}, kinds});
@@ -149,4 +149,26 @@ test('a distraction request is a valid automatic turn routed through the existin
   assert.match(battleTrigger(parsed), /Answer what they just said/);
   assert.equal(battleContext(parsed), '');
   assert.equal(parseInput(JSON.stringify({...request, reaction: distraction(2, {role: 'companion'})})), null);
+});
+
+test('with no valid target the character is told so, can act on nothing, and the code survives the wire', async () => {
+  assert.equal(parseTacticUnavailable('no-target'), 'no-target');
+  for (const bad of ['dance', '', null, 7, {}]) assert.equal(parseTacticUnavailable(bad), null);
+  const wire = parseInput(JSON.stringify({...prepared().input, tacticOffer: undefined, tacticUnavailable: 'no-target'}));
+  assert.equal(wire.tacticUnavailable, 'no-target');
+  assert.equal(parseInput(JSON.stringify({...prepared().input, tacticOffer: undefined, tacticUnavailable: 'dance'})).tacticUnavailable, undefined);
+  const {actions, files, options} = broker();
+  const config = actions.admit(prepared({tacticOffer: undefined, tacticUnavailable: 'no-target'}), options);
+  assert.equal(config.tacticUnavailable, 'no-target'); assert.equal(config.tactic, undefined);
+  for (const kind of TACTIC_KINDS) assert.equal(await actions.deliver({version: 1, token: config.token, tactic: kind}), false);
+  assert.equal(files.some(row => row.action === 'companion-tactic'), false);
+  assert.equal(actions.admit(prepared({tacticOffer: tactic(), tacticUnavailable: 'no-target'}), broker().options)?.tacticUnavailable, undefined,
+    'a real offer wins over the advisory');
+  const window = new CompanionActionWindow({now: () => 10000});
+  assert.equal(window.open(config), true);
+  assert.equal(window.open({...config, tacticUnavailable: 'dance'}), false);
+  assert.equal(window.open({...config, tactic: {targetName: 'A', hostile: true, distance: 3, kinds: ['fight']}}), false);
+  const text = CompanionActionWindow.contextText(config);
+  assert.match(text, /cannot go after anyone/); assert.match(text, /do not agree or pretend/);
+  assert.match(CompanionActionWindow.unavailableText(config), /cannot go after anyone/);
 });
