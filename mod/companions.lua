@@ -1271,20 +1271,14 @@ local function boardRiders(s,now)
             entry.carVisit,entry.carWalk,entry.carSearch=s.insideSince,nil,nil
             entry.riding,entry.rideDz,entry.carryError,entry.carryNoted=s.rideStarted,at.z-base.z,nil,nil
             entry.carrySent=0
-            -- Live 2026-10-11: the per-frame carry never held her past the first
-            -- second (lag 0.9 m after 1 s going down, "the lift phases through
-            -- him"), and she was hidden only after that lag showed. She is hidden
-            -- at departure, inside the shut car, and placed beside V at arrival
-            -- (the hidden-rider path); no per-frame carry runs for her. Only
-            -- when the hide cannot be queued is she carried as before.
-            if setVisible(entry,false) then
-                entry.rideHidden=runtimeClock
-                note(entry,'lift-carry',{result='hidden',reason='departure',hidden=true})
-            else
-                -- The offset is kept from V's current position, which the carry follows.
-                riders[#riders+1]={entry=entry,dx=at.x-now.x,dy=at.y-now.y,dz=at.z-base.z,
-                    angles=ok and angles or EulerAngles.new(0,0,0)}
-            end
+            -- Visible first (user request 2026-10-11): she is moved with V every
+            -- frame, leading the car by the engine's measured latency. The first
+            -- carry trailed the falling car by 0.9 m; checkRiders adapts the lead
+            -- and hides her (inside the shut car) if she still drifts.
+            -- The offset is kept from V's current position, which the carry follows.
+            riders[#riders+1]={entry=entry,dx=at.x-now.x,dy=at.y-now.y,dz=at.z-base.z,
+                angles=ok and angles or EulerAngles.new(0,0,0)}
+            entry.rideDrift,entry.rideBad=0,0
         elseif at and math.abs(at.z-s.rideFrom.z)<1.5 and space.ground(at,s.rideFrom)<=separation.carDoorReach
             and not (M.departure and M.departure.owns(entry.serial))
             and not (M.tactics and M.tactics.owns(entry.serial)) then
@@ -1300,11 +1294,23 @@ local function boardRiders(s,now)
     end
     M.riders=#riders>0 or nil
 end
+-- The car's vertical speed (smoothed over a few frames) and how far ahead of it
+-- a rider is placed, to cover the engine's teleport latency. Only touched while
+-- a ride is active.
+local rideCarry={lead=.12,vz=0}
+local function resetRideCarry() rideCarry.lead,rideCarry.vz,rideCarry.lastZ=.12,0,nil end
 -- Called every frame by the owner, and only while M.riders is set: one
 -- transform per rider for the length of the ride, nothing otherwise.
-function M.carry(player)
+function M.carry(player,delta)
     if not riders[1] then M.riders=nil; return end
     local v=player:GetWorldPosition()
+    local dt=tonumber(delta) or 0
+    if rideCarry.lastZ and dt>.0005 then
+        local raw=(v.z-rideCarry.lastZ)/dt
+        rideCarry.vz=rideCarry.vz+(raw-rideCarry.vz)*math.min(1,dt*20)
+    end
+    rideCarry.lastZ=v.z
+    local lead=rideCarry.vz*rideCarry.lead
     local found,facility=pcall(Game.GetTeleportationFacility)
     if not found or not facility then
         for _,r in ipairs(riders) do r.entry.carryError=tostring(facility or 'no teleport facility') end
@@ -1316,7 +1322,7 @@ function M.carry(player)
         local ok,err=false,'not ready'
         if npc then
             ok,err=pcall(function()
-                facility:Teleport(npc,Vector4.new(v.x+r.dx,v.y+r.dy,v.z+r.dz,1),r.angles)
+                facility:Teleport(npc,Vector4.new(v.x+r.dx,v.y+r.dy,v.z+r.dz+lead,1),r.angles)
             end)
             if ok then r.entry.carrySent=(r.entry.carrySent or 0)+1 end
         end
@@ -1341,27 +1347,53 @@ function setVisible(entry,visible)
     if not ok then entry.visibilityError=tostring(err) end
     return ok
 end
+local function rideHide(entry,reason,position,error)
+    for index=#riders,1,-1 do if riders[index].entry==entry then table.remove(riders,index) end end
+    if not riders[1] then M.riders=nil end
+    entry.rideHidden=runtimeClock
+    local hidden=setVisible(entry,false)
+    note(entry,'lift-carry',{result='hidden',reason=reason,hidden=hidden,error=entry.carryError,sent=entry.carrySent,
+        lag=rounded(error),drift=rounded(entry.rideDrift),lead=rounded(rideCarry.lead)})
+end
 local function checkRiders(s,position)
     for _,entry in ipairs(entries) do
         if s.riding and entry.riding==s.rideStarted and not entry.rideHidden and entry.position then
-            -- A held rider lags V by one frame at most (under 0.2 m at 10 m/s).
-            local held=math.abs(entry.position.z-(position.z+(entry.rideDz or 0)))<.35
-            if held and not entry.carryNoted and runtimeClock-s.rideStarted>=.4 then
-                entry.carryNoted=true
-                note(entry,'lift-carry',{result='held'})
-            elseif not held and runtimeClock-s.rideStarted>=.4 then
-                for index=#riders,1,-1 do if riders[index].entry==entry then table.remove(riders,index) end end
-                if not riders[1] then M.riders=nil end
-                entry.rideHidden=runtimeClock
-                local hidden=setVisible(entry,false)
-                note(entry,'lift-carry',{result='hidden',hidden=hidden,error=entry.carryError,sent=entry.carrySent,
-                    lag=rounded(position.z+(entry.rideDz or 0)-entry.position.z)})
+            local elapsed=runtimeClock-s.rideStarted
+            -- Positive: she is below where the car holds her. A rider the car
+            -- carries stays within a few centimetres of V's offset.
+            local error=position.z+(entry.rideDz or 0)-entry.position.z
+            local size=math.abs(error)
+            if entry.carryError then
+                rideHide(entry,'carry-failed',position,error)
+            else
+                -- The lead follows the measured lag: error = vz * (lead change).
+                if elapsed>=.3 and math.abs(rideCarry.vz)>.5 then
+                    rideCarry.lead=math.max(0,math.min(.6,rideCarry.lead+.6*error/rideCarry.vz))
+                end
+                if elapsed>=1.2 and size>(entry.rideDrift or 0) then entry.rideDrift=size end
+                local bad=elapsed>=1.2 and size>.3 or elapsed>=.4 and size>1.2
+                entry.rideBad=bad and (entry.rideBad or 0)+1 or 0
+                if entry.rideBad>=2 or (bad and size>1.2) then
+                    rideHide(entry,'drift',position,error)
+                elseif elapsed>=1.2 and not bad and not entry.carryNoted then
+                    entry.carryNoted=true
+                    note(entry,'lift-carry',{result='held',lag=rounded(error),lead=rounded(rideCarry.lead)})
+                end
             end
         elseif entry.rideHidden and not s.riding and not entry.relocation and entry.position
             and (math.abs(entry.position.z-position.z)<1.5 or runtimeClock-entry.rideHidden>40) then
             entry.rideHidden=nil
             setVisible(entry,true)
             note(entry,'lift-carry',{result='shown'})
+        end
+    end
+end
+-- The ride ended: say which path each rider took and how far she drifted.
+local function noteRode(s)
+    for _,entry in ipairs(entries) do
+        if entry.riding==s.rideStarted then
+            note(entry,'lift-carry',{result='rode',visible=not entry.rideHidden,drift=rounded(entry.rideDrift),
+                lead=rounded(rideCarry.lead),sent=entry.carrySent})
         end
     end
 end
@@ -1408,10 +1440,15 @@ local function samplePassage(player,position)
             -- Who stood in the car is judged where the car stood, not where
             -- the first moving sample already finds V.
             s.rideStarted,s.rideFrom=runtimeClock,s.position or space.copy(position)
+            resetRideCarry()
             boardRiders(s,position)
         end
         s.position=space.copy(position)
-        if s.riding and not riding then s.arrivedAt=runtimeClock; riders={}; M.riders=nil end
+        if s.riding and not riding then
+            s.arrivedAt=runtimeClock
+            noteRode(s)
+            riders={}; M.riders=nil
+        end
         if riding and runtimeClock-s.rideStarted>90 then riders={}; M.riders=nil end
         -- Set before the riders are checked: a rider hidden at departure must
         -- not be shown again by the same sample (live 2026-10-11 07:20:23Z:

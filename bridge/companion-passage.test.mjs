@@ -377,58 +377,72 @@ test('a walk into the car the engine does not perform ends in a teleport into th
   assert(logged('relocated','lift-board'),'no probe line for the teleport into the car')
 `));
 
-// Live 2026-10-11: going down, the per-frame carry held her for about a second
-// and then she lagged 0.9 m behind the falling car ("the lift phases through
-// him") before she was hidden. A rider is now hidden the moment the car
-// departs (inside the shut car), placed beside V at arrival, shown, and walks
-// out after V. No per-frame carry runs for her.
-test('a moving car: she is hidden at departure, in the car at arrival, shown, and walks out after V',()=>run(world+car+`
+// Live 2026-10-11: going down, the per-frame carry trailed the falling car by
+// 0.9 m before it hid her ("the lift phases through him"), and the user asked
+// for her to stay visible. The carry now leads the car by the measured
+// teleport latency; she is hidden (inside the shut car) only if she still
+// drifts more than 0.3 m after the first 1.2 s. The probe line says which.
+test('a moving car carries her along with V visibly, then she walks out after V',()=>run(world+car+`
   local carried=0
   Game.GetTeleportationFacility=function() return {Teleport=function(_,who,at) carried=carried+1; who.pos=at end} end
-  local events={}
+  local hides=0
   local queue=npc.QueueEvent
   npc.QueueEvent=function(self,event)
-    if type(event)=='table' and event.kind=='enteventsSetVisibility' then events[#events+1]=event.visible end
+    if type(event)=='table' and event.kind=='enteventsSetVisibility' and event.visible==false then hides=hides+1 end
+    return queue(self,event)
+  end
+  enterCar(); play(10)
+  assert(logged('lift-boarded'),'she never boarded'..dump())
+  local offset={x=npc.pos.x-player.pos.x,y=npc.pos.y-player.pos.y}
+  lift.moving=true
+  for i=1,40 do
+    -- init.lua carries riders every frame, before the companion update.
+    player.pos=Vector4.new(0,8,i)
+    if companions.riders then companions.carry(player,.5) end
+    play(1)
+  end
+  assert(carried>=30,'she was not carried with V ('..carried..' moves)'..dump())
+  assert(hides==0,'she was hidden although the carry held her'..dump())
+  lift.moving=false; play(2)
+  assert(not companions.riders,'still carried after the car stopped')
+  local rode=logged('lift-carry')
+  local summary
+  for _,l in ipairs(logs) do if l.kind=='lift-carry' and l.fields.result=='rode' then summary=l.fields end end
+  assert(summary and summary.visible==true and summary.drift<=.3,'no ride summary with the drift'..dump())
+  assert(math.abs(npc.pos.z-40)<.5,'she did not arrive with V: '..npc.pos.z)
+  lift.inside=false
+  for i=1,5 do player.pos=Vector4.new(0,7-i*.8,40); player.forward=Vector4.new(0,-1); play(1) end
+  play(10)
+  assert(#teleports==0,'an AI teleport was used during the ride'..dump())
+`));
+
+// The engine applies a teleport some frames late. A carry that leads the car by
+// that latency keeps her on the floor; the lead is learned from the lag.
+test('a rider the engine places two frames late stays beside V because the carry leads the car (going down)',()=>run(world+car+`
+  local pending={}
+  Game.GetTeleportationFacility=function() return {Teleport=function(_,who,at)
+    pending[#pending+1]=at
+    if #pending>2 then who.pos=table.remove(pending,1) end
+  end} end
+  local hides=0
+  local queue=npc.QueueEvent
+  npc.QueueEvent=function(self,event)
+    if type(event)=='table' and event.kind=='enteventsSetVisibility' and event.visible==false then hides=hides+1 end
     return queue(self,event)
   end
   enterCar(); play(10)
   assert(logged('lift-boarded'),'she never boarded'..dump())
   lift.moving=true
-  player.pos=Vector4.new(0,8,1); play(1)
-  assert(events[#events]==false,'she was not hidden at departure'..dump())
-  for i=2,40 do
-    player.pos=Vector4.new(0,8,i)
-    assert(not companions.riders,'a per-frame carry runs for a hidden rider')
-    play(1)
-    assert(events[#events]==false,'she was shown during the ride (step '..i..')')
-  end
-  assert(carried==0,'she was carried per frame although hidden'..dump())
-  assert(#teleports==0,'teleported during the ride'..dump())
-  lift.moving=false; play(4)
-  local spot=teleports[1] and teleports[1].spot
-  assert(spot and math.abs(spot.z-40)<.5 and inCar(spot.x,spot.y),'not placed in the car at arrival'..dump())
-  play(2)
-  assert(events[#events]==true,'she was not shown again in the car')
-  lift.inside=false
-  for i=1,5 do player.pos=Vector4.new(0,7-i*.8,40); player.forward=Vector4.new(0,-1); play(1) end
-  play(10)
-  assert(not inCar(npc.pos.x,npc.pos.y),'she stayed in the car after V stepped out'..dump())
-`));
-
-test('a rider whose hide cannot be queued is carried per frame as before',()=>run(world+car+`
-  local carried=0
-  Game.GetTeleportationFacility=function() return {Teleport=function(_,who,at) carried=carried+1; who.pos=at end} end
-  enterCar(); play(10)
-  assert(logged('lift-boarded'),'she never boarded'..dump())
-  npc.QueueEvent=function() error('no event queue') end
-  lift.moving=true
-  for i=1,40 do
-    player.pos=Vector4.new(0,8,i)
-    if companions.riders then companions.carry(player) end
+  local z=0
+  for i=1,24 do
+    -- 4 m/s down in 0.1 s frames, five carries per companion update.
+    for k=1,5 do z=z-.4; player.pos=Vector4.new(0,8,z); companions.carry(player,.1) end
     play(1)
   end
-  assert(carried>=30,'she was not carried with V ('..carried..' moves)'..dump())
-  assert(math.abs(npc.pos.z-40)<.2,'she did not keep her place beside V')
+  assert(hides==0,'she was hidden although the lead kept her in place'..dump())
+  local drift
+  for _,l in ipairs(logs) do if l.kind=='lift-carry' and l.fields.result=='held' then drift=l.fields end end
+  assert(drift and math.abs(drift.lag)<=.3,'the lag was not brought under 0.3 m'..dump())
 `));
 
 test('a failed walk into the car is retried once by another approach, and she walks in',()=>run(world+car+`
