@@ -312,6 +312,62 @@ function M.ownKey()
         limit = limit and limit.state or nil, limitOwn = limit and limit.own == true or false}
 end
 
+-- The OpenRouter text provider (docs/OPENROUTER.md): the same shape as the Convai key above. The bridge reads the key from
+-- the clipboard on request and keeps it in its own folder; this file sends two commands and reads the status the bridge
+-- publishes (runtime/openrouter-state.json, never the key). Read on demand, at most once every 1.5 s.
+local openRouterState, openRouterReadAt, openRouterCommand, openRouterSequence = {}, nil, nil, 0
+
+local function updateOpenRouter(force)
+    local clock = os.clock()
+    if not force and openRouterReadAt and clock - openRouterReadAt < 1.5 then return end
+    openRouterReadAt = clock
+    local value = readJSON('runtime/openrouter-state.json')
+    openRouterState = type(value) == 'table' and value or {}
+end
+
+local function sendOpenRouterCommand(action)
+    memorySession = memorySession or memorySessionUUID()
+    openRouterSequence = openRouterSequence + 1
+    local command = {version = 1, id = memorySession .. ':orkey:' .. openRouterSequence, action = action,
+        issuedAt = os.time() * 1000.0}
+    if not writeCommandFile('runtime/openrouter-key-command.json', command) then
+        return false, 'The request could not be sent. Try again.'
+    end
+    openRouterCommand = command.id
+    openRouterReadAt = nil
+    return true
+end
+
+function M.pasteOpenRouterKey()
+    local ok, reason = sendOpenRouterCommand('paste')
+    if not ok then return false, reason end
+    return true, 'Checking…'
+end
+
+function M.removeOpenRouterKey()
+    local ok, reason = sendOpenRouterCommand('clear')
+    if not ok then return false, reason end
+    return true, 'Your key was removed.'
+end
+
+local openRouterResults = {saved = true, cleared = true, invalid = true, unreadable = true, failed = true}
+local openRouterLimits = {rate = true, daily = true, invalid = true, model = true}
+
+-- What the settings page shows. `result` is the outcome of the player's latest Paste or Remove, and only that one.
+-- Anything missing or unexpected reads as "Convai, no key": the safe default.
+function M.openRouter()
+    updateOpenRouter()
+    local state = openRouterState
+    local result = type(state.result) == 'table' and state.result.id == openRouterCommand and state.result.state or nil
+    local tail = type(state.tail) == 'string' and #state.tail <= 8 and state.tail or nil
+    local model = type(state.model) == 'string' and #state.model <= 80 and state.model:match('^[%w%.%-_:/]+$') and state.model or nil
+    return {provider = state.provider == 'openrouter' and 'openrouter' or 'convai',
+        effective = state.effective == 'openrouter' and 'openrouter' or 'convai',
+        saved = state.saved == true, tail = tail, pending = state.pending == true,
+        result = openRouterResults[result] and result or nil,
+        limit = openRouterLimits[state.limit] and state.limit or nil, model = model, stt = state.stt == true}
+end
+
 function M.confirmMemoryClear(token)
     updateMemory()
     local confirmation = memoryConfirmation
@@ -397,6 +453,11 @@ local function loadSettings()
     if type(settings.developerMode) ~= 'boolean' then settings.developerMode, settingsNeedSave = false, true end
     -- Off by default: conversations use the shared plan until the player turns their own Convai key on (bridge/convai-key.mjs).
     if type(settings.useOwnConvaiKey) ~= 'boolean' then settings.useOwnConvaiKey, settingsNeedSave = false, true end
+    -- Who writes the replies: 'convai' (default) or 'openrouter' (free models, the player's own OpenRouter key). Any other
+    -- saved value is Convai. The bridge reads this from settings.json and applies it when no conversation is running.
+    if settings.conversationProvider ~= 'convai' and settings.conversationProvider ~= 'openrouter' then
+        settings.conversationProvider, settingsNeedSave = 'convai', true
+    end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = false, true end
     if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = false, true end
     -- On by default (a missing key); an explicitly saved choice is kept.
@@ -558,6 +619,16 @@ end
 
 function M.developerMode()
     return settings ~= nil and settings.developerMode == true
+end
+
+-- True when speaking to a companion cannot work right now: the player chose OpenRouter, the bridge says OpenRouter is the
+-- provider in use, and this computer cannot recognise speech locally. Asked only when a voice key is pressed (never per
+-- frame); the bridge status is re-read at most once every 1.5 s.
+function M.voiceNeedsConvai()
+    loadSettings()
+    if settings.conversationProvider ~= 'openrouter' then return false end
+    local state = M.openRouter()
+    return state.effective == 'openrouter' and state.stt ~= true
 end
 
 -- Off by default: companions speak as before. On, the conversation service tells each character which pauses and
@@ -1221,6 +1292,7 @@ function M.snapshot(player)
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
             developerMode = settings.developerMode,
             useOwnConvaiKey = settings.useOwnConvaiKey,
+            conversationProvider = settings.conversationProvider,
             relationshipModes = relationshipModes,
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
@@ -1242,6 +1314,7 @@ function M.snapshot(player)
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         ownKey = M.ownKey(),
+        openRouter = M.openRouter(),
         localVoice = localVoiceState,
         memory = memorySnapshot(),
         scan = {started = scanStarted, finished = scanFinished, error = scanError,
@@ -1295,6 +1368,9 @@ function M.applySettings(player, values)
         elseif key == 'archetypeConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.archetypeConversations = value
+        elseif key == 'conversationProvider' then
+            if value ~= 'convai' and value ~= 'openrouter' then return false, 'Choose one of the listed conversation providers.' end
+            nextSettings.conversationProvider = value
         elseif key == 'audioDelay' then
             if not isChoice(value, audioDelays) then return false, 'Choose one of the listed lip sync delays.' end
             nextSettings.audioDelay = value

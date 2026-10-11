@@ -212,7 +212,7 @@ local function setting(id, label, kind, value, default, description, elements, r
     local localized
     if elements then localized = {};for i,item in ipairs(elements) do localized[i]=raw.elements and item or ui.t(item) end end
     return {id = id, label = raw.label and label or ui.t(label), type = kind, value = value, defaultValue = default,
-        description = ui.t(description), elements = localized,
+        description = raw.description and description or ui.t(description), elements = localized,
         capabilities = {read = true, write = true, draft = true, reset = true}}
 end
 
@@ -638,6 +638,28 @@ local function ownKeyRows(snapshot)
     elseif own.active == 'player' and own.memoryOff then using = ui.t('Your own key, without memory')
     elseif own.active == 'player' then using = ui.t('Your own key')
     else using = ui.t('The shared plan') end
+    -- OpenRouter (docs/OPENROUTER.md): the key status, and which provider answers right now. Turns on OpenRouter or on a
+    -- player's own Convai key are never counted against the shared daily limit (bridge/shared-key-guard.mjs).
+    local router = snapshot.openRouter or {}
+    local routerStatus, routerResult = nil, router.result
+    if routerResult == 'invalid' then routerStatus = ui.t('OpenRouter did not accept that key.')
+    elseif routerResult == 'unreadable' then routerStatus = ui.t('The clipboard could not be read.')
+    elseif routerResult == 'failed' then routerStatus = ui.t('The key could not be saved.')
+    elseif router.saved and router.tail then routerStatus = ui.t('Added (ends in {tail})', {tail = router.tail})
+    elseif router.saved then routerStatus = ui.t('Added')
+    else routerStatus = ui.t('Not added') end
+    -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
+    local providerHelp = router.stt
+        and ui.t('Who writes your companions’ replies. Convai is the default and the full experience, with voice and memory as now. OpenRouter uses free text models with your own free OpenRouter key (add it below): replies are text and memory stays on this computer. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.')
+        or ui.t('Who writes your companions’ replies. Convai is the default and the full experience, with voice and memory as now. OpenRouter uses free text models with your own free OpenRouter key (add it below): replies are text and memory stays on this computer. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with OpenRouter, so type your messages. The change waits until no conversation is running; choose Apply.')
+    if router.pending then using = ui.t('Waiting for the conversation to end')
+    elseif router.effective == 'openrouter' then
+        if router.limit == 'rate' then using = ui.t('OpenRouter: free limit reached for now')
+        elseif router.limit == 'daily' then using = ui.t('OpenRouter: daily limit reached')
+        elseif router.limit == 'invalid' then using = ui.t('OpenRouter: key not accepted')
+        elseif router.limit == 'model' then using = ui.t('OpenRouter: free model unavailable')
+        else using = ui.t('OpenRouter (free models)') end
+    elseif snapshot.settings.conversationProvider == 'openrouter' then using = ui.t('Convai: OpenRouter has no key yet') end
     return {
         setting('useOwnConvaiKey', 'Use my own Convai API key', 'bool', snapshot.settings.useOwnConvaiKey, false,
             'Use your own free Convai API key instead of the shared plan. Get a free key at convai.com (it includes a small monthly allowance), copy it, choose Paste Convai API key below, then choose Apply. With your own key conversations open one at a time, companions are not pre-connected, and Multilingual conversations and memory management are unavailable. The change waits until no conversation is running.'),
@@ -649,8 +671,19 @@ local function ownKeyRows(snapshot)
         action('own-key:remove', 'Remove my Convai API key', 'Remove',
             'Deletes the saved key. Conversations go back to the shared plan.',
             function() return manager.removeOwnKey() end, own.saved),
+        setting('conversationProvider', 'Conversation provider', 'select',
+            snapshot.settings.conversationProvider == 'openrouter' and 2 or 1, 1, providerHelp,
+            {'Convai', 'OpenRouter'}, {elements = true, description = true}),
+        readonly('openrouter-key-status', 'OpenRouter key', routerStatus,
+            'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
+        action('openrouter-key:paste', 'Paste OpenRouter key', 'Paste from clipboard',
+            'Copy your free key on openrouter.ai first. It is read from the clipboard once, checked with OpenRouter and saved on this computer. You can also save it in the file player-openrouter-key.txt in the conversation service folder.',
+            function() return manager.pasteOpenRouterKey() end),
+        action('openrouter-key:remove', 'Remove my OpenRouter key', 'Remove',
+            'Deletes the saved key. Conversations go back to Convai.',
+            function() return manager.removeOpenRouterKey() end, router.saved == true),
         readonly('own-key-using', 'Conversations use', using,
-            'Which Convai plan pays for conversations right now. Changes wait until no conversation is running.', {value = true}),
+            'Which provider answers your conversations right now and, for Convai, which plan pays for them. Changes wait until no conversation is running.', {value = true}),
     }
 end
 
@@ -1094,6 +1127,12 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                         return {ok = false, error = ui.t('Choose one of the listed lip sync delays.')}
                     end
                     values.audioDelay = delays[change.value]
+                elseif key == 'conversationProvider' then
+                    -- Order: 1 Convai (stored 'convai'), 2 OpenRouter (stored 'openrouter').
+                    if change.value ~= 1 and change.value ~= 2 then
+                        return {ok = false, error = ui.t('Choose one of the listed conversation providers.')}
+                    end
+                    values.conversationProvider = change.value == 1 and 'convai' or 'openrouter'
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose one of the listed subtitle displays.')} end
                     -- Order: 1 Cinematic subtitles (stored 'dialogue'), 2 Above the speaker (stored 'overhead').

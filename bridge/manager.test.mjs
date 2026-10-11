@@ -4055,6 +4055,139 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
   `);
 });
 
+test('Development offers the conversation provider and the OpenRouter key rows: Convai by default, two commands, a status that never shows the key', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    assert(invoke('tab:settings').ok)
+    local provider = row('conversationProvider')
+    assert(provider and provider.type == 'select' and provider.value == 1 and provider.defaultValue == 1)
+    assert(provider.elements[1] == 'Convai' and provider.elements[2] == 'OpenRouter' and #provider.elements == 2)
+    assert(provider.description:find('free text models', 1, true) and provider.description:find('memory stays on this computer', 1, true))
+    assert(provider.description:find('local voice', 1, true) and provider.description:find('until no conversation is running', 1, true))
+    assert(provider.description:find('not available yet', 1, true), 'without local speech recognition the help says so')
+    assert(row('openrouter-key-status').value == 'Not added' and row('openrouter-key:remove').disabled == true)
+    assert(row('openrouter-key:paste').disabled ~= true and row('openrouter-key:paste').description:find('player-openrouter-key.txt', 1, true))
+    assert(row('own-key-using').value == 'The shared plan', 'the Convai plan line is unchanged while Convai is chosen')
+    -- The rows sit in Development: the provider choice after the Convai key rows, the status line last.
+    local order = {}
+    for _, category in ipairs(loaded.categories) do
+      for _, item in ipairs(category.settings) do if item.id == 'developerMode' or #order > 0 then order[#order + 1] = item.id end end
+      if #order > 0 then break end
+    end
+    local at = {}
+    for index, id in ipairs(order) do at[id] = index end
+    assert(at.useOwnConvaiKey and at['own-key:remove'] < at.conversationProvider and at.conversationProvider < at['openrouter-key-status']
+      and at['openrouter-key:remove'] < at['own-key-using'], table.concat(order, ','))
+    -- Paste and Remove are two commands on their own channel, never the memory or the Convai key channel.
+    assert(invoke('openrouter-key:paste').ok)
+    local command = jsonFixtures[files['runtime/openrouter-key-command.json']]
+    assert(command.version == 1 and command.action == 'paste' and command.id:find(':orkey:1', 1, true))
+    assert(files['runtime/memory-command.json'] == nil and files['runtime/own-key-command.json'] == nil)
+    local function answer(tag, state)
+      jsonFixtures['or-state-' .. tag] = state
+      files['runtime/openrouter-state.json'] = 'or-state-' .. tag
+      clock = clock + 2
+    end
+    local function id(number) return (command.id:gsub(':1$', ':' .. number)) end
+    answer('saved', {version = 1, provider = 'openrouter', effective = 'openrouter', saved = true, tail = 'abcd', stt = false,
+      model = 'openrouter/free', result = {id = id(2), state = 'saved'}})
+    assert(invoke('openrouter-key:paste').ok)
+    assert(row('openrouter-key-status').value == 'Added (ends in abcd)' and row('openrouter-key:remove').disabled ~= true)
+    assert(row('own-key-using').value == 'OpenRouter (free models)')
+    answer('invalid', {version = 1, provider = 'openrouter', effective = 'openrouter', saved = true, tail = 'abcd',
+      result = {id = id(3), state = 'invalid'}})
+    assert(invoke('openrouter-key:paste').ok)
+    assert(row('openrouter-key-status').value == 'OpenRouter did not accept that key.')
+    -- An answer to an older command is not shown, a damaged status reads as Convai without a key.
+    answer('old', {provider = 'openrouter', effective = 'openrouter', saved = true, tail = 'abcd', result = {id = 'x:orkey:9', state = 'invalid'}})
+    assert(invoke('openrouter-key:paste').ok and row('openrouter-key-status').value == 'Added (ends in abcd)')
+    answer('garbled', {provider = 7, effective = {}, saved = 'yes', tail = 5, limit = 'sometimes', stt = 'yes', model = 12})
+    local state = manager.openRouter()
+    assert(state.provider == 'convai' and state.effective == 'convai' and state.saved == false and state.tail == nil
+      and state.limit == nil and state.stt == false and state.model == nil and state.result == nil)
+    -- Limits and the waiting state are told in the status line.
+    for limit, text in pairs({rate = 'OpenRouter: free limit reached for now', daily = 'OpenRouter: daily limit reached',
+      invalid = 'OpenRouter: key not accepted', model = 'OpenRouter: free model unavailable'}) do
+      answer('limit-' .. limit, {provider = 'openrouter', effective = 'openrouter', saved = true, tail = 'abcd', limit = limit})
+      assert(invoke('openrouter-key:paste').ok and row('own-key-using').value == text, limit)
+    end
+    answer('pending', {provider = 'convai', effective = 'convai', saved = true, tail = 'abcd', pending = true})
+    assert(invoke('openrouter-key:paste').ok and row('own-key-using').value == 'Waiting for the conversation to end')
+    assert(invoke('openrouter-key:remove').ok and jsonFixtures[files['runtime/openrouter-key-command.json']].action == 'clear')
+  `);
+});
+
+test('the Conversation provider setting: Convai unless OpenRouter is chosen, saved like the other settings, validated', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    assert(manager.snapshot(player).settings.conversationProvider == 'convai')
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 2}}).ok)
+    assert(manager.snapshot(player).settings.conversationProvider == 'openrouter' and saved.conversationProvider == 'openrouter')
+    assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok)
+    assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 'openrouter'}}).ok)
+    assert(not manager.applySettings(player, {conversationProvider = 'other'}))
+    assert(manager.snapshot(player).settings.conversationProvider == 'openrouter', 'a refused value changes nothing')
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 1}}).ok)
+    assert(manager.snapshot(player).settings.conversationProvider == 'convai' and saved.conversationProvider == 'convai')
+  `);
+});
+
+test('the voice key waits for Convai only while OpenRouter is in use and this computer cannot recognise speech', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function status(tag, value)
+      jsonFixtures['voice-' .. tag] = value
+      files['runtime/openrouter-state.json'] = 'voice-' .. tag
+      clock = clock + 2
+    end
+    local function choose(index) assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = index}}).ok) end
+    assert(manager.voiceNeedsConvai() == false, 'Convai is the default')
+    status('a', {provider = 'openrouter', effective = 'openrouter', saved = true, stt = false})
+    assert(manager.voiceNeedsConvai() == false, 'the setting is still Convai')
+    choose(2)
+    assert(manager.voiceNeedsConvai() == true)
+    status('b', {provider = 'openrouter', effective = 'openrouter', saved = true, stt = true})
+    assert(manager.voiceNeedsConvai() == false, 'local speech recognition makes the voice key work')
+    status('c', {provider = 'openrouter', effective = 'convai', saved = false, stt = false})
+    assert(manager.voiceNeedsConvai() == false, 'no key saved: Convai is used, so the voice key works')
+    status('d', {provider = 'openrouter', effective = 'openrouter', saved = true})
+    assert(manager.voiceNeedsConvai() == true, 'a status without stt means no local speech recognition')
+    files['runtime/openrouter-state.json'] = nil; clock = clock + 2
+    assert(manager.voiceNeedsConvai() == false, 'no status file: the safe default')
+    status('e', {provider = 'openrouter', effective = 'openrouter', saved = true, stt = false})
+    choose(1)
+    assert(manager.voiceNeedsConvai() == false)
+  `);
+});
+
+test('the reply notices for OpenRouter: three failures, two one-time notices, nothing for an ordinary reply', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  const start = init.indexOf('local function keyNoticeText'), end = init.indexOf('local function reactionCanDeliver');
+  assert(start > 0 && end > start, 'the key notice functions moved');
+  run(`
+    local ui = {t = function(text) return text end}
+    local sent = {}
+    convaiNotices = {send = function(_, id, text) sent[#sent + 1] = id .. '=' .. text; return true end}
+    ${init.slice(start, end)}
+    local function notice(reply) local id, text = keyReplyNotice(reply); return id, text end
+    local id, text = notice({errorCode = 'openrouter-key', error = 'x'})
+    assert(id == 'openrouter-key' and text:find('did not accept your key', 1, true) and text:find('Settings > Development', 1, true), text)
+    id, text = notice({errorCode = 'openrouter-limit', error = 'x'})
+    assert(id == 'openrouter-limit' and text:find('free limit', 1, true) and text:find('Convai key', 1, true), text)
+    id, text = notice({errorCode = 'openrouter-model', error = 'x'})
+    assert(id == 'openrouter-model' and text:find('unavailable', 1, true) and text:find('a minute', 1, true), text)
+    id, text = notice({keyNotice = 'openrouter-no-key', text = 'Hello'})
+    assert(id == 'openrouter-no-key' and text:find('no key yet', 1, true) and text:find('Convai is used', 1, true), text)
+    id, text = notice({keyNotice = 'openrouter-voice', text = 'Hello'})
+    assert(id == 'openrouter-voice' and text:find('local voice', 1, true), text)
+    -- The one-time notices go through the gate under their own ids; anything else sends nothing.
+    sendProviderNotice({}, 'openrouter-no-key', 'a'); sendProviderNotice({}, 'openrouter-voice', 'b'); sendProviderNotice({}, 'key-memory', 'c')
+    assert(#sent == 2 and sent[1] == 'openrouter-no-key=a' and sent[2] == 'openrouter-voice=b', table.concat(sent, ';'))
+    assert(notice({errorCode = 'quota-shared'}) == 'quota-exhausted', 'the Convai refusals keep their own notice')
+    assert(notice({text = 'Hello'}) == nil and notice({keyNotice = 'other'}) == nil)
+  `);
+});
+
 // A companion the repo knows is invited only when the installed copies of the roster (conversation-characters.json) and
 // manager-characters.json carry her too. A stale install of those data files answered "That character model is unavailable."
 // for Alt Cunningham on 2026-10-11, so this pins what the committed data must resolve and what the stale shape looks like.
