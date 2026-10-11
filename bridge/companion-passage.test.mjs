@@ -377,30 +377,58 @@ test('a walk into the car the engine does not perform ends in a teleport into th
   assert(logged('relocated','lift-board'),'no probe line for the teleport into the car')
 `));
 
-test('a moving car carries her along with V, then she walks out after V',()=>run(world+car+`
-  -- Live 2026-10-08 08:51Z: the car does not carry an NPC; M.carry moves her.
+// Live 2026-10-11: going down, the per-frame carry held her for about a second
+// and then she lagged 0.9 m behind the falling car ("the lift phases through
+// him") before she was hidden. A rider is now hidden the moment the car
+// departs (inside the shut car), placed beside V at arrival, shown, and walks
+// out after V. No per-frame carry runs for her.
+test('a moving car: she is hidden at departure, in the car at arrival, shown, and walks out after V',()=>run(world+car+`
+  local carried=0
+  Game.GetTeleportationFacility=function() return {Teleport=function(_,who,at) carried=carried+1; who.pos=at end} end
+  local events={}
+  local queue=npc.QueueEvent
+  npc.QueueEvent=function(self,event)
+    if type(event)=='table' and event.kind=='enteventsSetVisibility' then events[#events+1]=event.visible end
+    return queue(self,event)
+  end
+  enterCar(); play(10)
+  assert(logged('lift-boarded'),'she never boarded'..dump())
+  lift.moving=true
+  player.pos=Vector4.new(0,8,1); play(1)
+  assert(events[#events]==false,'she was not hidden at departure'..dump())
+  for i=2,40 do
+    player.pos=Vector4.new(0,8,i)
+    assert(not companions.riders,'a per-frame carry runs for a hidden rider')
+    play(1)
+    assert(events[#events]==false,'she was shown during the ride (step '..i..')')
+  end
+  assert(carried==0,'she was carried per frame although hidden'..dump())
+  assert(#teleports==0,'teleported during the ride'..dump())
+  lift.moving=false; play(4)
+  local spot=teleports[1] and teleports[1].spot
+  assert(spot and math.abs(spot.z-40)<.5 and inCar(spot.x,spot.y),'not placed in the car at arrival'..dump())
+  play(2)
+  assert(events[#events]==true,'she was not shown again in the car')
+  lift.inside=false
+  for i=1,5 do player.pos=Vector4.new(0,7-i*.8,40); player.forward=Vector4.new(0,-1); play(1) end
+  play(10)
+  assert(not inCar(npc.pos.x,npc.pos.y),'she stayed in the car after V stepped out'..dump())
+`));
+
+test('a rider whose hide cannot be queued is carried per frame as before',()=>run(world+car+`
   local carried=0
   Game.GetTeleportationFacility=function() return {Teleport=function(_,who,at) carried=carried+1; who.pos=at end} end
   enterCar(); play(10)
   assert(logged('lift-boarded'),'she never boarded'..dump())
-  local offset={x=npc.pos.x-player.pos.x,y=npc.pos.y-player.pos.y}
+  npc.QueueEvent=function() error('no event queue') end
   lift.moving=true
   for i=1,40 do
-    -- init.lua carries riders every frame, before the companion update.
     player.pos=Vector4.new(0,8,i)
     if companions.riders then companions.carry(player) end
     play(1)
   end
   assert(carried>=30,'she was not carried with V ('..carried..' moves)'..dump())
-  assert(math.abs(npc.pos.z-40)<.2 and math.abs(npc.pos.x-player.pos.x-offset.x)<.05,'she did not keep her place beside V: '
-    ..npc.pos.x..','..npc.pos.y..','..npc.pos.z..' offset '..offset.x..','..offset.y)
-  lift.moving=false; play(2)
-  assert(not companions.riders,'still carried after the car stopped')
-  lift.inside=false
-  for i=1,5 do player.pos=Vector4.new(0,7-i*.8,40); player.forward=Vector4.new(0,-1); play(1) end
-  play(10)
-  assert(#teleports==0,'an AI teleport was used during the ride'..dump())
-  assert(not inCar(npc.pos.x,npc.pos.y),'she stayed in the car after V stepped out'..dump())
+  assert(math.abs(npc.pos.z-40)<.2,'she did not keep her place beside V')
 `));
 
 test('a failed walk into the car is retried once by another approach, and she walks in',()=>run(world+car+`
@@ -505,7 +533,7 @@ test('a carry that does not hold her hides her for the ride; she is in the car a
   assert(events[#events]==true,'she was not shown again in the car')
 `));
 
-test('a carry that fails outright (no teleport facility) also hides her and places her at arrival',()=>run(world+car+`
+test('a car with no teleport facility still gets her in the car at arrival, hidden for the ride',()=>run(world+car+`
   Game.GetTeleportationFacility=function() error('teleport facility unavailable') end
   enterCar(); play(10)
   assert(logged('lift-boarded'),'she never boarded'..dump())
@@ -516,8 +544,7 @@ test('a carry that fails outright (no teleport facility) also hides her and plac
     play(1)
   end
   local hidden=logged('lift-carry')
-  assert(hidden and hidden.fields.result=='hidden' and tostring(hidden.fields.error):find('unavailable'),
-    'the failed carry was not hidden and reported'..dump())
+  assert(hidden and hidden.fields.result=='hidden','she was not hidden for the ride'..dump())
   assert(#teleports==0,'teleported during the ride')
   lift.moving=false; play(3)
   assert(#teleports>=1,'she stayed on the old floor'..dump())

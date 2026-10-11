@@ -1268,12 +1268,23 @@ local function boardRiders(s,now)
             or space.ground(at,base)<1.6)
         if aboard then
             local ok,angles=pcall(function() return Quaternion.ToEulerAngles(entry.npc:GetWorldOrientation()) end)
-            -- The offset is kept from V's current position, which the carry follows.
-            riders[#riders+1]={entry=entry,dx=at.x-now.x,dy=at.y-now.y,dz=at.z-base.z,
-                angles=ok and angles or EulerAngles.new(0,0,0)}
             entry.carVisit,entry.carWalk,entry.carSearch=s.insideSince,nil,nil
             entry.riding,entry.rideDz,entry.carryError,entry.carryNoted=s.rideStarted,at.z-base.z,nil,nil
             entry.carrySent=0
+            -- Live 2026-10-11: the per-frame carry never held her past the first
+            -- second (lag 0.9 m after 1 s going down, "the lift phases through
+            -- him"), and she was hidden only after that lag showed. She is hidden
+            -- at departure, inside the shut car, and placed beside V at arrival
+            -- (the hidden-rider path); no per-frame carry runs for her. Only
+            -- when the hide cannot be queued is she carried as before.
+            if setVisible(entry,false) then
+                entry.rideHidden=runtimeClock
+                note(entry,'lift-carry',{result='hidden',reason='departure',hidden=true})
+            else
+                -- The offset is kept from V's current position, which the carry follows.
+                riders[#riders+1]={entry=entry,dx=at.x-now.x,dy=at.y-now.y,dz=at.z-base.z,
+                    angles=ok and angles or EulerAngles.new(0,0,0)}
+            end
         elseif at and math.abs(at.z-s.rideFrom.z)<1.5 and space.ground(at,s.rideFrom)<=separation.carDoorReach
             and not (M.departure and M.departure.owns(entry.serial))
             and not (M.tactics and M.tactics.owns(entry.serial)) then
@@ -1402,8 +1413,11 @@ local function samplePassage(player,position)
         s.position=space.copy(position)
         if s.riding and not riding then s.arrivedAt=runtimeClock; riders={}; M.riders=nil end
         if riding and runtimeClock-s.rideStarted>90 then riders={}; M.riders=nil end
-        checkRiders(s,position)
+        -- Set before the riders are checked: a rider hidden at departure must
+        -- not be shown again by the same sample (live 2026-10-11 07:20:23Z:
+        -- hidden and shown in the same second, then hidden a second later).
         s.riding=riding
+        checkRiders(s,position)
     end
     passage.trailPush(s.trail,position,runtimeClock,s.lift and s.lift.inside)
 end
