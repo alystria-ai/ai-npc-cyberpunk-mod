@@ -56,9 +56,11 @@ const realId = registry.endUserId;
 // accepted delete; refused calls do not extend it, and get/list/usage keep working while delete is refused). So deletion is
 // paced by that window (see deleteEndUser), not by a gap; every other call just keeps a small gap. A 429 never aborts the run:
 // it waits (Retry-After if the server ever sends it, else the rest of our window, else exponential backoff) and retries.
+// Faster is not possible: 30 parallel deletes in one window gave 8 accepted + 22 refused (the cap counts failed calls too), array
+// bodies are rejected (400/404), no bulk route exists (OPTIONS on delete-many/bulk-delete/... all 404), and the docs show one id per call.
 let lastCall = 0;
 const DELETE_WINDOW_MS = numArg('--window-ms', 60000);
-let deletesPerWindow = numArg('--per-window', 10);
+const deletesPerWindow = numArg('--per-window', 10);
 let limitedCount = 0;
 async function rawPost(path, body, gap = 700) {
   for (let transport = 0; ; transport++) {
@@ -99,8 +101,7 @@ async function deleteEndUser(id) {
       limitedCount++;
       let wait;
       if (result.retryAfterMs !== null) wait = result.retryAfterMs;
-      else if (pacer.start) {                        // our window is spent sooner than assumed: learn the real size, wait out the window
-        if (pacer.used > 0 && pacer.used < deletesPerWindow) { console.log(`window allowed only ${pacer.used} deletes; using that from now on`); deletesPerWindow = pacer.used; }
+      else if (pacer.start) {                        // the window is spent (possibly by earlier calls, or failed calls that count too): wait out its end
         wait = Math.max(500, pacer.start + DELETE_WINDOW_MS + 250 - Date.now());
       } else { wait = backoff; backoff = Math.min(backoff * 2, 8000); }    // window unknown: short exponential backoff (refused calls are free)
       await sleep(wait); pacer.start = 0; pacer.used = 0; continue;
