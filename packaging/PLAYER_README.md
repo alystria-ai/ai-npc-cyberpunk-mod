@@ -5,7 +5,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 ## What's new in 0.2
 
 - **Alt Cunningham** joins the cast as a companion you can talk to, with her own voice and look.
-- **Many more people to talk to**: ordinary NPCs, vendors and faction members talk through character profiles of their own kind, with several voices each, and shopkeepers you return to remember you. Crowd pedestrians can follow you, and the party has no size limit.
+- **Many more people to talk to**: ordinary NPCs, vendors and faction members talk through character profiles of their own kind, with several voices each, and shopkeepers you return to remember you. The party has no size limit; only characters the mod spawns join it, and named story characters in the world are left alone.
 - **Companions sit with you** on couches, benches, chairs and bar stools, and you can look around freely while seated.
 - **Body gestures** are rebuilt: calmer, timed to the phrase, with no repeats and no pointing, and every companion has talking gestures and idles.
 - **Faces and lip sync**: whole-face emotions, a neutral resting face and a smoother mouth for the local voices.

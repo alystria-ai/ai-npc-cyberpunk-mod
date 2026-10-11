@@ -1,5 +1,9 @@
 -- World characters who join V, and party members who leave (docs/WORLD_COMPANIONS.md).
 --
+-- DISABLED 2026-10-11: a world character can no longer join the party (offer() reports "unavailable" and
+-- queueFollow() refuses unless options.allowWorldFollow is set, which only tests do). The leave half (party members
+-- walking away) is live. The adoption code below is kept for now.
+--
 -- A world character asked to follow is never given a follower role. It joins
 -- through the ordinary party queue as a managed copy (same record, current
 -- appearance, placed where it stood); the moment that copy is attached, the
@@ -186,6 +190,9 @@ function M.new(options)
     local clock, sequence = 0, 0
     local records, departures, offered = {}, {}, {}
     local walkers, uncopyable = {}, {}
+    -- Off in the release: a world character is never adopted, only mod-spawned companions are party members. The flag
+    -- exists so the adoption code (kept, and covered by tests) can be exercised; no production caller sets it.
+    local allowWorldFollow = options.allowWorldFollow == true
 
     local function log(line) if type(options.log) == 'function' then pcall(options.log, line) end end
     local function queue() return type(options.party) == 'function' and options.party() or nil end
@@ -253,6 +260,8 @@ function M.new(options)
     function A.offer(entity, npc, profileKey, name)
         if type(entity) ~= 'string' or type(profileKey) ~= 'string' or not npc then return nil end
         if guard(companions.owns, npc) or guard(companions.partyMember, entity) then return nil end
+        -- World characters cannot join the party (2026-10-11): the character declines in character, nothing is armed.
+        if not allowWorldFollow then return {available = false, reason = 'unavailable'} end
         local reason = refusal(entity, npc, profileKey)
         if reason then return {available = false, reason = reason} end
         local label = type(name) == 'string' and name ~= '' and clip(name) or profileKey
@@ -296,6 +305,7 @@ function M.new(options)
     -- The model chose to follow V. Re-check everything and reserve a party
     -- place; the copy is placed after the reply (the job's gate).
     function A.queueFollow(offer, entity, requestId)
+        if not allowWorldFollow then return false, refusalMessage('unavailable', type(offer) == 'table' and offer.name or '') end
         local seen = offered[entity]
         local name = seen and seen.name or (type(offer) == 'table' and offer.name) or ''
         if type(offer) ~= 'table' or type(offer.actor) ~= 'table' or offer.actor.id ~= entity or not seen

@@ -281,12 +281,16 @@ test('managed gaze has one owner and does not also start the civilian native hol
     local companions={owns=function(npc) return npc.managed end}
     local function endFocus() end
     local function log() end
+    local resolved=true
+    local function profileIdentity() return resolved and 'resident-female' or nil end
     local player={ConvaiBeginFocus=function() calls=calls+1; return true end}
     local npc={managed=true,GetEntityID=function() return {hash='1'} end}
     ${begin}
     assert(beginFocus(player,npc)==true and calls==0, 'managed attention belongs to the formation controller')
     npc.managed=false
     assert(beginFocus(player,npc)==true and calls==1, 'ordinary world NPC behavior stays on its existing path')
+    resolved=false
+    assert(beginFocus(player,npc)==false and calls==1, 'a character the talk path gave no profile is never focused')
   `);
 });
 

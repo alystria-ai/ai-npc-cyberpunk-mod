@@ -52,8 +52,10 @@ local function tacticModule(path, options, fallback)
     return fallback
 end
 -- A hidden adopted original (companion-adoption.lua) is never a target either.
+-- A named or quest-bound game character is never a tactic target (convaiWorldPolicy, set below profileIdentity).
 local marking = tacticModule('companion-marking.lua', {owned = function(npc)
         return companions.owns(npc) or (convaiCompanionAdoption ~= nil and convaiCompanionAdoption.hidden(npc)) end,
+    protected = function(npc) return convaiWorldPolicy ~= nil and convaiWorldPolicy.protected(npc) == true end,
     log = function(line) if tacticEnv.log then tacticEnv.log(line) end end},
     {current = function() return nil end, abandon = function() end})
 local tactics = tacticModule('companion-tactics.lua', {env = tacticEnv}, {
@@ -484,7 +486,9 @@ local function profileIdentity(npc)
     if owned and not managedKey then return nil, name, body end
     local recordOk, record = pcall(function() return tostring(npc:GetRecordID()) end)
     local crowdOk, crowd = pcall(function() return npc:IsCrowd() end)
-    local actor = {managedKey = managedKey, name = name,
+    -- world: the game's own character, not a copy the mod spawned. A named story character there gets no
+    -- conversation profile at all (character-catalog.lua resolve); only the spawned copy talks.
+    local actor = {managedKey = managedKey, name = name, world = managedKey == nil,
         bodyType = body, record = recordOk and record or '', crowd = crowdOk and crowd}
     if not managedKey and type(manager.archetypeConversations) == 'function' and manager.archetypeConversations() then
         local idOk, entity = pcall(function() return tostring(npc:GetEntityID().hash) end)
@@ -493,6 +497,36 @@ local function profileIdentity(npc)
     local key, canonical, archetype = characterCatalog.resolve(catalog, actor)
     return key, canonical, body, archetype
 end
+
+-- The one rule for characters the game placed (docs/WORLD_COMPANIONS.md, "The mod never touches game characters"):
+--   ours(npc)      a copy the mod spawned: the full feature set.
+--   protected(npc) a named, story or quest character of the game: no mod system touches it at all.
+--   everyone else  an ordinary world NPC: only the talk path (a conversation the player starts) acts on it.
+-- Read on demand (a request, a conversation start), cached per entity, never per frame.
+local protectedCache, protectedCount = {}, 0
+convaiWorldPolicy = {
+    ours = function(npc)
+        local ok, _, _, owned = pcall(companions.identity, npc)
+        return ok and owned == true
+    end,
+    protected = function(npc)
+        if not npc then return false end
+        local ok, _, _, owned = pcall(companions.identity, npc)
+        if ok and owned == true then return false end
+        local idOk, entity = pcall(function() return tostring(npc:GetEntityID().hash) end)
+        if not idOk then return false end
+        local cached = protectedCache[entity]
+        if cached ~= nil then return cached end
+        local recordOk, record = pcall(function() return tostring(npc:GetRecordID()) end)
+        local nameOk, name = pcall(function() return tostring(npc:GetTweakDBFullDisplayName(true) or '') end)
+        local bodyOk, body = pcall(function() return tostring(npc:GetBodyType() or '') end)
+        local reason = characterCatalog.protectedReason(catalog, {record = recordOk and record or '',
+            name = nameOk and name or '', facts = archetypeFacts(npc, entity, bodyOk and body or '')})
+        if protectedCount >= 256 then protectedCache, protectedCount = {}, 0 end
+        protectedCache[entity], protectedCount = reason ~= nil, protectedCount + 1
+        return reason ~= nil
+    end,
+}
 
 -- Recent game dialogue (subtitled scene lines and V's chosen options), attached
 -- to manual turns so a reply follows on from what was just said in the game.
@@ -973,6 +1007,9 @@ end
 
 local function beginFocus(player, npc)
     endFocus(player)
+    -- Only our spawned copies and a character the talk path resolved (a conversation the player started) are ever
+    -- turned toward V or have their barks muted. A named or story character of the game is left untouched.
+    if not companions.owns(npc) and not (profileIdentity(npc)) then return false, 'not ours and not a conversation' end
     -- Owned companions arbitrate attention against locomotion themselves.
     -- The civilian path can add a second hold/turn independently of that state.
     local quiet = convaiVanillaReactions
@@ -1041,7 +1078,9 @@ local function updateGaze(player, elapsed)
             if key and supportedProfiles[key] and manager.profileEnabled(key) and not companions.owns(result) then
                 lookKey, lookName, lookEntity = key, canonical, tostring(result:GetEntityID().hash)
             end
-            if manager.profileEnabled(key) then
+            -- The passive gaze response (turning toward V) is for our own companions only; an ordinary NPC is
+            -- faced toward V when the player starts a conversation with it, not when V merely looks at it.
+            if manager.profileEnabled(key) and companions.owns(result) then
                 npc = result
                 identity = tostring(result:GetEntityID().hash)
             end
@@ -1958,6 +1997,7 @@ tacticEnv.player = function() return Game.GetPlayer() end
 tacticEnv.actor = function(entity) return companions.readyActor(entity) end
 tacticEnv.marked = function(player) return marking.current(player) end
 tacticEnv.identify = function(npc) return profileIdentity(npc) end
+tacticEnv.protected = function(npc) return convaiWorldPolicy ~= nil and convaiWorldPolicy.protected(npc) == true end
 tacticEnv.converses = function(key) return supportedProfiles[key] == true and manager.profileEnabled(key) end
 tacticEnv.nextGeneration = function() generation = generation + 1; return generation end
 tacticEnv.idle = function()

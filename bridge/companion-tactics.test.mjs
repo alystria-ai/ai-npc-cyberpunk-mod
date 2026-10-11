@@ -340,6 +340,34 @@ test('target: the choice is logged with what was skipped, and unreadable natives
   K.abandon()
 `));
 
+test('target: a named or quest-bound game character is never a tactic target, tagged, aimed or nearest', () => run(markingWorld + `
+  local storyChar=ganger
+  K=Marking.new({native=native,owned=function(o) return o==judy end,log=function(l) logs[#logs+1]=l end,
+    protected=function(o) return o==storyChar or o==other end})
+  storyChar.tagged=true; other.tagged=true; aimed=storyChar
+  local current,info=K.current(player)
+  assert(current~=storyChar and current~=other,'a protected NPC is skipped even when tagged and aimed at')
+  assert(current==guard and info.source=='tagged' or current==cop or current==guard, 'an ordinary combatant is still chosen')
+  aimed=other; storyChar.tagged=false; other.tagged=false; guard.tagged=false
+  current,info=K.current(player); assert(current~=storyChar and current~=other and info.source~='aimed')
+  assert(logs[#logs]:find('story%-character'),logs[#logs])
+  -- an erroring predicate never makes a protected NPC eligible by accident: it counts as not protected only when it raises
+  K=Marking.new({native=native,owned=function(o) return o==judy end,protected=function() error('native') end})
+  assert(K.current(player)~=nil,'the unreadable predicate does not break targeting')
+`));
+
+test('perception: a named or quest-bound character near the target keeps its own attitude and detection', () => run(perceptionWorld + `
+  local story=guard
+  P=Perception.new({native=native,skip=function(o) return o==story end})
+  assert(P.begin(target,player,companion)==2,'the target and one ordinary neighbour; the story character is not tracked')
+  assert(guard.mult==2.0 and guard.meter==50,'untouched')
+  for _,c in ipairs(calls) do assert(not c:find('78ULL'),'no native write for the story character: '..c) end
+  P.restore(); assert(guard.mult==2.0)
+  -- a predicate that raises fails closed: nothing is changed on that NPC
+  P=Perception.new({native=native,skip=function() error('x') end})
+  assert(P.begin(target,player,companion)==0)
+`));
+
 test('companions hand exactly one owned copy to the tactic decision and resume following afterwards', () => run(`${companionEngine}
   local npc=spawn(); tick(3)
   local owned,decisions=true,0

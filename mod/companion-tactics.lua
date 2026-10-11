@@ -138,7 +138,8 @@ end
 function M.new(options)
     options = options or {}
     local T, env, native = {}, options.env or {}, options.native or M.nativeAdapter()
-    local perception = options.perception or dofile('tactic-perception.lua').new()
+    local perception = options.perception or dofile('tactic-perception.lua').new({
+        skip = function(npc) return type(env.protected) == 'function' and env.protected(npc) == true end})
     local settings = {}
     for key, value in pairs(DEFAULTS) do settings[key] = options[key] or value end
     local active, offers, sequence, clock, last = nil, {}, 0, 0, nil

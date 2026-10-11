@@ -349,7 +349,7 @@ const worldFixture = `
     return npc
   end
   local busy,promoted,logs=true,{},{}
-  local adoption=(function() ${adoptionSource} end)().new({companions=companions,
+  local adoption=(function() ${adoptionSource} end)().new({companions=companions, allowWorldFollow=true,
     party=function() return queue end, player=function() return player end,
     busy=function() return busy end, named=function(key) return key~='resident-female' end,
     groupEntities=function(context) return context.entities or {} end,
@@ -366,6 +366,27 @@ const worldFixture = `
   end
 `;
 const runWorld = body => runLua(uiLocaleBootstrap + 'convaiUiLocale=uiLocaleFixture\n' + companionEngine + worldFixture + body);
+
+test('release behavior: a world character can never join the party; the party is only what the mod spawned', () => runWorld(`
+  -- The release module is built without allowWorldFollow (init.lua never sets it).
+  local off=(function() ${adoptionSource} end)().new({companions=companions,
+    party=function() return queue end, player=function() return player end,
+    busy=function() return false end, named=function() return true end, groupEntities=function() return {} end})
+  for index,flags in ipairs({{},{quest=true},{vendor=true},{police=true}}) do
+    local npc=worldNpc(tostring(700+index),3,0,flags)
+    local offer=off.offer(tostring(700+index),npc,'judy-alvarez','Judy Alvarez')
+    assert(offer.available==false and offer.reason=='unavailable',index..': a follow is never available')
+    local accepted,message=off.queueFollow({available=true,actor={id=tostring(700+index),key='judy-alvarez'},name='Judy Alvarez'},
+      tostring(700+index),'r')
+    assert(accepted==false and message:find("can't come along",1,true),'even a forged offer cannot be queued')
+  end
+  assert(#queue.list()==0 and queue.count()==0 and #companions.list()==0,'nothing reserved, nothing spawned')
+  assert(not off.hidden('700') and not off.hidden('701'),'no original is ever hidden')
+  -- A pedestrian too (an archetype profile): declines, nothing joins.
+  local walker=worldNpc('710',2,2,{appearance='woman_01'})
+  assert(off.offer('710',walker,'resident-female','Pedestrian').reason=='unavailable')
+  assert(walker.visible==nil,'the pedestrian is untouched')
+`));
 
 test('a world character who follows joins as a managed copy in its place, after its reply, and its original is hidden', () => runWorld(`
   local judy=worldNpc('900',3,0)

@@ -1,4 +1,36 @@
-# World companions: "follow me" and "you can go"
+# Game-placed characters, and the retired "follow me"
+
+**Decision 2026-10-11 (release 0.2): the mod never touches a character the game placed, except the talk path for ordinary NPCs.** Only companions the mod spawns are party members. A world character can no longer be asked to follow (the adoption code below is kept but switched off, `allowWorldFollow` in `mod/companion-adoption.lua`; nothing sets it). "Leave V's Party" remains for spawned companions. The rest of this page describes the retired world-follow mechanism, and then what still applies.
+
+## The rule
+
+| Who | What the mod does |
+| --- | --- |
+| **Our spawned companions** | The full feature set: conversation, gaze, bark muting, gestures, seating, car and chauffeur, tactics, recovery. Unchanged. |
+| **Ordinary world NPCs** (pedestrians, vendors, gangers, guards) | Only the talk path: V starts a conversation, the NPC faces V and its vanilla barks are muted for that conversation, its reply and lip-sync play. Auto-connect may pre-open a bridge connection (a background warm-up with no in-game effect). No passive gaze response, no party, no car, gestures, seating or other systems. |
+| **Named, story and quest characters the game placed** (the real Judy, Panam, Takemura, Jackie in a story scene, any quest-flagged or `q###`/`sq###`/`mq###` record, MaxTac) | Nothing at all, as if the mod were not installed: no conversation, auto-connect, gaze, bark muting, face work, tactic target or perception change. Only our own spawned copy of Judy talks. |
+
+One predicate decides it: `convaiWorldPolicy` in `mod/init.lua` (`ours`, `protected`), over `characterCatalog.protectedReason` (`mod/character-catalog.lua`: a roster record or name, a Main/Side/Minor quest flag, or a quest-prefixed record). It is read on demand, cached per entity, and never runs per frame. Our copies are recognised through `companions.identity`, so a spawned Judy is never mistaken for the vanilla one.
+
+Gates:
+
+| System | Gate |
+| --- | --- |
+| Talk key, voice, group chat, game-dialogue speaker lookup | `profileIdentity` passes `world = true` for any non-managed NPC; `characterCatalog.resolve` returns no profile for a roster record or name, and never falls back to an archetype or resident for a story-bound or excluded record. |
+| Auto-connect scan and look counting | Uses `profileIdentity`: named and story characters have no key, so they are skipped. |
+| Passive gaze response | Only our own companions (`companions.owns`). An ordinary NPC is faced toward V when the player starts a conversation. |
+| `beginFocus` (look-at hold, bark muting) | Refuses unless the NPC is ours or the talk path resolved a profile for it. |
+| Tactic target (`companion-marking.lua`) | `protected` NPCs are never targets (`story-character`). |
+| Tactic perception and attitude changes (`tactic-perception.lua`) | `protected` NPCs near the target are never tracked or changed. |
+| Distract voice | Needs a profile (`tacticEnv.identify`), so none for a named or story character. |
+| Follow offer | `unavailable`: the character declines in character; nothing is armed. |
+| Face rebuild (`ConvaiFaceRequest`), cars, gestures, idle pools, seating, recovery | Reached only from a conversation (face) or only iterate our own party entries. |
+
+The game-dialogue observers (`mod/game-dialogue.lua`) only read subtitle lines; a real character's scripted line is still attributed by name as context for the same character's spawned copy.
+
+---
+
+## Retired: world characters join V (disabled)
 
 A character V meets in the world (Judy at her place, a resident, an archetype NPC) can join the party when V asks them to come along. Any party member, summoned or adopted, can leave when V sends them away. Both are Convai actions. The model decides from the conversation whether V meant it. The mod never matches V's words.
 
@@ -108,6 +140,8 @@ The reply log line shows the result: `Conversation result: ... face=true/prepare
 Check with a street food vendor: the mouth moves on the first reply; no pop or pose reset when the composer opens; the vendor stays in its idle; the shop opens and trades as before; a second, different NPC works and the first goes back to the vanilla face.
 
 ## What to check in game
+
+**Current checks (2026-10-11).** The real Judy (or Panam, Takemura) in a quest or scene: the talk key says she has no profile, she does not turn toward V when looked at, nothing is muted, and she is never a tactic target. A pedestrian or vendor: can still be talked to, does not turn when merely looked at, and declines when asked to come along. A summoned companion: works as before (talk, gaze, bark muting, leave). Items 1 to 4, 8, 10 and 11 below describe the retired world-follow and no longer apply; items 5 to 7 and 9 apply to spawned companions.
 
 Install: CET reload for `mod/companion-adoption.lua` (new), `init.lua`, `companions.lua`, `manager-party.lua`, `gameplay-actions.lua` and the 15 locales. Bridge restart for `bridge/companion-actions.mjs`, `protocol.mjs`, `convai-bridge.mjs` and the rebuilt `runtime/realtime-client.js` (`npm run build:voice`). `probe.log` lines start with `Adoption` and `Departure`.
 

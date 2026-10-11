@@ -75,6 +75,11 @@ function M.new(options)
 
     local function track(npc)
         if #state.order >= settings.maxTracked then return end
+        -- A named or quest-bound game character is never touched (hostility, detection).
+        if type(options.skip) == 'function' then
+            local ok, skipped = pcall(options.skip, npc)
+            if not ok or skipped then return end
+        end
         local ok, key = call(native.key, npc)
         if not ok or not key or state.rows[key] or key == state.companionKey or key == state.playerKey then return end
         local row = {npc = npc, key = key}

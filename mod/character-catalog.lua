@@ -464,6 +464,13 @@ function M.buildArchetypes(data, enabledKeys)
     return index
 end
 
+-- Quest-prefixed records (q105_..., sq027_..., mq041_...) are story actors.
+function M.storyRecord(recordName)
+    if type(recordName) ~= 'string' then return false end
+    local bare = recordName:gsub('^Character%.', ''):lower()
+    return bare:match('^q%d%d%d') ~= nil or bare:match('^sq%d%d%d') ~= nil or bare:match('^mq%d%d%d') ~= nil
+end
+
 -- Which base describes these facts, or nil. Facts (all optional): vendor,
 -- vendorType, affiliation, police, crowd, children, human, quest, recordName,
 -- recordId. A child, a machine and a main/side quest actor are never routed to
@@ -484,7 +491,7 @@ function M.classifyBase(index, facts)
             if has(index.bases[name].vendorTypes, facts.vendorType) then return name, 'vendor' end
         end
     end
-    if STORY_BOUND[facts.quest or ''] then return nil, 'story-bound' end
+    if STORY_BOUND[facts.quest or ''] or M.storyRecord(recordName) then return nil, 'story-bound' end
     local names = {}
     for name in pairs(index.bases) do names[#names + 1] = name end
     table.sort(names)
@@ -576,8 +583,7 @@ end
 -- Crowd records without a resident kind fall back to the two residents.
 function M.classifyRecord(index, facts)
     if type(index) ~= 'table' or type(facts) ~= 'table' or type(facts.recordName) ~= 'string' then return nil, 'no-facts' end
-    local bare = facts.recordName:gsub('^Character%.', ''):lower()
-    if bare:match('^q%d%d%d') or bare:match('^sq%d%d%d') or bare:match('^mq%d%d%d') then return nil, 'story-bound' end
+    if M.storyRecord(facts.recordName) then return nil, 'story-bound' end
     local gender = index.recordGenders[facts.recordName] or M.nameGender(facts.recordName)
     if not gender then return nil, 'no-gender' end
     local copy = {}
@@ -599,6 +605,20 @@ function M.archetypeLabel(index, key)
     return base.title:sub(1, 1):upper() .. base.title:sub(2)
 end
 
+-- Why a character the game placed (not our spawned copy) is off limits to every mod system, or nil. Off limits means
+-- no look-at, bark muting, tactic target, perception change, face rebuild or conversation: the mod acts as if it were
+-- not installed for them. Plain data only: actor = {record, name, facts = {quest, recordName}}. Named roster
+-- characters (by record or name) and quest-bound ones (a quest flag, or a q###/sq###/mq### record) are protected.
+-- A vendor with a minor quest flag can still be talked to (resolve), but no other system touches it.
+function M.protectedReason(catalog, actor)
+    if type(catalog) ~= 'table' or type(actor) ~= 'table' then return nil end
+    if (actor.record and catalog.records[actor.record]) or catalog.names[normalized(actor.name)] then return 'named' end
+    local facts = type(actor.facts) == 'table' and actor.facts or {}
+    if STORY_BOUND[facts.quest or ''] then return 'quest' end
+    if M.storyRecord(facts.recordName) then return 'story-record' end
+    return nil
+end
+
 function M.build(profiles, archetypes)
     local catalog = {keys = {}, names = {}, records = {}, archetypes = archetypes}
     for _, profile in ipairs(profiles) do
@@ -615,10 +635,18 @@ function M.resolve(catalog, actor)
         return actor.managedKey, profile and profile.name or actor.name
     end
     local profile = catalog.records[actor.record] or catalog.names[normalized(actor.name)]
-    if profile then return profile.key, profile.name end
+    if profile then
+        -- actor.world: a character the game placed in the world, not our spawned copy. A named roster character there
+        -- is the game's own (a quest or scene may drive it): only the copy the mod spawned talks. Name lookups that
+        -- only attribute a line to a profile (game dialogue context) leave world unset.
+        if actor.world == true then return nil, actor.name end
+        return profile.key, profile.name
+    end
     if catalog.archetypes and type(actor.facts) == 'table' then
-        local key = M.classify(catalog.archetypes, actor.facts)
+        local key, reason = M.classify(catalog.archetypes, actor.facts)
         if key then return key, actor.name, M.describe(catalog.archetypes, key, actor.facts) end
+        -- A story-bound or excluded world character never falls back to a resident.
+        if actor.world == true and (reason == 'story-bound' or reason == 'excluded-record') then return nil, actor.name end
     end
     if not actor.crowd then return nil, actor.name end
     local body = normalized(actor.bodyType)

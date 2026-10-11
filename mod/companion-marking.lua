@@ -8,7 +8,7 @@
 -- Eligible means a living, combat-capable NPC that is not a companion: gang
 -- members, police, corpo and military security, cyberpsychos, drones, mechs,
 -- androids or anyone carrying a weapon. Crowd, civilians, children, vendors,
--- invulnerable and story-controlled NPCs, and friendly non-police NPCs are
+-- named or quest-bound characters, invulnerable and story-controlled NPCs, and friendly non-police NPCs are
 -- never targets. Only plain identities and one live handle are returned.
 local M = {}
 local DEFAULTS = {aimRadius = 30, nearRadius = 50, taggedRadius = 50}
@@ -137,6 +137,8 @@ function M.new(options)
         if npc == nil then return false, 'missing' end
         if guarded(native.valid, npc) ~= true then return false, 'invalid' end
         if guarded(owned, npc) then return false, 'companion' end
+        -- A named or quest-bound game character is never a target (mod/character-catalog.lua protectedReason).
+        if guarded(options.protected, npc) then return false, 'story-character' end
         local facts = guarded(native.facts, npc, player)
         if type(facts) ~= 'table' then return false, 'unreadable' end
         return M.verdict(facts)

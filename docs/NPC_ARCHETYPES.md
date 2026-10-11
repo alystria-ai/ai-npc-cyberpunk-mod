@@ -2,7 +2,7 @@
 
 First slice and second batch, 2026-10-08. Unnamed NPCs that the game gives no story role (gang members, NCPD officers, corporate guards, faction soldiers, vendors, pedestrians) can now be talked to with the usual talk keys. Each is routed to
 a generic **archetype** Convai character, one per kind of person and gender: 37 kinds, 74 characters (22 kinds and 44 characters in the first slice, 15 kinds and 30 characters in the second).
-Named roster characters are unaffected and always win.
+A named roster character the game placed in the world (the real Judy) is never routed to Convai at all; only the copy the mod spawns talks (docs/WORLD_COMPANIONS.md, 2026-10-11).
 
 
 Not yet seen in game: every TweakDB read below is from code and the shipped REDmod tweak sources, so the

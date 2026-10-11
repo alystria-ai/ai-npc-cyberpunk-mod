@@ -257,3 +257,59 @@ test('the one-shop vendor list is generated from the shipped sources and holds n
     assert(table.uniqueVendors.includes(shop),shop);
   assert.deepEqual([...table.uniqueVendors],[...table.uniqueVendors].sort());
 });
+
+// The mod never touches game-placed characters except the talk path for ordinary NPCs (docs/WORLD_COMPANIONS.md).
+test('a named character the game placed gets no profile; our spawned copy and ordinary NPCs still talk',()=>{
+  runLua(`
+    local index=api.buildArchetypes(api.ARCHETYPES)
+    local catalog=api.build({
+      {key='judy-alvarez',name='Judy Alvarez',aliases={'Judy'},records={'Character.judy'}},
+      {key='viktor-vektor',name='Viktor Vektor',records={'Character.viktor'}},
+      {key='resident-female',name='Night City Resident Female'}
+    },index)
+    local function who(actor) return (api.resolve(catalog,actor)) end
+    -- The vanilla Judy (by record, then by name) is the game's own: no Convai.
+    assert(who({world=true,name='Whoever',record='Character.judy',bodyType='WomanAverage'})==nil, 'record')
+    assert(who({world=true,name=' judy alvarez ',bodyType='WomanAverage'})==nil, 'name')
+    assert(who({world=true,name='Judy',record='Character.judy',crowd=true,bodyType='WomanAverage'})==nil, 'never a resident')
+    assert(who({world=true,name='Viktor Vektor',record='Character.viktor',facts={vendor=true,vendorType='RipperDoc',bodyType='ManAverage'}})==nil,
+        'a named ripperdoc is not the generic ripperdoc')
+    -- Our spawned copy of Judy talks as Judy.
+    assert(who({managedKey='judy-alvarez',world=false,name='Judy Alvarez',record='Character.judy'})=='judy-alvarez')
+    -- The same lookup without the world flag (game dialogue attribution only) is unchanged.
+    assert(who({name='Judy Alvarez',record='Character.judy'})=='judy-alvarez')
+    -- Ordinary world NPCs still reach their archetype.
+    assert(who({world=true,name='Ganger',record='Character.x',facts={affiliation='Maelstrom',bodyType='ManAverage'}})=='npc-maelstrom-male')
+    assert(who({world=true,name='Dealer',record='Character.y',facts={vendor=true,vendorType='RipperDoc',bodyType='WomanAverage'}})=='npc-ripperdoc-female')
+    assert(who({world=true,name='Citizen',record='Character.z',crowd=true,bodyType='WomanAverage'})=='resident-female')
+    -- A quest-bound or story-record character never falls back to a resident or an archetype.
+    assert(who({world=true,name='Quest NPC',record='Character.q',crowd=true,bodyType='WomanAverage',
+        facts={quest='SideQuest',crowd=true,affiliation='Maelstrom',bodyType='WomanAverage'}})==nil)
+    assert(who({world=true,name='Quest Goon',record='Character.q101_goon',crowd=true,
+        facts={recordName='Character.q101_goon',affiliation='Maelstrom',bodyType='ManAverage'}})==nil)
+    assert(who({world=true,name='Maxtac',record='Character.maxtac_x',crowd=true,
+        facts={recordName='Character.maxtac_avg',affiliation='NCPD',police=true,bodyType='ManAverage'}})==nil)
+  `);
+});
+
+test('protectedReason: named, quest-flagged and story-record characters are off limits; ordinary NPCs are not',()=>{
+  runLua(`
+    local index=api.buildArchetypes(api.ARCHETYPES)
+    local catalog=api.build({{key='panam-palmer',name='Panam Palmer',aliases={'Panam'},records={'Character.panam'}}},index)
+    local function why(actor) return api.protectedReason(catalog,actor) end
+    assert(why({record='Character.panam',name='x'})=='named')
+    assert(why({record='',name='Panam'})=='named')
+    assert(why({record='Character.g',name='Ganger',facts={quest='MainQuest'}})=='quest')
+    assert(why({record='Character.g',name='Ganger',facts={quest='MinorQuest'}})=='quest')
+    assert(why({record='Character.g',name='Ganger',facts={recordName='Character.sq023_goon'}})=='story-record')
+    assert(why({record='Character.g',name='Ganger',facts={recordName='Character.mq041_x'}})=='story-record')
+    assert(why({record='Character.g',name='Ganger',facts={quest='None',recordName='Character.gang_maelstrom_01'}})==nil)
+    assert(why({record='Character.g',name='Pedestrian',facts={}})==nil)
+    assert(why({record='Character.g',name='Pedestrian'})==nil)
+    assert(why(nil)==nil and api.protectedReason(nil,{})==nil)
+    -- a vendor with a minor quest flag can still be talked to, but no other system may touch it
+    assert(why({record='Character.v',name='Shop',facts={quest='MinorQuest',vendor=true}})=='quest')
+    assert(api.resolve(catalog,{world=true,name='Shop',record='Character.v',
+        facts={quest='MinorQuest',vendor=true,vendorType='Food',recordName='Character.v',bodyType='ManAverage'}})~=nil)
+  `);
+});
