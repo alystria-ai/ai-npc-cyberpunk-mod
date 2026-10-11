@@ -7,6 +7,7 @@ import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {currentJournalHistory, parseJournalHistory, selectJournalHistory} from './journal-history.mjs';
 import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs';
 import {gameDialogueContext} from './game-dialogue.mjs';
+import {gearContext} from './player-gear.mjs';
 
 const unavailable = () => ({version: 1, status: 'unavailable'});
 
@@ -149,6 +150,6 @@ export function conversationContext(input) {
   const history = trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
   return [groupContext(input), knowledge, trusted?.recencyContext, history, trusted?.jobsContext,
     journalContext(input.journal), gameDialogueContext(input),
-    battleContext(input), lootContext(input),
+    battleContext(input), lootContext(input), gearContext(input),
     knowledge || history ? CURRENT_AUTHORITY : '', SPOKEN_OUTPUT, followUpContext(input)].filter(Boolean).join('\n\n');
 }

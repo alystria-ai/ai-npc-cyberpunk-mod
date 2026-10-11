@@ -37,7 +37,8 @@ local function startRound(id, participants, text)
     end
     M.round = {id = id, participants = frozen, text = text, index = 0, stage = 'next', heard = {},
         journal = M.captureJournal and M.captureJournal(), battle = M.captureBattle and M.captureBattle(),
-        gameDialogue = M.captureGameDialogue and M.captureGameDialogue()}
+        gameDialogue = M.captureGameDialogue and M.captureGameDialogue(),
+        gear = M.capturePlayerGear and M.capturePlayerGear()}
 end
 
 function M.start(id, participants, text)
@@ -65,7 +66,7 @@ local function makeInput(r, index, generation, now, live, includePlaying)
     local input = {requestId = tostring(now) .. '-' .. tostring(generation) .. '-' .. speaker.entity,
         generation = generation, entity = speaker.entity, name = speaker.name, bodyType = speaker.bodyType,
         profileKey = speaker.profileKey, archetype = speaker.archetype, text = r.text, sentAt = now, journal = r.journal, battle = r.battle,
-        gameDialogue = r.gameDialogue,
+        gameDialogue = r.gameDialogue, gear = r.gear,
         group = {id = r.id, index = index, total = total, audience = audience, heard = heard}}
     return input
 end
@@ -89,7 +90,7 @@ function M.voiceSubmitted(input)
         or not input.group or input.group.id ~= r.id then return false end
     -- The microphone refreshed these at finish. Later members discuss that same
     -- utterance, with fresh world knowledge attached by the normal send path.
-    r.journal, r.battle, r.gameDialogue = input.journal, input.battle, input.gameDialogue
+    r.journal, r.battle, r.gameDialogue, r.gear = input.journal, input.battle, input.gameDialogue, input.gear
     r.stage = 'waiting'
     return true
 end

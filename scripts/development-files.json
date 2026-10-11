@@ -126,6 +126,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/game-dialogue.lua"
     },
     {
+      "source": "mod/player-gear.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/player-gear.lua"
+    },
+    {
       "source": "mod/world-knowledge.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/world-knowledge.lua"
     },

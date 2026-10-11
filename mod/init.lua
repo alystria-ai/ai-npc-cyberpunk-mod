@@ -520,6 +520,17 @@ groupChat.captureGameDialogue = captureGameDialogue
 phoneChat.captureGameDialogue = captureGameDialogue
 microphone.captureGameDialogue = captureGameDialogue
 
+-- What V is wearing and carrying, attached to manual turns (docs/PLAYER_GEAR_CONTEXT.md). Read on demand when a turn
+-- is built, cached for a few seconds, never per frame. The bridge words it and tells the character not to bring it up
+-- unless it matters. Optional: the adapter keeps working unchanged if this module is absent.
+local playerGearLoaded, playerGearModule = pcall(dofile, 'player-gear.lua')
+local playerGear = playerGearLoaded and type(playerGearModule) == 'table'
+    and type(playerGearModule.new) == 'function' and playerGearModule.new({}) or nil
+convaiPlayerGear = playerGear
+local function capturePlayerGear() return playerGear and playerGear:capture() or nil end
+groupChat.capturePlayerGear = capturePlayerGear
+microphone.capturePlayerGear = capturePlayerGear
+
 -- entity: the addressed character's ID ("<hash>ULL") for a private conversation. A generic resident or archetype
 -- has no connection without its body, so the bridge opens that NPC's own route while V types or speaks.
 local function warmConversation(participants, key, entity)
@@ -1318,6 +1329,7 @@ local function sendRequest(context)
     if not context.reaction and convaiGameDialogue then
         context.gameDialogue = context.gameDialogue or convaiGameDialogue:capture()
     end
+    if not context.reaction and convaiPlayerGear then context.gear = context.gear or convaiPlayerGear:capture() end
     -- Automatic turns have one subject. Manual conversations may still discuss
     -- recent combat and pickups together when V asks about them.
     if context.reaction and context.reaction.kind == 'loot' then context.battle = nil
@@ -1991,6 +2003,7 @@ local function abandonSession(reason,preserveTransit)
     subtitles.abandon()
     -- A load, death or detach ends the scene; fast travel keeps the last lines.
     if preserveTransit ~= true and convaiGameDialogue then convaiGameDialogue:reset(reason) end
+    if playerGear then playerGear:reset(reason) end
     microphone.cancel()
     groupChat.cancel()
     phoneChat.abandon()

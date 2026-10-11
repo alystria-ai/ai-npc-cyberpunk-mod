@@ -7,6 +7,7 @@ import {parseLoot} from './loot-context.mjs';
 import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
 import {parseGameDialogue} from './game-dialogue.mjs';
+import {parseGear} from './player-gear.mjs';
 import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseFollowUnavailable}
   from './companion-actions.mjs';
 
@@ -41,6 +42,8 @@ function parseRequest(raw) {
   const journalHistory = value.journalHistory === undefined ? undefined : parseJournalHistory(value.journalHistory);
   // Optional recent game dialogue; a malformed snapshot carries no lines but keeps the message.
   const gameDialogue = parseGameDialogue(value.gameDialogue);
+  // Optional gear V wears and carries (bridge/player-gear.mjs); a malformed snapshot carries nothing but keeps the message.
+  const gear = parseGear(value.gear);
   const loot = parseLoot(value.loot, {entity, profileKey});
   if (loot === null) return null;
   const battle = parseBattle(value.battle), reaction = parseReaction(value.reaction, battle, loot);
@@ -58,7 +61,7 @@ function parseRequest(raw) {
     ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}),
     ...(followUnavailable ? {followUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
-    ...(gameDialogue ? {gameDialogue} : {})};
+    ...(gameDialogue ? {gameDialogue} : {}), ...(gear ? {gear} : {})};
 }
 
 // Generic NPC profiles: the two ambient residents and every archetype (npc-*). They have no individual identity:
