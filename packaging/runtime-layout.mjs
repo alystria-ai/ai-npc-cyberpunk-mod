@@ -60,6 +60,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/phone-analysis-config.mjs',
   'bridge/phone-chat.mjs',
   'bridge/phone-poses.mjs',
+  'bridge/phone-warm.mjs',
   'bridge/phonetic-lipsync.mjs',
   'bridge/phonetic-poses.mjs',
   'bridge/player-knowledge.mjs',

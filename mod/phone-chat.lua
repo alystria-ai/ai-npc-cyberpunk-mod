@@ -94,8 +94,11 @@ local function append(contact, text, sent)
     M.dirty = true; save()
 end
 local function publish(active)
+    -- chatContact: the contact whose Chat is open, so the bridge can open that conversation while V types
+    -- (bridge/phone-warm.mjs). It never selects, sends or stores anything.
     return write('runtime/phone-chat-input.json', {version = 2, world = M.world, active = active,
-        saveIdentity = M.saveIdentity, updated = os.time() * 1000, request = M.pending})
+        saveIdentity = M.saveIdentity, updated = os.time() * 1000, request = M.pending,
+        chatContact = active and M.contact ~= nil and M.catalog[M.contact] and M.contact or nil})
 end
 local function resetIdentity(value)
     return value.scope == 'all' and 'all' or 'character:' .. value.profileKey
@@ -438,7 +441,7 @@ function M.update(player, delta)
         and (M.drafts[draft.contact] or '') ~= draft.text then
         M.drafts[draft.contact] = draft.text; M.saveDraft = true
     end
-    if contact ~= M.contact then M.contact = contact; M.dirty = true end
+    if contact ~= M.contact then M.contact = contact; M.dirty = true; M.contactPublish = true end
     local submission = player:ConvaiPhoneChatTakeSubmission()
     if submission and not M.justBound and not resetRead then
         M.resetWait = 0
@@ -535,8 +538,9 @@ function M.update(player, delta)
         end
     end
     -- Lease heartbeat: the bridge keeps phone-chat-input.json 15 s; refresh it every 3 s.
-    if not M.lastHeartbeat or os.time() - M.lastHeartbeat >= 3 or os.time() < M.lastHeartbeat then
-        M.lastHeartbeat = os.time(); publish(true)
+    -- A changed open Chat is published at once (one small file write, only when V opens or switches a Chat).
+    if not M.lastHeartbeat or os.time() - M.lastHeartbeat >= 3 or os.time() < M.lastHeartbeat or M.contactPublish then
+        M.lastHeartbeat = os.time(); M.contactPublish = nil; publish(true)
         if M.saveDraft then save(); M.saveDraft = false end
     end
     if contact ~= '' and M.dirty then

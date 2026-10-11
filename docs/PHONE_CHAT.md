@@ -89,6 +89,10 @@ replies. No API keys or session IDs enter game widgets or test output.
 - `chat-memory-resets.mjs`: reconciles explicit memory-reset intents and results
   into the journal consumed by Lua. It does not write the history file itself.
 
+### First-message latency
+
+The first message to a contact used to pay everything after Enter (measured offline 2026-10-11, one throwaway end user): the character's memory check (`/character/list` 1.6-3.3 s plus `/character/get` 1.5 s, once per character per bridge run), the phone host's browser (0.6 s) and page (0.6 s), the realtime connection (4.9-6.3 s) and then the reply (1.2 s). A later message on the same page is the reply alone (1.2 s). The text reply is never voiced (`ttsEnabled: false`, no audio wait), so none of the wait is speech. While a contact's Chat is open, `phone-chat.lua` publishes it as `chatContact` in `phone-chat-input.json` (written at once when the Chat opens or changes, then with the 3 s heartbeat), and `bridge/phone-warm.mjs` uses a 0.6 s dwell to prepare that contact on the bridge: `PlayerMemory.prepareCharacter` (the same check, no write unless memory has to be enabled) and the text connection through the same route and transport identity the message uses, so the message reuses the page. Nothing is sent: no dialogue, no session, no memory write. It is skipped on a single-session plan (own key), during a talk turn, a recording or a reset, and a failure just leaves the old on-demand behaviour. One unused warm page is kept (an earlier one is released), at most four opens per visit, a keep-alive every 15 s for up to 5 minutes.
+
 An API failure preserves the draft and shows inline status. A newer unsent draft
 is not replaced by an earlier request's failure. Fifteen-second heartbeat expiry
 cancels service work after exit; a 45-second UI timeout preserves the draft. Late

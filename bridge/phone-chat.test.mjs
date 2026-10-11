@@ -914,3 +914,56 @@ test('forgetting sessions starts every thread afresh, saves the empty store and 
   assert.equal(calls[2].sessionId, '-1');
   assert.equal(output.filter(value => value.state === 'reply').length, replies + 1);
 });
+
+test('the open Chat contact is an optional hint: kept when well formed, dropped (never rejecting the state) otherwise', () => {
+  const idle = {version: 2, world: 'world-1', updated: now, active: true, saveIdentity: binding()};
+  assert.equal(parsePhoneState(JSON.stringify(idle)).chatContact, undefined);
+  assert.equal(parsePhoneState(JSON.stringify({...idle, chatContact: 'judy'})).chatContact, 'judy');
+  assert.equal(parsePhoneState(JSON.stringify(state({chatContact: 'judy'}))).chatContact, 'judy', 'a state with a request keeps it too');
+  for (const chatContact of ['', '../x', 'a b', 'x'.repeat(121), 7, null, {}, ['judy']]) {
+    const parsed = parsePhoneState(JSON.stringify({...idle, chatContact}));
+    assert.ok(parsed, 'the state itself is still accepted');
+    assert.equal(parsed.chatContact, undefined);
+  }
+  // The hint is not part of a request: sending it changes nothing a reply is built from.
+  assert.equal(parsePhoneState(JSON.stringify(state({chatContact: 'panam'}))).request.contact, 'judy');
+});
+
+test('a phone contact resolves to its profile, an unknown one to nothing', () => {
+  const {chat} = fixture(async () => ({text: 'x', sessionID: 's'}));
+  assert.equal(chat.profileFor('judy'), 'judy-alvarez');
+  assert.equal(chat.profileFor('panam'), 'panam-palmer');
+  assert.equal(chat.profileFor('nobody'), undefined);
+  assert.equal(chat.profileFor(undefined), undefined);
+});
+
+test('Lua publishes the open Chat contact at once when it changes, only for a known contact and never when the phone is not active', () => runLua(setup + `
+local function published() return json.decode(files['runtime/phone-chat-input.json']) end
+contact='';update()
+assert(published().chatContact==nil,'no Chat open')
+contact='judy';clock=clock+0;m.tick=1;m.update(player,0.2)
+assert(published().chatContact=='judy','published in the same update the contact changed, not on the 3 s heartbeat')
+local writes=0;local original=io.open
+io.open=function(path,mode) if path=='runtime/phone-chat-input.json.tmp' and mode=='wb' then writes=writes+1 end return original(path,mode) end
+update();update();assert(writes==0,'an unchanged contact does not write again before the heartbeat')
+contact='panam';update()
+assert(writes==1 and published().chatContact=='panam','switching Chat publishes once more')
+contact='stranger';update()
+assert(published().chatContact==nil,'an unknown contact is never published')
+contact='';update()
+assert(published().chatContact==nil,'closing the Chat clears it')
+contact='judy';update();assert(published().chatContact=='judy')
+clock=clock+4;update()
+assert(published().chatContact=='judy','the heartbeat keeps it')
+m.abandon()
+local after=published()
+assert(after.active==false and after.chatContact==nil,'an inactive phone publishes no contact')
+io.open=original
+`));
+
+test('Lua keeps sending exactly as before: the contact hint rides along but never changes a request', () => runLua(setup + `
+update();draft='Hello';submission={contact='judy',text=draft};update()
+local input=json.decode(files['runtime/phone-chat-input.json'])
+assert(input.chatContact=='judy' and input.request and input.request.contact=='judy' and input.request.text=='Hello')
+assert(input.request.chatContact==nil)
+`));

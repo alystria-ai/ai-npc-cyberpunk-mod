@@ -105,6 +105,9 @@ export function parsePhoneState(raw) {
       || !Number.isFinite(state.updated) || typeof state.active !== 'boolean') return null;
   const saveIdentity = parsePhoneBinding(state.version === 2 ? state.saveIdentity : undefined);
   const result = {version: state.version, world: state.world, updated: state.updated, active: state.active, saveIdentity};
+  // The contact whose Chat is open right now (only a hint for warming its connection, never part of a send).
+  // A malformed value is dropped; it can never reject the state.
+  if (typeof state.chatContact === 'string' && /^[a-zA-Z0-9_-]{1,120}$/.test(state.chatContact)) result.chatContact = state.chatContact;
   if (!state.request) return result;
   const {id, contact, text} = state.request;
   if (typeof id !== 'string' || !id.startsWith(state.world + '-') || id.length > 140
@@ -277,6 +280,8 @@ export class PhoneChat {
     })().catch(() => {}); // file errors are recovered by the adapter's timeout
   }
   close() { this.active?.controller.abort(); this.active = null; }
+  // The profile a phone contact speaks as, or undefined for an unknown contact.
+  profileFor(contact) { return this.contacts.get(contact)?.profile; }
   // Saved conversation sessions belong to the Convai account that made them. A new key starts every thread afresh;
   // the transcript the phone shows is not touched.
   async forgetSessions() {

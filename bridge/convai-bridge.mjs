@@ -38,6 +38,7 @@ import {detectOmniPack} from './omni-pack.mjs';
 import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
 import {PhoneChat, parsePhoneState, phoneRecentConversationContext} from './phone-chat.mjs';
+import {PhoneWarm} from './phone-warm.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
 import {PlayerMemory} from './player-memory.mjs';
 import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
@@ -279,17 +280,18 @@ const phone = new PhoneChat({
         || options.endUserId !== remote.endUserId || options.scope !== prepared.scope
         || options.sessionKey !== prepared.sessionKey
         || options.remoteGeneration !== playerPhoneGeneration(prepared.guard)) throw Error('Phone memory binding changed');
+    phoneWarm.interrupt(options.profileKey);
     const admitted = await admitPlayerConversation(prepared, {signal: options.signal});
     await knowledgeRouter.submitted(prepared);
     throwIfCancelled(options.signal);
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     rememberKnowledgeTurn(prepared);
     void companionActions.revoke();
-    const result = await phoneRealtime.reply(memoryPolicy({key: currentKey(), characterId: options.characterId,
+    const result = await phoneRealtime.reply(phoneWarm.claim(memoryPolicy({key: currentKey(), characterId: options.characterId,
       sessionId: admitted.reconnectRequired ? undefined : options.sessionId,
       scope: prepared.scope, ...remote,
       context: conversationContext(prepared.input),
-      text: options.input.text, ttsEnabled: false}), {signal: options.signal});
+      text: options.input.text, ttsEnabled: false}), options.profileKey), {signal: options.signal});
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
     stagedKnowledgeTurn(prepared);
@@ -297,6 +299,36 @@ const phone = new PhoneChat({
   },
   publish: (value, options) => atomic(phoneOutput, JSON.stringify(value), options),
   sessions: phoneSessions, saveSessions: value => atomic(phoneSessionPath, JSON.stringify(value)),
+});
+// First-message latency (bridge/phone-warm.mjs): while a contact's Chat is open and V is still typing, check that
+// character's memory and open its text connection, with the same route and transport identity the message will use.
+// Never sends anything, writes no memory and creates no session; any failure leaves the old on-demand behaviour.
+const phoneWarm = new PhoneWarm({
+  enabled: () => !stopped && !memoryQuiescing && !singleSession() && !active && !mic.current && !micPolling
+    && !voiceRouteReservation && !relationshipRouteReservation && !phone.active,
+  profileFor: contact => phone.profileFor(contact),
+  prepare: async (profileKey, {signal}) => {
+    const boundary = currentBoundary();
+    const route = boundary && knowledgeRouter.configFor(profileKey, 'phone', boundary);
+    if (!route || !route.guard || route.providerMemory === 'session-only') return {config: null};
+    const memory = await playerMemory.prepareCharacter({profileKey: route.route.providerProfileKey ?? route.route.profileKey,
+      guard: route.guard, signal});
+    throwIfCancelled(signal);
+    // A character whose memory was only just enabled needs its old connection retired first. The message itself does
+    // that (admitPlayerConversation); opening a page here would be thrown away.
+    if (memory.reconnectRequired) return {config: null};
+    const config = memoryPolicy({key: currentKey(), characterId: route.guard.characterId, scope: route.scope,
+      ...(route.remoteConfig || {}), ttsEnabled: false});
+    const again = currentBoundary() && knowledgeRouter.configFor(profileKey, 'phone', currentBoundary());
+    if (!again || again.scope !== route.scope || again.sessionKey !== route.sessionKey) return {config: null};
+    // A page that exists already holds a conversation; reconnecting it here could start a different session.
+    if ((await phoneRealtime.readiness(config)).present) return {config};
+    await phoneRealtime.warm(config, {signal});
+    return {config, opened: true};
+  },
+  keepAlive: config => phoneRealtime.readiness(config, {keepAlive: true}),
+  release: config => phoneRealtime.refreshIdle(config),
+  onError: error => console.error('[CyberpunkConvai] Phone warm-up:', error.message),
 });
 let phonePolling = false;
 const phoneLaunch = new GameLaunchIdentity({identify: () => identifyGameLaunch(game),
@@ -316,6 +348,7 @@ async function pollPhone() {
       }
     }
     await phone.accept(state);
+    phoneWarm.observe(state);
   } finally { phonePolling = false; }
 }
 
@@ -1019,6 +1052,16 @@ const microphoneKnowledge = new Map();
 const microphoneSpeech = new Map();
 let micObserved = await readFile(micPath, 'utf8').catch(() => '');
 let micPolling = false;
+// What Convai has heard of V's recording so far, for the game to show while V talks (mod/microphone.lua reads it on its
+// own poll). Written only when the words change; the request id keeps a late file from another recording out.
+let heardSent = {id: '', text: ''};
+async function publishHeard(recording) {
+  const text = await mic.heard();
+  if (mic.current !== recording || stopped) return;
+  if (heardSent.id === recording.requestId ? heardSent.text === text : !text) return;
+  heardSent = {id: recording.requestId, text};
+  await atomic(resolve(runtime, 'microphone-heard.json'), JSON.stringify({requestId: recording.requestId, text, updated: Date.now()}));
+}
 const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
   onState: (state, input) => atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state, requestId: input.requestId, updated: Date.now()})),
   prepareReply: async (input, signal) => {
@@ -1234,6 +1277,7 @@ async function pollMicrophone() {
       else if (recording.opened && Date.now() - recording.opened >= 32000 && recording.intent !== 'finish') {
         await cancelMicrophone();
       }
+      else await publishHeard(recording);
     }
   } finally { micPolling = false; }
 }
