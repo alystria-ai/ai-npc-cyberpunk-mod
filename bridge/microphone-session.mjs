@@ -11,8 +11,10 @@ const recordingIdentity = input => JSON.stringify([input?.requestId, input?.enti
 // Hardware operations are serialized. A finish/cancel arriving while the
 // device is opening is applied immediately after open completes.
 export class MicrophoneSession {
-  constructor({hostFactory, onState, onReply, onError, prepareReply = async () => undefined}) {
-    Object.assign(this, {hostFactory, onState, onReply, onError, prepareReply});
+  // minRecordMs: a finish that arrives sooner after the device opened (a double tap, a bouncing key) waits out the
+  // rest, so a recording is never submitted empty.
+  constructor({hostFactory, onState, onReply, onError, prepareReply = async () => undefined, minRecordMs = 700}) {
+    Object.assign(this, {hostFactory, onState, onReply, onError, prepareReply, minRecordMs});
     this.current = null;
     this.revision = 0;
   }
@@ -68,6 +70,11 @@ export class MicrophoneSession {
     session.intent = 'finish';
     if (!session.opened) return;
     session.finishing = true;
+    const early = this.minRecordMs - (Date.now() - session.opened);
+    if (early > 0) {
+      await new Promise(done => setTimeout(done, early));
+      if (this.current !== session || session.intent === 'cancel') return;
+    }
     await this.onState('reply', session.input);
     try {
       if (this.current !== session || session.intent === 'cancel') return;

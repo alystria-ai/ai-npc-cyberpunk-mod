@@ -1244,11 +1244,22 @@ local function toggleVoice(groupMode)
                         or ui.t('Press your Talk by voice shortcut to finish recording.')))
                 return
             end
-            if not gameplayCanAcquire(player) or (microphone.targetValid and not microphone.targetValid(microphone.context)) then
-                cancelVoice('microphone-unavailable'); return
+            local press = microphone.press()
+            if press ~= 'retry' then
+                -- Spamming the key is safe: a press while the device is still opening, right after
+                -- "Listening", or while a reply is on its way changes nothing (mod/microphone.lua press).
+                if press == 'connecting' then
+                    convaiNotices.send(player, 'mic-connecting', ui.t('Connecting microphone - wait for Listening'))
+                elseif press == 'finish' then
+                    if not gameplayCanAcquire(player) or (microphone.targetValid and not microphone.targetValid(microphone.context)) then
+                        cancelVoice('microphone-unavailable'); return
+                    end
+                    acceptVoiceSubmission(microphone.finish(mode))
+                end
+                return
             end
-            if microphone.state ~= 'reply' then acceptVoiceSubmission(microphone.finish(mode)) end
-            return
+            -- The reply is overdue: drop it and fall through to begin a fresh recording.
+            cancelVoice('voice-retry')
         end
         if not gameplayCanAcquire(player) then return end
         local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_voice')

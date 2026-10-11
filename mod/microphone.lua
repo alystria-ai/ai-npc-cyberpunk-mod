@@ -1,4 +1,9 @@
 local M = {}
+-- A second press this soon after "Listening" is a bouncing key or a double tap, not "I finished".
+local MIN_RECORD_S = 0.7
+-- A reply this overdue is dropped by the next press so the player can speak again.
+local RETRY_AFTER_S = 8
+M.clock = os.clock
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 
 local function sameOwner(a, b)
@@ -35,7 +40,7 @@ end
 
 local function clear()
     M.context, M.state, M.started, M.knowledgeOwner, M.finishPending = nil, nil, nil, nil, nil
-    M.targetValid = nil
+    M.targetValid, M.recordingAt, M.finishedAt = nil, nil, nil
 end
 
 function M.cancel(reason)
@@ -60,6 +65,24 @@ function M.received(requestId)
     if not M.context or M.context.requestId ~= requestId or M.state ~= 'reply' then return false end
     clear()
     return true
+end
+
+-- What a press of the voice key means while a recording or its reply is in flight.
+--   idle        nothing is running: begin a recording
+--   connecting  the device is still opening: ignore it (finishing now would submit an empty recording)
+--   bounce      the recording just began: ignore it
+--   finish      end the recording and submit it
+--   waiting     the reply is on its way: ignore it (a spammed key must not cancel a good reply)
+--   retry       the reply is overdue: drop it so a fresh recording can begin
+function M.press()
+    if not M.context then return 'idle' end
+    local state = M.state
+    if state == 'starting' then return 'connecting' end
+    if state == 'reply' then
+        return os.time() - (M.finishedAt or os.time()) >= RETRY_AFTER_S and 'retry' or 'waiting'
+    end
+    if state == 'recording' and M.recordingAt and M.clock() - M.recordingAt < MIN_RECORD_S then return 'bounce' end
+    return 'finish'
 end
 
 function M.begin(context, targetValid)
@@ -104,7 +127,7 @@ function M.finish(mode)
         return nil
     end
     if not command('finish', context) then M.cancel('finish-write-failed'); return nil end
-    M.state = 'reply'
+    M.state, M.finishedAt = 'reply', os.time()
     return context
 end
 
@@ -128,12 +151,15 @@ function M.update(player)
         local ok, value = pcall(json.decode, f:read('*a')); f:close()
         if ok and value.requestId == M.context.requestId then
             if value.state == 'recording' and M.state == 'starting' then
-                M.state = 'recording'; M.started = os.time()
+                M.state = 'recording'; M.started = os.time(); M.recordingAt = M.clock()
                 local shortcut = ui.boundKey(M.context.group
                     and 'cyberpunk_convai_group_voice' or 'cyberpunk_convai_voice')
                 convaiNotices.send(player, 'mic-listening', shortcut
                     and ui.t('Listening - press {key} again to finish', {key = shortcut})
                     or ui.t('Listening - press the same voice chat shortcut again to finish'))
+            elseif value.state == 'no-speech' then
+                convaiNotices.send(player, 'mic-no-speech', ui.t('No speech was heard. Wait for Listening, then speak before you finish.'))
+                M.cancel('no-speech')
             elseif value.state == 'error' then
                 convaiNotices.send(player, 'mic-error', ui.t('Microphone unavailable. Check your Windows input device.'))
                 M.cancel('microphone-error')

@@ -75,6 +75,7 @@ io = {open = function(path, mode)
     end, close = function() return true end}
 end}
 os.time = function() return clock end
+os.clock = function() return clock end
 os.date = function() return '2026-09-30T12:00:00Z' end
 os.rename = function(from, to)
     if prohibited(from) or prohibited(to) then deny('rename ' .. from .. ' -> ' .. to) end
@@ -915,7 +916,7 @@ events.onInit();events.onUpdate(0);privateConversation()
 local nativeMic=(function() ${microphoneSource} end)()
 for _,key in ipairs({'captureKnowledge','currentKnowledgeOwner','captureJournal','captureBattle','captureFollowUpQuestions',
     'captureActions','onCancelled'})do nativeMic[key]=microphone[key] end
-for _,key in ipairs({'begin','finish','cancel','update','received'})do
+for _,key in ipairs({'begin','finish','cancel','update','received','press'})do
     local operation=nativeMic[key]
     microphone[key]=function(...)
         local result=operation(...)
@@ -926,6 +927,7 @@ end
 hotkeys.cyberpunk_convai_voice()
 local started=json.decode(assert(files['runtime/microphone-command.json']))
 assert(started.action=='start' and started.input.chauffeurOffer and convaiGameplayActions.inspect().pending)
+files['runtime/microphone-state.json']=json.encode({requestId=started.input.requestId,state='recording'});events.onUpdate(0.1);clock=clock+1
 hotkeys.cyberpunk_convai_voice()
 local finished=json.decode(files['runtime/microphone-command.json'])
 assert(finished.action=='finish' and finished.input.chauffeurOffer and stats.driveOffers==1)

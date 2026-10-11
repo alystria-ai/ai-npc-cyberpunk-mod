@@ -1504,6 +1504,40 @@ test('a turn that never receives audio closes the standby device when the reply 
   assert.equal(clients[0].isBotReady, false);
 });
 
+test('a voice recording that produced no transcript and no reply fails as no speech, long before the 60 s ceiling', async () => {
+  let offset = 0;
+  const clock = {now: () => performance.now() + offset};
+  const {api, clients} = fixture({allowMic: true, clock});
+  const request = {...config, ttsEnabled: false};
+  await api.beginVoice(request);
+  const pending = api.finishVoice(request); pending.catch(() => {}); await flush();
+  offset = 14000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(api.diagnostics().activeTurn, true, 'still waiting inside the recognition window');
+  offset = 16000;
+  await assert.rejects(pending, error => /No speech was heard/.test(error.message) && !/did not finish/.test(error.message));
+  assert.equal(clients[0].isBotReady, false);
+  await api.close();
+});
+
+test('the no-speech failure never cuts off a recognised or still-thinking voice turn, and the 60 s timeout says what arrived', async () => {
+  for (const mode of ['transcript', 'thinking']) {
+    let offset = 0;
+    const clock = {now: () => performance.now() + offset};
+    const {api, clients} = fixture({allowMic: true, clock});
+    const request = {...config, ttsEnabled: false};
+    await api.beginVoice(request);
+    const pending = api.finishVoice(request); pending.catch(() => {}); await flush();
+    if (mode === 'thinking') clients[0].state.isThinking = true;
+    else clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content: 'Hello there', isStreaming: false}]);
+    offset = 16000; await new Promise(done => setTimeout(done, 120));
+    assert.equal(api.diagnostics().activeTurn, true, mode + ' keeps waiting past the no-speech window');
+    offset = 61000;
+    await assert.rejects(pending, error => /did not finish the reply \(transcript=(yes|no) text=no /.test(error.message)
+      && error.message.includes(mode === 'transcript' ? 'transcript=yes' : 'thinking=true'));
+    await api.close();
+  }
+});
+
 test('a text send that fails before collection releases the standby device', async () => {
   const {Player, standbys} = playerFixture();
   const {api, clients} = fixture({player: Player}); await api.warm(config);

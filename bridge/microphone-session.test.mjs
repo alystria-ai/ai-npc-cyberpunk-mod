@@ -13,7 +13,8 @@ function fixture(hooks = {}) {
     close: async () => { stops++; },
   }), onState: async (state, input) => { states.push(state); await hooks.onState?.(state, input); },
   onReply: async (input, result) => { replies.push([input.requestId, result]); replyInputs.push(input); },
-  onError: async (input, error) => { states.push('error'); errors.push({input, error}); }, prepareReply: hooks.prepareReply});
+  onError: async (input, error) => { states.push('error'); errors.push({input, error}); }, prepareReply: hooks.prepareReply,
+  minRecordMs: hooks.minRecordMs ?? 0});
   return {session, opening, response, states, replies, replyInputs, errors, begins, finishConfigs, finishOptions, counts: () => ({stops, finishes})};
 }
 
@@ -183,4 +184,65 @@ test('cancel during the starting-state callback never opens a late microphone', 
   assert.equal(f.begins.length, 0);
   assert.equal(f.replies.length, 0);
   assert.equal(f.session.current, null);
+});
+
+test('a finish right after the device opened waits out the minimum recording, then submits once', async () => {
+  const f = fixture({minRecordMs: 120});
+  const input = recording(), start = f.session.start(input, configuration());
+  await setImmediate(); f.opening.resolve(); await start;
+  const finish = f.session.finish(input.requestId);
+  await setImmediate();
+  assert.equal(f.counts().finishes, 0, 'a double tap does not submit an empty recording');
+  assert.equal(f.states.includes('reply'), false);
+  await new Promise(done => setTimeout(done, 200));
+  assert.equal(f.counts().finishes, 1); assert.equal(f.states.at(-1), 'reply');
+  f.response.resolve({text: 'ok'}); await finish;
+  assert.equal(f.replies.length, 1); assert.equal(f.session.current, null); assert.equal(f.states.at(-1), 'off');
+});
+
+test('a second finish while the minimum recording is still being waited out is ignored', async () => {
+  const f = fixture({minRecordMs: 100});
+  const input = recording(), start = f.session.start(input, configuration());
+  await setImmediate(); f.opening.resolve(); await start;
+  const first = f.session.finish(input.requestId); await f.session.finish(input.requestId);
+  await new Promise(done => setTimeout(done, 180));
+  assert.equal(f.counts().finishes, 1);
+  f.response.resolve({text: 'ok'}); await first;
+  assert.equal(f.replies.length, 1);
+});
+
+test('cancel during the minimum-recording wait submits nothing and releases the device', async () => {
+  const f = fixture({minRecordMs: 150});
+  const input = recording(), start = f.session.start(input, configuration());
+  await setImmediate(); f.opening.resolve(); await start;
+  const finish = f.session.finish(input.requestId); await setImmediate();
+  await f.session.cancel(); await finish;
+  await new Promise(done => setTimeout(done, 220));
+  assert.equal(f.counts().finishes, 0); assert.equal(f.replies.length, 0);
+  assert.equal(f.session.current, null); assert.equal(f.states.at(-1), 'off'); assert.ok(f.counts().stops);
+});
+
+test('rapid start, cancel, start leaves only the last recording and no stuck session', async () => {
+  const hosts = [], states = [];
+  const session = new MicrophoneSession({minRecordMs: 0,
+    hostFactory: () => { const host = {closed: 0, opening: deferred(),
+      beginVoice() { return host.opening.promise; }, finishVoice: async () => ({text: 'heard'}), close: async () => { host.closed++; }};
+      hosts.push(host); return host; },
+    onState: async (state, input) => { states.push([input.requestId, state]); }, onReply: async () => {}, onError: async () => {}});
+  const first = session.start(recording({requestId: 'a'}), configuration());
+  await session.cancel();
+  const second = session.start(recording({requestId: 'b'}), configuration());
+  await session.cancel();
+  const third = session.start(recording({requestId: 'c'}), configuration());
+  await setImmediate();
+  for (const host of hosts) host.opening.resolve();
+  await Promise.all([first, second, third]);
+  assert.equal(session.current?.requestId, 'c');
+  assert.deepEqual(states.filter(([id, state]) => state === 'recording'), [['c', 'recording']]);
+  for (const host of hosts.slice(0, -1)) assert.ok(host.closed >= 1, 'every superseded device was released');
+  await session.finish('c');
+  assert.equal(session.current, null); assert.equal(states.at(-1)[1], 'off');
+  const fourth = session.start(recording({requestId: 'd'}), configuration()); await setImmediate();
+  hosts.at(-1).opening.resolve(); await fourth;
+  assert.equal(session.current?.requestId, 'd'); assert.equal(states.at(-1)[1], 'recording');
 });

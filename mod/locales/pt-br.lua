@@ -172,6 +172,7 @@ return {
     ["No reply arrived. The conversation service may not be running."] = "Nenhuma resposta recebida. O serviço de conversa pode não estar em execução.",
     ["No reply received. Your message is in the draft; press Enter to retry."] = "Nenhuma resposta recebida. Sua mensagem está no rascunho; pressione Enter para tentar novamente.",
     ["No settings were supplied."] = "Nenhuma configuração foi fornecida.",
+    ["No speech was heard. Wait for Listening, then speak before you finish."] = "Nenhuma fala foi ouvida - aguarde «Ouvindo» e fale antes de terminar.",
     ["Not configured"] = "Não configurado",
     ["Off"] = "Desativado",
     ["On"] = "Ativado",

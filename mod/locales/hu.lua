@@ -246,6 +246,7 @@ return {
     ["No reply arrived. The conversation service may not be running."] = "Nem érkezett válasz. Lehet, hogy a beszélgetési szolgáltatás nem fut.",
     ["No reply received. Your message is in the draft; press Enter to retry."] = "Nem érkezett válasz. Az üzeneted a vázlatban van; nyomj Entert az újrapróbáláshoz.",
     ["No settings were supplied."] = "Nem lettek megadva beállítások.",
+    ["No speech was heard. Wait for Listening, then speak before you finish."] = "Nem hallottunk beszédet - várd meg a Hallgatás jelzést, majd beszélj a befejezés előtt.",
     ["None yet"] = "Még nincs",
     ["Not configured"] = "Nincs beállítva",
     ["Not installed"] = "Nincs telepítve",

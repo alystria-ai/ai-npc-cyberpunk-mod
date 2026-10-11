@@ -1071,7 +1071,9 @@ const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
     };
     current.sync = () => !stopped && (!prepared || knowledgeRouter.currentSync(prepared));
     if (!await current()) return;
-    await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: 'error', requestId: input.requestId, updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
+    // A recording that held no speech is not a device fault: the game says so instead of blaming the microphone.
+    const noSpeech = /No speech was heard/.test(error?.message || '');
+    await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: noSpeech ? 'no-speech' : 'error', requestId: input.requestId, updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
       entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...keyFailure(error)}), {isCurrent: current, isCurrentSync: current.sync});
   },

@@ -45,6 +45,7 @@ io={open=function(path,mode)
  end,close=function()return true end}
 end}
 os.time=function()return now end
+os.clock=function()return now end
 print=function(value)logs[#logs+1]=tostring(value)end
 os.remove=function(path)files[path]=nil;return true end
 os.rename=function(from,to)
@@ -183,6 +184,7 @@ local function tick(delta)events.onUpdate(delta or 0.1)end
 local function micState(value,id)
  put('runtime/microphone-state.json',{requestId=id or assert(microphone.context).requestId,state=value})
 end
+local function settle()micState('recording');tick();now=now+1 end
 local function respond(context,userText,failed)
  put('runtime/reply.json',{requestId=context.requestId,generation=context.generation,entity=context.entity,
   text=failed and nil or 'Reply from '..context.name,error=failed and 'Microphone failed' or nil,userText=userText})
@@ -504,7 +506,7 @@ test('private and group text/voice share the explicitly addressed primary and un
  hotkeys.cyberpunk_convai_group_voice()
  assert(microphone.context==original and #commands==count and feedback[#feedback]=='Press your Talk by voice shortcut to finish recording.')
  micState('recording');tick();assert(feedback[#feedback]=='Listening - press the same voice chat shortcut again to finish')
- hotkeys.cyberpunk_convai_voice();respond(microphone.context);tick();assert(not microphone.context)
+ now=now+1;hotkeys.cyberpunk_convai_voice();respond(microphone.context);tick();assert(not microphone.context)
  looked=actor('not-configured',4,'Unconfigured');count=#commands
  for _,key in ipairs({'cyberpunk_convai_text','cyberpunk_convai_group_text','cyberpunk_convai_voice','cyberpunk_convai_group_voice'})do
   hotkeys[key]();assert(#commands==count and not player.composer)
@@ -522,7 +524,7 @@ test('group voice missing transcript, first error and stale recognized replies n
  start();looked=judy;people={judy,alex}
  for _,kind in ipairs({'missing','empty','placeholder','error'})do
   hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
-  hotkeys.cyberpunk_convai_group_voice()
+  settle();hotkeys.cyberpunk_convai_group_voice()
   local recognized=kind=='empty'and ''or kind=='placeholder'and '[Microphone]'or nil
   respond(context,recognized,kind=='error');tick()
   assert(not group.round and not microphone.context and not files['runtime/last-input.json'])
@@ -538,7 +540,7 @@ test('group voice pause cancels at zero delta, save callbacks cancel ownership a
  start();looked=judy;people={judy,alex}
  for _,stage in ipairs({'recording','waiting','playing'})do
   hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
-  if stage~='recording'then hotkeys.cyberpunk_convai_group_voice()end
+  if stage~='recording'then settle();hotkeys.cyberpunk_convai_group_voice()end
   if stage=='playing'then respond(context,'Actual spoken question');tick()end
   local plays=#playbacks
   paused=true;tick(0)
@@ -547,7 +549,7 @@ test('group voice pause cancels at zero delta, save callbacks cancel ownership a
   assert(#playbacks==plays and not files['runtime/last-input.json'])
  end
  hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
- hotkeys.cyberpunk_convai_group_voice();hooks.OnGameRestored()
+ settle();hotkeys.cyberpunk_convai_group_voice();hooks.OnGameRestored()
  assert(not microphone.context and not group.round and not runtime.pending())
  local plays=#playbacks;respond(context,'Old save message');tick();tick()
  assert(#playbacks==plays and not group.round and not files['runtime/last-input.json'])
@@ -559,7 +561,7 @@ test('group voice losing the frozen primary cancels at every stage and never sub
  for _,stage in ipairs({'recording','waiting','playing'})do
   judy.attached=true;looked=judy
   hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
-  if stage~='recording'then hotkeys.cyberpunk_convai_group_voice()end
+  if stage~='recording'then settle();hotkeys.cyberpunk_convai_group_voice()end
   if stage=='playing'then respond(context,'Recognized question');tick()end
   local plays=#playbacks
   judy.attached=false;looked=alex;tick()
@@ -588,7 +590,7 @@ test('group voice microphone device failure and automatic 30 second finish keep 
 test('group voice retires microphone and group exactly at the reply deadline before late results, then accepts a fresh recording', () => run(`
  start();looked=judy;people={judy,alex}
  hotkeys.cyberpunk_convai_group_voice();local expired=microphone.context
- hotkeys.cyberpunk_convai_group_voice()
+ settle();hotkeys.cyberpunk_convai_group_voice()
  assert(microphone.state=='reply'and group.round.stage=='waiting'and runtime.pending()==expired)
  now=expired.sentAt+89;tick()
  assert(runtime.pending()==expired and microphone.context==expired and group.round.stage=='waiting')
@@ -603,7 +605,7 @@ test('group voice retires microphone and group exactly at the reply deadline bef
  hotkeys.cyberpunk_convai_group_voice();local fresh=microphone.context
  assert(fresh and fresh.requestId~=expired.requestId and group.round.stage=='recording')
  assert(commands[#commands].action=='start'and commands[#commands].input.requestId==fresh.requestId)
- hotkeys.cyberpunk_convai_group_voice();tick()
+ settle();hotkeys.cyberpunk_convai_group_voice();tick()
  assert(runtime.pending()==fresh and #playbacks==0 and group.round.stage=='waiting')
  respond(fresh,'The current spoken question');tick()
  assert(#playbacks==1 and playbacks[1].input.requestId==fresh.requestId)
@@ -614,7 +616,7 @@ test('group voice retires microphone and group exactly at the reply deadline bef
 test('group voice later-speaker timeout retires its group without restarting the completed microphone request', () => run(`
  start();looked=judy;people={judy,alex}
  hotkeys.cyberpunk_convai_group_voice();local first=microphone.context
- hotkeys.cyberpunk_convai_group_voice();respond(first,'Actual group question');tick()
+ settle();hotkeys.cyberpunk_convai_group_voice();respond(first,'Actual group question');tick()
  speech.requestId=nil;tick();local expired=runtime.pending()
  assert(expired and expired.profileKey=='alex'and not microphone.context and #playbacks==1)
  now=expired.sentAt+90;respond(expired,'Late text from another speaker');tick()

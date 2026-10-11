@@ -47,6 +47,7 @@ M.catalog = {
     ['mic-finish-hint'] = {class = PLAYER, repeatS = 10},
     ['mic-error'] = {class = PLAYER, repeatS = 15},
     ['mic-timeout'] = {class = PLAYER, repeatS = 15},
+    ['mic-no-speech'] = {class = PLAYER, repeatS = 15},
     -- Voices and companion actions
     ['voice-fallback'] = {class = PLAYER, repeatS = 600},
     ['action-rejected'] = {class = PLAYER, repeatS = 15},

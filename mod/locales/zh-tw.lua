@@ -170,6 +170,7 @@ return {
     ["No reply arrived. The conversation service may not be running."] = "未收到回覆。對話服務可能沒有執行。",
     ["No reply received. Your message is in the draft; press Enter to retry."] = "未收到回覆。訊息已保留在草稿中，按 Enter 重試。",
     ["No settings were supplied."] = "未提供任何設定。",
+    ["No speech was heard. Wait for Listening, then speak before you finish."] = "沒有聽到語音，請等待「正在聆聽」後再說話，結束前要開口。",
     ["Not configured"] = "未設定",
     ["Off"] = "關",
     ["On"] = "開",

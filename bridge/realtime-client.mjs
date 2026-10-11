@@ -23,6 +23,12 @@ let actionContextConfigured = false;
 // The game owns its 30-second recording finish and supplies fresh context.
 // This later ceiling is cancellation only if that finish never reaches us.
 const MICROPHONE_CANCEL_AFTER_MS = 35000;
+// After the player finishes a recording, Convai's speech recognition normally answers within a few seconds. When no
+// transcript and no reply text exist this long after the finish (and the character is not working on one), the
+// recording held no speech: fail at once with a clear reason instead of waiting out the 60 s reply ceiling.
+const NO_SPEECH_AFTER_MS = 15000;
+const NO_SPEECH_ERROR = 'No speech was heard';
+const COLLECT_TIMEOUT_ERROR = 'Convai did not finish the reply';
 const USER_TRANSCRIPT_LIMIT = 1200;
 // Convai's source PCM is 24 kHz mono. The output device is opened on standby at
 // turn start in this format so its start-up (about 20-190 ms of context, worklet
@@ -602,6 +608,8 @@ async function collect(current) {
       if (current.error) throw Error(current.error);
       if (current.epoch !== epoch || turn !== current) throw Error('Conversation cancelled');
       if (current.dataAudio?.error) throw current.dataAudio.error;
+      if (current.microphone && !current.userText && !current.text && !client.state.isThinking
+          && performance.now() - started > NO_SPEECH_AFTER_MS) throw Error(NO_SPEECH_ERROR);
       if (current.live) {
         const state = current.live.player.snapshot();
         if (state.error || state.state === 'stopped') throw Error(state.error || 'Continuous speech stopped before completion');
@@ -610,7 +618,7 @@ async function collect(current) {
       // exact PCM + owned clean terminal + final text, never a browser clock.
       return current.text && current.textComplete && !client.state.isThinking
         && (!current.ttsEnabled || current.dataAudio.ready);
-    }, 60000, 'Convai did not finish the reply');
+    }, 60000, COLLECT_TIMEOUT_ERROR);
     const collectedAt = performance.now();
     if (current.epoch !== epoch || turn !== current || current.error) throw Error(current.error || 'Conversation cancelled');
     // All source samples were accepted and owned before publication. Drain any
@@ -651,8 +659,13 @@ async function collect(current) {
       streamed: !!current.live, faces: collected?.faces ?? [], facesFormat: 'arkit61', facesTimebase: 'audio-seconds', captions: []};
   } catch (error) {
     const failure = rendererError(current, error);
+    // The close reason stays the bare message; the thrown error also says what had arrived, so a stuck reply can be diagnosed.
+    const detail = failure === error && error?.message === COLLECT_TIMEOUT_ERROR
+      ? ` (transcript=${current.userText ? 'yes' : 'no'} text=${current.text ? 'yes' : 'no'} complete=${current.textComplete}`
+        + ` thinking=${client?.state?.isThinking === true} audio=${current.dataAudio ? current.dataAudio.ready === true : 'off'})` : '';
     current.dataAudio?.abort(failure.message);
     if (turn === current && current.epoch === epoch) await close(failure.message || 'Conversation failed');
+    if (detail) failure.message += detail;
     throw failure;
   }
   finally {

@@ -67,11 +67,12 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `talk-no-profile` | Player | {name} does not have a conversation profile configured yet. | The talk key is pressed at a character without a profile | 20 |
 | `group-needs-two` | Player | Group chat needs two characters nearby. Use {key} for one person. | The group key is pressed with fewer than two characters | 20 |
 | `talk-connecting` | Player | Preparing connection to {name}… | A conversation starts (talk key, composer or voice) with a character, a party copy included, who is not connected yet; never from gaze or a warm-up | 10 |
-| `mic-connecting` | Player | Connecting microphone - wait for Listening | The voice key is pressed | none |
+| `mic-connecting` | Player | Connecting microphone - wait for Listening | The voice key is pressed, and again when it is pressed while the microphone is still connecting (that press is ignored) | none |
 | `mic-listening` | Player | Listening - press {key} again to finish | The microphone is recording | none |
 | `mic-finish-hint` | Player | Use {key} to finish this recording. | The other chat's voice key is pressed during a recording | 10 |
 | `mic-error` | Player | Microphone unavailable. Check your Windows input device. | The recorder reports an error | 15 |
 | `mic-timeout` | Player | Microphone connection timed out. Please try again. | The recorder did not start in 35 s | 15 |
+| `mic-no-speech` | Player | No speech was heard. Wait for Listening, then speak before you finish. | The recording held no speech: Convai returned no transcript or reply within 15 s of the finish | 15 |
 | `voice-fallback` | Player | {requested} is unavailable. Companions are using {voice} instead. | The chosen voice engine could not run and the bridge fell back for good (not configured, pack missing, Pocket failed, or OmniVoice's background retries ran out), once per fallback | 600 |
 | `voice-fallback` | Player | {requested} is not ready yet. Companions are using {voice} for now. | The chosen OmniVoice failed or timed out; the bridge keeps the next voice and loads OmniVoice again in the background. Once per episode. The switch back at an idle reply boundary posts nothing | 600 |
 | `voice-switched` | Developer | Natural speech needs a local voice, so Companion voices was switched to {voice}. (and the Expressive emotions, Multilingual variants); The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off. | After a Settings Apply that changed the voice, or that turned the tag settings off because the cloud voice was chosen (not when only the Expressive emotions default was on); the Settings status line already says it | none |

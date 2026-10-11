@@ -132,3 +132,45 @@ test('private action capture follows old-owner cancellation and precedes start, 
  available=false;assert(not mic.begin(input()))
  assert(order[#order]=='cancel:voice-1:start-write-failed')
 `));
+
+test('the voice key is spam-safe: connecting and bounce presses are ignored, a good press finishes, an overdue reply can be retried', () => check(`
+ local clock=50;mic.clock=function()return clock end
+ assert(mic.press()=='idle')
+ local context=input(false);assert(mic.begin(context))
+ assert(mic.press()=='connecting','a press while the device opens must not finish an empty recording')
+ assert(mic.press()=='connecting' and #commands==1 and commands[1].action=='start')
+ state('recording');mic.update(player)
+ assert(mic.state=='recording' and mic.press()=='bounce','a double tap right after Listening is ignored')
+ clock=50.3;assert(mic.press()=='bounce')
+ clock=50.9;assert(mic.press()=='finish')
+ assert(mic.finish('private')==context and mic.state=='reply' and commands[#commands].action=='finish')
+ assert(mic.press()=='waiting','pressing while the reply is on its way changes nothing')
+ now=now+7;assert(mic.press()=='waiting')
+ now=now+1;assert(mic.press()=='retry','an overdue reply may be dropped by the next press')
+ mic.cancel('voice-retry')
+ assert(mic.press()=='idle' and not mic.context and not mic.recordingAt and not mic.finishedAt)
+ assert(commands[#commands].action=='cancel' and cancellations[#cancellations].reason=='voice-retry')
+ -- Rapid start, cancel, start: every owner is retired once and the last one is clean.
+ for i=1,5 do local c=input(false);c.requestId='rapid-'..i;assert(mic.begin(c));assert(mic.press()=='connecting');mic.cancel('again')end
+ assert(not mic.context and #cancellations==6)
+ local last=input(false);last.requestId='rapid-last';assert(mic.begin(last))
+ state('recording','rapid-last');mic.update(player);clock=60;assert(mic.press()=='finish')
+`));
+
+test('a recording with no speech says so, retires the turn and leaves no stuck state', () => check(`
+ local context=input(false);assert(mic.begin(context))
+ state('recording');mic.update(player);now=now+3;assert(mic.finish('private')==context and mic.state=='reply')
+ state('no-speech');assert(mic.update(player)==nil)
+ assert(feedback[#feedback]=='No speech was heard. Wait for Listening, then speak before you finish.')
+ assert(not mic.context and mic.state==nil and commands[#commands].action=='cancel')
+ assert(cancellations[#cancellations].reason=='no-speech')
+ assert(mic.press()=='idle' and mic.begin(input(false)) and mic.state=='starting')
+`));
+
+test('the bridge reports a no-speech recording to the game as its own microphone state', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  const client = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /noSpeech \? 'no-speech' : 'error'/);
+  assert.match(client, /NO_SPEECH_ERROR = 'No speech was heard'/);
+  assert.match(source, /value\.state == 'no-speech'/);
+});
