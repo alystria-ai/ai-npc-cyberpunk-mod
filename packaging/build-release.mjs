@@ -30,6 +30,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
 import {isReleaseVersion, npmVersion} from './lib/version.mjs';
 import {importClosure, checkLuaPartition} from './lib/closure.mjs';
+import {packagedKeyText} from './lib/packaged-key.mjs';
 import {copyInto, download, exists, extractZip, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -338,7 +339,9 @@ async function runtimePackage(source, config, models, key) {
   await verifyPocketModel(pocketConfig, models.files, group('app/models/pocket/'));
   pkg.json(`${app}/defaults/pocket-voices.autobest.json`, templateOf(pocketConfig));
   for (const name of config.releaseData.managed) pkg.file(`${app}/defaults/${name}`, resolve(source.root, 'packaging/release-data', name));
-  if (key) pkg.text(`${app}/defaults/service.txt`, `api-key = ${key}\n`);
+  // Scrambled, not a greppable api-key line (bridge/key-codec.mjs); the packed file is also what marks the key as the
+  // project's shared one, which the bridge limits per day.
+  if (key) pkg.text(`${app}/defaults/service.txt`, await packagedKeyText(source.root, key));
 
   // Pocket reference clips: only those the live configuration uses, each checked against its hash.
   const pocketRefs = await referencesOf(pocketConfig, models);

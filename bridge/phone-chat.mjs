@@ -138,10 +138,12 @@ function sessionStore(value) {
 }
 
 export class PhoneChat {
-  constructor({contacts, ids, reply, publish, now = Date.now, sessions = {}, saveSessions = async () => {}, contextFor, contextCurrent, contextCurrentSync, resetFor}) {
+  constructor({contacts, ids, reply, publish, now = Date.now, sessions = {}, saveSessions = async () => {}, contextFor, contextCurrent, contextCurrentSync, resetFor, failureCode}) {
     if (resetFor!==undefined && typeof resetFor!=='function') throw Error('Invalid phone reset ownership hook');
     this.contacts = new Map(contacts.filter(c => c.key && ids[c.key]).map(c => [c.contact, {profile: c.key, id: ids[c.key]}]));
     Object.assign(this, {reply, publish, now, saveSessions, contextFor, contextCurrent, contextCurrentSync, resetFor});
+    // failureCode(error): the game's code for a failure it words itself (the shared key's daily limit), or undefined.
+    this.failureCode = typeof failureCode === 'function' ? failureCode : () => undefined;
     this.store = sessionStore(sessions); this.transientSessions = new Map(); this.seen = new Set();
     this.world = null; this.binding = null; this.writes = Promise.resolve(); this.sessionWrites = Promise.resolve();
   }
@@ -273,9 +275,10 @@ export class PhoneChat {
           while (this.transientSessions.size > 256) this.transientSessions.delete(this.transientSessions.keys().next().value);
         }
         if (await active.isCurrent()) await this.emit(active, {...identity, state: 'reply', text: result.text});
-      } catch {
+      } catch (error) {
+        let errorCode; try { errorCode = this.failureCode(error); } catch { /* the ordinary failure text */ }
         if (await active.isCurrent()) await this.emit(active, {...identity, state: 'error',
-          error: 'Message could not be delivered. Please try again.'});
+          error: 'Message could not be delivered. Please try again.', ...(errorCode ? {errorCode} : {})});
       } finally { if (this.active === active) this.active = null; }
     })().catch(() => {}); // file errors are recovered by the adapter's timeout
   }

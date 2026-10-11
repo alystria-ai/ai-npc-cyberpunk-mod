@@ -235,10 +235,11 @@ export function parseKeyCommand(raw, now = Date.now()) {
 /** File IPC for the two settings actions (Paste Convai API key, Remove my Convai API key) and the status file the
  * settings page reads. The key itself never enters either file. */
 export class OwnKeyControl {
-  constructor({keys, commandPath, publish, quota, readClipboard = readClipboardText, validate = validateKey,
+  // daily: the shared key's SharedKeyGuard (its snapshot() is published as `daily` while the shared key is in use).
+  constructor({keys, commandPath, publish, quota, daily, readClipboard = readClipboardText, validate = validateKey,
     read = path => readFile(path, 'utf8'), now = Date.now} = {}) {
     if (!keys || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid own key configuration');
-    Object.assign(this, {keys, commandPath, publish, quota, readClipboard, validate, read, now});
+    Object.assign(this, {keys, commandPath, publish, quota, daily, readClipboard, validate, read, now});
     this.observed = ''; this.result = null; this.busy = false; this.writing = Promise.resolve();
   }
   /** Ignore a command left from an earlier session, then publish the first status. */
@@ -248,10 +249,11 @@ export class OwnKeyControl {
     return this;
   }
   status() {
-    const quota = this.quota?.snapshot() ?? null;
+    const quota = this.quota?.snapshot() ?? null, daily = this.daily?.snapshot() ?? null;
     return {version: 1, updated: this.now(), preference: this.keys.preference, saved: !!this.keys.player,
       tail: this.keys.tail, active: this.keys.source, pending: this.keys.pending, memory: this.keys.memoryBlocked ? 'off' : 'on',
-      ...(this.result ? {result: this.result} : {}), ...(quota ? {limit: quota} : {})};
+      ...(this.result ? {result: this.result} : {}), ...(quota ? {limit: quota} : {}),
+      ...(daily ? {daily} : {})};
   }
   publishStatus() {
     this.writing = this.writing.catch(() => {}).then(() => this.publish(this.status()));

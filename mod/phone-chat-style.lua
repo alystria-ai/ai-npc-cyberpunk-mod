@@ -45,6 +45,7 @@ local statusSources = {
     ['Mistral did not accept your key. Check it in Settings > Development.'] = true,
     ['Mistral’s free limit is reached for now. Try again in a moment, or add your own free Convai key in Settings > Development.'] = true,
     ['The Mistral model is unavailable right now. Try again in a minute.'] = true,
+    ['You’ve reached today’s free conversation limit. Add your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development to keep talking.'] = true,
 }
 local feedbackSources = {
     ['INVITE QUEUED - CLOSE PHONE'] = true,

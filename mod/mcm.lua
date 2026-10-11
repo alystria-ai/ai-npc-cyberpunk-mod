@@ -637,6 +637,8 @@ local function ownKeyRows(snapshot)
     elseif own.limit == 'memory-needed' then using = ui.t('Your key: no room for memory')
     elseif own.active == 'player' and own.memoryOff then using = ui.t('Your own key, without memory')
     elseif own.active == 'player' then using = ui.t('Your own key')
+    elseif own.daily and own.daily.blocked then using = ui.t('Shared plan: daily limit reached')
+    elseif own.daily then using = ui.t('The shared plan: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit})
     else using = ui.t('The shared plan') end
     -- Mistral: the key status, and which provider answers right now. A player's own Convai key or a Mistral key is
     -- never counted against the shared daily limit (bridge/shared-key-guard.mjs).
@@ -661,7 +663,7 @@ local function ownKeyRows(snapshot)
     elseif snapshot.settings.conversationProvider == 'mistral' then using = ui.t('Convai: Mistral has no key yet') end
     return {
         setting('useOwnConvaiKey', 'Use my own Convai API key', 'bool', snapshot.settings.useOwnConvaiKey, false,
-            'Use your own free Convai API key instead of the shared plan. Get a free key at convai.com (it includes a small monthly allowance), copy it, choose Paste Convai API key below, then choose Apply. With your own key conversations open one at a time, companions are not pre-connected, and Multilingual conversations and memory management are unavailable. The change waits until no conversation is running.'),
+            'Want more conversations? The shared plan has a daily conversation limit, and there are two free ways to keep talking. Convai (recommended, better quality responses): get a free API key at convai.com, copy it, choose Paste Convai API key below, turn this on and choose Apply. A free Convai plan has a small monthly allowance, one connection at a time and only a few memory users, so companions open one at a time and Multilingual conversations and memory management are unavailable. Mistral (free; signup needs phone verification): get a free key at console.mistral.ai, copy it, choose Paste Mistral key, then set Conversation provider to Mistral and choose Apply. Memory stays on this computer. The change waits until no conversation is running.'),
         readonly('own-key-status', 'Convai API key', status,
             'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
         action('own-key:paste', 'Paste Convai API key', 'Paste from clipboard',

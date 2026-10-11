@@ -100,7 +100,10 @@ export class RealtimeHost {
   // onFailure(error) / onSuccess(): observers of a finished request (the bridge reads plan-limit failures from them).
   // recover(error, config): may return a changed config for one more attempt (a player's key whose plan has no room for
   // another memory user retries with the account's existing memory user, or without an identity), or nothing. It may be async.
-  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover,
+  // guard: {check(), consume()} (bridge/shared-key-guard.mjs), the one place a turn is admitted before it reaches Convai: a
+  // turn that may not run makes check() throw (the daily cap or the rate limit of the shared key). Opening or warming a
+  // connection is not a turn. A microphone turn is checked when it begins and counted when it is finished.
+  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard,
     browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
     clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
     launchBrowser = options => chromium.launch(options)} = {}) {
@@ -112,6 +115,7 @@ export class RealtimeHost {
     this.onCompanionAction = onCompanionAction;
     this.transformReply = typeof transformReply === 'function' ? transformReply : result => result;
     this.exclusive = exclusive; this.onFailure = onFailure; this.onSuccess = onSuccess; this.recover = recover;
+    this.guard = guard;
   }
   // Single-session plans: close the idle connections of this host (except `key`) and of its peers.
   async yieldOtherSessions(key) {
@@ -294,6 +298,8 @@ export class RealtimeHost {
   }
   run(config, method, options = {}) {
     const attempt = async () => {
+      // One admission per turn; the recovery retries below repeat the same turn.
+      if (method !== 'warm' && this.guard) { this.guard.check(); this.guard.consume(); }
       let current = config, waited = false;
       for (let retries = 0; ; retries++) {
         try { return await this.runOnce(current, method, options); }
@@ -422,6 +428,7 @@ export class RealtimeHost {
   beginVoice(config, options = {}) { return this.observe(this.beginVoiceOnce(config, options), false); }
   async beginVoiceOnce(config, {signal, owner = this} = {}) {
     throwIfCancelled(signal);
+    this.guard?.check();
     config = {...config};
     delete config.audioStreamToken;
     delete config.liveSpeechToken;
@@ -459,6 +466,7 @@ export class RealtimeHost {
   async finishVoiceOnce(owner = this, config, {signal, liveSpeech} = {}) {
     const lease = this.voiceLease;
     if (!lease || lease.owner !== owner) throw Error('Microphone connection is not running');
+    this.guard?.consume();
     let failed = true;
     try {
       if (lease.epoch !== this.epoch || this.closing) throw cancelled();

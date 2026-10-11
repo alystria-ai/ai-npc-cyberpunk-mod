@@ -16,11 +16,14 @@
 //     conversation at all.
 export const QUOTA_MARKER = /\[convai-quota:(interaction|tts|plan)\]/;
 
-/** 'quota' (interactions used up), 'speaker' (the plan's memory-user limit), 'memory' (an end-user identity is required
+/** 'daily' (the shared key's daily cap) or 'rate' (turns too quick), both raised by bridge/shared-key-guard.mjs before a turn
+ * reaches Convai; 'quota' (interactions used up), 'speaker' (the plan's memory-user limit), 'memory' (an end-user identity is required
  * and unavailable), 'rejected' (key not accepted), 'busy' (concurrency) or null. Only the message text is read. */
 export function classifyFailure(error) {
   const text = typeof error === 'string' ? error : typeof error?.message === 'string' ? error.message : '';
   if (!text || error?.name === 'AbortError') return null;
+  const own = /\[convai-quota:(daily|rate)\]/.exec(text);
+  if (own) return own[1];
   if (/concurrency limit/i.test(text)) return 'busy';
   if (QUOTA_MARKER.test(text) || /exceeded usage limits|\busage limit\b|\binteraction limit\b|reached your .{0,40}\blimit\b/i.test(text)) return 'quota';
   if (/\bspeaker limit reached\b|\bspeaker allowance is not configured\b/i.test(text)) return 'speaker';
@@ -54,9 +57,12 @@ export class QuotaWatch {
   }
   /** The notice code the game shows for this failure, or undefined (recent limit evidence is used when the error that
    * reached the caller no longer carries its text). */
-  codeFor(error, {recentMs = 15000} = {}) {
+  codeFor(error, {recentMs = 15000, automatic = false} = {}) {
     const kind = classifyFailure(error);
     const fresh = entry => entry && this.now() - entry.at <= recentMs;
+    // The shared key's daily cap: the game says so once. A rate-limited turn gets the ordinary failure text.
+    // An automatic reaction (battle, loot) that meets the cap just stops: only a turn the player asked for gets the notice.
+    if (kind === 'daily') return this.keys?.source === 'player' || automatic ? undefined : 'daily-limit';
     if (kind === 'quota' || (!kind && fresh(this.limit))) {
       const own = (this.limit ?? {own: this.keys?.source === 'player'}).own;
       return own ? 'quota-own' : 'quota-shared';

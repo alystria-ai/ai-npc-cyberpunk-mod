@@ -22,7 +22,9 @@ export const MANAGED_FILES = Object.freeze(['characters.json', 'multilingual-pro
 export const POCKET_CONFIG = 'pocket-voices.autobest.json';
 export const OMNI_CONFIGS = Object.freeze({short: 'local-voices.autobest-short.json', long: 'local-voices.autobest-long.json'});
 const RECORD = 'package-defaults.json';
-const KEY_LINE = /^api-key\s*=\s*\S+\s*$/i;
+// A key file is a plain api-key=... line (the player's own) or the packed form of the package's key (bridge/key-codec.mjs;
+// this launcher imports nothing from the bridge, so the shape is checked here and the bridge decodes it).
+const KEY_LINE = /^(?:api-key\s*=\s*\S+|convai-key-v1\s+[A-Za-z0-9_-]{24,1400})\s*$/i;
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const readOptional = path => readFile(path).catch(error => { if (error.code === 'ENOENT') return null; throw error; });
@@ -152,7 +154,7 @@ export function serviceEnvironment(layout, {omni, keyFile}, source = process.env
   for (const name of ['NODE_OPTIONS', 'NODE_PATH', 'PYTHONPATH', 'PYTHONHOME', 'PYTHONSTARTUP', 'PYTHONUSERBASE',
     'CYBERPUNK_CONVAI_PYTHON', 'CYBERPUNK_CONVAI_OMNI_MODEL', 'CYBERPUNK_CONVAI_OMNI_ADAPTER',
     'CYBERPUNK_CONVAI_OMNI_REFERENCES', 'CYBERPUNK_CONVAI_OMNI_CACHE', 'CYBERPUNK_CONVAI_RHUBARB',
-    'CYBERPUNK_CONVAI_LIPSYNC_WORK']) delete env[name];
+    'CYBERPUNK_CONVAI_LIPSYNC_WORK', 'CYBERPUNK_CONVAI_DAILY_LIMIT']) delete env[name];
   Object.assign(env, {
     PYTHONNOUSERSITE: '1',
     CYBERPUNK_CONVAI_GAME: layout.gameRoot,

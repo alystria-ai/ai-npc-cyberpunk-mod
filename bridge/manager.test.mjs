@@ -3970,6 +3970,11 @@ test('Development offers the own Convai key: off by default, free-key wording, t
     assert(use and use.type == 'bool' and use.value == false and use.defaultValue == false)
     assert(use.description:find('free', 1, true) and use.description:find('convai.com', 1, true))
     assert(not use.description:find('embedded', 1, true) and not use.description:find('shipped', 1, true))
+    -- The sidebar for this row explains both free ways past the shared plan's daily limit.
+    assert(use.description:find('daily conversation limit', 1, true) and use.description:find('(recommended, better quality responses)', 1, true))
+    assert(use.description:find('Paste Convai API key', 1, true) and use.description:find('choose Apply', 1, true))
+    assert(use.description:find('one connection at a time', 1, true) and use.description:find('console.mistral.ai', 1, true)
+      and use.description:find('Paste Mistral key', 1, true) and use.description:find('Conversation provider', 1, true))
     assert(row('own-key-status').value == 'Not added' and row('own-key-using').value == 'The shared plan')
     assert(row('own-key:remove').disabled == true, 'there is nothing to remove yet')
     assert(row('own-key:paste').disabled ~= true)
@@ -4032,6 +4037,15 @@ test('Development says when the player key runs without memory or cannot hold th
     assert(row('own-key-using').value ~= 'Your key: plan limit reached' and row('own-key-using').value ~= 'Shared plan: limit used up')
     state({saved = false, active = 'shared', memory = 'on'}, 'shared')
     assert(row('own-key-using').value == 'The shared plan' and manager.ownKey().memoryOff == false)
+    -- The shared plan's daily allowance, published by the bridge only while the shared key is in use.
+    state({saved = false, active = 'shared', daily = {limit = 100, left = 63, blocked = false}}, 'daily')
+    assert(row('own-key-using').value == 'The shared plan: 63 of 100 left today')
+    state({saved = false, active = 'shared', daily = {limit = 100, left = 0, blocked = true}}, 'blocked')
+    assert(row('own-key-using').value == 'Shared plan: daily limit reached')
+    state({saved = true, tail = 'wxyz', active = 'player', daily = {limit = 100, left = 0, blocked = true}}, 'own')
+    assert(row('own-key-using').value == 'Your own key', 'an own key is never shown as limited')
+    state({saved = false, active = 'shared', daily = {limit = 'x', left = -4}}, 'garbled')
+    assert(row('own-key-using').value == 'The shared plan' and manager.ownKey().daily == nil, 'a damaged status is ignored')
   `);
 });
 
@@ -4049,6 +4063,10 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     id, text = notice({errorCode = 'quota-own'}); assert(id == 'quota-exhausted' and text:find('plan limit', 1, true))
     id, text = notice({errorCode = 'key-rejected'}); assert(id == 'quota-exhausted' and text:find('did not accept', 1, true))
     id, text = notice({errorCode = 'key-memory-needed'}); assert(id == 'quota-exhausted' and text:find('memory', 1, true))
+    id, text = notice({errorCode = 'daily-limit', error = 'x'})
+    assert(id == 'daily-limit' and text:find('free Convai API key', 1, true) and text:find('(recommended, better quality responses)', 1, true)
+      and text:find('free Mistral key', 1, true) and text:find('phone verification', 1, true) and text:find('Settings > Development', 1, true), text)
+    assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shared', 1, true) and not text:lower():find('project', 1, true))
     id, text = notice({errorCode = 'key-memory', error = 'x'}); assert(id == 'key-memory' and text:find('will not remember', 1, true))
     id, text = notice({keyNotice = 'memory-off', text = 'Hello'}); assert(id == 'key-memory')
     assert(notice({text = 'Hello'}) == nil and notice({error = 'plain failure'}) == nil and notice({keyNotice = 'other'}) == nil)

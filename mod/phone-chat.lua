@@ -3,6 +3,8 @@
 -- guards still prevent a delayed reply from crossing a load or memory reset.
 local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}}
 local LOCAL_HISTORY = 'phone-local-player:v1'
+-- The status line when the bridge says the shared plan's daily allowance is used up (same wording as the game notice).
+local DAILY_LIMIT_STATUS = 'You’ve reached today’s free conversation limit. Add your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development to keep talking.'
 -- The same for the Mistral failures the bridge names; other failures keep the provider's text.
 local MISTRAL_STATUS = {
     ['mistral-key'] = 'Mistral did not accept your key. Check it in Settings > Development.',
@@ -545,7 +547,8 @@ function M.update(player, delta)
                 end
             elseif reply.state == 'error' then
                 M.errors = M.errors or {}
-                M.errors[reply.contact] = MISTRAL_STATUS[reply.errorCode] or tostring(reply.error)
+                M.errors[reply.contact] = reply.errorCode == 'daily-limit' and DAILY_LIMIT_STATUS
+                    or MISTRAL_STATUS[reply.errorCode] or tostring(reply.error)
                 if (M.drafts[reply.contact] or '') == '' then
                     M.drafts[reply.contact] = M.pending.text; M.clearDraft = reply.contact
                 end

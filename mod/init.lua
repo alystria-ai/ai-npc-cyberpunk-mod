@@ -1864,6 +1864,11 @@ local function keyNoticeText(code)
     return nil
 end
 
+-- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). Phone Chat words the same line (phone-chat.lua).
+local function dailyLimitText()
+    return ui.t('You’ve reached today’s free conversation limit. Add your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development to keep talking.')
+end
+
 -- id and text of the notice a reply calls for, or nil for an ordinary reply.
 local function keyReplyNotice(reply)
     if reply.errorCode == 'key-memory' or reply.keyNotice == 'memory-off' then
@@ -1882,6 +1887,7 @@ local function keyReplyNotice(reply)
     elseif reply.keyNotice == 'mistral-voice' then
         return 'mistral-voice', ui.t('Mistral replies are spoken by a local voice instead of the Convai cloud voice.')
     end
+    if reply.errorCode == 'daily-limit' then return 'daily-limit', dailyLimitText() end
     local text = keyNoticeText(reply.errorCode)
     if text then return 'quota-exhausted', text end
     return nil
@@ -2543,6 +2549,9 @@ registerForEvent('onUpdate', function(delta)
                         gameplayActions.revoke('reply-error', pending.requestId)
                         local keyId, keyText = keyReplyNotice(reply)
                         if keyId == 'key-memory' then convaiNotices.send(player, 'key-memory', keyText)
+                        -- The daily allowance: a turn V asked for says so once; an automatic reaction just stops.
+                        elseif keyId == 'daily-limit' then
+                            if not pending.reaction then convaiNotices.send(player, 'daily-limit', keyText) end
                         -- Mistral failures: a turn V asked for says so; an automatic reaction (battle, loot) just stops.
                         elseif keyId == 'mistral-key' then
                             if not pending.reaction then convaiNotices.send(player, 'mistral-key', keyText) end

@@ -13,6 +13,8 @@ import {sha256Buffer, walk} from './lib/files.mjs';
 import {checkLuaPartition, importClosure} from './lib/closure.mjs';
 import {chooseKeyFile, installLayout, MANAGED_FILES, pocketConfigFor, prepareState, serviceEnvironment} from './runtime/prepare-state.mjs';
 import {assembleParts} from './runtime/assemble-parts.mjs';
+import {packagedKeyText} from './lib/packaged-key.mjs';
+import {readKeyFileText} from '../bridge/key-codec.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const config = JSON.parse(await readFile(resolve(project, 'packaging/release.config.json'), 'utf8'));
@@ -143,6 +145,37 @@ test("the player's own key wins over the packaged one, and a missing key stays v
     assert.equal(await chooseKeyFile(f.layout), join(f.layout.state, 'convai-key.txt'));
     await writeFile(join(f.layout.state, 'convai-key.txt'), 'not a key');
     assert.equal(await chooseKeyFile(f.layout), join(f.app, 'defaults/service.txt'));
+  } finally { await rm(f.root, {recursive: true, force: true}); }
+});
+
+test('the packaged Convai key is scrambled: no plain key line, round-trips, and is accepted as the packaged key', async () => {
+  const fake = 'packaged-fixture-value-0123456789';
+  const packed = await packagedKeyText(project, fake);
+  assert(!packed.includes(fake) && !/api-key/i.test(packed), 'no greppable key line');
+  assert.deepEqual(readKeyFileText(packed), {key: fake, packed: true});
+  const f = await fakeInstall();
+  try {
+    await prepareState(f.layout);
+    await writeFile(join(f.app, 'defaults/service.txt'), packed);
+    assert.equal(await chooseKeyFile(f.layout), join(f.app, 'defaults/service.txt'), 'the launcher accepts the packed file');
+    // A player's own plain key still wins over it, and a damaged packed file falls back to the player path.
+    await writeFile(join(f.layout.state, 'convai-key.txt'), 'api-key = own-test-value\n');
+    assert.equal(await chooseKeyFile(f.layout), join(f.layout.state, 'convai-key.txt'));
+    await rm(join(f.layout.state, 'convai-key.txt'));
+    await writeFile(join(f.app, 'defaults/service.txt'), 'convai-key-v1 !!!');
+    assert.equal(await chooseKeyFile(f.layout), join(f.layout.state, 'convai-key.txt'));
+  } finally { await rm(f.root, {recursive: true, force: true}); }
+  // The builder writes it through this helper and nowhere else.
+  const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
+  assert.match(builder, /packagedKeyText\(source\.root, key\)/);
+  assert.doesNotMatch(builder, /api-key = \$\{key\}/);
+});
+
+test('the daily-limit override cannot be inherited by the packaged service', async () => {
+  const f = await fakeInstall();
+  try {
+    const env = serviceEnvironment(f.layout, {omni: false, keyFile: 'K'}, {PATH: 'x', CYBERPUNK_CONVAI_DAILY_LIMIT: 'off'});
+    assert.equal(env.CYBERPUNK_CONVAI_DAILY_LIMIT, undefined);
   } finally { await rm(f.root, {recursive: true, force: true}); }
 });
 

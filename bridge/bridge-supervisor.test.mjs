@@ -8,6 +8,7 @@ import {PassThrough} from 'node:stream';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {BridgeSupervisor, MOD_RUNTIME, parseSupervisorArguments, processAlive} from './bridge-supervisor.mjs';
 import {fakeBridgeSource} from './supervisor-fixture.mjs';
+import {packKey} from './key-codec.mjs';
 
 const prefix = 'cyberpunk-bridge-supervisor-';
 const fakeKey = 'api-key=fixture-key-not-a-credential';
@@ -177,6 +178,18 @@ test('missing setup is reported without starting a bridge and recovers once the 
   assert.equal(run.spawned.length, 0);
   await writeFile(join(f.state, 'convai-key.txt'), fakeKey + '\n');
   await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'the bridge did not start after setup was completed');
+  run.endGame(); await run.done;
+});
+
+test('the packed key of the release package passes the supervisor check, and a damaged one is a setup failure', async t => {
+  const f = await fixture(t, {key: false});
+  await writeFile(join(f.state, 'convai-key.txt'), 'convai-key-v1 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n');
+  const run = supervise(f);
+  const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'a damaged packed key was accepted');
+  assert.equal(failed.code, 'missing-key');
+  await writeFile(join(f.state, 'convai-key.txt'), packKey('packed-fixture-not-a-credential-0123'));
+  await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'the packed key was not accepted');
+  assert.doesNotMatch(await readFile(f.statusPath, 'utf8'), /packed-fixture/, 'the credential is never published');
   run.endGame(); await run.done;
 });
 

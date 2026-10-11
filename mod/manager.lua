@@ -306,10 +306,15 @@ function M.ownKey()
     local state = ownKeyState
     local result = type(state.result) == 'table' and state.result.id == ownKeyCommand and state.result.state or nil
     local limit = type(state.limit) == 'table' and state.limit or nil
+    -- The shared plan's daily allowance (bridge/shared-key-guard.mjs); absent on a player's own key and in development.
+    local daily = type(state.daily) == 'table' and state.daily or nil
+    local function count(value) return type(value) == 'number' and value == math.floor(value) and value >= 0 and value <= 1000000 end
+    if daily and not (count(daily.left) and count(daily.limit) and daily.limit > 0) then daily = nil end
     return {saved = state.saved == true, tail = type(state.tail) == 'string' and state.tail or nil,
         active = state.active == 'player' and 'player' or 'shared', pending = state.pending == true,
         result = type(result) == 'string' and result or nil, memoryOff = state.memory == 'off',
-        limit = limit and limit.state or nil, limitOwn = limit and limit.own == true or false}
+        limit = limit and limit.state or nil, limitOwn = limit and limit.own == true or false,
+        daily = daily and {left = daily.left, limit = daily.limit, blocked = daily.blocked == true} or nil}
 end
 
 -- The Mistral text provider: the same shape as the Convai key above. The bridge reads the key from

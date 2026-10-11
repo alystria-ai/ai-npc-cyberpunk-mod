@@ -16,6 +16,7 @@ import {randomUUID} from 'node:crypto';
 import {dirname, isAbsolute, resolve} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {atomicFile} from './guarded-file.mjs';
+import {isKeyFileText} from './key-codec.mjs';
 
 export const READY_MARKER = '[CyberpunkConvai] Convai conversation bridge ready';
 export const MOD_RUNTIME = 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime';
@@ -223,7 +224,7 @@ export class BridgeSupervisor {
       const info = await stat(this.keyFile);
       if (!info.isFile() || info.size > 4096) return 'missing-key';
       // Validate the format only; the credential is never logged or published.
-      if (!/^api-key\s*=\s*\S+\s*$/i.test((await readFile(this.keyFile, 'utf8')).trim())) return 'missing-key';
+      if (!isKeyFileText(await readFile(this.keyFile, 'utf8'))) return 'missing-key';
     } catch { return 'missing-key'; }
     try {
       const ids = JSON.parse(await readFile(resolve(this.stateDirectory, 'characters.json'), 'utf8'));

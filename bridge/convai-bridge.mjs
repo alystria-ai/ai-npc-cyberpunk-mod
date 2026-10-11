@@ -17,6 +17,7 @@ import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
 import {randomUUID} from 'node:crypto';
+import {homedir} from 'node:os';
 import {conversationScope} from './group-context.mjs';
 import {conversationContext as baseConversationContext, firstPersonReminder} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
@@ -59,6 +60,8 @@ import {updateDialogueLevel, dialogueLevel} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
 import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, withoutIdentity} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
+import {readKeyFileText} from './key-codec.mjs';
+import {DAILY_LIMIT, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -127,20 +130,32 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
   },
   onLog: message => process.stderr.write('[LocalVoice] ' + message),
 });
-const keyLine = (await readFile(keyFile, 'utf8')).trim();
-const key = /^api-key\s*=\s*(\S+)\s*$/i.exec(keyLine)?.[1];
-if (!key) throw Error('Local Convai key file must contain api-key=...');
+// A plain api-key=... file is a developer's or a player's own key. A packed file (bridge/key-codec.mjs) is the key the
+// release package provides: that one, and only that one, is limited per day (bridge/shared-key-guard.mjs).
+const keyFileContent = readKeyFileText(await readFile(keyFile, 'utf8'));
+if (!keyFileContent) throw Error('Local Convai key file must contain api-key=...');
+const key = keyFileContent.key;
 await mkdir(runtime, {recursive: true});
 // The key conversations use: the one this installation provides, or the player's own (docs/OWN_CONVAI_KEY.md). It changes
 // only at an idle boundary (applyKeyChoice). `quota` remembers a used-up plan for the settings page and the in-game notice.
 const keys = await new ConvaiKeys({sharedKey: key, playerKeyPath: resolve(stateDirectory, PLAYER_KEY_FILE),
   playerUserPath: resolve(stateDirectory, PLAYER_USER_FILE)}).load();
 const quota = new QuotaWatch({keys});
+// Daily cap and rate limit for the package's shared key; never applied to a player's own key. CYBERPUNK_CONVAI_DAILY_LIMIT
+// sets the cap (a number) or switches the guard off (off); without it only the packaged key is limited, so a development
+// checkout with a plain runtime/convai-key.txt is not. The count is saved twice (state folder, user profile), signed.
+const dailyLimit = limitFromEnvironment(process.env.CYBERPUNK_CONVAI_DAILY_LIMIT, keyFileContent.packed ? DAILY_LIMIT : 0);
+const turnGuard = await new SharedKeyGuard({limit: dailyLimit, applies: () => keys.source === 'shared',
+  store: dailyLimit > 0 ? new UsageStore({machine: await machineId(), paths: [resolve(stateDirectory, 'daily-usage.json'),
+    resolve(process.env.LOCALAPPDATA || homedir(), 'CyberpunkConvai', 'daily-usage.json')]}) : undefined,
+  onChange: () => { void ownKeyControl?.publishStatus().catch(() => {}); }}).load();
+if (dailyLimit > 0) console.error(`[CyberpunkConvai] Shared conversation allowance: ${dailyLimit} turns a day, ${turnGuard.snapshot()?.left ?? dailyLimit} left today`);
 const currentKey = () => keys.current();
 // A player's key is a free plan with one conversation connection at a time: no look-ahead, no pre-opened connections.
 const singleSession = () => keys.singleSession;
 const keyNotice = () => { const keyNotice = keys.takeNotice(); return keyNotice ? {keyNotice} : {}; };
-const keyFailure = error => { const errorCode = quota.codeFor(error); return errorCode ? {errorCode} : {}; };
+// The game's notice for a failure (docs/NOTIFICATIONS.md). An automatic reaction that hit the daily cap just stops: no notice.
+const keyFailure = (error, input) => { const errorCode = quota.codeFor(error, {automatic: !!input?.reaction}); return errorCode ? {errorCode} : {}; };
 
 const knowledgePack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));
 const questCatalog = JSON.parse(await readFile(resolve(project, 'research/cyberpunk/generated/quest-catalog.json'), 'utf8'));
@@ -216,7 +231,7 @@ const keyHostOptions = peers => ({exclusive: {enabled: singleSession, peers, ret
   },
   onSuccess: () => { quota.succeeded(); keys.settled(); },
   recover: memoryRecovery({keys, classify: classifyFailure, onBlocked: () => memoryBlocked(), onAdopted: () => memoryAdopted()})});
-const phoneRealtime = new RealtimeHost({transformReply: cleanReply, ...keyHostOptions(() => [realtime])});
+const phoneRealtime = new RealtimeHost({transformReply: cleanReply, guard: turnGuard, ...keyHostOptions(() => [realtime])});
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {
   const requestId = prepared.input.requestId || prepared.input.id;
@@ -267,6 +282,7 @@ const phoneSessionPath = resolve(stateDirectory, 'phone-sessions.json');
 let phoneSessions = {};
 try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
 const phone = new PhoneChat({
+  failureCode: error => { const code = quota.codeFor(error); return code === 'daily-limit' ? code : undefined; },
   contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
@@ -378,7 +394,7 @@ function writeStreamManifest(document,current){
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
-  transformReply: cleanReply, ...keyHostOptions(() => [phoneRealtime])});
+  transformReply: cleanReply, guard: turnGuard, ...keyHostOptions(() => [phoneRealtime])});
 let observed = '', observedIdentity = null;
 let lastAcceptedIdentity = '';
 let polling = false, active = null, stopped = false;
@@ -1124,7 +1140,7 @@ const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
     const noSpeech = /No speech was heard/.test(error?.message || '');
     await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: noSpeech ? 'no-speech' : 'error', requestId: input.requestId, updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...keyFailure(error)}), {isCurrent: current, isCurrentSync: current.sync});
+      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...keyFailure(error, input)}), {isCurrent: current, isCurrentSync: current.sync});
   },
 });
 
@@ -1460,7 +1476,7 @@ async function processInput(request, prepared) {
     await status('error', error.message).catch(() => {});
     if (input) await atomic(replyPath, JSON.stringify({requestId: input.requestId,
       generation: input.generation, entity: input.entity,
-      error: 'The conversation service could not reply. Please try again.', ...keyFailure(error)}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
+      error: 'The conversation service could not reply. Please try again.', ...keyFailure(error, input)}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
     console.error('[CyberpunkConvai] Bridge request failed:', error.message);
   } finally {
     if (knowledgeTurn && (controller.signal.aborted || !await current())) await cancelKnowledgeTurn(knowledgeTurn);
@@ -1755,7 +1771,7 @@ async function pollSettings(checkShutdown = true) {
     }
   } finally { settingsPolling = false; }
 }
-const ownKeyControl = await new OwnKeyControl({keys, quota, commandPath: resolve(runtime, 'own-key-command.json'),
+const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, commandPath: resolve(runtime, 'own-key-command.json'),
   publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
 quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,

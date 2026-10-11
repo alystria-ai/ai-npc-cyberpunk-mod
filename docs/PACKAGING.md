@@ -104,7 +104,8 @@ they ignore any Python installed on the machine.
 The Convai key is built into the Runtime package at `app/defaults/service.txt` from the
 `CONVAI_API_KEY` secret. A valid `data/convai-key.txt` (format `api-key = ...`) always wins, so
 anyone can use their own account (with their own `characters.json`). Do not describe the built-in
-key in player-facing text.
+key in player-facing text. The key is stored scrambled (`convai-key-v1 ...`, not an `api-key = ...` line;
+`bridge/key-codec.mjs`) and the bridge limits turns on that key per day (docs/OWN_CONVAI_KEY.md, "Daily limit on the shared plan").
 
 ## Building
 

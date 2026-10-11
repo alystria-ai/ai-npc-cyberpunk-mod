@@ -355,6 +355,19 @@ test('unsupported contacts and API failures do not leak service details or subst
   assert.ok(!JSON.stringify(output).includes('secret'));
 });
 
+test('a phone message that meets the shared plan daily limit carries the game code, and other failures carry none', async () => {
+  const limit = Object.assign(Error('Daily conversation limit reached [convai-quota:daily]'), {kind: 'daily'});
+  const {chat, output} = fixture(async () => { throw limit; }, {failureCode: error => /\[convai-quota:daily\]/.test(error.message) ? 'daily-limit' : undefined});
+  await chat.accept(state({request: {id: 'world-1-1', contact: 'panam', text: 'Hey'}}));
+  await chat.active?.work;
+  assert.equal(output.at(-1).state, 'error'); assert.equal(output.at(-1).errorCode, 'daily-limit');
+  assert.ok(!output.at(-1).error.includes('quota'), 'the marker text is not what the player reads');
+  const other = fixture(async () => { throw Error('secret server diagnostic'); }, {failureCode: () => { throw Error('hook failed'); }});
+  await other.chat.accept(state({request: {id: 'world-1-2', contact: 'panam', text: 'Hey'}}));
+  await other.chat.active?.work;
+  assert.equal(other.output.at(-1).state, 'error'); assert.equal(other.output.at(-1).errorCode, undefined);
+});
+
 function runLua(program) {
   const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
@@ -462,6 +475,16 @@ contact='panam'; draft='Panam draft'; update()
 put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pending.id,contact='judy',state='reply',text='Hey V'})
 update(); assert(not m.pending and #m.history.judy==2 and not m.history.panam)
 assert(m.drafts.panam=='Panam draft' and paints[#paints].contact=='panam')
+`));
+test('the phone status row words the daily limit itself, in the line the notice uses', () => runLua(setup + `
+update(); draft='Hey Judy'; submission={contact='judy',text=draft}; update()
+local pending=m.pending
+put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pending.id,contact='judy',state='error',
+  error='Message could not be delivered. Please try again.',errorCode='daily-limit'})
+update(); assert(not m.pending)
+local status=paints[#paints].status
+assert(status:find('today', 1, true) and status:find('free conversation limit', 1, true) and status:find('Settings > Development', 1, true), status)
+assert(not status:find('Message could not be delivered', 1, true))
 `));
 test('phone timeout restores the draft and save unload rejects a stale reply', () => runLua(setup + `
 update(); draft='Hello'; submission={contact='judy',text=draft}; update()
