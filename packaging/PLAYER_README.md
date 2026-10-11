@@ -11,6 +11,9 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Faces and lip sync**: whole-face emotions, a neutral resting face and a smoother mouth for the local voices.
 - **Voices**: Natural speech and Expressive emotions are improved, a Lip sync delay setting helps with Bluetooth audio, and a slow OmniVoice start no longer drops you to the Pocket voice.
 - **Conversation**: characters can continue from the game's own dialogue, speak in the first person, remember what you did together and ask you questions. Each character shows the settings in effect for them in the Companion Manager.
+- **Talking by voice**: your words show as V's subtitle while you speak, and a recording with no speech says so instead of waiting.
+- **Aware of your gear**: companions know what V is wearing and carrying, and mention it only when it matters or you ask.
+- **Phone chat**: the first reply arrives in a second or two when you wait a moment after opening a chat.
 - **Fewer notices**: you only see when a companion has joined or when something fails.
 
 ## Requirements
@@ -54,3 +57,5 @@ Cyberpunk Convai is released under the Cyberpunk Convai Use License (see `LICENS
 ## Help
 
 Open Settings > Help > Help and support in game. It shows the service status and can create a report to share when asking for help.
+
+Known issue: if V keeps walking in one direction after you type a message, tap that direction (W, A, S or D) once.
