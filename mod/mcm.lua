@@ -305,11 +305,16 @@ local function profileDescription(profile, snapshot, shared, count)
     if active == 'pocket' or active == 'omni' then
         for _, key in ipairs(snapshot.localVoice.routedProfiles or {}) do
             if key == profile.key then
-                voice = manager.voiceLabel(active, snapshot.localVoice.omniSteps, snapshot.localVoice.omniReference)
+                voice = snapshot.localVoice.cloudVoice == 'voxtral' and manager.voiceLabel('voxtral')
+                    or manager.voiceLabel(active, snapshot.localVoice.omniSteps, snapshot.localVoice.omniReference)
                 routed = true
                 break
             end
         end
+    end
+    -- The Mistral cloud voice needs a Mistral key: say so instead of naming a voice that will not be heard.
+    if not routed and settings.voiceProvider == 'voxtral' and not (snapshot.mistral or {}).saved then
+        voice = ui.t('{voice} · needs Mistral key', {voice = manager.voiceLabel('voxtral')})
     end
     -- An OmniVoice choice cannot run without its pack: say so instead of naming a voice that will not be heard.
     if not routed and settings.voiceProvider == 'omni' and shared.pack.known and not shared.pack.installed then
@@ -348,7 +353,7 @@ local function voiceServiceLabel(state)
         return ui.t('Changing after the current reply')
     end
     local fallback = state.fallback
-    if type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket')
+    if type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral')
         and (fallback.to == 'pocket' or fallback.to == 'convai') then
         local values = {
             status = ui.t(labels[state.state] or 'Waiting for voice service'),
@@ -377,13 +382,15 @@ end
 
 -- The select's labels, in menu order (fastest to best). An OmniVoice entry says what it needs while the optional pack is missing; it
 -- cannot be applied then (applyBatch refuses it) and the bridge would fall back to Pocket TTS anyway.
-local function voiceMenuLabels(pack)
+local function voiceMenuLabels(pack, mistral)
     local elements = {}
     for index, choice in ipairs(VOICE_CHOICES) do
         local label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
         -- Short, so the entry does not truncate; the voice description says what the pack is.
         if choice.provider == 'omni' and not pack.installed then
             label = ui.t('{voice} · needs Omni pack', {voice = label})
+        elseif choice.provider == 'voxtral' and not (mistral or {}).saved then
+            label = ui.t('{voice} · needs Mistral key', {voice = label})
         end
         elements[index] = label
     end
@@ -997,7 +1004,7 @@ local function schema()
         })
         local voiceStatus = voiceStatusText(snapshot)
         -- The list: Pocket Performance (the default), OmniVoice Balanced / Quality (16 steps, short / long reference),
-        -- High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
+        -- High Quality / Ultra Quality (32 steps, short / long reference), the Mistral cloud voice (Voxtral), Convai Cloud voice.
         local voiceIndex = savedVoiceIndex(snapshot.settings)
         -- Lip sync delay (Bluetooth): Auto, Off, then milliseconds (bridge/audio-delay.mjs).
         local delays, delayLabels, delayIndex = manager.audioDelayChoices(), {}, 1
@@ -1009,8 +1016,8 @@ local function schema()
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
-                'Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. Convai uses the cloud; if a choice cannot run, a simpler voice takes over and you are told once.',
-                voiceMenuLabels(pack), {elements = true}),
+                'Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. The Mistral cloud voice (Voxtral) speaks in each companion’s own voice using your Mistral key, whichever provider writes the replies; it needs a key and speaks English only. Convai uses its cloud; if a choice cannot run, a simpler voice takes over and you are told once.',
+                voiceMenuLabels(pack, snapshot.mistral), {elements = true}),
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it.',
                 delayLabels, {elements = true}),
@@ -1175,6 +1182,10 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     -- player is told what it needs.
                     if choice.provider == 'omni' and not manager.omniPack().installed then
                         return {ok = false, error = ui.t('Requires the optional OmniVoice pack (GPU)')}
+                    end
+                    -- Likewise the Mistral cloud voice needs a Mistral key (it works with any conversation provider).
+                    if choice.provider == 'voxtral' and not manager.mistral().saved then
+                        return {ok = false, error = ui.t('Requires a Mistral key (add it in Settings > Development)')}
                     end
                     values.voiceProvider = choice.provider
                     if choice.provider == 'omni' then values.omniSteps, values.omniReference = choice.steps, choice.reference end

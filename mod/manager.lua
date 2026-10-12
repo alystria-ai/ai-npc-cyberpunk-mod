@@ -30,6 +30,7 @@ local OMNI_LABELS = {
     ['32:long'] = 'OmniVoice · Ultra Quality',
 }
 local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
+local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it in Settings > Development)'
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
 -- Natural speech and Expressive emotions need a local voice (the Convai cloud voice would read their tags aloud). The
 -- pending notice, once, after an Apply that switched the voice or turned the two settings off.
@@ -411,13 +412,13 @@ end
 -- Maps any saved engine name to the nearest current choice. Unknown values
 -- take the default (Pocket TTS). Provider names stay stable so older saves keep
 -- working: Pocket TTS was and remains 'pocket', OmniVoice 'omni' (old 'hybrid'),
--- Convai 'convai'. Any Pocket variant name resolves to the one Pocket TTS entry.
+-- Convai 'convai', the Mistral cloud voice (Voxtral) 'voxtral'. Any Pocket variant name resolves to the one Pocket TTS entry.
 -- A save from before the short/long choice has no omniReference and migrates to
 -- 'long': whoever chose OmniVoice chose quality, and long is the better match.
 local function normalizeVoiceProvider(value)
     if type(value) ~= 'string' then return DEFAULT_VOICE_PROVIDER end
     local name = value:lower()
-    if name == 'convai' then return 'convai' end
+    if name == 'convai' or name == 'voxtral' then return name end
     if name:find('pocket', 1, true) then return 'pocket' end
     if name:find('omni', 1, true) or name == 'hybrid' then return 'omni' end
     return DEFAULT_VOICE_PROVIDER
@@ -507,7 +508,7 @@ local function loadSettings()
     -- speaks only English, so a saved pairing with it cannot stand (Apply never makes one): the voice moves to the cloud
     -- voice, which every installation can run. With the cloud voice, Multilingual wins over the two tag settings.
     if type(settings.multilingualConversations) ~= 'boolean' then settings.multilingualConversations, settingsNeedSave = false, true end
-    if settings.multilingualConversations and settings.voiceProvider == 'pocket' then
+    if settings.multilingualConversations and (settings.voiceProvider == 'pocket' or settings.voiceProvider == 'voxtral') then
         settings.voiceProvider, settingsNeedSave = 'convai', true
     end
     -- A saved cloud voice with a tag setting on (an older save): the voice is kept and the tag settings are turned off,
@@ -585,6 +586,7 @@ end
 function M.voiceLabel(provider, steps, reference)
     if provider == 'pocket' then return ui.t('Pocket · Performance') end
     if provider == 'convai' then return ui.t('Convai · Cloud voice') end
+    if provider == 'voxtral' then return ui.t('Mistral cloud voice (Voxtral)') end
     return ui.t(OMNI_LABELS[(steps == 32 and '32' or '16') .. ':' .. (reference == 'short' and 'short' or 'long')])
 end
 
@@ -680,6 +682,10 @@ local function resolveMultilingualVoice(before, after, values, packInstalled)
     local turningOn = before.multilingualConversations ~= true
     if values.voiceProvider ~= nil and after.voiceProvider == 'pocket' then
         result.error = ui.t('Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.')
+        return result
+    end
+    if values.voiceProvider ~= nil and after.voiceProvider == 'voxtral' then
+        result.error = ui.t('The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.')
         return result
     end
     local effects = after.naturalSpeech == true or after.expressiveEmotions == true
@@ -863,7 +869,7 @@ local function updateLocalVoice()
     -- The bridge reports a fallback only after it committed the lower voice.
     -- Tell the player once per fallback; the mark clears when the fallback ends.
     local fallback = state.fallback
-    if fresh and type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket')
+    if fresh and type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral')
         and (fallback.to == 'pocket' or fallback.to == 'convai') then
         -- A temporary fallback and the permanent one it can turn into are announced separately, once each.
         local temporary = fallback.temporary == true
@@ -1125,7 +1131,9 @@ local function detail(player, item)
         body = clean(profile.summary or 'Conversation profile for ' .. profile.name, 1100)
             .. '\n\nConversation: ' .. (M.profileEnabled(profile.key) and 'on' or 'off')
             .. '\nCopies in party: ' .. copyCount(profile.key)
-        if localVoices[profile.key] and (localVoiceState.provider == 'pocket' or localVoiceState.provider == 'omni') then
+        if localVoices[profile.key] and localVoiceState.cloudVoice == 'voxtral' then
+            body = body .. '\nVoice: ' .. M.voiceLabel('voxtral')
+        elseif localVoices[profile.key] and (localVoiceState.provider == 'pocket' or localVoiceState.provider == 'omni') then
             body = body .. '\nVoice: ' .. M.voiceLabel(localVoiceState.provider, localVoiceState.omniSteps, localVoiceState.omniReference)
         elseif profile.voiceName then body = body .. '\nVoice: ' .. clean(profile.voiceName, 140) end
         if not item.definition then body = body .. '\nChoose a model in Models, then assign this profile in Party.' end
@@ -1387,9 +1395,11 @@ function M.applySettings(player, values)
             nextSettings.uiLanguage = value
         elseif key == 'voiceProvider' then
             if value == 'hybrid' then value = 'omni' end
-            if value ~= 'pocket' and value ~= 'omni' and value ~= 'convai' then
+            if value ~= 'pocket' and value ~= 'omni' and value ~= 'convai' and value ~= 'voxtral' then
                 return false, 'Choose one of the listed companion voices.'
             end
+            -- The Mistral cloud voice speaks with the player's Mistral key (the same one the text replies use).
+            if value == 'voxtral' and not M.mistral().saved then return false, VOXTRAL_KEY_MISSING end
             -- An OmniVoice choice cannot be saved while the optional pack is missing; the choice never takes effect.
             if value == 'omni' and not M.omniPack().installed then return false, OMNI_PACK_MISSING end
             nextSettings.voiceProvider = value

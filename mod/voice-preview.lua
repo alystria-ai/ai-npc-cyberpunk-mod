@@ -8,20 +8,26 @@ local INTERVAL = 1000
 local DEFAULT_SETTLE = 0
 
 -- The Companion voices list in menu order; the select's value is the index here. Pocket TTS is the default.
--- OmniVoice has two step counts and two reference lengths (short up to 10 s, long up to 18 s).
+-- OmniVoice has two step counts and two reference lengths (short up to 10 s, long up to 18 s). The Mistral cloud voice
+-- (Voxtral) needs a Mistral key; in the bridge it rides on Pocket, which speaks any reply it cannot deliver in time.
 M.CHOICES = {
     {provider = 'pocket'},
     {provider = 'omni', steps = 16, reference = 'short'},
     {provider = 'omni', steps = 16, reference = 'long'},
     {provider = 'omni', steps = 32, reference = 'short'},
     {provider = 'omni', steps = 32, reference = 'long'},
+    {provider = 'voxtral'},
     {provider = 'convai'},
 }
 
 -- The select index of a saved choice ({voiceProvider, omniSteps, omniReference}).
 function M.indexOf(saved)
     saved = type(saved) == 'table' and saved or {}
-    if saved.voiceProvider == 'convai' then return #M.CHOICES end
+    if saved.voiceProvider == 'convai' or saved.voiceProvider == 'voxtral' then
+        for index, choice in ipairs(M.CHOICES) do
+            if choice.provider == saved.voiceProvider then return index end
+        end
+    end
     if saved.voiceProvider == 'pocket' then return 1 end
     local steps = saved.omniSteps == 32 and 32 or 16
     local reference = saved.omniReference == 'short' and 'short' or 'long'
@@ -133,13 +139,13 @@ function M.new(options)
         local choice = providerOk and not providerError and M.CHOICES[provider] or nil
         if not choice
             or not savedOk or type(saved) ~= 'table'
-            or (saved.voiceProvider ~= 'pocket' and saved.voiceProvider ~= 'omni'
+            or (saved.voiceProvider ~= 'pocket' and saved.voiceProvider ~= 'omni' and saved.voiceProvider ~= 'voxtral'
                 and saved.voiceProvider ~= 'hybrid' and saved.voiceProvider ~= 'convai') then
             staged = nil
             cancel(stamp)
             return
         end
-        -- Select order: M.CHOICES (Pocket TTS, OmniVoice 16/32 steps with a short/long reference, Convai).
+        -- Select order: M.CHOICES (Pocket TTS, OmniVoice 16/32 steps with a short/long reference, Mistral cloud voice, Convai).
         local omniSteps, omniReference = choice.steps, choice.reference
         provider = choice.provider
         local savedProvider = saved.voiceProvider == 'hybrid' and 'omni' or saved.voiceProvider
