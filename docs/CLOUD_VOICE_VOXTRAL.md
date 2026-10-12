@@ -1,7 +1,7 @@
 # Mistral cloud voice (Voxtral)
 
 Added 2026-10-12. An optional Companion voice that speaks a reply with Mistral's text-to-speech (`voxtral-mini-tts-latest`),
-cloned from the character's own OmniVoice long reference clip, on the player's free Mistral key. It works with any
+cloned from the character's own reference clip (the OmniVoice long set first; see "Which clip is cloned"), on the player's free Mistral key. It works with any
 conversation provider (Convai, Mistral, Groq or Local), because it only needs the key. Research and measurements behind the
 choice: `docs/FREE_CLOUD_OPTION_RESEARCH.md`.
 
@@ -34,9 +34,8 @@ work exactly as with Pocket. Group chat look-ahead (`BufferedPcm`) is unchanged.
 - Request: `POST https://api.mistral.ai/v1/audio/speech`, body `{model, input, ref_audio, response_format: 'pcm', stream: true}`.
   The answer is server-sent events: `speech.audio.delta` (`audio_data`, base64 of raw **float32** little-endian PCM, not 16-bit)
   and `speech.audio.done`. Bytes can split anywhere, including inside a sample; the decoder carries the remainder.
-- `ref_audio` is the character's OmniVoice long reference (`runtime/voice-configs.json`, the long config; the file's sha256 is
-  checked against the registry, and a clip over 25 s is cut). Saved voices need a paid plan, so the clip is sent with **every**
-  call; its base64 form is cached per voice in memory (32 voices).
+- `ref_audio` is the character's reference clip, chosen as in "Which clip is cloned" below (a clip over 25 s is cut). Saved
+  voices need a paid plan, so the clip is sent with **every** call; its base64 form is cached per voice in memory (32 voices).
 - **One request per reply**, streamed, never one per sentence.
 - The key goes only in the Authorization header; messages pass through `redact`; it is never logged or written to a state file.
 
@@ -49,7 +48,7 @@ speaks that reply:
 | Cause | Kind | After it |
 | --- | --- | --- |
 | No Mistral key | `no-key` | Pocket until a key appears |
-| No long reference for this character | `no-reference` | Pocket for this character; the rest still use Voxtral |
+| No clip at all for this character (see below) | `no-reference` | Pocket for this character; the rest still use Voxtral |
 | No first audio in 4 s (counted from the moment the request is sent, not when it queued) or waiting over 6 s behind other Mistral requests | `timeout` | next reply tries again |
 | 429 | `limit` | cool-down for `Retry-After` (20 s when none, at most 60 s); every Mistral request pauses for it |
 | 401 / 403 | `key` | 60 s cool-down |
@@ -57,10 +56,32 @@ speaks that reply:
 | Refused request or unusable answer | `request` | next reply tries again |
 | Text over 4,000 characters, or nothing speakable | `text` | not a fallback event; Pocket speaks it |
 
-**The rule for a character with no long reference: Pocket**, as in the table (the simplest rule, no stock-voice guess). A stock
-Voxtral voice would be a different, generic voice that does not match the character, and the preset voices carry only gender and
-language tags. Currently `8ug8ear` and `jake-estevez` have no long reference, so they always speak with Pocket in this mode
-(listed as a follow-up in `TODO.md`).
+**The rule for a character with no clip at all: Pocket**, as in the table. A stock Voxtral voice would be a different, generic voice
+that does not match the character (the preset voices carry only gender and language tags), so none is used. Today that is
+nobody who has a clip: see the next section for `8ug8ear` and `jake-estevez`.
+
+## Which clip is cloned
+
+Tried in this order for a voice key; the first that gives a usable file is used (`VoxtralVoice.build`, `timing.voiceReferenceSource`
+says which):
+
+1. **OmniVoice long set** (`omni-long`): the reference in the long voice configuration (`runtime/voice-configs.json`), its sha256
+   checked against the registry.
+2. **OmniVoice short set** (`omni-short`), the same way.
+3. **The Pocket reference** (`pocket`) for that character, the same way.
+4. **Clips extracted for the character** (`extracted`): every `.wav` in `runtime/voice-references/extracted/<character>/`, in
+   name order. They are joined end to end into one file until about 12 s are reached (at most 8 clips are read, a clip that would
+   take the total past 25 s is left out, a clip in another format than the first is skipped), and the result is cut to 25 s. Only a
+   character's own key names the folder (lower-case letters, digits and hyphens): a second voice of an ambient profile
+   (`-v2` to `-v4`) never borrows the profile's clips, and a key that could point at another folder is refused.
+
+A file that is missing, unreadable or fails its hash passes the turn to the next source. Only a character with none of the four
+falls back to Pocket (`no-reference`). The registry sources use the already validated picks (themselves joined clips); the
+extracted ones are unvalidated raw game audio, so they are the last resort.
+
+Checked here on 2026-10-12: `8ug8ear` and `jake-estevez` are "unprepared" in all three sets and have no folder under
+`extracted/` (8ug8ear's voice ownership is still unresolved, `docs/GAME_VOICE_REFERENCES.md`), so in this checkout they still
+speak with Pocket until someone extracts clips for them. Judy, Johnny, Adam Smasher, Ana Friedman and Blue Moon have extracted clips as well.
 
 If audio is already playing and the stream then fails, the reply's audio ends early (the written reply is complete) rather than
 playing two voices; the result carries `truncated: true`. A failure of the consumer (`onPcm` throwing) or a cancellation is not a
@@ -100,6 +121,8 @@ scheduler is paused or slowed.
 
 - Smoke call through the adapter (Judy's long reference, 2026-10-12): a clean 6.24 s utterance, 24 kHz, intelligible
   (zero-crossing rate and level consistent with speech).
+- Smoke call with the extracted-clips source (Judy, registries empty, 2026-10-12): the joined 48 kHz file was accepted, first audio
+  at 2.1 s, 5.76 s of speech at a normal level.
 - From `docs/FREE_CLOUD_OPTION_RESEARCH.md`: first audio median 1.24 s over six warm runs (0.98 to 1.56 s) with one 11 s spike
   in about ten calls, which is why the 4 s first-audio limit and the Pocket fallback exist. A reply of about 90 characters costs
   about 90 of the 12,000 input characters a minute.
@@ -111,4 +134,4 @@ scheduler is paused or slowed.
   and Expressive emotions use the usual text-based expression.
 - A voice that is routed to Pocket for one reply sounds like Pocket for that reply; nothing is cross-faded.
 - The Characters sidebar names "Mistral cloud voice (Voxtral)" for every character routed locally while the voice is active,
-  including the two that fall back to Pocket for want of a reference.
+  including any that fall back to Pocket for want of a clip.

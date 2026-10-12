@@ -60,7 +60,7 @@ export class VoiceSelection {
     this.activateOmni();
     // Voxtral clones each character from the OmniVoice long reference; it reports when it falls back or recovers.
     if(this.voxtral){
-      this.voxtral.setReferences?.(this.omniVariants.long.registry);
+      this.voxtral.setReferences?.([this.omniVariants.long.registry,this.omniVariants.short.registry,pocketRegistry]);
       const previous=this.voxtral.onChange;
       this.voxtral.onChange=degraded=>{try{previous?.(degraded);}finally{if(!this.closed)this.publish();}};
     }

@@ -1,6 +1,7 @@
 // The Mistral cloud voice (Voxtral): an optional Companion voice that speaks a reply with Mistral's text-to-speech
-// (`voxtral-mini-tts-latest`), cloned from the character's own OmniVoice "long" reference clip, on the player's free Mistral
-// key (docs/CLOUD_VOICE_VOXTRAL.md, docs/FREE_CLOUD_OPTION_RESEARCH.md).
+// (`voxtral-mini-tts-latest`), cloned from the character's own reference clip (OmniVoice long set, else short set, else the
+// Pocket reference, else clips extracted for that character), on the player's free Mistral key (docs/CLOUD_VOICE_VOXTRAL.md,
+// docs/FREE_CLOUD_OPTION_RESEARCH.md).
 //
 // It speaks through the same interface as Pocket TTS: `synthesizeStream(voiceKey, text, {signal, onPcm})` hands `onPcm` packets of
 // 24 kHz mono float32 audio, so the written reply, the subtitles, the lip sync and the facial model (all driven by those
@@ -22,10 +23,11 @@
 //  - The key is only ever put in the Authorization header of a request to api.mistral.ai; it is never logged, put in a message
 //    or kept in a state file. Messages pass through `redact`.
 import {createHash, randomBytes} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
+import {readFile, readdir} from 'node:fs/promises';
 import {resolve, sep} from 'node:path';
 import {cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
+import {isVariantKey} from './voice-variants.mjs';
 
 export const VOXTRAL_ENDPOINT = 'https://api.mistral.ai/v1/audio/speech';
 export const VOXTRAL_MODEL = 'voxtral-mini-tts-latest';
@@ -37,6 +39,8 @@ export const VOXTRAL_LIMITS = Object.freeze({
   maxQueueMs: 6000,          // waiting this long behind other Mistral requests: Pocket speaks this reply
   frameSamples: 2400,        // 100 ms packets, the size Pocket's own packets are in the same range
   maxReferenceSeconds: 25,   // a longer clip is cut (the searched references are 8 to 18 s)
+  extractedTargetSeconds: 12, // clips extracted for a character are joined until they reach this length (never past the maximum)
+  extractedClips: 8,         // at most this many extracted clips are read for one reference
   maxReferenceBytes: 4_000_000,
   cachedReferences: 32,
   limitCooldownMs: 20_000,   // after a 429, no request for the server's Retry-After (this when it names none, at most 60 s)
@@ -44,6 +48,10 @@ export const VOXTRAL_LIMITS = Object.freeze({
 });
 // A fixed identity for the packets (the PCM host checks owner/profile/model stay the same through one reply).
 const MODEL_ID = createHash('sha256').update(VOXTRAL_MODEL).digest('hex');
+// Where a reference came from, by registry order (setReferences): shown in the diagnostics and the log.
+const REFERENCE_SOURCES = ['omni-long', 'omni-short', 'pocket'];
+// A voice key that may name a folder: lower-case letters, digits and hyphens only.
+const SAFE_VOICE_KEY = /^[a-z0-9][a-z0-9-]*$/;
 const KEY_SHAPE = /\b[A-Za-z0-9]{28,}\b/g;
 
 /** Text with the key (when given) and anything shaped like one removed. */
@@ -103,6 +111,53 @@ export function capWav(bytes, seconds = VOXTRAL_LIMITS.maxReferenceSeconds) {
   return out;
 }
 
+/** A canonical-header PCM WAV's format and sample bytes, or null for anything else (only plain PCM can be joined). */
+function pcmParts(bytes) {
+  if (bytes.length < 44 || bytes.toString('latin1', 0, 4) !== 'RIFF' || bytes.toString('latin1', 8, 12) !== 'WAVE') return null;
+  let at = 12, format = null;
+  while (at + 8 <= bytes.length) {
+    const id = bytes.toString('latin1', at, at + 4), length = bytes.readUInt32LE(at + 4);
+    if (id === 'fmt ' && at + 24 <= bytes.length) {
+      format = {tag: bytes.readUInt16LE(at + 8), channels: bytes.readUInt16LE(at + 10), rate: bytes.readUInt32LE(at + 12), bits: bytes.readUInt16LE(at + 22)};
+    }
+    if (id === 'data') {
+      if (!format || format.tag !== 1 || !format.channels || !format.rate || !format.bits) return null;
+      return {...format, data: bytes.subarray(at + 8, Math.min(bytes.length, at + 8 + length))};
+    }
+    at += 8 + length + (length & 1);
+  }
+  return null;
+}
+
+/**
+ * Clips of one voice joined end to end into a single WAV: the first clip sets the format, a clip of another format is skipped,
+ * and joining stops once `targetSeconds` is reached. A clip that would pass `maxSeconds` is skipped (the first clip is
+ * kept whatever its length; the caller cuts it). Returns null when no clip can be used.
+ */
+export function joinWavs(clips, {targetSeconds = VOXTRAL_LIMITS.extractedTargetSeconds, maxSeconds = VOXTRAL_LIMITS.maxReferenceSeconds} = {}) {
+  let format = null, seconds = 0;
+  const parts = [];
+  for (const clip of clips) {
+    const wav = pcmParts(clip);
+    if (!wav || !wav.data.length) continue;
+    if (format && (wav.rate !== format.rate || wav.channels !== format.channels || wav.bits !== format.bits)) continue;
+    const align = wav.channels * (wav.bits / 8), length = wav.data.length - (wav.data.length % align);
+    if (!Number.isInteger(align) || length <= 0) continue;
+    const clipSeconds = length / align / wav.rate;
+    if (format && seconds + clipSeconds > maxSeconds) continue;
+    format = format ?? wav;
+    parts.push(wav.data.subarray(0, length)); seconds += clipSeconds;
+    if (seconds >= targetSeconds) break;
+  }
+  if (!format) return null;
+  const data = Buffer.concat(parts), header = Buffer.alloc(44), align = format.channels * (format.bits / 8);
+  header.write('RIFF', 0, 'latin1'); header.writeUInt32LE(36 + data.length, 4); header.write('WAVEfmt ', 8, 'latin1');
+  header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(format.channels, 22);
+  header.writeUInt32LE(format.rate, 24); header.writeUInt32LE(format.rate * align, 28); header.writeUInt16LE(align, 32);
+  header.writeUInt16LE(format.bits, 34); header.write('data', 36, 'latin1'); header.writeUInt32LE(data.length, 40);
+  return Buffer.concat([header, data]);
+}
+
 // ---- server-sent events -------------------------------------------------------------------------------------------------
 
 /** Yields the joined data payload of each server-sent event of a byte stream (CRLF, comments and split chunks handled). */
@@ -137,27 +192,29 @@ export async function* sseEvents(body) {
 
 export class VoxtralVoice {
   /**
-   * getKey: () => the Mistral key or null. referenceRoot: the folder 'runtime/voice-references/' maps to. registry: the OmniVoice
-   * long voice registry ({profiles: {key: {reference, sha256}}}); set later with setReferences. onChange: called when the voice
-   * becomes degraded or recovers. fetchImpl, readFile, setTimer, clearTimer, now, endpoint: for tests.
+   * getKey: () => the Mistral key or null. referenceRoot: the folder 'runtime/voice-references/' maps to. registry: a voice
+   * registry ({profiles: {key: {reference, sha256}}}) or an ordered list of them (OmniVoice long, OmniVoice short, Pocket: the first
+   * that has a usable clip for a voice wins); set later with setReferences. onChange: called when the voice becomes degraded or
+   * recovers. fetchImpl, read, list, setTimer, clearTimer, now, endpoint: for tests.
    */
   constructor({getKey, referenceRoot, registry, onChange = () => {}, onLog = () => {}, fetchImpl = globalThis.fetch,
-    read = readFile, endpoint = VOXTRAL_ENDPOINT, limits = {}, setTimer = setTimeout, clearTimer = clearTimeout,
+    read = readFile, list = readdir, endpoint = VOXTRAL_ENDPOINT, limits = {}, setTimer = setTimeout, clearTimer = clearTimeout,
     now = () => performance.now(), clock = Date.now, scheduler = mistralScheduler} = {}) {
     if (typeof getKey !== 'function') throw Error('Invalid Voxtral configuration');
-    Object.assign(this, {getKey, referenceRoot, registry, onChange, onLog, fetchImpl, read, endpoint, setTimer, clearTimer, now, clock, scheduler});
+    Object.assign(this, {getKey, referenceRoot, registries: [].concat(registry ?? []).filter(Boolean), onChange, onLog, fetchImpl, read, list, endpoint,
+      setTimer, clearTimer, now, clock, scheduler});
     this.limits = Object.freeze({...VOXTRAL_LIMITS, ...limits});
     this.references = new Map();      // voice key -> Promise<{base64, bytes, seconds}|null>
     this.owner = randomBytes(16).toString('hex'); this.sequence = 0;
     // degraded: why the last attempt fell back (null: working or not tried). until: no request before this time (a limit or a refused key).
     this.degraded = null; this.until = 0; this.spoke = 0; this.fellBack = 0;
   }
-  setReferences(registry) { this.registry = registry; this.references.clear(); }
+  setReferences(registry) { this.registries = [].concat(registry ?? []).filter(Boolean); this.references.clear(); }
   get hasKey() { return !!this.getKey(); }
   /** Whether a request may be made now (a key, and not inside a limit or refused-key cool-down). */
   get ready() { return this.hasKey && this.clock() >= this.until; }
-  /** Does this voice key have a reference clip to clone (without reading it)? */
-  hasReference(key) { return !!this.registry?.profiles?.[key]?.reference; }
+  /** Does a registry name a reference clip for this voice key (without reading it)? Clips extracted for a character are found only when read. */
+  hasReference(key) { return this.registries.some(registry => !!registry?.profiles?.[key]?.reference); }
   log(message) { try { this.onLog(`[Voxtral] ${message}\n`); } catch { /* a log line never affects speech */ } }
   note(reason) {
     const changed = (this.degraded?.reason ?? null) !== (reason ?? null);
@@ -174,25 +231,62 @@ export class VoxtralVoice {
       this.references.delete(key); this.references.set(key, cached);
       return cached;
     }
-    const entry = this.registry?.profiles?.[key];
-    const pending = !entry?.reference ? Promise.resolve(null) : (async () => {
-      const prefix = 'runtime/voice-references/';
-      if (!this.referenceRoot || !entry.reference.startsWith(prefix)) return null;
-      const root = resolve(this.referenceRoot), path = resolve(root, entry.reference.slice(prefix.length));
-      if (path !== root && !path.startsWith(root + sep)) return null;
-      let bytes = await this.read(path);
-      if (bytes.length > this.limits.maxReferenceBytes * 4) return null;
-      // The registry carries the file's hash: a changed file is not the reference that was validated.
-      if (entry.sha256 && createHash('sha256').update(bytes).digest('hex') !== entry.sha256) return null;
-      bytes = capWav(bytes, this.limits.maxReferenceSeconds);
-      if (bytes.length > this.limits.maxReferenceBytes) return null;
-      return {base64: bytes.toString('base64'), bytes: bytes.length};
-    })().catch(() => null);
+    const pending = this.build(key).catch(() => null);
     this.references.set(key, pending);
     // A reference that could not be built is tried again next time (the file may appear later).
     pending.then(value => { if (!value && this.references.get(key) === pending) this.references.delete(key); });
     while (this.references.size > this.limits.cachedReferences) this.references.delete(this.references.keys().next().value);
     return pending;
+  }
+
+  /**
+   * Builds the reference of a voice. Order: the registries in turn (OmniVoice long, OmniVoice short, Pocket), each entry's file
+   * checked against its recorded hash; then any clips extracted for the character under runtime/voice-references/extracted/,
+   * joined up to the working length. A voice with none of these has no reference (the caller uses Pocket).
+   */
+  async build(key) {
+    const finish = (bytes, source) => {
+      bytes = capWav(bytes, this.limits.maxReferenceSeconds);
+      return bytes.length > this.limits.maxReferenceBytes ? null : {base64: bytes.toString('base64'), bytes: bytes.length, source};
+    };
+    if (!this.referenceRoot) return null;
+    const root = resolve(this.referenceRoot);
+    const inside = path => path === root || path.startsWith(root + sep);
+    const prefix = 'runtime/voice-references/';
+    for (const [index, registry] of this.registries.entries()) {
+      const entry = registry?.profiles?.[key];
+      if (!entry?.reference || !entry.reference.startsWith(prefix)) continue;
+      const path = resolve(root, entry.reference.slice(prefix.length));
+      if (!inside(path)) continue;
+      try {
+        const bytes = await this.read(path);
+        if (bytes.length > this.limits.maxReferenceBytes * 4) continue;
+        // The registry carries the file's hash: a changed file is not the reference that was validated.
+        if (entry.sha256 && createHash('sha256').update(bytes).digest('hex') !== entry.sha256) continue;
+        const found = finish(bytes, REFERENCE_SOURCES[index] ?? 'registry');
+        if (found) return found;
+      } catch { /* this entry's file is unusable: try the next source */ }
+    }
+    // A variant key (a second voice of an ambient profile) is a different voice from its profile: never borrow the profile's clips.
+    if (isVariantKey(key) || !SAFE_VOICE_KEY.test(key)) return null;
+    const directory = resolve(root, 'extracted', key);
+    if (!inside(directory)) return null;
+    let names;
+    try { names = (await this.list(directory)).filter(name => typeof name === 'string' && name.toLowerCase().endsWith('.wav')).sort(); } catch { return null; }
+    const clips = [];
+    let seconds = 0;
+    for (const name of names.slice(0, this.limits.extractedClips)) {
+      try {
+        const bytes = await this.read(resolve(directory, name));
+        if (bytes.length > this.limits.maxReferenceBytes * 4) continue;
+        clips.push(bytes);
+        const wav = pcmParts(bytes);
+        if (wav) seconds += wav.data.length / (wav.channels * (wav.bits / 8)) / wav.rate;
+      } catch { /* an unreadable clip is skipped */ }
+      if (seconds >= this.limits.extractedTargetSeconds) break; // enough to join: the rest are not read
+    }
+    const joined = joinWavs(clips, {targetSeconds: this.limits.extractedTargetSeconds, maxSeconds: this.limits.maxReferenceSeconds});
+    return joined ? finish(joined, 'extracted') : null;
   }
 
   /**
@@ -327,7 +421,7 @@ export class VoxtralVoice {
         duration: delivered / VOXTRAL_RATE, modelSha256: MODEL_ID, truncated,
         timing: {voiceProvider: 'pocket', voiceEngine: 'voxtral', voiceCloud: true, voiceWarm: true,
           voiceFirstPcmReceivedMs: firstMs, voiceGenerationMs: this.now() - started, voiceRoundTripMs: this.now() - started,
-          voiceQueueMs: started - queued, voiceReferenceBytes: reference.bytes, ...(truncated ? {voiceTruncated: true} : {})}};
+          voiceQueueMs: started - queued, voiceReferenceBytes: reference.bytes, voiceReferenceSource: reference.source, ...(truncated ? {voiceTruncated: true} : {})}};
     } finally {
       this.clearTimer(timer);
       signal?.removeEventListener('abort', onAbort);

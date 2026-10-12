@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {resolve} from 'node:path';
-import {VoxtralVoice, VoxtralError, VOXTRAL_LIMITS, capWav, mapStatus, redact, sseEvents} from './voxtral-voice.mjs';
+import {VoxtralVoice, VoxtralError, VOXTRAL_LIMITS, capWav, joinWavs, mapStatus, redact, sseEvents} from './voxtral-voice.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {ownedLocalPcmPacket} from './local-pcm-host.mjs';
@@ -269,6 +269,116 @@ test('capWav cuts a long reference to the working length and fixes the header; s
   assert.equal(VOXTRAL_LIMITS.firstAudioMs, 4000);
 });
 
+// ---- where the reference comes from: long set, short set, Pocket, then clips extracted for the character ----------------------
+
+// A mono PCM16 WAV of `seconds` at `rate`, every sample `level` (so a joined file shows which clip each part came from).
+function tone(seconds, level, rate = 24000) {
+  const frames = Math.round(seconds * rate), bytes = Buffer.alloc(44 + frames * 2);
+  bytes.write('RIFF'); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8);
+  bytes.writeUInt32LE(16, 16); bytes.writeUInt16LE(1, 20); bytes.writeUInt16LE(1, 22);
+  bytes.writeUInt32LE(rate, 24); bytes.writeUInt32LE(rate * 2, 28); bytes.writeUInt16LE(2, 32); bytes.writeUInt16LE(16, 34);
+  bytes.write('data', 36); bytes.writeUInt32LE(frames * 2, 40);
+  for (let at = 0; at < frames; at++) bytes.writeInt16LE(level, 44 + at * 2);
+  return bytes;
+}
+const dataOf = bytes => bytes.subarray(44);
+
+test('joinWavs: clips of one format are joined until the target length; other formats, other file types and too-long clips are skipped', () => {
+  const joined = joinWavs([tone(5, 100), tone(5, 200), tone(5, 300), tone(5, 400)], {targetSeconds: 12, maxSeconds: 25});
+  assert.equal(joined.toString('latin1', 0, 4), 'RIFF');
+  assert.equal(joined.readUInt32LE(24), 24000);
+  assert.equal(dataOf(joined).length, 15 * 24000 * 2, 'three 5 s clips reach the 12 s target; the fourth is not read');
+  assert.equal(joined.readUInt32LE(40), dataOf(joined).length);
+  assert.equal(joined.readUInt32LE(4), joined.length - 8);
+  assert.equal(dataOf(joined).readInt16LE(0), 100); assert.equal(dataOf(joined).readInt16LE(5 * 24000 * 2), 200);
+  assert.equal(dataOf(joined).readInt16LE(10 * 24000 * 2), 300);
+  // Another sample rate, a non-WAV file and an empty clip do not join; a clip that would pass the maximum is left out.
+  const mixed = joinWavs([tone(3, 7), tone(3, 8, 48000), Buffer.from('not a wav file at all, but long enough to be looked at'), tone(0, 9), tone(30, 10), tone(4, 11)], {targetSeconds: 12, maxSeconds: 25});
+  assert.equal(dataOf(mixed).length, 7 * 24000 * 2); assert.equal(dataOf(mixed).readInt16LE(3 * 24000 * 2), 11);
+  // A single clip longer than the maximum is kept (the caller cuts it); nothing usable is null.
+  assert.equal(dataOf(joinWavs([tone(30, 5)])).length, 30 * 24000 * 2);
+  assert.equal(joinWavs([]), null); assert.equal(joinWavs([Buffer.alloc(10)]), null);
+});
+
+function sourceFixture({files = {}, folders = {}, registries}) {
+  const reads = [], lists = [];
+  const root = resolve('fixture-references');
+  const name = path => path.slice(root.length + 1).split(/[\\/]/).join('/');
+  const voice = new VoxtralVoice({getKey: () => KEY, referenceRoot: root, registry: registries,
+    read: async path => { reads.push(name(path)); const bytes = files[name(path)]; if (!bytes) throw Error('ENOENT'); return bytes; },
+    list: async path => { lists.push(name(path)); const names = folders[name(path)]; if (!names) throw Error('ENOENT'); return names; },
+    scheduler: fastScheduler()});
+  return {voice, reads, lists};
+}
+const registryFile = (key, file, bytes) => createVoiceProfileRegistry({version: 2, provider: 'hybrid', engine: 'omnivoice',
+  voices: {[key]: {reference: `runtime/voice-references/${file}`, sha256: sha(bytes), transcript: 'Ready when you are, V.'}}});
+
+test('the reference of a voice: the OmniVoice long clip, else the short one, else the Pocket one; a clip that fails its hash passes the turn on', async () => {
+  const long = tone(2, 1), short = tone(3, 2), pocket = tone(4, 3);
+  const registries = [registryFile('judy-alvarez', 'long/judy.wav', long), registryFile('judy-alvarez', 'short/judy.wav', short),
+    registryFile('judy-alvarez', 'pocket/judy.wav', pocket)];
+  const files = {'long/judy.wav': long, 'short/judy.wav': short, 'pocket/judy.wav': pocket};
+  const all = sourceFixture({files, registries});
+  const first = await all.voice.reference('judy-alvarez');
+  assert.equal(first.base64, long.toString('base64')); assert.equal(first.source, 'omni-long');
+  assert.deepEqual(all.reads, ['long/judy.wav']);
+  // The long clip is missing: the short one is next.
+  const noLong = sourceFixture({files: {...files, 'long/judy.wav': undefined}, registries});
+  const second = await noLong.voice.reference('judy-alvarez');
+  assert.equal(second.base64, short.toString('base64')); assert.equal(second.source, 'omni-short');
+  // The short clip fails its hash as well: Pocket's reference.
+  const changed = sourceFixture({files: {...files, 'long/judy.wav': undefined, 'short/judy.wav': tone(3, 99)}, registries});
+  const third = await changed.voice.reference('judy-alvarez');
+  assert.equal(third.base64, pocket.toString('base64')); assert.equal(third.source, 'pocket');
+  assert.deepEqual(changed.reads, ['long/judy.wav', 'short/judy.wav', 'pocket/judy.wav']);
+  // A character that is only in the Pocket registry (the other two list it as unprepared) is cloned from the Pocket clip.
+  const onlyPocket = sourceFixture({files, registries: [createVoiceProfileRegistry({}), createVoiceProfileRegistry({}), registries[2]]});
+  assert.equal((await onlyPocket.voice.reference('judy-alvarez')).source, 'pocket');
+});
+
+test('a character with no registered clip is cloned from clips extracted for them; with none at all there is no reference and Pocket speaks', async () => {
+  const a = tone(5, 10, 48000), b = tone(5, 20, 48000), c = tone(5, 30, 48000), d = tone(5, 40, 48000);
+  const files = {'extracted/8ug8ear/b.wav': b, 'extracted/8ug8ear/a.wav': a, 'extracted/8ug8ear/c.wav': c, 'extracted/8ug8ear/d.wav': d,
+    'extracted/8ug8ear/a.txt': Buffer.from('text')};
+  const folders = {'extracted/8ug8ear': ['b.wav', 'a.wav', 'a.txt', 'c.wav', 'd.wav']};
+  const registries = [createVoiceProfileRegistry({}), createVoiceProfileRegistry({}), createVoiceProfileRegistry({})];
+  const fixture = sourceFixture({files, folders, registries});
+  const found = await fixture.voice.reference('8ug8ear');
+  assert.equal(found.source, 'extracted');
+  const joined = Buffer.from(found.base64, 'base64');
+  assert.equal(joined.readUInt32LE(24), 48000);
+  assert.equal(dataOf(joined).length, 15 * 48000 * 2, 'clips in name order, joined until 12 s is reached (three of the four)');
+  assert.equal(dataOf(joined).readInt16LE(0), 10); assert.equal(dataOf(joined).readInt16LE(5 * 48000 * 2), 20);
+  assert.equal(dataOf(joined).readInt16LE(10 * 48000 * 2), 30);
+  assert.deepEqual(fixture.reads, ['extracted/8ug8ear/a.wav', 'extracted/8ug8ear/b.wav', 'extracted/8ug8ear/c.wav'], 'the fourth clip is not read');
+  // Sent to Mistral it is the cap-cut joined file, and the reply is spoken by Voxtral.
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    const speaker = sourceFixture({files, folders, registries});
+    speaker.voice.endpoint = server.endpoint;
+    const result = await speaker.voice.synthesizeStream('8ug8ear', 'Hi there.', collect());
+    assert.equal(result.timing.voiceReferenceSource, 'extracted');
+    assert.equal(server.requests[0].body.ref_audio, found.base64);
+  } finally { await server.close(); }
+  // No clip at all for this character: no reference, and nothing leaves this computer.
+  const none = sourceFixture({files: {}, folders: {}, registries});
+  assert.equal(await none.voice.reference('jake-estevez'), null);
+  assert.deepEqual(none.lists, ['extracted/jake-estevez']);
+  const empty = sourceFixture({files: {}, folders: {'extracted/jake-estevez': ['readme.txt']}, registries});
+  assert.equal(await empty.voice.reference('jake-estevez'), null);
+  await assert.rejects(none.voice.synthesizeStream('jake-estevez', 'Hi.', collect()), {kind: 'no-reference'});
+});
+
+test('extracted clips are only looked for under the character\'s own folder: not for a second voice of a profile, not for a key that could name another folder', async () => {
+  const folders = {'extracted/judy-alvarez': ['a.wav'], 'extracted/judy-alvarez-v2': ['a.wav']};
+  const files = {'extracted/judy-alvarez/a.wav': tone(2, 5), 'extracted/judy-alvarez-v2/a.wav': tone(2, 6)};
+  const fixture = sourceFixture({files, folders, registries: []});
+  assert.equal(await fixture.voice.reference('judy-alvarez-v2'), null, 'a variant is a different voice');
+  for (const key of ['../judy-alvarez', 'Judy', 'a/b', '', '..', 'judy alvarez']) assert.equal(await fixture.voice.reference(key), null, JSON.stringify(key));
+  assert.deepEqual(fixture.lists, [], 'no folder was listed for them');
+  assert.ok(await fixture.voice.reference('judy-alvarez'));
+});
+
 // ---- the voice selection: menu choice, fallback to Pocket, one report ---------------------------------------------------------
 
 const pocketSettings = voices => ({version: 1, provider: 'pocket', engine: 'pocket-tts', voices,
@@ -474,5 +584,17 @@ test('a line that waits too long in the queue falls back to Pocket without ever 
     await scheduler.schedule(async () => {});
     await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Too late.', collect()), {kind: 'timeout'});
     assert.equal(server.requests.length, 0); assert.equal(voice.degraded.reason, 'timeout');
+  } finally { await server.close(); }
+});
+
+test('the voice selection hands Voxtral the long set, the short set and the Pocket set, in that order', async () => {
+  const server = await serve((request, response) => { sse(response); response.end(done); });
+  try {
+    const {voice, cloud} = selection(server);
+    assert.equal(cloud.registries.length, 3);
+    assert.ok(cloud.registries[0].profiles['judy-alvarez'], 'long set first (this fixture lists the voices there)');
+    assert.equal(cloud.registries[1].keys.length, 0, 'the short set is empty in this fixture');
+    assert.ok(cloud.registries[2].profiles['judy-alvarez'], 'the Pocket set last');
+    await voice.close?.();
   } finally { await server.close(); }
 });
