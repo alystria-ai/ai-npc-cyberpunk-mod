@@ -440,8 +440,8 @@ async function runtimePackage(source, config, models, key) {
 }
 
 // Pre-built Mistral voice references. Voxtral sends each character's reference clip with every request; the bridge makes it small
-// (mono 16 kHz, cut to about 8 s, then a 32 kbit/s MP3 with ffmpeg) and keeps the result in <voices>/prepared, one slot per voice key,
-// named by the source clip's hash. A player without ffmpeg would otherwise send the 265 KB WAV instead of the 33 KB MP3.
+// (mono 24 kHz, cut to about 8.5 s, then a 40 kbit/s MP3 with ffmpeg) and keeps the result in <voices>/prepared, one slot per voice key,
+// named by the source clip's hash. A player without ffmpeg would otherwise send the 408 KB WAV instead of the 43 KB MP3.
 // This builds those slots with the bridge's own code (VoxtralVoice.build, the same call a conversation makes), from `configs`
 // (registry configurations in the bridge's order of preference), and returns {directory, keys, bytes, skipped}.
 // `except`: a Map of key -> signature already shipped by another package; a slot with the same signature is left out.
