@@ -119,9 +119,11 @@ export function memoryRecovery({keys, classify, onBlocked = () => {}, onAdopted 
 /** Which key conversations use. `requested` follows the setting and the saved key; `applied` is what connections use. */
 export class ConvaiKeys {
   constructor({sharedKey, playerKeyPath, playerUserPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate,
-    removeFile = path => rm(path, {force: true}), listUsers = listEndUsers} = {}) {
+    removeFile = path => rm(path, {force: true}), listUsers = listEndUsers, backend = null} = {}) {
     if (typeof sharedKey !== 'string' || !sharedKey) throw Error('A conversation key is required');
-    Object.assign(this, {sharedKey, playerKeyPath, playerUserPath, readText, writeText, removeFile, listUsers});
+    // backend: a TokenSource (bridge/convai-credential.mjs) when the shared account is reached through the sign-in backend, else
+    // null (the shared key is used directly, as before). A player's own key never goes through it.
+    Object.assign(this, {sharedKey, playerKeyPath, playerUserPath, readText, writeText, removeFile, listUsers, backend});
     this.player = null; this.preference = false;
     // The one end-user id every conversation on the player's key carries, once the account refused a new one and an
     // existing memory user was adopted (saved in playerUserPath, bound to the key). Null: the mod's own id is used.
@@ -208,11 +210,35 @@ export class ConvaiKeys {
     return changed;
   }
   current() { return this.applied.key; }
+  /** True while conversations on the shared account sign in through the backend (the key-only calls leave the runtime). */
+  get usesBackend() { return !!this.backend && this.applied.source === 'shared'; }
+  /** What a call to Convai must authenticate with right now: {authToken} or {apiKey}. Synchronous when a token is held, which is
+   * the normal case; otherwise it waits only for the first fetch of this run (at most four seconds). Throws when the backend
+   * refuses (or is unreachable and the fallback is switched off). */
+  async credential() {
+    if (!this.usesBackend) return {apiKey: this.applied.key};
+    const source = this.backend;
+    let held = source.current();
+    if (!held) { await source.ready(); held = source.current(); }
+    if (held) return {authToken: held.token};
+    if (source.fallbackAllowed()) { source.noteFallbackUse(); return {apiKey: this.applied.key}; }
+    throw source.unavailableError();
+  }
+  /** `config` as it must be sent to Convai: with `authToken` (and no `key`) in backend mode, unchanged otherwise. */
+  async credentialFor(config) {
+    if (!this.usesBackend) return config;
+    const credential = await this.credential();
+    if (!credential.authToken) return config;
+    const {key, ...rest} = config;
+    return {...rest, authToken: credential.authToken};
+  }
+  /** Throws the daily-limit failure while the backend says this installation's day is used up. */
+  assertAllowed() { if (this.usesBackend) this.backend.assertAllowed(); }
   get source() { return this.applied.source; }
   /** A player key has a free plan's single-session allowance: one conversation connection at a time. */
   get singleSession() { return this.applied.source === 'player'; }
   /** Every value that must be scrubbed from reports. */
-  secrets() { return [this.sharedKey, this.player].filter(Boolean); }
+  secrets() { return [this.sharedKey, this.player, ...(this.backend?.secrets() ?? [])].filter(Boolean); }
   get tail() { return keyTail(this.player); }
   async save(key) {
     await this.writeText(this.playerKeyPath, `api-key=${key}\n`);

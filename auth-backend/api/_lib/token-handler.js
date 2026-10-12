@@ -8,6 +8,7 @@ import { compareVersions, parseVersion } from './version.js';
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_TURNS_PER_REPORT = 1000;
+const MAX_MIN_LIFE_SECONDS = 900;
 const PREFILTER_PER_MINUTE = 60;
 const STALE_SERVE_MS = 60_000;
 
@@ -102,10 +103,12 @@ export function createTokenHandler(options = {}) {
       request_ = null;
     }
     const turns = request_?.turnsSinceLast ?? 0;
+    const minLife = request_?.minLifeSeconds ?? 0;
     if (!request_ || typeof request_ !== 'object' || Array.isArray(request_)
         || typeof request_.installId !== 'string' || !UUID_V4.test(request_.installId)
         || !parseVersion(request_.modVersion)
-        || !Number.isSafeInteger(turns) || turns < 0 || turns > MAX_TURNS_PER_REPORT) {
+        || !Number.isSafeInteger(turns) || turns < 0 || turns > MAX_TURNS_PER_REPORT
+        || !Number.isSafeInteger(minLife) || minLife < 0 || minLife > 3600) {
       sendJson(response, 400, { error: 'bad_request' });
       return;
     }
@@ -127,7 +130,9 @@ export function createTokenHandler(options = {}) {
     }
 
     const hour = Math.floor(nowMs / 3_600_000), day = isoDay(nowMs);
-    const marginMs = config.remintMarginSeconds * 1000;
+    // The bridge renews 8 to 10 minutes before expiry and says so (minLifeSeconds, at most 15 minutes is honoured), so a
+    // renewal always returns a token with a fresh life even though the server's own margin is only five minutes.
+    const marginMs = Math.max(config.remintMarginSeconds, Math.min(minLife, MAX_MIN_LIFE_SECONDS)) * 1000;
     const perInstall = config.mode === 'per-install';
     const sharedFresh = !!sharedToken && sharedToken.expiresAtMs - marginMs > nowMs;
     const keys = [`ip:${ipKey}:${hour}`, `in:${installKey}:${hour}`, `seen:${installKey}`, `ipnew:${ipKey}:${day}`,

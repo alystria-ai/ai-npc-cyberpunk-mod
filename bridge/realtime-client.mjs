@@ -232,7 +232,9 @@ async function connect(config) {
     errorCode: null, outerTypes: {}, innerTypes: {}};
   previousTurnDiagnostics = null;
   initialSession = config.freshSession ? '-1' : config.sessionId || '-1';
-  const connection = client = new ConvaiClient({apiKey: config.key, characterId: config.characterId,
+  // The sign-in backend's short-lived token when the bridge supplies one, else the key (a player's own, or the embedded fallback).
+  const credential = typeof config.authToken === 'string' && config.authToken ? {authToken: config.authToken} : {apiKey: config.key};
+  const connection = client = new ConvaiClient({...credential, characterId: config.characterId,
     ...endUserOptions(config),
     characterSessionId: initialSession, transport: 'livekit', startWithAudioOn: false,
     enableVideo: false, enableLipsync: ttsEnabled, ttsEnabled, logRtviMessages: false,

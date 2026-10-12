@@ -68,6 +68,7 @@ import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, setting
 import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, withoutIdentity} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {readKeyFileText} from './key-codec.mjs';
+import {AUTH_CONFIG_FILE, INSTALL_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
 import {DAILY_LIMIT, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
 import {MISTRAL_KEY_FILE, MistralControl, MistralProvider} from './mistral-key.mjs';
 import {TextProviderHost, attachTextProvider, groqRoute, isLocalUnavailable, localRoute, mistralRoute} from './text-provider-host.mjs';
@@ -177,8 +178,23 @@ const key = keyFileContent.key;
 await mkdir(runtime, {recursive: true});
 // The key conversations use: the one this installation provides, or the player's own (docs/OWN_CONVAI_KEY.md). It changes
 // only at an idle boundary (applyKeyChoice). `quota` remembers a used-up plan for the settings page and the in-game notice.
+// The sign-in backend (docs/CONVAI_AUTH_BACKEND.md, auth-backend/): OFF unless CYBERPUNK_CONVAI_AUTH_BACKEND=1 (or convai-auth.json
+// says so) and an address and secret are set. When on, the shared account is reached with a short-lived token fetched in the
+// background (never on a turn); a player's own key is untouched. If the backend cannot be reached the embedded key stands in
+// (CYBERPUNK_CONVAI_AUTH_FALLBACK=0 removes that), reported in this log only.
+const authSettings = await readAuthSettings({path: resolve(stateDirectory, AUTH_CONFIG_FILE)});
+if (authSettings.problem) console.error(`[CyberpunkConvai] Sign-in backend is off: ${authSettings.problem}`);
+const modVersion = await readFile(resolve(project, 'package.json'), 'utf8').then(text => JSON.parse(text).version, () => undefined);
+const tokenSource = authSettings.enabled ? new TokenSource({url: authSettings.url, secret: authSettings.secret,
+  installId: await loadInstallId({path: resolve(stateDirectory, INSTALL_FILE)}),
+  version: typeof modVersion === 'string' && /^\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/.test(modVersion) ? modVersion : '0.0.0-dev',
+  fallback: authSettings.fallback, log: message => console.error('[CyberpunkConvai] ' + message)}) : null;
+if (tokenSource) {
+  console.error(`[CyberpunkConvai] Conversation sign-in: backend ${new URL(authSettings.url).host}, embedded-key fallback ${authSettings.fallback ? 'on' : 'off'}`);
+  tokenSource.start(); // in the background, in parallel with the rest of start-up
+}
 const keys = await new ConvaiKeys({sharedKey: key, playerKeyPath: resolve(stateDirectory, PLAYER_KEY_FILE),
-  playerUserPath: resolve(stateDirectory, PLAYER_USER_FILE)}).load();
+  playerUserPath: resolve(stateDirectory, PLAYER_USER_FILE), backend: tokenSource}).load();
 const quota = new QuotaWatch({keys});
 // The conversation provider (docs/MISTRAL.md): Convai, or the player's own free Mistral key for the text of a reply. The key
 // is stored in this state folder only and is used for requests to api.mistral.ai and nothing else. The provider in use changes at
@@ -243,7 +259,10 @@ const dailyLimit = limitFromEnvironment(process.env.CYBERPUNK_CONVAI_DAILY_LIMIT
 const turnGuard = await new SharedKeyGuard({limit: dailyLimit, applies: () => keys.source === 'shared',
   store: dailyLimit > 0 ? new UsageStore({machine: await machineId(), paths: [resolve(stateDirectory, 'daily-usage.json'),
     resolve(process.env.LOCALAPPDATA || homedir(), 'CyberpunkConvai', 'daily-usage.json')]}) : undefined,
-  onChange: () => { void ownKeyControl?.publishStatus().catch(() => {}); }}).load();
+  onChange: () => { tokenSource?.noteTurn(); void ownKeyControl?.publishStatus().catch(() => {}); }}).load();
+// What the hosts ask before a turn: the local gate as before, plus (backend mode only) the backend's own "daily allowance used"
+// answer, shown with the same notice. Both are synchronous checks of memory; nothing here touches the network.
+const hostGuard = tokenSource ? {check: () => { turnGuard.check(); keys.assertAllowed(); }, consume: () => turnGuard.consume()} : turnGuard;
 if (dailyLimit > 0) console.error(`[CyberpunkConvai] Shared conversation allowance: ${dailyLimit} turns a day, ${turnGuard.snapshot()?.left ?? dailyLimit} left today`);
 const currentKey = () => keys.current();
 // A player's key is a free plan with one conversation connection at a time: no look-ahead, no pre-opened connections.
@@ -281,7 +300,11 @@ const vendorMemory = await VendorMemory.open({path: resolve(stateDirectory, 'ven
   onWarning: message => console.error('[CyberpunkConvai] Vendor memory: ' + message)});
 let playerMemory;
 const memoryProvider = new PlayerMemoryApi({key, characterIds: relationshipRoutes.providerIds, markerKeys: relationshipRoutes.markerKeys,
+  credential: () => keys.credential(),
   historicalPairAllowed: ({profileKey, characterId}) => playerMemory?.hasContactedProviderPair(profileKey, characterId) === true});
+// Backend mode: no key-only call (character list, character read, character update) runs from a player's machine. Ownership is the
+// shipped id list; memory is switched on beforehand by scripts/Enable-CharacterMemory.mjs.
+if (keys.usesBackend) memoryProvider.use({key, own: false, backend: true});
 playerMemory = await PlayerMemory.open({path: resolve(stateDirectory, 'player-memory.json'),
   characterIds: relationshipRoutes.providerIds, characterFamilies: relationshipRoutes.providerFamilies,
   provider: memoryProvider, quiesce: quiescePlayerMemory, retired: providerKey => RETIRED_PROVIDER_KEY.test(providerKey)});
@@ -329,6 +352,8 @@ function memoryBlocked() {
   void ownKeyControl.publishStatus().catch(() => {});
 }
 const keyHostOptions = peers => ({exclusive: {enabled: singleSession, peers, retryMs: 1500},
+  // The backend token replaces the key in the config sent to Convai (unchanged without backend mode or with a player's own key).
+  credential: config => keys.credentialFor(config),
   onFailure: error => {
     const kind = quota.observe(error);
     if (kind === 'speaker') void adoptOrBlockMemory(); // a path that cannot retry (a voice turn): its next turn uses the account's memory user
@@ -336,7 +361,7 @@ const keyHostOptions = peers => ({exclusive: {enabled: singleSession, peers, ret
   },
   onSuccess: () => { quota.succeeded(); keys.settled(); },
   recover: memoryRecovery({keys, classify: classifyFailure, onBlocked: () => memoryBlocked(), onAdopted: () => memoryAdopted()})});
-const phoneRealtime = new RealtimeHost({transformReply: cleanReply, guard: turnGuard, ...keyHostOptions(() => [realtime])});
+const phoneRealtime = new RealtimeHost({transformReply: cleanReply, guard: hostGuard, ...keyHostOptions(() => [realtime])});
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {
   const requestId = prepared.input.requestId || prepared.input.id;
@@ -501,7 +526,7 @@ function writeStreamManifest(document,current){
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
-  transformReply: cleanReply, guard: turnGuard, ...keyHostOptions(() => [phoneRealtime])});
+  transformReply: cleanReply, guard: hostGuard, ...keyHostOptions(() => [phoneRealtime])});
 // Mistral route (docs/MISTRAL.md): the same text reply path as Convai, with the persona built from characters/*.json and a small
 // local memory. attachMistral makes both hosts answer text turns through it while the provider is Mistral. `localTurn` names
 // the character, the channel and (for an ordinary NPC) its conversation, so the host can recall the right history; the Convai path
@@ -1996,7 +2021,7 @@ async function applyKeyChoice() {
   try {
     const own = keys.requested.source === 'player';
     keys.apply();
-    memoryProvider.use({key: keys.current(), own});
+    memoryProvider.use({key: keys.current(), own, backend: keys.usesBackend});
     quota.clear();
     dropPrefetch(); prefetchObserved = '';
     await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
@@ -2158,7 +2183,7 @@ watchFiles(runtime, {
 async function shutdown() {
   if (stopped) return;
   await companionActions.revoke();
-  stopped = true; active?.controller.abort(); dropPrefetch(); audioWatch.stop();
+  stopped = true; active?.controller.abort(); dropPrefetch(); audioWatch.stop(); tokenSource?.stop();
   settleVoiceRouteWaiters(Error('Voice service is closed'));
   phone.close(); clearInterval(phoneTimer);
   phoneKnowledge.clear();

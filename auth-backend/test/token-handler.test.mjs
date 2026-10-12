@@ -54,6 +54,20 @@ test('shared mode: one Convai token serves every install, minted once and again 
   assert.equal(new Date(fresh.json.expiresAt).getTime(), world.clock.now + HOUR);
 });
 
+test('a renewal that asks for at least N minutes of life gets a fresh token, capped at 15 minutes, so it is never handed the same one', async () => {
+  const world = createWorld();
+  const ask = minLifeSeconds => world.send({ body: JSON.stringify({ installId: world.defaultInstall, modVersion: '0.2', turnsSinceLast: 0, minLifeSeconds }) });
+  assert.equal((await ask(900)).json.authToken, 'fake-token-1');
+  world.advance(41 * MINUTE); // 19 minutes left
+  assert.equal((await ask(900)).json.authToken, 'fake-token-1');
+  world.advance(5 * MINUTE); // 14 minutes left: under what the client asked for
+  assert.equal((await ask(900)).json.authToken, 'fake-token-2');
+  world.advance(41 * MINUTE); // 19 minutes left again
+  assert.equal((await ask(3600)).json.authToken, 'fake-token-2', 'a larger ask is capped at 15 minutes');
+  const bad = await world.send({ body: JSON.stringify({ installId: world.defaultInstall, modVersion: '0.2', minLifeSeconds: 99999 }) });
+  assert.equal(bad.json.error, 'bad_request');
+});
+
 test('the re-mint margin is configurable', async () => {
   const world = createWorld({ CONVAI_AUTH_REMINT_MARGIN_SECONDS: '900' });
   await world.send();
