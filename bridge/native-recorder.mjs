@@ -39,7 +39,9 @@ function enc(v)
     if v ~= v then return '"nan"' end
     if v == math.huge then return '"inf"' end
     if v == -math.huge then return '"-inf"' end
-    if v == math.floor(v) and math.abs(v) < 1e15 then return string.format('%d', v) end
+    -- fengari integers are 32 bit: larger whole numbers are floats and go through %.0f
+    if v == 0 then return '0' end
+    if v == math.floor(v) and math.abs(v) < 1e15 then return string.format('%.0f', v) end
     return string.format('%.17g', v)
   end
   if kind == 'string' then
