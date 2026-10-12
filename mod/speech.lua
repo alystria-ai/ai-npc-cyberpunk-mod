@@ -423,7 +423,9 @@ end
 local function updateSpeech(delta)
     local player = Game.GetPlayer()
     M.heartbeat = M.heartbeat + delta
-    if M.heartbeat >= 2 then -- speech-state.json lease: the bridge keeps it 5 s
+    -- speech-state.json lease: the bridge keeps it 5 s. Written in a frame no other heartbeat writes in.
+    local slot = M.heartbeat >= 2 and convaiHeartbeatSlot
+    if M.heartbeat >= 2 and (type(slot) ~= 'function' or slot()) then
         M.heartbeat = 0
         continuousAdapter()
         if not M.continuous then M.available = player ~= nil and pcall(function() player:ConvaiSpeechPosition() end) end

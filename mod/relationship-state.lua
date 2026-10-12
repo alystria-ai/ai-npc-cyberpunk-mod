@@ -61,6 +61,9 @@ function M.new(options)
         local now = clock()
         -- The bridge keeps a capture 5 s; recapture and republish every 2 s.
         if last and same(last, frame) and now >= last.capturedAt and now - last.capturedAt < 2000 then return true end
+        -- A recapture of the same world writes in a frame no other heartbeat writes in (init.lua convaiHeartbeatSlot).
+        local slot = convaiHeartbeatSlot
+        if last and same(last, frame) and now >= last.capturedAt and type(slot) == 'function' and not slot() then return true end
         local versionOk, version = pcall(readVersion)
         if not versionOk or version ~= '2.31' then return self:reset('unsupported-game-version') end
         local candidate = {version = 1, status = 'ready', gameVersion = version,

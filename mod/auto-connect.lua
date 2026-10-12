@@ -169,6 +169,9 @@ function M.new(options)
             .. '|' .. idSignature or ''
         local now = wall()
         if not force and signature == lastSignature and lastPublish and now - lastPublish < cfg.heartbeat then return end
+        -- An unchanged heartbeat writes in a frame no other heartbeat writes in (init.lua convaiHeartbeatSlot).
+        local slot = convaiHeartbeatSlot
+        if not force and signature == lastSignature and lastPublish and type(slot) == 'function' and not slot() then return end
         if pcall(publish, list, partnerList, ids) then lastSignature, lastPublish = signature, now end
     end
 

@@ -103,6 +103,19 @@ convaiWorldKnowledge = worldKnowledge
 local partsLoaded, knowledgeParts = pcall(dofile, 'knowledge-parts.lua')
 if not partsLoaded or type(knowledgeParts) ~= 'table' then knowledgeParts = nil end
 
+-- Lease heartbeats (world-session, party-connections, relationship-state, companion-invitations,
+-- nearby-connections, speech-state) are refreshed every 2 s and most counted whole os.time() seconds,
+-- so they came due in the same frame: about 25 ms of file writes at once, a hitch every 2 s. An unchanged
+-- heartbeat takes this frame's single slot or waits a frame; a change or a forced write never waits.
+-- Globals (the modules read them; no new upvalue in onUpdate).
+convaiHeartbeat = {frame = 0, used = -1}
+convaiHeartbeatSlot = function()
+    local state = convaiHeartbeat
+    if state.used == state.frame then return false end
+    state.used = state.frame
+    return true
+end
+
 local function publishWorldSession(frame, ready, force)
     local now = os.time()
     local value = {version = 1, token = frame and frame.worldToken or (knowledgeLaunch .. '-' .. (knowledgeEpoch + 1)),
@@ -111,6 +124,7 @@ local function publishWorldSession(frame, ready, force)
     -- Lease heartbeat: the bridge keeps world-session.json 5 s; refresh it every 2 s or on change.
     if not force and signature == worldSessionSignature and worldSessionAt and now >= worldSessionAt
         and now - worldSessionAt < 2 then return end
+    if not force and signature == worldSessionSignature and not convaiHeartbeatSlot() then return end
     local encoded, raw = pcall(json.encode, value); if not encoded then return end
     -- In place: one open instead of open+remove+rename (about 9 ms of the game
     -- thread every 2 s). readWorldSession retries a partial read 3 times, 15 ms apart.
@@ -657,6 +671,7 @@ local function publishPartyConnections(force)
     end
     local signature, now = table.concat(keys, ','), os.time()
     if not force and signature == lastPartyHint and now - lastPartyHeartbeat < 2 then return end
+    if not force and signature == lastPartyHint and not convaiHeartbeatSlot() then return end
     for _, key in ipairs(keys) do encoded[#encoded + 1] = json.encode(key) end
     -- In place (one open, not open+remove+rename): the bridge ignores a partial
     -- read (PartyConnections.ingest rejects it) and keeps the last snapshot.
@@ -2379,6 +2394,7 @@ registerForEvent('onInit', function()
 end)
 
 registerForEvent('onUpdate', function(delta)
+    convaiHeartbeat.frame = convaiHeartbeat.frame + 1
     -- A missing completion must not keep a stale travel intent armed for a
     -- later unrelated load. Expiration only drops receipts; it never restores.
     if fastTravelActive and not fastTravelActive.finished and os.time()-fastTravelActive.started>120 then

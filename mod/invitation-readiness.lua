@@ -275,8 +275,11 @@ function M.new(options)
                 if decoded and type(value) == 'table' then receipt = value end
             end
         end
-        -- Lease heartbeat: the bridge keeps a publication 6.5 s; refresh it every 2 s.
-        if lastPublished == nil or stamp - lastPublished >= 2000 or stamp < lastPublished then publish(boundary, stamp) end
+        -- Lease heartbeat: the bridge keeps a publication 6.5 s; refresh it every 2 s, in a frame no other
+        -- heartbeat writes in (init.lua convaiHeartbeatSlot).
+        local slot = convaiHeartbeatSlot
+        if lastPublished == nil or stamp < lastPublished
+            or (stamp - lastPublished >= 2000 and (type(slot) ~= 'function' or slot())) then publish(boundary, stamp) end
     end
 
     return R

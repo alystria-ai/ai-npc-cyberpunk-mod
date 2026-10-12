@@ -90,3 +90,14 @@ test('every captured fact has an existing compiled native rule and source allowl
     assert.ok(rule && JSON.stringify(rule).includes(fact), `${ruleId} does not qualify ${fact}`);
   }
 });
+
+test('a due recapture of the same world waits for a frame no other heartbeat writes in; a first capture never waits', () => run(`
+  local free=false
+  convaiHeartbeatSlot=function() return free end
+  assert(collector:update(frame));assert(reads==11 and #writes==1,'the first capture waited')
+  now=now+2000;collector:update(frame);collector:update(frame)
+  assert(reads==11 and #writes==1,'recaptured without the heartbeat slot')
+  free=true;collector:update(frame)
+  assert(reads==22 and #writes==2)
+  convaiHeartbeatSlot=nil
+`));

@@ -446,7 +446,8 @@ assert(partyQueue.list()[1].state == 'connecting')
 receipt('ready'); events.onUpdate(0); assert(stats.spawned == 0)
 assert(partyQueue.list()[1].state == 'ready-to-join')
 local heartbeat = published()
-clock = clock + 2; receipt('ready'); events.onUpdate(0)
+-- Heartbeats due together write one per frame (init.lua convaiHeartbeatSlot).
+clock = clock + 2; receipt('ready'); for _ = 1, 6 do events.onUpdate(0) end
 assert(published().updated > heartbeat.updated and stats.spawned == 0)
 assert(files['runtime/party-connections.json']:find('"updated":' .. tostring(clock * 1000), 1, true))
 player.phoneOpen = false; events.onUpdate(0.1)
@@ -503,6 +504,32 @@ requests.IsPreGame = function(...) pregame = pregame + 1; return isPreGame(...) 
 events.onUpdate(0.001)
 assert(attached == 1 and handlers == 1 and pregame == 1,
     'IsAttached ' .. attached .. ', GetSystemRequestsHandler ' .. handlers .. ', IsPreGame ' .. pregame)
+`));
+
+test('lease heartbeats due in the same second write one per frame, and each still refreshes within the second', () => run(`
+events.onInit(); for _ = 1, 10 do events.onUpdate(0) end
+local HEARTBEATS = {['runtime/world-session.json'] = true, ['runtime/party-connections.json'] = true,
+    ['runtime/relationship-state.json.tmp'] = true, ['runtime/nearby-connections.json.tmp'] = true,
+    ['runtime/companion-invitations.json'] = true, ['runtime/speech-state.json'] = true}
+local seen, most = {}, 0
+for second = 1, 6 do
+    clock = clock + 1
+    for _ = 1, 30 do
+        local before = #stats.io
+        events.onUpdate(1 / 30)
+        local writes = 0
+        for index = before + 1, #stats.io do
+            local row = stats.io[index]
+            if HEARTBEATS[row.path] and row.mode == 'wb' then writes = writes + 1; seen[row.path] = clock end
+        end
+        if writes > most then most = writes end
+    end
+end
+assert(most == 1, 'heartbeat writes in one frame: ' .. most)
+-- This harness runs these three (speech, relationship facts and auto-connect are stubbed here).
+for _, path in ipairs({'runtime/world-session.json', 'runtime/party-connections.json', 'runtime/companion-invitations.json'}) do
+    assert(seen[path] and clock - seen[path] <= 2, path .. ' was not refreshed: ' .. tostring(seen[path]))
+end
 `));
 
 test('the NPC diagnostic hotkey is gone, but the request file still triggers a capture and a response', () => run(`
