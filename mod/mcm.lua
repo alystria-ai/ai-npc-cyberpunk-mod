@@ -71,6 +71,20 @@ local function active()
     return ok and data and data.activeModKey == MOD_KEY
 end
 
+-- MCM's getDiagnostics deep-copies its providers, errors and history, and the
+-- per-frame update asked it on every frame (about 12 ms of each second, perf
+-- probe 2026-10-11). While our page is shown the answer is still read fresh
+-- each frame; otherwise the update re-reads it at most every 0.25 s. Observers
+-- keep calling active() directly.
+local activeReadAt, activeLast = nil, false
+local function activeForUpdate()
+    if presentation.active or presentation.pending then activeReadAt = nil; return active() end
+    local now = os.clock()
+    if activeReadAt and now >= activeReadAt and now - activeReadAt < 0.25 then return activeLast end
+    activeReadAt, activeLast = now, active() and true or false
+    return activeLast
+end
+
 local fontPresentation = dofile('mcm-fonts.lua').new({ui = ui, active = active,
     label = function() return ui.t(LABEL) end})
 
@@ -1503,7 +1517,7 @@ function M.update(currentPlayer, worldReady)
     -- our translated sidebar item readable when another mod is selected.
     fontPresentation.update()
     pcall(restoreStatusLine)
-    if not active() then return end
+    if not activeForUpdate() then return end
     local styleOk, styleError = pcall(styleCompletedPage)
     if not styleOk then lastError = 'Settings presentation: ' .. tostring(styleError) end
     local placed, placeError = pcall(placeBackButton)

@@ -4328,3 +4328,19 @@ test('a stale install without Alt (roster and manager-characters from before 202
     assert(ok == false and message == 'That character model is unavailable.', tostring(message))
   `);
 });
+
+test('the per-frame MCM update asks MCM for its diagnostics at most four times a second while our page is not shown', () => {
+  run(`${mcmFixture}
+    local clock, reads = 10, 0
+    os.clock = function() return clock end
+    local diagnostics = nativeApi.getDiagnostics
+    nativeApi.getDiagnostics = function() reads = reads + 1; return diagnostics() end
+    for _ = 1, 30 do mcm.update(player, true); clock = clock + 1 / 60 end
+    assert(reads <= 3, 'diagnostics read ' .. reads .. ' times in half a second')
+    -- With our page shown the update reads it fresh on every frame, as before.
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    reads = 0
+    for _ = 1, 5 do mcm.update(player, true); clock = clock + 1 / 60 end
+    assert(reads >= 5, 'page shown but diagnostics read only ' .. reads .. ' times')
+  `);
+});
