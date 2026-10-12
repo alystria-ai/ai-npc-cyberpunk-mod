@@ -617,7 +617,7 @@ test('voice selector arrows stay within their displayed direction and use effect
     local wrapped = function(forward)
       forwarded = forwarded + 1
       effective = effective + (forward and 1 or -1)
-      if effective > 7 then effective = 1 elseif effective < 1 then effective = 7 end
+      if effective > 8 then effective = 1 elseif effective < 1 then effective = 8 end
     end
     local emit = function(forward)
       if handlers.McmUiEmitStep then return handlers.McmUiEmitStep(selector, forward, wrapped) end
@@ -625,23 +625,23 @@ test('voice selector arrows stay within their displayed direction and use effect
     end
     emit(false)
     assert(effective == 1 and forwarded == 0, 'left at Pocket TTS must not wrap right')
-    for _, expected in ipairs({2, 3, 4, 5, 6, 7}) do emit(true); assert(effective == expected and forwarded == expected - 1) end
+    for _, expected in ipairs({2, 3, 4, 5, 6, 7, 8}) do emit(true); assert(effective == expected and forwarded == expected - 1) end
     emit(true)
-    assert(effective == 7 and forwarded == 6, 'right at Convai must not wrap left')
-    for _, expected in ipairs({6, 5, 4, 3, 2, 1}) do emit(false); assert(effective == expected and forwarded == 13 - expected) end
-    emit(false); assert(effective == 1 and forwarded == 12, 'left at Pocket TTS must not wrap right')
+    assert(effective == 8 and forwarded == 7, 'right at Convai must not wrap left')
+    for _, expected in ipairs({7, 6, 5, 4, 3, 2, 1}) do emit(false); assert(effective == expected and forwarded == 15 - expected) end
+    emit(false); assert(effective == 1 and forwarded == 14, 'left at Pocket TTS must not wrap right')
     assert(row('voiceProvider').defaultValue == 1)
     local elements = row('voiceProvider').elements
-    assert(#elements == 7 and elements[1] == 'Pocket · Performance')
+    assert(#elements == 8 and elements[1] == 'Pocket · Performance')
     assert(elements[2] == 'OmniVoice · Balanced' and elements[3] == 'OmniVoice · Quality')
     assert(elements[4] == 'OmniVoice · High Quality' and elements[5] == 'OmniVoice · Ultra Quality')
-    assert(elements[6] == 'Mistral cloud voice (Voxtral) · needs Mistral key' and elements[7] == 'Convai · Cloud voice')
+    assert(elements[6] == 'Mistral cloud voice (Voxtral) · needs Mistral key' and elements[7] == 'Inworld cloud voice · needs Inworld key' and elements[8] == 'Convai · Cloud voice')
     assert(row('omniSteps') == nil and row('omniReference') == nil, 'retired quality steps remain in the active menu')
     assert(row('keepPreparedVoices').type == 'bool' and row('keepPreparedVoices').value == true
       and row('keepPreparedVoices').defaultValue == true, 'Keep prepared voices is on by default')
     handlers.McmUiConfigureBase(selector, controller, 'another-mod:settings:voiceProvider')
     emit(false)
-    assert(effective == 7 and forwarded == 13, 'foreign selector behavior must pass through')
+    assert(effective == 8 and forwarded == 15, 'foreign selector behavior must pass through')
   `);
 });
 
@@ -1096,7 +1096,7 @@ test('with Auto Apply every setting waits for an explicit Apply: the automatic a
     assert(snapshotOf() == before and #fileWrites == writes and files['runtime/voice-preview.json'] == nil)
     -- The person presses Apply later: all of it commits at once.
     clock = clock + 2
-    local applied = registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}, {id = 'expressiveEmotions', value = false}, {id = 'subtitles', value = false},
+    local applied = registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}, {id = 'expressiveEmotions', value = false}, {id = 'subtitles', value = false},
       {id = 'developerMode', value = true}, {id = 'eyeContactHeight', value = 5}, {id = 'enabled:person-1', value = false}})
     assert(applied.ok and applied.atomic)
     local after = manager.snapshot(player).settings
@@ -1113,7 +1113,7 @@ test('with Auto Apply every setting waits for an explicit Apply: the automatic a
 test('the voice status names a pending voice in a short line and nothing prepares a model before Apply', () => {
   run(`${mcmFixture}
     assert(invoke('tab:settings').ok)
-    local pending = 7
+    local pending = 8
     nativeApi.getValue = function(key) assert(key == 'cyberpunk-convai:manager:voiceProvider'); return pending end
     nativeApi.hasDrafts = function() return false end
     CName = {new = function(value) return value end}
@@ -1925,7 +1925,7 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
     assert(invoke('tab:settings').ok)
     loaded = registered.loadMod('manager')
     local elements = row('voiceProvider').elements
-    assert(elements[1] == 'Pocket · Performance' and elements[7] == 'Convai · Cloud voice')
+    assert(elements[1] == 'Pocket · Performance' and elements[8] == 'Convai · Cloud voice')
     assert(elements[2] == 'OmniVoice · Balanced · needs Omni pack', elements[2])
     for index = 2, 5 do
       assert(elements[index]:find(' · needs Omni pack', 1, true), 'entry ' .. index)
@@ -1940,7 +1940,7 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
     end
     assert(not manager.applySettings(player, {voiceProvider = 'omni'}))
     -- Pocket and Convai stay selectable (Expressive emotions, on by default, would move the cloud voice back to Pocket).
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 1}}).ok and saved.voiceProvider == 'pocket')
     -- The pack appears (installed while the game runs): the entries become plain labels and can be applied.
     clock = clock + 20
@@ -1969,7 +1969,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     assert(invoke('tab:settings').ok)
     loaded = registered.loadMod('manager')
     local elements = row('voiceProvider').elements
-    assert(#elements == 7 and elements[6] == NEEDS and elements[7] == 'Convai · Cloud voice', elements[6])
+    assert(#elements == 8 and elements[6] == NEEDS and elements[8] == 'Convai · Cloud voice', elements[6])
     assert(manager.voiceLabel('voxtral') == 'Mistral cloud voice (Voxtral)')
     local before = saved.voiceProvider
     local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}})
@@ -1987,7 +1987,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     assert(manager.snapshot(player).settings.expressiveEmotions == true)
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}}).ok)
     -- Convai stays selectable, and the saved voice is found again in the list.
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
     assert(dofile('voice-preview.lua').indexOf({voiceProvider = 'voxtral'}) == 6)
   `);
 });
@@ -2027,6 +2027,98 @@ test('a Mistral cloud voice that fell back to Pocket is announced once, with the
     state.fallback.temporary = false
     for _ = 1, 3 do popupTick(true) end
     assert(#popups == 2 and popups[2] == 'Mistral cloud voice (Voxtral) is unavailable. Companions are using Pocket · Performance instead.', popups[2])
+  `);
+});
+
+test('the Inworld cloud voice says it needs an Inworld key and cannot be applied without one; with a key it applies, and the key is not the Mistral key', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function key(tag, value)
+      jsonFixtures['mistral-' .. tag] = value
+      files['runtime/mistral-state.json'] = 'mistral-' .. tag
+      clock = clock + 2
+    end
+    local NEEDS = 'Inworld cloud voice · needs Inworld key'
+    assert(invoke('tab:settings').ok)
+    loaded = registered.loadMod('manager')
+    assert(row('voiceProvider').elements[7] == NEEDS, row('voiceProvider').elements[7])
+    assert(manager.voiceLabel('inworld') == 'Inworld cloud voice')
+    local before = saved.voiceProvider
+    local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}})
+    assert(result.ok == false and result.error == 'Requires an Inworld key (add it in Settings > Development)', result.error)
+    assert(saved.voiceProvider == before)
+    assert(not manager.applySettings(player, {voiceProvider = 'inworld'}))
+    -- A Mistral key alone does not unlock it.
+    key('a', {provider = 'convai', effective = 'convai', saved = true})
+    loaded = registered.loadMod('manager')
+    assert(row('voiceProvider').elements[7] == NEEDS, row('voiceProvider').elements[7])
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok == false)
+    -- An Inworld key is saved: the entry is a plain label and can be applied.
+    key('b', {provider = 'convai', effective = 'convai', saved = true, inworld = {saved = true, tail = 'wxyz'}})
+    loaded = registered.loadMod('manager')
+    assert(row('voiceProvider').elements[7] == 'Inworld cloud voice', row('voiceProvider').elements[7])
+    assert(manager.mistral().inworld.saved == true and manager.mistral().inworld.tail == 'wxyz')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok)
+    assert(saved.voiceProvider == 'inworld' and manager.snapshot(player).settings.voiceProvider == 'inworld')
+    -- It rides on Pocket, so Expressive emotions stay on: they become its steering.
+    assert(manager.snapshot(player).settings.expressiveEmotions == true)
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
+    assert(dofile('voice-preview.lua').indexOf({voiceProvider = 'inworld'}) == 7)
+  `);
+});
+
+test('the Inworld key is pasted and removed from Settings > Development through its own command file, and the page shows only its last four characters', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    assert(invoke('tab:settings').ok)
+    assert(row('inworld-key-status').value == 'Not added', row('inworld-key-status').value)
+    assert(row('inworld-key:paste').label == 'Paste Inworld key', 'paste label')
+    assert(row('inworld-key:remove').label == 'Remove my Inworld key', 'remove label')
+    assert(invoke('inworld-key:paste').ok, 'paste invoke')
+    local command = jsonFixtures[files['runtime/inworld-key-command.json']]
+    assert(command.version == 1 and command.action == 'paste' and command.id:find(':ikey:1', 1, true), 'command')
+    assert(files['runtime/mistral-key-command.json'] == nil and files['runtime/groq-key-command.json'] == nil and files['runtime/memory-command.json'] == nil, 'other channels')
+    assert(row('inworld-key:remove').disabled == true, 'nothing to remove yet')
+    jsonFixtures['mistral-i'] = {provider = 'convai', effective = 'convai', saved = false, inworld = {saved = true, tail = 'wxyz'}}
+    files['runtime/mistral-state.json'] = 'mistral-i'
+    clock = clock + 2
+    assert(invoke('inworld-key:paste').ok)
+    assert(row('inworld-key-status').value == 'Added (ends in wxyz)' and row('inworld-key:remove').disabled ~= true, row('inworld-key-status').value)
+    assert(invoke('inworld-key:remove').ok)
+    command = jsonFixtures[files['runtime/inworld-key-command.json']]
+    assert(command.action == 'clear' and command.id:find(':ikey:', 1, true), 'clear command')
+  `);
+});
+
+test('the Inworld cloud voice speaks English only here: Multilingual conversations refuses it and moves a saved choice off it', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    jsonFixtures['mistral-a'] = {provider = 'convai', effective = 'convai', saved = true, inworld = {saved = true, tail = 'wxyz'}}
+    files['runtime/mistral-state.json'] = 'mistral-a'
+    clock = clock + 2
+    assert(manager.applySettings(player, {voiceProvider = 'inworld'}))
+    assert(manager.snapshot(player).settings.voiceProvider == 'inworld')
+    local ok, err = manager.applySettings(player, {multilingualConversations = true})
+    assert(ok, err)
+    assert(manager.snapshot(player).settings.voiceProvider ~= 'inworld')
+    local refused, message = manager.applySettings(player, {voiceProvider = 'inworld'})
+    assert(refused == false and message == 'The Inworld cloud voice speaks only English here. Turn off Multilingual conversations to choose it.', message)
+  `);
+});
+
+test('an Inworld cloud voice that fell back to Pocket is announced once, with the usual wording and its own name', () => {
+  run(`${mcmFixture}${managerPopupFixture}
+    popupStep = 1
+    local state = {state = 'ready', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = nil, routedProfiles = {'johnny-silverhand'},
+      fallback = {from = 'inworld', to = 'pocket', temporary = true, reason = 'timeout'}, updated = popupClock * 1000}
+    jsonFixtures['voice-runtime'] = state
+    files['runtime/local-voice-state.json'] = 'voice-runtime'
+    popupTick(false); popupTick(false)
+    popupTick(true)
+    assert(#popups == 1 and popups[1] == 'Inworld cloud voice is not ready yet. Companions are using Pocket · Performance for now.', popups[1])
+    state.fallback.temporary = false
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 2 and popups[2] == 'Inworld cloud voice is unavailable. Companions are using Pocket · Performance instead.', popups[2])
   `);
 });
 
@@ -2465,7 +2557,7 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(not manager.lootReactions())
     assert(registered.applyBatch('manager', {{id = 'battleReactions', value = false}}).ok)
     assert(not manager.battleReactions())
-    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 7}, {id = 'subtitleStyle', value = 2}, {id = 'expressiveEmotions', value = false}})
+    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 8}, {id = 'subtitleStyle', value = 2}, {id = 'expressiveEmotions', value = false}})
     assert(applied.ok and applied.atomic and #applied.appliedIds == 4 and saved.omniSteps == 16)
     assert(saved.voiceProvider == 'convai')
     loaded = registered.loadMod('manager')
@@ -2476,7 +2568,7 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     end
     assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 1}}).ok)
     assert(manager.subtitleStyle() == 'dialogue' and saved.voiceProvider == 'convai')
-    assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok)
+    assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}}).ok)
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 0}}).ok)
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = '1'}}).ok)
     assert(registered.applyBatch('manager', {{id = 'keepPreparedVoices', value = false}}).ok and saved.keepPreparedVoices == false)
@@ -2484,7 +2576,7 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'long')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}}).ok)
     assert(saved.voiceProvider == 'omni' and saved.omniSteps == 32 and saved.omniReference == 'short')
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok and saved.voiceProvider == 'convai')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok and saved.voiceProvider == 'convai')
     assert(not registered.applyBatch('manager', {{id = 'voice', value = true}, {id = 'omniSteps', value = 1}}).ok)
     assert(saved.voice == false and saved.voiceProvider == 'convai', 'retired quality changes partially applied')
     assert(not registered.applyBatch('manager', {{id = 'disappearingMessages', value = true}}).ok)
@@ -2953,7 +3045,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(ok, err)
       assert(actual.getValue(key .. ':voice') == false and actual.getValue(key .. ':omniSteps') == nil)
       assert(manager.snapshot(player).settings.omniSteps == 16 and not actual.hasDrafts(key))
-      assert(actual.getValue(key .. ':voiceProvider') == 7)
+      assert(actual.getValue(key .. ':voiceProvider') == 8)
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
       assert(actual.getValue(key .. ':subtitleStyle') == 2 and manager.subtitleStyle() == 'overhead')
       assert(not manager.battleReactions() and actual.getValue(key .. ':battleReactions') == false)
@@ -2984,7 +3076,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       for _ = 1, 3 do mcm.update(player, false) end
       assert(files['runtime/voice-preview.json'] == nil, 'a pending voice offered a worker preview')
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
-      assert(actual.revert(key) and actual.getValue(key .. ':voiceProvider') == 7)
+      assert(actual.revert(key) and actual.getValue(key .. ':voiceProvider') == 8)
       assert(actual.setDraft(key .. ':voiceProvider', 4)); later(); assert(actual.apply(key))
       assert(manager.snapshot(player).settings.voiceProvider == 'omni' and manager.snapshot(player).settings.omniSteps == 32
         and manager.snapshot(player).settings.omniReference == 'short')

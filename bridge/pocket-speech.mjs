@@ -2,6 +2,7 @@ import {PocketFacialStream} from './pocket-facial-stream.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
 import {BufferedPcm} from './group-lookahead.mjs';
 import {markStage} from './turn-clock.mjs';
+import {ReplyVoice} from './cloud-reply-voice.mjs';
 
 // Dialogue/memory stays with the original Convai turn. Only its complete text
 // is sent once to the local student; an independent PCM renderer starts from
@@ -19,6 +20,8 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
     const generated=await host.playLocalPcm({token:speech.token,text:result.text,
       expressionSignal:result.expressionSignal,userText:result.userText},async(emit,{signal:localSignal})=>{
       let first=true,last=null;
+      // One reply, one voice: the head decides whether a cloud voice or Pocket speaks it, the tail follows (bridge/cloud-reply-voice.mjs).
+      const reply=stream?new ReplyVoice():undefined;
       const feed=packet=>{
         if(first){first=false;markStage('firstPcm');}
         last={owner:packet.owner,id:packet.id,profile:packet.profile,modelSha256:packet.modelSha256,index:packet.index,
@@ -28,13 +31,16 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
       // The tail is synthesized (into memory) while the head is still being voiced or played.
       const tail=stream?stream.finished.then(()=>stream.tail,()=>'').then(text=>{
         if(!text||localSignal.aborted)return null;
-        const buffered=new BufferedPcm({signal:localSignal,synthesize:(onPcm,options)=>voice.synthesizeStream(voiceKey,text,{...options,onPcm})});
+        // The feelings in force where the tail begins are marked for the voice (Expressive emotions; the cloud voice steers with them).
+        const full=stream.text,from=Math.max(0,full.indexOf(text,stream.head?.length??0));
+        const emotion={marks:stream.meta?.emotionMarks,from};
+        const buffered=new BufferedPcm({signal:localSignal,synthesize:(onPcm,options)=>voice.synthesizeStream(voiceKey,text,{...options,onPcm,reply,emotion})});
         buffered.start();return buffered;
       }):null;
       tail?.catch(()=>{});
       markStage('ttsSent');
       let response=prefetched?await prefetched.drain(feed,{signal:localSignal})
-        :await voice.synthesizeStream(voiceKey,result.text,{signal:localSignal,onPcm:feed});
+        :await voice.synthesizeStream(voiceKey,result.text,{signal:localSignal,onPcm:feed,reply,emotion:{marks:result.emotionMarks}});
       if(tail){
         const buffered=await tail;
         if(buffered){

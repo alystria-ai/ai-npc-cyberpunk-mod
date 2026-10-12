@@ -34,6 +34,8 @@ import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
+import {InworldVoice} from './inworld-voice.mjs';
+import {INWORLD_KEY_FILE, InworldKey} from './inworld-key.mjs';
 import {createReferencePreparer} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
 import {variantSeed} from './voice-variants.mjs';
@@ -154,11 +156,17 @@ const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiK
   prepare: process.env.CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE === '1' ? undefined
     : createReferencePreparer({cacheDirectory: resolve(voxtralReferenceRoot, 'prepared'), onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
   onLog: message => process.stderr.write(message)});
+// The Inworld cloud voice (docs/CLOUD_VOICE_INWORLD.md): the same kind of choice, on the player's own Inworld key (player-inworld-key.txt in
+// the state folder, pasted in Settings). Each character is cloned once from the same reference clips; the voice ids are kept in
+// player-inworld-voices.json in the state folder. `inworldKey` is loaded below with the other keys.
+const inworldKey = await new InworldKey({keyPath: resolve(stateDirectory, INWORLD_KEY_FILE)}).load();
+const inworldVoice = new InworldVoice({getKey: () => inworldKey.key, referenceRoot: voxtralReferenceRoot,
+  storePath: resolve(stateDirectory, 'player-inworld-voices.json'), onLog: message => process.stderr.write(message)});
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
-  voxtral:voxtralVoice,
+  voxtral:voxtralVoice,inworld:inworldVoice,
   // The optional OmniVoice pack (worker Python, model weights, adapter); Settings greys Omni out without it.
   omniPack:()=>detectOmniPack({project,config:omniVoiceConfigs.long}),
   profileKeys:roster.map(profile=>profile.key),
@@ -185,7 +193,7 @@ const quota = new QuotaWatch({keys});
 // Groq (a second free cloud text provider) and the fully local AI (docs/LOCAL_AI.md) are the same kind of choice: a text provider
 // that answers through the shared host (bridge/text-provider-host.mjs). Both are off until the setting names them.
 const groqKey = await new GroqKey({keyPath: resolve(stateDirectory, GROQ_KEY_FILE)}).load();
-const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), groq: groqKey}).load();
+const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), groq: groqKey, inworld: inworldKey}).load();
 // The optional Local AI packs (standard and lite) and the supervisor of the model server. Nothing starts here: the server is
 // started when the player chooses Local, and stops by itself after ten idle minutes. A developer points CYBERPUNK_CONVAI_LOCAL_AI_DEV
 // at a folder of models (docs/LOCAL_AI.md).
@@ -1081,7 +1089,9 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     // Synthesize now, into memory (the one renderer page may still be draining
     // the previous speaker); the whole text is still sent to Pocket once.
     // Pocket's worker is FIFO, so this runs right after the prior speaker's job.
-    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm})});
+    // The Inworld cloud voice turns the reply's emotion marks into steering (docs/CLOUD_VOICE_INWORLD.md); the other voices ignore them.
+    const replyMarks = result.emotionMarks;
+    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm, emotion: {marks: replyMarks}})});
     prefetched.start().then(() => ahead.markReady(), () => {});
     try {
       await ahead.waitClaimed(signal);
@@ -2108,7 +2118,7 @@ const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, co
   publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
 quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  groqCommandPath: resolve(runtime, 'groq-key-command.json'), localStatus: localAiStatus, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  groqCommandPath: resolve(runtime, 'groq-key-command.json'), inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),

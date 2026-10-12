@@ -165,6 +165,32 @@ test('a streamed reply voices its first sentence at once and its rest as the sam
   assert.ok(clock.has('ttsSent')&&clock.has('firstPcm'));
 });
 
+test('a streamed reply gives both parts one reply-voice lock and the emotion marks, the tail with where it begins in the reply',async()=>{
+  const {ReplyStream}=await import('./reply-stream.mjs');
+  const {ReplyVoice}=await import('./cloud-reply-voice.mjs');
+  const full='Get away from her right now, you hear me. Touch her again and I swear I will end you.';
+  const stream=new ReplyStream({name:'Johnny'});
+  stream.update('Get away from her right now, you hear me. Touch her again and I');
+  const head=stream.head;assert.equal(head,'Get away from her right now, you hear me.');
+  const marks=[{at:0,name:'anger',strength:'strong'},{at:full.indexOf('swear'),name:'fear',strength:'subtle'}];
+  const seen=[];
+  const pk=(index,offsetFrames)=>({...packet(index,offsetFrames),owner:'1'.repeat(32),id:1,profile:'johnny',modelSha256:'a'.repeat(64)});
+  const voice={async synthesizeStream(key,text,{onPcm,reply,emotion}){seen.push({text,reply,emotion});await onPcm(pk(1,0));return{frames:9600};}};
+  const speech={token:'t',published:true,ended:true,generated:true,frame(){},async fail(){}};
+  const host={async playLocalPcm(config,produce){
+    const run=produce(async()=>{},{signal:new AbortController().signal});
+    await new Promise(done=>setTimeout(done,10));
+    stream.finish(full,{emotionMarks:marks});
+    const produced=await run;return{...produced,timing:{}};
+  }};
+  await deliverPocketSpeech({input,profile,result:{...result,text:head,emotionMarks:marks},current:async()=>true,voice,host,speech,stream});
+  assert.equal(seen.length,2);
+  assert.ok(seen[0].reply instanceof ReplyVoice&&seen[0].reply===seen[1].reply,'one lock for the reply');
+  assert.deepEqual(seen[0].emotion,{marks});
+  assert.equal(seen[1].text,'Touch her again and I swear I will end you.');
+  assert.deepEqual(seen[1].emotion,{marks,from:full.indexOf('Touch')});
+});
+
 test('a streamed reply whose model fails after the first sentence ends with that sentence',async()=>{
   const {ReplyStream}=await import('./reply-stream.mjs');
   const stream=new ReplyStream({name:'Johnny'});

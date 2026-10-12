@@ -10,6 +10,7 @@ import {randomBytes} from 'node:crypto';
 import {readClipboardText} from './convai-key.mjs';
 import {validateKey} from './mistral-client.mjs';
 import {parseGroqKey} from './groq-key.mjs';
+import {parseInworldKey, validateInworldKey} from './inworld-key.mjs';
 
 export const MISTRAL_KEY_FILE = 'player-mistral-key.txt';
 // A Mistral key is a plain run of letters and digits (32 characters today) with no prefix. The shape check only keeps obvious mistakes
@@ -49,8 +50,8 @@ export const GROQ_BLOCK_MS = Object.freeze({rate: 60_000, daily: 30 * 60_000, mo
  * exists, else Convai); `applied` is what turns use. `active` means a text provider (Mistral, Groq or local) answers.
  */
 export class MistralProvider {
-  constructor({keyPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate, removeFile = path => rm(path, {force: true}), groq = null} = {}) {
-    Object.assign(this, {keyPath, readText, writeText, removeFile, groq});
+  constructor({keyPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate, removeFile = path => rm(path, {force: true}), groq = null, inworld = null} = {}) {
+    Object.assign(this, {keyPath, readText, writeText, removeFile, groq, inworld});
     this.groqLimit = null; this.groqBlockedUntil = 0; this.groqNoKeyPending = false;
     // A new Groq key (or its removal) ends any block that came from the old one.
     groq?.onChange?.(() => { this.groqLimit = null; this.groqBlockedUntil = 0; this.#changed(); });
@@ -121,7 +122,7 @@ export class MistralProvider {
   get apiKey() { return this.key; }
   get tail() { return keyTail(this.key); }
   /** Every value that must be scrubbed from reports. */
-  secrets() { return [this.key, ...(this.groq?.secrets?.() ?? [])].filter(Boolean); }
+  secrets() { return [this.key, ...(this.groq?.secrets?.() ?? []), ...(this.inworld?.secrets?.() ?? [])].filter(Boolean); }
   noteLimit(kind) { this.limit = kind ? {kind, at: Date.now()} : null; this.#changed(); }
   noteSuccess() { if (this.limit) { this.limit = null; this.#changed(); } }
   /** 'mistral-no-key', 'groq-no-key', 'mistral-voice' or 'local-fallback' once each (the game shows them with the next reply), else undefined. */
@@ -152,16 +153,18 @@ export function parseKeyCommand(raw, now = Date.now()) {
  * reads (runtime/mistral-state.json). The key itself never enters either file. */
 export class MistralControl {
   constructor({provider, commandPath, publish, model, readClipboard = readClipboardText, validate = validateKey,
-    read = path => readFile(path, 'utf8'), now = Date.now, localStatus, groqCommandPath, validateGroq = key => validateKey(key, {provider: 'groq'})} = {}) {
+    read = path => readFile(path, 'utf8'), now = Date.now, localStatus, groqCommandPath, validateGroq = key => validateKey(key, {provider: 'groq'}), inworldCommandPath, validateInworld = validateInworldKey} = {}) {
     if (!provider || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid Mistral configuration');
-    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, groqCommandPath, validateGroq});
+    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, groqCommandPath, validateGroq, inworldCommandPath, validateInworld});
     this.observed = ''; this.result = null; this.busy = false; this.writing = Promise.resolve();
     this.groqObserved = ''; this.groqResult = null; this.groqBusy = false;
+    this.inworldObserved = ''; this.inworldResult = null; this.inworldBusy = false;
   }
   /** Ignore a command left from an earlier session, then publish the first status. */
   async open() {
     this.observed = await this.read(this.commandPath).catch(() => '');
     if (this.groqCommandPath) this.groqObserved = await this.read(this.groqCommandPath).catch(() => '');
+    if (this.inworldCommandPath) this.inworldObserved = await this.read(this.inworldCommandPath).catch(() => '');
     await this.publishStatus();
     return this;
   }
@@ -174,7 +177,10 @@ export class MistralControl {
       ...(typeof this.localStatus === 'function' ? {localAi: this.localStatus()} : {}),
       // Groq (docs/MISTRAL.md): the key status and the latest limit; never the key.
       ...(this.provider.groq ? {groq: {saved: !!this.provider.groq.key, tail: this.provider.groq.tail,
-        limit: this.provider.groqLimit?.kind ?? null, ...(this.groqResult ? {result: this.groqResult} : {})}} : {})};
+        limit: this.provider.groqLimit?.kind ?? null, ...(this.groqResult ? {result: this.groqResult} : {})}} : {}),
+      // Inworld (docs/CLOUD_VOICE_INWORLD.md): only the key status; never the key.
+      ...(this.provider.inworld ? {inworld: {saved: !!this.provider.inworld.key, tail: this.provider.inworld.tail,
+        ...(this.inworldResult ? {result: this.inworldResult} : {})}} : {})};
   }
   publishStatus() {
     this.writing = this.writing.catch(() => {}).then(() => this.publish(this.status()));
@@ -183,6 +189,35 @@ export class MistralControl {
   async poll() {
     await this.pollMistral();
     await this.pollGroq();
+    await this.pollInworld();
+  }
+  async pollInworld() {
+    if (this.inworldBusy || !this.inworldCommandPath || !this.provider.inworld) return;
+    const raw = await this.read(this.inworldCommandPath).catch(() => '');
+    if (raw === this.inworldObserved) return;
+    this.inworldObserved = raw;
+    const command = parseKeyCommand(raw, this.now());
+    if (!command) return;
+    this.inworldBusy = true;
+    try {
+      this.inworldResult = {id: command.id, state: 'checking'};
+      await this.publishStatus();
+      this.inworldResult = {id: command.id, state: await this.runInworld(command)};
+    } catch { this.inworldResult = {id: command.id, state: 'failed'}; }
+    finally { this.inworldBusy = false; }
+    await this.publishStatus();
+  }
+  async runInworld(command) {
+    const inworld = this.provider.inworld;
+    if (command.action === 'clear') { await inworld.remove(); return 'cleared'; }
+    let text;
+    try { text = await this.readClipboard(); } catch { return 'unreadable'; }
+    if (typeof text !== 'string' || !text.trim()) return 'unreadable';
+    const key = parseInworldKey(text);
+    if (!key) return 'invalid';
+    if (await this.validateInworld(key) === 'invalid') return 'invalid';
+    await inworld.save(key);
+    return 'saved';
   }
   async pollGroq() {
     if (this.groqBusy || !this.groqCommandPath || !this.provider.groq) return;

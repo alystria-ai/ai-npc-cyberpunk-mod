@@ -20,7 +20,8 @@ const REFERENCE_ROOT = 'runtime/voice-references/';
 const OMNI_TIERS = {'16:short': 'Balanced', '16:long': 'Quality', '32:short': 'High Quality', '32:long': 'Ultra Quality'};
 
 // Matches the Settings menu (mod/manager.lua voiceLabel).
-const CLOUD_LABEL = 'Mistral cloud voice (Voxtral)';
+const CLOUD_LABELS = {voxtral: 'Mistral cloud voice (Voxtral)', inworld: 'Inworld cloud voice'};
+const CLOUD_NAMES = {voxtral: 'Mistral cloud voice', inworld: 'Inworld cloud voice'};
 
 /** The voice choice as the player reads it in Settings: "Pocket · Performance", "OmniVoice · Quality", "Convai · Cloud voice". */
 export function requestedLabel(provider, steps, reference) {
@@ -123,13 +124,14 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
   // or fell back (bridge/voxtral-voice.mjs), in which case Pocket does and the reason is logged.
   const cloud = voice.cloudActive === true && voice.requestedProvider === 'pocket';
   const cloudWhy = cloud && engine === 'pocket' ? voice.cloudFallback : null;
+  const cloudKind = voice.cloud === 'inworld' ? 'inworld' : 'voxtral', CLOUD_LABEL = CLOUD_LABELS[cloudKind];
   const record = {time: now(), profile: key, name: profile?.name ?? input?.name ?? '?',
     requested: cloud ? CLOUD_LABEL : requestedLabel(voice.requestedProvider, voice.requestedOmniSteps, voice.requestedOmniReference),
     engine, voiceKey: local ? (voiceKey ?? key) : undefined,
     // The Mistral cloud voice clones from its own pick of the reference sets, not from the Pocket one it rides on.
     reference: !local ? null : cloud && engine === 'pocket' && !cloudWhy ? cloudReferenceOf(voice, voiceKey ?? key, sources)
       : referenceOf(voice, engine, voiceKey ?? key, sources),
-    fallback: reason ?? (cloudWhy ? `Mistral cloud voice ${cloudWhy.reason === 'no-key' ? 'has no key' : 'fell back (' + cloudWhy.reason + ')'}` : null)
+    fallback: reason ?? (cloudWhy ? `${CLOUD_NAMES[cloudKind]} ${cloudWhy.reason === 'no-key' ? 'has no key' : 'fell back (' + cloudWhy.reason + ')'}` : null)
       ?? fallbackReason(voice, key, {plan, engine})};
   if (engine === 'omni') record.used = `OmniVoice ${voice.omniSteps} ${voice.omniReference}`;
   else if (engine === 'pocket') record.used = cloud && !cloudWhy ? CLOUD_LABEL : 'Pocket';
