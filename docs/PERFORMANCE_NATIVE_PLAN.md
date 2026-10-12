@@ -372,3 +372,28 @@ The new rows to read are:
 | `reply.json` (read) | `init.lua:2556` | 10 Hz while a reply is pending | - | - |
 | `last-input.json` | `sendRequest` (`init.lua:1466`) | Per turn, 796 KB | Atomic | - |
 | `probe.log` | `log` (`init.lua:625`) | Per line | Append | - |
+
+## 8. The 2026-10-13 capture and the second Lua round
+
+Capture: `perf-*.json` in `E:\CyberpunkConvai-offload\work\perf-2026-10-13\`, 2 s windows, one companion, with
+`face-test.lua` installed (the dev install). Stutters first (maxMs over 25), then steady cost. Numbers are
+expected savings from the capture; the next live capture is the proof.
+
+| Item | Before | After (expected) | Change |
+| --- | --- | --- | --- |
+| 3: continuous speech, face file decode while speaking | `speech.update` 85-115 ms/s, `json.decode>=32KB` hitches | about 4-8 ms/s | `continuous-face.json` is written in line segments (`bridge/continuous-face-file.mjs`); `continuous-speech.lua` keeps per-line text and parsed rows and reads row lists with `gmatch`/`tonumber`. Negotiated by `speech-state.continuousFaceSegments`; an old game still gets the plain document, and a file not in segment layout falls back to a whole decode |
+| 4: face row validation | about 3 ms/s | about 0 | A weak-table cache of verified rows in `facial-playback.lua` (`M.checkedRows`) |
+| 4: idle face writer | `face.updateExpressions` about 18 ms/s | about 2-3 ms/s (1-2 if the native route registers) | The sleep gate and the native route refused whenever `face-test.lua` was loaded; now only while a probe run is active (`probeBusy()`). Per-frame allocations removed, an idle copy writes only changed controls |
+| Probe self-cost | about 20 ms/s | about 2 ms/s | `perf-probe.lua` keeps pre-encoded row strings and writes the history every 10 s (flushed on Developer off and uninstall) |
+| 5: MCM | closed 8.5, open 183 ms/s | closed about 1.3, open about 60 | Diagnostics 1 s hidden / 0.25 s shown, 0.25 s tick for the queue, notices and identity, local voice state decoded once per file text, bounded style batches |
+| 1: knowledge | `init:knowledge` 15.9 ms/s, first-frame hitch 294 ms | about 6.8 ms/s, hitch about 10 ms | Cache-age rules (world 45 s, active journal 15 s, history 600 s) and demand-driven collectors |
+| 15: init steady state | about 5-7 ms/s over the phone, party look, auto-connect and manager blocks | about 0 | Fingerprints and ticks instead of per-frame work |
+
+Ship together: the new `mod/journal-history.lua` needs the new `bridge/journal-history.mjs` (`freshQuest`); an
+older bridge drops the history after 600 s. `bridge/continuous-face-file.mjs` is a new bridge module (listed in
+`packaging/release-plan.json` and `packaging/runtime-layout.mjs`).
+
+Open, not done: `init:expressionContext` (about 1.1 ms/s) builds a context table and an actors table every frame
+and calls `IsInCombat()` each frame (sample at 0.1 s, as `companions.expressionActors` already does); a blocked
+face (combat or scene) cannot sleep because the native settled test also requires "not blocked" (needs a change
+under `native/`); the mailbox poll in `face-test.lua` is all of `face.beginExpressionFrame` in the dev install.
