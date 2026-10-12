@@ -103,3 +103,55 @@ test('the first sentence is marked even when it is too short to be the head', ()
   assert.equal(clock.has('firstSentence'), true);
   assert.equal(stream.head, null);
 });
+
+// ---- Expressive emotions: the model opens every reply with a {tag} (2026-10-13 live record: no head was ever found) ---------------
+
+const emotionTag = group => /^\{[a-z]+(?::[a-z]+)?\}$/i.test(group) || /^\[[a-z]+(?:-[a-z]+)*\]$/i.test(group);
+
+test('a head is found in a reply that carries emotion tags, and it is the display text of the first sentences', () => {
+  const stream = new ReplyStream({name: 'Judy', isTag: emotionTag});
+  stream.update('{calm} No, it’s not. It’s a');
+  assert.equal(stream.head, null, 'the second sentence is not finished');
+  stream.update('{calm} No, it’s not. It’s a workshop. {joy} I just');
+  assert.equal(stream.head, 'No, it’s not. It’s a workshop.', 'no braces in the head');
+  assert.deepEqual(stream.headMarks, [{at: 0, name: 'calm', strength: 'subtle'}]);
+});
+
+test('a tag that is still being written is never part of a head', () => {
+  const stream = new ReplyStream({name: 'Judy', isTag: emotionTag});
+  stream.update('{calm}Hey V, good to see you here again. {inte');
+  assert.equal(stream.head, null, 'a half-written tag is held back, so nothing follows the stop yet');
+  stream.update('{calm}Hey V, good to see you here again. {interest}What can');
+  assert.equal(stream.head, 'Hey V, good to see you here again.');
+  assert.deepEqual(stream.headMarks, [{at: 0, name: 'calm', strength: 'subtle'}], 'the later tag is not inside the head');
+});
+
+test('a head that spans two sentences keeps the marks of the tags inside it', () => {
+  const stream = new ReplyStream({name: 'Judy', isTag: emotionTag});
+  stream.update('{calm}Hey. {interest}What is going on with you tonight? {joy}Sit');
+  assert.equal(stream.head, 'Hey. What is going on with you tonight?');
+  assert.deepEqual(stream.headMarks.map(mark => [mark.at, mark.name]), [[0, 'calm'], [5, 'interest']]);
+});
+
+test('a bracketed voice tag in the first sentence is display text too', () => {
+  const stream = new ReplyStream({name: 'Judy', isTag: emotionTag});
+  stream.update('Hey V, [sigh] good to see you here again. What can I do?');
+  assert.equal(stream.head, 'Hey V, good to see you here again.');
+});
+
+test('an unbalanced asterisk is still unsafe after the tags are out', () => {
+  const stream = new ReplyStream({name: 'Judy', isTag: emotionTag});
+  stream.update('{calm}Hey V, *leans in good to see you here again. What can I do?');
+  assert.equal(stream.head, null);
+});
+
+test('reconcile compares in display text: a tagged finished reply that starts with the head is kept whole', () => {
+  const stream = new ReplyStream({name: 'Judy', isTag: emotionTag});
+  stream.update('{calm}Hey V, good to see you here again. {interest}What can I do for you tonight? {joy}Pull');
+  assert.equal(stream.head, 'Hey V, good to see you here again.');
+  const reply = '{calm}Hey V, good to see you here again. {interest}What can I do for you tonight? {joy}Pull up a chair.';
+  assert.equal(stream.reconcile(reply), reply);
+  assert.equal(stream.reconcile('{calm}Something else entirely. {joy}No relation.'), 'Hey V, good to see you here again.');
+  stream.finish('Hey V, good to see you here again. What can I do for you tonight? Pull up a chair.');
+  assert.equal(stream.tail, 'What can I do for you tonight? Pull up a chair.');
+});

@@ -1205,7 +1205,11 @@ async function respondStreamed(input, profile, {signal, current}) {
   }
   if (voice.engine !== 'pocket' || localVoice.playbackEnabled === false || (await readSpeechState()).continuousAvailable !== true) return whole();
   throwIfCancelled(signal);
-  const partial = {text: head, transport: 'realtime', sessionID: config.sessionId, timing: {streamedHead: true}};
+  // The tags written inside the first sentence move the face from its first frame (the finished reply re-plans with all of them).
+  const headMarks = expressiveEmotions.enabled ? stream.headMarks : [];
+  if (headMarks.length && !marks.length) marks.push(...headMarks);
+  const partial = {text: head, transport: 'realtime', sessionID: config.sessionId, timing: {streamedHead: true},
+    ...(headMarks.length ? {emotionMarks: headMarks} : {})};
   return synthesizeReply(input, partial, signal, current, profile, undefined, {stream, final, marks, signal});
 }
 
