@@ -121,7 +121,9 @@ local function publish(now)
         continuous = type(speech) == 'table' and speech.continuous == true,
         sections = {}, opens = opens,
         -- Lua heap after the window: shared 50-90 ms frames may be GC steps.
-        luaKB = heapOk and type(heap) == 'number' and heap or nil}
+        luaKB = heapOk and type(heap) == 'number' and heap or nil,
+        -- Hook handlers wrapped so far (0 with hooks registered: the wrap missed them).
+        hooksWrapped = M.hooksWrapped}
     for label, s in pairs(stats) do
         row.sections[label] = {calls = s[1], msPerSecond = 1000 * s[2] / span, maxMs = 1000 * s[3]}
     end
@@ -180,22 +182,37 @@ end
 function M.hookRegistrations()
     if M.registrationsWrapped then return false end
     M.registrationsWrapped = true
+    M.hooksWrapped = 0
+    local ours = setmetatable({}, {__mode = 'k'})
     local function wrapRegister(register)
-        if type(register) ~= 'function' then return register end
-        return function(class, method, handler, ...)
+        if type(register) ~= 'function' or ours[register] then return register end
+        local wrapper = function(class, method, handler, ...)
             if type(handler) == 'function' then
+                M.hooksWrapped = M.hooksWrapped + 1
                 handler = timedHandler('hook:' .. tostring(class) .. '.' .. tostring(method), handler)
             end
             return register(class, method, handler, ...)
         end
+        ours[wrapper] = true
+        return wrapper
     end
-    -- Plain globals: the CET sandbox shares them across this mod's files.
-    Override, ObserveAfter = wrapRegister(Override), wrapRegister(ObserveAfter)
-    ObserveBefore, Observe = wrapRegister(ObserveBefore), wrapRegister(Observe)
+    -- Plain globals: the CET sandbox shares them across this mod's files. CET may
+    -- bind its own Observe/Override again when onInit runs (the 2026-10-12 capture
+    -- had event:onUpdate rows but no hook: rows, and every hook registers in
+    -- onInit), so each onInit handler re-wraps them first. Idempotent.
+    local function wrapGlobals()
+        Override, ObserveAfter = wrapRegister(Override), wrapRegister(ObserveAfter)
+        ObserveBefore, Observe = wrapRegister(ObserveBefore), wrapRegister(Observe)
+    end
+    wrapGlobals()
     local registerEvent = registerForEvent
     if type(registerEvent) == 'function' then
         registerForEvent = function(event, handler, ...)
-            if event == 'onUpdate' and type(handler) == 'function' then handler = timedHandler('event:onUpdate', handler) end
+            if event == 'onUpdate' and type(handler) == 'function' then handler = timedHandler('event:onUpdate', handler)
+            elseif event == 'onInit' and type(handler) == 'function' then
+                local init = handler
+                handler = function(...) wrapGlobals(); return init(...) end
+            end
             return registerEvent(event, handler, ...)
         end
     end

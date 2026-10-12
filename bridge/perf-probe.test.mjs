@@ -97,3 +97,22 @@ local row=written.history[#written.history]
 assert(row.sections['hook:PlayerPuppet.OnAction'],'hook wrapped by the first load did not record')
 assert(math.abs(row.sections['tactics.update'].maxMs-4)<.001,'watched section missing')
 `));
+
+test('CET binding its own hook functions again at onInit does not unwrap them: each onInit handler re-wraps first', () => run(`
+local registered={}
+local function cetOverride(class,method,handler) registered[class..'.'..method]=handler end
+Override=cetOverride
+local events={}
+registerForEvent=function(name,handler) events[name]=handler end
+assert(P.hookRegistrations())
+registerForEvent('onInit',function() Override('ChatterLineLogicController','UpdateProjection',function() t=t+.001 end) end)
+Override=cetOverride -- what CET does when onInit runs
+events.onInit()
+developer=true;t=t+2
+for _=1,240 do frame(false);registered['ChatterLineLogicController.UpdateProjection']() end
+local row=written.history[#written.history]
+assert(row.sections['hook:ChatterLineLogicController.UpdateProjection'],'hook registered in onInit did not record')
+assert(row.hooksWrapped==1,'hooksWrapped '..tostring(row.hooksWrapped))
+-- Re-wrapping is idempotent: a second onInit does not time a handler twice.
+events.onInit();assert(P.hooksWrapped==2)
+`));
