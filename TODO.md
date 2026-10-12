@@ -27,6 +27,22 @@ Last consolidated 2026-10-11 (closed items are listed in the Captain's log entry
 - **Build the optional Omni pack** (`bridge/omni-pack.mjs` detects it; contents in `docs/PACKAGING.md`; the workflow's second job builds it and it arrives a while after the Runtime package). Without it players get Pocket and the cloud voice.
 - **Release-blocking bugs** found by the live checks below must be fixed by then.
 
+### Requested 2026-10-12 (user's list for this week)
+- **Performance first: move hot Lua work to C++** (started 2026-10-12; FPS is the top priority). Profile what the CET Lua does per tick or per event (the 10 Hz companion tick, look/aim queries, movement and lift watchers, polling of bridge files, notices, gesture and face drivers). Move the measured hot paths into a native plugin. Also improve code organisation and anything else that helps performance. Don't add per-frame main-thread work.
+- **Three conversation options for players** (a fourth comes later):
+  1. **Default: the shared Convai key plus local voice.** Convai covers memory, STT and LLM. It has no voice cloning yet; the user is working on that. When a player reaches the daily limit, offer options 2 and 3.
+  2. **Fully local.** An on-device LLM, STT, TTS, embedding model and vector store. The aim is a local experience that rivals Convai plus our local voice. Choose the LLM, embedding model and vector store for speed and low VRAM, since they share the GPU with the game.
+  3. **Fully free cloud.** Mistral as the LLM (generous free limits). Compare its latency with Groq, which may be faster; both keys are in the keys file. Inworld for voice cloning: about 70 free minutes a month. Test Inworld sparingly, only to confirm it works. STT and the vector store can stay local. If an online embedding model plus vector DB has good free limits for players, name the keys to add to the keys file for testing. The keys file already has Cohere.
+  - **Multilingual** for options 2 and 3 would be good, but it's not a hard requirement.
+  - **Later (option 4, not now): a paid tier.** An in-mod payment portal with a $4 gamer tier (recommended) and an $8 tier. Each covers STT, LLM, vector memory, TTS and voice cloning on Convai.
+- **Remove the "use your own free Convai key" option** from the daily-limit notice, the Settings sidebar and the docs. Point players at options 2 and 3 instead.
+- **Don't mention a Convai paid tier anywhere yet**; it doesn't exist.
+- **Character editor for options 2 and 3:** bio, speaking style, speaking rules and memories. Build it in game if at all possible, otherwise as a web page. Seed it from the Convai profiles we made.
+- **Dynamic context:** check what we already feed the AI (location, weather, time of day, and so on). Add whatever is missing.
+- **Keep "continue from game dialogue".** When V talks to a game character with a spawned companion nearby, the companion gets that dialogue as context. It helps her follow and assist on the quest.
+- **Later check: quest decisions.** Does the NPC know which choice V made in a quest (the decision itself, not just what happened in the quest)?
+- ~~Raise Haiku's standing for swarm and fan-out tasks in the agent model rules~~ done 2026-10-12.
+
 ### Work in progress (paused 2026-10-11, saved patches in the gitignored `runtime/wip/`)
 - **Fight on a tagged enemy, and remove Distract.** Live 2026-10-11 10:37Z: `Tactic target: none; skipped aimed-companion=1 civilian=1 companion=1; aimed Alena Xenakis rejected: companion`. The scanner-tagged ganger was never a candidate: either it was outside the 50 m query or its tag read false. probe.log has never logged `Companion tactic:`, so the combat command has never run in game. Plan:
   - Target order: the tagged NPC first, even if neutral, civilian or crowd (named/story NPCs only when already hostile and in combat). Then the aimed NPC with combat evidence. Then the nearest NPC hostile to V.
@@ -41,7 +57,7 @@ Last consolidated 2026-10-11 (closed items are listed in the Captain's log entry
   - Left: `bridge/companion-stance.test.mjs` added to `package.json`, then `npm test`, commit, install, and a live check (does the observer fire, does the follower tree reset the stance).
 
 ### Waiting on the user
-- **Test end-user cleanup: running in the background (started 2026-10-11, no action needed).** About 2,373 confident test ids (mostly `third-person-probe`) are being deleted by `node scripts/cleanup-test-end-users.mjs --apply --recent-minutes 10`, paced at 10 deletes a minute because Convai limits `/user/end-users/delete` to 10 per 60 s window (about 4 hours, ETA near 13:15 local); log `C:\Users\akshi\AppData\Local\Temp\cleanup-run2.log`, which ends with the before/after counts and the LTM end-user counter. If the machine slept or the process stopped, re-run the same command (it resumes; ids already gone count as skipped). `scripts/clear-own-key-end-users.mjs` (only to start the own-key account from clean) has not been run.
+- **Test end-user cleanup: running in the background (no action needed).** The 2026-10-11 run stopped at 1,750 of 2,373. It was restarted 2026-10-12 14:46 IST with the same command, log `C:\Users\akshi\AppData\Local\Temp\cleanup-run3.log`. Original note: About 2,373 confident test ids (mostly `third-person-probe`) are being deleted by `node scripts/cleanup-test-end-users.mjs --apply --recent-minutes 10`, paced at 10 deletes a minute because Convai limits `/user/end-users/delete` to 10 per 60 s window (about 4 hours, ETA near 13:15 local); log `C:\Users\akshi\AppData\Local\Temp\cleanup-run2.log`, which ends with the before/after counts and the LTM end-user counter. If the machine slept or the process stopped, re-run the same command (it resumes; ids already gone count as skipped). `scripts/clear-own-key-end-users.mjs` (only to start the own-key account from clean) has not been run.
 - ~~Retired romance Convai characters~~ done: all ten were deleted on 2026-10-09 (journal `runtime/romance-retirement-journal.json`, every call HTTP 200); re-checked 2026-10-11 against Convai's live character list, none of the ten IDs is listed any more, and `--verify` reports nothing to delete.
 - ~~`resident-male` memory off~~ done: re-checked 2026-10-11 with `scripts/Clear-ResidentMaleMemory.mjs` (read-only, then `--apply`): memory is off and 0 memories are stored for the player.
 - **Add-on scope and order:** Skippy (two personalities) and the Delamain-style car (which cars count) on Oct 20 and Oct 25, order not chosen (see Release schedule).
@@ -134,6 +150,15 @@ Each line is one check on what is installed. Detail: the doc or log entry named.
 - Lip sync for vendors and ordinary world NPCs (2026-10-10). The only routes are an appearance hop, which flashes the outfit, or the heavier face graph on every vendor at spawn, which costs FPS. Companions and named characters keep full lip sync.
 
 ## Captain's log
+
+**2026-10-12: the user's plan for the week was recorded under Open items, "Requested 2026-10-12".** It covers:
+- Lua to C++ performance work, started first.
+- Three player options: the shared Convai key plus local voice (default), fully local, and fully free cloud (Mistral or Groq, Inworld cloning, local STT and vector store).
+- The own-free-Convai-key option is removed from the limit notice, sidebar and docs.
+- No paid-tier mention yet. A $4/$8 portal tier comes later.
+- A character editor, more dynamic context, keeping continue-from-game-dialogue, and a later quest-decision check.
+
+The test end-user cleanup had stopped overnight at 1,750 of 2,373 and was restarted.
 
 **2026-10-11: release back to the original plan (Sun 18 Oct ~11:00 UTC, v0.2), at the user's call. Fight/Distract and crouch work paused and saved in `runtime/wip/` (see Open items). `12dd468` fixed 10 group-voice/microphone test fixtures that lacked `manager.voiceNeedsConvai` (from 9deaadd), and added a Mistral-status contract test showing voice is allowed when local STT is available.** Full `npm test` then: 3494, 1 fail. The failure was `local-stt-capture` "live words arrived while recording", a timing check that passed alone twice. Recheck it in the release run. Nothing was pushed since 169cbbf.
 
