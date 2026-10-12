@@ -49,6 +49,40 @@ test('a legacy follow-up field is ignored and provider context is built once per
     assert.deepEqual(output.filter(row => row.state === 'reply').map(row => row.text), ['Going well.']);
   }
 });
+const rightNow = (extra = {}) => ({version: 1, status: 'ready', hour: 2, minute: 10, district: 'Watson', area: 'Kabuki', vehicle: false,
+  gender: 'female', lifepath: 'streetkid', motion: 'walking', party: [{key: 'panam-palmer', name: 'Panam', activity: 'following'}], ...extra});
+
+test('the right-now facts of a phone message reach the character as a text-chat block: time, the district of V, never her own place', async () => {
+  const value = state({request: {id: 'world-1-1', contact: 'judy', text: 'hey, you up?', turnContext: rightNow()}});
+  const parsed = parsePhoneState(JSON.stringify(value));
+  assert.equal(parsed.request.turnContext.district, 'Watson');
+  const {chat, calls} = fixture(async () => ({text: 'Yeah.', sessionID: 'session'}));
+  await finish(chat, value);
+  assert.equal(calls.length, 1);
+  const block = calls[0].context.split('\n\n').find(part => part.startsWith('Right now'));
+  assert.ok(block, calls[0].context.slice(0, 300));
+  assert.match(block, /You are messaging V by text on the phone, not talking to V in person; V is in Kabuki, Watson\. You are somewhere else; where you are and what you are doing are not given\./);
+  assert.match(block, /It is late night, about 2 AM\./);
+  assert.match(block, /V is walking\./);
+  assert.match(block, /you are not with V and cannot see V's surroundings, and you do not know how near or far you are/);
+  assert.doesNotMatch(block, /Panam|with V in person|phone call|on foot|following V/, 'she cannot know who stands next to V');
+  assert.ok(block.length <= 700, `${block.length} characters`);
+  // The block is the first thing in the context.
+  assert.ok(calls[0].context.startsWith('Right now'));
+});
+
+test('a phone message without right-now facts, or with a malformed snapshot, still goes through unchanged', async () => {
+  for (const turnContext of [undefined, 'x', {version: 1, status: 'unavailable'}, {version: 2}, []]) {
+    const value = state({request: {id: 'world-1-1', contact: 'judy', text: 'hello', ...(turnContext === undefined ? {} : {turnContext})}});
+    const {chat, calls} = fixture(async () => ({text: 'Hi.', sessionID: 'session'}));
+    await finish(chat, value);
+    assert.equal(calls.length, 1);
+    assert.doesNotMatch(calls[0].context, /Right now \(from the game/);
+    assert.equal(calls[0].input.text, 'hello');
+  }
+  assert.equal(parsePhoneState(JSON.stringify(state({request: {id: 'world-1-1', contact: 'judy', text: 'hi'}}))).request.turnContext, undefined);
+});
+
 const memory = (save, remoteGeneration = 'remote-generation-1') => ({status: 'available',
   identity: {userId: save.localUserId, campaignId: save.campaignId, branchId: save.branchId, remoteGeneration},
   endUserId: `private-${save.branchId}-${remoteGeneration}`});
@@ -1039,3 +1073,33 @@ local input=json.decode(files['runtime/phone-chat-input.json'])
 assert(input.chatContact=='judy' and input.request and input.request.contact=='judy' and input.request.text=='Hello')
 assert(input.request.chatContact==nil)
 `));
+
+test('phone Lua reads the right-now facts once per sent message, never on a tick, and a missing reader sends none', () => runLua(setup + `
+local reads=0
+m.captureTurnContext=function() reads=reads+1; return {version=1,status='ready',hour=2,minute=10,district='Watson'} end
+update();update();update()
+assert(reads==0, 'no read without a message')
+submission={contact='judy',text='Hello'};update()
+assert(reads==1, 'one read for one message: '..reads)
+assert(m.pending.turnContext.hour==2 and m.pending.turnContext.district=='Watson' and m.pending.turnContext.version==1)
+clock=clock+1;update();update()
+assert(reads==1, 'a waiting request is not read again')
+local pending=m.pending
+put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pending.id,contact='judy',state='reply',text='Hey V'})
+update();submission={contact='judy',text='And now?'};update()
+assert(reads==2 and m.pending.turnContext.district=='Watson')
+-- a reader that fails or returns junk drops the field, never the message
+put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=m.pending.id,contact='judy',state='reply',text='ok'})
+update()
+m.captureTurnContext=function() error('boom') end
+submission={contact='judy',text='Third'};update()
+assert(m.pending and m.pending.text=='Third' and m.pending.turnContext==nil)
+`));
+
+test('phone Lua has a reader slot that init wires to the one shared snapshot reader, and nothing per frame', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.match(init, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
+  const read = adapter.match(/capture\(M\.captureTurnContext\)/g) || [];
+  assert.equal(read.length, 1, 'read in exactly one place: the send path');
+  assert.ok(adapter.indexOf('capture(M.captureTurnContext)') > adapter.indexOf('ConvaiPhoneChatTakeSubmission'), 'after the submission is taken, not on the tick');
+});

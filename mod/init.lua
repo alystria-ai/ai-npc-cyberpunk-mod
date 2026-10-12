@@ -680,6 +680,8 @@ do
             return companions.activityInputs(seats)
         end}) or nil
     microphone.captureTurnContext = function() return convaiTurnContext and convaiTurnContext:capture() or nil end
+    -- A phone chat reads it once per message too (mod/phone-chat.lua, when the message is sent).
+    phoneChat.captureTurnContext = microphone.captureTurnContext
 end
 
 -- entity: the addressed character's ID ("<hash>ULL") for a private conversation. A generic resident or archetype

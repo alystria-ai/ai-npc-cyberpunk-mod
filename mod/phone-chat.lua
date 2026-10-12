@@ -509,6 +509,8 @@ function M.update(player, delta)
             local journalHistory = capture(M.captureJournalHistory, player, key, copy(M.saveIdentity))
             local journal, battle = capture(M.captureJournal), capture(M.captureBattle)
             local gameDialogue = capture(M.captureGameDialogue)
+            -- The clock, V's district and what V is doing: read once, when the message is sent (never per frame).
+            local turnContext = capture(M.captureTurnContext)
             local confirmed = binding(capture(M.captureBinding, player))
             if bindingKey(confirmed) ~= before then
                 M.abandon(); return
@@ -519,6 +521,7 @@ function M.update(player, delta)
                 memoryReset=reset,recentConversation=recentPhoneConversation(submission.contact,key,reset),
                 saveIdentity = copy(confirmed), worldKnowledge = worldKnowledge or {version=1,status='unavailable'},
                 journalHistory = journalHistory, journal = journal, battle = battle, gameDialogue = gameDialogue}
+            M.pending.turnContext = turnContext
             M.sentAt = os.time()
             M.errors[submission.contact] = nil
             if publish(true) then

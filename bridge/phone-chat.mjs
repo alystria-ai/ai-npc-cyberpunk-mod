@@ -7,6 +7,7 @@ import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseGameDialogue} from './game-dialogue.mjs';
+import {parseTurnContext} from './turn-context.mjs';
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const token = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(value);
@@ -122,6 +123,8 @@ export function parsePhoneState(raw) {
   const worldKnowledge = knowledge.worldKnowledge === undefined ? undefined : parseWorldSnapshot(knowledge.worldKnowledge);
   const journalHistory = knowledge.journalHistory === undefined ? undefined : parseJournalHistory(knowledge.journalHistory);
   const gameDialogue = parseGameDialogue(state.request.gameDialogue);
+  // The "right now" facts (bridge/turn-context.mjs), read once when the message was sent; a malformed one carries nothing.
+  const turnContext = parseTurnContext(state.request.turnContext);
   const memoryReset=state.request.memoryReset===undefined ? undefined : parsePhoneReset(state.request.memoryReset);
   if (state.request.memoryReset!==undefined && !memoryReset) return null;
   const recent=state.request.recentConversation===undefined ? undefined : recentConversation(state.request.recentConversation,
@@ -130,7 +133,7 @@ export function parsePhoneState(raw) {
   result.request = {id, contact, text: text.trim(), saveIdentity: requestBinding,
     ...(memoryReset?{memoryReset}:{}),...(recent?{recentConversation:recent}:{}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(worldKnowledge ? {worldKnowledge} : {}),
-    ...(journalHistory ? {journalHistory} : {}), ...(gameDialogue ? {gameDialogue} : {})};
+    ...(journalHistory ? {journalHistory} : {}), ...(gameDialogue ? {gameDialogue} : {}), ...(turnContext ? {turnContext} : {})};
   return result;
 }
 

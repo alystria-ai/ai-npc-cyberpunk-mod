@@ -24,6 +24,7 @@ import {MistralProvider} from '../bridge/mistral-key.mjs';
 import {PersonaBook, LIMITS, breaksCharacter, joinBlocks, buildMessages} from '../bridge/mistral-prompt.mjs';
 import {streamChat, redact, validateKey} from '../bridge/mistral-client.mjs';
 import {mistralScheduler} from '../bridge/mistral-rate.mjs';
+import {actionMenu} from '../bridge/text-actions.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = resolve(project, 'runtime/mistral-prompt-eval');
@@ -100,6 +101,81 @@ const ACTION_SITUATIONS = [
     truth: 'The character is sitting down beside V in person (a bench or a seat in Glen, Heywood). V is standing still beside them. The character is not doing any task with their hands.'}},
 ];
 
+// Phone-chat situations (--situations phone-greet,...): V texts the character through the in-game phone; she is somewhere else. The
+// turn is a phone turn (channel 'phone'), the snapshot carries V's clock, district and motion, and no party. `--no-phone-context` leaves the
+// snapshot out, which is what a phone chat sent before the block existed. `truth` is what the judge is told; `says` lists what V's place and
+// the time really are, so a reply that puts the character beside V, or at the wrong time of day, is caught.
+const PHONE_NIGHT = {phone: true, hour: 2, minute: 10, district: 'Watson', area: 'Kabuki', motion: 'walking', vehicle: false,
+  truth: 'V is texting from Kabuki, Watson, on foot, at about 2 AM (deep night, dark outside). The character is NOT with V and is NOT in Kabuki: she is somewhere else that the game does not say. No one has arranged to meet.'};
+const PHONE_DAY = {phone: true, hour: 15, minute: 40, district: 'Heywood', area: 'Glen', motion: 'still', vehicle: false,
+  truth: 'V is texting from Glen, Heywood, standing still, at about 3:40 PM (afternoon, daylight). The character is NOT with V and is NOT in Glen: she is somewhere else that the game does not say. No one has arranged to meet.'};
+const PHONE_SITUATIONS = [
+  {id: 'phone-greet', phone: true, text: () => 'hey, you up?', scene: PHONE_NIGHT},
+  {id: 'phone-ask', phone: true, text: () => 'what are you up to?', scene: PHONE_NIGHT},
+  {id: 'phone-time', phone: true, text: () => 'Is it day or night over there? I lost track of time.', scene: PHONE_NIGHT},
+  {id: 'phone-where', phone: true, text: () => 'where are you right now?', scene: PHONE_DAY},
+  {id: 'phone-meet', phone: true, text: () => 'can we meet up? are you close?', scene: PHONE_DAY},
+  {id: 'phone-day', phone: true, text: () => 'how has your day been so far?', scene: PHONE_DAY},
+];
+
+// Companion-action situations (--actions, or --situations do-drive1,...): what the game offers this turn, what V says and which action (if any)
+// a good reply asks for. `offer` is the configuration the bridge hands the host (CompanionActions.configFor); `expect` is the code of the action
+// V plainly asked for, or null when nothing should happen (a question, a joke, small talk, something the game cannot do or cannot do right now,
+// something that does not exist in the game such as waiting on a spot). `promise` names what a reply must NOT promise or start when nothing
+// happens; `needs` is what an honest reply tells V is needed first.
+// A party companion always has a leave offer; on foot she has a ride (or the reason for none) and a tactic (or "nobody tagged").
+const DO_TOKEN = 'drive-0123456789abcdefghij';
+const SELF_LEAVE = {leave: {members: [{name: '{name}', self: true}]}};
+const DO_OFFERS = {
+  ride: {drive: true, carName: 'Quadra Type-66 Avenger', destinationName: 'Afterlife', tacticUnavailable: 'no-target', ...SELF_LEAVE},
+  noMap: {drive: false, driveUnavailable: 'no-waypoint', tacticUnavailable: 'no-target', ...SELF_LEAVE},
+  noCar: {drive: false, driveUnavailable: 'no-car', tacticUnavailable: 'no-target', ...SELF_LEAVE},
+  inCar: {drive: false, driveUnavailable: 'player-driving', ...SELF_LEAVE},
+  target: {drive: false, driveUnavailable: 'no-car', tactic: {targetName: 'Maelstrom Gonk', hostile: true, distance: 14, kinds: ['fight']}, ...SELF_LEAVE},
+  world: {drive: false, follow: {name: '{name}'}},
+  worldBusy: {drive: false, followUnavailable: 'busy'},
+};
+const DO_ON_FOOT = {...ON_FOOT};
+const DO_IN_CAR = {activity: 'passenger', motion: 'still', vehicle: true, driving: true,
+  truth: 'V is driving a car and the character rides in the passenger seat of it, in person, on the road in Glen, Heywood. V is NOT on foot. The game cannot let the character drive V now (V would have to get out of the driver seat first).'};
+const DO_WORLD = {noParty: true, motion: 'still', vehicle: false,
+  truth: 'The character is standing in Glen, Heywood, in person, talking with V. She is not travelling with V.'};
+const DO_SITUATIONS = [
+  {id: 'do-drive1', call: true, text: () => 'drive for me', offer: 'ride', expect: 'DRIVE'},
+  {id: 'do-drive2', call: true, text: () => 'can you drive for me', offer: 'ride', expect: 'DRIVE'},
+  {id: 'do-drive3', call: true, text: () => 'Take the wheel, I will hop in.', offer: 'ride', expect: 'DRIVE'},
+  {id: 'do-drive4', call: true, text: () => 'Take me to the marker on the map.', offer: 'ride', expect: 'DRIVE'},
+  {id: 'do-drive-q', call: true, text: () => 'Do you even know how to drive?', offer: 'ride', expect: null},
+  {id: 'do-drive-chat', call: true, text: () => 'Nice car, right? A Quadra, the old Type-66.', offer: 'ride', expect: null},
+  {id: 'do-drive-nomap', call: true, text: () => 'drive for me', offer: 'noMap', expect: null, promise: 'drive', needs: 'a destination marked on the map'},
+  {id: 'do-drive-nocar', call: true, text: () => 'can you drive for me', offer: 'noCar', expect: null, promise: 'drive', needs: 'V standing next to their car (or calling it)'},
+  {id: 'do-drive-incar', call: true, text: () => 'drive for me', offer: 'inCar', scene: DO_IN_CAR, expect: null, promise: 'drive', needs: 'V getting out of the driver seat first'},
+  {id: 'do-fight1', call: true, text: () => 'Take out the one I tagged.', offer: 'target', expect: 'FIGHT'},
+  {id: 'do-fight2', call: true, text: () => 'Attack him.', offer: 'target', expect: 'FIGHT'},
+  {id: 'do-fight3', call: true, text: () => 'Get that guy, he is going to shoot.', offer: 'target', expect: 'FIGHT'},
+  {id: 'do-fight-q', call: true, text: () => 'Who is that guy over there?', offer: 'target', expect: null},
+  {id: 'do-fight-none', call: true, text: () => 'Attack him!', offer: 'noCar', expect: null, promise: 'fight', needs: 'V tagging an enemy in the scanner or aiming at one'},
+  {id: 'do-leave1', call: true, text: () => 'You can go. We are done here.', offer: 'ride', expect: 'LEAVE'},
+  {id: 'do-leave2', call: true, text: () => 'Go home, I will handle the rest alone.', offer: 'noCar', expect: 'LEAVE'},
+  {id: 'do-leave-neg', call: true, text: () => 'Let us leave this place, it gives me the creeps.', offer: 'ride', expect: null},
+  {id: 'do-leave-neg2', call: true, text: () => 'Leave it. Forget I asked.', offer: 'noCar', expect: null},
+  {id: 'do-wait', call: true, text: () => 'Wait here, I will be right back.', offer: 'noCar', expect: null, promise: 'wait'},
+  {id: 'do-sit', call: true, text: () => 'Sit down for a minute, you look tired.', offer: 'noCar', expect: null, promise: 'sit'},
+  {id: 'do-chat1', call: true, text: () => 'How are you holding up?', offer: 'ride', expect: null},
+  {id: 'do-chat2', call: true, text: () => 'What do you think of the traffic in this city?', offer: 'noCar', expect: null},
+  {id: 'do-follow1', call: true, text: () => 'Come with me.', offer: 'world', scene: DO_WORLD, expect: 'FOLLOW'},
+  {id: 'do-follow2', call: true, text: () => 'Follow me, I could use the company.', offer: 'world', scene: DO_WORLD, expect: 'FOLLOW'},
+  {id: 'do-follow-neg', call: true, text: () => 'I am heading to Kabuki alone. See you around.', offer: 'world', scene: DO_WORLD, expect: null},
+  {id: 'do-follow-q', call: true, text: () => 'Would you ever travel with someone like me?', offer: 'world', scene: DO_WORLD, expect: null},
+  {id: 'do-follow-busy', call: true, text: () => 'Come with me.', offer: 'worldBusy', scene: DO_WORLD, expect: null, promise: 'follow', needs: 'a better time (she is busy right now)'},
+];
+for (const item of DO_SITUATIONS) item.scene ??= DO_ON_FOOT;
+const offerFor = (situation, name) => {
+  const base = JSON.parse(JSON.stringify(DO_OFFERS[situation.offer]).replaceAll('{name}', name || 'Companion'));
+  const {drive, ...rest} = base;
+  return {version: 1, token: DO_TOKEN, source: 'private-text', expiresAt: Date.now() + 90000, ...rest, ...(drive === true ? {} : {drive: false})};
+};
+
 // ---- Context, from the bridge's own blocks ---------------------------------------------------------------------------------
 
 const NAME_OF = {}; // filled from the persona book
@@ -121,18 +197,22 @@ function sceneDialogue(c, situation) {
 let turnCounter = 100;
 function contextFor(c, situation, text, party, scene) {
   turnCounter++;
-  const place = scene ? ACTION_PLACE : c;
+  const phone = scene?.phone === true, place = phone ? scene : scene ? ACTION_PLACE : c;
+  const snapshot = {version: 1, status: 'ready', hour: place.hour, minute: place.minute, district: place.district, area: place.area, gender: 'female', lifepath: 'streetkid',
+    vehicle: scene?.vehicle ?? false, ...(scene?.driving ? {driving: true} : {}), ...(scene?.motion ? {motion: scene.motion} : {}),
+    ...(phone || scene?.noParty ? {} : scene ? {party: [{key: c.key, name: NAME_OF[c.key] || 'Companion', activity: scene.activity}]} : party ? {party} : {})};
   const raw = {requestId: `${turnCounter}-1-11ULL`, generation: 1, entity: '11ULL', profileKey: c.key, name: 'NPC', bodyType: 'WomanAverage', text,
-    turnContext: {version: 1, status: 'ready', hour: place.hour, minute: place.minute, district: place.district, area: place.area, gender: 'female', lifepath: 'streetkid',
-      vehicle: scene?.vehicle ?? false, ...(scene?.driving ? {driving: true} : {}), ...(scene?.motion ? {motion: scene.motion} : {}),
-      ...(scene ? {party: [{key: c.key, name: NAME_OF[c.key] || 'Companion', activity: scene.activity}]} : party ? {party} : {})},
+    ...(phone && flag('no-phone-context') ? {} : {turnContext: snapshot}),
     ...(c.ambient ? {archetype: c.archetype} : {journal: journal(...c.quest), gear}),
     ...(sceneDialogue(c, situation) ? {gameDialogue: sceneDialogue(c, situation)} : {})};
-  const input = parseInput(JSON.stringify(raw));
-  if (!input) throw Error(`sample turn of ${c.id} not accepted by the bridge parser`);
+  const parsed = parseInput(JSON.stringify(raw));
+  if (!parsed) throw Error(`sample turn of ${c.id} not accepted by the bridge parser`);
+  // The phone path adds the channel after parsing (bridge/phone-chat.mjs).
+  const input = phone ? {...parsed, channel: 'phone'} : parsed;
   const blocks = conversationContextBlocks(input).map(block => ({...block}));
   const world = c.ambient ? [{tier: 'world', text: archetypeContext(input)}]
-    : [{tier: 'world', text: knowledgeFor(NAME_OF[c.key], c.quest)}, {tier: 'world', text: RELATIONSHIP}];
+    : [{tier: 'world', text: knowledgeFor(NAME_OF[c.key], c.quest)},
+      {tier: 'world', text: phone ? RELATIONSHIP.replace('private voice conversation', 'private phone text chat') : RELATIONSHIP}];
   // After the right-now block, before the journal and gear, as the bridge orders them.
   blocks.splice(1, 0, ...world);
   if (!VARIANTS.includes('nonotes')) blocks.push({tier: 'volatile', text: FIRST_PERSON_REMINDER});
@@ -331,6 +411,74 @@ Be strict and literal: judge only what the reply claims about the present or the
 6. Same TRUTH as 5. Reply: "I'm at the shop right now, sorting parts, call me later."
    -> elsewhere true, invented_action true. Note: "claims to be at shop sorting parts".`;
 
+// The phone judge (--export-phone a,b --name x, then --aggregate-phone x scores...): the phone-* replies of several runs, blind.
+const PHONE_RUBRIC = `You are checking short text-message replies of a role-played video game character (Cyberpunk 2077) to V, the player. V is texting the character
+on the in-game phone; the character is NOT with V. Each reply comes with TRUTH: where V really is, the time, and that the character is somewhere else. For every reply answer:
+
+co_located       true when the reply says or clearly implies, as a fact, that the character is with V, near V or close to V, or can see V or V's
+                 surroundings: "I'm right here", "next to you", "beside you", "I see you", "walking with you", "I'm in Kabuki too", "I'm close",
+                 "not far", "nearby", "I'll be there in a minute" (when no meeting was arranged), or details of V's surroundings that TRUTH does not
+                 give ("that alley", "your boots", "the crowd around you"). What TRUTH itself says about V is known to her and is NOT co_located:
+                 V's district, that V is walking or standing still, the time, "you're out late", "where are you?". Offering or proposing to meet, or
+                 saying she is NOT in V's district or is NOT close, is NOT co_located.
+wrong_time       true when the reply says or clearly implies a time of day that contradicts TRUTH ("good morning" or "this morning" at 2 AM, "tonight" or
+                 "go to sleep" in the afternoon, "it's daytime" at night, "lunch" at 2 AM). Not mentioning the time is NOT wrong_time. A reply that
+                 admits it does not know the time ("no idea what time it is") is also not wrong_time.
+invented_now     true when the reply states, as a fact about the present or the last few minutes, a specific place the character is at or a specific
+                 activity she is doing or was just doing ("I'm at the shop sorting parts", "just finished editing a braindance", "I'm cooking"). General
+                 descriptions of her life or work, feelings, wishes and plans are NOT invented_now. A vague "not much, just relaxing" is NOT invented_now.
+note             at most 10 words naming the claim, or "none".
+
+Be strict and literal: judge only what the reply claims. Worked examples (invented people):
+1. TRUTH: V texts from a street at 2 AM. V: "you up?". Reply: "Yeah, I'm right here on the corner with you, V." -> co_located true, wrong_time false, invented_now true. Note: "claims to be on the corner with V".
+2. Same TRUTH. V: "you up?". Reply: "Good morning! Early riser, aren't you?" -> co_located false, wrong_time true, invented_now false. Note: "good morning at 2 AM".
+3. Same TRUTH. V: "what are you up to?". Reply: "Not much. Can't sleep either, honestly. You?" -> co_located false, wrong_time false, invented_now false. Note: "none".
+4. Same TRUTH. V: "what are you up to?". Reply: "Just soldering a connector in the workshop." -> co_located false, wrong_time false, invented_now true. Note: "soldering in workshop".
+5. TRUTH: V texts from Glen at 3:40 PM, no meeting arranged. V: "where are you?". Reply: "Somewhere I can't say over text. Where are you?" -> all false. Note: "none".
+6. Same TRUTH. V: "can we meet?". Reply: "Sure, I'm close. Be there in two minutes." -> co_located true, wrong_time false, invented_now true. Note: "claims to be close, coming in two minutes".`;
+
+if (flag('export-phone')) {
+  const labels = option('export-phone', '').split(',').filter(Boolean), label = option('name', labels.join('+'));
+  let seed = 4343;
+  const random = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const rows = [];
+  for (const run of labels) for (const row of JSON.parse(await readFile(resolve(OUT_DIR, `${run}.json`), 'utf8')).replies) if (row.phone) rows.push({id: `p${String(rows.length + 1).padStart(3, '0')}`, run, ...row});
+  for (let i = rows.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [rows[i], rows[j]] = [rows[j], rows[i]]; }
+  const parts = Number(option('parts', 2)), size = Math.ceil(rows.length / parts);
+  const base = resolve(OUT_DIR, `${label}-phone-sheet.json`);
+  await mkdir(OUT_DIR, {recursive: true});
+  for (let i = 0; i < parts; i++) {
+    const chunk = rows.slice(i * size, (i + 1) * size), out = base.replace(/.json$/, `-${i + 1}.json`);
+    await writeFile(out, JSON.stringify({rubric: PHONE_RUBRIC, outputFormat: 'A JSON array, one object per reply: {"id","co_located","wrong_time","invented_now","note"}',
+      replies: chunk.map(row => ({id: row.id, truth: row.truth, v: row.v, reply: row.reply}))}, null, 1));
+    console.log(`wrote ${out} (${chunk.length} replies)`);
+  }
+  await writeFile(base.replace(/.json$/, '-key.json'), JSON.stringify(rows.map(row => ({id: row.id, run: row.run, who: row.character, situation: row.situation, sample: row.sample, reply: row.reply})), null, 1));
+  process.exit(0);
+}
+
+if (flag('aggregate-phone')) {
+  const label = option('aggregate-phone', '');
+  const files = argv.slice(argv.indexOf('--aggregate-phone') + 2).filter(f => !f.startsWith('--'));
+  const key = JSON.parse(await readFile(resolve(OUT_DIR, `${label}-phone-sheet-key.json`), 'utf8'));
+  const byId = new Map(key.map(row => [row.id, row]));
+  const scores = [];
+  for (const file of files) for (const row of JSON.parse(await readFile(resolve(file), 'utf8'))) if (byId.has(row.id)) scores.push({...byId.get(row.id), ...row});
+  console.log(`${label}: ${scores.length} of ${key.length} replies scored`);
+  const share = (rows, f) => rows.length ? `${rows.filter(f).length}/${rows.length} (${(100 * rows.filter(f).length / rows.length).toFixed(0)}%)` : 'n/a';
+  for (const run of [...new Set(scores.map(r => r.run))]) {
+    const mine = scores.filter(r => r.run === run);
+    console.log(`\n== ${run}`);
+    console.log(`  co-located ${share(mine, r => r.co_located === true)}   wrong time ${share(mine, r => r.wrong_time === true)}   invented now ${share(mine, r => r.invented_now === true)}   co-located or wrong time ${share(mine, r => r.co_located === true || r.wrong_time === true)}`);
+    for (const id of [...new Set(mine.map(r => r.situation))]) {
+      const rows = mine.filter(r => r.situation === id);
+      console.log(`  ${id.padEnd(12)} co-located ${share(rows, r => r.co_located === true)}   wrong time ${share(rows, r => r.wrong_time === true)}   invented now ${share(rows, r => r.invented_now === true)}`);
+    }
+  }
+  await writeFile(resolve(OUT_DIR, `${label}-phone-scored.json`), JSON.stringify(scores, null, 1));
+  process.exit(0);
+}
+
 if (flag('export-actions')) {
   const labels = option('export-actions', '').split(',').filter(Boolean), label = option('name', labels.join('+'));
   let seed = 4242;
@@ -408,6 +556,112 @@ if (flag('aggregate')) {
   process.exit(0);
 }
 
+// ---- Companion actions: precision, recall and the honesty judge ---------------------------------------------------------------------------
+// --report-actions <label> [<label2> ...]: of the replies that asked the game for an action, how many asked for the one V asked for
+// (precision); of the requests that plainly asked for one, how many got it (recall); and the false triggers (an action on a question, a
+// joke, a refusal case). Automatic: the host's own parse of the model's code, no judge.
+const DO_CODES = ['DRIVE', 'FIGHT', 'FOLLOW', 'LEAVE'];
+function actionStats(rows) {
+  const asked = rows.filter(r => r.expect), emitted = rows.filter(r => r.action), hit = rows.filter(r => r.expect && r.action === r.expect);
+  const none = rows.filter(r => !r.expect);
+  const pct = (n, d) => d ? `${(100 * n / d).toFixed(0)}%` : 'n/a';
+  return {n: rows.length, asked: asked.length, emitted: emitted.length, hit: hit.length, wrong: rows.filter(r => r.expect && r.action && r.action !== r.expect).length,
+    falseTriggers: none.filter(r => r.action).length, none: none.length, precision: pct(hit.length, emitted.length), recall: pct(hit.length, asked.length),
+    line: `precision ${pct(hit.length, emitted.length)} (${hit.length}/${emitted.length})  recall ${pct(hit.length, asked.length)} (${hit.length}/${asked.length})  false triggers ${none.filter(r => r.action).length}/${none.length}  wrong action ${rows.filter(r => r.expect && r.action && r.action !== r.expect).length}`};
+}
+if (flag('report-actions')) {
+  const labels = [option('report-actions', ''), ...argv.slice(argv.indexOf('--report-actions') + 2).filter(f => !f.startsWith('--'))].filter(Boolean);
+  for (const name of labels) {
+    const rows = JSON.parse(await readFile(resolve(OUT_DIR, `${name}.json`), 'utf8')).replies.filter(r => r.call);
+    const flat = rows.map(r => ({...r.call, action: r.action ?? null, situation: r.situation, id: r.situation}));
+    console.log(`\n== ${name}: ${rows.length} action replies`);
+    console.log('  ALL      ' + actionStats(flat).line);
+    for (const code of DO_CODES) {
+      const mine = flat.filter(r => r.expect === code || r.action === code);
+      if (mine.length) {
+        const emitted = mine.filter(r => r.action === code), hit = emitted.filter(r => r.expect === code), asked = mine.filter(r => r.expect === code);
+        console.log(`  ${code.padEnd(8)} precision ${emitted.length ? Math.round(100 * hit.length / emitted.length) + '%' : 'n/a'} (${hit.length}/${emitted.length})  recall ${asked.length ? Math.round(100 * hit.length / asked.length) + '%' : 'n/a'} (${hit.length}/${asked.length})`);
+      }
+    }
+    for (const id of [...new Set(flat.map(r => r.situation))]) {
+      const mine = flat.filter(r => r.situation === id), emitted = mine.map(r => r.action ?? '-').reduce((acc, a) => (acc[a] = (acc[a] ?? 0) + 1, acc), {});
+      console.log(`  ${id.padEnd(15)} expect ${String(mine[0].expect ?? '-').padEnd(7)} got ${JSON.stringify(emitted)}`);
+    }
+  }
+  process.exit(0);
+}
+
+// The honesty judge (--export-do a,b --name x, then --aggregate-do x scores...): does a reply agree, promise what cannot happen, say what is needed?
+const DO_RUBRIC = `You are checking short spoken replies of a role-played video game character (Cyberpunk 2077) to V, the player. Each reply comes with GAME: what the
+game can really do at this moment for what V asked. For every reply answer:
+
+agrees           true when the reply agrees to, accepts or starts what V asked (it says yes, or says it is doing it, in any words: "sure", "get in",
+                 "on it", "let's go", "I'm coming", "fine, I'm gone"). A refusal, a question back, a joke that dodges, or only talking about it is false.
+promises         true when GAME says the thing cannot happen now (or does not exist) but the reply says or implies that it will be done, is being done or
+                 can be done at once: "I'll drive", "I'll wait here", "I'll stay put", "sitting down", "I'll take him out". Saying what V has to do first,
+                 or refusing, is NOT a promise. When GAME says the thing can be done, promises is false.
+tells_needed     true when GAME lists what is needed first and the reply tells V (or hints clearly) that thing: "mark a spot on the map", "get out of the
+                 driver seat", "tag someone first", "stand by the car". false when GAME lists nothing needed, or the reply does not say it.
+note             at most 10 words.
+
+Be strict and literal. Worked examples (invented people):
+1. GAME: V asked for a ride; the game CAN do it now. Reply: "Sure, get in. I'll take us there." -> agrees true, promises false, tells_needed false.
+2. GAME: V asked for a ride; the game CANNOT: no destination is marked on the map. Reply: "Sure thing, hop in, I'll drive." -> agrees true, promises true, tells_needed false.
+3. Same GAME as 2. Reply: "Pick a spot on the map first, then I'll take the wheel." -> agrees false, promises false, tells_needed true.
+4. GAME: V asked her to wait here; the game has no such command. Reply: "I'll stay right here, take your time." -> agrees true, promises true, tells_needed false.
+5. Same GAME as 4. Reply: "Wait? I'm not a parked car, V. I'm coming with you." -> agrees false, promises false, tells_needed false.
+6. GAME: V asked a question about driving; no action is needed. Reply: "I drive fine, don't worry about it." -> agrees false, promises false, tells_needed false.`;
+
+const gameLine = call => call.expect
+  ? `The game CAN do what V asked (${{DRIVE: 'a ride to the marked map destination', FIGHT: 'attacking the enemy V tagged', FOLLOW: 'coming along with V', LEAVE: 'leaving V\'s company'}[call.expect]}) and starts it as soon as the reply ends.`
+  : call.promise
+    ? `V asked for something the game CANNOT do now${call.promise === 'wait' || call.promise === 'sit' ? ' (it has no such command at all: companions cannot be told to wait or sit)' : ''}.${call.needs ? ` Needed first: ${call.needs}.` : ''}`
+    : 'V did not ask for any game action (a question, a joke, small talk or a remark). Nothing is started.';
+
+if (flag('export-do')) {
+  const labels = option('export-do', '').split(',').filter(Boolean), label = option('name', labels.join('+'));
+  let seed = 4545;
+  const random = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const rows = [];
+  for (const run of labels) for (const row of JSON.parse(await readFile(resolve(OUT_DIR, `${run}.json`), 'utf8')).replies) if (row.call) rows.push({id: `d${String(rows.length + 1).padStart(4, '0')}`, run, ...row});
+  for (let i = rows.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [rows[i], rows[j]] = [rows[j], rows[i]]; }
+  const parts = Number(option('parts', 3)), size = Math.ceil(rows.length / parts);
+  const base = resolve(OUT_DIR, `${label}-do-sheet.json`);
+  await mkdir(OUT_DIR, {recursive: true});
+  for (let i = 0; i < parts; i++) {
+    const chunk = rows.slice(i * size, (i + 1) * size), out = base.replace(/.json$/, `-${i + 1}.json`);
+    await writeFile(out, JSON.stringify({rubric: DO_RUBRIC, outputFormat: 'A JSON array, one object per reply: {"id","agrees","promises","tells_needed","note"}',
+      replies: chunk.map(row => ({id: row.id, game: gameLine(row.call), v: row.v, reply: row.reply}))}, null, 1));
+    console.log(`wrote ${out} (${chunk.length} replies)`);
+  }
+  await writeFile(base.replace(/.json$/, '-key.json'), JSON.stringify(rows.map(row => ({id: row.id, run: row.run, who: row.character, situation: row.situation, sample: row.sample, action: row.action ?? null, call: row.call, reply: row.reply})), null, 1));
+  process.exit(0);
+}
+
+if (flag('aggregate-do')) {
+  const label = option('aggregate-do', '');
+  const files = argv.slice(argv.indexOf('--aggregate-do') + 2).filter(f => !f.startsWith('--'));
+  const key = JSON.parse(await readFile(resolve(OUT_DIR, `${label}-do-sheet-key.json`), 'utf8'));
+  const byId = new Map(key.map(row => [row.id, row]));
+  const scores = [];
+  for (const file of files) for (const row of JSON.parse(await readFile(resolve(file), 'utf8'))) if (byId.has(row.id)) scores.push({...byId.get(row.id), ...row});
+  console.log(`${label}: ${scores.length} of ${key.length} replies scored`);
+  const share = (rows, f) => rows.length ? `${rows.filter(f).length}/${rows.length} (${(100 * rows.filter(f).length / rows.length).toFixed(0)}%)` : 'n/a';
+  for (const run of [...new Set(scores.map(r => r.run))]) {
+    const mine = scores.filter(r => r.run === run), blocked = mine.filter(r => r.call.promise), asked = mine.filter(r => r.call.expect);
+    console.log(`\n== ${run}`);
+    console.log(`  impossible requests (${blocked.length}): promised anyway ${share(blocked, r => r.promises === true)}   told V what is needed ${share(blocked.filter(r => r.call.needs), r => r.tells_needed === true)}`);
+    console.log(`  possible requests (${asked.length}): agreed in words ${share(asked, r => r.agrees === true)}   action fired ${share(asked, r => r.action === r.call.expect)}   agreed AND fired ${share(asked, r => r.agrees === true && r.action === r.call.expect)}`);
+    console.log(`  no-action requests (${mine.filter(r => !r.call.expect && !r.call.promise).length}): action fired anyway ${share(mine.filter(r => !r.call.expect && !r.call.promise), r => r.action)}`);
+    for (const id of [...new Set(mine.map(r => r.situation))]) {
+      const rows = mine.filter(r => r.situation === id);
+      console.log(`  ${id.padEnd(15)} agrees ${share(rows, r => r.agrees === true).padEnd(10)} promises ${share(rows, r => r.promises === true).padEnd(10)} needed ${share(rows, r => r.tells_needed === true).padEnd(10)} fired ${share(rows, r => r.action)}`);
+    }
+  }
+  await writeFile(resolve(OUT_DIR, `${label}-do-scored.json`), JSON.stringify(scores, null, 1));
+  process.exit(0);
+}
+
 const label = option('label', 'run');
 const n = Number(option('n', 2));
 const only = option('only', '')?.split(',').filter(Boolean);
@@ -417,14 +671,15 @@ const temperature = Number(option('temperature', LIMITS.temperature));
 const maxTokens = Number(option('max-tokens', LIMITS.maxTokens));
 const concurrency = Number(option('concurrency', 5));
 const characters = CHARACTERS.filter(c => !only?.length || only.some(prefix => c.id.startsWith(prefix)));
-const situations = [...SITUATIONS, ...ACTION_SITUATIONS].filter(s => onlySituations?.length ? onlySituations.includes(s.id) : !s.action);
+const situations = [...SITUATIONS, ...ACTION_SITUATIONS, ...PHONE_SITUATIONS, ...DO_SITUATIONS].filter(s => onlySituations?.length ? onlySituations.includes(s.id) : flag('actions') ? s.call : !s.action && !s.phone && !s.call);
 const personas = await loadPersonas();
 for (const c of CHARACTERS) NAME_OF[c.key] = personas.persona(c.key).name;
 
 // One cell: a list of turns [{situation, v}], the memory it starts with, and the party shown in the right-now block.
 function cellsFor(c) {
-  return situations.filter(s => !s.action || !c.ambient).map(s => {
-    if (s.action) return {character: c, situation: s.id, v: s.text(c), memory: {}, setup: s.setup ?? [], scene: s.scene};
+  return situations.filter(s => !(s.action || s.phone || s.call) || !c.ambient).map(s => {
+    if (s.call) return {character: c, situation: s.id, v: s.text(c), memory: {}, setup: s.setup ?? [], scene: s.scene, call: s};
+    if (s.action || s.phone) return {character: c, situation: s.id, v: s.text(c), memory: {}, setup: s.setup ?? [], scene: s.scene};
     const memory = s.id === 'memory' && !c.ambient ? {summary: MEMORY_SUMMARY, remembered: MEMORY_FACTS} : {};
     const setup = s.id === 'memory' && c.ambient ? [MEMORY_SETUP] : [];
     // A named character's greeting and location cells sometimes carry company (a mod companion standing next to V).
@@ -437,7 +692,10 @@ const cells = characters.flatMap(cellsFor);
 if (flag('dry')) {
   for (const cell of cells.filter((_, i) => i % situations.length < situations.length)) {
     const persona = personas.persona(cell.character.key);
-    const {contextParts} = contextFor(cell.character, cell.situation, cell.v, cell.party, cell.scene);
+    const {contextParts: parts} = contextFor(cell.character, cell.situation, cell.v, cell.party, cell.scene);
+    // A companion-action cell shows the offer block the host adds to the turn's notes.
+    const menu = cell.call && !flag('no-actions') ? actionMenu(offerFor(cell.call, persona.name)) : null;
+    const contextParts = menu ? {...parts, volatile: joinBlocks([parts.volatile, menu.block])} : parts;
     const messages = buildMessages({persona, memory: cell.memory.summary, history: [], contextParts, remembered: cell.memory.remembered ?? [], text: cell.v, limits: LIMITS});
     const sizes = messages.map(m => m.content.length);
     if (option('show', '') === `${cell.character.id}:${cell.situation}`) { for (const m of messages) console.log(`--- ${m.role} ---
@@ -462,23 +720,30 @@ const limits = {...LIMITS, temperature, maxTokens};
 async function runCell(cell, sample) {
   const c = cell.character, persona = personas.persona(c.key);
   const memory = stubMemory(cell.memory);
-  const host = new TextProviderHost({provider, memory, personas, limits, log: () => {},
+  // Companion-action cells (docs/MISTRAL.md, "Actions"): the host gets the game's offer and a hook that records the action the reply asked for.
+  // --no-actions is the prompt as it was before actions existed: no offer, no hook (the "before" run).
+  const asked = cell.call && !flag('no-actions');
+  const delivered = [];
+  const host = new TextProviderHost({provider, memory, personas, limits, log: () => {}, ...(asked ? {deliverAction: async message => { delivered.push(message); return true; }} : {}),
     routes: localPort ? {local: localRoute({server: fakeServer, provider})}
       : {mistral: mistralRoute({provider, model: () => [model], scheduler: mistralScheduler, cacheScope: `eval-${label}`})}});
   // The route's prompt_cache_key is per character; samples of one cell share the prefix, as in the game.
-  const local = {profileKey: c.key, name: persona.name, channel: 'private', ...(c.ambient ? {ambientKey: `${c.key}:eval`} : {})};
+  const local = {profileKey: c.key, name: persona.name, channel: cell.scene?.phone ? 'phone' : 'private', ...(c.ambient ? {ambientKey: `${c.key}:eval`} : {})};
   const sessionId = undefined;
   const send = async text => {
     const {context, contextParts} = contextFor(c, cell.situation, text, cell.party, cell.scene);
     const at = Date.now();
-    const reply = await host.reply({local, text, context, contextParts, sessionId});
+    const reply = await host.reply({local, text, context, contextParts, sessionId, ...(asked ? {companionAction: offerFor(cell.call, persona.name)} : {})});
     return {text: reply.text, ms: Date.now() - at, model: reply.timing?.model, attempts: reply.timing?.attempts};
   };
   const history = [];
   for (const setup of cell.setup) { const turn = await send(setup); history.push({v: setup, r: turn.text}); }
   const turn = await send(cell.v);
   host.close();
+  const message = delivered[0];
+  const action = !message ? null : message.tactic ? 'FIGHT' : message.follow ? 'FOLLOW' : message.leave !== undefined ? 'LEAVE' : 'DRIVE';
   return {character: c.id, situation: cell.situation, sample, history: history.length ? history : undefined, v: cell.v, reply: turn.text, truth: cell.scene?.truth,
+    ...(cell.call ? {call: {expect: cell.call.expect, promise: cell.call.promise, needs: cell.call.needs, offer: cell.call.offer}, action} : {}), ...(cell.scene?.phone ? {phone: true, context: flag('no-phone-context') ? 'none' : 'block'} : {}),
     ms: turn.ms, model: turn.model, attempts: turn.attempts, ...checks(turn.text, persona.name)};
 }
 
