@@ -484,6 +484,7 @@ put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pend
 update(); assert(not m.pending)
 local status=paints[#paints].status
 assert(status:find('today', 1, true) and status:find('free conversation limit', 1, true) and status:find('Settings > Development', 1, true), status)
+assert(status:find('free Mistral key', 1, true) and status:find('fully local option is coming', 1, true) and not status:find('Convai API key', 1, true), status)
 assert(not status:find('Message could not be delivered', 1, true))
 `));
 test('phone timeout restores the draft and save unload rejects a stale reply', () => runLua(setup + `

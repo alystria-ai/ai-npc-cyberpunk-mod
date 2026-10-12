@@ -14,8 +14,8 @@ text is the same code. Local speech-to-text for the voice key is documented in `
 3. **Conversation provider** > Mistral (free plan), then Apply. The switch waits until no conversation is running, so a conversation
    never mixes two providers.
 
-The other free route is the player's own free Convai key (docs/OWN_CONVAI_KEY.md); the usage-cap notice and the settings text offer
-exactly these two.
+This is the free route the daily-limit notice points to (a fully local option is planned). A player's own Convai key (docs/OWN_CONVAI_KEY.md)
+is no longer offered to players: the notice, the settings text and the player documents do not mention it.
 
 ## Settings and files
 

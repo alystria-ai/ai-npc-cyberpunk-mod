@@ -1860,12 +1860,12 @@ end
 -- what to do; it never names where the shared key comes from.
 -- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). Phone Chat words the same line (phone-chat.lua).
 local function dailyLimitText()
-    return ui.t('You’ve reached today’s free conversation limit. To keep talking, paste your own free Convai API key (recommended, better quality responses) or a free Mistral key (signup needs phone verification) in Settings > Development, then choose Apply.')
+    return ui.t('You’ve reached today’s free conversation limit. Convai (better quality responses) is back tomorrow. To keep talking now, add a free Mistral key and set Conversation provider to Mistral in Settings > Development. A fully local option is coming.')
 end
 
 local function keyNoticeText(code)
     if code == 'quota-shared' then
-        return ui.t('The conversation limit has been reached. Get a free API key at convai.com, then add it in Settings > Development.')
+        return ui.t('The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Development.')
     elseif code == 'quota-own' then
         return ui.t('Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development.')
     elseif code == 'key-rejected' then
@@ -1886,7 +1886,7 @@ local function keyReplyNotice(reply)
     if reply.errorCode == 'mistral-key' then
         return 'mistral-key', ui.t('Mistral did not accept your key. Check it in Settings > Development.')
     elseif reply.errorCode == 'mistral-limit' then
-        return 'mistral-limit', ui.t('Mistral’s free limit is reached for now. Try again in a moment, or add your own free Convai key in Settings > Development.')
+        return 'mistral-limit', ui.t('Mistral’s free limit is reached for now. Try again in a moment.')
     elseif reply.errorCode == 'mistral-model' then
         return 'mistral-model', ui.t('The Mistral model is unavailable right now. Try again in a minute.')
     end

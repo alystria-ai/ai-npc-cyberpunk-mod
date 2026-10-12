@@ -661,31 +661,39 @@ local function ownKeyRows(snapshot)
         elseif mistral.limit == 'model' then using = ui.t('Mistral: model unavailable')
         else using = ui.t('Mistral (free plan)') end
     elseif snapshot.settings.conversationProvider == 'mistral' then using = ui.t('Convai: Mistral has no key yet') end
-    return {
-        setting('useOwnConvaiKey', 'Use my own Convai API key', 'bool', snapshot.settings.useOwnConvaiKey, false,
-            'Want more conversations? The shared plan has a daily conversation limit, and there are two free ways to keep talking. Convai key (recommended, better quality responses): get a free API key at convai.com, copy it, choose Paste Convai API key below, turn this on and choose Apply. A free Convai plan has a small monthly allowance, one connection at a time and only a few memory users, so companions open one at a time and Multilingual conversations and memory management are unavailable. Mistral key: free, but signing up needs phone verification. Get a key from Mistral, set Conversation provider to Mistral (free plan), choose Paste Mistral key and choose Apply; memory stays on this computer. Changes wait until no conversation is running.'),
-        readonly('own-key-status', 'Convai API key', status,
-            'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
-        action('own-key:paste', 'Paste Convai API key', 'Paste from clipboard',
-            'Copy your key on convai.com first. It is read from the clipboard once, checked with Convai and saved on this computer.',
-            function() return manager.pasteOwnKey() end),
-        action('own-key:remove', 'Remove my Convai API key', 'Remove',
-            'Deletes the saved key. Conversations go back to the shared plan.',
-            function() return manager.removeOwnKey() end, own.saved),
-        setting('conversationProvider', 'Conversation provider', 'select',
-            snapshot.settings.conversationProvider == 'mistral' and 2 or 1, 1, providerHelp,
-            {'Convai', 'Mistral (free plan)'}, {elements = true, description = true}),
-        readonly('mistral-key-status', 'Mistral key', mistralStatus,
-            'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
-        action('mistral-key:paste', 'Paste Mistral key', 'Paste from clipboard',
-            'Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer. You can also save it in the file player-mistral-key.txt in the conversation service folder.',
-            function() return manager.pasteMistralKey() end),
-        action('mistral-key:remove', 'Remove my Mistral key', 'Remove',
-            'Deletes the saved key. Conversations go back to Convai.',
-            function() return manager.removeMistralKey() end, mistral.saved == true),
-        readonly('own-key-using', 'Conversations use', using,
-            'Which provider answers your conversations right now and, for Convai, which plan pays for them. Changes wait until no conversation is running.', {value = true}),
-    }
+    -- The Convai key rows are not offered to players: they show with Developer mode on, or while a key is saved or the switch is on
+    -- (so a key that is in use can always be removed or switched off). The Mistral rows and the status line are always there.
+    local rows = {}
+    if developerMode() or snapshot.settings.useOwnConvaiKey == true or own.saved == true then
+        rows = {
+            setting('useOwnConvaiKey', 'Use my own Convai API key', 'bool', snapshot.settings.useOwnConvaiKey, false,
+                'Use a Convai API key of your own for conversations. Paste it below, turn this on and choose Apply. The change waits until no conversation is running.'),
+            readonly('own-key-status', 'Convai API key', status,
+                'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
+            action('own-key:paste', 'Paste Convai API key', 'Paste from clipboard',
+                'Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.',
+                function() return manager.pasteOwnKey() end),
+            action('own-key:remove', 'Remove my Convai API key', 'Remove',
+                'Deletes the saved key. Conversations go back to the shared plan.',
+                function() return manager.removeOwnKey() end, own.saved),
+        }
+    end
+    for _, item in ipairs({
+            setting('conversationProvider', 'Conversation provider', 'select',
+                snapshot.settings.conversationProvider == 'mistral' and 2 or 1, 1, providerHelp,
+                {'Convai', 'Mistral (free plan)'}, {elements = true, description = true}),
+            readonly('mistral-key-status', 'Mistral key', mistralStatus,
+                'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
+            action('mistral-key:paste', 'Paste Mistral key', 'Paste from clipboard',
+                'Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer. You can also save it in the file player-mistral-key.txt in the conversation service folder.',
+                function() return manager.pasteMistralKey() end),
+            action('mistral-key:remove', 'Remove my Mistral key', 'Remove',
+                'Deletes the saved key. Conversations go back to Convai.',
+                function() return manager.removeMistralKey() end, mistral.saved == true),
+            readonly('own-key-using', 'Conversations use', using,
+                'Which provider answers your conversations right now and, for Convai, which plan pays for them. Changes wait until no conversation is running.', {value = true}),
+    }) do rows[#rows + 1] = item end
+    return rows
 end
 
 local function schema()

@@ -3964,18 +3964,42 @@ test('Model browser maps generic records to archetypes, shows it in the row, cou
   `);
 });
 
-test('Development offers the own Convai key: off by default, free-key wording, two commands, and a status that never shows the key', () => {
+test('the Convai key rows are not offered to players: hidden unless Developer mode is on, a key is saved or the switch is on', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end
     assert(invoke('tab:settings').ok)
+    local ids = {'useOwnConvaiKey', 'own-key-status', 'own-key:paste', 'own-key:remove'}
+    for _, id in ipairs(ids) do assert(not row(id), id .. ' is hidden for a player') end
+    -- What stays for a player: the free alternative and the line saying who answers.
+    assert(row('conversationProvider') and row('mistral-key:paste') and row('own-key-using'))
+    -- Developer mode shows them.
+    assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok); loaded = registered.loadMod('manager')
+    for _, id in ipairs(ids) do assert(row(id), id .. ' shows in Developer mode') end
+    assert(registered.applyBatch('manager', {{id = 'developerMode', value = false}}).ok); loaded = registered.loadMod('manager')
+    for _, id in ipairs(ids) do assert(not row(id), id .. ' hidden again') end
+    -- A key that is saved or switched on can always be removed or switched off.
+    clock = clock + 2
+    assert(registered.applyBatch('manager', {{id = 'useOwnConvaiKey', value = true}}).ok); loaded = registered.loadMod('manager')
+    for _, id in ipairs(ids) do assert(row(id), id .. ' shows while the switch is on') end
+    clock = clock + 2
+    assert(registered.applyBatch('manager', {{id = 'useOwnConvaiKey', value = false}}).ok); loaded = registered.loadMod('manager')
+    for _, id in ipairs(ids) do assert(not row(id), id .. ' hidden once the switch is off') end
+  `);
+});
+
+test('Development offers the own Convai key: off by default, no free-key promotion, two commands, and a status that never shows the key', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    assert(invoke('tab:settings').ok)
+    assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok); loaded = registered.loadMod('manager')
     local use = row('useOwnConvaiKey')
     assert(use and use.type == 'bool' and use.value == false and use.defaultValue == false)
-    assert(use.description:find('free', 1, true) and use.description:find('convai.com', 1, true))
+    assert(not use.description:find('free', 1, true) and not use.description:find('convai.com', 1, true))
     assert(not use.description:find('embedded', 1, true) and not use.description:find('shipped', 1, true))
-    -- The sidebar for this row explains both free ways past the shared plan's daily limit.
-    assert(use.description:find('daily conversation limit', 1, true) and use.description:find('(recommended, better quality responses)', 1, true))
-    assert(use.description:find('Paste Convai API key', 1, true) and use.description:find('choose Apply', 1, true))
-    assert(use.description:find('one connection at a time', 1, true) and use.description:find('Paste Mistral key', 1, true))
+    -- The sidebar no longer sells a free key or compares plans.
+    assert(not use.description:find('daily', 1, true) and not use.description:find('recommended', 1, true) and not use.description:find('Mistral', 1, true))
+    assert(use.description:find('Paste it below', 1, true) and use.description:find('choose Apply', 1, true))
+    assert(not row('own-key:paste').description:find('convai.com', 1, true))
     assert(row('own-key-status').value == 'Not added' and row('own-key-using').value == 'The shared plan')
     assert(row('own-key:remove').disabled == true, 'there is nothing to remove yet')
     assert(row('own-key:paste').disabled ~= true)
@@ -4019,6 +4043,7 @@ test('Development offers the own Convai key: off by default, free-key wording, t
 test('Development says when the player key runs without memory or cannot hold the conversations at all', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end
+    assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok); loaded = registered.loadMod('manager')
     local function state(value, tag)
       local token = 'own-state-' .. tag
       jsonFixtures[token] = value
@@ -4059,15 +4084,21 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     ${init.slice(start, end)}
     local function notice(reply) local id, text = keyReplyNotice(reply); return id, text end
     local id, text = notice({errorCode = 'quota-shared'})
-    assert(id == 'quota-exhausted' and text:find('free API key at convai.com', 1, true) and text:find('Settings > Development', 1, true))
+    assert(id == 'quota-exhausted' and text:find('Mistral', 1, true) and text:find('Settings > Development', 1, true), text)
+    assert(not text:find('convai.com', 1, true) and not text:find('free API key', 1, true) and not text:find('Convai key', 1, true))
     assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shipped', 1, true))
     id, text = notice({errorCode = 'quota-own'}); assert(id == 'quota-exhausted' and text:find('plan limit', 1, true))
     id, text = notice({errorCode = 'key-rejected'}); assert(id == 'quota-exhausted' and text:find('did not accept', 1, true))
     id, text = notice({errorCode = 'key-memory-needed'}); assert(id == 'quota-exhausted' and text:find('memory', 1, true))
     id, text = notice({errorCode = 'daily-limit', error = 'x'})
-    assert(id == 'daily-limit' and text:find('free Convai API key', 1, true) and text:find('(recommended, better quality responses)', 1, true)
-      and text:find('Mistral', 1, true) and text:find('Settings > Development', 1, true), text)
+    assert(id == 'daily-limit' and text:find('Convai (better quality responses)', 1, true) and text:find('free Mistral key', 1, true)
+      and text:find('Conversation provider', 1, true) and text:find('Settings > Development', 1, true) and text:find('fully local option is coming', 1, true), text)
     assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shared', 1, true) and not text:lower():find('project', 1, true))
+    -- No own-key offer, no paid tier, no "includes voice", no "text only", no credentials wording.
+    assert(not text:find('Convai API key', 1, true) and not text:find('convai.com', 1, true) and not text:find('phone verification', 1, true), text)
+    for _, word in ipairs({'paid', 'plan', 'tier', 'subscription', 'voice', 'text only', 'token', 'secret', 'credential', 'antivirus', 'Defender'}) do
+      assert(not text:lower():find(word:lower(), 1, true), word .. ' in: ' .. text)
+    end
     id, text = notice({errorCode = 'key-memory', error = 'x'}); assert(id == 'key-memory' and text:find('will not remember', 1, true))
     id, text = notice({keyNotice = 'memory-off', text = 'Hello'}); assert(id == 'key-memory')
     assert(notice({text = 'Hello'}) == nil and notice({error = 'plain failure'}) == nil and notice({keyNotice = 'other'}) == nil)
@@ -4088,7 +4119,9 @@ test('Development offers the conversation provider and the Mistral key rows: Con
     assert(row('mistral-key-status').value == 'Not added' and row('mistral-key:remove').disabled == true)
     assert(row('mistral-key:paste').disabled ~= true and row('mistral-key:paste').description:find('player-mistral-key.txt', 1, true))
     assert(row('own-key-using').value == 'The shared plan', 'the Convai plan line is unchanged while Convai is chosen')
-    -- The rows sit in Development: the provider choice after the Convai key rows, the status line last.
+    -- The rows sit in Development: the provider choice after the Convai key rows (shown in Developer mode), the status line last.
+    assert(not row('useOwnConvaiKey'), 'the Convai key rows are hidden for a player')
+    assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok); loaded = registered.loadMod('manager')
     local order = {}
     for _, category in ipairs(loaded.categories) do
       for _, item in ipairs(category.settings) do if item.id == 'developerMode' or #order > 0 then order[#order + 1] = item.id end end
@@ -4229,7 +4262,7 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     local id, text = notice({errorCode = 'mistral-key', error = 'x'})
     assert(id == 'mistral-key' and text:find('did not accept your key', 1, true) and text:find('Settings > Development', 1, true), text)
     id, text = notice({errorCode = 'mistral-limit', error = 'x'})
-    assert(id == 'mistral-limit' and text:find('free limit', 1, true) and text:find('Convai key', 1, true), text)
+    assert(id == 'mistral-limit' and text:find('free limit', 1, true) and not text:find('Convai', 1, true), text)
     id, text = notice({errorCode = 'mistral-model', error = 'x'})
     assert(id == 'mistral-model' and text:find('unavailable', 1, true) and text:find('a minute', 1, true), text)
     id, text = notice({keyNotice = 'mistral-no-key', text = 'Hello'})

@@ -15,7 +15,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Aware of your gear**: companions know what V is wearing and carrying, and mention it only when it matters or you ask.
 - **Phone chat**: the first reply arrives in a second or two when you wait a moment after opening a chat.
 - **Fewer notices**: you only see when a companion has joined or when something fails.
-- **Free Mistral plan** as an alternative text provider, for when the shared conversations run out.
+- **Free option when the daily conversation limit is reached**: choose Mistral as the Conversation provider in Settings > Development (it needs a free Mistral account). Voices keep working through the local voices. A fully local option is coming.
 
 ## Requirements
 
