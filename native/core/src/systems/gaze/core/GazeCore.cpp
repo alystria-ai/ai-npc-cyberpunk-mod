@@ -11,6 +11,13 @@ LookPlan Plan(bool aFull, double aHeight, double aStrength, bool aSeated)
     plan.hardLimitDegrees = aFull ? 120.0 : 100.0;
     plan.backLimitDegrees = 120.0;
     plan.hardLimitDistance = 5.0;
+    if (aSeated)
+    {
+        plan.softLimitDegrees = aFull ? 100.0 : 60.0;
+        plan.hardLimitDegrees = aFull ? 150.0 : 120.0;
+        plan.backLimitDegrees = 150.0;
+        plan.parentSpace = true;
+    }
 
     plan.parts[0] = {"Head", (aFull ? 0.18 : 0.05) * aStrength, 1.0, 0};
     plan.partCount = 1;

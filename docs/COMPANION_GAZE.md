@@ -81,6 +81,17 @@ different seat of that same car. V must be in the native `Driving` or
 the selected companion gets a full eye/head request without a Chest part. The actuator
 never senses, cancels, or submits a locomotion command in this seated path.
 
+A passenger's look follows the car's speed: the full look (eyes and a head turn) up to about 8 m/s, the narrow one
+(eyes and a small head turn, head weight 0.05) up to about 20 m/s, none faster, each limit with a 2 m/s margin so a
+speed that hovers at one never swaps the request. Seated requests are wider than standing ones (full: soft 100 /
+hard 150 / back 150 degrees; narrow: 60 / 120 / 150, against 70 / 120 / 120 and 45 / 100 / 120 on foot) because
+V sits side by side with her, about 90 degrees off her forward axis, between the standing soft and hard limits
+(a look faded to about 60 percent). They are also solved in the car's space (`calculatePositionInParentSpace`),
+as the game's own in-vehicle look-at does. Each change of the seated attention (selected or not, the gate that held
+it back, the style, a look error) writes one `Companion recovery seated-gaze {...}` line to probe.log, never one per tick.
+Live 2026-10-13: Judy did not look at V in a car; `seated-look-skip {"reason":"in a vehicle"}` in the same log is V's
+own camera widening (`mod/seated-look.lua`), not her gaze. The failing gate was not logged, which the new line fixes.
+
 Combat, boarding, exit/scene transitions, mount loss, a different car, focus
 loss and fast travel remove the owned look. A driver gets no social look above
 0.5 m/s or with unknown speed; stopping must satisfy the same settling interval.

@@ -27,16 +27,35 @@ strings of the game's `r6/cache/final.redscripts`. The lesson of the first live 
   `AIVehicleCommand` and `AIVehicleDriveToPointAutonomousCommand` have no alias; `AICommand` (alias `NPCCommand`)
   carries the `id` property (`Uint32`). The owner of the companion lookups is Codeware's `DynamicEntitySystem`
   (`IsReady()`, `IsManaged(id)`, `IsTagged(id, tag)`, native, in `Codeware.Global.reds`).
-- Global functions `GetMountingFacility`, `GetMappinSystem` and `GetScriptableSystemsContainer` are tried as
-  `<name>;GameInstance` first (the form of `GetPlayer;GameInstance`, which works live); the game's own script
-  has them under the plain name, so a miss falls back to the global function with that short name and one
-  `ScriptGameInstance` parameter. The name it resolved as is logged once.
+- **The system getters are not global functions (live 2026-10-13, fixed the same day).** `GetMountingFacility`,
+  `GetMappinSystem`, `GetScriptableSystemsContainer` (and `GetSceneSystem`, which `faces` needs) are native
+  static functions of the script class `GameInstance` (native name `ScriptGameInstance`) with one parameter,
+  `self: GameInstance`; redscript calls them `GameInstance.GetMountingFacility(gi)`, CET `Game.GetMountingFacility()`.
+  Evidence: the definitions in `r6/cache/final.redscripts` (parsed 2026-10-13: function definitions 12105
+  `GetMountingFacility`, 12011 `GetScriptableSystemsContainer`, 11946 `GetMappinSystem`, 12006 `GetSceneSystem`,
+  all with parent class `GameInstance` and the parameter `self`; the only globals taking a `GameInstance` among
+  those names' neighbours are `GetPlayer;GameInstance`, `GetMainPlayer;GameInstance` and `GetPlayerObject;GameInstance`;
+  the same names elsewhere, such as `StateGameScriptInterface.GetMountingFacility`, are script wrappers). The first
+  live run looked for `<name>;GameInstance` among the global functions and found nothing, twice, so `vehicles` fell
+  back to Lua. `convai::game::GameSystem(shortName)` (`plugin/GameAccess.cpp`) now looks in the static functions of
+  `ScriptGameInstance`, then `GameInstance`, then the globals, then every class function, and runs the one
+  that takes the game instance; if no function can be found or run it asks the instance's own system lookup
+  (`GetSystem`) for the native class (`gamemountingIMountingFacility`, `gamemappinsIMappinSystem`,
+  `gameIScriptableSystemsContainer`, `gameISceneSystem`). The route is logged once per getter:
+  `Game access: GameInstance.GetMountingFacility resolved as <full name> (static function of class ScriptGameInstance)`,
+  or `... answered by the instance's system lookup (<class>)`; a miss logs `no function GameInstance.X found
+  (class ScriptGameInstance exists, N static functions)` once.
+- **Script names carry the parameter types.** The compiler names a function it has to tell apart with its
+  parameter types after a `;` (`IsInCombat;ScriptedPuppet`, `IsInCombat;`), and the registered short name is that
+  text, so `CClass::GetFunction("IsInCombat")` finds neither (this is why the live actuator logged
+  "NPCPuppet.IsInCombat was not found" and the first run "is not a one-argument static function"). Every lookup
+  here goes through `convai::game::FunctionIs` / `ScriptNameIs` (`src/core/ScriptNames.*`, headless-tested):
+  the plain name, the name before the `;`, with or without a `Class::` prefix.
 - **Overloads.** `CClass::GetFunction(shortName)` returns the first function of that short name, statics
   before members, class by class. The game declares several overloads under one name: `IsAttached`,
   `IsVehicle` and `IsTagged` exist as members and as statics that take a `GameObject`, `IsDestroyed` as a member
-  and as a static taking a `GameInstance` and an `EntityID`, `IsInCombat` as a member and as the static
-  `ScriptedPuppet.IsInCombat(puppet)`. (This is why the live actuator logged "NPCPuppet.IsInCombat is not a
-  one-argument static function": the nearest `IsInCombat` of `NPCPuppet` is the member.) Every call here goes
+  and as a static taking a `GameInstance` and an `EntityID`, `IsInCombat` as the member `PlayerPuppet.IsInCombat()` and
+  the static `NPCPuppet.IsInCombat(puppet: ScriptedPuppet)` (declared on `NPCPuppet` itself). Every call here goes
   through `vreflect::FindMember` (members of the class chain with exactly the parameter count the call passes)
   or `vreflect::StaticFunction` (statics, nearest class that declares one with that count), and `Invoke`
   refuses an argument list that does not fill the parameters. A miss logs what the class does have under that

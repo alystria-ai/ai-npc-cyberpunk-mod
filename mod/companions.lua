@@ -240,6 +240,18 @@ local function seatedAttention(entry,player,focusEntity,gazeSettings,step)
     if not ok then context.ready=false; context.reason='Seated attention state unavailable' end
     actuator.applySeatedLook(entry.motor,context,step)
     entry.motor.seatedAttention.error=not ok and tostring(err) or nil
+    -- Live 2026-10-13: Judy did not look at V in a car and nothing said which gate held her back. One
+    -- probe.log line when the seated attention changes (selected, the gate that failed, the style, the speed
+    -- band or a look error), never per tick: the fields are compared, nothing is built unless one differs.
+    local attention,motor=entry.motor.seatedAttention,entry.motor
+    if entry.seatedGazePhase~=attention.phase or entry.seatedGazeReason~=attention.reason
+        or entry.seatedGazeStyle~=attention.style or entry.seatedGazeError~=motor.lookError then
+        entry.seatedGazePhase,entry.seatedGazeReason=attention.phase,attention.reason
+        entry.seatedGazeStyle,entry.seatedGazeError=attention.style,motor.lookError
+        note(entry,'seated-gaze',{reason=attention.reason,phase=attention.phase,style=attention.style or 'none',
+            selected=context.selected==true,seat=context.seat and tostring(context.seat) or nil,
+            speed=rounded(context.speed),error=motor.lookError or nil})
+    end
 end
 local function distance(a,b) return space.distance(a,b) end
 local function copyPosition(p) return Vector4.new(p.x,p.y,p.z,p.w or 1) end

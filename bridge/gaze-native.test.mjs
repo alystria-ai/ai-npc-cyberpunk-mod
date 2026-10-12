@@ -106,7 +106,8 @@ function recordLua() {
                 offset = event.offset.z, hasWorldOffset = event.targetPositionProvider.worldOffset ~= nil,
                 worldOffsetZ = event.targetPositionProvider.worldOffset and event.targetPositionProvider.worldOffset.z or 0,
                 soft = limits.softLimitDegrees, hard = limits.hardLimitDegrees, back = limits.backLimitDegrees,
-                distance = limits.hardLimitDistance, parts = parts},
+                distance = limits.hardLimitDistance, parentSpace = event.request.calculatePositionInParentSpace == true,
+                parts = parts},
             }
           end
         end
@@ -133,7 +134,9 @@ test('the gaze fixture equals what the Lua look() builds', () => {
   assert.equal(standing.output.hasWorldOffset, false);
   const seatedFull = find('full seated height=0.05 strength=1.5 drop=-0.15');
   assert.equal(seatedFull.output.parts.length, 1);
-  assert.equal(seatedFull.output.soft, 70); assert.equal(seatedFull.output.hard, 120);
+  assert.equal(seatedFull.output.soft, 100); assert.equal(seatedFull.output.hard, 150);
+  assert.equal(seatedFull.output.back, 150); assert.equal(seatedFull.output.parentSpace, true);
+  assert.equal(standing.output.parentSpace, false);
   assert.ok(Math.abs(seatedFull.output.worldOffsetZ - (-0.1)) < 1e-12);
   assert.ok(Math.abs(seatedFull.output.parts[0].weight - 0.27) < 1e-12);
 });

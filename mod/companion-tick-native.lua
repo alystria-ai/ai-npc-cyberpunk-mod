@@ -108,16 +108,43 @@ end
 
 -- Parity proof ----------------------------------------------------------------------------------
 local PROOF_TICKS, PROOF_MOVING, CANARY_EVERY, MAX_MISMATCHES = 40, 10, 100, 3
-local proof = {ticks = 0, moving = 0, mismatches = 0, compared = 0, calls = 0, lifeCalls = 0, proven = false}
+local proof = {ticks = 0, moving = 0, mismatches = 0, compared = 0, calls = 0, lifeCalls = 0,
+    combatSeen = 0, combatCompared = 0, proven = false}
 
 -- Test hook: how long the proof runs and how often the canary compares (0 skips each).
 function M.configure(ticks, moving, every)
     PROOF_TICKS, PROOF_MOVING, CANARY_EVERY = ticks, moving, every
-    proof = {ticks = 0, moving = 0, mismatches = 0, compared = 0, calls = 0, lifeCalls = 0, proven = false}
+    proof = {ticks = 0, moving = 0, mismatches = 0, compared = 0, calls = 0, lifeCalls = 0,
+        combatSeen = 0, combatCompared = 0, proven = false}
 end
 function M.state()
     return {proven = proof.proven, ticks = proof.ticks, moving = proof.moving, mismatches = proof.mismatches,
-        compared = proof.compared}
+        compared = proof.compared, combatSeen = proof.combatSeen, combatCompared = proof.combatCompared}
+end
+
+-- While the proof runs, every plugin read is made twice (the plugin's and Lua's own), so a companion
+-- that stands still keeps the window open at about twice the plain cost for as long as it stands
+-- (the proof needs some walking). Once the first PROOF_TICKS senses are in and only the walking is
+-- missing, the window narrows to one sense in four (and one life or state read in four) unless the
+-- companion is walking, which is the case the proof is waiting for. The same checks, a quarter of the cost.
+local function sparse(entry)
+    if proof.proven or proof.ticks < PROOF_TICKS or proof.moving >= PROOF_MOVING then return false end
+    return not (entry and (entry.speed or 0) > 0.5)
+end
+
+-- Rows for the perf probe (Developer mode, runtime/perf-probe.json): what each entry point costs in
+-- the shim, so the plugin path can be compared with the plain Lua path (switch the system off in
+-- runtime/native-off.txt and read the same rows). Registered once, on first use; no cost without the probe.
+local watching = false
+local function watch()
+    watching = true
+    local probe = convaiPerfProbe
+    if type(probe) ~= 'table' or type(probe.watch) ~= 'function' then return end
+    pcall(function()
+        probe.watch(M, 'life', 'tickNative.life')
+        probe.watch(M, 'sense', 'tickNative.sense')
+        probe.watch(M, 'commandState', 'tickNative.commandState')
+    end)
 end
 
 local space
@@ -201,17 +228,27 @@ local function compareSense(entry, player, step, reading, command)
             end
         end
         if reading.combat ~= nil then
+            -- The plugin's combat flag is a field of its own: it counts toward the proof, and a proof
+            -- that saw the flag needs it compared on every counted sense (below).
+            proof.combatSeen = proof.combatSeen + 1
             local asked, fighting = pcall(function() return NPCPuppet.IsInCombat(npc) end)
-            if asked and (fighting == true) ~= reading.combat then mismatch('in combat', reading.combat, fighting) end
+            if asked then
+                proof.combatCompared = proof.combatCompared + 1
+                if (fighting == true) ~= reading.combat then mismatch('in combat', reading.combat, fighting) end
+            end
         end
         proof.compared = proof.compared + 1
         if not proof.proven then
             proof.ticks = proof.ticks + 1
             if speed > 0.5 then proof.moving = proof.moving + 1 end
-            if proof.ticks >= PROOF_TICKS and proof.moving >= PROOF_MOVING and proof.mismatches == 0 then
+            local combatProven = proof.combatSeen == 0 or proof.combatCompared >= math.min(proof.ticks, PROOF_TICKS)
+            if proof.ticks >= PROOF_TICKS and proof.moving >= PROOF_MOVING and proof.mismatches == 0 and combatProven then
                 proof.proven = true
                 note('Native core: actuator parity proven over ' .. proof.ticks .. ' senses (' .. proof.moving
-                    .. ' with the companion walking); the plugin reads are in use')
+                    .. ' with the companion walking); combat flag '
+                    .. (proof.combatSeen > 0 and ('read by the plugin, compared ' .. proof.combatCompared .. ' times')
+                        or 'read by Lua (the plugin could not read it)')
+                    .. '; the plugin reads are in use')
             end
         elseif proof.mismatches == before and proof.compared % 250 == 0 then
             note('Native core: actuator parity checked ' .. proof.compared .. ' senses, ' .. proof.mismatches .. ' differences')
@@ -225,8 +262,13 @@ end
 
 -- 0 = not attached, 1 = dead, 2 = alive; nil = ask the game from Lua (IsAttached, IsDeadNoStatPool).
 function M.life(npc)
+    if not watching then watch() end
     local c = native()
     if not c or not part('life') then return nil end
+    if not proof.proven and sparse(nil) then
+        proof.lifeSkipped = (proof.lifeSkipped or 0) + 1
+        if proof.lifeSkipped % 4 ~= 0 then return nil end
+    end
     local ok, value = pcall(c.Life, npc)
     if not ok then failed(value); return nil end
     if not (value == 0 or value == 1 or value == 2) then return nil end
@@ -245,6 +287,10 @@ end
 function M.commandState(npc, command)
     local c = native()
     if not c or not command or not npc or not part('state') then return nil end
+    if not proof.proven and sparse(nil) then
+        proof.stateSkipped = (proof.stateSkipped or 0) + 1
+        if proof.stateSkipped % 4 ~= 0 then return nil end
+    end
     local ok, value = pcall(c.CommandState, npc, command)
     if not ok then failed(value); return nil end
     local label = LABEL[value]
@@ -266,6 +312,10 @@ end
 function M.sense(entry, player, step)
     local c = native()
     if not c or not part('sense') then return nil end
+    if not proof.proven and sparse(entry) then
+        proof.skipped = (proof.skipped or 0) + 1
+        if proof.skipped % 4 ~= 0 then return nil end
+    end
     local npc, motor, previous = entry.npc, entry.motor, entry.position
     local command = motor and not motor.suspendedHold and motor.command or nil
     local ok, text

@@ -29,6 +29,7 @@ TEST(gaze_plan_matches_the_lua_requests)
         CHECK_NEAR(plan.backLimitDegrees, item.Num("output", "back"), 1e-9);
         CHECK_NEAR(plan.hardLimitDistance, item.Num("output", "distance"), 1e-9);
         CHECK_EQ(plan.hasWorldOffset, item.Bool("output", "hasWorldOffset"));
+        CHECK_EQ(plan.parentSpace, item.Bool("output", "parentSpace"));
         CHECK_NEAR(plan.hasWorldOffset ? plan.worldOffsetZ : 0.0, item.Num("output", "worldOffsetZ"), 1e-9);
         CHECK_EQ(std::string(plan.targetSlot), item.Str("output", "slot"));
         CHECK_EQ(std::string(plan.bodyPart), item.Str("output", "body"));
@@ -70,6 +71,25 @@ TEST(gaze_plan_non_finite_numbers_pass_through_like_the_lua)
     CHECK(std::isnan(plan.worldOffsetZ));
     CHECK(std::isnan(plan.parts[0].weight));
     CHECK_NEAR(plan.parts[1].weight, 0.0, 0.0);
+}
+
+TEST(gaze_plan_seated_is_wider_and_solved_in_the_car_space)
+{
+    const gaze::LookPlan full = gaze::Plan(true, 0.0, 1.0, true);
+    CHECK_NEAR(full.softLimitDegrees, 100.0, 0.0);
+    CHECK_NEAR(full.hardLimitDegrees, 150.0, 0.0);
+    CHECK_NEAR(full.backLimitDegrees, 150.0, 0.0);
+    CHECK(full.parentSpace);
+    const gaze::LookPlan narrow = gaze::Plan(false, 0.0, 1.0, true);
+    CHECK_NEAR(narrow.softLimitDegrees, 60.0, 0.0);
+    CHECK_NEAR(narrow.hardLimitDegrees, 120.0, 0.0);
+    CHECK(narrow.parentSpace);
+    // Standing requests keep their numbers and their space.
+    const gaze::LookPlan standing = gaze::Plan(true, 0.0, 1.0, false);
+    CHECK_NEAR(standing.softLimitDegrees, 70.0, 0.0);
+    CHECK_NEAR(standing.hardLimitDegrees, 120.0, 0.0);
+    CHECK_NEAR(standing.backLimitDegrees, 120.0, 0.0);
+    CHECK(!standing.parentSpace);
 }
 
 TEST(gaze_plan_seated_has_only_the_head_part)
