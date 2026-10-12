@@ -322,7 +322,7 @@ test('the module cannot start a request, a timer or a turn: no timers, no networ
 test('the bridge wires it in as context only: before the reply-language line, no extra request, off adds nothing', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   assert.match(bridge, /import \{FollowUp\} from '\.\/follow-up\.mjs'/);
-  assert.match(bridge, /followUpContext\(input\), naturalSpeechContext\(input\), expressiveEmotionsContext\(input\), firstPersonReminder\(input\),\n\s*\/\/ Multilingual conversations: the reply language, last/);
+  assert.match(bridge, /block\('volatile', followUpContext\(input\)\),[\s\S]{0,400}naturalSpeechContext\(input\)\)[\s\S]{0,100}expressiveEmotionsContext\(input\)\)[\s\S]{0,300}block\('volatile', firstPersonReminder\(input\)\),\n\s*\/\/ Multilingual conversations: the reply language, last/);
   assert.match(bridge, /const followUpContext = input => \{\n\s*if \(!followUp\.enabled\) return '';/);
   assert.match(bridge, /const followUpChanged = followUp\.update\(settings\);/);
   assert.match(bridge, /speechChanged \|\| emotionsChanged \|\| multilingualChanged \|\| followUpChanged\) \{ dropPrefetch\(\)/);

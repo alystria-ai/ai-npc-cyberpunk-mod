@@ -416,7 +416,7 @@ test('the bridge wires Natural speech through the context, the reply transform, 
   assert.match(bridge, /const cleanReply = result => expressiveEmotions\.process\(naturalSpeech\.process\(result\)\)/);
   assert.equal(bridge.match(/transformReply: cleanReply/g).length, 3, 'text hosts: conversation, phone and Mistral');
   // The block is the last piece of the conversation context and is gated on the committed voice, never on Convai.
-  assert.match(bridge, /naturalSpeechContext\(input\), expressiveEmotionsContext\(input\),/);
+  assert.match(bridge, /naturalSpeechContext\(input\)\), block\('notes', expressiveEmotionsContext\(input\)\),/);
   assert.match(bridge, /turn: input\?\.requestId \|\| input\?\.id, trait: traitFor\(input\.profileKey\), profile: input\.profileKey,/);
   assert.match(bridge, /language: turnVoice\(input\)\.language\}\);/);
   assert.match(bridge, /logNaturalSpeech\(input, result\);/);
