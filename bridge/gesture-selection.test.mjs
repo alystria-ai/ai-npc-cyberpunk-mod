@@ -154,7 +154,12 @@ test('the generated catalog works with the policy for every rig and maps signatu
         local item=m.next(s,{now=t,mode='speaking',rig=rig,character=who,family='sadness',scale=2,remaining=30,clips=family.clips})
         if item then n=n+1;assert(item.clip.perRig[rig],'clip not on rig');assert(item.clip.category~='idlebreak') end
       end
-      assert(n>3,name..'/'..rig..' played '..n)
+      if family.idle.name=='idle_stand' and rig~='man_big' then
+        -- An ambient loop is 25-40 cm from every interactive-scene clip's feet: the leg gate rejects all of them (Oct 12).
+        assert(n==0,name..'/'..rig..' plays clips from an ambient idle_stand loop: '..n)
+      else
+        assert(n>3,name..'/'..rig..' played '..n)
+      end
     end
   end
   assert(m.idleComponent(catalog,'johnny')=='convai_idle_johnny')

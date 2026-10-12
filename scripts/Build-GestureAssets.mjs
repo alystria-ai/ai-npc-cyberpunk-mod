@@ -184,7 +184,9 @@ function clipsOf(rigKey, animsets) {
             entries = root.animations.map((entry) => entry?.Data?.animation?.Data).filter((a) => a?.name?.$value).map((a) => ({
                 name: a.name.$value, duration: Number(a.duration ?? a.animBuffer?.Data?.duration ?? 0), motion: a.motionExtraction != null,
                 reach: reachOf(animset, a.name.$value), feet: feetOf(animset, a.name.$value), shape: shapeOf(animset, a.name.$value),
-                measured: Boolean(motion[base(animset).replace(/\.anims$/, '')]?.[a.name.$value]?.[2]) }));
+                measured: Boolean(motion[base(animset).replace(/\.anims$/, '')]?.[a.name.$value]?.[2]),
+                // A locomotion idle_stand has its feet in the idles table (scripts/Measure-GestureMotion.py), not in the clip rows.
+                idleMeasured: /_locomotion/.test(animset) && a.name.$value === 'idle_stand' && Boolean(idleFeet[base(animset).replace(/\.anims$/, '')]) }));
             animsetCache.set(animset, entries);
         }
         for (const entry of entries) if (!result.has(entry.name)) result.set(entry.name, entry);
@@ -371,7 +373,9 @@ for (const [familyKey, familySource] of Object.entries(source.families)) {
             // large gap is blended at the hips and twists or crosses the legs.
             const loop = perRigClips[rigKey].get(family.idle);
             const loopFeet = loop?.feet?.[0];
-            let legs = clip.measured && loop?.measured && loopFeet && clip.feet
+            // An ambient idle_stand loop counts as measured (Oct 12: it did not, so every clip of the *_own and
+            // *_sides families had no leg gap and passed the gate unchecked, while Judy's loop was 37.6 cm from them).
+            let legs = clip.measured && (loop?.measured || loop?.idleMeasured) && loopFeet && clip.feet
                 ? Math.max(legDelta(clip.feet[0], loopFeet), legDelta(clip.feet[1], loopFeet)) : undefined;
             if (legs === undefined) legs = legsByName(clip.name, family.idle);
             if (legs !== undefined) legs = Math.round(legs * 10) / 10;
@@ -531,6 +535,24 @@ const catalog = {
     generic: source.generic ? { bodyTypes: source.generic.bodyTypes, rigs: source.generic.rigs, mix: source.generic.mix === true,
         never: Object.fromEntries((source.generic.never ?? []).map((record) => [record, true])) } : undefined,
 };
+// Every character must talk from a family whose loop shares its lower body with the clips she plays: at least
+// 8 visible clips inside the leg gate (mod/gesture-selection.lua maximumLegGap), none of them unmeasured.
+// An unmeasured gap used to pass the gate unchecked (Judy talked from her ambient loop, 37.6 cm from every clip).
+{
+    const parents = Object.fromEntries(aliases);
+    for (const [record, known] of Object.entries(source.characters)) {
+        const family = catalogFamilies[known.talk];
+        if (!family) fail(`${record}: talk family ${known.talk} does not exist`);
+        const clips = family.clips ?? catalogFamilies[parents[known.talk]]?.clips ?? [];
+        let usable = 0;
+        for (const clip of clips) {
+            const row = clip.perRig?.[known.rig];
+            if (!row || clip.exclude || clip.category === 'idlebreak' || !(row.reach >= 25 && row.reach <= 90)) continue;
+            if (row.legs !== undefined && row.legs <= 8) usable++;
+        }
+        if (usable < 8) fail(`${record}: only ${usable} leg-matched visible clips in ${known.talk} on ${known.rig} (loop ${family.idle?.name}); its legs would cross`);
+    }
+}
 for (const [key] of aliases) delete catalog.families[key].clips;
 const aliasLines = aliases.map(([key, parent]) => `catalog.families.${key}.clips = catalog.families.${parent}.clips`);
 const aliasBlock = aliasLines.length ? `-- Variants of another family share its clip list.\n${aliasLines.join('\n')}\n` : '';

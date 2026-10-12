@@ -10435,6 +10435,7 @@ local catalog = {
                         woman_base = {
                             duration = 9.333,
                             reach = 2.6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10452,6 +10453,7 @@ local catalog = {
                         woman_base = {
                             duration = 9.833,
                             reach = 40.2,
+                            legs = 37.6,
                             centre = 0.8,
                         },
                     },
@@ -10469,6 +10471,7 @@ local catalog = {
                         woman_base = {
                             duration = 9.333,
                             reach = 43.9,
+                            legs = 37.6,
                             centre = 0.84,
                         },
                     },
@@ -10484,6 +10487,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.5,
                             reach = 0.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10499,6 +10503,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.5,
                             reach = 23.7,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10515,6 +10520,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 29.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10530,6 +10536,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.1,
                             reach = 38.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10546,6 +10553,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.967,
                             reach = 48,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10561,6 +10569,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.333,
                             reach = 25.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10576,6 +10585,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.533,
                             reach = 20.8,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10591,6 +10601,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.2,
                             reach = 38.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10606,6 +10617,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.533,
                             reach = 26.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10621,6 +10633,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.967,
                             reach = 1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10637,6 +10650,7 @@ local catalog = {
                         woman_base = {
                             duration = 5,
                             reach = 46.4,
+                            legs = 37.6,
                             centre = 0.93,
                         },
                     },
@@ -10653,6 +10667,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.4,
                             reach = 29.1,
+                            legs = 37.6,
                             centre = 0.54,
                         },
                     },
@@ -10669,6 +10684,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.6,
                             reach = 19.3,
+                            legs = 37.6,
                             centre = 0.71,
                         },
                     },
@@ -10684,6 +10700,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 40,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10699,6 +10716,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.7,
                             reach = 46,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10714,6 +10732,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.467,
                             reach = 44.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10730,6 +10749,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.367,
                             reach = 28.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10746,6 +10766,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.1,
                             reach = 32.8,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10762,6 +10783,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.833,
                             reach = 48,
+                            legs = 37.6,
                             centre = 0.67,
                         },
                     },
@@ -10778,6 +10800,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.633,
                             reach = 26.5,
+                            legs = 37.6,
                             centre = 0.88,
                         },
                     },
@@ -10794,6 +10817,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.133,
                             reach = 74.2,
+                            legs = 37.6,
                             centre = 0.35,
                         },
                     },
@@ -10810,6 +10834,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.833,
                             reach = 32.2,
+                            legs = 37.6,
                             centre = 0.53,
                         },
                     },
@@ -10826,6 +10851,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.467,
                             reach = 59.1,
+                            legs = 37.6,
                             centre = 0.65,
                         },
                     },
@@ -10842,6 +10868,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.267,
                             reach = 21.3,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10858,6 +10885,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.267,
                             reach = 7.1,
+                            legs = 37.5,
                             centre = 1,
                         },
                     },
@@ -10874,6 +10902,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.267,
                             reach = 17,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10889,6 +10918,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.267,
                             reach = 38.4,
+                            legs = 37.6,
                             centre = 0.5,
                         },
                     },
@@ -10904,6 +10934,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.667,
                             reach = 35,
+                            legs = 37.6,
                             centre = 0.86,
                         },
                     },
@@ -10919,6 +10950,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.567,
                             reach = 32.2,
+                            legs = 37.6,
                             centre = 0.56,
                         },
                     },
@@ -10934,6 +10966,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.9,
                             reach = 23.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10949,6 +10982,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.9,
                             reach = 31.1,
+                            legs = 37.6,
                             centre = 0.2,
                         },
                     },
@@ -10964,6 +10998,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.333,
                             reach = 0.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10979,6 +11014,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.467,
                             reach = 1.4,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -10994,6 +11030,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.7,
                             reach = 1.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11009,6 +11046,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.667,
                             reach = 3.7,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11024,6 +11062,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 2.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11039,6 +11078,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.7,
                             reach = 1.6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11055,6 +11095,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.8,
                             reach = 1.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11071,6 +11112,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.3,
                             reach = 0.4,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11087,6 +11129,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.7,
                             reach = 0.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11103,6 +11146,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.767,
                             reach = 1.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11119,6 +11163,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.467,
                             reach = 0.3,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11135,6 +11180,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.8,
                             reach = 0.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11151,6 +11197,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.3,
                             reach = 0.8,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11167,6 +11214,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.9,
                             reach = 1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11183,6 +11231,7 @@ local catalog = {
                         woman_base = {
                             duration = 3,
                             reach = 1.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11199,6 +11248,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.467,
                             reach = 0.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11214,6 +11264,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.5,
                             reach = 0.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11229,6 +11280,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.9,
                             reach = 1.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11244,6 +11296,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.5,
                             reach = 0.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11259,6 +11312,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.467,
                             reach = 0.8,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11274,6 +11328,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.2,
                             reach = 27.2,
+                            legs = 37.6,
                             centre = 0.65,
                         },
                     },
@@ -11289,6 +11344,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.033,
                             reach = 42.6,
+                            legs = 37.6,
                             centre = 0.5,
                         },
                     },
@@ -11304,6 +11360,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.967,
                             reach = 32.6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11319,6 +11376,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.733,
                             reach = 25.7,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11334,6 +11392,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.867,
                             reach = 42.5,
+                            legs = 37.6,
                             centre = 0.71,
                         },
                     },
@@ -11350,6 +11409,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.2,
                             reach = 0.7,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11366,6 +11426,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.533,
                             reach = 13.6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11381,6 +11442,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.033,
                             reach = 17.4,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11396,6 +11458,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.233,
                             reach = 17.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11411,6 +11474,7 @@ local catalog = {
                         woman_base = {
                             duration = 7.767,
                             reach = 3.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11427,6 +11491,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.6,
                             reach = 47.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11442,6 +11507,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.6,
                             reach = 0.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11458,6 +11524,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.533,
                             reach = 28.5,
+                            legs = 37.6,
                             centre = 0.75,
                         },
                     },
@@ -11473,6 +11540,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.6,
                             reach = 30.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11488,6 +11556,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.767,
                             reach = 12.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11503,6 +11572,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.133,
                             reach = 28.9,
+                            legs = 37.6,
                             centre = 0.14,
                         },
                     },
@@ -11518,6 +11588,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.367,
                             reach = 33.8,
+                            legs = 37.6,
                             centre = 0.44,
                         },
                     },
@@ -11533,6 +11604,7 @@ local catalog = {
                         woman_base = {
                             duration = 3,
                             reach = 1.4,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11548,6 +11620,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.5,
                             reach = 2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11563,6 +11636,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.833,
                             reach = 2.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11578,6 +11652,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.1,
                             reach = 1.7,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11593,6 +11668,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.333,
                             reach = 1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11609,6 +11685,7 @@ local catalog = {
                         woman_base = {
                             duration = 7.167,
                             reach = 2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11624,6 +11701,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.033,
                             reach = 0.6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11639,6 +11717,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 2.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11654,6 +11733,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.833,
                             reach = 0.6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11669,6 +11749,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.9,
                             reach = 5.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11684,6 +11765,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.9,
                             reach = 0.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11700,6 +11782,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.867,
                             reach = 45.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11716,6 +11799,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.333,
                             reach = 55.3,
+                            legs = 37.6,
                             centre = 0.81,
                         },
                     },
@@ -11732,6 +11816,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.567,
                             reach = 41.6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11747,6 +11832,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.833,
                             reach = 32.4,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11762,6 +11848,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.533,
                             reach = 3.7,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11777,6 +11864,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.767,
                             reach = 3.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11792,6 +11880,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.5,
                             reach = 14.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11807,6 +11896,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.567,
                             reach = 13.8,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11822,6 +11912,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.933,
                             reach = 2.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11837,6 +11928,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.133,
                             reach = 27.3,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11852,6 +11944,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.833,
                             reach = 1.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11868,6 +11961,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.833,
                             reach = 25.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11883,6 +11977,7 @@ local catalog = {
                         woman_base = {
                             duration = 7,
                             reach = 24.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11898,6 +11993,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.967,
                             reach = 38.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11913,6 +12009,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.167,
                             reach = 39.6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11928,6 +12025,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.6,
                             reach = 36.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11944,6 +12042,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.067,
                             reach = 3.6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11959,6 +12058,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.1,
                             reach = 9.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11975,6 +12075,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.9,
                             reach = 26,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -11990,6 +12091,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.8,
                             reach = 2.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12006,6 +12108,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.8,
                             reach = 26,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12021,6 +12124,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.267,
                             reach = 21.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12036,6 +12140,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.3,
                             reach = 6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12051,6 +12156,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.1,
                             reach = 28.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12066,6 +12172,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.533,
                             reach = 22.4,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12081,6 +12188,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.8,
                             reach = 2.4,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12096,6 +12204,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.367,
                             reach = 4.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12111,6 +12220,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.933,
                             reach = 4.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12126,6 +12236,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.8,
                             reach = 27.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12141,6 +12252,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.1,
                             reach = 54.3,
+                            legs = 37.6,
                             centre = 0.79,
                         },
                     },
@@ -12156,6 +12268,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.967,
                             reach = 39.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12171,6 +12284,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.2,
                             reach = 5.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12186,6 +12300,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.833,
                             reach = 42.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12202,6 +12317,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.3,
                             reach = 49.6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12217,6 +12333,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.7,
                             reach = 2.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12232,6 +12349,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.533,
                             reach = 41.6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12247,6 +12365,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.4,
                             reach = 6.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12262,6 +12381,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.133,
                             reach = 37.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12277,6 +12397,7 @@ local catalog = {
                         woman_base = {
                             duration = 5,
                             reach = 29.7,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12292,6 +12413,7 @@ local catalog = {
                         woman_base = {
                             duration = 5,
                             reach = 42,
+                            legs = 37.6,
                             centre = 0.91,
                         },
                     },
@@ -12307,6 +12429,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.367,
                             reach = 1.8,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12322,6 +12445,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.333,
                             reach = 1.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12337,6 +12461,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.633,
                             reach = 17.1,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12352,6 +12477,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.6,
                             reach = 3.2,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12367,6 +12493,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.5,
                             reach = 3.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12382,6 +12509,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 3,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12397,6 +12525,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.467,
                             reach = 10.3,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12412,6 +12541,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.167,
                             reach = 0.7,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12427,6 +12557,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 2.9,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12442,6 +12573,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.267,
                             reach = 2.6,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12458,6 +12590,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.5,
                             reach = 3,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12473,6 +12606,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.4,
                             reach = 1.4,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12488,6 +12622,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 0.8,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12503,6 +12638,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.867,
                             reach = 0.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12518,6 +12654,7 @@ local catalog = {
                         woman_base = {
                             duration = 7.5,
                             reach = 2.5,
+                            legs = 37.6,
                             centre = 1,
                         },
                     },
@@ -12559,6 +12696,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.567,
                             reach = 34.2,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -12574,6 +12712,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 26.8,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -12589,6 +12728,7 @@ local catalog = {
                         woman_base = {
                             duration = 5,
                             reach = 31.4,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -12604,6 +12744,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.867,
                             reach = 23.3,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -12619,6 +12760,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.9,
                             reach = 29.9,
+                            legs = 45.8,
                             centre = 0.54,
                         },
                     },
@@ -12635,6 +12777,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.1,
                             reach = 65.6,
+                            legs = 45.8,
                             centre = 0.76,
                         },
                     },
@@ -12651,6 +12794,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.267,
                             reach = 56.2,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -12667,6 +12811,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.033,
                             reach = 60,
+                            legs = 45.8,
                             centre = 0.69,
                         },
                     },
@@ -12682,6 +12827,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.5,
                             reach = 36.3,
+                            legs = 45.8,
                             centre = 0.63,
                         },
                     },
@@ -12697,6 +12843,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.267,
                             reach = 12.8,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -12712,6 +12859,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.567,
                             reach = 17.9,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -12727,6 +12875,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.7,
                             reach = 10.2,
+                            legs = 45.8,
                             centre = 0.08,
                         },
                     },
@@ -12742,6 +12891,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.633,
                             reach = 6.3,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -12757,6 +12907,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.7,
                             reach = 1.3,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -12772,6 +12923,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 44.8,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -12787,6 +12939,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.867,
                             reach = 43.7,
+                            legs = 45.8,
                             centre = 0.88,
                         },
                     },
@@ -12803,6 +12956,7 @@ local catalog = {
                         woman_base = {
                             duration = 7.367,
                             reach = 94.5,
+                            legs = 45.8,
                             centre = 0.06,
                         },
                     },
@@ -12819,6 +12973,7 @@ local catalog = {
                         woman_base = {
                             duration = 14.367,
                             reach = 101.8,
+                            legs = 45.8,
                             centre = 0.07,
                         },
                     },
@@ -12835,6 +12990,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.433,
                             reach = 102.1,
+                            legs = 45.8,
                             centre = 0.08,
                         },
                     },
@@ -12851,6 +13007,7 @@ local catalog = {
                         woman_base = {
                             duration = 7.6,
                             reach = 105.4,
+                            legs = 45.8,
                             centre = 0.06,
                         },
                     },
@@ -12867,6 +13024,7 @@ local catalog = {
                         woman_base = {
                             duration = 10.6,
                             reach = 101.9,
+                            legs = 45.8,
                             centre = 0.2,
                         },
                     },
@@ -12883,6 +13041,7 @@ local catalog = {
                         woman_base = {
                             duration = 12.833,
                             reach = 105.2,
+                            legs = 45.8,
                             centre = 0.07,
                         },
                     },
@@ -12899,6 +13058,7 @@ local catalog = {
                         woman_base = {
                             duration = 10.9,
                             reach = 104.5,
+                            legs = 45.8,
                             centre = 0.01,
                         },
                     },
@@ -12915,6 +13075,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.733,
                             reach = 109.4,
+                            legs = 45.8,
                             centre = 0.06,
                         },
                     },
@@ -12931,6 +13092,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.6,
                             reach = 103.3,
+                            legs = 45.8,
                             centre = 0.09,
                         },
                     },
@@ -12947,6 +13109,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.133,
                             reach = 52.1,
+                            legs = 45.8,
                             centre = 0.83,
                         },
                     },
@@ -12963,6 +13126,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.833,
                             reach = 60,
+                            legs = 45.8,
                             centre = 0.3,
                         },
                     },
@@ -12978,6 +13142,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.3,
                             reach = 35.8,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -12993,6 +13158,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.633,
                             reach = 31.8,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13009,6 +13175,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.6,
                             reach = 39.5,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13024,6 +13191,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.467,
                             reach = 33.5,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13039,6 +13207,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 46.2,
+                            legs = 45.8,
                             centre = 0.58,
                         },
                     },
@@ -13055,6 +13224,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.633,
                             reach = 62.7,
+                            legs = 45.8,
                             centre = 0.38,
                         },
                     },
@@ -13070,6 +13240,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.933,
                             reach = 60.3,
+                            legs = 45.8,
                             centre = 0.52,
                         },
                     },
@@ -13086,6 +13257,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.833,
                             reach = 69.3,
+                            legs = 45.8,
                             centre = 0.5,
                         },
                     },
@@ -13102,6 +13274,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.433,
                             reach = 30,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -13118,6 +13291,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.467,
                             reach = 43.6,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13134,6 +13308,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.733,
                             reach = 65.4,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -13150,6 +13325,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 71,
+                            legs = 45.8,
                             centre = 0.71,
                         },
                     },
@@ -13166,6 +13342,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.167,
                             reach = 36,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13182,6 +13359,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.633,
                             reach = 47.1,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13198,6 +13376,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.2,
                             reach = 69.6,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -13214,6 +13393,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.933,
                             reach = 67.8,
+                            legs = 45.8,
                             centre = 0.62,
                         },
                     },
@@ -13230,6 +13410,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.467,
                             reach = 54.2,
+                            legs = 45.8,
                             centre = 0.76,
                         },
                     },
@@ -13246,6 +13427,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 75.9,
+                            legs = 45.8,
                             centre = 0.43,
                         },
                     },
@@ -13262,6 +13444,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 60.7,
+                            legs = 45.8,
                             centre = 0.44,
                         },
                     },
@@ -13278,6 +13461,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.7,
                             reach = 59.1,
+                            legs = 45.8,
                             centre = 0.5,
                         },
                     },
@@ -13293,6 +13477,7 @@ local catalog = {
                         woman_base = {
                             duration = 16,
                             reach = 1.2,
+                            legs = 28,
                             centre = 1,
                         },
                     },
@@ -13308,6 +13493,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.333,
                             reach = 6.3,
+                            legs = 28,
                             centre = 1,
                         },
                     },
@@ -13323,6 +13509,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.833,
                             reach = 13.8,
+                            legs = 28,
                             centre = 1,
                         },
                     },
@@ -13338,6 +13525,7 @@ local catalog = {
                         woman_base = {
                             duration = 3,
                             reach = 23.8,
+                            legs = 28,
                             centre = 0.67,
                         },
                     },
@@ -13353,6 +13541,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.5,
                             reach = 35.5,
+                            legs = 28,
                             centre = 1,
                         },
                     },
@@ -13368,6 +13557,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.4,
                             reach = 1.3,
+                            legs = 28,
                             centre = 1,
                         },
                     },
@@ -13383,6 +13573,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.267,
                             reach = 1.1,
+                            legs = 28,
                             centre = 1,
                         },
                     },
@@ -13398,6 +13589,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.1,
                             reach = 1.1,
+                            legs = 28,
                             centre = 1,
                         },
                     },
@@ -13413,6 +13605,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.667,
                             reach = 1.1,
+                            legs = 28,
                             centre = 1,
                         },
                     },
@@ -13428,6 +13621,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 19.9,
+                            legs = 28,
                             centre = 0.43,
                         },
                     },
@@ -13444,6 +13638,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 4.5,
+                            legs = 28,
                             centre = 0.14,
                         },
                     },
@@ -13459,6 +13654,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.433,
                             reach = 4.2,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13474,6 +13670,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.433,
                             reach = 1.3,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13489,6 +13686,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.4,
                             reach = 3.9,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13504,6 +13702,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.933,
                             reach = 0.9,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13520,6 +13719,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.333,
                             reach = 11.9,
+                            legs = 45.8,
                             centre = 0.25,
                         },
                     },
@@ -13536,6 +13736,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.067,
                             reach = 2.4,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13552,6 +13753,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.333,
                             reach = 1,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13568,6 +13770,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.533,
                             reach = 1.4,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13584,6 +13787,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.2,
                             reach = 7.7,
+                            legs = 45.8,
                             centre = 0.38,
                         },
                     },
@@ -13600,6 +13804,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.233,
                             reach = 3,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13616,6 +13821,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.8,
                             reach = 3.9,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13632,6 +13838,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.533,
                             reach = 5.5,
+                            legs = 45.8,
                             centre = 0.25,
                         },
                     },
@@ -13648,6 +13855,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.167,
                             reach = 3.7,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13664,6 +13872,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.4,
                             reach = 2.6,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13679,6 +13888,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.333,
                             reach = 7.2,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13694,6 +13904,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.1,
                             reach = 0.9,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13709,6 +13920,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.633,
                             reach = 2.8,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13724,6 +13936,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.5,
                             reach = 5.6,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13740,6 +13953,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.767,
                             reach = 5,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13756,6 +13970,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.9,
                             reach = 12.6,
+                            legs = 45.8,
                             centre = 0.25,
                         },
                     },
@@ -13771,6 +13986,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.333,
                             reach = 35.9,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13786,6 +14002,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.533,
                             reach = 39,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13801,6 +14018,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.633,
                             reach = 42.7,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13817,6 +14035,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 40.9,
+                            legs = 45.8,
                             centre = 0.32,
                         },
                     },
@@ -13832,6 +14051,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 30,
+                            legs = 45.8,
                             centre = 0.5,
                         },
                     },
@@ -13847,6 +14067,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.9,
                             reach = 8.8,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13862,6 +14083,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.7,
                             reach = 43.4,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13877,6 +14099,7 @@ local catalog = {
                         woman_base = {
                             duration = 4,
                             reach = 51.7,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13893,6 +14116,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.867,
                             reach = 47.1,
+                            legs = 45.8,
                             centre = 0.42,
                         },
                     },
@@ -13908,6 +14132,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 1.1,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13923,6 +14148,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.9,
                             reach = 45.2,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13938,6 +14164,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.7,
                             reach = 32.3,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13953,6 +14180,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 23.6,
+                            legs = 45.8,
                             centre = 0.5,
                         },
                     },
@@ -13968,6 +14196,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.267,
                             reach = 52,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -13983,6 +14212,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.8,
                             reach = 56.7,
+                            legs = 45.8,
                             centre = 0.78,
                         },
                     },
@@ -13998,6 +14228,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.2,
                             reach = 36.1,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -14013,6 +14244,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 31.7,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -14028,6 +14260,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.867,
                             reach = 36,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -14043,6 +14276,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.533,
                             reach = 56.1,
+                            legs = 45.8,
                             centre = 0.79,
                         },
                     },
@@ -14059,6 +14293,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.567,
                             reach = 64.3,
+                            legs = 45.8,
                             centre = 0.33,
                         },
                     },
@@ -14075,6 +14310,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.1,
                             reach = 71,
+                            legs = 45.8,
                             centre = 0.23,
                         },
                     },
@@ -14091,6 +14327,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.267,
                             reach = 62.9,
+                            legs = 45.8,
                             centre = 0.46,
                         },
                     },
@@ -14106,6 +14343,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.633,
                             reach = 16.7,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -14121,6 +14359,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.333,
                             reach = 15.6,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -14137,6 +14376,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.3,
                             reach = 40.1,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -14153,6 +14393,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.4,
                             reach = 30.4,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -14168,6 +14409,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.933,
                             reach = 5.5,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -14183,6 +14425,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.967,
                             reach = 2.8,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -14198,6 +14441,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.733,
                             reach = 16.4,
+                            legs = 45.8,
                             centre = 0.16,
                         },
                     },
@@ -14214,6 +14458,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.233,
                             reach = 20.2,
+                            legs = 45.8,
                             centre = 0.35,
                         },
                     },
@@ -14230,6 +14475,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.1,
                             reach = 15.1,
+                            legs = 45.8,
                             centre = 0.15,
                         },
                     },
@@ -14245,6 +14491,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.333,
                             reach = 13,
+                            legs = 45.8,
                             centre = 0.54,
                         },
                     },
@@ -14260,6 +14507,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.2,
                             reach = 6.1,
+                            legs = 45.8,
                             centre = 0.3,
                         },
                     },
@@ -14275,6 +14523,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.733,
                             reach = 3.9,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -14290,6 +14539,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.633,
                             reach = 11.3,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -14306,6 +14556,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.567,
                             reach = 78.8,
+                            legs = 45.8,
                             centre = 0.57,
                         },
                     },
@@ -14322,6 +14573,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.533,
                             reach = 68.8,
+                            legs = 45.8,
                             centre = 0.36,
                         },
                     },
@@ -14337,6 +14589,7 @@ local catalog = {
                         woman_base = {
                             duration = 7.267,
                             reach = 59.4,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -14352,6 +14605,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.533,
                             reach = 21.2,
+                            legs = 45.8,
                             centre = 0.19,
                         },
                     },
@@ -14367,6 +14621,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.8,
                             reach = 16.4,
+                            legs = 45.8,
                             centre = 0.78,
                         },
                     },
@@ -14382,6 +14637,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 5.6,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -14397,6 +14653,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.8,
                             reach = 31.6,
+                            legs = 45.8,
                             centre = 0.22,
                         },
                     },
@@ -14412,6 +14669,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.233,
                             reach = 32.7,
+                            legs = 45.8,
                             centre = 0.33,
                         },
                     },
@@ -14427,6 +14685,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.367,
                             reach = 37.9,
+                            legs = 45.8,
                             centre = 0.43,
                         },
                     },
@@ -14443,6 +14702,7 @@ local catalog = {
                         woman_base = {
                             duration = 5,
                             reach = 53.1,
+                            legs = 45.8,
                             centre = 0.35,
                         },
                     },
@@ -14459,6 +14719,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.133,
                             reach = 60.4,
+                            legs = 45.8,
                             centre = 0.34,
                         },
                     },
@@ -14474,6 +14735,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.067,
                             reach = 47.7,
+                            legs = 45.8,
                             centre = 0.4,
                         },
                     },
@@ -14490,6 +14752,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.667,
                             reach = 51.2,
+                            legs = 45.8,
                             centre = 0.21,
                         },
                     },
@@ -14506,6 +14769,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.067,
                             reach = 56.4,
+                            legs = 45.8,
                             centre = 0.82,
                         },
                     },
@@ -14521,6 +14785,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.8,
                             reach = 51.3,
+                            legs = 45.8,
                             centre = 0.56,
                         },
                     },
@@ -14536,6 +14801,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.233,
                             reach = 20.1,
+                            legs = 45.8,
                             centre = 0.27,
                         },
                     },
@@ -14551,6 +14817,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.3,
                             reach = 7.2,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -14566,6 +14833,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.9,
                             reach = 4.6,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -14581,6 +14849,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.9,
                             reach = 47,
+                            legs = 45.8,
                             centre = 0.92,
                         },
                     },
@@ -14597,6 +14866,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.033,
                             reach = 21.3,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -14612,6 +14882,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.6,
                             reach = 31.1,
+                            legs = 45.8,
                             centre = 0.58,
                         },
                     },
@@ -14628,6 +14899,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.433,
                             reach = 47.9,
+                            legs = 45.8,
                             centre = 0.83,
                         },
                     },
@@ -14643,6 +14915,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 29.9,
+                            legs = 45.8,
                             centre = 0.28,
                         },
                     },
@@ -14658,6 +14931,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.933,
                             reach = 34.6,
+                            legs = 45.8,
                             centre = 0.65,
                         },
                     },
@@ -14673,6 +14947,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.8,
                             reach = 24.4,
+                            legs = 45.8,
                             centre = 0.12,
                         },
                     },
@@ -14688,6 +14963,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.3,
                             reach = 45.5,
+                            legs = 45.8,
                             centre = 0.62,
                         },
                     },
@@ -14703,6 +14979,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.967,
                             reach = 49.6,
+                            legs = 45.8,
                             centre = 0.83,
                         },
                     },
@@ -14718,6 +14995,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.233,
                             reach = 60,
+                            legs = 45.8,
                             centre = 0.95,
                         },
                     },
@@ -14733,6 +15011,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.933,
                             reach = 26.5,
+                            legs = 45.8,
                             centre = 0.5,
                         },
                     },
@@ -14748,6 +15027,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.267,
                             reach = 32.8,
+                            legs = 45.8,
                             centre = 0.45,
                         },
                     },
@@ -14763,6 +15043,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.667,
                             reach = 41.3,
+                            legs = 45.8,
                             centre = 0.78,
                         },
                     },
@@ -14778,6 +15059,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.6,
                             reach = 20.8,
+                            legs = 45.8,
                             centre = 0.73,
                         },
                     },
@@ -14793,6 +15075,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 44.9,
+                            legs = 45.8,
                             centre = 0.76,
                         },
                     },
@@ -14809,6 +15092,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 56,
+                            legs = 45.8,
                             centre = 0.87,
                         },
                     },
@@ -14824,6 +15108,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.967,
                             reach = 23.1,
+                            legs = 45.8,
                             centre = 0.11,
                         },
                     },
@@ -14840,6 +15125,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.067,
                             reach = 65.8,
+                            legs = 45.8,
                             centre = 0.88,
                         },
                     },
@@ -14856,6 +15142,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 49.2,
+                            legs = 45.8,
                             centre = 0.24,
                         },
                     },
@@ -14872,6 +15159,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.167,
                             reach = 57.3,
+                            legs = 45.8,
                             centre = 0.19,
                         },
                     },
@@ -14887,6 +15175,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.1,
                             reach = 24.5,
+                            legs = 45.8,
                             centre = 0.12,
                         },
                     },
@@ -14902,6 +15191,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.4,
                             reach = 19.1,
+                            legs = 45.8,
                             centre = 0.3,
                         },
                     },
@@ -14918,6 +15208,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.033,
                             reach = 40.9,
+                            legs = 45.8,
                             centre = 0.06,
                         },
                     },
@@ -14933,6 +15224,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.133,
                             reach = 6.5,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -14948,6 +15240,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.467,
                             reach = 23.8,
+                            legs = 45.8,
                             centre = 0.33,
                         },
                     },
@@ -14963,6 +15256,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.5,
                             reach = 26.4,
+                            legs = 45.8,
                             centre = 0.47,
                         },
                     },
@@ -14978,6 +15272,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 8.5,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -14993,6 +15288,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.4,
                             reach = 1.6,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -15008,6 +15304,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.2,
                             reach = 30.4,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -15024,6 +15321,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 50.3,
+                            legs = 45.8,
                             centre = 0.07,
                         },
                     },
@@ -15039,6 +15337,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.667,
                             reach = 1.9,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -15054,6 +15353,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 47.5,
+                            legs = 45.8,
                             centre = 0.78,
                         },
                     },
@@ -15069,6 +15369,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.467,
                             reach = 2.4,
+                            legs = 45.8,
                             centre = 1,
                         },
                     },
@@ -15084,6 +15385,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.467,
                             reach = 9.3,
+                            legs = 45.8,
                             centre = 0,
                         },
                     },
@@ -15099,6 +15401,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.733,
                             reach = 35.4,
+                            legs = 45.8,
                             centre = 0.37,
                         },
                     },
@@ -15140,6 +15443,7 @@ local catalog = {
                         man_base = {
                             duration = 3.567,
                             reach = 37,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -15155,6 +15459,7 @@ local catalog = {
                         man_base = {
                             duration = 2.667,
                             reach = 27.9,
+                            legs = 25.9,
                             centre = 0.44,
                         },
                     },
@@ -15170,6 +15475,7 @@ local catalog = {
                         man_base = {
                             duration = 5,
                             reach = 34.9,
+                            legs = 25.9,
                             centre = 0.82,
                         },
                     },
@@ -15185,6 +15491,7 @@ local catalog = {
                         man_base = {
                             duration = 2.867,
                             reach = 25.1,
+                            legs = 25.9,
                             centre = 0.73,
                         },
                     },
@@ -15200,6 +15507,7 @@ local catalog = {
                         man_base = {
                             duration = 3.9,
                             reach = 39.2,
+                            legs = 25.9,
                             centre = 0.53,
                         },
                     },
@@ -15216,6 +15524,7 @@ local catalog = {
                         man_base = {
                             duration = 6.1,
                             reach = 70.4,
+                            legs = 25.9,
                             centre = 0.56,
                         },
                     },
@@ -15232,6 +15541,7 @@ local catalog = {
                         man_base = {
                             duration = 3.267,
                             reach = 61,
+                            legs = 25.9,
                             centre = 0.82,
                         },
                     },
@@ -15248,6 +15558,7 @@ local catalog = {
                         man_base = {
                             duration = 5.033,
                             reach = 63.7,
+                            legs = 25.9,
                             centre = 0.55,
                         },
                     },
@@ -15263,6 +15574,7 @@ local catalog = {
                         man_base = {
                             duration = 5.5,
                             reach = 38.2,
+                            legs = 25.9,
                             centre = 0.66,
                         },
                     },
@@ -15278,6 +15590,7 @@ local catalog = {
                         man_base = {
                             duration = 5.567,
                             reach = 19.6,
+                            legs = 25.9,
                             centre = 0.69,
                         },
                     },
@@ -15293,6 +15606,7 @@ local catalog = {
                         man_base = {
                             duration = 5.7,
                             reach = 10.7,
+                            legs = 25.9,
                             centre = 0.15,
                         },
                     },
@@ -15308,6 +15622,7 @@ local catalog = {
                         man_base = {
                             duration = 5.633,
                             reach = 6.5,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -15323,6 +15638,7 @@ local catalog = {
                         man_base = {
                             duration = 3.7,
                             reach = 1.4,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -15338,6 +15654,7 @@ local catalog = {
                         man_base = {
                             duration = 5.067,
                             reach = 50,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -15353,6 +15670,7 @@ local catalog = {
                         man_base = {
                             duration = 4.867,
                             reach = 48.2,
+                            legs = 25.9,
                             centre = 0.88,
                         },
                     },
@@ -15369,6 +15687,7 @@ local catalog = {
                         man_base = {
                             duration = 7.367,
                             reach = 104.8,
+                            legs = 25.9,
                             centre = 0.03,
                         },
                     },
@@ -15385,6 +15704,7 @@ local catalog = {
                         man_base = {
                             duration = 14.367,
                             reach = 111.3,
+                            legs = 25.9,
                             centre = 0.02,
                         },
                     },
@@ -15401,6 +15721,7 @@ local catalog = {
                         man_base = {
                             duration = 8.433,
                             reach = 110.9,
+                            legs = 25.9,
                             centre = 0.05,
                         },
                     },
@@ -15417,6 +15738,7 @@ local catalog = {
                         man_base = {
                             duration = 7.6,
                             reach = 115.2,
+                            legs = 25.9,
                             centre = 0.03,
                         },
                     },
@@ -15433,6 +15755,7 @@ local catalog = {
                         man_base = {
                             duration = 10.6,
                             reach = 112.9,
+                            legs = 25.9,
                             centre = 0.14,
                         },
                     },
@@ -15449,6 +15772,7 @@ local catalog = {
                         man_base = {
                             duration = 12.833,
                             reach = 116.4,
+                            legs = 25.9,
                             centre = 0.05,
                         },
                     },
@@ -15465,6 +15789,7 @@ local catalog = {
                         man_base = {
                             duration = 10.9,
                             reach = 113.6,
+                            legs = 25.9,
                             centre = 0.04,
                         },
                     },
@@ -15481,6 +15806,7 @@ local catalog = {
                         man_base = {
                             duration = 6.733,
                             reach = 118.9,
+                            legs = 25.9,
                             centre = 0.08,
                         },
                     },
@@ -15497,6 +15823,7 @@ local catalog = {
                         man_base = {
                             duration = 4.6,
                             reach = 113.3,
+                            legs = 25.9,
                             centre = 0.08,
                         },
                     },
@@ -15513,6 +15840,7 @@ local catalog = {
                         man_base = {
                             duration = 3.133,
                             reach = 56.5,
+                            legs = 25.9,
                             centre = 0.26,
                         },
                     },
@@ -15529,6 +15857,7 @@ local catalog = {
                         man_base = {
                             duration = 6.833,
                             reach = 63.8,
+                            legs = 25.9,
                             centre = 0.15,
                         },
                     },
@@ -15544,6 +15873,7 @@ local catalog = {
                         man_base = {
                             duration = 2.3,
                             reach = 38.8,
+                            legs = 25.9,
                             centre = 0.88,
                         },
                     },
@@ -15559,6 +15889,7 @@ local catalog = {
                         man_base = {
                             duration = 2.633,
                             reach = 34.9,
+                            legs = 25.9,
                             centre = 0.94,
                         },
                     },
@@ -15575,6 +15906,7 @@ local catalog = {
                         man_base = {
                             duration = 2.6,
                             reach = 44.8,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -15590,6 +15922,7 @@ local catalog = {
                         man_base = {
                             duration = 3.467,
                             reach = 35.6,
+                            legs = 25.9,
                             centre = 0.96,
                         },
                     },
@@ -15605,6 +15938,7 @@ local catalog = {
                         man_base = {
                             duration = 2.667,
                             reach = 49.3,
+                            legs = 25.9,
                             centre = 0.58,
                         },
                     },
@@ -15621,6 +15955,7 @@ local catalog = {
                         man_base = {
                             duration = 4.633,
                             reach = 70.1,
+                            legs = 25.9,
                             centre = 0.03,
                         },
                     },
@@ -15637,6 +15972,7 @@ local catalog = {
                         man_base = {
                             duration = 3.933,
                             reach = 65.3,
+                            legs = 25.9,
                             centre = 0.58,
                         },
                     },
@@ -15653,6 +15989,7 @@ local catalog = {
                         man_base = {
                             duration = 2.833,
                             reach = 74.4,
+                            legs = 25.9,
                             centre = 0.35,
                         },
                     },
@@ -15669,6 +16006,7 @@ local catalog = {
                         man_base = {
                             duration = 2.433,
                             reach = 32.5,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -15685,6 +16023,7 @@ local catalog = {
                         man_base = {
                             duration = 2.467,
                             reach = 45.7,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -15701,6 +16040,7 @@ local catalog = {
                         man_base = {
                             duration = 2.733,
                             reach = 70.4,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -15717,6 +16057,7 @@ local catalog = {
                         man_base = {
                             duration = 3.167,
                             reach = 75.1,
+                            legs = 25.9,
                             centre = 0.71,
                         },
                     },
@@ -15733,6 +16074,7 @@ local catalog = {
                         man_base = {
                             duration = 2.167,
                             reach = 37.7,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -15749,6 +16091,7 @@ local catalog = {
                         man_base = {
                             duration = 2.633,
                             reach = 50.9,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -15765,6 +16108,7 @@ local catalog = {
                         man_base = {
                             duration = 3.2,
                             reach = 76.6,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -15781,6 +16125,7 @@ local catalog = {
                         man_base = {
                             duration = 2.933,
                             reach = 73.2,
+                            legs = 25.9,
                             centre = 0.54,
                         },
                     },
@@ -15797,6 +16142,7 @@ local catalog = {
                         man_base = {
                             duration = 3.467,
                             reach = 58.5,
+                            legs = 25.9,
                             centre = 0.36,
                         },
                     },
@@ -15813,6 +16159,7 @@ local catalog = {
                         man_base = {
                             duration = 2.767,
                             reach = 81.9,
+                            legs = 25.9,
                             centre = 0.29,
                         },
                     },
@@ -15829,6 +16176,7 @@ local catalog = {
                         man_base = {
                             duration = 5.067,
                             reach = 65.6,
+                            legs = 25.9,
                             centre = 0.44,
                         },
                     },
@@ -15845,6 +16193,7 @@ local catalog = {
                         man_base = {
                             duration = 5.7,
                             reach = 64.1,
+                            legs = 25.9,
                             centre = 0.48,
                         },
                     },
@@ -15860,6 +16209,7 @@ local catalog = {
                         man_base = {
                             duration = 16,
                             reach = 1.3,
+                            legs = 32.2,
                             centre = 1,
                         },
                     },
@@ -15875,6 +16225,7 @@ local catalog = {
                         man_base = {
                             duration = 2.333,
                             reach = 6.8,
+                            legs = 32.2,
                             centre = 1,
                         },
                     },
@@ -15890,6 +16241,7 @@ local catalog = {
                         man_base = {
                             duration = 2.833,
                             reach = 14.6,
+                            legs = 32.2,
                             centre = 1,
                         },
                     },
@@ -15905,6 +16257,7 @@ local catalog = {
                         man_base = {
                             duration = 3,
                             reach = 25.4,
+                            legs = 32.2,
                             centre = 0.46,
                         },
                     },
@@ -15920,6 +16273,7 @@ local catalog = {
                         man_base = {
                             duration = 2.5,
                             reach = 35.8,
+                            legs = 32.2,
                             centre = 1,
                         },
                     },
@@ -15935,6 +16289,7 @@ local catalog = {
                         man_base = {
                             duration = 2.4,
                             reach = 1.3,
+                            legs = 32.2,
                             centre = 1,
                         },
                     },
@@ -15950,6 +16305,7 @@ local catalog = {
                         man_base = {
                             duration = 2.267,
                             reach = 1.2,
+                            legs = 32.2,
                             centre = 1,
                         },
                     },
@@ -15965,6 +16321,7 @@ local catalog = {
                         man_base = {
                             duration = 2.1,
                             reach = 1.1,
+                            legs = 32.2,
                             centre = 1,
                         },
                     },
@@ -15980,6 +16337,7 @@ local catalog = {
                         man_base = {
                             duration = 1.667,
                             reach = 1.2,
+                            legs = 32.2,
                             centre = 1,
                         },
                     },
@@ -15995,6 +16353,7 @@ local catalog = {
                         man_base = {
                             duration = 3.167,
                             reach = 21.3,
+                            legs = 32.2,
                             centre = 0.29,
                         },
                     },
@@ -16011,6 +16370,7 @@ local catalog = {
                         man_base = {
                             duration = 4.167,
                             reach = 4.9,
+                            legs = 32.2,
                             centre = 0.14,
                         },
                     },
@@ -16026,6 +16386,7 @@ local catalog = {
                         man_base = {
                             duration = 2.433,
                             reach = 4.4,
+                            legs = 25.9,
                             centre = 0.25,
                         },
                     },
@@ -16041,6 +16402,7 @@ local catalog = {
                         man_base = {
                             duration = 2.433,
                             reach = 1.4,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16056,6 +16418,7 @@ local catalog = {
                         man_base = {
                             duration = 2.4,
                             reach = 4.3,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16071,6 +16434,7 @@ local catalog = {
                         man_base = {
                             duration = 2.933,
                             reach = 1,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16087,6 +16451,7 @@ local catalog = {
                         man_base = {
                             duration = 2.333,
                             reach = 12.4,
+                            legs = 25.9,
                             centre = 0.2,
                         },
                     },
@@ -16103,6 +16468,7 @@ local catalog = {
                         man_base = {
                             duration = 2.067,
                             reach = 2.5,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16119,6 +16485,7 @@ local catalog = {
                         man_base = {
                             duration = 1.333,
                             reach = 1.1,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16135,6 +16502,7 @@ local catalog = {
                         man_base = {
                             duration = 1.533,
                             reach = 1.5,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16151,6 +16519,7 @@ local catalog = {
                         man_base = {
                             duration = 2.2,
                             reach = 7.8,
+                            legs = 25.9,
                             centre = 0.22,
                         },
                     },
@@ -16167,6 +16536,7 @@ local catalog = {
                         man_base = {
                             duration = 2.233,
                             reach = 3,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16183,6 +16553,7 @@ local catalog = {
                         man_base = {
                             duration = 1.8,
                             reach = 4.2,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16199,6 +16570,7 @@ local catalog = {
                         man_base = {
                             duration = 2.533,
                             reach = 5.2,
+                            legs = 25.9,
                             centre = 0.25,
                         },
                     },
@@ -16215,6 +16587,7 @@ local catalog = {
                         man_base = {
                             duration = 2.167,
                             reach = 4,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16231,6 +16604,7 @@ local catalog = {
                         man_base = {
                             duration = 2.4,
                             reach = 2.9,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16246,6 +16620,7 @@ local catalog = {
                         man_base = {
                             duration = 2.333,
                             reach = 8.5,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16261,6 +16636,7 @@ local catalog = {
                         man_base = {
                             duration = 1.1,
                             reach = 1,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16276,6 +16652,7 @@ local catalog = {
                         man_base = {
                             duration = 1.633,
                             reach = 3,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16291,6 +16668,7 @@ local catalog = {
                         man_base = {
                             duration = 2.5,
                             reach = 5.9,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16307,6 +16685,7 @@ local catalog = {
                         man_base = {
                             duration = 3.767,
                             reach = 5.2,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16322,6 +16701,7 @@ local catalog = {
                         man_base = {
                             duration = 4.333,
                             reach = 38.5,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16337,6 +16717,7 @@ local catalog = {
                         man_base = {
                             duration = 5.533,
                             reach = 40.9,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16352,6 +16733,7 @@ local catalog = {
                         man_base = {
                             duration = 3.633,
                             reach = 45.9,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16368,6 +16750,7 @@ local catalog = {
                         man_base = {
                             duration = 4.167,
                             reach = 44.2,
+                            legs = 25.9,
                             centre = 0.27,
                         },
                     },
@@ -16383,6 +16766,7 @@ local catalog = {
                         man_base = {
                             duration = 2.767,
                             reach = 30.5,
+                            legs = 25.9,
                             centre = 0.47,
                         },
                     },
@@ -16398,6 +16782,7 @@ local catalog = {
                         man_base = {
                             duration = 2.9,
                             reach = 8.7,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -16413,6 +16798,7 @@ local catalog = {
                         man_base = {
                             duration = 4.7,
                             reach = 40,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16428,6 +16814,7 @@ local catalog = {
                         man_base = {
                             duration = 4,
                             reach = 55.5,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16444,6 +16831,7 @@ local catalog = {
                         man_base = {
                             duration = 3.867,
                             reach = 51,
+                            legs = 25.9,
                             centre = 0.19,
                         },
                     },
@@ -16459,6 +16847,7 @@ local catalog = {
                         man_base = {
                             duration = 2.667,
                             reach = 1.4,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16474,6 +16863,7 @@ local catalog = {
                         man_base = {
                             duration = 2.9,
                             reach = 48.6,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16489,6 +16879,7 @@ local catalog = {
                         man_base = {
                             duration = 2.7,
                             reach = 35.8,
+                            legs = 25.9,
                             centre = 0.54,
                         },
                     },
@@ -16504,6 +16895,7 @@ local catalog = {
                         man_base = {
                             duration = 2.767,
                             reach = 24.8,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -16519,6 +16911,7 @@ local catalog = {
                         man_base = {
                             duration = 2.267,
                             reach = 56.5,
+                            legs = 25.9,
                             centre = 0.54,
                         },
                     },
@@ -16534,6 +16927,7 @@ local catalog = {
                         man_base = {
                             duration = 2.8,
                             reach = 60,
+                            legs = 25.9,
                             centre = 0.71,
                         },
                     },
@@ -16550,6 +16944,7 @@ local catalog = {
                         man_base = {
                             duration = 1.467,
                             reach = 29.9,
+                            legs = 25.9,
                             centre = 0.31,
                         },
                     },
@@ -16565,6 +16960,7 @@ local catalog = {
                         man_base = {
                             duration = 4.2,
                             reach = 36.6,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16580,6 +16976,7 @@ local catalog = {
                         man_base = {
                             duration = 4.167,
                             reach = 28.1,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16595,6 +16992,7 @@ local catalog = {
                         man_base = {
                             duration = 5.867,
                             reach = 48.1,
+                            legs = 25.9,
                             centre = 0.98,
                         },
                     },
@@ -16611,6 +17009,7 @@ local catalog = {
                         man_base = {
                             duration = 4.533,
                             reach = 62.3,
+                            legs = 26.2,
                             centre = 0.41,
                         },
                     },
@@ -16627,6 +17026,7 @@ local catalog = {
                         man_base = {
                             duration = 4.567,
                             reach = 69.6,
+                            legs = 25.9,
                             centre = 0.33,
                         },
                     },
@@ -16643,6 +17043,7 @@ local catalog = {
                         man_base = {
                             duration = 5.1,
                             reach = 76.3,
+                            legs = 25.9,
                             centre = 0.23,
                         },
                     },
@@ -16659,6 +17060,7 @@ local catalog = {
                         man_base = {
                             duration = 3.267,
                             reach = 70.5,
+                            legs = 25.9,
                             centre = 0.45,
                         },
                     },
@@ -16674,6 +17076,7 @@ local catalog = {
                         man_base = {
                             duration = 2.633,
                             reach = 15.4,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -16689,6 +17092,7 @@ local catalog = {
                         man_base = {
                             duration = 2.333,
                             reach = 12.7,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -16705,6 +17109,7 @@ local catalog = {
                         man_base = {
                             duration = 4.1,
                             reach = 42.2,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -16721,6 +17126,7 @@ local catalog = {
                         man_base = {
                             duration = 3.4,
                             reach = 34.9,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -16736,6 +17142,7 @@ local catalog = {
                         man_base = {
                             duration = 1.933,
                             reach = 5.7,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16751,6 +17158,7 @@ local catalog = {
                         man_base = {
                             duration = 1.967,
                             reach = 3.4,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16766,6 +17174,7 @@ local catalog = {
                         man_base = {
                             duration = 4.033,
                             reach = 6.7,
+                            legs = 25.9,
                             centre = 0.06,
                         },
                     },
@@ -16781,6 +17190,7 @@ local catalog = {
                         man_base = {
                             duration = 5.967,
                             reach = 36.8,
+                            legs = 25.9,
                             centre = 0.25,
                         },
                     },
@@ -16797,6 +17207,7 @@ local catalog = {
                         man_base = {
                             duration = 4.9,
                             reach = 12.1,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -16812,6 +17223,7 @@ local catalog = {
                         man_base = {
                             duration = 3.633,
                             reach = 22.8,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -16827,6 +17239,7 @@ local catalog = {
                         man_base = {
                             duration = 5.133,
                             reach = 17.4,
+                            legs = 25.9,
                             centre = 0.31,
                         },
                     },
@@ -16842,6 +17255,7 @@ local catalog = {
                         man_base = {
                             duration = 4.633,
                             reach = 8.1,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -16857,6 +17271,7 @@ local catalog = {
                         man_base = {
                             duration = 4.2,
                             reach = 7.5,
+                            legs = 25.9,
                             centre = 0.04,
                         },
                     },
@@ -16872,6 +17287,7 @@ local catalog = {
                         man_base = {
                             duration = 4.733,
                             reach = 4.5,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -16887,6 +17303,7 @@ local catalog = {
                         man_base = {
                             duration = 5.633,
                             reach = 12.3,
+                            legs = 25.9,
                             centre = 0.21,
                         },
                     },
@@ -16903,6 +17320,7 @@ local catalog = {
                         man_base = {
                             duration = 4.533,
                             reach = 75.4,
+                            legs = 25.9,
                             centre = 0.36,
                         },
                     },
@@ -16918,6 +17336,7 @@ local catalog = {
                         man_base = {
                             duration = 7.267,
                             reach = 63.7,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -16933,6 +17352,7 @@ local catalog = {
                         man_base = {
                             duration = 3.533,
                             reach = 23.4,
+                            legs = 25.9,
                             centre = 0.06,
                         },
                     },
@@ -16948,6 +17368,7 @@ local catalog = {
                         man_base = {
                             duration = 3.8,
                             reach = 18.2,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -16964,6 +17385,7 @@ local catalog = {
                         man_base = {
                             duration = 6.3,
                             reach = 119.8,
+                            legs = 25.9,
                             centre = 0.26,
                         },
                     },
@@ -16980,6 +17402,7 @@ local catalog = {
                         man_base = {
                             duration = 6.333,
                             reach = 85.8,
+                            legs = 25.9,
                             centre = 0.19,
                         },
                     },
@@ -16995,6 +17418,7 @@ local catalog = {
                         man_base = {
                             duration = 3.167,
                             reach = 6.4,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -17010,6 +17434,7 @@ local catalog = {
                         man_base = {
                             duration = 3.533,
                             reach = 51.7,
+                            legs = 25.9,
                             centre = 0.37,
                         },
                     },
@@ -17026,6 +17451,7 @@ local catalog = {
                         man_base = {
                             duration = 2.867,
                             reach = 44.9,
+                            legs = 25.9,
                             centre = 0.21,
                         },
                     },
@@ -17041,6 +17467,7 @@ local catalog = {
                         man_base = {
                             duration = 3.8,
                             reach = 33.5,
+                            legs = 25.9,
                             centre = 0.17,
                         },
                     },
@@ -17056,6 +17483,7 @@ local catalog = {
                         man_base = {
                             duration = 4.233,
                             reach = 34.5,
+                            legs = 25.9,
                             centre = 0.09,
                         },
                     },
@@ -17071,6 +17499,7 @@ local catalog = {
                         man_base = {
                             duration = 4.367,
                             reach = 40.7,
+                            legs = 25.9,
                             centre = 0.29,
                         },
                     },
@@ -17087,6 +17516,7 @@ local catalog = {
                         man_base = {
                             duration = 5,
                             reach = 56.3,
+                            legs = 25.9,
                             centre = 0.12,
                         },
                     },
@@ -17103,6 +17533,7 @@ local catalog = {
                         man_base = {
                             duration = 8.133,
                             reach = 64.3,
+                            legs = 25.9,
                             centre = 0.17,
                         },
                     },
@@ -17119,6 +17550,7 @@ local catalog = {
                         man_base = {
                             duration = 3.833,
                             reach = 38.9,
+                            legs = 25.9,
                             centre = 0.39,
                         },
                     },
@@ -17135,6 +17567,7 @@ local catalog = {
                         man_base = {
                             duration = 5.1,
                             reach = 53.6,
+                            legs = 25.9,
                             centre = 0.06,
                         },
                     },
@@ -17151,6 +17584,7 @@ local catalog = {
                         man_base = {
                             duration = 5.9,
                             reach = 52.5,
+                            legs = 25.9,
                             centre = 0.19,
                         },
                     },
@@ -17166,6 +17600,7 @@ local catalog = {
                         man_base = {
                             duration = 7.3,
                             reach = 56.8,
+                            legs = 25.9,
                             centre = 0.2,
                         },
                     },
@@ -17181,6 +17616,7 @@ local catalog = {
                         man_base = {
                             duration = 3.233,
                             reach = 21.6,
+                            legs = 25.9,
                             centre = 0.07,
                         },
                     },
@@ -17196,6 +17632,7 @@ local catalog = {
                         man_base = {
                             duration = 6.3,
                             reach = 7.2,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -17211,6 +17648,7 @@ local catalog = {
                         man_base = {
                             duration = 3.9,
                             reach = 4.9,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -17226,6 +17664,7 @@ local catalog = {
                         man_base = {
                             duration = 4.9,
                             reach = 50.9,
+                            legs = 25.9,
                             centre = 0.92,
                         },
                     },
@@ -17242,6 +17681,7 @@ local catalog = {
                         man_base = {
                             duration = 3.033,
                             reach = 24,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -17257,6 +17697,7 @@ local catalog = {
                         man_base = {
                             duration = 3.6,
                             reach = 34.8,
+                            legs = 25.9,
                             centre = 0.42,
                         },
                     },
@@ -17273,6 +17714,7 @@ local catalog = {
                         man_base = {
                             duration = 3.433,
                             reach = 51.5,
+                            legs = 25.9,
                             centre = 0.73,
                         },
                     },
@@ -17289,6 +17731,7 @@ local catalog = {
                         man_base = {
                             duration = 4.167,
                             reach = 31.8,
+                            legs = 25.9,
                             centre = 0.19,
                         },
                     },
@@ -17304,6 +17747,7 @@ local catalog = {
                         man_base = {
                             duration = 4.933,
                             reach = 36.8,
+                            legs = 25.9,
                             centre = 0.51,
                         },
                     },
@@ -17319,6 +17763,7 @@ local catalog = {
                         man_base = {
                             duration = 2.8,
                             reach = 26.9,
+                            legs = 25.9,
                             centre = 0,
                         },
                     },
@@ -17334,6 +17779,7 @@ local catalog = {
                         man_base = {
                             duration = 3.3,
                             reach = 49.1,
+                            legs = 25.9,
                             centre = 0.5,
                         },
                     },
@@ -17349,6 +17795,7 @@ local catalog = {
                         man_base = {
                             duration = 2.967,
                             reach = 52.8,
+                            legs = 25.9,
                             centre = 0.83,
                         },
                     },
@@ -17365,6 +17812,7 @@ local catalog = {
                         man_base = {
                             duration = 3.233,
                             reach = 64.7,
+                            legs = 25.9,
                             centre = 0.76,
                         },
                     },
@@ -17380,6 +17828,7 @@ local catalog = {
                         man_base = {
                             duration = 2.933,
                             reach = 28.4,
+                            legs = 25.9,
                             centre = 0.5,
                         },
                     },
@@ -17395,6 +17844,7 @@ local catalog = {
                         man_base = {
                             duration = 3.267,
                             reach = 33.7,
+                            legs = 25.9,
                             centre = 0.42,
                         },
                     },
@@ -17411,6 +17861,7 @@ local catalog = {
                         man_base = {
                             duration = 5.667,
                             reach = 42.7,
+                            legs = 25.9,
                             centre = 0.29,
                         },
                     },
@@ -17426,6 +17877,7 @@ local catalog = {
                         man_base = {
                             duration = 3.6,
                             reach = 22.6,
+                            legs = 25.9,
                             centre = 0.27,
                         },
                     },
@@ -17441,6 +17893,7 @@ local catalog = {
                         man_base = {
                             duration = 5.067,
                             reach = 48.2,
+                            legs = 25.9,
                             centre = 0.77,
                         },
                     },
@@ -17457,6 +17910,7 @@ local catalog = {
                         man_base = {
                             duration = 4.167,
                             reach = 61.9,
+                            legs = 25.9,
                             centre = 0.97,
                         },
                     },
@@ -17473,6 +17927,7 @@ local catalog = {
                         man_base = {
                             duration = 4.067,
                             reach = 69.5,
+                            legs = 25.9,
                             centre = 0.8,
                         },
                     },
@@ -17489,6 +17944,7 @@ local catalog = {
                         man_base = {
                             duration = 5.067,
                             reach = 53.3,
+                            legs = 25.9,
                             centre = 0.03,
                         },
                     },
@@ -17504,6 +17960,7 @@ local catalog = {
                         man_base = {
                             duration = 3.1,
                             reach = 26.4,
+                            legs = 25.9,
                             centre = 0.12,
                         },
                     },
@@ -17519,6 +17976,7 @@ local catalog = {
                         man_base = {
                             duration = 4.133,
                             reach = 6.4,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -17534,6 +17992,7 @@ local catalog = {
                         man_base = {
                             duration = 5.467,
                             reach = 24.8,
+                            legs = 25.9,
                             centre = 0.31,
                         },
                     },
@@ -17549,6 +18008,7 @@ local catalog = {
                         man_base = {
                             duration = 4.5,
                             reach = 29.3,
+                            legs = 25.9,
                             centre = 0.17,
                         },
                     },
@@ -17564,6 +18024,7 @@ local catalog = {
                         man_base = {
                             duration = 2.767,
                             reach = 8.8,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -17579,6 +18040,7 @@ local catalog = {
                         man_base = {
                             duration = 8.2,
                             reach = 33.2,
+                            legs = 25.9,
                             centre = 0.96,
                         },
                     },
@@ -17594,6 +18056,7 @@ local catalog = {
                         man_base = {
                             duration = 3.667,
                             reach = 2.2,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -17609,6 +18072,7 @@ local catalog = {
                         man_base = {
                             duration = 3.467,
                             reach = 2.4,
+                            legs = 25.9,
                             centre = 1,
                         },
                     },
@@ -17624,6 +18088,7 @@ local catalog = {
                         man_base = {
                             duration = 4.467,
                             reach = 10.1,
+                            legs = 25.9,
                             centre = 0.1,
                         },
                     },
@@ -17640,6 +18105,7 @@ local catalog = {
                         man_base = {
                             duration = 3.6,
                             reach = 7.8,
+                            legs = 36.4,
                             centre = 1,
                         },
                     },
@@ -17656,6 +18122,7 @@ local catalog = {
                         man_base = {
                             duration = 6.067,
                             reach = 6,
+                            legs = 36.4,
                             centre = 0.24,
                         },
                     },
@@ -17672,6 +18139,7 @@ local catalog = {
                         man_base = {
                             duration = 2.533,
                             reach = 4.6,
+                            legs = 36.4,
                             centre = 1,
                         },
                     },
@@ -17688,6 +18156,7 @@ local catalog = {
                         man_base = {
                             duration = 3.867,
                             reach = 14.2,
+                            legs = 36.4,
                             centre = 0.12,
                         },
                     },
@@ -17704,6 +18173,7 @@ local catalog = {
                         man_base = {
                             duration = 6.067,
                             reach = 15.2,
+                            legs = 36.4,
                             centre = 0.13,
                         },
                     },
@@ -17721,6 +18191,7 @@ local catalog = {
                         man_base = {
                             duration = 8.5,
                             reach = 29.7,
+                            legs = 36.4,
                             centre = 0.18,
                         },
                     },
@@ -17737,6 +18208,7 @@ local catalog = {
                         man_base = {
                             duration = 2.7,
                             reach = 14.8,
+                            legs = 36.4,
                             centre = 0.08,
                         },
                     },
@@ -18190,6 +18662,7 @@ local catalog = {
                         man_big = {
                             duration = 2.433,
                             reach = 38.4,
+                            legs = 22.1,
                             centre = 0,
                         },
                     },
@@ -18547,6 +19020,7 @@ local catalog = {
                         man_big = {
                             duration = 2.433,
                             reach = 4.7,
+                            legs = 22.1,
                             centre = 0,
                         },
                     },
@@ -18592,6 +19066,7 @@ local catalog = {
                         man_big = {
                             duration = 2.933,
                             reach = 1,
+                            legs = 22.1,
                             centre = 1,
                         },
                     },
@@ -18624,6 +19099,7 @@ local catalog = {
                         man_big = {
                             duration = 2.067,
                             reach = 2.8,
+                            legs = 22.1,
                             centre = 1,
                         },
                     },
@@ -18720,6 +19196,7 @@ local catalog = {
                         man_big = {
                             duration = 2.533,
                             reach = 7.1,
+                            legs = 22.1,
                             centre = 0,
                         },
                     },
@@ -18828,6 +19305,7 @@ local catalog = {
                         man_big = {
                             duration = 3.767,
                             reach = 5.1,
+                            legs = 22.1,
                             centre = 1,
                         },
                     },
@@ -18935,6 +19413,7 @@ local catalog = {
                         man_big = {
                             duration = 2.9,
                             reach = 8.4,
+                            legs = 22.1,
                             centre = 1,
                         },
                     },
@@ -19026,6 +19505,7 @@ local catalog = {
                         man_big = {
                             duration = 2.7,
                             reach = 37,
+                            legs = 22.1,
                             centre = 0,
                         },
                     },
@@ -19041,6 +19521,7 @@ local catalog = {
                         man_big = {
                             duration = 2.767,
                             reach = 25.2,
+                            legs = 22.1,
                             centre = 0,
                         },
                     },
@@ -19116,6 +19597,7 @@ local catalog = {
                         man_big = {
                             duration = 5.867,
                             reach = 48.7,
+                            legs = 22.1,
                             centre = 0.91,
                         },
                     },
@@ -19194,6 +19676,7 @@ local catalog = {
                         man_big = {
                             duration = 2.633,
                             reach = 15.5,
+                            legs = 22.1,
                             centre = 0,
                         },
                     },
@@ -19496,6 +19979,7 @@ local catalog = {
                         man_big = {
                             duration = 3.8,
                             reach = 36.5,
+                            legs = 22.1,
                             centre = 0,
                         },
                     },
@@ -20115,6 +20599,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.567,
                             reach = 34.2,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20130,6 +20615,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 26.8,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20145,6 +20631,7 @@ local catalog = {
                         woman_base = {
                             duration = 5,
                             reach = 31.4,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20160,6 +20647,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.867,
                             reach = 23.3,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20175,6 +20663,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.9,
                             reach = 29.9,
+                            legs = 34.2,
                             centre = 0.54,
                         },
                     },
@@ -20191,6 +20680,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.1,
                             reach = 65.6,
+                            legs = 34.2,
                             centre = 0.76,
                         },
                     },
@@ -20207,6 +20697,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.267,
                             reach = 56.2,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20223,6 +20714,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.033,
                             reach = 60,
+                            legs = 34.2,
                             centre = 0.69,
                         },
                     },
@@ -20238,6 +20730,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.5,
                             reach = 36.3,
+                            legs = 34.2,
                             centre = 0.63,
                         },
                     },
@@ -20253,6 +20746,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.267,
                             reach = 12.8,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -20268,6 +20762,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.567,
                             reach = 17.9,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20283,6 +20778,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.7,
                             reach = 10.2,
+                            legs = 34.2,
                             centre = 0.08,
                         },
                     },
@@ -20298,6 +20794,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.633,
                             reach = 6.3,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20313,6 +20810,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.7,
                             reach = 1.3,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20328,6 +20826,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 44.8,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20343,6 +20842,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.867,
                             reach = 43.7,
+                            legs = 34.2,
                             centre = 0.88,
                         },
                     },
@@ -20359,6 +20859,7 @@ local catalog = {
                         woman_base = {
                             duration = 7.367,
                             reach = 94.5,
+                            legs = 34.2,
                             centre = 0.06,
                         },
                     },
@@ -20375,6 +20876,7 @@ local catalog = {
                         woman_base = {
                             duration = 14.367,
                             reach = 101.8,
+                            legs = 34.2,
                             centre = 0.07,
                         },
                     },
@@ -20391,6 +20893,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.433,
                             reach = 102.1,
+                            legs = 34.2,
                             centre = 0.08,
                         },
                     },
@@ -20407,6 +20910,7 @@ local catalog = {
                         woman_base = {
                             duration = 7.6,
                             reach = 105.4,
+                            legs = 34.2,
                             centre = 0.06,
                         },
                     },
@@ -20423,6 +20927,7 @@ local catalog = {
                         woman_base = {
                             duration = 10.6,
                             reach = 101.9,
+                            legs = 34.2,
                             centre = 0.2,
                         },
                     },
@@ -20439,6 +20944,7 @@ local catalog = {
                         woman_base = {
                             duration = 12.833,
                             reach = 105.2,
+                            legs = 34.2,
                             centre = 0.07,
                         },
                     },
@@ -20455,6 +20961,7 @@ local catalog = {
                         woman_base = {
                             duration = 10.9,
                             reach = 104.5,
+                            legs = 34.2,
                             centre = 0.01,
                         },
                     },
@@ -20471,6 +20978,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.733,
                             reach = 109.4,
+                            legs = 34.2,
                             centre = 0.06,
                         },
                     },
@@ -20487,6 +20995,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.6,
                             reach = 103.3,
+                            legs = 34.2,
                             centre = 0.09,
                         },
                     },
@@ -20503,6 +21012,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.133,
                             reach = 52.1,
+                            legs = 34.2,
                             centre = 0.83,
                         },
                     },
@@ -20519,6 +21029,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.833,
                             reach = 60,
+                            legs = 34.2,
                             centre = 0.3,
                         },
                     },
@@ -20534,6 +21045,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.3,
                             reach = 35.8,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20549,6 +21061,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.633,
                             reach = 31.8,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20565,6 +21078,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.6,
                             reach = 39.5,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20580,6 +21094,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.467,
                             reach = 33.5,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20595,6 +21110,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 46.2,
+                            legs = 34.2,
                             centre = 0.58,
                         },
                     },
@@ -20611,6 +21127,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.633,
                             reach = 62.7,
+                            legs = 34.2,
                             centre = 0.38,
                         },
                     },
@@ -20626,6 +21143,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.933,
                             reach = 60.3,
+                            legs = 34.2,
                             centre = 0.52,
                         },
                     },
@@ -20642,6 +21160,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.833,
                             reach = 69.3,
+                            legs = 34.2,
                             centre = 0.5,
                         },
                     },
@@ -20658,6 +21177,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.433,
                             reach = 30,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -20674,6 +21194,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.467,
                             reach = 43.6,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20690,6 +21211,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.733,
                             reach = 65.4,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -20706,6 +21228,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 71,
+                            legs = 34.2,
                             centre = 0.71,
                         },
                     },
@@ -20722,6 +21245,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.167,
                             reach = 36,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20738,6 +21262,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.633,
                             reach = 47.1,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -20754,6 +21279,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.2,
                             reach = 69.6,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -20770,6 +21296,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.933,
                             reach = 67.8,
+                            legs = 34.2,
                             centre = 0.62,
                         },
                     },
@@ -20786,6 +21313,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.467,
                             reach = 54.2,
+                            legs = 34.2,
                             centre = 0.76,
                         },
                     },
@@ -20802,6 +21330,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 75.9,
+                            legs = 34.2,
                             centre = 0.43,
                         },
                     },
@@ -20818,6 +21347,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 60.7,
+                            legs = 34.2,
                             centre = 0.44,
                         },
                     },
@@ -20834,6 +21364,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.7,
                             reach = 59.1,
+                            legs = 34.2,
                             centre = 0.5,
                         },
                     },
@@ -20849,6 +21380,7 @@ local catalog = {
                         woman_base = {
                             duration = 16,
                             reach = 1.2,
+                            legs = 32.7,
                             centre = 1,
                         },
                     },
@@ -20864,6 +21396,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.333,
                             reach = 6.3,
+                            legs = 32.7,
                             centre = 1,
                         },
                     },
@@ -20879,6 +21412,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.833,
                             reach = 13.8,
+                            legs = 32.7,
                             centre = 1,
                         },
                     },
@@ -20894,6 +21428,7 @@ local catalog = {
                         woman_base = {
                             duration = 3,
                             reach = 23.8,
+                            legs = 32.7,
                             centre = 0.67,
                         },
                     },
@@ -20909,6 +21444,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.5,
                             reach = 35.5,
+                            legs = 32.7,
                             centre = 1,
                         },
                     },
@@ -20924,6 +21460,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.4,
                             reach = 1.3,
+                            legs = 32.7,
                             centre = 1,
                         },
                     },
@@ -20939,6 +21476,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.267,
                             reach = 1.1,
+                            legs = 32.7,
                             centre = 1,
                         },
                     },
@@ -20954,6 +21492,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.1,
                             reach = 1.1,
+                            legs = 32.7,
                             centre = 1,
                         },
                     },
@@ -20969,6 +21508,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.667,
                             reach = 1.1,
+                            legs = 32.7,
                             centre = 1,
                         },
                     },
@@ -20984,6 +21524,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 19.9,
+                            legs = 32.7,
                             centre = 0.43,
                         },
                     },
@@ -21000,6 +21541,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 4.5,
+                            legs = 32.7,
                             centre = 0.14,
                         },
                     },
@@ -21015,6 +21557,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.433,
                             reach = 4.2,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21030,6 +21573,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.433,
                             reach = 1.3,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21045,6 +21589,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.4,
                             reach = 3.9,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21060,6 +21605,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.933,
                             reach = 0.9,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21076,6 +21622,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.333,
                             reach = 11.9,
+                            legs = 34.2,
                             centre = 0.25,
                         },
                     },
@@ -21092,6 +21639,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.067,
                             reach = 2.4,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21108,6 +21656,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.333,
                             reach = 1,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21124,6 +21673,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.533,
                             reach = 1.4,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21140,6 +21690,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.2,
                             reach = 7.7,
+                            legs = 34.2,
                             centre = 0.38,
                         },
                     },
@@ -21156,6 +21707,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.233,
                             reach = 3,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21172,6 +21724,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.8,
                             reach = 3.9,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21188,6 +21741,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.533,
                             reach = 5.5,
+                            legs = 34.2,
                             centre = 0.25,
                         },
                     },
@@ -21204,6 +21758,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.167,
                             reach = 3.7,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21220,6 +21775,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.4,
                             reach = 2.6,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21235,6 +21791,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.333,
                             reach = 7.2,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21250,6 +21807,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.1,
                             reach = 0.9,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21265,6 +21823,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.633,
                             reach = 2.8,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21280,6 +21839,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.5,
                             reach = 5.6,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21296,6 +21856,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.767,
                             reach = 5,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21312,6 +21873,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.9,
                             reach = 12.6,
+                            legs = 34.2,
                             centre = 0.25,
                         },
                     },
@@ -21327,6 +21889,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.333,
                             reach = 35.9,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21342,6 +21905,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.533,
                             reach = 39,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21357,6 +21921,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.633,
                             reach = 42.7,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21373,6 +21938,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 40.9,
+                            legs = 34.2,
                             centre = 0.32,
                         },
                     },
@@ -21388,6 +21954,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 30,
+                            legs = 34.2,
                             centre = 0.5,
                         },
                     },
@@ -21403,6 +21970,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.9,
                             reach = 8.8,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21418,6 +21986,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.7,
                             reach = 43.4,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21433,6 +22002,7 @@ local catalog = {
                         woman_base = {
                             duration = 4,
                             reach = 51.7,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21449,6 +22019,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.867,
                             reach = 47.1,
+                            legs = 34.2,
                             centre = 0.42,
                         },
                     },
@@ -21464,6 +22035,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 1.1,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21479,6 +22051,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.9,
                             reach = 45.2,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21494,6 +22067,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.7,
                             reach = 32.3,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21509,6 +22083,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 23.6,
+                            legs = 34.2,
                             centre = 0.5,
                         },
                     },
@@ -21524,6 +22099,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.267,
                             reach = 52,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21539,6 +22115,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.8,
                             reach = 56.7,
+                            legs = 34.2,
                             centre = 0.78,
                         },
                     },
@@ -21554,6 +22131,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.2,
                             reach = 36.1,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21569,6 +22147,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 31.7,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21584,6 +22163,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.867,
                             reach = 36,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21599,6 +22179,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.533,
                             reach = 56.1,
+                            legs = 34.2,
                             centre = 0.79,
                         },
                     },
@@ -21615,6 +22196,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.567,
                             reach = 64.3,
+                            legs = 34.2,
                             centre = 0.33,
                         },
                     },
@@ -21631,6 +22213,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.1,
                             reach = 71,
+                            legs = 34.2,
                             centre = 0.23,
                         },
                     },
@@ -21647,6 +22230,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.267,
                             reach = 62.9,
+                            legs = 34.2,
                             centre = 0.46,
                         },
                     },
@@ -21662,6 +22246,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.633,
                             reach = 16.7,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -21677,6 +22262,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.333,
                             reach = 15.6,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -21693,6 +22279,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.3,
                             reach = 40.1,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -21709,6 +22296,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.4,
                             reach = 30.4,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -21724,6 +22312,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.933,
                             reach = 5.5,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21739,6 +22328,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.967,
                             reach = 2.8,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21754,6 +22344,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.733,
                             reach = 16.4,
+                            legs = 34.2,
                             centre = 0.16,
                         },
                     },
@@ -21770,6 +22361,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.233,
                             reach = 20.2,
+                            legs = 34.2,
                             centre = 0.35,
                         },
                     },
@@ -21786,6 +22378,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.1,
                             reach = 15.1,
+                            legs = 34.2,
                             centre = 0.15,
                         },
                     },
@@ -21801,6 +22394,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.333,
                             reach = 13,
+                            legs = 34.2,
                             centre = 0.54,
                         },
                     },
@@ -21816,6 +22410,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.2,
                             reach = 6.1,
+                            legs = 34.2,
                             centre = 0.3,
                         },
                     },
@@ -21831,6 +22426,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.733,
                             reach = 3.9,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -21846,6 +22442,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.633,
                             reach = 11.3,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -21862,6 +22459,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.567,
                             reach = 78.8,
+                            legs = 34.2,
                             centre = 0.57,
                         },
                     },
@@ -21878,6 +22476,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.533,
                             reach = 68.8,
+                            legs = 34.2,
                             centre = 0.36,
                         },
                     },
@@ -21893,6 +22492,7 @@ local catalog = {
                         woman_base = {
                             duration = 7.267,
                             reach = 59.4,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21908,6 +22508,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.533,
                             reach = 21.2,
+                            legs = 34.2,
                             centre = 0.19,
                         },
                     },
@@ -21923,6 +22524,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.8,
                             reach = 16.4,
+                            legs = 34.2,
                             centre = 0.78,
                         },
                     },
@@ -21938,6 +22540,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 5.6,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -21953,6 +22556,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.8,
                             reach = 31.6,
+                            legs = 34.2,
                             centre = 0.22,
                         },
                     },
@@ -21968,6 +22572,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.233,
                             reach = 32.7,
+                            legs = 34.2,
                             centre = 0.33,
                         },
                     },
@@ -21983,6 +22588,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.367,
                             reach = 37.9,
+                            legs = 34.2,
                             centre = 0.43,
                         },
                     },
@@ -21999,6 +22605,7 @@ local catalog = {
                         woman_base = {
                             duration = 5,
                             reach = 53.1,
+                            legs = 34.2,
                             centre = 0.35,
                         },
                     },
@@ -22015,6 +22622,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.133,
                             reach = 60.4,
+                            legs = 34.2,
                             centre = 0.34,
                         },
                     },
@@ -22030,6 +22638,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.067,
                             reach = 47.7,
+                            legs = 34.2,
                             centre = 0.4,
                         },
                     },
@@ -22046,6 +22655,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.667,
                             reach = 51.2,
+                            legs = 34.2,
                             centre = 0.21,
                         },
                     },
@@ -22062,6 +22672,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.067,
                             reach = 56.4,
+                            legs = 34.2,
                             centre = 0.82,
                         },
                     },
@@ -22077,6 +22688,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.8,
                             reach = 51.3,
+                            legs = 34.2,
                             centre = 0.56,
                         },
                     },
@@ -22092,6 +22704,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.233,
                             reach = 20.1,
+                            legs = 34.2,
                             centre = 0.27,
                         },
                     },
@@ -22107,6 +22720,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.3,
                             reach = 7.2,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -22122,6 +22736,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.9,
                             reach = 4.6,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -22137,6 +22752,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.9,
                             reach = 47,
+                            legs = 34.2,
                             centre = 0.92,
                         },
                     },
@@ -22153,6 +22769,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.033,
                             reach = 21.3,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -22168,6 +22785,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.6,
                             reach = 31.1,
+                            legs = 34.2,
                             centre = 0.58,
                         },
                     },
@@ -22184,6 +22802,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.433,
                             reach = 47.9,
+                            legs = 34.2,
                             centre = 0.83,
                         },
                     },
@@ -22199,6 +22818,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 29.9,
+                            legs = 34.2,
                             centre = 0.28,
                         },
                     },
@@ -22214,6 +22834,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.933,
                             reach = 34.6,
+                            legs = 34.2,
                             centre = 0.65,
                         },
                     },
@@ -22229,6 +22850,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.8,
                             reach = 24.4,
+                            legs = 34.2,
                             centre = 0.12,
                         },
                     },
@@ -22244,6 +22866,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.3,
                             reach = 45.5,
+                            legs = 34.2,
                             centre = 0.62,
                         },
                     },
@@ -22259,6 +22882,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.967,
                             reach = 49.6,
+                            legs = 34.2,
                             centre = 0.83,
                         },
                     },
@@ -22274,6 +22898,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.233,
                             reach = 60,
+                            legs = 34.2,
                             centre = 0.95,
                         },
                     },
@@ -22289,6 +22914,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.933,
                             reach = 26.5,
+                            legs = 34.2,
                             centre = 0.5,
                         },
                     },
@@ -22304,6 +22930,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.267,
                             reach = 32.8,
+                            legs = 34.2,
                             centre = 0.45,
                         },
                     },
@@ -22319,6 +22946,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.667,
                             reach = 41.3,
+                            legs = 34.2,
                             centre = 0.78,
                         },
                     },
@@ -22334,6 +22962,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.6,
                             reach = 20.8,
+                            legs = 34.2,
                             centre = 0.73,
                         },
                     },
@@ -22349,6 +22978,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 44.9,
+                            legs = 34.2,
                             centre = 0.76,
                         },
                     },
@@ -22365,6 +22995,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 56,
+                            legs = 34.2,
                             centre = 0.87,
                         },
                     },
@@ -22380,6 +23011,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.967,
                             reach = 23.1,
+                            legs = 34.2,
                             centre = 0.11,
                         },
                     },
@@ -22396,6 +23028,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.067,
                             reach = 65.8,
+                            legs = 34.2,
                             centre = 0.88,
                         },
                     },
@@ -22412,6 +23045,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 49.2,
+                            legs = 34.2,
                             centre = 0.24,
                         },
                     },
@@ -22428,6 +23062,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.167,
                             reach = 57.3,
+                            legs = 34.2,
                             centre = 0.19,
                         },
                     },
@@ -22443,6 +23078,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.1,
                             reach = 24.5,
+                            legs = 34.2,
                             centre = 0.12,
                         },
                     },
@@ -22458,6 +23094,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.4,
                             reach = 19.1,
+                            legs = 34.2,
                             centre = 0.3,
                         },
                     },
@@ -22474,6 +23111,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.033,
                             reach = 40.9,
+                            legs = 34.2,
                             centre = 0.06,
                         },
                     },
@@ -22489,6 +23127,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.133,
                             reach = 6.5,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -22504,6 +23143,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.467,
                             reach = 23.8,
+                            legs = 34.2,
                             centre = 0.33,
                         },
                     },
@@ -22519,6 +23159,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.5,
                             reach = 26.4,
+                            legs = 34.2,
                             centre = 0.47,
                         },
                     },
@@ -22534,6 +23175,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 8.5,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -22549,6 +23191,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.4,
                             reach = 1.6,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -22564,6 +23207,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.2,
                             reach = 30.4,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -22580,6 +23224,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 50.3,
+                            legs = 34.2,
                             centre = 0.07,
                         },
                     },
@@ -22595,6 +23240,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.667,
                             reach = 1.9,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -22610,6 +23256,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 47.5,
+                            legs = 34.2,
                             centre = 0.78,
                         },
                     },
@@ -22625,6 +23272,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.467,
                             reach = 2.4,
+                            legs = 34.2,
                             centre = 1,
                         },
                     },
@@ -22640,6 +23288,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.467,
                             reach = 9.3,
+                            legs = 34.2,
                             centre = 0,
                         },
                     },
@@ -22655,6 +23304,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.733,
                             reach = 35.4,
+                            legs = 34.2,
                             centre = 0.37,
                         },
                     },
@@ -23108,6 +23758,7 @@ local catalog = {
                         man_big = {
                             duration = 2.433,
                             reach = 38.4,
+                            legs = 28,
                             centre = 0,
                         },
                     },
@@ -23465,6 +24116,7 @@ local catalog = {
                         man_big = {
                             duration = 2.433,
                             reach = 4.7,
+                            legs = 28,
                             centre = 0,
                         },
                     },
@@ -23510,6 +24162,7 @@ local catalog = {
                         man_big = {
                             duration = 2.933,
                             reach = 1,
+                            legs = 28,
                             centre = 1,
                         },
                     },
@@ -23542,6 +24195,7 @@ local catalog = {
                         man_big = {
                             duration = 2.067,
                             reach = 2.8,
+                            legs = 28,
                             centre = 1,
                         },
                     },
@@ -23638,6 +24292,7 @@ local catalog = {
                         man_big = {
                             duration = 2.533,
                             reach = 7.1,
+                            legs = 28,
                             centre = 0,
                         },
                     },
@@ -23746,6 +24401,7 @@ local catalog = {
                         man_big = {
                             duration = 3.767,
                             reach = 5.1,
+                            legs = 28,
                             centre = 1,
                         },
                     },
@@ -23853,6 +24509,7 @@ local catalog = {
                         man_big = {
                             duration = 2.9,
                             reach = 8.4,
+                            legs = 28,
                             centre = 1,
                         },
                     },
@@ -23944,6 +24601,7 @@ local catalog = {
                         man_big = {
                             duration = 2.7,
                             reach = 37,
+                            legs = 28,
                             centre = 0,
                         },
                     },
@@ -23959,6 +24617,7 @@ local catalog = {
                         man_big = {
                             duration = 2.767,
                             reach = 25.2,
+                            legs = 28,
                             centre = 0,
                         },
                     },
@@ -24034,6 +24693,7 @@ local catalog = {
                         man_big = {
                             duration = 5.867,
                             reach = 48.7,
+                            legs = 28,
                             centre = 0.91,
                         },
                     },
@@ -24112,6 +24772,7 @@ local catalog = {
                         man_big = {
                             duration = 2.633,
                             reach = 15.5,
+                            legs = 28,
                             centre = 0,
                         },
                     },
@@ -24414,6 +25075,7 @@ local catalog = {
                         man_big = {
                             duration = 3.8,
                             reach = 36.5,
+                            legs = 28,
                             centre = 0,
                         },
                     },
@@ -25445,6 +26107,7 @@ local catalog = {
                         man_big = {
                             duration = 2.433,
                             reach = 38.4,
+                            legs = 22.2,
                             centre = 0,
                         },
                     },
@@ -25802,6 +26465,7 @@ local catalog = {
                         man_big = {
                             duration = 2.433,
                             reach = 4.7,
+                            legs = 22.2,
                             centre = 0,
                         },
                     },
@@ -25847,6 +26511,7 @@ local catalog = {
                         man_big = {
                             duration = 2.933,
                             reach = 1,
+                            legs = 22.2,
                             centre = 1,
                         },
                     },
@@ -25879,6 +26544,7 @@ local catalog = {
                         man_big = {
                             duration = 2.067,
                             reach = 2.8,
+                            legs = 22.2,
                             centre = 1,
                         },
                     },
@@ -25975,6 +26641,7 @@ local catalog = {
                         man_big = {
                             duration = 2.533,
                             reach = 7.1,
+                            legs = 22.2,
                             centre = 0,
                         },
                     },
@@ -26083,6 +26750,7 @@ local catalog = {
                         man_big = {
                             duration = 3.767,
                             reach = 5.1,
+                            legs = 22.2,
                             centre = 1,
                         },
                     },
@@ -26190,6 +26858,7 @@ local catalog = {
                         man_big = {
                             duration = 2.9,
                             reach = 8.4,
+                            legs = 22.2,
                             centre = 1,
                         },
                     },
@@ -26281,6 +26950,7 @@ local catalog = {
                         man_big = {
                             duration = 2.7,
                             reach = 37,
+                            legs = 22.2,
                             centre = 0,
                         },
                     },
@@ -26296,6 +26966,7 @@ local catalog = {
                         man_big = {
                             duration = 2.767,
                             reach = 25.2,
+                            legs = 22.2,
                             centre = 0,
                         },
                     },
@@ -26371,6 +27042,7 @@ local catalog = {
                         man_big = {
                             duration = 5.867,
                             reach = 48.7,
+                            legs = 21.8,
                             centre = 0.91,
                         },
                     },
@@ -26449,6 +27121,7 @@ local catalog = {
                         man_big = {
                             duration = 2.633,
                             reach = 15.5,
+                            legs = 22.2,
                             centre = 0,
                         },
                     },
@@ -26751,6 +27424,7 @@ local catalog = {
                         man_big = {
                             duration = 3.8,
                             reach = 36.5,
+                            legs = 22.2,
                             centre = 0,
                         },
                     },
@@ -27370,6 +28044,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.567,
                             reach = 34.2,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27385,6 +28060,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 26.8,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27400,6 +28076,7 @@ local catalog = {
                         woman_base = {
                             duration = 5,
                             reach = 31.4,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27415,6 +28092,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.867,
                             reach = 23.3,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27430,6 +28108,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.9,
                             reach = 29.9,
+                            legs = 15.5,
                             centre = 0.54,
                         },
                     },
@@ -27446,6 +28125,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.1,
                             reach = 65.6,
+                            legs = 15.5,
                             centre = 0.76,
                         },
                     },
@@ -27462,6 +28142,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.267,
                             reach = 56.2,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27478,6 +28159,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.033,
                             reach = 60,
+                            legs = 15.5,
                             centre = 0.69,
                         },
                     },
@@ -27493,6 +28175,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.5,
                             reach = 36.3,
+                            legs = 15.5,
                             centre = 0.63,
                         },
                     },
@@ -27508,6 +28191,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.267,
                             reach = 12.8,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -27523,6 +28207,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.567,
                             reach = 17.9,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27538,6 +28223,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.7,
                             reach = 10.2,
+                            legs = 15.5,
                             centre = 0.08,
                         },
                     },
@@ -27553,6 +28239,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.633,
                             reach = 6.3,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27568,6 +28255,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.7,
                             reach = 1.3,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27583,6 +28271,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 44.8,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27598,6 +28287,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.867,
                             reach = 43.7,
+                            legs = 15.5,
                             centre = 0.88,
                         },
                     },
@@ -27614,6 +28304,7 @@ local catalog = {
                         woman_base = {
                             duration = 7.367,
                             reach = 94.5,
+                            legs = 15.5,
                             centre = 0.06,
                         },
                     },
@@ -27630,6 +28321,7 @@ local catalog = {
                         woman_base = {
                             duration = 14.367,
                             reach = 101.8,
+                            legs = 15.5,
                             centre = 0.07,
                         },
                     },
@@ -27646,6 +28338,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.433,
                             reach = 102.1,
+                            legs = 15.5,
                             centre = 0.08,
                         },
                     },
@@ -27662,6 +28355,7 @@ local catalog = {
                         woman_base = {
                             duration = 7.6,
                             reach = 105.4,
+                            legs = 15.5,
                             centre = 0.06,
                         },
                     },
@@ -27678,6 +28372,7 @@ local catalog = {
                         woman_base = {
                             duration = 10.6,
                             reach = 101.9,
+                            legs = 15.5,
                             centre = 0.2,
                         },
                     },
@@ -27694,6 +28389,7 @@ local catalog = {
                         woman_base = {
                             duration = 12.833,
                             reach = 105.2,
+                            legs = 15.5,
                             centre = 0.07,
                         },
                     },
@@ -27710,6 +28406,7 @@ local catalog = {
                         woman_base = {
                             duration = 10.9,
                             reach = 104.5,
+                            legs = 15.5,
                             centre = 0.01,
                         },
                     },
@@ -27726,6 +28423,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.733,
                             reach = 109.4,
+                            legs = 15.5,
                             centre = 0.06,
                         },
                     },
@@ -27742,6 +28440,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.6,
                             reach = 103.3,
+                            legs = 15.5,
                             centre = 0.09,
                         },
                     },
@@ -27758,6 +28457,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.133,
                             reach = 52.1,
+                            legs = 15.5,
                             centre = 0.83,
                         },
                     },
@@ -27774,6 +28474,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.833,
                             reach = 60,
+                            legs = 15.5,
                             centre = 0.3,
                         },
                     },
@@ -27789,6 +28490,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.3,
                             reach = 35.8,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27804,6 +28506,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.633,
                             reach = 31.8,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27820,6 +28523,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.6,
                             reach = 39.5,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27835,6 +28539,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.467,
                             reach = 33.5,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27850,6 +28555,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 46.2,
+                            legs = 15.5,
                             centre = 0.58,
                         },
                     },
@@ -27866,6 +28572,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.633,
                             reach = 62.7,
+                            legs = 15.5,
                             centre = 0.38,
                         },
                     },
@@ -27881,6 +28588,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.933,
                             reach = 60.3,
+                            legs = 15.5,
                             centre = 0.52,
                         },
                     },
@@ -27897,6 +28605,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.833,
                             reach = 69.3,
+                            legs = 15.5,
                             centre = 0.5,
                         },
                     },
@@ -27913,6 +28622,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.433,
                             reach = 30,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -27929,6 +28639,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.467,
                             reach = 43.6,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27945,6 +28656,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.733,
                             reach = 65.4,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -27961,6 +28673,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 71,
+                            legs = 15.5,
                             centre = 0.71,
                         },
                     },
@@ -27977,6 +28690,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.167,
                             reach = 36,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -27993,6 +28707,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.633,
                             reach = 47.1,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28009,6 +28724,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.2,
                             reach = 69.6,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -28025,6 +28741,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.933,
                             reach = 67.8,
+                            legs = 15.5,
                             centre = 0.62,
                         },
                     },
@@ -28041,6 +28758,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.467,
                             reach = 54.2,
+                            legs = 15.5,
                             centre = 0.76,
                         },
                     },
@@ -28057,6 +28775,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 75.9,
+                            legs = 15.5,
                             centre = 0.43,
                         },
                     },
@@ -28073,6 +28792,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 60.7,
+                            legs = 15.5,
                             centre = 0.44,
                         },
                     },
@@ -28089,6 +28809,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.7,
                             reach = 59.1,
+                            legs = 15.5,
                             centre = 0.5,
                         },
                     },
@@ -28104,6 +28825,7 @@ local catalog = {
                         woman_base = {
                             duration = 16,
                             reach = 1.2,
+                            legs = 22.8,
                             centre = 1,
                         },
                     },
@@ -28119,6 +28841,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.333,
                             reach = 6.3,
+                            legs = 22.8,
                             centre = 1,
                         },
                     },
@@ -28134,6 +28857,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.833,
                             reach = 13.8,
+                            legs = 22.8,
                             centre = 1,
                         },
                     },
@@ -28149,6 +28873,7 @@ local catalog = {
                         woman_base = {
                             duration = 3,
                             reach = 23.8,
+                            legs = 22.8,
                             centre = 0.67,
                         },
                     },
@@ -28164,6 +28889,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.5,
                             reach = 35.5,
+                            legs = 22.8,
                             centre = 1,
                         },
                     },
@@ -28179,6 +28905,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.4,
                             reach = 1.3,
+                            legs = 22.8,
                             centre = 1,
                         },
                     },
@@ -28194,6 +28921,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.267,
                             reach = 1.1,
+                            legs = 22.8,
                             centre = 1,
                         },
                     },
@@ -28209,6 +28937,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.1,
                             reach = 1.1,
+                            legs = 22.8,
                             centre = 1,
                         },
                     },
@@ -28224,6 +28953,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.667,
                             reach = 1.1,
+                            legs = 22.8,
                             centre = 1,
                         },
                     },
@@ -28239,6 +28969,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 19.9,
+                            legs = 22.8,
                             centre = 0.43,
                         },
                     },
@@ -28255,6 +28986,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 4.5,
+                            legs = 22.8,
                             centre = 0.14,
                         },
                     },
@@ -28270,6 +29002,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.433,
                             reach = 4.2,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28285,6 +29018,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.433,
                             reach = 1.3,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28300,6 +29034,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.4,
                             reach = 3.9,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28315,6 +29050,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.933,
                             reach = 0.9,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28331,6 +29067,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.333,
                             reach = 11.9,
+                            legs = 15.5,
                             centre = 0.25,
                         },
                     },
@@ -28347,6 +29084,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.067,
                             reach = 2.4,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28363,6 +29101,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.333,
                             reach = 1,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28379,6 +29118,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.533,
                             reach = 1.4,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28395,6 +29135,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.2,
                             reach = 7.7,
+                            legs = 15.5,
                             centre = 0.38,
                         },
                     },
@@ -28411,6 +29152,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.233,
                             reach = 3,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28427,6 +29169,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.8,
                             reach = 3.9,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28443,6 +29186,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.533,
                             reach = 5.5,
+                            legs = 15.5,
                             centre = 0.25,
                         },
                     },
@@ -28459,6 +29203,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.167,
                             reach = 3.7,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28475,6 +29220,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.4,
                             reach = 2.6,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28490,6 +29236,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.333,
                             reach = 7.2,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28505,6 +29252,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.1,
                             reach = 0.9,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28520,6 +29268,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.633,
                             reach = 2.8,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28535,6 +29284,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.5,
                             reach = 5.6,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28551,6 +29301,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.767,
                             reach = 5,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28567,6 +29318,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.9,
                             reach = 12.6,
+                            legs = 15.5,
                             centre = 0.25,
                         },
                     },
@@ -28582,6 +29334,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.333,
                             reach = 35.9,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28597,6 +29350,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.533,
                             reach = 39,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28612,6 +29366,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.633,
                             reach = 42.7,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28628,6 +29383,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 40.9,
+                            legs = 15.5,
                             centre = 0.32,
                         },
                     },
@@ -28643,6 +29399,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 30,
+                            legs = 15.5,
                             centre = 0.5,
                         },
                     },
@@ -28658,6 +29415,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.9,
                             reach = 8.8,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28673,6 +29431,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.7,
                             reach = 43.4,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28688,6 +29447,7 @@ local catalog = {
                         woman_base = {
                             duration = 4,
                             reach = 51.7,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28704,6 +29464,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.867,
                             reach = 47.1,
+                            legs = 15.5,
                             centre = 0.42,
                         },
                     },
@@ -28719,6 +29480,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 1.1,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28734,6 +29496,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.9,
                             reach = 45.2,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28749,6 +29512,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.7,
                             reach = 32.3,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28764,6 +29528,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 23.6,
+                            legs = 15.5,
                             centre = 0.5,
                         },
                     },
@@ -28779,6 +29544,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.267,
                             reach = 52,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28794,6 +29560,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.8,
                             reach = 56.7,
+                            legs = 15.5,
                             centre = 0.78,
                         },
                     },
@@ -28809,6 +29576,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.2,
                             reach = 36.1,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28824,6 +29592,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 31.7,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28839,6 +29608,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.867,
                             reach = 36,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28854,6 +29624,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.533,
                             reach = 56.1,
+                            legs = 15.5,
                             centre = 0.79,
                         },
                     },
@@ -28870,6 +29641,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.567,
                             reach = 64.3,
+                            legs = 15.5,
                             centre = 0.33,
                         },
                     },
@@ -28886,6 +29658,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.1,
                             reach = 71,
+                            legs = 15.5,
                             centre = 0.23,
                         },
                     },
@@ -28902,6 +29675,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.267,
                             reach = 62.9,
+                            legs = 15.5,
                             centre = 0.46,
                         },
                     },
@@ -28917,6 +29691,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.633,
                             reach = 16.7,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -28932,6 +29707,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.333,
                             reach = 15.6,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -28948,6 +29724,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.3,
                             reach = 40.1,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -28964,6 +29741,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.4,
                             reach = 30.4,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -28979,6 +29757,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.933,
                             reach = 5.5,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -28994,6 +29773,7 @@ local catalog = {
                         woman_base = {
                             duration = 1.967,
                             reach = 2.8,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -29009,6 +29789,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.733,
                             reach = 16.4,
+                            legs = 15.5,
                             centre = 0.16,
                         },
                     },
@@ -29025,6 +29806,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.233,
                             reach = 20.2,
+                            legs = 15.5,
                             centre = 0.35,
                         },
                     },
@@ -29041,6 +29823,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.1,
                             reach = 15.1,
+                            legs = 15.5,
                             centre = 0.15,
                         },
                     },
@@ -29056,6 +29839,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.333,
                             reach = 13,
+                            legs = 15.5,
                             centre = 0.54,
                         },
                     },
@@ -29071,6 +29855,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.2,
                             reach = 6.1,
+                            legs = 15.5,
                             centre = 0.3,
                         },
                     },
@@ -29086,6 +29871,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.733,
                             reach = 3.9,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -29101,6 +29887,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.633,
                             reach = 11.3,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -29117,6 +29904,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.567,
                             reach = 78.8,
+                            legs = 15.5,
                             centre = 0.57,
                         },
                     },
@@ -29133,6 +29921,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.533,
                             reach = 68.8,
+                            legs = 15.5,
                             centre = 0.36,
                         },
                     },
@@ -29148,6 +29937,7 @@ local catalog = {
                         woman_base = {
                             duration = 7.267,
                             reach = 59.4,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -29163,6 +29953,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.533,
                             reach = 21.2,
+                            legs = 15.5,
                             centre = 0.19,
                         },
                     },
@@ -29178,6 +29969,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.8,
                             reach = 16.4,
+                            legs = 15.5,
                             centre = 0.78,
                         },
                     },
@@ -29193,6 +29985,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 5.6,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -29208,6 +30001,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.8,
                             reach = 31.6,
+                            legs = 15.5,
                             centre = 0.22,
                         },
                     },
@@ -29223,6 +30017,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.233,
                             reach = 32.7,
+                            legs = 15.5,
                             centre = 0.33,
                         },
                     },
@@ -29238,6 +30033,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.367,
                             reach = 37.9,
+                            legs = 15.5,
                             centre = 0.43,
                         },
                     },
@@ -29254,6 +30050,7 @@ local catalog = {
                         woman_base = {
                             duration = 5,
                             reach = 53.1,
+                            legs = 15.5,
                             centre = 0.35,
                         },
                     },
@@ -29270,6 +30067,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.133,
                             reach = 60.4,
+                            legs = 15.5,
                             centre = 0.34,
                         },
                     },
@@ -29285,6 +30083,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.067,
                             reach = 47.7,
+                            legs = 15.5,
                             centre = 0.4,
                         },
                     },
@@ -29301,6 +30100,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.667,
                             reach = 51.2,
+                            legs = 15.5,
                             centre = 0.21,
                         },
                     },
@@ -29317,6 +30117,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.067,
                             reach = 56.4,
+                            legs = 15.5,
                             centre = 0.82,
                         },
                     },
@@ -29332,6 +30133,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.8,
                             reach = 51.3,
+                            legs = 15.5,
                             centre = 0.56,
                         },
                     },
@@ -29347,6 +30149,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.233,
                             reach = 20.1,
+                            legs = 15.5,
                             centre = 0.27,
                         },
                     },
@@ -29362,6 +30165,7 @@ local catalog = {
                         woman_base = {
                             duration = 6.3,
                             reach = 7.2,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -29377,6 +30181,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.9,
                             reach = 4.6,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -29392,6 +30197,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.9,
                             reach = 47,
+                            legs = 15.5,
                             centre = 0.92,
                         },
                     },
@@ -29408,6 +30214,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.033,
                             reach = 21.3,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -29423,6 +30230,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.6,
                             reach = 31.1,
+                            legs = 15.5,
                             centre = 0.58,
                         },
                     },
@@ -29439,6 +30247,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.433,
                             reach = 47.9,
+                            legs = 15.5,
                             centre = 0.83,
                         },
                     },
@@ -29454,6 +30263,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 29.9,
+                            legs = 15.5,
                             centre = 0.28,
                         },
                     },
@@ -29469,6 +30279,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.933,
                             reach = 34.6,
+                            legs = 15.5,
                             centre = 0.65,
                         },
                     },
@@ -29484,6 +30295,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.8,
                             reach = 24.4,
+                            legs = 15.5,
                             centre = 0.12,
                         },
                     },
@@ -29499,6 +30311,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.3,
                             reach = 45.5,
+                            legs = 15.5,
                             centre = 0.62,
                         },
                     },
@@ -29514,6 +30327,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.967,
                             reach = 49.6,
+                            legs = 15.5,
                             centre = 0.83,
                         },
                     },
@@ -29529,6 +30343,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.233,
                             reach = 60,
+                            legs = 15.5,
                             centre = 0.95,
                         },
                     },
@@ -29544,6 +30359,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.933,
                             reach = 26.5,
+                            legs = 15.5,
                             centre = 0.5,
                         },
                     },
@@ -29559,6 +30375,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.267,
                             reach = 32.8,
+                            legs = 15.5,
                             centre = 0.45,
                         },
                     },
@@ -29574,6 +30391,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.667,
                             reach = 41.3,
+                            legs = 15.5,
                             centre = 0.78,
                         },
                     },
@@ -29589,6 +30407,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.6,
                             reach = 20.8,
+                            legs = 15.5,
                             centre = 0.73,
                         },
                     },
@@ -29604,6 +30423,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 44.9,
+                            legs = 15.5,
                             centre = 0.76,
                         },
                     },
@@ -29620,6 +30440,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.167,
                             reach = 56,
+                            legs = 15.5,
                             centre = 0.87,
                         },
                     },
@@ -29635,6 +30456,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.967,
                             reach = 23.1,
+                            legs = 15.5,
                             centre = 0.11,
                         },
                     },
@@ -29651,6 +30473,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.067,
                             reach = 65.8,
+                            legs = 15.5,
                             centre = 0.88,
                         },
                     },
@@ -29667,6 +30490,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.067,
                             reach = 49.2,
+                            legs = 15.5,
                             centre = 0.24,
                         },
                     },
@@ -29683,6 +30507,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.167,
                             reach = 57.3,
+                            legs = 15.5,
                             centre = 0.19,
                         },
                     },
@@ -29698,6 +30523,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.1,
                             reach = 24.5,
+                            legs = 15.5,
                             centre = 0.12,
                         },
                     },
@@ -29713,6 +30539,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.4,
                             reach = 19.1,
+                            legs = 15.5,
                             centre = 0.3,
                         },
                     },
@@ -29729,6 +30556,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.033,
                             reach = 40.9,
+                            legs = 15.5,
                             centre = 0.06,
                         },
                     },
@@ -29744,6 +30572,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.133,
                             reach = 6.5,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -29759,6 +30588,7 @@ local catalog = {
                         woman_base = {
                             duration = 5.467,
                             reach = 23.8,
+                            legs = 15.5,
                             centre = 0.33,
                         },
                     },
@@ -29774,6 +30604,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.5,
                             reach = 26.4,
+                            legs = 15.5,
                             centre = 0.47,
                         },
                     },
@@ -29789,6 +30620,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.767,
                             reach = 8.5,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -29804,6 +30636,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.4,
                             reach = 1.6,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -29819,6 +30652,7 @@ local catalog = {
                         woman_base = {
                             duration = 8.2,
                             reach = 30.4,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -29835,6 +30669,7 @@ local catalog = {
                         woman_base = {
                             duration = 2.667,
                             reach = 50.3,
+                            legs = 15.5,
                             centre = 0.07,
                         },
                     },
@@ -29850,6 +30685,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.667,
                             reach = 1.9,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -29865,6 +30701,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.167,
                             reach = 47.5,
+                            legs = 15.5,
                             centre = 0.78,
                         },
                     },
@@ -29880,6 +30717,7 @@ local catalog = {
                         woman_base = {
                             duration = 3.467,
                             reach = 2.4,
+                            legs = 15.5,
                             centre = 1,
                         },
                     },
@@ -29895,6 +30733,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.467,
                             reach = 9.3,
+                            legs = 15.5,
                             centre = 0,
                         },
                     },
@@ -29910,6 +30749,7 @@ local catalog = {
                         woman_base = {
                             duration = 4.733,
                             reach = 35.4,
+                            legs = 15.5,
                             centre = 0.37,
                         },
                     },
@@ -29951,6 +30791,7 @@ local catalog = {
                         man_base = {
                             duration = 3.567,
                             reach = 37,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -29966,6 +30807,7 @@ local catalog = {
                         man_base = {
                             duration = 2.667,
                             reach = 27.9,
+                            legs = 14.6,
                             centre = 0.44,
                         },
                     },
@@ -29981,6 +30823,7 @@ local catalog = {
                         man_base = {
                             duration = 5,
                             reach = 34.9,
+                            legs = 14.6,
                             centre = 0.82,
                         },
                     },
@@ -29996,6 +30839,7 @@ local catalog = {
                         man_base = {
                             duration = 2.867,
                             reach = 25.1,
+                            legs = 14.6,
                             centre = 0.73,
                         },
                     },
@@ -30011,6 +30855,7 @@ local catalog = {
                         man_base = {
                             duration = 3.9,
                             reach = 39.2,
+                            legs = 14.6,
                             centre = 0.53,
                         },
                     },
@@ -30027,6 +30872,7 @@ local catalog = {
                         man_base = {
                             duration = 6.1,
                             reach = 70.4,
+                            legs = 14.6,
                             centre = 0.56,
                         },
                     },
@@ -30043,6 +30889,7 @@ local catalog = {
                         man_base = {
                             duration = 3.267,
                             reach = 61,
+                            legs = 14.6,
                             centre = 0.82,
                         },
                     },
@@ -30059,6 +30906,7 @@ local catalog = {
                         man_base = {
                             duration = 5.033,
                             reach = 63.7,
+                            legs = 14.6,
                             centre = 0.55,
                         },
                     },
@@ -30074,6 +30922,7 @@ local catalog = {
                         man_base = {
                             duration = 5.5,
                             reach = 38.2,
+                            legs = 14.6,
                             centre = 0.66,
                         },
                     },
@@ -30089,6 +30938,7 @@ local catalog = {
                         man_base = {
                             duration = 5.567,
                             reach = 19.6,
+                            legs = 14.6,
                             centre = 0.69,
                         },
                     },
@@ -30104,6 +30954,7 @@ local catalog = {
                         man_base = {
                             duration = 5.7,
                             reach = 10.7,
+                            legs = 14.6,
                             centre = 0.15,
                         },
                     },
@@ -30119,6 +30970,7 @@ local catalog = {
                         man_base = {
                             duration = 5.633,
                             reach = 6.5,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30134,6 +30986,7 @@ local catalog = {
                         man_base = {
                             duration = 3.7,
                             reach = 1.4,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30149,6 +31002,7 @@ local catalog = {
                         man_base = {
                             duration = 5.067,
                             reach = 50,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30164,6 +31018,7 @@ local catalog = {
                         man_base = {
                             duration = 4.867,
                             reach = 48.2,
+                            legs = 14.6,
                             centre = 0.88,
                         },
                     },
@@ -30180,6 +31035,7 @@ local catalog = {
                         man_base = {
                             duration = 7.367,
                             reach = 104.8,
+                            legs = 14.6,
                             centre = 0.03,
                         },
                     },
@@ -30196,6 +31052,7 @@ local catalog = {
                         man_base = {
                             duration = 14.367,
                             reach = 111.3,
+                            legs = 14.6,
                             centre = 0.02,
                         },
                     },
@@ -30212,6 +31069,7 @@ local catalog = {
                         man_base = {
                             duration = 8.433,
                             reach = 110.9,
+                            legs = 14.6,
                             centre = 0.05,
                         },
                     },
@@ -30228,6 +31086,7 @@ local catalog = {
                         man_base = {
                             duration = 7.6,
                             reach = 115.2,
+                            legs = 14.6,
                             centre = 0.03,
                         },
                     },
@@ -30244,6 +31103,7 @@ local catalog = {
                         man_base = {
                             duration = 10.6,
                             reach = 112.9,
+                            legs = 14.6,
                             centre = 0.14,
                         },
                     },
@@ -30260,6 +31120,7 @@ local catalog = {
                         man_base = {
                             duration = 12.833,
                             reach = 116.4,
+                            legs = 14.6,
                             centre = 0.05,
                         },
                     },
@@ -30276,6 +31137,7 @@ local catalog = {
                         man_base = {
                             duration = 10.9,
                             reach = 113.6,
+                            legs = 14.6,
                             centre = 0.04,
                         },
                     },
@@ -30292,6 +31154,7 @@ local catalog = {
                         man_base = {
                             duration = 6.733,
                             reach = 118.9,
+                            legs = 14.6,
                             centre = 0.08,
                         },
                     },
@@ -30308,6 +31171,7 @@ local catalog = {
                         man_base = {
                             duration = 4.6,
                             reach = 113.3,
+                            legs = 14.6,
                             centre = 0.08,
                         },
                     },
@@ -30324,6 +31188,7 @@ local catalog = {
                         man_base = {
                             duration = 3.133,
                             reach = 56.5,
+                            legs = 14.6,
                             centre = 0.26,
                         },
                     },
@@ -30340,6 +31205,7 @@ local catalog = {
                         man_base = {
                             duration = 6.833,
                             reach = 63.8,
+                            legs = 14.6,
                             centre = 0.15,
                         },
                     },
@@ -30355,6 +31221,7 @@ local catalog = {
                         man_base = {
                             duration = 2.3,
                             reach = 38.8,
+                            legs = 14.6,
                             centre = 0.88,
                         },
                     },
@@ -30370,6 +31237,7 @@ local catalog = {
                         man_base = {
                             duration = 2.633,
                             reach = 34.9,
+                            legs = 14.6,
                             centre = 0.94,
                         },
                     },
@@ -30386,6 +31254,7 @@ local catalog = {
                         man_base = {
                             duration = 2.6,
                             reach = 44.8,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30401,6 +31270,7 @@ local catalog = {
                         man_base = {
                             duration = 3.467,
                             reach = 35.6,
+                            legs = 14.6,
                             centre = 0.96,
                         },
                     },
@@ -30416,6 +31286,7 @@ local catalog = {
                         man_base = {
                             duration = 2.667,
                             reach = 49.3,
+                            legs = 14.6,
                             centre = 0.58,
                         },
                     },
@@ -30432,6 +31303,7 @@ local catalog = {
                         man_base = {
                             duration = 4.633,
                             reach = 70.1,
+                            legs = 14.6,
                             centre = 0.03,
                         },
                     },
@@ -30448,6 +31320,7 @@ local catalog = {
                         man_base = {
                             duration = 3.933,
                             reach = 65.3,
+                            legs = 14.6,
                             centre = 0.58,
                         },
                     },
@@ -30464,6 +31337,7 @@ local catalog = {
                         man_base = {
                             duration = 2.833,
                             reach = 74.4,
+                            legs = 14.6,
                             centre = 0.35,
                         },
                     },
@@ -30480,6 +31354,7 @@ local catalog = {
                         man_base = {
                             duration = 2.433,
                             reach = 32.5,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -30496,6 +31371,7 @@ local catalog = {
                         man_base = {
                             duration = 2.467,
                             reach = 45.7,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30512,6 +31388,7 @@ local catalog = {
                         man_base = {
                             duration = 2.733,
                             reach = 70.4,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -30528,6 +31405,7 @@ local catalog = {
                         man_base = {
                             duration = 3.167,
                             reach = 75.1,
+                            legs = 14.6,
                             centre = 0.71,
                         },
                     },
@@ -30544,6 +31422,7 @@ local catalog = {
                         man_base = {
                             duration = 2.167,
                             reach = 37.7,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30560,6 +31439,7 @@ local catalog = {
                         man_base = {
                             duration = 2.633,
                             reach = 50.9,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30576,6 +31456,7 @@ local catalog = {
                         man_base = {
                             duration = 3.2,
                             reach = 76.6,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -30592,6 +31473,7 @@ local catalog = {
                         man_base = {
                             duration = 2.933,
                             reach = 73.2,
+                            legs = 14.6,
                             centre = 0.54,
                         },
                     },
@@ -30608,6 +31490,7 @@ local catalog = {
                         man_base = {
                             duration = 3.467,
                             reach = 58.5,
+                            legs = 14.6,
                             centre = 0.36,
                         },
                     },
@@ -30624,6 +31507,7 @@ local catalog = {
                         man_base = {
                             duration = 2.767,
                             reach = 81.9,
+                            legs = 14.6,
                             centre = 0.29,
                         },
                     },
@@ -30640,6 +31524,7 @@ local catalog = {
                         man_base = {
                             duration = 5.067,
                             reach = 65.6,
+                            legs = 14.6,
                             centre = 0.44,
                         },
                     },
@@ -30656,6 +31541,7 @@ local catalog = {
                         man_base = {
                             duration = 5.7,
                             reach = 64.1,
+                            legs = 14.6,
                             centre = 0.48,
                         },
                     },
@@ -30671,6 +31557,7 @@ local catalog = {
                         man_base = {
                             duration = 16,
                             reach = 1.3,
+                            legs = 25.6,
                             centre = 1,
                         },
                     },
@@ -30686,6 +31573,7 @@ local catalog = {
                         man_base = {
                             duration = 2.333,
                             reach = 6.8,
+                            legs = 25.6,
                             centre = 1,
                         },
                     },
@@ -30701,6 +31589,7 @@ local catalog = {
                         man_base = {
                             duration = 2.833,
                             reach = 14.6,
+                            legs = 25.6,
                             centre = 1,
                         },
                     },
@@ -30716,6 +31605,7 @@ local catalog = {
                         man_base = {
                             duration = 3,
                             reach = 25.4,
+                            legs = 25.6,
                             centre = 0.46,
                         },
                     },
@@ -30731,6 +31621,7 @@ local catalog = {
                         man_base = {
                             duration = 2.5,
                             reach = 35.8,
+                            legs = 25.6,
                             centre = 1,
                         },
                     },
@@ -30746,6 +31637,7 @@ local catalog = {
                         man_base = {
                             duration = 2.4,
                             reach = 1.3,
+                            legs = 25.6,
                             centre = 1,
                         },
                     },
@@ -30761,6 +31653,7 @@ local catalog = {
                         man_base = {
                             duration = 2.267,
                             reach = 1.2,
+                            legs = 25.6,
                             centre = 1,
                         },
                     },
@@ -30776,6 +31669,7 @@ local catalog = {
                         man_base = {
                             duration = 2.1,
                             reach = 1.1,
+                            legs = 25.6,
                             centre = 1,
                         },
                     },
@@ -30791,6 +31685,7 @@ local catalog = {
                         man_base = {
                             duration = 1.667,
                             reach = 1.2,
+                            legs = 25.6,
                             centre = 1,
                         },
                     },
@@ -30806,6 +31701,7 @@ local catalog = {
                         man_base = {
                             duration = 3.167,
                             reach = 21.3,
+                            legs = 25.6,
                             centre = 0.29,
                         },
                     },
@@ -30822,6 +31718,7 @@ local catalog = {
                         man_base = {
                             duration = 4.167,
                             reach = 4.9,
+                            legs = 25.6,
                             centre = 0.14,
                         },
                     },
@@ -30837,6 +31734,7 @@ local catalog = {
                         man_base = {
                             duration = 2.433,
                             reach = 4.4,
+                            legs = 14.6,
                             centre = 0.25,
                         },
                     },
@@ -30852,6 +31750,7 @@ local catalog = {
                         man_base = {
                             duration = 2.433,
                             reach = 1.4,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30867,6 +31766,7 @@ local catalog = {
                         man_base = {
                             duration = 2.4,
                             reach = 4.3,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30882,6 +31782,7 @@ local catalog = {
                         man_base = {
                             duration = 2.933,
                             reach = 1,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30898,6 +31799,7 @@ local catalog = {
                         man_base = {
                             duration = 2.333,
                             reach = 12.4,
+                            legs = 14.6,
                             centre = 0.2,
                         },
                     },
@@ -30914,6 +31816,7 @@ local catalog = {
                         man_base = {
                             duration = 2.067,
                             reach = 2.5,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30930,6 +31833,7 @@ local catalog = {
                         man_base = {
                             duration = 1.333,
                             reach = 1.1,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30946,6 +31850,7 @@ local catalog = {
                         man_base = {
                             duration = 1.533,
                             reach = 1.5,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30962,6 +31867,7 @@ local catalog = {
                         man_base = {
                             duration = 2.2,
                             reach = 7.8,
+                            legs = 14.6,
                             centre = 0.22,
                         },
                     },
@@ -30978,6 +31884,7 @@ local catalog = {
                         man_base = {
                             duration = 2.233,
                             reach = 3,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -30994,6 +31901,7 @@ local catalog = {
                         man_base = {
                             duration = 1.8,
                             reach = 4.2,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31010,6 +31918,7 @@ local catalog = {
                         man_base = {
                             duration = 2.533,
                             reach = 5.2,
+                            legs = 14.6,
                             centre = 0.25,
                         },
                     },
@@ -31026,6 +31935,7 @@ local catalog = {
                         man_base = {
                             duration = 2.167,
                             reach = 4,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31042,6 +31952,7 @@ local catalog = {
                         man_base = {
                             duration = 2.4,
                             reach = 2.9,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31057,6 +31968,7 @@ local catalog = {
                         man_base = {
                             duration = 2.333,
                             reach = 8.5,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31072,6 +31984,7 @@ local catalog = {
                         man_base = {
                             duration = 1.1,
                             reach = 1,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31087,6 +32000,7 @@ local catalog = {
                         man_base = {
                             duration = 1.633,
                             reach = 3,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31102,6 +32016,7 @@ local catalog = {
                         man_base = {
                             duration = 2.5,
                             reach = 5.9,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31118,6 +32033,7 @@ local catalog = {
                         man_base = {
                             duration = 3.767,
                             reach = 5.2,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31133,6 +32049,7 @@ local catalog = {
                         man_base = {
                             duration = 4.333,
                             reach = 38.5,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31148,6 +32065,7 @@ local catalog = {
                         man_base = {
                             duration = 5.533,
                             reach = 40.9,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31163,6 +32081,7 @@ local catalog = {
                         man_base = {
                             duration = 3.633,
                             reach = 45.9,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31179,6 +32098,7 @@ local catalog = {
                         man_base = {
                             duration = 4.167,
                             reach = 44.2,
+                            legs = 14.6,
                             centre = 0.27,
                         },
                     },
@@ -31194,6 +32114,7 @@ local catalog = {
                         man_base = {
                             duration = 2.767,
                             reach = 30.5,
+                            legs = 14.6,
                             centre = 0.47,
                         },
                     },
@@ -31209,6 +32130,7 @@ local catalog = {
                         man_base = {
                             duration = 2.9,
                             reach = 8.7,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -31224,6 +32146,7 @@ local catalog = {
                         man_base = {
                             duration = 4.7,
                             reach = 40,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31239,6 +32162,7 @@ local catalog = {
                         man_base = {
                             duration = 4,
                             reach = 55.5,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31255,6 +32179,7 @@ local catalog = {
                         man_base = {
                             duration = 3.867,
                             reach = 51,
+                            legs = 14.6,
                             centre = 0.19,
                         },
                     },
@@ -31270,6 +32195,7 @@ local catalog = {
                         man_base = {
                             duration = 2.667,
                             reach = 1.4,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31285,6 +32211,7 @@ local catalog = {
                         man_base = {
                             duration = 2.9,
                             reach = 48.6,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31300,6 +32227,7 @@ local catalog = {
                         man_base = {
                             duration = 2.7,
                             reach = 35.8,
+                            legs = 14.6,
                             centre = 0.54,
                         },
                     },
@@ -31315,6 +32243,7 @@ local catalog = {
                         man_base = {
                             duration = 2.767,
                             reach = 24.8,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -31330,6 +32259,7 @@ local catalog = {
                         man_base = {
                             duration = 2.267,
                             reach = 56.5,
+                            legs = 14.6,
                             centre = 0.54,
                         },
                     },
@@ -31345,6 +32275,7 @@ local catalog = {
                         man_base = {
                             duration = 2.8,
                             reach = 60,
+                            legs = 14.6,
                             centre = 0.71,
                         },
                     },
@@ -31361,6 +32292,7 @@ local catalog = {
                         man_base = {
                             duration = 1.467,
                             reach = 29.9,
+                            legs = 14.6,
                             centre = 0.31,
                         },
                     },
@@ -31376,6 +32308,7 @@ local catalog = {
                         man_base = {
                             duration = 4.2,
                             reach = 36.6,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31391,6 +32324,7 @@ local catalog = {
                         man_base = {
                             duration = 4.167,
                             reach = 28.1,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31406,6 +32340,7 @@ local catalog = {
                         man_base = {
                             duration = 5.867,
                             reach = 48.1,
+                            legs = 14.6,
                             centre = 0.98,
                         },
                     },
@@ -31422,6 +32357,7 @@ local catalog = {
                         man_base = {
                             duration = 4.533,
                             reach = 62.3,
+                            legs = 14.9,
                             centre = 0.41,
                         },
                     },
@@ -31438,6 +32374,7 @@ local catalog = {
                         man_base = {
                             duration = 4.567,
                             reach = 69.6,
+                            legs = 14.6,
                             centre = 0.33,
                         },
                     },
@@ -31454,6 +32391,7 @@ local catalog = {
                         man_base = {
                             duration = 5.1,
                             reach = 76.3,
+                            legs = 14.6,
                             centre = 0.23,
                         },
                     },
@@ -31470,6 +32408,7 @@ local catalog = {
                         man_base = {
                             duration = 3.267,
                             reach = 70.5,
+                            legs = 14.6,
                             centre = 0.45,
                         },
                     },
@@ -31485,6 +32424,7 @@ local catalog = {
                         man_base = {
                             duration = 2.633,
                             reach = 15.4,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -31500,6 +32440,7 @@ local catalog = {
                         man_base = {
                             duration = 2.333,
                             reach = 12.7,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -31516,6 +32457,7 @@ local catalog = {
                         man_base = {
                             duration = 4.1,
                             reach = 42.2,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -31532,6 +32474,7 @@ local catalog = {
                         man_base = {
                             duration = 3.4,
                             reach = 34.9,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -31547,6 +32490,7 @@ local catalog = {
                         man_base = {
                             duration = 1.933,
                             reach = 5.7,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31562,6 +32506,7 @@ local catalog = {
                         man_base = {
                             duration = 1.967,
                             reach = 3.4,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31577,6 +32522,7 @@ local catalog = {
                         man_base = {
                             duration = 4.033,
                             reach = 6.7,
+                            legs = 14.6,
                             centre = 0.06,
                         },
                     },
@@ -31592,6 +32538,7 @@ local catalog = {
                         man_base = {
                             duration = 5.967,
                             reach = 36.8,
+                            legs = 14.6,
                             centre = 0.25,
                         },
                     },
@@ -31608,6 +32555,7 @@ local catalog = {
                         man_base = {
                             duration = 4.9,
                             reach = 12.1,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -31623,6 +32571,7 @@ local catalog = {
                         man_base = {
                             duration = 3.633,
                             reach = 22.8,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -31638,6 +32587,7 @@ local catalog = {
                         man_base = {
                             duration = 5.133,
                             reach = 17.4,
+                            legs = 14.6,
                             centre = 0.31,
                         },
                     },
@@ -31653,6 +32603,7 @@ local catalog = {
                         man_base = {
                             duration = 4.633,
                             reach = 8.1,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -31668,6 +32619,7 @@ local catalog = {
                         man_base = {
                             duration = 4.2,
                             reach = 7.5,
+                            legs = 14.6,
                             centre = 0.04,
                         },
                     },
@@ -31683,6 +32635,7 @@ local catalog = {
                         man_base = {
                             duration = 4.733,
                             reach = 4.5,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -31698,6 +32651,7 @@ local catalog = {
                         man_base = {
                             duration = 5.633,
                             reach = 12.3,
+                            legs = 14.6,
                             centre = 0.21,
                         },
                     },
@@ -31714,6 +32668,7 @@ local catalog = {
                         man_base = {
                             duration = 4.533,
                             reach = 75.4,
+                            legs = 14.6,
                             centre = 0.36,
                         },
                     },
@@ -31729,6 +32684,7 @@ local catalog = {
                         man_base = {
                             duration = 7.267,
                             reach = 63.7,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31744,6 +32700,7 @@ local catalog = {
                         man_base = {
                             duration = 3.533,
                             reach = 23.4,
+                            legs = 14.6,
                             centre = 0.06,
                         },
                     },
@@ -31759,6 +32716,7 @@ local catalog = {
                         man_base = {
                             duration = 3.8,
                             reach = 18.2,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -31775,6 +32733,7 @@ local catalog = {
                         man_base = {
                             duration = 6.3,
                             reach = 119.8,
+                            legs = 14.6,
                             centre = 0.26,
                         },
                     },
@@ -31791,6 +32750,7 @@ local catalog = {
                         man_base = {
                             duration = 6.333,
                             reach = 85.8,
+                            legs = 14.6,
                             centre = 0.19,
                         },
                     },
@@ -31806,6 +32766,7 @@ local catalog = {
                         man_base = {
                             duration = 3.167,
                             reach = 6.4,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -31821,6 +32782,7 @@ local catalog = {
                         man_base = {
                             duration = 3.533,
                             reach = 51.7,
+                            legs = 14.6,
                             centre = 0.37,
                         },
                     },
@@ -31837,6 +32799,7 @@ local catalog = {
                         man_base = {
                             duration = 2.867,
                             reach = 44.9,
+                            legs = 14.6,
                             centre = 0.21,
                         },
                     },
@@ -31852,6 +32815,7 @@ local catalog = {
                         man_base = {
                             duration = 3.8,
                             reach = 33.5,
+                            legs = 14.6,
                             centre = 0.17,
                         },
                     },
@@ -31867,6 +32831,7 @@ local catalog = {
                         man_base = {
                             duration = 4.233,
                             reach = 34.5,
+                            legs = 14.6,
                             centre = 0.09,
                         },
                     },
@@ -31882,6 +32847,7 @@ local catalog = {
                         man_base = {
                             duration = 4.367,
                             reach = 40.7,
+                            legs = 14.6,
                             centre = 0.29,
                         },
                     },
@@ -31898,6 +32864,7 @@ local catalog = {
                         man_base = {
                             duration = 5,
                             reach = 56.3,
+                            legs = 14.6,
                             centre = 0.12,
                         },
                     },
@@ -31914,6 +32881,7 @@ local catalog = {
                         man_base = {
                             duration = 8.133,
                             reach = 64.3,
+                            legs = 14.6,
                             centre = 0.17,
                         },
                     },
@@ -31930,6 +32898,7 @@ local catalog = {
                         man_base = {
                             duration = 3.833,
                             reach = 38.9,
+                            legs = 14.6,
                             centre = 0.39,
                         },
                     },
@@ -31946,6 +32915,7 @@ local catalog = {
                         man_base = {
                             duration = 5.1,
                             reach = 53.6,
+                            legs = 14.6,
                             centre = 0.06,
                         },
                     },
@@ -31962,6 +32932,7 @@ local catalog = {
                         man_base = {
                             duration = 5.9,
                             reach = 52.5,
+                            legs = 14.6,
                             centre = 0.19,
                         },
                     },
@@ -31977,6 +32948,7 @@ local catalog = {
                         man_base = {
                             duration = 7.3,
                             reach = 56.8,
+                            legs = 14.6,
                             centre = 0.2,
                         },
                     },
@@ -31992,6 +32964,7 @@ local catalog = {
                         man_base = {
                             duration = 3.233,
                             reach = 21.6,
+                            legs = 14.6,
                             centre = 0.07,
                         },
                     },
@@ -32007,6 +32980,7 @@ local catalog = {
                         man_base = {
                             duration = 6.3,
                             reach = 7.2,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -32022,6 +32996,7 @@ local catalog = {
                         man_base = {
                             duration = 3.9,
                             reach = 4.9,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -32037,6 +33012,7 @@ local catalog = {
                         man_base = {
                             duration = 4.9,
                             reach = 50.9,
+                            legs = 14.6,
                             centre = 0.92,
                         },
                     },
@@ -32053,6 +33029,7 @@ local catalog = {
                         man_base = {
                             duration = 3.033,
                             reach = 24,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -32068,6 +33045,7 @@ local catalog = {
                         man_base = {
                             duration = 3.6,
                             reach = 34.8,
+                            legs = 14.6,
                             centre = 0.42,
                         },
                     },
@@ -32084,6 +33062,7 @@ local catalog = {
                         man_base = {
                             duration = 3.433,
                             reach = 51.5,
+                            legs = 14.6,
                             centre = 0.73,
                         },
                     },
@@ -32100,6 +33079,7 @@ local catalog = {
                         man_base = {
                             duration = 4.167,
                             reach = 31.8,
+                            legs = 14.6,
                             centre = 0.19,
                         },
                     },
@@ -32115,6 +33095,7 @@ local catalog = {
                         man_base = {
                             duration = 4.933,
                             reach = 36.8,
+                            legs = 14.6,
                             centre = 0.51,
                         },
                     },
@@ -32130,6 +33111,7 @@ local catalog = {
                         man_base = {
                             duration = 2.8,
                             reach = 26.9,
+                            legs = 14.6,
                             centre = 0,
                         },
                     },
@@ -32145,6 +33127,7 @@ local catalog = {
                         man_base = {
                             duration = 3.3,
                             reach = 49.1,
+                            legs = 14.6,
                             centre = 0.5,
                         },
                     },
@@ -32160,6 +33143,7 @@ local catalog = {
                         man_base = {
                             duration = 2.967,
                             reach = 52.8,
+                            legs = 14.6,
                             centre = 0.83,
                         },
                     },
@@ -32176,6 +33160,7 @@ local catalog = {
                         man_base = {
                             duration = 3.233,
                             reach = 64.7,
+                            legs = 14.6,
                             centre = 0.76,
                         },
                     },
@@ -32191,6 +33176,7 @@ local catalog = {
                         man_base = {
                             duration = 2.933,
                             reach = 28.4,
+                            legs = 14.6,
                             centre = 0.5,
                         },
                     },
@@ -32206,6 +33192,7 @@ local catalog = {
                         man_base = {
                             duration = 3.267,
                             reach = 33.7,
+                            legs = 14.6,
                             centre = 0.42,
                         },
                     },
@@ -32222,6 +33209,7 @@ local catalog = {
                         man_base = {
                             duration = 5.667,
                             reach = 42.7,
+                            legs = 14.6,
                             centre = 0.29,
                         },
                     },
@@ -32237,6 +33225,7 @@ local catalog = {
                         man_base = {
                             duration = 3.6,
                             reach = 22.6,
+                            legs = 14.6,
                             centre = 0.27,
                         },
                     },
@@ -32252,6 +33241,7 @@ local catalog = {
                         man_base = {
                             duration = 5.067,
                             reach = 48.2,
+                            legs = 14.6,
                             centre = 0.77,
                         },
                     },
@@ -32268,6 +33258,7 @@ local catalog = {
                         man_base = {
                             duration = 4.167,
                             reach = 61.9,
+                            legs = 14.6,
                             centre = 0.97,
                         },
                     },
@@ -32284,6 +33275,7 @@ local catalog = {
                         man_base = {
                             duration = 4.067,
                             reach = 69.5,
+                            legs = 14.6,
                             centre = 0.8,
                         },
                     },
@@ -32300,6 +33292,7 @@ local catalog = {
                         man_base = {
                             duration = 5.067,
                             reach = 53.3,
+                            legs = 14.6,
                             centre = 0.03,
                         },
                     },
@@ -32315,6 +33308,7 @@ local catalog = {
                         man_base = {
                             duration = 3.1,
                             reach = 26.4,
+                            legs = 14.6,
                             centre = 0.12,
                         },
                     },
@@ -32330,6 +33324,7 @@ local catalog = {
                         man_base = {
                             duration = 4.133,
                             reach = 6.4,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -32345,6 +33340,7 @@ local catalog = {
                         man_base = {
                             duration = 5.467,
                             reach = 24.8,
+                            legs = 14.6,
                             centre = 0.31,
                         },
                     },
@@ -32360,6 +33356,7 @@ local catalog = {
                         man_base = {
                             duration = 4.5,
                             reach = 29.3,
+                            legs = 14.6,
                             centre = 0.17,
                         },
                     },
@@ -32375,6 +33372,7 @@ local catalog = {
                         man_base = {
                             duration = 2.767,
                             reach = 8.8,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -32390,6 +33388,7 @@ local catalog = {
                         man_base = {
                             duration = 8.2,
                             reach = 33.2,
+                            legs = 14.6,
                             centre = 0.96,
                         },
                     },
@@ -32405,6 +33404,7 @@ local catalog = {
                         man_base = {
                             duration = 3.667,
                             reach = 2.2,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -32420,6 +33420,7 @@ local catalog = {
                         man_base = {
                             duration = 3.467,
                             reach = 2.4,
+                            legs = 14.6,
                             centre = 1,
                         },
                     },
@@ -32435,6 +33436,7 @@ local catalog = {
                         man_base = {
                             duration = 4.467,
                             reach = 10.1,
+                            legs = 14.6,
                             centre = 0.1,
                         },
                     },
@@ -32888,6 +33890,7 @@ local catalog = {
                         man_big = {
                             duration = 2.433,
                             reach = 38.4,
+                            legs = 17.6,
                             centre = 0,
                         },
                     },
@@ -33245,6 +34248,7 @@ local catalog = {
                         man_big = {
                             duration = 2.433,
                             reach = 4.7,
+                            legs = 17.6,
                             centre = 0,
                         },
                     },
@@ -33290,6 +34294,7 @@ local catalog = {
                         man_big = {
                             duration = 2.933,
                             reach = 1,
+                            legs = 17.6,
                             centre = 1,
                         },
                     },
@@ -33322,6 +34327,7 @@ local catalog = {
                         man_big = {
                             duration = 2.067,
                             reach = 2.8,
+                            legs = 17.6,
                             centre = 1,
                         },
                     },
@@ -33418,6 +34424,7 @@ local catalog = {
                         man_big = {
                             duration = 2.533,
                             reach = 7.1,
+                            legs = 17.6,
                             centre = 0,
                         },
                     },
@@ -33526,6 +34533,7 @@ local catalog = {
                         man_big = {
                             duration = 3.767,
                             reach = 5.1,
+                            legs = 17.6,
                             centre = 1,
                         },
                     },
@@ -33633,6 +34641,7 @@ local catalog = {
                         man_big = {
                             duration = 2.9,
                             reach = 8.4,
+                            legs = 17.6,
                             centre = 1,
                         },
                     },
@@ -33724,6 +34733,7 @@ local catalog = {
                         man_big = {
                             duration = 2.7,
                             reach = 37,
+                            legs = 17.6,
                             centre = 0,
                         },
                     },
@@ -33739,6 +34749,7 @@ local catalog = {
                         man_big = {
                             duration = 2.767,
                             reach = 25.2,
+                            legs = 17.6,
                             centre = 0,
                         },
                     },
@@ -33814,6 +34825,7 @@ local catalog = {
                         man_big = {
                             duration = 5.867,
                             reach = 48.7,
+                            legs = 17.6,
                             centre = 0.91,
                         },
                     },
@@ -33892,6 +34904,7 @@ local catalog = {
                         man_big = {
                             duration = 2.633,
                             reach = 15.5,
+                            legs = 17.6,
                             centre = 0,
                         },
                     },
@@ -34194,6 +35207,7 @@ local catalog = {
                         man_big = {
                             duration = 3.8,
                             reach = 36.5,
+                            legs = 17.6,
                             centre = 0,
                         },
                     },
@@ -35049,11 +36063,11 @@ local catalog = {
         ["Character.Judy"] = {
             key = "judy",
             rig = "woman_base",
-            talk = "judy_own",
+            talk = "arms_crossed",
             idle = "judy",
             flavour = true,
             fallback = "on_sides",
-            note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+            note = "Talks from the arms-crossed stance loop, whose feet are the feet of every clip it plays (leg gap 0). Her ambient idle_stand loop (judy_own) put her feet 37.6 cm from every arms-crossed clip, so each gesture blended her legs through each other (Oct 8, again Oct 12 after Round 6b); judy_own has no clip inside the 8 cm leg gate and no character maps to it now.",
             idleSource = "character",
         },
         ["Character.Panam"] = {
@@ -35089,11 +36103,11 @@ local catalog = {
         ["Character.alex"] = {
             key = "alex",
             rig = "woman_base",
-            talk = "judy_own",
+            talk = "arms_crossed",
             idle = "alex",
             flavour = true,
             fallback = "on_sides",
-            note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+            note = "Talks from the arms-crossed stance loop, whose feet are the feet of every clip it plays (leg gap 0). Her ambient idle_stand loop (judy_own) put her feet 37.6 cm from every arms-crossed clip, so each gesture blended her legs through each other (Oct 8, again Oct 12 after Round 6b); judy_own has no clip inside the 8 cm leg gate and no character maps to it now.",
             idleSource = "character workspot",
         },
         ["Character.Claire"] = {
