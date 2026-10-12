@@ -1,0 +1,881 @@
+{
+ "system": "actuator",
+ "source": "mod/companions.lua sense step + mod/companion-space.lua + mod/companion-tick-native.lua",
+ "cases": [
+  {
+   "name": "wire-layout",
+   "input": {},
+   "output": {
+    "fields": "flags x y z w fx fy state id speed dx dy gap facing",
+    "capabilities": "commandId=32 commandState=16 inCombat=64 isAttached=1 isDead=2 worldForward=8 worldPosition=4",
+    "flags": "combatKnown=1 idKnown=8 inCombat=2 stateKnown=4",
+    "states": "AICommandState : NotExecuting (0)|AICommandState : Enqueued (1)|AICommandState : Executing (2)|AICommandState : Cancelled (3)|AICommandState : Interrupted (4)|AICommandState : Success (5)|AICommandState : Failure (6)",
+    "required": 15
+   }
+  },
+  {
+   "name": "still facing 0,1",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 0.05,
+    "x": 1.5,
+    "y": 0.05000000074505806,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 0,
+    "playerY": 0,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 3.7252902845841263e-9,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 1.5008331020051848,
+    "facingError": 91.90915246142391
+   }
+  },
+  {
+   "name": "still facing 1,0",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 0.05000000074505806,
+    "x": 1.5,
+    "y": 0.05000000074505806,
+    "z": 0,
+    "forwardX": 1,
+    "forwardY": 0,
+    "playerX": 0,
+    "playerY": 0,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 1,
+    "directionY": 0,
+    "playerGap": 1.5008331020051848,
+    "facingError": 178.0908475385762
+   }
+  },
+  {
+   "name": "still facing -1,0",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 0.05000000074505806,
+    "x": 1.5,
+    "y": 0.05000000074505806,
+    "z": 0,
+    "forwardX": -1,
+    "forwardY": 0,
+    "playerX": 0,
+    "playerY": 0,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": -1,
+    "directionY": 0,
+    "playerGap": 1.5008331020051848,
+    "facingError": 1.9091524614238102
+   }
+  },
+  {
+   "name": "still facing 0,-1",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 0.05000000074505806,
+    "x": 1.5,
+    "y": 0.05000000074505806,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": -1,
+    "playerX": 0,
+    "playerY": 0,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 0,
+    "directionY": -1,
+    "playerGap": 1.5008331020051848,
+    "facingError": 88.09084753857609
+   }
+  },
+  {
+   "name": "still facing 0.6,0.8",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 0.05000000074505806,
+    "x": 1.5,
+    "y": 0.05000000074505806,
+    "z": 0,
+    "forwardX": 0.6000000238418579,
+    "forwardY": 0.800000011920929,
+    "playerX": 0,
+    "playerY": 0,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 0.6000000095367428,
+    "directionY": 0.7999999928474427,
+    "playerGap": 1.5008331020051848,
+    "facingError": 128.77905079028685
+   }
+  },
+  {
+   "name": "still facing 3,4",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 0.05000000074505806,
+    "x": 1.5,
+    "y": 0.05000000074505806,
+    "z": 0,
+    "forwardX": 3,
+    "forwardY": 4,
+    "playerX": 0,
+    "playerY": 0,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 0.6,
+    "directionY": 0.8,
+    "playerGap": 1.5008331020051848,
+    "facingError": 128.77905010726795
+   }
+  },
+  {
+   "name": "walk 1.4 m/s",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 0.05000000074505806,
+    "x": 1.5,
+    "y": 0.33000001311302185,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 0,
+    "playerY": 0.2800000011920929,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 1.400000061839819,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 1.5008331023775072,
+    "facingError": 91.90915288783694
+   }
+  },
+  {
+   "name": "walk 1.4 m/s",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 0.33000001311302185,
+    "x": 1.5,
+    "y": 0.6100000143051147,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 0,
+    "playerY": 0.5600000023841858,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 1.4000000059604645,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 1.5008331023775072,
+    "facingError": 91.90915288783694
+   }
+  },
+  {
+   "name": "walk 1.4 m/s",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 0.6100000143051147,
+    "x": 1.5,
+    "y": 0.8899999856948853,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 0,
+    "playerY": 0.8399999737739563,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 1.3999998569488525,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 1.5008331023775072,
+    "facingError": 91.90915288783694
+   }
+  },
+  {
+   "name": "walk 6 m/s",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 0.8899999856948853,
+    "x": 1.5,
+    "y": 2.0899999141693115,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 0,
+    "playerY": 2.0399999618530273,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 5.999999642372131,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 1.5008331003917892,
+    "facingError": 91.90915061363411
+   }
+  },
+  {
+   "name": "walk 6 m/s",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 2.0899999141693115,
+    "x": 1.5,
+    "y": 3.2899999618530273,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 0,
+    "playerY": 3.240000009536743,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 6.000000238418579,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 1.5008331003917892,
+    "facingError": 91.90915061363411
+   }
+  },
+  {
+   "name": "walk 6 m/s",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 3.2899999618530273,
+    "x": 1.5,
+    "y": 4.489999771118164,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 0,
+    "playerY": 4.440000057220459,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 5.999999046325684,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 1.5008330924489413,
+    "facingError": 91.90914151682271
+   }
+  },
+  {
+   "name": "walk 0.004 m/s",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 4.489999771118164,
+    "x": 1.5,
+    "y": 4.490799903869629,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 0,
+    "playerY": 4.440800189971924,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0.004000663757324219,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 1.5008330924489413,
+    "facingError": 91.90914151682271
+   }
+  },
+  {
+   "name": "walk 0.004 m/s",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 4.490799903869629,
+    "x": 1.5,
+    "y": 4.491600036621094,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 0,
+    "playerY": 4.4415998458862305,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0.004000663757324219,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 1.500833108334675,
+    "facingError": 91.90915971044541
+   }
+  },
+  {
+   "name": "walk 0 m/s",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 4.491600036621094,
+    "x": 1.5,
+    "y": 4.491600036621094,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 0,
+    "playerY": 4.4415998458862305,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 1.500833108334675,
+    "facingError": 91.90915971044541
+   }
+  },
+  {
+   "name": "forward 0.00005,0",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 1.5,
+    "previousY": 4.491600036621094,
+    "x": 2,
+    "y": 3,
+    "z": 0,
+    "forwardX": 0.00004999999873689376,
+    "forwardY": 0,
+    "playerX": 0,
+    "playerY": 2,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 7.86586083853517,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 2.23606797749979,
+    "facingError": 116.56505117707799
+   }
+  },
+  {
+   "name": "forward 0.0001,0",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 2,
+    "previousY": 3,
+    "x": 2,
+    "y": 3,
+    "z": 0,
+    "forwardX": 0.00009999999747378752,
+    "forwardY": 0,
+    "playerX": 0,
+    "playerY": 2,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 2.23606797749979,
+    "facingError": 116.56505117707799
+   }
+  },
+  {
+   "name": "forward 0.0002,0",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 2,
+    "previousY": 3,
+    "x": 2,
+    "y": 3,
+    "z": 0,
+    "forwardX": 0.00019999999494757503,
+    "forwardY": 0,
+    "playerX": 0,
+    "playerY": 2,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 1,
+    "directionY": 0,
+    "playerGap": 2.23606797749979,
+    "facingError": 153.43494882292202
+   }
+  },
+  {
+   "name": "forward 0,0",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 2,
+    "previousY": 3,
+    "x": 2,
+    "y": 3,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 0,
+    "playerX": 0,
+    "playerY": 2,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 2.23606797749979,
+    "facingError": 116.56505117707799
+   }
+  },
+  {
+   "name": "forward -0.00008,0.00005",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 2,
+    "previousY": 3,
+    "x": 2,
+    "y": 3,
+    "z": 0,
+    "forwardX": -0.00007999999797903001,
+    "forwardY": 0.00004999999873689376,
+    "playerX": 0,
+    "playerY": 2,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 2.23606797749979,
+    "facingError": 116.56505117707799
+   }
+  },
+  {
+   "name": "V on the same spot",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 2,
+    "previousY": 3,
+    "x": 3,
+    "y": 3,
+    "z": 0,
+    "forwardX": 1,
+    "forwardY": 0,
+    "playerX": 3,
+    "playerY": 3,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 5,
+    "directionX": 1,
+    "directionY": 0,
+    "playerGap": 0,
+    "facingError": 90
+   }
+  },
+  {
+   "name": "V on the same spot, other z",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 3,
+    "previousY": 3,
+    "x": 3,
+    "y": 3,
+    "z": 0.4000000059604645,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 3,
+    "playerY": 3,
+    "playerZ": 2,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 1.5999999940395355,
+    "facingError": 0
+   }
+  },
+  {
+   "name": "facing V",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 3,
+    "previousY": 3,
+    "x": 4,
+    "y": 0,
+    "z": 0,
+    "forwardX": -1,
+    "forwardY": 0,
+    "playerX": 0,
+    "playerY": 0,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 15.811388300841896,
+    "directionX": -1,
+    "directionY": 0,
+    "playerGap": 4,
+    "facingError": 0
+   }
+  },
+  {
+   "name": "facing away from V",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 4,
+    "previousY": 0,
+    "x": 4,
+    "y": 0,
+    "z": 0,
+    "forwardX": 1,
+    "forwardY": 0,
+    "playerX": 0,
+    "playerY": 0,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 1,
+    "directionY": 0,
+    "playerGap": 4,
+    "facingError": 180
+   }
+  },
+  {
+   "name": "V to the left",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 4,
+    "previousY": 0,
+    "x": 4,
+    "y": 0,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 4,
+    "playerY": 2,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 2,
+    "facingError": 0
+   }
+  },
+  {
+   "name": "V above",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 4,
+    "previousY": 0,
+    "x": 4,
+    "y": 0,
+    "z": 0,
+    "forwardX": 0,
+    "forwardY": 1,
+    "playerX": 4,
+    "playerY": 1,
+    "playerZ": 3,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0,
+    "directionX": 0,
+    "directionY": 1,
+    "playerGap": 3.1622776601683795,
+    "facingError": 0
+   }
+  },
+  {
+   "name": "slightly off V",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 4,
+    "previousY": 0,
+    "x": 4,
+    "y": 3.000000106112566e-7,
+    "z": 0,
+    "forwardX": -1,
+    "forwardY": 1.0000000116860974e-7,
+    "playerX": 0,
+    "playerY": 0,
+    "playerZ": 0,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 0.000001500000053056283,
+    "directionX": -0.9999999999999951,
+    "directionY": 1.0000000116860925e-7,
+    "playerGap": 4.000000000000011,
+    "facingError": 0.000009956626120759437
+   }
+  },
+  {
+   "name": "step 0.1",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 4,
+    "previousY": 3.000000106112566e-7,
+    "x": 2.5,
+    "y": 1.100000023841858,
+    "z": 0,
+    "forwardX": 0.30000001192092896,
+    "forwardY": 0.8999999761581421,
+    "playerX": 0,
+    "playerY": 1,
+    "playerZ": 0,
+    "step": 0.1
+   },
+   "output": {
+    "speed": 18.601073604639435,
+    "directionX": 0.3162277848654819,
+    "directionY": 0.9486832917676322,
+    "playerGap": 2.501999201592273,
+    "facingError": 110.7255605494677
+   }
+  },
+  {
+   "name": "step 0.25",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 2.5,
+    "previousY": 1.100000023841858,
+    "x": 2.5,
+    "y": 1.25,
+    "z": 0,
+    "forwardX": 0.30000001192092896,
+    "forwardY": 0.8999999761581421,
+    "playerX": 0,
+    "playerY": 1,
+    "playerZ": 0,
+    "step": 0.25
+   },
+   "output": {
+    "speed": 0.5999999046325684,
+    "directionX": 0.3162277848654819,
+    "directionY": 0.9486832917676322,
+    "playerGap": 2.5124689052802225,
+    "facingError": 114.14554309878653
+   }
+  },
+  {
+   "name": "step 0.5",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 2.5,
+    "previousY": 1.25,
+    "x": 2.5,
+    "y": 1.5,
+    "z": 0,
+    "forwardX": 0.30000001192092896,
+    "forwardY": 0.8999999761581421,
+    "playerX": 0,
+    "playerY": 1,
+    "playerZ": 0,
+    "step": 0.5
+   },
+   "output": {
+    "speed": 0.5,
+    "directionX": 0.3162277848654819,
+    "directionY": 0.9486832917676322,
+    "playerGap": 2.5495097567963922,
+    "facingError": 119.7448824353071
+   }
+  },
+  {
+   "name": "step 1",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 2.5,
+    "previousY": 1.5,
+    "x": 2.5,
+    "y": 2,
+    "z": 0,
+    "forwardX": 0.30000001192092896,
+    "forwardY": 0.8999999761581421,
+    "playerX": 0,
+    "playerY": 1,
+    "playerZ": 0,
+    "step": 1
+   },
+   "output": {
+    "speed": 0.5,
+    "directionX": 0.3162277848654819,
+    "directionY": 0.9486832917676322,
+    "playerGap": 2.692582403567252,
+    "facingError": 130.2363594476387
+   }
+  },
+  {
+   "name": "step 2",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 2.5,
+    "previousY": 2,
+    "x": 2.5,
+    "y": 3,
+    "z": 0,
+    "forwardX": 0.30000001192092896,
+    "forwardY": 0.8999999761581421,
+    "playerX": 0,
+    "playerY": 1,
+    "playerZ": 0,
+    "step": 2
+   },
+   "output": {
+    "speed": 0.5,
+    "directionX": 0.3162277848654819,
+    "directionY": 0.9486832917676322,
+    "playerGap": 3.2015621187164243,
+    "facingError": 147.09475821537697
+   }
+  },
+  {
+   "name": "far from the origin -1234.5678",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 2.5,
+    "previousY": 3,
+    "x": -1233.0677490234375,
+    "y": -3200.072998046875,
+    "z": 17.770000457763672,
+    "forwardX": 0.20000000298023224,
+    "forwardY": -0.9700000286102295,
+    "playerX": -1234.5677490234375,
+    "playerY": -3200.123046875,
+    "playerZ": 17.770000457763672,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 17165.593707503856,
+    "directionX": 0.20193780082055185,
+    "directionY": -0.9793983482729379,
+    "playerGap": 1.5008347294744635,
+    "facingError": 99.73928381422616
+   }
+  },
+  {
+   "name": "far from the origin, moved -1234.5678",
+   "input": {
+    "hasPrevious": true,
+    "previousX": -1233.0677490234375,
+    "previousY": -3200.072998046875,
+    "x": -1232.8677978515625,
+    "y": -3199.472900390625,
+    "z": 17.770000457763672,
+    "forwardX": 0.25,
+    "forwardY": -0.949999988079071,
+    "playerX": -1234.5677490234375,
+    "playerY": -3199.52294921875,
+    "playerZ": 17.770000457763672,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 3.1626637039484966,
+    "directionX": 0.2544933022662829,
+    "directionY": -0.9670745364766887,
+    "playerGap": 1.7006877643929446,
+    "facingError": 103.05718603658818
+   }
+  },
+  {
+   "name": "far from the origin 4321.987",
+   "input": {
+    "hasPrevious": true,
+    "previousX": -1232.8677978515625,
+    "previousY": -3199.472900390625,
+    "x": 4323.48681640625,
+    "y": 2765.482177734375,
+    "z": -3.5,
+    "forwardX": 0.20000000298023224,
+    "forwardY": -0.9700000286102295,
+    "playerX": 4321.98681640625,
+    "playerY": 2765.43212890625,
+    "playerZ": -3.5,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 40759.589572097415,
+    "directionX": 0.20193780082055185,
+    "directionY": -0.9793983482729379,
+    "playerGap": 1.5008347294744635,
+    "facingError": 99.73928381422616
+   }
+  },
+  {
+   "name": "far from the origin, moved 4321.987",
+   "input": {
+    "hasPrevious": true,
+    "previousX": 4323.48681640625,
+    "previousY": 2765.482177734375,
+    "x": 4323.68701171875,
+    "y": 2766.08203125,
+    "z": -3.5,
+    "forwardX": 0.25,
+    "forwardY": -0.949999988079071,
+    "playerX": 4321.98681640625,
+    "playerY": 2766.031982421875,
+    "playerZ": -3.5,
+    "step": 0.2
+   },
+   "output": {
+    "speed": 3.1618918520193127,
+    "directionX": 0.2544933022662829,
+    "directionY": -0.9670745364766887,
+    "playerGap": 1.7009317992922757,
+    "facingError": 103.05742805316282
+   }
+  }
+ ]
+}
