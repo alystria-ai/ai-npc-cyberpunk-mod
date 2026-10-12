@@ -278,14 +278,14 @@ test('requests start at least one slot apart, and the summary of older talk wait
 });
 
 test('a model the account has no allowance for is skipped for a while and the next model answers', async () => {
-  const {server, host, logs} = await harness(body => body.model === 'mistral-small-latest'
+  const {server, host, logs} = await harness(body => body.model === DEFAULT_MODELS[0]
     ? {status: 429, message: 'Rate limit exceeded', headers: {'x-ratelimit-limit-req-minute': '0'}} : 'Fine, V.');
   try {
     assert.equal((await host.reply(turn('one'))).text, 'Fine, V.');
-    assert.deepEqual(server.requests.map(request => request.body.model), ['mistral-small-latest', 'ministral-14b-latest']);
+    assert.deepEqual(server.requests.map(request => request.body.model), [DEFAULT_MODELS[0], DEFAULT_MODELS[1]]);
     await host.reply(turn('two'));
-    assert.deepEqual(server.requests.map(request => request.body.model).slice(2), ['ministral-14b-latest'], 'the blocked model is not asked again');
-    assert(logs.some(line => /no allowance for mistral-small-latest/.test(line)));
+    assert.deepEqual(server.requests.map(request => request.body.model).slice(2), [DEFAULT_MODELS[1]], 'the blocked model is not asked again');
+    assert(logs.some(line => line.includes(`no allowance for ${DEFAULT_MODELS[0]}`)));
   } finally { await server.close(); }
   const none = await harness(() => ({status: 429, message: 'Rate limit exceeded', headers: {'x-ratelimit-limit-req-minute': '0'}}));
   try {
