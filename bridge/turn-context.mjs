@@ -2,15 +2,27 @@
 // mod/turn-context.lua reads it on demand when a turn is built (game clock, district, who is with V, vehicle, V's gender and
 // lifepath) and sends plain values. This module validates that snapshot, words it, and bounds it. Nothing is written to memory.
 // It goes first so Mistral's context cap (head 60 percent, tail kept) can never cut it; Convai ignores the order.
+// For a character with V it also states the plain truth about where she is and what she is doing (in person with V, on foot, sitting,
+// riding, driving, fighting; what the companion modules know), and says that anything else is not true: a small model otherwise
+// invents a place or a task for her ("I was just finishing some checks in the basement"), and a later turn builds on it.
 // A stranger (an ordinary NPC or archetype) gets only what a bystander could see or know: the time, where it is, whether V is in
 // a vehicle, whether V has company and V's apparent gender. Never the lifepath, the quest journal or the party's names.
 import {placeName} from './protocol.mjs';
 
 // The whole block, framing included.
-export const MAX_CHARS = 450;
+export const MAX_CHARS = 620;
 const MAX_NAME = 60, MAX_PARTY = 6;
 const PLACE = /^[A-Za-z0-9][A-Za-z0-9 _.'-]{0,63}$/;
 const LIFEPATHS = {nomad: 'Nomad', streetkid: 'Street Kid', corpo: 'Corpo'};
+// What a companion is doing: [her state after "You are with V in person", the preposition for the place].
+const ACTIVITIES = {
+  following: [', on foot, following V', 'through'], standing: [', standing near V', 'in'], combat: [', in a fight alongside V', 'in'],
+  'to-seat': [', walking over to sit down beside V', 'in'], seated: [', sitting beside V', 'in'],
+  'getting-up': [', getting up from your seat beside V', 'in'], passenger: [", riding along in V's vehicle", 'through'],
+  driving: [", driving V's vehicle", 'through'], boarding: [", getting into V's vehicle", 'in'],
+  'leaving-car': [", getting out of V's vehicle", 'in'], distracting: [', off distracting someone for V', 'in'],
+  attacking: [', going after a target V picked', 'in']};
+const MOTIONS = {still: 'standing still', walking: 'walking', running: 'running'};
 const GENDERS = {female: 'a woman (she/her)', male: 'a man (he/him)'};
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 
@@ -42,13 +54,15 @@ export function parseTurnContext(value) {
   if (Object.hasOwn(GENDERS, value.gender)) result.gender = value.gender;
   if (Object.hasOwn(LIFEPATHS, value.lifepath)) result.lifepath = value.lifepath;
   if (typeof value.vehicle === 'boolean') result.vehicle = value.vehicle;
+  if (value.vehicle === true && typeof value.driving === 'boolean') result.driving = value.driving;
+  if (Object.hasOwn(MOTIONS, value.motion) && value.vehicle !== true) result.motion = value.motion;
   const rows = sequence(value.party, MAX_PARTY * 2);
   if (rows) {
     const party = [], seen = new Set();
     for (const row of rows) {
       const name = clean(row?.name, MAX_NAME);
       if (!plain(row) || typeof row.key !== 'string' || !/^[a-z0-9-]{1,80}$/.test(row.key) || !name || seen.has(row.key)) continue;
-      seen.add(row.key); party.push({key: row.key, name});
+      seen.add(row.key); party.push({key: row.key, name, ...(Object.hasOwn(ACTIVITIES, row.activity) ? {activity: row.activity} : {})});
       if (party.length >= MAX_PARTY) break;
     }
     if (party.length) result.party = party;
@@ -78,18 +92,26 @@ export function describeTurnContext(input, {ambient = false} = {}) {
   const snapshot = parseTurnContext(input.turnContext);
   if (!snapshot || snapshot.status !== 'ready') return {text: '', parts: 0, reason: 'unavailable or malformed'};
   const sentences = [];
-  if (snapshot.hour !== undefined) sentences.push(`It is ${timeOfDay(snapshot.hour, snapshot.minute)}.`);
-  const place = placeOf(snapshot);
-  // An ordinary NPC is already told its own district (archetypeContext); say it only when that block had none.
-  if (place && !(ambient && input.archetype?.district)) {
-    sentences.push(input.channel === 'phone' ? `V is in ${place}.` : `${ambient ? 'You are' : 'You and V are'} in ${place}.`);
+  const place = placeOf(snapshot), phone = input.channel === 'phone';
+  // The first sentence, so a budget cut never reaches it: where she is and what she is doing. She is in person with V (a face to
+  // face talk, a companion, a voice chat) or on a call, and the call says nothing of her own place or doing.
+  if (!ambient && !phone) {
+    const mine = (snapshot.party ?? []).find(row => row.key === input.profileKey);
+    const [state, via] = ACTIVITIES[mine?.activity] ?? ['', 'in'];
+    sentences.push(`You are with V in person${state}${place ? ` ${via} ${place}` : ''}.`);
+  } else if (!ambient && phone) {
+    sentences.push(`You are on a phone call with V, not with V in person${place ? `; V is in ${place}` : ''}. Where you are and what you are doing are not given.`);
   }
+  if (snapshot.hour !== undefined) sentences.push(`It is ${timeOfDay(snapshot.hour, snapshot.minute)}.`);
+  // An ordinary NPC is already told its own district (archetypeContext); say it only when that block had none.
+  if (ambient && place && !input.archetype?.district) sentences.push(`You are in ${place}.`);
   const others = (snapshot.party ?? []).filter(row => row.key !== input.profileKey);
   if (others.length) {
     sentences.push(ambient ? `V has ${others.length === 1 ? 'one other person' : `${others.length} other people`} with them.`
       : `Also with V: ${listOf(others.map(row => row.name))}.`);
   }
-  if (snapshot.vehicle === true) sentences.push('V is in a vehicle.');
+  if (snapshot.vehicle === true) sentences.push(snapshot.driving === true ? 'V is driving.' : 'V is in a vehicle.');
+  if (!ambient && snapshot.motion) sentences.push(`V is ${MOTIONS[snapshot.motion]}.`);
   const sex = GENDERS[snapshot.gender], lifepath = LIFEPATHS[snapshot.lifepath];
   if (ambient) {
     if (sex) sentences.push(`V looks like ${sex}.`);
@@ -100,7 +122,7 @@ export function describeTurnContext(input, {ambient = false} = {}) {
   const prefix = 'Right now (from the game, this turn only): ';
   const suffix = ambient
     ? ' You are a stranger to V and know only what you can see and hear. Background only; bring it up only when it fits.'
-    : ' Background only; bring it up only when it fits, and never announce it.';
+    : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine). Do not recite it.';
   // Over budget: drop whole sentences from the end, never cut one in half.
   const budget = MAX_CHARS - prefix.length - suffix.length;
   while (sentences.length && sentences.join(' ').length > budget) sentences.pop();

@@ -3,6 +3,8 @@
 -- Read-only and on demand, in the style of player-gear.lua: the snapshot is read when a conversation turn is built and reused
 -- for MAX_AGE seconds, never per frame, with no timer, hook, observer or file. Every native call is guarded; a failure drops
 -- that one field (or the whole snapshot), never the turn. It hands plain values to the bridge, which words them.
+-- Each companion row also says what that companion is physically doing right now (following V on foot, sitting, riding or driving,
+-- fighting), and V says whether V is driving and how V is moving, so the model never invents an activity or a place for her.
 -- Weather, health and heat are deliberately absent: their CET calls are not confirmed (see TODO.md, "Live checks").
 local M = {}
 M.MAX_AGE, M.MAX_PARTY, M.PARTY_RADIUS, M.MAX_NAME = 5, 4, 15, 60
@@ -19,6 +21,48 @@ local function clean(value, limit)
     end
     return text
 end
+
+-- What one companion is doing, as one short word, from the raw inputs companions.activityInputs keeps (all values the companion
+-- modules already hold; nothing is read from the game here):
+--   input = {transport = {owned, phase, seat, mountedSeat}, tactic = {kind, phase}, seating = <phase>, behavior = <phase>}
+-- following | standing | combat | to-seat | seated | getting-up | passenger | driving | boarding | leaving-car | distracting | attacking
+local DRIVER_SEAT = 'seat_front_left'
+local LEAVING = {leaving = true, unmounting = true, ['waiting-for-native-exit'] = true, ['waiting-for-native-dismount'] = true,
+    ['exit-failed'] = true, ['recovery-failed'] = true}
+local BOARDING = {releasing = true, ['waiting-to-board'] = true, boarding = true, ['waiting-for-seat'] = true,
+    ['boarding-retry'] = true, ['leaving-wrong-seat'] = true, ['waiting-for-driver-seat'] = true}
+local TO_SEAT = {approach = true, placing = true, blending = true, settling = true}
+local SEATED = {entering = true, seated = true}
+local GETTING_UP = {leaving = true, standing = true, exiting = true}
+local STANDING = {settled = true, waiting = true, attend = true, attend_step = true, attend_settle = true, attend_turn = true}
+
+function M.classify(input)
+    input = type(input) == 'table' and input or {}
+    local transport = input.transport
+    if type(transport) == 'table' and transport.owned == true then
+        local phase = transport.phase
+        if phase == 'riding' then
+            return (transport.mountedSeat or transport.seat) == DRIVER_SEAT and 'driving' or 'passenger'
+        end
+        if LEAVING[phase] then return 'leaving-car' end
+        if BOARDING[phase] then return 'boarding' end
+    end
+    local tactic = input.tactic
+    if type(tactic) == 'table' and tactic.phase ~= 'returning' and tactic.phase ~= 'waiting' then
+        if tactic.kind == 'distract' then return 'distracting' end
+        if tactic.kind == 'fight' then return 'attacking' end
+    end
+    local seating = input.seating
+    if SEATED[seating] then return 'seated' end
+    if GETTING_UP[seating] then return 'getting-up' end
+    if TO_SEAT[seating] then return 'to-seat' end
+    local behavior = input.behavior
+    if behavior == 'combat' then return 'combat' end
+    if STANDING[behavior] then return 'standing' end
+    return 'following'
+end
+
+local MOTIONS = {still = true, walking = true, running = true}
 
 local function integer(value, low, high)
     value = tonumber(value)
@@ -82,13 +126,20 @@ local function nativeAdapter()
         return nil
     end
     function N.vehicle(player) return player:GetMountedVehicle() ~= nil end
+    -- The driver's seat is seat_front_left (the same read companion-vehicle-native.lua makes of V's own mount).
+    function N.driving(player)
+        local info = Game.GetMountingFacility():GetMountingInfoSingleWithObjects(player)
+        local seat = info and info.slotId and NameToString(info.slotId.id)
+        if type(seat) ~= 'string' then return nil end
+        return seat == DRIVER_SEAT
+    end
     return N
 end
 
 local Instance = {}
 Instance.__index = Instance
 
--- options: now() (seconds), log(line) (one line per real read, never per frame), native (adapter override),
+-- options: activity() -> {rows = {[profileKey] = inputs for M.classify}, motion = 'still'|'walking'|'running'}, now() (seconds), log(line) (one line per real read, never per frame), native (adapter override),
 -- place() -> {district =, area =} (init.lua's currentDistrict), party(player, radius) -> {{profileKey =, name =}}.
 function M.new(options)
     options = options or {}
@@ -146,6 +197,10 @@ function Instance:read()
     end
     local mounted = call(N.vehicle, player)
     if type(mounted) == 'boolean' then snapshot.vehicle = mounted; count = count + 1 end
+    if mounted == true then
+        local driving = call(N.driving, player)
+        if type(driving) == 'boolean' then snapshot.driving = driving end
+    end
     local rows = call(self.options.party, player, M.PARTY_RADIUS)
     if type(rows) == 'table' then
         local party, seen = {}, {}
@@ -156,7 +211,18 @@ function Instance:read()
                 party[#party + 1] = {key = key, name = name}
             end
         end
-        if #party > 0 then snapshot.party = party; count = count + 1 end
+        if #party > 0 then
+            -- What each companion is doing, and how V moves (the companion modules' own state; one read per turn window).
+            local info = call(self.options.activity)
+            if type(info) == 'table' then
+                for _, row in ipairs(party) do
+                    local inputs = type(info.rows) == 'table' and info.rows[row.key] or nil
+                    if type(inputs) == 'table' then row.activity = M.classify(inputs) end
+                end
+                if MOTIONS[info.motion] and not snapshot.vehicle then snapshot.motion = info.motion end
+            end
+            snapshot.party = party; count = count + 1
+        end
     end
     if count == 0 then return nil, 'nothing could be read' end
     return snapshot, count, clockSource
@@ -179,6 +245,14 @@ function Instance:capture()
                 snapshot.district and (snapshot.district .. (snapshot.area and ('/' .. snapshot.area) or '')) or 'no-place',
                 snapshot.gender or 'no-gender', snapshot.lifepath or 'no-lifepath',
                 snapshot.vehicle == nil and 'unknown' or tostring(snapshot.vehicle), party)
+            -- What each companion was found doing, and V's motion (only when there was something to say).
+            local doing = {}
+            for _, row in ipairs(snapshot.party or {}) do
+                if row.activity then doing[#doing + 1] = row.key .. '=' .. row.activity end
+            end
+            if #doing > 0 then line = line .. ' activity=' .. table.concat(doing, ',') end
+            if snapshot.driving ~= nil then line = line .. ' driving=' .. tostring(snapshot.driving) end
+            if snapshot.motion then line = line .. ' v=' .. snapshot.motion end
         else
             line = 'Turn context: none (' .. tostring(ok and detail or snapshot):sub(1, 160) .. ')'
         end

@@ -461,3 +461,14 @@ test('warm on an attached host asks the host to open its local voice page', asyn
     assert.equal(prewarmed, 1);
   } finally { await close(); }
 });
+
+test('facts: the character\'s own passing claims about what it was doing are never kept as memories', () => {
+  const raw = JSON.stringify({facts: [
+    {text: 'I mentioned tweaking old dolls and Clouds leftovers.', kind: 'event', importance: 0.5, replaces: null},
+    {text: 'I was just finishing up some hardware checks in the basement.', kind: 'fact', importance: 0.5, replaces: null},
+    {text: 'V told me their sister Mika loves old vinyl.', kind: 'fact', importance: 0.7, replaces: null},
+    {text: 'I promised V a ride to the Badlands.', kind: 'promise', importance: 0.8, replaces: null}]});
+  assert.deepEqual(parseFacts(raw).map(fact => fact.text), ['V told me their sister Mika loves old vinyl.', 'I promised V a ride to the Badlands.']);
+  const [system] = factMessages({name: 'Judy', turns: [{v: 'hi', r: 'Hey.'}]});
+  assert.match(system.content, /never record my own activity claims/);
+});

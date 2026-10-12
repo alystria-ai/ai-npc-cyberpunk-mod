@@ -680,6 +680,32 @@ function M.conversationCandidates(player, radius)
     return result
 end
 
+-- What each ready copy is doing right now, for a conversation turn (mod/turn-context.lua words it): the raw inputs, by profile
+-- key, and how V is moving. Read on demand when a turn is built (never per frame); every read is guarded. `seats` maps a copy's
+-- serial to its seating phase (init.lua passes the seating controller's snapshot).
+function M.activityInputs(seats)
+    local rows,motion={},nil
+    local frame=groupFrame
+    if frame then
+        local speed=tonumber(frame.rawSpeed) or 0
+        motion=speed<0.28 and 'still' or speed<3.2 and 'walking' or 'running'
+    end
+    local okTactic,tactic=pcall(function() return M.tactics and M.tactics.snapshot and M.tactics.snapshot() end)
+    for _,entry in ipairs(entries) do
+        if entry.state=='ready' and entry.profileKey then
+            local okVehicle,snapshot=pcall(vehicles.snapshot,fleet,entry.serial)
+            local transport=okVehicle and snapshot and snapshot.people and snapshot.people[1] or nil
+            local owned=okTactic and tactic and tactic.active and tactic.serial==entry.serial
+            rows[entry.profileKey]={transport=transport and {owned=transport.owned,phase=transport.phase,seat=transport.seat,
+                mountedSeat=transport.mountedSeat} or nil,
+                tactic=owned and {kind=tactic.kind,phase=tactic.phase} or nil,
+                seating=type(seats)=='table' and seats[entry.serial] or nil,
+                behavior=entry.person and entry.person.phase or nil}
+        end
+    end
+    return {rows=rows,motion=motion}
+end
+
 -- The per-frame face writer's actor rows (init.lua onUpdate). conversationCandidates
 -- costs about 0.1 ms of native reads per call (perf probe 2026-10-11, 45 calls/s), so
 -- the rows are rebuilt at most every 0.1 s, or at once when the party list changes.

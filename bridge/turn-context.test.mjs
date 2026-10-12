@@ -30,11 +30,11 @@ const gear = {version: 1, status: 'ready',
 
 test('the block words the clock, the place, the company, the vehicle and V for a character with V', () => {
   const text = turnContext(parseInput(JSON.stringify(turn({profileKey: 'judy-alvarez', turnContext: scene()}))));
-  assert.equal(text, 'Right now (from the game, this turn only): It is late night, about 2 AM. You and V are in Kabuki, Watson. '
+  assert.equal(text, 'Right now (from the game, this turn only): You are with V in person in Kabuki, Watson. It is late night, about 2 AM. '
     + 'Also with V: Panam. V is in a vehicle. V is a woman (she/her), lifepath Street Kid. '
-    + 'Background only; bring it up only when it fits, and never announce it.');
+    + 'Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine). Do not recite it.');
   assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length} characters`);
-  assert.equal(MAX_CHARS, 450);
+  assert.equal(MAX_CHARS, 620);
 });
 
 test('the part of the day and the nearest hour', () => {
@@ -53,9 +53,9 @@ test('the part of the day and the nearest hour', () => {
 
 test('every field is optional: a missing or unreadable one is simply absent', () => {
   const only = fields => turnContext(turn({turnContext: {version: 1, status: 'ready', ...fields}}));
-  assert.match(only({district: 'SantoDomingo'}), /^Right now \(from the game, this turn only\): You and V are in Santo Domingo\. Background only/);
-  assert.match(only({hour: 14, minute: 0}), /It is afternoon, about 2 PM\. Background/);
-  assert.match(only({vehicle: false}) || 'none', /^none$/, 'not in a vehicle says nothing');
+  assert.match(only({district: 'SantoDomingo'}), /^Right now \(from the game, this turn only\): You are with V in person in Santo Domingo\. Treat this as fact/);
+  assert.match(only({hour: 14, minute: 0}), /It is afternoon, about 2 PM\. Treat this as fact/);
+  assert.match(only({vehicle: false}), /^Right now \(from the game, this turn only\): You are with V in person\. Treat this/, 'not in a vehicle adds nothing but the in-person line');
   assert.match(only({gender: 'male'}), /V is a man \(he\/him\)\./);
   assert.match(only({lifepath: 'nomad'}), /V is lifepath Nomad\./);
   // A district with a distinct area names both, a district alone just itself.
@@ -90,19 +90,22 @@ test('the addressed character is not listed among the people with V, and the blo
   const many = Array.from({length: 6}, (_, index) => ({key: `person-${index}`, name: `Person ${index} `.padEnd(60, 'x')}));
   const long = turnContext(turn({turnContext: scene({party: many})}));
   assert.ok(long.length <= MAX_CHARS, `${long.length} characters`);
-  assert.match(long, /It is late night, about 2 AM\. You and V are in Kabuki, Watson\./, 'the clock and the place are the last to go');
-  assert.ok(long.endsWith('never announce it.'), 'the framing is never cut');
+  assert.match(long, /^Right now \(from the game, this turn only\): You are with V in person in Kabuki, Watson\. It is late night, about 2 AM\./, 'where she is and the clock are the last to go');
+  assert.ok(long.endsWith('Do not recite it.'), 'the framing is never cut');
   for (const [, run] of long.matchAll(/(x{20,})/g)) assert.equal(run.length >= 20, true);
 });
 
-test('a phone message says where V is, not where the contact is', () => {
-  assert.match(turnContext(turn({channel: 'phone', turnContext: scene({party: []})})), /V is in Kabuki, Watson\./);
+test('a phone message says it is a call, where V is, and that her own place and doing are not given', () => {
+  const text = turnContext(turn({channel: 'phone', turnContext: scene({party: []})}));
+  assert.match(text, /You are on a phone call with V, not with V in person; V is in Kabuki, Watson\. Where you are and what you are doing are not given\./);
+  assert.doesNotMatch(text, /with V in person in/);
+  assert.ok(text.endsWith('Do not recite it.'));
 });
 
 test('the block is the very first thing in the conversation context, before the world knowledge and the journal', () => {
   const input = parseInput(JSON.stringify(turn({turnContext: scene(), journal, gear})));
   const text = conversationContext(input);
-  assert.ok(text.startsWith('Right now (from the game, this turn only): It is late night'), text.slice(0, 80));
+  assert.ok(text.startsWith('Right now (from the game, this turn only): You are with V in person in Kabuki, Watson. It is late night'), text.slice(0, 120));
   assert.ok(text.indexOf('Right now') < text.indexOf('journal'));
   assert.ok(text.indexOf('Right now') < text.indexOf("V's current gear"));
   assert.ok(!text.includes('Right now', 5), 'once');
@@ -410,4 +413,113 @@ test('the new files ship: the development install list, the release plan and the
   }
   assert.match(readFileSync(new URL('../packaging/release-plan.json', import.meta.url), 'utf8'), /"bridge\/turn-context\.mjs"/);
   assert.match(readFileSync(new URL('../packaging/runtime-layout.mjs', import.meta.url), 'utf8'), /'bridge\/turn-context\.mjs'/);
+});
+
+// ---------------------------------------------------------------- what she is doing (the invented-activity fix)
+const doing = (activity, extra = {}, input = {}) => turnContext(turn({turnContext: scene({vehicle: false, gender: undefined, lifepath: undefined,
+  party: [{key: 'judy-alvarez', name: 'Judy', activity}], ...extra}), ...input}));
+
+test('a companion is told, first and plainly, that she is with V in person and what she is doing', () => {
+  assert.match(doing('following', {motion: 'walking'}), /^Right now \(from the game, this turn only\): You are with V in person, on foot, following V through Kabuki, Watson\. It is late night, about 2 AM\. V is walking\. Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so \(what you would like to do or will do is fine\)\. Do not recite it\.$/);
+  const says = {standing: /standing near V in Kabuki/, combat: /in a fight alongside V in Kabuki/, 'to-seat': /walking over to sit down beside V/,
+    seated: /sitting beside V in Kabuki/, 'getting-up': /getting up from your seat/, passenger: /riding along in V's vehicle through Kabuki/,
+    driving: /driving V's vehicle through Kabuki/, boarding: /getting into V's vehicle/, 'leaving-car': /getting out of V's vehicle/,
+    distracting: /off distracting someone for V/, attacking: /going after a target V picked/};
+  for (const [activity, pattern] of Object.entries(says)) assert.match(doing(activity), pattern, activity);
+  // No activity known: still in person, nothing else claimed.
+  assert.match(doing(undefined), /^Right now \(from the game, this turn only\): You are with V in person in Kabuki, Watson\. It is/);
+  // Another character's row is not hers.
+  assert.match(doing('seated', {}, {profileKey: 'panam-palmer'}), /^Right now \(from the game, this turn only\): You are with V in person in Kabuki, Watson\. /);
+  // Unknown words from the game are dropped, never worded.
+  assert.equal(parseTurnContext(scene({party: [{key: 'judy-alvarez', name: 'Judy', activity: 'cleaning-gun'}]})).party[0].activity, undefined);
+});
+
+test('V is described as driving or moving only when the game said so; the cap still holds with everything set', () => {
+  assert.match(doing('passenger', {vehicle: true, driving: true}), /V is driving\./);
+  assert.match(doing('passenger', {vehicle: true, driving: false}), /V is in a vehicle\./);
+  assert.match(doing('standing', {motion: 'still'}), /V is standing still\./);
+  assert.match(doing('following', {motion: 'running'}), /V is running\./);
+  assert.doesNotMatch(doing('following', {motion: 'flying'}), /V is flying/);
+  assert.equal(parseTurnContext(scene({vehicle: true, motion: 'walking'})).motion, undefined, 'a car is not walking');
+  assert.equal(parseTurnContext(scene({vehicle: false, driving: true})).driving, undefined);
+  const full = turnContext(turn({turnContext: scene({vehicle: false, motion: 'walking', party: [{key: 'judy-alvarez', name: 'Judy', activity: 'to-seat'},
+    ...Array.from({length: 4}, (_, i) => ({key: `person-${i}`, name: `Person ${i} `.padEnd(60, 'x')}))]})}));
+  assert.ok(full.length <= MAX_CHARS, `${full.length}`);
+  assert.match(full, /^Right now \(from the game, this turn only\): You are with V in person, walking over to sit down beside V in Kabuki, Watson\./);
+  assert.ok(full.endsWith('Do not recite it.'));
+});
+
+test('a stranger is told nothing about what it does; a phone contact is told the call says nothing of her place', () => {
+  const stranger = conversationContext(parseInput(JSON.stringify(resident({turnContext: scene({party: [{key: 'resident-male', name: 'X', activity: 'seated'}]})}))));
+  assert.doesNotMatch(stranger, /in person|sitting beside|Treat this as fact/);
+  assert.match(stranger, /You are a stranger to V/);
+  const phone = turnContext(turn({channel: 'phone', turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', activity: 'following'}]})}));
+  assert.doesNotMatch(phone, /on foot|following V|in person in/);
+  assert.match(phone, /Where you are and what you are doing are not given/);
+});
+
+test('the Mistral and Local prompt carries the context line and one rule that outranks her own earlier lines', () => {
+  const persona = {name: 'Judy', backstory: 'A braindance editor.', style: '', samples: [], ambient: false, known: true};
+  const now = turnContext(turn({turnContext: scene({vehicle: false, party: [{key: 'judy-alvarez', name: 'Judy', activity: 'following'}]})}));
+  const messages = buildMessages({persona, contextParts: {now, notes: '', world: '', volatile: ''}, history: [{v: 'hey there', r: 'I was just in the basement.'}], text: 'how is work?'});
+  const system = messages[0].content;
+  assert.ok(messages.at(-1).content.startsWith('[YOU, RIGHT NOW: You are with V in person, on foot, following V through Kabuki, Watson. '
+    + 'That is all you are doing; never claim to be anywhere else.]\n\nV says: how is work?'), messages.at(-1).content.slice(0, 200));
+  assert.doesNotMatch(buildMessages({persona, contextParts: {now: 'It is night.', notes: '', world: '', volatile: ''}, text: 'hi'}).at(-1).content, /YOU, RIGHT NOW/, 'no line without the sentence');
+  assert.ok(system.includes('You are with V in person, on foot, following V through Kabuki, Watson.'));
+  assert.match(system, /The "Right now" section at the end of this message is the plain truth about where you are and what you are doing[^]*If V asks what you are up to, answer from it\. Never claim to be somewhere else[^.]*or to have just been doing something unless it says so, even if an earlier line of yours did/);
+  assert.ok(system.trimEnd().endsWith('Do not recite it.'), 'the block is the last thing before the turns');
+  assert.equal(system.split('\n').filter(line => /^\d+\. /.test(line)).length, 9, 'still nine rules');
+});
+
+const activityLua = `
+local api = (function() ${source} end)()
+local function is(a, b) assert(a == b, tostring(a) .. ' ~= ' .. tostring(b)) end
+`;
+
+test('Lua: the activity of a companion comes from the states the companion modules already keep', () => runLua(`${activityLua}
+  local c = api.classify
+  is(c({behavior = 'alongside'}), 'following'); is(c({behavior = 'catch_up'}), 'following'); is(c({}), 'following'); is(c(nil), 'following')
+  is(c({behavior = 'settled'}), 'standing'); is(c({behavior = 'attend'}), 'standing'); is(c({behavior = 'waiting'}), 'standing')
+  is(c({behavior = 'combat'}), 'combat')
+  is(c({seating = 'approach', behavior = 'alongside'}), 'to-seat'); is(c({seating = 'seated'}), 'seated'); is(c({seating = 'entering'}), 'seated')
+  is(c({seating = 'standing'}), 'getting-up'); is(c({seating = 'closing', behavior = 'alongside'}), 'following')
+  is(c({transport = {owned = true, phase = 'riding', mountedSeat = 'seat_back_left'}}), 'passenger')
+  is(c({transport = {owned = true, phase = 'riding', seat = 'seat_front_left'}}), 'driving')
+  is(c({transport = {owned = true, phase = 'riding', seat = 'seat_front_right', mountedSeat = 'seat_front_left'}}), 'driving')
+  is(c({transport = {owned = true, phase = 'boarding'}}), 'boarding'); is(c({transport = {owned = true, phase = 'unmounting'}}), 'leaving-car')
+  is(c({transport = {owned = false, phase = 'on-foot'}, behavior = 'alongside'}), 'following')
+  is(c({tactic = {kind = 'distract', phase = 'talk'}}), 'distracting'); is(c({tactic = {kind = 'fight', phase = 'fighting'}}), 'attacking')
+  is(c({tactic = {kind = 'fight', phase = 'returning'}, behavior = 'alongside'}), 'following')
+  is(c({transport = {owned = true, phase = 'riding'}, seating = 'seated', behavior = 'combat'}), 'passenger')
+`));
+
+test('Lua: the snapshot carries each companion\'s activity, V\'s driving and motion; failures drop only that field', () => lua$(`
+  local calls = 0
+  ctx.options.activity = function()
+    calls = calls + 1
+    return {rows = {['judy-alvarez'] = {behavior = 'alongside'}, ['panam-palmer'] = {seating = 'seated'}}, motion = 'walking'}
+  end
+  N.driving = function() return true end
+  local snap = ctx:capture()
+  local byKey = {}; for _, row in ipairs(snap.party) do byKey[row.key] = row.activity end
+  assert(byKey['judy-alvarez'] == 'following' and byKey['panam-palmer'] == 'seated')
+  assert(snap.motion == 'walking' and snap.driving == nil, 'not in a vehicle: no driving, motion kept')
+  state.vehicle = true; ctx:reset('test'); snap = ctx:capture()
+  assert(snap.driving == true and snap.motion == nil, 'in a car: driving read, walking dropped')
+  N.driving = function() error('no seat') end; ctx:reset('test'); snap = ctx:capture()
+  assert(snap.vehicle == true and snap.driving == nil)
+  ctx.options.activity = function() error('companions failed') end; ctx:reset('test'); snap = ctx:capture()
+  assert(snap.party[1].activity == nil and snap.motion == nil and #snap.party == 2, 'a failed read adds nothing and keeps the turn')
+  ctx.options.activity = function() return {rows = {['judy-alvarez'] = {behavior = 'alongside'}}, motion = 'flying'} end; ctx:reset('test')
+  state.vehicle = false
+  assert(ctx:capture().motion == nil)
+`));
+
+test('Lua: the init wiring and the companions hook exist and read nothing from the game', () => {
+  assert.match(initSource, /activity = function\(\)[\s\S]{0,400}companions\.activityInputs\(seats\)/);
+  const companions = readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8');
+  const hook = companions.slice(companions.indexOf('function M.activityInputs'), companions.indexOf('-- The per-frame face writer'));
+  assert.ok(hook.length > 200);
+  assert.doesNotMatch(hook, /registerForEvent|onUpdate|GetWorldPosition|Observe\(/, 'only the modules\' own state, nothing from the game');
 });

@@ -19,7 +19,7 @@ import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseInput, archetypeContext} from '../bridge/protocol.mjs';
 import {conversationContextBlocks, FIRST_PERSON_REMINDER} from '../bridge/quest-context.mjs';
-import {TextProviderHost, mistralRoute} from '../bridge/text-provider-host.mjs';
+import {TextProviderHost, mistralRoute, localRoute} from '../bridge/text-provider-host.mjs';
 import {MistralProvider} from '../bridge/mistral-key.mjs';
 import {PersonaBook, LIMITS, breaksCharacter, joinBlocks, buildMessages} from '../bridge/mistral-prompt.mjs';
 import {streamChat, redact, validateKey} from '../bridge/mistral-client.mjs';
@@ -84,6 +84,22 @@ const SITUATIONS = [
   {id: 'emotional', text: () => 'I just lost someone tonight. I do not know what to do now.'},
 ];
 
+// Companion-state situations (--situations act-greet,...): V is physically with the character, who is a summoned companion. The party row of
+// the speaker carries what the mod would send (`activity`), the snapshot carries V's motion and seat. `truth` is what the judge is told is
+// really happening; a reply that puts the character somewhere else, or in the middle of something the truth does not list, is an invention.
+const ACTION_PLACE = {hour: 20, minute: 34, district: 'Heywood', area: 'Glen'};
+const ON_FOOT = {activity: 'following', motion: 'walking', vehicle: false,
+  truth: 'The character is outdoors on a city street (Glen, Heywood) in person, walking on foot right beside V, following V. V is walking too. The character is not at home, in a workshop, a shop, a bar or on a call, and is not doing any task with their hands.'};
+const ACTION_SITUATIONS = [
+  {id: 'act-greet', action: true, text: () => 'hey there', scene: ON_FOOT},
+  {id: 'act-work', action: true, setup: ['hey there'], text: () => 'how is work lately?', scene: ON_FOOT},
+  {id: 'act-ask', action: true, text: () => 'So what are you up to?', scene: ON_FOOT},
+  {id: 'act-car', action: true, text: () => 'What are you doing over there?', scene: {activity: 'passenger', motion: 'still', vehicle: true, driving: true,
+    truth: 'V is driving a car and the character is riding in the passenger seat of that car, in person, on the road in Glen, Heywood. The character is not doing any task with their hands.'}},
+  {id: 'act-sit', action: true, text: () => 'You look comfortable. What are you doing?', scene: {activity: 'seated', motion: 'still', vehicle: false,
+    truth: 'The character is sitting down beside V in person (a bench or a seat in Glen, Heywood). V is standing still beside them. The character is not doing any task with their hands.'}},
+];
+
 // ---- Context, from the bridge's own blocks ---------------------------------------------------------------------------------
 
 const NAME_OF = {}; // filled from the persona book
@@ -103,11 +119,13 @@ function sceneDialogue(c, situation) {
 }
 
 let turnCounter = 100;
-function contextFor(c, situation, text, party) {
+function contextFor(c, situation, text, party, scene) {
   turnCounter++;
+  const place = scene ? ACTION_PLACE : c;
   const raw = {requestId: `${turnCounter}-1-11ULL`, generation: 1, entity: '11ULL', profileKey: c.key, name: 'NPC', bodyType: 'WomanAverage', text,
-    turnContext: {version: 1, status: 'ready', hour: c.hour, minute: c.minute, district: c.district, area: c.area, gender: 'female', lifepath: 'streetkid', vehicle: false,
-      ...(party ? {party} : {})},
+    turnContext: {version: 1, status: 'ready', hour: place.hour, minute: place.minute, district: place.district, area: place.area, gender: 'female', lifepath: 'streetkid',
+      vehicle: scene?.vehicle ?? false, ...(scene?.driving ? {driving: true} : {}), ...(scene?.motion ? {motion: scene.motion} : {}),
+      ...(scene ? {party: [{key: c.key, name: NAME_OF[c.key] || 'Companion', activity: scene.activity}]} : party ? {party} : {})},
     ...(c.ambient ? {archetype: c.archetype} : {journal: journal(...c.quest), gear}),
     ...(sceneDialogue(c, situation) ? {gameDialogue: sceneDialogue(c, situation)} : {})};
   const input = parseInput(JSON.stringify(raw));
@@ -285,6 +303,77 @@ if (flag('export')) {
   process.exit(0);
 }
 
+// The companion-state judge (--export-actions a,b --name x, then --aggregate-actions x scores...): one blind sheet of the act-* replies of several runs.
+const ACTION_RUBRIC = `You are checking short spoken replies of a role-played video game character (Cyberpunk 2077) to V, the player. The character is a
+companion who is physically with V. Each reply comes with TRUTH: what is really happening to the character at this moment. For every reply answer:
+
+elsewhere        true when the reply says or clearly implies, as a fact, that the character is somewhere other than TRUTH says (in a basement, a workshop,
+                 a shop, at home, at a bar, on a call, "back at the place") or that they have just come from there. Mentioning a place only as
+                 history ("I used to work at the Clouds"), a wish or a plan ("I want to go back to the Clouds later") is NOT elsewhere.
+invented_action  true when the reply says or clearly implies, as a fact, that the character is doing, or has just been doing, a physical activity or task
+                 that TRUTH does not list (fixing or tweaking equipment, cleaning a weapon, cooking, reading, editing, finishing a job, checking
+                 hardware, making or building something, "I was just ..."). Walking, riding, sitting or standing as TRUTH says is fine. Thoughts,
+                 feelings, opinions, general descriptions of what the character's work is like, and things the character would like to do or will
+                 do are NOT invented actions.
+note             at most 10 words naming the claim, or "none".
+
+Be strict and literal: judge only what the reply claims about the present or the last few minutes. Worked examples (invented people):
+1. TRUTH: walking on a street beside V. V: "hey there". Reply: "Hey. I was just finishing some checks on the engine in the garage."
+   -> elsewhere true, invented_action true. Note: "just finished engine checks in garage".
+2. Same TRUTH. V: "how is work?". Reply: "Work's work. Long hours, bad coffee, you get used to the hum of it."
+   -> elsewhere false, invented_action false. Note: "describes work in general".
+3. Same TRUTH. V: "what are you up to?". Reply: "Walking next to you, mostly. Wondering where we are headed."
+   -> elsewhere false, invented_action false. Note: "none".
+4. Same TRUTH. V: "what are you up to?". Reply: "Just cleaning my rifle while we walk, you know how it is."
+   -> elsewhere false, invented_action true. Note: "cleaning rifle".
+5. TRUTH: riding in V's car as passenger. Reply: "I'd like to be back at the shop tonight, honestly."
+   -> elsewhere false, invented_action false. Note: "a wish only".
+6. Same TRUTH as 5. Reply: "I'm at the shop right now, sorting parts, call me later."
+   -> elsewhere true, invented_action true. Note: "claims to be at shop sorting parts".`;
+
+if (flag('export-actions')) {
+  const labels = option('export-actions', '').split(',').filter(Boolean), label = option('name', labels.join('+'));
+  let seed = 4242;
+  const random = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const rows = [];
+  for (const run of labels) for (const row of JSON.parse(await readFile(resolve(OUT_DIR, `${run}.json`), 'utf8')).replies) if (row.truth) rows.push({id: `a${String(rows.length + 1).padStart(3, '0')}`, run, ...row});
+  for (let i = rows.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [rows[i], rows[j]] = [rows[j], rows[i]]; }
+  const parts = Number(option('parts', 2)), size = Math.ceil(rows.length / parts);
+  const base = resolve(OUT_DIR, `${label}-actions-sheet.json`);
+  await mkdir(OUT_DIR, {recursive: true});
+  for (let i = 0; i < parts; i++) {
+    const chunk = rows.slice(i * size, (i + 1) * size), out = base.replace(/.json$/, `-${i + 1}.json`);
+    await writeFile(out, JSON.stringify({rubric: ACTION_RUBRIC, outputFormat: 'A JSON array, one object per reply: {"id","elsewhere","invented_action","note"}',
+      replies: chunk.map(row => ({id: row.id, truth: row.truth, history: row.history ?? null, v: row.v, reply: row.reply}))}, null, 1));
+    console.log(`wrote ${out} (${chunk.length} replies)`);
+  }
+  await writeFile(base.replace(/.json$/, '-key.json'), JSON.stringify(rows.map(row => ({id: row.id, run: row.run, who: row.character, situation: row.situation, sample: row.sample})), null, 1));
+  process.exit(0);
+}
+
+if (flag('aggregate-actions')) {
+  const label = option('aggregate-actions', '');
+  const files = argv.slice(argv.indexOf('--aggregate-actions') + 2).filter(f => !f.startsWith('--'));
+  const key = JSON.parse(await readFile(resolve(OUT_DIR, `${label}-actions-sheet-key.json`), 'utf8'));
+  const byId = new Map(key.map(row => [row.id, row]));
+  const scores = [];
+  for (const file of files) for (const row of JSON.parse(await readFile(resolve(file), 'utf8'))) if (byId.has(row.id)) scores.push({...byId.get(row.id), ...row});
+  console.log(`${label}: ${scores.length} of ${key.length} replies scored`);
+  const share = (rows, f) => rows.length ? `${rows.filter(f).length}/${rows.length} (${(100 * rows.filter(f).length / rows.length).toFixed(0)}%)` : 'n/a';
+  for (const run of [...new Set(scores.map(r => r.run))]) {
+    const mine = scores.filter(r => r.run === run);
+    console.log(`
+== ${run}`);
+    console.log(`  elsewhere ${share(mine, r => r.elsewhere === true)}   invented action ${share(mine, r => r.invented_action === true)}   either ${share(mine, r => r.elsewhere === true || r.invented_action === true)}`);
+    for (const id of [...new Set(mine.map(r => r.situation))]) {
+      const rows = mine.filter(r => r.situation === id);
+      console.log(`  ${id.padEnd(10)} elsewhere ${share(rows, r => r.elsewhere === true)}   invented action ${share(rows, r => r.invented_action === true)}`);
+    }
+  }
+  await writeFile(resolve(OUT_DIR, `${label}-actions-scored.json`), JSON.stringify(scores, null, 1));
+  process.exit(0);
+}
+
 if (flag('aggregate')) {
   // --aggregate <label> <scores1.json> [scores2.json ...]: the judge's scores joined to the automatic checks.
   const label = option('aggregate', '');
@@ -328,13 +417,14 @@ const temperature = Number(option('temperature', LIMITS.temperature));
 const maxTokens = Number(option('max-tokens', LIMITS.maxTokens));
 const concurrency = Number(option('concurrency', 5));
 const characters = CHARACTERS.filter(c => !only?.length || only.some(prefix => c.id.startsWith(prefix)));
-const situations = SITUATIONS.filter(s => !onlySituations?.length || onlySituations.includes(s.id));
+const situations = [...SITUATIONS, ...ACTION_SITUATIONS].filter(s => onlySituations?.length ? onlySituations.includes(s.id) : !s.action);
 const personas = await loadPersonas();
 for (const c of CHARACTERS) NAME_OF[c.key] = personas.persona(c.key).name;
 
 // One cell: a list of turns [{situation, v}], the memory it starts with, and the party shown in the right-now block.
 function cellsFor(c) {
-  return situations.map(s => {
+  return situations.filter(s => !s.action || !c.ambient).map(s => {
+    if (s.action) return {character: c, situation: s.id, v: s.text(c), memory: {}, setup: s.setup ?? [], scene: s.scene};
     const memory = s.id === 'memory' && !c.ambient ? {summary: MEMORY_SUMMARY, remembered: MEMORY_FACTS} : {};
     const setup = s.id === 'memory' && c.ambient ? [MEMORY_SETUP] : [];
     // A named character's greeting and location cells sometimes carry company (a mod companion standing next to V).
@@ -347,7 +437,7 @@ const cells = characters.flatMap(cellsFor);
 if (flag('dry')) {
   for (const cell of cells.filter((_, i) => i % situations.length < situations.length)) {
     const persona = personas.persona(cell.character.key);
-    const {contextParts} = contextFor(cell.character, cell.situation, cell.v, cell.party);
+    const {contextParts} = contextFor(cell.character, cell.situation, cell.v, cell.party, cell.scene);
     const messages = buildMessages({persona, memory: cell.memory.summary, history: [], contextParts, remembered: cell.memory.remembered ?? [], text: cell.v, limits: LIMITS});
     const sizes = messages.map(m => m.content.length);
     if (option('show', '') === `${cell.character.id}:${cell.situation}`) { for (const m of messages) console.log(`--- ${m.role} ---
@@ -358,22 +448,28 @@ ${m.content}
   process.exit(0);
 }
 
-const apiKey = await mistralKey();
-console.log(`Mistral key check: ${await validateKey(apiKey)}`);
+// --local <port>: the same prompt, cleaning and retries through a llama-server the developer started by hand on this computer (the Local AI
+// route, e.g. Gemma 4 E4B). No Mistral key, no cloud request.
+const localPort = Number(option('local', 0));
+const apiKey = localPort ? 'local' : await mistralKey();
+if (!localPort) console.log(`Mistral key check: ${await validateKey(apiKey)}`);
 const provider = new MistralProvider({});
-provider.key = apiKey; provider.applied = 'mistral';
+provider.key = apiKey; provider.applied = localPort ? 'local' : 'mistral';
+const fakeServer = {status: () => ({state: 'ready'}), ensure: async () => ({apiKey: 'eval-local', endpoint: `http://127.0.0.1:${localPort}/v1/chat/completions`, model: 'local'}),
+  begin: () => () => {}, touch() {}, prewarm: async () => {}};
 const limits = {...LIMITS, temperature, maxTokens};
 
 async function runCell(cell, sample) {
   const c = cell.character, persona = personas.persona(c.key);
   const memory = stubMemory(cell.memory);
   const host = new TextProviderHost({provider, memory, personas, limits, log: () => {},
-    routes: {mistral: mistralRoute({provider, model: () => [model], scheduler: mistralScheduler, cacheScope: `eval-${label}`})}});
+    routes: localPort ? {local: localRoute({server: fakeServer, provider})}
+      : {mistral: mistralRoute({provider, model: () => [model], scheduler: mistralScheduler, cacheScope: `eval-${label}`})}});
   // The route's prompt_cache_key is per character; samples of one cell share the prefix, as in the game.
   const local = {profileKey: c.key, name: persona.name, channel: 'private', ...(c.ambient ? {ambientKey: `${c.key}:eval`} : {})};
   const sessionId = undefined;
   const send = async text => {
-    const {context, contextParts} = contextFor(c, cell.situation, text, cell.party);
+    const {context, contextParts} = contextFor(c, cell.situation, text, cell.party, cell.scene);
     const at = Date.now();
     const reply = await host.reply({local, text, context, contextParts, sessionId});
     return {text: reply.text, ms: Date.now() - at, model: reply.timing?.model, attempts: reply.timing?.attempts};
@@ -382,7 +478,7 @@ async function runCell(cell, sample) {
   for (const setup of cell.setup) { const turn = await send(setup); history.push({v: setup, r: turn.text}); }
   const turn = await send(cell.v);
   host.close();
-  return {character: c.id, situation: cell.situation, sample, history: history.length ? history : undefined, v: cell.v, reply: turn.text,
+  return {character: c.id, situation: cell.situation, sample, history: history.length ? history : undefined, v: cell.v, reply: turn.text, truth: cell.scene?.truth,
     ms: turn.ms, model: turn.model, attempts: turn.attempts, ...checks(turn.text, persona.name)};
 }
 

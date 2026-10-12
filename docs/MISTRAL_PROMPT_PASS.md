@@ -95,3 +95,42 @@ Still weak, for honesty: Jackie asked for a gift idea for V's sister (memory cel
 
 Reproduce: `node scripts/Eval-MistralPrompt.mjs --label x --n 3 --concurrency 3`, then `--report x`, or `--export a,b --name cmp
 --parts 8` for blind sheets and `--aggregate cmp scores...` after judging. Results go to `runtime/mistral-prompt-eval/` (git-ignored).
+
+## Invented activities and places (2026-10-13, second pass)
+
+Live problem: a summoned companion walking beside V said "I was just finishing up some hardware checks in the basement" (Gemma 4 E4B,
+the Local AI), and the next turns (ministral-8b) built on it ("it's a workshop, I tweaked some old dolls"). The persona pulls a small
+model to the character's usual place (Judy's basement, Misty's shop), the right-now block called itself "background only", and the
+memory extractor stored the invented claim as a fact.
+
+Fix, all three text paths (Convai gets the same block; Mistral and the Local AI share the prompt builder):
+- The mod reads, once per turn window (never per frame), what each companion is doing from state the companion modules already keep
+  (`companions.activityInputs`: vehicle controller row, tactic, seating phase, follow-behaviour phase, V's speed) and whether V is
+  driving. `mod/turn-context.lua` classifies it into one word per companion (following, standing, combat, to-seat, seated, getting-up,
+  passenger, driving, boarding, leaving-car, distracting, attacking) and sends it in the party row with V's motion.
+- `bridge/turn-context.mjs` words it as the FIRST sentence of the block, in plain words ("You are with V in person, on foot, following
+  V through Glen, Heywood."), says "Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless
+  this says so (what you would like to do or will do is fine). Do not recite it." and drops the old "background only" framing for a
+  character with V. A phone chat says it is a call and that her own place and doing are not given. A stranger gets none of this.
+- Mistral and Local: rule 7 now makes that section the plain truth ("you are there, doing that, and nothing else"), answers "what are you
+  up to" from it, and says an earlier line of hers that contradicts it was wrong; the same first sentence is repeated in the last user
+  message right before V's words; the closing line names it. No example replies.
+- Memory: the summary and fact prompts never record the character's own passing claims, and `parseFacts` drops a fact that starts "I
+  mentioned / I said / I was / I just ..." (bridge/mistral-prompt.mjs). Memories already stored are not edited.
+
+Measured with `scripts/Eval-MistralPrompt.mjs --situations act-greet,act-work,act-ask,act-car,act-sit` (8 named characters, V greeted and
+asked how work is, what they are up to, what they are doing in a car or on a bench; 160 replies a run, blind Haiku judge with the rubric
+`ACTION_RUBRIC`; "either" = claims another place or an activity the truth does not list):
+
+| | before | after |
+|---|---|---|
+| ministral-8b, either | 24% (39/160) | 6% (10/160) |
+| ministral-8b, "what are you up to" | 44% invented action | 3% |
+| Gemma 4 E4B (local llama-server), either | 36% (57/160) | 1% (2/160) |
+| Gemma 4 E4B, "what are you up to" | 63% invented action | 0% |
+
+Judge noise is a few points either way (the same before replies scored 22% and 24% in two judgings). Remaining Mistral slips are persona-
+anchored characters on "what are you up to" (Misty's shop). Convai was not measured (live Convai turns would hit the user's real memory);
+it gets the same block text.
+
+Not covered: the phone chat sends no turn context yet, so a phone call gets neither the block nor the "call" sentence on any path.

@@ -638,7 +638,14 @@ do
     local loaded, module = pcall(dofile, 'turn-context.lua')
     convaiTurnContext = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
         place = function() return currentDistrict() end,
-        party = function(player, radius) return companions.conversationCandidates(player, radius) end}) or nil
+        party = function(player, radius) return companions.conversationCandidates(player, radius) end,
+        -- What each companion is doing and how V moves: the companion modules' own state, read once per turn window.
+        activity = function()
+            local seats = {}
+            local ok, snapshot = pcall(function() return convaiSeating and convaiSeating.snapshot() end)
+            for _, row in ipairs(ok and snapshot and snapshot.companions or {}) do seats[row.serial] = row.phase end
+            return companions.activityInputs(seats)
+        end}) or nil
     microphone.captureTurnContext = function() return convaiTurnContext and convaiTurnContext:capture() or nil end
 end
 
