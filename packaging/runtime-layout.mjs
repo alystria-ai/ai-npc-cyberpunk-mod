@@ -22,6 +22,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/companion-actions.mjs',
   'bridge/companion-expressions.mjs',
   'bridge/companion-invitations.mjs',
+  'bridge/continuous-face-file.mjs',
   'bridge/convai-bridge.mjs',
   'bridge/convai-continuous-speech.mjs',
   'bridge/convai-key.mjs',

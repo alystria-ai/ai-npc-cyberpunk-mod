@@ -6,6 +6,7 @@ import {configureKnowledgeParts} from './knowledge-parts.mjs';
 import {audioReady} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
+import {encodeSegmentedFace} from './continuous-face-file.mjs';
 import {timelineRecord, TIMELINE_PREFIX} from './expression-timeline.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
 import {JaliFace} from './jali-face.mjs';
@@ -1135,8 +1136,10 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     },
     readControl: () => readFile(resolve(runtime, 'continuous-control.json'), 'utf8'),
     writeState: value => atomic(resolve(runtime, 'continuous-speech.json'), JSON.stringify(value), options),
-    writeFace: value => atomic(resolve(runtime, 'continuous-face.json'), JSON.stringify(value), options),
-    faceFile: async () => (await readSpeechState()).continuousFaceFile === true,
+    writeFace: (value, {segments} = {}) => atomic(resolve(runtime, 'continuous-face.json'),
+      segments ? encodeSegmentedFace(value) : JSON.stringify(value), options),
+    // The game's adapter says how it reads the timeline file: segments (decoded by changed segment), a plain document or not at all.
+    faceFile: async () => { const state = await readSpeechState(); return state.continuousFaceSegments === true ? 'segments' : state.continuousFaceFile === true; },
     writeReply: value => atomic(replyPath, JSON.stringify({...value, ...keyNotice()}), options),
     onPublished: timing => { markPublished(input.requestId, timing.publishedAt);
       return measure(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },

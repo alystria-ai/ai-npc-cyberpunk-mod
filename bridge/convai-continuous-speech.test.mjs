@@ -384,3 +384,14 @@ test('an older game adapter keeps the facial timeline inline in every state', as
   await f.stream.frame(f.snapshot({faces: poses(.5), facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}));
   assert.equal(writes, 0); assert.ok(f.states.at(-1).face); assert.equal(f.states.at(-1).faceRevision, undefined);
 });
+
+test('a game that reads segmented face files is handed that layout, and a plain-file game is not', async () => {
+  for (const mode of ['segments', true]) {
+    const seen = [];
+    const f = fixture(owner, {faceFile: async () => mode, writeFace: async (value, options) => { seen.push(options); return true; }});
+    f.control();
+    await f.stream.frame(f.snapshot({faces: poses(.5), facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}));
+    assert.deepEqual(seen, [{segments: mode === 'segments'}]);
+    assert.equal(f.states.at(-1).faceRevision, 1);
+  }
+});
