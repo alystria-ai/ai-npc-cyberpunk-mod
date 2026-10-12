@@ -11,7 +11,8 @@
 //   - it carries nothing the cleaning could still change later: no bracket, brace, parenthesis, asterisk, underscore or angle
 //     bracket (voice and emotion tags, stage directions, markdown), and the reply does not open with a quotation mark (a reply
 //     wrapped whole in quotes loses them at the end);
-//   - it does not break character ("as an AI") and is not a model's reasoning.
+//   - it does not break character ("as an AI") and is not a model's reasoning, and the host's own `reject` test does not refuse it
+//     (the text host refuses a sentence that repeats a line the character has already said).
 // A reply that never gets such a head is voiced after it is finished, exactly as before. The head is a prefix of the finished
 // reply by construction; `reconcile` enforces it when the finished reply disagrees (a second attempt that differs: the spoken part
 // stands and the rest is dropped, so the text never contradicts the audio).
@@ -44,13 +45,13 @@ export function sentenceEnds(text) {
  * The head of a (cleaned) reply so far: the first sentences up to at least `minHeadChars`, or null when there is none yet or none
  * that is safe to speak. `{text, end}`.
  */
-export function pickHead(clean, {minHeadChars = REPLY_STREAM_LIMITS.minHeadChars, maxHeadChars = REPLY_STREAM_LIMITS.maxHeadChars} = {}) {
+export function pickHead(clean, {minHeadChars = REPLY_STREAM_LIMITS.minHeadChars, maxHeadChars = REPLY_STREAM_LIMITS.maxHeadChars, reject = null} = {}) {
   if (typeof clean !== 'string' || !clean || OPENING_QUOTE.test(clean)) return null;
   for (const end of sentenceEnds(clean)) {
     if (end < minHeadChars) continue;
     if (end > maxHeadChars) return null;
     const text = clean.slice(0, end).trim();
-    if (!text || UNSAFE.test(text) || breaksCharacter(text) || leaksReasoning(text)) return null;
+    if (!text || UNSAFE.test(text) || breaksCharacter(text) || leaksReasoning(text) || (reject && reject(text))) return null;
     return {text, end};
   }
   return null;
@@ -74,6 +75,7 @@ export class ReplyStream {
     this.limits = {...REPLY_STREAM_LIMITS, ...limits};
     this.raw = ''; this.clean = ''; this.headText = null; this.sentenceSeen = false;
     this.finishedText = null; this.failure = null; this.diverged = false; this.attempts = 1;
+    this.reject = null;   // optional (text) => boolean, set by the text host: a head it refuses is not committed
     this.head_ = deferred(); this.final_ = deferred();
     this.listeners = new Set();
   }
@@ -114,7 +116,7 @@ export class ReplyStream {
     this.clean = cleanReply(raw, {name: this.name, isTag: this.isTag});
     if (!this.sentenceSeen && sentenceEnds(this.clean).length) { this.sentenceSeen = true; markStage('firstSentence'); }
     if (this.speak && this.headText === null) {
-      const found = pickHead(this.clean, this.limits);
+      const found = pickHead(this.clean, {...this.limits, reject: this.reject});
       if (found) {
         this.headText = found.text;
         this.head_.resolve(found.text);

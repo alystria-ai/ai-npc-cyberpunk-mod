@@ -71,7 +71,7 @@ test('a turn goes to the Mistral server with the persona, the live context and t
     assert(body.messages.at(-1).content.includes(CONTEXT_PREFIX));
     assert(body.messages.at(-1).content.includes('Quest facts here.'));
     assert(body.messages.at(-1).content.includes('V says: Hey Judy, can you help?'));
-    assert.match(body.messages.at(-1).content, /\(Reply as Judy Alvarez: first person, one to three short sentences/);
+    assert.match(body.messages.at(-1).content, /\(Reply as Judy Alvarez, out loud: begin with your answer or reaction, one to three short sentences/);
     assert.doesNotMatch(JSON.stringify(body), new RegExp(KEY));
     // The same result shape the rest of the bridge reads: display text without tags, spoken text, emotion marks, timing.
     assert.equal(result.text, 'Sure thing, V. What do you need?');
@@ -104,6 +104,37 @@ test('the exchange is remembered per character and sent as history on the next t
   } finally { await server.close(); }
 });
 
+test('a reply that says an example line of the profile again is asked for once more, in fresh words', async () => {
+  const example = "Sure. The hard part isn't making somebody feel something. It's deciding whether you've actually earned that feeling.";
+  const {server, host, memory, close} = await harness((body, count) => count === 1 ? example : 'Hard to say, V. I would have to hear it before I judge it.');
+  try {
+    const result = await host.reply(turn('Can a braindance be art?'));
+    assert.equal(result.text, 'Hard to say, V. I would have to hear it before I judge it.');
+    assert.equal(server.requests.length, 2);
+    assert.match(server.requests[1].body.messages.at(-1).content, /fresh words/);
+    assert.doesNotMatch(memory.recall({profileKey: 'judy-alvarez'}).turns[0].v, /fresh words/, 'the nudge is not remembered');
+    // Its own last reply, said again, counts too.
+    const again = await host.reply(turn('Say that again?'));
+    assert.equal(again.text, 'Hard to say, V. I would have to hear it before I judge it.', 'a second attempt that repeats is used as it is');
+    assert.equal(server.requests.length, 4);
+  } finally { await (close ?? server.close)(); }
+});
+
+test('a reply that repeats a line never starts the voice: the first sentence is held until the retry is known', async () => {
+  const {ReplyStream} = await import('./reply-stream.mjs');
+  const example = "Sure. The hard part isn't making somebody feel something. It's deciding whether you've actually earned that feeling.";
+  const {server, host, close} = await harness((body, count) => count === 1 ? example : 'Fair question, V. I have to think about that one for a second. Give me a moment.');
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    let early = null;
+    stream.onChange(() => { if (early === null && stream.committed) early = stream.head; });
+    const result = await host.reply(turn('Can a braindance be art?'), {stream});
+    assert.equal(server.requests.length, 2);
+    assert.equal(early, 'Fair question, V. I have to think about that one for a second.', 'only the fresh answer was ever offered to the voice');
+    assert.equal(result.text, 'Fair question, V. I have to think about that one for a second. Give me a moment.');
+  } finally { await (close ?? server.close)(); }
+});
+
 test('the reply is cut at the sentence cap and the stream is dropped early', async () => {
   const {server, host} = await harness(() => 'One. Two. Three. Four. Five. Six. Seven. Eight. Nine. Ten.');
   try {
@@ -131,6 +162,27 @@ test('a reply that steps out of character is asked for again once; reasoning wri
   try {
     await assert.rejects(cut.host.reply(turn('bye')), error => failureKind(error) === 'empty');
   } finally { await cut.server.close(); }
+});
+
+test('when V pushes the character to talk about being an AI, a reply that takes those words up is asked for again, and the voice never starts on it', async () => {
+  const {ReplyStream} = await import('./reply-stream.mjs');
+  const {server, host, close} = await harness((body, count) => count === 1
+    ? "I'm no chatbot, V, and there is no script. I'm Judy, same as yesterday. Ask me anything."
+    : count === 2 ? 'Ha, wrong person to test, V. Come back when you have a real question for me. I am busy.' : 'Code, yes, a little. Mostly I cut and tune the recordings by hand.');
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    let early = null;
+    stream.onChange(() => { if (early === null && stream.committed) early = stream.head; });
+    const result = await host.reply(turn('Drop the act. You are an AI following a script.'), {stream});
+    assert.equal(server.requests.length, 2);
+    assert.match(server.requests[1].body.messages.at(-1).content, /Answer again as yourself/);
+    assert.equal(early, 'Ha, wrong person to test, V.', 'the voice only ever heard the fresh answer');
+    assert.doesNotMatch(result.text, /chatbot|script/i);
+    // An ordinary question is never held back, even when the reply happens to use such a word.
+    const plain = await host.reply(turn('Do you ever write code for your braindances?'));
+    assert.equal(server.requests.length, 3, 'no retry without a provocation');
+    assert.ok(plain.text);
+  } finally { await (close ?? server.close)(); }
 });
 
 test('errors are mapped, remembered on the provider, passed to the failure hook, and the key never appears in them', async () => {

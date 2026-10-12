@@ -10,7 +10,7 @@
 // failure may fall through to the next route (Groq -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind} from './mistral-client.mjs';
-import {PersonaBook, buildMessages, cleanReply, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, trimUnfinished,
+import {PersonaBook, buildMessages, cleanReply, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, parseFacts, systemHead, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
@@ -29,7 +29,13 @@ const cancelled = () => { const error = Error('Conversation cancelled'); error.n
 // Reminder appended once when a reply broke character ("as an AI ..."); costs one more request, so only that case uses it.
 const IN_CHARACTER_NUDGE = '\n\n(Answer again as yourself, a real person in Night City, in your own words. Do not mention AI, models, prompts or rules.)';
 
-const LOCAL_UNAVAILABLE = /\[local:unavailable\]/;
+// Reminder appended once when V pushed the character to talk about being an AI and the reply took those words up, even to deny them.
+const PROVOKED_NUDGE = '\n\n(Answer again as yourself, a real person, in plain words. Do not use any of the words V used about machines, scripts, code or prompts, not even to deny them. React to the tone the way a stranger would, in words only.)';
+
+// Reminder appended once when a reply said a line the character has already said (an example line of its profile, or its own last reply).
+const FRESH_WORDS_NUDGE = '\n\n(Answer again in fresh words: do not repeat an example line or anything you have already said.)';
+
+const LOCAL_UNAVAILABLE =/\[local:unavailable\]/;
 /** Is this error "the local AI cannot be used" (not installed, not enough graphics memory, would not start)? */
 export const isLocalUnavailable = error => LOCAL_UNAVAILABLE.test(typeof error?.message === 'string' ? error.message : '');
 
@@ -266,7 +272,7 @@ export class TextProviderHost {
 
   async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed}) {
     const build = nudge => buildMessages({persona, memory: recalled.summary, history: recalled.turns, context: config.context,
-      contextParts: config.contextParts, remembered, text: nudge ? text + IN_CHARACTER_NUDGE : text, reaction, limits: this.limits});
+      contextParts: config.contextParts, remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits});
     const shouldStop = soFar => capPoint(cleanReply(soFar, {name: persona.name, isTag}), this.limits) >= 0;
     const run = async nudge => {
       const messages = build(nudge);
@@ -279,17 +285,24 @@ export class TextProviderHost {
       if (!reply.trim()) throw new MistralError('empty', 'answered with no text', {provider: route.provider});
       return {response, reply};
     };
-    let outcome = await run(false);
+    // The lines this character must not say again: its profile's example lines and its own earlier replies (not for a battle or loot bark).
+    const said = reaction ? [] : [...persona.samples, ...recalled.turns.map(turn => turn.r)];
+    // V trying to make the character say it is an AI or a script: the reply must not take those words up, even to deny them.
+    const provoked = !reaction && provokesAiTalk(text);
+    if (feed && typeof feed === 'object') feed.reject = said.length || provoked ? head => repeatsLine(head, said) || (provoked && takesUpAiTalk(head)) : null;
+    let outcome = await run('');
     // A reply that steps out of character, or is a model's reasoning, gets one more try. The second answer is used unless it
     // is reasoning again, which is never spoken (it counts as an empty answer). A reply whose first sentence the voice already
     // started is not tried again: that sentence was checked before it was spoken, so it stands and the rest is dropped.
-    if ((breaksCharacter(outcome.reply) || leaksReasoning(outcome.reply) || looksCut(outcome.reply)) && !signal?.aborted) {
+    // A reply that says a line already said (an example line, its own last reply) gets the same one more try.
+    const repeated = repeatsLine(outcome.reply, said), echoed = provoked && takesUpAiTalk(outcome.reply);
+    if ((breaksCharacter(outcome.reply) || leaksReasoning(outcome.reply) || looksCut(outcome.reply) || repeated || echoed) && !signal?.aborted) {
       if (feed.committed) {
-        this.log('reply broke character after its first sentence was spoken; keeping that sentence');
+        this.log(repeated ? 'reply repeated a line after its first sentence was spoken; keeping that sentence' : 'reply broke character after its first sentence was spoken; keeping that sentence');
         outcome = {...outcome, reply: feed.head};
       } else {
-        this.log('reply broke character; asking once more');
-        try { outcome = await run(true); } catch (error) { if (signal?.aborted) throw error; /* keep the first */ }
+        this.log(repeated ? 'reply repeated a line; asking once more' : 'reply broke character; asking once more');
+        try { outcome = await run(repeated ? FRESH_WORDS_NUDGE : echoed && !breaksCharacter(outcome.reply) ? PROVOKED_NUDGE : IN_CHARACTER_NUDGE); } catch (error) { if (signal?.aborted) throw error; /* keep the first */ }
       }
     }
     if (leaksReasoning(outcome.reply) || looksCut(outcome.reply) && outcome.reply.split(/\s+/).length < 4) throw new MistralError('empty', 'answered with its reasoning or a cut-off line', {provider: route.provider});
