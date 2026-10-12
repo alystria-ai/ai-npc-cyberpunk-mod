@@ -1,5 +1,7 @@
 // "Mature content" (Settings > Voices, off by default; docs/LOCAL_AI.md, "Mature content").
 //
+// The setting exists only with the separate, adult-flagged Mature pack (bridge/mature-pack.mjs, packaging/MATURE_PACK_README.md): without
+// the pack's marker it is off whatever the settings file says and the layer never applies.
 // Off: nothing here runs and the prompt is byte for byte the one built without it.
 // On: the fully local AI (and only that provider) gets one short layer at the end of the system head, right after the output rules, so
 // it sits in the stable early part of the prompt (the llama-server prefix cache keeps working) and the prompt budget never cuts it
@@ -93,15 +95,25 @@ export function matureLayer(level) {
 /** The first line of the layer, for a test or a log to tell it from the rest of the prompt. */
 export const MATURE_MARK = 'MATURE CONTENT IS ON';
 
-/** The setting. `enabled` follows runtime/settings.json; off unless the file says `true`. */
+/**
+ * The setting. `requested` follows runtime/settings.json (off unless the file says `true`); `pack` is whether the Mature pack is installed
+ * (bridge/mature-pack.mjs). `enabled` is both: without the pack the setting is off whatever the file says, and the layer never applies.
+ */
 export class MatureContent {
-  constructor() { this.enabled = false; }
-  /** True when the setting changed (a prepared reply was written under the other prompt). */
+  constructor() { this.requested = false; this.pack = false; }
+  get enabled() { return this.requested && this.pack; }
+  /** True when `enabled` changed (a prepared reply was written under the other prompt). */
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
-    const next = settings.matureContent === true, changed = next !== this.enabled;
-    this.enabled = next;
-    return changed;
+    const before = this.enabled;
+    this.requested = settings.matureContent === true;
+    return this.enabled !== before;
+  }
+  /** The Mature pack was found or lost. True when `enabled` changed. */
+  setPack(installed) {
+    const before = this.enabled;
+    this.pack = installed === true;
+    return this.enabled !== before;
   }
   /** {level, family, licence} for a turn on `provider` with `modelName` loaded, or null (the setting is off or the provider never gets it). */
   forTurn(provider, modelName) {

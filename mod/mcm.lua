@@ -866,10 +866,15 @@ local function ownKeyRows(snapshot)
                 function() return manager.removeOwnKey() end, own.saved),
         }
     end
-    -- Mature content applies to the Local AI provider only; the help says so while another provider answers.
-    local matureHelp = ui.t('Lets companions answer with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content, in the tone of Night City. For adults (18+) only. It applies to Local AI only: Convai, Mistral and Groq never get it. Characters stay themselves, follow your relationship with them and may say no; some things are never allowed (sex involving minors or without consent, sex about real people, hate, or real-world instructions for weapons or drugs). The standard Local AI models are trained to refuse most sexual content, so the full effect needs an uncensored model, planned as an optional pack. Off by default.')
-    if mistral.effective ~= 'local' then
-        matureHelp = matureHelp .. ' ' .. ui.t('Your conversations are not using Local AI right now, so this has no effect for now.')
+    -- Mature content exists only with the separate, adult-flagged Mature pack (the bridge reports its marker): without it the row, its help
+    -- and the 18+ notice are not there at all. It applies to the Local AI provider only; the help says so while another provider answers.
+    local matureRow = false
+    if mistral.maturePack == true then
+        local matureHelp = ui.t('Lets companions answer with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content, in the tone of Night City. For adults (18+) only. It applies to Local AI only: Convai, Mistral and Groq never get it. Characters stay themselves, follow your relationship with them and may say no; some things are never allowed (sex involving minors or without consent, sex about real people, hate, or real-world instructions for weapons or drugs). The uncensored models of the Mature pack give the full effect; the standard Local AI models are trained to refuse most sexual content. Off by default.')
+        if mistral.effective ~= 'local' then
+            matureHelp = matureHelp .. ' ' .. ui.t('Your conversations are not using Local AI right now, so this has no effect for now.')
+        end
+        matureRow = setting('matureContent', 'Mature content', 'bool', snapshot.settings.matureContent, false, matureHelp, nil, {description = true})
     end
     for _, item in ipairs({
             setting('conversationProvider', 'Conversation provider', 'select',
@@ -877,7 +882,7 @@ local function ownKeyRows(snapshot)
                     or snapshot.settings.conversationProvider == 'local' and 3
                     or snapshot.settings.conversationProvider == 'mistral' and 2 or 1, 1, providerHelp,
                 {'Convai free tier', 'Mistral (free plan)', 'Local (needs Local AI pack)', 'Groq (free plan)'}, {elements = true, description = true}),
-            setting('matureContent', 'Mature content', 'bool', snapshot.settings.matureContent, false, matureHelp, nil, {description = true}),
+            matureRow,
             readonly('mistral-key-status', 'Mistral key', mistralStatus,
                 'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
             action('mistral-key:paste', 'Paste Mistral key', 'Paste from clipboard',
@@ -898,7 +903,7 @@ local function ownKeyRows(snapshot)
                 'Runs conversations on this computer with the optional Local AI pack. It needs free graphics memory while it works, and memory stays on this computer. Choose Local in Conversation provider, then Apply.', {value = true}),
             readonly('own-key-using', 'Conversations use', using,
                 'Which provider answers your conversations right now and, for Convai, which plan pays for them. Changes wait until no conversation is running.', {value = true}),
-    }) do rows[#rows + 1] = item end
+    }) do if item then rows[#rows + 1] = item end end
     return rows
 end
 
@@ -948,7 +953,7 @@ local function pageSignature(snapshot)
             own.result or '', own.limit or '', tostring(own.limitOwn), tostring(own.memoryOff),
             own.daily and (tostring(own.daily.left) .. '/' .. tostring(own.daily.blocked)) or ''}, '|'))
         add(table.concat({'provider', tostring(mistral.saved), mistral.tail or '', mistral.provider or '', mistral.effective or '',
-            mistral.localAi or '', tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
+            mistral.localAi or '', tostring(mistral.maturePack), tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
             tostring(groq.saved), groq.tail or '', groq.limit or '', groq.result or '',
             tostring(pack.known), tostring(pack.installed)}, '|'))
     end

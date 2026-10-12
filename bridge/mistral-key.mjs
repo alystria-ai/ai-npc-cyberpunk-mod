@@ -159,9 +159,10 @@ export function parseKeyCommand(raw, now = Date.now()) {
  * reads (runtime/mistral-state.json). The key itself never enters either file. */
 export class MistralControl {
   constructor({provider, commandPath, publish, model, readClipboard = readClipboardText, validate = validateKey,
-    read = path => readFile(path, 'utf8'), now = Date.now, localStatus, groqCommandPath, validateGroq = key => validateKey(key, {provider: 'groq'})} = {}) {
+    read = path => readFile(path, 'utf8'), now = Date.now, localStatus, groqCommandPath, validateGroq = key => validateKey(key, {provider: 'groq'}),
+    maturePack} = {}) {
     if (!provider || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid Mistral configuration');
-    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, groqCommandPath, validateGroq});
+    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, groqCommandPath, validateGroq, maturePack});
     this.observed = ''; this.result = null; this.busy = false; this.writing = Promise.resolve();
     this.groqObserved = ''; this.groqResult = null; this.groqBusy = false;
   }
@@ -179,6 +180,8 @@ export class MistralControl {
       model: typeof this.model === 'function' ? this.model() : this.model, stt: p.sttAvailable === true,
       // The local AI: 'ready' | 'warming' | 'not-installed' | 'no-memory' | 'failed' (docs/LOCAL_AI.md); never a path or a key.
       ...(typeof this.localStatus === 'function' ? {localAi: this.localStatus()} : {}),
+      // Is the optional Mature pack installed (bridge/mature-pack.mjs)? The settings page shows Mature content only when it is.
+      ...(typeof this.maturePack === 'function' ? {maturePack: this.maturePack() === true} : {}),
       // Groq (docs/MISTRAL.md): the key status and the latest limit; never the key.
       ...(this.provider.groq ? {groq: {saved: !!this.provider.groq.key, tail: this.provider.groq.tail,
         limit: this.provider.groqLimit?.kind ?? null, ...(this.groqResult ? {result: this.groqResult} : {})}} : {})};

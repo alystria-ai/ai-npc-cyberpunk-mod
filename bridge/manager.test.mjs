@@ -208,13 +208,36 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
     assert(manager.snapshot(player).settings.omniReference == 'long' and saved.omniReference == 'long')
     assert(manager.snapshot(player).settings.keepPreparedVoices == true and saved.keepPreparedVoices == true)
     assert(manager.snapshot(player).settings.matureContent == false and saved.matureContent == false, 'Mature content is off by default')
-    assert(manager.applySettings(player, {matureContent = 'yes'}) == false, 'Mature content must be on or off')
-    local matureOk, matureProblem, matureNotice = manager.applySettings(player, {matureContent = true})
-    assert(matureOk and saved.matureContent == true and manager.snapshot(player).settings.matureContent == true)
-    assert(type(matureNotice) == 'string' and matureNotice:find('18+', 1, true), 'turning it on says once that it is for adults')
-    local _, _, again = manager.applySettings(player, {matureContent = true})
-    assert(again == nil, 'the line comes when it is turned on, not on every Apply')
-    assert(manager.applySettings(player, {matureContent = false}) and saved.matureContent == false)
+    do
+      -- Mature content exists only with the optional Mature pack: the bridge reports it in runtime/mistral-state.json.
+      local realClock, clock = os.clock, 1000
+      os.clock = function() return clock end
+      local function pack(installed)
+        jsonFixtures['mature-pack-' .. tostring(installed)] = {provider = 'local', effective = 'local', maturePack = installed}
+        files['runtime/mistral-state.json'] = 'mature-pack-' .. tostring(installed)
+        clock = clock + 2
+      end
+      assert(manager.mistral().maturePack == false, 'no pack until the bridge says so')
+      local refused, reason = manager.applySettings(player, {matureContent = true})
+      assert(refused == false and reason:find('Unknown setting', 1, true), 'without the pack the setting does not exist: ' .. tostring(reason))
+      assert(manager.applySettings(player, {matureContent = 'yes'}) == false)
+      assert(saved.matureContent == false and manager.snapshot(player).settings.matureContent == false)
+      pack(true)
+      assert(manager.mistral().maturePack == true)
+      assert(manager.applySettings(player, {matureContent = 'yes'}) == false, 'Mature content must be on or off')
+      local matureOk, matureProblem, matureNotice = manager.applySettings(player, {matureContent = true})
+      assert(matureOk and saved.matureContent == true and manager.snapshot(player).settings.matureContent == true)
+      assert(type(matureNotice) == 'string' and matureNotice:find('18+', 1, true), 'turning it on says once that it is for adults')
+      local _, _, again = manager.applySettings(player, {matureContent = true})
+      assert(again == nil, 'the line comes when it is turned on, not on every Apply')
+      -- The pack is deleted while the file still says on: the page and the snapshot show it off, and the bridge applies nothing.
+      pack(false)
+      assert(saved.matureContent == true and manager.snapshot(player).settings.matureContent == false, 'forced off without the pack')
+      pack(true)
+      assert(manager.applySettings(player, {matureContent = false}) and saved.matureContent == false)
+      pack(false)
+      os.clock = realClock
+    end
     assert(not manager.battleReactions() and manager.snapshot(player).settings.battleReactions == false, 'battle reactions default off')
     assert(not manager.lootReactions() and manager.snapshot(player).settings.lootReactions == false, 'loot reactions default off')
     assert(manager.followUpQuestions == nil and manager.snapshot(player).settings.followUpQuestions == nil)
@@ -1998,6 +2021,46 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     -- Convai stays selectable, and the saved voice is found again in the list.
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
     assert(dofile('voice-preview.lua').indexOf({voiceProvider = 'voxtral'}) == 6)
+  `);
+});
+
+test('Mature content is a settings row only with the Mature pack: without it the row and its help are not there, with it the help says which models give the full effect', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function state(tag, value)
+      jsonFixtures['mature-' .. tag] = value
+      files['runtime/mistral-state.json'] = 'mature-' .. tag
+      clock = clock + 2
+    end
+    assert(invoke('tab:settings').ok)
+    state('none', {provider = 'local', effective = 'local', saved = false})
+    loaded = registered.loadMod('manager')
+    assert(row('matureContent') == nil, 'no Mature pack: no row')
+    assert(row('conversationProvider') ~= nil)
+    for _, category in ipairs(loaded.categories) do
+      for _, setting in ipairs(category.settings) do
+        local text = tostring(setting.label) .. tostring(setting.description)
+        assert(not text:find('Mature content', 1, true) and not text:find('18+', 1, true), 'nothing about it is shown: ' .. tostring(setting.id))
+      end
+    end
+    -- The pack is applied by hand with the setting in the file: nothing is applied, the bridge is not told.
+    assert(not registered.applyBatch('manager', {{id = 'matureContent', value = true}}).ok)
+    assert(saved.matureContent == false)
+    state('pack', {provider = 'local', effective = 'local', saved = false, maturePack = true})
+    loaded = registered.loadMod('manager')
+    local mature = row('matureContent')
+    assert(mature ~= nil and mature.label == 'Mature content', 'the Mature pack is installed: the row is there')
+    assert(tostring(mature.description):find('uncensored models of the Mature pack', 1, true), 'the help names where the full effect comes from')
+    assert(not tostring(mature.description):find('not using Local AI', 1, true), 'Local AI answers, so no warning')
+    assert(registered.applyBatch('manager', {{id = 'matureContent', value = true}}).ok and saved.matureContent == true)
+    -- Another provider answers: the row stays and says it has no effect for now.
+    state('other', {provider = 'mistral', effective = 'mistral', saved = true, maturePack = true})
+    loaded = registered.loadMod('manager')
+    assert(tostring(row('matureContent').description):find('not using Local AI', 1, true))
+    -- The pack goes away: the row goes with it.
+    state('gone', {provider = 'local', effective = 'local', saved = false, maturePack = false})
+    loaded = registered.loadMod('manager')
+    assert(row('matureContent') == nil)
   `);
 });
 

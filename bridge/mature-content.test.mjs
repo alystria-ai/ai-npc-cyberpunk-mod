@@ -30,8 +30,11 @@ const turn = text => ({text, context: 'CURRENT PERSON', sessionId: 'session-1', 
 
 // ---- The setting and the table ------------------------------------------------------------------------------------------------
 
+// A setting with the Mature pack found, which is the only way it can be on.
+const withPack = (settings = {}) => { const setting = new MatureContent(); setting.setPack(true); setting.update(settings); return setting; };
+
 test('the setting is off until the settings file says true, and only a change is reported', () => {
-  const setting = new MatureContent();
+  const setting = new MatureContent(); setting.setPack(true);
   assert.equal(setting.enabled, false);
   assert.equal(setting.update(null), false);
   assert.equal(setting.update({}), false);
@@ -43,9 +46,27 @@ test('the setting is off until the settings file says true, and only a change is
   assert.equal(setting.enabled, false);
 });
 
+test('without the Mature pack the setting is inert, even when the settings file says on; finding or losing the pack is a change', () => {
+  const setting = new MatureContent();
+  assert.equal(setting.pack, false, 'no pack until the scan finds one');
+  assert.equal(setting.update({matureContent: true}), false, 'asked for, but nothing changes without the pack');
+  assert.equal(setting.requested, true);
+  assert.equal(setting.enabled, false);
+  assert.equal(setting.forTurn('local', 'gemma-4-E4B-it-Q4_K_M'), null, 'no layer for any model');
+  assert.equal(setting.setPack(true), true, 'the pack appears with the setting already on: it is on now');
+  assert.equal(setting.enabled, true);
+  assert.equal(setting.setPack(true), false);
+  assert.equal(setting.forTurn('local', 'gemma-4-E4B-it-Q4_K_M').level, 'full');
+  assert.equal(setting.setPack(false), true, 'the pack is deleted: off again at once');
+  assert.equal(setting.enabled, false);
+  assert.equal(setting.forTurn('local', 'gemma-4-E4B-it-Q4_K_M'), null);
+  assert.equal(setting.setPack('yes'), false, 'only true counts');
+  assert.equal(setting.update({matureContent: false}), false, 'switching it off with no pack changes nothing');
+});
+
 test('only the local AI may have it: Convai, Mistral and Groq never do, with the setting on or off', () => {
   assert.deepEqual({...MATURE_PROVIDERS}, {local: true, mistral: false, groq: false, convai: false});
-  const setting = new MatureContent(); setting.update({matureContent: true});
+  const setting = withPack({matureContent: true});
   for (const provider of ['convai', 'mistral', 'groq', 'anything']) {
     assert.equal(setting.forTurn(provider, 'qwen3.5-2b'), null, provider);
     assert.equal(levelFor(provider, 'qwen3.5-2b'), null, provider);
@@ -162,7 +183,7 @@ test('a prompt that fits is unchanged by the fit, with the layer or without', as
 // ---- The host: which route gets it ------------------------------------------------------------------------------------------------
 
 // A host with the three routes and a recording `chat`; `localModel` is the model name the fake local server reports.
-async function hostWith({preference, enabled, localModel = 'gemma-4-E4B-it-Q4_K_M', localFails = false}) {
+async function hostWith({preference, enabled, pack = true, localModel = 'gemma-4-E4B-it-Q4_K_M', localFails = false}) {
   const seen = [];
   const chat = name => async options => {
     seen.push({route: name, system: options.messages[0].content, all: options.messages});
@@ -178,7 +199,7 @@ async function hostWith({preference, enabled, localModel = 'gemma-4-E4B-it-Q4_K_
     touch() {}, prewarm: async messages => { prewarms.push(messages); }};
   const routes = {mistral: mistralRoute({provider, chat: chat('mistral'), gapMs: 0}), groq: groqRoute({provider, chat: chat('groq')}),
     local: localRoute({server, provider, chat: chat('local')})};
-  const matureContent = new MatureContent(); matureContent.update({matureContent: enabled});
+  const matureContent = new MatureContent(); matureContent.setPack(pack); matureContent.update({matureContent: enabled});
   const memory = await MistralMemory.open({path: null});
   const host = new TextProviderHost({provider, memory, personas: book, routes, matureContent});
   return {host, seen, prewarms, matureContent, close: () => host.close()};
@@ -199,6 +220,22 @@ test('the host: the local AI with the setting on gets the layer; with it off, no
     off.matureContent.update({matureContent: false}); await off.host.reply(turn('and again'));
     assert.doesNotMatch(off.seen[2].system, /MATURE/);
   } finally { on.close(); off.close(); }
+});
+
+test('the host: without the Mature pack no route gets the layer or the screen, even with the setting on in the file', async () => {
+  const absent = await hostWith({preference: 'local', enabled: true, pack: false});
+  const off = await hostWith({preference: 'local', enabled: false});
+  try {
+    await absent.host.reply(turn('hello')); await off.host.reply(turn('hello'));
+    assert.equal(absent.seen[0].route, 'local');
+    assert.doesNotMatch(absent.seen[0].system, /MATURE|HARD LIMITS/);
+    assert.equal(absent.seen[0].system, off.seen[0].system, 'the prompt is the one of the setting being off');
+    // The pack shows up while the game runs: the next turn has it, with no restart.
+    absent.matureContent.setPack(true); await absent.host.reply(turn('again'));
+    assert(absent.seen[1].system.includes(MATURE_MARK));
+    absent.matureContent.setPack(false); await absent.host.reply(turn('gone'));
+    assert.doesNotMatch(absent.seen[2].system, /MATURE/);
+  } finally { absent.close(); off.close(); }
 });
 
 test('the host: Mistral and Groq never get it, with the setting on', async () => {
@@ -296,7 +333,7 @@ async function screenedHost(text, enabled) {
   await provider.load(); provider.setPreference('local'); provider.apply();
   const server = {status: () => ({state: 'ready', model: 'Qwen3.5-2B'}), ensure: async () => ({endpoint: 'http://127.0.0.1:1/v1', apiKey: 'session-key-abcdef123456', model: 'Qwen3.5-2B'}), touch() {}, prewarm: async () => {}};
   const chat = async () => ({text, model: 'x', finishReason: 'stop', usage: {}});
-  const matureContent = new MatureContent(); matureContent.update({matureContent: enabled});
+  const matureContent = new MatureContent(); matureContent.setPack(true); matureContent.update({matureContent: enabled});
   const host = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: book, routes: {local: localRoute({server, provider, chat})},
     matureContent, log: line => logs.push(line)});
   return {host, logs};

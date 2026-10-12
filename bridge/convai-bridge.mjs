@@ -40,6 +40,7 @@ import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
 import {MatureContent} from './mature-content.mjs';
+import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
 import {turnContextDiagnostic} from './turn-context.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
@@ -519,8 +520,18 @@ const profileOfCharacter = config => {
   if (!providerOfCharacter.size) for (const table of [ids, relationshipRoutes.providerIds ?? {}]) for (const [profile, id] of Object.entries(table)) if (typeof id === 'string') providerOfCharacter.set(id, profile);
   return providerOfCharacter.get(config?.characterId);
 };
-// "Mature content": read from the settings file when it changes (never per turn); only the local AI route ever uses it.
+// "Mature content": read from the settings file when it changes (never per turn); only the local AI route ever uses it, and only while
+// the separate Mature pack is installed (its marker is looked for at most every 5 s, on the settings poll, never per turn or per frame).
 const matureContent = new MatureContent();
+let maturePackCheckedAt = 0;
+function maturePackInstalled(force = false) {
+  if (force || Date.now() - maturePackCheckedAt >= 5000) {
+    maturePackCheckedAt = Date.now();
+    matureContent.setPack(detectMaturePack({project}).installed);
+  }
+  return matureContent.pack;
+}
+maturePackInstalled(true);
 const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: new PersonaBook(roster), routes: textRoutes, matureContent,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message)});
 // The hook for local speech recognition (bridge/local-stt.mjs and local-stt-capture.mjs; docs/LOCAL_STT.md). While Mistral is the
@@ -2087,7 +2098,9 @@ async function pollSettings(checkShutdown = true) {
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
-    const matureChanged = matureContent.update(settings);
+    const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
+    if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings page shows or hides the setting
+    const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
     if (matureChanged) console.error(`[MatureContent] setting is now ${matureContent.enabled ? 'on' : 'off'}`);
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
@@ -2123,7 +2136,7 @@ const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, co
   publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
 quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  groqCommandPath: resolve(runtime, 'groq-key-command.json'), localStatus: localAiStatus, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  groqCommandPath: resolve(runtime, 'groq-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),

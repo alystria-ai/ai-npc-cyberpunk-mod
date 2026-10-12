@@ -10,6 +10,8 @@
 //   CyberpunkConvai-OmniPack-<v>-partNofM.zip  optional OmniVoice GPU pack (GitHub)
 //   CyberpunkConvai-LocalAI-Standard-<v>-partNofM.zip  optional Local AI pack, Gemma 4 E4B (GitHub)
 //   CyberpunkConvai-LocalAI-Lite-<v>.zip   optional Local AI pack, Qwen3.5-2B (GitHub)
+//   CyberpunkConvai-Mature-<v>.zip         optional adult-flagged Mature pack, the uncensored models (its own Nexus page; only with
+//                                          --packages mature, never in the default set; refuses to build while its models are placeholders)
 // plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
 // (red4ext/plugins/CyberpunkConvaiNative) and runtime/native-off.txt. See docs/PACKAGING.md.
 //
@@ -17,7 +19,7 @@
 //   --version V        release version, 2077.N or 2077.N.M (required)
 //   --dry-run          local build: models from the developer runtime/ folder, no key embedded
 //   --models local|hf  where trained models come from (default: hf, or local with --dry-run)
-//   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite (default: all five)
+//   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite,mature (default: the first five)
 //   --source REF       git ref to package (default HEAD); --worktree packages the working tree instead
 //   --key-env NAME     embed the Convai key from this environment variable (never printed)
 //   --key-file PATH    embed the Convai key from this file (local testing only)
@@ -54,8 +56,10 @@ if (!isReleaseVersion(version)) {
 }
 const dryRun = flag('--dry-run');
 const modelSource = value('--models', dryRun ? 'local' : 'hf');
-const PACKAGE_IDS = ['scripts', 'runtime', 'omni', 'localai-standard', 'localai-lite'];
-const packages = new Set(value('--packages', PACKAGE_IDS.join(',')).split(',').map(item => item.trim()).filter(Boolean));
+// 'mature' is the separate adult-flagged Mature pack (packaging/MATURE_PACK_README.md): built only when asked for, never in the default set.
+const PACKAGE_IDS = ['scripts', 'runtime', 'omni', 'localai-standard', 'localai-lite', 'mature'];
+const DEFAULT_PACKAGE_IDS = PACKAGE_IDS.filter(id => id !== 'mature');
+const packages = new Set(value('--packages', DEFAULT_PACKAGE_IDS.join(',')).split(',').map(item => item.trim()).filter(Boolean));
 const localAiSource = value('--local-ai-source', process.env.CYBERPUNK_CONVAI_LOCAL_AI_DEV);
 const out = resolve(value('--out', resolve(project, 'dist/release')));
 const cache = resolve(value('--cache', resolve(project, 'dist/release-cache')));
@@ -667,6 +671,31 @@ async function localAiPackage(source, config, tierKey) {
   return pkg;
 }
 
+// The Mature pack (docs/LOCAL_AI.md, "Mature content"): a separate download for its own adult-flagged Nexus page. It carries the uncensored
+// model files in the Local AI folder's models/ and the marker the main mod looks for (manifest.mature.json, read by bridge/mature-pack.mjs;
+// the Local AI detector never reads it), plus its own README and licence files under mature/. Nothing of it is in the Runtime package.
+async function maturePackage(source, config) {
+  const spec = config.maturePack;
+  const unfinished = spec.models.filter(model => model.placeholder || /PLACEHOLDER/.test(`${model.file}${model.sha256}${model.revision}`));
+  if (!spec.models.length || unfinished.length) {
+    throw Error(`The Mature pack model list is not filled in yet (${unfinished.length} placeholder entries in packaging/release.config.json, maturePack.models).`);
+  }
+  for (const model of spec.models) if (model.license !== 'Apache-2.0') throw Error(`${model.name}: the Mature pack ships Apache-2.0 base models only.`);
+  const pkg = new Package('mature');
+  const root = config.layout.localAiDirectory;
+  const huggingFace = item => `https://huggingface.co/${item.repository}/resolve/${item.revision}/${item.file}`;
+  for (const model of spec.models) pkg.file(`${root}/models/${model.file}`, await localAiFile(model, huggingFace(model), model.file));
+  pkg.json(`${root}/${spec.marker}`, {version: 1, pack: 'mature', models: spec.models.map(model => ({file: `models/${model.file}`, name: model.name, family: model.family}))});
+  pkg.text(`${root}/${spec.directory}/README.md`, await readFile(resolve(source.root, spec.readme), 'utf8'));
+  for (const licence of spec.licenceFiles) pkg.file(`${root}/${spec.directory}/licenses/${basename(licence)}`, resolve(source.root, licence));
+  pkg.text(`${root}/${spec.directory}/THIRD-PARTY-NOTICES.txt`, ['Cyberpunk Convai Mature pack - third-party components', '',
+    ...spec.models.map(model => `- ${model.name} (GGUF file ${model.file}; base model ${model.baseModel}) - ${model.license}: ${spec.directory}/licenses/Apache-2.0.txt - https://huggingface.co/${model.repository}`),
+    '- The models are community fine-tunes of the Apache-2.0 base models named above. The pack needs the Cyberpunk Convai main mod and a Local AI pack (llama-server).', ''].join('\r\n'));
+  pkg.json(`${root}/${spec.directory}/mature-pack.json`, {product: config.product, package: 'mature', version, commit: '' + source.commit,
+    models: spec.models.map(model => ({repository: model.repository, revision: model.revision, file: model.file, sha256: model.sha256}))});
+  return pkg;
+}
+
 // ---------------------------------------------------------------- archives
 async function splitLargeFiles(pkg, config) {
   for (const [name, entry] of [...pkg.entries]) {
@@ -737,8 +766,9 @@ async function main() {
     omni: () => omniPackage(source, config, models),
     'localai-standard': () => localAiPackage(source, config, 'standard'),
     'localai-lite': () => localAiPackage(source, config, 'lite'),
+    mature: () => maturePackage(source, config),
   };
-  const titles = {scripts: 'Scripts', runtime: 'Runtime', omni: 'OmniPack', 'localai-standard': 'LocalAI-Standard', 'localai-lite': 'LocalAI-Lite'};
+  const titles = {scripts: 'Scripts', runtime: 'Runtime', omni: 'OmniPack', 'localai-standard': 'LocalAI-Standard', 'localai-lite': 'LocalAI-Lite', mature: 'Mature'};
   for (const id of PACKAGE_IDS) {
     if (!packages.has(id)) continue;
     log(`Staging the ${titles[id]} package.`);

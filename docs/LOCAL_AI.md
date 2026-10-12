@@ -256,7 +256,37 @@ yet measured on it (`scripts/Eval-MistralPrompt.mjs --actions --local <port>`).
 
 ### Mature content
 
-Settings > Development, right under Conversation provider: "Mature content" (key `matureContent`, off by default, an ordinary Apply setting; the
+#### The Mature pack gates it
+
+The setting ships ONLY with a separate, adult-flagged download, the Mature pack (its own Nexus page; the main mod page stays clean and
+carries only the generative-AI tag). The pack holds the uncensored model files. Without it the setting, its help text and the 18+ notice do
+not exist and nothing is applied:
+- Detection: `bridge/mature-pack.mjs` (`detectMaturePack`) looks for the marker `manifest.mature.json` in the Local AI folder, beside
+  `manifest.standard.json` and `manifest.lite.json` (same root: `<project>/local-ai`, or `CYBERPUNK_CONVAI_LOCAL_AI`, which the packaged
+  service points at `app/local-ai`). The marker is `{version: 1, pack: 'mature', models: [{file, name, family}]}`; a valid marker is
+  "installed" (the listed files are reported as `present`, not required, because a split model is joined at the first start); a missing,
+  malformed or foreign marker, or a model path that leaves the folder, is not trusted. The Local AI detector never reads this marker.
+- When: once at start and then from the settings poll at most every 5 s (one `stat` and a tiny read; never per frame, never per turn).
+  `MatureContent` has two inputs, `requested` (the settings file) and `pack` (the scan); `enabled` is both. No marker means off even
+  when the settings file says on, and the layer, the screen and the prewarm text are the ones of the setting being off (byte for byte).
+  Finding or losing the pack flips it at once and drops prepared replies.
+- Lua: the bridge publishes `maturePack` in `runtime/mistral-state.json` (`MistralControl.status`); `manager.mistral().maturePack` reads it.
+  `mod/mcm.lua` adds the "Mature content" row (and its help) only when it is true. `manager.applySettings` answers "Unknown setting" for
+  `matureContent` without the pack, so the setting cannot be saved by hand, and the snapshot reports it off without the pack even if the
+  file says on. The 18+ line is only reachable with the pack.
+- Packaging: `maturePack` in `packaging/release.config.json` and `maturePackage` in `packaging/build-release.mjs`. The package id is
+  `mature`; it is built only with `--packages mature` and is NOT in the default set, so a plain build and the release workflow never
+  produce it, and nothing of it (marker, README, Nexus text, models) is in the Runtime package or `release-plan.json`. It writes the model
+  files into `app/local-ai/models/`, the marker, and `app/local-ai/mature/` (`README.md` from `packaging/MATURE_PACK_README.md`,
+  `licenses/Apache-2.0.txt`, `THIRD-PARTY-NOTICES.txt`, `mature-pack.json`). The model list in the config is still PLACEHOLDERS; the
+  build refuses to run until every entry is filled in and pinned by revision, size and hash, and it refuses a non-Apache-2.0 model.
+- Pack texts: `packaging/MATURE_PACK_README.md` (ships in the pack) and `packaging/MATURE_PACK_NEXUS.md` (the Nexus description plus the
+  page settings: adult flag and classifications, the generative-AI tag, the main mod as a requirement). Both say 18+, what it adds, that
+  the hard limits stay, that it needs the main mod and a Local AI pack, and the install steps.
+
+#### The setting
+
+Settings > Development, right under Conversation provider (only with the pack): "Mature content" (key `matureContent`, off by default, an ordinary Apply setting; the
 bridge reads it from `runtime/settings.json` when the file changes, never per turn, and drops prepared replies when it flips). It exists
 only for this provider: the layer is built in `bridge/mature-content.mjs`, and `MATURE_PROVIDERS` is `{local: true, mistral: false,
 groq: false, convai: false}`. The host asks for the layer per route (`TextProviderHost#matureLevel`), so a local turn that falls back to
@@ -281,7 +311,7 @@ and Qwen3.5 are Apache-2.0 (full); Gemma 1 to 3n are under the Gemma Prohibited 
 including content created for the purposes of pornography or sexual gratification" (suggestive); an unknown model is suggestive; the
 uncensored candidates (`Qwen3.5-*-Uncensored-HauhauCS-*`, `gemma-4-E4B-it-ultra-uncensored-heretic`, any name with uncensored,
 abliterated or heretic) are full and flagged `uncensored`. Stock models still tend to refuse sexual content, so the full effect needs
-an uncensored model (planned as an optional pack; `docs/MATURE_MODELS_RESEARCH.md` on main). Such a model has no limits of its own, so
+an uncensored model, which is what the Mature pack carries (`docs/MATURE_MODELS_RESEARCH.md` on main). Such a model has no limits of its own, so
 a cheap output screen (`screenMinors`, two regular expressions, microseconds) drops any sentence that names a minor and something
 sexual together before it is voiced (a first sentence that flags is never committed to the voice) and logs the count, never the words.
 It runs only with the setting on, and is a last net, not the control: the layer is.
@@ -300,12 +330,16 @@ Nexus Mods (help.nexusmods.com, not changed by this work): the Adult Content Gui
 "content (mods, collections, videos, images, and text) that is considered unsuitable for minors", list Swearing or Profanity and
 Sexualised content, and say "It is the responsibility of the uploader to tag and/or classify their files appropriately." The File
 Submission Guidelines (updated September 29, 2026) say "Generative AI usage in mods or mod pages must have specific tags applied". No
-rule speaks to an optional, off-by-default setting that lets an AI write adult text, so the safe reading is that the mod page needs the
-adult-content flag (the mod can produce text the guidelines call adult, and the uploader carries the duty) and the generative-AI
-disclosure it needs anyway for AI dialogue. Confirm with Nexus support before the release if the flag is unwanted.
+rule speaks to an optional, off-by-default setting that lets an AI write adult text. Decision (made by the user): the setting ships only
+with the separate Mature pack, which gets its own adult-flagged page (classified for Swearing or Profanity and Sexualised, and Extreme
+Violence where the form asks, plus the generative-AI tag), so the uploader's duty to tag and classify is met by the page that carries the
+adult content, and the main mod page needs only the generative-AI tag it needs anyway for AI dialogue.
 
-Tests: `bridge/mature-content.test.mjs` (the setting, the provider gate, the table, the layer's size and hard limits, off byte-identical,
-additive and prefix-stable, the budget never cutting it, which route gets it, the screen). Prompts only; no model is asked for adult text.
+Tests: `bridge/mature-content.test.mjs` (the setting, the provider gate, the pack gate, the table, the layer's size and hard limits, off
+byte-identical, additive and prefix-stable, the budget never cutting it, which route gets it, the screen), `bridge/mature-pack.test.mjs`
+(the marker detector), `bridge/manager.test.mjs` (the Lua side: row hidden and setting refused without the pack, forced off when the
+pack disappears, the 18+ line) and `packaging/release.test.mjs` (the package definition, out of the default set and out of the Runtime
+package, the builder refusing placeholders, the pack texts). Prompts only; no model is asked for adult text.
 
 ### Tests
 

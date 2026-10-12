@@ -406,6 +406,7 @@ function M.mistral()
             result = mistralResults[groqResult] and groqResult or nil},
         effective = providerName(state.effective),
         localAi = localAiStates[state.localAi] and state.localAi or nil,
+        maturePack = state.maturePack == true,
         saved = state.saved == true, tail = tail, pending = state.pending == true,
         result = mistralResults[result] and result or nil,
         limit = mistralLimits[state.limit] and state.limit or nil, model = model, stt = state.stt == true}
@@ -1410,7 +1411,8 @@ function M.snapshot(player)
             naturalSpeech = settings.naturalSpeech,
             expressiveEmotions = settings.expressiveEmotions,
             followUpInterest = settings.followUpInterest,
-            matureContent = settings.matureContent,
+            -- Only with the separate Mature pack installed (the bridge looks for its marker); without it the setting is off whatever was saved.
+            matureContent = settings.matureContent == true and M.mistral().maturePack == true,
             multilingualConversations = settings.multilingualConversations,
             archetypeConversations = settings.archetypeConversations,
             uiLanguage = settings.uiLanguage,
@@ -1456,9 +1458,14 @@ function M.applySettings(player, values)
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'gameDialogueContext'
             or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions'
-            or key == 'followUpInterest' or key == 'multilingualConversations' or key == 'matureContent' then
+            or key == 'followUpInterest' or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
+        elseif key == 'matureContent' then
+            -- The setting exists only with the Mature pack: without it the key is unknown, as if it had never been offered.
+            if M.mistral().maturePack ~= true then return false, ui.t('Unknown setting: {setting}', {setting = tostring(key)}) end
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.matureContent = value
         elseif key == 'relationshipModes' then
             if type(value) ~= 'table' then return false, 'Choose one of the listed relationship options.' end
             for profileKey, mode in pairs(value) do
