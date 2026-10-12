@@ -177,7 +177,7 @@ local function updateKnowledge(delta)
     local phone = convaiPhoneChat and convaiPhoneChat.contact or nil
     if phone ~= worldKnowledge.phoneContact then
         worldKnowledge.phoneContact = phone
-        if phone then convaiDemandKnowledge() end
+        if phone and phone ~= '' then convaiDemandKnowledge() end
     end
     local before = refreshKnowledgeFrame()
     if before.status == 'paused' then return end

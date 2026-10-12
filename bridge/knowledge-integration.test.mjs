@@ -303,6 +303,11 @@ test('the knowledge collectors rest between scans and rescan on a journal change
  now=now+1;tick();assert(factReads>facts and historyReads>history,'rescanned after a journal change')
  -- The composer, phone chat and talk key demand a scan before the turn.
  facts=factReads;convaiDemandKnowledge();tick();assert(factReads>facts,'rescanned on demand')
+ -- Opening a phone chat demands one; closing it (contact '') does not.
+ for _=1,18 do now=now+0.5;tick() end
+ facts=factReads;convaiPhoneChat.contact='judy';tick();assert(factReads>facts,'phone chat opening rescanned')
+ for _=1,18 do now=now+0.5;tick() end
+ facts=factReads;convaiPhoneChat.contact='';tick();assert(factReads==facts,'phone chat closing rescanned')
 `));
 
 test('text, voice and group turns name the world and journal parts by revision, written once beside the request', () => run(`
