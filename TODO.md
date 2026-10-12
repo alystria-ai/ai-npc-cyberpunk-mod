@@ -934,6 +934,8 @@ atural-speech\`). Pause numbers from silence detection only (no Whisper). Script
 
 ## Standing facts
 
+- Never let a test, harness or script play sound on the user's machine (a hidden voice-page browser caused a headphone hum on 2026-10-12). `RealtimeHost` mutes itself under `node --test`. Any other script that starts it must set `CYBERPUNK_CONVAI_MUTE_BROWSER=1` or pass `muteBrowser: true`.
+
 - The mod never touches game-placed characters except the talk path for ordinary NPCs (2026-10-11, `docs/WORLD_COMPANIONS.md`): our spawned companions get the full feature set; ordinary pedestrians, vendors and gangers get only a conversation the player starts; named, story and quest characters get nothing. One predicate: `convaiWorldPolicy` (`mod/init.lua`) over `characterCatalog.protectedReason`.
 - Final models are backed up to the private HF bucket `akshitireddy/cyberpunk-pocket-rolling-checkpoints` under `final/` (2026-10-07; see `final/README.md` there). Code is backed up to the private GitHub repo `alystria-ai/cyberpunk-convai`.
 
