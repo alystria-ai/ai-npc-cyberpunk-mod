@@ -32,26 +32,17 @@ local function readFile(path)
     return ok and raw or nil
 end
 
+-- In place: one open instead of open+remove+rename (about 12 ms of the game
+-- thread per write, every 2 s, perf probe 2026-10-11). The bridge treats a
+-- partial read as a missing frame and keeps its current lease until the
+-- heartbeat expires (CompanionInvitations.ingest).
 local function writeFile(path, raw)
-    local temporary = path .. '.tmp'
-    local file = io.open(temporary, 'wb')
+    local file = io.open(path, 'wb')
     if not file then return false, 'Cannot write the invitation request.' end
     local called, written = pcall(file.write, file, raw)
     local closed, result = pcall(file.close, file)
     if not called or not written or not closed or not result then
-        pcall(os.remove, temporary)
         return false, 'Cannot finish writing the invitation request.'
-    end
-    -- Windows rename does not replace an existing destination: remove it first
-    -- (one file operation fewer than rename, fail, remove, rename).
-    pcall(os.remove, path)
-    local moved, renamed = pcall(os.rename, temporary, path)
-    if not moved or not renamed then
-        moved, renamed = pcall(os.rename, temporary, path)
-    end
-    if not moved or not renamed then
-        pcall(os.remove, temporary)
-        return false, 'Cannot publish the invitation request.'
     end
     return true
 end

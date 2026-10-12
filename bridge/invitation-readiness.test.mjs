@@ -262,7 +262,7 @@ assert(#spawned == 1)
 `));
 
 test('publication failures stay visible and cancellable and block profiled and model-only copies', () => run(`
-for _, mode in ipairs({'open', 'write', 'close', 'rename', 'encode'}) do
+for _, mode in ipairs({'open', 'write', 'close', 'encode'}) do
     failure = mode
     assert(queue.invite('judy') == false)
     assert(queue.count() == 1 and queue.list()[1].state == 'failed' and queue.list()[1].error)

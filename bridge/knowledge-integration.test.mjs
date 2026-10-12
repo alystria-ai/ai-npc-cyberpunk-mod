@@ -41,6 +41,8 @@ io={open=function(path,mode)
   local values={...};for i,value in ipairs(values)do values[i]=tostring(value)end
   files[path]=(mode=='a'and(files[path]or'')or'')..table.concat(values)
   if path=='runtime/microphone-command.json'then commands[#commands+1]=json.decode(files[path])end
+  -- world-session.json is written in place: a written unavailable lease is the publication.
+  if path=='runtime/world-session.json'then local ok,value=pcall(json.decode,files[path]);if ok and type(value)=='table'and value.ready==false then record('world:unavailable')end end
   return true
  end,close=function()return true end}
 end}

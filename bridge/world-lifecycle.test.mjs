@@ -72,7 +72,14 @@ io = {open = function(path, mode)
     return {write = function(_, ...)
         for index = 1, select('#', ...) do raw = raw .. tostring(select(index, ...)) end
         files[path] = raw; return true
-    end, close = function() return true end}
+    end, close = function()
+        -- world-session.json is written in place (no rename): a closed write is a publication.
+        if path == 'runtime/world-session.json' and files[path] then
+            local value = json.decode(files[path]); stats.publications[#stats.publications + 1] = value
+            note('world-publication', value)
+        end
+        return true
+    end}
 end}
 os.time = function() return clock end
 os.clock = function() return clock end

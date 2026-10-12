@@ -106,11 +106,10 @@ local function publishWorldSession(frame, ready, force)
     if not force and signature == worldSessionSignature and worldSessionAt and now >= worldSessionAt
         and now - worldSessionAt < 2 then return end
     local encoded, raw = pcall(json.encode, value); if not encoded then return end
-    local path = 'runtime/world-session.json'
-    local file = io.open(path .. '.tmp', 'wb'); if not file then return end
+    -- In place: one open instead of open+remove+rename (about 9 ms of the game
+    -- thread every 2 s). readWorldSession retries a partial read 3 times, 15 ms apart.
+    local file = io.open('runtime/world-session.json', 'wb'); if not file then return end
     local written, closed = file:write(raw), file:close(); if not written or not closed then return end
-    -- Windows rename cannot replace a file: remove first (one file operation fewer each second).
-    os.remove(path); if not os.rename(path .. '.tmp', path) then return end
     worldSessionSignature, worldSessionAt = signature, now
 end
 
@@ -602,14 +601,12 @@ local function publishPartyConnections(force)
     local signature, now = table.concat(keys, ','), os.time()
     if not force and signature == lastPartyHint and now - lastPartyHeartbeat < 2 then return end
     for _, key in ipairs(keys) do encoded[#encoded + 1] = json.encode(key) end
-    local f = io.open('runtime/party-connections.json.tmp', 'wb')
+    -- In place (one open, not open+remove+rename): the bridge ignores a partial
+    -- read (PartyConnections.ingest rejects it) and keeps the last snapshot.
+    local f = io.open('runtime/party-connections.json', 'wb')
     if not f then return end
-    f:write('{"updated":' .. tostring(now * 1000) .. ',"profiles":[' .. table.concat(encoded, ',') .. ']}')
-    f:close()
-    os.remove('runtime/party-connections.json')
-    if os.rename('runtime/party-connections.json.tmp', 'runtime/party-connections.json') then
-        lastPartyHint, lastPartyHeartbeat = signature, now
-    end
+    local written = f:write('{"updated":' .. tostring(now * 1000) .. ',"profiles":[' .. table.concat(encoded, ',') .. ']}')
+    if f:close() and written then lastPartyHint, lastPartyHeartbeat = signature, now end
 end
 companions.onPartyChanged = function() publishPartyConnections(true) end
 publishPartyConnections(true)
