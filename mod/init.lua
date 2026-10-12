@@ -2196,6 +2196,8 @@ local function abandonSession(reason,preserveTransit)
 end
 
 registerForEvent('onInit', function()
+    -- The native core plugin's classes are bound by now, not when init.lua first ran.
+    if convaiNative and convaiNative.pending then pcall(convaiNative.redetect, 'onInit') end
     -- Disk receipts grant only interrupted cleanup authority. Native unique
     -- tags are checked later in gameplay; no party/save restoration occurs.
     if type(companions.initReloadCleanup)=='function' then
@@ -2311,6 +2313,8 @@ registerForEvent('onInit', function()
 end)
 
 registerForEvent('onUpdate', function(delta)
+    -- Last chance for the native core plugin to bind (a global, so this closure gains no upvalue).
+    if convaiNative and convaiNative.pending then pcall(convaiNative.redetect, 'onUpdate') end
     -- A missing completion must not keep a stale travel intent armed for a
     -- later unrelated load. Expiration only drops receipts; it never restores.
     if fastTravelActive and not fastTravelActive.finished and os.time()-fastTravelActive.started>120 then
