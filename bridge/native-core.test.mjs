@@ -64,9 +64,12 @@ fakeIo = {
 }
 printed = {}
 function advance(seconds) t = t + seconds end
+lateCore, lateIo = nil, nil
 function boot(withPlugin)
   local M = (function() ${shim} end)()
-  return M, M.install({core = withPlugin and fakeCore or nil, io = withPlugin and fakeIo or nil, realIo = realIo,
+  local resolve = withPlugin == 'late' and function() return lateCore, lateIo end or nil
+  if withPlugin == 'late' then withPlugin = false end
+  return M, M.install({core = withPlugin and fakeCore or nil, io = withPlugin and fakeIo or nil, resolve = resolve, realIo = realIo,
     realOs = realOs, clock = function() return t end, print = function(line) printed[#printed + 1] = line end,
     date = function() return 'DATE' end})
 end
@@ -82,13 +85,60 @@ function run(body) {
   lua.lua_close(vm); assert.equal(status, lua.LUA_OK, error);
 }
 
-test('without the plugin io and os are untouched and the log says io=lua', () => run(`
-local before_io, before_os = io, os
+test('without the plugin every call passes straight to the real io and the log says io=lua', () => run(`
 local M, api = boot(false)
-assert(io == before_io and os == before_os, 'io/os were replaced without the plugin')
-assert(not api.present and not api.use('io'))
-assert(lastPrint():find('Native core: io=lua %(plugin not loaded%)'), lastPrint())
+assert(not api.present and not api.use('io') and api.pending)
+assert(lastPrint():find('Native core: io=lua %(plugin not bound yet; checking again at onInit%)'), lastPrint())
+local opens, renames, removes = real.open, real.rename, real.remove
+local f = io.open('runtime/world-session.json', 'wb'); f:write('lua'); f:close()
+f = io.open('runtime/world-session.json.tmp', 'wb'); f:write('tmp'); f:close()
+assert(os.remove('runtime/world-session.json') and os.rename('runtime/world-session.json.tmp', 'runtime/world-session.json'))
+assert(real.open == opens + 2 and real.rename == renames + 1 and real.remove == removes + 1)
+assert(disk['runtime/world-session.json'] == 'tmp' and n('Write') == 0)
+assert(api.redetect('onInit') == false and api.pending, 'onInit is not the last try')
+assert(api.redetect('onUpdate') == false and not api.pending)
+assert(lastPrint():find('Native core: io=lua %(plugin not loaded, checked at onUpdate%)'), lastPrint())
 assert(disk['runtime/probe.log']:find('DATE Native core: io=lua'), 'probe.log line missing')
+lateCore, lateIo = fakeCore, fakeIo
+assert(api.redetect('onUpdate') == false, 'detection stops after the first onUpdate')
+`));
+
+test('classes bound after load: onInit switches io to native and logs it', () => run(`
+local M, api = boot('late')
+assert(api.pending and not api.use('io'))
+local f = io.open('runtime/speech-state.json', 'wb'); f:write('{"before":1}'); f:close()
+assert(disk['runtime/speech-state.json'] == '{"before":1}' and n('Write') == 0)
+lateCore, lateIo = fakeCore, fakeIo
+assert(api.redetect('onInit') == true and api.present and not api.pending and api.use('io'))
+assert(lastPrint():find('Native core: io=native %(plugin 0.1.0, api 1%) %[changed%]'), lastPrint())
+assert(api.redetect('onUpdate') == true, 'later calls are no-ops')
+local opens = real.open
+f = io.open('runtime/speech-state.json', 'wb'); f:write('{"after":1}'); f:close()
+assert(disk['runtime/speech-state.json'] == '{"after":1}' and real.open == opens)
+f = io.open('runtime/speech-state.json', 'rb'); assert(f:read('*a') == '{"after":1}')
+`));
+
+test('the first onUpdate is the last chance to bind', () => run(`
+local M, api = boot('late')
+assert(api.redetect('onInit') == false and api.pending)
+lateCore, lateIo = fakeCore, fakeIo
+assert(api.redetect('onUpdate') == true and api.use('io'))
+`));
+
+test('the handover neither loses nor repeats a write made on the Lua path', () => run(`
+local M, api = boot('late')
+-- A Lua-path temp file left on disk before the switch, renamed into place after it.
+local f = io.open('runtime/reaction-lease.json.tmp', 'wb'); f:write('{"lease":7}'); f:close()
+assert(disk['runtime/reaction-lease.json.tmp'] == '{"lease":7}')
+external('reply.json', '{"requestId":"r1"}')
+lateCore, lateIo = fakeCore, fakeIo
+assert(api.redetect('onInit'))
+local writes = n('Write')
+assert(os.remove('runtime/reaction-lease.json') == true)
+assert(os.rename('runtime/reaction-lease.json.tmp', 'runtime/reaction-lease.json') == true)
+assert(disk['runtime/reaction-lease.json'] == '{"lease":7}' and disk['runtime/reaction-lease.json.tmp'] == nil)
+assert(n('Write') == writes and n('Rename') == 1, 'the file moved once; nothing was written twice')
+f = io.open('runtime/reply.json', 'rb'); assert(f:read('*a') == '{"requestId":"r1"}')
 `));
 
 test('with the plugin, routed writes, reads and the temp-file dance never touch the real io', () => run(`
@@ -216,6 +266,11 @@ test('init.lua installs the shim before the perf probe and any module opens a fi
   const probeAt = init.indexOf("dofile('perf-probe.lua').hookRegistrations()");
   const firstOpen = init.indexOf('io.open(');
   assert.ok(shimAt > 0 && shimAt < probeAt && shimAt < firstOpen);
+  for (const event of ['onInit', 'onUpdate']) {
+    const start = init.indexOf(`registerForEvent('${event}', function(`);
+    const body = init.slice(start, start + 400);
+    assert.ok(start > 0 && body.includes(`pcall(convaiNative.redetect, '${event}')`), `${event} must re-run native detection`);
+  }
   assert.ok(init.slice(0, shimAt).split('\n').every(line => /^\s*(--.*)?\r?$/.test(line) || line.startsWith('pcall(')));
 });
 

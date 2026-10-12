@@ -13,6 +13,12 @@
 --   io.open(log, 'a')        buffered appends, flushed by the worker every 0.5 s.
 -- Kill switch: a line "io" or "all" in runtime/native-off.txt (convaiNative.off('io')). Three
 -- faults inside the plugin's io natives also switch it off. Every change logs one probe.log line.
+--
+-- Late binding: init.lua installs this before CET has bound the plugin's RTTI classes, so the
+-- classes can still be nil here. Then io and os get pass-through tables at once (so every module
+-- and the perf probe see the same tables) and init.lua calls convaiNative.redetect('onInit'), and
+-- once more on the first onUpdate. Lua writes are synchronous and complete before either call, so
+-- the handover from the Lua path to the plugin can neither lose nor repeat a write.
 local M = {API = 1}
 
 -- Read by the bridge, polled by the worker every N ms (the Lua readers ran at about this rate).
@@ -134,7 +140,8 @@ function Writer:seek() return 0 end
 function Writer:read() return nil, 'file opened for writing' end
 function Writer:lines() return function() return nil end end
 
--- options (tests): core, io (the native tables), realIo, realOs, clock, print, date.
+-- options (tests): core, io (the native tables) or resolve (returns them, for late binding),
+-- realIo, realOs, clock, print, date.
 function M.install(options)
     options = options or {}
     if type(convaiNative) == 'table' and convaiNative.installed then return convaiNative end
@@ -146,10 +153,15 @@ function M.install(options)
     local api = {installed = true, plugin = nil, reason = nil}
     convaiNative = api
 
-    -- CET resolves a native class by its global name; without the plugin the name is nil.
-    local Core, Io = options.core, options.io
-    if Core == nil then local ok, value = pcall(function() return ConvaiNative end); Core = ok and value or nil end
-    if Io == nil then local ok, value = pcall(function() return ConvaiNativeIo end); Io = ok and value or nil end
+    -- CET resolves a native class by its global name; without the plugin (or before CET has bound
+    -- the RTTI classes) the name is nil.
+    local resolve = options.resolve or function()
+        local core, native = options.core, options.io
+        if core == nil then local ok, value = pcall(function() return ConvaiNative end); core = ok and value or nil end
+        if native == nil then local ok, value = pcall(function() return ConvaiNativeIo end); native = ok and value or nil end
+        return core, native
+    end
+    local Core, Io
 
     local open -- the routed io.open, set below once the plugin checks out
     local function log(line)
@@ -161,20 +173,38 @@ function M.install(options)
         return ok
     end
 
-    -- Plugin present and the same API?
-    local present, reason = false, nil
-    if type(Core) ~= 'table' and type(Core) ~= 'userdata' then
-        reason = 'plugin not loaded'
-    else
-        local ok, compatible = pcall(function() return Core.CheckVersion(M.API) end)
-        if not ok then reason = 'CheckVersion failed: ' .. tostring(compatible)
-        elseif compatible ~= true then reason = 'plugin API differs or its file worker is not running'
-        else present = true end
-        if present then
-            local okVersion, version = pcall(function() return Core.PluginVersion() end)
-            api.plugin = okVersion and tostring(version) or '?'
+    local present, reason, retry = false, nil, false
+    local function bound(value) return type(value) == 'table' or type(value) == 'userdata' end
+    -- Plugin present, the same API, and writing to this mod's runtime folder? retry is true when
+    -- the classes are not bound yet, which a later detect() can change.
+    local function detect()
+        Core, Io = resolve()
+        present, retry = false, false
+        if not bound(Core) or not bound(Io) then
+            reason, retry = 'plugin not loaded', true
+            return false
         end
+        local ok, compatible = pcall(function() return Core.CheckVersion(M.API) end)
+        if not ok then reason, retry = 'CheckVersion failed: ' .. tostring(compatible), true; return false end
+        if compatible ~= true then reason = 'plugin API differs or its file worker is not running'; return false end
+        local okVersion, version = pcall(function() return Core.PluginVersion() end)
+        api.plugin = okVersion and tostring(version) or '?'
+        -- The plugin derives the runtime folder from the game folder and the mod folder name.
+        -- One real read proves it is this mod's folder.
+        local nonce = 'native-handshake ' .. tostring(clock()) .. ' ' .. tostring(math.random(100000000, 999999999))
+        local matched = pcall(function()
+            assert(Io.Write('native-handshake.txt', nonce) == true)
+            Io.Flush(500)
+            local file = realOpen('runtime/native-handshake.txt', 'rb')
+            local text = file and file:read('*a'); if file then file:close() end
+            Io.Remove('native-handshake.txt')
+            assert(text == nonce)
+        end)
+        if not matched then reason = 'the plugin writes to a different runtime folder'; return false end
+        present, reason = true, nil
+        return true
     end
+    detect()
     api.present = present
 
     -- Systems: native only while the plugin is present and the system's switch is on.
@@ -249,25 +279,7 @@ function M.install(options)
     api.off = function(system) return editSwitches(tostring(system or 'all'), true) end
     api.on = function(system) return editSwitches(tostring(system or 'all'), false) end
 
-    if not present then
-        evaluate('io')
-        return api
-    end
-
-    -- The plugin must be watching this mod's runtime folder (it derives the path from the game
-    -- folder and the mod folder name). One real read at load proves it.
-    local nonce = 'native-handshake ' .. tostring(clock()) .. ' ' .. tostring(math.random(100000000, 999999999))
-    local matched = pcall(function()
-        assert(Io.Write('native-handshake.txt', nonce) == true)
-        Io.Flush(500)
-        local file = realOpen('runtime/native-handshake.txt', 'rb')
-        local text = file and file:read('*a'); if file then file:close() end
-        Io.Remove('native-handshake.txt')
-        assert(text == nonce)
-    end)
-    if not matched then
-        present, reason = false, 'the plugin writes to a different runtime folder'
-        api.present = false
+    if not present and not retry then
         evaluate('io')
         return api
     end
@@ -316,6 +328,7 @@ function M.install(options)
     end
 
     open = function(path, mode, ...)
+        if not present then return realOpen(path, mode, ...) end
         local name, base = channelOf(path)
         local kind = type(mode) == 'string' and mode or 'r'
         if not name then return realOpen(path, mode, ...) end
@@ -343,6 +356,7 @@ function M.install(options)
     end
 
     local function rename(from, to, ...)
+        if not present then return realRename(from, to, ...) end
         local fromName = channelOf(from)
         local toName = channelOf(to)
         if fromName and held[fromName] then
@@ -357,6 +371,7 @@ function M.install(options)
     end
 
     local function remove(path, ...)
+        if not present then return realRemove(path, ...) end
         local name = channelOf(path)
         if name and held[name] then held[name] = nil; return true end
         if name and ioActive() and native(Io.Remove, name) == true then return true end
@@ -369,6 +384,26 @@ function M.install(options)
     api.realIo, api.realOs = realIo, realOs
     api.flush = function(timeoutMs) return native(Io.Flush, timeoutMs or 500) == true end
     api.held = function() local count = 0; for _ in pairs(held) do count = count + 1 end; return count end
+
+    -- Late binding: try again at onInit and on the first onUpdate ('onUpdate' is the last try).
+    api.pending = not present
+    if api.pending then reason = 'plugin not bound yet; checking again at onInit' end
+    api.redetect = function(stage)
+        if not api.pending then return present end
+        local final = stage == 'onUpdate'
+        if detect() then
+            api.pending, api.present = false, true
+            cache, watched = {}, {}
+            for _, row in pairs(systems) do row.next = -math.huge end
+            evaluate('io') -- logs io=native ... [changed]
+            return true
+        end
+        if final or not retry then
+            api.pending = false
+            log('Native core: io=lua (' .. tostring(reason) .. ', checked at ' .. tostring(stage) .. ')')
+        end
+        return false
+    end
     evaluate('io')
     return api
 end
