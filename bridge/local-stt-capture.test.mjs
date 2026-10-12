@@ -192,7 +192,7 @@ const skip = (!stt.available() && 'local speech recognition is not installed her
 test('browser capture: AudioWorklet chunks reach the recogniser and the clip is transcribed', {skip, timeout: 60000}, async () => {
   const browser = await chromium.launch({executablePath: browserExecutable, headless: true,
     args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${sample}%noloop`,
-      '--autoplay-policy=no-user-gesture-required']});
+      '--autoplay-policy=no-user-gesture-required', '--mute-audio']});
   const capture = new LocalSttCapture({getBrowser: async () => browser});
   const f = session({stt, capture});
   try {

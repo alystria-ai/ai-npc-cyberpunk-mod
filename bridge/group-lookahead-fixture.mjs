@@ -72,7 +72,7 @@ export class GroupScenario {
     ]);
     this.timingsPath = join(this.folder, 'timings.json');
     const env = {...process.env, CYBERPUNK_CONVAI_STATE: state, CYBERPUNK_CONVAI_GAME: game,
-      CYBERPUNK_CONVAI_KEY_FILE: join(state, 'convai-key.txt'), FAKE_HOST_LOG: this.hostLog, FAKE_HOST_TIMINGS: this.timingsPath};
+      CYBERPUNK_CONVAI_KEY_FILE: join(state, 'convai-key.txt'), CYBERPUNK_CONVAI_MUTE_BROWSER: '1', FAKE_HOST_LOG: this.hostLog, FAKE_HOST_TIMINGS: this.timingsPath};
     delete env.NODE_OPTIONS; delete env.NODE_PATH;
     this.output = '';
     this.child = spawn(process.execPath, ['--import', register, bridge], {cwd: this.folder, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe']});

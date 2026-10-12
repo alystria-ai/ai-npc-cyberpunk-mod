@@ -106,10 +106,13 @@ export class RealtimeHost {
   constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard,
     browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
     clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
+    // The hidden browser outputs real audio in the game. Under the Node test runner (NODE_TEST_CONTEXT is set in every
+    // `node --test` child) or with CYBERPUNK_CONVAI_MUTE_BROWSER=1 it stays muted, so tests never reach the player's speakers.
+    muteBrowser = process.env.CYBERPUNK_CONVAI_MUTE_BROWSER === '1' || !!process.env.NODE_TEST_CONTEXT,
     launchBrowser = options => chromium.launch(options)} = {}) {
     this.browserExecutable = absoluteRuntimeOverride(browserExecutable, 'CYBERPUNK_CONVAI_BROWSER');
     this.clientAssetsDirectory = absoluteRuntimeOverride(clientAssetsDirectory, 'CYBERPUNK_CONVAI_CLIENT_ASSETS');
-    this.launchBrowser = launchBrowser;
+    this.launchBrowser = launchBrowser; this.muteBrowser = !!muteBrowser;
     this.epoch = 0; this.sessions = new SessionBindings(); this.connectOwners = new WeakMap();
     this.disconnects = new WeakMap(); this.disconnectTimeoutMs = disconnectTimeoutMs;
     this.onCompanionAction = onCompanionAction;
@@ -203,8 +206,9 @@ export class RealtimeHost {
     try {
       browser = await this.launchBrowser({...(this.browserExecutable
         ? {executablePath: this.browserExecutable} : {channel: 'msedge'}), headless: true,
-        ignoreDefaultArgs: ['--mute-audio'],
-        args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling']});
+        ...(this.muteBrowser ? {} : {ignoreDefaultArgs: ['--mute-audio']}),
+        args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling',
+          ...(this.muteBrowser ? ['--mute-audio'] : [])]});
       if (epoch !== this.epoch) throw cancelled('Conversation startup cancelled');
       this.browser = browser; this.server = server;
       this.localPcm = new LocalPcmHost({createPage: async () => {

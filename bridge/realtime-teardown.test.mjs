@@ -333,7 +333,7 @@ test('a voice finish requested after shutdown starts cannot invoke the page or r
 
 // Exercise the actual local asset server, with an injected browser that cannot
 // create pages, make SDK requests or access audio/microphone devices.
-async function assetFixture(t, {browserExecutable, onLaunch, omitAsset} = {}) {
+async function assetFixture(t, {browserExecutable, onLaunch, omitAsset, muteBrowser = false} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'cyberpunk-host-assets-'));
   const directory = join(root, '预建 assets with spaces');
   await mkdir(directory);
@@ -351,7 +351,7 @@ async function assetFixture(t, {browserExecutable, onLaunch, omitAsset} = {}) {
   let host;
   try {
     delete process.env.CYBERPUNK_CONVAI_BROWSER;
-    host = new RealtimeHost({browserExecutable, clientAssetsDirectory: directory,
+    host = new RealtimeHost({browserExecutable, clientAssetsDirectory: directory, muteBrowser,
       launchBrowser: async options => {
         launches.push(options);
         return onLaunch ? onLaunch(browser) : browser;
@@ -445,6 +445,36 @@ test('packaged client assets preserve the exact route allowlist and loopback Hos
   assert.equal(denied.status, 403); assert.equal(denied.body, '');
   await host.close(); assert.equal(browser.closed, 1);
   assert.equal(host.pool, null); assert.equal(host.server, null);
+});
+
+test('game mode keeps the browser audible and test mode launches it muted', async t => {
+  const game = await assetFixture(t);
+  await game.host.start();
+  assert.deepEqual(game.launches[0].ignoreDefaultArgs, ['--mute-audio']);
+  assert.equal(game.launches[0].args.includes('--mute-audio'), false);
+  const muted = await assetFixture(t, {muteBrowser: true});
+  await muted.host.start();
+  assert.equal(Object.hasOwn(muted.launches[0], 'ignoreDefaultArgs'), false);
+  assert.deepEqual(muted.launches[0].args, ['--autoplay-policy=no-user-gesture-required',
+    '--disable-background-timer-throttling', '--mute-audio']);
+});
+
+test('the browser is muted under the Node test runner and by CYBERPUNK_CONVAI_MUTE_BROWSER, audible otherwise', () => {
+  const names = ['NODE_TEST_CONTEXT', 'CYBERPUNK_CONVAI_MUTE_BROWSER'];
+  const previous = Object.fromEntries(names.map(name => [name, process.env[name]]));
+  try {
+    delete process.env.NODE_TEST_CONTEXT; delete process.env.CYBERPUNK_CONVAI_MUTE_BROWSER;
+    assert.equal(new RealtimeHost().muteBrowser, false);
+    process.env.CYBERPUNK_CONVAI_MUTE_BROWSER = '1';
+    assert.equal(new RealtimeHost().muteBrowser, true);
+    process.env.CYBERPUNK_CONVAI_MUTE_BROWSER = '0'; assert.equal(new RealtimeHost().muteBrowser, false);
+    process.env.NODE_TEST_CONTEXT = 'child-v8'; assert.equal(new RealtimeHost().muteBrowser, true);
+    assert.equal(new RealtimeHost({muteBrowser: false}).muteBrowser, false);
+  } finally {
+    for (const [name, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[name]; else process.env[name] = value;
+    }
+  }
 });
 
 test('absent browser executable override retains the installed Edge channel', async t => {
