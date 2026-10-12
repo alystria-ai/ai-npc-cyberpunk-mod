@@ -695,7 +695,7 @@ if (flag('dry')) {
     const {contextParts: parts} = contextFor(cell.character, cell.situation, cell.v, cell.party, cell.scene);
     // A companion-action cell shows the offer block the host adds to the turn's notes.
     const menu = cell.call && !flag('no-actions') ? actionMenu(offerFor(cell.call, persona.name)) : null;
-    const contextParts = menu ? {...parts, volatile: joinBlocks([parts.volatile, menu.block])} : parts;
+    const contextParts = menu ? {...parts, volatile: joinBlocks([parts.volatile, menu.notes(cell.call.expect ?? "")])} : parts;
     const messages = buildMessages({persona, memory: cell.memory.summary, history: [], contextParts, remembered: cell.memory.remembered ?? [], text: cell.v, limits: LIMITS});
     const sizes = messages.map(m => m.content.length);
     if (option('show', '') === `${cell.character.id}:${cell.situation}`) { for (const m of messages) console.log(`--- ${m.role} ---

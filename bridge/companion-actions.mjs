@@ -55,6 +55,10 @@ export const TACTIC_UNAVAILABLE = Object.freeze({
   'no-target': "nobody that you could attack or distract is tagged or in V's sights right now",
 });
 export const parseTacticUnavailable = value => typeof value === 'string' && Object.hasOwn(TACTIC_UNAVAILABLE, value) ? value : null;
+// Why the game offers no ride: the codes mod/gameplay-actions.lua sends (DRIVE_UNAVAILABLE). Only a text-route character (Mistral, the
+// local AI; bridge/text-actions.mjs) says it; Convai's prompt does not mention it.
+export const DRIVE_UNAVAILABLE_CODES = Object.freeze(['player-driving', 'player-seated', 'no-waypoint', 'no-car', 'car-moving', 'combat', 'busy']);
+export const parseDriveUnavailable = value => typeof value === 'string' && DRIVE_UNAVAILABLE_CODES.includes(value) ? value : null;
 export const followActionName = offer => token(offer?.token) ? `${FOLLOW_ACTION} ${offer.token}` : null;
 // One action per offered member (the speaker's own is plain "Leave V's Party"),
 // plus "everyone" when several are offered. Duplicate names get their number.
@@ -154,15 +158,16 @@ export class CompanionActions {
     const follow = parseFollowOffer(input?.followOffer), leave = parseLeaveOffer(input?.leaveOffer);
     const refusal = follow ? null : parseFollowUnavailable(input?.followUnavailable);
     const tacticRefusal = tactic ? null : parseTacticUnavailable(input?.tacticUnavailable);
+    const driveRefusal = offer ? null : parseDriveUnavailable(input?.driveUnavailable);
     const ownedBy = value => !value || (value.actor.id === input.entity && value.actor.key === input.profileKey);
     // A manual group round arms only its first speaker, and only to send companions away.
     const group = typeof source === 'string' && source.startsWith('group-');
     const channel = group ? 'group' : 'private';
-    if ((!offer && !tactic && !follow && !leave && !refusal && !tacticRefusal) || !MANUAL_SOURCES.includes(source)
+    if ((!offer && !tactic && !follow && !leave && !refusal && !tacticRefusal && !driveRefusal) || !MANUAL_SOURCES.includes(source)
         || prepared?.route?.channel !== channel
         || !prepared.sendAllowed || !prepared.identified || !prepared.remoteConfig?.endUserId
         || input.reaction || input.channel !== channel
-        || (group ? (!object(input.group) || input.group.index !== 1 || !leave || offer || tactic || follow || refusal || tacticRefusal)
+        || (group ? (!object(input.group) || input.group.index !== 1 || !leave || offer || tactic || follow || refusal || tacticRefusal || driveRefusal)
           : input.group !== undefined)
         || source.endsWith('-voice') !== (prepared.route.transport === 'microphone')
         || !ownedBy(offer) || !ownedBy(tactic) || !ownedBy(follow) || !ownedBy(leave)
@@ -180,7 +185,7 @@ export class CompanionActions {
       generation: input.generation, entity: input.entity, profileKey: input.profileKey,
       worldToken: prepared.worldToken, worldGeneration: prepared.generation, source,
       createdAt: issuedAt, expiresAt: issuedAt + CHAUFFEUR_OFFER_TTL_MS, ...(offer ? {offer} : {})};
-    this.pending = {input, packet, tactic, follow, leave, refusal, tacticRefusal, group, isCurrent, isCurrentSync, signal, accepted: false};
+    this.pending = {input, packet, tactic, follow, leave, refusal, tacticRefusal, driveRefusal, group, isCurrent, isCurrentSync, signal, accepted: false};
     return this.configFor(input);
   }
   current(pending) {
@@ -200,6 +205,7 @@ export class CompanionActions {
         self: member.id === pending.leave.actor.id}))}} : {}),
       ...(pending.refusal ? {followUnavailable: pending.refusal} : {}),
       ...(pending.tacticRefusal ? {tacticUnavailable: pending.tacticRefusal} : {}),
+      ...(pending.driveRefusal ? {driveUnavailable: pending.driveRefusal} : {}),
       ...(pending.group ? {group: true} : {})};
   }
   async deliver(message) {
@@ -378,10 +384,12 @@ export class CompanionActionWindow {
         || (offer.group !== undefined && offer.group !== true)
         // A group window carries only a leave offer, from a group source.
         || (offer.tacticUnavailable !== undefined && (!parseTacticUnavailable(offer.tacticUnavailable) || offer.tactic))
+        || (offer.driveUnavailable !== undefined && (!parseDriveUnavailable(offer.driveUnavailable) || offer.drive !== false))
         || (offer.group === true) !== offer.source.startsWith('group-')
-        || (offer.group === true && (offer.drive !== false || offer.tactic || offer.follow || offer.followUnavailable || offer.tacticUnavailable || !offer.leave))
+        || (offer.group === true && (offer.drive !== false || offer.tactic || offer.follow || offer.followUnavailable || offer.tacticUnavailable || offer.driveUnavailable || !offer.leave))
         || (offer.drive === false && offer.tactic === undefined && offer.follow === undefined
-          && offer.leave === undefined && offer.followUnavailable === undefined && offer.tacticUnavailable === undefined)) return false;
+          && offer.leave === undefined && offer.followUnavailable === undefined && offer.tacticUnavailable === undefined
+          && offer.driveUnavailable === undefined)) return false;
     this.pending = {...offer, ...(offer.tactic ? {tactic: {...offer.tactic, kinds: [...offer.tactic.kinds]}} : {}),
       ...(offer.follow ? {follow: {...offer.follow}} : {}),
       ...(offer.leave ? {leave: {members: offer.leave.members.map(member => ({...member}))}} : {})};

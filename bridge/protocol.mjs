@@ -10,7 +10,7 @@ import {parseGameDialogue} from './game-dialogue.mjs';
 import {parseGear} from './player-gear.mjs';
 import {parseTurnContext} from './turn-context.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
-import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseFollowUnavailable, parseTacticUnavailable}
+import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
   from './companion-actions.mjs';
 
 export function profileFor(input, roster) {
@@ -62,11 +62,12 @@ function parseRequest(raw) {
   const followOffer = parseFollowOffer(value.followOffer), leaveOffer = parseLeaveOffer(value.leaveOffer);
   const followUnavailable = parseFollowUnavailable(value.followUnavailable);
   const tacticUnavailable = parseTacticUnavailable(value.tacticUnavailable);
+  const driveUnavailable = chauffeurOffer ? null : parseDriveUnavailable(value.driveUnavailable);
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
     ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}),
-    ...(followUnavailable ? {followUnavailable} : {}), ...(tacticUnavailable ? {tacticUnavailable} : {}),
+    ...(followUnavailable ? {followUnavailable} : {}), ...(tacticUnavailable ? {tacticUnavailable} : {}), ...(driveUnavailable ? {driveUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
     ...(gameDialogue ? {gameDialogue} : {}), ...(gear ? {gear} : {}), ...(turnContext ? {turnContext} : {})};
 }

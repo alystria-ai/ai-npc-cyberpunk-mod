@@ -519,7 +519,9 @@ const profileOfCharacter = config => {
   return providerOfCharacter.get(config?.characterId);
 };
 const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: new PersonaBook(roster), routes: textRoutes,
-  transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message)});
+  transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
+  // A companion action the reply asked for ("[DRIVE]", bridge/text-actions.mjs) reaches the game the way a Convai action does.
+  deliverAction: message => companionActions.deliver(message)});
 // The hook for local speech recognition (bridge/local-stt.mjs and local-stt-capture.mjs; docs/LOCAL_STT.md). While Mistral is the
 // provider the voice key needs it: `available()` says whether this computer can recognise speech, `voiceChannel({reply})` returns
 // a channel (beginVoice / finishVoice / heard / close, like RealtimeHost.voiceChannel) whose finished recording is answered

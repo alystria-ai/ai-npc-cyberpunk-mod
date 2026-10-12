@@ -32,7 +32,6 @@ export const EXCLUDE = new Set([
   "bridge/gesture-selection.test.mjs", // not in the npm test list as of 2026-10-13
   "bridge/multilingual-profiles.test.mjs", // not in the npm test list as of 2026-10-13
   "bridge/seated-look.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/text-actions.test.mjs", // not in the npm test list as of 2026-10-13
   "packaging/release.test.mjs", // not in the npm test list as of 2026-10-13
   "scripts/reference-picker/natural-speech-page.test.mjs", // not in the npm test list as of 2026-10-13
 ]);

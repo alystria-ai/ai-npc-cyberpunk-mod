@@ -11,7 +11,8 @@
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
-  summaryMessages, factMessages, parseFacts, systemHead, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
+  summaryMessages, factMessages, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
+import {actionMenu, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
@@ -186,11 +187,13 @@ export class TextProviderHost {
    * gate        () => boolean: may background work (summaries, facts) run now? (the bridge: no combat, nothing speaking)
    * resolveProfile   config => profile key, for warm connections that carry no `local` field
    * idleRetryMs   how often a gated background task checks the gate again
+   * deliverAction  message => Promise<boolean>: hands a companion action the reply asked for to the game (CompanionActions.deliver);
+   *                without it the turn offers no actions (bridge/text-actions.mjs)
    */
   constructor({provider, memory, personas = new PersonaBook(), routes = {}, transformReply = result => result, now = () => performance.now(),
-    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000} = {}) {
+    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction} = {}) {
     if (!provider) throw Error('Text provider required');
-    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs});
+    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction});
     this.summaries = new Set();
     this.holdingTurns = 0;
     this.timers = new Set();
@@ -280,7 +283,11 @@ export class TextProviderHost {
     const memoryKey = {profileKey: local.profileKey, channel: local.channel, ambientKey: local.ambientKey};
     // The stream the reply text goes through: the voice's, or one that only marks the first sentence on the turn's clock.
     const feed = stream ?? new ReplyStream({name: persona.name, isTag, speak: false});
+    // The companion actions the game offers this turn (a private conversation with a companion; never a reaction line). Which one V asked
+    // for is decided by a tiny request of its own that runs while the memory store retrieves (bridge/text-actions.mjs).
+    const menu = !reaction && typeof this.deliverAction === 'function' ? actionMenu(config.companionAction) : null;
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
+    const deciding = menu?.rows.length ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal}) : null;
     // What the memory store remembers that bears on V's words (private and phone talk of a named character; empty otherwise and
     // whenever it cannot answer in a few hundred milliseconds).
     let remembered = [];
@@ -288,11 +295,15 @@ export class TextProviderHost {
       try { remembered = await this.memory.retrieve({...memoryKey, query: text, signal}) ?? []; } catch { remembered = []; }
       if (signal?.aborted) throw cancelled();
     }
+    const decision = deciding ? await deciding : null;
+    if (signal?.aborted) throw cancelled();
+    const act = decision && menu ? menu.message(decision) : null;
+    const actionNotes = menu ? menu.notes(act ? decision.code : null) : '';
     markStage('recalled');
     const candidates = this.#candidates();
     for (const [index, route] of candidates.entries()) {
       try {
-        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed});
+        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes});
         const elapsed = Math.round(this.now() - started);
         const {response} = outcome;
         // What was already spoken stands: a finished reply that does not begin with it is cut back to it.
@@ -303,6 +314,7 @@ export class TextProviderHost {
           this.#summarize(route, local.profileKey);
         }
         markStage('replyReturned');
+        if (act) this.#act({code: decision.code, message: act});
         const result = this.transformReply({text: reply, sessionID: config.sessionId, transport: route.name,
           timing: {provider: route.name, llmMs: elapsed, model: response.model ?? route.models()[0]?.id, attempts: response.attempts,
             ...(response.failed?.length ? {llmFailed: response.failed} : {}),
@@ -352,16 +364,47 @@ export class TextProviderHost {
     return result;
   }
 
-  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed}) {
-    const build = nudge => buildMessages({persona, memory: recalled.summary, history: recalled.turns, context: config.context,
-      contextParts: config.contextParts, remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits});
-    const shouldStop = soFar => capPoint(cleanReply(soFar, {name: persona.name, isTag}), this.limits) >= 0;
+  /** Hands the action a finished reply asked for to the game. Best effort: the spoken reply never waits for it or fails with it. */
+  #act({code, message}) {
+    try {
+      Promise.resolve(this.deliverAction(message)).then(
+        accepted => this.log(`action ${code} ${accepted ? 'handed to the game' : 'was not accepted'}`),
+        error => this.log(`action ${code} failed: ${error?.message ?? 'error'}`));
+    } catch (error) { this.log(`action ${code} failed: ${error?.message ?? 'error'}`); }
+  }
+
+  /**
+   * Which of the offered actions V's words plainly ask for: one small request, no persona, a one-word answer. Never throws; a failure,
+   * a late answer or an unclear one is "none" (the reply is then written as plain talk with what is not possible said in its notes).
+   */
+  async #decide(route, menu, {text, last, signal}) {
+    if (!route) return null;
+    try {
+      const response = await this.#request(route, menu.classifier({text, last}), signal,
+        {maxTokens: route.name === 'groq' ? 300 : 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000});
+      return menu.decide(response.text);
+    } catch (error) {
+      if (!signal?.aborted) this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
+      return null;
+    }
+  }
+
+  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes}) {
+    // This turn's action notes go last in the prompt, after everything that can be cached.
+    const contextParts = actionNotes && config.contextParts ? {...config.contextParts, volatile: joinBlocks([config.contextParts.volatile, actionNotes])} : config.contextParts;
+    const context = actionNotes && !config.contextParts ? joinBlocks([config.context, actionNotes]) : config.context;
+    const build = nudge => buildMessages({persona, memory: recalled.summary, history: recalled.turns, context,
+      contextParts, remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits});
+    // An action code ("[DRIVE]") is never part of the reply: the voice, the subtitles and the memory see the text without it.
+    const visible = soFar => splitActions(soFar, {streaming: true}).text;
+    const shouldStop = soFar => capPoint(cleanReply(visible(soFar), {name: persona.name, isTag}), this.limits) >= 0;
     const run = async nudge => {
       const messages = build(nudge);
       markStage('promptBuilt');
-      const response = await this.#request(route, messages, signal, {shouldStop, profileKey, onDelta: (_piece, soFar) => { try { feed.update(soFar); } catch { /* the voice's view of the reply never breaks the reply */ } }});
+      const response = await this.#request(route, messages, signal, {shouldStop, profileKey, onDelta: (_piece, soFar) => { try { feed.update(visible(soFar)); } catch { /* the voice's view of the reply never breaks the reply */ } }});
       markStage('fullText');
-      let cleaned = cleanReply(response.text, {name: persona.name, isTag});
+      const {text: spoken} = splitActions(response.text);
+      let cleaned = cleanReply(spoken, {name: persona.name, isTag});
       if (response.finishReason === 'length') cleaned = trimUnfinished(cleaned);
       const reply = capReply(cleaned, this.limits);
       if (!reply.trim()) throw new MistralError('empty', 'answered with no text', {provider: route.provider});

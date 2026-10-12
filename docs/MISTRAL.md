@@ -125,6 +125,36 @@ A summary costs one extra request per 8 exchanges that rolled out of the history
 
 The notices are in `mod/notices.lua` (see docs/NOTIFICATIONS.md). Failures of automatic battle and loot reactions are silent.
 
+### Companion actions (drive, attack, follow, leave)
+
+Convai characters can carry out four game actions: drive V to the map waypoint ("Drive To Waypoint"), attack the enemy V tagged or aims at,
+follow V (a world character joining the party) and leave V's party. The game offers them per turn (`chauffeurOffer`, `tacticOffer`,
+`followOffer`, `leaveOffer` in the turn input, parsed by `bridge/protocol.mjs`; the bridge's `CompanionActions` arms the turn and
+`configFor()` gives every route `config.companionAction`). Before this, the text path ignored that config, so "drive for me" only ever
+produced words. There is no wait, stay, sit or stop action in the game; only those four exist.
+
+How it works on Mistral and Local AI (`bridge/text-actions.mjs`, used by `TextProviderHost`):
+
+1. When an offer exists, a tiny separate request (max 12 tokens, temperature 0, no retries, 8 s cap) reads V's message and answers one
+   word: `DRIVE`, `FIGHT`, `FOLLOW`, `DISMISSED` or `NONE`. It runs in parallel with the memory lookup, so it adds almost nothing. A failed or
+   unclear answer is `NONE`: the turn is plain talk.
+2. The reply prompt gets a `GAME ACTIONS` note in the volatile block, after V's other notes and before "V says:" (the stable prefix and its
+   cache do not change). It says either "V is asking you to ... agree briefly" or that nothing is asked, and states what is impossible right
+   now ("you cannot drive V anywhere (no destination is marked on the map)", "you cannot wait on a spot, stay behind or sit on command"), so
+   the character says what V has to do first instead of promising it.
+3. After the reply succeeds, the host delivers the same message the Convai client would send (`runtime/companion-actions.json`). It
+   is fire and forget; a failure is logged and never fails the reply. Stray codes (`[DRIVE]`, `[NONE]`) in a reply are stripped before the voice.
+4. The Lua side now also reports why a ride is not possible (`driveUnavailable`: `player-driving`, `player-seated`, `no-waypoint`, `no-car`,
+   `car-moving`, `combat`, `busy`), only to the text routes; Convai's text is unchanged.
+
+Why not tool calls: on action turns `ministral-8b` returned only a tool call with no speech, picked the wrong tool, called several or filled
+the arguments with garbage; speech would need a second request and the tool definitions sit before the cacheable prefix. Why not a code at the
+start of the reply: the small model either never wrote it (recall 12%) or wrote it for plain talk (precision 58%).
+
+Measured with `node scripts/Eval-MistralPrompt.mjs --actions` (6 characters, 27 situations, 3 samples each, `--report-actions <label>`;
+`--no-actions` is the old behaviour): before, 0 of 196 asked-for actions fired; after, precision 100% (195/195) and recall 99% (195/197),
+no false trigger in 288 plain, impossible or look-alike turns ("do you know how to drive?", "let's leave this place", "wait here").
+
 ### Memory
 
 Convai keeps history and long-term memory on its servers; with Mistral the bridge keeps a small, bounded version in

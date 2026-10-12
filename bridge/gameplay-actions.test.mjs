@@ -205,3 +205,37 @@ test('no marked target is reported to the bridge as one plain code, and never le
  input=context('request-4');assert(q.capture(input,'private-text'))
  assert(input.tacticOffer and input.tacticUnavailable==nil)
 `));
+
+const driveFixture = tacticFixture
+  .replace("return driveAvailable and offer or {available=false} end,", "return driveAvailable and offer or driveRefusal end,")
+  .replace('local tactics,driveAvailable={},false', "local tactics,driveAvailable={},false\nlocal driveRefusal={available=false}");
+function runDrive(body) {
+  const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
+  const status = lauxlib.luaL_dostring(vm, to_luastring(driveFixture + body));
+  const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
+  lua.lua_close(vm); assert.equal(status, lua.LUA_OK, error);
+}
+
+test('a ride the game refuses is reported to the bridge as one plain code, and never leases a ride', () => runDrive(`
+ tactic={available=false}
+ driveRefusal={available=false,reason='No waypoint',code='no-waypoint'}
+ local input=context();assert(not q.capture(input,'private-text'))
+ assert(input.chauffeurOffer==nil and input.driveUnavailable=='no-waypoint' and q.inspect().driveUnavailable=='no-waypoint')
+ local again=context();again.requestId=input.requestId;assert(not q.capture(again,'private-text'))
+ assert(again.driveUnavailable=='no-waypoint','the same admission keeps the advisory')
+ driveRefusal={available=false,reason='Stopped',code='ambiguous-owned-car'}
+ input=context('request-2');assert(not q.capture(input,'private-text'))
+ assert(input.driveUnavailable=='no-car','several refusals share one code')
+ driveRefusal={available=false,reason='Elsewhere',code='some-new-code'}
+ input=context('request-3');assert(not q.capture(input,'private-text'))
+ assert(input.driveUnavailable==nil,'an unknown reason is not sent')
+ driveRefusal={available=false}
+ input=context('request-4');assert(not q.capture(input,'private-text'))
+ assert(input.driveUnavailable==nil,'no code, nothing sent')
+ driveRefusal={available=false,reason='No waypoint',code='no-waypoint'}
+ input=context('request-5');assert(not q.capture(input,'group-text'))
+ assert(input.driveUnavailable==nil,'only a private request carries it')
+ driveAvailable=true
+ input=context('request-6');assert(q.capture(input,'private-text'))
+ assert(input.chauffeurOffer and input.driveUnavailable==nil)
+`));
