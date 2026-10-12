@@ -39,6 +39,7 @@ import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-rou
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
+import {MatureContent} from './mature-content.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
 import {turnContextDiagnostic} from './turn-context.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
@@ -518,7 +519,9 @@ const profileOfCharacter = config => {
   if (!providerOfCharacter.size) for (const table of [ids, relationshipRoutes.providerIds ?? {}]) for (const [profile, id] of Object.entries(table)) if (typeof id === 'string') providerOfCharacter.set(id, profile);
   return providerOfCharacter.get(config?.characterId);
 };
-const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: new PersonaBook(roster), routes: textRoutes,
+// "Mature content": read from the settings file when it changes (never per turn); only the local AI route ever uses it.
+const matureContent = new MatureContent();
+const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: new PersonaBook(roster), routes: textRoutes, matureContent,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message)});
 // The hook for local speech recognition (bridge/local-stt.mjs and local-stt-capture.mjs; docs/LOCAL_STT.md). While Mistral is the
 // provider the voice key needs it: `available()` says whether this computer can recognise speech, `voiceChannel({reply})` returns
@@ -2084,6 +2087,8 @@ async function pollSettings(checkShutdown = true) {
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
+    const matureChanged = matureContent.update(settings);
+    if (matureChanged) console.error(`[MatureContent] setting is now ${matureContent.enabled ? 'on' : 'off'}`);
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
@@ -2091,6 +2096,7 @@ async function pollSettings(checkShutdown = true) {
     // (The voice selection reads the same setting: while it is on, a fallback never lands on Pocket.)
     const multilingualChanged = multilingual.update(settings);
     if (speechChanged || emotionsChanged || multilingualChanged || followUpChanged) { dropPrefetch(); prefetchObserved = ''; }
+    if (matureChanged) { dropPrefetch(); prefetchObserved = ''; }
     refreshWarmVoices();
     await syncRelationshipRoutes(); await syncVoiceRoutes();
     publishRelationshipRoutes();

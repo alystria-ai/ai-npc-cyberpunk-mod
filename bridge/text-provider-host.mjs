@@ -17,6 +17,7 @@ import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {markStage} from './turn-clock.mjs';
 import {budgetedChat, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
+import {flagsMinorSexual, screenMinors} from './mature-content.mjs';
 
 const isTag = group => hasEmotionTag(group);
 const pause = (ms, signal) => new Promise((resolve, reject) => {
@@ -171,6 +172,9 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
     },
     prewarm: messages => server.prewarm(messages),
+    // The loaded model's name, for the Mature content allowance (bridge/mature-content.mjs); `loadedModel` starts the server if it is not up.
+    modelName: () => server.status?.().model ?? null,
+    loadedModel: async signal => (await server.ensure({signal}))?.model ?? null,
     label: 'The local AI'};
 }
 
@@ -188,9 +192,9 @@ export class TextProviderHost {
    * idleRetryMs   how often a gated background task checks the gate again
    */
   constructor({provider, memory, personas = new PersonaBook(), routes = {}, transformReply = result => result, now = () => performance.now(),
-    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000} = {}) {
+    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, matureContent = null} = {}) {
     if (!provider) throw Error('Text provider required');
-    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs});
+    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, matureContent});
     this.summaries = new Set();
     this.holdingTurns = 0;
     this.timers = new Set();
@@ -352,9 +356,22 @@ export class TextProviderHost {
     return result;
   }
 
+  /**
+   * The Mature content level for a turn on `route` ('full' or 'suggestive'), or null: the setting is off, or the route is not one that may
+   * have it (only the local AI). The model decides the level (its licence), so it is read from the loaded model; the server is started
+   * for it when it is not up yet, as the request would. Nothing is awaited while the setting is off.
+   */
+  async #matureLevel(route, signal) {
+    if (!this.matureContent?.enabled || route.name !== 'local') return null;
+    let model = route.modelName?.() ?? null;
+    if (!model && route.loadedModel) model = await route.loadedModel(signal);
+    return this.matureContent.forTurn(route.name, model)?.level ?? null;
+  }
+
   async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed}) {
+    const mature = await this.#matureLevel(route, signal);
     const build = nudge => buildMessages({persona, memory: recalled.summary, history: recalled.turns, context: config.context,
-      contextParts: config.contextParts, remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits});
+      contextParts: config.contextParts, remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits, ...(mature ? {mature} : {})});
     const shouldStop = soFar => capPoint(cleanReply(soFar, {name: persona.name, isTag}), this.limits) >= 0;
     const run = async nudge => {
       const messages = build(nudge);
@@ -363,7 +380,12 @@ export class TextProviderHost {
       markStage('fullText');
       let cleaned = cleanReply(response.text, {name: persona.name, isTag});
       if (response.finishReason === 'length') cleaned = trimUnfinished(cleaned);
-      const reply = capReply(cleaned, this.limits);
+      let reply = capReply(cleaned, this.limits);
+      // Mature content only: a sentence that puts a minor and something sexual together is dropped, and the turn is logged (never the words).
+      if (mature) {
+        const screened = screenMinors(reply);
+        if (screened.dropped) { this.log(`Mature content: dropped ${screened.dropped} sentence(s) of a reply (a minor in a sexual context)`); reply = screened.text; }
+      }
       if (!reply.trim()) throw new MistralError('empty', 'answered with no text', {provider: route.provider});
       return {response, reply};
     };
@@ -371,7 +393,9 @@ export class TextProviderHost {
     const said = reaction ? [] : [...persona.samples, ...recalled.turns.map(turn => turn.r)];
     // V trying to make the character say it is an AI or a script: the reply must not take those words up, even to deny them.
     const provoked = !reaction && provokesAiTalk(text);
-    if (feed && typeof feed === 'object') feed.reject = said.length || provoked ? head => repeatsLine(head, said) || (provoked && takesUpAiTalk(head)) : null;
+    const refuseHead = said.length || provoked ? head => repeatsLine(head, said) || (provoked && takesUpAiTalk(head)) : null;
+    // With Mature content on, a first sentence that flags is never committed to the voice either.
+    if (feed && typeof feed === 'object') feed.reject = mature ? head => (refuseHead ? refuseHead(head) : false) || flagsMinorSexual(head) : refuseHead;
     let outcome = await run('');
     // A reply that steps out of character, or is a model's reasoning, gets one more try. The second answer is used unless it
     // is reasoning again, which is never spoken (it counts as an empty answer). A reply whose first sentence the voice already
@@ -455,7 +479,9 @@ export class TextProviderHost {
       const key = config?.local?.profileKey ?? this.resolveProfile?.(config);
       if (typeof key !== 'string') { await route.connect(undefined, {}).then(lease => lease.release?.()); return; }
       const persona = this.personas.persona(key, config?.local?.name);
-      await route.prewarm([{role: 'system', content: systemHead({persona, limits: this.limits})}, {role: 'user', content: '.'}]);
+      // With Mature content on, the layer is part of the head, so the warmed prefix is the one the first reply will use.
+      const mature = await this.#matureLevel(route);
+      await route.prewarm([{role: 'system', content: systemHead({persona, limits: this.limits, ...(mature ? {mature} : {})})}, {role: 'user', content: '.'}]);
     } catch (error) {
       route.failure?.(error);
       this.log('prewarm failed: ' + (failureKind(error) ?? 'error'));

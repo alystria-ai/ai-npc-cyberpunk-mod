@@ -866,12 +866,18 @@ local function ownKeyRows(snapshot)
                 function() return manager.removeOwnKey() end, own.saved),
         }
     end
+    -- Mature content applies to the Local AI provider only; the help says so while another provider answers.
+    local matureHelp = ui.t('Lets companions answer with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content, in the tone of Night City. For adults (18+) only. It applies to Local AI only: Convai, Mistral and Groq never get it. Characters stay themselves, follow your relationship with them and may say no; some things are never allowed (sex involving minors or without consent, sex about real people, hate, or real-world instructions for weapons or drugs). The standard Local AI models are trained to refuse most sexual content, so the full effect needs an uncensored model, planned as an optional pack. Off by default.')
+    if mistral.effective ~= 'local' then
+        matureHelp = matureHelp .. ' ' .. ui.t('Your conversations are not using Local AI right now, so this has no effect for now.')
+    end
     for _, item in ipairs({
             setting('conversationProvider', 'Conversation provider', 'select',
                 snapshot.settings.conversationProvider == 'groq' and 4
                     or snapshot.settings.conversationProvider == 'local' and 3
                     or snapshot.settings.conversationProvider == 'mistral' and 2 or 1, 1, providerHelp,
                 {'Convai free tier', 'Mistral (free plan)', 'Local (needs Local AI pack)', 'Groq (free plan)'}, {elements = true, description = true}),
+            setting('matureContent', 'Mature content', 'bool', snapshot.settings.matureContent, false, matureHelp, nil, {description = true}),
             readonly('mistral-key-status', 'Mistral key', mistralStatus,
                 'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
             action('mistral-key:paste', 'Paste Mistral key', 'Paste from clipboard',
@@ -1401,7 +1407,8 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
                     or key == 'autoConnectNearby' or key == 'keepPreparedVoices' or key == 'naturalSpeech'
                     or key == 'gameDialogueContext'
-                    or key == 'expressiveEmotions' or key == 'followUpInterest' or key == 'multilingualConversations' then values[key] = change.value
+                    or key == 'expressiveEmotions' or key == 'followUpInterest' or key == 'multilingualConversations'
+                    or key == 'matureContent' then values[key] = change.value
                 elseif key == 'audioDelay' then
                     local delays = manager.audioDelayChoices()
                     if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not delays[change.value] then

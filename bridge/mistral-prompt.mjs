@@ -19,6 +19,9 @@
 // Without `contextParts` (older callers, tests) the old layout is used: persona, summary and rules in the system message, and the
 // whole live context (the string Convai gets) in the last user message.
 // A reply comes back as plain text and goes through the same cleaning as a Convai reply (Natural speech, Expressive emotions).
+// Mature content (bridge/mature-content.mjs): for the fully local AI with the setting on, a short layer ends the system head, after the
+// output rules. It is part of the stable early text (the prefix cache keeps it) and the prompt budget never trims it. Off, nothing changes.
+import {matureLayer} from './mature-content.mjs';
 
 export const LIMITS = Object.freeze({
   persona: 16000,        // characters of the persona sections (the longest named character is about 11,400)
@@ -114,7 +117,7 @@ const section = (title, body) => body ? `${title}\n${body}` : '';
  * exactly this text (a prefix of the real system message in layout v2) when a companion joins. Over the length cap the example
  * lines go first, then the end of the backstory. `memory` (layout v1 only) puts the older-talk summary before the rules.
  */
-export function systemHead({persona, memory = '', limits = LIMITS}) {
+export function systemHead({persona, memory = '', limits = LIMITS, mature = null}) {
   const name = persona.name;
   const head = [name
     ? `You are ${name}, a real person living in Cyberpunk 2077's Night City, talking with V (the player) face to face. Stay ${name} for the whole conversation: your voice, your attitude, what you know and what you do not.`
@@ -134,7 +137,8 @@ export function systemHead({persona, memory = '', limits = LIMITS}) {
     backstory = backstory.slice(0, Math.max(500, backstory.length - over - 20)).trimEnd() + '…';
     text = build(backstory, samples);
   }
-  return text;
+  // The mature layer comes after the length caps: it is never counted against them and never cut.
+  return mature ? `${text}\n\n${matureLayer(mature)}` : text;
 }
 
 /**
@@ -142,10 +146,10 @@ export function systemHead({persona, memory = '', limits = LIMITS}) {
  * Layout v2 (`layers` = {notes, world, now}): persona and rules, then the format notes, the world, the memory summary and the
  * right-now block, in that order (see the header comment for why).
  */
-export function systemPrompt({persona, memory = '', limits = LIMITS, layers = null}) {
-  if (!layers) return systemHead({persona, memory, limits});
+export function systemPrompt({persona, memory = '', limits = LIMITS, layers = null, mature = null}) {
+  if (!layers) return systemHead({persona, memory, limits, mature});
   const world = capContext(`${CONTEXT_PREFIX}${layers.world || 'This is a private conversation with V.'}`, limits.world);
-  return [systemHead({persona, limits}),
+  return [systemHead({persona, limits, mature}),
     section('FORMAT NOTES FOR EVERY REPLY (instructions for you, never read aloud)', capContext(layers.notes, limits.notes)),
     section('WORLD AND QUEST CONTEXT (facts and instructions for you, never to be read aloud)', world),
     memory ? section('WHAT YOU REMEMBER OF V FROM EARLIER TALKS (true unless the live context says otherwise)', clip(memory, limits.summary)) : '',
@@ -175,9 +179,9 @@ export function capContext(context, limit = LIMITS.context) {
 // The first sentence of the right-now block (bridge/turn-context.mjs): "you are with V in person ..." or, in a phone chat, "you are
 // messaging V by text ... you are somewhere else ...".
 const HERE = /You are (?:with V in person[^.]*\.|messaging V by text[^.]*\.(?: You are somewhere else[^.]*\.)?)/;
-export function buildMessages({persona, memory, history = [], context, contextParts, remembered = [], text, reaction = false, limits = LIMITS}) {
+export function buildMessages({persona, memory, history = [], context, contextParts, remembered = [], text, reaction = false, limits = LIMITS, mature = null}) {
   const v2 = !!contextParts && typeof contextParts === 'object';
-  const messages = [{role: 'system', content: systemPrompt({persona, memory, limits,
+  const messages = [{role: 'system', content: systemPrompt({persona, memory, limits, mature,
     layers: v2 ? {notes: contextParts.notes, world: contextParts.world, now: contextParts.now} : null})}];
   for (const turn of history.slice(-limits.turns)) {
     const v = clip(turn.v, limits.userLine), r = clip(turn.r, limits.replyLine);

@@ -673,4 +673,8 @@ return {
     ["Local AI is ready."] = "本地 AI 已就绪。",
     ["Local AI could not start. Check Local AI in Settings > Development."] = "本地 AI 无法启动。请在 设置 > 开发 中检查本地 AI。",
     ["Not enough graphics memory for Local AI. A cloud provider is used instead."] = "显存不足，无法运行本地 AI。已改用云服务提供商。",
+    ["Lets companions answer with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content, in the tone of Night City. For adults (18+) only. It applies to Local AI only: Convai, Mistral and Groq never get it. Characters stay themselves, follow your relationship with them and may say no; some things are never allowed (sex involving minors or without consent, sex about real people, hate, or real-world instructions for weapons or drugs). The standard Local AI models are trained to refuse most sexual content, so the full effect needs an uncensored model, planned as an optional pack. Off by default."] = "允许伙伴使用粗俗语言、露骨暴力、毒品话题、黑暗主题、低俗幽默，并且在成年人之间双方同意的前提下，使用调情和性相关内容，语气符合 Night City。仅限成年人（18+）。仅适用于本地 AI：Convai、Mistral 和 Groq 永远不会获得此功能。角色保持本色，会记住你们的关系，也可能拒绝；有些内容始终不被允许（涉及未成年人或未经同意的性内容、关于真实人物的性内容、仇恨内容，以及现实中制造武器或毒品的指导）。本地 AI 的标准模型经过训练会拒绝大多数性内容，因此完整效果需要无审查模型，计划作为可选套件提供。默认关闭。",
+    ["Mature content"] = "成人内容",
+    ["Mature content is on: companions may use adult language and themes. For adults (18+) only."] = "已开启成人内容：伙伴可以使用成人语言和主题。仅限成年人（18+）。",
+    ["Your conversations are not using Local AI right now, so this has no effect for now."] = "你的对话目前没有使用本地 AI，因此此设置暂时不会生效。",
 }

@@ -573,6 +573,8 @@ local function loadSettings()
     -- Follow-up questions (on by default, key followUpInterest: the retired followUpQuestions key above is a different, dropped
     -- setting): characters sometimes show interest in the player. Works with any voice.
     if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = true, true end
+    -- Mature content (off by default): lets the Local AI provider write adult language and themes. Read by the bridge on change only.
+    if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
     -- Multilingual conversations (off by default): conversations go to each character's multilingual twin. Pocket TTS
     -- speaks only English, so a saved pairing with it cannot stand (Apply never makes one): the voice moves to the cloud
     -- voice, which every installation can run. With the cloud voice, Multilingual wins over the two tag settings.
@@ -1408,6 +1410,7 @@ function M.snapshot(player)
             naturalSpeech = settings.naturalSpeech,
             expressiveEmotions = settings.expressiveEmotions,
             followUpInterest = settings.followUpInterest,
+            matureContent = settings.matureContent,
             multilingualConversations = settings.multilingualConversations,
             archetypeConversations = settings.archetypeConversations,
             uiLanguage = settings.uiLanguage,
@@ -1453,7 +1456,7 @@ function M.applySettings(player, values)
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'gameDialogueContext'
             or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions'
-            or key == 'followUpInterest' or key == 'multilingualConversations' then
+            or key == 'followUpInterest' or key == 'multilingualConversations' or key == 'matureContent' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'relationshipModes' then
@@ -1523,6 +1526,9 @@ function M.applySettings(player, values)
         and (nextSettings.naturalSpeech == true or nextSettings.expressiveEmotions == true)
         and nextSettings.voiceProvider == 'convai'
     if switchedVoice then nextSettings.voiceProvider = 'pocket' end
+    -- Turning Mature content on says once, in one line, that the content is for adults.
+    local matureNotice = nextSettings.matureContent == true and settings.matureContent ~= true
+        and ui.t('Mature content is on: companions may use adult language and themes. For adults (18+) only.') or nil
     local previous = settings
     settings = nextSettings
     if not saveSettings() then
@@ -1538,9 +1544,10 @@ function M.applySettings(player, values)
         end
     end
     if companions.onPartyChanged then pcall(companions.onPartyChanged) end
-    if switchedVoice or cloudNotice or #multilingual.notices > 0 then
+    if switchedVoice or cloudNotice or matureNotice or #multilingual.notices > 0 then
         local notices = {}
         if cloudNotice then notices[#notices + 1] = cloudNotice end
+        if matureNotice then notices[#notices + 1] = matureNotice end
         if switchedVoice then
             local named = {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')}
             notices[#notices + 1] = nextSettings.naturalSpeech == true

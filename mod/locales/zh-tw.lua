@@ -673,4 +673,8 @@ return {
     ["Local AI is ready."] = "本機 AI 已就緒。",
     ["Local AI could not start. Check Local AI in Settings > Development."] = "本機 AI 無法啟動。請在 設定 > 開發 中檢查本機 AI。",
     ["Not enough graphics memory for Local AI. A cloud provider is used instead."] = "顯示記憶體不足，無法使用本機 AI。改用雲端服務供應商。",
+    ["Lets companions answer with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content, in the tone of Night City. For adults (18+) only. It applies to Local AI only: Convai, Mistral and Groq never get it. Characters stay themselves, follow your relationship with them and may say no; some things are never allowed (sex involving minors or without consent, sex about real people, hate, or real-world instructions for weapons or drugs). The standard Local AI models are trained to refuse most sexual content, so the full effect needs an uncensored model, planned as an optional pack. Off by default."] = "允許夥伴使用粗俗語言、強烈暴力、毒品話題、黑暗主題、低俗幽默，並且在成年人之間雙方同意的前提下，使用調情與性相關內容，語氣符合 Night City。僅限成年人（18+）。僅適用於本機 AI：Convai、Mistral 和 Groq 永遠不會取得此功能。角色維持本色，會記住你們的關係，也可能拒絕；有些內容始終不被允許（涉及未成年人或未經同意的性內容、關於真實人物的性內容、仇恨內容，以及現實中製作武器或毒品的指示）。本機 AI 的標準模型經過訓練會拒絕大多數性內容，因此完整效果需要無審查模型，計畫作為可選套件提供。預設關閉。",
+    ["Mature content"] = "成人內容",
+    ["Mature content is on: companions may use adult language and themes. For adults (18+) only."] = "已開啟成人內容：夥伴可以使用成人語言和主題。僅限成年人（18+）。",
+    ["Your conversations are not using Local AI right now, so this has no effect for now."] = "你的對話目前沒有使用本機 AI，因此此設定暫時不會生效。",
 }

@@ -254,6 +254,59 @@ The same companion-action path as Mistral applies (see "Companion actions" in `d
 request to the local model, and the reply carries the `GAME ACTIONS` note. It is skipped when no action is offered. The local model is not
 yet measured on it (`scripts/Eval-MistralPrompt.mjs --actions --local <port>`).
 
+### Mature content
+
+Settings > Development, right under Conversation provider: "Mature content" (key `matureContent`, off by default, an ordinary Apply setting; the
+bridge reads it from `runtime/settings.json` when the file changes, never per turn, and drops prepared replies when it flips). It exists
+only for this provider: the layer is built in `bridge/mature-content.mjs`, and `MATURE_PROVIDERS` is `{local: true, mistral: false,
+groq: false, convai: false}`. The host asks for the layer per route (`TextProviderHost#matureLevel`), so a local turn that falls back to
+the player's cloud provider is answered without it. While another provider answers, the setting's help says it applies to Local AI only.
+Turning it on shows one line that the content is for adults (18+), in all 15 locales.
+
+What it adds: one block of about 240 tokens at the END of the system head (`systemHead({mature})`), after the output rules and before
+the format notes. That is the stable early text, so llama-server's prefix cache is kept (the layer is the same every turn for a given
+model), the prewarm text is the same head, and `bridge/prompt-budget.mjs` never touches the head (it trims the world, memory, history,
+notes and example lines). With the setting off the argument is absent and the prompt is byte for byte what it was (tested). On: strong
+profanity, crude humour, graphic violence and gore, drugs and cyberware abuse, dark and morally grey themes, flirting and, where the
+relationship facts and the character allow it, romance and sex between consenting adults. The character stays herself (personality,
+boundaries, orientation; she may refuse) and follows the relationship facts already in the world block (the same save-confirmed
+relationship state `bridge/relationship-routing.mjs` uses): without a fact that says she and V are together she is not V's lover.
+Hard limits, last in the layer, for every model: nothing sexual with anyone under 18 or who seems under 18; nothing without consent or
+glorifying sexual violence; no bestiality or incest; nothing sexual about real people; no real-world instructions for weapons, explosives
+or drug synthesis; no hateful content against real protected groups.
+
+Per model: `MODEL_ALLOWANCE` keys the allowance by model family, read from the loaded model's name (`server.status().model`: the pack
+manifest's name or the file name). Levels: `full`, or `suggestive` (the sexual clause becomes "keep it suggestive, cut away"). Gemma 4
+and Qwen3.5 are Apache-2.0 (full); Gemma 1 to 3n are under the Gemma Prohibited Use Policy, which bars "sexually explicit content,
+including content created for the purposes of pornography or sexual gratification" (suggestive); an unknown model is suggestive; the
+uncensored candidates (`Qwen3.5-*-Uncensored-HauhauCS-*`, `gemma-4-E4B-it-ultra-uncensored-heretic`, any name with uncensored,
+abliterated or heretic) are full and flagged `uncensored`. Stock models still tend to refuse sexual content, so the full effect needs
+an uncensored model (planned as an optional pack; `docs/MATURE_MODELS_RESEARCH.md` on main). Such a model has no limits of its own, so
+a cheap output screen (`screenMinors`, two regular expressions, microseconds) drops any sentence that names a minor and something
+sexual together before it is voiced (a first sentence that flags is never committed to the voice) and logs the count, never the words.
+It runs only with the setting on, and is a last net, not the control: the layer is.
+
+Provider policies (read 2026-10-13; the pages were summarised by a small model, so re-read them before the Nexus release):
+- Mistral, Usage Policy (legal.mistral.ai/terms/usage-policy, effective June 11, 2026): no sentence permits or bans adult sexual
+  content as such. It bars "Content that enables or exploits individuals, including through human trafficking or sexual services." and
+  intimate images "without the explicit consent of all individuals involved." Its Commercial Terms add no content line. `safe_prompt`:
+  "Whether to inject a safety prompt before all conversations.", default `false`. Verdict: ambiguous, so Mistral stays off.
+- Groq, Acceptable Use and Responsible AI Policy (console.groq.com/docs/legal/ai-policy, effective October 15, 2025): bars "non-consensual
+  intimate imagery or sexually explicit content that is illegal;". Adult content is not mentioned; the Services Agreement defers to the
+  model developer's terms. Verdict: ambiguous, so Groq stays off.
+- Convai: never (a hosted service; the player's own key changes nothing).
+
+Nexus Mods (help.nexusmods.com, not changed by this work): the Adult Content Guidelines (updated May 12, 2026) define adult content as
+"content (mods, collections, videos, images, and text) that is considered unsuitable for minors", list Swearing or Profanity and
+Sexualised content, and say "It is the responsibility of the uploader to tag and/or classify their files appropriately." The File
+Submission Guidelines (updated September 29, 2026) say "Generative AI usage in mods or mod pages must have specific tags applied". No
+rule speaks to an optional, off-by-default setting that lets an AI write adult text, so the safe reading is that the mod page needs the
+adult-content flag (the mod can produce text the guidelines call adult, and the uploader carries the duty) and the generative-AI
+disclosure it needs anyway for AI dialogue. Confirm with Nexus support before the release if the flag is unwanted.
+
+Tests: `bridge/mature-content.test.mjs` (the setting, the provider gate, the table, the layer's size and hard limits, off byte-identical,
+additive and prefix-stable, the budget never cutting it, which route gets it, the screen). Prompts only; no model is asked for adult text.
+
 ### Tests
 
 `npm test` covers the supervisor against `bridge/fixtures/fake-llama-server.mjs`, the pack detector, the embedder, the shared host and its
