@@ -322,6 +322,8 @@ end
 -- the clipboard on request and keeps it in its own folder; this file sends two commands and reads the status the bridge
 -- publishes (runtime/mistral-state.json, never the key). Read on demand, at most once every 1.5 s.
 local mistralState, mistralReadAt, mistralCommand, mistralSequence = {}, nil, nil, 0
+-- The Groq free plan (the player's own free key) is handled the same way, on its own command file and ids.
+local groqCommand, groqSequence = nil, 0
 
 local function updateMistral(force)
     local clock = os.clock()
@@ -356,8 +358,37 @@ function M.removeMistralKey()
     return true, 'Your key was removed.'
 end
 
+local function sendGroqCommand(action)
+    memorySession = memorySession or memorySessionUUID()
+    groqSequence = groqSequence + 1
+    local command = {version = 1, id = memorySession .. ':gkey:' .. groqSequence, action = action,
+        issuedAt = os.time() * 1000.0}
+    if not writeCommandFile('runtime/groq-key-command.json', command) then
+        return false, 'The request could not be sent. Try again.'
+    end
+    groqCommand = command.id
+    mistralReadAt = nil
+    return true
+end
+
+function M.pasteGroqKey()
+    local ok, reason = sendGroqCommand('paste')
+    if not ok then return false, reason end
+    return true, 'Checking…'
+end
+
+function M.removeGroqKey()
+    local ok, reason = sendGroqCommand('clear')
+    if not ok then return false, reason end
+    return true, 'Your key was removed.'
+end
+
 local mistralResults = {saved = true, cleared = true, invalid = true, unreadable = true, failed = true}
 local mistralLimits = {rate = true, daily = true, invalid = true, model = true}
+local localAiStates = {ready = true, warming = true, ['not-installed'] = true, ['no-memory'] = true, failed = true}
+local function providerName(value)
+    return (value == 'mistral' or value == 'local' or value == 'groq') and value or 'convai'
+end
 
 -- What the settings page shows. `result` is the outcome of the player's latest Paste or Remove, and only that one.
 -- Anything missing or unexpected reads as "Convai, no key": the safe default.
@@ -367,8 +398,14 @@ function M.mistral()
     local result = type(state.result) == 'table' and state.result.id == mistralCommand and state.result.state or nil
     local tail = type(state.tail) == 'string' and #state.tail <= 8 and state.tail or nil
     local model = type(state.model) == 'string' and #state.model <= 80 and state.model:match('^[%w%.%-_:/]+$') and state.model or nil
-    return {provider = state.provider == 'mistral' and 'mistral' or 'convai',
-        effective = state.effective == 'mistral' and 'mistral' or 'convai',
+    local groq = type(state.groq) == 'table' and state.groq or {}
+    local groqResult = type(groq.result) == 'table' and groq.result.id == groqCommand and groq.result.state or nil
+    local groqTail = type(groq.tail) == 'string' and #groq.tail <= 8 and groq.tail or nil
+    return {provider = providerName(state.provider),
+        groq = {saved = groq.saved == true, tail = groqTail, limit = mistralLimits[groq.limit] and groq.limit or nil,
+            result = mistralResults[groqResult] and groqResult or nil},
+        effective = providerName(state.effective),
+        localAi = localAiStates[state.localAi] and state.localAi or nil,
         saved = state.saved == true, tail = tail, pending = state.pending == true,
         result = mistralResults[result] and result or nil,
         limit = mistralLimits[state.limit] and state.limit or nil, model = model, stt = state.stt == true}
@@ -459,9 +496,11 @@ local function loadSettings()
     if type(settings.developerMode) ~= 'boolean' then settings.developerMode, settingsNeedSave = false, true end
     -- Off by default: conversations use the shared plan until the player turns their own Convai key on (bridge/convai-key.mjs).
     if type(settings.useOwnConvaiKey) ~= 'boolean' then settings.useOwnConvaiKey, settingsNeedSave = false, true end
-    -- Who writes the replies: 'convai' (default) or 'mistral' (the player's own Mistral key). Any other
-    -- saved value is Convai. The bridge reads this from settings.json and applies it when no conversation is running.
-    if settings.conversationProvider ~= 'convai' and settings.conversationProvider ~= 'mistral' then
+    -- Who writes the replies: 'convai' (default), 'mistral' (the player's own Mistral key), 'groq' (the player's own free
+    -- Groq key) or 'local' (the optional Local AI pack, on this computer). Any other saved value is Convai. The bridge reads this from settings.json and applies it when
+    -- no conversation is running.
+    if settings.conversationProvider ~= 'convai' and settings.conversationProvider ~= 'mistral'
+        and settings.conversationProvider ~= 'local' and settings.conversationProvider ~= 'groq' then
         settings.conversationProvider, settingsNeedSave = 'convai', true
     end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = false, true end
@@ -628,14 +667,15 @@ function M.developerMode()
     return settings ~= nil and settings.developerMode == true
 end
 
--- True when speaking to a companion cannot work right now: the player chose Mistral, the bridge says Mistral is the
--- provider in use, and this computer cannot recognise speech locally. Asked only when a voice key is pressed (never per
+-- True when speaking to a companion cannot work right now: the player chose Mistral, Groq or Local AI, the bridge says that
+-- provider is in use, and this computer cannot recognise speech locally. Asked only when a voice key is pressed (never per
 -- frame); the bridge status is re-read at most once every 1.5 s.
 function M.voiceNeedsConvai()
     loadSettings()
-    if settings.conversationProvider ~= 'mistral' then return false end
+    local chosen = settings.conversationProvider
+    if chosen ~= 'mistral' and chosen ~= 'local' and chosen ~= 'groq' then return false end
     local state = M.mistral()
-    return state.effective == 'mistral' and state.stt ~= true
+    return state.effective == chosen and state.stt ~= true
 end
 
 -- Off by default: companions speak as before. On, the conversation service tells each character which pauses and
@@ -1382,7 +1422,7 @@ function M.applySettings(player, values)
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.archetypeConversations = value
         elseif key == 'conversationProvider' then
-            if value ~= 'convai' and value ~= 'mistral' then return false, 'Choose one of the listed conversation providers.' end
+            if value ~= 'convai' and value ~= 'mistral' and value ~= 'local' and value ~= 'groq' then return false, 'Choose one of the listed conversation providers.' end
             nextSettings.conversationProvider = value
         elseif key == 'audioDelay' then
             if not isChoice(value, audioDelays) then return false, 'Choose one of the listed lip sync delays.' end

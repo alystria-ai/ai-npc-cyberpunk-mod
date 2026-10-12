@@ -4184,12 +4184,21 @@ test('Development offers the conversation provider and the Mistral key rows: Con
     assert(invoke('tab:settings').ok)
     local provider = row('conversationProvider')
     assert(provider and provider.type == 'select' and provider.value == 1 and provider.defaultValue == 1)
-    assert(provider.elements[1] == 'Convai' and provider.elements[2] == 'Mistral (free plan)' and #provider.elements == 2)
+    assert(provider.elements[1] == 'Convai' and provider.elements[2] == 'Mistral (free plan)' and provider.elements[3] == 'Local (needs Local AI pack)' and provider.elements[4] == 'Groq (free plan)' and #provider.elements == 4)
     assert(provider.description:find('phone verification', 1, true) and provider.description:find('memory stays on this computer', 1, true))
     assert(not provider.description:lower():find('text only', 1, true), 'Mistral is not described as text only')
     assert(provider.description:find('local voice', 1, true) and provider.description:find('until no conversation is running', 1, true))
     assert(provider.description:find('not available yet', 1, true), 'without local speech recognition the help says so')
     assert(row('mistral-key-status').value == 'Not added' and row('mistral-key:remove').disabled == true)
+    local groqRow = row('groq-key-status')
+    assert(groqRow and groqRow.label == 'Groq key' and groqRow.value == 'Not added' and row('groq-key:remove').disabled == true)
+    assert(row('groq-key:paste').label == 'Paste Groq key' and row('groq-key:paste').disabled ~= true)
+    assert(row('groq-key:paste').description == 'Copy your free key from Groq first. It is read from the clipboard once, checked with Groq and saved on this computer. You can also save it in the file player-groq-key.txt in the conversation service folder.')
+    assert(row('groq-key:remove').label == 'Remove my Groq key' and row('groq-key:remove').description == 'Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai.')
+    assert(not row('groq-key:paste').description:lower():find('text only', 1, true) and not row('groq-key:remove').description:lower():find('paid', 1, true))
+    local localRow = row('local-ai-status')
+    assert(localRow and localRow.label == 'Local AI' and localRow.value == 'Not installed', 'the Local AI row is always there')
+    assert(localRow.description == 'Runs conversations on this computer with the optional Local AI pack. It needs free graphics memory while it works, and memory stays on this computer. Choose Local in Conversation provider, then Apply.')
     assert(row('mistral-key:paste').disabled ~= true and row('mistral-key:paste').description:find('player-mistral-key.txt', 1, true))
     assert(row('own-key-using').value == 'The shared plan', 'the Convai plan line is unchanged while Convai is chosen')
     -- The rows sit in Development: the provider choice after the Convai key rows (shown in Developer mode), the status line last.
@@ -4203,7 +4212,8 @@ test('Development offers the conversation provider and the Mistral key rows: Con
     local at = {}
     for index, id in ipairs(order) do at[id] = index end
     assert(at.useOwnConvaiKey and at['own-key:remove'] < at.conversationProvider and at.conversationProvider < at['mistral-key-status']
-      and at['mistral-key:remove'] < at['own-key-using'], table.concat(order, ','))
+      and at['mistral-key:remove'] < at['groq-key-status'] and at['groq-key-status'] < at['groq-key:paste']
+      and at['groq-key:paste'] < at['groq-key:remove'] and at['groq-key:remove'] < at['local-ai-status'] and at['local-ai-status'] < at['own-key-using'], table.concat(order, ','))
     -- Paste and Remove are two commands on their own channel, never the memory or the Convai key channel.
     assert(invoke('mistral-key:paste').ok)
     local command = jsonFixtures[files['runtime/mistral-key-command.json']]
@@ -4237,6 +4247,81 @@ test('Development offers the conversation provider and the Mistral key rows: Con
       answer('limit-' .. limit, {provider = 'mistral', effective = 'mistral', saved = true, tail = 'abcd', limit = limit})
       assert(invoke('mistral-key:paste').ok and row('own-key-using').value == text, limit)
     end
+    -- Local AI: the row follows the bridge's localAi value; an unknown value never invents a state.
+    for value, text in pairs({ready = 'Ready', warming = 'Warming up', ['not-installed'] = 'Not installed',
+      ['no-memory'] = 'Not enough graphics memory', failed = 'Unavailable', sometimes = 'Not installed', [7] = 'Not installed'}) do
+      answer('local-ai-' .. tostring(value), {provider = 'local', effective = 'local', localAi = value})
+      assert(invoke('mistral-key:paste').ok and row('local-ai-status').value == text, tostring(value))
+    end
+    answer('local-ai-none', {provider = 'convai', effective = 'convai'})
+    assert(invoke('mistral-key:paste').ok and row('local-ai-status').value == 'Not installed' and manager.mistral().localAi == nil)
+    -- Conversations use: Local AI when the bridge uses it, a plain reason when Local is chosen but Convai answers.
+    answer('use-local', {provider = 'local', effective = 'local', localAi = 'ready'})
+    assert(invoke('mistral-key:paste').ok and row('own-key-using').value == 'Local AI (this computer)')
+    assert(manager.mistral().provider == 'local' and manager.mistral().effective == 'local' and manager.mistral().localAi == 'ready')
+    answer('use-local-pending', {provider = 'local', effective = 'convai', localAi = 'warming', pending = true})
+    assert(invoke('mistral-key:paste').ok and row('own-key-using').value == 'Waiting for the conversation to end')
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok); loaded = registered.loadMod('manager')
+    assert(row('conversationProvider').value == 3, 'the saved local choice shows as the third element')
+    answer('use-local-fallback', {provider = 'local', effective = 'convai', localAi = 'not-installed'})
+    assert(invoke('mistral-key:paste').ok and row('own-key-using').value == 'Convai: Local AI is not ready')
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 2}}).ok); loaded = registered.loadMod('manager')
+    assert(row('conversationProvider').value == 2)
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 1}}).ok); loaded = registered.loadMod('manager')
+    assert(row('conversationProvider').value == 1)
+    -- Groq (free plan): its own command file (id prefix gkey) with no key in it, its own status object, its own results.
+    local before = jsonFixtures[files['runtime/mistral-key-command.json']]
+    assert(invoke('groq-key:paste').ok)
+    local gcommand = jsonFixtures[files['runtime/groq-key-command.json']]
+    assert(gcommand.version == 1 and gcommand.action == 'paste' and gcommand.id:find(':gkey:1', 1, true) and type(gcommand.issuedAt) == 'number')
+    for field in pairs(gcommand) do assert(({version = true, id = true, action = true, issuedAt = true})[field], 'unexpected field ' .. field) end
+    assert(jsonFixtures[files['runtime/mistral-key-command.json']] == before, 'the Mistral command is untouched')
+    assert(files['runtime/memory-command.json'] == nil and files['runtime/own-key-command.json'] == nil)
+    local function gid(number) return (gcommand.id:gsub(':1$', ':' .. number)) end
+    answer('g-saved', {version = 1, provider = 'groq', effective = 'groq', saved = false,
+      groq = {saved = true, tail = 'wxyz', limit = nil, result = {id = gid(1), state = 'saved'}}})
+    assert(invoke('groq-key:paste').ok)
+    assert(row('groq-key-status').value == 'Added (ends in wxyz)' and row('groq-key:remove').disabled ~= true)
+    assert(row('mistral-key-status').value == 'Not added', 'the Mistral row is its own')
+    assert(row('own-key-using').value == 'Groq (free plan)')
+    local g = manager.mistral()
+    assert(g.provider == 'groq' and g.effective == 'groq' and g.groq.saved == true and g.groq.tail == 'wxyz' and g.groq.limit == nil)
+    answer('g-invalid', {provider = 'groq', effective = 'groq', groq = {saved = true, tail = 'wxyz', result = {id = gid(3), state = 'invalid'}}})
+    assert(invoke('groq-key:paste').ok)
+    assert(row('groq-key-status').value == 'Groq did not accept that key.')
+    answer('g-unreadable', {provider = 'groq', effective = 'groq', groq = {saved = false, result = {id = gid(4), state = 'unreadable'}}})
+    assert(invoke('groq-key:paste').ok and row('groq-key-status').value == 'The clipboard could not be read.')
+    answer('g-failed', {provider = 'groq', effective = 'groq', groq = {saved = false, result = {id = gid(5), state = 'failed'}}})
+    assert(invoke('groq-key:paste').ok and row('groq-key-status').value == 'The key could not be saved.')
+    answer('g-saved-no-tail', {provider = 'groq', effective = 'groq', groq = {saved = true}})
+    assert(invoke('groq-key:paste').ok and row('groq-key-status').value == 'Added')
+    -- An answer to an older Groq command (or to a Mistral one) is not shown; a damaged groq object reads as no key.
+    answer('g-old', {provider = 'groq', effective = 'groq', groq = {saved = true, tail = 'wxyz', result = {id = 'x:gkey:9', state = 'invalid'}}})
+    assert(invoke('groq-key:paste').ok and row('groq-key-status').value == 'Added (ends in wxyz)' and manager.mistral().groq.result == nil)
+    answer('g-garbled', {provider = 'groq', effective = 'groq', groq = {saved = 'yes', tail = 'much too long', limit = 'sometimes', result = 7}})
+    g = manager.mistral().groq
+    assert(g.saved == false and g.tail == nil and g.limit == nil and g.result == nil)
+    answer('g-not-table', {provider = 'groq', effective = 'groq', groq = 'x'})
+    g = manager.mistral().groq
+    assert(g.saved == false and g.tail == nil and g.limit == nil and g.result == nil)
+    for limit, text in pairs({rate = 'Groq: free limit reached for now', daily = 'Groq: free limit reached for now',
+      invalid = 'Groq: key not accepted', model = 'Groq: model unavailable'}) do
+      answer('g-limit-' .. limit, {provider = 'groq', effective = 'groq', groq = {saved = true, tail = 'wxyz', limit = limit}})
+      assert(invoke('groq-key:paste').ok and row('own-key-using').value == text, limit)
+    end
+    -- Groq chosen but no key: Convai answers, unless the bridge reports Mistral (the player's Mistral key), then the Mistral line.
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 4}}).ok); loaded = registered.loadMod('manager')
+    assert(row('conversationProvider').value == 4, 'the saved groq choice shows as the fourth element')
+    answer('g-no-key', {provider = 'groq', effective = 'convai', groq = {saved = false}})
+    assert(invoke('groq-key:paste').ok and row('own-key-using').value == 'Convai: Groq has no key yet')
+    answer('g-mistral', {provider = 'groq', effective = 'mistral', saved = true, tail = 'abcd', groq = {saved = false}})
+    assert(invoke('groq-key:paste').ok and row('own-key-using').value == 'Mistral (free plan)')
+    answer('g-pending', {provider = 'groq', effective = 'convai', pending = true, groq = {saved = false}})
+    assert(invoke('groq-key:paste').ok and row('own-key-using').value == 'Waiting for the conversation to end')
+    assert(invoke('groq-key:remove').ok and jsonFixtures[files['runtime/groq-key-command.json']].action == 'clear')
+    assert(jsonFixtures[files['runtime/groq-key-command.json']].id:find(':gkey:', 1, true))
+    assert(jsonFixtures[files['runtime/mistral-key-command.json']] == before, 'removing the Groq key never touches the Mistral command')
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 1}}).ok); loaded = registered.loadMod('manager')
     answer('pending', {provider = 'convai', effective = 'convai', saved = true, tail = 'abcd', pending = true})
     assert(invoke('mistral-key:paste').ok and row('own-key-using').value == 'Waiting for the conversation to end')
     assert(invoke('mistral-key:remove').ok and jsonFixtures[files['runtime/mistral-key-command.json']].action == 'clear')
@@ -4249,10 +4334,20 @@ test('the Conversation provider setting: Convai unless Mistral is chosen, saved 
     assert(manager.snapshot(player).settings.conversationProvider == 'convai')
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 2}}).ok)
     assert(manager.snapshot(player).settings.conversationProvider == 'mistral' and saved.conversationProvider == 'mistral')
-    assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok)
+    assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 5}}).ok)
+    assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 0}}).ok)
+    assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 2.5}}).ok)
     assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 'mistral'}}).ok)
+    assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 'local'}}).ok)
+    assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 'groq'}}).ok)
     assert(not manager.applySettings(player, {conversationProvider = 'other'}))
     assert(manager.snapshot(player).settings.conversationProvider == 'mistral', 'a refused value changes nothing')
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok)
+    assert(manager.snapshot(player).settings.conversationProvider == 'local' and saved.conversationProvider == 'local')
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 4}}).ok)
+    assert(manager.snapshot(player).settings.conversationProvider == 'groq' and saved.conversationProvider == 'groq')
+    assert(not manager.applySettings(player, {conversationProvider = 'Groq'}))
+    assert(manager.snapshot(player).settings.conversationProvider == 'groq', 'a refused value changes nothing')
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 1}}).ok)
     assert(manager.snapshot(player).settings.conversationProvider == 'convai' and saved.conversationProvider == 'convai')
   `);
@@ -4283,6 +4378,32 @@ test('the voice key waits for Convai only while Mistral is in use and this compu
     status('e', {provider = 'mistral', effective = 'mistral', saved = true, stt = false})
     choose(1)
     assert(manager.voiceNeedsConvai() == false)
+    -- Local AI follows the same logic: only while it is the chosen provider and the bridge reports it in use without speech recognition.
+    choose(3)
+    status('f', {provider = 'local', effective = 'local', localAi = 'ready', stt = false})
+    assert(manager.voiceNeedsConvai() == true, 'Local AI without local speech recognition: the voice key waits for Convai')
+    status('g', {provider = 'local', effective = 'local', localAi = 'ready', stt = true})
+    assert(manager.voiceNeedsConvai() == false, 'local speech recognition makes the voice key work')
+    status('h', {provider = 'local', effective = 'convai', localAi = 'not-installed', stt = false})
+    assert(manager.voiceNeedsConvai() == false, 'Local AI could not start: Convai answers, so the voice key works')
+    status('i', {provider = 'mistral', effective = 'mistral', saved = true, stt = false})
+    assert(manager.voiceNeedsConvai() == false, 'the bridge is on another provider than the chosen one')
+    choose(2)
+    status('j', {provider = 'local', effective = 'local', localAi = 'ready', stt = false})
+    assert(manager.voiceNeedsConvai() == false, 'Mistral chosen, Local AI reported: not this check')
+    -- Groq follows the same logic.
+    choose(4)
+    status('k', {provider = 'groq', effective = 'groq', groq = {saved = true}, stt = false})
+    assert(manager.voiceNeedsConvai() == true, 'Groq without local speech recognition: the voice key waits for Convai')
+    status('l', {provider = 'groq', effective = 'groq', groq = {saved = true}, stt = true})
+    assert(manager.voiceNeedsConvai() == false, 'local speech recognition makes the voice key work')
+    status('m', {provider = 'groq', effective = 'convai', groq = {saved = false}, stt = false})
+    assert(manager.voiceNeedsConvai() == false, 'Groq has no key: Convai answers, so the voice key works')
+    status('n', {provider = 'groq', effective = 'mistral', saved = true, stt = false})
+    assert(manager.voiceNeedsConvai() == false, 'the bridge uses Mistral, not the chosen Groq')
+    choose(2)
+    status('o', {provider = 'groq', effective = 'groq', groq = {saved = true}, stt = false})
+    assert(manager.voiceNeedsConvai() == false, 'Mistral chosen, Groq reported: not this check')
   `);
 });
 
@@ -4343,8 +4464,28 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     id, text = notice({keyNotice = 'mistral-voice', text = 'Hello'})
     assert(id == 'mistral-voice' and text:find('local voice', 1, true), text)
     -- The one-time notices go through the gate under their own ids; anything else sends nothing.
+    -- Local AI fell back to Convai: the same line on the first reply (keyNotice) and on a failed turn (errorCode).
+    local expected = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development.'
+    id, text = notice({keyNotice = 'local-fallback', text = 'Hello'})
+    assert(id == 'local-fallback' and text == expected, text)
+    id, text = notice({errorCode = 'local-fallback', error = 'x'})
+    assert(id == 'local-fallback' and text == expected, text)
+    assert(not text:lower():find('mistral', 1, true) and not text:lower():find('paid', 1, true) and not text:lower():find('text only', 1, true))
+    -- Groq: three failures and a one-time notice, with the exact texts.
+    id, text = notice({errorCode = 'groq-key', error = 'x'})
+    assert(id == 'groq-key' and text == 'Groq did not accept your key. Check it in Settings > Development.', text)
+    id, text = notice({errorCode = 'groq-limit', error = 'x'})
+    assert(id == 'groq-limit' and text == 'Groq’s free limit is reached for now. Try again in a moment.', text)
+    id, text = notice({errorCode = 'groq-model', error = 'x'})
+    assert(id == 'groq-model' and text == 'The Groq model is unavailable right now. Try again in a minute.', text)
+    id, text = notice({keyNotice = 'groq-no-key', text = 'Hello'})
+    assert(id == 'groq-no-key' and text == 'Groq has no key yet, so Convai is used. Add your key in Settings > Development.', text)
+    assert(not text:lower():find('paid', 1, true) and not text:lower():find('text only', 1, true))
+    sendProviderNotice({}, 'groq-no-key', 'g'); assert(#sent == 1 and sent[1] == 'groq-no-key=g', table.concat(sent, ';')); sent = {}
     sendProviderNotice({}, 'mistral-no-key', 'a'); sendProviderNotice({}, 'mistral-voice', 'b'); sendProviderNotice({}, 'key-memory', 'c')
     assert(#sent == 2 and sent[1] == 'mistral-no-key=a' and sent[2] == 'mistral-voice=b', table.concat(sent, ';'))
+    sendProviderNotice({}, 'local-fallback', 'd')
+    assert(#sent == 3 and sent[3] == 'local-fallback=d', table.concat(sent, ';'))
     assert(notice({errorCode = 'quota-shared'}) == 'quota-exhausted', 'the Convai refusals keep their own notice')
     assert(notice({text = 'Hello'}) == nil and notice({keyNotice = 'other'}) == nil)
   `);

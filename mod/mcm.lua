@@ -671,6 +671,15 @@ local function ownKeyRows(snapshot)
     elseif mistral.saved and mistral.tail then mistralStatus = ui.t('Added (ends in {tail})', {tail = mistral.tail})
     elseif mistral.saved then mistralStatus = ui.t('Added')
     else mistralStatus = ui.t('Not added') end
+    -- Groq (free plan): the same key status, from the bridge's `groq` object.
+    local groq = type(mistral.groq) == 'table' and mistral.groq or {}
+    local groqStatus, groqResult = nil, groq.result
+    if groqResult == 'invalid' then groqStatus = ui.t('Groq did not accept that key.')
+    elseif groqResult == 'unreadable' then groqStatus = ui.t('The clipboard could not be read.')
+    elseif groqResult == 'failed' then groqStatus = ui.t('The key could not be saved.')
+    elseif groq.saved and groq.tail then groqStatus = ui.t('Added (ends in {tail})', {tail = groq.tail})
+    elseif groq.saved then groqStatus = ui.t('Added')
+    else groqStatus = ui.t('Not added') end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
         and ui.t('Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.')
@@ -681,7 +690,23 @@ local function ownKeyRows(snapshot)
         elseif mistral.limit == 'invalid' then using = ui.t('Mistral: key not accepted')
         elseif mistral.limit == 'model' then using = ui.t('Mistral: model unavailable')
         else using = ui.t('Mistral (free plan)') end
+    elseif mistral.effective == 'groq' then
+        if groq.limit == 'rate' or groq.limit == 'daily' then using = ui.t('Groq: free limit reached for now')
+        elseif groq.limit == 'invalid' then using = ui.t('Groq: key not accepted')
+        elseif groq.limit == 'model' then using = ui.t('Groq: model unavailable')
+        else using = ui.t('Groq (free plan)') end
+    elseif mistral.effective == 'local' then using = ui.t('Local AI (this computer)')
+    elseif snapshot.settings.conversationProvider == 'groq' then using = ui.t('Convai: Groq has no key yet')
+    elseif snapshot.settings.conversationProvider == 'local' then using = ui.t('Convai: Local AI is not ready')
     elseif snapshot.settings.conversationProvider == 'mistral' then using = ui.t('Convai: Mistral has no key yet') end
+    -- The Local AI pack's own state, as the bridge reports it. Anything unknown reads as not installed: never a state we were not told.
+    local localAi = mistral.localAi
+    local localAiStatus
+    if localAi == 'ready' then localAiStatus = ui.t('Ready')
+    elseif localAi == 'warming' then localAiStatus = ui.t('Warming up')
+    elseif localAi == 'no-memory' then localAiStatus = ui.t('Not enough graphics memory')
+    elseif localAi == 'failed' then localAiStatus = ui.t('Unavailable')
+    else localAiStatus = ui.t('Not installed') end
     -- The Convai key rows are not offered to players: they show with Developer mode on, or while a key is saved or the switch is on
     -- (so a key that is in use can always be removed or switched off). The Mistral rows and the status line are always there.
     local rows = {}
@@ -701,8 +726,10 @@ local function ownKeyRows(snapshot)
     end
     for _, item in ipairs({
             setting('conversationProvider', 'Conversation provider', 'select',
-                snapshot.settings.conversationProvider == 'mistral' and 2 or 1, 1, providerHelp,
-                {'Convai', 'Mistral (free plan)'}, {elements = true, description = true}),
+                snapshot.settings.conversationProvider == 'groq' and 4
+                    or snapshot.settings.conversationProvider == 'local' and 3
+                    or snapshot.settings.conversationProvider == 'mistral' and 2 or 1, 1, providerHelp,
+                {'Convai', 'Mistral (free plan)', 'Local (needs Local AI pack)', 'Groq (free plan)'}, {elements = true, description = true}),
             readonly('mistral-key-status', 'Mistral key', mistralStatus,
                 'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
             action('mistral-key:paste', 'Paste Mistral key', 'Paste from clipboard',
@@ -711,6 +738,16 @@ local function ownKeyRows(snapshot)
             action('mistral-key:remove', 'Remove my Mistral key', 'Remove',
                 'Deletes the saved key. Conversations go back to Convai.',
                 function() return manager.removeMistralKey() end, mistral.saved == true),
+            readonly('groq-key-status', 'Groq key', groqStatus,
+                'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
+            action('groq-key:paste', 'Paste Groq key', 'Paste from clipboard',
+                'Copy your free key from Groq first. It is read from the clipboard once, checked with Groq and saved on this computer. You can also save it in the file player-groq-key.txt in the conversation service folder.',
+                function() return manager.pasteGroqKey() end),
+            action('groq-key:remove', 'Remove my Groq key', 'Remove',
+                'Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai.',
+                function() return manager.removeGroqKey() end, groq.saved == true),
+            readonly('local-ai-status', 'Local AI', localAiStatus,
+                'Runs conversations on this computer with the optional Local AI pack. It needs free graphics memory while it works, and memory stays on this computer. Choose Local in Conversation provider, then Apply.', {value = true}),
             readonly('own-key-using', 'Conversations use', using,
                 'Which provider answers your conversations right now and, for Convai, which plan pays for them. Changes wait until no conversation is running.', {value = true}),
     }) do rows[#rows + 1] = item end
@@ -1158,11 +1195,13 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     end
                     values.audioDelay = delays[change.value]
                 elseif key == 'conversationProvider' then
-                    -- Order: 1 Convai (stored 'convai'), 2 Mistral (stored 'mistral').
-                    if change.value ~= 1 and change.value ~= 2 then
+                    -- Order: 1 Convai (stored 'convai'), 2 Mistral (stored 'mistral'), 3 Local (stored 'local'), 4 Groq (stored 'groq').
+                    local providers = {'convai', 'mistral', 'local', 'groq'}
+                    local provider = type(change.value) == 'number' and providers[change.value] or nil
+                    if not provider then
                         return {ok = false, error = ui.t('Choose one of the listed conversation providers.')}
                     end
-                    values.conversationProvider = change.value == 1 and 'convai' or 'mistral'
+                    values.conversationProvider = provider
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose one of the listed subtitle displays.')} end
                     -- Order: 1 Cinematic subtitles (stored 'dialogue'), 2 Above the speaker (stored 'overhead').

@@ -1943,6 +1943,21 @@ local function keyReplyNotice(reply)
     elseif reply.errorCode == 'mistral-model' then
         return 'mistral-model', ui.t('The Mistral model is unavailable right now. Try again in a minute.')
     end
+    -- Groq (free plan): the same three failures and the same one-time notice, under their own ids.
+    if reply.errorCode == 'groq-key' then
+        return 'groq-key', ui.t('Groq did not accept your key. Check it in Settings > Development.')
+    elseif reply.errorCode == 'groq-limit' then
+        return 'groq-limit', ui.t('Groq’s free limit is reached for now. Try again in a moment.')
+    elseif reply.errorCode == 'groq-model' then
+        return 'groq-model', ui.t('The Groq model is unavailable right now. Try again in a minute.')
+    end
+    -- Local AI could not start, so the bridge used Convai: the same line whether it rode on a failed turn or on the first reply.
+    if reply.errorCode == 'local-fallback' or reply.keyNotice == 'local-fallback' then
+        return 'local-fallback', ui.t('Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development.')
+    end
+    if reply.keyNotice == 'groq-no-key' then
+        return 'groq-no-key', ui.t('Groq has no key yet, so Convai is used. Add your key in Settings > Development.')
+    end
     if reply.keyNotice == 'mistral-no-key' then
         return 'mistral-no-key', ui.t('Mistral has no key yet, so Convai is used. Add your key in Settings > Development.')
     elseif reply.keyNotice == 'mistral-voice' then
@@ -1956,7 +1971,9 @@ end
 -- The one-time information the bridge puts on the first reply of a game session when Mistral is chosen.
 local function sendProviderNotice(player, keyId, keyText)
     if keyId == 'mistral-no-key' then convaiNotices.send(player, 'mistral-no-key', keyText)
-    elseif keyId == 'mistral-voice' then convaiNotices.send(player, 'mistral-voice', keyText) end
+    elseif keyId == 'mistral-voice' then convaiNotices.send(player, 'mistral-voice', keyText)
+    elseif keyId == 'groq-no-key' then convaiNotices.send(player, 'groq-no-key', keyText)
+    elseif keyId == 'local-fallback' then convaiNotices.send(player, 'local-fallback', keyText) end
 end
 
 local function reactionCanDeliver(context, player)
@@ -2626,7 +2643,17 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'mistral-limit', keyText) end
                         elseif keyId == 'mistral-model' then
                             if not pending.reaction then convaiNotices.send(player, 'mistral-model', keyText) end
-                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' then
+                        -- Groq failures: the same rule as Mistral's.
+                        elseif keyId == 'groq-key' then
+                            if not pending.reaction then convaiNotices.send(player, 'groq-key', keyText) end
+                        elseif keyId == 'groq-limit' then
+                            if not pending.reaction then convaiNotices.send(player, 'groq-limit', keyText) end
+                        elseif keyId == 'groq-model' then
+                            if not pending.reaction then convaiNotices.send(player, 'groq-model', keyText) end
+                        -- Local AI could not start and the turn failed: the notice for a turn V asked for, like the Mistral failures.
+                        elseif keyId == 'local-fallback' then
+                            if not pending.reaction then convaiNotices.send(player, 'local-fallback', keyText) end
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'groq-no-key' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
                         elseif keyId then convaiNotices.send(player, 'quota-exhausted', keyText)

@@ -44,6 +44,11 @@ M.catalog = {
     ['mistral-model'] = {class = PLAYER, repeatS = 60},     -- the Mistral model is unavailable
     ['mistral-no-key'] = {class = PLAYER, repeatS = 86400}, -- Mistral is chosen but no key is saved, so Convai is used: once per game session
     ['mistral-voice'] = {class = PLAYER, repeatS = 86400},  -- the Convai cloud voice is chosen: a local voice speaks Mistral replies, once per game session
+    ['groq-key'] = {class = PLAYER, repeatS = 60},          -- Groq did not accept the key
+    ['groq-limit'] = {class = PLAYER, repeatS = 60},        -- Groq's free limit is reached
+    ['groq-model'] = {class = PLAYER, repeatS = 60},        -- the Groq model is unavailable
+    ['groq-no-key'] = {class = PLAYER, repeatS = 86400},    -- Groq is chosen but no key is saved, so Convai is used: once per game session
+    ['local-fallback'] = {class = PLAYER, repeatS = 86400}, -- Local AI is chosen but could not start, so Convai is used: once per game session
     -- Starting a conversation
     ['talk-no-target'] = {class = PLAYER, repeatS = 20},
     ['talk-no-profile'] = {class = PLAYER, repeatS = 20},

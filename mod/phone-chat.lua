@@ -10,6 +10,10 @@ local MISTRAL_STATUS = {
     ['mistral-key'] = 'Mistral did not accept your key. Check it in Settings > Development.',
     ['mistral-limit'] = 'Mistral’s free limit is reached for now. Try again in a moment.',
     ['mistral-model'] = 'The Mistral model is unavailable right now. Try again in a minute.',
+    ['groq-key'] = 'Groq did not accept your key. Check it in Settings > Development.',
+    ['groq-limit'] = 'Groq’s free limit is reached for now. Try again in a moment.',
+    ['groq-model'] = 'The Groq model is unavailable right now. Try again in a minute.',
+    ['local-fallback'] = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development.',
 }
 local function copy(value)
     if type(value) ~= 'table' then return value end
