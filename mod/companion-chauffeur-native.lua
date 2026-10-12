@@ -186,16 +186,19 @@ local function routePosition(position)
     end
     return result
 end
-local function destinationName(pin,isQuest)
+local function nameFrom(name,isQuest)
     local fallback=isQuest and 'Selected quest destination' or 'Selected destination'
-    local ok,name=pcall(function() return pin:GetDisplayName() end)
-    if not ok or type(name)~='string' or name=='' then return fallback end
+    if type(name)~='string' or name=='' then return fallback end
     if name:match('^LocKey') then
         local localized,text=pcall(function() return GetLocalizedText(name) end)
         if not localized or type(text)~='string' or text=='' or text:match('^LocKey') then return fallback end
         return text
     end
     return name
+end
+local function destinationName(pin,isQuest)
+    local ok,name=pcall(function() return pin:GetDisplayName() end)
+    return nameFrom(ok and name or nil,isQuest)
 end
 local function waypoint(auto,value,kind)
     -- The current native destination is authoritative for both a selected map
@@ -406,5 +409,457 @@ function M.brake(car,operation,expectedDriver)
     end
     entity:ForceBrakesUntilStoppedOrFor(3.0)
     return true
+end
+
+-- Optional native path -----------------------------------------------------------------------
+-- With the CyberpunkConvaiNative plugin loaded and its 'chauffeur' switch on, the two hot reads of a
+-- leased trip run in C++ (native/core/src/systems/chauffeur): M.sample (80-120 CET calls, ten times a
+-- second while a companion trip runs) becomes one plugin call plus about a dozen calls that stay in
+-- Lua, and M.inspectDrive (about 30 calls, also behind retarget, stop and brake) becomes one plugin
+-- call plus the entity lookup. Everything above is the original Lua and stays the fallback:
+--   * kill switch: a line "chauffeur" in runtime/native-off.txt (the plugin re-reads it about once a
+--     second; the CET console cannot reach convaiNative, each CET mod has its own environment);
+--     three faults inside the plugin's natives also switch it off;
+--   * only a sample for a LEASED car goes native (the start-of-trip selection of the owned car, with
+--     its targeting query, stays Lua), and only for a companion the mod spawned: the entities are
+--     always the ones the trip already holds;
+--   * what stays in Lua on purpose: the blackboard summon reads, the mounting reads (the vehicles
+--     plugin answers those), the car's display name (cached per record), the record-id check of the
+--     lease, the localized waypoint name, and IsCommandActive;
+--   * an answer of "", or one with a section the plugin could not read ("X !"), runs the original for
+--     that call; 20 such answers in a row, or an unreadable answer, call convaiNative.fail('chauffeur',
+--     ...) and this module stays on Lua for the session;
+--   * the first VERIFY answers of each entry point run BOTH paths and compare them; any difference
+--     calls convaiNative.fail and logs the first differing field to probe.log (the original's answer is
+--     used). A line "chauffeur" in runtime/native-verify.txt compares every call (and so does the test
+--     hook convaiNative.chauffeurVerify = true, set from Lua); convaiNative.chauffeurStats counts the calls.
+-- Wire format: ChauffeurCore.hpp.
+local NATIVE='chauffeur' -- the convaiNative system name (kill switch, probe.log)
+local VERIFY=8
+local EMPTY_LIMIT=20
+local luaSample,luaInspectDrive=M.sample,M.inspectDrive
+local STATE_NAMES={[0]='NotExecuting','Enqueued','Executing','Cancelled','Interrupted','Success','Failure'}
+local DRIVE_ERRORS={[0]='Vehicle driving AI is unavailable.','Vehicle control information is unavailable.',
+    'The driving command identity is unavailable.'}
+
+local function bound(value) return type(value)=='table' or type(value)=='userdata' end
+local nativeClass
+local function resolve()
+    if nativeClass then return nativeClass end
+    local ok,class=pcall(function() return ConvaiNativeChauffeur end)
+    if ok and bound(class) then nativeClass=class end
+    return nativeClass
+end
+local function note(line)
+    pcall(function()
+        local file=io.open('runtime/probe.log','a')
+        if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'),' ',line,'\n'); file:close() end
+    end)
+end
+local function stats(api)
+    local row=api.chauffeurStats
+    if type(row)~='table' then
+        row={native=0,lua=0,fallback=0,empty=0,emptySample=0,emptyDrive=0,verifiedSample=0,verifiedDrive=0,compared=0,
+            mismatches=0}
+        api.chauffeurStats=row
+    end
+    return row
+end
+-- The plugin writes hashes as plain decimal digits; CET prints them with a type suffix ("123ULL").
+-- The suffix is read once from a real entity hash.
+local suffix
+local function idSuffix(entity)
+    if suffix then return suffix end
+    local ok,text=pcall(function() return tostring(entity:GetEntityID().hash) end)
+    local found=ok and type(text)=='string' and text:match('^%d+([uUlL]*)$')
+    if found then suffix=found end
+    return suffix
+end
+local function plain(text)
+    if text==nil then return nil end
+    local digits=tostring(text):gsub('[uUlL]+$','')
+    if digits:match('^%d+$') then return digits end
+end
+local function number(token)
+    if token=='nan' then return 0/0 end
+    if token=='inf' then return math.huge end
+    if token=='-inf' then return -math.huge end
+    return tonumber(token)
+end
+local function words(text)
+    local list={}
+    for token in text:gmatch('%S+') do list[#list+1]=token end
+    return list
+end
+local function sameNumber(a,b)
+    if a~=a and b~=b then return true end
+    if a==b then return true end
+    if type(a)~='number' or type(b)~='number' or a~=a or b~=b then return false end
+    return math.abs(a-b)<=1e-9*(1+math.abs(a))
+end
+local function flagOf(token) if token=='1' then return true elseif token=='0' then return false end end
+
+-- The plugin, when it is on for this call; else nil (the caller runs the original).
+local function active()
+    local api=convaiNative
+    if type(api)~='table' or type(api.use)~='function' or api.use(NATIVE)~=true then return nil end
+    local class=resolve()
+    if not class then api.fail(NATIVE,'ConvaiNativeChauffeur is not registered'); return nil end
+    return api,class
+end
+-- The run of empty answers is counted per entry point: a good drive answer must not hide a sample that
+-- never gets answered.
+local function empty(api,row,name,key)
+    row.empty=row.empty+1
+    row[key]=row[key]+1
+    if row[key]>=EMPTY_LIMIT then api.fail(NATIVE,name..' keeps answering unavailable') end
+end
+local function unreadable(api,row,name,text)
+    api.fail(NATIVE,name..': unreadable reply '..tostring(text))
+    row.fallback=row.fallback+1
+end
+
+-- ---- decoding ----------------------------------------------------------------------------------
+-- "D ..." fields (the tokens after the tag) as the drive table the original builds, without the
+-- game objects; nil when unreadable. state '?' means IsCommandActive still has to be asked.
+local function decodeDrive(t)
+    local status=tonumber(t[1])
+    if status and status<=2 and #t==1 then return {known=false,error=DRIVE_ERRORS[status]} end
+    if status~=3 or #t~=11 then return nil end
+    local ready,busy,foreign,owned=flagOf(t[2]),flagOf(t[4]),flagOf(t[5]),flagOf(t[6])
+    local reservations=number(t[3])
+    if ready==nil or busy==nil or foreign==nil or owned==nil or not reservations then return nil end
+    local drive={known=true,ready=ready,reservations=reservations,busy=busy,foreign=foreign,ownedActive=owned}
+    local state=t[7]
+    if state=='?' then drive.pendingState=true
+    elseif state~='-' then
+        drive.state=STATE_NAMES[tonumber(state)]
+        if not drive.state then return nil end
+    end
+    if t[8]~='-' then drive.commandId=number(t[8]); if not drive.commandId then return nil end end
+    if t[9]~='-' then drive.currentId=number(t[9]); if not drive.currentId then return nil end end
+    if t[10]~='-' then drive.remaining=number(t[10]); if not drive.remaining then return nil end end
+    if t[11]~='-' then drive.currentClass=t[11] end
+    return drive
+end
+
+-- The sections of a sample answer as arrays of tokens by tag; a failed section ("X !") is nil.
+-- The W section is last and its name is the rest of the text. Returns nil when unreadable and 'failed'
+-- when a section could not be read.
+local function decodeSample(text)
+    local head,waypoint=text:match('^(.-) W (.*)$')
+    if not head then return nil end
+    local sections,tag,failed={}
+    for token in head:gmatch('%S+') do
+        if #token==1 and token:match('^[APCDU]$') then tag=token; sections[tag]={}
+        elseif tag then local list=sections[tag]; list[#list+1]=token
+        else return nil end
+    end
+    for _,name in ipairs({'A','P','C','U'}) do
+        local list=sections[name]
+        if not list then return nil end
+        if #list==1 and list[1]=='!' then failed=true end
+    end
+    if sections.D and #sections.D==1 and sections.D[1]=='!' then failed=true end
+    if waypoint=='!' then failed=true end
+    if failed then return 'failed' end
+    local A,P,C,U,D=sections.A,sections.P,sections.C,sections.U,sections.D
+    if #A~=4 or #P~=3 or #C~=7 or #U~=9 then return nil end
+    local decoded={A=A,P=P,C=C,U=U}
+    if flagOf(C[1]) and not D then return nil end
+    if D then decoded.D=decodeDrive(D); if not decoded.D then return nil end end
+    if waypoint=='0' then decoded.W=false
+    else
+        local id,px,py,pz,mx,my,mz,quest,name=waypoint:match('^1 (%d+) (%S+) (%S+) (%S+) (%S+) (%S+) (%S+) ([01]) (.*)$')
+        if not id then return nil end
+        decoded.W={id=id,px=number(px),py=number(py),pz=number(pz),mx=number(mx),my=number(my),mz=number(mz),
+            quest=quest=='1',name=name~='-' and name or nil}
+        for _,key in ipairs({'px','py','pz','mx','my','mz'}) do if not decoded.W[key] then return nil end end
+    end
+    return decoded
+end
+
+-- ---- comparison with the original ---------------------------------------------------------------
+local function difference(path,a,b)
+    if type(a)=='number' or type(b)=='number' then
+        if not sameNumber(a,b) then return path..' '..tostring(a)..' vs '..tostring(b) end
+    elseif a~=b then return path..' '..tostring(a)..' vs '..tostring(b) end
+end
+local DRIVE_KEYS={'known','error','ready','reservations','busy','foreign','ownedActive','state','commandId','currentId',
+    'currentClass','remaining','distance'}
+local function driveDifference(native,lua)
+    if not native or not lua then
+        if native==lua then return nil end
+        return 'drive '..tostring(native~=nil)..' vs '..tostring(lua~=nil)
+    end
+    for _,key in ipairs(DRIVE_KEYS) do
+        local found=difference('drive.'..key,native[key],lua[key])
+        if found then return found end
+    end
+    return difference('drive.ai',native.ai~=nil,lua.ai~=nil) or difference('drive.entity',native.entity~=nil,lua.entity~=nil)
+end
+local function pointDifference(path,a,b)
+    if not a or not b then return difference(path,a~=nil,b~=nil) end
+    return difference(path..'.x',a.x,b.x) or difference(path..'.y',a.y,b.y) or difference(path..'.z',a.z,b.z)
+end
+local SAMPLE_KEYS={'playerId','actorAttached','actorDead','actorValid','actorCalm','playerPassenger','playerCombat',
+    'summonedId','summonState','summonEnRoute','carValid'}
+local AUTO_KEYS={'enabled','delamain','vehicleId','available','laneValid','destinationId','playerTracked',
+    'questTracked','freeRoam','remaining'}
+local function sampleDifference(native,lua)
+    for _,key in ipairs(SAMPLE_KEYS) do
+        local found=difference(key,native[key],lua[key])
+        if found then return found end
+    end
+    for _,key in ipairs({'id','key','name','serial'}) do
+        local found=difference('actor.'..key,native.actor[key],lua.actor[key])
+        if found then return found end
+    end
+    local a,b=native.car,lua.car
+    if (a~=nil)~=(b~=nil) then return 'car '..tostring(a~=nil)..' vs '..tostring(b~=nil) end
+    if a then
+        for _,key in ipairs({'id','record','name','owned'}) do
+            local found=difference('car.'..key,a[key],b[key])
+            if found then return found end
+        end
+    end
+    if native.info~=nil and lua.info~=nil then
+        local found=difference('info.ready',native.info.ready,lua.info.ready)
+        if found then return found end
+    end
+    local found=driveDifference(native.drive,lua.drive)
+    if found then return found end
+    for _,key in ipairs(AUTO_KEYS) do
+        found=difference('auto.'..key,native.auto[key],lua.auto[key])
+        if found then return found end
+    end
+    local w,x=native.waypoint,lua.waypoint
+    if (w~=nil)~=(x~=nil) then return 'waypoint '..tostring(w~=nil)..' vs '..tostring(x~=nil) end
+    if w then
+        for _,key in ipairs({'id','name','destinationType'}) do
+            found=difference('waypoint.'..key,w[key],x[key])
+            if found then return found end
+        end
+        return pointDifference('waypoint.position',w.position,x.position) or
+            pointDifference('waypoint.markerPosition',w.markerPosition,x.markerPosition)
+    end
+end
+
+-- ---- the cosmetic car name, cached per record -----------------------------------------------------
+local names={}
+local function cachedName(car,recordId)
+    local name=names[recordId]
+    if name then return name end
+    local ok,record=pcall(function() return car:GetRecord() end)
+    name=vehicleName(ok and record or nil,recordId)
+    names[recordId]=name
+    return name
+end
+
+-- ---- the drive table from a decoded D section --------------------------------------------------------
+-- Adds the game objects and settles a pending state. Mirrors the tail of the original inspectDrive,
+-- including its pcall: a failure becomes {known=false, error=...}.
+local function finishDrive(decoded,entity,receipt)
+    if not decoded.known then return decoded end
+    local ok,result=pcall(function()
+        local ai=entity:GetAIComponent()
+        if not ai then return {known=false,error=DRIVE_ERRORS[0]} end
+        if decoded.pendingState then
+            if ai:IsCommandActive(receipt.id) then decoded.state='NotExecuting' else decoded.state='Cancelled' end
+            decoded.pendingState=nil
+        end
+        decoded.ai=ai
+        decoded.entity=entity
+        return decoded
+    end)
+    return ok and result or {known=false,error=tostring(result)}
+end
+
+-- The receipt facts the plugin needs for one drive read.
+local function receiptFacts(car,operation)
+    if not operation then return false,false,0,'' end
+    local receipt=M.driveReceipt(operation)
+    local hasReceipt=receipt~=nil and operation.carId==car.id
+    return true,hasReceipt,hasReceipt and receipt.id or 0,hasReceipt and receipt.class or '',receipt
+end
+
+local bypass=false -- true while the original sample runs for a comparison: its inner inspectDrive stays Lua
+
+function M.inspectDrive(car,operation)
+    local api,class=active()
+    if bypass or not api or type(car)~='table' or car.entityID==nil or type(car.id)~='string' or not plain(car.id) then
+        return luaInspectDrive(car,operation)
+    end
+    local row=stats(api)
+    local function fallback() row.lua=row.lua+1; return luaInspectDrive(car,operation) end
+    local looked,entity=pcall(function() return Game.FindEntityByID(car.entityID) end)
+    if not looked then return fallback() end
+    if not entity then return {known=false,error='The borrowed car is unavailable.'} end
+    local ok,text,receipt=pcall(function()
+        local hasOperation,hasReceipt,receiptId,receiptClass,found=receiptFacts(car,operation)
+        return class.Drive(entity,plain(car.id),operation and operation.handle or nil,hasOperation,hasReceipt,
+            receiptId,receiptClass),found
+    end)
+    if not ok then
+        api.fail(NATIVE,'inspectDrive: '..tostring(text)); row.fallback=row.fallback+1
+        return luaInspectDrive(car,operation)
+    end
+    if text=='' then empty(api,row,'inspectDrive','emptyDrive'); return fallback() end
+    row.emptyDrive=0
+    local drive
+    if text=='0' then drive={known=false,error='The borrowed car is unavailable.'}
+    elseif type(text)=='string' and text:sub(1,2)=='1 ' then
+        local decoded=decodeDrive(words((text:sub(3):gsub('^D%s+',''))))
+        if decoded then
+            -- the lease's record check of the original liveCar
+            local recordOk=true
+            if car.record then
+                local good,record=pcall(function() return tostring(entity:GetRecordID()) end)
+                recordOk=good and record==car.record
+            end
+            drive=recordOk and finishDrive(decoded,entity,receipt) or {known=false,error='The borrowed car is unavailable.'}
+        end
+    end
+    if drive==nil then unreadable(api,row,'inspectDrive',text); return luaInspectDrive(car,operation) end
+    local always=api.chauffeurVerify==true
+    -- api.verifying answers from a value it re-checks about once a second and never raises.
+    if not always and type(api.verifying)=='function' then always=api.verifying(NATIVE)==true end
+    if always or row.verifiedDrive<VERIFY then
+        local lua=luaInspectDrive(car,operation)
+        row.compared=row.compared+1
+        local found=driveDifference(drive,lua)
+        if found then
+            row.mismatches=row.mismatches+1
+            note('Native core: chauffeur MISMATCH in inspectDrive: '..found..' (plugin '..text..')')
+            api.fail(NATIVE,'inspectDrive differs from the Lua')
+        else
+            row.verifiedDrive=row.verifiedDrive+1
+            if row.verifiedDrive==VERIFY then note('Native core: chauffeur inspectDrive matched the Lua '..VERIFY..' times, now native') end
+        end
+        return lua
+    end
+    row.native=row.native+1
+    return drive
+end
+
+-- Builds the sample table from a decoded answer (the leased-car path of the original).
+local function buildSample(decoded,player,entry,leasedCar,carEntity,api,operation,tail)
+    local A,P,C,U=decoded.A,decoded.P,decoded.C,decoded.U
+    local actorId=entityID(entry.entityID)
+    local function id(token) if token~='0' then return token..tail end end
+    local sample={actor={serial=entry.serial,id=actorId,key=entry.profileKey,name=entry.name},playerId=id(P[1])}
+    local w=decoded.W
+    if w then
+        sample.waypoint={id=id(w.id),position={x=w.px,y=w.py,z=w.pz},name=nameFrom(w.name,w.quest),
+            destinationType=w.quest and 'Quest' or 'PlayerTracked',markerPosition={x=w.mx,y=w.my,z=w.mz}}
+    end
+    sample.actorAttached,sample.actorDead,sample.actorValid,sample.actorCalm=A[1]=='1',A[2]=='1',A[3]=='1',A[4]=='1'
+    if sample.actorAttached then sample.driverMount=api.mounting(entry) end
+    sample.playerMount=mounted(player,api)
+    sample.playerPassenger=P[2]=='1'
+    sample.playerCombat=P[3]=='1'
+    local defs=Game.GetAllBlackboardDefs().VehicleSummonData
+    local bb=Game.GetBlackboardSystem():Get(defs)
+    local summoned=bb:GetEntityID(defs.SummonedVehicleEntityID)
+    sample.summonedId=entityID(summoned)
+    local summonState=bb:GetUint(defs.SummonState)
+    sample.summonState=tonumber(summonState)
+    sample.summonEnRoute=tonumber(summonState)==1
+    local car=C[1]=='1' and carEntity or nil
+    if car and leasedCar.record then
+        -- the lease's record check of the original liveCar
+        local ok,record=pcall(function() return tostring(car:GetRecordID()) end)
+        if not ok or record~=leasedCar.record then car=nil end
+    end
+    if car then
+        local recordId=leasedCar.record or tostring(car:GetRecordID())
+        sample.car={id=leasedCar.id,entityID=leasedCar.entityID,entity=car,owned=false,record=recordId,
+            name=cachedName(car,recordId)}
+        sample.carValid=C[3]=='1'
+        sample.info=api.inspect(sample.car)
+        local receipt=select(5,receiptFacts(leasedCar,operation))
+        sample.drive=finishDrive(decoded.D,car,receipt)
+        local target=sample.waypoint and sample.waypoint.position or operation and operation.target
+        if target and C[4]=='1' then
+            local x,y,z=number(C[5]),number(C[6]),number(C[7])
+            sample.drive.distance=math.sqrt((x-target.x)^2+(y-target.y)^2+(z-target.z)^2)
+        end
+    else sample.info={ready=false} end
+    sample.auto={enabled=U[1]=='1',delamain=U[2]=='1',vehicleId=id(U[8]),available=U[3]=='1',laneValid=U[4]=='1',
+        destinationId=id(U[9]),playerTracked=U[5]=='1',questTracked=U[5]=='2',freeRoam=U[6]=='1',remaining=number(U[7])}
+    return sample
+end
+
+function M.sample(player,entry,leasedCar,api,operation)
+    local nativeApi,class=active()
+    if not nativeApi or not leasedCar or type(leasedCar)~='table' or type(entry)~='table' or not bound(player)
+        or type(api)~='table' or type(api.mounting)~='function' or type(api.inspect)~='function'
+        or leasedCar.entityID==nil or not plain(leasedCar.id) then
+        return luaSample(player,entry,leasedCar,api,operation)
+    end
+    local row=stats(nativeApi)
+    local tail=idSuffix(player)
+    if not tail then
+        nativeApi.fail(NATIVE,'entity hash text is not digits and a suffix')
+        return luaSample(player,entry,leasedCar,api,operation)
+    end
+    local actorId=entityID(entry.entityID)
+    local ok,text,carEntity=pcall(function()
+        local owner=entry.system or Game.GetDynamicEntitySystem()
+        local entity=Game.FindEntityByID(leasedCar.entityID)
+        local hasOperation,hasReceipt,receiptId,receiptClass=receiptFacts(leasedCar,operation)
+        return class.Sample(entry.npc,player,entity,owner,operation and operation.handle or nil,plain(actorId) or '',
+            plain(leasedCar.id),hasOperation,hasReceipt,receiptId,receiptClass),entity
+    end)
+    if not ok then
+        nativeApi.fail(NATIVE,'sample: '..tostring(text)); row.fallback=row.fallback+1
+        return luaSample(player,entry,leasedCar,api,operation)
+    end
+    if text=='' then empty(nativeApi,row,'sample','emptySample'); row.lua=row.lua+1; return luaSample(player,entry,leasedCar,api,operation) end
+    local decoded=type(text)=='string' and decodeSample(text) or nil
+    if decoded=='failed' then
+        empty(nativeApi,row,'sample','emptySample'); row.lua=row.lua+1
+        return luaSample(player,entry,leasedCar,api,operation)
+    end
+    if not decoded then
+        unreadable(nativeApi,row,'sample',text)
+        return luaSample(player,entry,leasedCar,api,operation)
+    end
+    row.emptySample=0
+    local built,sample=pcall(buildSample,decoded,player,entry,leasedCar,carEntity,api,operation,tail)
+    if not built then
+        nativeApi.fail(NATIVE,'sample: '..tostring(sample)); row.fallback=row.fallback+1
+        return luaSample(player,entry,leasedCar,api,operation)
+    end
+    local always=nativeApi.chauffeurVerify==true
+    if not always and type(nativeApi.verifying)=='function' then always=nativeApi.verifying(NATIVE)==true end
+    if always or row.verifiedSample<VERIFY then
+        bypass=true
+        local good,lua=pcall(luaSample,player,entry,leasedCar,api,operation)
+        bypass=false
+        if not good then error(lua,0) end
+        row.compared=row.compared+1
+        local found=sampleDifference(sample,lua)
+        if found then
+            row.mismatches=row.mismatches+1
+            note('Native core: chauffeur MISMATCH in sample: '..found..' (plugin '..text..')')
+            nativeApi.fail(NATIVE,'sample differs from the Lua')
+        else
+            row.verifiedSample=row.verifiedSample+1
+            if row.verifiedSample==VERIFY then note('Native core: chauffeur sample matched the Lua '..VERIFY..' times, now native') end
+        end
+        return lua
+    end
+    row.native=row.native+1
+    return sample
+end
+
+-- Developer mode (perf-probe) times each entry point as chauffeur.<name>, so the two paths can be
+-- compared by adding and removing the line "chauffeur" in runtime/native-off.txt.
+local probe=convaiPerfProbe
+if type(probe)=='table' and type(probe.watch)=='function' then
+    for _,name in ipairs({'sample','inspectDrive'}) do
+        pcall(probe.watch,M,name,'chauffeur.'..name)
+    end
 end
 return M
