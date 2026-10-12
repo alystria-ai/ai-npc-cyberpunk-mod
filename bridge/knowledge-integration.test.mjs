@@ -10,6 +10,7 @@ const microphoneSource = source('microphone');
 const groupSource = source('group-chat');
 const worldSource = source('world-knowledge');
 const historySource = source('journal-history');
+const partsSource = source('knowledge-parts');
 const invitationSource = source('invitation-readiness');
 const gameplayActionsSource = source('gameplay-actions');
 const seatedLookSource = source('seated-look');
@@ -118,6 +119,7 @@ local modules={
  ['knowledge-state.lua']={new=function()
   saveIdentityReads=saveIdentityReads+1;error('The Lua world adapter must not load native save identity')
  end},
+ ['knowledge-parts.lua']=withKnowledgeParts and (function()${partsSource}end)() or nil,
  ['world-knowledge.lua']={new=function(options)
   worldOptions=options
   options.now=function()return now end;options.cpuNow=function()return 0 end
@@ -198,11 +200,11 @@ local function assertHotkeyClean()
 end
 `;
 
-function run(body) {
+function run(body, prelude = '') {
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
   const checkedBody = '\nlocal fixtureOk,fixtureError=pcall(function()\n' + body
     + '\nend)\nif not fixtureOk then error(tostring(fixtureError).."\\nFixture logs:\\n"..table.concat(logs,"\\n"))end';
-  const result = lauxlib.luaL_dostring(vm, to_luastring(uiLocaleBootstrap + fixture + checkedBody));
+  const result = lauxlib.luaL_dostring(vm, to_luastring(prelude + uiLocaleBootstrap + fixture + checkedBody));
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
   lua.lua_close(vm); assert.equal(result, lua.LUA_OK, error);
 }
@@ -302,6 +304,23 @@ test('the knowledge collectors rest between scans and rescan on a journal change
  -- The composer, phone chat and talk key demand a scan before the turn.
  facts=factReads;convaiDemandKnowledge();tick();assert(factReads>facts,'rescanned on demand')
 `));
+
+test('text, voice and group turns name the world and journal parts by revision, written once beside the request', () => run(`
+ start();local first=input('parts')
+ assert(runtime.send(first));local out=stored('runtime/last-input.json')
+ local world,active=stored('runtime/knowledge-world.json'),stored('runtime/knowledge-active.json')
+ assert(out.worldKnowledge.facts==nil and out.worldKnowledge.ref.part=='world','the request names the world part')
+ assert(world.part=='world' and world.revision==out.worldKnowledge.ref.revision and world.data.facts.observed_fact.value==1)
+ assert(world.worldToken==out.worldKnowledge.worldToken and world.generation==out.worldKnowledge.generation)
+ assert(out.journalHistory.lanes.active.ids[1]=='100' and active.data.quests['100'].title=='Current quest')
+ local written=files['runtime/knowledge-world.json'];files['runtime/knowledge-world.json']='untouched'
+ assert(runtime.send(input('parts-again')))
+ assert(files['runtime/knowledge-world.json']=='untouched','an unchanged revision is not written again')
+ files['runtime/knowledge-world.json']=written
+ assert(microphone.begin(input('mic-parts')))
+ assert(stored('runtime/microphone-command.json').input.worldKnowledge.ref.revision==world.revision)
+ microphone.cancel()
+`, 'withKnowledgeParts=true;'));
 
 test('shared resident profiles never receive a verified knowledge identity', () => run(`
  start();assert(runtime.send(input('resident','resident-male')))

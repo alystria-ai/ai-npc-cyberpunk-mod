@@ -84,6 +84,17 @@ local function jsonBytes(value)
     return size + math.max(0, count - 1)
 end
 
+-- Same observations, ignoring which capture produced them: two 'capture:...'
+-- evidence refs count as equal (they name the cycle, not the observation).
+local function sameObservations(a, b)
+    if type(a) ~= type(b) then return false end
+    if type(a) == 'string' then return a == b or (a:sub(1, 8) == 'capture:' and b:sub(1, 8) == 'capture:') end
+    if type(a) ~= 'table' then return a == b end
+    for key, value in pairs(a) do if not sameObservations(value, b[key]) then return false end end
+    for key in pairs(b) do if a[key] == nil then return false end end
+    return true
+end
+
 -- These functions reacquire game systems on each call. No player, journal,
 -- entry, system, enum, or record handle escapes the call that acquired it.
 local function nativeReady()
@@ -287,7 +298,7 @@ function M.new(options)
         maxAgeSeconds = bounded(options.maxAgeSeconds, 45, 0.25, 60),
         refreshSeconds = bounded(options.refreshSeconds, 30, 0, 40),
         journalDepth = math.floor(bounded(options.journalDepth, 12, 1, 16)),
-        serial = 0, stamps = {}, reason = 'not-configured'}, Collector)
+        serial = 0, revision = 0, stamps = {}, reason = 'not-configured'}, Collector)
 end
 
 function Collector:reset(generation, reason, worldToken)
@@ -450,8 +461,20 @@ function Collector:update(context)
         end
         local active = {}; for key in pairs(job.active) do active[#active + 1] = key end; table.sort(active)
         while #active > 32 do table.remove(active) end
-        self.cache = {generation = generation, started = job.started, capturedAt = stamp,
-            facts = job.facts, journal = job.journal, activeQuestKeys = active, lifepath = job.lifepath}
+        -- The observations get a revision (docs/PERFORMANCE_NATIVE_PLAN.md item 1b): a turn sends only the
+        -- revision while it is unchanged, and the bridge keeps the observations from knowledge-world.json. A cycle
+        -- that saw exactly what the last one saw keeps the same revision and tables; only its times move on.
+        local previous = self.cache
+        local data = {facts = job.facts, journal = job.journal, lifepath = job.lifepath}
+        if #active > 0 then data.activeQuestKeys = active end
+        if previous and previous.generation == generation and sameObservations(previous.data, data) then
+            data = previous.data
+        else
+            self.revision = self.revision + 1
+        end
+        self.cache = {generation = generation, started = job.started, capturedAt = stamp, data = data,
+            revision = self.revision, dataBytes = previous and previous.data == data and previous.dataBytes or jsonBytes(data),
+            facts = data.facts, journal = data.journal, activeQuestKeys = data.activeQuestKeys or {}, lifepath = data.lifepath}
         self.job, self.nextRefresh, self.reason = nil, now + self.refreshSeconds, nil
     end
     return self:progress()
@@ -493,6 +516,33 @@ function Collector:capture(context)
     if #self.cache.activeQuestKeys > 0 then result.activeQuestKeys = clone(self.cache.activeQuestKeys) end
     if jsonBytes(result) > 256 * 1024 - 512 then return unavailable('snapshot-byte-limit') end
     return result
+end
+
+-- The same checks and header as capture(), without copying the observations: the result carries
+-- ref = {part = 'world', revision} and part = {name, revision, data}. data is the collector's own table: the caller
+-- only encodes it (mod/knowledge-parts.lua) and never changes it.
+function Collector:capturePart(context)
+    if not plain(context) then return unavailable('invalid-context') end
+    local ready, why = self:checkWorld(context.generation, context.worldToken)
+    if not ready or context.generation ~= self.generation or context.worldToken ~= self.worldToken then
+        self:reset(nil, why or 'world-generation-changed'); return unavailable(self.reason)
+    end
+    local now = self:clock()
+    if not self.config or not self.cache or not now then return unavailable(self.reason or 'capture-pending') end
+    if now - self.cache.started > self.maxAgeSeconds then return unavailable('capture-expired') end
+    local recipients = audience(context.audience)
+    if not recipients then return unavailable('invalid-audience') end
+    local cache = self.cache
+    local result = {version = 1, status = 'ready', gameVersion = self.config.gameVersion,
+        generation = context.generation, capturedAt = cache.capturedAt,
+        identity = normalizeIdentity(context.identity), audience = recipients,
+        ref = {part = 'world', revision = cache.revision}}
+    if self.worldToken then result.worldToken = self.worldToken end
+    local timeOk, seconds = pcall(self.adapter.readGameTime)
+    if timeOk and integer(seconds, 0, MAX_GAME_SECONDS) then result.gameTimeSeconds = seconds end
+    if jsonBytes(result) + cache.dataBytes > 256 * 1024 - 512 then return unavailable('snapshot-byte-limit') end
+    return result, {name = 'world', revision = cache.revision, generation = context.generation,
+        worldToken = self.worldToken, data = cache.data}
 end
 
 function Collector:begin(pack, context)

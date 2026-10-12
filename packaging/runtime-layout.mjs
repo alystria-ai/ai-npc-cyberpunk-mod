@@ -49,6 +49,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/journal-history.mjs',
   'bridge/journal-quest-types.mjs',
   'bridge/key-codec.mjs',
+  'bridge/knowledge-parts.mjs',
   'bridge/local-pcm-host.mjs',
   'bridge/local-stt-capture.mjs',
   'bridge/local-stt.mjs',

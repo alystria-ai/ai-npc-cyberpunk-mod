@@ -150,6 +150,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/journal-history.lua"
         },
         {
+          "source": "mod/knowledge-parts.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-parts.lua"
+        },
+        {
           "source": "mod/knowledge-probe.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-probe.lua"
         },
@@ -536,6 +540,7 @@
             "bridge/journal-history.mjs",
             "bridge/journal-quest-types.mjs",
             "bridge/key-codec.mjs",
+            "bridge/knowledge-parts.mjs",
             "bridge/local-pcm-host.mjs",
             "bridge/local-stt-capture.mjs",
             "bridge/local-stt.mjs",

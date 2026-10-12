@@ -195,6 +195,9 @@ function Collector:step(lane,now)
     local readingRoots=not job.rootsDone
     local task=not readingRoots and job.queue[job.head] or nil
     if not readingRoots and not task then
+        -- Each finished scan is a revision (docs/PERFORMANCE_NATIVE_PLAN.md item 1b): the bridge keeps its rows
+        -- from knowledge-<lane>.json, and a turn names the revision and the row ids it uses.
+        self.revision=(self.revision or 0)+1; job.revision=self.revision
         target.cache=job; target.cache.finished=now; target.job=nil
         target.next=now+(lane=='active' and self.activeInterval or self.historyInterval); return
     end
@@ -334,6 +337,63 @@ function Collector:capture(context)
     else output.tracked={status='unknown'} end
     if not self:check(context) then self:reset(); return {version=1,status='unavailable'} end
     return output
+end
+-- capture() without copying finished scans: their rows stay in the collector and the result names them,
+-- lanes[lane]={revision=n,ids={...}}, with one part per such lane ({name=lane,revision,data={quests=rows}}, rows keyed by
+-- id; the caller only encodes them). A lane still in its first scan (or past its age) is copied into quests as before.
+-- The bridge (bridge/knowledge-parts.mjs) rebuilds exactly the snapshot capture() returns.
+function Collector:capturePart(context)
+    local now=self:check(context)
+    if not now or self.generation~=context.generation or self.worldToken~=context.worldToken then self:reset(); return {version=1,status='unavailable'} end
+    local output={version=1,status='ready',generation=self.generation,worldToken=self.worldToken,
+        capturedAtMs=now*1000,coverage={},quests={}}
+    local merged,from,parts={},{},{}
+    for _,lane in ipairs({'history','active'}) do
+        local target=self.lanes[lane]; local cache=target.cache; local maxAge=lane=='active' and self.activeAge or self.historyAge
+        local scanning=false
+        if target.job and (not cache or now-cache.started>maxAge) then cache=target.job; scanning=true end
+        local coverage={status='pending'}; output.coverage[lane]=coverage
+        if cache then
+            local age=now-cache.started
+            coverage.ageSeconds=age; coverage.windowSeconds=(cache.finished or now)-cache.started; coverage.scanning=scanning
+            coverage.observed=cache.rootCount; coverage.total=cache.total; coverage.omitted=cache.omitted; coverage.unstable=cache.unstable
+            if age>maxAge then coverage.status='expired'
+            else
+                coverage.status=cache.complete and not scanning and 'complete' or 'partial'
+                for id,row in pairs(cache.quests) do
+                    if row.state=='active' and now-row.observedAtMs/1000>self.activeAge then
+                        coverage.status='partial'; coverage.omitted=coverage.omitted+1
+                    elseif not merged[id] or row.observedAtMs>=merged[id].observedAtMs then
+                        merged[id]=row; from[id]={lane=lane,cache=cache,scanning=scanning}
+                    end
+                end
+            end
+        end
+    end
+    local ids={}; for id in pairs(merged) do ids[#ids+1]=id end; table.sort(ids)
+    local lanes={}
+    for _,id in ipairs(ids) do
+        local source=from[id]
+        if source.scanning or not source.cache.revision then
+            local row=copy(merged[id]); if source.scanning then row.objectivesComplete=false end
+            output.quests[#output.quests+1]=row
+        else
+            local lane=lanes[source.lane]
+            if not lane then
+                lane={revision=source.cache.revision,ids={}}; lanes[source.lane]=lane
+                parts[#parts+1]={name=source.lane,revision=source.cache.revision,generation=self.generation,
+                    worldToken=self.worldToken,data={quests=source.cache.quests}}
+            end
+            lane.ids[#lane.ids+1]=id
+        end
+    end
+    if next(lanes) then output.lanes=lanes end
+    local ok,value=pcall(self.adapter.tracked)
+    if ok and plain(value) and (value.status=='untracked' or (value.status=='known' and hash(value.questId)==value.questId
+        and (value.objectiveId==nil or hash(value.objectiveId)==value.objectiveId))) then output.tracked=copy(value)
+    else output.tracked={status='unknown'} end
+    if not self:check(context) then self:reset(); return {version=1,status='unavailable'} end
+    return output,parts
 end
 M.nativeAdapter={isReady=ready,roots=roots,children=children,tracked=tracked}
 return M

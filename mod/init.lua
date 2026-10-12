@@ -96,6 +96,9 @@ local journalHistory = dofile('journal-history.lua').new({
     currentGeneration = function() return knowledgeFrame and knowledgeFrame.generation end,
     currentWorldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end})
 convaiWorldKnowledge = worldKnowledge
+-- Requests name the world and journal parts by revision; each part is written once (docs/PERFORMANCE_NATIVE_PLAN.md 1b).
+local partsLoaded, knowledgeParts = pcall(dofile, 'knowledge-parts.lua')
+if not partsLoaded or type(knowledgeParts) ~= 'table' then knowledgeParts = nil end
 
 local function publishWorldSession(frame, ready, force)
     local now = os.time()
@@ -188,7 +191,7 @@ local function updateKnowledge(delta)
     refreshKnowledgeFrame()
 end
 
-local function captureKnowledge(context, channel)
+local function captureKnowledge(context, channel, byRevision)
     if not knowledgeAllowed then return nil end
     local before = refreshKnowledgeFrame()
     if before.status == 'paused' then return nil, 'save-in-progress' end
@@ -203,7 +206,21 @@ local function captureKnowledge(context, channel)
     local world, history = knowledgeUnavailable(before.reason), knowledgeUnavailable(before.reason)
     if before.status == 'ready' then
         local binding = {generation = before.generation, worldToken = before.worldToken, audience = audience, identity = identity}
-        world, history = worldKnowledge:capture(binding), journalHistory:capture(binding)
+        -- byRevision: the bridge rebuilds the snapshots from runtime/knowledge-*.json (bridge/knowledge-parts.mjs), so the
+        -- request carries headers and row ids, not ~800 KB of copies. Any failure falls back to the full snapshots.
+        local published = false
+        if byRevision and knowledgeParts then
+            local parts = {}
+            local worldOk, worldHeader, worldPart = pcall(worldKnowledge.capturePart, worldKnowledge, binding)
+            local historyOk, historyHeader, historyParts = pcall(journalHistory.capturePart, journalHistory, binding)
+            if worldOk and historyOk and type(worldHeader) == 'table' and type(historyHeader) == 'table' then
+                if worldPart then parts[#parts + 1] = worldPart end
+                for _, part in ipairs(historyParts or {}) do parts[#parts + 1] = part end
+                local ok, done = pcall(knowledgeParts.publish, parts)
+                if ok and done then world, history, published = worldHeader, historyHeader, true end
+            end
+        end
+        if not published then world, history = worldKnowledge:capture(binding), journalHistory:capture(binding) end
     end
     local after = refreshKnowledgeFrame()
     if not knowledgeAllowed or not sameKnowledgeOwner(owner, knowledgeOwner(after)) then return nil end
@@ -212,7 +229,7 @@ local function captureKnowledge(context, channel)
 end
 
 local function attachKnowledge(context)
-    local ok, captured = pcall(captureKnowledge, context)
+    local ok, captured = pcall(captureKnowledge, context, nil, true)
     if not ok or not captured then return nil end
     context.worldKnowledge, context.journalHistory = captured.worldKnowledge, captured.journalHistory
     return captured.owner
@@ -297,7 +314,7 @@ local function publishPhoneDelivery(receipt)
     if not os.rename(path .. '.tmp', path) then os.remove(path); os.rename(path .. '.tmp', path) end
 end
 
-microphone.captureKnowledge = captureKnowledge
+microphone.captureKnowledge = function(context) return captureKnowledge(context, nil, true) end
 microphone.currentKnowledgeOwner = function()
     if not knowledgeAllowed then return nil end
     return knowledgeOwner(refreshKnowledgeFrame())

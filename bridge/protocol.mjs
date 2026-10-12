@@ -9,6 +9,7 @@ import {parseJournalHistory} from './journal-history.mjs';
 import {parseGameDialogue} from './game-dialogue.mjs';
 import {parseGear} from './player-gear.mjs';
 import {parseTurnContext} from './turn-context.mjs';
+import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseFollowUnavailable, parseTacticUnavailable}
   from './companion-actions.mjs';
 
@@ -29,6 +30,8 @@ function parseRequest(raw) {
   let value;
   try { value = JSON.parse(raw); } catch { return null; }
   if (!value || typeof value !== 'object') return null;
+  // World facts and journal rows named by revision come from the parts the game published (bridge/knowledge-parts.mjs).
+  value = resolveKnowledgeParts(value);
   const {requestId, generation, entity, name, bodyType, profileKey, text} = value;
   if (typeof requestId !== 'string' || !/^[0-9]+-[0-9]+-[0-9]+ULL$/.test(requestId)
       || !Number.isSafeInteger(generation) || generation < 0 || typeof entity !== 'string' || !/^\d+ULL$/.test(entity)

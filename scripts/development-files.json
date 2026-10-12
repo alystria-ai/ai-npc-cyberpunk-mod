@@ -142,6 +142,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/journal-history.lua"
     },
     {
+      "source": "mod/knowledge-parts.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-parts.lua"
+    },
+    {
       "source": "mod/knowledge-probe.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-probe.lua"
     },

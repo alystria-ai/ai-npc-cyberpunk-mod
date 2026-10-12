@@ -2,6 +2,7 @@ import {readFile, stat, mkdir} from 'node:fs/promises';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {archetypeContext, isAmbientProfile, parseInput, profileFor} from './protocol.mjs';
+import {configureKnowledgeParts} from './knowledge-parts.mjs';
 import {audioReady} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
@@ -399,6 +400,8 @@ async function pollPhone() {
 }
 
 const inputPath = resolve(runtime, 'last-input.json');
+// Requests name the world and journal parts the game publishes beside them (mod/knowledge-parts.lua); parseInput rebuilds them.
+configureKnowledgeParts({runtimeDir: runtime});
 const replyPath = resolve(runtime, 'reply.json');
 const statusPath = resolve(runtime, 'bridge-status.json');
 const prefetchPath = resolve(runtime, 'group-prefetch.json');
