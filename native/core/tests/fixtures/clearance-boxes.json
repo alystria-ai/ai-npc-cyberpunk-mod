@@ -1,0 +1,2011 @@
+{
+ "system": "clearance",
+ "source": "mod/companion-clearance.lua",
+ "cases": [
+  {
+   "name": "body: clear, default humanoid",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,6.150000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "body: clear, no budget",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":null,"hitAt":-1},
+   "output": {
+    "clear": true,
+    "queries": [
+     {"center":[10,20,6.150000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "body: large shape",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":{"radius":0.9,"height":3},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,6.599999904632568],"group":"Static","half":[0.8999999761581421,0.8999999761581421,1.5],"rot":[0,0,0]},
+     {"center":[10,20,6.599999904632568],"group":"Dynamic","half":[0.8999999761581421,0.8999999761581421,1.5],"rot":[0,0,0]},
+     {"center":[10,20,6.599999904632568],"group":"Vehicle","half":[0.8999999761581421,0.8999999761581421,1.5],"rot":[0,0,0]},
+     {"center":[10,20,6.599999904632568],"group":"Terrain","half":[0.8999999761581421,0.8999999761581421,1.5],"rot":[0,0,0]},
+     {"center":[10,20,6.599999904632568],"group":"Collider","half":[0.8999999761581421,0.8999999761581421,1.5],"rot":[0,0,0]},
+     {"center":[10,20,6.599999904632568],"group":"Destructible","half":[0.8999999761581421,0.8999999761581421,1.5],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "body: negative coordinates",
+   "input": {"fn":"body","feet":{"x":-1234.56789,"y":-0.001,"z":-42.5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[-1234.56787109375,-0.0010000000474974513,-41.349998474121094],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[-1234.56787109375,-0.0010000000474974513,-41.349998474121094],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[-1234.56787109375,-0.0010000000474974513,-41.349998474121094],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[-1234.56787109375,-0.0010000000474974513,-41.349998474121094],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[-1234.56787109375,-0.0010000000474974513,-41.349998474121094],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[-1234.56787109375,-0.0010000000474974513,-41.349998474121094],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "body: blocked by Static",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":0},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [{"center":[10,20,6.150000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {"center":{"x":10,"y":20,"z":6.150000095367432},"group":"Static","halfExtents":{"x":0.4000000059604645,"y":0.4000000059604645,"z":1.0499999523162842},"rotation":{"pitch":0,"roll":0,"yaw":0}},
+    "status": "blocked",
+    "used": 1,
+    "wire": "1 1 1 10 20 6.150000095367432 0.4000000059604645 0.4000000059604645 1.0499999523162842 0 0 0"
+   }
+  },
+  {
+   "name": "body: blocked by Dynamic",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":1},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,6.150000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {"center":{"x":10,"y":20,"z":6.150000095367432},"group":"Dynamic","halfExtents":{"x":0.4000000059604645,"y":0.4000000059604645,"z":1.0499999523162842},"rotation":{"pitch":0,"roll":0,"yaw":0}},
+    "status": "blocked",
+    "used": 2,
+    "wire": "1 2 2 10 20 6.150000095367432 0.4000000059604645 0.4000000059604645 1.0499999523162842 0 0 0"
+   }
+  },
+  {
+   "name": "body: blocked by Vehicle",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":2},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,6.150000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {"center":{"x":10,"y":20,"z":6.150000095367432},"group":"Vehicle","halfExtents":{"x":0.4000000059604645,"y":0.4000000059604645,"z":1.0499999523162842},"rotation":{"pitch":0,"roll":0,"yaw":0}},
+    "status": "blocked",
+    "used": 3,
+    "wire": "1 3 3 10 20 6.150000095367432 0.4000000059604645 0.4000000059604645 1.0499999523162842 0 0 0"
+   }
+  },
+  {
+   "name": "body: blocked by Terrain",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":3},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,6.150000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {"center":{"x":10,"y":20,"z":6.150000095367432},"group":"Terrain","halfExtents":{"x":0.4000000059604645,"y":0.4000000059604645,"z":1.0499999523162842},"rotation":{"pitch":0,"roll":0,"yaw":0}},
+    "status": "blocked",
+    "used": 4,
+    "wire": "1 4 4 10 20 6.150000095367432 0.4000000059604645 0.4000000059604645 1.0499999523162842 0 0 0"
+   }
+  },
+  {
+   "name": "body: blocked by Collider",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":4},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,6.150000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {"center":{"x":10,"y":20,"z":6.150000095367432},"group":"Collider","halfExtents":{"x":0.4000000059604645,"y":0.4000000059604645,"z":1.0499999523162842},"rotation":{"pitch":0,"roll":0,"yaw":0}},
+    "status": "blocked",
+    "used": 5,
+    "wire": "1 5 5 10 20 6.150000095367432 0.4000000059604645 0.4000000059604645 1.0499999523162842 0 0 0"
+   }
+  },
+  {
+   "name": "body: blocked by Destructible",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":5},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,6.150000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {"center":{"x":10,"y":20,"z":6.150000095367432},"group":"Destructible","halfExtents":{"x":0.4000000059604645,"y":0.4000000059604645,"z":1.0499999523162842},"rotation":{"pitch":0,"roll":0,"yaw":0}},
+    "status": "blocked",
+    "used": 6,
+    "wire": "1 6 6 10 20 6.150000095367432 0.4000000059604645 0.4000000059604645 1.0499999523162842 0 0 0"
+   }
+  },
+  {
+   "name": "body: blocked by the last group costs six",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":{"limit":192,"used":100},"hitAt":5},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,6.150000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {"center":{"x":10,"y":20,"z":6.150000095367432},"group":"Destructible","halfExtents":{"x":0.4000000059604645,"y":0.4000000059604645,"z":1.0499999523162842},"rotation":{"pitch":0,"roll":0,"yaw":0}},
+    "status": "blocked",
+    "used": 6,
+    "wire": "1 6 6 10 20 6.150000095367432 0.4000000059604645 0.4000000059604645 1.0499999523162842 0 0 0"
+   }
+  },
+  {
+   "name": "body: exactly six queries left",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":{"limit":192,"used":186},"hitAt":-1},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,6.150000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[10,20,6.150000095367432],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "body: five queries left defers",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":{"limit":192,"used":187},"hitAt":-1},
+   "output": {"deferred":true,"deferredCount":1,"queries":[],"status":"deferred","used":0,"wire":"2 0"}
+  },
+  {
+   "name": "body: budget spent defers",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":{"limit":192,"used":192},"hitAt":-1},
+   "output": {"deferred":true,"deferredCount":1,"queries":[],"status":"deferred","used":0,"wire":"2 0"}
+  },
+  {
+   "name": "body: a hit with a tight budget",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":null,"budget":{"limit":192,"used":186},"hitAt":0},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [{"center":[10,20,6.150000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {"center":{"x":10,"y":20,"z":6.150000095367432},"group":"Static","halfExtents":{"x":0.4000000059604645,"y":0.4000000059604645,"z":1.0499999523162842},"rotation":{"pitch":0,"roll":0,"yaw":0}},
+    "status": "blocked",
+    "used": 1,
+    "wire": "1 1 1 10 20 6.150000095367432 0.4000000059604645 0.4000000059604645 1.0499999523162842 0 0 0"
+   }
+  },
+  {
+   "name": "body: radius 0.2 is valid",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":{"radius":0.2,"height":2},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,6.099999904632568],"group":"Static","half":[0.20000000298023224,0.20000000298023224,1],"rot":[0,0,0]},
+     {"center":[10,20,6.099999904632568],"group":"Dynamic","half":[0.20000000298023224,0.20000000298023224,1],"rot":[0,0,0]},
+     {"center":[10,20,6.099999904632568],"group":"Vehicle","half":[0.20000000298023224,0.20000000298023224,1],"rot":[0,0,0]},
+     {"center":[10,20,6.099999904632568],"group":"Terrain","half":[0.20000000298023224,0.20000000298023224,1],"rot":[0,0,0]},
+     {"center":[10,20,6.099999904632568],"group":"Collider","half":[0.20000000298023224,0.20000000298023224,1],"rot":[0,0,0]},
+     {"center":[10,20,6.099999904632568],"group":"Destructible","half":[0.20000000298023224,0.20000000298023224,1],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "body: radius 3 is valid",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":{"radius":3,"height":2},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,6.099999904632568],"group":"Static","half":[3,3,1],"rot":[0,0,0]},
+     {"center":[10,20,6.099999904632568],"group":"Dynamic","half":[3,3,1],"rot":[0,0,0]},
+     {"center":[10,20,6.099999904632568],"group":"Vehicle","half":[3,3,1],"rot":[0,0,0]},
+     {"center":[10,20,6.099999904632568],"group":"Terrain","half":[3,3,1],"rot":[0,0,0]},
+     {"center":[10,20,6.099999904632568],"group":"Collider","half":[3,3,1],"rot":[0,0,0]},
+     {"center":[10,20,6.099999904632568],"group":"Destructible","half":[3,3,1],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "body: radius 0.19 is refused",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":{"radius":0.19,"height":2},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "body: radius 3.01 is refused",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":{"radius":3.01,"height":2},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "body: height 0.5 is valid",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":{"radius":0.4,"height":0.5},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,5.349999904632568],"group":"Static","half":[0.4000000059604645,0.4000000059604645,0.25],"rot":[0,0,0]},
+     {"center":[10,20,5.349999904632568],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,0.25],"rot":[0,0,0]},
+     {"center":[10,20,5.349999904632568],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,0.25],"rot":[0,0,0]},
+     {"center":[10,20,5.349999904632568],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,0.25],"rot":[0,0,0]},
+     {"center":[10,20,5.349999904632568],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,0.25],"rot":[0,0,0]},
+     {"center":[10,20,5.349999904632568],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,0.25],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "body: height 6 is valid",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":{"radius":0.4,"height":6},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[10,20,8.100000381469727],"group":"Static","half":[0.4000000059604645,0.4000000059604645,3],"rot":[0,0,0]},
+     {"center":[10,20,8.100000381469727],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,3],"rot":[0,0,0]},
+     {"center":[10,20,8.100000381469727],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,3],"rot":[0,0,0]},
+     {"center":[10,20,8.100000381469727],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,3],"rot":[0,0,0]},
+     {"center":[10,20,8.100000381469727],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,3],"rot":[0,0,0]},
+     {"center":[10,20,8.100000381469727],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,3],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "body: height 0.49 is refused",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":{"radius":0.4,"height":0.49},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "body: height 6.01 is refused",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":{"radius":0.4,"height":6.01},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "body: non-finite radius is refused",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":{"radius":"nan","height":2},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "body: missing height is refused",
+   "input": {"fn":"body","feet":{"x":10,"y":20,"z":5},"dimensions":{"radius":0.4},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "body: coordinate just under 1e7 is valid",
+   "input": {"fn":"body","feet":{"x":9999999,"y":0,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[9999999,0,1.149999976158142],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[9999999,0,1.149999976158142],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[9999999,0,1.149999976158142],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[9999999,0,1.149999976158142],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[9999999,0,1.149999976158142],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[9999999,0,1.149999976158142],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "body: coordinate 1e7 is refused",
+   "input": {"fn":"body","feet":{"x":10000000,"y":0,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "body: negative 1e7 is refused",
+   "input": {"fn":"body","feet":{"x":0,"y":-10000000,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "body: NaN is refused",
+   "input": {"fn":"body","feet":{"x":"nan","y":0,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "body: infinity is refused",
+   "input": {"fn":"body","feet":{"x":0,"y":"inf","z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "body: missing z is refused",
+   "input": {"fn":"body","feet":{"x":1,"y":2},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "body: no position is refused",
+   "input": {"fn":"body","feet":null,"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "recheck: clear",
+   "input": {"fn":"recheck","budget":{"limit":192,"used":0},"hitAt":-1,"rejection":{"group":"Static","center":{"x":1,"y":2,"z":3},"halfExtents":{"x":0.4,"y":0.4,"z":1.05},"rotation":{"roll":0,"pitch":0,"yaw":0}}},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[1,2,3],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "recheck: still blocked by the last group",
+   "input": {"fn":"recheck","budget":{"limit":192,"used":0},"hitAt":5,"rejection":{"group":"Static","center":{"x":1,"y":2,"z":3},"halfExtents":{"x":0.4,"y":0.4,"z":1.05},"rotation":{"roll":0,"pitch":0,"yaw":0}}},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[1,2,3],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {"center":{"x":1,"y":2,"z":3},"group":"Destructible","halfExtents":{"x":0.4000000059604645,"y":0.4000000059604645,"z":1.0499999523162842},"rotation":{"pitch":0,"roll":0,"yaw":0}},
+    "status": "blocked",
+    "used": 6,
+    "wire": "1 6 6 1 2 3 0.4000000059604645 0.4000000059604645 1.0499999523162842 0 0 0"
+   }
+  },
+  {
+   "name": "recheck: no rotation table",
+   "input": {"fn":"recheck","budget":{"limit":192,"used":0},"hitAt":-1,"rejection":{"center":{"x":1,"y":2,"z":3},"halfExtents":{"x":0.4,"y":0.4,"z":1.05}}},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[1,2,3],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]},
+     {"center":[1,2,3],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.0499999523162842],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "recheck: rotated box",
+   "input": {"fn":"recheck","budget":{"limit":192,"used":0},"hitAt":-1,"rejection":{"center":{"x":-5.5,"y":7.25,"z":60},"halfExtents":{"x":0.5,"y":1.25,"z":2},"rotation":{"roll":5,"pitch":-10,"yaw":123.456}}},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[-5.5,7.25,60],"group":"Static","half":[0.5,1.25,2],"rot":[5,-10,123.45600128173828]},
+     {"center":[-5.5,7.25,60],"group":"Dynamic","half":[0.5,1.25,2],"rot":[5,-10,123.45600128173828]},
+     {"center":[-5.5,7.25,60],"group":"Vehicle","half":[0.5,1.25,2],"rot":[5,-10,123.45600128173828]},
+     {"center":[-5.5,7.25,60],"group":"Terrain","half":[0.5,1.25,2],"rot":[5,-10,123.45600128173828]},
+     {"center":[-5.5,7.25,60],"group":"Collider","half":[0.5,1.25,2],"rot":[5,-10,123.45600128173828]},
+     {"center":[-5.5,7.25,60],"group":"Destructible","half":[0.5,1.25,2],"rot":[5,-10,123.45600128173828]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "recheck: half extent at the limits",
+   "input": {"fn":"recheck","budget":{"limit":192,"used":0},"hitAt":-1,"rejection":{"center":{"x":0,"y":0,"z":0},"halfExtents":{"x":100,"y":100,"z":10},"rotation":{}}},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,0,0],"group":"Static","half":[100,100,10],"rot":[0,0,0]},
+     {"center":[0,0,0],"group":"Dynamic","half":[100,100,10],"rot":[0,0,0]},
+     {"center":[0,0,0],"group":"Vehicle","half":[100,100,10],"rot":[0,0,0]},
+     {"center":[0,0,0],"group":"Terrain","half":[100,100,10],"rot":[0,0,0]},
+     {"center":[0,0,0],"group":"Collider","half":[100,100,10],"rot":[0,0,0]},
+     {"center":[0,0,0],"group":"Destructible","half":[100,100,10],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "recheck: x over 100 is refused",
+   "input": {"fn":"recheck","budget":{"limit":192,"used":0},"hitAt":-1,"rejection":{"center":{"x":0,"y":0,"z":0},"halfExtents":{"x":100.5,"y":1,"z":1},"rotation":{}}},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "recheck: z over 10 is refused",
+   "input": {"fn":"recheck","budget":{"limit":192,"used":0},"hitAt":-1,"rejection":{"center":{"x":0,"y":0,"z":0},"halfExtents":{"x":1,"y":1,"z":10.5},"rotation":{}}},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "recheck: zero extent is refused",
+   "input": {"fn":"recheck","budget":{"limit":192,"used":0},"hitAt":-1,"rejection":{"center":{"x":0,"y":0,"z":0},"halfExtents":{"x":1,"y":0,"z":1},"rotation":{}}},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "recheck: negative extent is refused",
+   "input": {"fn":"recheck","budget":{"limit":192,"used":0},"hitAt":-1,"rejection":{"center":{"x":0,"y":0,"z":0},"halfExtents":{"x":-1,"y":1,"z":1},"rotation":{}}},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "recheck: non-finite centre is refused",
+   "input": {"fn":"recheck","budget":{"limit":192,"used":0},"hitAt":-1,"rejection":{"center":{"x":"nan","y":0,"z":0},"halfExtents":{"x":1,"y":1,"z":1},"rotation":{}}},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "recheck: missing extents are refused",
+   "input": {"fn":"recheck","budget":{"limit":192,"used":0},"hitAt":-1,"rejection":{"center":{"x":0,"y":0,"z":0}}},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "recheck: five queries left defers",
+   "input": {
+    "fn": "recheck",
+    "budget": {"limit":192,"used":187},
+    "hitAt": -1,
+    "rejection": {"group":"Static","center":{"x":1,"y":2,"z":3},"halfExtents":{"x":0.4,"y":0.4,"z":1.05},"rotation":{"roll":0,"pitch":0,"yaw":0}}
+   },
+   "output": {"deferred":true,"deferredCount":1,"queries":[],"status":"deferred","used":0,"wire":"2 0"}
+  },
+  {
+   "name": "segment: one flat box",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":2,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,1,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "segment: no budget",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":2,"z":0},"dimensions":null,"budget":null,"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "queries": [
+     {"center":[0,1,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "segment: 6 m ahead is three boxes",
+   "input": {"fn":"segment","from":{"x":1,"y":1,"z":10},"to":{"x":1,"y":7,"z":10},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[1,2,11.274999618530273],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,2,11.274999618530273],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,2,11.274999618530273],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,2,11.274999618530273],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,2,11.274999618530273],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,2,11.274999618530273],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,4,11.274999618530273],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,4,11.274999618530273],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,4,11.274999618530273],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,4,11.274999618530273],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,4,11.274999618530273],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,4,11.274999618530273],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,6,11.274999618530273],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,6,11.274999618530273],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,6,11.274999618530273],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,6,11.274999618530273],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,6,11.274999618530273],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[1,6,11.274999618530273],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 18,
+    "wire": "0 18"
+   }
+  },
+  {
+   "name": "segment: diagonal 45 degrees",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":5,"y":5,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0.625,0.625,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[0.625,0.625,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[0.625,0.625,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[0.625,0.625,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[0.625,0.625,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[0.625,0.625,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[1.875,1.875,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[1.875,1.875,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[1.875,1.875,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[1.875,1.875,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[1.875,1.875,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[1.875,1.875,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[3.125,3.125,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[3.125,3.125,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[3.125,3.125,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[3.125,3.125,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[3.125,3.125,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[3.125,3.125,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[4.375,4.375,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[4.375,4.375,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[4.375,4.375,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[4.375,4.375,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[4.375,4.375,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]},
+     {"center":[4.375,4.375,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.2838834524154663,0.925000011920929],"rot":[0,0,-45]}
+    ],
+    "status": "clear",
+    "used": 24,
+    "wire": "0 24"
+   }
+  },
+  {
+   "name": "segment: heading west",
+   "input": {"fn":"segment","from":{"x":10,"y":10,"z":2},"to":{"x":2,"y":10.5,"z":2.2},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[9.199999809265137,10.050000190734863,3.2950000762939453],"group":"Static","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[9.199999809265137,10.050000190734863,3.2950000762939453],"group":"Dynamic","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[9.199999809265137,10.050000190734863,3.2950000762939453],"group":"Vehicle","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[9.199999809265137,10.050000190734863,3.2950000762939453],"group":"Terrain","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[9.199999809265137,10.050000190734863,3.2950000762939453],"group":"Collider","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[9.199999809265137,10.050000190734863,3.2950000762939453],"group":"Destructible","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[7.599999904632568,10.149999618530273,3.3350000381469727],"group":"Static","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[7.599999904632568,10.149999618530273,3.3350000381469727],"group":"Dynamic","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[7.599999904632568,10.149999618530273,3.3350000381469727],"group":"Vehicle","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[7.599999904632568,10.149999618530273,3.3350000381469727],"group":"Terrain","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[7.599999904632568,10.149999618530273,3.3350000381469727],"group":"Collider","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[7.599999904632568,10.149999618530273,3.3350000381469727],"group":"Destructible","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[6,10.25,3.375],"group":"Static","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[6,10.25,3.375],"group":"Dynamic","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[6,10.25,3.375],"group":"Vehicle","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[6,10.25,3.375],"group":"Terrain","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[6,10.25,3.375],"group":"Collider","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[6,10.25,3.375],"group":"Destructible","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[4.400000095367432,10.350000381469727,3.4149999618530273],"group":"Static","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[4.400000095367432,10.350000381469727,3.4149999618530273],"group":"Dynamic","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[4.400000095367432,10.350000381469727,3.4149999618530273],"group":"Vehicle","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[4.400000095367432,10.350000381469727,3.4149999618530273],"group":"Terrain","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[4.400000095367432,10.350000381469727,3.4149999618530273],"group":"Collider","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[4.400000095367432,10.350000381469727,3.4149999618530273],"group":"Destructible","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[2.799999952316284,10.449999809265137,3.4549999237060547],"group":"Static","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[2.799999952316284,10.449999809265137,3.4549999237060547],"group":"Dynamic","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[2.799999952316284,10.449999809265137,3.4549999237060547],"group":"Vehicle","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[2.799999952316284,10.449999809265137,3.4549999237060547],"group":"Terrain","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[2.799999952316284,10.449999809265137,3.4549999237060547],"group":"Collider","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]},
+     {"center":[2.799999952316284,10.449999809265137,3.4549999237060547],"group":"Destructible","half":[0.4000000059604645,1.2015609741210938,0.9449999928474426],"rot":[0,0,86.42366790771484]}
+    ],
+    "status": "clear",
+    "used": 30,
+    "wire": "0 30"
+   }
+  },
+  {
+   "name": "segment: heading south",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":-4.5,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,-0.75,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-0.75,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-0.75,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-0.75,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-0.75,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-0.75,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-2.25,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-2.25,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-2.25,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-2.25,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-2.25,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-2.25,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-3.75,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-3.75,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-3.75,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-3.75,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-3.75,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]},
+     {"center":[0,-3.75,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.149999976158142,0.925000011920929],"rot":[0,0,180]}
+    ],
+    "status": "clear",
+    "used": 18,
+    "wire": "0 18"
+   }
+  },
+  {
+   "name": "segment: heading east",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":4,"y":0,"z":0.1},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[1,0,1.2999999523162842],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.949999988079071],"rot":[0,0,-90]},
+     {"center":[1,0,1.2999999523162842],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.949999988079071],"rot":[0,0,-90]},
+     {"center":[1,0,1.2999999523162842],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.949999988079071],"rot":[0,0,-90]},
+     {"center":[1,0,1.2999999523162842],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.949999988079071],"rot":[0,0,-90]},
+     {"center":[1,0,1.2999999523162842],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.949999988079071],"rot":[0,0,-90]},
+     {"center":[1,0,1.2999999523162842],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.949999988079071],"rot":[0,0,-90]},
+     {"center":[3,0,1.350000023841858],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.949999988079071],"rot":[0,0,-90]},
+     {"center":[3,0,1.350000023841858],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.949999988079071],"rot":[0,0,-90]},
+     {"center":[3,0,1.350000023841858],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.949999988079071],"rot":[0,0,-90]},
+     {"center":[3,0,1.350000023841858],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.949999988079071],"rot":[0,0,-90]},
+     {"center":[3,0,1.350000023841858],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.949999988079071],"rot":[0,0,-90]},
+     {"center":[3,0,1.350000023841858],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.949999988079071],"rot":[0,0,-90]}
+    ],
+    "status": "clear",
+    "used": 12,
+    "wire": "0 12"
+   }
+  },
+  {
+   "name": "segment: large shape",
+   "input": {
+    "fn": "segment",
+    "from": {"x":0,"y":0,"z":0},
+    "to": {"x":3,"y":4,"z":0},
+    "dimensions": {"radius":0.9,"height":3},
+    "budget": {"limit":192,"used":0},
+    "hitAt": -1,
+    "progress": false,
+    "startBox": null,
+    "projection": false
+   },
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0.5,0.6666666865348816,1.725000023841858],"group":"Static","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[0.5,0.6666666865348816,1.725000023841858],"group":"Dynamic","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[0.5,0.6666666865348816,1.725000023841858],"group":"Vehicle","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[0.5,0.6666666865348816,1.725000023841858],"group":"Terrain","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[0.5,0.6666666865348816,1.725000023841858],"group":"Collider","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[0.5,0.6666666865348816,1.725000023841858],"group":"Destructible","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[1.5,2,1.725000023841858],"group":"Static","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[1.5,2,1.725000023841858],"group":"Dynamic","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[1.5,2,1.725000023841858],"group":"Vehicle","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[1.5,2,1.725000023841858],"group":"Terrain","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[1.5,2,1.725000023841858],"group":"Collider","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[1.5,2,1.725000023841858],"group":"Destructible","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[2.5,3.3333332538604736,1.725000023841858],"group":"Static","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[2.5,3.3333332538604736,1.725000023841858],"group":"Dynamic","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[2.5,3.3333332538604736,1.725000023841858],"group":"Vehicle","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[2.5,3.3333332538604736,1.725000023841858],"group":"Terrain","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[2.5,3.3333332538604736,1.725000023841858],"group":"Collider","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]},
+     {"center":[2.5,3.3333332538604736,1.725000023841858],"group":"Destructible","half":[0.8999999761581421,1.7333333492279053,1.375],"rot":[0,0,-36.86989974975586]}
+    ],
+    "status": "clear",
+    "used": 18,
+    "wire": "0 18"
+   }
+  },
+  {
+   "name": "segment: shorter than a millimetre has no rotation",
+   "input": {"fn":"segment","from":{"x":3,"y":3,"z":3},"to":{"x":3.0005,"y":3,"z":3},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[3.0002501010894775,3,4.275000095367432],"group":"Static","half":[0.4000000059604645,0.40024998784065247,0.925000011920929],"rot":[0,0,0]},
+     {"center":[3.0002501010894775,3,4.275000095367432],"group":"Dynamic","half":[0.4000000059604645,0.40024998784065247,0.925000011920929],"rot":[0,0,0]},
+     {"center":[3.0002501010894775,3,4.275000095367432],"group":"Vehicle","half":[0.4000000059604645,0.40024998784065247,0.925000011920929],"rot":[0,0,0]},
+     {"center":[3.0002501010894775,3,4.275000095367432],"group":"Terrain","half":[0.4000000059604645,0.40024998784065247,0.925000011920929],"rot":[0,0,0]},
+     {"center":[3.0002501010894775,3,4.275000095367432],"group":"Collider","half":[0.4000000059604645,0.40024998784065247,0.925000011920929],"rot":[0,0,0]},
+     {"center":[3.0002501010894775,3,4.275000095367432],"group":"Destructible","half":[0.4000000059604645,0.40024998784065247,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "segment: standing still is one box",
+   "input": {"fn":"segment","from":{"x":3,"y":3,"z":3},"to":{"x":3,"y":3,"z":3},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[3,3,4.275000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,0.925000011920929],"rot":[0,0,0]},
+     {"center":[3,3,4.275000095367432],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,0.925000011920929],"rot":[0,0,0]},
+     {"center":[3,3,4.275000095367432],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,0.925000011920929],"rot":[0,0,0]},
+     {"center":[3,3,4.275000095367432],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,0.925000011920929],"rot":[0,0,0]},
+     {"center":[3,3,4.275000095367432],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,0.925000011920929],"rot":[0,0,0]},
+     {"center":[3,3,4.275000095367432],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "segment: climb of 0.6 m",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":4,"z":0.6},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,0.6666666865348816,1.375],"group":"Static","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.6666666865348816,1.375],"group":"Dynamic","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.6666666865348816,1.375],"group":"Vehicle","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.6666666865348816,1.375],"group":"Terrain","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.6666666865348816,1.375],"group":"Collider","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.6666666865348816,1.375],"group":"Destructible","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,2,1.5750000476837158],"group":"Static","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,2,1.5750000476837158],"group":"Dynamic","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,2,1.5750000476837158],"group":"Vehicle","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,2,1.5750000476837158],"group":"Terrain","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,2,1.5750000476837158],"group":"Collider","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,2,1.5750000476837158],"group":"Destructible","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,3.3333332538604736,1.774999976158142],"group":"Static","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,3.3333332538604736,1.774999976158142],"group":"Dynamic","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,3.3333332538604736,1.774999976158142],"group":"Vehicle","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,3.3333332538604736,1.774999976158142],"group":"Terrain","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,3.3333332538604736,1.774999976158142],"group":"Collider","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,3.3333332538604736,1.774999976158142],"group":"Destructible","half":[0.4000000059604645,1.0666667222976685,1.024999976158142],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 18,
+    "wire": "0 18"
+   }
+  },
+  {
+   "name": "segment: climb of 1 m over 6 m",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":6,"y":0,"z":1},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0.6000000238418579,0,1.375],"group":"Static","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[0.6000000238418579,0,1.375],"group":"Dynamic","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[0.6000000238418579,0,1.375],"group":"Vehicle","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[0.6000000238418579,0,1.375],"group":"Terrain","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[0.6000000238418579,0,1.375],"group":"Collider","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[0.6000000238418579,0,1.375],"group":"Destructible","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[1.7999999523162842,0,1.5750000476837158],"group":"Static","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[1.7999999523162842,0,1.5750000476837158],"group":"Dynamic","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[1.7999999523162842,0,1.5750000476837158],"group":"Vehicle","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[1.7999999523162842,0,1.5750000476837158],"group":"Terrain","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[1.7999999523162842,0,1.5750000476837158],"group":"Collider","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[1.7999999523162842,0,1.5750000476837158],"group":"Destructible","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[3,0,1.774999976158142],"group":"Static","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[3,0,1.774999976158142],"group":"Dynamic","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[3,0,1.774999976158142],"group":"Vehicle","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[3,0,1.774999976158142],"group":"Terrain","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[3,0,1.774999976158142],"group":"Collider","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[3,0,1.774999976158142],"group":"Destructible","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[4.199999809265137,0,1.975000023841858],"group":"Static","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[4.199999809265137,0,1.975000023841858],"group":"Dynamic","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[4.199999809265137,0,1.975000023841858],"group":"Vehicle","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[4.199999809265137,0,1.975000023841858],"group":"Terrain","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[4.199999809265137,0,1.975000023841858],"group":"Collider","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[4.199999809265137,0,1.975000023841858],"group":"Destructible","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[5.400000095367432,0,2.174999952316284],"group":"Static","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[5.400000095367432,0,2.174999952316284],"group":"Dynamic","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[5.400000095367432,0,2.174999952316284],"group":"Vehicle","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[5.400000095367432,0,2.174999952316284],"group":"Terrain","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[5.400000095367432,0,2.174999952316284],"group":"Collider","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]},
+     {"center":[5.400000095367432,0,2.174999952316284],"group":"Destructible","half":[0.4000000059604645,1,1.024999976158142],"rot":[0,0,-90]}
+    ],
+    "status": "clear",
+    "used": 30,
+    "wire": "0 30"
+   }
+  },
+  {
+   "name": "segment: descent of 1.2 m over 6 m",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":5},"to":{"x":0,"y":6,"z":3.8},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,0.4285714328289032,6.189285755157471],"group":"Static","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,0.4285714328289032,6.189285755157471],"group":"Dynamic","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,0.4285714328289032,6.189285755157471],"group":"Vehicle","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,0.4285714328289032,6.189285755157471],"group":"Terrain","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,0.4285714328289032,6.189285755157471],"group":"Collider","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,0.4285714328289032,6.189285755157471],"group":"Destructible","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,1.2857142686843872,6.017857074737549],"group":"Static","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,1.2857142686843872,6.017857074737549],"group":"Dynamic","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,1.2857142686843872,6.017857074737549],"group":"Vehicle","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,1.2857142686843872,6.017857074737549],"group":"Terrain","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,1.2857142686843872,6.017857074737549],"group":"Collider","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,1.2857142686843872,6.017857074737549],"group":"Destructible","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,2.142857074737549,5.846428394317627],"group":"Static","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,2.142857074737549,5.846428394317627],"group":"Dynamic","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,2.142857074737549,5.846428394317627],"group":"Vehicle","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,2.142857074737549,5.846428394317627],"group":"Terrain","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,2.142857074737549,5.846428394317627],"group":"Collider","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,2.142857074737549,5.846428394317627],"group":"Destructible","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,3,5.675000190734863],"group":"Static","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,3,5.675000190734863],"group":"Dynamic","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,3,5.675000190734863],"group":"Vehicle","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,3,5.675000190734863],"group":"Terrain","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,3,5.675000190734863],"group":"Collider","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,3,5.675000190734863],"group":"Destructible","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,3.857142925262451,5.503571510314941],"group":"Static","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,3.857142925262451,5.503571510314941],"group":"Dynamic","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,3.857142925262451,5.503571510314941],"group":"Vehicle","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,3.857142925262451,5.503571510314941],"group":"Terrain","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,3.857142925262451,5.503571510314941],"group":"Collider","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,3.857142925262451,5.503571510314941],"group":"Destructible","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,4.714285850524902,5.3321428298950195],"group":"Static","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,4.714285850524902,5.3321428298950195],"group":"Dynamic","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,4.714285850524902,5.3321428298950195],"group":"Vehicle","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,4.714285850524902,5.3321428298950195],"group":"Terrain","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,4.714285850524902,5.3321428298950195],"group":"Collider","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,4.714285850524902,5.3321428298950195],"group":"Destructible","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,5.5714287757873535,5.160714149475098],"group":"Static","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,5.5714287757873535,5.160714149475098],"group":"Dynamic","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,5.5714287757873535,5.160714149475098],"group":"Vehicle","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,5.5714287757873535,5.160714149475098],"group":"Terrain","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,5.5714287757873535,5.160714149475098],"group":"Collider","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]},
+     {"center":[0,5.5714287757873535,5.160714149475098],"group":"Destructible","half":[0.4000000059604645,0.8285714387893677,1.0107142925262451],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 42,
+    "wire": "0 42"
+   }
+  },
+  {
+   "name": "segment: hit in the first box",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":6,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":0,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [{"center":[0,1,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {
+     "box": 1,
+     "boxes": 3,
+     "center": {"x":0,"y":1,"z":1.274999976158142},
+     "from": {"x":0,"y":0,"z":0},
+     "group": "Static",
+     "halfExtents": {"x":0.4000000059604645,"y":1.399999976158142,"z":0.925000011920929},
+     "rotation": {"pitch":0,"roll":0,"yaw":0},
+     "to": {"x":0,"y":6,"z":0}
+    },
+    "status": "blocked",
+    "used": 1,
+    "wire": "1 1 1 0 1 1.274999976158142 0.4000000059604645 1.399999976158142 0.925000011920929 0 0 0 1 3"
+   }
+  },
+  {
+   "name": "segment: hit in the second box, group Vehicle",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":6,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":8,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,1,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {
+     "box": 2,
+     "boxes": 3,
+     "center": {"x":0,"y":3,"z":1.274999976158142},
+     "from": {"x":0,"y":0,"z":0},
+     "group": "Vehicle",
+     "halfExtents": {"x":0.4000000059604645,"y":1.399999976158142,"z":0.925000011920929},
+     "rotation": {"pitch":0,"roll":0,"yaw":0},
+     "to": {"x":0,"y":6,"z":0}
+    },
+    "status": "blocked",
+    "used": 9,
+    "wire": "1 9 3 0 3 1.274999976158142 0.4000000059604645 1.399999976158142 0.925000011920929 0 0 0 2 3"
+   }
+  },
+  {
+   "name": "segment: hit in the last box",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":6,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":17,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,1,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {
+     "box": 3,
+     "boxes": 3,
+     "center": {"x":0,"y":5,"z":1.274999976158142},
+     "from": {"x":0,"y":0,"z":0},
+     "group": "Destructible",
+     "halfExtents": {"x":0.4000000059604645,"y":1.399999976158142,"z":0.925000011920929},
+     "rotation": {"pitch":0,"roll":0,"yaw":0},
+     "to": {"x":0,"y":6,"z":0}
+    },
+    "status": "blocked",
+    "used": 18,
+    "wire": "1 18 6 0 5 1.274999976158142 0.4000000059604645 1.399999976158142 0.925000011920929 0 0 0 3 3"
+   }
+  },
+  {
+   "name": "segment: budget for two boxes of three defers at box 3",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":6,"z":0},"dimensions":null,"budget":{"limit":192,"used":180},"hitAt":-1,"progress":true,"startBox":null,"projection":false},
+   "output": {
+    "deferred": true,
+    "deferredCount": 1,
+    "next": 3,
+    "queries": [
+     {"center":[0,1,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "status": "deferred",
+    "used": 12,
+    "wire": "2 12 3"
+   }
+  },
+  {
+   "name": "segment: nine queries left defers at box 2",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":6,"z":0},"dimensions":null,"budget":{"limit":192,"used":183},"hitAt":-1,"progress":true,"startBox":null,"projection":false},
+   "output": {
+    "deferred": true,
+    "deferredCount": 1,
+    "next": 2,
+    "queries": [
+     {"center":[0,1,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "status": "deferred",
+    "used": 6,
+    "wire": "2 6 2"
+   }
+  },
+  {
+   "name": "segment: spent budget defers at box 1",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":6,"z":0},"dimensions":null,"budget":{"limit":192,"used":192},"hitAt":-1,"progress":true,"startBox":null,"projection":false},
+   "output": {"deferred":true,"deferredCount":1,"next":1,"queries":[],"status":"deferred","used":0,"wire":"2 0 1"}
+  },
+  {
+   "name": "segment: resumes at box 2",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":6,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":true,"startBox":2,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,3,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 12,
+    "wire": "0 12"
+   }
+  },
+  {
+   "name": "segment: resumes at the last box",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":6,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":true,"startBox":3,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,5,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 6,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "segment: a cursor past the end is clear",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":6,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":true,"startBox":4,"projection":false},
+   "output": {"clear":true,"deferredCount":0,"queries":[],"status":"clear","used":0,"wire":"0 0"}
+  },
+  {
+   "name": "segment: progress table without a cursor",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":6,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":true,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,1,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 18,
+    "wire": "0 18"
+   }
+  },
+  {
+   "name": "segment: resumed and blocked keeps the original box index",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":6,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":3,"progress":true,"startBox":2,"projection":false},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "next": 2,
+    "queries": [
+     {"center":[0,3,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {
+     "box": 2,
+     "boxes": 3,
+     "center": {"x":0,"y":3,"z":1.274999976158142},
+     "from": {"x":0,"y":0,"z":0},
+     "group": "Terrain",
+     "halfExtents": {"x":0.4000000059604645,"y":1.399999976158142,"z":0.925000011920929},
+     "rotation": {"pitch":0,"roll":0,"yaw":0},
+     "to": {"x":0,"y":6,"z":0}
+    },
+    "status": "blocked",
+    "used": 4,
+    "wire": "1 4 4 0 3 1.274999976158142 0.4000000059604645 1.399999976158142 0.925000011920929 0 0 0 2 3"
+   }
+  },
+  {
+   "name": "segment: 64 boxes is allowed",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":128,"z":0},"dimensions":null,"budget":null,"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "queries": [
+     {"center":[0,1,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,1,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,3,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,5,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,7,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,7,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,7,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,7,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,7,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,7,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,9,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,9,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,9,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,9,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,9,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,9,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,11,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,11,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,11,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,11,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,11,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,11,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,13,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,13,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,13,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,13,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,13,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,13,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,15,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,15,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,15,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,15,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,15,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,15,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,17,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,17,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,17,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,17,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,17,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,17,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,19,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,19,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,19,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,19,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,19,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,19,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,21,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,21,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,21,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,21,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,21,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,21,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,23,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,23,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,23,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,23,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,23,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,23,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,25,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,25,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,25,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,25,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,25,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,25,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,27,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,27,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,27,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,27,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,27,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,27,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,29,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,29,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,29,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,29,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,29,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,29,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,31,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,31,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,31,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,31,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,31,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,31,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,33,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,33,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,33,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,33,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,33,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,33,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,35,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,35,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,35,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,35,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,35,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,35,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,37,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,37,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,37,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,37,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,37,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,37,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,39,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,39,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,39,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,39,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,39,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,39,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,41,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,41,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,41,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,41,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,41,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,41,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,43,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,43,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,43,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,43,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,43,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,43,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,45,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,45,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,45,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,45,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,45,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,45,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,47,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,47,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,47,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,47,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,47,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,47,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,49,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,49,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,49,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,49,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,49,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,49,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,51,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,51,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,51,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,51,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,51,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,51,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,53,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,53,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,53,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,53,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,53,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,53,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,55,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,55,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,55,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,55,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,55,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,55,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,57,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,57,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,57,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,57,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,57,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,57,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,59,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,59,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,59,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,59,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,59,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,59,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,61,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,61,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,61,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,61,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,61,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,61,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,63,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,63,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,63,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,63,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,63,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,63,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,65,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,65,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,65,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,65,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,65,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,65,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,67,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,67,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,67,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,67,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,67,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,67,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,69,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,69,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,69,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,69,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,69,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,69,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,71,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,71,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,71,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,71,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,71,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,71,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,73,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,73,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,73,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,73,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,73,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,73,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,75,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,75,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,75,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,75,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,75,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,75,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,77,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,77,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,77,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,77,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,77,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,77,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,79,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,79,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,79,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,79,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,79,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,79,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,81,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,81,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,81,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,81,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,81,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,81,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,83,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,83,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,83,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,83,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,83,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,83,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,85,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,85,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,85,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,85,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,85,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,85,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,87,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,87,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,87,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,87,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,87,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,87,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,89,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,89,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,89,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,89,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,89,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,89,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,91,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,91,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,91,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,91,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,91,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,91,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,93,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,93,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,93,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,93,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,93,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,93,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,95,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,95,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,95,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,95,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,95,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,95,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,97,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,97,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,97,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,97,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,97,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,97,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,99,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,99,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,99,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,99,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,99,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,99,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,101,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,101,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,101,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,101,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,101,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,101,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,103,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,103,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,103,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,103,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,103,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,103,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,105,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,105,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,105,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,105,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,105,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,105,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,107,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,107,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,107,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,107,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,107,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,107,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,109,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,109,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,109,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,109,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,109,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,109,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,111,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,111,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,111,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,111,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,111,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,111,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,113,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,113,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,113,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,113,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,113,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,113,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,115,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,115,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,115,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,115,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,115,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,115,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,117,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,117,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,117,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,117,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,117,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,117,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,119,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,119,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,119,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,119,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,119,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,119,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,121,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,121,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,121,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,121,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,121,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,121,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,123,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,123,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,123,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,123,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,123,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,123,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,125,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,125,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,125,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,125,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,125,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,125,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,127,1.274999976158142],"group":"Static","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,127,1.274999976158142],"group":"Dynamic","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,127,1.274999976158142],"group":"Vehicle","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,127,1.274999976158142],"group":"Terrain","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,127,1.274999976158142],"group":"Collider","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]},
+     {"center":[0,127,1.274999976158142],"group":"Destructible","half":[0.4000000059604645,1.399999976158142,0.925000011920929],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 384,
+    "wire": "0 384"
+   }
+  },
+  {
+   "name": "segment: 65 boxes is a route-size refusal",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":130,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [],
+    "reason": "The companion route has no verified walkable clearance.",
+    "rejection": {"allowedRise":104,"boxes":65,"deltaZ":0,"from":{"x":0,"y":0,"z":0},"geometryType":"route-size","length":130,"maxBoxes":64,"rise":0,"to":{"x":0,"y":130,"z":0}},
+    "status": "geometry",
+    "used": 0,
+    "wire": "5 0 1 130 0 0 104 65"
+   }
+  },
+  {
+   "name": "segment: 200 m is a route-size refusal",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":120,"y":160,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [],
+    "reason": "The companion route has no verified walkable clearance.",
+    "rejection": {"allowedRise":160,"boxes":100,"deltaZ":0,"from":{"x":0,"y":0,"z":0},"geometryType":"route-size","length":200,"maxBoxes":64,"rise":0,"to":{"x":120,"y":160,"z":0}},
+    "status": "geometry",
+    "used": 0,
+    "wire": "5 0 1 200 0 0 160 100"
+   }
+  },
+  {
+   "name": "segment: step of 1 m in 1 m is a step-slope refusal",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":1,"z":1},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [],
+    "reason": "The companion route has no verified walkable clearance.",
+    "rejection": {"allowedRise":0.8,"boxes":5,"deltaZ":1,"from":{"x":0,"y":0,"z":0},"geometryType":"step-slope","length":1,"maxBoxes":64,"rise":1,"to":{"x":0,"y":1,"z":1}},
+    "status": "geometry",
+    "used": 0,
+    "wire": "5 0 2 1 1 1 0.8 5"
+   }
+  },
+  {
+   "name": "segment: rise just inside the allowed rise",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":1,"z":0.8},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,0.125,1.375],"group":"Static","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.125,1.375],"group":"Dynamic","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.125,1.375],"group":"Vehicle","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.125,1.375],"group":"Terrain","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.125,1.375],"group":"Collider","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.125,1.375],"group":"Destructible","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.375,1.5750000476837158],"group":"Static","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.375,1.5750000476837158],"group":"Dynamic","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.375,1.5750000476837158],"group":"Vehicle","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.375,1.5750000476837158],"group":"Terrain","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.375,1.5750000476837158],"group":"Collider","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.375,1.5750000476837158],"group":"Destructible","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.625,1.774999976158142],"group":"Static","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.625,1.774999976158142],"group":"Dynamic","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.625,1.774999976158142],"group":"Vehicle","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.625,1.774999976158142],"group":"Terrain","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.625,1.774999976158142],"group":"Collider","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.625,1.774999976158142],"group":"Destructible","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.875,1.975000023841858],"group":"Static","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.875,1.975000023841858],"group":"Dynamic","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.875,1.975000023841858],"group":"Vehicle","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.875,1.975000023841858],"group":"Terrain","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.875,1.975000023841858],"group":"Collider","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.875,1.975000023841858],"group":"Destructible","half":[0.4000000059604645,0.5249999761581421,1.024999976158142],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 24,
+    "wire": "0 24"
+   }
+  },
+  {
+   "name": "segment: rise just over the allowed rise",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":1,"z":0.81},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [],
+    "reason": "The companion route has no verified walkable clearance.",
+    "rejection": {"allowedRise":0.8,"boxes":5,"deltaZ":0.81,"from":{"x":0,"y":0,"z":0},"geometryType":"step-slope","length":1,"maxBoxes":64,"rise":0.81,"to":{"x":0,"y":1,"z":0.81}},
+    "status": "geometry",
+    "used": 0,
+    "wire": "5 0 2 1 0.81 0.81 0.8 5"
+   }
+  },
+  {
+   "name": "segment: short rise of 0.34 m",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":0.1,"z":0.34},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,0.02500000037252903,1.3600000143051147],"group":"Static","half":[0.4000000059604645,0.42500001192092896,1.0099999904632568],"rot":[0,0,0]},
+     {"center":[0,0.02500000037252903,1.3600000143051147],"group":"Dynamic","half":[0.4000000059604645,0.42500001192092896,1.0099999904632568],"rot":[0,0,0]},
+     {"center":[0,0.02500000037252903,1.3600000143051147],"group":"Vehicle","half":[0.4000000059604645,0.42500001192092896,1.0099999904632568],"rot":[0,0,0]},
+     {"center":[0,0.02500000037252903,1.3600000143051147],"group":"Terrain","half":[0.4000000059604645,0.42500001192092896,1.0099999904632568],"rot":[0,0,0]},
+     {"center":[0,0.02500000037252903,1.3600000143051147],"group":"Collider","half":[0.4000000059604645,0.42500001192092896,1.0099999904632568],"rot":[0,0,0]},
+     {"center":[0,0.02500000037252903,1.3600000143051147],"group":"Destructible","half":[0.4000000059604645,0.42500001192092896,1.0099999904632568],"rot":[0,0,0]},
+     {"center":[0,0.07500000298023224,1.5299999713897705],"group":"Static","half":[0.4000000059604645,0.42500001192092896,1.0099999904632568],"rot":[0,0,0]},
+     {"center":[0,0.07500000298023224,1.5299999713897705],"group":"Dynamic","half":[0.4000000059604645,0.42500001192092896,1.0099999904632568],"rot":[0,0,0]},
+     {"center":[0,0.07500000298023224,1.5299999713897705],"group":"Vehicle","half":[0.4000000059604645,0.42500001192092896,1.0099999904632568],"rot":[0,0,0]},
+     {"center":[0,0.07500000298023224,1.5299999713897705],"group":"Terrain","half":[0.4000000059604645,0.42500001192092896,1.0099999904632568],"rot":[0,0,0]},
+     {"center":[0,0.07500000298023224,1.5299999713897705],"group":"Collider","half":[0.4000000059604645,0.42500001192092896,1.0099999904632568],"rot":[0,0,0]},
+     {"center":[0,0.07500000298023224,1.5299999713897705],"group":"Destructible","half":[0.4000000059604645,0.42500001192092896,1.0099999904632568],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 12,
+    "wire": "0 12"
+   }
+  },
+  {
+   "name": "segment: short rise of 0.36 m is refused",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":0.1,"z":0.36},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [],
+    "reason": "The companion route has no verified walkable clearance.",
+    "rejection": {"allowedRise":0.35,"boxes":2,"deltaZ":0.36,"from":{"x":0,"y":0,"z":0},"geometryType":"step-slope","length":0.1,"maxBoxes":64,"rise":0.36,"to":{"x":0,"y":0.1,"z":0.36}},
+    "status": "geometry",
+    "used": 0,
+    "wire": "5 0 2 0.1 0.36 0.36 0.35 2"
+   }
+  },
+  {
+   "name": "segment: drop of 0.6 m in 2 m",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":1},"to":{"x":0,"y":2,"z":0.4},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[0,0.3333333432674408,2.174999952316284],"group":"Static","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.3333333432674408,2.174999952316284],"group":"Dynamic","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.3333333432674408,2.174999952316284],"group":"Vehicle","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.3333333432674408,2.174999952316284],"group":"Terrain","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.3333333432674408,2.174999952316284],"group":"Collider","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,0.3333333432674408,2.174999952316284],"group":"Destructible","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,1,1.975000023841858],"group":"Static","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,1,1.975000023841858],"group":"Dynamic","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,1,1.975000023841858],"group":"Vehicle","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,1,1.975000023841858],"group":"Terrain","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,1,1.975000023841858],"group":"Collider","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,1,1.975000023841858],"group":"Destructible","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,1.6666666269302368,1.774999976158142],"group":"Static","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,1.6666666269302368,1.774999976158142],"group":"Dynamic","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,1.6666666269302368,1.774999976158142],"group":"Vehicle","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,1.6666666269302368,1.774999976158142],"group":"Terrain","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,1.6666666269302368,1.774999976158142],"group":"Collider","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]},
+     {"center":[0,1.6666666269302368,1.774999976158142],"group":"Destructible","half":[0.4000000059604645,0.7333333492279053,1.024999976158142],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 18,
+    "wire": "0 18"
+   }
+  },
+  {
+   "name": "segment: origin projection of 0.5 m is allowed",
+   "input": {"fn":"segment","from":{"x":4,"y":4,"z":4},"to":{"x":4,"y":4.01,"z":4.5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":true},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[4,4.00166654586792,5.233333110809326],"group":"Static","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.00166654586792,5.233333110809326],"group":"Dynamic","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.00166654586792,5.233333110809326],"group":"Vehicle","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.00166654586792,5.233333110809326],"group":"Terrain","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.00166654586792,5.233333110809326],"group":"Collider","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.00166654586792,5.233333110809326],"group":"Destructible","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.005000114440918,5.400000095367432],"group":"Static","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.005000114440918,5.400000095367432],"group":"Dynamic","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.005000114440918,5.400000095367432],"group":"Vehicle","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.005000114440918,5.400000095367432],"group":"Terrain","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.005000114440918,5.400000095367432],"group":"Collider","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.005000114440918,5.400000095367432],"group":"Destructible","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.008333206176758,5.566666603088379],"group":"Static","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.008333206176758,5.566666603088379],"group":"Dynamic","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.008333206176758,5.566666603088379],"group":"Vehicle","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.008333206176758,5.566666603088379],"group":"Terrain","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.008333206176758,5.566666603088379],"group":"Collider","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4.008333206176758,5.566666603088379],"group":"Destructible","half":[0.4000000059604645,0.40166667103767395,1.1333333253860474],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 18,
+    "wire": "0 18"
+   }
+  },
+  {
+   "name": "segment: origin projection of 0.5 m on a vertical connector",
+   "input": {"fn":"segment","from":{"x":4,"y":4,"z":4},"to":{"x":4,"y":4,"z":4.5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":true},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[4,4,5.233333110809326],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.233333110809326],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.233333110809326],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.233333110809326],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.233333110809326],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.233333110809326],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.400000095367432],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.400000095367432],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.400000095367432],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.400000095367432],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.400000095367432],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.400000095367432],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.566666603088379],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.566666603088379],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.566666603088379],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.566666603088379],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.566666603088379],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.566666603088379],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 18,
+    "wire": "0 18"
+   }
+  },
+  {
+   "name": "segment: projection flag with a 0.3 m rise",
+   "input": {"fn":"segment","from":{"x":4,"y":4,"z":4},"to":{"x":4,"y":4,"z":4.3},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":true},
+   "output": {
+    "clear": true,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[4,4,5.224999904632568],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.125],"rot":[0,0,0]},
+     {"center":[4,4,5.224999904632568],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.125],"rot":[0,0,0]},
+     {"center":[4,4,5.224999904632568],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.125],"rot":[0,0,0]},
+     {"center":[4,4,5.224999904632568],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.125],"rot":[0,0,0]},
+     {"center":[4,4,5.224999904632568],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.125],"rot":[0,0,0]},
+     {"center":[4,4,5.224999904632568],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.125],"rot":[0,0,0]},
+     {"center":[4,4,5.375],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.125],"rot":[0,0,0]},
+     {"center":[4,4,5.375],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.125],"rot":[0,0,0]},
+     {"center":[4,4,5.375],"group":"Vehicle","half":[0.4000000059604645,0.4000000059604645,1.125],"rot":[0,0,0]},
+     {"center":[4,4,5.375],"group":"Terrain","half":[0.4000000059604645,0.4000000059604645,1.125],"rot":[0,0,0]},
+     {"center":[4,4,5.375],"group":"Collider","half":[0.4000000059604645,0.4000000059604645,1.125],"rot":[0,0,0]},
+     {"center":[4,4,5.375],"group":"Destructible","half":[0.4000000059604645,0.4000000059604645,1.125],"rot":[0,0,0]}
+    ],
+    "status": "clear",
+    "used": 12,
+    "wire": "0 12"
+   }
+  },
+  {
+   "name": "segment: projection of 0.65 m",
+   "input": {"fn":"segment","from":{"x":4,"y":4,"z":4},"to":{"x":4,"y":4,"z":4.65},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":true},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [],
+    "reason": "The companion route has no verified walkable clearance.",
+    "rejection": {"allowedRise":0.35,"boxes":4,"deltaZ":0.6500000000000004,"from":{"x":4,"y":4,"z":4},"geometryType":"step-slope","length":0,"maxBoxes":64,"rise":0.6500000000000004,"to":{"x":4,"y":4,"z":4.65}},
+    "status": "geometry",
+    "used": 0,
+    "wire": "5 0 2 0 0.6500000000000004 0.6500000000000004 0.35 4"
+   }
+  },
+  {
+   "name": "segment: projection of 0.7 m is refused",
+   "input": {"fn":"segment","from":{"x":4,"y":4,"z":4},"to":{"x":4,"y":4,"z":4.7},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":true},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [],
+    "reason": "The companion route has no verified walkable clearance.",
+    "rejection": {"allowedRise":0.35,"boxes":4,"deltaZ":0.7000000000000002,"from":{"x":4,"y":4,"z":4},"geometryType":"step-slope","length":0,"maxBoxes":64,"rise":0.7000000000000002,"to":{"x":4,"y":4,"z":4.7}},
+    "status": "geometry",
+    "used": 0,
+    "wire": "5 0 2 0 0.7000000000000002 0.7000000000000002 0.35 4"
+   }
+  },
+  {
+   "name": "segment: 0.5 m rise without the projection flag is refused",
+   "input": {"fn":"segment","from":{"x":4,"y":4,"z":4},"to":{"x":4,"y":4,"z":4.5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [],
+    "reason": "The companion route has no verified walkable clearance.",
+    "rejection": {"allowedRise":0.35,"boxes":3,"deltaZ":0.5,"from":{"x":4,"y":4,"z":4},"geometryType":"step-slope","length":0,"maxBoxes":64,"rise":0.5,"to":{"x":4,"y":4,"z":4.5}},
+    "status": "geometry",
+    "used": 0,
+    "wire": "5 0 2 0 0.5 0.5 0.35 3"
+   }
+  },
+  {
+   "name": "segment: projection over 2 cm of run keeps the step rule",
+   "input": {"fn":"segment","from":{"x":4,"y":4,"z":4},"to":{"x":4,"y":4.05,"z":4.5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":true},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [],
+    "reason": "The companion route has no verified walkable clearance.",
+    "rejection": {"allowedRise":0.35,"boxes":3,"deltaZ":0.5,"from":{"x":4,"y":4,"z":4},"geometryType":"step-slope","length":0.04999999999999982,"maxBoxes":64,"rise":0.5,"to":{"x":4,"y":4.05,"z":4.5}},
+    "status": "geometry",
+    "used": 0,
+    "wire": "5 0 2 0.04999999999999982 0.5 0.5 0.35 3"
+   }
+  },
+  {
+   "name": "segment: projection blocked",
+   "input": {"fn":"segment","from":{"x":4,"y":4,"z":4},"to":{"x":4,"y":4,"z":4.5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":1,"progress":false,"startBox":null,"projection":true},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [
+     {"center":[4,4,5.233333110809326],"group":"Static","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]},
+     {"center":[4,4,5.233333110809326],"group":"Dynamic","half":[0.4000000059604645,0.4000000059604645,1.1333333253860474],"rot":[0,0,0]}
+    ],
+    "reason": "Scenery or a vehicle is blocking the companion position.",
+    "rejection": {
+     "box": 1,
+     "boxes": 3,
+     "center": {"x":4,"y":4,"z":5.233333110809326},
+     "from": {"x":4,"y":4,"z":4},
+     "group": "Dynamic",
+     "halfExtents": {"x":0.4000000059604645,"y":0.4000000059604645,"z":1.1333333253860474},
+     "rotation": {"pitch":0,"roll":0,"yaw":0},
+     "to": {"x":4,"y":4,"z":4.5}
+    },
+    "status": "blocked",
+    "used": 2,
+    "wire": "1 2 2 4 4 5.233333110809326 0.4000000059604645 0.4000000059604645 1.1333333253860474 0 0 0 1 3"
+   }
+  },
+  {
+   "name": "segment: negative rise is not a projection",
+   "input": {"fn":"segment","from":{"x":4,"y":4,"z":4},"to":{"x":4,"y":4,"z":3.5},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":true},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [],
+    "reason": "The companion route has no verified walkable clearance.",
+    "rejection": {"allowedRise":0.35,"boxes":3,"deltaZ":-0.5,"from":{"x":4,"y":4,"z":4},"geometryType":"step-slope","length":0,"maxBoxes":64,"rise":0.5,"to":{"x":4,"y":4,"z":3.5}},
+    "status": "geometry",
+    "used": 0,
+    "wire": "5 0 2 0 0.5 -0.5 0.35 3"
+   }
+  },
+  {
+   "name": "segment: invalid shape is refused",
+   "input": {
+    "fn": "segment",
+    "from": {"x":0,"y":0,"z":0},
+    "to": {"x":0,"y":2,"z":0},
+    "dimensions": {"radius":0.1,"height":2},
+    "budget": {"limit":192,"used":0},
+    "hitAt": -1,
+    "progress": false,
+    "startBox": null,
+    "projection": false
+   },
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "segment: non-finite end is refused",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":"nan","z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "segment: missing start is refused",
+   "input": {"fn":"segment","from":null,"to":{"x":0,"y":2,"z":0},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {"clear":false,"deferredCount":0,"queries":[],"reason":"The game could not verify companion body clearance.","rejection":{"unavailable":true},"status":"unavailable","used":0,"wire":"3 0"}
+  },
+  {
+   "name": "segment: boundary 0.6/0.2 rounds up to three boxes",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":0.3,"z":0.6},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [],
+    "reason": "The companion route has no verified walkable clearance.",
+    "rejection": {"allowedRise":0.35,"boxes":3,"deltaZ":0.6,"from":{"x":0,"y":0,"z":0},"geometryType":"step-slope","length":0.3,"maxBoxes":64,"rise":0.6,"to":{"x":0,"y":0.3,"z":0.6}},
+    "status": "geometry",
+    "used": 0,
+    "wire": "5 0 2 0.3 0.6 0.6 0.35 3"
+   }
+  },
+  {
+   "name": "segment: boundary 1/0.2 is five boxes",
+   "input": {"fn":"segment","from":{"x":0,"y":0,"z":0},"to":{"x":0,"y":1.2,"z":1},"dimensions":null,"budget":{"limit":192,"used":0},"hitAt":-1,"progress":false,"startBox":null,"projection":false},
+   "output": {
+    "clear": false,
+    "deferredCount": 0,
+    "queries": [],
+    "reason": "The companion route has no verified walkable clearance.",
+    "rejection": {"allowedRise":0.96,"boxes":5,"deltaZ":1,"from":{"x":0,"y":0,"z":0},"geometryType":"step-slope","length":1.2,"maxBoxes":64,"rise":1,"to":{"x":0,"y":1.2,"z":1}},
+    "status": "geometry",
+    "used": 0,
+    "wire": "5 0 2 1.2 1 1 0.96 5"
+   }
+  }
+ ]
+}
