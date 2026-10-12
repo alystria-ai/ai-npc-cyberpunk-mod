@@ -1,0 +1,109 @@
+// A stand-in for llama-server.exe used by the local-llm-server and local-embed tests. Run with `node`.
+//
+// Parses the arguments the bridge passes (--host --port --api-key-file -m --device --embedding --list-devices ...),
+// serves /health, /v1/chat/completions (stream and non-stream), /v1/embeddings (8 dimensions from a hash) and the
+// test-only /__stats. Behaviour is steered by environment variables:
+//   FAKE_LLAMA_DELAY_MS        /health answers 503 until this long after start
+//   FAKE_LLAMA_NEVER_HEALTHY   /health always answers 503
+//   FAKE_LLAMA_EXIT_AT_START   exit at once with this code
+//   FAKE_LLAMA_CRASH_AFTER     exit(7) right after answering this many /v1 requests
+//   FAKE_LLAMA_REPLY           the chat reply text (default: an echo of the last user message)
+//   FAKE_LLAMA_DEVICES         the device lines printed by --list-devices
+//   FAKE_LLAMA_PRINT_KEY       print the API key to stderr (to test redaction)
+//   FAKE_LLAMA_ARGS_FILE       write the received argv (JSON) here
+import {createServer} from 'node:http';
+import {createHash} from 'node:crypto';
+import {readFileSync, writeFileSync, existsSync} from 'node:fs';
+
+const argv = process.argv.slice(2);
+const booleans = new Set(['--embedding', '--embeddings', '--no-webui', '--list-devices']);
+const options = {};
+for (let index = 0; index < argv.length; index++) {
+  const flag = argv[index];
+  if (!flag.startsWith('-')) continue;
+  if (booleans.has(flag)) options[flag] = true;
+  else options[flag] = argv[++index];
+}
+if (process.env.FAKE_LLAMA_ARGS_FILE) writeFileSync(process.env.FAKE_LLAMA_ARGS_FILE, JSON.stringify(argv));
+
+if (options['--list-devices']) {
+  const lines = process.env.FAKE_LLAMA_DEVICES
+    ?? '  Vulkan0: Intel(R) UHD Graphics (16000 MiB, 15000 MiB free)\n  Vulkan1: NVIDIA GeForce RTX 4080 Laptop GPU (11997 MiB, 11229 MiB free)';
+  process.stdout.write('Available devices:\n' + lines + '\n');
+  process.exit(0);
+}
+if (process.env.FAKE_LLAMA_EXIT_AT_START) {
+  process.stderr.write('fake-llama: exiting at start\n');
+  process.exit(Number(process.env.FAKE_LLAMA_EXIT_AT_START));
+}
+
+const keyFile = options['--api-key-file'];
+if (!keyFile || !existsSync(keyFile)) { process.stderr.write('fake-llama: missing --api-key-file\n'); process.exit(2); }
+const key = readFileSync(keyFile, 'utf8').split(/\r?\n/)[0].trim();
+if (process.env.FAKE_LLAMA_PRINT_KEY) process.stderr.write('debug key=' + key + '\n');
+const port = Number(options['--port']);
+const host = options['--host'] ?? '127.0.0.1';
+const startedAt = Date.now();
+const delayMs = Number(process.env.FAKE_LLAMA_DELAY_MS || 0);
+const crashAfter = Number(process.env.FAKE_LLAMA_CRASH_AFTER || 0);
+const embedding = Boolean(options['--embedding'] || options['--embeddings']);
+const requests = [];
+let served = 0;
+
+const vector = text => {
+  const digest = createHash('sha256').update(String(text)).digest();
+  return Array.from({length: 8}, (_, index) => (digest[index] - 127.5) / 32);   // not normalised on purpose
+};
+
+const send = (response, status, body, type = 'application/json') => {
+  response.writeHead(status, {'content-type': type});
+  response.end(typeof body === 'string' ? body : JSON.stringify(body));
+};
+
+const server = createServer((request, response) => {
+  const url = request.url.split('?')[0];
+  if (url === '/health') {
+    const healthy = !process.env.FAKE_LLAMA_NEVER_HEALTHY && Date.now() - startedAt >= delayMs;
+    return send(response, healthy ? 200 : 503, healthy ? {status: 'ok'} : {error: {code: 503, message: 'Loading model'}});
+  }
+  if (url === '/__stats') return send(response, 200, {pid: process.pid, argv, embedding, device: options['--device'] ?? null,
+    model: options['-m'] ?? null, requests});
+  let body = '';
+  request.on('data', chunk => { body += chunk; });
+  request.on('end', () => {
+    if (request.headers.authorization !== 'Bearer ' + key) return send(response, 401, {error: {message: 'Invalid API Key'}});
+    let json = {};
+    try { json = JSON.parse(body || '{}'); } catch { return send(response, 400, {error: {message: 'bad json'}}); }
+    served++;
+    const finish = () => { if (crashAfter && served >= crashAfter) setTimeout(() => process.exit(7), 10); };
+    if (url === '/v1/embeddings') {
+      const inputs = Array.isArray(json.input) ? json.input : [json.input];
+      requests.push({path: url, inputs: inputs.length, chars: inputs.map(text => String(text).length)});
+      send(response, 200, {object: 'list', model: json.model, data: inputs.map((text, index) => ({object: 'embedding', index, embedding: vector(text)}))});
+      return finish();
+    }
+    if (url === '/v1/chat/completions') {
+      const messages = Array.isArray(json.messages) ? json.messages : [];
+      const promptChars = messages.reduce((sum, message) => sum + String(message.content ?? '').length, 0);
+      requests.push({path: url, stream: Boolean(json.stream), maxTokens: json.max_tokens ?? null, promptChars,
+        cachePrompt: json.cache_prompt ?? null, messages: messages.length});
+      const last = [...messages].reverse().find(message => message.role === 'user')?.content ?? '';
+      let reply = process.env.FAKE_LLAMA_REPLY ?? 'Echo: ' + String(last).slice(0, 40);
+      if (json.max_tokens === 1) reply = reply.split(' ')[0];
+      if (json.stream) {
+        response.writeHead(200, {'content-type': 'text/event-stream'});
+        for (const word of reply.split(/(?<= )/))
+          response.write('data: ' + JSON.stringify({choices: [{index: 0, delta: {content: word}}]}) + '\n\n');
+        response.write('data: ' + JSON.stringify({choices: [{index: 0, delta: {}, finish_reason: 'stop'}]}) + '\n\n');
+        response.end('data: [DONE]\n\n');
+      } else {
+        send(response, 200, {object: 'chat.completion', model: json.model, choices: [{index: 0, message: {role: 'assistant', content: reply}, finish_reason: 'stop'}],
+          usage: {prompt_tokens: Math.ceil(promptChars / 4), completion_tokens: 1}});
+      }
+      return finish();
+    }
+    send(response, 404, {error: {message: 'not found'}});
+  });
+});
+server.listen(port, host, () => process.stdout.write('fake-llama: listening on ' + host + ':' + port + '\n'));
+process.on('SIGTERM', () => process.exit(0));
