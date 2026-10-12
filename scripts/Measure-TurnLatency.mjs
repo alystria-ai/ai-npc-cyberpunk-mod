@@ -1,6 +1,8 @@
 // One text-route turn through the real bridge pieces with simulated provider timings (docs/LATENCY_2026-10-12.md).
 //
 //   node scripts/Measure-TurnLatency.mjs [--runs 3] [--json out.json]
+//   node scripts/Measure-TurnLatency.mjs --failures [--runs 1] [--spike-ms 9000]   a hung model request and a slow Voxtral tail,
+//                                                                                   before (the 2026-10-12 limits and routing) and after
 //
 // What is real: TextProviderHost (prompt, SSE client, reply cleaning), ReplyStream, deliverPocketSpeech, LocalPcmHost, the headless
 // Edge renderer page with its audio worklet (RealtimeHost), ConvaiContinuousSpeech (state, reply and face commits), and the TurnClock
@@ -42,10 +44,12 @@ const LIVE_REPLIES = {
   'live-2 (one long first part)': '{calm}Work’s… work. {surprise}But I mean, the kind of work that lets me decide what to leave in and what to cut out. {calm}That’s the difference. {interest}You ever notice how some days you just want to sit in the dark and listen to the hum of the machines? {joy}That’s my idea of a good day.',
   'live-3 (two short, one long)': '{calm}No, it’s not. It’s a workshop. {calm}I just finished a few tweaks on a couple of old dolls, some Clouds leftovers, if you can believe that.',
 };
-async function languageModel({firstTokenMs, msPerChar, reply = REPLY}) {
+async function languageModel({firstTokenMs, msPerChar, reply = REPLY, hangFirst = false}) {
+  let requests = 0;
   const server = createServer((request, response) => {
     request.resume();
     request.on('end', async () => {
+      if (hangFirst && ++requests === 1) return;     // a connection the network dropped: this request never gets an answer
       response.writeHead(200, {'content-type': 'text/event-stream'});
       await sleep(firstTokenMs);
       for (const piece of reply.match(/.{1,6}/gs)) {
@@ -82,14 +86,14 @@ function simulatedVoice({firstAudioMs, speed}) {
 }
 
 // ---- one turn ---------------------------------------------------------------------------------------------------------------------
-async function oneTurn({host, stream, model, voice, reply}) {
+async function oneTurn({host, stream, model, voice, reply, chatDefaults}) {
   const server = await languageModel({...model, ...(reply ? {reply} : {})});
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => 'api-key=aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL\n', writeText: async () => {},
     groq: new GroqKey({keyPath: 'g.txt'})});
   await provider.load(); provider.setPreference('mistral'); provider.apply();
   const memory = await MistralMemory.open({path: null});
   const naturalSpeech = new NaturalSpeech(), expressive = new ExpressiveEmotions();
-  const text = new TextProviderHost({provider, memory, personas: book, transformReply: result => expressive.process(naturalSpeech.process(result)), routes: {mistral: mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, cacheScope: 'bench'})}, log: () => {}});
+  const text = new TextProviderHost({provider, memory, personas: book, transformReply: result => expressive.process(naturalSpeech.process(result)), routes: {mistral: mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, cacheScope: 'bench', ...(chatDefaults ? {chatDefaults} : {})})}, log: () => {}});
   const input = {requestId: 'bench-turn', entity: '17ULL', generation: 1, profileKey: 'judy-alvarez'};
   const profile = {key: input.profileKey, name: 'Judy Alvarez'};
   const clock = new TurnClock({origin: performance.timeOrigin + performance.now()});
@@ -127,20 +131,23 @@ async function oneTurn({host, stream, model, voice, reply}) {
 }
 
 const median = values => { const sorted = [...values].sort((a, b) => a - b); return sorted[Math.floor(sorted.length / 2)]; };
-async function scenario({label, model, voiceModel, stream, warm, reply}) {
-  const rows = [];
+async function scenario({label, model, voiceModel, stream, warm, reply, chatDefaults, makeVoice, extra}) {
+  const rows = [], notes = [];
   for (let run = 0; run < RUNS; run++) {
     const host = new RealtimeHost({muteBrowser: true});
+    const made = makeVoice ? await makeVoice() : null;
     try {
       if (warm) await host.prewarmLocal();
-      rows.push(await oneTurn({host, stream, model, voice: simulatedVoice(voiceModel), reply}));
-    } finally { await host.close(); }
+      rows.push(await oneTurn({host, stream, model, voice: made ? made.voice : simulatedVoice(voiceModel), reply, chatDefaults}));
+      if (made) notes.push(made.report());
+    } finally { await host.close(); await made?.close(); }
   }
   const pick = name => { const values = rows.map(row => row.marks[name]).filter(Number.isFinite); return values.length ? Math.round(median(values)) : null; };
-  const out = {label, stream, warm, runs: RUNS, ...(reply ? {reply: reply.slice(0, 40)} : {})};
+  const out = {label, stream, warm, runs: RUNS, ...(reply ? {reply: reply.slice(0, 40)} : {}), ...(extra ?? {})};
   for (const name of ['firstToken', 'firstSentence', 'fullText', 'replyReturned', 'voiceStart', 'browserReady', 'playStart', 'rendererReady', 'ttsSent', 'firstPcm', 'firstPcmAccepted', 'published', 'playbackObserved']) out[name] = pick(name);
   out.stalls = rows.flatMap(row => row.stalls ?? []).length;
   out.ok = rows.every(row => row.ok); out.spokenSeconds = Math.round(median(rows.map(row => row.spokenSeconds)) * 10) / 10;
+  if (notes.length) out.voiceNotes = notes.length === 1 ? notes[0] : notes;
   return out;
 }
 
@@ -156,6 +163,112 @@ const VOICES = {
   pocket: {firstAudioMs: 170, speed: 6},
 };
 const results = [], only = option('--only', null);
+
+// --failures: what a hung request and a slow Voxtral tail cost, with the limits and routing of 2026-10-12 ("before") and the new ones.
+//  - a model request that never answers (the 2026-10-13 live record: 30 s for one reply): firstByteMs 25 s + 2 retries before, 6 s + 1 retry after;
+//  - the tail of a streamed reply that Voxtral answers only after --spike-ms on its first ask (a server-side spike, 5 to 11 s on about one call
+//    in ten): before, the tail was handed to Pocket after 7 s (a different voice mid-reply); after, it is asked for again in the same voice.
+//    The "before" routing is a copy of the old VoiceSelection.synthesizeStream (Voxtral, else Pocket, per call). Voxtral is the real
+//    VoxtralVoice against a local server; Pocket is a tone with a different pitch, so the packets say which voice spoke.
+if (args.includes('--failures')) {
+  const [{VoxtralVoice}, {VoiceSelection}, {createVoiceProfileRegistry}, {LOCAL_VOICE_KEYS}, {MistralScheduler}, {createHash}] = await Promise.all([
+    load('bridge/voxtral-voice.mjs'), load('bridge/voice-selection.mjs'), load('bridge/voice-profile-registry.mjs'), load('bridge/resident-voice.mjs'),
+    load('bridge/mistral-rate.mjs'), import('node:crypto')]);
+  const wavBytes = (() => { const frames = 48000, bytes = Buffer.alloc(44 + frames * 2); bytes.write('RIFF'); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8);
+    bytes.writeUInt32LE(16, 16); bytes.writeUInt16LE(1, 20); bytes.writeUInt16LE(1, 22); bytes.writeUInt32LE(24000, 24); bytes.writeUInt32LE(48000, 28);
+    bytes.writeUInt16LE(2, 32); bytes.writeUInt16LE(16, 34); bytes.write('data', 36); bytes.writeUInt32LE(frames * 2, 40); return bytes; })();
+  const spikeMs = Number(option('--spike-ms', 9000)), voxFirstMs = Number(option('--voice-ms', 1300));
+  const t0 = () => performance.now();
+
+  // The fake Voxtral API: SSE float32 tone at 24 kHz, first audio after voxFirstMs; the first ask for the tail is held for spikeMs.
+  async function fakeVoxtral() {
+    const asks = new Map();
+    const server = createServer((request, response) => {
+      const chunks = []; request.on('data', c => chunks.push(c));
+      request.on('end', async () => {
+        const body = JSON.parse(Buffer.concat(chunks).toString('utf8')), count = (asks.get(body.input) ?? 0) + 1; asks.set(body.input, count);
+        // The first text asked for is the head: it answers normally. Any later text is the tail: its first ask is the one that spikes.
+        const order = [...asks.keys()].indexOf(body.input);
+        await sleep(voxFirstMs + (order > 0 && count === 1 ? spikeMs : 0));
+        if (response.destroyed) return;
+        response.writeHead(200, {'content-type': 'text/event-stream'});
+        const frames = Math.round(body.input.length / CHARS_PER_SECOND * 24000);
+        const pcm = Float32Array.from({length: frames}, (_, at) => .12 * Math.sin(at * .045));
+        for (let at = 0; at < frames; at += 12000) {
+          const part = pcm.subarray(at, Math.min(frames, at + 12000));
+          response.write(`data: ${JSON.stringify({type: 'speech.audio.delta', audio_data: Buffer.from(part.buffer, part.byteOffset, part.byteLength).toString('base64')})}\n\n`);
+        }
+        response.end(`data: ${JSON.stringify({type: 'speech.audio.done'})}\n\n`);
+      });
+    });
+    await new Promise(done => server.listen(0, '127.0.0.1', done));
+    return {endpoint: `http://127.0.0.1:${server.address().port}/v1/audio/speech`, asks,
+      close: () => new Promise(done => { server.closeAllConnections?.(); server.close(done); })};
+  }
+  const pocketTone = () => { const base = simulatedVoice({firstAudioMs: 170, speed: 6}); return {async synthesizeStream(key, text, options) {
+    return base.synthesizeStream(key, text, {...options, onPcm: packet => options.onPcm({...packet, pcm: packet.pcm.map(value => value * 0.5), owner: 'c'.repeat(32), id: packet.id + 100})}); }}; };
+
+  const POCKET_OWNER = 'c'.repeat(32);
+  const routedVoice = routing => async () => {
+    const server = await fakeVoxtral(), calls = [], began = t0(), seen = new Set(), logs = [];
+    const registry = createVoiceProfileRegistry({version: 2, provider: 'hybrid', engine: 'omnivoice', voices: Object.fromEntries(['judy-alvarez'].map(key => [key,
+      {reference: `runtime/voice-references/${key}.wav`, sha256: createHash('sha256').update(wavBytes).digest('hex'), transcript: 'Ready when you are, V.'}]))});
+    const cloud = new VoxtralVoice({getKey: () => 'k'.repeat(8) + 'Secret0123456789abcdefghijkl', referenceRoot: resolve(root, 'fixture-references'), registry,
+      endpoint: server.endpoint, read: async () => wavBytes, scheduler: new MistralScheduler({spacingMs: 0}),
+      onLog: line => logs.push(`@${Math.round(t0() - began)} ms ${line.trim()}`)});
+    const pocket = pocketTone();
+    // Every spoken piece is logged with the engine that really produced its first packet and when (ms after the turn's voice was made).
+    const noting = (text, options) => ({...options, onPcm: packet => {
+      if (!seen.has(text)) { seen.add(text); calls.push({chars: text.length, engine: packet.owner === POCKET_OWNER ? 'POCKET' : 'voxtral', atMs: Math.round(t0() - began)}); }
+      return options.onPcm(packet); }});
+    let voice, closeVoice = async () => {};
+    if (routing === 'after') {
+      // The real VoiceSelection routing: the head decides the engine, the tail follows it and is asked for again in the same voice.
+      const voices = Object.fromEntries(LOCAL_VOICE_KEYS.map(name => [name, {reference: `runtime/voice-references/${name}.wav`, sha256: 'a'.repeat(64), transcript: 'Ready.'}]));
+      const settings = {version: 1, provider: 'pocket', engine: 'pocket-tts', voices,
+        runtime: Object.fromEntries(['sourceDirectory', 'exportDirectory', 'referenceDirectory', 'workDirectory'].map(key => [key, resolve(root, 'fixture', key)])),
+        model: {sha256: 'a'.repeat(64), configSha256: 'b'.repeat(64), tokenizerSha256: 'c'.repeat(64), receiptSha256: 'd'.repeat(64), inputIdentity: 'e'.repeat(64), selectedStep: 1500}};
+      const longVoices = Object.fromEntries(LOCAL_VOICE_KEYS.map(name => [name, {reference: `runtime/voice-references/${name}.wav`, sha256: createHash('sha256').update(wavBytes).digest('hex'), transcript: 'Ready.'}]));
+      const selection = new VoiceSelection(settings, {voxtral: cloud, onState: () => {}, omniConfigs: {short: {}, long: {version: 2, provider: 'hybrid', engine: 'omnivoice', voices: longVoices}},
+        factory: (config, {onState}) => { let loaded = false; return {get loaded() { return loaded; }, hasProfile: name => Object.hasOwn(config.voices, name),
+          profileReady: name => loaded && Object.hasOwn(config.voices, name), async prepareProfile(name) { return {provider: 'pocket', ready: true, profile: name}; },
+          async start() { loaded = true; onState({state: 'ready', resident: true}); },
+          synthesizeStream: (name, text, options) => pocket.synthesizeStream(name, text, options), async close() { loaded = false; onState({state: 'stopped'}); }}; }});
+      selection.update({voiceProvider: 'voxtral'}, null, false); await selection.start();
+      voice = {synthesizeStream: (key, text, options) => selection.synthesizeStream(key, text, noting(text, options))};
+      closeVoice = () => selection.close();
+    } else {
+      // The routing of 2026-10-12: every call tries Voxtral (7 s to first audio, no second ask) and falls to Pocket on its own failure,
+      // whatever the other piece did.
+      cloud.limits = Object.freeze({...cloud.limits, tailFirstAudioMs: 7000});
+      voice = {async synthesizeStream(key, text, options) {
+        const {utterance, role, ...plain} = options;
+        try { return await cloud.synthesizeStream(key, text, noting(text, plain)); }
+        catch (error) { if (error.sink || error.name === 'AbortError') throw error; return pocket.synthesizeStream(key, text, noting(text, plain)); }
+      }};
+    }
+    return {voice, close: async () => { await closeVoice(); await server.close(); },
+      report: () => ({routing, pieces: calls.map(call => `${call.engine} ${call.chars} chars @${call.atMs} ms`).join(' | '), voiceSwitched: new Set(calls.map(call => call.engine)).size > 1, log: logs})};
+  };
+
+  const base = {model: {firstTokenMs: Number(option('--first-token-ms', 650)), msPerChar: 3.5}, stream: true, warm: true, reply: LIVE_REPLIES['live-2 (one long first part)']};
+  const rows = [];
+  // 1. the hung model request (--only hung / --only voxtral picks one family)
+  if (!only || 'hung'.includes(only)) {
+    rows.push(await scenario({...base, label: 'hung model request, 2026-10-12 limits (25 s, 2 retries)', model: {...base.model, hangFirst: true},
+      voiceModel: VOICES.pocket, chatDefaults: {firstByteMs: 25000, retries: 2, backoffMs: [1200, 3500]}}));
+    rows.push(await scenario({...base, label: 'hung model request, new limits (6 s, 1 retry of 8 s)', model: {...base.model, hangFirst: true}, voiceModel: VOICES.pocket}));
+  }
+  // 2. the slow Voxtral tail
+  if (!only || 'voxtral'.includes(only)) for (const routing of ['before', 'after']) {
+    rows.push(await scenario({...base, label: `Voxtral tail answers after ${spikeMs} ms on its first ask, ${routing === 'before' ? '2026-10-12 routing' : 'new routing'}`,
+      voiceModel: null, makeVoice: routedVoice(routing)}));
+  }
+  for (const row of rows) console.log(JSON.stringify(row));
+  const target = option('--json', null);
+  if (target) await writeFile(target, JSON.stringify(rows, null, 1));
+  process.exit(0);
+}
 // --live: the three replies of the live record, written with Expressive emotions' tags, through Mistral + a Voxtral whose first audio is
 // the median measured on 2026-10-13 (1.3 s; docs/LATENCY_2026-10-12.md), whole reply first against the first sentence first.
 if (args.includes('--live')) {

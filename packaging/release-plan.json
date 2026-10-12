@@ -615,6 +615,7 @@
             "bridge/voice-profile-registry.mjs",
             "bridge/voice-routing-log.mjs",
             "bridge/voice-selection.mjs",
+            "bridge/voice-utterance.mjs",
             "bridge/voice-variants.mjs",
             "bridge/voxtral-reference.mjs",
             "bridge/voxtral-voice.mjs",

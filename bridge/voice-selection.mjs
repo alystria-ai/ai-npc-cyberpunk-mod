@@ -150,6 +150,18 @@ export class VoiceSelection {
   get cloudActive(){return this.cloud==='voxtral'&&!!this.voxtral&&this.provider==='pocket';}
   // Why the cloud voice is not the one speaking, for the Settings status line and the one notice: no key, or its last
   // reply fell back (nothing is reported before a first failure, and it clears by itself with the next good reply).
+  // Why the cloud voice cannot even be asked right now (no key, a limit or a refused key cooling down); null when it will be tried.
+  // A timeout or a dropped connection on an earlier reply does not block the next one ("next reply tries again"), so it is not
+  // reported here: the routing line is written before the reply is voiced and must not claim Pocket for a reply that then
+  // spoke in the cloud voice (2026-10-13: the line said used=Pocket for a reply that was spoken by Voxtral from start to end).
+  get cloudBlocked(){
+    if(!this.cloudActive)return null;
+    return !this.voxtral.hasKey||!this.voxtral.ready?this.cloudFallback:null;
+  }
+  // How the cloud voice's last attempt ended when it did not block this one ('timeout', 'network', ...), else null.
+  get cloudLast(){
+    return this.cloudActive&&!this.cloudBlocked?this.voxtral.degraded?.reason??null:null;
+  }
   get cloudFallback(){
     if(!this.cloudActive)return null;
     const value={from:'voxtral',to:'pocket'};
@@ -546,39 +558,66 @@ export class VoiceSelection {
     // Pocket cannot render voice tags and would read them aloud: a last line of defence behind the display strip. The same
     // goes for the cloud voice.
     const spoken = stripSpeechTags(text);
+    // `utterance`/`role` (bridge/voice-utterance.mjs): this text is a piece of a reply voiced in more than one call (a streamed
+    // first sentence, then the rest). One reply, one voice: the head decides, the tail follows.
+    const {utterance, role, ...plain} = options;
+    if (utterance && role === 'tail') return this.synthesizeRest(client, profile, spoken, plain, utterance);
     // The Mistral cloud voice, when chosen and usable. Any failure before its audio starts (no key, a limit, a network
     // error, no first audio in time) speaks this reply with Pocket, which is already loaded; the voice reports it so the
     // player is told once (cloudFallback). A failure of the consumer or a cancellation is not a fallback.
     if (this.cloudActive && this.voxtral.ready) {
       let cloud;
-      try { cloud = await this.voxtral.synthesizeStream(profile, spoken, options); }
+      const onPcm = utterance && plain.onPcm ? packet => { utterance.decide('voxtral'); return plain.onPcm(packet); } : plain.onPcm;
+      try { cloud = await this.voxtral.synthesizeStream(profile, spoken, {...plain, onPcm}); }
       catch (error) {
         throwIfCancelled(options.signal);
         if (error?.sink) throw error;
+        // The cloud voice throws only before any of its audio was delivered, so nothing of this reply was heard: Pocket may speak it.
       }
-      if (cloud && !cloud.remainder) return cloud;
-      if (cloud) return this.finishWithPocket(client, profile, cloud, options);
+      if (cloud) return cloud;
     }
-    return client.synthesizeStream(profile, spoken, options);
+    utterance?.decide('pocket');
+    return client.synthesizeStream(profile, spoken, plain);
   }
-  // A split reply whose second request failed: its first part has been spoken by Voxtral; Pocket speaks the rest as the same
-  // reply (its packets are renumbered to continue the first part's, under the first part's identity).
-  async finishWithPocket(client, profile, cloud, options) {
-    const base = cloud.continuation;
-    const onPcm = options.onPcm && (packet => options.onPcm({...packet, owner: base.owner, id: base.id, modelSha256: base.modelSha256,
-      index: base.index + packet.index - 1, offsetFrames: base.offsetFrames + packet.offsetFrames,
-      startSeconds: (base.offsetFrames + packet.offsetFrames) / 24000}));
-    let rest;
-    try { rest = await client.synthesizeStream(profile, cloud.remainder, {...options, onPcm}); }
-    catch (error) {
-      throwIfCancelled(options.signal);
-      if (error?.sink) throw error;
-      // Pocket could not speak the rest either: the first part stands (the written reply is complete).
-      return {...cloud, remainder: undefined, continuation: undefined, truncated: true};
+  // The rest of a reply (the tail) whose first sentence was voiced by `synthesizeStream` above. It is spoken by the engine that
+  // spoke the first sentence, never the other one:
+  //   - Pocket spoke the head (or there is no cloud voice): Pocket speaks the rest;
+  //   - the cloud voice spoke the head: the cloud voice speaks the rest, asked for again once with longer limits
+  //     (VoxtralVoice.fetchPartAgain). If that fails too, the error is thrown, and the caller ends the reply after the head. Pocket
+  //     does not finish it: a second voice in the middle of a reply is worse than a short reply.
+  // The cloud request is sent at once, in parallel with the head, even before the head's first audio exists; what it delivers is
+  // held until the head is known to have been the cloud voice, and dropped (the request cancelled) if Pocket spoke the head.
+  async synthesizeRest(client, profile, spoken, options, utterance) {
+    const viaPocket = () => { utterance.decide('pocket'); return client.synthesizeStream(profile, spoken, options); };
+    if (utterance.engine === 'pocket' || !this.cloudActive || !this.voxtral.hasKey) return viaPocket();
+    const own = new AbortController();
+    const relay = () => own.abort(options.signal.reason);
+    options.signal?.addEventListener('abort', relay, {once: true});
+    if (options.signal?.aborted) relay();
+    void utterance.decision.then(engine => { if (engine !== 'voxtral') own.abort(cancelled()); });
+    const held = [];
+    let open = utterance.engine === 'voxtral';
+    const sink = packet => { if (open) return options.onPcm(packet); held.push(packet); return undefined; };
+    // Once the head is known to be the cloud voice, what arrived early is handed on, in order, before anything newer.
+    const opening = utterance.decision.then(async engine => {
+      if (engine !== 'voxtral') { held.length = 0; return; }
+      while (held.length) await options.onPcm(held.shift());
+      open = true;
+    });
+    opening.catch(() => {});
+    let cloud, failure;
+    try { cloud = await this.voxtral.synthesizeStream(profile, spoken, {signal: own.signal, onPcm: sink, continuation: true}); }
+    catch (error) { failure = error; }
+    finally { options.signal?.removeEventListener('abort', relay); }
+    throwIfCancelled(options.signal);
+    // The head may not have decided yet (its first audio is still on the way): the rest waits for it.
+    if (await utterance.decision !== 'voxtral') {
+      if (failure?.sink) throw failure;
+      return viaPocket();
     }
-    const frames = cloud.frames + (rest.frames ?? 0);
-    return {...rest, frames, chunks: (cloud.chunks ?? 0) + (rest.chunks ?? 0), duration: frames / 24000,
-      timing: {...rest.timing, ...cloud.timing, voicePocketRemainder: true}};
+    await opening;
+    if (failure) throw failure;
+    return cloud;
   }
   // `language` (ISO 639-1, e.g. 'es') reaches the worker for a reply that is not in English.
   async synthesize(profile,text,options={}){
