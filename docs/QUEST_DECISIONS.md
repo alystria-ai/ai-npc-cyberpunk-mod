@@ -1,7 +1,10 @@
 # Quest decisions: does a companion know which choice V made? (2026-10-13)
 
-Research only. Nothing in the mod, the pack or the game folder was changed. Requested in `TODO.md` ("Later check: quest
+The research below changed nothing in the mod, the pack or the game folder. Requested in `TODO.md` ("Later check: quest
 decisions") and left open by `docs/DYNAMIC_CONTEXT_AUDIT.md` section 7.
+
+**Status, 2026-10-13: step A (section 4.1, bridge only) is built and tested, not yet run in the game** (a bridge restart is
+enough; no Lua, no pack change). What it does and what it measured is in section 4.1a. Steps B, C and D are still open.
 
 ## Answer
 
@@ -170,6 +173,75 @@ four small steps on top of it, cheapest first. Each step stands alone.
    with `JSON.stringify` and parsing it), not in rule evaluation (`evaluate` and `serialize` are small). Fixing that is
    latency work, independent of this feature, and keeps adding rules cheap.
 
+### 4.1a Step A, done (2026-10-13)
+
+**The decision test** (`bridge/knowledge-decisions.mjs`, derived at pack load, no change to the pack's rows, deterministic, each
+answer names its reason). A rule is a branch decision when any of these holds:
+
+1. `phone-reply`: its condition proves V picked a phone reply (a journal entry of class `gameJournalPhoneChoiceEntry`). 80 rules.
+2. `alternatives`: it is one of two or more outcomes of one decision point (`narrativeLinks.decisionId`), of one topic, or of one
+   exclusive group, **and none of those outcomes is a result of play** (`PERFORMANCE`: detected or undetected, occurred or avoided,
+   victory or defeat, all-alive or some-deaths, first or second, planned or crossed, ...). 308 rules.
+3. `statement`: its statement says V did a deliberate thing (V or Johnny as subject; accepted, refused, spared, told, called,
+   killed, ...), it is not a performance result, and it is not a report of somebody else's act ("Hands messaged V that ..."). 71 rules.
+
+Of the 768 executable rules, **459 are flagged**. The 428 of section 1.3 came from the first clause alone, without the performance
+veto, the phone replies or V's single-outcome acts. Checked against a labelling of all 768 statements as "choice" or "event" by a Haiku
+pass over a written rubric (the labels are noisy; they were used to tune the test and are not shipped): the old test had precision 0.63
+and recall 0.76, this one 0.65 and 0.92. `bridge/knowledge-decisions.test.mjs` pins the cases that matter.
+
+**Ranking and budget** (`resolveKnowledge`). The context has a new array, `choices`, before `facts`, with a note on the framing line
+("Under "choices" are decisions V made; under "facts" is whatever else happened"). Decisions are placed first, in the old rank order, and
+may claim `CHOICE_SHARE` = 95 percent of the room the framing leaves; the other facts take the rest; a decision that did not fit still
+uses whatever room the other facts leave unused. With no decision selected the context is byte-for-byte the old shape. One outcome per
+topic and one wording per statement (case and spacing ignored): a later rule with the same topic or text is dropped as a duplicate.
+`diagnostics.decisions` reports `{true, selected, dropped, duplicates}`. 60 percent was tried first and was worse than before for
+Regina (10 decisions told against 15): her top-ranked rules were already decisions, so a cap only took room from them.
+
+**Before and after**, on V's current save, `maxChars` 8,000, query "is it" (`node scripts/Measure-KnowledgePrepare.mjs --runtime <copy of runtime/>`):
+
+| Character | True decisions allowed | Rules told, before / after | Decisions told, before / after | Rules dropped by budget, before / after |
+|---|---:|---:|---:|---:|
+| Johnny | 150 | 27 / 24 | 13 / 23 | 266 / 268 |
+| Regina | 40 | 16 / 16 | 15 / 15 | 52 / 52 |
+| Jackie | 4 | 14 / 11 | 4 / 4 | 0 / 0 (three duplicate statements removed) |
+| Judy, Panam, Takemura, Kerry, River, Evelyn, Hanako | 13, 12, 3, 1, 4, 1, 0 | unchanged | unchanged | 0 / 0 |
+
+Johnny gains ten decisions at the price of thirteen events (127 of his 150 allowed decisions are still not told: 8,000 characters hold
+about 24 of his statements). Regina keeps the fifteen she had, and she still drops 25 decisions; her statements are long. Nobody loses a decision.
+
+**Per-turn speed.** The decoding was not the only cost. A CPU profile of the whole preparation path (`parseInput` then
+`PlayerKnowledge.prepare`, 60 turns) put the time in: cloning the request and the parts (800 KB of world and journal data) and
+deep-freezing it (about 70 ms per turn together), parsing the journal history again at several steps (about 35 ms), measuring both
+snapshots with `JSON.stringify` for their size limit (about 30 ms), hashing both for the context identity (about 13 ms), and only then
+rule evaluation (about 3 ms). Fixed by sharing what the game publishes once per revision instead of copying it:
+
+- `bridge/knowledge-parts.mjs` keeps each part read from disk, deep-frozen, by `{part, revision, generation, worldToken}` (the three
+  newest revisions of each part) and hands the same objects to every turn; nothing is cloned and a held revision is not read again.
+- `bridge/parsed-snapshot.mjs`: a parser's result is frozen and marked, so parsing it again returns it; the work done on a frozen input
+  object (its size, the parse of its facts, the parse of each journal quest row, its digest) is remembered by object. Only frozen objects
+  are remembered. A new revision is a new object, so it is parsed afresh; a row is never reused for a capture older than its last observation.
+- `PlayerKnowledge.prepare` shares the frozen snapshots instead of copying them; the context identity and the request identity hash the
+  large members by cached digest.
+- Rules are compiled once per pack load (conditions to functions, words of each statement, normalised statement, decision flag), and
+  the budget is counted arithmetically instead of re-rendering the whole JSON for every candidate.
+
+| Per turn, ten characters, 40 turns each (median; worst in brackets) | Before | After |
+|---|---:|---:|
+| Admission: `parseInput` and the identity hash, before the turn clock starts | 55 to 75 ms (118) | 0.5 to 1.1 ms (2.9) |
+| `PlayerKnowledge.prepare`, the work inside `knowledgePreparedMs` | 138 to 190 ms (260) | 0.3 to 0.7 ms (2.6) |
+| First turn on a new part revision (read, parse and freeze 800 KB, once) | the same as any turn | about 100 ms admission and 30 to 40 ms prepare, once per revision |
+
+`knowledgePreparedMs` also holds the microphone cancel and the profile lookup, which this does not touch. The live number is to be read
+from `bridge-latency.json` after the next session. The game rewrites the history part only when the journal changes and the world part
+when a fact changes. An optional later step is to read a freshly published part in the background poll, so that even the first turn
+after a change is warm.
+
+Tests: `bridge/knowledge-decisions.test.mjs` (the test, ranking, the share, dedupe, exact budget arithmetic) and
+`bridge/knowledge-cache.test.mjs` (a new revision invalidates, a held older one is not read again, only the newest three are kept, a
+wrong revision or world is never used, shared facts, frozen results, a size limit that still refuses, the capture-time check on a cached
+row, an unfrozen object is never remembered, the cached path equals a plain copy).
+
 ### 4.2 Step B: more decision rows in the pack (days, needs a CET reload for new fact names)
 
 Add only what survives verification; do not trust a name:
@@ -278,7 +350,7 @@ fact scan, paced, not in the journal lane. Check the maxima before and after (pr
 
 ## 7. Decisions for the user
 
-1. Build Step A (bridge only, no reload) now? It makes choices outrank events at no game cost.
+1. ~~Build Step A (bridge only, no reload) now?~~ Done 2026-10-13 (section 4.1a); to be seen in a session after a bridge restart.
 2. Which unmapped decisions matter? Suggested first batch: Kerry's rooftop romance, Takemura and Oda, Dex hearing V's
    disclosure (audience fix), Smasher, and the Devil-route markers.
 3. Do you want the ledger (Step D)? It depends on probe 1.

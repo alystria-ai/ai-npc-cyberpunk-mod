@@ -1,4 +1,6 @@
 import {createHash} from 'node:crypto';
+import {classifyDecisions} from './knowledge-decisions.mjs';
+import {isParsed, markParsed, memoOf} from './parsed-snapshot.mjs';
 
 // observations matches mod/world-knowledge.lua CAPTURE_LIMIT: a pack whose fact
 // or journal allowlist exceeds it would disable the Lua collector at load.
@@ -86,9 +88,26 @@ function observations(value, type) {
   return Object.fromEntries(entries);
 }
 
-/** No remembered snapshot, native handle, or fallback to a prior capture is retained. */
+// The size check of a snapshot object measured all of it with JSON.stringify at every parse (about 15 ms for the 150 KB world
+// snapshot). Its two large members are immutable objects shared from the game's published part (bridge/knowledge-parts.mjs), so
+// their size and their parse are worked out once per object (bridge/parsed-snapshot.mjs); the small header is measured each time.
+const jsonBytes = memoOf(value => value === undefined ? 0 : Buffer.byteLength(JSON.stringify(value), 'utf8'));
+const factRows = memoOf(value => observations(value, 'fact')), journalRows = memoOf(value => observations(value, 'journal'));
+function decodedSnapshot(value, limit) {
+  if (typeof value === 'string' || !plain(value) || !plain(value.facts) && value.facts !== undefined) return decoded(value, limit);
+  try {
+    const {facts, journal, ...rest} = value;
+    return Buffer.byteLength(JSON.stringify(rest), 'utf8') + jsonBytes(facts) + jsonBytes(journal) > limit ? null : value;
+  } catch { return null; }
+}
+
+/** No remembered snapshot, native handle, or fallback to a prior capture is retained. A result is frozen, and is returned as is when parsed again. */
 export function parseWorldSnapshot(value) {
-  const input = decoded(value, LIMIT.snapshotBytes);
+  return isParsed(value) ? value : markParsed(parseSnapshot(value));
+}
+
+function parseSnapshot(value) {
+  const input = decodedSnapshot(value, LIMIT.snapshotBytes);
   if (!plain(input) || input.version !== 1) return unavailable('invalid-snapshot');
   if (input.status === 'unavailable') return unavailable('native-unavailable');
   if (input.status !== 'ready' || !identifier(input.gameVersion) || input.gameVersion.length > 32
@@ -101,7 +120,7 @@ export function parseWorldSnapshot(value) {
   if (!plain(audience) || !CHANNELS.has(audience.channel)
     || !stringList(audience.profileKeys, 8, identifier, 1)
     || (audience.channel !== 'group' && audience.profileKeys.length !== 1)) return unavailable('invalid-audience');
-  const facts = observations(input.facts ?? {}, 'fact'), journal = observations(input.journal ?? {}, 'journal');
+  const facts = factRows(input.facts ?? {}), journal = journalRows(input.journal ?? {});
   const lifepath = input.lifepath === undefined ? unknown() : observation(input.lifepath, 'lifepath');
   if (!facts || !journal || !lifepath || !stringList(input.activeQuestKeys ?? [], LIMIT.activeQuests)) {
     return unavailable('invalid-observations');
@@ -345,29 +364,45 @@ function resolverPack(pack) {
 // Optional startup warm-up for a long-lived frozen pack, so the first
 // conversation turn does not pay the one-time preparation either.
 export function warmKnowledgePack(pack) {
-  resolverPack(pack);
+  const prepared = resolverPack(pack);
+  if (!prepared.errors.length) compiledRules(prepared);
 }
 
-function evaluate(node, snapshot, prepared) {
+// A rule's condition is compiled once per prepared pack into a function of the snapshot (the pack is validated and frozen once at
+// load; the 768 conditions used to be walked as trees at every turn). The result is the same {value, evidence} as walking the tree:
+// true, false or null (unknown), and the evidence only of the leaves that hold.
+const COMPARE = Object.freeze({eq: expected => value => value === expected, ne: expected => value => value !== expected,
+  gte: expected => value => value >= expected, lte: expected => value => value <= expected,
+  in: expected => value => expected.includes(value)});
+function compileNode(node, prepared) {
   if (node.all || node.any) {
-    const kind = node.all ? 'all' : 'any', parts = node[kind].map(child => evaluate(child, snapshot, prepared));
-    const value = kind === 'all'
-      ? parts.some(part => part.value === false) ? false : parts.some(part => part.value === null) ? null : true
-      : parts.some(part => part.value === true) ? true : parts.some(part => part.value === null) ? null : false;
-    return {value, evidence: value === true
-      ? parts.filter(part => part.value === true).flatMap(part => part.evidence) : []};
+    const kind = node.all ? 'all' : 'any', children = node[kind].map(child => compileNode(child, prepared));
+    return snapshot => {
+      const parts = children.map(child => child(snapshot));
+      const value = kind === 'all'
+        ? parts.some(part => part.value === false) ? false : parts.some(part => part.value === null) ? null : true
+        : parts.some(part => part.value === true) ? true : parts.some(part => part.value === null) ? null : false;
+      return {value, evidence: value === true ? parts.filter(part => part.value === true).flatMap(part => part.evidence) : []};
+    };
   }
-  const guard = node.guard ? evaluate(node.guard, snapshot, prepared) : {value: true, evidence: []};
-  if (guard.value !== true) return {value: guard.value, evidence: []};
-  const row = node.type === 'fact' ? snapshot.facts[node.key]
-    : node.type === 'journal' ? snapshot.journal[node.key] : snapshot.lifepath;
-  if (!row || row.status !== 'known' || (node.type === 'fact' && row.present !== true)
-    || (node.type === 'journal' && row.questKey !== prepared.journals.get(node.key).questKey)) return {value: null, evidence: []};
-  const value = node.op === 'eq' ? row.value === node.value : node.op === 'ne' ? row.value !== node.value
-    : node.op === 'gte' ? row.value >= node.value : node.op === 'lte' ? row.value <= node.value : node.value.includes(row.value);
-  return {value, evidence: value ? [...guard.evidence, {type: node.type, ...(node.key ? {key: node.key} : {}),
-    value: row.value, sourceId: row.sourceId, evidenceRefs: [...row.evidenceRefs],
-    ...(node.type === 'fact' ? {present: true} : {}), ...(node.type === 'journal' ? {questKey: row.questKey} : {})}] : []};
+  const guard = node.guard ? compileNode(node.guard, prepared) : null;
+  const {type, key} = node, holds = COMPARE[node.op](node.value);
+  const questKey = type === 'journal' ? prepared.journals.get(key)?.questKey : undefined;
+  return snapshot => {
+    let before = [];
+    if (guard) {
+      const checked = guard(snapshot);
+      if (checked.value !== true) return {value: checked.value, evidence: []};
+      before = checked.evidence;
+    }
+    const row = type === 'fact' ? snapshot.facts[key] : type === 'journal' ? snapshot.journal[key] : snapshot.lifepath;
+    if (!row || row.status !== 'known' || (type === 'fact' && row.present !== true)
+      || (type === 'journal' && row.questKey !== questKey)) return {value: null, evidence: []};
+    const value = holds(row.value);
+    return {value, evidence: value ? [...before, {type, ...(key ? {key} : {}),
+      value: row.value, sourceId: row.sourceId, evidenceRefs: [...row.evidenceRefs],
+      ...(type === 'fact' ? {present: true} : {}), ...(type === 'journal' ? {questKey: row.questKey} : {})}] : []};
+  };
 }
 
 function coWitnessFor(rule, prepared, profileKey) {
@@ -390,6 +425,10 @@ function permitted(rule, snapshot, profileKey, prepared) {
   return true;
 }
 
+// Share of the room in the context budget (what the framing leaves) branch decisions may claim before the other facts are placed. Decisions win when a character has more true
+// rules than room (Johnny: 150 decisions allowed, 266 rules dropped), but the last twentieth stays for the other facts so that a
+// character hears at least one of them; room either side leaves unused goes to the other.
+export const CHOICE_SHARE = 0.95;
 const SHARED_PERSPECTIVES = new Set(['participant', 'witnessed', 'private']);
 const ORIGIN = Object.freeze({public: 'public knowledge', 'shared-journal': 'V shared the current-save journal; not witnessed',
   participant: 'verified participant in this event', witnessed: 'verified witness of this event',
@@ -399,7 +438,11 @@ const FRAMING = 'Current-save knowledge replaces earlier dynamic quest assumptio
   + 'Missing information is unknown, not a rejected choice. Respect each knowledge origin; shared journal data is not witnessing. '
   + 'Do not invent hidden stages, memories or future decisions.\n';
 const serialize = value => JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
-const render = value => FRAMING + serialize(value);
+// Decisions V made come first, under their own heading ("choices"); everything else that happened stays under "facts". The note rides
+// on the framing's one line, so a reader that splits the context at its first newline still finds the JSON.
+const CHOICES_NOTE = ' Under "choices" are decisions V made; under "facts" is whatever else happened.';
+const CHOICES_KEY_CHARS = '"choices":[],'.length;
+const render = value => (value.choices?.length ? FRAMING.slice(0, -1) + CHOICES_NOTE + '\n' : FRAMING) + serialize(value);
 const words = value => new Set((typeof value === 'string' ? value.slice(0, 2000).toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) : []) ?? []);
 // Function words would match nearly every statement and drown real relevance.
 const STOPWORDS = new Set(('the and you your yours are was were what when where which who whom whose why how with without '
@@ -409,15 +452,31 @@ const STOPWORDS = new Set(('the and you your yours are was were what when where 
   + 'remember happened happen going gonna want wanna talk talking let lets thing things stuff way back').split(' '));
 const queryWords = value => new Set([...words(value)].filter(word => !STOPWORDS.has(word)));
 
-function rank(rule, snapshot, profileKey, query) {
+function rank({rule, terms}, snapshot, profileKey, query) {
   let score = rule.priority + (snapshot.activeQuestKeys.includes(rule.questKey) ? 120 : 0)
     + (rule.category === 'relationship' ? 80 : rule.category === 'decision' ? 30 : 0)
     + (rule.audience.speakers !== 'all' && rule.audience.speakers.includes(profileKey) ? 40 : 0);
   // Relevance to what V just asked must be able to pull a specific outcome into a
   // full budget ahead of unrelated facts (50 per distinct term, up to 150); it never establishes truth.
-  const terms = words(`${rule.questKey.replace(/-/g, ' ')} ${rule.topic.replace(/[._-]/g, ' ')} ${rule.statement}`);
   score += Math.min(150, [...query].filter(word => terms.has(word)).length * 50);
   return score;
+}
+
+// Everything about a rule that does not depend on the snapshot, worked out once per prepared pack: its compiled condition, whether it is
+// a branch decision, the words of its statement (for relevance) and its statement normalised (for the duplicate check).
+function compiledRules(prepared) {
+  if (prepared.compiled) return prepared.compiled;
+  const branch = classifyDecisions(prepared.rules, prepared.journals);
+  prepared.compiled = prepared.rules.map(rule => ({rule, test: compileNode(rule.condition, prepared), branch: branch.get(rule.id) ?? null,
+    terms: words(`${rule.questKey.replace(/-/g, ' ')} ${rule.topic.replace(/[._-]/g, ' ')} ${rule.statement}`),
+    text: rule.statement.toLowerCase().replace(/\s+/g, ' ').trim()}));
+  return prepared.compiled;
+}
+
+/** The rules of a validated pack that record a branch decision, with the reason (knowledge-decisions.mjs). */
+export function branchDecisions(pack) {
+  const prepared = resolverPack(pack);
+  return prepared.errors.length ? new Map() : new Map(compiledRules(prepared).filter(meta => meta.branch).map(meta => [meta.rule.id, meta.branch]));
 }
 
 function eventFor(row, snapshot, prepared, profileKey) {
@@ -470,9 +529,10 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
     || !current.audience.profileKeys.every(key => prepared.profiles.has(key))) return invalid('wrong-audience');
 
   const matches = [], topics = new Map(), groups = new Map();
-  for (const rule of prepared.rules) {
+  for (const meta of compiledRules(prepared)) {
+    const rule = meta.rule;
     if (!rule.gameVersions.includes(current.gameVersion)) continue;
-    const evaluation = evaluate(rule.condition, current, prepared);
+    const evaluation = meta.test(current);
     diagnostics.counts.evaluated += 1;
     diagnostics.counts[evaluation.value === null ? 'unknown' : String(evaluation.value)] += 1;
     if (evaluation.value !== true) { trace(rule, evaluation.value === null ? 'unknown' : 'false'); continue; }
@@ -486,7 +546,7 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
       if (!groupOutcomes.has(group.outcome)) groupOutcomes.set(group.outcome, []);
       groupOutcomes.get(group.outcome).push(rule.id);
     }
-    matches.push({rule, evaluation});
+    matches.push({rule, meta, evaluation});
   }
   const conflicts = new Set();
   for (const [topic, outcomes] of topics) if (outcomes.size > 1) {
@@ -506,7 +566,7 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
       diagnostics.counts.conflicted += 1; trace(row.rule, 'conflict'); continue;
     }
     if (!permitted(row.rule, current, profileKey, prepared)) { diagnostics.counts.outsideAudience += 1; trace(row.rule, 'outside-audience'); continue; }
-    candidates.push({...row, score: rank(row.rule, current, profileKey, queryTerms)});
+    candidates.push({...row, score: rank(row.meta, current, profileKey, queryTerms)});
   }
   candidates.sort((a, b) => b.score - a.score || (a.rule.id < b.rule.id ? -1 : a.rule.id > b.rule.id ? 1 : 0));
   // Events this character took part in (or privately shares with V), for the
@@ -523,21 +583,58 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
       knowledgeOrigin: coWitness?.origin ?? ORIGIN[rule.audience.perspective],
       ...(times.length ? {gameTimeSeconds: Math.max(...times)} : {})});
   }
+
+  // The budget. Branch decisions (knowledge-decisions.mjs) are told first, under "choices", in rank order, and may claim CHOICE_SHARE
+  // of it, so a character with hundreds of true rules keeps what V decided; the other facts then take the rest, and a decision that did
+  // not fit its share still uses whatever the other facts leave unused. One outcome per topic and one wording per statement: the
+  // first (highest-ranked) wins, and a later rule with the same topic or the same text is a duplicate.
   const data = {version: 1, status: 'ready', speaker: profileKey, facts: []};
-  let context = render(data);
-  if (context.length > budget) return invalid('budget-too-small');
-  const selected = [], seenTopics = new Set();
-  for (const row of candidates) {
-    if (seenTopics.has(row.rule.topic)) { trace(row.rule, 'duplicate-outcome'); continue; }
-    const rule = row.rule, fact = {questKey: rule.questKey, topic: rule.topic, outcome: rule.outcome,
+  const bare = render(data);
+  if (bare.length > budget) return invalid('budget-too-small');
+  const choiceCap = Math.floor((budget - bare.length) * CHOICE_SHARE); // of the room the framing leaves
+  const seenTopics = new Set(), seenTexts = new Set(), done = new Set();
+  const choices = [], facts = [], decisions = {true: 0, selected: 0, dropped: 0, duplicates: 0};
+  let length = bare.length, choiceChars = 0;
+  const entryOf = row => {
+    const rule = row.rule;
+    return row.entry ??= {questKey: rule.questKey, topic: rule.topic, outcome: rule.outcome,
       knowledgeOrigin: coWitnessFor(rule, prepared, profileKey)?.origin ?? ORIGIN[rule.audience.perspective], text: rule.statement};
-    const proposed = render({...data, facts: [...data.facts, fact]});
-    if (proposed.length > budget) { diagnostics.counts.omitted += 1; trace(rule, 'budget'); continue; }
-    data.facts.push(fact); context = proposed; seenTopics.add(rule.topic); selected.push(row); trace(rule, 'selected');
+  };
+  // 'taken', 'duplicate' or 'full'; only a full one may be tried again.
+  const attempt = (row, choice, capped) => {
+    const rule = row.rule;
+    if (seenTopics.has(rule.topic)) { trace(rule, 'duplicate-outcome'); if (choice) decisions.duplicates += 1; return 'duplicate'; }
+    if (seenTexts.has(row.meta.text)) { trace(rule, 'duplicate-statement'); if (choice) decisions.duplicates += 1; return 'duplicate'; }
+    row.size ??= serialize(entryOf(row)).length;
+    const list = choice ? choices : facts;
+    const cost = row.size + (list.length ? 1 : 0) + (choice && !choices.length ? CHOICES_KEY_CHARS + CHOICES_NOTE.length : 0);
+    if (length + cost > budget || (capped && choiceChars + cost > choiceCap)) return 'full';
+    list.push(row); length += cost; if (choice) choiceChars += cost;
+    seenTopics.add(rule.topic); seenTexts.add(row.meta.text); trace(rule, 'selected');
+    return 'taken';
+  };
+  const wanted = candidates.filter(row => row.meta.branch), others = candidates.filter(row => !row.meta.branch);
+  decisions.true = wanted.length;
+  for (const row of wanted) if (attempt(row, true, true) !== 'full') done.add(row);
+  for (const row of others) {
+    if (attempt(row, false, false) === 'full') { diagnostics.counts.omitted += 1; trace(row.rule, 'budget'); }
   }
-  diagnostics.counts.selected = selected.length;
+  for (const row of wanted) {
+    if (done.has(row)) continue;
+    if (attempt(row, true, false) === 'full') { diagnostics.counts.omitted += 1; decisions.dropped += 1; trace(row.rule, 'budget'); }
+  }
+  const order = new Map(candidates.map((row, index) => [row, index]));
+  const byRank = (a, b) => order.get(a) - order.get(b);
+  choices.sort(byRank); facts.sort(byRank);
+  const told = [...choices, ...facts]; // the order the context tells them in
+  decisions.selected = choices.length;
+  data.facts = facts.map(entryOf);
+  if (choices.length) data.choices = choices.map(entryOf);
+  const context = render(choices.length ? {version: 1, status: 'ready', speaker: profileKey, choices: data.choices, facts: data.facts} : data);
+  diagnostics.counts.selected = told.length;
   diagnostics.contextChars = context.length;
-  const eligible = current.identity.status === 'verified' ? selected.filter(row => row.rule.stable) : [];
+  diagnostics.decisions = {true: decisions.true, selected: decisions.selected, dropped: decisions.dropped, duplicates: decisions.duplicates};
+  const eligible = current.identity.status === 'verified' ? told.filter(row => row.rule.stable) : [];
   const events = eligible.slice(0, LIMIT.events).map(row => eventFor(row, current, prepared, profileKey));
   diagnostics.memory = {identity: current.identity.status, candidates: events.length,
     omitted: Math.max(0, eligible.length - LIMIT.events)};

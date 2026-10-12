@@ -9,6 +9,7 @@
 // be read, or whose revision or world binding differs, makes that snapshot unavailable for the turn (never a guess).
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
+import {freezeDeep} from './parsed-snapshot.mjs';
 
 const PARTS = new Set(['world', 'active', 'history']);
 const MAX_BYTES = 4 * 1024 * 1024;
@@ -16,7 +17,10 @@ const KEEP = 3;
 
 let runtimeDir = null;
 let read = path => readFileSync(path, 'utf8');
-// part name -> Map(key -> data), newest last.
+// part name -> Map(key -> data), newest last. A part is published once per revision and never changes, so what is read from disk
+// stays here, frozen, until three newer revisions of that part have been read: a turn names {part, revision}, finds the data in
+// memory, and shares it (the parsers remember their work on it by object, bridge/parsed-snapshot.mjs) instead of reading the file,
+// parsing 150 KB to 600 KB of JSON and cloning the result for every turn.
 const store = new Map();
 
 export function configureKnowledgeParts({runtimeDir: dir, readFile} = {}) {
@@ -45,7 +49,7 @@ function load(name, revision, generation, worldToken) {
   if (!plain(value) || value.version !== 1 || value.part !== name || value.revision !== revision
     || value.generation !== generation || (value.worldToken ?? undefined) !== (worldToken ?? undefined) || !plain(value.data)) return null;
   const parts = store.get(name) ?? new Map(); store.set(name, parts);
-  parts.set(key, value.data);
+  parts.set(key, freezeDeep(value.data));
   while (parts.size > KEEP) parts.delete(parts.keys().next().value);
   return value.data;
 }
@@ -60,7 +64,7 @@ function world(snapshot) {
   if (!data) return unavailable('knowledge-part-missing');
   const result = {...header, facts: data.facts, journal: data.journal, lifepath: data.lifepath};
   if (data.activeQuestKeys !== undefined) result.activeQuestKeys = data.activeQuestKeys;
-  return structuredClone(result);
+  return result;
 }
 
 function history(snapshot) {
@@ -82,7 +86,7 @@ function history(snapshot) {
   }
   // capture() orders rows by id (Lua's string sort, the same as JavaScript's default).
   quests.sort((a, b) => (String(a?.id) < String(b?.id) ? -1 : String(a?.id) > String(b?.id) ? 1 : 0));
-  return structuredClone({...header, quests});
+  return {...header, quests};
 }
 
 /** The request with any part references replaced by the full snapshots. Inputs without references are returned as is. */

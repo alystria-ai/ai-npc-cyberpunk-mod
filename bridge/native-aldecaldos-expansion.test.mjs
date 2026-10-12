@@ -33,7 +33,8 @@ function snapshot(selected = rules, fields = {}) {
 function resolved(input, profileKey = panam, selectedPack = pack) {
   const result = resolveKnowledge({pack: selectedPack, snapshot: input, profileKey, maxChars: 12000});
   assert.equal(result.diagnostics.status, 'ready');
-  const facts = JSON.parse(result.context.slice(result.context.indexOf('\n') + 1)).facts;
+  // Branch decisions are listed first under "choices", the rest under "facts"; these tests care about every entry.
+  const data = JSON.parse(result.context.slice(result.context.indexOf('\n') + 1)), facts = [...(data.choices ?? []), ...data.facts];
   return {...result, facts};
 }
 const topics = result => result.facts.map(row => `${row.topic}/${row.outcome}`).sort();

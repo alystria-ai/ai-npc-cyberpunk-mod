@@ -1,5 +1,6 @@
 // Generic journal observations are evidence of V's journal, never a decision
 // mapping or a durable memory event. This module has no persistence or I/O.
+import {isImmutable, isParsed, markParsed, memoOf} from './parsed-snapshot.mjs';
 const LIMIT = Object.freeze({bytes: 4 * 1024 * 1024, quests: 4096, objectives: 16384,
   perQuest: 256, output: 12000, selected: 6, selectedObjectives: 16});
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -22,12 +23,24 @@ function label(value, maximum) {
   const result = value.replace(/<[^>]*>/g, '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
   return result && !result.startsWith('LocKey#') ? result : null;
 }
+// An object's size was measured with JSON.stringify of all of it at every parse (about 25 ms for the 600 KB history of a late save).
+// The quest rows are immutable objects shared from the game's published part (bridge/knowledge-parts.mjs), so each row's size is
+// worked out once; the small header is measured each time.
+const rowBytes = memoOf(row => Buffer.byteLength(JSON.stringify(row) ?? ''));
 function decode(input) {
   try {
     if (typeof input === 'string') return Buffer.byteLength(input) <= LIMIT.bytes ? JSON.parse(input) : null;
-    return plain(input) && Buffer.byteLength(JSON.stringify(input)) <= LIMIT.bytes ? input : null;
+    if (!plain(input)) return null;
+    const {quests, ...rest} = input;
+    let bytes = Buffer.byteLength(JSON.stringify(rest));
+    if (Array.isArray(quests)) for (const row of quests) bytes += rowBytes(row) + 1;
+    else bytes += Buffer.byteLength(JSON.stringify(quests) ?? '');
+    return bytes <= LIMIT.bytes ? input : null;
   } catch { return null; }
 }
+// A quest row that parsed once, kept for as long as the immutable row object lives: the parsed row, the latest observation time in it
+// and its objective count. The time is checked against each capture, so a row is never reused for a capture that would reject it.
+const parsedRows = new WeakMap();
 function coverage(value) {
   if (!plain(value) || !['pending', 'expired', 'partial', 'complete'].includes(value.status)) return null;
   if (value.status === 'pending') return {status: 'pending'};
@@ -40,7 +53,12 @@ function coverage(value) {
     observed: value.observed, omitted: value.omitted, unstable: value.unstable, scanning: value.scanning === true,
     ...(value.total !== undefined ? {total: value.total} : {})};
 }
+/** A result is frozen, and is returned as is when parsed again. */
 export function parseJournalHistory(input) {
+  return isParsed(input) ? input : markParsed(parseHistory(input));
+}
+
+function parseHistory(input) {
   const value = decode(input);
   if (!plain(value) || value.version !== 1 || value.status !== 'ready') return unknown('native-unavailable');
   if (!integer(value.generation, Number.MAX_SAFE_INTEGER) || !finite(value.capturedAtMs, 1e15)
@@ -50,6 +68,11 @@ export function parseJournalHistory(input) {
   if (!active || !history || !rows) return unknown('invalid-inventory');
   let count = 0; const quests = [], seen = new Set();
   for (const row of rows) {
+    const known = parsedRows.get(row);
+    if (known && known.latest <= value.capturedAtMs && !seen.has(known.parsed.id) && count + known.objectives <= LIMIT.objectives
+      && ['complete', 'partial'].includes((known.parsed.lane === 'active' ? active : history).status)) {
+      quests.push(known.parsed); seen.add(known.parsed.id); count += known.objectives; continue;
+    }
     const title = label(row?.title, 320), nativeId = label(row?.nativeId, 160), objectives = array(row?.objectives, LIMIT.perQuest);
     if (!plain(row) || !id(row.id) || seen.has(row.id) || !title || !nativeId || !states.has(row.state)
       || !['active', 'history'].includes(row.lane) || !finite(row.observedAtMs, value.capturedAtMs)
@@ -79,6 +102,8 @@ export function parseJournalHistory(input) {
       parsed.objectives.push(item); objectiveIds.add(item.id);
     }
     quests.push(parsed); seen.add(parsed.id);
+    if (isImmutable(row)) parsedRows.set(row, {parsed, objectives: parsed.objectives.length,
+      latest: Math.max(parsed.observedAtMs, ...parsed.objectives.map(item => item.observedAtMs))});
   }
   let tracked = {status: 'unknown'};
   if (plain(value.tracked) && value.tracked.status === 'untracked') tracked = {status: 'untracked'};

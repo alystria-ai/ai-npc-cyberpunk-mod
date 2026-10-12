@@ -1,6 +1,6 @@
 // How long does a turn's knowledge preparation take, from the real parts the game published?
 // (docs/QUEST_DECISIONS.md, step 1.) knowledgePreparedMs in runtime/bridge-latency.json is the time from the turn arriving to
-// the knowledge being ready: PlayerKnowledge.prepare, which runs parseWorldSnapshot, resolveKnowledge (the pack's rules over the
+// the knowledge being ready (the admission step before it parses the request and hashes it): PlayerKnowledge.prepare, which runs parseWorldSnapshot, resolveKnowledge (the pack's rules over the
 // snapshot) and withConversationKnowledge (journal history, recent events, open jobs).
 //
 //   node scripts/Measure-KnowledgePrepare.mjs --runtime <folder with knowledge-*.json and last-input.json> [--turns 40]
@@ -16,6 +16,7 @@ import {performance} from 'node:perf_hooks';
 import {configureKnowledgeParts} from '../bridge/knowledge-parts.mjs';
 import {parseInput} from '../bridge/protocol.mjs';
 import {PlayerKnowledge} from '../bridge/player-knowledge.mjs';
+import {parsedInputIdentity} from '../bridge/group-prefetch.mjs';
 import {resolveKnowledge} from '../bridge/world-knowledge.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -54,6 +55,7 @@ for (const profile of PROFILES) {
     const raw = JSON.stringify({...request, text: `${request.text} ${turn}`});
     let started = performance.now();
     const input = parseInput(raw);
+    parsedInputIdentity(input); // the poll hashes every new request to tell it from the last one
     admission.push(performance.now() - started);
     if (!input) throw Error(`the request for ${profile} did not parse`);
     started = performance.now();

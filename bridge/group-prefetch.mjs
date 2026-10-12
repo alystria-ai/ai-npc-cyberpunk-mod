@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {snapshotKey} from './parsed-snapshot.mjs';
 import {parseInput} from './protocol.mjs';
 import {abortable, cancelled} from './transport-pool.mjs';
 
@@ -9,9 +10,12 @@ export function inputIdentity(input, context = '') {
 }
 
 // The same digest for a value that parseInput itself just returned. Re-parsing
-// a parsed request (with its large journal history) cost about 40 ms per turn.
+// a parsed request (with its large journal history) cost about 40 ms per turn. The two large snapshots enter by cached digest
+// (bridge/parsed-snapshot.mjs), so hashing the request no longer serialises 800 KB of them again.
 export function parsedInputIdentity(parsed, context = '') {
-  return createHash('sha256').update(JSON.stringify([parsed, context])).digest('hex');
+  const keyed = parsed !== null && typeof parsed === 'object'
+    ? {...parsed, worldKnowledge: snapshotKey(parsed.worldKnowledge), journalHistory: snapshotKey(parsed.journalHistory)} : parsed;
+  return createHash('sha256').update(JSON.stringify([keyed, context])).digest('hex');
 }
 
 export function parsePrewarm(value, ids) {
