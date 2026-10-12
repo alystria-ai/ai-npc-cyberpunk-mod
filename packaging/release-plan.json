@@ -98,6 +98,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/perf-probe.lua"
         },
         {
+          "source": "mod/native-core.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/native-core.lua"
+        },
+        {
           "source": "mod/continuous-speech.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/continuous-speech.lua"
         },

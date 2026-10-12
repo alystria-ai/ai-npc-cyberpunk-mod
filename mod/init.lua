@@ -1,5 +1,8 @@
 -- Cyberpunk Convai game adapter. It never renders an ImGui text field.
 -- Owns native composers, targeted turns, party connections and live diagnostics.
+-- Optional native core plugin: routes the bridge mailbox files through its worker thread when
+-- present (native-core.lua). Without the plugin, io and os stay unchanged.
+pcall(function() dofile('native-core.lua').install() end)
 -- Developer-mode probe: count and time every hook and onUpdate (no effect otherwise).
 pcall(function() dofile('perf-probe.lua').hookRegistrations() end)
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
