@@ -171,6 +171,8 @@ Each line is one check on what is installed. Detail: the doc or log entry named.
 
 ## Captain's log
 
+**2026-10-13: faces re-enabled in the native plugin (array:Float), built and headless-tested, NOT live.** `ConvaiNativeFaces.Frame` and `Check` now take `array:Float` instead of `array:Double` (not an RTTI type in 2.31), so `CommitAll` accepts the system; the plugin widens to doubles for the core (parity replay unchanged), `mod/facial-playback.lua` passes the same tables. Expected in game after installing the new DLL and a CET reload: probe.log `Native core: faces=native`. If the refusal persists, the log line names the type; `faces` in `runtime/native-off.txt` still forces the Lua path. Registration tests keep a fake system with `array:Double` refused. Not yet proven live: CET converting a Lua table to `array:Float` (`ConvaiNativeFaces.Check` runs once before the first frame and falls back to Lua with `array check failed` if it does not).
+
 **2026-10-12 end of day: where things stand, and tomorrow's plan.** Installed in the game folder (HEAD `44374d4`): all committed `mod/` Lua, plus the combined native plugin `red4ext/plugins/CyberpunkConvaiNative/CyberpunkConvaiNative.dll` (SHA-256 `c0348b5c…`, systems io, core, actuator, clearance, gaze, faces). The bridge runs from the working tree and picks up today's bridge commits at the next game start. Nothing is pushed since 169cbbf.
 - **Proven live today:**
   - RED4ext loads the plugin, and CET calls its natives (`ConvaiNative.CheckVersion(1)` returns true).

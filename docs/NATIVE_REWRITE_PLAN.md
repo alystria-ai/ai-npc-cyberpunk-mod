@@ -98,11 +98,15 @@ silently for an unknown type name, which used to leave a function registered wit
 missing. Game-class lookups (`game::Class`, `Method`) cache hits only, so a lookup made before the
 scripts loaded is retried.
 
-**faces is disabled in game 2.31.** `Frame` and `Check` take `array:Double`, a type this game
-never creates (its exe has array:Float, Int32, String and Bool only). The commit refuses the whole
-faces system and facial-playback.lua keeps its Lua path. To enable it, pass the clock and speech
-vectors as `array:Float` (clock as offset from a Lua-side base, to keep precision) or as one
-String, change the natives and `facial-playback.lua` together, and re-run the in-game check.
+**faces uses array:Float (2026-10-13).** In game 2.31 `Frame` and `Check` could not take `array:Double`, a
+type this game never creates (its exe has array:Float, Int32, String and Bool only), so the commit refused
+the whole faces system and facial-playback.lua kept its Lua path. Both arrays are now `array:Float`; CET
+converts the Lua tables directly, and the C++ side widens them to doubles for the core (parity replay is
+unchanged). Nothing in them needs more than float precision: flags, counts, weights and gains are small,
+the speech vector is feature weights the game stores as Float anyway, and the clock is only compared with a
+time 2.5 s ahead (2 ms resolution after 9 hours). `registration_tests.cpp` keeps a fake system with an
+`array:Double` parameter to prove the check still refuses unknown types. Expected in game:
+`Native core: faces=native`; if the commit still refuses it, the probe log names the type.
 
 **Build.** `scripts/Build-NativeCore.ps1` (CMake, Visual Studio 2022 x64, RED4ext.SDK at commit
 `ad727771`, a local checkout via `-SdkDirectory` or FetchContent), then ctest. Output:
