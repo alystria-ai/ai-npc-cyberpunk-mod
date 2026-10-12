@@ -92,3 +92,7 @@ Boolean and unavailable-result handling, engine displacement, car arrival
 before attachment, pending/large body reservations, floor preservation and
 vehicle recovery. Live invitation, unusual rigs and sloped/stair locations
 still require gameplay verification.
+
+## Native path
+
+With the native core plugin loaded, the box checks, the segment sweep and the two companions.lua raycasts run in C++ (one call per check, same results, same query budget). The Lua above stays the fallback behind the kill switch `clearance`. See `docs/NATIVE_CLEARANCE.md`.

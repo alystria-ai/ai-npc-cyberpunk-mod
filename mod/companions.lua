@@ -272,14 +272,8 @@ end
 local placeDrop = .45
 local function floorBelow(at, maxDrop)
     if not clearance.take(1) then return false end
-    local ok, floor = pcall(function()
-        local hit, trace = Game.GetSpatialQueriesSystem():SyncRaycastByCollisionGroup(
-            Vector4.new(at.x, at.y, at.z + .6, 1), Vector4.new(at.x, at.y, at.z - .8, 1), CName.new('Static'), false, false)
-        if hit ~= true or not trace or not trace.position then return nil end
-        local drop = at.z - trace.position.z
-        if drop < .05 or drop > (maxDrop or .35) then return nil end
-        return trace.position.z
-    end)
+    -- The ray runs in companion-clearance.lua (floorZ), natively when the plugin is on.
+    local ok, floor = pcall(clearance.floorZ, at, maxDrop)
     if not ok then return nil end
     return floor
 end
@@ -737,20 +731,8 @@ local sightGroups={'Static','Dynamic','Terrain','Collider','Destructible','Vehic
 function M.visibleFromCrosshair(from,to)
     if not spatialBudget or not clearance.isPoint(from) or not clearance.isPoint(to)
         or not clearance.available(#sightGroups) then return false end
-    local ok,visible=pcall(function()
-        local spatial=Game.GetSpatialQueriesSystem()
-        if not spatial then return false end
-        local start=Vector4.new(from.x,from.y,from.z,1)
-        local finish=Vector4.new(to.x,to.y,to.z,1)
-        for _,group in ipairs(sightGroups) do
-            if not clearance.take(1) then return false end
-            -- CET returns the out TraceResult. Boolean HIT is authoritative;
-            -- nil/non-Boolean responses never certify an unobstructed ray.
-            local hit=spatial:SyncRaycastByCollisionGroup(start,finish,CName.new(group),false,false)
-            if type(hit)~='boolean' or hit then return false end
-        end
-        return true
-    end)
+    -- The six rays run in companion-clearance.lua (sightClear), natively when the plugin is on.
+    local ok,visible=pcall(clearance.sightClear,from,to)
     return ok and visible==true
 end
 
