@@ -59,7 +59,7 @@ speaks that reply:
 
 **The rule for a character with no clip at all: Pocket**, as in the table. A stock Voxtral voice would be a different, generic voice
 that does not match the character (the preset voices carry only gender and language tags), so none is used. Today that is
-nobody who has a clip: see the next section for `8ug8ear` and `jake-estevez`.
+nobody: `8ug8ear` and `jake-estevez`, the last two, got reference sets on 2026-10-13.
 
 ## Long replies: two requests
 
@@ -103,9 +103,10 @@ A file that is missing, unreadable or fails its hash passes the turn to the next
 falls back to Pocket (`no-reference`). The registry sources use the already validated picks (themselves joined clips); the
 extracted ones are unvalidated raw game audio, so they are the last resort.
 
-Checked here on 2026-10-12: `8ug8ear` and `jake-estevez` are "unprepared" in all three sets and have no folder under
-`extracted/` (8ug8ear's voice ownership is still unresolved, `docs/GAME_VOICE_REFERENCES.md`), so in this checkout they still
-speak with Pocket until someone extracts clips for them. Judy, Johnny, Adam Smasher, Ana Friedman and Blue Moon have extracted clips as well.
+On 2026-10-12 `8ug8ear` and `jake-estevez` were "unprepared" in all three sets and had no folder under `extracted/`, so they spoke
+with Pocket. On 2026-10-13 both were given a long, a short and a Pocket set, hand-extracted from the game's voice archive
+(`docs/GAME_VOICE_REFERENCES.md`, "Hand-extracted references for 8ug8ear and Jake Estevez"), so every character now has an
+`omni-long` reference. Judy, Johnny, Adam Smasher, Ana Friedman and Blue Moon have extracted clips as well.
 
 If audio is already playing and the stream then fails, the reply's audio ends early (the written reply is complete) rather than
 playing two voices; the result carries `truncated: true`. (A failure of the *second* request of a split reply before any of its

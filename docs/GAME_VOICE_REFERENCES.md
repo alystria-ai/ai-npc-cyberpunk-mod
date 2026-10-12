@@ -95,6 +95,51 @@ Her local `Character.sts_hey_rey_09_tobias` record has no explicit `voiceTag`. S
 
 These findings do not prove that she has no usable speech. They also do not establish those generic default lines as her canonical spoken performance. Inspect the local scene/entity assignment and listen before selecting them. None was extracted or approved here.
 
+## Hand-extracted references for 8ug8ear and Jake Estevez (2026-10-13)
+
+Neither character had a clip in the picker's pool (the pool index lists them with no clips), so no auto-best set existed and all three
+configs (`pocket-voices.autobest.json`, `local-voices.autobest-short.json`, `local-voices.autobest-long.json`) had them as
+`unprepared`. Their lines were found in the scene files and the voice archive instead. Scripts: `scripts/clip-search/missing-two/`
+(`extract_two.py`, `analyze_two.py`, `select_build.py`, `asr_check.py`). Raw decoded clips, the analysis and the listening copies are
+in `E:\CyberpunkConvai-offload\work\clip-search\missing-two\` (`raw/<key>/<StringID>.{wem,wav,txt}`, `analysis.json`, `asr-check.txt`,
+`listen/`); no game dialogue is kept in the repo.
+
+- **Jake Estevez**: scene `sts_hey_gle_06_scene` (Heywood, Glen). The actor `Estevez` speaks six lines, all in the voice files
+  `civ_mid_m_14_enus_20_sts_hey_gle_06_f_<id>.wem`; every other actor of that scene has a different voice tag, so the speaker is
+  certain. Six clips, 1.7 to 7.4 s.
+- **8ug8ear**: the voice files `civ_mid_f_07_enus_15_scene_bugbear_default_f_<id>.wem` (eight lines, the scene `bugbear_default`). The
+  earlier check left their ownership open because `civ_mid_f_07` is a shared civilian model and the scene has no English store. The
+  captions settle it: they are a woman thanking V for saving her, describing her bruises, and naming Wakako, which is only her
+  after-rescue situation. They carry no hum (the gaps are digital silence); the hum noted earlier belongs to the gig's own scene, whose
+  one native line has empty English text. Eight clips, 1.1 to 5.8 s. This is content evidence, not a scene-to-entity proof: listen.
+
+Checks (objective, `analysis.json`): no clipped samples (peaks -11 to -1.8 dBFS), gated loudness -22 to -23 dB against the pool's -23
+(Jake's last line, -18.4 dB, is left out as the loud outlier), silence ratio 0.2 to 0.6 (fixed 0.3 s lead and trail, pauses), no noise
+floor or hum, 99 percent of the energy under 2.5 to 4.7 kHz, not the telephone band limit (Judy's reference measures 4.1 kHz).
+Speaker consistency by ECAPA (cosine between clips): Jake's six clips agree at 0.39 to 0.75 (the lowest involve the short thanks line
+and the 1.7 s line, which are not used; the two used agree at 0.75); 8ug8ear's eight at 0.11 to 0.65 (the 1.1 s and 1.5 s clips are the
+low outliers; the four used agree at 0.54 to 0.65). Eight unrelated characters' references agree at 0.15 on average and 0.31 at most,
+so each set is one voice. A Whisper small.en pass over the raw clips matches the installed captions (word similarity 0.86 to 1.00 for the
+clips used; the differences are contractions and a proper noun).
+
+Built the clip-search way (whole clips in the listed order, 0.4 s gaps, mono 24 kHz torchaudio resample, 16-bit PCM; no EQ, denoise or
+gain), into `runtime/voice-references/picked/autobest/<omni-short|omni-long|pocket>/<key>.wav`. The picks were chosen by duration-weighted
+leave-one-out ECAPA typicality with a 0.004 per second length bonus, among clips of 1.5 to 9 s with at least three words, typicality of
+0.55 or more, loudness within 2 dB of the median and peak under -3 dBFS. The Pocket set is the long set (the Pocket student trained on
+references up to 18 s).
+
+| Key | Set | Clips (StringID) | Seconds | sha256 |
+| --- | --- | --- | ---: | --- |
+| `jake-estevez` | omni-short | 1925828924100177920 | 7.38 | `1be5680ea82d9df4b1b059f595c40d9cae34765af7f4a235ee376ae1e37cf1dc` |
+| `jake-estevez` | omni-long, pocket | 1925828924100177920, 1925831516700143616 | 12.24 | `bf0716fa388188008604941db9f1312f9f744645b5e7a88816492ab9d343f131` |
+| `8ug8ear` | omni-short | 1937554339705671680, 1949225073582559232 | 8.52 | `b703798588ea7ec0ce3c51d5788ede6b080abb9bf3bff6c93aa4d813d3bd2a4c` |
+| `8ug8ear` | omni-long, pocket | 1937537478452596736, 1937554339705671680, 1949225070059343872, 1949225073582559232 | 14.99 | `328a9a6ef342690ac7b6f6bce2aecf7252aca1550e56aa83d7aa6d91b622bfeb` |
+
+All three configs load with the bridge's Node and Python loaders (256 voices ready, none unavailable). To ship: upload the six WAVs to
+`final/voice-references/picked/autobest/` and the three config files to `final/voice-configs/` in the Hugging Face bucket. Re-running
+`scripts/Build-AutobestConfigs.mjs` would put both back to `unprepared` (the pool has no clips for them), so re-apply these entries
+afterwards.
+
 ## Scaling to the named roster
 
 Build a per-character inventory first, using the roster key and actual game record as separate fields. Resolve aliases and entity/voice tags, join scene speakers to localization IDs, then request only a few candidate paths for each character. Keep base-game and DLC namespaces explicit. Deduplicate repeated scene uses by WEM path or audio hash.
