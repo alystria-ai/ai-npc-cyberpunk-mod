@@ -339,4 +339,257 @@ function M.recover(entry,player,occupied)
     occupied[#occupied+1]={position=target,clearance=entry.clearance}
     return true
 end
+-- Optional native path -----------------------------------------------------------------------
+-- With the CyberpunkConvaiNative plugin loaded and its 'vehicles' switch on, M.inspect and the
+-- not-mounted answer of M.mounting run in C++ (native/core/src/systems/vehicles): one CET call
+-- instead of about 58 calls and 35 property reads per car. Everything above is the original Lua
+-- and stays the fallback:
+--   * kill switch: a line "vehicles" in runtime/native-off.txt (the plugin re-reads it about once a
+--     second; the CET console cannot reach convaiNative, each CET mod has its own environment);
+--     three faults inside the plugin's natives also switch it off;
+--   * a native call that answers "" (a game function was missing, the entity was not readable) runs
+--     the original for that call; 20 empty answers in a row, or an unreadable answer, call
+--     convaiNative.fail('vehicles', ...) and this module stays on Lua for the session;
+--   * a detached entity (status 3) and every mounted answer run the original: the re-resolve of a
+--     detached handle and the parent EntityID object of a mount are CET objects;
+--   * the first VERIFY answers of each call run BOTH paths and compare them; any difference calls
+--     convaiNative.fail and logs both answers to probe.log. A line "vehicles" in
+--     runtime/native-verify.txt compares every call (and so does the test hook
+--     convaiNative.vehiclesVerify = true, set from Lua); convaiNative.vehiclesStats counts the calls.
+-- Wire format: VehiclesCore.hpp.
+local NATIVE='vehicles' -- the convaiNative system name (kill switch, probe.log)
+local VERIFY=8
+local EMPTY_LIMIT=20
+local luaInspect,luaMounting,luaUseSpatialBudget=M.inspect,M.mounting,M.useSpatialBudget
+
+local function bound(value) return type(value)=='table' or type(value)=='userdata' end
+local nativeClass
+local function resolve()
+    if nativeClass then return nativeClass end
+    local ok,class=pcall(function() return ConvaiNativeVehicles end)
+    if ok and bound(class) then nativeClass=class end
+    return nativeClass
+end
+local function note(line)
+    pcall(function()
+        local file=io.open('runtime/probe.log','a')
+        if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'),' ',line,'\n'); file:close() end
+    end)
+end
+local function stats(api)
+    local row=api.vehiclesStats
+    if type(row)~='table' then
+        row={native=0,lua=0,fallback=0,empty=0,emptyRun_inspect=0,emptyRun_mounting=0,verified=0,compared=0,mismatches=0}
+        api.vehiclesStats=row
+    end
+    return row
+end
+-- The plugin writes entity hashes as plain decimal digits; CET prints them with a type suffix
+-- ("123ULL"). The suffix is read once from a real entity hash.
+local suffix
+local function idSuffix(entity)
+    if suffix then return suffix end
+    local ok,text=pcall(function() return tostring(entity:GetEntityID().hash) end)
+    local found=ok and type(text)=='string' and text:match('^%d+([uUlL]*)$')
+    if found then suffix=found end
+    return suffix
+end
+local function number(token)
+    if token=='nan' then return 0/0 end
+    if token=='inf' then return math.huge end
+    if token=='-inf' then return -math.huge end
+    return tonumber(token)
+end
+local function words(text)
+    local list={}
+    for token in text:gmatch('%S+') do list[#list+1]=token end
+    return list
+end
+local function sameNumber(a,b)
+    if a~=a and b~=b then return true end
+    if a==b then return true end
+    if type(a)~='number' or type(b)~='number' or a~=a or b~=b then return false end
+    return math.abs(a-b)<=1e-9*(1+math.abs(a))
+end
+
+-- "V ..." as the table the original returns, 'detached' (the original must run), or nil (unreadable).
+local function decodeInspect(text,tail)
+    local t=words(text)
+    if t[1]~='V' then return nil end
+    local status=tonumber(t[2])
+    if status==0 then return {ready=false,invalid=true} end
+    if status==1 then return {ready=false,error='Native vehicle AI has not attached.'} end
+    if status==3 then return 'detached' end
+    if status~=2 or #t<9 then return nil end
+    local count=tonumber(t[9])
+    if not count or count<0 or #t~=9+3*count then return nil end
+    local speed,gap=number(t[7]),number(t[8])
+    if not speed or not gap then return nil end
+    local seats={}
+    for index=1,count do
+        local base=9+(index-1)*3
+        local occupant=t[base+2]
+        seats[index]={name=t[base+1],occupant=occupant~='0' and (occupant..tail) or nil,reserved=t[base+3]=='1'}
+    end
+    return {ready=true,seats=seats,speed=speed,invalid=t[3]=='1',playerGap=gap,
+        playerMounted=t[5]=='1',scene=t[6]=='1'},t[4]=='1'
+end
+local function sameInspect(native,aiPresent,lua)
+    if native.ready~=lua.ready then return false end
+    if not native.ready then return native.invalid==lua.invalid and native.error==lua.error end
+    if (lua.ai~=nil)~=aiPresent or native.invalid~=lua.invalid or native.playerMounted~=lua.playerMounted
+        or native.scene~=lua.scene or not sameNumber(native.speed,lua.speed)
+        or not sameNumber(native.playerGap,lua.playerGap) or #native.seats~=#lua.seats then return false end
+    for index,seat in ipairs(native.seats) do
+        local other=lua.seats[index]
+        if seat.name~=other.name or seat.occupant~=other.occupant or seat.reserved~=other.reserved then return false end
+    end
+    return true
+end
+local function describeInspect(info)
+    if type(info)~='table' then return tostring(info) end
+    if not info.ready then return ('{ready=false invalid=%s error=%s}'):format(tostring(info.invalid),tostring(info.error)) end
+    local seats={}
+    for _,seat in ipairs(info.seats or {}) do
+        seats[#seats+1]=('%s=%s%s'):format(tostring(seat.name),tostring(seat.occupant),seat.reserved and '*' or '')
+    end
+    return ('{speed=%s gap=%s mounted=%s scene=%s invalid=%s ai=%s seats=[%s]}'):format(tostring(info.speed),
+        tostring(info.playerGap),tostring(info.playerMounted),tostring(info.scene),tostring(info.invalid),
+        tostring(info.ai~=nil),table.concat(seats,' '))
+end
+
+-- The plugin, when it is on for this call; else nil (the caller runs the original).
+local function active()
+    local api=convaiNative
+    if type(api)~='table' or type(api.use)~='function' or api.use(NATIVE)~=true then return nil end
+    local class=resolve()
+    if not class then api.fail(NATIVE,'ConvaiNativeVehicles is not registered'); return nil end
+    return api,class
+end
+-- A call that answered "": count it, and give up on the plugin when it never answers.
+local function empty(api,row,name)
+    -- The run is counted per call: a good answer of one must not hide a call that is never answered.
+    local key='emptyRun_'..name
+    row.empty=row.empty+1
+    row[key]=(row[key] or 0)+1
+    if row[key]>=EMPTY_LIMIT then api.fail(NATIVE,name..' keeps answering unavailable') end
+end
+local function mismatch(api,row,name,detail)
+    row.mismatches=row.mismatches+1
+    note('Native core: vehicles MISMATCH in '..name..': '..detail)
+    api.fail(NATIVE,name..' differs from the Lua')
+end
+
+function M.inspect(vehicle)
+    local api,class=active()
+    local entity=api and type(vehicle)=='table' and vehicle.entity
+    if not entity then return luaInspect(vehicle) end
+    local row=stats(api)
+    local tail=idSuffix(entity)
+    if not tail then api.fail(NATIVE,'entity hash text is not digits and a suffix'); return luaInspect(vehicle) end
+    local ok,text=pcall(class.Inspect,entity,vehicle.owned==true)
+    if not ok then
+        api.fail(NATIVE,'inspect: '..tostring(text)); row.fallback=row.fallback+1
+        return luaInspect(vehicle)
+    end
+    if text=='' then empty(api,row,'inspect'); row.lua=row.lua+1; return luaInspect(vehicle) end
+    row.emptyRun_inspect=0
+    local info,aiPresent
+    if type(text)=='string' then info,aiPresent=decodeInspect(text,tail) end
+    if info==nil then
+        api.fail(NATIVE,'inspect: unreadable reply '..tostring(text)); row.fallback=row.fallback+1
+        return luaInspect(vehicle)
+    end
+    if info=='detached' then row.lua=row.lua+1; return luaInspect(vehicle) end
+    local always=api.vehiclesVerify==true
+    -- api.verifying answers from a value it re-checks about once a second and never raises.
+    if not always and type(api.verifying)=='function' then always=api.verifying(NATIVE)==true end
+    local verify=always or row.verified<VERIFY
+    if verify then
+        local lua=luaInspect(vehicle)
+        row.compared=row.compared+1
+        if not sameInspect(info,aiPresent,lua) then
+            mismatch(api,row,'inspect','plugin '..describeInspect(info)..' ('..text..'), Lua '..describeInspect(lua))
+            return lua
+        end
+        row.verified=row.verified+1
+        if row.verified==VERIFY then note('Native core: vehicles inspect matched the Lua '..VERIFY..' times, now native') end
+        return lua
+    end
+    row.native=row.native+1
+    vehicle.everAttached=true
+    if info.ready and aiPresent then
+        local ok2,ai=pcall(function() return entity:GetAIComponent() end)
+        info.ai=ok2 and ai or nil
+    end
+    return info
+end
+
+function M.mounting(entry)
+    local api,class=active()
+    local npc=api and type(entry)=='table' and entry.npc
+    if not npc then return luaMounting(entry) end
+    local row=stats(api)
+    local ok,text=pcall(class.Mounting,npc)
+    if not ok then
+        api.fail(NATIVE,'mounting: '..tostring(text)); row.fallback=row.fallback+1
+        return luaMounting(entry)
+    end
+    if text=='' then empty(api,row,'mounting'); row.lua=row.lua+1; return luaMounting(entry) end
+    row.emptyRun_mounting=0
+    local t=type(text)=='string' and words(text) or {}
+    if t[1]~='M' or not t[2] or (t[2]~='-' and (#t~=3 or not t[2]:match('^%d+$'))) then
+        api.fail(NATIVE,'mounting: unreadable reply '..tostring(text)); row.fallback=row.fallback+1
+        return luaMounting(entry)
+    end
+    if t[2]=='-' then
+        local always=api.vehiclesVerify==true
+        if not always and type(api.verifying)=='function' then always=api.verifying(NATIVE)==true end
+        if always or row.verified<VERIFY then
+            local lua=luaMounting(entry)
+            row.compared=row.compared+1
+            if lua~=nil then
+                mismatch(api,row,'mounting','plugin says not mounted, Lua says '..tostring(lua.vehicle)..' '..tostring(lua.seat))
+                return lua
+            end
+            row.verified=row.verified+1
+            return nil
+        end
+        row.native=row.native+1
+        return nil
+    end
+    -- Mounted: the parent EntityID is a CET object, so the original builds the answer. The plugin's
+    -- answer is checked against it every time (it costs nothing extra).
+    row.lua=row.lua+1
+    local lua=luaMounting(entry)
+    row.compared=row.compared+1
+    local tail=idSuffix(npc)
+    if tail and (not lua or lua.vehicle~=(t[2]..tail) or lua.seat~=t[3]) then
+        mismatch(api,row,'mounting','plugin '..text..', Lua '..tostring(lua and lua.vehicle)..' '..tostring(lua and lua.seat))
+    end
+    return lua
+end
+
+-- companions.lua calls this every update: once the plugin check has finished, ask for the switch
+-- so probe.log names the active path (convaiNative logs "Native core: vehicles=native|lua").
+local announced=false
+function M.useSpatialBudget(value)
+    luaUseSpatialBudget(value)
+    if not announced then
+        local api=convaiNative
+        if type(api)=='table' and api.pending~=true and type(api.use)=='function' then
+            announced=true
+            pcall(api.use,NATIVE)
+        end
+    end
+end
+
+-- Developer mode (perf-probe) times each entry point as vehicles.<name>, so the two paths can be
+-- compared by adding and removing the line "vehicles" in runtime/native-off.txt.
+local probe=convaiPerfProbe
+if type(probe)=='table' and type(probe.watch)=='function' then
+    for _,name in ipairs({'inspect','mounting'}) do
+        pcall(probe.watch,M,name,'vehicles.'..name)
+    end
+end
 return M

@@ -1,0 +1,26 @@
+{
+ "system": "vehicles",
+ "source": "mod/companion-vehicle-native.lua",
+ "cases": [
+  {
+   "name": "mounted in the driver seat",
+   "input": {"attached":true,"info":"parent","parent":"4294967297","seat":"seat_front_left"},
+   "output": {"mounted":true,"seat":"seat_front_left","vehicle":"4294967297","wire":"M 4294967297 seat_front_left"}
+  },
+  {
+   "name": "mounted in a back seat",
+   "input": {"attached":true,"info":"parent","parent":"12","seat":"seat_back_right"},
+   "output": {"mounted":true,"seat":"seat_back_right","vehicle":"12","wire":"M 12 seat_back_right"}
+  },
+  {
+   "name": "mounted to a 64-bit parent",
+   "input": {"attached":true,"info":"parent","parent":"18446744073709551615","seat":"seat_front_left"},
+   "output": {"mounted":true,"seat":"seat_front_left","vehicle":"18446744073709551615","wire":"M 18446744073709551615 seat_front_left"}
+  },
+  {"name":"no mounting info","input":{"attached":true,"info":"none","parent":"4294967297","seat":"seat_front_left"},"output":{"mounted":false,"wire":"M -"}},
+  {"name":"a zero parent is not mounted","input":{"attached":true,"info":"zero","parent":"0","seat":"seat_front_left"},"output":{"mounted":false,"wire":"M -"}},
+  {"name":"detached","input":{"attached":false,"info":"parent","parent":"4294967297","seat":"seat_front_left"},"output":{"mounted":false,"wire":"M -"}},
+  {"name":"detached with a parent","input":{"attached":false,"info":"parent","parent":"99","seat":"seat_front_left"},"output":{"mounted":false,"wire":"M -"}},
+  {"name":"a bike seat","input":{"attached":true,"info":"parent","parent":"300","seat":"seat_front"},"output":{"mounted":true,"seat":"seat_front","vehicle":"300","wire":"M 300 seat_front"}}
+ ]
+}

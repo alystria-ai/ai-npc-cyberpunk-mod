@@ -1,0 +1,2237 @@
+{
+ "system": "chauffeur",
+ "source": "mod/companion-chauffeur-native.lua",
+ "cases": [
+  {
+   "name": "the owned command is current and executing",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 2 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "no operation: an idle car",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": false,
+      "hasReceipt": false,
+      "receiptId": 0,
+      "receiptClass": "",
+      "current": {"present":false,"id":0,"className":""},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": false,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {"asked":false,"busy":false,"foreign":false,"hasAi":true,"hasEntity":true,"known":true,"ownedActive":false,"ready":true,"remaining":90,"reservations":0},
+    "wires": {"D":"D 3 1 0 0 0 0 - - - 90 -"}
+   }
+  },
+  {
+   "name": "no operation: an idle car with a foreign current command",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": false,
+      "hasReceipt": false,
+      "receiptId": 0,
+      "receiptClass": "",
+      "current": {"present":true,"id":9001,"className":"AIVehicleFollowCommand"},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": false,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "currentClass": "AIVehicleFollowCommand",
+     "currentId": 9001,
+     "foreign": true,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": false,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0
+    },
+    "wires": {"D":"D 3 1 0 1 1 0 - - 9001 90 AIVehicleFollowCommand"}
+   }
+  },
+  {
+   "name": "no operation: a command in the init slot",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": false,
+      "hasReceipt": false,
+      "receiptId": 0,
+      "receiptClass": "",
+      "current": {"present":false,"id":0,"className":""},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":true,"id":7,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": false,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {"asked":false,"busy":true,"foreign":true,"hasAi":true,"hasEntity":true,"known":true,"ownedActive":false,"ready":true,"remaining":90,"reservations":0},
+    "wires": {"D":"D 3 1 0 1 1 0 - - - 90 -"}
+   }
+  },
+  {
+   "name": "no operation: the car is executing something",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": false,
+      "hasReceipt": false,
+      "receiptId": 0,
+      "receiptClass": "",
+      "current": {"present":false,"id":0,"className":""},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {"asked":false,"busy":true,"foreign":true,"hasAi":true,"hasEntity":true,"known":true,"ownedActive":false,"ready":true,"remaining":90,"reservations":0},
+    "wires": {"D":"D 3 1 0 1 1 0 - - - 90 -"}
+   }
+  },
+  {
+   "name": "no operation: AutoDrive is on",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": false,
+      "hasReceipt": false,
+      "receiptId": 0,
+      "receiptClass": "",
+      "current": {"present":false,"id":0,"className":""},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": false,
+      "automatic": false,
+      "enabled": true,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {"asked":false,"busy":false,"foreign":true,"hasAi":true,"hasEntity":true,"known":true,"ownedActive":false,"ready":true,"remaining":90,"reservations":0},
+    "wires": {"D":"D 3 1 0 0 1 0 - - - 90 -"}
+   }
+  },
+  {
+   "name": "no operation: the car drives itself",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": false,
+      "hasReceipt": false,
+      "receiptId": 0,
+      "receiptClass": "",
+      "current": {"present":false,"id":0,"className":""},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": false,
+      "automatic": true,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {"asked":false,"busy":false,"foreign":true,"hasAi":true,"hasEntity":true,"known":true,"ownedActive":false,"ready":true,"remaining":90,"reservations":0},
+    "wires": {"D":"D 3 1 0 0 1 0 - - - 90 -"}
+   }
+  },
+  {
+   "name": "an operation without a receipt",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": false,
+      "receiptId": 0,
+      "receiptClass": "",
+      "current": {"present":false,"id":0,"className":""},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {"result":{"asked":false,"error":"The driving command identity is unavailable.","hasAi":false,"hasEntity":false,"known":false},"wires":{"D":"D 2"}}
+  },
+  {
+   "name": "the AI is missing",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": false,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {"result":{"asked":false,"error":"Vehicle driving AI is unavailable.","hasAi":false,"hasEntity":false,"known":false},"wires":{"D":"D 0"}}
+  },
+  {
+   "name": "the control information is unreadable",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": false,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {"result":{"asked":false,"error":"Vehicle control information is unavailable.","hasAi":false,"hasEntity":false,"known":false},"wires":{"D":"D 1"}}
+  },
+  {
+   "name": "the held handle is not Executing but Success",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 5,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Success"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 5 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the held handle is Enqueued",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 1,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Enqueued"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 1 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the held handle is NotExecuting",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 0,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "NotExecuting"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 0 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the held handle is Cancelled",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 3,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Cancelled"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 3 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the held handle is Interrupted",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 4,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Interrupted"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 4 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the held handle is Failure",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 6,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Failure"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 6 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the held handle has another id: IsCommandActive decides (active)",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1802,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": true
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": true,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "NotExecuting"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 ? 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the held handle has another id: IsCommandActive decides (gone)",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1802,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": true,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Cancelled"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 ? 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the held handle has another class",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleFollowCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": true
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": true,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "NotExecuting"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 ? 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "no held handle, the owned command is current",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 2 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "no held handle and nothing owned is current: IsCommandActive (active)",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":false,"id":0,"className":""},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": false,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": true
+     }
+    }
+   },
+   "output": {
+    "result": {"asked":true,"busy":false,"commandId":1801,"foreign":false,"hasAi":true,"hasEntity":true,"known":true,"ownedActive":false,"ready":true,"remaining":90,"reservations":0,"state":"NotExecuting"},
+    "wires": {"D":"D 3 1 0 0 0 0 ? 1801 - 90 -"}
+   }
+  },
+  {
+   "name": "no held handle and nothing owned is current: IsCommandActive (gone)",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":false,"id":0,"className":""},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": false,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {"asked":true,"busy":false,"commandId":1801,"foreign":false,"hasAi":true,"hasEntity":true,"known":true,"ownedActive":false,"ready":true,"remaining":90,"reservations":0,"state":"Cancelled"},
+    "wires": {"D":"D 3 1 0 0 0 0 ? 1801 - 90 -"}
+   }
+  },
+  {
+   "name": "the direct command has another id",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1803,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": true,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": true,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": false,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Cancelled"
+    },
+    "wires": {"D":"D 3 1 0 1 1 0 ? 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the direct command has another class",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleFollowCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": true
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": true,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": true,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": false,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "NotExecuting"
+    },
+    "wires": {"D":"D 3 1 0 1 1 0 ? 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the current command is the receipt",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 2 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the current command is foreign and the owned one is also there",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":9001,"className":"AIVehicleFollowCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleFollowCommand",
+     "currentId": 9001,
+     "foreign": true,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 1 1 2 1801 9001 90 AIVehicleFollowCommand"}
+   }
+  },
+  {
+   "name": "the init command is foreign",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":true,"id":9001,"className":"AIVehicleFollowCommand"},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": true,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 1 1 2 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the init command is the receipt",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 2 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the car is executing and owns the command",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 2 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the car is executing and the owned command is not current",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": true,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": false,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 1 0 2 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "AutoDrive is enabled",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": true,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": true,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 1 1 2 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the car drives itself",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": true,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": true,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 1 1 2 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the unassigned command id is no id",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":4294967295,"className":"AIVehicleFollowCommand"},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": true,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleFollowCommand",
+     "foreign": true,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": false,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Cancelled"
+    },
+    "wires": {"D":"D 3 1 0 1 1 0 ? 1801 - 90 AIVehicleFollowCommand"}
+   }
+  },
+  {
+   "name": "a command id of zero is a real id",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":0,"className":"AIVehicleFollowCommand"},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": true,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleFollowCommand",
+     "currentId": 0,
+     "foreign": true,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": false,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Cancelled"
+    },
+    "wires": {"D":"D 3 1 0 1 1 0 ? 1801 0 90 AIVehicleFollowCommand"}
+   }
+  },
+  {
+   "name": "a large command id",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":4294967294,"className":"AIVehicleFollowCommand"},
+      "direct": {"present":false,"id":0,"className":""},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":false,"id":0,"className":""},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": true,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleFollowCommand",
+     "currentId": 4294967294,
+     "foreign": true,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": false,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Cancelled"
+    },
+    "wires": {"D":"D 3 1 0 1 1 0 ? 1801 4294967294 90 AIVehicleFollowCommand"}
+   }
+  },
+  {
+   "name": "a scene is playing",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": true,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": false,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 0 0 1 0 1 2 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "driver commands are off",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": false,
+      "scene": true,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": false,
+     "remaining": 90,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 0 0 1 0 1 2 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "several seats are reserved",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 3,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 90,
+     "reservations": 3,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 3 1 0 1 2 1801 1801 90 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "no path telemetry",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": false,
+      "pathLength": 100,
+      "pathProgress": 10,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 2 1801 1801 - AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the car has passed the end of its path",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 150,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 0,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 2 1801 1801 0 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "the path is fully driven",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 100,
+      "pathProgress": 100,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 0,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 2 1801 1801 0 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  },
+  {
+   "name": "a fractional path remaining",
+   "input": {
+    "kind": "drive",
+    "raw": {
+     "actor": {"npcPresent":true,"attached":true,"dead":false,"sameEntity":true,"ownerPresent":true,"ownerReady":true,"managed":true,"tagged":true,"inCombat":false},
+     "player": {"id":"1","passenger":true,"combat":false},
+     "summon": {"summoned":"2001","state":0},
+     "car": {"live":true,"id":"2001","carValid":true,"positionValid":true,"position":{"x":0,"y":0,"z":3}},
+     "auto": {"enabled":false,"delamain":false,"available":true,"laneValid":true,"destination":1,"freeRoam":false,"remaining":99,"vehicle":"0","destinationId":"3001"},
+     "waypoint": {"tracked":true,"quest":false,"id":"3001","pinPresent":true,"hasDestination":true,"destination":{"x":10,"y":20,"z":3},"hasMarker":true,"marker":{"x":10,"y":20,"z":4.2},"rawName":"Waypoint"},
+     "drive": {
+      "aiPresent": true,
+      "typesValid": true,
+      "hasOperation": true,
+      "hasReceipt": true,
+      "receiptId": 1801,
+      "receiptClass": "AIVehicleDriveToPointAutonomousCommand",
+      "current": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "direct": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "initial": {"present":false,"id":0,"className":""},
+      "given": {"present":true,"id":1801,"className":"AIVehicleDriveToPointAutonomousCommand"},
+      "executing": true,
+      "automatic": false,
+      "enabled": false,
+      "commands": true,
+      "scene": false,
+      "reservations": 0,
+      "state": 2,
+      "activeCheck": -1,
+      "hasTelemetry": true,
+      "pathLength": 120.37,
+      "pathProgress": 33.2,
+      "active": false
+     }
+    }
+   },
+   "output": {
+    "result": {
+     "asked": false,
+     "busy": true,
+     "commandId": 1801,
+     "currentClass": "AIVehicleDriveToPointAutonomousCommand",
+     "currentId": 1801,
+     "foreign": false,
+     "hasAi": true,
+     "hasEntity": true,
+     "known": true,
+     "ownedActive": true,
+     "ready": true,
+     "remaining": 87.17,
+     "reservations": 0,
+     "state": "Executing"
+    },
+    "wires": {"D":"D 3 1 0 1 0 1 2 1801 1801 87.17 AIVehicleDriveToPointAutonomousCommand"}
+   }
+  }
+ ]
+}
