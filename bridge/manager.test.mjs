@@ -4236,7 +4236,7 @@ test('Development offers the conversation provider and the Mistral key rows: Con
     assert(groqRow and groqRow.label == 'Groq key' and groqRow.value == 'Not added' and row('groq-key:remove').disabled == true)
     assert(row('groq-key:paste').label == 'Paste Groq key' and row('groq-key:paste').disabled ~= true)
     assert(row('groq-key:paste').description == 'Copy your free key from Groq first. It is read from the clipboard once, checked with Groq and saved on this computer. You can also save it in the file player-groq-key.txt in the conversation service folder.')
-    assert(row('groq-key:remove').label == 'Remove my Groq key' and row('groq-key:remove').description == 'Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai.')
+    assert(row('groq-key:remove').label == 'Remove my Groq key' and row('groq-key:remove').description == 'Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai free tier.')
     assert(not row('groq-key:paste').description:lower():find('text only', 1, true) and not row('groq-key:remove').description:lower():find('paid', 1, true))
     local localRow = row('local-ai-status')
     assert(localRow and localRow.label == 'Local AI' and localRow.value == 'Not installed', 'the Local AI row is always there')
