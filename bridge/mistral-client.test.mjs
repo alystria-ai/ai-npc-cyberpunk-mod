@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {streamChat, sseData, mapFailure, MistralError, failureKind, errorCodeFor, redact, validateKey, MISTRAL_ENDPOINT, MISTRAL_MODELS_ENDPOINT,
-  DEFAULT_MODEL} from './mistral-client.mjs';
+  DEFAULT_MODEL, retryable} from './mistral-client.mjs';
 
 const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
 const encoder = new TextEncoder();
@@ -42,7 +42,7 @@ test('streamChat joins deltas, accepts structured content, and reports the model
   assert.equal(request.url, MISTRAL_ENDPOINT);
   assert.equal(request.url, 'https://api.mistral.ai/v1/chat/completions');
   assert.equal(request.body.model, DEFAULT_MODEL);
-  assert.equal(DEFAULT_MODEL, 'mistral-small-latest');
+  assert.equal(DEFAULT_MODEL, 'ministral-8b-latest');
   assert.equal(request.body.stream, true);
   assert.equal(request.init.headers.Authorization, `Bearer ${KEY}`);
   assert.doesNotMatch(JSON.stringify(request.body), new RegExp(KEY));
@@ -190,7 +190,7 @@ test('against a real local HTTP server: streamed chunks arrive and a 429 body is
     assert.deepEqual(pieces, ['Over ', 'here.']);
     assert.equal(requests.length, 2);
     assert.equal(requests[1].headers.authorization, `Bearer ${KEY}`);
-    assert.equal(requests[1].body.model, 'mistral-small-latest');
+    assert.equal(requests[1].body.model, DEFAULT_MODEL);
   } finally { await new Promise(resolve => server.close(resolve)); }
 });
 
@@ -204,4 +204,35 @@ test('an allowance of 0 for a model is recognised from the rate-limit headers an
     calls++; return fail(429, {message: 'Rate limit exceeded'}, {'x-ratelimit-limit-req-minute': '0'});
   }}), error => error.kind === 'limit' && error.zeroQuota);
   assert.equal(calls, 1);
+});
+
+// ---- Groq and the local server (same client, one more label and one more allowed host) ---------------------------------------
+
+test('a key goes only to its own provider host or to loopback; errors name the provider and never hold the key', async () => {
+  const GROQ = 'gsk_' + 'Zx9Qw8Er7Ty6Ui5Op4As3Df2Gh1Jk0LmNb';
+  const messages = [{role: 'user', content: 'hi'}];
+  await assert.rejects(streamChat({apiKey: GROQ, messages, provider: 'groq', endpoint: 'https://api.mistral.ai/v1/chat/completions'}), /Groq key is only ever sent to api\.groq\.com/);
+  await assert.rejects(streamChat({apiKey: KEY, messages, endpoint: 'https://api.groq.com/openai/v1/chat/completions'}), /Mistral key is only ever sent to api\.mistral\.ai/);
+  await assert.rejects(streamChat({apiKey: KEY, messages, provider: 'local', endpoint: 'https://example.com/v1/chat/completions'}), /only ever sent/);
+  const requests = [];
+  const fetchImpl = async (url, init) => { requests.push({url, headers: init.headers, body: JSON.parse(init.body)}); return fail(401, {message: `Invalid API Key ${GROQ}`}); };
+  const error = await streamChat({apiKey: GROQ, messages, provider: 'groq', fetchImpl, retries: 0, extraBody: {reasoning_effort: 'none'}}).catch(caught => caught);
+  assert.equal(requests[0].url, 'https://api.groq.com/openai/v1/chat/completions');
+  assert.equal(requests[0].body.reasoning_effort, 'none');
+  assert.match(error.message, /^Groq .*\[groq:key\]$/);
+  assert.equal(errorCodeFor(error), 'groq-key');
+  assert.doesNotMatch(error.message, new RegExp(GROQ));
+  assert.equal(await validateKey(GROQ, {provider: 'groq', fetchImpl: async url => { assert.match(url, /^https:\/\/api\.groq\.com\//); return {ok: false, status: 401}; }}), 'invalid');
+});
+
+test('a daily limit is not retried, a per-minute one with a long wait is not either, and a short per-second one is', () => {
+  const headers = value => new Headers(value === undefined ? {} : {'retry-after': String(value)});
+  const daily = mapFailure(429, {error: {message: 'Rate limit reached for model on tokens per day (TPD): Limit 200000'}}, {headers: headers(), provider: 'groq'});
+  assert.equal(daily.daily, true); assert.equal(retryable(daily), false);
+  const minute = mapFailure(429, {error: {message: 'Rate limit reached on tokens per minute (TPM)'}}, {headers: headers(30), provider: 'groq'});
+  assert.equal(minute.daily, false); assert.equal(retryable(minute), false);
+  const quick = mapFailure(429, {error: {message: 'Rate limit reached'}}, {headers: headers(1), provider: 'groq'});
+  assert.equal(retryable(quick), true);
+  const mistral = mapFailure(429, {message: 'Requests rate limit exceeded'}, {headers: headers(), provider: 'mistral'});
+  assert.equal(retryable(mistral), true);
 });

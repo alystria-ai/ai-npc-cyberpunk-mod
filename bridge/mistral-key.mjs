@@ -1,4 +1,4 @@
-// The conversation provider (Convai or Mistral) and the player's Mistral API key (docs/MISTRAL.md).
+// The conversation provider (Convai, Mistral or the fully local AI) and the player's Mistral API key (docs/MISTRAL.md, docs/LOCAL_AI.md).
 //
 // The key is stored only in this bridge's state folder (player-mistral-key.txt), never in the game folder, in
 // settings.json, in a status file or in a log. The settings page shows only its last four characters. A player can paste it
@@ -9,6 +9,7 @@ import {readFile, writeFile, rename, rm} from 'node:fs/promises';
 import {randomBytes} from 'node:crypto';
 import {readClipboardText} from './convai-key.mjs';
 import {validateKey} from './mistral-client.mjs';
+import {parseGroqKey} from './groq-key.mjs';
 
 export const MISTRAL_KEY_FILE = 'player-mistral-key.txt';
 // A Mistral key is a plain run of letters and digits (32 characters today) with no prefix. The shape check only keeps obvious mistakes
@@ -28,7 +29,7 @@ export function parseMistralKey(text) {
 /** The only part of a key that may be shown. */
 export const keyTail = key => typeof key === 'string' && key.length >= 16 ? key.slice(-4) : null;
 
-async function writePrivate(path, text) {
+export async function writePrivate(path, text) {
   const temporary = `${path}.${randomBytes(4).toString('hex')}.tmp`;
   try {
     await writeFile(temporary, text, {encoding: 'utf8', mode: 0o600});
@@ -36,17 +37,26 @@ async function writePrivate(path, text) {
   } catch (error) { await rm(temporary, {force: true}).catch(() => {}); throw error; }
 }
 
-export const PROVIDERS = Object.freeze(['convai', 'mistral']);
+export const PROVIDERS = Object.freeze(['convai', 'mistral', 'local', 'groq']);
+// How long Groq is left alone after it refused a request (then it is tried again): its per-minute budget, its daily budget, a missing model.
+export const GROQ_BLOCK_MS = Object.freeze({rate: 60_000, daily: 30 * 60_000, model: 5 * 60_000, invalid: Infinity});
 
 /**
  * Which provider conversations use. `preference` follows the Conversation provider setting; Mistral is `requested` only
- * when a key is saved (without one the setting falls back to Convai and says so once); `applied` is what turns use.
+ * when a key is saved (without one the setting falls back to Convai and says so once); the local AI is `requested` unless it has
+ * failed (not installed, not enough graphics memory, would not start), in which case Convai is used and one notice says so until
+ * the setting is changed again; Groq is `requested` while it has a key and is not blocked by a limit (then Mistral when a Mistral key
+ * exists, else Convai); `applied` is what turns use. `active` means a text provider (Mistral, Groq or local) answers.
  */
 export class MistralProvider {
-  constructor({keyPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate, removeFile = path => rm(path, {force: true})} = {}) {
-    Object.assign(this, {keyPath, readText, writeText, removeFile});
+  constructor({keyPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate, removeFile = path => rm(path, {force: true}), groq = null} = {}) {
+    Object.assign(this, {keyPath, readText, writeText, removeFile, groq});
+    this.groqLimit = null; this.groqBlockedUntil = 0; this.groqNoKeyPending = false;
+    // A new Groq key (or its removal) ends any block that came from the old one.
+    groq?.onChange?.(() => { this.groqLimit = null; this.groqBlockedUntil = 0; this.#changed(); });
     this.key = null; this.preference = 'convai'; this.applied = 'convai';
     this.noKeyPending = false; this.voicePending = false; this.limit = null; this.sttAvailable = false;
+    this.localBroken = null; this.localNoticePending = false; // why the local AI cannot be used (null: it can), and the one notice for it
     this.listeners = new Set();
   }
   onChange(listener) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
@@ -60,18 +70,50 @@ export class MistralProvider {
   setPreference(value) {
     const next = PROVIDERS.includes(value) ? value : 'convai', changed = next !== this.preference;
     this.preference = next;
-    if (changed) this.noKeyPending = next === 'mistral' && !this.key;
+    if (changed) {
+      this.noKeyPending = next === 'mistral' && !this.key; this.localBroken = null; this.localNoticePending = false;
+      this.groqNoKeyPending = next === 'groq' && !this.groq?.key; this.groqBlockedUntil = 0; this.groqLimit = null;
+    }
     return changed;
   }
   /** The provider the setting asks for, given the key: Mistral only with a key. */
-  get requested() { return this.preference === 'mistral' && this.key ? 'mistral' : 'convai'; }
+  get requested() {
+    if (this.preference === 'groq') {
+      if (!this.groq?.key) return 'convai';
+      return Date.now() >= this.groqBlockedUntil ? 'groq' : this.key ? 'mistral' : 'convai';
+    }
+    if (this.preference === 'mistral' && this.key) return 'mistral';
+    // The local AI could not be used (pack missing, no room beside the voice, crashed): a cloud provider with a key answers, else Convai.
+    if (this.preference === 'local') return !this.localBroken ? 'local' : this.key ? 'mistral' : 'convai';
+    return 'convai';
+  }
   get pending() { return this.requested !== this.applied; }
-  get active() { return this.applied === 'mistral'; }
+  /** A text provider (Mistral or the local AI) answers turns, not Convai. */
+  get active() { return this.applied !== 'convai'; }
+  /** Which text route answers: 'mistral', 'local' or (Convai) 'convai'. */
+  get route() { return this.applied; }
+  /** Groq refused or could not answer (kind: 'rate', 'daily', 'invalid', 'model'): it is left alone for a while; Mistral (with a key) or Convai answers meanwhile. */
+  noteGroqLimit(kind) {
+    this.groqLimit = kind ? {kind, at: Date.now()} : null;
+    if (kind && GROQ_BLOCK_MS[kind] !== undefined) this.groqBlockedUntil = Date.now() + GROQ_BLOCK_MS[kind];
+    this.#changed();
+  }
+  noteGroqSuccess() { if (this.groqLimit) { this.groqLimit = null; this.#changed(); } }
+  /** Groq's key, for the Groq route only. */
+  get groqApiKey() { return this.groq?.key ?? null; }
+  /** The local AI cannot be used (reason: 'not-installed', 'low-memory', 'no-gpu', 'start-failed', 'crashed'): Convai takes over at the next idle boundary, with one notice. */
+  noteLocalFailure(reason) {
+    if (this.preference !== 'local') return;
+    if (this.localBroken === (reason || 'start-failed')) return;
+    this.localBroken = reason || 'start-failed'; this.localNoticePending = true;
+    this.#changed();
+  }
   /** Adopts the requested provider; call only at an idle boundary. Returns whether it changed. */
   apply() {
     const changed = this.pending;
     this.applied = this.requested;
-    if (changed && this.applied === 'mistral') { this.limit = null; this.voicePending = true; }
+    if (changed && this.applied !== 'convai') { this.limit = null; if (this.applied === 'groq') this.groqLimit = null; }
+    if (changed && this.applied === 'mistral') this.voicePending = true;
     if (changed) this.#changed();
     return changed;
   }
@@ -79,12 +121,14 @@ export class MistralProvider {
   get apiKey() { return this.key; }
   get tail() { return keyTail(this.key); }
   /** Every value that must be scrubbed from reports. */
-  secrets() { return [this.key].filter(Boolean); }
+  secrets() { return [this.key, ...(this.groq?.secrets?.() ?? [])].filter(Boolean); }
   noteLimit(kind) { this.limit = kind ? {kind, at: Date.now()} : null; this.#changed(); }
   noteSuccess() { if (this.limit) { this.limit = null; this.#changed(); } }
-  /** 'mistral-no-key' or 'mistral-voice' once each (the game shows them with the next reply), else undefined. */
+  /** 'mistral-no-key', 'groq-no-key', 'mistral-voice' or 'local-fallback' once each (the game shows them with the next reply), else undefined. */
   takeNotice({cloudVoice = false} = {}) {
+    if (this.localNoticePending && this.applied !== 'local') { this.localNoticePending = false; return 'local-fallback'; }
     if (this.noKeyPending && this.applied === 'convai') { this.noKeyPending = false; return 'mistral-no-key'; }
+    if (this.groqNoKeyPending && this.applied === 'convai') { this.groqNoKeyPending = false; return 'groq-no-key'; }
     if (this.voicePending && this.applied === 'mistral' && cloudVoice) { this.voicePending = false; return 'mistral-voice'; }
     return undefined;
   }
@@ -108,14 +152,16 @@ export function parseKeyCommand(raw, now = Date.now()) {
  * reads (runtime/mistral-state.json). The key itself never enters either file. */
 export class MistralControl {
   constructor({provider, commandPath, publish, model, readClipboard = readClipboardText, validate = validateKey,
-    read = path => readFile(path, 'utf8'), now = Date.now} = {}) {
+    read = path => readFile(path, 'utf8'), now = Date.now, localStatus, groqCommandPath, validateGroq = key => validateKey(key, {provider: 'groq'})} = {}) {
     if (!provider || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid Mistral configuration');
-    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now});
+    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, groqCommandPath, validateGroq});
     this.observed = ''; this.result = null; this.busy = false; this.writing = Promise.resolve();
+    this.groqObserved = ''; this.groqResult = null; this.groqBusy = false;
   }
   /** Ignore a command left from an earlier session, then publish the first status. */
   async open() {
     this.observed = await this.read(this.commandPath).catch(() => '');
+    if (this.groqCommandPath) this.groqObserved = await this.read(this.groqCommandPath).catch(() => '');
     await this.publishStatus();
     return this;
   }
@@ -123,13 +169,50 @@ export class MistralControl {
     const p = this.provider;
     return {version: 1, updated: this.now(), provider: p.preference, effective: p.applied, saved: !!p.key, tail: p.tail,
       pending: p.pending, ...(this.result ? {result: this.result} : {}), limit: p.limit?.kind ?? null,
-      model: typeof this.model === 'function' ? this.model() : this.model, stt: p.sttAvailable === true};
+      model: typeof this.model === 'function' ? this.model() : this.model, stt: p.sttAvailable === true,
+      // The local AI: 'ready' | 'warming' | 'not-installed' | 'no-memory' | 'failed' (docs/LOCAL_AI.md); never a path or a key.
+      ...(typeof this.localStatus === 'function' ? {localAi: this.localStatus()} : {}),
+      // Groq (docs/MISTRAL.md): the key status and the latest limit; never the key.
+      ...(this.provider.groq ? {groq: {saved: !!this.provider.groq.key, tail: this.provider.groq.tail,
+        limit: this.provider.groqLimit?.kind ?? null, ...(this.groqResult ? {result: this.groqResult} : {})}} : {})};
   }
   publishStatus() {
     this.writing = this.writing.catch(() => {}).then(() => this.publish(this.status()));
     return this.writing;
   }
   async poll() {
+    await this.pollMistral();
+    await this.pollGroq();
+  }
+  async pollGroq() {
+    if (this.groqBusy || !this.groqCommandPath || !this.provider.groq) return;
+    const raw = await this.read(this.groqCommandPath).catch(() => '');
+    if (raw === this.groqObserved) return;
+    this.groqObserved = raw;
+    const command = parseKeyCommand(raw, this.now());
+    if (!command) return;
+    this.groqBusy = true;
+    try {
+      this.groqResult = {id: command.id, state: 'checking'};
+      await this.publishStatus();
+      this.groqResult = {id: command.id, state: await this.runGroq(command)};
+    } catch { this.groqResult = {id: command.id, state: 'failed'}; }
+    finally { this.groqBusy = false; }
+    await this.publishStatus();
+  }
+  async runGroq(command) {
+    const groq = this.provider.groq;
+    if (command.action === 'clear') { await groq.remove(); return 'cleared'; }
+    let text;
+    try { text = await this.readClipboard(); } catch { return 'unreadable'; }
+    if (typeof text !== 'string' || !text.trim()) return 'unreadable';
+    const key = parseGroqKey(text);
+    if (!key) return 'invalid';
+    if (await this.validateGroq(key) === 'invalid') return 'invalid';
+    await groq.save(key);
+    return 'saved';
+  }
+  async pollMistral() {
     if (this.busy) return;
     const raw = await this.read(this.commandPath).catch(() => '');
     if (raw === this.observed) return;
