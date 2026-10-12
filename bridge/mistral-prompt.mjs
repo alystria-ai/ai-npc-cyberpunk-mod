@@ -20,6 +20,8 @@
 // whole live context (the string Convai gets) in the last user message.
 // A reply comes back as plain text and goes through the same cleaning as a Convai reply (Natural speech, Expressive emotions).
 
+import {applyOverride} from './character-overrides.mjs';
+
 export const LIMITS = Object.freeze({
   persona: 16000,        // characters of the persona sections (the longest named character is about 11,400)
   context: 20000,        // characters of live context; a longer one keeps its head and its tail (the format notes are at the end)
@@ -52,13 +54,20 @@ const clip = (text, limit) => {
 
 /** The roster rows (named characters, then archetypes) by profile key. */
 export class PersonaBook {
-  constructor(rows = []) {
+  /** `overrides` (bridge/character-overrides.mjs, optional): the player's own edits of a character, read with a plain lookup per turn. */
+  constructor(rows = [], {overrides = null} = {}) {
+    this.overrides = overrides;
     this.rows = new Map();
     for (const row of rows) if (row && typeof row.key === 'string' && !this.rows.has(row.key)) this.rows.set(row.key, row);
   }
   has(key) { return this.rows.has(key); }
-  /** {name, backstory, style, samples} for a profile key; a generic person when the key is unknown. */
+  /** {name, backstory, style, samples, rules, memories}: the shipped profile with the player's edits, when there are any. */
   persona(profileKey, fallbackName) {
+    const shipped = this.defaults(profileKey, fallbackName);
+    return shipped.known ? applyOverride(shipped, this.overrides?.get(profileKey) ?? null) : shipped;
+  }
+  /** The shipped profile alone (what "reset" goes back to): {name, backstory, style, samples} for a profile key; a generic person when the key is unknown. */
+  defaults(profileKey, fallbackName) {
     const row = this.rows.get(profileKey);
     // An unnamed NPC (a resident or an archetype such as a food vendor) has no name of its own: its profile text says who it is.
     const ambient = !row || row.kind === 'ambient' || row.kind === 'archetype' || /^(?:resident|npc)-/.test(profileKey);
@@ -117,8 +126,10 @@ export function systemHead({persona, memory = '', limits = LIMITS}) {
   const build = (backstory, samples) => [
     ...head, '', 'WHO YOU ARE', backstory,
     ...(persona.style ? ['', 'HOW YOU TALK', persona.style] : []),
+    ...(persona.rules?.length ? ['', 'YOUR OWN RULES OF SPEECH (always follow these; they outrank the style above)', ...persona.rules.map(line => `- ${line}`)] : []),
     ...(samples.length ? ['', 'EXAMPLES OF YOUR VOICE (tone and rhythm only; they are not shared memories, and you never repeat them)',
       ...samples.map(line => `- ${line.replace(/\s*\n\s*/g, ' ')}`)] : []),
+    ...(persona.memories?.length ? ['', 'WHAT YOU KNOW AND REMEMBER (true; let it colour what you say when it fits, never recite it)', ...persona.memories.map(line => `- ${line}`)] : []),
     ...(memory ? ['', 'WHAT YOU REMEMBER OF V FROM EARLIER TALKS (true unless the live context says otherwise)', clip(memory, limits.summary)] : []),
     '', RULES(name)].join('\n');
   let backstory = persona.backstory, samples = persona.samples;
