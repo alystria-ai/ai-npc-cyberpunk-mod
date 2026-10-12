@@ -42,6 +42,7 @@ Last consolidated 2026-10-11 (closed items are listed in the Captain's log entry
 - **Keep "continue from game dialogue".** When V talks to a game character with a spawned companion nearby, the companion gets that dialogue as context. It helps her follow and assist on the quest.
 - **Later check: quest decisions.** Does the NPC know which choice V made in a quest (the decision itself, not just what happened in the quest)?
 - **Cut latency wherever possible (after the provider, context and performance work settles).** Measure each stage of a turn: input to bridge, prompt build, LLM first token, first audio, face and subtitle start. Measure it for every route (Convai, Mistral or Groq, local), then cut the biggest waits.
+- **Idea: emotion-matched voice references for OmniVoice (local, free).** OmniVoice has sound tags (`[laughter]`, `[sigh]` and so on) but no emotion setting. Its tone follows the reference clips. Pick an angry, sad or calm reference set per reply from the reply's emotion tag, out of each character's game lines. Compare with the cloud voices' emotion controls (Inworld markups, Voxtral if it has them; `docs/FREE_CLOUD_OPTION_RESEARCH.md`).
 - ~~Raise Haiku's standing for swarm and fan-out tasks in the agent model rules~~ done 2026-10-12.
 
 ### Work in progress (paused 2026-10-11, saved patches in the gitignored `runtime/wip/`)
