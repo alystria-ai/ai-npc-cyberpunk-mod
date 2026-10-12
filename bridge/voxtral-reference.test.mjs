@@ -58,6 +58,21 @@ test('the preparer keeps its result on disk by the source clip\'s hash and does 
   assert.equal(JSON.parse(await readFile(join(directory, 'judy-alvarez.json'), 'utf8')).format, 'wav');
 });
 
+test('the reference MP3 is 32 kbit/s, and a clip prepared at another bitrate is prepared again', async t => {
+  assert.equal(REFERENCE_PREPARATION.mp3Bitrate, '32k', 'the 64 kbit/s clip made Voxtral answer about 0.4 s later on the real API (docs/LATENCY_2026-10-12.md)');
+  const directory = await mkdtemp(join(tmpdir(), 'voxtral-ref-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const source = clip();
+  const fakeMp3 = Buffer.concat([Buffer.from([0xFF, 0xFB, 0x90, 0x00]), Buffer.alloc(4000, 7)]);
+  const bitrates = [];
+  const prepare = settings => createReferencePreparer({cacheDirectory: directory, settings, ffmpeg: async () => 'ffmpeg',
+    encode: async (wav, {bitrate}) => { bitrates.push(bitrate); return fakeMp3; }});
+  assert.equal((await prepare(REFERENCE_PREPARATION)(source, {key: 'judy-alvarez'})).cached, false);
+  assert.equal((await prepare(REFERENCE_PREPARATION)(source, {key: 'judy-alvarez'})).cached, true);
+  assert.equal((await prepare({...REFERENCE_PREPARATION, mp3Bitrate: '64k'})(source, {key: 'judy-alvarez'})).cached, false, 'an MP3 written at 64k is not served as the 32k clip');
+  assert.deepEqual(bitrates, ['32k', '64k']);
+});
+
 test('an MP3 that is not smaller or not an MP3, a failed encoder and an unwritable cache all fall back to the 16 kHz clip', async () => {
   const source = clip();
   const noisy = async () => Buffer.from('not an mp3 at all');

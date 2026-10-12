@@ -18,11 +18,11 @@ import {mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 
 export const REFERENCE_PREPARATION = Object.freeze({
-  version: 1,
+  version: 2,            // 2: the MP3 is 32 kbit/s, not 64 (first audio about 0.4 s sooner on the real API, same clone: docs/LATENCY_2026-10-12.md, 2026-10-13)
   maxSeconds: 8.5,       // the clip is cut at the quietest moment inside its last 2.5 s before this
   targetRate: 16000,
   searchSeconds: 2.5,
-  mp3Bitrate: '64k',
+  mp3Bitrate: '32k',
 });
 
 // ---- WAV decoding / encoding -------------------------------------------------------------------------------------------------
@@ -203,7 +203,7 @@ export function createReferencePreparer({cacheDirectory, settings = REFERENCE_PR
   read = readFile, write = writeFile, makeDirectory = mkdir, move = rename, onLog = () => {}} = {}) {
   const jobs = new Map();
   const safe = key => typeof key === 'string' && /^[a-z0-9][a-z0-9-]{0,127}$/.test(key);
-  const signature = sha256 => createHash('sha256').update(JSON.stringify([sha256, settings.version, settings.maxSeconds, settings.targetRate, mp3])).digest('hex').slice(0, 24);
+  const signature = sha256 => createHash('sha256').update(JSON.stringify([sha256, settings.version, settings.maxSeconds, settings.targetRate, mp3 ? settings.mp3Bitrate : null])).digest('hex').slice(0, 24);
   async function fromCache(key, sig) {
     if (!cacheDirectory || !safe(key)) return null;
     try {
