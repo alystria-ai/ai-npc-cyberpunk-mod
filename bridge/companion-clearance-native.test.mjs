@@ -644,3 +644,11 @@ test('the active path is announced once, after the plugin check has finished', (
   mod.useBudget({limit = 192, used = 0, deferred = 0})
   assert(asked == 1, 'asked ' .. asked)
 `));
+
+test('a ray without a point runs the Lua and never switches the system off', () => shim(`
+  local mod = fresh({limit = 192, used = 0, deferred = 0})
+  local ok = pcall(mod.sightClear, nil, {x = 1, y = 1, z = 1})
+  assert(not ok and #fails == 0 and #calls == 0, 'the original raises on a missing point')
+  ok = pcall(mod.floorZ, nil, 0.35)
+  assert(not ok and #fails == 0 and #calls == 0)
+`));

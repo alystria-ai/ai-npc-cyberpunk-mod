@@ -317,6 +317,7 @@ local function natSegment(class,left,from,to,dimensions,progress,projection)
     return true,f[2],extra,decode(f,from,to,true)
 end
 local function natSight(class,left,from,to)
+    if not (bound(from) and bound(to)) then return 'lua',0 end
     if not (finite(from.x) and finite(from.y) and finite(from.z) and finite(to.x) and finite(to.y)
         and finite(to.z)) then return 'lua',0 end
     local f=split(class.Sight(from.x,from.y,from.z,to.x,to.y,to.z,left))
@@ -325,6 +326,7 @@ local function natSight(class,left,from,to)
     return true,f[2],nil,f[1]==0
 end
 local function natFloor(class,_,at,maxDrop)
+    if not bound(at) then return 'lua',0 end
     if maxDrop==nil then maxDrop=.35 end
     if not (finite(at.x) and finite(at.y) and finite(at.z) and finite(maxDrop)) then return 'lua',0 end
     local f=split(class.Floor(at.x,at.y,at.z,maxDrop))

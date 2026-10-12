@@ -247,7 +247,7 @@ std::string SelfTest()
     {
         return "ok";
     }
-    // Around V there is ground: a 60 m box and a ray straight down must find something. Without V (or where her
+    // Around V there is ground: a 30 m box and a ray down 60 m must find something. Without V (or where her
     // position cannot be read), the sky checks above are what is proven.
     RED4ext::Vector4 at{};
     if (!game::Call(player, "GetWorldPosition", &at))
@@ -255,7 +255,7 @@ std::string SelfTest()
         return "ok";
     }
     Box wide;
-    wide.half = {60.0, 60.0, 60.0};
+    wide.half = {30.0, 30.0, 30.0};
     wide.center = {at.X, at.Y, at.Z};
     bool anyBox = false;
     for (int group = 0; group < kGroupCount && !anyBox; ++group)
@@ -270,7 +270,7 @@ std::string SelfTest()
     }
     if (!anyBox)
     {
-        return "fail a 60 m box around V found no geometry";
+        return "fail a 30 m box around V found no geometry";
     }
     bool anyRay = false;
     for (int group = 0; group < kGroupCount && !anyRay; ++group)
