@@ -1116,6 +1116,55 @@ test('a sleeping face wakes at once for a reaction or a reply, re-checks every 0
  face.idleSleep=false;n=#a.frames;tick(1/30);assert(#a.frames==n+1,'switch off: every frame writes')
 `));
 
+// Perf 2026-10-13: the development install loads mod/face-test.lua. Merely having the probe loaded used to keep every
+// idle face awake (about 20 ms/s per companion in the live capture); it now matters only while a run, a trace or a leftover field exists.
+test('a loaded but idle face-test probe lets the face sleep; a probe run (or its leftover fields) wakes it', () => runProbe(`${seeded(77)}
+ for _=1,60 do tick(1/30) end
+ local slot=face.expressions[a.id];assert(slot.sleepAt,'settled at idle with the probe loaded')
+ local writes,n=0,0
+ for _=1,300 do n=#a.frames;tick(1/30);if #a.frames>n then writes=writes+1 end end
+ assert(writes<150,'the idle face sleeps with the probe loaded: '..writes..' of 300 frames')
+ -- A run writes every frame (its hooks need each one).
+ request('p1\\nface-test judy smile 4 writer');tick(1/30);tick(1/30)
+ for _=1,20 do n=#a.frames;tick(1/30);assert(#a.frames==n+1,'a probe run keeps the face writing') end
+ assert(last(a).lips_l_corner_up==1,'the run is written')
+ -- Off: the leftover probe fields are cleared on the next frames, then the face settles and sleeps again.
+ request('p2\\nface-test judy off');for _=1,12 do tick(1/30) end
+ assert(next(face.faceTest.touched)==nil and last(a).lips_l_corner_up<.5,'the fields are cleared')
+ for _=1,400 do tick(1/30) end;local woke=0;while not face.expressions[a.id].sleepAt and woke<60 do tick(1/30);woke=woke+1 end -- a blink may be in flight
+ assert(face.expressions[a.id].sleepAt,'asleep again after the run')
+`));
+
+// Perf 2026-10-13: an idle copy writes only the controls that changed into its own feature object. Whatever was
+// written last must still be what the object holds, through a feeling, a blink over widened eyes and the fall back.
+test('an idle copy writes only changed controls, and its feature still holds exactly the written pose', () => run(`${seeded(5)}
+ face.idleSleep=false
+ local tracks=${literal(Object.keys(expressionTarget()))}
+ local function check(why)
+  local slot=face.expressions[a.id];local feature,written=slot.feature,slot.writtenPose
+  for _,track in ipairs(tracks) do assert(feature[track]==written[track],why..' '..track..': '..tostring(feature[track])..' vs '..tostring(written[track])) end
+  assert(feature.eye_l_blink==nil or feature.eye_l_blink>=0)
+ end
+ local sawBlinkOverWiden=false
+ -- A held fear (no expiry): widened eyes that stay constant, so only a blink changes what is on the feature.
+ face.beginExpression(context,${literal(receipt("Fear", 3, 0))});face.expressionHeard(context)
+ for i=1,900 do
+  tick(1/30);check('tick '..i)
+  local f=last(a);if (f.eye_l_blink or 0)>.2 and (f.eye_l_widen or 0)>.01 and f.eye_l_widen<.4 then sawBlinkOverWiden=true end
+ end
+ assert(sawBlinkOverWiden,'a blink closed widened eyes in this run')
+ `));
+
+test('a settled idle copy writes almost nothing into its feature object: only the blink controls cross between full frames', () => run(`${seeded(5)}
+ face.idleSleep=false
+ for _=1,600 do tick(1/30) end
+ local slot=face.expressions[a.id];local count=0
+ local real=slot.feature;slot.feature=setmetatable({},{__index=real,__newindex=function(_,k,v) count=count+1;real[k]=v end})
+ for _=1,300 do tick(1/30) end
+ -- The proxy is a new object, so its first frame writes every control (25 writes); then blinks (two controls per frame).
+ assert(count<25+300*2*.2,'only changed controls cross: '..count..' writes in 300 frames')
+`));
+
 test('a phrase boundary now and then brings a blink, and a separate phrase never ends on a half-closed lid', () => {
   const spans = [0.3, 2, 4, 6].map((start, i, all) => ({start, end: all[i + 1] ?? 8, from: 0, to: 1, dominant: null, tags: [], top: [], anchored: true}));
   const track = {version: 1, format: 'emotion-mix-v1', families: ['joy', 'trust', 'sadness', 'anger', 'fear', 'disgust', 'surprise', 'anticipation'],
