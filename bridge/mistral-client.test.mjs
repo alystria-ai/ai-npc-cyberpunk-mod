@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {streamChat, sseData, mapFailure, MistralError, failureKind, errorCodeFor, redact, validateKey, MISTRAL_ENDPOINT, MISTRAL_MODELS_ENDPOINT,
-  DEFAULT_MODEL, retryable} from './mistral-client.mjs';
+  DEFAULT_MODEL, retryable, warmConnection, KEEP_ALIVE_MS} from './mistral-client.mjs';
 
 const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
 const encoder = new TextEncoder();
@@ -282,4 +282,138 @@ test('a stream that starts and then goes quiet is cut after stallMs, not after t
   // With stallMs off the old behaviour stays: only the first-byte and total limits apply.
   const steady = await streamChat({apiKey: KEY, messages: [], retries: 0, fetchImpl: async () => sse(delta('A'), delta('B'), 'data: [DONE]\n\n')});
   assert.equal(steady.text, 'AB'); assert.deepEqual(steady.failed, []);
+});
+
+// ---- Connection reuse (docs/LATENCY_2026-10-13.md section 4.5) ----------------------------------------------------------------
+
+/** A local server that counts the sockets it is given. `finish(res)` decides how the body ends after the last event. */
+async function socketServer(finish) {
+  const state = {sockets: 0, closed: 0, requests: 0};
+  const server = createServer((req, res) => {
+    state.requests++;
+    req.resume();
+    req.on('end', () => {
+      res.writeHead(200, {'content-type': 'text/event-stream'});
+      res.write(delta('Over '));
+      setTimeout(() => { res.write(delta('here.') + 'data: [DONE]\n\n'); finish(res); }, 10);
+    });
+  });
+  server.on('connection', socket => { state.sockets++; socket.on('close', () => { state.closed++; }); });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  state.endpoint = `http://127.0.0.1:${server.address().port}/v1/chat/completions`;
+  state.stop = async () => { server.closeAllConnections?.(); await new Promise(resolve => server.close(resolve)); };
+  return state;
+}
+const ask = (endpoint, extra = {}) => streamChat({apiKey: KEY, endpoint, messages: [{role: 'user', content: 'x'}], retries: 0, ...extra});
+
+test('the body is read to its end after [DONE], so the next turn reuses the socket', async () => {
+  // The end of the body arrives a little after [DONE], as a chunked response's last chunk does when it is a separate packet.
+  const server = await socketServer(res => setTimeout(() => res.end(), 30));
+  try {
+    for (let turn = 1; turn <= 3; turn++) {
+      // A pause like the one between two real turns: a request sent in the same tick as the previous one's end can be given a new connection.
+      await new Promise(resolve => setTimeout(resolve, 50));
+      assert.equal((await ask(server.endpoint)).text, 'Over here.', `turn ${turn}`);
+    }
+    assert.equal(server.requests, 3);
+    assert.equal(server.sockets, 1, 'three turns, one connection');
+    assert.equal(server.closed, 0);
+  } finally { await server.stop(); }
+});
+
+test('a body that never ends after [DONE] does not hold the turn: it is cut after the drain limit and the connection is closed', async () => {
+  const server = await socketServer(() => { /* the response is never ended */ });
+  try {
+    const began = performance.now();
+    const result = await ask(server.endpoint);
+    const took = performance.now() - began;
+    assert.equal(result.text, 'Over here.');
+    assert(took < 1000, `took ${Math.round(took)} ms`);
+    // The cut body closes its connection; the next turn opens a new one.
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.equal(server.closed, 1);
+    assert.equal((await ask(server.endpoint)).text, 'Over here.');
+    assert.equal(server.sockets, 2);
+  } finally { await server.stop(); }
+});
+
+test('the caller cancelling a turn that is still streaming aborts the request and closes its connection', async () => {
+  const server = await socketServer(() => { /* never ended */ });
+  try {
+    const controller = new AbortController();
+    const pending = ask(server.endpoint, {signal: controller.signal, onDelta: () => controller.abort()});
+    await assert.rejects(pending, error => error.name === 'AbortError' && !(error instanceof MistralError));
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.equal(server.closed, 1);
+  } finally { await server.stop(); }
+});
+
+test('sseData drains only after [DONE]: a body that ends is read to the end, one that does not is cancelled, an early stop cancels at once', async () => {
+  const stream = (events, {end = true} = {}) => {
+    const state = {cancelled: false};
+    const readable = new ReadableStream({start(controller) {
+      for (const event of events) controller.enqueue(encoder.encode(event));
+      if (end) controller.close();
+    }, cancel() { state.cancelled = true; }});
+    return {readable, state};
+  };
+  const consume = async (readable, options, stopAt) => { for await (const data of sseData(readable, options)) if (data === stopAt) break; };
+  // [DONE], then a body that ends: read to its end, not cancelled.
+  let s = stream(['data: a\n\n', 'data: [DONE]\n\n']);
+  await consume(s.readable, {drainMs: 100}, '[DONE]');
+  assert.equal(s.state.cancelled, false);
+  // [DONE], then a body that never ends: cancelled after the limit, and not much later.
+  s = stream(['data: [DONE]\n\n'], {end: false});
+  const began = performance.now();
+  await consume(s.readable, {drainMs: 40}, '[DONE]');
+  assert.equal(s.state.cancelled, true);
+  assert(performance.now() - began < 500);
+  // drainMs 0 (the default): cancelled at once.
+  s = stream(['data: [DONE]\n\n'], {end: false});
+  await consume(s.readable, {}, '[DONE]');
+  assert.equal(s.state.cancelled, true);
+  // Stopped on an ordinary event (the reply cap): cancelled, never waited for.
+  s = stream(['data: a\n\n', 'data: b\n\n', 'data: [DONE]\n\n'], {end: false});
+  await consume(s.readable, {drainMs: 5000}, 'a');
+  assert.equal(s.state.cancelled, true);
+  // The turn itself: an error event in the stream does not drain.
+  s = stream([`data: ${JSON.stringify({object: 'error', code: 500, message: 'boom'})}\n\n`], {end: false});
+  await assert.rejects(streamChat({apiKey: KEY, messages: [], retries: 0, fetchImpl: async () => ({ok: true, status: 200, headers: new Headers(), body: s.readable})}), error => error.kind === 'network');
+  assert.equal(s.state.cancelled, true);
+});
+
+test('the cloud routes get a keep-alive dispatcher, the local ones keep the default client', async () => {
+  const seen = [];
+  const fake = async (url, init) => { seen.push({url, dispatcher: init.dispatcher}); return sse(delta('Hi.'), 'data: [DONE]\n\n'); };
+  await streamChat({apiKey: KEY, messages: [], fetchImpl: fake});
+  await streamChat({apiKey: KEY, messages: [], provider: 'groq', fetchImpl: fake});
+  await streamChat({apiKey: KEY, messages: [], endpoint: 'http://127.0.0.1:9/v1/chat/completions', fetchImpl: fake});
+  const [mistral, groq, local] = seen;
+  assert.equal(typeof mistral.dispatcher?.dispatch, 'function');
+  assert.equal(groq.dispatcher, mistral.dispatcher, 'one Agent, shared by the cloud routes');
+  assert.equal(local.dispatcher, undefined);
+  assert.equal(KEEP_ALIVE_MS, 60000);
+});
+
+test('warmConnection sends one unauthenticated GET to the provider host, and never throws', async () => {
+  const calls = [];
+  const fake = async (url, init) => { calls.push({url, init}); return {status: 404, arrayBuffer: async () => new ArrayBuffer(100)}; };
+  assert.equal(await warmConnection({provider: 'mistral', fetchImpl: fake}), true);
+  assert.equal(await warmConnection({provider: 'groq', fetchImpl: fake}), true);
+  assert.deepEqual(calls.map(call => call.url), ['https://api.mistral.ai/', 'https://api.groq.com/']);
+  for (const {init} of calls) {
+    assert.equal(init.method, 'GET');
+    assert.equal(JSON.stringify(init.headers ?? {}).toLowerCase().includes('authorization'), false);
+    assert.equal(init.body, undefined);
+  }
+  assert.equal(await warmConnection({provider: 'local', fetchImpl: fake}), false);
+  assert.equal(calls.length, 2);
+  assert.equal(await warmConnection({provider: 'mistral', fetchImpl: async () => { throw Error('offline'); }}), false);
+  assert.equal(await warmConnection({provider: 'mistral', fetchImpl: async () => ({arrayBuffer: async () => { throw Error('cut'); }})}), true);
+  // A host that never answers is given up on at the limit.
+  const hang = (url, init) => new Promise((resolve, reject) => init.signal.addEventListener('abort', () => reject(Error('aborted'))));
+  const began = performance.now();
+  const keepAlive = setInterval(() => {}, 1000); // the timeout timer alone does not hold the event loop
+  try { assert.equal(await warmConnection({provider: 'mistral', fetchImpl: hang, timeoutMs: 30}), false); } finally { clearInterval(keepAlive); }
+  assert(performance.now() - began < 1000);
 });

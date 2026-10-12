@@ -118,10 +118,13 @@ export const retryable = error => error instanceof MistralError && !error.zeroQu
  * Parses a server-sent-events byte stream into data strings. Handles CRLF, comment lines (keep-alives start with a colon and are
  * ignored), events split over any number of chunks, several data lines per event and UTF-8 characters cut between chunks. Yields
  * the joined `data:` payload of each event; "[DONE]" is yielded as is.
+ * `drainMs`: when the caller stops right after "[DONE]", the rest of the body (a few bytes) is read for at most this long, so the
+ * connection can be reused by the next request (a body that is cancelled instead has its connection closed); 0 cancels at once.
+ * Any other early exit (an error, the reply cap) cancels the body.
  */
-export async function* sseData(body) {
+export async function* sseData(body, {drainMs = 0} = {}) {
   const decoder = new TextDecoder('utf-8');
-  let buffer = '', data = [];
+  let buffer = '', data = [], sawDone = false;
   const flush = () => {
     if (!data.length) return undefined;
     const joined = data.join('\n'); data = [];
@@ -151,19 +154,42 @@ export async function* sseData(body) {
       const complete = buffer.slice(0, buffer.length - hold);
       const parts = lines(complete);
       buffer = parts.pop() + (hold ? '\r' : '');
-      for (const line of parts) { const event = handle(line); if (event !== undefined) yield event; }
+      for (const line of parts) {
+        const event = handle(line);
+        if (event === undefined) continue;
+        if (event === '[DONE]') sawDone = true;
+        yield event;
+      }
     }
     buffer += decoder.decode();
     for (const line of lines(buffer)) { const event = handle(line); if (event !== undefined) yield event; }
     const last = flush();
     if (last !== undefined) yield last;
   } finally {
-    try { await reader?.cancel(); } catch { /* already closed */ }
+    if (reader && sawDone && drainMs > 0) await drain(reader, drainMs);
+    else try { await reader?.cancel(); } catch { /* already closed */ }
   }
 }
 
+/** Reads a stream to its end for at most `ms`; a stream that does not end by then (or fails) is cancelled. Never throws. */
+async function drain(reader, ms) {
+  let timer;
+  const late = new Promise(resolve => { timer = setTimeout(resolve, ms, LATE); });
+  try {
+    for (;;) {
+      const next = await Promise.race([reader.read(), late]);
+      if (next === LATE) break;
+      if (next.done) return;
+    }
+  } catch { /* the stream failed: nothing left to reuse */ }
+  finally { clearTimeout(timer); }
+  try { await reader.cancel(); } catch { /* already closed */ }
+}
+const LATE = Symbol('late');
+
 // ---- Request -----------------------------------------------------------------------------------------------------------
 
+const DRAIN_MS = 250;
 const LOOPBACK = /^(?:127\.0\.0\.1|localhost|\[::1\])$/;
 const HOSTS = Object.freeze({mistral: 'api.mistral.ai', groq: 'api.groq.com'});
 function checkedEndpoint(endpoint, provider = 'mistral') {
@@ -171,6 +197,50 @@ function checkedEndpoint(endpoint, provider = 'mistral') {
   if (url.protocol === 'https:' && HOSTS[provider] && url.hostname === HOSTS[provider]) return url.href;
   if ((url.protocol === 'http:' || url.protocol === 'https:') && LOOPBACK.test(url.hostname)) return url.href;
   throw Error(`The ${PROVIDER_LABELS[provider] ?? 'Mistral'} key is only ever sent to ${HOSTS[provider] ?? 'api.mistral.ai'}`);
+}
+
+// ---- Connection reuse --------------------------------------------------------------------------------------------------
+// Node's built-in fetch (undici) keeps an idle connection for 4 s, far less than the gap between two turns, so every turn paid DNS,
+// TCP and TLS again (about 55 to 150 ms, docs/LATENCY_2026-10-13.md section 4.5). The cloud routes get one shared Agent that keeps
+// idle connections for 60 s. `undici` is not a dependency and cannot be imported from application code, but the copy inside Node
+// is reachable: its global dispatcher is an `Agent`, and its constructor makes another one that the built-in fetch accepts as
+// `dispatcher`. Nothing else is changed: the local AI and a test's fake server keep the default client. Any failure to build the
+// Agent (a Node without this internal) leaves the default client, which is only slower.
+export const KEEP_ALIVE_MS = 60000;
+const GLOBAL_DISPATCHER = Symbol.for('undici.globalDispatcher.1');
+let remoteAgent; // undefined: not tried; null: not available
+
+/** The shared keep-alive dispatcher for the cloud routes, or undefined. */
+async function remoteDispatcher() {
+  if (remoteAgent !== undefined) return remoteAgent ?? undefined;
+  try {
+    // Node creates its global dispatcher on the first fetch; a data: URL makes that without touching the network.
+    if (!globalThis[GLOBAL_DISPATCHER]) await globalThis.fetch('data:,').then(response => response.text());
+    const Agent = globalThis[GLOBAL_DISPATCHER]?.constructor;
+    remoteAgent = Agent?.name === 'Agent' ? new Agent({keepAliveTimeout: KEEP_ALIVE_MS, keepAliveMaxTimeout: KEEP_ALIVE_MS}) : null;
+  } catch { remoteAgent = null; }
+  return remoteAgent ?? undefined;
+}
+const isCloud = url => { const {protocol, hostname} = new URL(url); return protocol === 'https:' && Object.values(HOSTS).includes(hostname); };
+
+/**
+ * Opens the connection to the provider ahead of the first turn, so that turn finds a ready connection (TLS done). One unauthenticated
+ * `GET` of the provider's origin root: it carries no key (only the method, the host and the client's default headers leave), is not
+ * an API call so it uses no quota, and answers with a body of about 100 bytes (JSON, 404 at Mistral, 200 at Groq) that is read to
+ * its end so the connection returns to the shared pool. A `HEAD` is not used: both hosts (Cloudflare) answer it with
+ * `Connection: close`, which drops the connection (measured 2026-10-13). Resolves true when the host answered (any status), false
+ * otherwise; never throws, never rejects, gives up after `timeoutMs`, and the caller does not need to wait for it.
+ */
+export async function warmConnection({provider = 'mistral', fetchImpl = globalThis.fetch, timeoutMs = 5000} = {}) {
+  try {
+    const host = HOSTS[provider];
+    if (!host) return false;
+    const signal = AbortSignal.timeout(timeoutMs);
+    const dispatcher = fetchImpl === globalThis.fetch ? await remoteDispatcher() : undefined;
+    const response = await fetchImpl(`https://${host}/`, {method: 'GET', signal, headers: {Accept: 'application/json'}, ...(dispatcher ? {dispatcher} : {})});
+    try { await response.arrayBuffer(); } catch { /* the body failed: the connection is gone, nothing to keep */ }
+    return true;
+  } catch { return false; }
 }
 
 const sleep = (ms, signal) => new Promise((resolve, reject) => {
@@ -240,8 +310,9 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
   try {
     let response;
     try {
+      const dispatcher = isCloud(url) ? await remoteDispatcher() : undefined;
       markStage('llmSent');
-      response = await fetchImpl(url, {method: 'POST', signal: controller.signal,
+      response = await fetchImpl(url, {method: 'POST', signal: controller.signal, ...(dispatcher ? {dispatcher} : {}),
         headers: {Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', Accept: 'text/event-stream'},
         body: JSON.stringify({model, messages, stream: true, max_tokens: maxTokens, temperature, ...extraBody})});
     } catch (error) {
@@ -259,7 +330,8 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
     if (!response.body) throw new MistralError('network', 'sent no reply stream', {apiKey, provider});
     let text = '', actualModel, finishReason, usage, stoppedEarly = false;
     try {
-      for await (const data of sseData(response.body)) {
+      // After [DONE] the body is read to its end (bounded) instead of cancelled, so the connection is reused by the next turn.
+      for await (const data of sseData(response.body, {drainMs: DRAIN_MS})) {
         quiet();
         if (data === '[DONE]') break;
         let chunk; try { chunk = JSON.parse(data); } catch { continue; }
