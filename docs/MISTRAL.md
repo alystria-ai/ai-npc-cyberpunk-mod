@@ -21,10 +21,11 @@ is no longer offered to players: the notice, the settings text and the player do
 
 | Item | Where |
 |---|---|
-| Provider setting | `conversationProvider` in `settings.json` (`convai` default, `mistral`; anything else reads as `convai`) |
+| Provider setting | `conversationProvider` in `settings.json` (`convai` default, `mistral`, `local` for the optional Local AI pack, `groq` for Groq's free plan; anything else reads as `convai`) |
 | Key | `<state folder>/player-mistral-key.txt`, written with mode 0600 through a temporary file |
 | Paste / Remove commands | `runtime/mistral-key-command.json` (the game writes, the bridge reads; ids `<session>:mkey:<n>`; the same protocol as the Convai key) |
-| Status for the settings page | `runtime/mistral-state.json`: `{version, updated, provider, effective, saved, tail, pending, result, limit, model, stt}` |
+| Groq key | Same as the Mistral key, handled the same way: `<state folder>/player-groq-key.txt`; commands in `runtime/groq-key-command.json` (ids `<session>:gkey:<n>`, `paste` or `clear`); the bridge adds a `groq` object to `runtime/mistral-state.json`: `{saved, tail, limit, result}` (`limit` is `rate`, `daily`, `invalid`, `model` or `null`; `result` is `{id, state}` with `state` one of `checking`, `saved`, `cleared`, `invalid`, `unreadable`, `failed`). When Groq cannot answer a turn and a Mistral key exists, the bridge answers that turn with Mistral; otherwise the reply carries `errorCode` `groq-key`, `groq-limit` or `groq-model`, and the first reply with Groq chosen and no key carries `keyNotice` `groq-no-key`. |
+| Status for the settings page | `runtime/mistral-state.json`: `{version, updated, provider, effective, saved, tail, pending, result, limit, model, stt, localAi}` (`provider` and `effective` are `convai`, `mistral`, `groq` or `local`; `localAi` is `ready`, `warming`, `not-installed`, `no-memory` or `failed`, shown as the Local AI row) |
 | Local memory | `<state folder>/mistral-memory.json` (bounded, see Memory) |
 
 The key is never printed, logged, written to a status file or sent anywhere except `api.mistral.ai`. It is scrubbed from the support
@@ -42,8 +43,10 @@ player chose it; adding the key and applying switches over).
 | `bridge/mistral-client.mjs` | Streaming chat completions (SSE), first-byte and total timeouts, retries with backoff on 429 and 5xx, error mapping, the key check (`GET /v1/models`). |
 | `bridge/mistral-key.mjs` | The key file, the provider state (setting, requested/applied, one-time notices) and the Paste/Remove control. |
 | `bridge/mistral-prompt.mjs` | The system prompt, the message list, reply cleaning and caps, the summary request. |
-| `bridge/mistral-memory.mjs` | Local rolling history and summaries, and Forget. |
-| `bridge/mistral-host.mjs` | `MistralHost.reply(config)` and `attachMistral(host, ...)`, which makes the bridge's realtime hosts use the route while the provider is active. |
+| `bridge/mistral-memory.mjs` | The old rolling history and summaries (kept as the base of the memory store, and migrated once). |
+| `bridge/memory-store.mjs` | The memory the text providers share (Mistral, Groq, local): the same history and summaries plus lasting records with embeddings (docs/LOCAL_AI.md). |
+| `bridge/text-provider-host.mjs` | One host for every text provider: `TextProviderHost.reply(config)` over a route per provider (`mistralRoute`, `groqRoute`, `localRoute`), and `attachTextProvider(host, ...)`, which makes the bridge's realtime hosts use it while a text provider is active. |
+| `bridge/mistral-host.mjs` | `MistralHost` (the shared host with only the Mistral route) and `attachMistral`, kept under their old names. |
 
 A turn reaches `MistralHost.reply` with the same configuration the Convai host gets (the bridge adds a `local` field with the
 character's profile key, channel and, for an ordinary NPC, an ambient key). The result has the same shape as a Convai reply (`text`,
@@ -78,16 +81,34 @@ Reply cleaning: reasoning blocks, `Name:` labels, `*actions*`, short parenthetic
 quotes are removed; real emotion and voice tags are kept for the post-processing. A reply that says it is an AI (or is reasoning, or
 stops on a comma) gets one more try with a short reminder; reasoning twice is never spoken (it counts as an empty answer).
 
+### Prompt order (layout v2)
+
+When the bridge supplies the context in tiers (`contextParts`), the prompt is ordered from what never changes to what changes every turn, so
+a prefix cache keeps working on Mistral, Groq and the local model:
+
+1. system: the persona and the output rules (the persona prefix; the local AI loads it ahead on an invitation);
+2. system: the format notes for tags (Expressive emotions), then the world and quest context (slow), then what the character
+   remembers (the summary);
+3. system: the "right now" block (the clock, the place, who is with V). It used to open the context; it is now the last thing in the
+   system message because it changes every few minutes and one changed word early in a prompt invalidates the cache after it;
+4. the recent exchanges, verbatim, as alternating messages;
+5. the last user message: the volatile notes (language, Natural speech dice, follow-up hook), up to four remembered facts found for this
+   message, then `V says: <text>`.
+
+Convai keeps its own order (dynamic information as before). A bridge that does not supply `contextParts` gets the old layout.
+
 ### Models and limits
 
-- Models, best first (`DEFAULT_MODELS`): `mistral-small-latest`, `ministral-14b-latest`, `ministral-8b-latest`. The bridge uses the
-  first one the account may use. Measured on 11 Oct 2026 with a free-plan key: Small and Medium answered 429 with a request
+- Models, best first (`DEFAULT_MODELS`): `ministral-8b-latest`, `ministral-14b-latest`, `ministral-3b-latest`. The bridge uses the
+  first one the account may use (8B first: it is the fastest of the two big ones, and its allowance is the largest). Measured on 11 Oct 2026 with a free-plan key: Small and Medium answered 429 with a request
   allowance of 0 (`x-ratelimit-limit-req-minute: 0`), Large answered 403 (not in the plan), while `ministral-14b-latest` (30
   requests a minute, about 940k tokens a minute), `ministral-8b-latest` (188 a minute) and `ministral-3b-latest` (750 a minute)
   worked. A 429 with an allowance of 0 is not retried: the model is skipped for ten minutes and the next one is used.
 - Other 429s (the per-minute limit) are retried with backoff; the host also starts requests at least 1.1 s apart, and the summary of
   older talk is queued behind the reply that triggered it, so it never lands within a second of a chat request.
+- Every request carries a stable `prompt_cache_key` (`cyberpunk-convai:<hash of the state folder>:<character>`: no key and no name of the player) so the long persona prefix is cached on Mistral's side. Measured: about 98% of the prompt cached and about 20% faster, and cached tokens do not count against the token budget. The cache only helps if the start of the prompt is the same every turn; see "Prompt order" below.
 - Typical answer time with `ministral-14b-latest` was 1.3 to 1.8 s for a full reply.
+- Every Mistral text request is paced in one place, `TextProviderHost.#request`, through the shared scheduler (`bridge/mistral-rate.mjs`, the same one the Voxtral voice uses, because a free key may allow about one request a second for the whole workspace): starts are spaced about 1.05 s apart, a reply (priority text) goes before speech and before background work (summaries, fact extraction), a 429 pauses every start for its retry-after, and the rate-limit headers of every answer are passed to it. Without a scheduler (tests) requests start at least `gapMs` apart. Groq and the local server are not paced.
 - Third-party figures put the free plan at about one request a second and about a billion tokens a month per model; the headers
   above are what an account actually reports.
 

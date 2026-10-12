@@ -15,7 +15,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Aware of your gear**: companions know what V is wearing and carrying, and mention it only when it matters or you ask.
 - **Phone chat**: the first reply arrives in a second or two when you wait a moment after opening a chat.
 - **Fewer notices**: you only see when a companion has joined or when something fails.
-- **Free option when the daily conversation limit is reached**: choose Mistral as the Conversation provider in Settings > Development (it needs a free Mistral account). Voices keep working through the local voices. A fully local option is coming.
+- **Free option when the daily conversation limit is reached**: choose Mistral as the Conversation provider in Settings > Development (it needs a free Mistral account). Voices keep working through the local voices. The optional Local AI packs (see Local AI below) work without any account.
 
 ## Requirements
 
@@ -34,9 +34,35 @@ Close the game, then extract each download into your Cyberpunk 2077 folder (the 
 2. **Runtime**: from the Releases page of https://github.com/alystria-ai/cyberpunk-convai. Use the same version number as the Scripts. If it comes in several parts, extract every part.
 3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download every part from the same release page and extract them all. Then choose an OmniVoice option in Settings > Voices.
 
+4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB) for the best replies, and **Local AI lite** (Qwen3.5-2B, about 1.5 GB) for smaller graphics cards. Download every part from the same release page and extract them all. Then choose Local as the Conversation provider in Settings > Development. See "Local AI" below to pick a combination.
+
 Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 
 If Windows reports an error while extracting, use 7-Zip (https://www.7-zip.org) instead of the built-in extractor.
+
+## Local AI
+
+Convai gives better quality responses. Local AI is for playing without an account or without the internet. It needs a separate graphics card that supports Vulkan (NVIDIA or AMD), at least 16 GB of system memory (32 GB recommended) and about 5 GB more than usual while it runs. The first start after installing takes about a minute while your graphics card prepares the model; Settings > Development shows "Warming up" and then "Ready". The model is unloaded after ten minutes without a conversation.
+
+If your graphics card is short of memory the mod steps down by itself: it keeps your chosen voice and uses the lite model; if that does not fit either, it keeps the voice and uses Mistral or Convai for the text, with one notice.
+
+Extra video memory each combination needs on top of what the game itself uses. These are estimates from one 12 GB card; the game's own use depends on your settings, and ray tracing and high textures use the most.
+
+| Voice | Text | Extra video memory |
+|---|---|---|
+| Pocket | Convai or Mistral | none |
+| Pocket | Local AI lite | about 1.5 GB |
+| Pocket | Local AI standard | about 3 GB |
+| OmniVoice | Convai or Mistral | about 2 GB |
+| OmniVoice | Local AI lite | about 4 GB |
+| OmniVoice | Local AI standard | about 5 GB |
+
+| Your graphics card | What to pick |
+|---|---|
+| 8 GB | Pocket with Convai or Mistral. Local AI lite only with medium textures and no ray tracing. |
+| 12 GB | Pocket with Local AI standard, or OmniVoice with Local AI lite. |
+| 16 GB | OmniVoice with Local AI standard. |
+| 24 GB | Anything you like. |
 
 ## Update
 
