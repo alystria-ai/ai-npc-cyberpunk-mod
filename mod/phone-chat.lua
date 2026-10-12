@@ -401,8 +401,15 @@ function M.abandon()
     M.saveIdentity, M.bindingKey, M.bucket, M.scope, M.captureDrafts = nil, nil, nil, nil, false
     M.history, M.drafts, M.errors = {}, {}, {}
 end
+-- The per-frame binding check reads a small plain table; binding() copies only its scalar fields, so it needs
+-- no JSON round trip (capture() is for snapshots that leave the game). Every frame, so no encode/decode here.
+local function currentBindingValue(player)
+    if type(M.captureBinding) ~= 'function' then return nil end
+    local ok, value = pcall(M.captureBinding, player)
+    return ok and type(value) == 'table' and value or nil
+end
 function M.update(player, delta)
-    local currentBinding = binding(capture(M.captureBinding, player))
+    local currentBinding = binding(currentBindingValue(player))
     local currentKey = bindingKey(currentBinding)
     local changed = not M.world or currentKey ~= M.bindingKey
         or displayScope(currentBinding) ~= displayScope(M.saveIdentity or {})
@@ -427,10 +434,12 @@ function M.update(player, delta)
     M.tick = 0
     -- The reset journal changes only on Forget. Each CET io.open costs 1-2 ms of
     -- the game's main thread, so it is read every resetPeriod (and at once
-    -- before a submission is judged), not on every 10 Hz phone tick.
+    -- before a submission is judged), not on every 10 Hz phone tick. With no chat
+    -- open and no reply pending nothing shows or sends, so it waits resetIdlePeriod.
     local resetRead = changed
     M.resetWait = (M.resetWait or 0) + elapsed
-    if not changed and (M.resetWait >= (M.resetPeriod or 0.5) or M.resetHealthy == nil) then
+    local resetPeriod = ((M.contact or '') ~= '' or M.pending) and (M.resetPeriod or 0.5) or (M.resetIdlePeriod or 5)
+    if not changed and (M.resetWait >= resetPeriod or M.resetHealthy == nil) then
         M.resetWait, resetRead = 0, true
         historyReady = refreshMemoryResets()
     end

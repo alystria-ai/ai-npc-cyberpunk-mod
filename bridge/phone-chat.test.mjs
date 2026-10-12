@@ -398,8 +398,8 @@ os.rename=function(a,b) files[b]=files[a]; files[a]=nil; return true end
 NewObject=function() return {} end
 local function put(path,v) files[path]=json.encode(v) end
 put('phone-contacts.json', {{contact='judy',key='judy-alvarez'},{contact='panam',key='panam-palmer'}})
--- Read the reset journal on every phone tick unless a test exercises the 500 ms production cadence.
-local function newModule() local value=(function() ${adapter} end)(); value.resetPeriod=0; return value end
+-- Read the reset journal on every phone tick unless a test exercises the production cadence (500 ms open, 5 s idle).
+local function newModule() local value=(function() ${adapter} end)(); value.resetPeriod=0; value.resetIdlePeriod=0; return value end
 local m=newModule()
 local disappearing=false
 local saveBinding={version=1,status='available',authoritative=true,confidence='native-live',localUserId='user-1',
@@ -911,7 +911,7 @@ test('the reset journal is read every 500 ms in production, and freshly before a
 local opens, open = 0, io.open
 io.open=function(path,mode) if path=='runtime/memory-chat-resets.json' then opens=opens+1 end; return open(path,mode) end
 resetJournal({},{},{},false)
-m=newModule();m.resetPeriod=nil;configure()
+m=newModule();m.resetPeriod=nil;m.resetIdlePeriod=nil;configure()
 for _=1,60 do m.update(player,1/60) end
 assert(opens>=2 and opens<=4,'reset journal reads in one second: '..opens)
 local before=opens
@@ -922,6 +922,36 @@ submission={contact='judy',text='Are you there?'}
 for _=1,6 do m.update(player,1/60) end
 assert(opens==before+1,'submission did not read the journal once: '..(opens-before))
 assert(m.errors.judy=='Memory clearing is in progress. Your draft has been kept.',tostring(m.errors.judy))
+`));
+
+test('with no chat open and no reply pending the reset journal waits 5 s, and opening a chat reads it at once', () => runLua(setup + `
+local opens, open = 0, io.open
+io.open=function(path,mode) if path=='runtime/memory-chat-resets.json' then opens=opens+1 end; return open(path,mode) end
+resetJournal({},{},{},false)
+contact=''
+m=newModule();m.resetPeriod=nil;m.resetIdlePeriod=nil;configure()
+for _=1,60*10 do m.update(player,1/60) end
+assert(opens>=2 and opens<=4,'idle reset journal reads in ten seconds: '..opens)
+resetJournal({},{},{},true);local before=opens
+contact='judy'
+for _=1,15 do m.update(player,1/60) end
+assert(opens>=before+1 and opens<=before+2,'opening a chat did not read the journal: '..(opens-before))
+before=opens
+for _=1,60 do m.update(player,1/60) end
+assert(opens>=before+1 and opens<=before+3,'open chat reads in one second: '..(opens-before))
+`));
+
+test('the per-frame binding check makes no JSON round trip', () => runLua(setup + `
+resetJournal({},{},{},false)
+m=newModule();configure()
+for _=1,10 do m.update(player,1/60) end
+local encodes, encode = 0, json.encode
+json.encode=function(value) encodes=encodes+1; return encode(value) end
+local seen=0; local bind=m.captureBinding
+m.captureBinding=function(...) seen=seen+1; return bind(...) end
+m.update(player,0.001)
+json.encode=encode
+assert(seen==1 and encodes==0,'binding calls '..seen..', encodes '..encodes)
 `));
 
 test('forgetting sessions starts every thread afresh, saves the empty store and keeps the shown transcript', async () => {
