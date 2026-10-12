@@ -60,8 +60,14 @@ emoji, one to three sentences, never an AI, no invented facts or shared history,
 repeat the rules). Ordinary NPCs get no name and are told they are an ordinary person.
 
 Then the recent history (last 8 exchanges, as alternating user/assistant messages), then one user message: the live context (exactly
-the context string the bridge sends Convai each turn: quest and world knowledge, location and time, relationship style, gear, game
-dialogue, battle and loot, Natural speech and Expressive emotion tag instructions, follow-up hook, first-person reminder, language),
+the context string the bridge sends Convai each turn. It opens with a short "right now" block (`bridge/turn-context.mjs`, at most 450
+characters, first so the 20000-character cap below can never cut it: the game clock as a part of the day and the nearest hour, the
+district, who else is with V, whether V is in a vehicle, V's gender and lifepath; in-person turns only, not Phone Chat yet and not
+automatic reactions). Then quest and world knowledge, relationship style, gear, game dialogue, battle and loot, Natural speech and
+Expressive emotion tag instructions, follow-up hook, first-person reminder, language. An ordinary NPC (resident, vendor or other
+archetype) is a stranger to V: it gets the time, the place, whether V is in a vehicle or has company, V's apparent gender and what
+V visibly wears and holds, but none of V's journal, jobs, world facts or gear list. There is no weather, health or wanted-level
+line yet),
 `V says: <text>`, and a one-line reminder of the rules the models drift from most (`closing` in the prompt module). A battle or loot
 reaction is marked `[EVENT, not spoken by V]` and is not remembered. Temperature is 0.65.
 

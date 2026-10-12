@@ -5,9 +5,10 @@
 //   system   the persona (backstory with the appearance, speaking style, original example lines), the output rules and,
 //            for a private or phone conversation, what the character remembers of V
 //   history  the last few exchanges of this conversation (user / assistant)
-//   user     the live context exactly as the bridge sends it to Convai each turn (quest and world knowledge, place and
-//            time, relationship, gear, game dialogue, battle and loot, and the voice-tag / follow-up / first-person blocks),
-//            then V's message
+//   user     the live context exactly as the bridge sends it to Convai each turn: first a short "right now" block (game
+//            clock, district, company, vehicle, V's gender and lifepath; bridge/turn-context.mjs, in-person turns only),
+//            then quest and world knowledge, relationship, gear, game dialogue, battle and loot, and the voice-tag /
+//            follow-up / first-person blocks, then V's message. There is no weather, health or wanted-level line yet.
 // A reply comes back as plain text and goes through the same cleaning as a Convai reply (Natural speech, Expressive emotions).
 
 export const LIMITS = Object.freeze({

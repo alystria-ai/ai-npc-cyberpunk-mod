@@ -304,3 +304,16 @@ What a quest-decision mapping would need:
 `player-gear.mjs`, `romance-context.mjs`, `group-context.mjs`, `conversation-knowledge.mjs`, `mistral-prompt.mjs`,
 `mistral-host.mjs`, `realtime-client.mjs`, `convai-bridge.mjs`; the installed `runtime/last-input.json`, `probe.log`,
 `perf-probe.json` and `scripting.log`.
+
+## Status (2026-10-12, later the same day)
+
+Built and unit-tested; not yet live (bridge restart plus CET reload):
+
+- Finding B fixed on the bridge: an ordinary NPC or archetype (`isAmbientProfile`) gets no journal, jobs, history, world facts,
+  authority text or gear list from `conversationContext`; it sees only the right-now block and, if the game sent gear, the
+  clothing and weapon in hand (`visibleGearContext`).
+- Finding A: `docs/MISTRAL.md` and the header of `bridge/mistral-prompt.mjs` now describe what is sent.
+- Proposed rows 1 to 4 built as `mod/turn-context.lua` plus `bridge/turn-context.mjs`: game clock, district, people beside V (15 m),
+  vehicle, V's gender and lifepath, first in the context, 450 characters at most, in-person turns only. Not done: weather, health
+  and heat (their CET calls are unconfirmed; they wait for a live probe), Phone Chat (it has no turn path for the block yet).
+- Section 6 step 1: each of the four dialogue hooks writes one `probe.log` line the first time it fires per session.

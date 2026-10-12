@@ -197,6 +197,11 @@ From the CET console: `convaiGameDialogue:dump()` writes
 held with type, channel, speaker, entity, profile key, contact and age. Nothing
 is sent anywhere. `convaiGameDialogue:status()` returns the counters only.
 
+Without the console: the first time each of the four hooks fires in a session, one `runtime/probe.log` line is written,
+for example `Game dialogue: hook show fired (BaseSubtitlesGameController.ShowDialogLines)`; the other three are `event`,
+`choice` and `hubs`. A hook with no such line after a scene with dialogue and choices never fired (a CET reload starts the
+session afresh). It costs one table lookup per callback and nothing per frame.
+
 ## In-game check list
 
 Each item: do it, then run `convaiGameDialogue:dump()` and read the probe.
