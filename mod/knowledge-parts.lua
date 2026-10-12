@@ -12,6 +12,39 @@ M.encode = function(value) return json.encode(value) end
 -- name -> 'revision:generation:worldToken' of the content on disk.
 M.written = {}
 
+-- Incremental map encoder. A collector hands it a finished table keyed by strings and calls step(n) a few times per
+-- frame; once done, text is the JSON object of the map, entry by entry, equal in content to encoding the map whole.
+-- The first turn that needs the part then writes a ready string instead of encoding 150-650 KB on its own frame.
+-- failed is set (and the caller drops the encoder) if an entry cannot be encoded.
+local Encoder = {}; Encoder.__index = Encoder
+local PLAIN_KEY = '^[%w_:%-%.#/@+]+$'
+function M.newEncoder(map, encode)
+    local keys = {}
+    for name in pairs(map) do keys[#keys + 1] = name end
+    pcall(table.sort, keys) -- a stable order (every key is a string)
+    local encodeValue = encode or M.encode
+    return setmetatable({map = map, keys = keys, index = 1, pieces = {}, done = false, failed = false,
+        encodeValue = encodeValue}, Encoder)
+end
+function Encoder:step(count)
+    if self.done or self.failed then return end
+    for _ = 1, count or 1 do
+        local name = self.keys[self.index]
+        if name == nil then
+            self.text = '{' .. table.concat(self.pieces, ',') .. '}'; self.pieces, self.done = nil, true
+            return
+        end
+        local okValue, value = pcall(self.encodeValue, self.map[name])
+        local label = type(name) == 'string' and name:match(PLAIN_KEY) and ('"' .. name .. '"')
+        if not label then
+            local okKey, encodedKey = pcall(self.encodeValue, tostring(name)); label = okKey and encodedKey or nil
+        end
+        if not okValue or type(value) ~= 'string' or type(label) ~= 'string' then self.failed = true; return end
+        self.pieces[#self.pieces + 1] = label .. ':' .. value
+        self.index = self.index + 1
+    end
+end
+
 local function key(part)
     return tostring(part.revision) .. ':' .. tostring(part.generation) .. ':' .. tostring(part.worldToken)
 end
@@ -26,8 +59,20 @@ function M.publish(parts)
         local id = key(part)
         if M.written[part.name] ~= id then
             M.written[part.name] = nil
-            local ok, raw = pcall(M.encode, {version = 1, part = part.name, revision = part.revision,
-                generation = part.generation, worldToken = part.worldToken, data = part.data})
+            local header = {version = 1, part = part.name, revision = part.revision,
+                generation = part.generation, worldToken = part.worldToken}
+            local ok, raw
+            if type(part.encoded) == 'string' then
+                -- data was encoded ahead of time (newEncoder): splice it into the encoded header.
+                ok, raw = pcall(M.encode, header)
+                if ok and type(raw) == 'string' and #raw > 2 and raw:sub(-1) == '}' then
+                    raw = raw:sub(1, -2) .. ',"data":' .. part.encoded .. '}'
+                else ok = false end
+            end
+            if not ok then
+                header.data = part.data
+                ok, raw = pcall(M.encode, header)
+            end
             if not ok or type(raw) ~= 'string' then return false end
             local file = M.open('runtime/knowledge-' .. part.name .. '.json', 'wb')
             if not file then return false end

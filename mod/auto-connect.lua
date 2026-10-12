@@ -117,6 +117,11 @@ function M.new(options)
     local active, cooling, partners = {}, {}, {}
     local lastSignature, lastPublish = nil, nil
     local publish = options.publish or publishFile
+    -- heartbeat() runs every frame; its list work (keys, entity ids, a signature) is repeated only every
+    -- heartbeatLook seconds of this clock (the list itself publishes every cfg.heartbeat). A frame whose
+    -- heartbeat slot was taken looks again next frame.
+    local mono = options.mono or os.clock
+    local heartbeatLook, beatAt = options.heartbeatLook or 0.25, nil
     local ready = options.ready or connectionReady
     local wall = options.wall or os.time
 
@@ -171,7 +176,9 @@ function M.new(options)
         if not force and signature == lastSignature and lastPublish and now - lastPublish < cfg.heartbeat then return end
         -- An unchanged heartbeat writes in a frame no other heartbeat writes in (init.lua convaiHeartbeatSlot).
         local slot = convaiHeartbeatSlot
-        if not force and signature == lastSignature and lastPublish and type(slot) == 'function' and not slot() then return end
+        if not force and signature == lastSignature and lastPublish and type(slot) == 'function' and not slot() then
+            return 'slot'
+        end
         if pcall(publish, list, partnerList, ids) then lastSignature, lastPublish = signature, now end
     end
 
@@ -252,7 +259,11 @@ function M.new(options)
     -- Every frame, also while a menu pauses the game: keeps the list fresh for
     -- the bridge, which drops a list that stops being refreshed.
     function A.heartbeat()
-        if #active > 0 or #partners > 0 or lastSignature ~= nil and lastSignature ~= '' then push(false) end
+        if #active > 0 or #partners > 0 or lastSignature ~= nil and lastSignature ~= '' then
+            local at = mono()
+            if beatAt and at >= beatAt and at - beatAt < heartbeatLook then return end
+            if push(false) == 'slot' then beatAt = nil else beatAt = at end
+        end
     end
 
     -- context: worldReady, blocked (combat, scene, call, vehicle), player,

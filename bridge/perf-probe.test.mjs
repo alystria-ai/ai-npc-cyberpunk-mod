@@ -11,10 +11,16 @@ function run(body) {
   const setup = `
 local t,developer,written,frames=100,false,nil,0
 os.clock=function()return t end
-json={encode=function(v)written=v;return 'encoded' end,decode=function()return {} end}
+-- Each closed window is encoded once ('@n'); the file write joins them: written = {history = the rows}.
+local rows,encodes,writes={},0,0
+json={encode=function(v)encodes=encodes+1;rows[encodes]=v;return '@'..encodes end,decode=function()return {} end}
 local realOpen=io.open
 io.open=function(path,mode)
- if path=='runtime/perf-probe.json'then return {write=function()return true end,close=function()return true end}end
+ if path=='runtime/perf-probe.json'then
+  local text=''
+  return {write=function(_,...)for i=1,select('#',...)do text=text..tostring((select(i,...)))end;return true end,
+   close=function()writes=writes+1;written={history={}};for id in text:gmatch('@(%d+)')do written.history[#written.history+1]=rows[tonumber(id)]end;return true end}
+ end
  if path=='runtime/state.json'then t=t+.002;return {read=function()return '' end,close=function()return true end}end
  return realOpen(path,mode)
 end
@@ -74,7 +80,7 @@ for _=1,240 do
  for _=1,10 do hook('self','event',function() return true end) end
  registered['AIMoveToCommandHandler.UpdateCommand']()
 end
-local row=written.history[#written.history]
+P.flush();local row=written.history[#written.history]
 local stim=row.sections['hook:ReactionManagerComponent.OnEventReceived']
 assert(stim and stim.calls>=10*row.fps*row.span-20,'hook calls '..tostring(stim and stim.calls))
 assert(math.abs(stim.maxMs-1)<.001 and row.sections['hook:AIMoveToCommandHandler.UpdateCommand'].maxMs-2<.001)
@@ -93,7 +99,7 @@ local tactics={update=function() t=t+.004 end}
 assert(again.watch(tactics,'update','tactics.update'))
 developer=true;t=t+2
 for _=1,240 do frame(false);registered['PlayerPuppet.OnAction']();tactics.update() end
-local row=written.history[#written.history]
+P.flush();local row=written.history[#written.history]
 assert(row.sections['hook:PlayerPuppet.OnAction'],'hook wrapped by the first load did not record')
 assert(math.abs(row.sections['tactics.update'].maxMs-4)<.001,'watched section missing')
 `));
@@ -110,7 +116,7 @@ Override=cetOverride -- what CET does when onInit runs
 events.onInit()
 developer=true;t=t+2
 for _=1,240 do frame(false);registered['ChatterLineLogicController.UpdateProjection']() end
-local row=written.history[#written.history]
+P.flush();local row=written.history[#written.history]
 assert(row.sections['hook:ChatterLineLogicController.UpdateProjection'],'hook registered in onInit did not record')
 assert(row.hooksWrapped==1,'hooksWrapped '..tostring(row.hooksWrapped))
 -- Re-wrapping is idempotent: a second onInit does not time a handler twice.
@@ -132,10 +138,30 @@ end)
 P.mark('init:a');t=t+5 -- Developer mode off: nothing open, nothing recorded
 developer=true;t=t+2
 for i=1,240 do early=(i%2==0);events.onUpdate(.016) end
-local row=written.history[#written.history]
+P.flush();local row=written.history[#written.history]
 local a,b,c=row.sections['init:a'],row.sections['init:b'],row.sections['init:c']
 assert(a and math.abs(a.maxMs-2)<.001,'init:a '..tostring(a and a.maxMs))
 assert(b and math.abs(b.maxMs-1)<.001,'early return did not close init:b at the return: '..tostring(b and b.maxMs))
 assert(c and math.abs(c.maxMs-4)<.001 and math.abs(c.calls*2-a.calls)<=2,'init:c '..tostring(c and c.calls))
 assert(math.abs(row.sections['event:onUpdate'].maxMs-22)<.001,'onUpdate '..row.sections['event:onUpdate'].maxMs)
+`));
+
+test('the probe encodes each window once and rewrites its file at most every 10 s, keeping the history shape', () => run(`
+developer=true;t=t+2
+-- 60 s of frames: about 30 windows. Each window is encoded once; the file is not rewritten every window.
+for _=1,3600 do frame(true) end
+assert(encodes>=28 and encodes<=31,'encodes '..encodes)
+assert(writes>=5 and writes<=8,'file rewritten '..writes..' times in 60 s')
+-- Nothing re-encodes old rows: an encode only ever sees the newest window (a row table seen once).
+local seen={}
+for i=1,encodes do assert(not seen[rows[i]]);seen[rows[i]]=true end
+local before=writes
+P.flush();assert(writes==before or writes==before+1)
+assert(#written.history>=1 and written.history[1].sections and written.history[1].span)
+-- Turning Developer mode off writes the windows that closed since the last write.
+for _=1,200 do frame(true) end
+local pending=writes
+developer=false;t=t+2;frame(true)
+assert(writes>=pending,'no final write')
+assert(#written.history<=150)
 `));

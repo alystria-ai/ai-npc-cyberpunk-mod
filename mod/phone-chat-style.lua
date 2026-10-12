@@ -369,13 +369,33 @@ function M.composerFonts(controller)
     end
 end
 
-function M.refresh(force)
-    local player = Game.GetPlayer()
-    if not player or not player:ConvaiPhoneIsOpen() then M.wasOpen = false; return end
+-- Class and widget names compared as CNames: one native call per controller instead of two plus a string
+-- (the scan walks up to 512 controllers and 512 widgets, a 20-40 ms frame while the phone opens or its
+-- selection moves). Built on first use; CName.new needs the game.
+local scanNames
+local function scanName()
+    if not scanNames then
+        scanNames = {popup = CName.new('PhoneMessagePopupGameController'), hud = CName.new('NewHudPhoneGameController'),
+            selection = CName.new('PhoneDialerSelectionController'), dialer = CName.new('PhoneDialerLogicController'),
+            feedback = CName.new('convaiActionFeedback')}
+    end
+    return scanNames
+end
+local function childCount(widget) return widget:GetNumChildren() end
+
+-- force: rescan now. player/open: the caller's per-frame answers (init.lua onUpdate asks the game once for all the
+-- phone work); with no player (a wrapped manager update) it asks for itself.
+function M.refresh(force, player, open)
+    if player == nil then
+        player = Game.GetPlayer()
+        open = player and player:ConvaiPhoneIsOpen()
+    end
+    if not player or not open then M.wasOpen = false; return end
     local localeRevision = revision()
     if M.wasOpen and not force and not M.fontDirty and M.localeRevision == localeRevision then return end
     M.wasOpen, M.localeRevision = true, localeRevision
     if fonts and fonts.begin then fonts.begin() end
+    local names = scanName()
     -- The stock live HUD placed PhoneMessagePopupGameController at index 132.
     -- Leave space for those controllers while retaining an overall scan bound.
     local remaining = 512
@@ -384,8 +404,8 @@ function M.refresh(force)
         for _, controller in ipairs(layer:GetGameControllers()) do
             if remaining == 0 then break end
             remaining = remaining - 1
-            local class = NameToString(controller:GetClassName())
-            if class == 'PhoneMessagePopupGameController' then
+            local class = controller:GetClassName()
+            if class == names.popup then
                 safely(M.composer, controller)
                 safely(M.composerFonts, controller)
                 if force and convaiPhoneChat then
@@ -399,21 +419,22 @@ function M.refresh(force)
                     end)
                 end
             end
-            if class == 'NewHudPhoneGameController' then
+            if class == names.hud then
                 local widgetsLeft = 512
                 local function visit(widget, depth)
                     if not widget or depth > 13 or widgetsLeft == 0 then return end
                     widgetsLeft = widgetsLeft - 1
                     local logic = widget:GetController()
-                    if fonts and widget:GetName() == CName.new('convaiActionFeedback') then
+                    if fonts and widget:GetName() == names.feedback then
                         safely(fonts.apply, widget, nil, '')
                     end
-                    if logic and NameToString(logic:GetClassName()) == 'PhoneDialerSelectionController' then
+                    local logicClass = logic and logic:GetClassName()
+                    if logicClass == names.selection then
                         safely(M.header, logic)
                         safely(M.headerFonts, logic)
                         return
                     end
-                    if logic and NameToString(logic:GetClassName()) == 'PhoneDialerLogicController' then
+                    if logicClass == names.dialer then
                         safely(function()
                             local contact = logic:GetSelectedContactData()
                             M.action(logic, contact, true)
@@ -426,7 +447,7 @@ function M.refresh(force)
                             end
                         end)
                     end
-                    local compound, count = pcall(function() return widget:GetNumChildren() end)
+                    local compound, count = pcall(childCount, widget)
                     if compound then for i = 0, count - 1 do visit(widget:GetWidgetByIndex(i), depth + 1) end end
                 end
                 visit(controller:GetRootWidget(), 0)

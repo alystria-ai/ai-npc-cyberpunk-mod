@@ -56,6 +56,8 @@ export function installLayout({appDirectory, gameRoot}) {
     omni: resolve(app, 'omni'), omniPython: resolve(app, 'omni/python/python.exe'),
     omniModel: resolve(app, 'omni/model'), omniAdapter: resolve(app, 'omni/voicestudio/backend'),
     omniDefaults: resolve(app, 'omni/defaults'),
+    // The optional Local AI packs unpack here (manifest.standard.json / manifest.lite.json, llama/, models/).
+    localAi: resolve(app, 'local-ai'),
   });
 }
 
@@ -154,7 +156,10 @@ export function serviceEnvironment(layout, {omni, keyFile}, source = process.env
   for (const name of ['NODE_OPTIONS', 'NODE_PATH', 'PYTHONPATH', 'PYTHONHOME', 'PYTHONSTARTUP', 'PYTHONUSERBASE',
     'CYBERPUNK_CONVAI_PYTHON', 'CYBERPUNK_CONVAI_OMNI_MODEL', 'CYBERPUNK_CONVAI_OMNI_ADAPTER',
     'CYBERPUNK_CONVAI_OMNI_REFERENCES', 'CYBERPUNK_CONVAI_OMNI_CACHE', 'CYBERPUNK_CONVAI_RHUBARB',
-    'CYBERPUNK_CONVAI_LIPSYNC_WORK', 'CYBERPUNK_CONVAI_DAILY_LIMIT']) delete env[name];
+    'CYBERPUNK_CONVAI_LIPSYNC_WORK', 'CYBERPUNK_CONVAI_DAILY_LIMIT',
+    // A developer's Local AI folder or model files must not leak into a player's service (docs/LOCAL_AI.md).
+    'CYBERPUNK_CONVAI_LOCAL_AI_DEV', 'CYBERPUNK_CONVAI_LOCAL_SERVER', 'CYBERPUNK_CONVAI_LOCAL_MODEL',
+    'CYBERPUNK_CONVAI_LOCAL_LITE_MODEL', 'CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL']) delete env[name];
   Object.assign(env, {
     PYTHONNOUSERSITE: '1',
     CYBERPUNK_CONVAI_GAME: layout.gameRoot,
@@ -162,12 +167,15 @@ export function serviceEnvironment(layout, {omni, keyFile}, source = process.env
     CYBERPUNK_CONVAI_KEY_FILE: keyFile,
     CYBERPUNK_CONVAI_BROWSER: layout.browser,
     CYBERPUNK_CONVAI_CLIENT_ASSETS: layout.assets,
+    CYBERPUNK_CONVAI_LOCAL_AI: layout.localAi,
+    // The folder 'runtime/voice-references/' maps to. Besides OmniVoice, the Mistral cloud voice (Voxtral) reads its reference clips
+    // and its pre-built prepared/ clips from here, so it is set with or without the OmniVoice pack.
+    CYBERPUNK_CONVAI_OMNI_REFERENCES: layout.voices,
   });
   if (omni) Object.assign(env, {
     CYBERPUNK_CONVAI_PYTHON: layout.omniPython,
     CYBERPUNK_CONVAI_OMNI_MODEL: layout.omniModel,
     CYBERPUNK_CONVAI_OMNI_ADAPTER: layout.omniAdapter,
-    CYBERPUNK_CONVAI_OMNI_REFERENCES: layout.voices,
     CYBERPUNK_CONVAI_OMNI_CACHE: resolve(layout.state, 'voice-studio-data'),
   });
   return env;

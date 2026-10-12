@@ -209,16 +209,22 @@ export class ConvaiContinuousSpeech {
     }
     // Decided once, before the first state write, and fixed for this stream.
     if (this.splitFace === undefined) {
-      let supported = false;
-      if (this.writeFace && this.faceFile) try { supported = await this.faceFile() === true; } catch { supported = false; }
-      this.splitFace = supported;
+      // faceFile() answers true (a plain document), 'segments' (the segmented layout of
+      // bridge/continuous-face-file.mjs, which the game decodes by changed segment) or false.
+      let supported = false, segments = false;
+      if (this.writeFace && this.faceFile) try {
+        const mode = await this.faceFile();
+        supported = mode === true || mode === 'segments'; segments = mode === 'segments';
+      } catch { supported = false; }
+      this.splitFace = supported; this.faceSegments = segments;
     }
     let faceField = {face: this.face};
     if (this.splitFace) {
       if (this.face && this.faceWritten !== this.faceRevision) {
         const owner = {version: 1, id: this.token, requestId: this.input.requestId,
           generation: this.input.generation, entity: this.input.entity};
-        const committed = await this.commit(this.writeFace, {...owner, revision: this.faceRevision, face: this.face}, false);
+        const committed = await this.commit(value => this.writeFace(value, {segments: this.faceSegments === true}),
+          {...owner, revision: this.faceRevision, face: this.face}, false);
         if (committed === false) throw Error('Continuous speech face could not be committed');
         // null: the game was reading the old file; the next poll writes again.
         if (committed !== null) this.faceWritten = this.faceRevision;

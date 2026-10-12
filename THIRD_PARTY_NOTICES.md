@@ -56,8 +56,9 @@ Kyutai terms above do.
 
 ### Native core plugin
 
-`red4ext/plugins/CyberpunkConvaiNative/CyberpunkConvaiNative.dll`, built from `native/core`, when a
-release ships it. Both components are compiled into the DLL; their licence texts go next to it.
+`red4ext/plugins/CyberpunkConvaiNative/CyberpunkConvaiNative.dll`, built from `native/core` in the
+release build (part of the Runtime package). Both components are compiled into the DLL; their
+licence texts ship next to it (`RED4ext.SDK-LICENSE.md`, `yyjson-LICENSE.txt`).
 
 | Component | Version | Licence | Where the licence text is |
 |---|---|---|---|
@@ -75,6 +76,28 @@ release ships it. Both components are compiled into the DLL; their licence texts
 
 The OmniVoice weights are CC-BY-NC, which excludes commercial use. The pack is optional and
 separate from the Runtime package.
+
+## Bundled in the optional Local AI packs
+
+Two optional downloads, "Local AI standard" and "Local AI lite" (`docs/LOCAL_AI.md`). Both unpack into
+`red4ext/plugins/CyberpunkConvai/app/local-ai/` and each carries the same server, embedding model,
+licence texts and `THIRD-PARTY-NOTICES.txt`. Every file is the unmodified upstream file, pinned by
+revision and SHA-256 in `packaging/release.config.json`. The licences below are what each
+publisher's model card or repository states; the Gemma 4 card says Apache-2.0 and links Google's
+Apache-2.0 page, and Google also publishes a prohibited use policy for Gemma
+(https://ai.google.dev/gemma/prohibited_use_policy).
+
+| Component | Version | Licence | Where the licence text is |
+|---|---|---|---|
+| llama.cpp `llama-server`, Vulkan build for Windows x64 (the official release without its other command line tools) | b11560 | MIT, Copyright (c) 2023-2026 The ggml authors | `app/local-ai/licenses/llama.cpp-MIT.txt`; source: https://github.com/ggml-org/llama.cpp/tree/b11560 |
+| LLVM OpenMP runtime (`libomp.dll`, inside the llama.cpp release) | as released with b11560 | Apache-2.0 with LLVM exceptions | `app/local-ai/llama/LICENSE-LLVM-OpenMP` |
+| Gemma 4 E4B instruction-tuned, QAT q4_0 GGUF (Local AI standard) | `google/gemma-4-E4B-it-qat-q4_0-gguf`, revision `4b4a2c1d` | Apache-2.0 (Google) | `app/local-ai/licenses/Apache-2.0.txt` |
+| Qwen3.5-2B Q4_K_M GGUF made by Unsloth (Local AI lite) | `unsloth/Qwen3.5-2B-GGUF`, revision `f6d5376b`; model: Qwen/Qwen3.5-2B | Apache-2.0, Copyright 2026 Alibaba Cloud | `app/local-ai/licenses/Apache-2.0.txt` |
+| granite-embedding-107m-multilingual Q8_0 GGUF (both packs; memory search) | `lmstudio-community/granite-embedding-107m-multilingual-GGUF`, revision `fe02f281`; model: ibm-granite/granite-embedding-107m-multilingual | Apache-2.0 (IBM) | `app/local-ai/licenses/Apache-2.0.txt` |
+
+Apache-2.0 and MIT both allow redistribution, including commercially, if the licence text and
+copyright notice travel with the files, which the packs do. The models are unmodified, so no
+change statement is needed. The packs are separate from the Runtime package.
 
 ## Installed separately by players
 

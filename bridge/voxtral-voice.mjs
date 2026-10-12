@@ -16,7 +16,9 @@
 //  - A cloud call can fail or stall (about one call in ten took 11 s in the measurements). Before any audio has been delivered
 //    every failure (no key, no reference, a refused or limited request, a network error, no first audio within `firstAudioMs`)
 //    throws a VoxtralError, and the caller speaks that reply with Pocket instead. Once audio is playing a later failure ends
-//    that reply's audio early (the written reply is complete) rather than playing two voices.
+//    that reply's audio early (the written reply is complete) rather than playing two voices. The same holds for the rest of a
+//    reply (the second part of a long one, or the tail after a streamed first sentence): it is asked for again once, with a longer
+//    limit, and if that fails too the reply ends after the part already heard; it is never spoken by Pocket.
 //  - One request per reply (the whole text, streamed), never one per sentence: a free Mistral key may be limited to about one
 //    request a second for the whole workspace, shared with the text replies. Every request goes through the shared scheduler
 //    (bridge/mistral-rate.mjs), text first; the first-audio limit counts from the moment the request is actually sent.
@@ -34,6 +36,12 @@ export const VOXTRAL_MODEL = 'voxtral-mini-tts-latest';
 export const VOXTRAL_RATE = 24000;
 export const VOXTRAL_LIMITS = Object.freeze({
   firstAudioMs: 7000,        // no audio this long after the request was sent: Pocket speaks this reply (a long reply is split to stay well inside)
+  // The rest of a reply whose first part was heard in this voice is never given to another voice. It is asked for as soon as the text
+  // is known, with these limits, and again once if the first ask fails before any audio (the first part's audio buys the time;
+  // Voxtral's server-side spikes are 5 to 11 s on about one call in ten, and a second ask is nearly always quick):
+  tailFirstAudioMs: 6000,    // the first ask
+  tailRetryAudioMs: 10000,   // the second ask
+  tailMaxQueueMs: 15000,     // waiting this long behind other Mistral requests fails the ask
   splitMinChars: 160,        // a reply shorter than this is one request
   firstPartMinChars: 40,     // the first request of a split reply holds at least this much (a short opening joins the next sentence)
   firstPartMaxChars: 120,    // with no sentence end near, the first request ends at a clause break before this
@@ -58,6 +66,8 @@ const MODEL_ID = createHash('sha256').update(VOXTRAL_MODEL).digest('hex');
 const REFERENCE_SOURCES = ['omni-long', 'omni-short', 'pocket'];
 // A voice key that may name a folder: lower-case letters, digits and hyphens only.
 const SAFE_VOICE_KEY = /^[a-z0-9][a-z0-9-]*$/;
+// What a second ask can cure (not a refused key, not text that cannot be spoken).
+const ASK_AGAIN = new Set(['timeout', 'network', 'request', 'limit']);
 const KEY_SHAPE = /\b[A-Za-z0-9]{28,}\b/g;
 
 /** Text with the key (when given) and anything shaped like one removed. */
@@ -344,10 +354,12 @@ export class VoxtralVoice {
 
   /**
    * Speaks `text` as the voice `key`, handing `onPcm` 24 kHz mono float32 packets of Pocket's shape. Resolves with the
-   * stream's summary. Throws a VoxtralError when nothing was delivered (the caller uses Pocket), `cancelled` when `signal`
-   * aborts, and the consumer's own error (marked `sink`) when `onPcm` fails.
+   * stream's summary. Throws a VoxtralError when nothing was delivered (the caller uses Pocket, or, with `continuation`, ends the
+   * reply), `cancelled` when `signal` aborts, and the consumer's own error (marked `sink`) when `onPcm` fails.
+   * `continuation: true`: this text is the rest of a reply whose first part was already heard in this voice. It gets the longer
+   * limits and the second ask (`tail*` limits), and it is not held back by a limit cool-down that began after that first part.
    */
-  async synthesizeStream(key, text, {signal, onPcm} = {}) {
+  async synthesizeStream(key, text, {signal, onPcm, continuation = false} = {}) {
     throwIfCancelled(signal);
     if (typeof onPcm !== 'function') throw Error('Voxtral streaming requires a PCM consumer');
     const apiKey = this.getKey();
@@ -356,19 +368,19 @@ export class VoxtralVoice {
       if (typeof text !== 'string' || !text.trim() || text.length > this.limits.maxChars
           || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text)) throw fail('text', 'cannot speak this text');
       if (!apiKey) throw fail('no-key', 'has no Mistral key');
-      if (this.clock() < this.until) throw fail('limit', 'is waiting out a limit');
+      if (!continuation && this.clock() < this.until) throw fail('limit', 'is waiting out a limit');
       const queued = this.now();
       const reference = await this.reference(key);
       throwIfCancelled(signal);
       if (!reference) throw fail('no-reference', 'has no reference clip for this voice');
-      const {partFailure, ...result} = await this.stream({key, text, apiKey, reference, signal, onPcm, queued, fail});
+      const {partFailure, ...result} = await this.stream({key, text, apiKey, reference, signal, onPcm, queued, fail, continuation});
       this.spoke++;
-      // The second request of a split reply can fail on its own: the caller speaks the rest with Pocket (result.remainder).
+      // The second request of a split reply can fail on its own: the reply ends after the part already spoken (result.truncated).
       if (partFailure) this.noteFailure(partFailure, 'the rest of the reply');
       else this.note(null);
       return result;
     } catch (error) {
-      if (error instanceof VoxtralError) this.noteFailure(error);
+      if (error instanceof VoxtralError) this.noteFailure(error, continuation ? 'the rest of the reply' : '');
       throw error;
     }
   }
@@ -381,17 +393,20 @@ export class VoxtralVoice {
     if (error.kind !== 'text' && error.kind !== 'no-reference') this.note(error.kind);
     // The message is already scrubbed of the key; its detail says which limit was hit (for example how long it waited).
     const detail = String(error.message ?? '').replace(/^Voxtral /, '').replace(/ \[voxtral:[a-z-]+\]$/, '');
-    this.log(`${scope ? scope + ' ' : ''}fell back to Pocket: ${error.kind}${error.status ? ` (HTTP ${error.status})` : ''}${detail ? ` - ${detail}` : ''}`);
+    const why = `${error.kind}${error.status ? ` (HTTP ${error.status})` : ''}${detail ? ` - ${detail}` : ''}`;
+    // The rest of a reply is never given to another voice: it fails, and the reply ends after the part that was heard.
+    this.log(scope ? `${scope} could not be spoken, the reply ends after the part already heard (the voice is not switched): ${why}` : `fell back to Pocket: ${why}`);
   }
 
   /**
    * One reply as one request, or (a long reply) as two requests sent together: its first sentence, for a fast first audio, and the
    * rest. The packets reach `onPcm` in order: the first part as it arrives, the second part held until the first one is done
-   * and then released (at once if it is complete, else when the first part's audio is about to run out). If the second part
-   * fails before any of its audio was handed on, the result carries the unspoken text as `remainder` (the caller speaks it with
-   * Pocket); once its audio has started the reply simply ends early.
+   * and then released (at once if it is complete, else when the first part's audio is about to run out). The second part is asked
+   * for again once if it fails before any audio, with longer limits; if it still fails the reply ends after the first part
+   * (`truncated`, `partFailure` set): the rest is never spoken by another voice. Only the first part failing before any audio
+   * throws, and then nothing was heard, so the caller may give the whole reply to Pocket.
    */
-  async stream({key, text, apiKey, reference, signal, onPcm, queued, fail}) {
+  async stream({key, text, apiKey, reference, signal, onPcm, queued, fail, continuation = false}) {
     const parts = splitReply(text, this.limits);
     const id = ++this.sequence, started = this.now();
     let delivered = 0, chunks = 0, firstEmitAt = null;
@@ -405,7 +420,9 @@ export class VoxtralVoice {
       delivered += samples.length; chunks++;
       firstEmitAt ??= this.now();
     };
-    const part = (partText, partSignal, onSamples) => this.fetchPart({text: partText, apiKey, reference, signal: partSignal, fail, onSamples});
+    // Asked for again once (longer limits) when it is a rest of the reply: its first part, or an earlier part, was heard in this voice.
+    const part = (partText, partSignal, onSamples, again = continuation) => (again ? this.fetchPartAgain : this.fetchPart).call(this,
+      {text: partText, apiKey, reference, signal: partSignal, fail, onSamples});
     const summary = (first, extra = {}) => {
       const truncated = !first.done || !!extra.truncated;
       return {provider: 'voxtral', engine: 'voxtral', sampleRate: VOXTRAL_RATE, channels: 1, frames: delivered, chunks,
@@ -437,7 +454,7 @@ export class VoxtralVoice {
     firstTask.catch(() => {});
     const secondTask = part(parts[1], second.signal, async samples => {
       if (live) { forwarded++; await emit(samples); } else held.push(samples);
-    }).then(result => { secondDone = true; secondFirstMs = result.firstMs; secondCut = !result.done; }, error => { secondFailure = error; });
+    }, true).then(result => { secondDone = true; secondFirstMs = result.firstMs; secondCut = !result.done; }, error => { secondFailure = error; });
     try {
       let first;
       try { first = await firstTask; }
@@ -458,14 +475,10 @@ export class VoxtralVoice {
         }
       }
       throwIfCancelled(signal);
-      if (!secondFailure && !secondDone && !held.length) {
-        // Nothing of the second part has arrived and the first part's audio is nearly over: Pocket speaks the rest now.
-        second.abort(cancelled('Voxtral second request abandoned')); await secondTask;
-        throwIfCancelled(signal);
-        secondFailure = fail('timeout', 'gave no audio for the rest of the reply in time');
-      } else if (!secondFailure && secondDone && secondCut && !forwarded) {
-        // The second request ended early before any of its audio was handed on: drop that part and let Pocket speak all of it.
-        held.length = 0;
+      // Nothing of the second part may have arrived by now (the first part's audio is nearly over): the player waits in silence for
+      // it rather than hearing another voice. It is asked for again once, then the reply ends (below).
+      if (!secondFailure && secondDone && secondCut && !forwarded && !held.length) {
+        // The second request ended before any of its audio could be handed on: nothing of the rest can be spoken.
         secondFailure = fail('network', 'ended the rest of the reply early');
       }
       if (!secondFailure) {
@@ -477,12 +490,8 @@ export class VoxtralVoice {
       }
       if (secondFailure) {
         if (secondFailure.sink || !(secondFailure instanceof VoxtralError)) throw secondFailure;
-        // No audio of the second part reached the player: Pocket speaks it. Otherwise the reply ends where its audio stopped.
-        const result = summary(first, forwarded ? {truncated: true} : {});
-        if (!forwarded) {
-          result.remainder = parts[1];
-          result.continuation = {owner: this.owner, id, modelSha256: MODEL_ID, index: chunks + 1, offsetFrames: delivered};
-        }
+        // The reply ends where its audio stopped (after the first part, or inside the second): never another voice.
+        const result = summary(first, {truncated: true});
         result.partFailure = secondFailure;
         return result;
       }
@@ -496,11 +505,28 @@ export class VoxtralVoice {
   }
 
   /**
+   * `fetchPart` for the rest of a reply: the first ask has `tailFirstAudioMs`, and when it fails before any audio (no audio in time, a
+   * dropped connection, a server fault, an empty answer, a limit) it is asked once more with `tailRetryAudioMs`. A key that was
+   * refused, a cancellation and the consumer's own error are not asked again. Nothing is handed on before audio exists, so a second ask
+   * can never double anything.
+   */
+  async fetchPartAgain(args) {
+    const asks = [this.limits.tailFirstAudioMs, this.limits.tailRetryAudioMs];
+    for (let ask = 0; ; ask++) {
+      try { return await this.fetchPart({...args, firstAudioMs: asks[ask], maxQueueMs: this.limits.tailMaxQueueMs}); }
+      catch (error) {
+        if (ask >= asks.length - 1 || args.signal?.aborted || !(error instanceof VoxtralError) || !ASK_AGAIN.has(error.kind)) throw error;
+        this.log(`the rest of the reply: ${error.kind}${error.status ? ` (HTTP ${error.status})` : ''}, asking again`);
+      }
+    }
+  }
+
+  /**
    * One request: sends `text`, reads the server-sent events and hands `onSamples` whole 100 ms frames of float32 audio, in order.
    * Resolves with {done, frames, firstMs (from the send to the first audio), sentAt}. Before any audio has been handed on every
    * failure throws a VoxtralError; after that a failure ends this request's audio where it stopped (done: false).
    */
-  async fetchPart({text, apiKey, reference, signal, fail, onSamples}) {
+  async fetchPart({text, apiKey, reference, signal, fail, onSamples, firstAudioMs = this.limits.firstAudioMs, maxQueueMs = this.limits.maxQueueMs}) {
     const controller = new AbortController();
     const onAbort = () => controller.abort(cancelled());
     signal?.addEventListener('abort', onAbort, {once: true});
@@ -543,15 +569,15 @@ export class VoxtralVoice {
         response = await this.scheduler.schedule(() => {
           // The first-audio limit counts from the moment the request is sent, not from when it queued behind other Mistral requests.
           sentAt = this.now();
-          arm(this.limits.firstAudioMs, 'timeout');
+          arm(firstAudioMs, 'timeout');
           return this.fetchImpl(this.endpoint, {method: 'POST', signal: controller.signal,
             headers: {authorization: `Bearer ${apiKey}`, 'content-type': 'application/json', accept: 'text/event-stream'},
             body: JSON.stringify({model: VOXTRAL_MODEL, input: text, ref_audio: reference.base64, response_format: 'pcm', stream: true})});
-        }, {priority: PRIORITY.TTS, signal: controller.signal, maxQueueMs: this.limits.maxQueueMs});
+        }, {priority: PRIORITY.TTS, signal: controller.signal, maxQueueMs});
       } catch (error) {
         throwIfCancelled(signal);
         if (error?.code === 'queue-timeout') throw fail('timeout', 'waited too long behind other Mistral requests');
-        throw timedOut ? fail('timeout', `gave no audio within ${this.limits.firstAudioMs} ms`) : fail('network', error?.message || 'is unreachable');
+        throw timedOut ? fail('timeout', `gave no audio within ${firstAudioMs} ms`) : fail('network', error?.message || 'is unreachable');
       }
       this.scheduler.noteHeaders(response.headers);
       if (!response.ok) {
@@ -577,7 +603,7 @@ export class VoxtralVoice {
       } catch (error) {
         throwIfCancelled(signal);
         if (error.sink || error instanceof VoxtralError && frames === 0) throw error;
-        if (frames === 0) throw timedOut === 'timeout' ? fail('timeout', `gave no audio within ${this.limits.firstAudioMs} ms`) : fail('network', error?.message || 'stream failed');
+        if (frames === 0) throw timedOut === 'timeout' ? fail('timeout', `gave no audio within ${firstAudioMs} ms`) : fail('network', error?.message || 'stream failed');
         // Audio is already playing: end this request's audio here, after the last whole sample received.
         this.log(`stream ended early after ${(frames / VOXTRAL_RATE).toFixed(1)} s: ${redact(error?.message, apiKey).slice(0, 80)}`);
         done = false;

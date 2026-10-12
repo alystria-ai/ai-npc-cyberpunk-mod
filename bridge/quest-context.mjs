@@ -10,6 +10,7 @@ import {gameDialogueContext} from './game-dialogue.mjs';
 import {gearContext, visibleGearContext} from './player-gear.mjs';
 import {turnContext} from './turn-context.mjs';
 import {isAmbientProfile} from './protocol.mjs';
+import {snapshotKey} from './parsed-snapshot.mjs';
 
 const unavailable = () => ({version: 1, status: 'unavailable'});
 
@@ -90,11 +91,13 @@ const SPOKEN_OUTPUT = 'Speak only your own dialogue, in the first person, as the
   + 'someone else, and never answer about another person unless V names them. Answer for yourself, with "I" and "my". '
   + 'Do not put a speaker name, role label, or script prefix before it.';
 
+// The two large snapshots enter the identity through snapshotKey: their large immutable members by cached digest, so a turn hashes
+// 800 KB of JSON once per published revision instead of at every use of the context (bridge/parsed-snapshot.mjs).
 function contextIdentity(input) {
   try {
     return createHash('sha256').update(JSON.stringify([input.requestId, input.id, input.generation,
       input.entity, input.name, input.profileKey, input.channel, input.saveIdentity, input.text, input.group,
-      input.journal, input.battle, input.loot, input.reaction, input.worldKnowledge, input.journalHistory,
+      input.journal, input.battle, input.loot, input.reaction, snapshotKey(input.worldKnowledge), snapshotKey(input.journalHistory),
       input.gameDialogue])).digest('hex');
   } catch { return null; }
 }

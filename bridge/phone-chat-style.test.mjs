@@ -5,6 +5,7 @@ import fengari from 'fengari';
 
 const source = readFileSync(new URL('../mod/phone-chat-style.lua', import.meta.url), 'utf8');
 const composerSource = readFileSync(new URL('../mod/composer-input.lua', import.meta.url), 'utf8');
+const layoutSource = readFileSync(new URL('../mod/phone-layout.lua', import.meta.url), 'utf8');
 function runLua(program) {
   const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
@@ -197,4 +198,79 @@ assert(placeholder=='Other prompt' and letterCase==1)
 data={title='TALK TO SOMEBODY',message='Unrelated dialog'}
 fix.apply(notification)
 assert(placeholder=='Other prompt' and letterCase==1)
+`));
+
+test('refresh uses the caller\'s player and phone-open answers, and classifies controllers by CName without NameToString', () => runLua(setup + `
+local nameToStringCalls, getPlayerCalls = 0, 0
+NameToString = function() nameToStringCalls = nameToStringCalls + 1; return '' end
+Game = {GetPlayer = function() getPlayerCalls = getPlayerCalls + 1; return nil end}
+local layerSets, classReads = {}, 0
+local function controller(class)
+  return {GetClassName = function() classReads = classReads + 1; return CName.new(class) end,
+    GetRootWidget = function() return widget('root') end}
+end
+local counts = {popupRoot = 0, selectionRoot = 0, dialerSelected = 0}
+local popup = controller('PhoneMessagePopupGameController')
+function popup:ConvaiChatContact() counts.popupRoot = counts.popupRoot + 1; return '' end
+local hud = controller('NewHudPhoneGameController')
+local hudRoot = widget('hudRoot')
+hud.GetRootWidget = function() return hudRoot end
+local selectionHolder, dialerHolder = widget('selectionHolder'), widget('dialerHolder')
+selectionHolder.controller = controller('PhoneDialerSelectionController')
+function selectionHolder.controller:GetRootWidget() counts.selectionRoot = counts.selectionRoot + 1; return widget('x') end
+dialerHolder.controller = controller('PhoneDialerLogicController')
+function dialerHolder.controller:GetSelectedContactData() counts.dialerSelected = counts.dialerSelected + 1; return nil end
+selectionHolder:Reparent(hudRoot); dialerHolder:Reparent(hudRoot)
+local layers = {{GetGameControllers = function() return {controller('Other'), popup, controller('Other')} end},
+  {GetGameControllers = function() return {controller('Other'), hud} end}}
+Game.GetInkSystem = function() return {GetLayers = function() return layers end} end
+-- Closed phone, or none: no scan and no game query of its own.
+m.refresh(false, {}, false)
+assert(m.wasOpen == false and classReads == 0 and getPlayerCalls == 0)
+-- Open: one scan, each class read once (five controllers and the two phone logic widgets), no string conversions.
+m.refresh(false, {}, true)
+assert(m.wasOpen == true and getPlayerCalls == 0, 'the refresh asked the game for the player')
+assert(classReads == 7, 'class reads ' .. classReads)
+assert(nameToStringCalls == 0, 'NameToString called ' .. nameToStringCalls .. ' times')
+assert(counts.popupRoot >= 1, 'the message popup was not recognised')
+assert(counts.selectionRoot >= 1, 'the dialer selection controller was not recognised')
+assert(counts.dialerSelected == 1, 'the dialer logic controller was not recognised')
+-- Nothing dirty: the next frame does not scan.
+classReads = 0
+m.refresh(false, {}, true)
+assert(classReads == 0, 'a clean frame scanned')
+-- A highlight (the header hook) marks it dirty: one more scan.
+m.fontDirty = true
+m.refresh(false, {}, true)
+assert(classReads == 7)
+-- With no arguments it still asks the game itself (the wrapped manager update).
+local asked = 0
+Game.GetPlayer = function() asked = asked + 1; return {ConvaiPhoneIsOpen = function() return false end} end
+m.refresh()
+assert(asked == 1 and m.wasOpen == false)
+`));
+
+test('the phone layout scan takes the callers answers and finds contact rows by CName', () => runLua(setup + `
+local layout = (function() ${layoutSource} end)()
+local nameToStringCalls, players = 0, 0
+NameToString = function(value) nameToStringCalls = nameToStringCalls + 1; return 'name' end
+local applied = 0
+layout.apply = function() end
+local rowHolder = widget('row')
+rowHolder.controller = {GetClassName = function() return CName.new('PhoneContactItemVirtualController') end}
+local hudRoot = widget('hudRoot'); rowHolder:Reparent(hudRoot)
+local hud = {GetClassName = function() return CName.new('NewHudPhoneGameController') end, GetRootWidget = function() return hudRoot end}
+local scans = 0
+Game = {GetPlayer = function() players = players + 1; return nil end,
+  GetInkSystem = function() return {GetLayers = function() scans = scans + 1
+    return {{GetGameControllers = function() return {{GetClassName = function() return CName.new('Other') end}, hud} end}} end} end}
+layout.refresh(false, {}, false)
+assert(scans == 0 and players == 0 and layout.wasOpen == false)
+layout.refresh(false, {}, true)
+assert(scans == 1 and players == 0 and layout.scan.rows == 1, 'rows ' .. tostring(layout.scan and layout.scan.rows))
+layout.refresh(false, {}, true)
+assert(scans == 1, 'an open phone was scanned again')
+layout.refresh(false, {}, false)
+layout.refresh(false, {}, true)
+assert(scans == 2, 'the phone did not rescan after closing and reopening')
 `));

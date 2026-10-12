@@ -133,4 +133,36 @@ Judge noise is a few points either way (the same before replies scored 22% and 2
 anchored characters on "what are you up to" (Misty's shop). Convai was not measured (live Convai turns would hit the user's real memory);
 it gets the same block text.
 
-Not covered: the phone chat sends no turn context yet, so a phone call gets neither the block nor the "call" sentence on any path.
+## Phone chat (2026-10-13, third pass)
+
+The phone feature is a text chat (V types in a contact's Chat view, the reply is text, no voice), not a call, and until now it sent no
+turn context at all: the character knew neither the time nor where V is, and the Mistral system message still says "face to face".
+
+What changed: `mod/phone-chat.lua` reads the shared snapshot once, when a message is sent (the same cached reader the microphone uses;
+never on a tick), `bridge/phone-chat.mjs` parses it, and `bridge/turn-context.mjs` words a phone variant for every path (Convai, Mistral,
+Local; the block is first in the context and the sentence is repeated before V's words):
+
+> Right now (from the game, this turn only): You are messaging V by text on the phone, not talking to V in person; V is in Kabuki, Watson.
+> You are somewhere else; where you are and what you are doing are not given. It is late night, about 2 AM. V is walking. V is a woman
+> (she/her), lifepath Street Kid. Treat this as fact: you are not with V and cannot see V's surroundings, and you do not know how near or
+> far you are, so never say you are there, close or nearby. Never name a place you are at or a task you are doing right now or have just
+> done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine). Do not recite it.
+
+She is not told who stands next to V or what a companion beside V is doing. `MAX_CHARS` went from 620 to 700 for this block (in person
+it stays far below either). Rule 7 gained one sentence for the phone case.
+
+Measured with `--situations phone-greet,phone-ask,phone-time,phone-where,phone-meet,phone-day` (8 named characters, 3 samples each,
+144 replies a run, ministral-8b on the real Mistral API, text only; night 2 AM in Kabuki and afternoon 3:40 PM in Glen; blind Haiku
+judge, `PHONE_RUBRIC`; `--no-phone-context` is the "before"):
+
+| | before (no block) | after, first wording | after, final wording |
+|---|---|---|---|
+| claims to be with, near or able to see V | 19% (28/144) | 8% (11/144) | 7% (10/144) |
+| wrong time of day | 8% (11/144) | 1% | 0% |
+| states a place or task of her own right now | 51% (74/144) | 30% | 19% (27/144) |
+| "are you close?" answered with a proximity claim | 75% | 33% | 21% |
+
+The first wording lacked the "you do not know how near or far you are" sentence and the "stay vague" instruction; "are you close?" is
+the weak spot. Remaining invented tasks are persona-anchored ("winding down after a long day of edits"). The judge is noisy by a few
+points (the same first-wording replies scored 15% under an earlier, looser rubric). Convai was not measured (live turns would hit the
+user's real memory); it gets the same block text.

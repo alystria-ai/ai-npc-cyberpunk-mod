@@ -164,10 +164,10 @@
     "Confirm memory clear": "Confirm memory clear",
     "Connecting microphone - wait for Listening": "Connecting microphone - wait for Listening",
     "Continue from game dialogue": "Continue from game dialogue",
-    "Convai": "Convai",
     "Convai API key": "Convai API key",
     "Convai did not accept that key.": "Convai did not accept that key.",
     "Convai did not accept your API key. Check it in Settings > Development.": "Convai did not accept your API key. Check it in Settings > Development.",
+    "Convai free tier": "Convai free tier",
     "Convai voice": "Convai voice",
     "Convai voices · Local model unloaded": "Convai voices · Local model unloaded",
     "Convai · Cloud voice": "Convai · Cloud voice",
@@ -214,8 +214,8 @@
     "DETAILS  {page} / {pages}": "DETAILS  {page} / {pages}",
     "DISMISS QUEUED - CLOSE PHONE": "DISMISS QUEUED - CLOSE PHONE",
     "Default": "Default",
-    "Deletes the saved key. Conversations go back to Convai.": "Deletes the saved key. Conversations go back to Convai.",
-    "Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai.": "Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai.",
+    "Deletes the saved key. Conversations go back to Convai free tier.": "Deletes the saved key. Conversations go back to Convai free tier.",
+    "Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai free tier.": "Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai free tier.",
     "Deletes the saved key. Conversations go back to the shared plan.": "Deletes the saved key. Conversations go back to the shared plan.",
     "Destination reached. Step out when ready.": "Destination reached. Step out when ready.",
     "Developer mode": "Developer mode",
@@ -463,7 +463,7 @@
     "Show companion reply subtitles during conversations.": "Show companion reply subtitles during conversations.",
     "Some game models have special rigs or roles and may not behave as ordinary companions.": "Some game models have special rigs or roles and may not behave as ordinary companions.",
     "Some model records could not be read.": "Some model records could not be read.",
-    "Speaking to companions needs Convai for now. Set Conversation provider to Convai in Settings > Development, or type your message.": "Speaking to companions needs Convai for now. Set Conversation provider to Convai in Settings > Development, or type your message.",
+    "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Development, or type your message.": "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Development, or type your message.",
     "Speech: {list}": "Speech: {list}",
     "Stand near one of your owned cars, or summon one.": "Stand near one of your owned cars, or summon one.",
     "Stand near your owned car.": "Stand near your owned car.",
@@ -925,8 +925,8 @@
       "Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer. You can also save it in the file player-mistral-key.txt in the conversation service folder.",
       "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.",
       "Create",
-      "Deletes the saved key. Conversations go back to Convai.",
-      "Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai.",
+      "Deletes the saved key. Conversations go back to Convai free tier.",
+      "Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai free tier.",
       "Deletes the saved key. Conversations go back to the shared plan.",
       "Enable or disable each character’s participation in AI conversations.",
       "Find the log files and create a report to send to the developer if something goes wrong.",
@@ -1041,7 +1041,7 @@
       "5 cm lower",
       "Above the speaker",
       "Cinematic subtitles",
-      "Convai",
+      "Convai free tier",
       "Default",
       "Eyes only",
       "Gentle (default)",
@@ -1454,7 +1454,7 @@
       "Short report saved because the conversation service did not answer: {path}",
       "Short report saved because the conversation service is not running: {path}",
       "Some game models have special rigs or roles and may not behave as ordinary companions.",
-      "Speaking to companions needs Convai for now. Set Conversation provider to Convai in Settings > Development, or type your message.",
+      "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Development, or type your message.",
       "Speech: {list}",
       "Starting",
       "Stop the trip and step out before dismissing your driver.",
@@ -1569,7 +1569,7 @@
       "Face a nearby character to talk.",
       "Group chat needs two characters nearby. Use {key} for one person.",
       "Player unavailable",
-      "Speaking to companions needs Convai for now. Set Conversation provider to Convai in Settings > Development, or type your message.",
+      "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Development, or type your message.",
       "Type your message to the character.",
       "{name} does not have a conversation profile configured yet.",
       "{name} is not in your group."
@@ -2600,12 +2600,12 @@
         "mod/mcm.lua:1025"
       ]
     },
-    "Convai": {
+    "Convai free tier": {
       "contexts": [
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:732"
+        "mod/mcm.lua:821"
       ]
     },
     "Convai API key": {
@@ -3013,7 +3013,7 @@
         "mod/mcm.lua:1035"
       ]
     },
-    "Deletes the saved key. Conversations go back to Convai.": {
+    "Deletes the saved key. Conversations go back to Convai free tier.": {
       "contexts": [
         "mcm.action"
       ],
@@ -3021,7 +3021,7 @@
         "mod/mcm.lua:739"
       ]
     },
-    "Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai.": {
+    "Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai free tier.": {
       "contexts": [
         "mcm.action"
       ],
@@ -5107,7 +5107,7 @@
         "mod/manager.lua:1067"
       ]
     },
-    "Speaking to companions needs Convai for now. Set Conversation provider to Convai in Settings > Development, or type your message.": {
+    "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Development, or type your message.": {
       "contexts": [
         "ui.localized",
         "world.conversation"

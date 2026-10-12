@@ -3,6 +3,7 @@ import {WORLD_SNAPSHOT_MAX_AGE_MS, parseWorldSnapshot, resolveKnowledge, validat
 import {parseJournal, withConversationKnowledge} from './quest-context.mjs';
 import {isAmbientProfile} from './protocol.mjs';
 import {questPathsFromPack} from './quest-overview.mjs';
+import {isParsed} from './parsed-snapshot.mjs';
 
 const PROFILE = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const TOKEN = /^[A-Za-z0-9_:-][A-Za-z0-9._:/@+#-]{0,159}$/;
@@ -10,6 +11,14 @@ const TOKEN = /^[A-Za-z0-9_:-][A-Za-z0-9._:/@+#-]{0,159}$/;
 const AMBIENT = {has: isAmbientProfile};
 const CHANNELS = new Set(['private', 'group', 'phone', 'microphone']);
 const clone = value => structuredClone(value);
+// A turn's own copy of the request. The world snapshot and journal history the parsers already validated are frozen and shared (copying
+// 800 KB of them cost about 25 ms per turn, bridge/parsed-snapshot.mjs); everything else is copied as before.
+function cloneInput(input) {
+  if (input === null || typeof input !== 'object' || !['worldKnowledge', 'journalHistory'].some(key => isParsed(input[key]))) return clone(input);
+  const rest = {...input}, shared = {};
+  for (const key of ['worldKnowledge', 'journalHistory']) if (isParsed(input[key])) { shared[key] = input[key]; delete rest[key]; }
+  return {...clone(rest), ...shared};
+}
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const fail = code => { throw Object.assign(new Error(`Player knowledge: ${code}`), {code}); };
 const unavailable = reason => ({status: 'unavailable', reason, sendAllowed: false, remoteConfig: null});
@@ -208,7 +217,7 @@ export class PlayerKnowledge {
   async prepare(input, options = {}) {
     // Capture request, options, world boundary and reset guard before any await.
     // Shared group inputs and provider resets cannot rebind an admitted turn.
-    const frozen = clone(input), settings = clone(options);
+    const frozen = cloneInput(input), settings = clone(options);
     let route = inputRoute(frozen, settings.channel);
     const snapshot = parseWorldSnapshot(frozen.worldKnowledge);
     const binding = this.#binding(settings, snapshot);

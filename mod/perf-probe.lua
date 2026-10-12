@@ -12,10 +12,14 @@ if type(convaiPerfProbe) == 'table' and convaiPerfProbe.chunkLoaded then return 
 local M = convaiPerfProbe or {}
 convaiPerfProbe = M
 M.chunkLoaded = true
-local WINDOW, HISTORY, FLAG_PERIOD = 2, 150, 1
+-- WRITE_PERIOD: the file is rewritten at most this often (a full 150-window history is ~650 KB: encoding
+-- and writing all of it every window cost ~40 ms on the game thread, ~20 ms/s of the probe's own overhead,
+-- the 2026-10-13 capture). Each window is encoded once, when it closes, and the file is the concatenation.
+local WINDOW, HISTORY, FLAG_PERIOD, WRITE_PERIOD = 2, 150, 1, 10
 local clock = os.clock
 
-local stats, opens, history = {}, {}, {}
+local stats, opens, history = {}, {}, {} -- history: one encoded row (JSON text) per closed window
+local writtenAt, dirty = nil, false
 local frames, frameSum, frameMax, over25, over40 = 0, 0, 0, 0, 0
 local lastFrame, windowAt, flagAt, enabled, wrapped = nil, nil, nil, false, false
 local wrappers = {}
@@ -110,6 +114,21 @@ local function wrapAll()
     for _, row in ipairs(M.watched or {}) do wrap(row[1], row[2], row[3]) end
 end
 
+-- Writes runtime/perf-probe.json ({version, windowSeconds, history[]}, the shape readers know) from the encoded rows.
+local function writeFile()
+    local was = enabled
+    enabled = false -- the probe's own write is not attributed to the mod
+    local file = io.open('runtime/perf-probe.json', 'wb')
+    if file then
+        file:write('{"version":1,"windowSeconds":', tostring(WINDOW), ',"history":[', table.concat(history, ','), ']}')
+        file:close()
+    end
+    enabled = was
+    dirty, writtenAt = false, clock()
+end
+-- Writes now if any window closed since the last write (tests, a clean stop, Developer mode turning off).
+function M.flush() if dirty then pcall(writeFile) end end
+
 local function publish(now)
     local span = math.max(now - windowAt, 1e-6)
     local speech = convaiSpeech
@@ -127,19 +146,20 @@ local function publish(now)
     for label, s in pairs(stats) do
         row.sections[label] = {calls = s[1], msPerSecond = 1000 * s[2] / span, maxMs = 1000 * s[3]}
     end
-    history[#history + 1] = row
-    if #history > HISTORY then table.remove(history, 1) end
     stats, opens = {}, {}
     frames, frameSum, frameMax, over25, over40 = 0, 0, 0, 0, 0
     windowAt = now
     local was = enabled
-    enabled = false -- the probe's own write is not attributed to the mod
-    local ok, raw = pcall(json.encode, {version = 1, windowSeconds = WINDOW, history = history})
-    if ok and type(raw) == 'string' then
-        local file = io.open('runtime/perf-probe.json', 'wb')
-        if file then file:write(raw); file:close() end
-    end
+    enabled = false -- the probe's own encode is not attributed to the mod
+    local ok, raw = pcall(json.encode, row)
     enabled = was
+    if ok and type(raw) == 'string' then
+        history[#history + 1] = raw
+        if #history > HISTORY then table.remove(history, 1) end
+        dirty = true
+        -- The first window is written at once (the file exists early), then every WRITE_PERIOD.
+        if not writtenAt or now - writtenAt >= WRITE_PERIOD or now < writtenAt then pcall(writeFile) end
+    end
 end
 
 -- Called first in each onUpdate (through companions.beginSpatialFrame).
@@ -153,6 +173,7 @@ local function tick(developer)
             stats, opens, lastFrame, windowAt = {}, {}, nil, now
             frames, frameSum, frameMax, over25, over40 = 0, 0, 0, 0, 0
         end
+        if enabled and not on then M.flush() end
         enabled = on
         if enabled and not wrapped then wrapAll() end
     end
@@ -273,6 +294,7 @@ end
 
 -- Restores every wrapped field (tests; a CET reload discards them anyway).
 function M.uninstall()
+    M.flush()
     for index = #wrappers, 1, -1 do
         local row = wrappers[index]
         row[1][row[2]] = row[3]

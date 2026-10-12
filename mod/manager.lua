@@ -896,8 +896,24 @@ function M.reset()
     memoryConfirmation = nil
 end
 
+-- The bridge rewrites local-voice-state.json (4-32 KB of voice metrics) every 5 s and on a change; this reads it
+-- every 2 s. Identical text is the same state, so it is decoded once, not on every read (a decode of that size is
+-- a 1-40 ms frame and a burst of garbage). A copy that has gone stale keeps the stale mark below: only a changed
+-- file can make it fresh again.
+local voiceStateRaw, voiceStateValue
+local function readLocalVoiceState()
+    local file = io.open('runtime/local-voice-state.json', 'rb')
+    if not file then voiceStateRaw, voiceStateValue = nil, nil; return nil end
+    local raw = file:read('*a'); file:close()
+    if raw ~= nil and raw == voiceStateRaw and voiceStateValue ~= nil then return voiceStateValue end
+    local ok, value = pcall(json.decode, raw)
+    value = ok and type(value) == 'table' and value or nil
+    voiceStateRaw, voiceStateValue = raw, value
+    return value
+end
+
 local function updateLocalVoice()
-    local state = readJSON('runtime/local-voice-state.json') or {}
+    local state = readLocalVoiceState() or {}
     local fresh = type(state.updated) == 'number' and math.abs(os.time() - state.updated / 1000) < 15
     localVoices = {}
     if not fresh then state.state, state.routedProfiles = 'waiting', {} end

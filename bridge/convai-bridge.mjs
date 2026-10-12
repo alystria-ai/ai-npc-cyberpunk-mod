@@ -6,6 +6,7 @@ import {configureKnowledgeParts} from './knowledge-parts.mjs';
 import {audioReady} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
+import {encodeSegmentedFace} from './continuous-face-file.mjs';
 import {timelineRecord, TIMELINE_PREFIX} from './expression-timeline.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
 import {JaliFace} from './jali-face.mjs';
@@ -141,7 +142,7 @@ const jaliFace = await JaliFace.load(resolve(stateDirectory, 'lipsync-model')).c
 // OmniVoice long reference on the player's Mistral key. Pocket stays loaded as the fallback for any reply it cannot deliver in time.
 // The key is read from the Mistral provider on each call (it can be pasted or removed while the game runs); `mistral` is created below.
 // The reference clip is sent with every request, so a smaller one is a shorter wait for the first sound (bridge/voxtral-reference.mjs):
-// 16 kHz mono and cut to about 8 s (MP3 as well when ffmpeg is on the machine), prepared once per character and kept in <references>/prepared.
+// 24 kHz mono (the clone keeps only the bandwidth of its reference) and cut to about 8.5 s (MP3 as well when ffmpeg is on the machine), prepared once per character and kept in <references>/prepared.
 // CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE=1 sends the clips whole, as before.
 // Reply streaming (bridge/reply-stream.mjs): on unless settings.json "replyStreaming": false or this variable is 0. Kept up here, beside the other
 // environment reads, so the sections of this file that tests evaluate on their own never touch `process`.
@@ -1135,8 +1136,10 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     },
     readControl: () => readFile(resolve(runtime, 'continuous-control.json'), 'utf8'),
     writeState: value => atomic(resolve(runtime, 'continuous-speech.json'), JSON.stringify(value), options),
-    writeFace: value => atomic(resolve(runtime, 'continuous-face.json'), JSON.stringify(value), options),
-    faceFile: async () => (await readSpeechState()).continuousFaceFile === true,
+    writeFace: (value, {segments} = {}) => atomic(resolve(runtime, 'continuous-face.json'),
+      segments ? encodeSegmentedFace(value) : JSON.stringify(value), options),
+    // The game's adapter says how it reads the timeline file: segments (decoded by changed segment), a plain document or not at all.
+    faceFile: async () => { const state = await readSpeechState(); return state.continuousFaceSegments === true ? 'segments' : state.continuousFaceFile === true; },
     writeReply: value => atomic(replyPath, JSON.stringify({...value, ...keyNotice()}), options),
     onPublished: timing => { markPublished(input.requestId, timing.publishedAt);
       return measure(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },
@@ -1205,7 +1208,11 @@ async function respondStreamed(input, profile, {signal, current}) {
   }
   if (voice.engine !== 'pocket' || localVoice.playbackEnabled === false || (await readSpeechState()).continuousAvailable !== true) return whole();
   throwIfCancelled(signal);
-  const partial = {text: head, transport: 'realtime', sessionID: config.sessionId, timing: {streamedHead: true}};
+  // The tags written inside the first sentence move the face from its first frame (the finished reply re-plans with all of them).
+  const headMarks = expressiveEmotions.enabled ? stream.headMarks : [];
+  if (headMarks.length && !marks.length) marks.push(...headMarks);
+  const partial = {text: head, transport: 'realtime', sessionID: config.sessionId, timing: {streamedHead: true},
+    ...(headMarks.length ? {emotionMarks: headMarks} : {})};
   return synthesizeReply(input, partial, signal, current, profile, undefined, {stream, final, marks, signal});
 }
 
@@ -1417,6 +1424,14 @@ async function resetLiveRoutes({cancelTurns = true} = {}) {
   await connections.clear();
   sessions.clear(); realtimeSessions.clear(); knowledgeTurns.clear();
   partyObserved = ''; prewarmObserved = ''; prefetchObserved = '';
+  rewarmLocalVoice();
+}
+
+// A text route's hidden browser (the local voice's renderer) is closed with the realtime host by a world reset, a key switch or a
+// provider switch. Nothing else opens it until the next composer warm-up, so a turn that comes first would start Edge in front of its
+// voice (770 ms, then the renderer page: the live record of 2026-10-13, the turn after a provider switch). Open it again at once.
+function rewarmLocalVoice() {
+  if (mistral.active && localVoice.playbackEnabled !== false && !stopped) void realtime.prewarmLocal();
 }
 
 async function quiescePlayerMemory({signal, scope, profileKeys} = {}) {
@@ -1981,6 +1996,7 @@ async function applyKeyChoice() {
     sessions.clear(); realtimeSessions.clear();
     await phone.forgetSessions().catch(() => {});
     console.error(`[CyberpunkConvai] Conversation key: ${own ? "the player's own" : "the installation's"}`);
+    rewarmLocalVoice();
     await ownKeyControl.publishStatus().catch(() => {});
   } finally { keySwitching = false; }
 }
@@ -1997,6 +2013,7 @@ async function applyProviderChoice() {
     sessions.clear(); realtimeSessions.clear();
     await phone.forgetSessions().catch(() => {});
     console.error(`[CyberpunkConvai] Conversation provider: ${mistral.applied}`);
+    rewarmLocalVoice();
     // Leaving the local AI gives its graphics memory back at once; arriving loads it (a first start compiles shaders for a while).
     if (mistral.applied === 'local') void localServer.ensure({background: true}).catch(() => {});
     else void localServer.stop().catch(() => {});

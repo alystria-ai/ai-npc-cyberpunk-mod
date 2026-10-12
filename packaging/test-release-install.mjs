@@ -1,7 +1,7 @@
 // Clean-install test for built release packages. It never touches a real game folder.
 //
 //   node packaging/test-release-install.mjs --packages dist/release/packages --version 0.2
-//        [--host dist/release/native/test-host.exe] [--key-file runtime/convai-key.txt] [--omni] [--keep]
+//        [--host dist/release/native/test-host.exe] [--key-file runtime/convai-key.txt] [--omni] [--local-ai] [--keep]
 //
 // 1. Makes a stand-in game folder under %TEMP% whose path has spaces and non-ASCII characters
 //    (bin/x64/Cyberpunk2077.exe is the launcher test host, plus empty CET and RED4ext markers).
@@ -16,9 +16,16 @@
 //    - the real launcher DLL, loaded by the test host like RED4ext does, starts the packaged
 //      service, which must report Ready (with --key-file, used as the player's own key and never
 //      printed) or ask for setup (without a key); closing the host must stop it again.
+// 4. Plugin folders: only the launcher and the native plugin install into red4ext/plugins (never the development
+//    launcher); the native DLL is inspected without running it (convai_plugin_host) and runtime/native-off.txt lists the
+//    systems that start off.
+// 5. With --local-ai: both Local AI packs are extracted too, the split model is joined and verified by the packaged
+//    service, the packaged bridge detects the pack, and the packaged llama-server loads the chat models and the embedding
+//    model on the processor (no sound, no graphics card, no game).
 import {spawn, spawnSync} from 'node:child_process';
 import {copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
+import net from 'node:net';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
@@ -32,6 +39,8 @@ const version = value('--version');
 const host = resolve(value('--host', resolve(packagesDir, '../native/test-host.exe')));
 const keyFile = value('--key-file');
 const omni = argv.includes('--omni');
+const localAi = argv.includes('--local-ai');
+const pluginHost = resolve(value('--plugin-host', resolve(packagesDir, '../native/convai_plugin_host.exe')));
 const keep = argv.includes('--keep');
 if (!version) { console.error('--version is required'); process.exit(2); }
 
@@ -145,6 +154,78 @@ console.log(JSON.stringify(report));
 process.exit(0);
 `;
 
+// ---------------------------------------------------------------- Local AI packs
+const freePort = () => new Promise((resolvePort, reject) => {
+  const probe = net.createServer();
+  probe.once('error', reject);
+  probe.listen(0, '127.0.0.1', () => { const {port} = probe.address(); probe.close(() => resolvePort(port)); });
+});
+
+// Starts the packaged llama-server on the processor only (no graphics card, nothing is spoken), waits until it reports the
+// model loaded, and stops it again.
+async function loadModel(exe, model, {embedding = false, timeoutMs = 900_000} = {}) {
+  const port = await freePort();
+  const args = ['-m', model, '-ngl', '0', '--device', 'none', '-c', '512', '-np', '1', '--threads', '4',
+    '--host', '127.0.0.1', '--port', String(port), '--no-webui', ...(embedding ? ['--embedding'] : [])];
+  const child = spawn(exe, args, {env: cleanEnv(), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe']});
+  let tail = '', exited = false;
+  for (const stream of [child.stdout, child.stderr]) stream.on('data', data => { tail = (tail + data).slice(-2000); });
+  const closed = new Promise(done => child.once('exit', () => { exited = true; done(); }));
+  const started = Date.now();
+  let ready = false;
+  while (!exited && Date.now() - started < timeoutMs) {
+    await sleep(1000);
+    try { if ((await fetch(`http://127.0.0.1:${port}/health`)).ok) { ready = true; break; } } catch { /* still loading */ }
+  }
+  if (!exited) child.kill();
+  await closed;
+  return {ready, seconds: Math.round((Date.now() - started) / 1000), tail};
+}
+
+async function localAiChecks({work, game, app}) {
+  const root = join(app, 'local-ai');
+  const spec = JSON.parse(await readFile(join(project, 'packaging/release.config.json'), 'utf8')).localAi;
+  // The split standard model is joined and verified by the packaged service on its first start; everything must match its pin.
+  for (const [label, item] of [['standard chat model', spec.tiers.standard], ['lite chat model', spec.tiers.lite], ['embedding model', spec.embed]]) {
+    const path = join(root, 'models', item.file);
+    const whole = existsSync(path) && (await stat(path)).size === item.size && await sha256File(path) === item.sha256;
+    check(`Local AI ${label} is whole and matches its pinned hash`, whole, item.name);
+  }
+  check('Local AI joined parts are gone', !(await readdir(join(root, 'models'))).some(name => /\.part\d+$/.test(name)));
+  // The packaged bridge finds the pack from the environment the packaged service gives it, ignoring a developer's folder.
+  const script = join(work, 'local-ai-detect.mjs');
+  await writeFile(script, `
+import {pathToFileURL} from 'node:url';
+import {resolve} from 'node:path';
+const app = ${JSON.stringify(app)};
+const load = path => import(pathToFileURL(resolve(app, path)).href);
+const launcher = await load('launcher/prepare-state.mjs');
+const {detectLocalAiPack} = await load('bridge/local-ai-pack.mjs');
+const layout = launcher.installLayout({appDirectory: app, gameRoot: ${JSON.stringify(game)}});
+const env = launcher.serviceEnvironment(layout, {omni: false, keyFile: 'unused'}, {CYBERPUNK_CONVAI_LOCAL_AI_DEV: 'C:/nowhere'});
+console.log(JSON.stringify(detectLocalAiPack({project: app, environment: env})));
+`);
+  const detected = spawnSync(join(app, 'node/node.exe'), [script], {env: cleanEnv(), encoding: 'utf8'});
+  let pack = {};
+  try { pack = JSON.parse(detected.stdout.trim().split('\n').pop()); } catch { /* reported below */ }
+  check('the packaged bridge detects both Local AI tiers and the embedding model',
+    pack.installed === true && pack.dev === false && pack.tiers?.standard?.name === spec.tiers.standard.name && pack.tiers?.lite?.name === spec.tiers.lite.name
+      && pack.embed?.dim === spec.embed.dim && (pack.missing ?? ['?']).length === 0 && pack.server?.startsWith(root),
+    detected.status === 0 ? `standard ${pack.tiers?.standard?.name}, lite ${pack.tiers?.lite?.name}, embed ${pack.embed?.id}, missing [${pack.missing}]` : detected.stderr.slice(-500));
+  const server = pack.server;
+  if (!server) return;
+  const version = spawnSync(server, ['--version'], {env: cleanEnv(), encoding: 'utf8'});
+  const number = spec.server.version.replace(/^b/, '');
+  check('the packaged llama-server starts without anything else installed', new RegExp(`build ${number}\\b`).test(`${version.stdout}${version.stderr}`),
+    `${version.stdout}${version.stderr}`.split('\n')[0]);
+  for (const [label, file, embedding] of [['lite chat model', pack.tiers?.lite?.file, false], ['embedding model', pack.embed?.file, true],
+    ['standard chat model', pack.tiers?.standard?.file, false]]) {
+    if (!file) continue;
+    const loaded = await loadModel(server, file, {embedding});
+    check(`llama-server loads the ${label} on the processor`, loaded.ready, loaded.ready ? `ready after ${loaded.seconds} s` : loaded.tail.slice(-600));
+  }
+}
+
 async function main() {
   const work = await mkdtemp(join(tmpdir(), 'convai install test '));
   const game = join(work, 'Cyberpunk 2077 Ünïcode Test');
@@ -163,14 +244,16 @@ async function main() {
     const escaped = text => text.replace(/[.+]/g, '\\$&');
     const pick = prefix => names.filter(name => name === `CyberpunkConvai-${prefix}-${version}.zip`
       || new RegExp(`^CyberpunkConvai-${prefix}-${escaped(version)}-part\\d+of\\d+\\.zip$`).test(name)).sort();
-    const wanted = [...pick('Scripts'), ...pick('Runtime'), ...(omni ? pick('OmniPack') : [])];
-    check('packages present', pick('Scripts').length === 1 && pick('Runtime').length >= 1 && (!omni || pick('OmniPack').length >= 1), wanted.join(', '));
+    const localIds = localAi ? ['LocalAI-Standard', 'LocalAI-Lite'] : [];
+    const wanted = [...pick('Scripts'), ...pick('Runtime'), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)];
+    check('packages present', pick('Scripts').length === 1 && pick('Runtime').length >= 1 && (!omni || pick('OmniPack').length >= 1)
+      && localIds.every(id => pick(id).length >= 1), wanted.join(', '));
     let t = Date.now();
     for (const zip of wanted) await expand(join(packagesDir, zip), game);
     check('extracted with Expand-Archive', true, `${wanted.length} archives in ${((Date.now() - t) / 1000).toFixed(0)} s`);
     let mismatches = 0, count = 0, longest = 0;
     const omniSplit = new Set();
-    for (const id of ['Scripts', 'Runtime', ...(omni ? ['OmniPack'] : [])]) {
+    for (const id of ['Scripts', 'Runtime', ...(omni ? ['OmniPack'] : []), ...localIds]) {
       const list = JSON.parse(await readFile(join(packagesDir, `CyberpunkConvai-${id}-${version}.files.json`), 'utf8'));
       for (const file of list) {
         count++; longest = Math.max(longest, game.length + 1 + file.path.length);
@@ -205,6 +288,31 @@ async function main() {
       const target = join(game, name.replace(/\.parts\.json$/, ''));
       check(`split file joined: ${name.split('/').pop().replace('.parts.json', '')}`, existsSync(target) && existsSync(`${target}.verified`));
     }
+    // RED4ext plugin folders: the shipped launcher and the optional native plugin, nothing else. The development launcher
+    // (red4ext/plugins/CyberpunkConvaiLauncher) would start a second service.
+    const plugins = join(game, 'red4ext/plugins');
+    const pluginFolders = (await readdir(plugins, {withFileTypes: true})).filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
+    check('only the shipped plugins are installed (no development launcher)',
+      pluginFolders.every(name => ['CyberpunkConvai', 'CyberpunkConvaiNative'].includes(name)) && pluginFolders.includes('CyberpunkConvai'), pluginFolders.join(', '));
+    const nativeDll = join(plugins, 'CyberpunkConvaiNative/CyberpunkConvaiNative.dll');
+    const nativeOff = join(mod, 'runtime/native-off.txt');
+    const release = JSON.parse(await readFile(join(app, 'release.json'), 'utf8'));
+    if (existsSync(nativeDll)) {
+      check('native plugin matches the recorded hash', release.nativePlugin === await sha256File(nativeDll), (release.nativePlugin || '').slice(0, 12));
+      if (existsSync(pluginHost)) {
+        const inspected = spawnSync(pluginHost, [nativeDll], {env: cleanEnv(), encoding: 'utf8'});
+        check('native plugin exports what RED4ext needs and imports only system DLLs', inspected.status === 0, (inspected.stdout || '').trim().split('\n').slice(-3).join(' | '));
+      } else console.log(`  (no plugin inspector at ${pluginHost}; skipped)`);
+      const buildConfig = JSON.parse(await readFile(join(project, 'packaging/release.config.json'), 'utf8'));
+      // The plugin's own parser rule: one name per line, '#' starts a comment, a missing file means all on.
+      const off = existsSync(nativeOff) ? (await readFile(nativeOff, 'utf8')).split(/\r?\n/).map(line => line.replace(/#.*/, '').trim().toLowerCase()).filter(Boolean) : null;
+      check('runtime/native-off.txt starts the unproven systems off', JSON.stringify(off) === JSON.stringify(buildConfig.native.off), off ? off.join(', ') : 'missing');
+      check('native plugin licences ship beside the DLL', ['RED4ext.SDK-LICENSE.md', 'yyjson-LICENSE.txt', 'README.txt'].every(name => existsSync(join(plugins, 'CyberpunkConvaiNative', name))));
+    } else {
+      check('package without the native plugin has no native-off.txt', !existsSync(nativeOff) && release.nativePlugin === 'none');
+    }
+    if (localAi) await localAiChecks({work, game, app});
+
     const harness = join(work, 'smoke.mjs');
     await writeFile(harness, smokeScript(app, state, omni, game));
     t = Date.now();

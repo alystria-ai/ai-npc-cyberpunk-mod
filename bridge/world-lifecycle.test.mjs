@@ -506,6 +506,85 @@ assert(attached == 1 and handlers == 1 and pregame == 1,
     'IsAttached ' .. attached .. ', GetSystemRequestsHandler ' .. handlers .. ', IsPreGame ' .. pregame)
 `));
 
+test('a frame asks the game once whether the phone is open and hands the answer to the layout and style refreshes', () => run(`
+events.onInit(); events.onUpdate(0); events.onUpdate(0.2)
+local asks, seen = 0, {}
+local isOpen = player.ConvaiPhoneIsOpen
+player.ConvaiPhoneIsOpen = function(self) asks = asks + 1; return isOpen(self) end
+modules['phone-layout.lua'].refresh = function(force, who, open) seen.layout = {force, who, open} end
+modules['phone-chat-style.lua'].refresh = function(force, who, open) seen.style = {force, who, open} end
+events.onUpdate(0.01)
+assert(asks == 1, 'ConvaiPhoneIsOpen was asked ' .. asks .. ' times in one frame')
+for _, name in ipairs({'layout', 'style'}) do
+    assert(seen[name][1] == false and seen[name][2] == player and seen[name][3] == false, name .. ' got the wrong frame answers')
+end
+player.phoneOpen = true
+asks = 0; events.onUpdate(0.01)
+assert(asks == 1 and seen.layout[3] == true and seen.style[3] == true, 'an open phone was not handed on')
+`));
+
+test('the phone request drain runs while the phone is open and just after, then once a second', () => run(`
+events.onInit(); events.onUpdate(0); events.onUpdate(0.2)
+local takes, take = 0, player.ConvaiPhoneTakeRequest
+player.ConvaiPhoneTakeRequest = function(self) takes = takes + 1; return take(self) end
+-- Closed for a long while: a hundred frames in one clock reading drain at most once.
+clock = clock + 10
+for _ = 1, 100 do events.onUpdate(0.01) end
+assert(takes <= 1, 'a closed phone was drained ' .. takes .. ' times in 100 frames')
+clock = clock + 1.1; takes = 0; events.onUpdate(0.01)
+assert(takes == 1, 'the once-a-second backstop did not drain')
+-- Open: every frame, so a press is taken at once (and the request is processed).
+player.phoneOpen = true; takes = 0
+for _ = 1, 5 do events.onUpdate(0.01) end
+assert(takes == 5, 'an open phone was drained ' .. takes .. ' times in 5 frames')
+-- Closed again: the request queued as it closed is still taken within the grace, every frame.
+player.phoneOpen = false; clock = clock + 0.5; takes = 0
+for _ = 1, 3 do events.onUpdate(0.01) end
+assert(takes == 3, 'the grace after closing drained ' .. takes .. ' of 3 frames')
+-- Past the grace the drain falls back to once a second.
+clock = clock + 5; events.onUpdate(0.01); takes = 0
+for _ = 1, 50 do events.onUpdate(0.01) end
+assert(takes == 0, 'a long-closed phone was drained ' .. takes .. ' times')
+`));
+
+test('the party-connections look runs every quarter second, a party change publishes at once, and a refused slot retries next frame', () => run(`
+events.onInit(); for _ = 1, 10 do events.onUpdate(0) end
+local reads, profiles = 0, companions.connectionProfiles
+companions.connectionProfiles = function() reads = reads + 1; return profiles() end
+clock = clock + 1
+for _ = 1, 60 do events.onUpdate(1 / 60) end
+assert(reads <= 1, 'the party was derived ' .. reads .. ' times in a frozen clock')
+reads = 0
+for step = 1, 8 do clock = clock + 0.1; for _ = 1, 6 do events.onUpdate(1 / 60) end end
+assert(reads >= 2 and reads <= 4, 'the party was derived ' .. reads .. ' times in 0.8 s')
+-- A join is announced by companions.onPartyChanged and reaches the file in the same frame.
+members[#members + 1] = {serial = 1, key = 'judy-alvarez', name = 'Judy', profileKey = 'judy-alvarez', state = 'ready'}
+companions.onPartyChanged()
+local token = files['runtime/party-connections.json']:match('%[(json%-fixture%-%d+)%]')
+assert(token and json.decode(token) == 'judy-alvarez', 'a party change waited for the next look')
+-- The heartbeat is still due every 2 s: a slot another heartbeat holds delays it a frame, not a quarter second.
+local slot = convaiHeartbeatSlot
+local writes = function()
+    local count = 0
+    for _, row in ipairs(stats.io) do if row.path == 'runtime/party-connections.json' and row.mode == 'wb' then count = count + 1 end end
+    return count
+end
+clock = clock + 2.5
+local taken = false
+convaiHeartbeatSlot = function() if not taken then taken = true; return false end return slot() end
+local before = writes()
+for _ = 1, 3 do events.onUpdate(1 / 60) end
+convaiHeartbeatSlot = slot
+assert(writes() == before + 1, 'the refused heartbeat was not retried within a few frames: ' .. (writes() - before))
+`));
+
+test('the UI_System blackboard definition is read once, not every frame', () => run(`
+local reads, definitions = 0, Game.GetAllBlackboardDefs
+Game.GetAllBlackboardDefs = function() reads = reads + 1; return definitions() end
+events.onInit(); for _ = 1, 20 do events.onUpdate(1 / 60) end
+assert(reads <= 1, 'GetAllBlackboardDefs was called ' .. reads .. ' times in 20 frames')
+`));
+
 test('lease heartbeats due in the same second write one per frame, and each still refreshes within the second', () => run(`
 events.onInit(); for _ = 1, 10 do events.onUpdate(0) end
 local HEARTBEATS = {['runtime/world-session.json'] = true, ['runtime/party-connections.json'] = true,

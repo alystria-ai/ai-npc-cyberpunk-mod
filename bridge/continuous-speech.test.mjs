@@ -423,3 +423,106 @@ judy.ready=false;assert(begin());faceDoc(3,2,false);snapshot({faceRevision=3,pos
 assert(not face.active and #judy.applied==before and speech.requestId==context.requestId and control().allow)
 assert(tostring(face.error):find('no prepared facial layer',1,true))
 `));
+
+// Segmented face file (bridge/continuous-face-file.mjs): the game decodes only the segments whose line changed.
+import {encodeSegmentedFace} from './continuous-face-file.mjs';
+const SEGMENT_FACE_ID = '12345678-1234-1234-1234-123456789abc';
+function segmentedFile(count, revision, {complete = false, mutate} = {}) {
+  const face = {version: 1, continuous: true, complete, requestId: 'conversation-1', entity: 'Judy-2', generation: 7,
+    duration: (count - 1) / 60, source: 'convai-arkit61', tracks: ['jaw_mid_open'],
+    frames: Array.from({length: count}, (_, i) => [i / 60, ((i * 7) % 10) / 20]),
+    modelExpressions: {version: 1, format: 'jali-upper-v1',
+      frames: Array.from({length: count}, (_, i) => [i / 60, ((i * 3) % 10) / 20, 0])}};
+  mutate?.(face);
+  return {text: encodeSegmentedFace({version: 1, id: SEGMENT_FACE_ID, requestId: 'conversation-1', generation: 7, entity: 'Judy-2', revision, face}),
+    duration: face.duration};
+}
+// A small real JSON parser: the other tests mock json by key, this one reads actual file text.
+const realJson = `
+local function realdecode(text)
+ local pos=1
+ local function ws()pos=text:find('%S',pos)or #text+1 end
+ local value
+ local function str()
+  local stop=text:find('"',pos+1,true);local out=text:sub(pos+1,stop-1);pos=stop+1;return out
+ end
+ function value()
+  ws();local c=text:sub(pos,pos)
+  if c=='{'then
+   local out={};pos=pos+1;ws()
+   if text:sub(pos,pos)=='}'then pos=pos+1;return out end
+   while true do ws();local k=str();ws();pos=pos+1;out[k]=value();ws()
+    local d=text:sub(pos,pos);pos=pos+1;if d=='}'then return out end end
+  elseif c=='['then
+   local out,n={},0;pos=pos+1;ws()
+   if text:sub(pos,pos)==']'then pos=pos+1;return out end
+   while true do n=n+1;out[n]=value();ws();local d=text:sub(pos,pos);pos=pos+1;if d==']'then return out end end
+  elseif c=='"'then return str()
+  elseif text:sub(pos,pos+3)=='true'then pos=pos+4;return true
+  elseif text:sub(pos,pos+4)=='false'then pos=pos+5;return false
+  elseif text:sub(pos,pos+3)=='null'then pos=pos+4;return json.null
+  else local s,e=text:find('^-?[%d%.eE%+%-]+',pos);local n=tonumber(text:sub(s,e));pos=e+1;return n end
+ end
+ local result=value();ws();assert(pos>#text,'trailing garbage in JSON');return result
+end
+local mockJson=json
+json={encode=mockJson.encode,null=nil,decode=function(k)local v=values[k];if v~=nil then return clone(v)end;return realdecode(k)end}
+`;
+const luaText = text => `[==[${text}]==]`;
+
+test('a segmented face file decodes only the segments that changed and the timeline stays exact', () => {
+  const one = segmentedFile(40, 1), two = segmentedFace52();
+  function segmentedFace52() { return segmentedFile(52, 2); }
+  run(`${realJson}
+local fileDecodes,tokens,realTonumber=0,0,tonumber
+local function faceFile(text)files['runtime/continuous-face.json']=text end
+assert(begin());assert(state().continuousFaceSegments==true)
+faceFile(${luaText(one.text)});snapshot({faceRevision=1,position=.2,bufferedDuration=${one.duration}});tick()
+assert(face.active and #face.timeline.frames==40 and #face.timeline.modelExpressions.frames==40,'first revision was not read')
+local firstRow,secondSegmentRow,changedRow=face.timeline.frames[1],face.timeline.frames[17],face.timeline.frames[33]
+assert(math.abs(face.timeline.frames[33][2]-((32*7)%10)/20)<1e-12 and math.abs(face.timeline.modelExpressions.frames[40][2]-((39*3)%10)/20)<1e-12)
+tonumber=function(...)tokens=tokens+1;return realTonumber(...)end
+faceFile(${luaText(two.text)});snapshot({faceRevision=2,position=.3,bufferedDuration=${two.duration},updated=(wall+.05)*1000});tick(.25)
+tonumber=realTonumber
+assert(face.timeline.duration==${two.duration} and #face.timeline.frames==52 and #face.timeline.modelExpressions.frames==52,'grown revision was not read')
+assert(rawequal(face.timeline.frames[1],firstRow) and rawequal(face.timeline.frames[17],secondSegmentRow),'finished segments were decoded again')
+assert(not rawequal(face.timeline.frames[33],changedRow),'the partly filled segment kept its old rows')
+assert(math.abs(face.timeline.frames[52][2]-((51*7)%10)/20)<1e-12)
+-- changed segments: frames 16+4 rows x 2 numbers, model 16+4 rows x 3 numbers, plus the skeleton; the whole file would be 52x2 + 52x3 + the skeleton
+assert(tokens>0 and tokens<=130,'decoded '..tokens..' numbers for the changed segments only')
+speech.stop('cancelled')
+`);
+});
+
+test('a segmented face file that cannot be read line by line falls back to a whole decode, and a broken one is refused', () => {
+  const good = segmentedFile(40, 1), grown = segmentedFile(52, 2);
+  // Every row of one document on one line: valid JSON, but no line starts a segment.
+  const flatLine = JSON.stringify(JSON.parse(grown.text));
+  const broken = segmentedFile(60, 3).text.replace('0.05,', 'x,');
+  run(`${realJson}
+local function faceFile(text)files['runtime/continuous-face.json']=text end
+assert(begin())
+faceFile(${luaText(good.text)});snapshot({faceRevision=1,position=.2,bufferedDuration=${good.duration}});tick()
+assert(face.active and #face.timeline.frames==40)
+faceFile(${luaText(flatLine)});snapshot({faceRevision=2,position=.3,bufferedDuration=${grown.duration},updated=(wall+.05)*1000});tick(.25)
+assert(face.active and #face.timeline.frames==52 and #face.timeline.modelExpressions.frames==52 and face.timeline.duration==${grown.duration},'whole-document fallback failed')
+faceFile(${luaText(broken)});snapshot({faceRevision=3,position=.4,bufferedDuration=${segmentedFile(60, 3).duration},updated=(wall+.1)*1000});tick(.25)
+assert(face.active and #face.timeline.frames==52,'a damaged file replaced the timeline')
+speech.stop('cancelled')
+`);
+});
+
+test('a changed earlier segment and a shrinking list are both decoded correctly', () => {
+  const a = segmentedFile(64, 1);
+  const b = segmentedFile(64, 2, {mutate: face => { face.frames[19][1] = 0.25; face.complete = false; }});
+  run(`${realJson}
+local function faceFile(text)files['runtime/continuous-face.json']=text end
+assert(begin())
+faceFile(${luaText(a.text)});snapshot({faceRevision=1,position=.2,bufferedDuration=${a.duration}});tick()
+local keep,edited=face.timeline.frames[1],face.timeline.frames[20]
+faceFile(${luaText(b.text)});snapshot({faceRevision=2,position=.3,bufferedDuration=${b.duration},updated=(wall+.05)*1000});tick(.25)
+assert(rawequal(face.timeline.frames[1],keep) and not rawequal(face.timeline.frames[20],edited))
+assert(face.timeline.frames[20][2]==.25,'the edited row was not read')
+speech.stop('cancelled')
+`);
+});

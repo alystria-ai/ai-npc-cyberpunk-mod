@@ -5,18 +5,25 @@
 // for the first complete sentence. When that sentence is safe to speak it becomes the stream's HEAD: the voice starts on it at
 // once while the model writes the rest, and the rest (the TAIL) follows when the reply is finished.
 //
+// The head is judged on the DISPLAY text: the reply with its emotion tags ({calm}, {joy}) and voice tags ([sigh]) taken out, which
+// is the text the finished reply ends with (bridge/natural-speech.mjs). With Expressive emotions on, the model opens EVERY reply
+// with such a tag, so a head that had to be tag-free in the raw text was never found in the game (2026-10-13 live record: no
+// streamed head in three turns). The marks of the tags inside the head are kept (`headMarks`) for the face.
+//
 // "Safe" is deliberately narrow, because audio cannot be taken back. The head is committed only when
 //   - it is a whole sentence (a stop, question mark, exclamation mark or ellipsis followed by a space and more text), at least
 //     `minHeadChars` long (a short "Hey." joins the next sentence, so the voice is not cut into scraps);
 //   - it carries nothing the cleaning could still change later: no bracket, brace, parenthesis, asterisk, underscore or angle
-//     bracket (voice and emotion tags, stage directions, markdown), and the reply does not open with a quotation mark (a reply
-//     wrapped whole in quotes loses them at the end);
+//     bracket left once the known tags are out (stage directions, markdown, a tag that is not an emotion), and the reply does not
+//     open with a quotation mark (a reply wrapped whole in quotes loses them at the end);
 //   - it does not break character ("as an AI") and is not a model's reasoning, and the host's own `reject` test does not refuse it
 //     (the text host refuses a sentence that repeats a line the character has already said).
 // A reply that never gets such a head is voiced after it is finished, exactly as before. The head is a prefix of the finished
 // reply by construction; `reconcile` enforces it when the finished reply disagrees (a second attempt that differs: the spoken part
 // stands and the rest is dropped, so the text never contradicts the audio).
 import {cleanReply, breaksCharacter, leaksReasoning} from './mistral-prompt.mjs';
+import {displayText, parseTagged, stripSpeechTags} from './natural-speech.mjs';
+import {heldFrom} from './emotion-tags.mjs';
 import {markStage} from './turn-clock.mjs';
 
 export const REPLY_STREAM_LIMITS = Object.freeze({
@@ -73,7 +80,7 @@ export class ReplyStream {
   constructor({name = '', isTag = () => false, speak = true, limits = {}} = {}) {
     Object.assign(this, {name, isTag, speak});
     this.limits = {...REPLY_STREAM_LIMITS, ...limits};
-    this.raw = ''; this.clean = ''; this.headText = null; this.sentenceSeen = false;
+    this.raw = ''; this.clean = ''; this.view = ''; this.headText = null; this.headMarks_ = []; this.sentenceSeen = false;
     this.finishedText = null; this.failure = null; this.diverged = false; this.attempts = 1;
     this.reject = null;   // optional (text) => boolean, set by the text host: a head it refuses is not committed
     this.head_ = deferred(); this.final_ = deferred();
@@ -82,6 +89,8 @@ export class ReplyStream {
 
   /** The committed head, or null. */
   get head() { return this.headText; }
+  /** The emotion marks ({at, name, strength}, `at` an offset in the head) of the tags written inside the head; [] without any. */
+  get headMarks() { return this.headMarks_; }
   /** True once a head was committed. */
   get committed() { return this.headText !== null; }
   /** True once the reply is finished (or failed): the voice's text is final. */
@@ -109,16 +118,19 @@ export class ReplyStream {
       // The model started over (a retry, the next model). What was already committed was heard: it stands, the new attempt is ignored.
       this.attempts++;
       if (this.headText !== null) { this.diverged = true; this.raw = raw; return; }
-      this.clean = ''; this.sentenceSeen = false;
+      this.clean = ''; this.view = ''; this.sentenceSeen = false;
     }
     this.raw = raw;
     if (this.diverged) return;
     this.clean = cleanReply(raw, {name: this.name, isTag: this.isTag});
-    if (!this.sentenceSeen && sentenceEnds(this.clean).length) { this.sentenceSeen = true; markStage('firstSentence'); }
+    // What a listener will read: the tags out, a tag still being written held back.
+    this.view = displayText(this.clean, false);
+    if (!this.sentenceSeen && sentenceEnds(this.view).length) { this.sentenceSeen = true; markStage('firstSentence'); }
     if (this.speak && this.headText === null) {
-      const found = pickHead(this.clean, {...this.limits, reject: this.reject});
+      const found = pickHead(this.view, {...this.limits, reject: this.reject});
       if (found) {
         this.headText = found.text;
+        this.headMarks_ = this.#marksWithin(found.text.length);
         this.head_.resolve(found.text);
         this.#changed();
       }
@@ -131,7 +143,16 @@ export class ReplyStream {
    */
   reconcile(reply) {
     if (this.headText === null || typeof reply !== 'string') return reply;
-    return reply.startsWith(this.headText) ? reply : this.headText;
+    // The reply still carries its tags; the head is display text.
+    return stripSpeechTags(reply).startsWith(this.headText) ? reply : this.headText;
+  }
+
+  // The emotion tags written inside the first `length` characters of the display text.
+  #marksWithin(length) {
+    try {
+      const cut = heldFrom(this.clean);
+      return parseTagged(cut >= 0 ? this.clean.slice(0, cut) : this.clean).marks.filter(mark => mark.at < length);
+    } catch { return []; }
   }
 
   /**

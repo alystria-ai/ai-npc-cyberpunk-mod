@@ -14,6 +14,10 @@ local preparationTarget, preparationStatus, preparationActionFeedback
 local preparationAt = 0
 local presentation = {active = false, rows = {}}
 local voiceSelectors = {}
+-- Everything that does not need a frame runs on this tick (see M.update). A queue
+-- change, a session reset and the return to gameplay run it on the next frame.
+local SLOW_PERIOD = 0.25
+local slowAt, flushDue, lastWorldReady = 0, false, nil
 local localeRevision = -1
 -- Every setting on this provider waits for an explicit Apply, like the game's own
 -- Settings pages. MCM's Auto Apply preference (a global player choice we must not
@@ -71,22 +75,33 @@ local function active()
     return ok and data and data.activeModKey == MOD_KEY
 end
 
--- MCM's getDiagnostics deep-copies its providers, errors and history, and the
--- per-frame update asked it on every frame (about 12 ms of each second, perf
--- probe 2026-10-11). While our page is shown the answer is still read fresh
--- each frame; otherwise the update re-reads it at most every 0.25 s. Observers
--- keep calling active() directly.
-local activeReadAt, activeLast = nil, false
-local function activeForUpdate()
-    if presentation.active or presentation.pending then activeReadAt = nil; return active() end
+-- MCM's getDiagnostics deep-copies its providers, errors and history (about
+-- 0.27 ms a call), and the per-frame update asked it on every frame (about
+-- 12 ms of each second, perf probe 2026-10-11). The hooks below already say
+-- when our page is shown (presentation.active/pending), so while it is shown
+-- the answer is re-read every 0.25 s, and while it is not every second (the
+-- page can only have opened without our hooks before they were installed).
+-- Observers keep calling active() directly.
+local shownReadAt, shownLast, closedReadAt, closedLast = nil, false, nil, false
+local function activeForUpdate(shown)
     local now = os.clock()
-    if activeReadAt and now >= activeReadAt and now - activeReadAt < 0.25 then return activeLast end
-    activeReadAt, activeLast = now, active() and true or false
-    return activeLast
+    if shown then
+        if shownReadAt and now >= shownReadAt and now - shownReadAt < 0.25 then return shownLast end
+        shownReadAt, shownLast = now, M.activeCheck()
+        return shownLast
+    end
+    shownReadAt = nil
+    if closedReadAt and now >= closedReadAt and now - closedReadAt < 1 then return closedLast end
+    closedReadAt, closedLast = now, M.activeCheck()
+    return closedLast
 end
 
+-- Only the Settings page with the interface-language list shows native language
+-- names (their own font); the other pages need no font pass when the
+-- interface language is a Latin one (mcm-fonts.lua).
 local fontPresentation = dofile('mcm-fonts.lua').new({ui = ui, active = active,
-    label = function() return ui.t(LABEL) end})
+    label = function() return ui.t(LABEL) end,
+    contentMayNeedFonts = function() return view == 'settings' end})
 
 local function controllerKey(controller)
     if not controller then return nil end
@@ -116,12 +131,39 @@ local function findWidget(root, name, depth, budget)
     end
 end
 
-local function contentWidgets(controller)
-    -- Native ink wrappers do not reliably expose private redscript fields.
-    -- The content canvas and row names are emitted by MCM's native renderer.
+-- Native ink wrappers do not reliably expose private redscript fields.
+-- The content canvas and row names are emitted by MCM's native renderer.
+-- One pass over the render's chrome finds the content canvas, the status line and
+-- the mod list; it stops at each of them, so rows are never walked here (the
+-- earlier three depth-first searches each walked up to 4096 widgets).
+local function locateRoots(controller)
     local root = controller:GetRootWidget()
     local render = findWidget(root, 'MCMRenderRoot', 18)
-    return findWidget(root, 'mcm_content_scroll_content', 18), render and findWidget(render, 'status', 18), render
+    if not render then return {content = findWidget(root, 'mcm_content_scroll_content', 18)} end
+    local result = {render = render}
+    local wanted = {{CName.new('mcm_content_scroll_content'), 'content'}, {CName.new('status'), 'status'},
+        {CName.new('mcm_sidebar_scroll_content'), 'sidebar'}}
+    local budget = {left = 2048}
+    local function scan(widget, depth)
+        if not widget or depth < 0 or budget.left <= 0 then return end
+        budget.left = budget.left - 1
+        local identity = widget:GetName()
+        for _, pair in ipairs(wanted) do
+            if identity == pair[1] then
+                if not result[pair[2]] then result[pair[2]] = widget end
+                return
+            end
+        end
+        local compound, count = pcall(function() return widget:GetNumChildren() end)
+        if compound then
+            for index = 0, math.min(count, 1200) - 1 do
+                if budget.left <= 0 then return end
+                scan(widget:GetWidgetByIndex(index), depth - 1)
+            end
+        end
+    end
+    scan(render, 18)
+    return result
 end
 
 local function alignLabel(widget, left)
@@ -140,8 +182,9 @@ local function redLabel(widget)
     if widget then widget:BindProperty(CName.new('tintColor'), CName.new('MainColors.Red')) end
 end
 
-local function styleCategory(widget, parentLeft, parentScale, depth)
+local function styleCategory(widget, parentLeft, parentScale, depth, budget)
     if depth <= 0 then return end
+    if budget then budget.left = budget.left - 1 end
     local margin = widget:GetMargin()
     local left = parentLeft + margin.left * parentScale
     if widget:GetName() == CName.new('label') then
@@ -159,59 +202,104 @@ local function styleCategory(widget, parentLeft, parentScale, depth)
     local compound, count = pcall(function() return widget:GetNumChildren() end)
     if compound then
         for index = 0, math.min(count, 100) - 1 do
-            styleCategory(widget:GetWidgetByIndex(index), left, factor, depth - 1)
+            styleCategory(widget:GetWidgetByIndex(index), left, factor, depth - 1, budget)
         end
     end
 end
 
-local function styleCompletedPage()
-    if not presentation.pending then return end
-    presentation.pending = false
-    if not presentation.active or not active() or not presentation.controller then return end
-    -- Called only by top-level onUpdate, never inside an observed native call.
-    -- CET shares a finite scratch arena across nested reflected calls. Walking
-    -- the UI from a native hook can exhaust it even if every getter is valid.
-    local content, status, render = contentWidgets(presentation.controller)
-    presentation.statusWidget, presentation.renderRoot = status, render
-    if not content then return end
-    local rows, widgets = {}, {}
-    for index = 0, math.min(content:GetNumChildren(), 1200) - 1 do
-        local widget = content:GetWidgetByIndex(index)
-        local name = NameToString(widget:GetName())
-        rows[#rows + 1] = {widget = widget, name = name}
-        widgets[name] = widget
+-- Work units per frame while a freshly drawn page is styled: listing a row costs
+-- 1 (three native calls), styling a row ROW_COST (about ten), a category widget 1
+-- per widget visited. A page of about 100 rows takes one to three frames, and a
+-- frame's batch stays near 10 ms (a whole page in one frame was 50-110 ms in the
+-- 2026-10-12 capture).
+local STYLE_BUDGET, ROW_COST = 300, 4
+
+local function styleRow(row, widgets, budget)
+    local widget, name = row.widget, row.name
+    local managed = name:match('^(.*)_managed_label$')
+    local marker = name:match('^(.*)_managed_marker$')
+    local label = name:match('^(.*)_label$')
+    local surface = name:match('^mcm_action_(.*)$')
+    if managed then
+        presentation.rows[managed] = 'managed'
+        alignLabel(widget, 20)
+        presentation.tint[managed] = widget
+        if not presentation.hovered[managed] then redLabel(widget) end
+        local draft = widgets[managed .. '_managed_marker']
+        if draft then alignLabel(draft, 0); draft:SetWidth(12) end
+    elseif marker then
+        -- The paired managed label handles this marker. Keep its colour.
+    elseif label then
+        presentation.rows[label] = 'action'
+        presentation.tint[label] = widget
+        if not presentation.hovered[label] then redLabel(widget) end
+    elseif surface and widget:GetMargin().left <= 60 then
+        presentation.rows[surface] = 'readonly'
+        local text = findWidget(widget, 'label', 2, {left = 30})
+        alignLabel(text, 0)
+        -- MCM draws read-only labels larger (26) than its setting labels (22).
+        if text then pcall(function() text:SetFontSize(CONTENT_FONT_SIZE) end) end
+        presentation.tint[surface] = text
+        if not presentation.hovered[surface] then redLabel(text) end
+    else
+        local owner = widget:GetController()
+        if owner and owner:IsA('SettingsCategoryController') then styleCategory(widget, 0, 1, 6, budget) end
     end
-    presentation.voiceStatus = widgets[MOD_KEY .. ':voice-status_value']
-    for _, row in ipairs(rows) do
-        local widget, name = row.widget, row.name
-        local managed = name:match('^(.*)_managed_label$')
-        local marker = name:match('^(.*)_managed_marker$')
-        local label = name:match('^(.*)_label$')
-        local surface = name:match('^mcm_action_(.*)$')
-        if managed then
-            presentation.rows[managed] = 'managed'
-            alignLabel(widget, 20)
-            if not presentation.hovered[managed] then redLabel(widget) end
-            local draft = widgets[managed .. '_managed_marker']
-            if draft then alignLabel(draft, 0); draft:SetWidth(12) end
-        elseif marker then
-            -- The paired managed label handles this marker. Keep its colour.
-        elseif label then
-            presentation.rows[label] = 'action'
-            if not presentation.hovered[label] then redLabel(widget) end
-        elseif surface and widget:GetMargin().left <= 60 then
-            presentation.rows[surface] = 'readonly'
-            local text = findWidget(widget, 'label', 2, {left = 30})
-            alignLabel(text, 0)
-            -- MCM draws read-only labels larger (26) than its setting labels (22).
-            if text then pcall(function() text:SetFontSize(CONTENT_FONT_SIZE) end) end
-            if not presentation.hovered[surface] then redLabel(text) end
-        else
-            local owner = widget:GetController()
-            if owner and owner:IsA('SettingsCategoryController') then styleCategory(widget, 0, 1, 6) end
+end
+
+-- Called only by top-level onUpdate, never inside an observed native call.
+-- CET shares a finite scratch arena across nested reflected calls. Walking
+-- the UI from a native hook can exhaust it even if every getter is valid.
+-- A new page is styled in batches (presentation.job); presentation.pending stays
+-- set until the last batch, which also holds back the Back button and the status
+-- line. A hover-out only re-tints that row's label (presentation.restyle), not the page.
+local function styleCompletedPage()
+    if presentation.pending then
+        local job = presentation.job
+        if not job then
+            if not presentation.active or not active() or not presentation.controller then
+                presentation.pending = false
+                return
+            end
+            local found = locateRoots(presentation.controller)
+            presentation.roots = found
+            presentation.statusWidget, presentation.renderRoot = found.status, found.render
+            local content = found.content
+            if not content then presentation.pending = false; return end
+            job = {content = content, count = math.min(content:GetNumChildren(), 1200), index = 0,
+                rows = {}, widgets = {}, at = 0}
+            presentation.job = job
+        end
+        local budget = {left = STYLE_BUDGET}
+        while job.index < job.count and budget.left > 0 do
+            local widget = job.content:GetWidgetByIndex(job.index)
+            local name = NameToString(widget:GetName())
+            job.rows[#job.rows + 1] = {widget = widget, name = name}
+            job.widgets[name] = widget
+            job.index, budget.left = job.index + 1, budget.left - 1
+        end
+        if job.index < job.count then return end
+        if job.at == 0 then
+            presentation.voiceStatus = job.widgets[MOD_KEY .. ':voice-status_value']
+            job.at = 1
+        end
+        while job.at <= #job.rows and budget.left > 0 do
+            styleRow(job.rows[job.at], job.widgets, budget)
+            job.at, budget.left = job.at + 1, budget.left - ROW_COST
+        end
+        if job.at <= #job.rows then return end
+        presentation.pending, presentation.job = false, nil
+    end
+    if presentation.restyle and next(presentation.restyle) then
+        local ids = presentation.restyle
+        presentation.restyle = {}
+        for id in pairs(ids) do
+            local widget = presentation.tint[id]
+            if widget and not presentation.hovered[id] then redLabel(widget) end
         end
     end
 end
+function M.styleStep() return styleCompletedPage() end
 
 local function readonly(id, label, value, description, raw)
     raw = raw or {}
@@ -518,7 +606,8 @@ local function placeStatusLine()
     presentation.statusMoved = true
     local ok, err = pcall(function()
         local render = presentation.renderRoot
-        local list = render and findWidget(render, 'mcm_sidebar_scroll_content', 8)
+        local list = presentation.roots and presentation.roots.sidebar
+            or (render and findWidget(render, 'mcm_sidebar_scroll_content', 8))
         if not list then error('the mod list is unavailable') end
         local count = math.min(list:GetNumChildren(), 600)
         if count < 1 then error('the mod list is empty') end
@@ -729,14 +818,14 @@ local function ownKeyRows(snapshot)
                 snapshot.settings.conversationProvider == 'groq' and 4
                     or snapshot.settings.conversationProvider == 'local' and 3
                     or snapshot.settings.conversationProvider == 'mistral' and 2 or 1, 1, providerHelp,
-                {'Convai', 'Mistral (free plan)', 'Local (needs Local AI pack)', 'Groq (free plan)'}, {elements = true, description = true}),
+                {'Convai free tier', 'Mistral (free plan)', 'Local (needs Local AI pack)', 'Groq (free plan)'}, {elements = true, description = true}),
             readonly('mistral-key-status', 'Mistral key', mistralStatus,
                 'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
             action('mistral-key:paste', 'Paste Mistral key', 'Paste from clipboard',
                 'Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer. You can also save it in the file player-mistral-key.txt in the conversation service folder.',
                 function() return manager.pasteMistralKey() end),
             action('mistral-key:remove', 'Remove my Mistral key', 'Remove',
-                'Deletes the saved key. Conversations go back to Convai.',
+                'Deletes the saved key. Conversations go back to Convai free tier.',
                 function() return manager.removeMistralKey() end, mistral.saved == true),
             readonly('groq-key-status', 'Groq key', groqStatus,
                 'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
@@ -744,7 +833,7 @@ local function ownKeyRows(snapshot)
                 'Copy your free key from Groq first. It is read from the clipboard once, checked with Groq and saved on this computer. You can also save it in the file player-groq-key.txt in the conversation service folder.',
                 function() return manager.pasteGroqKey() end),
             action('groq-key:remove', 'Remove my Groq key', 'Remove',
-                'Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai.',
+                'Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai free tier.',
                 function() return manager.removeGroqKey() end, groq.saved == true),
             readonly('local-ai-status', 'Local AI', localAiStatus,
                 'Runs conversations on this computer with the optional Local AI pack. It needs free graphics memory while it works, and memory stays on this computer. Choose Local in Conversation provider, then Apply.', {value = true}),
@@ -1123,6 +1212,23 @@ end
 
 function M.configure(domain, companions, queueFactory, entryFactory, readiness)
     manager, queue = domain, queueFactory.new(companions, readiness, {developerMode = domain.developerMode})
+    -- Any change to the queue is flushed by the next frame, not by the next slow tick.
+    for _, method in ipairs({'invite', 'dismiss', 'dismissCharacter', 'undoDismiss', 'assign', 'gameVoice', 'stopTrip'}) do
+        local original = queue[method]
+        if type(original) == 'function' then
+            queue[method] = function(...) flushDue = true; return original(...) end
+        end
+    end
+    -- Developer-mode probe rows (runtime/perf-probe.json): where the settings integration spends its time.
+    pcall(function()
+        local probe = convaiPerfProbe
+        if type(probe) ~= 'table' or type(probe.watch) ~= 'function' then return end
+        probe.watch(queue, 'flush', 'mcm.queue.flush')
+        probe.watch(M, 'slowUpdate', 'mcm.slow')
+        probe.watch(M, 'styleStep', 'mcm.style')
+        probe.watch(M, 'activeCheck', 'mcm.active')
+        probe.watch(fontPresentation, 'update', 'mcm.fonts')
+    end)
     entry = entryFactory.new(function() return ui.t(LABEL) end, function() return api ~= nil end, log, active)
     if supportLoaded and type(supportFactory) == 'table' and type(supportFactory.new) == 'function' then
         local created, instance = pcall(supportFactory.new, {ui = ui, party = function() return queue.list() end,
@@ -1326,7 +1432,7 @@ function M.install()
         owned = owned and key ~= nil
         local previous = owned and presentation.beginKey == key and presentation or {}
         -- Queue only Lua data here. No ink traversal, getters or setters.
-        presentation = {active = owned, pending = owned, rows = {}, hovered = {}, title = title,
+        presentation = {active = owned, pending = owned, rows = {}, hovered = {}, tint = {}, restyle = {}, title = title,
             controller = owned and controller or nil, controllerKey = key,
             statusAllowed = previous.statusAllowed, statusRestore = previous.statusRestore,
             statusText = previous.statusText, preparationApplied = previous.preparationApplied,
@@ -1361,15 +1467,16 @@ function M.install()
     ObserveAfter('SettingsMainGameController', 'McmUiSetManagedLabelState', function(controller, id, hovered)
         -- Native hover remains visible. After leaving a changed row, only its
         -- draft marker carries the modified state; label text stays uniform.
+        -- Only this row's label needs its tint back, so only it is queued.
         if presentation.active and ownsPresentation(controller) then
             presentation.hovered[id] = hovered == true
-            if not hovered then presentation.pending = true end
+            if not hovered then presentation.restyle[id] = true end
         end
     end)
     ObserveAfter('SettingsMainGameController', 'McmUiEmitHover', function(controller, id, _, hovered)
         if presentation.active and ownsPresentation(controller) then
             presentation.hovered[id] = hovered == true
-            if not hovered then presentation.pending = true end
+            if not hovered then presentation.restyle[id] = true end
         end
     end)
     Observe('SettingsMainGameController', 'McmUiEmitAction', function(controller, id)
@@ -1509,7 +1616,15 @@ function M.open()
     return entry.open()
 end
 
-function M.update(currentPlayer, worldReady)
+function M.activeCheck() return active() and true or false end
+
+-- Work that no frame depends on: the player identity, the queue flush, the gameplay
+-- notices and the report poll. Runs every SLOW_PERIOD seconds (and at once after a
+-- queue change, a session reset and the return to gameplay), so a notice or a spawn
+-- is at most 0.25 s later than the per-frame version, never lost: every producer
+-- keeps its own queue until it is taken. The perf probe 2026-10-13 had this part at
+-- 7-9 ms/s with the menu closed, nearly all of it per-frame no-ops.
+function M.slowUpdate(currentPlayer, worldReady)
     local currentOwner = identity(currentPlayer)
     local messages = {}
     if currentOwner ~= owner then
@@ -1526,16 +1641,6 @@ function M.update(currentPlayer, worldReady)
             if board and notice.info then board.event(notice)
             else messages[#messages + 1] = {id = notice.id, text = notice.message} end
         end
-    end
-    entry.update()
-    if ui.revision() ~= localeRevision then
-        localeRevision, refreshQueued = ui.revision(), true
-        if api and not api.hasDrafts(MOD_KEY) then api.refreshProvider(PROVIDER) end
-    end
-    local now = os.time()
-    if now >= preparationAt then
-        preparationAt = now + 1
-        samplePreparationFeedback()
     end
     if support then
         -- A finished report is announced once, in gameplay (a paused menu hides popups).
@@ -1558,18 +1663,40 @@ function M.update(currentPlayer, worldReady)
         local sent = convaiNotices.sendLines(currentPlayer, messages) > 0
         if sent and progress then progress.commit() end
     end
-    if now >= pollAt then pollAt = now + 1; M.install() end
     -- Read MCM's supported effective draft values from top-level update. The
     -- drafts.changed listener only marks this work pending in its callback.
     -- A staged voice never prepares a model, so no preview lease is ever offered.
     voicePreview.update(false, presentation.controllerKey, function() return manager.snapshot(currentPlayer).settings end)
+end
+
+function M.update(currentPlayer, worldReady)
+    local clock = os.clock()
+    if worldReady ~= lastWorldReady then lastWorldReady, slowAt = worldReady, 0 end
+    if flushDue or clock >= slowAt or slowAt - clock > SLOW_PERIOD * 2 then
+        flushDue, slowAt = false, clock + SLOW_PERIOD
+        M.slowUpdate(currentPlayer, worldReady)
+    end
+    entry.update()
+    if ui.revision() ~= localeRevision then
+        localeRevision, refreshQueued = ui.revision(), true
+        if api and not api.hasDrafts(MOD_KEY) then api.refreshProvider(PROVIDER) end
+    end
+    local now = os.time()
+    if now >= preparationAt then
+        preparationAt = now + 1
+        samplePreparationFeedback()
+    end
+    if now >= pollAt then pollAt = now + 1; M.install() end
     -- This also restores a shared description on foreign hover and keeps only
     -- our translated sidebar item readable when another mod is selected.
     fontPresentation.update()
     pcall(restoreStatusLine)
-    if not activeForUpdate() then return end
-    local styleOk, styleError = pcall(styleCompletedPage)
-    if not styleOk then lastError = 'Settings presentation: ' .. tostring(styleError) end
+    if not activeForUpdate(presentation.active or presentation.pending == true) then return end
+    local styleOk, styleError = pcall(M.styleStep)
+    if not styleOk then
+        presentation.pending, presentation.job = false, nil
+        lastError = 'Settings presentation: ' .. tostring(styleError)
+    end
     local placed, placeError = pcall(placeBackButton)
     if not placed then lastError = 'Back button: ' .. tostring(placeError) end
     local movedOk, movedError = pcall(placeStatusLine)
@@ -1632,10 +1759,12 @@ function M.update(currentPlayer, worldReady)
 end
 
 function M.inspect()
-    local rowCount = 0
+    local rowCount, restyling = 0, 0
     for _ in pairs(presentation.rows) do rowCount = rowCount + 1 end
+    for _ in pairs(presentation.restyle or {}) do restyling = restyling + 1 end
     return {available = api ~= nil, active = active(), view = view, entry = entry.state(),
-        presentation = {active = presentation.active, pending = presentation.pending, title = presentation.title, rows = rowCount},
+        presentation = {active = presentation.active, pending = presentation.pending, title = presentation.title, rows = rowCount,
+            restyling = restyling, styling = presentation.job ~= nil},
         entryDetails = entry.inspect and entry.inspect() or nil,
         back = currentBack and {id = currentBack.id, label = currentBack.label} or nil, backMode = backMode,
         party = queue.list(), feedback = queue.message(), error = lastError,
@@ -1657,6 +1786,7 @@ function M.resetSession()
     memoryActionCommand = nil
     preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
     owner, lastSignature, refreshQueued = nil, '', true
+    slowAt, lastWorldReady = 0, nil
     presentation = {active = false, rows = {}}
     fontPresentation.reset()
     voicePreview.reset()

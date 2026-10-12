@@ -162,7 +162,13 @@ local commands=#npc.ai.commands
 npc.ai.GetCommandState=function() error('Seated attention queried a walking command') end
 npc.ai.SendCommand=function() error('Seated attention submitted a walking command') end
 primary.speed=15; update(20,npc.id.hash)
-assert(next(npc.looks)==look and #npc.ai.commands==commands and not row(serial).error)
+local narrow=next(npc.looks)
+assert(narrow and narrow~=look and not npc.looks[look] and narrow.parts[1].weight==0.05 and #narrow.parts==1)
+assert(#npc.ai.commands==commands and not row(serial).error)
+primary.speed=25; update(3,npc.id.hash); assert(not next(npc.looks),'a car at 25 m/s kept the seated look')
+primary.speed=0; update(20,npc.id.hash)
+look=next(npc.looks)
+assert(look and look.parts[1].weight==0.18 and #look.parts==1 and look.request.calculatePositionInParentSpace==true)
 companions.gazeSettings=function() return {eyeContactHeight=0.05,headFollowStrength=0.5} end
 update(2,npc.id.hash)
 local adjusted=next(npc.looks)
@@ -423,4 +429,24 @@ assert(companions.fastTravel()); update(2)
 assert(row(serial).state=='failed' and row(serial).error)
 assert(not companions.dismiss(serial))
 assert(deletes==0 and roleChanges==0 and sequence==1,'ownership mismatch altered another actor')
+`));
+
+test('seated attention writes one probe line per change naming the gate, never one per tick', () => run(`
+local logs={}
+companions.recoveryLog=function(kind,fields) logs[#logs+1]={kind=kind,fields=fields} end
+local npc=spawn(); local serial=companions.list()[1].serial
+selected=primary
+update(12,nil)
+local function seated() local rows={} for _,line in ipairs(logs) do if line.kind=='seated-gaze' then rows[#rows+1]=line.fields end end return rows end
+local before=#seated()
+for _=1,30 do update(1,nil) end
+assert(#seated()==before,'a steady state wrote probe lines every tick: '..before..' then '..#seated())
+update(12,npc.id.hash)
+local rows=seated()
+local last=rows[#rows]
+assert(last and last.selected==true and last.phase=='seated-attend' and last.style=='full' and last.reason:find('Attend',1,true),
+  'selected attention was not logged: '..tostring(last and last.reason))
+primary.speed=25; update(3,npc.id.hash)
+rows=seated(); last=rows[#rows]
+assert(last.style=='none' and last.reason=='The car is too fast for a seated look' and last.speed>=24,'speed gate not named: '..tostring(last.reason))
 `));

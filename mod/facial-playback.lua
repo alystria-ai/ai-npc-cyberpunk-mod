@@ -283,6 +283,14 @@ do
     end
 end
 M.faceTest=faceTest
+-- The visibility probe (mod/face-test.lua) only touches the writer while a run, a trace or leftover fields exist; a
+-- loaded but idle probe lets the face sleep like any other (its mailbox poll runs in beginExpressionFrame).
+local function probeBusy()
+    local probe=faceTest
+    if not probe then return false end
+    return probe.run~=nil or probe.trace~=nil
+        or next(probe.policyTouched or EMPTY)~=nil or next(probe.touched or EMPTY)~=nil
+end
 local function expressionSlot(entity)
     if not M.expressions[entity] then
         nativeSeq=nativeSeq+1
@@ -377,7 +385,7 @@ end
 -- ConvaiNativeFaces is never touched.
 local function nativeFor()
     local api=convaiNative
-    if faceTest or type(api)~='table' or type(api.use)~='function' then return nil end
+    if (faceTest and probeBusy()) or type(api)~='table' or type(api.use)~='function' then return nil end
     local ok,on=pcall(api.use,'faces')
     if not (ok and on) then return nil end
     if not nativeFaces then
@@ -405,10 +413,20 @@ local function restartPoseBlocks()
         slot.mouthBudget,slot.chinDuck,slot.cornerDuck=nil,nil,nil
         slot.writtenPose,slot.appliedPose,slot.settled,slot.sleepAt=nil,nil,false,nil
         slot.voiceBrowOn,slot.voiceBrowReady,slot.blinkWritten,slot.nativeGaze=nil,nil,nil,nil
-        slot.feature=nil
+        slot.feature=nil;slot.heldFeature,slot.held=nil,nil
     end
     if M.feature then pcall(function() M.feature.eye_l_blink=0;M.feature.eye_r_blink=0 end) end
     M.speechVec=nil
+end
+-- One player input (thinking or listening) names `entity`: when that input is new this frame, a reply of that copy
+-- that was prepared but never heard loses its ownership.
+local function dropUnheard(entity,thinking,listening,thinkingRequest)
+    if not (M.active and M.entity==entity) and
+        ((entity==thinking and (thinking~=M.thinkingEntity or thinkingRequest~=M.expressionThinkingRequest))
+            or (entity==listening and listening~=M.listeningEntity)) then
+        local slot=M.expressions[entity]
+        if slot and slot.awaitingAudio then slot.active,slot.awaitingAudio=false,false;slot.cueEmotion,slot.cueFamily,slot.cueScale=nil,nil,nil end
+    end
 end
 function M.beginExpressionFrame(delta,context)
     if faceTest then pcall(faceTest.poll,delta,context) end
@@ -419,31 +437,49 @@ function M.beginExpressionFrame(delta,context)
         slotsNative=want~=nil
     end
     native=want or false
+    local ctx=type(context)=='table' and context or nil
     M.expressionDelta=finite(delta) and clamp(delta,.1) or 0
-    M.expressionPaused=type(context)=='table' and context.paused==true
-    M.expressionBlocked=type(context)=='table' and context.blocked==true
-    M.expressionManaged=type(context)=='table'
-    local thinking=type(context)=='table' and context.thinkingEntity or nil
-    local listening=type(context)=='table' and context.listeningEntity or nil
-    local thinkingRequest=type(context)=='table' and context.thinkingRequestId or nil
+    M.expressionPaused=ctx~=nil and ctx.paused==true
+    M.expressionBlocked=ctx~=nil and ctx.blocked==true
+    M.expressionManaged=ctx~=nil
+    local thinking=ctx and ctx.thinkingEntity or nil
+    local listening=ctx and ctx.listeningEntity or nil
+    local thinkingRequest=ctx and ctx.thinkingRequestId or nil
     -- A new player input ends an earlier reply's ownership that was never heard. The face itself keeps its
     -- idle expression (the resting smile, a lingering reaction, a mood hold) through listening and thinking;
     -- only the next reply's first audible frame changes it (October 9; before, the input zeroed it at once).
-    -- Thinking/listening never infer mood from the text or voice.
-    for _,entity in ipairs({thinking or false,listening or false}) do
-        if entity and not (M.active and M.entity==entity) and
-            ((entity==thinking and (thinking~=M.thinkingEntity or thinkingRequest~=M.expressionThinkingRequest))
-                or (entity==listening and listening~=M.listeningEntity)) then
-            local slot=M.expressions[entity]
-            if slot and slot.awaitingAudio then slot.active,slot.awaitingAudio=false,false;slot.cueEmotion,slot.cueFamily,slot.cueScale=nil,nil,nil end
+    -- Thinking/listening never infer mood from the text or voice. (No table is built per frame: nothing
+    -- here runs unless somebody is thinking or listening.)
+    if thinking then dropUnheard(thinking,thinking,listening,thinkingRequest) end
+    if listening then dropUnheard(listening,thinking,listening,thinkingRequest) end
+    M.thinkingEntity,M.listeningEntity,M.expressionThinkingRequest=thinking,listening,thinkingRequest
+    local actors=ctx and type(ctx.actors)=='table' and ctx.actors or nil
+    if actors then
+        for _,row in ipairs(actors) do
+            local known=type(row)=='table' and M.expressions[row.entity]
+            if known then known.profile=row.profileKey end
         end
     end
-    M.thinkingEntity,M.listeningEntity,M.expressionThinkingRequest=thinking,listening,thinkingRequest
-    for _,row in ipairs(type(context)=='table' and type(context.actors)=='table' and context.actors or {}) do
-        local known=type(row)=='table' and M.expressions[row.entity]
-        if known then known.profile=row.profileKey end
-    end
     if not M.expressionPaused and finite(delta) then M.expressionClock=M.expressionClock+math.max(0,delta) end
+end
+-- The five status tags as CNames, built on first use (a CName is a value; building five per check was per-frame work).
+local injuryTags,injuryNames={'Injured','Defeated','Unconscious','Stunned','Ragdoll'}
+local function luaActorSafe(actor)
+    if not actor:IsOnAutonomousAI() or NPCPuppet.IsInCombat(actor) then return false end
+    local scene=Game.GetSceneSystem():GetScriptInterface()
+    local id=actor:GetEntityID()
+    if scene:IsEntityInDialogue(id) or scene:IsEntityInScene(id) then return false end
+    -- Status effects are the game's injury/incapacitation signal. Missing
+    -- native APIs fail closed for the optional expression layer only.
+    if not injuryNames then
+        local names={}
+        for index,tag in ipairs(injuryTags) do names[index]=CName.new(tag) end
+        injuryNames=names
+    end
+    for index=1,#injuryNames do
+        if StatusEffectSystem.ObjectHasStatusEffectWithTag(actor,injuryNames[index]) then return false end
+    end
+    return true
 end
 local function safeExpressionActor(actor)
     if not M.expressionManaged then return true end
@@ -452,20 +488,13 @@ local function safeExpressionActor(actor)
         if ok and answer==1 then return true elseif ok and answer==0 then return false end
         if not ok then nativeFailed(answer) end
     end
-    local ok,ready=pcall(function()
-        if not actor:IsOnAutonomousAI() or NPCPuppet.IsInCombat(actor) then return false end
-        local scene=Game.GetSceneSystem():GetScriptInterface()
-        if scene:IsEntityInDialogue(actor:GetEntityID()) or scene:IsEntityInScene(actor:GetEntityID()) then return false end
-        -- Status effects are the game's injury/incapacitation signal. Missing
-        -- native APIs fail closed for the optional expression layer only.
-        for _,tag in ipairs({'Injured','Defeated','Unconscious','Stunned','Ragdoll'}) do
-            if StatusEffectSystem.ObjectHasStatusEffectWithTag(actor,CName.new(tag)) then return false end
-        end
-        return true
-    end)
+    local ok,ready=pcall(luaActorSafe,actor)
     return ok and ready==true
 end
 local function mouthBudget(feature,phase)
+    -- An idle copy's own feature never carries a mouth value (only speech writes them, on the speaker's feature), so
+    -- its budget is 1 without six reads across into the game. The visibility probe may write any track: it reads.
+    if phase~='speaking' and not faceTest then return 1 end
     local function read(track) local value=feature[track];return finite(value) and clamp(value) or 0 end
     local closure=clamp(math.max(read('lips_together_up'),read('lips_together_dn'))/.85)
     local rounding=clamp(math.max(read('lips_l_funnel'),read('lips_r_funnel'))/.32
@@ -596,9 +625,36 @@ local function ease(prior,goal,fall,rise)
     if math.abs(goal-prior)<.01 then return goal end
     return prior+(goal-prior)*(1-math.exp(-seconds/(goal<prior and fall or rise)))
 end
+-- Per-frame scratch and constants of expressionPose (single-threaded, never held across calls): no table or closure
+-- is built per frame.
+local poseTarget,poseWeights={},{}
+local cornerTracks={'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn'}
+local browReleaseStems={'raise_in','raise_out','lower','lateral'}
+local browDownTracks={'eye_l_brows_lower','eye_r_brows_lower','eye_l_brows_lateral','eye_r_brows_lateral',
+    'eye_l_oculi_squint_outer_upper','eye_r_oculi_squint_outer_upper'}
+local voiceBrowTracks={{'eye_l_brows_raise_in','eye_l_brows_raise_out','eye_l_brows_lower'},
+    {'eye_r_brows_raise_in','eye_r_brows_raise_out','eye_r_brows_lower'}}
+-- Per-track facts, computed once per track name.
+local lipsTrack=setmetatable({},{__index=function(t,track) local v=track:sub(1,5)=='lips_';t[track]=v;return v end})
+local cornerTrack=setmetatable({},{__index=function(t,track) local v=track:find('corner_',1,true)~=nil;t[track]=v;return v end})
+local function trackCap(track,capScale)
+    local limit=expressionLimit(track)
+    if cornerTrack[track] then limit=limit*capScale end
+    return limit
+end
+local function momentary(slot,name,weight)
+    local age=slot.flick[name] or 0
+    if weight>.1 then age=age+(M.expressionDelta or 0) else age=0 end
+    slot.flick[name]=age
+    return math.max(0,math.min(1,1-(age-1.0)/1.0))
+end
+local function setPair(target,stem,value) target['lips_l_'..stem]=value;target['lips_r_'..stem]=value end
+local function setBrows(target,stem,value) target['eye_l_brows_'..stem]=value;target['eye_r_brows_'..stem]=value end
 local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     if phase=='speaking' and slot.awaitingAudio then startHeard(slot) end
-    local target=zeroExpression()
+    local target=poseTarget
+    for key in pairs(target) do target[key]=nil end
+    for _,track in ipairs(expressionTracks) do target[track]=0 end
     if slot.expiry and M.expressionClock>=slot.expiry then slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil end
     -- A turn with an expression track holds its last sampled mix between phrases
     -- and after speech (until the usual expiry), so gaps never jump to another pose.
@@ -609,20 +665,18 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     -- (full for 1 s, gone by 2 s), never a sustained raise. Other feelings hold
     -- through their phrase and release after speech (see browExpiry).
     slot.flick=slot.flick or {}
-    local function flick(name,weight)
-        local age=slot.flick[name] or 0
-        if weight>.1 then age=age+(M.expressionDelta or 0) else age=0 end
-        slot.flick[name]=age
-        return math.max(0,math.min(1,1-(age-1.0)/1.0))
-    end
     local surpriseFlick,interestFlick
     if weights then
-        weights={table.unpack(weights)}
-        surpriseFlick,interestFlick=flick('surprise',weights[7] or 0),flick('anticipation',weights[8] or 0)
+        -- A copy (the flicks scale two of its entries), in a reused table.
+        local copy=poseWeights
+        for index=1,#weights do copy[index]=weights[index] end
+        for index=#weights+1,#copy do copy[index]=nil end
+        weights=copy
+        surpriseFlick,interestFlick=momentary(slot,'surprise',weights[7] or 0),momentary(slot,'anticipation',weights[8] or 0)
         weights[7]=(weights[7] or 0)*surpriseFlick;weights[8]=(weights[8] or 0)*interestFlick
     else
-        surpriseFlick=flick('surprise',family=='surprise' and strength or 0)
-        interestFlick=flick('anticipation',family=='anticipation' and strength or 0)
+        surpriseFlick=momentary(slot,'surprise',family=='surprise' and strength or 0)
+        interestFlick=momentary(slot,'anticipation',family=='anticipation' and strength or 0)
         if family=='surprise' then strength=strength*surpriseFlick elseif family=='anticipation' then strength=strength*interestFlick end
     end
     local trait=traitFor(slot.profile)
@@ -639,16 +693,9 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
         if since<0 then warmth=0 elseif since<moodEaseSeconds then warmth=warmth*since/moodEaseSeconds else slot.moodUntil=nil end
     end
     local capScale=math.min(math.max(gain,1),1.3)
-    local function limitFor(track)
-        local limit=expressionLimit(track)
-        if track:find('corner_',1,true) then limit=limit*capScale end
-        return limit
-    end
-    local function pair(stem,value) target['lips_l_'..stem]=value;target['lips_r_'..stem]=value end
-    local function brows(stem,value) target['eye_l_brows_'..stem]=value;target['eye_r_brows_'..stem]=value end
     if weights then mixTargets(weights,target,phase,warmth,trait.smile,trait.squint)
-    elseif family=='joy' then pair('corner_up',.45*strength*(1+smileLift*(1-strength))*(trait.smile or 1));brows('raise_out',.30*strength);target.smileRaw=.45*strength*(1+smileLift*(1-strength))*(trait.squint or 1)
-    elseif family=='trust' then pair('corner_up',.35*strength*(trait.smile or 1));target.smileRaw=.35*strength*(trait.squint or 1)
+    elseif family=='joy' then setPair(target,'corner_up',.45*strength*(1+smileLift*(1-strength))*(trait.smile or 1));setBrows(target,'raise_out',.30*strength);target.smileRaw=.45*strength*(1+smileLift*(1-strength))*(trait.squint or 1)
+    elseif family=='trust' then setPair(target,'corner_up',.35*strength*(trait.smile or 1));target.smileRaw=.35*strength*(trait.squint or 1)
     elseif familyPoses[family] then
         -- One reply-level label: the family's unit pose at the label's strength (linear, as before).
         for key,value in pairs(familyPoses[family]) do singleChannel(target,key,value*strength) end
@@ -662,28 +709,27 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
         else source.lips_l_corner_dn=.30*provider[3];source.lips_r_corner_dn=.30*provider[4] end
         for track,value in pairs(source) do target[track]=math.max(target[track],value) end
         if (source.lips_l_corner_dn or 0)>.005 or (source.lips_r_corner_dn or 0)>.005
-            or source.eye_l_brows_lower>.01 or source.eye_r_brows_lower>.01 then pair('corner_up',0);frowning=true end
+            or source.eye_l_brows_lower>.01 or source.eye_r_brows_lower>.01 then setPair(target,'corner_up',0);frowning=true end
     end
     -- After speech the emotion's brows release within about 1.5 s (corners keep
     -- the longer expiry); they are never held for seconds after the voice stops.
     if slot.browExpiry and M.expressionClock>=slot.browExpiry then
-        for _,name in ipairs({'raise_in','raise_out','lower','lateral'}) do brows(name,0) end
+        for _,name in ipairs(browReleaseStems) do setBrows(target,name,0) end
         target.eye_l_widen,target.eye_r_widen=0,0
         target.eye_l_oculi_squint_outer_upper,target.eye_r_oculi_squint_outer_upper=0,0
         target.droop=0
     end
     local suppress=not weights and (negative[family] or family=='unknown')
-    if suppress then pair('corner_up',0) end
-    if not weights and (family=='joy' or family=='trust') then pair('corner_dn',0);brows('lower',0) end
+    if suppress then setPair(target,'corner_up',0) end
+    if not weights and (family=='joy' or family=='trust') then setPair(target,'corner_dn',0);setBrows(target,'lower',0) end
     -- Resting warmth: a floor under every non-negative intent (Interest, surprise,
     -- neutral tone) while idle only. The emotion's own smile wins by max.
     if not weights and phase~='speaking' and not negative[family] and family~='unknown'
-        and not frowning and target.lips_l_corner_dn==0 then pair('corner_up',math.max(target.lips_l_corner_up,warmth)) end
-    for _,track in ipairs({'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn'}) do target[track]=target[track]*gain end
+        and not frowning and target.lips_l_corner_dn==0 then setPair(target,'corner_up',math.max(target.lips_l_corner_up,warmth)) end
+    for _,track in ipairs(cornerTracks) do target[track]=target[track]*gain end
     local browDown=trait.browDown or 1
     if browDown~=1 then
-        for _,track in ipairs({'eye_l_brows_lower','eye_r_brows_lower','eye_l_brows_lateral','eye_r_brows_lateral',
-            'eye_l_oculi_squint_outer_upper','eye_r_oculi_squint_outer_upper'}) do target[track]=(target[track] or 0)*browDown end
+        for _,track in ipairs(browDownTracks) do target[track]=(target[track] or 0)*browDown end
     end
     -- The smile's own squint (Duchenne), or the feeling's narrowed eyes, whichever is stronger.
     local squintSmile=target.lips_l_corner_up
@@ -693,9 +739,9 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     local budget=ease(slot.mouthBudget,mouthBudget(feature,phase),budgetFall,budgetRise)
     slot.mouthBudget=budget
     for _,track in ipairs(expressionTracks) do
-        if not (weights and track:find('corner_',1,true)) then
-            local goal=clamp(target[track] or 0,limitFor(track))
-            if track:sub(1,5)=='lips_' then goal=goal*budget end
+        if not (weights and cornerTrack[track]) then
+            local goal=clamp(target[track] or 0,trackCap(track,capScale))
+            if lipsTrack[track] then goal=goal*budget end
             local prior=slot.pose[track] or 0
             local seconds=goal>prior and .18 or .55
             slot.pose[track]=blocked and 0 or (prior+(goal-prior)*(1-math.exp(-(M.expressionDelta or 0)/seconds)))
@@ -741,12 +787,23 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     -- The written values are kept on the slot (one reused table), so the writer never reads
     -- them back from the native feature (each read crosses into the game).
     local written=slot.writtenPose or {};slot.writtenPose=written
+    -- An idle copy writes into its own feature object, which keeps what was written between frames (nobody else
+    -- touches it), so only the controls that changed cross into the game. Speech writes the shared feature every
+    -- frame, and the visibility probe may overwrite any control: both write everything.
+    local held
+    if phase~='speaking' and not faceTest and feature==slot.feature then
+        if slot.heldFeature~=feature then slot.heldFeature,slot.held=feature,{} end
+        held=slot.held
+    end
     for _,track in ipairs(expressionTracks) do
         -- Hard closure/rounding suppression happens after smoothing, too.
-        local value=math.min(slot.pose[track],limitFor(track)*(track:sub(1,5)=='lips_' and budget or 1))
+        local value=math.min(slot.pose[track],trackCap(track,capScale)*(lipsTrack[track] and budget or 1))
         if track=='lips_chin_raise' then value=value*chinDuck
         elseif track=='lips_l_corner_dn' or track=='lips_r_corner_dn' then value=value*cornerDuck end
-        feature[track]=value;written[track]=value
+        if held then
+            if held[track]~=value then held[track]=value;feature[track]=value end
+        else feature[track]=value end
+        written[track]=value
     end
     -- Voice-synchronous brows from the game-trained model (emphasis flashes,
     -- focused frowns). Already smooth and on the audio clock: combined by max
@@ -771,13 +828,12 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
             end
         else slot.voiceBrowOn=false end
         local lower=0*upper.lower
-        for _,side in ipairs({'l','r'}) do
-            for _,stem in ipairs({'raise_in','raise_out'}) do
-                local track='eye_'..side..'_brows_'..stem
-                written[track]=math.min(expressionLimit(track),math.max(written[track],raise));feature[track]=written[track]
+        for side=1,2 do
+            local names=voiceBrowTracks[side]
+            for at=1,3 do
+                local track=names[at]
+                written[track]=math.min(expressionLimit(track),math.max(written[track],at<3 and raise or lower));feature[track]=written[track]
             end
-            local track='eye_'..side..'_brows_lower'
-            written[track]=math.min(expressionLimit(track),math.max(written[track],lower));feature[track]=written[track]
         end
     end
 end
@@ -924,12 +980,21 @@ local function applyFeature(actor,feature,entity,phase,provider,upper,mix,bounda
     expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     local blink=math.max(blinkWeight(slot,phase,blocked,boundary,room),blocked and 0 or (slot.droop or 0))
     -- A copy that never blinked through this layer keeps the fields untouched (zero, the native face).
-    if blink>0 or slot.blinkWritten then feature.eye_l_blink,feature.eye_r_blink=blink,blink;slot.blinkWritten=true end
+    -- (held: what expressionPose last wrote on this idle copy's own feature, see there.)
+    local held=slot.heldFeature==feature and slot.held or nil
+    if blink>0 or slot.blinkWritten then
+        if not held or held.blink~=blink then
+            feature.eye_l_blink,feature.eye_r_blink=blink,blink
+            if held then held.blink=blink end
+        end
+        slot.blinkWritten=true
+    end
     -- A blink closes widened eyes too (they would hold the lids apart).
     local written=slot.writtenPose
     if blink>0 and (written.eye_l_widen or 0)>0 then
         local open=1-blink;written.eye_l_widen,written.eye_r_widen=written.eye_l_widen*open,written.eye_r_widen*open
         feature.eye_l_widen,feature.eye_r_widen=written.eye_l_widen,written.eye_r_widen
+        if held then held.eye_l_widen,held.eye_r_widen=written.eye_l_widen,written.eye_r_widen end
     end
     local owned=0
     if ownerFace then
@@ -1035,10 +1100,11 @@ local function idlePhase(slot,entity)
 end
 -- An idle face asleep since its last full frame stays asleep while nothing that feeds the pose has changed:
 -- same phase, frame context and profile, no feeling, hold, mood, expiry or mouth hand-over pending, no speech
--- for this copy, and the next blink not yet due. Everything here is Lua state; nothing crosses into the game.
-local function asleep(slot,entity,row)
+-- for this copy, no probe run that writes through this layer, and the next blink not yet due. Everything here
+-- is Lua state; nothing crosses into the game.
+local function asleep(slot,entity,row,busy)
     local at=slot.sleepAt
-    if not at or not M.idleSleep or faceTest then return false end
+    if not at or busy or not M.idleSleep then return false end
     local clock=M.expressionClock
     if clock<at or clock-at>=sleepRecheck or not slot.blinkNext or clock>=slot.blinkNext then return false end
     if slot.emotion or slot.holdMix or slot.expiry or slot.moodUntil or slot.active or slot.awaitingAudio
@@ -1047,41 +1113,55 @@ local function asleep(slot,entity,row)
     return slot.sleepPhase==idlePhase(slot,entity) and slot.sleepBlocked==M.expressionBlocked
         and slot.sleepProfile==row.profileKey
 end
+-- Rows seen this frame (reused; cleared at the start of each update).
+local seenRows={}
+-- One idle frame of one copy: ownership, the slot, the writer, and (for a settled face) the sleep mark.
+local function idleFrame(row,entity,actor)
+    if not owns(actor,entity) then forget(entity);return end
+    local slot=expressionSlot(entity)
+    slot.profile=row.profileKey
+    -- Speech owns the face from its first HEARD frame. Before that (a reply prepared, a stream
+    -- buffering, an Omni phrase loading) this idle writer keeps her idle face (October 9).
+    if slot.written==M.expressionFrame or (M.active and M.entity==entity and M.heardRequest==M.requestId and M.state~='paused' and M.state~='releasing') then return end
+    slot.feature=slot.feature or NewObject('ConvaiFaceFeature')
+    assert(slot.feature,'Native facial feature is unavailable')
+    local phase=idlePhase(slot,entity)
+    slot.sleepAt=nil
+    applyFeature(actor,slot.feature,entity,phase)
+    -- The native feature keeps the last applied pose, so a settled face needs no write until it changes.
+    if slot.settled and slot.written==M.expressionFrame then
+        slot.sleepAt=M.expressionClock
+        slot.sleepPhase,slot.sleepBlocked,slot.sleepProfile=phase,M.expressionBlocked,row.profileKey
+    end
+end
 function M.updateExpressions(context)
     if type(context)~='table' or M.expressionPaused then return end
     if faceTest then pcall(faceTest.direct,context.actors,function() return NewObject('ConvaiFaceFeature') end) end
-    local seen={}
-    for _,row in ipairs(context.actors or {}) do
-        local entity,actor=row.entity,row.npc
-        local sleeping=type(entity)=='string' and not seen[entity] and M.expressions[entity]
-        if sleeping and asleep(sleeping,entity,row) then seen[entity]=true;entity=nil end
-        if type(entity)=='string' and not seen[entity] then
-            seen[entity]=true
-            local ok,err=pcall(function()
-                if not owns(actor,entity) then forget(entity);return end
-                local slot=expressionSlot(entity)
-                slot.profile=row.profileKey
-                -- Speech owns the face from its first HEARD frame. Before that (a reply prepared, a stream
-                -- buffering, an Omni phrase loading) this idle writer keeps her idle face (October 9).
-                if slot.written==M.expressionFrame or (M.active and M.entity==entity and M.heardRequest==M.requestId and M.state~='paused' and M.state~='releasing') then return end
-                slot.feature=slot.feature or NewObject('ConvaiFaceFeature')
-                assert(slot.feature,'Native facial feature is unavailable')
-                local phase=idlePhase(slot,entity)
-                slot.sleepAt=nil
-                applyFeature(actor,slot.feature,entity,phase)
-                -- The native feature keeps the last applied pose, so a settled face needs no write until it changes.
-                if slot.settled and slot.written==M.expressionFrame then
-                    slot.sleepAt,slot.sleepPhase,slot.sleepBlocked,slot.sleepProfile=M.expressionClock,phase,M.expressionBlocked,row.profileKey
-                end
-            end)
-            if not ok then M.expressionError=tostring(err);forget(entity) end
+    local seen=seenRows
+    for key in pairs(seen) do seen[key]=nil end
+    local rows=context.actors
+    local busy=faceTest~=nil and probeBusy()
+    if rows then
+        for _,row in ipairs(rows) do
+            local entity,actor=row.entity,row.npc
+            local sleeping=type(entity)=='string' and not seen[entity] and M.expressions[entity]
+            -- Asleep: a few comparisons, nothing else (a full frame re-checks ownership, combat, scenes and status
+            -- effects every sleepRecheck seconds).
+            if sleeping and asleep(sleeping,entity,row,busy) then seen[entity]=true;entity=nil end
+            if type(entity)=='string' and not seen[entity] then
+                seen[entity]=true
+                local ok,err=pcall(idleFrame,row,entity,actor)
+                if not ok then M.expressionError=tostring(err);forget(entity) end
+            end
         end
     end
     for entity in pairs(M.expressions) do
         if not seen[entity] and not (M.active and M.entity==entity) then forget(entity) end
     end
 end
-local function providerExpressions(timeline)
+-- `seen` (optional): rows already range-checked in an earlier continuous update (a decoded row is never changed),
+-- so a growing timeline re-checks only its new rows.
+local function providerExpressions(timeline,seen)
     local value=timeline.providerExpressions
     -- Convai turns keep their provider brows/corners when the game-trained
     -- model drives the mouth from the same PCM (source local-jali).
@@ -1090,19 +1170,25 @@ local function providerExpressions(timeline)
         or type(value.frames)~='table' or #value.frames~=#timeline.frames then return nil end
     for index,frame in ipairs(value.frames) do
         if type(frame)~='table' or #frame~=10 or frame[1]~=timeline.frames[index][1] then return nil end
-        for at=2,10 do if not finite(frame[at]) or frame[at]<0 or frame[at]>1 then return nil end end
+        if not (seen and seen[frame]) then
+            for at=2,10 do if not finite(frame[at]) or frame[at]<0 or frame[at]>1 then return nil end end
+            if seen then seen[frame]=true end
+        end
     end
     return value.frames
 end
 -- Optional model upper-face curve on the timeline's exact frame times.
-local function modelExpressions(timeline)
+local function modelExpressions(timeline,seen)
     local value=timeline.modelExpressions
     if timeline.source~='local-jali' and timeline.source~='audio-envelope' and timeline.source~='convai-arkit61' then return nil end
     if type(value)~='table' or value.version~=1 or value.format~='jali-upper-v1'
         or type(value.frames)~='table' or #value.frames~=#timeline.frames then return nil end
     for index,frame in ipairs(value.frames) do
         if type(frame)~='table' or #frame~=3 or frame[1]~=timeline.frames[index][1] then return nil end
-        for at=2,3 do if not finite(frame[at]) or frame[at]<0 or frame[at]>1 then return nil end end
+        if not (seen and seen[frame]) then
+            for at=2,3 do if not finite(frame[at]) or frame[at]<0 or frame[at]>1 then return nil end end
+            if seen then seen[frame]=true end
+        end
     end
     return value.frames
 end
@@ -1264,6 +1350,8 @@ function M.updateContinuous(context, timeline, actor, duration)
     if M.active and not sameOwner then return false end
     if sameOwner and type(timeline) == 'table' and (timeline.requestId ~= context.requestId
         or timeline.entity ~= context.entity or timeline.generation ~= context.generation) then return false end
+    -- Rows checked by an earlier update of this reply (weak: a row replaced by the next revision is released).
+    local seen = sameOwner and M.checkedRows or setmetatable({}, {__mode = 'k'})
     local ok, err = pcall(function()
         assert(type(context) == 'table' and type(timeline) == 'table', 'Facial timeline is unavailable')
         assert(timeline.version == 1 and timeline.continuous == true and type(timeline.complete) == 'boolean'
@@ -1299,8 +1387,11 @@ function M.updateContinuous(context, timeline, actor, duration)
             assert(type(frame) == 'table' and #frame == #timeline.tracks + 1
                 and finite(frame[1]) and frame[1] >= 0 and frame[1] <= duration
                 and frame[1] > previous, 'Invalid facial frame time')
-            for index = 2, #frame do
-                assert(finite(frame[index]) and frame[index] >= 0 and frame[index] <= trackLimit(timeline.tracks[index-1]), 'Invalid facial weight')
+            if not seen[frame] then
+                for index = 2, #frame do
+                    assert(finite(frame[index]) and frame[index] >= 0 and frame[index] <= trackLimit(timeline.tracks[index-1]), 'Invalid facial weight')
+                end
+                seen[frame] = true
             end
             previous = frame[1]
         end
@@ -1333,8 +1424,9 @@ function M.updateContinuous(context, timeline, actor, duration)
     end
     M.localMotion = timeline.motion == 'local-phonetic-smooth-v1'
     M.timeline, M.source, M.articulation = timeline, timeline.source, timeline.articulation
-    M.providerExpressions=providerExpressions(timeline)
-    M.modelExpressions=modelExpressions(timeline)
+    M.checkedRows = seen
+    M.providerExpressions=providerExpressions(timeline,seen)
+    M.modelExpressions=modelExpressions(timeline,seen)
     M.expressionTrackKeys=expressionTrack(timeline)
     M.blinkBoundaries=blinkBoundaries(timeline)
     M.blinkBoundaryIndex=blinkCursor(M.blinkBoundaries,M.position or 0)

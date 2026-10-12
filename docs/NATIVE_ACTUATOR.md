@@ -34,7 +34,14 @@ command handles).
   (`Capabilities()`, logged once as `Native core: actuator capabilities N`); without the four body reads
   the system stays on Lua.
 - The combat flag is read inside `Sense`, a few milliseconds earlier in the same tick than the Lua read; no game
-  state changes in between.
+  state changes in between. It is the static `NPCPuppet.IsInCombat(puppet)`, registered by the game as
+  `IsInCombat;ScriptedPuppet` (live 2026-10-13: a lookup by the plain name found nothing, so Lua read the flag
+  every tick); `convai::game::StaticFunction` finds it by script name and parameter count. Log:
+  `Game access: static NPCPuppet.IsInCombat resolved as IsInCombat;ScriptedPuppet`, then `Actuator: combat flag read
+  through NPCPuppet.IsInCombat;ScriptedPuppet`, and `Actuator: capabilities 0x7f (all)`. The combat flag is part
+  of the parity proof: every counted sense compares it with `NPCPuppet.IsInCombat`, a mismatch is logged as
+  `PARITY MISMATCH in combat`, and the proven line says `combat flag read by the plugin, compared N times` (or
+  `read by Lua (the plugin could not read it)`).
 - World policy: Lua passes only the mod-spawned copies in `entries` (state `ready`) and the command it owns.
   The plugin never enumerates NPCs, so ordinary NPCs and game-placed characters are never touched.
 
@@ -50,6 +57,14 @@ command handles).
   plugin reads are in use`. Afterwards every 100th sense is compared (canary). A difference logs
   `Native core: actuator PARITY MISMATCH <field>: plugin X, Lua Y`; the third one switches the system off for the session
   (`Native core: actuator=lua (native call failed: parity: ...)`).
+- While the proof runs every plugin read is made twice (plugin and Lua), so a companion that stands still would keep
+  the window open at about twice the plain cost. After the first 40 senses only the walking is missing, and the
+  window narrows to one sense, one life read and one state read in four unless the companion walks (same checks, a
+  quarter of the cost). A proven window is never reopened.
+- Perf rows (Developer mode, `runtime/perf-probe.json`): `tickNative.life`, `tickNative.sense`,
+  `tickNative.commandState` (the shim's own cost, window and proven), next to `companions.update`. To A/B the
+  actuator, put `actuator` into `runtime/native-off.txt` for 60 s with the companion doing the same thing, compare
+  `companions.update` at the same FPS (it scales with the frame rate), and remove the line.
 - Three native faults switch it off for the session.
 - `probe.log` shows `Native core: actuator=native (...)` or `=lua (reason)` on the first use and on every change,
   then `Native core: actuator capabilities N (all)`.

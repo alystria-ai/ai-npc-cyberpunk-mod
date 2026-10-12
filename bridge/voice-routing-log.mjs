@@ -6,6 +6,8 @@ import {dirname} from 'node:path';
 // (provider key and character ID, so a multilingual twin is visible); the support report hashes
 // character IDs like every other ID. The line goes to the bridge log and to a
 // small rolling file (runtime/voice-routing.log, the last ROUTING_LOG_MAX_LINES lines) that the support report includes.
+// `fallback=` names why the cloud voice cannot be asked at all (no key, a limit, a refused key); an earlier timeout or network
+// failure is `cloudLast=` (a reply is never switched to another voice partway: see docs/CLOUD_VOICE_VOXTRAL.md).
 //
 //   2026-10-08 14:03:21 profile=resident-male name="NC Resident" requested="Pocket · Performance"
 //     used="Convai cloud (Julia (Expressive Young-Adult American Female))" ref=- fallback="no local reference for this profile"
@@ -122,7 +124,10 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
   // The Mistral cloud voice (Voxtral) rides on Pocket: chosen, it is what the player asked for; it speaks unless it has no key
   // or fell back (bridge/voxtral-voice.mjs), in which case Pocket does and the reason is logged.
   const cloud = voice.cloudActive === true && voice.requestedProvider === 'pocket';
-  const cloudWhy = cloud && engine === 'pocket' ? voice.cloudFallback : null;
+  // Only a state that stops the cloud voice from being asked at all (no key, a limit, a refused key) is a reason for Pocket here: the line
+  // is written before the reply is voiced, so a timeout on the previous reply would be a stale claim (`cloudLast` carries it instead).
+  const cloudWhy = cloud && engine === 'pocket' ? ('cloudBlocked' in voice ? voice.cloudBlocked : voice.cloudFallback) : null;
+  const cloudLast = cloud && engine === 'pocket' && !cloudWhy ? voice.cloudLast ?? null : null;
   const record = {time: now(), profile: key, name: profile?.name ?? input?.name ?? '?',
     requested: cloud ? CLOUD_LABEL : requestedLabel(voice.requestedProvider, voice.requestedOmniSteps, voice.requestedOmniReference),
     engine, voiceKey: local ? (voiceKey ?? key) : undefined,
@@ -131,6 +136,7 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
       : referenceOf(voice, engine, voiceKey ?? key, sources),
     fallback: reason ?? (cloudWhy ? `Mistral cloud voice ${cloudWhy.reason === 'no-key' ? 'has no key' : 'fell back (' + cloudWhy.reason + ')'}` : null)
       ?? fallbackReason(voice, key, {plan, engine})};
+  if (cloudLast) record.cloudLast = cloudLast;
   if (engine === 'omni') record.used = `OmniVoice ${voice.omniSteps} ${voice.omniReference}`;
   else if (engine === 'pocket') record.used = cloud && !cloudWhy ? CLOUD_LABEL : 'Pocket';
   else if (engine === 'none') record.used = 'none (written reply only)';
@@ -158,6 +164,7 @@ export function formatVoiceRoute(record) {
   if (record.language !== undefined) parts.push(`lang=${text(record.language) || '-'}`);
   if (record.lipText !== undefined) parts.push(`lipText=${record.lipText ? 'yes' : 'no'}`);
   if (record.fallback) parts.push(`fallback=${quote(record.fallback)}`);
+  if (record.cloudLast) parts.push(`cloudLast=${text(record.cloudLast)}`);
   return parts.join(' ');
 }
 

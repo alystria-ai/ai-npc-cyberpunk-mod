@@ -10,7 +10,7 @@ The design and the measurements behind it are in `docs/LOCAL_OPTION_DESIGN.md` a
 
 Choose **Local** as the Conversation provider (Settings > Development) and the characters answer with an AI model that runs on your
 computer. Replies are spoken by the local voices (Pocket or OmniVoice) and the characters keep a memory of your talks, stored on your
-computer. Convai gives better quality responses; Local is for playing without an account or without the internet.
+computer. Convai free tier gives better quality responses; Local is for playing without an account or without the internet.
 
 The models are optional downloads, like the OmniVoice pack. There are two, and you can install neither, one or both:
 
@@ -52,14 +52,26 @@ RTX 4080 Laptop (12 GB); the game's own use depends on your settings (ray tracin
 | OmniVoice | Local AI lite | about 3.7 GB (up to 5.8 GB) | |
 | OmniVoice | Local AI standard | about 5.2 GB (up to 7.3 GB) | |
 
-| Your card | Recommended |
-|---|---|
-| **8 GB** | Pocket voice with Convai or Mistral. Local AI lite only with the game on medium textures and no ray tracing. |
-| **12 GB** | Pocket voice with Local AI standard, or OmniVoice with Local AI lite. OmniVoice with the standard model only with the game on lower textures or no ray tracing. |
-| **16 GB** | OmniVoice with Local AI standard. |
-| **24 GB** | Anything; OmniVoice with Local AI standard has plenty of room. |
+Lower settings means medium textures and no ray tracing; higher settings means high textures or ray tracing. The same table is in the
+player README (`packaging/PLAYER_README.md`); keep the two in step.
 
-You also need about 5 GB more system memory than with Convai (16 GB total at least, 32 GB recommended) and an NVIDIA or AMD graphics
+| Your card | What fits | When it is short |
+|---|---|---|
+| **6 GB** | Pocket with Convai or Mistral. Local AI lite only on lower settings. | The text moves to Mistral or Convai; the voice stays Pocket. |
+| **8 GB** | Pocket with Local AI lite, or OmniVoice with Convai or Mistral, both on lower settings. | The lite model gives way to Mistral or Convai text; OmniVoice stays if chosen. |
+| **12 GB** | OmniVoice with Local AI lite on any settings. Pocket with Local AI standard on lower settings. | Standard becomes lite, lite becomes Mistral or Convai text; the voice stays. |
+| **16 GB** | OmniVoice with Local AI standard on lower settings, with Local AI lite on higher settings. | Standard becomes lite, lite becomes Mistral or Convai text; the voice stays. |
+| **24 GB** | Anything; OmniVoice with Local AI standard has plenty of room. | |
+
+When the card is short, the voice is kept before the text: standard gives way to lite, lite gives way to Mistral or Convai, and the
+voice only changes as a last resort.
+
+A note on the start rule, found while writing the table: the tier check needs free video memory of at least the model file plus
+headroom (standard: the 5.15 GB model file plus 1200 MiB, so about 6 GB free; lite: the 1.28 GB file plus 700 MiB), although standard measures about 3.1 GB
+once loaded. A 6 GB card therefore always starts lite or falls back, even when the standard model would have fitted at runtime. The rule
+is deliberate (a margin so the game keeps its textures), and the player README states "about 6 GB free" for standard.
+
+You also need about 5 GB more system memory than with Convai (16 GB total at least, 32 GB is better) and an NVIDIA or AMD graphics
 card that supports Vulkan. A computer without a separate graphics card cannot use Local AI.
 
 ## For developers
@@ -96,7 +108,15 @@ repository.
 so either one alone works and a hand-deleted model only removes its own tier. Another model is only another manifest. Detection is in
 `bridge/local-ai-pack.mjs` and is the same kind of check as `bridge/omni-pack.mjs`: it only stats files.
 
-Packaging the two packs (`packaging/`, the release workflow) is a follow-up; this change does not build them.
+Packaging: `packaging/build-release.mjs --packages localai-standard` (or `localai-lite`) builds each download, and the release workflow
+runs both as a matrix job (`localai`). Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the
+`localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11560 (MIT; only `llama-server.exe` and its
+DLLs are kept, no other command line tools), the Q8_0 granite embedding model (Apache-2.0), and one chat model: Gemma 4 E4B QAT q4_0
+(Apache-2.0, 5.15 GB, split into 1 GB parts joined by `app/launcher/assemble-parts.mjs` on the first start) or Qwen3.5-2B Q4_K_M by
+Unsloth (Apache-2.0, 1.28 GB). Each pack unpacks to `red4ext/plugins/CyberpunkConvai/app/local-ai/` with its manifest fragment, the
+licence texts and `THIRD-PARTY-NOTICES.txt`; `prepare-state.mjs` points `CYBERPUNK_CONVAI_LOCAL_AI` there. With `--models local` the
+developer folder (`--local-ai-source`, default `CYBERPUNK_CONVAI_LOCAL_AI_DEV`) supplies the files, each still checked against its
+pinned hash. See `docs/PACKAGING.md`.
 
 ### Modules
 

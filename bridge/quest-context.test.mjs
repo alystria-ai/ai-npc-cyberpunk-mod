@@ -112,7 +112,12 @@ const knowledgeHistory = () => ({version: 1, status: 'ready', generation: 7, wor
         text: 'Leave the room.', state: 'succeeded', observedAtMs: knowledgeNow}]}]});
 const knowledgeOptions = {generation: 7, worldToken: 'load-7', now: knowledgeNow,
   knowledgeContext: 'Reviewed current-save fact: the supplied decision is confirmed.'};
-const knowledgeInput = () => parseInput(JSON.stringify({...input, worldKnowledge: knowledgeWorld(), journalHistory: knowledgeHistory()}));
+// parseInput freezes the snapshots it validated (bridge/parsed-snapshot.mjs). Several tests below change a field to prove a rejection, so
+// they start from plain copies of the two snapshots; the frozen originals are what a real turn carries.
+const knowledgeInput = () => {
+  const parsed = parseInput(JSON.stringify({...input, worldKnowledge: knowledgeWorld(), journalHistory: knowledgeHistory()}));
+  return {...parsed, worldKnowledge: structuredClone(parsed.worldKnowledge), journalHistory: structuredClone(parsed.journalHistory)};
+};
 
 test('only the internal attachment adds reviewed knowledge and selected journal history, with current-state precedence', () => {
   const raw = {...knowledgeInput(), knowledgeContext: 'Injected relationship', historyContext: 'Injected history'};
@@ -156,8 +161,12 @@ test('trusted context cannot survive IPC or be reused for another request, chara
     assert.doesNotMatch(context, /Reviewed current-save fact|Revealed past quest/);
     assert.match(context, /unavailable for this turn/);
   }
-  trusted.worldKnowledge.facts.current_fact.value = 0;
-  assert.doesNotMatch(conversationContext(trusted), /Reviewed current-save fact|Revealed past quest/);
+  // The attached snapshots are frozen, so a capture cannot be changed in place; a changed copy is not the capture the context was built for.
+  assert.throws(() => { trusted.worldKnowledge.facts.current_fact.value = 0; }, TypeError);
+  const tampered = {...trusted, worldKnowledge: structuredClone(trusted.worldKnowledge)};
+  tampered.worldKnowledge.facts.current_fact.value = 0;
+  assert.doesNotMatch(conversationContext(tampered), /Reviewed current-save fact|Revealed past quest/);
+  assert.match(conversationContext(trusted), /Reviewed current-save fact/);
   const newer = withConversationKnowledge(knowledgeInput(), knowledgeOptions);
   newer.journal.quest.title = 'Current replacement quest';
   assert.match(conversationContext(newer), /Current replacement quest/);

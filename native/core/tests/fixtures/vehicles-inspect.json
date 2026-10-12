@@ -1,0 +1,1126 @@
+{
+ "system": "vehicles",
+ "source": "mod/companion-vehicle-native.lua",
+ "cases": [
+  {
+   "name": "a parked car with an AI and four free seats",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "no seats in the record",
+   "input": {"attached":true,"isVehicle":true,"owned":false,"destroyed":false,"ai":true,"mackinaw":false,"seats":[],"velocity":[0,0,0],"distanceSquared":25,"playerMounted":false,"scene":false},
+   "output": {"ai":true,"everAttached":true,"invalid":false,"playerGap":5,"playerMounted":false,"scene":false,"seats":[],"speed":0,"status":2,"wire":"V 2 0 1 0 0 0 5 0"}
+  },
+  {
+   "name": "a bike with two seats",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [{"name":"seat_front","hasSlot":true,"occupant":null,"reserved":false},{"name":"seat_back","hasSlot":true,"occupant":null,"reserved":false}],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front","reserved":false},{"name":"seat_back","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 2 seat_front 0 0 seat_back 0 0"
+   }
+  },
+  {
+   "name": "eight seats",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"a1","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"a2","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"a3","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"a4","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"a5","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"a6","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"a7","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"a8","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [
+     {"name":"a1","reserved":false},
+     {"name":"a2","reserved":false},
+     {"name":"a3","reserved":false},
+     {"name":"a4","reserved":false},
+     {"name":"a5","reserved":false},
+     {"name":"a6","reserved":false},
+     {"name":"a7","reserved":false},
+     {"name":"a8","reserved":false}
+    ],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 8 a1 0 0 a2 0 0 a3 0 0 a4 0 0 a5 0 0 a6 0 0 a7 0 0 a8 0 0"
+   }
+  },
+  {
+   "name": "the driver and a passenger sit",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":"1234567","reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":"7654321","reserved":true},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [
+     {"name":"seat_front_left","occupant":"1234567","reserved":false},
+     {"name":"seat_front_right","occupant":"7654321","reserved":true},
+     {"name":"seat_back_left","reserved":false},
+     {"name":"seat_back_right","reserved":false}
+    ],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 4 seat_front_left 1234567 0 seat_front_right 7654321 1 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "a reserved seat without an occupant",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [{"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":true},{"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false}],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":true},{"name":"seat_front_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 2 seat_front_left 0 1 seat_front_right 0 0"
+   }
+  },
+  {
+   "name": "a 64-bit entity hash",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [{"name":"seat_front_left","hasSlot":true,"occupant":"18446744073709551615","reserved":false},{"name":"seat_front_right","hasSlot":true,"occupant":"9007199254740993","reserved":false}],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","occupant":"18446744073709551615","reserved":false},{"name":"seat_front_right","occupant":"9007199254740993","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 2 seat_front_left 18446744073709551615 0 seat_front_right 9007199254740993 0"
+   }
+  },
+  {
+   "name": "an occupant slot answered with no info",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [{"name":"seat_front_left","hasSlot":true,"occupant":"55","reserved":false,"noInfo":true},{"name":"seat_front_right","hasSlot":true,"occupant":"56","reserved":false}],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","occupant":"56","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 2 seat_front_left 0 0 seat_front_right 56 0"
+   }
+  },
+  {
+   "name": "seats the car has no slot for are skipped",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":false,"occupant":"9","reserved":true},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_back_left","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 2 seat_front_left 0 0 seat_back_left 0 0"
+   }
+  },
+  {
+   "name": "no AI component on a car the mod did not make",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": false,
+    "mackinaw": false,
+    "seats": [{"name":"seat_front_left","hasSlot":true,"occupant":"12","reserved":false},{"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":true}],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": false,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","occupant":"12","reserved":false},{"name":"seat_front_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 0 0 0 0 5 2 seat_front_left 12 0 seat_front_right 0 0"
+   }
+  },
+  {
+   "name": "a car the mod made, with its AI",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": true,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "a car the mod made, without its AI",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": true,
+    "destroyed": false,
+    "ai": false,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {"error":"Native vehicle AI has not attached.","everAttached":true,"status":1,"wire":"V 1"}
+  },
+  {
+   "name": "a car the mod made, destroyed, without its AI",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": true,
+    "destroyed": true,
+    "ai": false,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {"error":"Native vehicle AI has not attached.","everAttached":true,"status":1,"wire":"V 1"}
+  },
+  {
+   "name": "a destroyed car with an AI",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": true,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": true,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 1 1 0 0 0 5 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "not a vehicle",
+   "input": {
+    "attached": true,
+    "isVehicle": false,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {"everAttached":true,"status":0,"wire":"V 0"}
+  },
+  {
+   "name": "not a vehicle, owned, no AI",
+   "input": {
+    "attached": true,
+    "isVehicle": false,
+    "owned": true,
+    "destroyed": false,
+    "ai": false,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {"everAttached":true,"status":0,"wire":"V 0"}
+  },
+  {
+   "name": "detached",
+   "input": {
+    "attached": false,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {"everAttached":false,"status":3,"wire":"V 3"}
+  },
+  {
+   "name": "detached and owned",
+   "input": {
+    "attached": false,
+    "isVehicle": true,
+    "owned": true,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {"everAttached":false,"status":3,"wire":"V 3"}
+  },
+  {
+   "name": "the Mackinaw hides seat_back_right",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": true,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 3 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0"
+   }
+  },
+  {
+   "name": "the Mackinaw keeps its other seats",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": true,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":"5","reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":"6","reserved":true},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","occupant":"5","reserved":false},{"name":"seat_back_left","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 2 seat_front_left 5 0 seat_back_left 0 0"
+   }
+  },
+  {
+   "name": "the Mackinaw without that seat",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": true,
+    "seats": [{"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},{"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false}],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 2 seat_front_left 0 0 seat_front_right 0 0"
+   }
+  },
+  {
+   "name": "another car keeps seat_back_right",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [{"name":"seat_back_right","hasSlot":true,"occupant":"6","reserved":false}],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_back_right","occupant":"6","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 5 1 seat_back_right 6 0"
+   }
+  },
+  {
+   "name": "the Mackinaw seat without a slot",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": true,
+    "seats": [{"name":"seat_back_right","hasSlot":false,"occupant":null,"reserved":false}],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {"ai":true,"everAttached":true,"invalid":false,"playerGap":5,"playerMounted":false,"scene":false,"seats":[],"speed":0,"status":2,"wire":"V 2 0 1 0 0 0 5 0"}
+  },
+  {
+   "name": "speed of a 3-4-0 velocity",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [3,4,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 5,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 5 5 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "speed of a 2-3-6 velocity",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [2,3,6],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 7,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 7 5 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "speed of a negative velocity",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [-1.5,-2.5,-0.5],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 2.958039891549808,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 2.958039891549808 5 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "speed of float32-sized velocity",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0.10000000149011612,-7.300000190734863,0.012299999594688416],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 7.300695451463312,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 7.300695451463312 5 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "speed of a very fast car",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [310.25,-40.5,12.125],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 313.1171156692013,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 313.1171156692013 5 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "a tiny velocity",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [1e-12,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 1e-12,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 1e-12 5 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "player gap of 0",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 0,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 0,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 0 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "player gap of 100 m",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 10000,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 100,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 100 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "player gap of a fraction",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 0.3,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 0.5477225575051661,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 0.5477225575051661 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "a huge player gap",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 1500000000,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 38729.833462074166,
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 38729.833462074166 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "a negative squared gap gives NaN",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": -4,
+    "playerMounted": false,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": "nan",
+    "playerMounted": false,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 0 0 nan 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "V is in the car",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": true,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": true,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 1 0 0 5 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "a scene has the car",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": false,
+    "scene": true
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 5,
+    "playerMounted": false,
+    "scene": true,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 0 1 0 1 0 5 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "V is in the car during a scene",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": false,
+    "destroyed": true,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [
+     {"name":"seat_front_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_front_right","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_left","hasSlot":true,"occupant":null,"reserved":false},
+     {"name":"seat_back_right","hasSlot":true,"occupant":null,"reserved":false}
+    ],
+    "velocity": [0,0,0],
+    "distanceSquared": 25,
+    "playerMounted": true,
+    "scene": true
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": true,
+    "playerGap": 5,
+    "playerMounted": true,
+    "scene": true,
+    "seats": [{"name":"seat_front_left","reserved":false},{"name":"seat_front_right","reserved":false},{"name":"seat_back_left","reserved":false},{"name":"seat_back_right","reserved":false}],
+    "speed": 0,
+    "status": 2,
+    "wire": "V 2 1 1 1 1 0 5 4 seat_front_left 0 0 seat_front_right 0 0 seat_back_left 0 0 seat_back_right 0 0"
+   }
+  },
+  {
+   "name": "a full owned car at speed",
+   "input": {
+    "attached": true,
+    "isVehicle": true,
+    "owned": true,
+    "destroyed": false,
+    "ai": true,
+    "mackinaw": false,
+    "seats": [{"name":"seat_front_left","hasSlot":true,"occupant":"42","reserved":true},{"name":"seat_front_right","hasSlot":true,"occupant":"43","reserved":false}],
+    "velocity": [5,0,0],
+    "distanceSquared": 144,
+    "playerMounted": true,
+    "scene": false
+   },
+   "output": {
+    "ai": true,
+    "everAttached": true,
+    "invalid": false,
+    "playerGap": 12,
+    "playerMounted": true,
+    "scene": false,
+    "seats": [{"name":"seat_front_left","occupant":"42","reserved":true},{"name":"seat_front_right","occupant":"43","reserved":false}],
+    "speed": 5,
+    "status": 2,
+    "wire": "V 2 0 1 1 0 5 12 2 seat_front_left 42 1 seat_front_right 43 0"
+   }
+  }
+ ]
+}

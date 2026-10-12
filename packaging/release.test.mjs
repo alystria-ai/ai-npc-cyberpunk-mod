@@ -3,6 +3,7 @@
 // packaging/test-release-install.mjs against real packages.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {existsSync} from 'node:fs';
 import {mkdtemp, mkdir, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
@@ -256,4 +257,143 @@ test('developer-only folders never feed a package', () => {
   const sources = [...config.catalogs.map(item => item.source), ...config.appData, ...config.bridgeEntries, ...config.bridgeWorkers,
     ...config.releaseData.archives.map(item => item.source)];
   for (const source of sources) assert(!/^(?:misc|vendor|runtime|ref mods)\//.test(source), source);
+});
+
+// ---------------------------------------------------------------- native plugin and Local AI packs (docs/PACKAGING.md)
+test('the native plugin ships beside its own licences, and the systems not yet proven live start off', () => {
+  assert.equal(config.layout.nativeDirectory, 'red4ext/plugins/CyberpunkConvaiNative');
+  assert.equal(config.layout.nativeDll, 'CyberpunkConvaiNative.dll');
+  // The plugin reads runtime/native-off.txt of the mod folder (native/core/src/core/Paths.cpp); a missing file means all on.
+  assert.equal(config.native.offFile, `${config.layout.modDirectory}/runtime/native-off.txt`);
+  assert.deepEqual(config.native.off, ['actuator', 'vehicles', 'chauffeur', 'passage', 'faces']);
+  for (const rel of Object.values(config.native.licences)) assert(existsSync(resolve(project, rel)), rel);
+});
+
+test('Local AI downloads pin every file by revision, size and hash, and the licences are Apache-2.0 or MIT', async () => {
+  const spec = config.localAi;
+  assert.match(spec.server.url, /^https:\/\/github\.com\/ggml-org\/llama\.cpp\/releases\/download\/b\d+\/llama-b\d+-bin-win-vulkan-x64\.zip$/);
+  assert(spec.server.url.includes(`/${spec.server.version}/llama-${spec.server.version}-`));
+  assert.equal(spec.server.license, 'MIT');
+  for (const name of spec.server.require) assert(!spec.server.drop.includes(name), `${name} is required, so it cannot be dropped`);
+  for (const [label, item] of [['embed', spec.embed], ['standard', spec.tiers.standard], ['lite', spec.tiers.lite]]) {
+    assert.match(item.sha256, /^[a-f0-9]{64}$/, label);
+    assert.match(item.revision, /^[a-f0-9]{40}$/, label);
+    assert(Number.isInteger(item.size) && item.size > 1_000_000, label);
+    assert.match(item.file, /\.gguf$/, label);
+    assert.equal(item.license, 'Apache-2.0', label);
+  }
+  assert.match(spec.server.sha256, /^[a-f0-9]{64}$/);
+  assert.equal(spec.tiers.standard.name, 'Gemma 4 E4B');
+  assert.equal(spec.tiers.lite.name, 'Qwen3.5-2B');
+  assert.equal(spec.embed.dim, 384);
+  // Only the standard model is over the download limit, so only it is split; the lite pack is one download.
+  assert(spec.tiers.standard.size > config.limits.splitFileBytes && spec.tiers.lite.size < config.limits.splitFileBytes);
+  for (const name of ['Apache-2.0.txt', 'llama.cpp-MIT.txt']) assert(existsSync(resolve(project, 'packaging/licenses', name)), name);
+  assert.match(await readFile(resolve(project, 'packaging/licenses/Apache-2.0.txt'), 'utf8'), /Apache License\s+Version 2\.0/);
+  assert.match(await readFile(resolve(project, 'packaging/licenses/llama.cpp-MIT.txt'), 'utf8'), /MIT License/);
+});
+
+test('GGUF models and their split parts are stored, not deflated', async () => {
+  const directory = await temporary();
+  try {
+    const source = join(directory, 'm.gguf');
+    await writeFile(source, Buffer.alloc(200_000, 3));
+    const zip = await ZipWriter.create(join(directory, 'g.zip'));
+    await zip.add('a/m.gguf', {source});
+    await zip.add('a/m.gguf.part2', {source, start: 1000, length: 5000});
+    await zip.add('a/notes.txt', {buffer: Buffer.from('x'.repeat(5000))});
+    await zip.close();
+    assert.deepEqual((await listZip(join(directory, 'g.zip'))).map(entry => [entry.name, entry.method]),
+      [['a/m.gguf', 0], ['a/m.gguf.part2', 0], ['a/notes.txt', 8]]);
+  } finally { await rm(directory, {recursive: true, force: true}); }
+});
+
+test('the packaged service points the bridge at the Local AI pack and ignores a developer folder', async () => {
+  const f = await fakeInstall();
+  try {
+    assert.equal(f.layout.localAi, join(f.app, 'local-ai'));
+    const env = serviceEnvironment(f.layout, {omni: false, keyFile: 'K'}, {CYBERPUNK_CONVAI_LOCAL_AI_DEV: 'E:\dev', CYBERPUNK_CONVAI_LOCAL_SERVER: 'x.exe',
+      CYBERPUNK_CONVAI_LOCAL_MODEL: 'a.gguf', CYBERPUNK_CONVAI_LOCAL_LITE_MODEL: 'b.gguf', CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL: 'c.gguf', CYBERPUNK_CONVAI_LOCAL_AI: 'elsewhere'});
+    assert.equal(env.CYBERPUNK_CONVAI_LOCAL_AI, f.layout.localAi);
+    for (const name of ['DEV', 'SERVER', 'MODEL', 'LITE_MODEL', 'EMBED_MODEL']) assert.equal(env[`CYBERPUNK_CONVAI_LOCAL_${name === 'DEV' ? 'AI_DEV' : name}`], undefined, name);
+  } finally { await rm(f.root, {recursive: true, force: true}); }
+});
+
+test('the bridge detects the manifest fragments the Local AI packs write, standard and lite together or alone', async () => {
+  const {detectLocalAiPack} = await import('../bridge/local-ai-pack.mjs');
+  const root = join('C:', 'game', 'app', 'local-ai');
+  const files = new Map();
+  const put = (rel, text = '') => files.set(resolve(root, rel), text);
+  const embed = {file: 'models/granite-embedding-107m-multilingual-Q8_0.gguf', dim: 384, id: 'granite-embedding-107m-multilingual-q8_0'};
+  put('llama/llama-server.exe'); put(embed.file);
+  put('manifest.lite.json', JSON.stringify({version: 1, server: 'llama/llama-server.exe', lite: {file: 'models/Qwen3.5-2B-Q4_K_M.gguf', name: 'Qwen3.5-2B'}, embed}));
+  put('models/Qwen3.5-2B-Q4_K_M.gguf');
+  const detect = () => detectLocalAiPack({project: 'x', environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => files.has(path), readText: path => files.get(path)});
+  let pack = detect();
+  assert(pack.installed && pack.tiers.lite && !pack.tiers.standard && pack.missing.length === 0);
+  put('manifest.standard.json', JSON.stringify({version: 1, server: 'llama/llama-server.exe', standard: {file: 'models/gemma-4-E4B_q4_0-it.gguf', name: 'Gemma 4 E4B'}, embed}));
+  assert(!detect().tiers.standard, 'a manifest without its model file is not a tier');
+  put('models/gemma-4-E4B_q4_0-it.gguf');
+  pack = detect();
+  assert(pack.tiers.standard?.name === 'Gemma 4 E4B' && pack.tiers.lite?.name === 'Qwen3.5-2B' && pack.embed.dim === 384);
+});
+
+test('the build writes the manifest fragments the detector reads, and ships both Local AI packs as separate downloads', async () => {
+  const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
+  assert.match(builder, /manifest\.\$\{tierKey\}\.json/);
+  assert.match(builder, /'localai-standard'/); assert.match(builder, /'localai-lite'/);
+  assert.match(builder, /LocalAI-Standard/); assert.match(builder, /LocalAI-Lite/);
+  assert(builder.includes('(?:omni|local-ai)'), 'big model files are split only inside the OmniVoice and Local AI folders');
+  const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');
+  assert.match(workflow, /tier: \[standard, lite\]/);
+  assert.match(workflow, /--packages "localai-\$\{\{ matrix\.tier \}\}"/);
+  assert.match(workflow, /SHA256SUMS-localai-/);
+});
+
+test('the release guard refuses a package that would install the development launcher', async () => {
+  const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
+  assert.match(builder, /CyberpunkConvaiLauncher/);
+  assert.match(builder, /unexpected RED4ext plugin file/);
+  // The shipped DLL keeps the name CyberpunkConvai.dll, in its own plugin folder.
+  assert.equal(config.layout.pluginDll, 'CyberpunkConvai.dll');
+  assert.equal(config.layout.pluginDirectory, 'red4ext/plugins/CyberpunkConvai');
+});
+
+test('player-facing text follows the wording rules', async () => {
+  const readme = await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8');
+  assert.doesNotMatch(readme, /\b(?:antivirus|anti-virus|defender|malware|virus|smartscreen)\b/i);
+  assert.doesNotMatch(readme, /\bAMM\b|appearance menu mod/i);
+  assert.doesNotMatch(readme, /text[- ]only/i);
+  assert.doesNotMatch(readme, /paid (?:tier|plan|subscription)|subscription|premium/i);
+  assert.doesNotMatch(readme, /embedded|shared plan/i);
+  assert.match(readme, /Convai[^.]*gives better quality responses/);
+  assert.match(readme, /RED4ext/);
+  // The graphics-memory picks cover 6, 8, 12 and 16 GB cards.
+  for (const size of ['6 GB', '8 GB', '12 GB', '16 GB']) assert(readme.includes(`| ${size} |`), size);
+  const notices = await readFile(resolve(project, 'THIRD_PARTY_NOTICES.md'), 'utf8');
+  for (const name of ['llama.cpp', 'Gemma 4', 'Qwen3.5-2B', 'granite-embedding', 'Apache-2.0']) assert(notices.includes(name), `THIRD_PARTY_NOTICES.md must mention ${name}`);
+});
+
+test('the Mistral voice finds its pre-built references with or without the OmniVoice pack', async () => {
+  const f = await fakeInstall();
+  try {
+    const plain = serviceEnvironment(f.layout, {omni: false, keyFile: 'K'}, {CYBERPUNK_CONVAI_OMNI_REFERENCES: 'C:\old\refs'});
+    // The bridge looks in <references>/prepared first; the folder is the install's voices/ even with no OmniVoice pack.
+    assert.equal(plain.CYBERPUNK_CONVAI_OMNI_REFERENCES, f.layout.voices);
+    // The OmniVoice worker needs all four paths or none, and is only created with the pack, so only the pack sets the other three.
+    assert.equal(plain.CYBERPUNK_CONVAI_OMNI_MODEL, undefined);
+    assert.equal(plain.CYBERPUNK_CONVAI_OMNI_CACHE, undefined);
+  } finally { await rm(f.root, {recursive: true, force: true}); }
+});
+
+test('the build pre-encodes the Mistral voice references with the bridge code and ships them under voices/prepared', async () => {
+  const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
+  assert.match(builder, /voxtral-voice\.mjs/); assert.match(builder, /voxtral-reference\.mjs/);
+  assert(builder.includes('voice.build(name)'), 'the references are made by the call a conversation makes');
+  assert(builder.includes('${plugin}/voices/prepared'));
+  // Runtime holds the Pocket clips' slots; the OmniVoice pack the slots whose clip differs.
+  assert.equal(builder.split('await voxtralCache(').length - 1, 3);
+  assert.match(builder, /was not encoded as an MP3/);
+  const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');
+  assert.equal(workflow.split('choco install ffmpeg').length - 1, 2, 'the Runtime and OmniVoice jobs install ffmpeg');
 });

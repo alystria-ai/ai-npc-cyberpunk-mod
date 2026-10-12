@@ -38,7 +38,8 @@ function snapshot(fields = {}) {
 function resolve(fields = {}) {
   return resolveKnowledge({pack: pack(), snapshot: snapshot(), profileKey: 'judy-alvarez', ...fields});
 }
-const factsIn = result => JSON.parse(result.context.slice(result.context.indexOf('\n') + 1)).facts;
+// Branch decisions are listed first under "choices", the rest under "facts"; most tests care about every entry.
+const factsIn = result => { const data = JSON.parse(result.context.slice(result.context.indexOf('\n') + 1)); return [...(data.choices ?? []), ...data.facts]; };
 
 test('ready capture is bounded typed data with distinct observation evidence and bibliography', () => {
   const parsed = parseWorldSnapshot(JSON.stringify(snapshot()));
@@ -222,7 +223,7 @@ test('conflicting outcomes suppress a topic across character audiences, without 
 test('reviewed exclusive groups preserve compatible facets and suppress cross-topic contradictions before audience filtering', () => {
   const assisted = {id: 'quest.route', outcome: 'assisted'};
   const rows = [rule({topic: 'convoy.joined', exclusiveGroups: [assisted]}),
-    rule({id: 'quest.disclosure', topic: 'character.disclosure', exclusiveGroups: [assisted]}),
+    rule({id: 'quest.disclosure', topic: 'character.disclosure', statement: 'V told Judy about the second route.', exclusiveGroups: [assisted]}),
     rule({id: 'quest.betrayal', topic: 'private.betrayal', statement: 'PRIVATE OPPOSING ROUTE',
       condition: condition('choice_b'), exclusiveGroups: [{id: 'quest.route', outcome: 'betrayed'}],
       audience: {speakers: ['panam-palmer'], recipients: ['v', 'panam-palmer'], channels: ['private'], perspective: 'private'}})];
@@ -357,8 +358,8 @@ test('event IDs bind the channel and exact audience, while audience ordering is 
 
 test('hard budget preserves complete JSON and ranks active quests and relationships over filler', () => {
   const rows = [rule({id: 'z.active', topic: 'active.choice', priority: 0}),
-    rule({id: 'a.filler', topic: 'filler.choice', questKey: 'unrelated', category: 'world', priority: 10}),
-    rule({id: 'b.relationship', topic: 'relationship.choice', questKey: 'unrelated', category: 'relationship'})];
+    rule({id: 'a.filler', topic: 'filler.choice', questKey: 'unrelated', category: 'world', priority: 10, statement: 'V selected the second route.'}),
+    rule({id: 'b.relationship', topic: 'relationship.choice', questKey: 'unrelated', category: 'relationship', statement: 'V selected the third route.'})];
   const single = resolve({pack: pack([rows[0]])}).context.length;
   const result = resolve({pack: pack(rows), maxChars: single});
   assert.equal(result.context.length, single);
