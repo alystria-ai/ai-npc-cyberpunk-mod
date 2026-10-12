@@ -25,12 +25,50 @@ local limits = {jaw_mid_open = .7, lips_together_up = 1, lips_together_dn = 1, l
 local function trackLimit(track)
     return limits[track] or .5
 end
+-- Native core, system "faces" (native/core/src/systems/faces, docs/NATIVE_PORT_BRIEF.md). When the plugin is
+-- loaded and the switch is on (runtime/native-off.txt line "faces", or convaiNative.off('faces')), the per-frame
+-- writer runs in C++: one call computes the pose block of a slot (pose, droop, flicks, mouth budget, ducks,
+-- voice brows, written and applied poses) and writes the ConvaiFaceFeature and applies it, instead of about 100
+-- CET property and method calls per actor and frame. The slot lifecycle, blinkWeight, ownerLevel and the speech
+-- track interpolation stay here. Lua stays the fallback: any fault, a missing class or the switch returns every
+-- function below to its own path for the rest of the session. `native` is chosen once per frame in
+-- beginExpressionFrame; a flip restarts every slot's pose block from neutral on both sides.
+local native=false
+local nativeFaces
+local nativeSeq=0
+-- slot id of the turn record in lastSpeechExpression (kept off the record, which is published as JSON)
+local turnNid=setmetatable({},{__mode='k'})
+-- ConvaiFaceFeature fields in declaration order (r6/scripts/CyberpunkConvai/FaceFeature.reds), 1-based; the
+-- dense speech vector handed to the plugin is indexed by them. bridge/facial-playback-native.test.mjs checks it.
+local FIELD={jaw_mid_open=1,jaw_mid_shift_fwd=2,jaw_mid_shift_l=3,jaw_mid_shift_r=4,lips_apart_up=5,lips_apart_dn=6,lips_together_up=7,lips_together_dn=8,lips_l_funnel=9,lips_r_funnel=10,lips_l_purse=11,lips_r_purse=12,lips_l_stretch=13,lips_r_stretch=14,lips_l_corner_stretch=15,lips_r_corner_stretch=16,lips_l_corner_up=17,lips_r_corner_up=18,lips_l_corner_dn=19,lips_r_corner_dn=20,lips_l_upper_raise=21,lips_r_upper_raise=22,lips_l_lower_raise=23,lips_r_lower_raise=24,lips_tighten_up=25,lips_tighten_dn=26,lips_puff_up=27,lips_puff_dn=28,lips_suck_up=29,lips_suck_dn=30,lips_mid_shift_l=31,lips_mid_shift_r=32,cheek_l_puff=33,cheek_r_puff=34,cheek_l_suck=35,cheek_r_suck=36,eye_l_blink=37,eye_r_blink=38,eye_l_widen=39,eye_r_widen=40,eye_l_brows_raise_in=41,eye_r_brows_raise_in=42,eye_l_brows_raise_out=43,eye_r_brows_raise_out=44,eye_l_brows_lower=45,eye_r_brows_lower=46,eye_l_oculi_squint_outer_lower=47,eye_r_oculi_squint_outer_lower=48,tongue_mid_fwd=49,tongue_mid_tip_up=50,eye_l_brows_lateral=51,eye_r_brows_lateral=52,eye_l_oculi_squint_outer_upper=53,eye_r_oculi_squint_outer_upper=54,eye_l_oculi_squint_inner=55,eye_r_oculi_squint_inner=56,nose_l_snear=57,nose_r_snear=58,lips_chin_raise=59,speech_owner=60}
+local function nativeFailed(err)
+    native=false
+    local api=convaiNative
+    if type(api)=='table' and type(api.fail)=='function' then pcall(api.fail,'faces',err) end
+end
+-- Status code returned by ConvaiNativeFaces.Frame: 1 applied, 2 settled, 4 pose inner brows < .2,
+-- 8 inner brows > .35, 16 corner-down > .15 (negative: -1 the game rejected the frame, -2 plugin fault).
+local function has(code,flag) return code%(flag*2)>=flag end
+local function newSpeechVec()
+    local vec={};for i=1,60 do vec[i]=0 end;return vec
+end
+-- The control array handed to Frame (layout: native/core/src/systems/faces/core/FacesCore.hpp, namespace ctl,
+-- 1-based here) and the empty speech vector of idle frames. Reused: no table is built per frame.
+local ctl={};for i=1,31 do ctl[i]=0 end
+local EMPTY={}
+local FAMILY={joy=1,trust=2,sadness=3,anger=4,fear=5,disgust=6,surprise=7,anticipation=8,neutral=9,unknown=10}
+local slotsNative=false
 -- The speaker: whoever speech.lua is voicing right now, a managed companion or
 -- a world NPC (ambient resident, archetype, named character met in the world).
 -- ConvaiFaceReady() is the native ownership proof: a tagged companion copy or a
 -- world NPC whose face_rig ConvaiFaceService prepared (Face.reds). Speech hands
 -- only its own target here, matched to the reply's entity.
 local function speaker(actor, entity)
+    if native and actor then
+        local ok,answer=pcall(native.Speaker,actor,entity or M.entity or '')
+        if ok and answer==1 then return true elseif ok and answer==0 then return false end
+        if not ok then nativeFailed(answer) end
+    end
     return actor and tostring(actor:GetEntityID().hash) == (entity or M.entity)
         and actor:IsAttached() and not actor:IsDeadNoStatPool() and actor:ConvaiFaceReady()
 end
@@ -103,6 +141,25 @@ local families = {
     neutral='neutral',none='neutral'}
 local function zeroExpression()
     local pose={};for _,track in ipairs(expressionTracks) do pose[track]=0 end;return pose
+end
+-- The native core keeps a speech turn's peak pose, peak jaw and open-jaw frames; they are read back here when the
+-- record is published (and once more when the slot goes away), never per frame.
+local function mergeTurn(turn)
+    local nid=turn and turnNid[turn]
+    if not (native and nid) then return end
+    local ok,text=pcall(native.Turn,nid)
+    if not ok or type(text)~='string' or text=='' then return end
+    local index=0
+    for number in text:gmatch('%S+') do
+        index=index+1
+        local value=tonumber(number)
+        if index==1 then turn.jawPeak=value
+        elseif index==2 then turn.openFrames=value
+        else
+            local track=expressionTracks[index-2]
+            if track and value then turn.peak[track]=value end
+        end
+    end
 end
 local function clamp(value,maximum) return math.max(0,math.min(maximum or 1,value)) end
 -- Cyberpunk's own dialogue lipsync (6938 extracted lines) holds ONE constant
@@ -225,7 +282,10 @@ do
 end
 M.faceTest=faceTest
 local function expressionSlot(entity)
-    if not M.expressions[entity] then M.expressions[entity]={pose=zeroExpression(),sequence=-1} end
+    if not M.expressions[entity] then
+        nativeSeq=nativeSeq+1
+        M.expressions[entity]={pose=zeroExpression(),sequence=-1,nid=nativeSeq}
+    end
     return M.expressions[entity]
 end
 local function sameExpressionOwner(slot,context)
@@ -249,7 +309,7 @@ local function startHeard(slot)
     slot.awaitingAudio=false
     slot.emotion,slot.family,slot.scale,slot.expiry=slot.cueEmotion,slot.cueFamily,slot.cueScale,nil
     slot.cueEmotion,slot.cueFamily,slot.cueScale=nil,nil,nil
-    slot.holdMix=nil;slot.browExpiry=nil;slot.flick={};slot.turnNegative=0
+    slot.holdMix=nil;slot.browExpiry=nil;slot.flick={};slot.flickReset=true;slot.turnNegative=0
 end
 -- The reply is audible (the first speaking frame does this itself; callers without a speech timeline use it).
 function M.expressionHeard(context)
@@ -291,14 +351,70 @@ function M.endExpression(context,finished)
     slot.turnNegative=0
     if finished and (slot.emotion or slot.holdMix) then slot.expiry=M.expressionClock+(negative[slot.family] and 8 or 4)
         slot.browExpiry=M.expressionClock+1.5
-    else slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil;slot.pose=zeroExpression() end
+    else
+        slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil;slot.pose=zeroExpression()
+        if native then pcall(native.ZeroPose,slot.nid);slot.nativeGaze=4 end
+    end
+end
+-- Drops a copy's slot (and its native pose block).
+local function forget(entity)
+    local slot=M.expressions[entity]
+    if native and slot and slot.nid then
+        local turn=M.lastSpeechExpression
+        if turn and turnNid[turn]==slot.nid then mergeTurn(turn) end
+        pcall(native.Release,slot.nid)
+    end
+    M.expressions[entity]=nil
 end
 function M.clearExpression(entity)
-    M.expressions[entity]=nil
+    forget(entity)
+end
+-- The native class for this frame, or nil: the plugin is loaded, the "faces" switch is on, the class is registered and
+-- a test call proves the arrays cross intact. A failure here (or in any later call) puts "faces" on Lua for good.
+local function nativeFor()
+    local api=convaiNative
+    if faceTest or type(api)~='table' or type(api.use)~='function' then return nil end
+    local ok,on=pcall(api.use,'faces')
+    if not (ok and on) then return nil end
+    if not nativeFaces then
+        local found,class=pcall(function() return ConvaiNativeFaces end)
+        if not found or (type(class)~='table' and type(class)~='userdata') then
+            pcall(api.fail,'faces','ConvaiNativeFaces is not registered')
+            return nil
+        end
+        local good,count=pcall(class.Check,ctl,newSpeechVec())
+        if not good or count~=#ctl*1000+60 then
+            pcall(api.fail,'faces','array check failed: '..tostring(count))
+            return nil
+        end
+        nativeFaces=class
+    end
+    return nativeFaces
+end
+-- A switch flip restarts every face's pose block from neutral on both sides (the two paths keep the same numbers in
+-- different places, and copying them across is not worth a path that runs only when a switch is thrown). The feature
+-- objects are dropped too, so no blink or pose written by the other path stays on a reused object.
+local function restartPoseBlocks()
+    if nativeFaces then pcall(nativeFaces.Clear) end
+    for _,slot in pairs(M.expressions) do
+        slot.pose=zeroExpression();slot.droop=nil;slot.flick=nil;slot.flickReset=nil
+        slot.mouthBudget,slot.chinDuck,slot.cornerDuck=nil,nil,nil
+        slot.writtenPose,slot.appliedPose,slot.settled,slot.sleepAt=nil,nil,false,nil
+        slot.voiceBrowOn,slot.voiceBrowReady,slot.blinkWritten,slot.nativeGaze=nil,nil,nil,nil
+        slot.feature=nil
+    end
+    if M.feature then pcall(function() M.feature.eye_l_blink=0;M.feature.eye_r_blink=0 end) end
+    M.speechVec=nil
 end
 function M.beginExpressionFrame(delta,context)
     if faceTest then pcall(faceTest.poll,delta,context) end
     M.expressionFrame=M.expressionFrame+1
+    local want=nativeFor()
+    if (want~=nil)~=slotsNative then
+        restartPoseBlocks()
+        slotsNative=want~=nil
+    end
+    native=want or false
     M.expressionDelta=finite(delta) and clamp(delta,.1) or 0
     M.expressionPaused=type(context)=='table' and context.paused==true
     M.expressionBlocked=type(context)=='table' and context.blocked==true
@@ -327,6 +443,11 @@ function M.beginExpressionFrame(delta,context)
 end
 local function safeExpressionActor(actor)
     if not M.expressionManaged then return true end
+    if native then
+        local ok,answer=pcall(native.Safe,actor)
+        if ok and answer==1 then return true elseif ok and answer==0 then return false end
+        if not ok then nativeFailed(answer) end
+    end
     local ok,ready=pcall(function()
         if not actor:IsOnAutonomousAI() or NPCPuppet.IsInCombat(actor) then return false end
         local scene=Game.GetSceneSystem():GetScriptInterface()
@@ -613,11 +734,15 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     end
     chinDuck,cornerDuck=ease(slot.chinDuck,chinDuck,duckFall,duckRise),ease(slot.cornerDuck,cornerDuck,duckFall,duckRise)
     slot.chinDuck,slot.cornerDuck=chinDuck,cornerDuck
+    -- The written values are kept on the slot (one reused table), so the writer never reads
+    -- them back from the native feature (each read crosses into the game).
+    local written=slot.writtenPose or {};slot.writtenPose=written
     for _,track in ipairs(expressionTracks) do
         -- Hard closure/rounding suppression happens after smoothing, too.
-        feature[track]=math.min(slot.pose[track],limitFor(track)*(track:sub(1,5)=='lips_' and budget or 1))
-        if track=='lips_chin_raise' then feature[track]=feature[track]*chinDuck
-        elseif track=='lips_l_corner_dn' or track=='lips_r_corner_dn' then feature[track]=feature[track]*cornerDuck end
+        local value=math.min(slot.pose[track],limitFor(track)*(track:sub(1,5)=='lips_' and budget or 1))
+        if track=='lips_chin_raise' then value=value*chinDuck
+        elseif track=='lips_l_corner_dn' or track=='lips_r_corner_dn' then value=value*cornerDuck end
+        feature[track]=value;written[track]=value
     end
     -- Voice-synchronous brows from the game-trained model (emphasis flashes,
     -- focused frowns). Already smooth and on the audio clock: combined by max
@@ -645,10 +770,10 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
         for _,side in ipairs({'l','r'}) do
             for _,stem in ipairs({'raise_in','raise_out'}) do
                 local track='eye_'..side..'_brows_'..stem
-                feature[track]=math.min(expressionLimit(track),math.max(feature[track],raise))
+                written[track]=math.min(expressionLimit(track),math.max(written[track],raise));feature[track]=written[track]
             end
             local track='eye_'..side..'_brows_lower'
-            feature[track]=math.min(expressionLimit(track),math.max(feature[track],lower))
+            written[track]=math.min(expressionLimit(track),math.max(written[track],lower));feature[track]=written[track]
         end
     end
 end
@@ -666,6 +791,11 @@ end
 -- like every other optional delta (a scene streams its own blinks). Per call: a few comparisons and at most one
 -- exp, no tables; the state is a few numbers on the copy's slot. Crowd NPCs never reach this writer.
 local blinkClose,blinkTau,blinkLength,blinkGap=.07,.055,.32,.6
+-- A settled idle face sleeps (see updateExpressions): no native reads or writes until the next blink is due,
+-- its inputs change, or sleepRecheck seconds pass (then one full frame re-checks combat, scenes and status
+-- effects and re-applies the pose). sleepDelta is far below anything visible on a 0-1 rig control.
+local sleepDelta,sleepRecheck=1e-4,.25
+M.idleSleep=true
 M.blinkRandom=math.random
 local function blinkWeight(slot,phase,blocked,boundary,room)
     local clock=M.expressionClock
@@ -692,20 +822,110 @@ local function blinkWeight(slot,phase,blocked,boundary,room)
     if age<blinkClose then local f=age/blinkClose;return slot.blinkPeak*f*f*(3-2*f) end
     return slot.blinkPeak*math.exp(-(age-blinkClose)/blinkTau)
 end
+-- The native path of applyFeature (docs/NATIVE_PORT_BRIEF.md, system "faces"). Everything that is Lua's state stays here
+-- and runs in expressionPose's own order (heard cue, expiry, held mix, turn mood, mood hold, blink, owner level); the numbers
+-- go to one ConvaiNativeFaces.Frame call, which computes the pose block, writes the ConvaiFaceFeature and applies it. True when
+-- the frame was handled. False only before anything was applied (the plugin could not take the frame): the caller then runs
+-- the Lua path for this frame and every later one.
+local function applyNative(actor,feature,entity,phase,provider,upper,mix,boundary,room,slot,blocked)
+    local clock,delta=M.expressionClock,M.expressionDelta or 0
+    local speaking=phase=='speaking'
+    if speaking and slot.awaitingAudio then startHeard(slot) end
+    if slot.expiry and clock>=slot.expiry then slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil end
+    if mix then slot.holdMix=mix end
+    local weights=mix or slot.holdMix
+    local family=slot.family
+    local trait=traitFor(slot.profile)
+    local warmth=trait.warmth
+    -- This turn's strongest negative feeling (track mix or reply-level label) sets the mood hold.
+    if slot.active and not slot.awaitingAudio then
+        local worst=0
+        if weights then for index=3,6 do worst=math.max(worst,weights[index] or 0) end
+        elseif negative[family] then worst=scaleStrength[slot.scale or 1] end
+        slot.turnNegative=math.max(slot.turnNegative or 0,worst)
+    end
+    if slot.moodUntil then
+        local since=clock-slot.moodUntil
+        if since<0 then warmth=0 elseif since<moodEaseSeconds then warmth=warmth*since/moodEaseSeconds else slot.moodUntil=nil end
+    end
+    local blink=blinkWeight(slot,phase,blocked,boundary,room)
+    local owned,writeOwner=0,false
+    if ownerFace then
+        owned=ownerLevel(slot,phase,blocked)
+        -- Speaking frames always write it (a reused feature never keeps a stale 1); other phases only to hand it back.
+        if speaking or owned>0 or slot.ownWritten then writeOwner=true;slot.ownWritten=owned>0 end
+    end
+    local turn=speaking and M.lastSpeechExpression or nil
+    local newTurn=speaking and (not turn or turn.requestId~=slot.requestId or turn.entity~=entity)
+    local flags=0
+    if speaking then flags=flags+1 end
+    if blocked then flags=flags+2 end
+    if weights then flags=flags+4;for index=1,8 do ctl[10+index]=weights[index] or 0 end end
+    if provider then flags=flags+8;for index=1,9 do ctl[18+index]=provider[index] or 0 end end
+    if upper then flags=flags+16;ctl[28],ctl[29]=upper.raise,upper.lower end
+    if slot.browExpiry and clock>=slot.browExpiry then flags=flags+32 end
+    if slot.flickReset then flags=flags+64 end
+    if M.jawLift then flags=flags+128 end
+    if extendedFace then flags=flags+256 end
+    if newTurn then flags=flags+512 end
+    if writeOwner then flags=flags+1024 end
+    if slot.blinkStart and clock-slot.blinkStart<blinkLength then flags=flags+2048 end
+    ctl[1],ctl[2],ctl[3]=clock,delta,flags
+    ctl[4],ctl[5]=FAMILY[family] or 0,slot.scale or 0
+    ctl[6],ctl[7],ctl[8],ctl[9],ctl[10]=warmth,trait.gain,trait.smile or 1,trait.squint or 1,trait.browDown or 1
+    ctl[30],ctl[31]=blink,owned
+    local vec=EMPTY
+    if speaking then
+        vec=M.speechVec
+        if not vec then vec=newSpeechVec();M.speechVec=vec end
+    end
+    local ok,code=pcall(native.Frame,actor,feature,slot.nid,ctl,vec)
+    if not ok then nativeFailed(code);return false end
+    if type(code)~='number' then nativeFailed('unexpected result '..tostring(code));return false end
+    if code==-3 then nativeFailed('the game side is unavailable (ConvaiNativeFaces.Info shows which piece)');return false end
+    if code<=0 then error(code==-1 and 'Native facial layer rejected the frame' or 'Native facial layer fault',0) end
+    slot.flickReset=nil
+    slot.written=M.expressionFrame
+    slot.phase,slot.blocked,slot.applied=phase,blocked,(slot.applied or 0)+1
+    slot.settled,slot.nativeGaze=has(code,2),code
+    if speaking then
+        -- Peak pose, jaw peak and open-jaw frames of the turn live in the native core (mergeTurn reads them back).
+        if newTurn then
+            turn={entity=entity,requestId=slot.requestId,frames=0,ownedFrames=0,jawPeak=0,openFrames=0,peak=zeroExpression()}
+            M.lastSpeechExpression=turn
+        end
+        turnNid[turn]=slot.nid
+        turn.emotion,turn.family,turn.scale,turn.blocked=slot.emotion,slot.family,slot.scale,blocked
+        turn.frames=turn.frames+1
+        if owned>=.99 then turn.ownedFrames=(turn.ownedFrames or 0)+1 end
+        turn.jawLift=M.jawLift and M.jawLift.q or false
+        if mix then
+            turn.mix,turn.mixPeak=turn.mix or {},turn.mixPeak or {}
+            for index,family in ipairs(mixFamilies) do
+                turn.mix[family]=math.floor(mix[index]*1000)/1000
+                if mix[index]>(turn.mixPeak[family] or 0) then turn.mixPeak[family]=math.floor(mix[index]*1000)/1000 end
+            end
+        end
+    end
+    return true
+end
 local function applyFeature(actor,feature,entity,phase,provider,upper,mix,boundary,room)
     detectExtended(feature)
     detectOwner(feature)
     local slot=expressionSlot(entity)
     local blocked=M.expressionBlocked or M.expressionPaused or not safeExpressionActor(actor)
     if blocked then slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil end
+    if native and applyNative(actor,feature,entity,phase,provider,upper,mix,boundary,room,slot,blocked) then return end
     if faceTest then pcall(faceTest.pre,entity,slot,M.expressionClock) end
     expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     local blink=math.max(blinkWeight(slot,phase,blocked,boundary,room),blocked and 0 or (slot.droop or 0))
     -- A copy that never blinked through this layer keeps the fields untouched (zero, the native face).
     if blink>0 or slot.blinkWritten then feature.eye_l_blink,feature.eye_r_blink=blink,blink;slot.blinkWritten=true end
     -- A blink closes widened eyes too (they would hold the lids apart).
-    if blink>0 and feature.eye_l_widen>0 then
-        local open=1-blink;feature.eye_l_widen,feature.eye_r_widen=feature.eye_l_widen*open,feature.eye_r_widen*open
+    local written=slot.writtenPose
+    if blink>0 and (written.eye_l_widen or 0)>0 then
+        local open=1-blink;written.eye_l_widen,written.eye_r_widen=written.eye_l_widen*open,written.eye_r_widen*open
+        feature.eye_l_widen,feature.eye_r_widen=written.eye_l_widen,written.eye_r_widen
     end
     local owned=0
     if ownerFace then
@@ -720,7 +940,19 @@ local function applyFeature(actor,feature,entity,phase,provider,upper,mix,bounda
     assert(actor:ConvaiFaceApply(feature),'Native facial layer rejected the frame')
     slot.written=M.expressionFrame
     slot.phase,slot.blocked,slot.applied=phase,blocked,(slot.applied or 0)+1
-    slot.appliedPose={};for _,track in ipairs(expressionTracks) do slot.appliedPose[track]=feature[track] end
+    -- Settled: an idle face whose written pose moved less than sleepDelta on every control since the
+    -- last frame, with no blink (a blink starts at weight 0), droop or mouth hand-over in flight (updateExpressions may let it sleep).
+    local applied=slot.appliedPose or {}
+    local settled=phase~='speaking' and not blocked and blink==0 and owned==0 and slot.appliedPose~=nil
+        and not (slot.blinkStart and M.expressionClock-slot.blinkStart<blinkLength)
+    for _,track in ipairs(expressionTracks) do
+        local value=written[track] or 0
+        if settled and math.abs(value-(applied[track] or 0))>=sleepDelta then settled=false end
+        applied[track]=value
+    end
+    slot.appliedPose,slot.settled=applied,settled
+    -- Test hook (bridge/facial-playback-native.test.mjs records the Lua path's frames with it); nil in the game.
+    if M._observe then M._observe(entity,phase,blocked,slot) end
     if phase=='speaking' then
         -- Peak pose per speech turn, published in speech-state.json so one
         -- in-game reply shows the emotion label, scale and written values.
@@ -760,10 +992,18 @@ end
 function M.gazeDrop(entity)
     local slot=type(entity)=='string' and M.expressions[entity]
     if not slot or not slot.pose then return 0 end
-    local inner,down=slot.pose.eye_l_brows_raise_in or 0,slot.pose.lips_l_corner_dn or 0
+    local below,above,lowered
+    if native then
+        -- The native core reports the three pose thresholds with every frame (none yet: a neutral pose).
+        local code=slot.nativeGaze or 4
+        below,above,lowered=has(code,4),has(code,8),has(code,16)
+    else
+        local inner,down=slot.pose.eye_l_brows_raise_in or 0,slot.pose.lips_l_corner_dn or 0
+        below,above,lowered=inner<.2,inner>.35,down>.15
+    end
     if slot.gazeDown then
-        if inner<.2 or slot.blocked then slot.gazeDown=false end
-    elseif inner>.35 and down>.15 and not slot.blocked then slot.gazeDown=true end
+        if below or slot.blocked then slot.gazeDown=false end
+    elseif above and lowered and not slot.blocked then slot.gazeDown=true end
     return slot.gazeDown and -0.15 or 0
 end
 -- Cached diagnostics for a parent-owned live probe. No native reads, actor
@@ -771,7 +1011,16 @@ end
 function M.expressionStatus(entity)
     local slot=M.expressions[entity]
     if not slot then return nil end
-    local pose={};for _,track in ipairs(expressionTracks) do pose[track]=slot.appliedPose and slot.appliedPose[track] or 0 end
+    local pose,values={},nil
+    if native and slot.nid then
+        local ok,text=pcall(native.Applied,slot.nid)
+        if ok and type(text)=='string' and text~='' then
+            values={};for number in text:gmatch('%S+') do values[#values+1]=tonumber(number) end
+        end
+    end
+    for index,track in ipairs(expressionTracks) do
+        if values then pose[track]=values[index] or 0 else pose[track]=slot.appliedPose and slot.appliedPose[track] or 0 end
+    end
     return {version=1,phase=slot.phase,blocked=slot.blocked,applied=slot.applied or 0,
         emotionPresent=slot.emotion~=nil,active=slot.active==true,pose=pose,clock=M.expressionClock}
 end
@@ -780,16 +1029,32 @@ local function idlePhase(slot,entity)
     return (slot.active and 'thinking') or (M.thinkingEntity==entity and 'thinking')
         or (M.listeningEntity==entity and 'listening') or 'idle'
 end
+-- An idle face asleep since its last full frame stays asleep while nothing that feeds the pose has changed:
+-- same phase, frame context and profile, no feeling, hold, mood, expiry or mouth hand-over pending, no speech
+-- for this copy, and the next blink not yet due. Everything here is Lua state; nothing crosses into the game.
+local function asleep(slot,entity,row)
+    local at=slot.sleepAt
+    if not at or not M.idleSleep or faceTest then return false end
+    local clock=M.expressionClock
+    if clock<at or clock-at>=sleepRecheck or not slot.blinkNext or clock>=slot.blinkNext then return false end
+    if slot.emotion or slot.holdMix or slot.expiry or slot.moodUntil or slot.active or slot.awaitingAudio
+        or (slot.ownLevel or 0)~=0 or (slot.browExpiry and clock<slot.browExpiry) then return false end
+    if M.active and M.entity==entity then return false end
+    return slot.sleepPhase==idlePhase(slot,entity) and slot.sleepBlocked==M.expressionBlocked
+        and slot.sleepProfile==row.profileKey
+end
 function M.updateExpressions(context)
     if type(context)~='table' or M.expressionPaused then return end
     if faceTest then pcall(faceTest.direct,context.actors,function() return NewObject('ConvaiFaceFeature') end) end
     local seen={}
     for _,row in ipairs(context.actors or {}) do
         local entity,actor=row.entity,row.npc
+        local sleeping=type(entity)=='string' and not seen[entity] and M.expressions[entity]
+        if sleeping and asleep(sleeping,entity,row) then seen[entity]=true;entity=nil end
         if type(entity)=='string' and not seen[entity] then
             seen[entity]=true
             local ok,err=pcall(function()
-                if not owns(actor,entity) then M.expressions[entity]=nil;return end
+                if not owns(actor,entity) then forget(entity);return end
                 local slot=expressionSlot(entity)
                 slot.profile=row.profileKey
                 -- Speech owns the face from its first HEARD frame. Before that (a reply prepared, a stream
@@ -797,13 +1062,19 @@ function M.updateExpressions(context)
                 if slot.written==M.expressionFrame or (M.active and M.entity==entity and M.heardRequest==M.requestId and M.state~='paused' and M.state~='releasing') then return end
                 slot.feature=slot.feature or NewObject('ConvaiFaceFeature')
                 assert(slot.feature,'Native facial feature is unavailable')
-                applyFeature(actor,slot.feature,entity,idlePhase(slot,entity))
+                local phase=idlePhase(slot,entity)
+                slot.sleepAt=nil
+                applyFeature(actor,slot.feature,entity,phase)
+                -- The native feature keeps the last applied pose, so a settled face needs no write until it changes.
+                if slot.settled and slot.written==M.expressionFrame then
+                    slot.sleepAt,slot.sleepPhase,slot.sleepBlocked,slot.sleepProfile=M.expressionClock,phase,M.expressionBlocked,row.profileKey
+                end
             end)
-            if not ok then M.expressionError=tostring(err);M.expressions[entity]=nil end
+            if not ok then M.expressionError=tostring(err);forget(entity) end
         end
     end
     for entity in pairs(M.expressions) do
-        if not seen[entity] and not (M.active and M.entity==entity) then M.expressions[entity]=nil end
+        if not seen[entity] and not (M.active and M.entity==entity) then forget(entity) end
     end
 end
 local function providerExpressions(timeline)
@@ -877,6 +1148,7 @@ local function reset(actor)
     if M.restored and not handed and M.entity and M.expressions[M.entity] then
         local slot=M.expressions[M.entity]
         slot.written,slot.appliedPose,slot.phase=M.expressionFrame,zeroExpression(),'released'
+        if native and slot.nid then pcall(native.NoteReset,slot.nid) end
     end
 end
 local function clear()
@@ -889,6 +1161,7 @@ local function clear()
     M.expressionTrackKeys=nil
     M.blinkBoundaries,M.blinkBoundaryIndex=nil,nil
     M.jawLift=nil
+    M.speechVec=nil
     M.release,M.stall,M.stalledAt=nil,nil,nil
 end
 
@@ -1083,10 +1356,13 @@ end
 local function releaseSpeech(actor)
     local feature,dt=M.feature,M.expressionDelta or 0
     local release=M.release
+    -- Native: the speech values live in the vector handed to the plugin, not on the feature object.
+    local vec=native and M.speechVec or nil
     if not release then
         release={level=1,base={}}
         for _,track in ipairs(M.timeline.tracks) do
-            local value=feature[track]
+            local value
+            if vec then value=vec[FIELD[track]] else value=feature[track] end
             release.base[track]=finite(value) and value or 0
         end
         M.release=release
@@ -1099,14 +1375,16 @@ local function releaseSpeech(actor)
         M.state, M.lastPosition = 'paused', nil
         return true
     end
-    for track,value in pairs(release.base) do feature[track]=value*release.level end
+    if vec then for track,value in pairs(release.base) do vec[FIELD[track]]=value*release.level end
+    else for track,value in pairs(release.base) do feature[track]=value*release.level end end
     applyFeature(actor,feature,M.entity,'speaking')
     M.state='releasing'
     return false
 end
 -- True while the written mouth is open enough that a one-frame close would show as a snap.
 local function mouthOpen()
-    local jaw=M.feature and M.feature.jaw_mid_open
+    local jaw
+    if native and M.speechVec then jaw=M.speechVec[FIELD.jaw_mid_open] else jaw=M.feature and M.feature.jaw_mid_open end
     return finite(jaw) and jaw>.02
 end
 
@@ -1169,6 +1447,8 @@ function M.sync(actor, position, requestId)
         local motionPosition = heardPosition + (M.segment and M.segment.startSeconds or 0)
         local motionElapsed = M.localPosePosition and math.max(0, motionPosition - M.localPosePosition) or 1 / 60
         local lift = M.jawLift
+        local vec = native and (M.speechVec or newSpeechVec()) or nil
+        M.speechVec = vec or M.speechVec
         for i, track in ipairs(tracks) do
             local value = left[i + 1] + (right[i + 1] - left[i + 1]) * alpha
             if lift and track == 'jaw_mid_open' then value = liftJaw(value, lift) end
@@ -1187,7 +1467,7 @@ function M.sync(actor, position, requestId)
                 value = previous + (value - previous) * (1 - math.exp(-motionElapsed / seconds))
                 M.localPose[track] = value
             end
-            M.feature[track] = value
+            if vec then vec[FIELD[track]] = value else M.feature[track] = value end
         end
         if M.localMotion then M.localPosePosition = motionPosition end
         local provider
@@ -1229,6 +1509,7 @@ function M.hold(actor, requestId)
 end
 
 function M.status()
+    mergeTurn(M.lastSpeechExpression)
     return {state = M.state or 'idle', source = M.source, articulation = M.articulation, position = M.position,
         applied = M.applied or 0, restored = M.restored, error = M.error,
         expressions = {clock=M.expressionClock,error=M.expressionError,lastSpeech=M.lastSpeechExpression},

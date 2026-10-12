@@ -106,7 +106,7 @@ Lua mid-session.
 | 1 | File IO: leases, mailboxes, continuous speech, logs (`io`) | about 30 ms/s of the 32 (each routed open becomes 1-3 native calls) | perf-probe io.open/os.rename/os.remove rows near 0; talk, leases, phone, voice and continuous speech work; native-off.txt flips back to Lua |
 | 2 | Knowledge collectors | only if the Lua redesign on main still measures over about 5 ms/s | payload identical to the Lua collector for the same world |
 | 3 | Companion tick and actuator, clearance queries | estimated from call counts: tens of natives per companion per tick at about 58 µs each | same follow, stop and clearance decisions on a recorded trace; no position drift |
-| 4 | Gaze, faces (per-frame writer), seating scans, vehicles (chauffeur sample, inspect) | faces: about 70 calls per speaking actor per frame; chauffeur: 80-120 calls at 10 Hz | same outputs on recorded traces; no visible change in game |
+| 4 | Gaze, faces (per-frame writer), seating scans, vehicles (chauffeur sample, inspect) | faces: about 70 calls per speaking actor per frame; chauffeur: 80-120 calls at 10 Hz | same outputs on recorded traces; no visible change in game. Faces: built on branch `port-faces` 2026-10-12 (kill switch `faces`), parity-tested, not yet checked in game |
 | 5 | Redscript hook filters for the reaction/locomotion/battle hooks | per-NPC hook calls that today reach Lua | the hook fires in Lua only for mod-spawned entities |
 
 **Could ship in 0.2:** step 1 (built and headless-tested now; needs one in-game pass). Steps 3-4

@@ -1059,6 +1059,63 @@ test('blinks run at idle, listening and thinking too: every 2-6 s idle, a little
  a.combat=false
 `));
 
+// Item 4 of docs/PERFORMANCE_NATIVE_PLAN.md: a settled idle face sleeps. The native feature keeps its last applied
+// frame, so the face a player sees (the last frame written) is the same with or without sleep; only the writes stop.
+function runTrace(body) {
+  const vm=lauxlib.luaL_newstate();lualib.luaL_openlibs(vm);
+  try {
+    const status=lauxlib.luaL_dostring(vm,to_luastring(setup+body));
+    assert.equal(status,lua.LUA_OK,status===lua.LUA_OK?'':to_jsstring(lua.lua_tostring(vm,-1)));
+    lua.lua_getglobal(vm,to_luastring('trace'));return to_jsstring(lua.lua_tostring(vm,-1));
+  } finally {lua.lua_close(vm);}
+}
+test('a settled idle face sleeps between blinks: the held frame matches writing every frame, at a fraction of the writes', () => {
+  const trace = sleep => runTrace(`${seeded(77)}
+   face.idleSleep=${sleep}
+   local out,start={},#a.frames
+   for i=1,1800 do
+    tick(1/30,i>900 and {listeningEntity=a.id} or nil);local f=last(a)
+    out[#out+1]=string.format('%.6f,%.6f,%.6f',f.eye_l_blink or 0,f.lips_l_corner_up or 0,f.eye_l_widen or 0)
+   end
+   out[#out+1]='writes '..(#a.frames-start);trace=table.concat(out,';')`);
+  const awake = trace(false).split(';'), asleep = trace(true).split(';');
+  assert.equal(awake.pop(), 'writes 1800');
+  const writes = Number(asleep.pop().split(' ')[1]);
+  assert.ok(writes < 900, `a settled face writes far less often: ${writes} of 1800 frames`);
+  // The ease toward the resting smile ends asymptotically: a face counts as settled once a frame moves every control
+  // by less than 1e-4, so the held frame may trail the every-frame writer by a few frames of that tail (well under
+  // 0.002 on a 0-1 rig control). Blinks start and end on the same frames.
+  assert.equal(asleep.length, awake.length);
+  asleep.forEach((row, i) => row.split(',').forEach((value, k) => {
+    const expected = Number(awake[i].split(',')[k]);
+    assert.ok(Math.abs(Number(value) - expected) < .002, `tick ${i + 1}, field ${k}: ${value} vs ${expected}`);
+    if (k === 0) assert.equal(Number(value) > 0, expected > 0, `tick ${i + 1}: blink on the same frame`);
+  }));
+});
+
+test('a sleeping face wakes at once for a reaction or a reply, re-checks every 0.25 s, and a blocked face is blank within 0.25 s', () => run(`${seeded(77)}
+ for _=1,60 do tick(1/30) end
+ local slot=face.expressions[a.id];assert(slot.sleepAt,'settled at idle')
+ -- Asleep: at most one write per sleepRecheck (0.25 s) between blinks.
+ local writes,since,gap=0,0,0
+ for _=1,300 do local n=#a.frames;tick(1/30)
+  if #a.frames>n then writes=writes+1;gap=math.max(gap,since);since=0 else since=since+1 end end
+ assert(writes<150 and gap<=8,'re-checks: '..writes..' writes, longest gap '..gap..' frames')
+ -- A reaction wakes the face on the next frame.
+ local n=#a.frames
+ face.beginExpression(context,${literal(receipt('Joy', 3, 0))});face.expressionHeard(context);face.endExpression(context,true)
+ tick(1/30);assert(#a.frames==n+1,'the reaction is written at once')
+ for _=1,30 do n=#a.frames;tick(1/30);assert(#a.frames==n+1,'a lingering reaction keeps writing') end
+ -- Combat reaches a sleeping face at its next re-check at the latest.
+ for _=1,900 do tick(1/30) end;assert(slot.sleepAt,'settled again')
+ a.combat=true;local blank
+ for i=1,8 do tick(1/30);if last(a).lips_l_corner_up==0 then blank=blank or i end end
+ assert(blank,'blank within 0.25 s')
+ a.combat=false
+ for _=1,60 do tick(1/30) end
+ face.idleSleep=false;n=#a.frames;tick(1/30);assert(#a.frames==n+1,'switch off: every frame writes')
+`));
+
 test('a phrase boundary now and then brings a blink, and a separate phrase never ends on a half-closed lid', () => {
   const spans = [0.3, 2, 4, 6].map((start, i, all) => ({start, end: all[i + 1] ?? 8, from: 0, to: 1, dominant: null, tags: [], top: [], anchored: true}));
   const track = {version: 1, format: 'emotion-mix-v1', families: ['joy', 'trust', 'sadness', 'anger', 'fear', 'disgust', 'surprise', 'anticipation'],
@@ -1207,7 +1264,7 @@ test('the idle face holds until the reply is heard, on the phrase (Omni, Convai 
    local rest
    local function holds(label,seconds,options)
     for _=1,math.floor(seconds*10+.5) do
-     local count=#a.frames;tick(.1,options);assert(#a.frames==count+1,label..': the idle writer keeps writing')
+     local count=#a.frames;tick(.1,options);assert(#a.frames<=count+1,label..': one write a frame at most (a settled face may sleep; the native keeps its last frame)')
      assert(math.abs(last(a).lips_l_corner_up-rest)<.01 and (last(a).lips_l_corner_dn or 0)==0,label..': '..last(a).lips_l_corner_up)
     end
    end
