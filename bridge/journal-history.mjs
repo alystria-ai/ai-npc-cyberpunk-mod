@@ -145,10 +145,15 @@ export function currentJournalHistory({snapshot, generation, worldToken, now = D
   return {status: 'ready', history: current, age: Math.max(0, (now - current.capturedAtMs) / 1000)};
 }
 
-/** A quest row is usable while its lane observation is within the lane's age limit. */
+/**
+ * A quest row is usable while its lane observation is within the lane's age limit. A finished quest (the history lane)
+ * is judged by the lane alone: the game re-stamps the lane when a cheap check (the same quest count, no journal change
+ * event) shows nothing changed, and that does not rewrite 400 rows, so a row's own observation time can be older.
+ */
 export function freshQuest(history, row, age, now) {
   const lane = history.coverage[row.lane]; const maximum = row.lane === 'active' || row.state === 'active' ? 15 : 600;
-  return !(lane.ageSeconds + age > maximum || now - row.observedAtMs > maximum * 1000);
+  const finished = row.lane === 'history' && row.state !== 'active';
+  return !(lane.ageSeconds + age > maximum || (!finished && now - row.observedAtMs > maximum * 1000));
 }
 
 /** Filtered context only. No durable-memory events are produced by this layer. */

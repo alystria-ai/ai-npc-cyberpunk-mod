@@ -104,8 +104,15 @@ local function nativeReady()
     local journal = Game.GetJournalManager()
     return journal ~= nil and not journal:HasAnyDelayedStateChanges()
 end
+-- One update batch reads up to ~32 facts and journal entries. The quests system and journal manager are acquired once
+-- per batch (beginBatch/endBatch around the loop, never kept past it) instead of once per read.
+local batchQuests, batchJournal
+local function nativeBegin()
+    batchQuests, batchJournal = Game.GetQuestsSystem(), Game.GetJournalManager()
+end
+local function nativeEnd() batchQuests, batchJournal = nil, nil end
 local function nativeFact(name)
-    return Game.GetQuestsSystem():GetFactStr(name)
+    return (batchQuests or Game.GetQuestsSystem()):GetFactStr(name)
 end
 -- GameTime is a struct holding whole game seconds since the playthrough began.
 -- Read it two ways when both work and refuse a disagreement, so an API mismatch
@@ -132,8 +139,22 @@ local function nativeGameTime()
     local stamp = tonumber(system:GetGameTimeStamp())
     return stamp and stamp == stamp and stamp >= 0 and stamp <= MAX_GAME_SECONDS and math.floor(stamp) or nil
 end
+-- gameJournalEntryState by integer value, built once: one EnumInt per read instead of up to three Enum.new.
+local stateByInt
 local function journalState(journal, entry)
     local state = journal:GetEntryState(entry)
+    if stateByInt == nil then
+        stateByInt = {}
+        for native, normalized in pairs(STATES) do
+            local ok, value = pcall(function() return tonumber(EnumInt(Enum.new('gameJournalEntryState', native))) end)
+            if ok and value then stateByInt[value] = normalized end
+        end
+        if next(stateByInt) == nil then stateByInt = false end
+    end
+    if stateByInt then
+        local ok, value = pcall(function() return tonumber(EnumInt(state)) end)
+        if ok and value then return stateByInt[value] end
+    end
     for native, normalized in pairs(STATES) do
         if state == Enum.new('gameJournalEntryState', native) then return normalized end
     end
@@ -151,7 +172,7 @@ end
 -- game timestamp (time of its last state change) is read only when the state
 -- differs, so a steady journal costs no extra native call per cycle.
 local function nativeJournal(key, selector, depthLimit, knownValue)
-    local journal = Game.GetJournalManager()
+    local journal = batchJournal or Game.GetJournalManager()
     local entry
     if selector.nativePath then
         entry = journal:GetEntryByString(selector.nativePath, selector.nativeClass)
@@ -281,7 +302,10 @@ function M.new(options)
         readFact = adapter.readFact or nativeFact,
         readJournal = adapter.readJournal or nativeJournal,
         readLifepath = adapter.readLifepath or nativeLifepath,
-        readGameTime = adapter.readGameTime or nativeGameTime},
+        readGameTime = adapter.readGameTime or nativeGameTime,
+        -- Optional: hold the native systems for the length of one batch (the defaults do; test adapters need not).
+        beginBatch = adapter.beginBatch or (options.adapter == nil and nativeBegin or nil),
+        endBatch = adapter.endBatch or (options.adapter == nil and nativeEnd or nil)},
         currentGeneration = options.currentGeneration, currentWorldToken = options.currentWorldToken,
         now = options.now or os.time, cpuNow = options.cpuNow or os.clock,
         utcNow = options.utcNow or function() return os.date('!%Y-%m-%dT%H:%M:%SZ') end,
@@ -297,6 +321,11 @@ function M.new(options)
         -- os.time rounding. The bridge's limit is WORLD_SNAPSHOT_MAX_AGE_MS.
         maxAgeSeconds = bounded(options.maxAgeSeconds, 45, 0.25, 60),
         refreshSeconds = bounded(options.refreshSeconds, 30, 0, 40),
+        -- With journal-change events wired (eventDriven, set by init.lua once the hook is registered) a resting cache
+        -- that saw no change event is re-stamped instead of rescanned, and fully rescanned only every verifySeconds.
+        -- Demands (a turn is coming) always rescan. Without events nothing changes: a cycle every refreshSeconds.
+        verifySeconds = bounded(options.verifySeconds, 120, 5, 3600), changeSeq = 0, eventDriven = false,
+        newEncoder = options.newEncoder,
         journalDepth = math.floor(bounded(options.journalDepth, 12, 1, 16)),
         serial = 0, revision = 0, stamps = {}, reason = 'not-configured'}, Collector)
 end
@@ -305,6 +334,7 @@ function Collector:reset(generation, reason, worldToken)
     self.generation = integer(generation, 0, MAX_SAFE) and generation or nil
     self.worldToken = identifier(worldToken) and worldToken or nil
     self.cache, self.job, self.lastNow, self.nextRefresh = nil, nil, nil, nil
+    self.forced, self.encoding = nil, nil
     -- Journal timestamps belong to this world only; key -> {value, seconds}.
     self.stamps = {}
     self.reason = reason or 'world-reset'
@@ -385,8 +415,8 @@ function Collector:update(context)
     -- world itself, so a world that stopped being ready is never served.
     if not self.job and self.cache and self.nextRefresh then
         local ok, now = pcall(self.now)
-        if ok and type(now) == 'number' and now < self.nextRefresh and (not self.lastNow or now >= self.lastNow) then
-            return self:progress()
+        if ok and type(now) == 'number' and (not self.lastNow or now >= self.lastNow) then
+            if now < self.nextRefresh or self:revalidate(now) then self:pump(); return self:progress() end
         end
     end
     local ready, why = self:checkWorld(generation, worldToken)
@@ -400,11 +430,14 @@ function Collector:update(context)
         if self.nextRefresh and now < self.nextRefresh then return self:progress() end
         self.serial = self.serial + 1
         self.job = {generation = generation, worldToken = worldToken, serial = self.serial, cursor = 1, started = now,
-            facts = {}, journal = {}, active = {}, lifepath = unknown('lifepath-unavailable')}
+            seq = self.changeSeq, facts = {}, journal = {}, active = {}, lifepath = unknown('lifepath-unavailable')}
+        self.forced, self.encoding = nil, nil
     end
     local job, total = self.job, #self.config.facts + #self.config.journal + 1
     local cpuOk, started = pcall(self.cpuNow)
     local processed = 0
+    if self.adapter.beginBatch then pcall(self.adapter.beginBatch) end
+    local loopOk, loopError = pcall(function()
     while job.cursor <= total and processed < self.batchSize do
         if processed > 0 and cpuOk then
             local ok, current = pcall(self.cpuNow)
@@ -445,6 +478,9 @@ function Collector:update(context)
         end
         job.cursor, processed = job.cursor + 1, processed + 1
     end
+    end)
+    if self.adapter.endBatch then pcall(self.adapter.endBatch) end
+    if not loopOk then error(loopError, 0) end
     -- Recheck after the native calls as well: a load callback can invalidate the
     -- generation during a read. Never publish a partial old-world result.
     ready, why = self:checkWorld(generation, worldToken)
@@ -472,20 +508,67 @@ function Collector:update(context)
         else
             self.revision = self.revision + 1
         end
+        local reused = previous and previous.data == data
         self.cache = {generation = generation, started = job.started, capturedAt = stamp, data = data,
-            revision = self.revision, dataBytes = previous and previous.data == data and previous.dataBytes or jsonBytes(data),
-            facts = data.facts, journal = data.journal, activeQuestKeys = data.activeQuestKeys or {}, lifepath = data.lifepath}
-        self.job, self.nextRefresh, self.reason = nil, now + self.refreshSeconds, nil
+            revision = self.revision, dataBytes = reused and previous.dataBytes or jsonBytes(data),
+            facts = data.facts, journal = data.journal, activeQuestKeys = data.activeQuestKeys or {}, lifepath = data.lifepath,
+            -- seq: the journal-change count this scan began under; scanned: when the observations were last read for real.
+            seq = job.seq, scanned = job.started, encoded = reused and previous.encoded or nil}
+        self.job, self.nextRefresh, self.reason, self.forced = nil, now + self.refreshSeconds, nil, nil
+        if not self.cache.encoded and self.newEncoder then
+            local ok, facts = pcall(self.newEncoder, data.facts)
+            local ok2, journal = pcall(self.newEncoder, data.journal)
+            if ok and ok2 and facts and journal then self.encoding = {cache = self.cache, facts = facts, journal = journal} end
+        end
     end
     return self:progress()
+end
+
+-- The journal changed (JournalNotificationQueue.OnJournalUpdate): a resting cache can no longer be re-stamped as current.
+function Collector:markChanged() self.changeSeq = self.changeSeq + 1 end
+
+-- Event-driven: no journal change event since this cache's scan began and its last real read is younger than
+-- verifySeconds, so its observations are re-stamped as current without a native call. A demand always rescans.
+function Collector:revalidate(now)
+    local cache = self.cache
+    if not self.eventDriven or self.forced or not cache or cache.seq ~= self.changeSeq
+        or now - (cache.scanned or cache.started) >= self.verifySeconds then return false end
+    local ok, stamp = pcall(self.utcNow)
+    if not ok or type(stamp) ~= 'string' or #stamp > 40
+        or not stamp:match('^%d%d%d%d%-%d%d%-%d%dT%d%d:%d%d:%d%d%.?%d*Z$') then return false end
+    cache.started, cache.capturedAt = now, stamp
+    self.nextRefresh = now + self.refreshSeconds
+    return true
+end
+
+-- Encodes the new observations a few entries per frame after a scan (the encoder is mod/knowledge-parts.lua's), so the
+-- first turn after it publishes a ready string instead of encoding ~150 KB on the frame it is sent.
+function Collector:pump()
+    local job = self.encoding
+    if not job then return end
+    if job.cache ~= self.cache then self.encoding = nil; return end
+    local current = job.facts.done and job.journal or job.facts
+    local ok = pcall(current.step, current, 24)
+    if not ok or current.failed then self.encoding = nil; return end
+    if job.facts.done and job.journal.done then
+        local data = job.cache.data
+        local okLife, life = pcall(job.facts.encodeValue, data.lifepath)
+        local okActive, active = true, nil
+        if data.activeQuestKeys then okActive, active = pcall(job.facts.encodeValue, data.activeQuestKeys) end
+        if okLife and okActive and type(life) == 'string' and (active == nil or type(active) == 'string') then
+            job.cache.encoded = '{"facts":' .. job.facts.text .. ',"journal":' .. job.journal.text .. ',"lifepath":' .. life
+                .. (active and (',"activeQuestKeys":' .. active) or '') .. '}'
+        end
+        self.encoding = nil
+    end
 end
 
 -- A turn is coming (or the journal just changed): start a cycle on the next
 -- update unless one is running or the cache began less than minAge seconds ago.
 function Collector:demand(minAge)
-    if self.job or not self.cache then self.nextRefresh = nil; return true end
+    if self.job or not self.cache then self.nextRefresh, self.forced = nil, true; return true end
     local ok, now = pcall(self.now)
-    if not ok or type(now) ~= 'number' or now - self.cache.started >= (minAge or 2) then self.nextRefresh = nil; return true end
+    if not ok or type(now) ~= 'number' or now - self.cache.started >= (minAge or 2) then self.nextRefresh, self.forced = nil, true; return true end
     return false
 end
 
@@ -542,7 +625,7 @@ function Collector:capturePart(context)
     if timeOk and integer(seconds, 0, MAX_GAME_SECONDS) then result.gameTimeSeconds = seconds end
     if jsonBytes(result) + cache.dataBytes > 256 * 1024 - 512 then return unavailable('snapshot-byte-limit') end
     return result, {name = 'world', revision = cache.revision, generation = context.generation,
-        worldToken = self.worldToken, data = cache.data}
+        worldToken = self.worldToken, data = cache.data, encoded = cache.encoded}
 end
 
 function Collector:begin(pack, context)
@@ -550,6 +633,86 @@ function Collector:begin(pack, context)
     if not ok then return unavailable(why) end
     return self:update(context)
 end
+
+-- The reviewed pack (world-knowledge.json) is ~9 MB because it carries the sources, evidence and rules the bridge uses;
+-- this collector reads only the two allowlists' selectors. Decoding it took ~220 ms of the game thread, on the first frame
+-- of every session. compactPack keeps exactly what configure() reads (same validation, so the same config), and loadPack
+-- keeps that in a small cache file keyed by a fingerprint of the source (its size and 64 sampled windows): later sessions
+-- decode ~100 KB. A missing or stale cache falls back to the full file and rewrites the cache.
+local JOURNAL_FIELDS = {'questKey', 'nativePath', 'nativeClass', 'allowRetiredChoiceGroup', 'retiredGroupEvidenceRefs',
+    'expectedHash', 'questHash'}
+function M.compactPack(pack)
+    if not plain(pack) or not plain(pack.factAllowlist) or not plain(pack.journalAllowlist) then return nil end
+    local out = {version = pack.version, gameVersions = clone(pack.gameVersions), factAllowlist = {}, journalAllowlist = {}}
+    -- One evidence ref is enough when the row is valid; an invalid row is copied whole so configure() rejects it as before.
+    local function refs(row, all)
+        if all or not list(row.evidenceRefs, 32, identifier, 1) then return clone(row.evidenceRefs) end
+        return {row.evidenceRefs[1]}
+    end
+    for key, row in pairs(pack.factAllowlist) do
+        out.factAllowlist[key] = plain(row) and {evidenceRefs = refs(row)} or row
+    end
+    for key, row in pairs(pack.journalAllowlist) do
+        if plain(row) then
+            local item = {evidenceRefs = refs(row, row.allowRetiredChoiceGroup ~= nil)}
+            for _, field in ipairs(JOURNAL_FIELDS) do item[field] = clone(row[field]) end
+            out.journalAllowlist[key] = item
+        else out.journalAllowlist[key] = row end
+    end
+    return out
+end
+
+local FINGERPRINT_WINDOW, FINGERPRINT_SAMPLES = 128, 64
+local function fingerprint(file)
+    local size = file:seek('end')
+    if type(size) ~= 'number' or size < FINGERPRINT_WINDOW then return nil end
+    local h1, h2 = 5381, 52711
+    for i = 0, FINGERPRINT_SAMPLES - 1 do
+        file:seek('set', math.floor((size - FINGERPRINT_WINDOW) * i / (FINGERPRINT_SAMPLES - 1)))
+        local chunk = file:read(FINGERPRINT_WINDOW)
+        if type(chunk) ~= 'string' then return nil end
+        for j = 1, #chunk do
+            local byte = chunk:byte(j)
+            h1, h2 = (h1 * 33 + byte) % 16777213, (h2 * 131 + byte) % 8388593
+        end
+    end
+    file:seek('set', 0)
+    return string.format('%d:%06x:%06x', size, h1, h2)
+end
+
+-- env = {open, decode, encode, source, cache}. Returns the pack for configure(), or nil.
+function M.loadPack(env)
+    local source = env.open(env.source, 'rb')
+    if not source then return nil end
+    local okPrint, print = pcall(fingerprint, source)
+    if okPrint and print then
+        local cached = env.open(env.cache, 'rb')
+        if cached then
+            local raw = cached:read(16 * 1024 * 1024 + 1); cached:close()
+            if type(raw) == 'string' and #raw <= 16 * 1024 * 1024 then
+                local ok, value = pcall(env.decode, raw)
+                if ok and plain(value) and value.source == print and plain(value.pack) then source:close(); return value.pack end
+            end
+        end
+    else print = nil end
+    local raw = source:read(16 * 1024 * 1024 + 1); source:close()
+    if type(raw) ~= 'string' or #raw > 16 * 1024 * 1024 then return nil end
+    local ok, pack = pcall(env.decode, raw)
+    if not ok or type(pack) ~= 'table' then return nil end
+    if print and env.encode then
+        local compact = M.compactPack(pack)
+        local okEncode, text = pcall(env.encode, {version = 1, source = print, pack = compact})
+        if compact and okEncode and type(text) == 'string' then
+            local out = env.open(env.cache, 'wb')
+            if out then pcall(function() out:write(text) end); pcall(function() out:close() end) end
+        end
+    end
+    return pack
+end
+
+-- Reachable from a collector instance as worldKnowledge.loadPack(env) (init.lua keeps only the instance).
+M.fingerprint = fingerprint
+Collector.loadPack, Collector.compactPack = M.loadPack, M.compactPack
 
 M.nativeAdapter = {isReady = nativeReady, readFact = nativeFact, readJournal = nativeJournal, readLifepath = nativeLifepath,
     readGameTime = nativeGameTime}
