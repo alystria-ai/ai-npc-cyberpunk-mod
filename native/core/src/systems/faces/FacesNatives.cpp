@@ -27,6 +27,7 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace
 {
@@ -42,7 +43,19 @@ std::string ToString(const RED4ext::CString& aText)
     return std::string(aText.c_str(), aText.Length());
 }
 
-using DoubleArray = RED4ext::DynArray<double>;
+// The arrays cross as array:Float: this game's RTTI has no array:Double. Everything in them survives a
+// float: the control array holds flags (below 2^12, exact in a float), small counts, weights, gains,
+// warmth and a delta of about 0.016; the speech vector holds feature weights, which the game stores as Float
+// anyway. The clock (ctl 0) is the one value that grows: float resolution is 2 ms at 9 hours of play,
+// and the core only compares it with a time 2.5 s ahead (voice brow cooldown). The core computes in
+// doubles, so the arrays are widened into buffers that live for the whole session (no allocation per
+// frame after the first).
+using FloatArray = RED4ext::DynArray<float>;
+
+void Widen(const FloatArray& aFrom, std::vector<double>& aTo)
+{
+    aTo.assign(aFrom.Data(), aFrom.Data() + aFrom.Size());
+}
 
 // "10304956ULL" (LuaJIT's tostring of a 64-bit id), or plain digits. False for anything else.
 bool ParseEntity(const std::string& aText, std::uint64_t& aOut)
@@ -78,20 +91,24 @@ void Frame(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, int32_t* aOut, i
     convai::game::Object actor;
     convai::game::Object feature;
     int32_t nid = 0;
-    DoubleArray control;
-    DoubleArray speech;
+    FloatArray control;
+    FloatArray speech;
     rtti::ReadArgs(aFrame, &actor, &feature, &nid, &control, &speech);
+    static thread_local std::vector<double> controlWide;
+    static thread_local std::vector<double> speechWide;
     rtti::Return(aOut, rtti::Guard(
                            kSystem,
                            [&]() -> int32_t {
+                               Widen(control, controlWide);
+                               Widen(speech, speechWide);
                                faces::FrameInput in;
-                               const bool decoded = faces::DecodeControl(
-                                   control.Data(), control.Size(), speech.Data(), speech.Size(), in);
+                               const bool decoded = faces::DecodeControl(controlWide.data(), controlWide.size(),
+                                                                         speechWide.data(), speechWide.size(), in);
                                if (!decoded)
                                {
                                    throw std::runtime_error("faces: malformed control array");
                                }
-                               if (!in.speaking || speech.Size() < static_cast<std::uint32_t>(faces::kFieldCount))
+                               if (!in.speaking || speechWide.size() < static_cast<std::size_t>(faces::kFieldCount))
                                {
                                    in.speech = nullptr;
                                    in.speechCount = 0;
@@ -280,8 +297,8 @@ void Clear(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOut, int6
 // before the first frame): ctl count * 1000 + speech count.
 void Check(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, int32_t* aOut, int64_t)
 {
-    DoubleArray control;
-    DoubleArray speech;
+    FloatArray control;
+    FloatArray speech;
     rtti::ReadArgs(aFrame, &control, &speech);
     rtti::Return(aOut, rtti::Guard(
                            kSystem,
@@ -318,8 +335,8 @@ void PostRegisterTypes()
 {
     const char* handle = "handle:IScriptable";
     g_class.Static("Frame", &Frame, "Int32",
-                   {{handle, "actor"}, {handle, "feature"}, {"Int32", "nid"}, {"array:Double", "ctl"},
-                    {"array:Double", "speech"}});
+                   {{handle, "actor"}, {handle, "feature"}, {"Int32", "nid"}, {"array:Float", "ctl"},
+                    {"array:Float", "speech"}});
     g_class.Static("Speaker", &Speaker, "Int32", {{handle, "actor"}, {"String", "entity"}});
     g_class.Static("Safe", &Safe, "Int32", {{handle, "actor"}});
     g_class.Static("Turn", &Turn, "String", {{"Int32", "nid"}});
@@ -328,11 +345,9 @@ void PostRegisterTypes()
     g_class.Static("NoteReset", &NoteReset, "Bool", {{"Int32", "nid"}});
     g_class.Static("Release", &Release, "Bool", {{"Int32", "nid"}});
     g_class.Static("Clear", &Clear, "Bool", {});
-    g_class.Static("Check", &Check, "Int32", {{"array:Double", "ctl"}, {"array:Double", "speech"}});
+    g_class.Static("Check", &Check, "Int32", {{"array:Float", "ctl"}, {"array:Float", "speech"}});
     g_class.Static("Info", &Info, "String", {});
-    // array:Double is not an RTTI type this game creates (the exe has array:Float, Int32, String and
-    // Bool), so rtti::CommitAll refuses the whole system with a log line naming Frame and the type,
-    // trips "faces", and facial-playback.lua keeps its Lua path. See docs/NATIVE_REWRITE_PLAN.md.
+    // Frame and Check take array:Float (the game has no array:Double); rtti::CommitAll checks it.
 }
 } // namespace
 

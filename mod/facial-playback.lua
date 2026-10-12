@@ -53,7 +53,9 @@ local function newSpeechVec()
     local vec={};for i=1,60 do vec[i]=0 end;return vec
 end
 -- The control array handed to Frame (layout: native/core/src/systems/faces/core/FacesCore.hpp, namespace ctl,
--- 1-based here) and the empty speech vector of idle frames. Reused: no table is built per frame.
+-- 1-based here) and the empty speech vector of idle frames. Reused: no table is built per frame. Both cross as
+-- array:Float (CET converts a Lua table of numbers straight to the array; this game has no array:Double, so a Double
+-- array would keep the whole system on Lua). Every entry is a number, never nil.
 local ctl={};for i=1,31 do ctl[i]=0 end
 local EMPTY={}
 local FAMILY={joy=1,trust=2,sadness=3,anger=4,fear=5,disgust=6,surprise=7,anticipation=8,neutral=9,unknown=10}
@@ -370,7 +372,9 @@ function M.clearExpression(entity)
     forget(entity)
 end
 -- The native class for this frame, or nil: the plugin is loaded, the "faces" switch is on, the class is registered and
--- a test call proves the arrays cross intact. A failure here (or in any later call) puts "faces" on Lua for good.
+-- a test call proves the arrays cross intact. A failure here (or in any later call) puts "faces" on Lua for good. When
+-- the plugin refused the system at registration (ConvaiNative.SystemEnabled('faces') false) api.use answers false and
+-- ConvaiNativeFaces is never touched.
 local function nativeFor()
     local api=convaiNative
     if faceTest or type(api)~='table' or type(api.use)~='function' then return nil end

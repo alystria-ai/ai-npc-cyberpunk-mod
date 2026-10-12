@@ -51,19 +51,40 @@ TEST(registration_accepts_a_system_whose_types_all_exist)
     CHECK_EQ(CheckSignatures({}, GameTypes()), std::string());
 }
 
-TEST(registration_refuses_faces_for_array_double)
+TEST(registration_accepts_faces_with_array_float)
 {
-    // Frame and Check take array:Double (the game clock and the speech vector). The game has no such
-    // type, and AddParam drops the parameter without a message, so the whole system must be refused.
+    // The faces natives as FacesNatives.cpp records them: the control array and the speech vector are
+    // array:Float, which this game has (it has no array:Double).
     const std::vector<NativeSignature> faces = {
-        Native("Speaker", "Int32", {{"handle:IScriptable", "actor"}, {"String", "entity"}}),
         Native("Frame", "Int32",
-               {{"handle:IScriptable", "actor"}, {"Int32", "nid"}, {"array:Double", "ctl"}}),
+               {{"handle:IScriptable", "actor"}, {"handle:IScriptable", "feature"}, {"Int32", "nid"},
+                {"array:Float", "ctl"}, {"array:Float", "speech"}}),
+        Native("Speaker", "Int32", {{"handle:IScriptable", "actor"}, {"String", "entity"}}),
+        Native("Safe", "Int32", {{"handle:IScriptable", "actor"}}),
+        Native("Turn", "String", {{"Int32", "nid"}}),
+        Native("Applied", "String", {{"Int32", "nid"}}),
+        Native("ZeroPose", "Bool", {{"Int32", "nid"}}),
+        Native("NoteReset", "Bool", {{"Int32", "nid"}}),
+        Native("Release", "Bool", {{"Int32", "nid"}}),
+        Native("Clear", "Bool"),
+        Native("Check", "Int32", {{"array:Float", "ctl"}, {"array:Float", "speech"}}),
         Native("Info", "String"),
     };
-    const std::string problem = CheckSignatures(faces, GameTypes());
+    CHECK_EQ(CheckSignatures(faces, GameTypes()), std::string());
+}
+
+TEST(registration_refuses_a_system_with_an_array_the_game_lacks)
+{
+    // A fake system (not faces) with an array:Double parameter: the game has no such type, and AddParam
+    // drops the parameter without a message, so the whole system must be refused, naming the type.
+    const std::vector<NativeSignature> fake = {
+        Native("Ping", "Int32", {{"handle:IScriptable", "actor"}, {"String", "entity"}}),
+        Native("Feed", "Int32", {{"handle:IScriptable", "actor"}, {"Int32", "nid"}, {"array:Double", "ctl"}}),
+        Native("Info", "String"),
+    };
+    const std::string problem = CheckSignatures(fake, GameTypes());
     CHECK(!problem.empty());
-    CHECK(problem.find("Frame") != std::string::npos);
+    CHECK(problem.find("Feed") != std::string::npos);
     CHECK(problem.find("'ctl'") != std::string::npos);
     CHECK(problem.find("array:Double") != std::string::npos);
 }
@@ -81,10 +102,10 @@ TEST(registration_refuses_an_unknown_return_type_and_malformed_natives)
 TEST(registration_failure_trips_the_system_and_keeps_the_others)
 {
     Switches switches;
-    CHECK(!switches.Tripped("faces"));
-    switches.Trip("faces", "natives not registered: Frame parameter 'ctl' has type array:Double");
-    CHECK(switches.Tripped("faces"));
-    CHECK(!switches.Enabled("faces"));
+    CHECK(!switches.Tripped("fake"));
+    switches.Trip("fake", "natives not registered: Feed parameter 'ctl' has type array:Double");
+    CHECK(switches.Tripped("fake"));
+    CHECK(!switches.Enabled("fake"));
     CHECK(switches.Enabled("io"));
     CHECK(switches.Enabled("core"));
     CHECK(!switches.Tripped("io"));
@@ -93,7 +114,7 @@ TEST(registration_failure_trips_the_system_and_keeps_the_others)
     CHECK(!switches.Tripped("gaze"));
     CHECK(!switches.Enabled("gaze"));
     switches.ParseFile("");
-    CHECK(switches.Tripped("faces"));
-    CHECK(!switches.Enabled("faces"));
+    CHECK(switches.Tripped("fake"));
+    CHECK(!switches.Enabled("fake"));
     CHECK(switches.DescribeJson().find("array:Double") != std::string::npos);
 }
