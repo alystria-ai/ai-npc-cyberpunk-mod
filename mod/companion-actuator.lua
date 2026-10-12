@@ -7,6 +7,9 @@ local recoveryPolicy={nearObstacle=6,travelHorizon=6,headingChange=45,
     planSpan=1.8,planRise=.2,escapeCommandSpan=2.2,travelCommandSpan=4,rollingGap=.35,
     stayNear=4.5,detourGapSlack=1.5,detourExtraLength=6}
 function M.useSpatialBudget(value) clearance.useBudget(value) end
+-- Optional native command-state reads (mod/companion-tick-native.lua). Nil keeps the original chain.
+local nativeTick
+function M.useNativeTick(value) nativeTick=value end
 local function vector(p) return Vector4.new(p.x,p.y,p.z or 0,p.w or 1) end
 local function position(p)
     local world=WorldPosition.new(); world:SetVector4(vector(p))
@@ -34,6 +37,10 @@ local function record(s,kind)
         commandID=s.command and tonumber(s.command.id) or nil,target=s.target and space.copy(s.target)}
 end
 local function currentCommandState(s)
+    if nativeTick and s.command and s.npc then
+        local native=nativeTick.commandState(s.npc,s.command)
+        if native then return native end
+    end
     local ok,label=pcall(function()
         if not s.command or not s.npc or not s.npc:IsAttached() then return nil end
         return tostring(s.npc:GetAIControllerComponent():GetCommandState(s.command))
@@ -172,7 +179,8 @@ function M.ownsTravel(s,command)
         and s.command.id~=nil and s.command.id==command.id
 end
 
-function M.sense(s,at,speed,dt)
+-- reading: the native tick's answer for this companion (mod/companion-tick-native.lua), or nil.
+function M.sense(s,at,speed,dt,reading)
     s.clock=s.clock+dt
     if s.sensedPosition and space.ground(s.sensedPosition,at)>0.02 then
         s.motionDirection=space.bearing(s.sensedPosition,at)
@@ -201,9 +209,12 @@ function M.sense(s,at,speed,dt)
         return f
     end
     if s.command then
-        local ok,label=pcall(function() return tostring(s.npc:GetAIControllerComponent():GetCommandState(s.command)) end)
+        local ok,label
+        if reading and reading.command==s.command and reading.label then ok,label=true,reading.label
+        else ok,label=pcall(function() return tostring(s.npc:GetAIControllerComponent():GetCommandState(s.command)) end) end
         f.state=ok and label or 'Unavailable'
-        f.commandID=tonumber(s.command.id)
+        if reading and reading.command==s.command and reading.id then f.commandID=reading.id
+        else f.commandID=tonumber(s.command.id) end
         f.active=ok and active(label) and true or false
         f.failed=not ok or label:find('Failure',1,true)~=nil
             or label:find('Cancelled',1,true)~=nil or label:find('Interrupted',1,true)~=nil
