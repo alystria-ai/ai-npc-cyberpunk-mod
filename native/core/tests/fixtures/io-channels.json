@@ -1,0 +1,798 @@
+{
+ "system": "io",
+ "source": "mod/native-core.lua",
+ "cases": [
+  {
+   "name": "runtime/audio-delay.json",
+   "input": {
+    "path": "runtime/audio-delay.json"
+   },
+   "output": {
+    "channel": "audio-delay.json"
+   }
+  },
+  {
+   "name": "runtime/audio-delay.json.tmp",
+   "input": {
+    "path": "runtime/audio-delay.json.tmp"
+   },
+   "output": {
+    "channel": "audio-delay.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/battle-cancellations.json",
+   "input": {
+    "path": "runtime/battle-cancellations.json"
+   },
+   "output": {
+    "channel": "battle-cancellations.json"
+   }
+  },
+  {
+   "name": "runtime/battle-cancellations.json.tmp",
+   "input": {
+    "path": "runtime/battle-cancellations.json.tmp"
+   },
+   "output": {
+    "channel": "battle-cancellations.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/bridge-service.json",
+   "input": {
+    "path": "runtime/bridge-service.json"
+   },
+   "output": {
+    "channel": "bridge-service.json"
+   }
+  },
+  {
+   "name": "runtime/bridge-service.json.tmp",
+   "input": {
+    "path": "runtime/bridge-service.json.tmp"
+   },
+   "output": {
+    "channel": "bridge-service.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/companion-actions.json",
+   "input": {
+    "path": "runtime/companion-actions.json"
+   },
+   "output": {
+    "channel": "companion-actions.json"
+   }
+  },
+  {
+   "name": "runtime/companion-actions.json.tmp",
+   "input": {
+    "path": "runtime/companion-actions.json.tmp"
+   },
+   "output": {
+    "channel": "companion-actions.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/companion-invitations-state.json",
+   "input": {
+    "path": "runtime/companion-invitations-state.json"
+   },
+   "output": {
+    "channel": "companion-invitations-state.json"
+   }
+  },
+  {
+   "name": "runtime/companion-invitations-state.json.tmp",
+   "input": {
+    "path": "runtime/companion-invitations-state.json.tmp"
+   },
+   "output": {
+    "channel": "companion-invitations-state.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/companion-invitations.json",
+   "input": {
+    "path": "runtime/companion-invitations.json"
+   },
+   "output": {
+    "channel": "companion-invitations.json"
+   }
+  },
+  {
+   "name": "runtime/companion-invitations.json.tmp",
+   "input": {
+    "path": "runtime/companion-invitations.json.tmp"
+   },
+   "output": {
+    "channel": "companion-invitations.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/continuous-control.json",
+   "input": {
+    "path": "runtime/continuous-control.json"
+   },
+   "output": {
+    "channel": "continuous-control.json"
+   }
+  },
+  {
+   "name": "runtime/continuous-control.json.tmp",
+   "input": {
+    "path": "runtime/continuous-control.json.tmp"
+   },
+   "output": {
+    "channel": "continuous-control.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/continuous-face.json",
+   "input": {
+    "path": "runtime/continuous-face.json"
+   },
+   "output": {
+    "channel": "continuous-face.json"
+   }
+  },
+  {
+   "name": "runtime/continuous-face.json.tmp",
+   "input": {
+    "path": "runtime/continuous-face.json.tmp"
+   },
+   "output": {
+    "channel": "continuous-face.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/continuous-speech.json",
+   "input": {
+    "path": "runtime/continuous-speech.json"
+   },
+   "output": {
+    "channel": "continuous-speech.json"
+   }
+  },
+  {
+   "name": "runtime/continuous-speech.json.tmp",
+   "input": {
+    "path": "runtime/continuous-speech.json.tmp"
+   },
+   "output": {
+    "channel": "continuous-speech.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/conversation-prewarm.json",
+   "input": {
+    "path": "runtime/conversation-prewarm.json"
+   },
+   "output": {
+    "channel": "conversation-prewarm.json"
+   }
+  },
+  {
+   "name": "runtime/conversation-prewarm.json.tmp",
+   "input": {
+    "path": "runtime/conversation-prewarm.json.tmp"
+   },
+   "output": {
+    "channel": "conversation-prewarm.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/diagnostic-request.txt",
+   "input": {
+    "path": "runtime/diagnostic-request.txt"
+   },
+   "output": {
+    "channel": "diagnostic-request.txt"
+   }
+  },
+  {
+   "name": "runtime/diagnostic-request.txt.tmp",
+   "input": {
+    "path": "runtime/diagnostic-request.txt.tmp"
+   },
+   "output": {
+    "channel": "diagnostic-request.txt.tmp"
+   }
+  },
+  {
+   "name": "runtime/diagnostic-response.txt",
+   "input": {
+    "path": "runtime/diagnostic-response.txt"
+   },
+   "output": {
+    "channel": "diagnostic-response.txt"
+   }
+  },
+  {
+   "name": "runtime/diagnostic-response.txt.tmp",
+   "input": {
+    "path": "runtime/diagnostic-response.txt.tmp"
+   },
+   "output": {
+    "channel": "diagnostic-response.txt.tmp"
+   }
+  },
+  {
+   "name": "runtime/group-prefetch.json",
+   "input": {
+    "path": "runtime/group-prefetch.json"
+   },
+   "output": {
+    "channel": "group-prefetch.json"
+   }
+  },
+  {
+   "name": "runtime/group-prefetch.json.tmp",
+   "input": {
+    "path": "runtime/group-prefetch.json.tmp"
+   },
+   "output": {
+    "channel": "group-prefetch.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/knowledge-phone-delivery.json",
+   "input": {
+    "path": "runtime/knowledge-phone-delivery.json"
+   },
+   "output": {
+    "channel": "knowledge-phone-delivery.json"
+   }
+  },
+  {
+   "name": "runtime/knowledge-phone-delivery.json.tmp",
+   "input": {
+    "path": "runtime/knowledge-phone-delivery.json.tmp"
+   },
+   "output": {
+    "channel": "knowledge-phone-delivery.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/knowledge-status.json",
+   "input": {
+    "path": "runtime/knowledge-status.json"
+   },
+   "output": {
+    "channel": "knowledge-status.json"
+   }
+  },
+  {
+   "name": "runtime/knowledge-status.json.tmp",
+   "input": {
+    "path": "runtime/knowledge-status.json.tmp"
+   },
+   "output": {
+    "channel": "knowledge-status.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/last-input.json",
+   "input": {
+    "path": "runtime/last-input.json"
+   },
+   "output": {
+    "channel": "last-input.json"
+   }
+  },
+  {
+   "name": "runtime/last-input.json.tmp",
+   "input": {
+    "path": "runtime/last-input.json.tmp"
+   },
+   "output": {
+    "channel": "last-input.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/local-voice-state.json",
+   "input": {
+    "path": "runtime/local-voice-state.json"
+   },
+   "output": {
+    "channel": "local-voice-state.json"
+   }
+  },
+  {
+   "name": "runtime/local-voice-state.json.tmp",
+   "input": {
+    "path": "runtime/local-voice-state.json.tmp"
+   },
+   "output": {
+    "channel": "local-voice-state.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/mcm.log",
+   "input": {
+    "path": "runtime/mcm.log"
+   },
+   "output": {
+    "channel": "mcm.log"
+   }
+  },
+  {
+   "name": "runtime/mcm.log.tmp",
+   "input": {
+    "path": "runtime/mcm.log.tmp"
+   },
+   "output": {
+    "channel": "mcm.log.tmp"
+   }
+  },
+  {
+   "name": "runtime/memory-chat-resets.json",
+   "input": {
+    "path": "runtime/memory-chat-resets.json"
+   },
+   "output": {
+    "channel": "memory-chat-resets.json"
+   }
+  },
+  {
+   "name": "runtime/memory-chat-resets.json.tmp",
+   "input": {
+    "path": "runtime/memory-chat-resets.json.tmp"
+   },
+   "output": {
+    "channel": "memory-chat-resets.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/memory-status.json",
+   "input": {
+    "path": "runtime/memory-status.json"
+   },
+   "output": {
+    "channel": "memory-status.json"
+   }
+  },
+  {
+   "name": "runtime/memory-status.json.tmp",
+   "input": {
+    "path": "runtime/memory-status.json.tmp"
+   },
+   "output": {
+    "channel": "memory-status.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/microphone-command.json",
+   "input": {
+    "path": "runtime/microphone-command.json"
+   },
+   "output": {
+    "channel": "microphone-command.json"
+   }
+  },
+  {
+   "name": "runtime/microphone-command.json.tmp",
+   "input": {
+    "path": "runtime/microphone-command.json.tmp"
+   },
+   "output": {
+    "channel": "microphone-command.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/microphone-heard.json",
+   "input": {
+    "path": "runtime/microphone-heard.json"
+   },
+   "output": {
+    "channel": "microphone-heard.json"
+   }
+  },
+  {
+   "name": "runtime/microphone-heard.json.tmp",
+   "input": {
+    "path": "runtime/microphone-heard.json.tmp"
+   },
+   "output": {
+    "channel": "microphone-heard.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/microphone-state.json",
+   "input": {
+    "path": "runtime/microphone-state.json"
+   },
+   "output": {
+    "channel": "microphone-state.json"
+   }
+  },
+  {
+   "name": "runtime/microphone-state.json.tmp",
+   "input": {
+    "path": "runtime/microphone-state.json.tmp"
+   },
+   "output": {
+    "channel": "microphone-state.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/mistral-state.json",
+   "input": {
+    "path": "runtime/mistral-state.json"
+   },
+   "output": {
+    "channel": "mistral-state.json"
+   }
+  },
+  {
+   "name": "runtime/mistral-state.json.tmp",
+   "input": {
+    "path": "runtime/mistral-state.json.tmp"
+   },
+   "output": {
+    "channel": "mistral-state.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/nearby-connections.json",
+   "input": {
+    "path": "runtime/nearby-connections.json"
+   },
+   "output": {
+    "channel": "nearby-connections.json"
+   }
+  },
+  {
+   "name": "runtime/nearby-connections.json.tmp",
+   "input": {
+    "path": "runtime/nearby-connections.json.tmp"
+   },
+   "output": {
+    "channel": "nearby-connections.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/own-key-state.json",
+   "input": {
+    "path": "runtime/own-key-state.json"
+   },
+   "output": {
+    "channel": "own-key-state.json"
+   }
+  },
+  {
+   "name": "runtime/own-key-state.json.tmp",
+   "input": {
+    "path": "runtime/own-key-state.json.tmp"
+   },
+   "output": {
+    "channel": "own-key-state.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/party-connection-state.json",
+   "input": {
+    "path": "runtime/party-connection-state.json"
+   },
+   "output": {
+    "channel": "party-connection-state.json"
+   }
+  },
+  {
+   "name": "runtime/party-connection-state.json.tmp",
+   "input": {
+    "path": "runtime/party-connection-state.json.tmp"
+   },
+   "output": {
+    "channel": "party-connection-state.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/party-connections.json",
+   "input": {
+    "path": "runtime/party-connections.json"
+   },
+   "output": {
+    "channel": "party-connections.json"
+   }
+  },
+  {
+   "name": "runtime/party-connections.json.tmp",
+   "input": {
+    "path": "runtime/party-connections.json.tmp"
+   },
+   "output": {
+    "channel": "party-connections.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/phone-chat-input.json",
+   "input": {
+    "path": "runtime/phone-chat-input.json"
+   },
+   "output": {
+    "channel": "phone-chat-input.json"
+   }
+  },
+  {
+   "name": "runtime/phone-chat-input.json.tmp",
+   "input": {
+    "path": "runtime/phone-chat-input.json.tmp"
+   },
+   "output": {
+    "channel": "phone-chat-input.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/phone-chat-output.json",
+   "input": {
+    "path": "runtime/phone-chat-output.json"
+   },
+   "output": {
+    "channel": "phone-chat-output.json"
+   }
+  },
+  {
+   "name": "runtime/phone-chat-output.json.tmp",
+   "input": {
+    "path": "runtime/phone-chat-output.json.tmp"
+   },
+   "output": {
+    "channel": "phone-chat-output.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/phone-history.json",
+   "input": {
+    "path": "runtime/phone-history.json"
+   },
+   "output": {
+    "channel": "phone-history.json"
+   }
+  },
+  {
+   "name": "runtime/phone-history.json.tmp",
+   "input": {
+    "path": "runtime/phone-history.json.tmp"
+   },
+   "output": {
+    "channel": "phone-history.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/probe.log",
+   "input": {
+    "path": "runtime/probe.log"
+   },
+   "output": {
+    "channel": "probe.log"
+   }
+  },
+  {
+   "name": "runtime/probe.log.tmp",
+   "input": {
+    "path": "runtime/probe.log.tmp"
+   },
+   "output": {
+    "channel": "probe.log.tmp"
+   }
+  },
+  {
+   "name": "runtime/reaction-lease.json",
+   "input": {
+    "path": "runtime/reaction-lease.json"
+   },
+   "output": {
+    "channel": "reaction-lease.json"
+   }
+  },
+  {
+   "name": "runtime/reaction-lease.json.tmp",
+   "input": {
+    "path": "runtime/reaction-lease.json.tmp"
+   },
+   "output": {
+    "channel": "reaction-lease.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/relationship-state.json",
+   "input": {
+    "path": "runtime/relationship-state.json"
+   },
+   "output": {
+    "channel": "relationship-state.json"
+   }
+  },
+  {
+   "name": "runtime/relationship-state.json.tmp",
+   "input": {
+    "path": "runtime/relationship-state.json.tmp"
+   },
+   "output": {
+    "channel": "relationship-state.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/reply.json",
+   "input": {
+    "path": "runtime/reply.json"
+   },
+   "output": {
+    "channel": "reply.json"
+   }
+  },
+  {
+   "name": "runtime/reply.json.tmp",
+   "input": {
+    "path": "runtime/reply.json.tmp"
+   },
+   "output": {
+    "channel": "reply.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/speech-state.json",
+   "input": {
+    "path": "runtime/speech-state.json"
+   },
+   "output": {
+    "channel": "speech-state.json"
+   }
+  },
+  {
+   "name": "runtime/speech-state.json.tmp",
+   "input": {
+    "path": "runtime/speech-state.json.tmp"
+   },
+   "output": {
+    "channel": "speech-state.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/speech-stream.json",
+   "input": {
+    "path": "runtime/speech-stream.json"
+   },
+   "output": {
+    "channel": "speech-stream.json"
+   }
+  },
+  {
+   "name": "runtime/speech-stream.json.tmp",
+   "input": {
+    "path": "runtime/speech-stream.json.tmp"
+   },
+   "output": {
+    "channel": "speech-stream.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/world-session.json",
+   "input": {
+    "path": "runtime/world-session.json"
+   },
+   "output": {
+    "channel": "world-session.json"
+   }
+  },
+  {
+   "name": "runtime/world-session.json.tmp",
+   "input": {
+    "path": "runtime/world-session.json.tmp"
+   },
+   "output": {
+    "channel": "world-session.json.tmp"
+   }
+  },
+  {
+   "name": "runtime/phone-history.json.previous",
+   "input": {
+    "path": "runtime/phone-history.json.previous"
+   },
+   "output": {
+    "channel": "phone-history.json.previous"
+   }
+  },
+  {
+   "name": "./runtime/reply.json",
+   "input": {
+    "path": "./runtime/reply.json"
+   },
+   "output": {
+    "channel": "reply.json"
+   }
+  },
+  {
+   "name": "runtime\\reply.json",
+   "input": {
+    "path": "runtime\\reply.json"
+   },
+   "output": {
+    "channel": "reply.json"
+   }
+  },
+  {
+   "name": "runtime/settings.json",
+   "input": {
+    "path": "runtime/settings.json"
+   },
+   "output": {
+    "channel": null
+   }
+  },
+  {
+   "name": "runtime/../reply.json",
+   "input": {
+    "path": "runtime/../reply.json"
+   },
+   "output": {
+    "channel": null
+   }
+  },
+  {
+   "name": "runtime/reply.json/",
+   "input": {
+    "path": "runtime/reply.json/"
+   },
+   "output": {
+    "channel": null
+   }
+  },
+  {
+   "name": "C:/runtime/reply.json",
+   "input": {
+    "path": "C:/runtime/reply.json"
+   },
+   "output": {
+    "channel": null
+   }
+  },
+  {
+   "name": "reply.json",
+   "input": {
+    "path": "reply.json"
+   },
+   "output": {
+    "channel": null
+   }
+  },
+  {
+   "name": "runtime/.reply.json",
+   "input": {
+    "path": "runtime/.reply.json"
+   },
+   "output": {
+    "channel": null
+   }
+  },
+  {
+   "name": "runtime/sub/reply.json",
+   "input": {
+    "path": "runtime/sub/reply.json"
+   },
+   "output": {
+    "channel": null
+   }
+  },
+  {
+   "name": "runtime/reply.json.bak",
+   "input": {
+    "path": "runtime/reply.json.bak"
+   },
+   "output": {
+    "channel": null
+   }
+  },
+  {
+   "name": "(empty)",
+   "input": {
+    "path": ""
+   },
+   "output": {
+    "channel": null
+   }
+  }
+ ]
+}

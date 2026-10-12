@@ -54,6 +54,16 @@ The Pocket voice and lip-sync models were trained for this mod. The existing not
 code, so the Cyberpunk Convai Use License does not by itself set their terms; this notice and the
 Kyutai terms above do.
 
+### Native core plugin
+
+`red4ext/plugins/CyberpunkConvaiNative/CyberpunkConvaiNative.dll`, built from `native/core`, when a
+release ships it. Both components are compiled into the DLL; their licence texts go next to it.
+
+| Component | Version | Licence | Where the licence text is |
+|---|---|---|---|
+| yyjson (JSON parser) | 0.12.0, commit `8b4a38dc994a110abaec8a400615567bd996105f`, vendored in `native/core/third_party/yyjson` | MIT, Copyright (c) 2020 YaoYuan | `native/core/third_party/yyjson/LICENSE` |
+| RED4ext.SDK (headers only) | commit `ad7277714ad30d6885d7050c5ba24fa0102f6920`, pinned in `native/core/CMakeLists.txt`, not vendored | MIT, Copyright (c) 2020 - present Octavian Dima | https://github.com/wopss/RED4ext.SDK/blob/ad7277714ad30d6885d7050c5ba24fa0102f6920/LICENSE.md |
+
 ## Bundled in the optional OmniVoice pack
 
 | Component | Version | Licence | Where the licence text is |
