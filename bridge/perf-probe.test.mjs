@@ -116,3 +116,26 @@ assert(row.hooksWrapped==1,'hooksWrapped '..tostring(row.hooksWrapped))
 -- Re-wrapping is idempotent: a second onInit does not time a handler twice.
 events.onInit();assert(P.hooksWrapped==2)
 `));
+
+test('init.lua marks its own onUpdate segments; an early return closes the open one', () => run(`
+local events={}
+registerForEvent=function(name,handler) events[name]=handler end
+assert(P.hookRegistrations())
+local early=false
+registerForEvent('onUpdate',function()
+ frame(false)
+ P.mark('init:a');t=t+.002
+ P.mark('init:b');t=t+.001
+ if early then return end
+ P.mark('init:c');t=t+.004
+end)
+P.mark('init:a');t=t+5 -- Developer mode off: nothing open, nothing recorded
+developer=true;t=t+2
+for i=1,240 do early=(i%2==0);events.onUpdate(.016) end
+local row=written.history[#written.history]
+local a,b,c=row.sections['init:a'],row.sections['init:b'],row.sections['init:c']
+assert(a and math.abs(a.maxMs-2)<.001,'init:a '..tostring(a and a.maxMs))
+assert(b and math.abs(b.maxMs-1)<.001,'early return did not close init:b at the return: '..tostring(b and b.maxMs))
+assert(c and math.abs(c.maxMs-4)<.001 and math.abs(c.calls*2-a.calls)<=2,'init:c '..tostring(c and c.calls))
+assert(math.abs(row.sections['event:onUpdate'].maxMs-22)<.001,'onUpdate '..row.sections['event:onUpdate'].maxMs)
+`));

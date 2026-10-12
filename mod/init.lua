@@ -428,6 +428,9 @@ pcall(function()
     probe.watch(worldKnowledge, 'update', 'worldKnowledge.update'); probe.watch(journalHistory, 'update', 'journalHistory.update')
     probe.watch(relationshipState, 'update', 'relationshipState.update')
 end)
+-- Developer mode: onUpdate marks its own segments ('init:' rows in perf-probe.json). A global, not an upvalue.
+convaiPerfMark = type(convaiPerfProbe) == 'table' and type(convaiPerfProbe.mark) == 'function' and convaiPerfProbe.mark
+    or function() end
 local generation = 0
 local active = nil
 local pending = nil
@@ -2385,6 +2388,8 @@ registerForEvent('onUpdate', function(delta)
     -- One shared physics budget covers queued spawns, vehicle placement and
     -- walking queries in this frame, including work flushed by the manager.
     companions.beginSpatialFrame()
+    local mark = convaiPerfMark
+    mark('init:session')
     local menuPlayer = Game.GetPlayer()
     local sessionOk, sessionReady = pcall(function()
         return not worldSuspended and menuPlayer and menuPlayer:IsAttached()
@@ -2398,8 +2403,10 @@ registerForEvent('onUpdate', function(delta)
     if fastTravelActive and fastTravelActive.finished then fastTravelActive=nil end
     sessionHasState = true
     knowledgeAllowed, knowledgeInvalidated = true, false
+    mark('init:knowledge')
     local knowledgeOk = pcall(updateKnowledge, delta)
     if not knowledgeOk then invalidateKnowledge('knowledge-update-failed') end
+    mark('init:worldReady')
     -- Autosave freezes the native cursor briefly. Keep the exact owner and
     -- queued native input, but do not capture/send/apply UI changes until ready.
     if knowledgeFrame and knowledgeFrame.status == 'paused' then
@@ -2440,28 +2447,34 @@ registerForEvent('onUpdate', function(delta)
     if worldReady and companions.riders then pcall(companions.carry, menuPlayer) end
     -- CET still calls onUpdate while native menus pause the simulation. The
     -- menu adapter needs these frames even when delta is zero; followers don't.
+    mark('init:ui')
     ui.configure(manager.interfaceLanguage())
     local localeChanged = ui.update(tonumber(delta) or 0)
     if menuPlayer and convaiComposerInput then
         if convaiComposerInput.update then pcall(convaiComposerInput.update)
         elseif localeChanged and convaiComposerInput.refresh then pcall(convaiComposerInput.refresh) end
     end
+    mark('init:mcm')
     local mcmOk, mcmError = pcall(mcm.update, menuPlayer, worldReady)
     if not mcmOk then log('MCM update failed: ' .. tostring(mcmError)) end
+    mark('init:invitations')
     local phoneActionOk, phoneActionError = pcall(processPhoneAction, menuPlayer)
     if not phoneActionOk then log('Phone action failed: ' .. tostring(phoneActionError)) end
     local invitationOk, invitationError = pcall(invitations.update)
     if not invitationOk then log('Invitation preparation failed: ' .. tostring(invitationError)) end
     updatePhoneInvitationFeedback(menuPlayer, worldReady)
     -- Retain prepared and attached party connections while game time is paused.
+    mark('init:partyConnections')
     publishPartyConnections(false)
     if autoConnect then pcall(autoConnect.heartbeat) end
+    mark('init:phone')
     local phoneOk, phoneError = pcall(phoneLayout.refresh)
     if not phoneOk then phoneLayout.lastError = tostring(phoneError) end
     local styleOk, styleError = pcall(phoneChatStyle.refresh)
     if not styleOk then phoneChatStyle.lastError = tostring(styleError) end
     local chatOk, chatError = pcall(phoneChat.update, menuPlayer, delta)
     if not chatOk then phoneChat.lastError = tostring(chatError) end
+    mark('init:expressionContext')
     local expressionActors,expressionBlocked={},true
     if worldReady then
         local sampled,rows=pcall(companions.expressionActors,menuPlayer)
@@ -2472,6 +2485,7 @@ registerForEvent('onUpdate', function(delta)
     local expressionContext={paused=not worldReady,actors=expressionActors,blocked=expressionBlocked,
         thinkingEntity=pending and pending.entity,thinkingRequestId=pending and pending.requestId,
         listeningEntity=microphone.state=='recording' and microphone.context and microphone.context.entity or nil}
+    mark('init:speech')
     local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0,expressionContext)
     if not speechOk then
         log('Speech update failed: ' .. tostring(speechError))
@@ -2482,6 +2496,7 @@ registerForEvent('onUpdate', function(delta)
         log('Subtitle update failed: ' .. tostring(subtitlesError))
         subtitles.clear()
     end
+    mark('init:poll')
     diagnosticPoll = diagnosticPoll + (tonumber(delta) or 0)
     if diagnosticPoll >= convaiDevMailboxPeriod() then -- developer mailbox; each CET io.open costs 1-3 ms
         diagnosticPoll = 0
@@ -2501,6 +2516,7 @@ registerForEvent('onUpdate', function(delta)
     if poll < 0.1 then return end
     local elapsedPoll = poll
     poll = 0
+    mark('init:tick')
     local player = Game.GetPlayer()
     local voiceSubmission = microphone.update(player)
     if voiceSubmission then acceptVoiceSubmission(voiceSubmission) end
@@ -2529,7 +2545,9 @@ registerForEvent('onUpdate', function(delta)
     local tacticOk, tacticError = pcall(tactics.update, player, elapsedPoll, worldReady)
     if not tacticOk then tactics.cancel('update-error'); log('Companion tactic update failed: ' .. tostring(tacticError)) end
     movementLog.update(worldReady and manager.developerMode(), elapsedPoll, companions.movementSnapshot)
+    mark('init:group')
     updateGroup(player)
+    mark('init:battles')
     local battleOk, battleError = pcall(updateBattles, player, elapsedPoll, worldReady)
     if not battleOk then
         cancelAutomatic('observation-error')
@@ -2566,6 +2584,7 @@ registerForEvent('onUpdate', function(delta)
         end)
         log('Crowd movement after gaze release: ' .. (ok and tostring(result) or 'unavailable: ' .. tostring(result)))
     end
+    mark('init:gaze')
     updateGaze(player, 0.1)
     if autoConnect then
         local blocked = battleSample == nil or not battleSample.available or battleSample.blocked == true
@@ -2581,6 +2600,7 @@ registerForEvent('onUpdate', function(delta)
                 or (microphone.context and microphone.context.entity) or nil})
         if not ok then log('Auto-connect update failed: ' .. tostring(err)) end
     end
+    mark('init:reply')
     if pending then
         local currentOwner = knowledgeOwner(refreshKnowledgeFrame())
         if currentOwner.paused then return end

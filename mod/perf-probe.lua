@@ -179,6 +179,34 @@ local function timedHandler(label, handler)
         return finish(label, clock(), handler(...))
     end
 end
+
+-- Segments of init.lua's own onUpdate work: mark(label) charges the time since
+-- the previous mark to the previous label, and the onUpdate wrapper closes the
+-- last one, so an early return ends its segment there. An 'init:' segment
+-- includes any wrapped section it calls (subtract those rows). Disabled, a
+-- mark is one call and a flag check.
+local markLabel, markAt
+function M.mark(label)
+    if not enabled then return end
+    local now = clock()
+    if markLabel then record(markLabel, now - markAt) end
+    markLabel, markAt = label, now
+end
+local function finishUpdate(t0, ...)
+    if enabled then
+        local now = clock()
+        if markLabel then record(markLabel, now - markAt); markLabel = nil end
+        record('event:onUpdate', now - t0)
+    end
+    return ...
+end
+local function timedUpdate(handler)
+    return function(...)
+        if not enabled then return handler(...) end
+        markLabel = nil
+        return finishUpdate(clock(), handler(...))
+    end
+end
 function M.hookRegistrations()
     if M.registrationsWrapped then return false end
     M.registrationsWrapped = true
@@ -208,7 +236,7 @@ function M.hookRegistrations()
     local registerEvent = registerForEvent
     if type(registerEvent) == 'function' then
         registerForEvent = function(event, handler, ...)
-            if event == 'onUpdate' and type(handler) == 'function' then handler = timedHandler('event:onUpdate', handler)
+            if event == 'onUpdate' and type(handler) == 'function' then handler = timedUpdate(handler)
             elseif event == 'onInit' and type(handler) == 'function' then
                 local init = handler
                 handler = function(...) wrapGlobals(); return init(...) end
