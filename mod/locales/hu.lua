@@ -612,7 +612,7 @@ return {
     ["Your key: no room for memory"] = "A kulcsod: nincs hely a memóriának",
     ["Your own key, without memory"] = "Saját kulcs, memória nélkül",
     ["Choose one of the listed conversation providers."] = "Válassz egyet a felsorolt beszélgetési szolgáltatók közül.",
-    ["Convai"] = "Convai",
+    ["Convai free tier"] = "Convai (ingyenes csomag)",
     ["Convai: Mistral has no key yet"] = "Convai: nincs még Mistral-kulcs",
     ["Conversation provider"] = "Beszélgetési szolgáltató",
     ["Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer. You can also save it in the file player-mistral-key.txt in the conversation service folder."] = "Először másold ki az ingyenes kulcsodat a Mistral oldaláról. A vágólapról egyszer olvassuk be, a Mistral ellenőrzi, és ezen a számítógépen mentjük. Mentheted a player-mistral-key.txt fájlba is, a beszélgetési szolgáltatás mappájában.",

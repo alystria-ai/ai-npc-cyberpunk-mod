@@ -612,7 +612,7 @@ return {
     ["Your key: no room for memory"] = "내 키: 메모리 여유 없음",
     ["Your own key, without memory"] = "내 키, 메모리 없음",
     ["Choose one of the listed conversation providers."] = "목록에 있는 대화 제공자 중 하나를 선택하세요.",
-    ["Convai"] = "Convai",
+    ["Convai free tier"] = "Convai (무료 플랜)",
     ["Convai: Mistral has no key yet"] = "Convai: Mistral 키가 아직 없음",
     ["Conversation provider"] = "대화 제공자",
     ["Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer. You can also save it in the file player-mistral-key.txt in the conversation service folder."] = "먼저 Mistral에서 무료 키를 복사하세요. 클립보드에서 한 번만 읽고, Mistral에서 확인한 뒤 이 컴퓨터에 저장합니다. 대화 서비스 폴더의 player-mistral-key.txt 파일에 직접 저장할 수도 있습니다.",

@@ -4226,7 +4226,7 @@ test('Development offers the conversation provider and the Mistral key rows: Con
     assert(invoke('tab:settings').ok)
     local provider = row('conversationProvider')
     assert(provider and provider.type == 'select' and provider.value == 1 and provider.defaultValue == 1)
-    assert(provider.elements[1] == 'Convai' and provider.elements[2] == 'Mistral (free plan)' and provider.elements[3] == 'Local (needs Local AI pack)' and provider.elements[4] == 'Groq (free plan)' and #provider.elements == 4)
+    assert(provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Mistral (free plan)' and provider.elements[3] == 'Local (needs Local AI pack)' and provider.elements[4] == 'Groq (free plan)' and #provider.elements == 4)
     assert(provider.description:find('phone verification', 1, true) and provider.description:find('memory stays on this computer', 1, true))
     assert(not provider.description:lower():find('text only', 1, true), 'Mistral is not described as text only')
     assert(provider.description:find('local voice', 1, true) and provider.description:find('until no conversation is running', 1, true))

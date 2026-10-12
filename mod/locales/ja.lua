@@ -612,7 +612,7 @@ return {
     ["Your key: no room for memory"] = "キー：メモリの空きなし",
     ["Your own key, without memory"] = "自分のキー、メモリなし",
     ["Choose one of the listed conversation providers."] = "一覧に表示された会話プロバイダーから1つ選んでください。",
-    ["Convai"] = "Convai",
+    ["Convai free tier"] = "Convai（無料プラン）",
     ["Convai: Mistral has no key yet"] = "Convai：Mistral キーは未設定",
     ["Conversation provider"] = "会話プロバイダー",
     ["Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer. You can also save it in the file player-mistral-key.txt in the conversation service folder."] = "先に Mistral で無料のキーをコピーしてください。クリップボードから一度だけ読み取られ、Mistral で確認された後、このコンピューターに保存されます。会話サービスのフォルダー内にある player-mistral-key.txt ファイルに保存することもできます。",

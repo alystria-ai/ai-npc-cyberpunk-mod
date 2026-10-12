@@ -612,7 +612,7 @@ return {
     ["Your key: no room for memory"] = "Anahtarın: bellek için yer yok",
     ["Your own key, without memory"] = "Kendi anahtarın, bellek olmadan",
     ["Choose one of the listed conversation providers."] = "Listedeki konuşma sağlayıcılarından birini seç.",
-    ["Convai"] = "Convai",
+    ["Convai free tier"] = "Convai (ücretsiz plan)",
     ["Convai: Mistral has no key yet"] = "Convai: Mistral için henüz anahtar yok",
     ["Conversation provider"] = "Konuşma sağlayıcısı",
     ["Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer. You can also save it in the file player-mistral-key.txt in the conversation service folder."] = "Önce Mistral'den ücretsiz anahtarını kopyala. Panodan bir kez okunur, Mistral ile doğrulanır ve bu bilgisayarda kaydedilir. Ayrıca konuşma servisi klasöründeki player-mistral-key.txt dosyasına da kaydedebilirsin.",

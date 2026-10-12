@@ -164,10 +164,10 @@
     "Confirm memory clear": "Confirm memory clear",
     "Connecting microphone - wait for Listening": "Connecting microphone - wait for Listening",
     "Continue from game dialogue": "Continue from game dialogue",
-    "Convai": "Convai",
     "Convai API key": "Convai API key",
     "Convai did not accept that key.": "Convai did not accept that key.",
     "Convai did not accept your API key. Check it in Settings > Development.": "Convai did not accept your API key. Check it in Settings > Development.",
+    "Convai free tier": "Convai free tier",
     "Convai voice": "Convai voice",
     "Convai voices · Local model unloaded": "Convai voices · Local model unloaded",
     "Convai · Cloud voice": "Convai · Cloud voice",
@@ -1041,7 +1041,7 @@
       "5 cm lower",
       "Above the speaker",
       "Cinematic subtitles",
-      "Convai",
+      "Convai free tier",
       "Default",
       "Eyes only",
       "Gentle (default)",
@@ -2600,12 +2600,12 @@
         "mod/mcm.lua:1025"
       ]
     },
-    "Convai": {
+    "Convai free tier": {
       "contexts": [
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:732"
+        "mod/mcm.lua:821"
       ]
     },
     "Convai API key": {

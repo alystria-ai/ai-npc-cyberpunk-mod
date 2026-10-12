@@ -612,7 +612,7 @@ return {
     ["Your key: no room for memory"] = "Twój klucz: brak miejsca na pamięć",
     ["Your own key, without memory"] = "Własny klucz, bez pamięci",
     ["Choose one of the listed conversation providers."] = "Wybierz jednego z podanych dostawców rozmów.",
-    ["Convai"] = "Convai",
+    ["Convai free tier"] = "Convai (darmowy plan)",
     ["Convai: Mistral has no key yet"] = "Convai: Mistral nie ma jeszcze klucza",
     ["Conversation provider"] = "Dostawca rozmów",
     ["Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer. You can also save it in the file player-mistral-key.txt in the conversation service folder."] = "Najpierw skopiuj swój darmowy klucz z serwisu Mistral. Zostanie odczytany ze schowka raz, sprawdzony przez Mistral i zapisany na tym komputerze. Możesz też zapisać go w pliku player-mistral-key.txt w folderze usługi rozmów.",

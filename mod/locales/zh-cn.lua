@@ -612,7 +612,7 @@ return {
     ["Your key: no room for memory"] = "你的密钥：没有记忆余量",
     ["Your own key, without memory"] = "你自己的密钥，无记忆",
     ["Choose one of the listed conversation providers."] = "从列出的对话提供方中选择一个。",
-    ["Convai"] = "Convai",
+    ["Convai free tier"] = "Convai（免费套餐）",
     ["Convai: Mistral has no key yet"] = "Convai：尚未设置 Mistral 密钥",
     ["Conversation provider"] = "对话提供方",
     ["Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer. You can also save it in the file player-mistral-key.txt in the conversation service folder."] = "请先从 Mistral 复制你的免费密钥。它会从剪贴板读取一次，经 Mistral 验证后保存在这台电脑上。你也可以把它保存在对话服务文件夹中的 player-mistral-key.txt 文件里。",
