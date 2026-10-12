@@ -25,7 +25,7 @@ end
 -- What one companion is doing, as one short word, from the raw inputs companions.activityInputs keeps (all values the companion
 -- modules already hold; nothing is read from the game here):
 --   input = {transport = {owned, phase, seat, mountedSeat}, tactic = {kind, phase}, seating = <phase>, behavior = <phase>}
--- following | standing | combat | to-seat | seated | getting-up | passenger | driving | boarding | leaving-car | distracting | attacking
+-- following | standing | combat | to-seat | seated | getting-up | passenger | driving | boarding | leaving-car | attacking
 local DRIVER_SEAT = 'seat_front_left'
 local LEAVING = {leaving = true, unmounting = true, ['waiting-for-native-exit'] = true, ['waiting-for-native-dismount'] = true,
     ['exit-failed'] = true, ['recovery-failed'] = true}
@@ -48,10 +48,7 @@ function M.classify(input)
         if BOARDING[phase] then return 'boarding' end
     end
     local tactic = input.tactic
-    if type(tactic) == 'table' and tactic.phase ~= 'returning' and tactic.phase ~= 'waiting' then
-        if tactic.kind == 'distract' then return 'distracting' end
-        if tactic.kind == 'fight' then return 'attacking' end
-    end
+    if type(tactic) == 'table' and tactic.kind == 'fight' then return 'attacking' end
     local seating = input.seating
     if SEATED[seating] then return 'seated' end
     if GETTING_UP[seating] then return 'getting-up' end

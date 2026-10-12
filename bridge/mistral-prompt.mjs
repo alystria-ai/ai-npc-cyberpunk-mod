@@ -165,7 +165,7 @@ export function capContext(context, limit = LIMITS.context) {
  *   contextParts   {now, notes, world, volatile} strings (layout v2): the context split by how often it changes
  *   remembered     [{text}] what the memory store retrieved for this turn (layout v2 only; ambient and group turns pass none)
  *   text           V's message, or for a reaction the event text
- *   reaction       true for an automatic battle / loot / distraction line: `text` is then an event, not something V said
+ *   reaction       true for an automatic battle / loot line: `text` is then an event, not something V said
  */
 // The "you are with V in person ..." sentence of the right-now block (bridge/turn-context.mjs).
 const HERE = /You are with V in person[^.]*\./;

@@ -20,9 +20,7 @@ Gates:
 | Auto-connect scan and look counting | Uses `profileIdentity`: named and story characters have no key, so they are skipped. |
 | Passive gaze response | Only our own companions (`companions.owns`). An ordinary NPC is faced toward V when the player starts a conversation. |
 | `beginFocus` (look-at hold, bark muting) | Refuses unless the NPC is ours or the talk path resolved a profile for it. |
-| Tactic target (`companion-marking.lua`) | `protected` NPCs are never targets (`story-character`). |
-| Tactic perception and attitude changes (`tactic-perception.lua`) | `protected` NPCs near the target are never tracked or changed. |
-| Distract voice | Needs a profile (`tacticEnv.identify`), so none for a named or story character. |
+| Tactic target (`companion-marking.lua`) | `protected` NPCs are never aimed or nearest targets (`story-character`); a tagged one only when already hostile to V and in combat. |
 | Follow offer | `unavailable`: the character declines in character; nothing is armed. |
 | Face rebuild (`ConvaiFaceRequest`), cars, gestures, idle pools, seating, recovery | Reached only from a conversation (face) or only iterate our own party entries. |
 

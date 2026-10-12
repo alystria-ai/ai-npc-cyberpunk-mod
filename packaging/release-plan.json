@@ -378,10 +378,6 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-adoption.lua"
         },
         {
-          "source": "mod/tactic-perception.lua",
-          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/tactic-perception.lua"
-        },
-        {
           "source": "mod/companion-chauffeur.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-chauffeur.lua"
         },
@@ -531,7 +527,6 @@
             "bridge/convai-quota.mjs",
             "bridge/conversation-style.mjs",
             "bridge/dialogue-level.mjs",
-            "bridge/distraction-context.mjs",
             "bridge/emotion-analysis.mjs",
             "bridge/emotion-lexicon.mjs",
             "bridge/emotion-selector.mjs",

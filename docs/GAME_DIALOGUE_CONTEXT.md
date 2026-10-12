@@ -115,7 +115,7 @@ otherwise use"), so Multilingual conversations still decides the reply language.
 5. A chosen option is dropped when V's voiced line for it follows within 12 seconds.
 6. At most 14 lines and 1,600 characters, newest kept.
 
-Automatic battle, loot and distraction reactions never receive the block; they
+Automatic battle and loot reactions never receive the block; they
 keep their single subject.
 
 ## Prompt text

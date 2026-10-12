@@ -90,11 +90,11 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `voice-fallback` | Player | {requested} is not ready yet. Companions are using {voice} for now. | The chosen OmniVoice failed or timed out; the bridge keeps the next voice and loads OmniVoice again in the background. Once per episode. The switch back at an idle reply boundary posts nothing | 600 |
 | `voice-switched` | Developer | Natural speech needs a local voice, so Companion voices was switched to {voice}. (and the Expressive emotions, Multilingual variants); The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off. | After a Settings Apply that changed the voice, or that turned the tag settings off because the cloud voice was chosen (not when only the Expressive emotions default was on); the Settings status line already says it | none |
 | `action-rejected` | Player | The driving request could not be queued. / That action is not available. / Your companion could not start that. / The target changed. Ask again. / Step out of the vehicle first. / the action's reason | A companion action the character agreed to was refused | 15 |
-| `action-queued` | Developer | {name} is going to distract {target}. | A companion action was accepted | none |
+| `action-queued` | Developer | {name} is going after {target}. | A companion action was accepted | none |
 | `party-stop-trip` | Player | Stopping the trip. Wait for the car to stop before stepping out. | Stop trip pressed in the Manager | 15 |
 | `trip-failed` | Player | The trip's error or failure reason | A driving trip failed | 15 |
 | `trip-guidance` | Developer | Your companion is driving to the selected waypoint. / Your companion is ready. Get in the passenger seat to start the trip. / The car has stopped. Step out so your companion can leave the driver seat. | Driving steps | none |
-| `tactic-outcome` | Developer | {name} called off the distraction. / The distraction target is gone. / The distraction fell apart: combat started. / {name} could not reach the target. / {name} could not engage the target. | A companion tactic ended | none |
+| `tactic-outcome` | Developer | {name} could not engage the target. | A companion tactic ended | none |
 | `support-report-saved` | Developer | Support report saved: {path} | A Help report finished | once |
 
 ## Adding a notice

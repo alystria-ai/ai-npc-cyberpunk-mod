@@ -20,7 +20,7 @@ const ACTIVITIES = {
   'to-seat': [', walking over to sit down beside V', 'in'], seated: [', sitting beside V', 'in'],
   'getting-up': [', getting up from your seat beside V', 'in'], passenger: [", riding along in V's vehicle", 'through'],
   driving: [", driving V's vehicle", 'through'], boarding: [", getting into V's vehicle", 'in'],
-  'leaving-car': [", getting out of V's vehicle", 'in'], distracting: [', off distracting someone for V', 'in'],
+  'leaving-car': [", getting out of V's vehicle", 'in'],
   attacking: [', going after a target V picked', 'in']};
 const MOTIONS = {still: 'standing still', walking: 'walking', running: 'running'};
 const GENDERS = {female: 'a woman (she/her)', male: 'a man (he/him)'};
