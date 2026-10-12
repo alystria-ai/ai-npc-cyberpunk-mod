@@ -384,7 +384,7 @@ test('the module is on demand only: no frame hook, no observer, no file, no time
   assert.match(source, /^local M = \{\}/m);
   assert.match(source, /pcall\(self\.read, self\)/);
   // Weather, health and heat are not read: their CET calls are unconfirmed.
-  assert.doesNotMatch(source.split('\n').map(row => row.replace(/--.*$/, '')).join('\n'), /Weather|StatPoolsSystem|GetStatPool|HeatStage/);
+  assert.doesNotMatch(source.split(/\r?\n/).map(row => row.replace(/--.*$/, '')).join('\n'), /Weather|StatPoolsSystem|GetStatPool|HeatStage/);
 });
 
 test('every manual in-person send path captures the block; reactions never do, and the phone does not yet', () => {
