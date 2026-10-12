@@ -648,6 +648,8 @@ export class VoiceSelection {
       if (this.provider === 'convai') return remote(this.convaiReason(profile));
       if (this.client !== client) continue;
       if (!this.hasProfile(profile)) return remote('unavailable');
+      // The cloud voice's reference clip is read, cut and encoded now, so the first Voxtral request does not wait for it.
+      if (this.cloudActive && this.voxtral?.ready) void this.voxtral.reference(profile);
       return {...receipt,provider:this.provider};
     }
   }

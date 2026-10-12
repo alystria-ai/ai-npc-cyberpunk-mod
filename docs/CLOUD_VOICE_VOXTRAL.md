@@ -117,6 +117,26 @@ Performance for now." for a temporary one (a timeout, a limit) and "... is unava
 instead." for a permanent one (no key). It reuses the existing `voice-fallback` notice; the bridge publishes it as
 `fallback: {from: 'voxtral', to: 'pocket', temporary, reason}` in `runtime/local-voice-state.json`.
 
+## Reference size (2026-10-12)
+
+The clip is sent with every request, so its size is most of the wait for first audio on a slow uplink: the 13 s 24 kHz long clip is
+857 KB in the body (headers back after about 1.4 s); a 16 kHz mono clip cut to 8 s is 354 KB (about 0.9 to 1.3 s); the same as a 64 kbit/s
+MP3 is 89 KB (about 0.6 s). `bridge/voxtral-reference.mjs` prepares the clip once per character and `VoxtralVoice` sends that:
+
+- Mono, 16 kHz, cut to about 8.5 s at the quietest moment of the last 2.5 s (a pause, not a word), 5 ms fade; a clip that is already
+  short is not cut. Pure JavaScript (about 265 KB for a 13 s clip).
+- With ffmpeg on the machine (`ffmpeg` on the path, or `CYBERPUNK_CONVAI_FFMPEG`) the same clip is also encoded as a 64 kbit/s MP3
+  (about 67 KB) and sent with `format: 'mp3'`. Without ffmpeg the 16 kHz WAV is sent. An MP3 that is not an MP3 or not smaller is not used.
+- Kept on disk in `<references>/prepared/<character>.wav|mp3` with a `.json` naming the source clip's sha256 and the settings: done
+  once per character, redone when the clip or the settings change, a cache that cannot be written is ignored. The reference is prepared
+  when the voice is warmed, not on the first request (about 0.3 s of the bridge's time for one character).
+- The timing record shows `voiceReferenceBytes` (the size sent) and `voiceReferenceFormat`.
+- `CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE=1` sends the clips whole, as before. Any failure in preparation sends the whole clip.
+- Does the clone stay the same? Six real calls (the same sentence, Judy): ECAPA similarity to the original reference 0.50 and 0.65
+  (full clip), 0.58 and 0.57 (cut 16 kHz), 0.58 and 0.51 (cut MP3): inside the call-to-call spread. Listen to the files named in
+  `docs/LATENCY_2026-10-12.md`.
+- Not done: shipping pre-encoded MP3 clips with the mod (players without ffmpeg only get the smaller WAV).
+
 ## One shared Mistral scheduler
 
 Text replies, speech and background memory work share one Mistral key, so they share one allowance.

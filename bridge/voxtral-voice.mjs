@@ -242,10 +242,10 @@ export class VoxtralVoice {
    */
   constructor({getKey, referenceRoot, registry, onChange = () => {}, onLog = () => {}, fetchImpl = globalThis.fetch,
     read = readFile, list = readdir, endpoint = VOXTRAL_ENDPOINT, limits = {}, setTimer = setTimeout, clearTimer = clearTimeout,
-    now = () => performance.now(), clock = Date.now, scheduler = mistralScheduler} = {}) {
+    now = () => performance.now(), clock = Date.now, scheduler = mistralScheduler, prepare} = {}) {
     if (typeof getKey !== 'function') throw Error('Invalid Voxtral configuration');
     Object.assign(this, {getKey, referenceRoot, registries: [].concat(registry ?? []).filter(Boolean), onChange, onLog, fetchImpl, read, list, endpoint,
-      setTimer, clearTimer, now, clock, scheduler});
+      setTimer, clearTimer, now, clock, scheduler, prepare});
     this.limits = Object.freeze({...VOXTRAL_LIMITS, ...limits});
     this.references = new Map();      // voice key -> Promise<{base64, bytes, seconds}|null>
     this.owner = randomBytes(16).toString('hex'); this.sequence = 0;
@@ -288,9 +288,19 @@ export class VoxtralVoice {
    * joined up to the working length. A voice with none of these has no reference (the caller uses Pocket).
    */
   async build(key) {
-    const finish = (bytes, source) => {
+    // `prepare` (bridge/voxtral-reference.mjs): a smaller clip to send instead (every request carries the reference, and the upload is
+    // most of the first-audio wait). A clip it cannot make smaller is sent as it is.
+    const finish = async (bytes, source, sha256) => {
       bytes = capWav(bytes, this.limits.maxReferenceSeconds);
-      return bytes.length > this.limits.maxReferenceBytes ? null : {base64: bytes.toString('base64'), bytes: bytes.length, source};
+      if (this.prepare) {
+        try {
+          const made = await this.prepare(bytes, {key, ...(sha256 ? {sha256} : {})});
+          if (made?.bytes?.length && made.bytes.length < bytes.length) {
+            return {base64: made.bytes.toString('base64'), bytes: made.bytes.length, source, format: made.format, originalBytes: bytes.length, cached: made.cached === true};
+          }
+        } catch { /* the clip is sent as it is */ }
+      }
+      return bytes.length > this.limits.maxReferenceBytes ? null : {base64: bytes.toString('base64'), bytes: bytes.length, source, format: 'wav'};
     };
     if (!this.referenceRoot) return null;
     const root = resolve(this.referenceRoot);
@@ -306,7 +316,7 @@ export class VoxtralVoice {
         if (bytes.length > this.limits.maxReferenceBytes * 4) continue;
         // The registry carries the file's hash: a changed file is not the reference that was validated.
         if (entry.sha256 && createHash('sha256').update(bytes).digest('hex') !== entry.sha256) continue;
-        const found = finish(bytes, REFERENCE_SOURCES[index] ?? 'registry');
+        const found = await finish(bytes, REFERENCE_SOURCES[index] ?? 'registry', entry.sha256 || undefined);
         if (found) return found;
       } catch { /* this entry's file is unusable: try the next source */ }
     }
@@ -329,7 +339,7 @@ export class VoxtralVoice {
       if (seconds >= this.limits.extractedTargetSeconds) break; // enough to join: the rest are not read
     }
     const joined = joinWavs(clips, {targetSeconds: this.limits.extractedTargetSeconds, maxSeconds: this.limits.maxReferenceSeconds});
-    return joined ? finish(joined, 'extracted') : null;
+    return joined ? await finish(joined, 'extracted') : null;
   }
 
   /**
@@ -402,7 +412,7 @@ export class VoxtralVoice {
         duration: delivered / VOXTRAL_RATE, modelSha256: MODEL_ID, truncated,
         timing: {voiceProvider: 'pocket', voiceEngine: 'voxtral', voiceCloud: true, voiceWarm: true,
           voiceFirstPcmReceivedMs: first.firstMs, voiceGenerationMs: this.now() - started, voiceRoundTripMs: this.now() - started,
-          voiceQueueMs: first.sentAt - queued, voiceReferenceBytes: reference.bytes, voiceReferenceSource: reference.source,
+          voiceQueueMs: first.sentAt - queued, voiceReferenceBytes: reference.bytes, voiceReferenceSource: reference.source, voiceReferenceFormat: reference.format,
           voiceRequests: parts.length, ...(truncated ? {voiceTruncated: true} : {})}};
     };
     const logFirst = first => this.log(`first audio ${Math.round(first.firstMs)}ms, chars ${text.length}`
