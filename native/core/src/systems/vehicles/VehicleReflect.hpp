@@ -103,17 +103,17 @@ bool CallId(Slot& aSlot, const Object& aObject, const char* aName, uint64_t& aOu
 bool CallObject(Slot& aSlot, const Object& aObject, const char* aName, Object& aOut,
                 std::initializer_list<void*> aArgs = {});
 
-// A GameInstance.<Something>(gameInstance) global such as "GetMountingFacility;GameInstance":
-// the system handle, or empty when the function or the world is missing. The exact name is tried
-// first; the game registers its script globals as "Name;GameInstance" but a native global may be
-// registered under another full name, so a miss falls back to the global function whose short name
-// is the text before the ';' and whose one parameter is a ScriptGameInstance.
+// A GameInstance.<Something>(gameInstance) system getter named like "GetMountingFacility;GameInstance"
+// (the text after the ';' is ignored): the system handle, or empty when the function or the world is
+// missing. The game declares these as native static functions of the class GameInstance, not as global
+// functions (the first live run found no global of that name); convai::game::GameSystem finds them
+// there, logs the route it used once, and falls back to the instance's own system lookup.
 Object GlobalSystem(const char* aFunctionName);
 
-// A static function of a class or of the nearest base class that declares it
-// (NPCPuppet.IsInCombat is declared on ScriptedPuppet, PlayerPuppet.GetCurrentVehicleState on PlayerPuppet),
-// with exactly aParamCount parameters, resolved once. Null when there is none. aClassName is the game's
-// native class name (script-defined classes have no other name).
+// A static function of a class or of the nearest base class that declares it, with exactly aParamCount
+// parameters, resolved once. The name is matched as a script name (convai::game::FunctionIs): the game
+// registers NPCPuppet's static IsInCombat(puppet) as "IsInCombat;ScriptedPuppet". Null when there is none.
+// aClassName is the game's native class name (script-defined classes have no other name).
 RED4ext::CBaseFunction* StaticFunction(const char* aClassName, const char* aName, uint32_t aParamCount);
 
 // The numeric value of an enum member by its name ("Passenger"), -1 when the enum or member is unknown.

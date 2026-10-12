@@ -8,11 +8,14 @@
 // retry. Only the construction of the event, about 40 CET calls, moves native.
 //
 //   style         "full" (soft 70 / hard 120 degrees, head weight 0.18) or any other non-"none"
-//                 style such as "side" (soft 45 / hard 100, head weight 0.05)
+//                 style such as "side" (soft 45 / hard 100, head weight 0.05). A seated request is
+//                 wider (full 100 / 150, other 60 / 120, back 150: a passenger sits side by side with V,
+//                 about 90 degrees off her axis) and is solved in the car's space (parentSpace)
 //   height        eye-contact height in metres, already bounded and mood-adjusted by Lua; 0 means
 //                 no world offset is written (the provider's default stays)
 //   strength      head-follow strength, already bounded by Lua; scales the head weight
-//   seated        true leaves the chest part out (the passenger animation's hand-on-knee constraints)
+//   seated        true leaves the chest part out (the passenger animation's hand-on-knee constraints),
+//                 widens the limits and sets calculatePositionInParentSpace
 
 namespace convai::gaze
 {
@@ -33,6 +36,7 @@ struct LookPlan
     double hardLimitDegrees = 0.0;
     double backLimitDegrees = 0.0;
     double hardLimitDistance = 0.0;
+    bool parentSpace = false;    // request.calculatePositionInParentSpace (seated only)
     bool hasWorldOffset = false; // height ~= 0 (true for NaN, as in Lua)
     double worldOffsetZ = 0.0;
     int partCount = 0;

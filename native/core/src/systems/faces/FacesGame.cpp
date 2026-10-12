@@ -61,11 +61,12 @@ const Layout& LayoutFor(RED4ext::IScriptable* aFeature)
     return g_layout;
 }
 
-// A static function of a class (NPCPuppet.IsInCombat), no instance.
+// A static function of a class (NPCPuppet.IsInCombat, registered as "IsInCombat;ScriptedPuppet"), no
+// instance; found by script name and parameter count.
 template<typename TOut, typename... TArgs>
 bool CallStatic(const char* aClass, const char* aFunction, TOut* aOut, TArgs&&... aArgs)
 {
-    auto* function = convai::game::Method(convai::game::Class(aClass), aFunction);
+    auto* function = convai::game::StaticFunction(aClass, aFunction, static_cast<uint32_t>(sizeof...(TArgs)));
     if (!function)
     {
         return false;
@@ -179,9 +180,9 @@ int SafeCheck(const Object& aActor)
     {
         return -1;
     }
-    Object sceneSystem;
-    RED4ext::ScriptGameInstance gameInstance;
-    if (!RED4ext::ExecuteGlobalFunction("GetSceneSystem;GameInstance", &sceneSystem, gameInstance) || !sceneSystem)
+    // GameInstance.GetSceneSystem is a static function of the class GameInstance, not a global function.
+    Object sceneSystem = convai::game::GameSystem("GetSceneSystem");
+    if (!sceneSystem)
     {
         return -1;
     }
@@ -253,7 +254,7 @@ std::string InfoJson()
         return aClass && aClass->GetFunction(aName) != nullptr;
     };
     RED4ext::CClass* status = rtti ? rtti->GetClass("StatusEffectSystem") : nullptr;
-    const bool sceneGlobal = rtti && rtti->GetFunction("GetSceneSystem;GameInstance") != nullptr;
+    const bool sceneGlobal = convai::game::GameSystem("GetSceneSystem") ? true : false;
     char text[640];
     std::snprintf(text, sizeof(text),
                   "{\"featureClass\":%s,\"fields\":%d,\"baseTrackFields\":%d,\"apply\":%s,\"ready\":%s,"
@@ -262,7 +263,7 @@ std::string InfoJson()
                   feature ? "true" : "false", fields, base, has(puppet, "ConvaiFaceApply") ? "true" : "false",
                   has(puppet, "ConvaiFaceReady") ? "true" : "false", has(puppet, "IsAttached") ? "true" : "false",
                   has(puppet, "IsDeadNoStatPool") ? "true" : "false", has(puppet, "IsOnAutonomousAI") ? "true" : "false",
-                  has(puppet, "IsInCombat") ? "true" : "false", has(puppet, "GetEntityID") ? "true" : "false",
+                  convai::game::StaticFunction("NPCPuppet", "IsInCombat", 1) ? "true" : "false", has(puppet, "GetEntityID") ? "true" : "false",
                   sceneGlobal ? "true" : "false", has(status, "ObjectHasStatusEffectWithTag") ? "true" : "false");
     return text;
 }

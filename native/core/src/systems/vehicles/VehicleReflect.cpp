@@ -34,12 +34,11 @@ namespace
 // log line of a miss (an overload with other parameters is the usual reason).
 std::string Candidates(CClass* aType, const char* aName)
 {
-    const RED4ext::CName name(aName);
     std::string text;
     for (CClass* type = aType; type; type = type->parent)
     {
         auto note = [&](const CBaseFunction* aFunction) {
-            if (aFunction && aFunction->shortName == name)
+            if (aFunction && convai::game::FunctionIs(aFunction, aName))
             {
                 text += text.empty() ? "" : ", ";
                 text += std::to_string(aFunction->params.Size()) + (aFunction->flags.isStatic ? " static on " : " member on ");
@@ -65,12 +64,11 @@ CBaseFunction* FindMember(CClass* aType, const char* aName, uint32_t aParamCount
     {
         return nullptr;
     }
-    const RED4ext::CName name(aName);
     for (CClass* type = aType; type; type = type->parent)
     {
         for (RED4ext::CClassFunction* function : type->funcs)
         {
-            if (function && function->shortName == name && !function->flags.isStatic &&
+            if (function && convai::game::FunctionIs(function, aName) && !function->flags.isStatic &&
                 function->params.Size() == aParamCount)
             {
                 return function;
@@ -343,136 +341,22 @@ bool CallObject(Slot& aSlot, const Object& aObject, const char* aName, Object& a
     return Call(aSlot, aObject, aName, &value, aArgs) && value.Handle(aOut);
 }
 
-namespace
-{
-// The global function for a "Name;GameInstance" style name. Hits only are cached.
-CBaseFunction* ResolveGlobal(const char* aFunctionName)
-{
-    static std::unordered_map<std::string, CBaseFunction*> functions;
-    auto found = functions.find(aFunctionName);
-    if (found != functions.end())
-    {
-        return found->second;
-    }
-    auto* rtti = RED4ext::CRTTISystem::Get();
-    if (!rtti)
-    {
-        return nullptr;
-    }
-    CBaseFunction* function = rtti->GetFunction(RED4ext::CName(aFunctionName));
-    if (function && function->params.Size() != 1)
-    {
-        function = nullptr;
-    }
-    if (!function)
-    {
-        // Another full name for the same global: match the short name and the one GameInstance parameter.
-        std::string shortText(aFunctionName);
-        const size_t semicolon = shortText.find(';');
-        if (semicolon != std::string::npos)
-        {
-            shortText.resize(semicolon);
-        }
-        const RED4ext::CName shortName(shortText.c_str());
-        RED4ext::DynArray<CBaseFunction*> all;
-        rtti->GetGlobalFunctions(all);
-        for (CBaseFunction* candidate : all)
-        {
-            if (candidate && (candidate->shortName == shortName || candidate->fullName == shortName) &&
-                candidate->params.Size() == 1 && candidate->params[0] && candidate->params[0]->type &&
-                std::strcmp(candidate->params[0]->type->GetName().ToString(), "ScriptGameInstance") == 0)
-            {
-                function = candidate;
-                CONVAI_INFO("Vehicles: global %s resolved as %s", aFunctionName, candidate->fullName.ToString());
-                break;
-            }
-        }
-    }
-    if (function)
-    {
-        functions.emplace(aFunctionName, function);
-    }
-    else if (FirstMiss(std::string("global ") + aFunctionName))
-    {
-        CONVAI_WARN("Vehicles: global function %s not found", aFunctionName);
-    }
-    return function;
-}
-} // namespace
-
 Object GlobalSystem(const char* aFunctionName)
 {
-    CBaseFunction* function = ResolveGlobal(aFunctionName);
-    if (!function)
+    // "GetMountingFacility;GameInstance" -> GameInstance.GetMountingFacility, which the game declares as a
+    // static function of the class GameInstance (not a global function; see convai::game::GameSystem).
+    std::string shortName(aFunctionName ? aFunctionName : "");
+    const size_t semicolon = shortName.find(';');
+    if (semicolon != std::string::npos)
     {
-        return {};
+        shortName.resize(semicolon);
     }
-    RED4ext::ScriptGameInstance gameInstance;
-    Value value;
-    if (!value.Prepare(function))
-    {
-        return {};
-    }
-    RED4ext::StackArgs_t args;
-    args.emplace_back(nullptr, &gameInstance);
-    if (!RED4ext::ExecuteFunction(static_cast<void*>(nullptr), function, value.Data(), args))
-    {
-        return {};
-    }
-    Object system;
-    value.Handle(system);
-    return system;
+    return convai::game::GameSystem(shortName.c_str());
 }
 
 CBaseFunction* StaticFunction(const char* aClassName, const char* aName, uint32_t aParamCount)
 {
-    static std::unordered_map<std::string, CBaseFunction*> functions;
-    const std::string key = std::string(aClassName) + "." + aName + "/" + std::to_string(aParamCount);
-    auto found = functions.find(key);
-    if (found != functions.end())
-    {
-        return found->second;
-    }
-    CClass* type = convai::game::Class(aClassName);
-    const RED4ext::CName name(aName);
-    CBaseFunction* function = nullptr;
-    // The nearest class that declares a static function of that name and parameter count: the game
-    // declares NPCPuppet's IsInCombat(puppet) on ScriptedPuppet, next to a member IsInCombat().
-    for (CClass* cls = type; cls && !function; cls = cls->parent)
-    {
-        for (RED4ext::CClassStaticFunction* candidate : cls->staticFuncs)
-        {
-            if (candidate && candidate->shortName == name && candidate->params.Size() == aParamCount)
-            {
-                function = candidate;
-                break;
-            }
-        }
-        if (function)
-        {
-            break;
-        }
-        for (RED4ext::CClassFunction* candidate : cls->funcs)
-        {
-            if (candidate && candidate->flags.isStatic && candidate->shortName == name &&
-                candidate->params.Size() == aParamCount)
-            {
-                function = candidate;
-                break;
-            }
-        }
-    }
-    if (function)
-    {
-        functions.emplace(key, function);
-    }
-    else if (FirstMiss(key))
-    {
-        CONVAI_WARN("Vehicles: no static function %s.%s with %u parameters (%s)", aClassName, aName,
-                    static_cast<unsigned>(aParamCount),
-                    type ? ("has: " + Candidates(type, aName)).c_str() : "the class is not known");
-    }
-    return function;
+    return convai::game::StaticFunction(aClassName, aName, aParamCount);
 }
 
 int64_t EnumValue(const char* aEnumName, const char* aMemberName)
