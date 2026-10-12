@@ -1,0 +1,155 @@
+// The character editor's local web server (docs/CHARACTER_EDITOR.md). It does not exist until the player opens the editor from the
+// settings, and it is closed again by the Close button, after a quiet half hour, or when the service stops: while it is closed it costs
+// nothing (no listener, no timer).
+//
+// Safety, in the order a request meets it:
+//   - it listens on 127.0.0.1 only, on a port the system picks;
+//   - the Host header must be exactly that address and port (a page on another site cannot reach it through DNS tricks);
+//   - the page needs a random per-session code in its address; the page script then sends the same code in a header on every call
+//     (a header the browser never sends on its own, so another site cannot forge a call), compared in constant time;
+//   - a call that carries an Origin must come from this server's own origin;
+//   - JSON bodies only, at most 128 KiB; only the character keys of the roster are accepted, and no file name is ever built from input;
+//   - the page runs under a policy that allows this one script and style and connects to nothing but this server.
+import {createServer} from 'node:http';
+import {randomBytes, timingSafeEqual} from 'node:crypto';
+import {renderEditorPage} from './character-editor-page.mjs';
+import {EditorError} from './character-editor.mjs';
+
+const BODY_LIMIT = 128 * 1024;
+const STRING_LIMITS = {entries: 400, key: 400, value: 1200};
+const equal = (a, b) => {
+  const x = Buffer.from(String(a ?? '')), y = Buffer.from(String(b ?? ''));
+  return x.length === y.length && timingSafeEqual(x, y);
+};
+/** The translations the game sent: {English source: translated}, plain strings only and bounded. */
+export function cleanStrings(value) {
+  const out = {};
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return out;
+  let count = 0;
+  for (const [source, text] of Object.entries(value)) {
+    if (!source || source === '__proto__' || typeof text !== 'string' || source.length > STRING_LIMITS.key || text.length > STRING_LIMITS.value || !text.trim()) continue;
+    if (++count > STRING_LIMITS.entries) break;
+    out[source] = text;
+  }
+  return out;
+}
+
+export class EditorServer {
+  /**
+   *   editor     CharacterEditor
+   *   idleMs     quiet time after which the server closes itself
+   *   log        (message) => void
+   */
+  constructor({editor, idleMs = 30 * 60 * 1000, log = () => {}, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
+    Object.assign(this, {editor, idleMs, log, setTimer, clearTimer});
+    this.server = null; this.starting = null; this.token = ''; this.port = 0; this.idle = null;
+    this.strings = {}; this.language = 'en';
+  }
+  get running() { return !!this.server; }
+  /** The address of the page, or null when the server is closed. */
+  get url() { return this.server ? `http://127.0.0.1:${this.port}/editor?t=${this.token}` : null; }
+
+  /** Starts the server (or, when it already runs, only refreshes the translations) and resolves to the page address. */
+  async start({strings = {}, language = 'en'} = {}) {
+    this.strings = cleanStrings(strings);
+    this.language = typeof language === 'string' && /^[A-Za-z0-9-]{2,12}$/.test(language) ? language : 'en';
+    if (this.server) { this.#touch(); return this.url; }
+    if (this.starting) { await this.starting; return this.url; }
+    this.starting = (async () => {
+      const server = createServer((request, response) => { void this.#handle(request, response).catch(() => this.#fail(response, 500, 'internal')); });
+      server.keepAliveTimeout = 5000;
+      await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
+      server.on('error', error => this.log('editor server error: ' + (error?.code ?? error?.message)));
+      this.token = randomBytes(24).toString('base64url');
+      this.port = server.address().port; this.server = server;
+      this.#touch();
+    })();
+    try { await this.starting; } finally { this.starting = null; }
+    return this.url;
+  }
+  async stop() {
+    if (this.idle) this.clearTimer(this.idle);
+    this.idle = null;
+    const server = this.server;
+    this.server = null; this.token = ''; this.port = 0;
+    if (!server) return;
+    await new Promise(resolve => { server.close(() => resolve()); server.closeAllConnections?.(); });
+  }
+  #touch() {
+    if (this.idle) this.clearTimer(this.idle);
+    this.idle = this.setTimer(() => { this.idle = null; void this.stop(); }, this.idleMs);
+    this.idle?.unref?.();
+  }
+  #fail(response, status, code, errors) {
+    if (response.headersSent) { response.destroy(); return; }
+    this.#send(response, status, {error: code, ...(errors?.length ? {errors} : {})});
+  }
+  #send(response, status, body) {
+    const text = JSON.stringify(body);
+    response.writeHead(status, {'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(text), ...this.#headers()});
+    response.end(text);
+  }
+  #headers() {
+    return {'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY',
+      'Cross-Origin-Resource-Policy': 'same-origin', 'Cross-Origin-Opener-Policy': 'same-origin'};
+  }
+  async #body(request) {
+    if (!/^application\/json\b/i.test(request.headers['content-type'] ?? '')) throw new EditorError(415, 'bad-request');
+    const chunks = [];
+    let size = 0;
+    for await (const chunk of request) {
+      size += chunk.length;
+      if (size > BODY_LIMIT) throw new EditorError(413, 'too-large');
+      chunks.push(chunk);
+    }
+    try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || 'null'); } catch { throw new EditorError(400, 'bad-request'); }
+  }
+
+  async #handle(request, response) {
+    const origin = `http://127.0.0.1:${this.port}`;
+    if (!this.server || request.headers.host !== `127.0.0.1:${this.port}`) { response.writeHead(403).end(); return; }
+    let url;
+    try { url = new URL(request.url, origin); } catch { this.#fail(response, 400, 'bad-request'); return; }
+    if (request.method === 'GET' && url.pathname === '/editor') {
+      if (!equal(url.searchParams.get('t'), this.token)) { response.writeHead(404, this.#headers()).end(); return; }
+      this.#touch();
+      const nonce = randomBytes(16).toString('base64url');
+      const html = renderEditorPage({nonce, token: this.token, language: this.language});
+      response.writeHead(200, {'Content-Type': 'text/html; charset=utf-8', ...this.#headers(),
+        'Content-Security-Policy': `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`});
+      response.end(html);
+      return;
+    }
+    if (!url.pathname.startsWith('/api/')) { response.writeHead(404, this.#headers()).end(); return; }
+    if (!equal(request.headers['x-editor-token'], this.token)) { this.#fail(response, 401, 'unauthorized'); return; }
+    if (request.headers.origin && request.headers.origin !== origin) { this.#fail(response, 403, 'forbidden'); return; }
+    this.#touch();
+    try {
+      this.#send(response, 200, await this.#route(request, url));
+    } catch (error) {
+      if (error instanceof EditorError) this.#fail(response, error.status, error.code, error.errors);
+      else { this.log('editor request failed: ' + (error?.message ?? 'error')); this.#fail(response, 500, 'internal'); }
+    }
+  }
+
+  async #route(request, url) {
+    const method = request.method, parts = url.pathname.split('/').slice(2).map(part => { try { return decodeURIComponent(part); } catch { throw new EditorError(400, 'bad-request'); } });
+    if (method === 'GET' && parts[0] === 'state' && parts.length === 1) return {...this.editor.state(), strings: this.strings, language: this.language};
+    if (method === 'POST' && parts[0] === 'close' && parts.length === 1) { this.setTimer(() => { void this.stop(); }, 250).unref?.(); return {ok: true}; }
+    if (parts[0] !== 'character' || !parts[1]) throw new EditorError(404, 'not-found');
+    const key = parts[1], rest = parts.slice(2);
+    if (!rest.length) {
+      if (method === 'GET') return this.editor.details(key);
+      if (method === 'PUT') return this.editor.save(key, await this.#body(request));
+    } else if (rest[0] === 'reset' && rest.length === 1 && method === 'POST') {
+      const body = await this.#body(request);
+      return this.editor.reset(key, body?.fields);
+    } else if (rest[0] === 'summary' && rest.length === 1 && method === 'PUT') {
+      return this.editor.setSummary(key, (await this.#body(request))?.text);
+    } else if (rest[0] === 'memory' && rest.length === 2) {
+      if (method === 'PUT') return this.editor.editRecord(key, rest[1], (await this.#body(request))?.text);
+      if (method === 'DELETE') return this.editor.deleteRecord(key, rest[1]);
+    }
+    throw new EditorError(404, 'not-found');
+  }
+}
