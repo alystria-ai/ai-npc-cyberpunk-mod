@@ -1575,3 +1575,97 @@ test('October 9: a same-feeling stretch does not sag and lift the brows: no reve
   assert.ok(turn.eye_l_brows_lower[Math.round(1.9 / turn.dt)] > .4, 'angry before the change');
   assert.ok(turn.eye_l_brows_lower[later] < .12 && turn.eye_l_brows_raise_out[later] > .12, `anger -> joy: lower ${turn.eye_l_brows_lower[later]} raise ${turn.eye_l_brows_raise_out[later]}`);
 });
+
+// ---- the per-frame face context (mod/init.lua convaiExpressionFrame): reused tables, combat sampled at the rows' 0.1 s cadence
+const initSource = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+const frameSource = initSource.match(/do\r?\n    local EMPTY, SAMPLE = \{\}, 0\.1[\s\S]*?\r?\nend\r?\n(?=registerForEvent\('onUpdate')/)?.[0];
+function runFrame(body) {
+  const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
+  const program = `
+local clock, combatCalls, combat, rowsCalls = 0, 0, false, 0
+os.clock = function() return clock end
+local rows = {{entity = 'a'}}
+companions = {expressionActors = function() rowsCalls = rowsCalls + 1; return rows end}
+microphone = {state = 'idle'}
+local player = {IsInCombat = function() combatCalls = combatCalls + 1; if combat == 'error' then error('native') end; return combat == true end}
+${frameSource}
+${body}`;
+  const result = lauxlib.luaL_dostring(vm, to_luastring(program));
+  const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
+  lua.lua_close(vm); assert.equal(result, lua.LUA_OK, error);
+}
+
+test('the face context is one reused table: no new context or actors table per frame, and no upvalue added to onUpdate', () => {
+  assert.ok(frameSource, 'the frame function was not found in init.lua');
+  assert.match(initSource, /local expressionContext=convaiExpressionFrame\(menuPlayer,worldReady,pending\)/);
+  const update = initSource.slice(initSource.indexOf("registerForEvent('onUpdate'"));
+  assert.doesNotMatch(update.slice(0, update.indexOf("mark('init:speech')")), /local expressionContext=\{|expressionActors,expressionBlocked/);
+  runFrame(`
+local first = convaiExpressionFrame(player, true, nil)
+for _ = 1, 50 do clock = clock + 0.016; local again = convaiExpressionFrame(player, true, nil); assert(again == first, 'a new context table') end
+assert(first.actors == rows, 'the actor rows are the companion module cache itself')
+local off = convaiExpressionFrame(player, false, nil)
+assert(off == first and off.paused == true and off.blocked == true and next(off.actors) == nil, 'not ready: no rows, blocked')
+local empty = off.actors
+assert(convaiExpressionFrame(player, false, nil).actors == empty, 'the not-ready actors table is one shared table too')
+`);
+});
+
+test('V\'s combat is sampled at the rows cadence (0.1 s), at once on a party change, and a face reacts within 0.1 s as before', () => {
+  runFrame(`
+local ctx = convaiExpressionFrame(player, true, nil)
+assert(combatCalls == 1 and ctx.blocked == false)
+-- 60 frames at 16 ms (about 1 s) sample about ten times, not sixty
+for _ = 1, 60 do clock = clock + 0.016; convaiExpressionFrame(player, true, nil) end
+assert(combatCalls >= 9 and combatCalls <= 11, 'IsInCombat calls in one second: ' .. combatCalls)
+-- combat starts: the face layer is told blocked within 0.1 s
+combat = true
+local seen
+for frame = 1, 8 do clock = clock + 0.016; seen = frame; if convaiExpressionFrame(player, true, nil).blocked then break end end
+assert(convaiExpressionFrame(player, true, nil).blocked == true and seen <= 7, 'blocked after ' .. seen .. ' frames')
+-- combat ends: unblocked within 0.1 s
+combat = false
+local freed
+for frame = 1, 8 do clock = clock + 0.016; freed = frame; if not convaiExpressionFrame(player, true, nil).blocked then break end end
+assert(convaiExpressionFrame(player, true, nil).blocked == false and freed <= 7, 'unblocked after ' .. freed .. ' frames')
+-- a rebuilt rows table (the companion module's 0.1 s rebuild or a party change) is sampled at once
+combat = true; rows = {{entity = 'a'}, {entity = 'b'}}
+local before = combatCalls
+assert(convaiExpressionFrame(player, true, nil).blocked == true and combatCalls == before + 1, 'a party change was not sampled at once')
+`);
+});
+
+test('an unknown combat state blocks, a failed rows read gives no rows, and the first ready frame reads fresh', () => runFrame(`
+combat = 'error'
+local ctx = convaiExpressionFrame(player, true, nil)
+assert(ctx.blocked == true, 'an unreadable combat state blocks the faces')
+combat = false; clock = clock + 0.2
+assert(convaiExpressionFrame(player, true, nil).blocked == false)
+companions.expressionActors = function() error('native') end
+clock = clock + 0.2
+local failed = convaiExpressionFrame(player, true, nil)
+assert(next(failed.actors) == nil and failed.blocked == false, 'a failed rows read: no actors, the sampled combat state stands')
+local calls = combatCalls
+for _ = 1, 5 do clock = clock + 0.016; convaiExpressionFrame(player, true, nil) end
+assert(combatCalls == calls, 'the empty fallback is throttled by the clock, not read every frame')
+-- loading screen: forgotten, so the first ready frame samples again
+convaiExpressionFrame(player, false, nil)
+companions.expressionActors = function() return rows end
+local n = combatCalls; combat = true
+assert(convaiExpressionFrame(player, true, nil).blocked == true and combatCalls == n + 1)
+-- a clock that went backwards (a reload) does not freeze the sample
+clock = 0
+local m = combatCalls
+convaiExpressionFrame(player, true, nil)
+assert(combatCalls == m + 1)
+`));
+
+test('the thinking and listening owners still reach the face layer each frame, and clear again', () => runFrame(`
+local ctx = convaiExpressionFrame(player, true, {entity = '7ULL', requestId = 'r-1'})
+assert(ctx.thinkingEntity == '7ULL' and ctx.thinkingRequestId == 'r-1' and ctx.listeningEntity == nil)
+microphone.state = 'recording'; microphone.context = {entity = '9ULL'}
+ctx = convaiExpressionFrame(player, true, nil)
+assert(not ctx.thinkingEntity and not ctx.thinkingRequestId and ctx.listeningEntity == '9ULL')
+microphone.state = 'idle'
+assert(convaiExpressionFrame(player, true, nil).listeningEntity == nil)
+`));

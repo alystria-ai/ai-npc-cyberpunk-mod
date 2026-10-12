@@ -2476,6 +2476,39 @@ registerForEvent('onInit', function()
     end
 end)
 
+-- The face layer's per-frame context (speech.update -> facial-playback beginExpressionFrame / updateExpressions). It was a new table
+-- plus a new actors table every frame and an IsInCombat call in a pcall closure every frame (init:expressionContext about 1.1 ms/s).
+-- Now ONE context table is refilled each frame (its readers only look at it during the call and keep no reference), the actor rows
+-- already come from companions.expressionActors (rebuilt at most every 0.1 s), and V's combat state is sampled at that same 0.1 s
+-- cadence, or at once when the party's rows were rebuilt, so a face still reacts to combat within 0.1 s. Not ready: no rows, blocked,
+-- and the sample is forgotten so the first ready frame reads fresh. A global function, so onUpdate's closure gains no upvalue.
+do
+    local EMPTY, SAMPLE = {}, 0.1
+    local context = {paused = true, actors = EMPTY, blocked = true}
+    local state = {rows = nil, at = nil, blocked = true}
+    convaiExpressionFrame = function(menuPlayer, worldReady, pending)
+        context.paused = not worldReady
+        context.thinkingEntity = pending and pending.entity
+        context.thinkingRequestId = pending and pending.requestId
+        context.listeningEntity = microphone.state == 'recording' and microphone.context and microphone.context.entity or nil
+        if not worldReady then
+            state.rows, state.at, state.blocked = nil, nil, true
+            context.actors, context.blocked = EMPTY, true
+            return context
+        end
+        local sampled, rows = pcall(companions.expressionActors, menuPlayer)
+        if not sampled or type(rows) ~= 'table' then rows = EMPTY end
+        local now = os.clock()
+        -- A fresh rows table is the 0.1 s rebuild (or a party change); the clock check covers a failed or empty rows read.
+        if rows ~= state.rows or not state.at or now < state.at or now - state.at >= SAMPLE then
+            local known, inCombat = pcall(function() return menuPlayer:IsInCombat() end)
+            state.blocked = not known or inCombat == true
+            state.rows, state.at = rows, now
+        end
+        context.actors, context.blocked = rows, state.blocked
+        return context
+    end
+end
 registerForEvent('onUpdate', function(delta)
     -- Last chance for the native core plugin to bind (a global, so this closure gains no upvalue).
     if convaiNative and convaiNative.pending then pcall(convaiNative.redetect, 'onUpdate') end
@@ -2582,16 +2615,7 @@ registerForEvent('onUpdate', function(delta)
     local chatOk, chatError = pcall(phoneChat.update, menuPlayer, delta)
     if not chatOk then phoneChat.lastError = tostring(chatError) end
     mark('init:expressionContext')
-    local expressionActors,expressionBlocked={},true
-    if worldReady then
-        local sampled,rows=pcall(companions.expressionActors,menuPlayer)
-        if sampled and type(rows)=='table' then expressionActors=rows end
-        local combatKnown,inCombat=pcall(function() return menuPlayer:IsInCombat() end)
-        expressionBlocked=not combatKnown or inCombat==true
-    end
-    local expressionContext={paused=not worldReady,actors=expressionActors,blocked=expressionBlocked,
-        thinkingEntity=pending and pending.entity,thinkingRequestId=pending and pending.requestId,
-        listeningEntity=microphone.state=='recording' and microphone.context and microphone.context.entity or nil}
+    local expressionContext=convaiExpressionFrame(menuPlayer,worldReady,pending)
     mark('init:speech')
     local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0,expressionContext)
     if not speechOk then

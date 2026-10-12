@@ -393,7 +393,14 @@ Ship together: the new `mod/journal-history.lua` needs the new `bridge/journal-h
 older bridge drops the history after 600 s. `bridge/continuous-face-file.mjs` is a new bridge module (listed in
 `packaging/release-plan.json` and `packaging/runtime-layout.mjs`).
 
-Open, not done: `init:expressionContext` (about 1.1 ms/s) builds a context table and an actors table every frame
-and calls `IsInCombat()` each frame (sample at 0.1 s, as `companions.expressionActors` already does); a blocked
+Done 2026-10-13 (not yet measured live): `init:expressionContext` (about 1.1 ms/s) built a context table and an actors table
+every frame and called `IsInCombat()` in a pcall closure each frame. `convaiExpressionFrame` in `init.lua` now refills one
+context table, takes the actor rows from `companions.expressionActors` (rebuilt at most every 0.1 s) and samples `IsInCombat()`
+at that same cadence (at once when the rows were rebuilt, forgotten on a loading screen), so a face still reacts to combat
+within 0.1 s. At 60 fps that is about 10 native combat reads a second instead of 60, and no per-frame allocation. The
+`expressionActors` rebuild itself (about 0.1 ms, 10 a second) stays. Expected: roughly 0.5-0.9 of the 1.1 ms/s; confirm
+with the next probe capture.
+
+Open, not done: a blocked
 face (combat or scene) cannot sleep because the native settled test also requires "not blocked" (needs a change
 under `native/`); the mailbox poll in `face-test.lua` is all of `face.beginExpressionFrame` in the dev install.
