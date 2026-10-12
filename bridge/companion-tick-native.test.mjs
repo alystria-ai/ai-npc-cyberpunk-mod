@@ -187,8 +187,9 @@ const fakePlugin = `
   local function count(name) calls[name] = (calls[name] or 0) + 1 end
   failures = {}
   switchOn = true
-  convaiNative = {use = function(name) count('use'); return switchOn end,
-    fail = function(name, detail) failures[#failures + 1] = tostring(detail); switchOn = false end}
+  -- Only the actuator system exists in this fake plugin; the other systems stay on Lua.
+  convaiNative = {use = function(name) if name ~= 'actuator' then return false end count('use'); return switchOn end,
+    fail = function(name, detail) if name ~= 'actuator' then return end failures[#failures + 1] = tostring(detail); switchOn = false end}
   local space = MODULES['companion-space.lua']
   local capabilities = 127
   function setCapabilities(value) capabilities = value end
