@@ -252,7 +252,7 @@ function reset(wire, options)
   convaiNative.vehiclesVerify = options.verify
   convaiNative.vehiclesStats = nil
   if options.trusted ~= false then
-    convaiNative.vehiclesStats = {native = 0, lua = 0, fallback = 0, empty = 0, emptyRun = 0, verified = 99, compared = 0, mismatches = 0}
+    convaiNative.vehiclesStats = {native = 0, lua = 0, fallback = 0, empty = 0, emptyRun_inspect = 0, emptyRun_mounting = 0, verified = 99, compared = 0, mismatches = 0}
   end
 end
 function total(counts) local sum = 0 for _, value in pairs(counts) do sum = sum + value end return sum end

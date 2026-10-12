@@ -377,7 +377,7 @@ end
 local function stats(api)
     local row=api.vehiclesStats
     if type(row)~='table' then
-        row={native=0,lua=0,fallback=0,empty=0,emptyRun=0,verified=0,compared=0,mismatches=0}
+        row={native=0,lua=0,fallback=0,empty=0,emptyRun_inspect=0,emptyRun_mounting=0,verified=0,compared=0,mismatches=0}
         api.vehiclesStats=row
     end
     return row
@@ -466,9 +466,11 @@ local function active()
 end
 -- A call that answered "": count it, and give up on the plugin when it never answers.
 local function empty(api,row,name)
+    -- The run is counted per call: a good answer of one must not hide a call that is never answered.
+    local key='emptyRun_'..name
     row.empty=row.empty+1
-    row.emptyRun=row.emptyRun+1
-    if row.emptyRun>=EMPTY_LIMIT then api.fail(NATIVE,name..' keeps answering unavailable') end
+    row[key]=(row[key] or 0)+1
+    if row[key]>=EMPTY_LIMIT then api.fail(NATIVE,name..' keeps answering unavailable') end
 end
 local function mismatch(api,row,name,detail)
     row.mismatches=row.mismatches+1
@@ -489,7 +491,7 @@ function M.inspect(vehicle)
         return luaInspect(vehicle)
     end
     if text=='' then empty(api,row,'inspect'); row.lua=row.lua+1; return luaInspect(vehicle) end
-    row.emptyRun=0
+    row.emptyRun_inspect=0
     local info,aiPresent
     if type(text)=='string' then info,aiPresent=decodeInspect(text,tail) end
     if info==nil then
@@ -529,7 +531,7 @@ function M.mounting(entry)
         return luaMounting(entry)
     end
     if text=='' then empty(api,row,'mounting'); row.lua=row.lua+1; return luaMounting(entry) end
-    row.emptyRun=0
+    row.emptyRun_mounting=0
     local t=type(text)=='string' and words(text) or {}
     if t[1]~='M' or not t[2] or (t[2]~='-' and (#t~=3 or not t[2]:match('^%d+$'))) then
         api.fail(NATIVE,'mounting: unreadable reply '..tostring(text)); row.fallback=row.fallback+1
