@@ -1,6 +1,6 @@
 // Why does the Mistral cloud voice (Voxtral) sound muffled? Real-API A/B of the REFERENCE clip (docs/CLOUD_VOICE_VOXTRAL.md).
 //
-//   node scripts/Measure-VoxtralClarity.mjs <outDir> [--profile judy-alvarez] [--rounds 4] [--gap 3500] [--plan "A,C2;A,B;..."] [--nonstream]
+//   node scripts/Measure-VoxtralClarity.mjs <outDir> [--profile judy-alvarez] [--rounds 4] [--gap 3500] [--plan "A,C2;A,B;..."] [--nonstream] [--ref NAME=file]...
 //
 // Voxtral clones the recording it is given, including how far up its spectrum reaches, so the reference's bandwidth matters. Each variant
 // is one real `POST /v1/audio/speech` with the SAME line and the bridge's own body (`response_format: 'pcm'`, `stream: true`); the raw
@@ -8,15 +8,15 @@
 // send: headers, first audio chunk, first 100 ms frame, end (as the bridge logs them). Variants are interleaved round by round.
 // --nonstream makes two extra calls (response_format 'wav' and 'mp3', stream false) to compare with the streamed PCM.
 // References (what is sent as ref_audio): A 16 kHz MP3 32k (what versions 1 and 2 of bridge/voxtral-reference.mjs made), B 16 kHz MP3 64k,
-// C1 24 kHz WAV, C2 24 kHz MP3 48k, C3 24 kHz MP3 96k, C4 24 kHz MP3 40k (what version 3 makes), D the original clip whole, E the 16 kHz WAV.
+// C1 24 kHz WAV, C2 24 kHz MP3 48k, C3 24 kHz MP3 96k, C4 24 kHz MP3 40k (what version 3 made), V4 24 kHz Ogg Vorbis q2 (what version 4 makes), D the original clip whole, E the 16 kHz WAV.
 // Nothing is played. Measure the files with scripts/Measure-VoxtralClarity.py. The key is read in memory exactly as
 // scripts/Measure-VoxtralLatency.mjs reads it, goes only in the Authorization header and is never printed or written.
 // Request budget: the plan has 16 calls by default (four rounds of four), plus 2 with --nonstream. Keep it small: the free key allows 12,000
 // input characters a minute.
 import {readFileSync, writeFileSync, mkdirSync} from 'node:fs';
-import {resolve, join, dirname} from 'node:path';
+import {resolve, join, dirname, basename} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {prepareReference, encodeMp3, REFERENCE_PREPARATION} from '../bridge/voxtral-reference.mjs';
+import {prepareReference, encodeMp3, encodeVorbis, REFERENCE_PREPARATION} from '../bridge/voxtral-reference.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -48,7 +48,16 @@ const REFERENCES = {
   C4: {label: '24k-mp3-40k',         format: 'mp3', bytes: await mp3(cut24.wav, '40k')},
   E:  {label: '16k-wav',             format: 'wav', bytes: cut16.wav},          // what a player without ffmpeg sends
   D:  {label: 'original-wav',        format: 'wav', bytes: original},
+  V4: {label: '24k-vorbis-q2 (v4)',  format: 'ogg', bytes: await encodeVorbis(cut24.wav, {ffmpeg: process.env.CYBERPUNK_CONVAI_FFMPEG || 'ffmpeg'})},   // what version 4 makes
 };
+// --ref NAME=path (repeatable): any other reference file, sent as it is (the server recognises the format itself). Used for the format
+// search of 2026-10-13: FLAC, Opus, Vorbis, AAC, MP3 variants (docs/CLOUD_VOICE_VOXTRAL.md).
+for (let at = 0; at < args.length; at++) {
+  if (args[at] !== '--ref') continue;
+  const [name, path] = [args[at + 1].slice(0, args[at + 1].indexOf('=')), args[at + 1].slice(args[at + 1].indexOf('=') + 1)];
+  const extension = path.slice(path.lastIndexOf('.') + 1).toLowerCase();
+  REFERENCES[name] = {label: basename(path).replace(/\.[^.]+$/, ''), format: extension, bytes: readFileSync(path)};
+}
 for (const [name, ref] of Object.entries(REFERENCES)) writeFileSync(join(outDir, `ref-${name}-${ref.label}.${ref.format}`), ref.bytes);
 
 // ---- one request, the bridge's body and the bridge's timing ----------------------------------------------------------------------

@@ -183,7 +183,7 @@ top bands ("air" and the brightness of s and t) that were missing, about 30 dB.
 | 16 kHz MP3 32 kbit/s (versions 1 and 2) | 46.0 KB | 1,109 ms (7 calls) | 7.2 kHz | -56 / -55 dB |
 | 16 kHz MP3 64 kbit/s | 91.7 KB | 1,491 ms | 7.2 kHz | -56 / -55 dB |
 | 16 kHz WAV (the no-ffmpeg fallback of version 2) | 362.5 KB | 1,595 ms | 7.3 kHz | -56 / -55 dB |
-| **24 kHz MP3 40 kbit/s (version 3, now sent)** | **57.3 KB** | **1,043 ms (3 calls)** | **10.4 kHz** | **-21 / -33 dB** |
+| 24 kHz MP3 40 kbit/s (version 3; still sounded dull, see below) | 57.3 KB | 1,043 ms (3 calls) | 10.4 kHz | -21 / -33 dB |
 | 24 kHz MP3 48 kbit/s | 68.6 KB | 1,418 ms | 11.1 kHz | -21 / -27 dB |
 | 24 kHz MP3 96 kbit/s | 137.0 KB | 1,228 ms | 11.2 kHz | -23 / -29 dB |
 | 24 kHz WAV | 543.7 KB | 1,528 ms | 12 kHz | -21 / -21 dB |
@@ -198,14 +198,63 @@ at +6 dB makeup). With Match game dialogue level on, a companion more than about
 cut is 8.5 kHz, 16 dB off the 10 to 12 kHz band); that is a setting, unchanged. Not measurable offline: the browser's resample from
 the 24 kHz context to the sound card's rate.
 
-**Shipped (version 3, `REFERENCE_PREPARATION`):** the cut clip is kept at its own 24 kHz (before, resampled to 16 kHz) and encoded as a
-40 kbit/s MP3 (before 32): 42.8 KB for Judy instead of 34.3 KB, bandwidth 10.5 kHz. **Latency trade-off: the body grows by 11.3 KB
-(+25%), about +11 ms at the 1 ms per KB measured before, and the medians show no cost (1,043 against 1,109 ms; call-to-call noise is
-about 0.3 s, so read "not measurable", not "faster").** 40 kbit/s rather than 48 because bodies over about 65 KB looked about 0.3 s
-slower (small samples). The cache signature changes, so the next bridge start prepares each character's clip once (about 0.4 s). Without
-ffmpeg the fallback WAV is 24 kHz too (408 KB instead of 272 KB, about +0.15 to 0.2 s); shipped players get the pre-built MP3 slots.
-What is left to judge by ear: the files above (use `listen-levelmatched/`, and the same-utterance low-passed copies of one call for the
-cleanest comparison), on the player's own headphones; Bluetooth earbuds may roll off the top by themselves.
+**Version 3 (24 kHz MP3 at 40 kbit/s) was not enough.** The user listened to the level-matched files: the 40k clone still sounded dull and the
+clone of the whole original clip sounded fine. The measurement agrees once the right band is read: a 24 kHz MP3 encoder low-passes at 10.5 kHz
+(40k) or 11.3 kHz (48k and up), so the 10 to 12 kHz band of the 40k answers is 8 to 9 dB under the whole clip's (-33.0 dB against -24.7 dB,
+10 calls and 5), though bw40 looked fine at 10.4 kHz.
+
+## The reference format search (2026-10-13, version 4)
+
+Goal: a near-full-band reference (to 12 kHz, like the whole clip and the 24 kHz WAV) with the smallest upload. Every candidate is the same
+8.49 s cut of Judy's clip at 24 kHz, encoded with ffmpeg 8.x (`ffmpeg -c:a ...`), measured first as a file (the reference's own bands), then as
+real API calls (`scripts/Measure-VoxtralClarity.mjs --ref NAME=file`, answers measured with `scripts/Measure-VoxtralClarity.py`; all files in
+`E:\CyberpunkConvai-offload\work\voxtral-ab-2026-10-13\formats\`).
+
+**What the API accepts.** Its error text says "valid mp3 or wav" (code 3291), and it also decodes **Ogg Vorbis, Ogg Opus and FLAC**, and 8-bit
+WAV. It **refuses M4A/AAC** (HTTP 400, `invalid_request_audio`). The request body carries no format field: the server recognises the file.
+`-cutoff 0` (or 12000, or a 32 or 44.1 kHz MP3) makes no difference in ffmpeg's libmp3lame: the bytes are identical, the low-pass is the
+encoder's own (LAME stops at 11.3 kHz at 24 kHz).
+
+| Reference (the same cut) | Size | Body | Answer 8 to 10 / 10 to 12 kHz band (dB re 0 to 4 kHz) | bw40 | First audio, median |
+| --- | --- | --- | --- | --- | --- |
+| the whole original clip (D) | 643 KB | 857 KB | -24.4 / -24.7 (5 calls) | 12.0 kHz | 1,479 ms |
+| 24 kHz WAV (C1) | 408 KB | 544 KB | -23.9 / -24.7 (5) | 12.0 kHz | 1,289 ms (7) |
+| FLAC, 24 kHz 16-bit | 184 KB | 246 KB | -22.0 / -24.4 (2) | 12.0 kHz | 1,083 ms (3) |
+| 8-bit WAV | 204 KB | 272 KB | -22.4 / -22.7 (1); noise floor 10 dB up | 12.0 kHz | 1,522 ms (1) |
+| Ogg Opus 64k | 63 KB | 84 KB | -23.1 / -24.2 (2); 6 to 8 kHz band 2.6 dB low | 12.0 kHz | 660 ms (3; 515 to 1,692) |
+| Ogg Opus 48k | 44 KB | 60 KB | -24.5 / -25.3 (5); 6 to 8 kHz band 5.5 dB low | 12.0 kHz | 880 ms (6; 557 to 2,909) |
+| MP3 64k, 24 kHz | 68 KB | 92 KB | -21.1 / -27.5 (1); 10 to 12 kHz band 3 dB low | 11.1 kHz | 1,668 ms (1) |
+| MP3 40k, 24 kHz (version 3) | 43 KB | 57 KB | -21.4 / -33.0 (10) | 10.4 kHz | 1,194 ms (10) |
+| **Ogg Vorbis q2, 24 kHz (version 4)** | **37.6 KB** | **50.4 KB** | **-22.5 / -23.7 (12)** | **12.0 kHz** | **1,138 ms (12)** |
+| Ogg Vorbis q1 | 32.8 KB | 43.9 KB | -22.6 / -25.5 (5) | 11.8 kHz | 1,200 ms (5) |
+| Ogg Vorbis q4 | 48.5 KB | 64.9 KB | -23.0 / -23.7 (5) | 12.0 kHz | 1,168 ms (5) |
+| Ogg Vorbis q0 | 29.2 KB | | reference stops at 10.6 kHz: not used | | |
+| M4A / AAC | 67 KB | 89 KB | refused by the API | | |
+
+The first-audio column mixes runs made when the network was fast and slow (the same reference ranged 0.5 to 1.2 s between runs), so only the interleaved pairs below compare formats. The answers of one input differ from call to call (up to 4 dB in these bands for the same reference), so a variant is judged on the mean of 5
+or more calls. Vorbis q2 is the lightest option whose 8 to 12 kHz bands match the 24 kHz WAV and the whole clip: **10 to 12 kHz within 1.0 dB of
+both, 8 to 10 kHz 1.4 to 1.9 dB brighter** (Vorbis fills the top with a little noise; its answers measure slightly bright rather than dull),
+bandwidth 11,971 Hz against 11,967 (WAV) and 11,981 (whole clip). The files `-lvl` of the final set are named below.
+
+**Latency.** The body is 50.4 KB against 57.2 KB for the 40k MP3, and 544 KB for the WAV. In 8 interleaved pairs V4 against the 40k MP3: median
+first audio 1,050 ms against 1,245 ms; pooled with an earlier run (12 and 10 calls): **1,138 ms against 1,194 ms, so no cost** (call-to-call
+noise is 0.3 s and more; the server's own spikes of 5 to 11 s also come on any reference). The 24 kHz WAV stays the honest alternative if Ogg
+ever stops working: it matches the bands too, at about +0.1 to 0.3 s in the medians (1,289 ms; the whole clip 1,479 ms), a 408 KB upload.
+
+**Shipped (version 4, `REFERENCE_PREPARATION`):** the cut clip stays 24 kHz mono and is encoded as Ogg Vorbis, `libvorbis -q:a 2`: 37.6 KB for
+Judy (before 42.8 KB MP3). Order of preference with ffmpeg: Ogg Vorbis, then MP3 at 64 kbit/s (the old 40k is gone: 24 kHz MP3 stops at
+11.3 kHz even at 64k), then the 24 kHz WAV. Every encode is `-fflags +bitexact -flags:a +bitexact`: the same clip and settings give the same
+bytes (a unit test checks it), so the release builder and a player with ffmpeg make the same file. The cache signature changes, so the next
+bridge start prepares each character's clip once (about 0.4 s).
+**If the API ever stops taking Ogg:** a 400 about the audio file, for an Ogg reference, switches `VoxtralVoice.safeFormat` on, drops the
+cached references and logs it; they are prepared as MP3 from then on. The reply that met the refusal is spoken by Pocket (nothing had been
+heard yet); a refusal during the tail of a reply ends that reply after its head, as any tail failure does.
+**For the release builder:** `createReferencePreparer({cacheDirectory})` (bridge/voxtral-reference.mjs) is the single code path: the bridge
+and `packaging/build-release.mjs` (`voxtralCache`) call it, a slot is `<key>.ogg` or `.mp3` or `.wav` plus a `.json` with the signature, and
+`prepare.signature(sha256)` names the settings a slot was made with. The builder needs ffmpeg with libvorbis (it fails when a slot comes out
+as a WAV).
+What is left to judge by ear: `listen-levelmatched/V4-24k-vorbis-q2-s1|s2|s3-lvl.wav` next to `D-original-wav-s1-lvl.wav` (s2 is the darkest
+of the three, s1 the brightest; the calls differ).
 
 ## Reference size (2026-10-12; the numbers below are for the 16 kHz clip of versions 1 and 2)
 
@@ -215,10 +264,11 @@ MP3 is 89 KB (about 0.6 s). `bridge/voxtral-reference.mjs` prepares the clip onc
 
 - Mono, 24 kHz since version 3 (16 kHz before: see above), cut to about 8.5 s at the quietest moment of the last 2.5 s (a pause, not a
   word), 5 ms fade; a clip that is already short is not cut. Pure JavaScript (about 408 KB for a 13 s clip at 24 kHz, 265 KB at 16 kHz).
-- With ffmpeg on the machine (`ffmpeg` on the path, or `CYBERPUNK_CONVAI_FFMPEG`) the same clip is also encoded as a 40 kbit/s MP3
-  (about 43 KB; 64 kbit/s, 67 KB, in version 1 and 32 kbit/s, 34 KB, in version 2) and sent with `format: 'mp3'`. Without ffmpeg the
-  WAV is sent. An MP3 that is not an MP3 or not smaller is not used.
-- Kept on disk in `<references>/prepared/<character>.wav|mp3` with a `.json` naming the source clip's sha256 and the settings: done
+- With ffmpeg on the machine (`ffmpeg` on the path, or `CYBERPUNK_CONVAI_FFMPEG`) the same clip is also encoded as Ogg Vorbis q2 (version 4,
+  about 38 KB; before: a 40 kbit/s MP3 of 43 KB in version 3, 32 kbit/s, 34 KB, in version 2 and 64 kbit/s, 67 KB, in version 1) and sent
+  as it is (the server recognises the format). If Ogg cannot be made, an MP3 at 64 kbit/s; without ffmpeg the WAV. A result that does not
+  look like its format or is not smaller than the WAV is not used.
+- Kept on disk in `<references>/prepared/<character>.ogg|mp3|wav` with a `.json` naming the source clip's sha256 and the settings: done
   once per character, redone when the clip or the settings change, a cache that cannot be written is ignored. The reference is prepared
   when the voice is warmed, not on the first request (about 0.3 s of the bridge's time for one character).
 - The timing record shows `voiceReferenceBytes` (the size sent) and `voiceReferenceFormat`.
@@ -226,7 +276,7 @@ MP3 is 89 KB (about 0.6 s). `bridge/voxtral-reference.mjs` prepares the clip onc
 - Does the clone stay the same? Six real calls (the same sentence, Judy): ECAPA similarity to the original reference 0.50 and 0.65
   (full clip), 0.58 and 0.57 (cut 16 kHz), 0.58 and 0.51 (cut MP3): inside the call-to-call spread. Listen to the files named in
   `docs/LATENCY_2026-10-12.md`.
-- Not done: shipping pre-encoded MP3 clips with the mod (players without ffmpeg only get the smaller WAV).
+- Shipped players get pre-built slots made by this same code (packaging/build-release.mjs), so a player without ffmpeg sends the 38 KB Ogg too.
 
 ## One shared Mistral scheduler
 

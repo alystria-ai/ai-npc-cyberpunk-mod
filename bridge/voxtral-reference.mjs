@@ -7,15 +7,22 @@
 //
 // This module makes the reference small without a tool the player may not have:
 //   prepareReference         mono, 24 kHz, cut to about 8.5 s in a pause (pure JavaScript): 408 KB as a WAV
-//   encodeMp3                mono MP3 at 40 kbit/s with ffmpeg, when the machine has it: about 43 KB (the API takes MP3 references)
-//   createReferencePreparer  the two above behind a cache on disk, keyed by the source clip's hash, so the work is done once
+//   encodeVorbis             mono Ogg Vorbis (quality 2) with ffmpeg, when the machine has it: about 38 KB; the API takes it
+//   encodeMp3                mono MP3 with ffmpeg: the second choice (64 kbit/s, about 68 KB)
+//   createReferencePreparer  the above behind a cache on disk, keyed by the source clip's hash, so the work is done once
+// The result is reproducible: the same clip, the same ffmpeg and the same settings give the same bytes (bit-exact encoders, no clock
+// or random serial in the file), and `prepare.signature` names the settings, so the release builder (packaging/build-release.mjs) makes
+// the shipped copies with this same code (createReferencePreparer) and a player without ffmpeg reads them from the cache.
 //
-// THE CLONE REPRODUCES THE REFERENCE'S BANDWIDTH (measured 2026-10-13, 25 real calls, scripts/Measure-VoxtralClarity.mjs): Voxtral
-// itself speaks up to its 12 kHz Nyquist, but what it says has only the frequencies its reference had. The first versions of this
-// file (versions 1 and 2) sent 16 kHz audio (nothing above 8 kHz), as a 32 kbit/s MP3 whose encoder low-pass sits at 7.3 kHz: every
-// answer then had nothing above 7.5 kHz (the 8 to 12 kHz bands were 55 dB under the 0 to 4 kHz level, against 22 to 24 dB for the
-// original clip's answers), which is what sounded muffled.
-// A 24 kHz MP3 keeps the bands (40 kbit/s: to 10.5 kHz, 43 KB; 48 kbit/s: to 11.3 kHz, 51 KB) for about 9 KB more upload (version 3).
+// THE CLONE REPRODUCES THE REFERENCE'S BANDWIDTH (measured 2026-10-13, scripts/Measure-VoxtralClarity.mjs): Voxtral itself speaks up
+// to its 12 kHz Nyquist, but what it says has only the frequencies its reference had. Versions 1 and 2 of this file sent 16 kHz audio
+// (nothing above 8 kHz) as a 32 kbit/s MP3 whose encoder low-pass sits at 7.3 kHz: every answer then had nothing above 7.5 kHz (the 8
+// to 12 kHz bands were 55 dB under the 0 to 4 kHz level, against 22 to 24 dB for the original clip's answers), which is what sounded
+// muffled. Version 3 (24 kHz MP3, 40 kbit/s) reached 10.5 kHz and still sounded dull to the user: MP3 encoders low-pass at 10.5 kHz
+// (40k) to 11.3 kHz (48k and up, whatever `-cutoff` says) and the 10 to 12 kHz band was 10 dB under the original's.
+// Version 4 sends Ogg Vorbis (quality 2): full band to 12 kHz, 8 to 12 kHz bands within about 1 dB of the whole clip's answers, 38 KB.
+// The API's error text says "valid mp3 or wav", but it also decodes Ogg (Vorbis and Opus) and FLAC; it refuses M4A/AAC. Should it ever
+// refuse the Ogg reference too, the voice notes it and the references are prepared as MP3 from then on (VoxtralVoice, `safeFormat`).
 // The sample rate matters more than the bitrate: 16 kHz at 64 kbit/s or as a WAV is just as dull.
 //
 // Clone similarity (ECAPA speaker embedding against the original reference's) was the same within the call-to-call spread of
@@ -26,11 +33,13 @@ import {mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 
 export const REFERENCE_PREPARATION = Object.freeze({
-  version: 3,            // 3: 24 kHz (not 16) and 40 kbit/s (not 32): the clone had nothing above 7.5 kHz (2026-10-13). 2: 32 kbit/s, not 64 (first audio about 0.4 s sooner, same clone)
+  version: 4,            // 4: Ogg Vorbis q2 (a full-band 24 kHz clip; MP3 stops at 10.5 to 11.3 kHz and sounded dull). 3: 24 kHz MP3 40k. 2: 32 kbit/s, not 64
   maxSeconds: 8.5,       // the clip is cut at the quietest moment inside its last 2.5 s before this
   targetRate: 24000,     // the rate of the stored clips and of Voxtral's own output; a source at another rate is resampled to it
   searchSeconds: 2.5,
-  mp3Bitrate: '40k',     // MPEG-2 layer III at 24 kHz: its encoder low-pass is 8.4 kHz at 32k, 10.5 kHz at 40k, 11.3 kHz at 48k and above
+  codec: 'vorbis',       // the first choice with ffmpeg: 'vorbis' (Ogg), else 'mp3', else the WAV
+  vorbisQuality: 2,      // libvorbis -q:a 2: 38 KB for 8.5 s at 24 kHz, bandwidth 12 kHz (q1: 33 KB, 11.9 kHz; q0 stops at 10.6 kHz)
+  mp3Bitrate: '64k',     // the second choice: MPEG-2 layer III at 24 kHz, low-pass 11.3 kHz at 48k and above (40k: 10.5 kHz, 32k: 8.4 kHz)
 });
 
 // ---- WAV decoding / encoding -------------------------------------------------------------------------------------------------
@@ -183,12 +192,12 @@ export function findFfmpeg({env = process.env, run = execFile} = {}) {
 }
 export function forgetFfmpeg() { ffmpegProbe = undefined; }
 
-/** WAV bytes to mono MP3 bytes with ffmpeg (through a pipe, no temporary file), or null when ffmpeg is missing or fails. */
-export function encodeMp3(wav, {ffmpeg, bitrate = REFERENCE_PREPARATION.mp3Bitrate, run = execFile, timeoutMs = 20000} = {}) {
+function runFfmpeg(wav, ffmpeg, codecArgs, format, {run = execFile, timeoutMs = 20000} = {}) {
   if (!ffmpeg) return Promise.resolve(null);
   return new Promise(resolve => {
     try {
-      const child = run(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-f', 'wav', '-i', 'pipe:0', '-ac', '1', '-codec:a', 'libmp3lame', '-b:a', bitrate, '-f', 'mp3', 'pipe:1'],
+      // bitexact: no encoder version tag, no random Ogg stream serial: the same input gives the same bytes.
+      const child = run(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-f', 'wav', '-i', 'pipe:0', '-ac', '1', ...codecArgs, '-fflags', '+bitexact', '-flags:a', '+bitexact', '-f', format, 'pipe:1'],
         {encoding: 'buffer', windowsHide: true, timeout: timeoutMs, maxBuffer: 8_000_000}, (error, stdout) => resolve(error || !stdout?.length ? null : Buffer.from(stdout)));
       child?.on?.('error', () => resolve(null));
       child?.stdin?.on?.('error', () => {});
@@ -197,28 +206,51 @@ export function encodeMp3(wav, {ffmpeg, bitrate = REFERENCE_PREPARATION.mp3Bitra
   });
 }
 
+/** WAV bytes to mono MP3 bytes with ffmpeg (through a pipe, no temporary file), or null when ffmpeg is missing or fails. */
+export function encodeMp3(wav, {ffmpeg, bitrate = REFERENCE_PREPARATION.mp3Bitrate, run, timeoutMs} = {}) {
+  return runFfmpeg(wav, ffmpeg, ['-codec:a', 'libmp3lame', '-b:a', bitrate], 'mp3', {run, timeoutMs});
+}
+
+/** WAV bytes to mono Ogg Vorbis bytes with ffmpeg (libvorbis, variable bitrate by quality), or null when ffmpeg or libvorbis is missing. */
+export function encodeVorbis(wav, {ffmpeg, quality = REFERENCE_PREPARATION.vorbisQuality, run, timeoutMs} = {}) {
+  return runFfmpeg(wav, ffmpeg, ['-codec:a', 'libvorbis', '-q:a', String(quality)], 'ogg', {run, timeoutMs});
+}
+
+/** The compressed form `codec` ('vorbis' or 'mp3') of a WAV, with the settings' quality or bitrate (`options` override them). */
+export function encodeReference(wav, {codec = REFERENCE_PREPARATION.codec, ffmpeg, bitrate, quality, run, timeoutMs} = {}) {
+  return codec === 'vorbis' ? encodeVorbis(wav, {ffmpeg, quality, run, timeoutMs}) : encodeMp3(wav, {ffmpeg, bitrate, run, timeoutMs});
+}
+
 // ---- the preparer with its disk cache --------------------------------------------------------------------------------------------
 
 const MP3_MAGIC = bytes => bytes.length > 3 && ((bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0) || bytes.toString('latin1', 0, 3) === 'ID3');
+const MAGIC = {mp3: MP3_MAGIC, ogg: bytes => bytes.length > 4 && bytes.toString('latin1', 0, 4) === 'OggS', wav: bytes => bytes.toString('latin1', 0, 4) === 'RIFF'};
+const FORMAT_OF = {vorbis: 'ogg', mp3: 'mp3'};
 
 /**
- * Returns async (bytes, {key, sha256}) => {bytes, format: 'mp3'|'wav', seconds, cached} for a reference clip, or null when the clip
- * cannot be decoded (the caller then sends it as it is). The result is kept in `cacheDirectory` as <key>.<format> next to a
- * <key>.json that names the source clip's hash and the settings; a changed clip or setting is prepared again. A cache that cannot
- * be read or written is ignored. `mp3`: encode with ffmpeg when it is there (default true). Concurrent calls for one key share one job.
+ * Returns async (bytes, {key, sha256, safeFormat}) => {bytes, format: 'ogg'|'mp3'|'wav', seconds, cached} for a reference clip, or null
+ * when the clip cannot be decoded (the caller then sends it as it is). The result is kept in `cacheDirectory` as <key>.<format> next to
+ * a <key>.json that names the source clip's hash and the settings; a changed clip or setting is prepared again. A cache that cannot
+ * be read or written is ignored. `compress`: encode with ffmpeg when it is there (default true): the settings' codec first, then MP3,
+ * then the WAV. `safeFormat` (per call): skip Ogg and use MP3 (the server refused an Ogg reference). Concurrent calls for one key
+ * share one job. `.signature(sha256, {safeFormat})` is the cache signature a clip's slot carries (the release builder compares it).
  */
-export function createReferencePreparer({cacheDirectory, settings = REFERENCE_PREPARATION, mp3 = true, ffmpeg = findFfmpeg, encode = encodeMp3,
+export function createReferencePreparer({cacheDirectory, settings = REFERENCE_PREPARATION, compress = true, mp3, ffmpeg = findFfmpeg, encode = encodeReference,
   read = readFile, write = writeFile, makeDirectory = mkdir, move = rename, onLog = () => {}} = {}) {
+  if (mp3 === false) compress = false;                    // the name of version 3's option
   const jobs = new Map();
   const safe = key => typeof key === 'string' && /^[a-z0-9][a-z0-9-]{0,127}$/.test(key);
-  const signature = sha256 => createHash('sha256').update(JSON.stringify([sha256, settings.version, settings.maxSeconds, settings.targetRate, mp3 ? settings.mp3Bitrate : null])).digest('hex').slice(0, 24);
+  // The codecs tried, in order, for this call.
+  const ladder = safeFormat => !compress ? [] : settings.codec === 'vorbis' && !safeFormat ? ['vorbis', 'mp3'] : ['mp3'];
+  const signature = (sha256, {safeFormat = false} = {}) => createHash('sha256').update(JSON.stringify(
+    [sha256, settings.version, settings.maxSeconds, settings.targetRate, ladder(safeFormat).map(codec => codec === 'vorbis' ? ['vorbis', settings.vorbisQuality] : ['mp3', settings.mp3Bitrate])])).digest('hex').slice(0, 24);
   async function fromCache(key, sig) {
     if (!cacheDirectory || !safe(key)) return null;
     try {
       const meta = JSON.parse(await read(join(cacheDirectory, key + '.json'), 'utf8'));
-      if (meta?.signature !== sig || (meta.format !== 'mp3' && meta.format !== 'wav')) return null;
+      if (meta?.signature !== sig || !MAGIC[meta.format]) return null;
       const bytes = await read(join(cacheDirectory, key + '.' + meta.format));
-      if (bytes.length !== meta.bytes || (meta.format === 'mp3' ? !MP3_MAGIC(bytes) : bytes.toString('latin1', 0, 4) !== 'RIFF')) return null;
+      if (bytes.length !== meta.bytes || !MAGIC[meta.format](bytes)) return null;
       return {bytes, format: meta.format, seconds: meta.seconds, cached: true};
     } catch { return null; }
   }
@@ -232,24 +264,29 @@ export function createReferencePreparer({cacheDirectory, settings = REFERENCE_PR
       await move(meta + '.tmp', meta);
     } catch (error) { onLog(`reference cache not written (${error?.code ?? error?.message})`); }
   }
-  async function build(bytes, key, sha256) {
-    const sig = signature(sha256);
+  async function build(bytes, key, sha256, safeFormat) {
+    const sig = signature(sha256, {safeFormat});
     const hit = await fromCache(key, sig);
     if (hit) return hit;
     let prepared;
     try { prepared = prepareReference(bytes, settings); } catch { return null; }
     let made = {bytes: prepared.wav, format: 'wav', seconds: prepared.seconds, cached: false};
-    if (mp3) {
-      const command = await ffmpeg();
-      const encoded = command ? await encode(prepared.wav, {ffmpeg: command, bitrate: settings.mp3Bitrate}) : null;
-      if (encoded && MP3_MAGIC(encoded) && encoded.length < prepared.wav.length) made = {bytes: encoded, format: 'mp3', seconds: prepared.seconds, cached: false};
+    const codecs = ladder(safeFormat);
+    const command = codecs.length ? await ffmpeg() : null;
+    for (const codec of command ? codecs : []) {
+      const encoded = await encode(prepared.wav, {codec, ffmpeg: command, bitrate: settings.mp3Bitrate, quality: settings.vorbisQuality});
+      const format = FORMAT_OF[codec];
+      if (encoded && MAGIC[format](encoded) && encoded.length < prepared.wav.length) { made = {bytes: encoded, format, seconds: prepared.seconds, cached: false}; break; }
+      onLog(`${codec} encoding of the reference failed or was not smaller${codecs.length > 1 && codec === codecs[0] ? '; trying ' + codecs[1] : ''}`);
     }
     await toCache(key, sig, made);
     return made;
   }
-  return (bytes, {key, sha256 = createHash('sha256').update(bytes).digest('hex')} = {}) => {
-    const id = key + ':' + sha256;
-    if (!jobs.has(id)) jobs.set(id, build(bytes, key, sha256).finally(() => jobs.delete(id)));
+  const prepare = (bytes, {key, sha256 = createHash('sha256').update(bytes).digest('hex'), safeFormat = false} = {}) => {
+    const id = key + ':' + sha256 + ':' + (safeFormat ? 's' : '');
+    if (!jobs.has(id)) jobs.set(id, build(bytes, key, sha256, safeFormat).finally(() => jobs.delete(id)));
     return jobs.get(id);
   };
+  prepare.signature = signature;
+  return prepare;
 }

@@ -393,7 +393,7 @@ test('the build pre-encodes the Mistral voice references with the bridge code an
   assert(builder.includes('${plugin}/voices/prepared'));
   // Runtime holds the Pocket clips' slots; the OmniVoice pack the slots whose clip differs.
   assert.equal(builder.split('await voxtralCache(').length - 1, 3);
-  assert.match(builder, /was not encoded as an MP3/);
+  assert.match(builder, /was not compressed/);
   const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');
   assert.equal(workflow.split('choco install ffmpeg').length - 1, 2, 'the Runtime and OmniVoice jobs install ffmpeg');
 });

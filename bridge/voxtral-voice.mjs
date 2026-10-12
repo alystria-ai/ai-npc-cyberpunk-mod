@@ -258,6 +258,9 @@ export class VoxtralVoice {
       setTimer, clearTimer, now, clock, scheduler, prepare});
     this.limits = Object.freeze({...VOXTRAL_LIMITS, ...limits});
     this.references = new Map();      // voice key -> Promise<{base64, bytes, seconds}|null>
+    // The API documents only MP3 and WAV references and also decodes Ogg (2026-10-13). If it ever refuses the Ogg one, the references are
+    // prepared as MP3 from then on (`prepare(..., {safeFormat: true})`); the reply that met the refusal is spoken by Pocket.
+    this.safeFormat = false;
     this.owner = randomBytes(16).toString('hex'); this.sequence = 0;
     // degraded: why the last attempt fell back (null: working or not tried). until: no request before this time (a limit or a refused key).
     this.degraded = null; this.until = 0; this.spoke = 0; this.fellBack = 0;
@@ -304,7 +307,7 @@ export class VoxtralVoice {
       bytes = capWav(bytes, this.limits.maxReferenceSeconds);
       if (this.prepare) {
         try {
-          const made = await this.prepare(bytes, {key, ...(sha256 ? {sha256} : {})});
+          const made = await this.prepare(bytes, {key, ...(sha256 ? {sha256} : {}), ...(this.safeFormat ? {safeFormat: true} : {})});
           if (made?.bytes?.length && made.bytes.length < bytes.length) {
             return {base64: made.bytes.toString('base64'), bytes: made.bytes.length, source, format: made.format, originalBytes: bytes.length, cached: made.cached === true};
           }
@@ -585,6 +588,10 @@ export class VoxtralVoice {
         const failure = mapStatus(response.status, body, {headers: response.headers, apiKey});
         // A 429 holds every Mistral request (text included) for the server's retry-after.
         if (failure.kind === 'limit') this.scheduler.pause(failure.retryAfterMs);
+        if (failure.status === 400 && reference.format === 'ogg' && !this.safeFormat && /audio|mp3|wav/i.test(body)) {
+          this.safeFormat = true; this.references.clear();
+          this.log('the Ogg reference was refused; the references are prepared as MP3 from now on');
+        }
         throw failure;
       }
       if (!response.body) throw fail('request', 'answered without a stream');

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, rm, readFile, readdir, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {decodeWav, encodeWav16, prepareReference, createReferencePreparer, encodeMp3, findFfmpeg, REFERENCE_PREPARATION} from './voxtral-reference.mjs';
+import {decodeWav, encodeWav16, prepareReference, createReferencePreparer, encodeMp3, encodeVorbis, findFfmpeg, REFERENCE_PREPARATION} from './voxtral-reference.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
 
 // A 13 s clip of 24 kHz speech-like tone with a pause at 8.0 to 8.2 s (inside the last 2.5 s before the 8.5 s cut).
@@ -31,6 +31,9 @@ test('a reference is made mono, 24 kHz and about 8 s, cut in a pause, and is sma
   assert.throws(() => prepareReference(Buffer.from('not a wav at all, just some bytes here, long enough to try'), REFERENCE_PREPARATION), /not a WAV/);
 });
 
+const FAKE_OGG = Buffer.concat([Buffer.from('OggS'), Buffer.alloc(4000, 7)]);
+const FAKE_MP3 = Buffer.concat([Buffer.from([0xFF, 0xFB, 0x90, 0x00]), Buffer.alloc(4000, 7)]);
+
 // Voxtral's answer has only the frequencies its reference had (docs/CLOUD_VOICE_VOXTRAL.md, 2026-10-13): at 16 kHz the clone stopped at 7.5 kHz.
 function toneEnergy(samples, rate, hz) {            // Goertzel power of one frequency, per sample
   const w = 2 * Math.PI * hz / rate, c = 2 * Math.cos(w);
@@ -50,7 +53,7 @@ test('the reference keeps the 8 to 11 kHz band of the clip, which a 16 kHz refer
   assert.ok(ratio(old, 16000) < original * 0.001, 'a 16 kHz reference has nothing at 10 kHz (the old behaviour)');
 });
 
-test('the reference MP3 is a 24 kHz stream (MPEG-2 layer III), so its encoder low-pass is near 10.5 kHz and not 7.3 kHz', async t => {
+test('the second-choice reference MP3 is a 24 kHz stream (MPEG-2 layer III), not the 16 kHz one whose low-pass was 7.3 kHz', async t => {
   const ffmpeg = await findFfmpeg();
   if (!ffmpeg) return t.skip('ffmpeg is not on this machine');
   const mp3 = await encodeMp3(prepareReference(clip(), REFERENCE_PREPARATION).wav, {ffmpeg});
@@ -59,7 +62,7 @@ test('the reference MP3 is a 24 kHz stream (MPEG-2 layer III), so its encoder lo
   while (at < mp3.length - 4 && !(mp3[at] === 0xFF && (mp3[at + 1] & 0xE0) === 0xE0)) at++;
   const version = (mp3[at + 1] >> 3) & 3, rateIndex = (mp3[at + 2] >> 2) & 3;
   assert.equal(version, 2, 'MPEG-2'); assert.equal(rateIndex, 1, '24000 Hz');
-  assert.ok(mp3.length < 60000, `${mp3.length} bytes`);
+  assert.ok(mp3.length < 80000, `${mp3.length} bytes`);   // 64 kbit/s
 });
 
 test('the preparer keeps its result on disk by the source clip\'s hash and does not repeat the work', async t => {
@@ -79,30 +82,64 @@ test('the preparer keeps its result on disk by the source clip\'s hash and does 
   assert.equal(other.cached, false);
   await writeFile(join(directory, 'judy-alvarez.wav'), Buffer.from('damaged'));
   assert.equal((await prepare()(clip(12), {key: 'judy-alvarez'})).cached, false);
-  // With ffmpeg the cache holds the MP3; a different setting (no MP3) does not reuse it.
-  const fakeMp3 = Buffer.concat([Buffer.from([0xFF, 0xFB, 0x90, 0x00]), Buffer.alloc(4000, 7)]);
-  const withMp3 = prepare({ffmpeg: async () => 'ffmpeg', encode: async () => { encoded++; return fakeMp3; }});
-  const mp3 = await withMp3(source, {key: 'judy-alvarez'});
-  assert.equal(mp3.format, 'mp3'); assert.equal(encoded, 1);
-  assert.equal((await withMp3(source, {key: 'judy-alvarez'})).cached, true); assert.equal(encoded, 1);
-  assert.equal((await prepare({mp3: false})(source, {key: 'judy-alvarez'})).format, 'wav');
+  // With ffmpeg the cache holds the Ogg; a different setting (no compression) does not reuse it.
+  const withOgg = prepare({ffmpeg: async () => 'ffmpeg', encode: async () => { encoded++; return FAKE_OGG; }});
+  const ogg = await withOgg(source, {key: 'judy-alvarez'});
+  assert.equal(ogg.format, 'ogg'); assert.equal(encoded, 1);
+  assert.ok((await readdir(directory)).includes('judy-alvarez.ogg'));
+  assert.equal((await withOgg(source, {key: 'judy-alvarez'})).cached, true); assert.equal(encoded, 1);
+  assert.equal((await prepare({compress: false})(source, {key: 'judy-alvarez'})).format, 'wav');
+  assert.equal((await prepare({mp3: false})(source, {key: 'judy-alvarez'})).format, 'wav', 'the name version 3 used still works');
   assert.equal(JSON.parse(await readFile(join(directory, 'judy-alvarez.json'), 'utf8')).format, 'wav');
 });
 
-test('the reference MP3 is 40 kbit/s at 24 kHz, and a clip prepared at another bitrate is prepared again', async t => {
-  // 64 kbit/s made Voxtral answer about 0.4 s later in the 2026-10-12 runs (docs/LATENCY_2026-10-12.md); 32 kbit/s at 16 kHz had nothing above 7.5 kHz.
-  assert.equal(REFERENCE_PREPARATION.mp3Bitrate, '40k'); assert.equal(REFERENCE_PREPARATION.targetRate, 24000); assert.equal(REFERENCE_PREPARATION.version, 3);
+test('the reference is Ogg Vorbis q2 at 24 kHz, MP3 64k is the second choice, and a clip prepared with other settings is prepared again', async t => {
+  // MP3 stops at 10.5 kHz (40k) to 11.3 kHz (48k and up) and sounded dull next to the whole clip's answers; 16 kHz stopped at 7.5 kHz (2026-10-13).
+  assert.equal(REFERENCE_PREPARATION.codec, 'vorbis'); assert.equal(REFERENCE_PREPARATION.vorbisQuality, 2); assert.equal(REFERENCE_PREPARATION.mp3Bitrate, '64k');
+  assert.equal(REFERENCE_PREPARATION.targetRate, 24000); assert.equal(REFERENCE_PREPARATION.version, 4);
   const directory = await mkdtemp(join(tmpdir(), 'voxtral-ref-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const source = clip();
-  const fakeMp3 = Buffer.concat([Buffer.from([0xFF, 0xFB, 0x90, 0x00]), Buffer.alloc(4000, 7)]);
-  const bitrates = [];
+  const calls = [];
   const prepare = settings => createReferencePreparer({cacheDirectory: directory, settings, ffmpeg: async () => 'ffmpeg',
-    encode: async (wav, {bitrate}) => { bitrates.push(bitrate); return fakeMp3; }});
+    encode: async (wav, {codec, quality, bitrate}) => { calls.push([codec, codec === 'vorbis' ? quality : bitrate]); return FAKE_OGG; }});
   assert.equal((await prepare(REFERENCE_PREPARATION)(source, {key: 'judy-alvarez'})).cached, false);
   assert.equal((await prepare(REFERENCE_PREPARATION)(source, {key: 'judy-alvarez'})).cached, true);
-  assert.equal((await prepare({...REFERENCE_PREPARATION, mp3Bitrate: '64k'})(source, {key: 'judy-alvarez'})).cached, false, 'an MP3 written at 64k is not served as the 40k clip');
-  assert.deepEqual(bitrates, ['40k', '64k']);
+  assert.equal((await prepare({...REFERENCE_PREPARATION, vorbisQuality: 4})(source, {key: 'judy-alvarez'})).cached, false, 'an Ogg written at q4 is not served as the q2 clip');
+  assert.deepEqual(calls, [['vorbis', 2], ['vorbis', 4]]);
+  // The signature is the cache's own: the release builder compares it, and a safe-format (MP3) clip has another one.
+  const preparer = createReferencePreparer({cacheDirectory: null});
+  assert.notEqual(preparer.signature('a'.repeat(64)), preparer.signature('a'.repeat(64), {safeFormat: true}));
+  assert.equal(preparer.signature('a'.repeat(64)), createReferencePreparer({cacheDirectory: null}).signature('a'.repeat(64)));
+});
+
+test('when Ogg cannot be made the MP3 is tried, then the WAV; safeFormat goes straight to the MP3', async () => {
+  const source = clip(), logs = [];
+  const order = [];
+  const make = encode => createReferencePreparer({cacheDirectory: null, ffmpeg: async () => 'ffmpeg', onLog: line => logs.push(line),
+    encode: async (wav, {codec}) => { order.push(codec); return encode(codec, wav); }});
+  const noVorbis = await make(codec => codec === 'vorbis' ? null : FAKE_MP3)(source, {key: 'judy'});
+  assert.equal(noVorbis.format, 'mp3'); assert.deepEqual(order, ['vorbis', 'mp3']); assert.match(logs.join(), /vorbis encoding of the reference failed or was not smaller; trying mp3/);
+  order.length = 0;
+  const safe = await make(codec => codec === 'vorbis' ? FAKE_OGG : FAKE_MP3)(source, {key: 'judy', safeFormat: true});
+  assert.equal(safe.format, 'mp3'); assert.deepEqual(order, ['mp3'], 'the refused format is not tried again');
+  order.length = 0;
+  assert.equal((await make(() => null)(source, {key: 'judy'})).format, 'wav'); assert.deepEqual(order, ['vorbis', 'mp3']);
+});
+
+test('the reference Ogg is a mono 24 kHz Vorbis stream of about 38 KB, and the same clip gives the same bytes', async t => {
+  const ffmpeg = await findFfmpeg();
+  if (!ffmpeg) return t.skip('ffmpeg is not on this machine');
+  const wav = prepareReference(clip(), REFERENCE_PREPARATION).wav;
+  const ogg = await encodeVorbis(wav, {ffmpeg});
+  if (!ogg) return t.skip('this ffmpeg has no libvorbis');
+  assert.equal(ogg.toString('latin1', 0, 4), 'OggS');
+  const at = ogg.indexOf(Buffer.from('\x01vorbis', 'latin1'));
+  assert.ok(at > 0 && at < 80, 'the identification header');
+  assert.equal(ogg.readUInt8(at + 11), 1, 'mono'); assert.equal(ogg.readUInt32LE(at + 12), 24000, '24 kHz');
+  assert.ok(ogg.length < wav.length / 4, `${ogg.length} bytes against ${wav.length}`);
+  assert.deepEqual(await encodeVorbis(wav, {ffmpeg}), ogg, 'bit-exact: the release builder and a player make the same file');
+  assert.equal(await encodeVorbis(wav, {ffmpeg: null}), null);
 });
 
 test('an MP3 that is not smaller or not an MP3, a failed encoder and an unwritable cache all fall back to the WAV clip', async () => {

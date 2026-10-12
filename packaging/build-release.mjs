@@ -440,8 +440,8 @@ async function runtimePackage(source, config, models, key) {
 }
 
 // Pre-built Mistral voice references. Voxtral sends each character's reference clip with every request; the bridge makes it small
-// (mono 24 kHz, cut to about 8.5 s, then a 40 kbit/s MP3 with ffmpeg) and keeps the result in <voices>/prepared, one slot per voice key,
-// named by the source clip's hash. A player without ffmpeg would otherwise send the 408 KB WAV instead of the 43 KB MP3.
+// (mono 24 kHz, cut to about 8.5 s, then Ogg Vorbis q2 with ffmpeg) and keeps the result in <voices>/prepared, one slot per voice key,
+// named by the source clip's hash. A player without ffmpeg would otherwise send the 408 KB WAV instead of the 38 KB Ogg.
 // This builds those slots with the bridge's own code (VoxtralVoice.build, the same call a conversation makes), from `configs`
 // (registry configurations in the bridge's order of preference), and returns {directory, keys, bytes, skipped}.
 // `except`: a Map of key -> signature already shipped by another package; a slot with the same signature is left out.
@@ -450,7 +450,7 @@ async function voxtralCache(source, models, directory, configs, {except = new Ma
   const {VoxtralVoice} = await bridge('voxtral-voice.mjs');
   const {createReferencePreparer, findFfmpeg} = await bridge('voxtral-reference.mjs');
   const {createVoiceProfileRegistry} = await bridge('voice-profile-registry.mjs');
-  if (!await findFfmpeg()) throw Error(`${label}: ffmpeg is needed to pre-build the MP3 references (put it on PATH or set CYBERPUNK_CONVAI_FFMPEG).`);
+  if (!await findFfmpeg()) throw Error(`${label}: ffmpeg is needed to pre-build the compressed references (put it on PATH or set CYBERPUNK_CONVAI_FFMPEG).`);
   await rm(directory, {recursive: true, force: true});
   await mkdir(directory, {recursive: true});
   const root = resolve(directory, '..', 'voxtral-root');
@@ -467,7 +467,7 @@ async function voxtralCache(source, models, directory, configs, {except = new Ma
   for (const name of keys) {
     const made = await voice.build(name);
     if (!made) throw Error(`${label}: no reference could be prepared for ${name}.`);
-    if (made.format !== 'mp3') throw Error(`${label}: ${name} was not encoded as an MP3 (is ffmpeg working?).`);
+    if (made.format === 'wav') throw Error(`${label}: ${name} was not compressed (is ffmpeg with libvorbis working?).`);
     if (!existsSync(join(directory, `${name}.json`))) throw Error(`${label}: ${name} was not cached (its key cannot name a cache slot).`);
   }
   let bytes = 0;

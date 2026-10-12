@@ -956,3 +956,31 @@ test('the routing log names the reference the cloud voice clones from (long, els
   assert.deepEqual(cloudReferenceOf(voice, 'alex', sources), {set: 'picked/autobest/pocket', seconds: 16.59});
   assert.equal(cloudReferenceOf(voice, 'someone', sources), null);
 });
+
+test('an Ogg reference the server refuses is prepared as MP3 from then on, and the reply that met the refusal falls to Pocket', async () => {
+  const server = await serve((request, response) => { response.writeHead(400, {'content-type': 'application/json'});
+    response.end(JSON.stringify({object: 'error', message: 'Failed to load audio file. Verify that the given file is valid mp3 or wav.', code: '3291'})); });
+  const asked = [];
+  const prepare = async (bytes, options) => { asked.push(!!options.safeFormat);
+    return {bytes: Buffer.concat([Buffer.from(options.safeFormat ? 'ID3' : 'OggS'), Buffer.alloc(300, 1)]), format: options.safeFormat ? 'mp3' : 'ogg', seconds: 2, cached: false}; };
+  const logs = [];
+  const {voice} = voiceFor(server, {prepare, onLog: line => logs.push(line)});
+  try {
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello there, V.', {onPcm: () => {}}), error => error instanceof VoxtralError && error.kind === 'request' && error.status === 400);
+    assert.equal(voice.safeFormat, true); assert.match(logs.join(), /Ogg reference was refused; the references are prepared as MP3/);
+    assert.equal((await voice.reference('judy-alvarez')).format, 'mp3');
+    assert.deepEqual(asked, [false, true]);
+  } finally { await server.close(); }
+});
+
+test('a 400 for another reason, or for an MP3 reference, does not switch the reference format', async () => {
+  const server = await serve((request, response) => { response.writeHead(400, {'content-type': 'application/json'}); response.end(JSON.stringify({message: 'The text is empty'})); });
+  const make = format => voiceFor(server, {prepare: async () => ({bytes: Buffer.concat([Buffer.from(format === 'ogg' ? 'OggS' : 'ID3'), Buffer.alloc(300, 1)]), format, seconds: 2})}).voice;
+  try {
+    for (const format of ['ogg', 'mp3']) {
+      const voice = make(format);
+      await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello there, V.', {onPcm: () => {}}), error => error.kind === 'request');
+      assert.equal(voice.safeFormat, false);
+    }
+  } finally { await server.close(); }
+});
