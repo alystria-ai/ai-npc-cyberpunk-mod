@@ -1421,6 +1421,14 @@ async function resetLiveRoutes({cancelTurns = true} = {}) {
   await connections.clear();
   sessions.clear(); realtimeSessions.clear(); knowledgeTurns.clear();
   partyObserved = ''; prewarmObserved = ''; prefetchObserved = '';
+  rewarmLocalVoice();
+}
+
+// A text route's hidden browser (the local voice's renderer) is closed with the realtime host by a world reset, a key switch or a
+// provider switch. Nothing else opens it until the next composer warm-up, so a turn that comes first would start Edge in front of its
+// voice (770 ms, then the renderer page: the live record of 2026-10-13, the turn after a provider switch). Open it again at once.
+function rewarmLocalVoice() {
+  if (mistral.active && localVoice.playbackEnabled !== false && !stopped) void realtime.prewarmLocal();
 }
 
 async function quiescePlayerMemory({signal, scope, profileKeys} = {}) {
@@ -1985,6 +1993,7 @@ async function applyKeyChoice() {
     sessions.clear(); realtimeSessions.clear();
     await phone.forgetSessions().catch(() => {});
     console.error(`[CyberpunkConvai] Conversation key: ${own ? "the player's own" : "the installation's"}`);
+    rewarmLocalVoice();
     await ownKeyControl.publishStatus().catch(() => {});
   } finally { keySwitching = false; }
 }
@@ -2001,6 +2010,7 @@ async function applyProviderChoice() {
     sessions.clear(); realtimeSessions.clear();
     await phone.forgetSessions().catch(() => {});
     console.error(`[CyberpunkConvai] Conversation provider: ${mistral.applied}`);
+    rewarmLocalVoice();
     // Leaving the local AI gives its graphics memory back at once; arriving loads it (a first start compiles shaders for a while).
     if (mistral.applied === 'local') void localServer.ensure({background: true}).catch(() => {});
     else void localServer.stop().catch(() => {});
