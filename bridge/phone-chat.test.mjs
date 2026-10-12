@@ -941,7 +941,7 @@ for _=1,60 do m.update(player,1/60) end
 assert(opens>=before+1 and opens<=before+3,'open chat reads in one second: '..(opens-before))
 `));
 
-test('the per-frame binding check makes no JSON round trip', () => runLua(setup + `
+test('the binding check makes no JSON round trip and runs on the 10 Hz tick, not every frame', () => runLua(setup + `
 resetJournal({},{},{},false)
 m=newModule();configure()
 for _=1,10 do m.update(player,1/60) end
@@ -949,9 +949,27 @@ local encodes, encode = 0, json.encode
 json.encode=function(value) encodes=encodes+1; return encode(value) end
 local seen=0; local bind=m.captureBinding
 m.captureBinding=function(...) seen=seen+1; return bind(...) end
-m.update(player,0.001)
+-- One second of 60 fps frames: ten reads (0.1 s apart), not sixty.
+for _=1,60 do m.update(player,1/60) end
 json.encode=encode
-assert(seen==1 and encodes==0,'binding calls '..seen..', encodes '..encodes)
+assert(seen>=9 and seen<=11 and encodes==0,'binding calls '..seen..', encodes '..encodes)
+`));
+
+test('a binding change is noticed within one tick, and an abandoned world rebinds on the very next frame', () => runLua(setup + `
+resetJournal({},{},{},false)
+m=newModule();configure()
+for _=1,10 do m.update(player,1/60) end
+local first=m.world
+assert(first~=nil,'the first call must bind at once')
+local generation=2
+m.captureBinding=function() return {version=1,status='unavailable',authoritative=false,generation=generation,historyScope='local-player-v1'} end
+for _=1,7 do m.update(player,1/60) end
+assert(m.world~=nil and m.world~=first,'a new generation was not noticed within a tick')
+local second=m.world
+m.abandon()
+assert(m.world==nil)
+m.update(player,0.001)
+assert(m.world~=nil and m.world~=second,'an abandoned world did not rebind on the next frame')
 `));
 
 test('forgetting sessions starts every thread afresh, saves the empty store and keeps the shown transcript', async () => {

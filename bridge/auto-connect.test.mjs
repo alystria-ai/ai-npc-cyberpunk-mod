@@ -32,6 +32,7 @@ const fixture = `
       ready = function(key) return readyKeys[key] == true end,
       party = function(key) return party[key] == true end,
       wall = function() return wall end,
+      mono = function() return wall end,
       log = function(line) logs[#logs + 1] = line end}
     for key, value in pairs(overrides or {}) do options[key] = value end
     return module.new(options)
@@ -226,6 +227,32 @@ test('the heartbeat keeps a non-empty list fresh for the bridge and a reset publ
     -- A failing scan or publisher never breaks the update.
     local broken = make({scan = function() error('native failure') end, publish = function() error('disk full') end})
     step(broken, 2)
+  `);
+});
+
+test('the per-frame heartbeat looks at the list only every 0.25 s, retries a refused slot next frame, and still publishes on time', () => {
+  run(`${fixture}
+    nearby = {{key = 'judy-alvarez', name = 'Judy', distance = 2}}
+    local looks = 0
+    local auto = make({heartbeatLook = 0.25, wall = function() looks = looks + 1; return wall end})
+    step(auto, 0.2)
+    local count = #published
+    -- 90 frames of 1/30 s (3 s): the unchanged list is looked at about every 0.25 s, never every frame, and the
+    -- heartbeat still reaches the bridge once inside the 2 s interval plus one look.
+    looks = 0
+    local original = convaiHeartbeatSlot
+    convaiHeartbeatSlot = function() return true end
+    for _ = 1, 90 do wall = wall + 1 / 30; auto.heartbeat() end
+    assert(looks >= 10 and looks <= 13, 'the heartbeat looked ' .. looks .. ' times in 90 frames')
+    assert(#published == count + 1, 'the heartbeat did not publish once in three seconds: ' .. (#published - count))
+    -- A slot another heartbeat took this frame: the next frame asks again, not a quarter second later.
+    wall = wall + 2.1
+    local taken = true
+    convaiHeartbeatSlot = function() if taken then taken = false; return false end return true end
+    local before = #published
+    auto.heartbeat(); assert(#published == before, 'published in a refused slot')
+    auto.heartbeat(); assert(#published == before + 1, 'did not retry on the next frame')
+    convaiHeartbeatSlot = original
   `);
 });
 

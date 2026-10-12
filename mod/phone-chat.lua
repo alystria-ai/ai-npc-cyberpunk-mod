@@ -413,6 +413,12 @@ local function currentBindingValue(player)
     return ok and type(value) == 'table' and value or nil
 end
 function M.update(player, delta)
+    -- Menus can stop game time; frames still arrive. Do not wait for a nonzero delta.
+    M.tick = M.tick + math.max(tonumber(delta) or 0, 1 / 60)
+    -- The world binding is re-read on the 10 Hz tick, not every frame (each read builds the knowledge frame and
+    -- checks it). Everything below that depends on it already waited for the tick; a load calls abandon(), which
+    -- clears M.world, and the next call rebinds at once.
+    if M.tick < 0.10 and M.world then return end
     local currentBinding = binding(currentBindingValue(player))
     local currentKey = bindingKey(currentBinding)
     local changed = not M.world or currentKey ~= M.bindingKey
@@ -431,8 +437,6 @@ function M.update(player, delta)
     else
         M.saveIdentity = currentBinding
     end
-    -- Menus can stop game time; frames still arrive. Do not wait for a nonzero delta.
-    M.tick = M.tick + math.max(tonumber(delta) or 0, 1 / 60)
     if M.tick < 0.10 then return end
     local elapsed = M.tick
     M.tick = 0
