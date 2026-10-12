@@ -9,6 +9,7 @@
 // --references   the `runtime` folder that holds `voice-references/` and `local-voices.autobest-long.json` / `-short.json`.
 // --latency N    N short requests (first audio is the number the bridge logs as "first audio").
 // --samples      also render the listening samples (a plain line, an angry line with and without steering, a sad one).
+// --untagged     also render three short replies: two with no feeling tag (steered from their words) and one with a laugh sound.
 // Every request costs free minutes (the plan has about 70): this makes about 7 replies of 3 to 7 s with --latency 6 --samples.
 import {readFileSync, mkdirSync, writeFileSync} from 'node:fs';
 import {resolve, join} from 'node:path';
@@ -100,5 +101,22 @@ if (flag('--samples')) {
   save('judy-4-sadness-steered.wav', sadness); console.log('judy-4-sadness-steered:', summary(sadness));
   results.samples = {plain: plain.seconds, angerPlain: angerPlain.seconds, angerSteered: angerSteered.seconds, sadness: sadness.seconds};
 }
+if (flag('--untagged')) {
+  // Replies as a provider that wrote no feeling tag would give them: the steering comes from the words alone (the fallback).
+  // And one with a non-verbal sound written the way Natural speech writes it (OmniVoice's [laughter], mapped to Inworld's [laugh]).
+  const sad = await speak('I am so sorry, V. I really miss him, you know. Some nights it still hurts.');
+  save('judy-5-untagged-sadness-from-words.wav', sad); console.log('judy-5-untagged-sadness:', summary(sad));
+  const anger = await speak('Back off! Touch her again and I swear I will end you.');
+  save('judy-6-untagged-anger-from-words.wav', anger); console.log('judy-6-untagged-anger:', summary(anger));
+  const text = 'I told him no, and he still showed up. Typical.';
+  const laugh = await speak(text, {marks: [{at: 0, name: 'joy', strength: 'subtle'}], sounds: [{at: text.indexOf('and'), name: 'laughter'}]});
+  save('judy-7-laugh-sound.wav', laugh); console.log('judy-7-laugh-sound:', summary(laugh), `sounds ${laugh.result.timing.voiceSounds}`);
+}
 console.log(`characters spoken: ${voice.chars}`);
-if (out) writeFileSync(join(out, 'results.json'), JSON.stringify({profile: PROFILE, ...results, chars: voice.chars}, null, 2));
+if (out) {
+  // Merged into what an earlier run left, so a second run (--untagged) does not erase the first one's numbers.
+  const file = join(out, 'results.json');
+  let before = {}; try { before = JSON.parse(readFileSync(file, 'utf8')); } catch { /* the first run */ }
+  writeFileSync(file, JSON.stringify({...before, profile: PROFILE, ...(RUNS ? {latency: results.latency} : {}),
+    ...(flag('--samples') ? {samples: results.samples} : {}), chars: (before.chars ?? 0) + voice.chars}, null, 2));
+}

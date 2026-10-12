@@ -130,8 +130,47 @@ cleanly: each mark becomes one bracketed instruction in front of its word (`brid
 - Square and angle brackets in the text are replaced by spaces, so nothing the character wrote can be read as an instruction.
 - The instruction text is not subtitled and is not metered as speech by the bridge; Inworld bills characters, so it costs a few
   extra characters.
-- Natural speech non-verbal tags (`[laugh]`, `[sigh]`, ...) are **not** mapped: Inworld does have such tags, but Natural speech
-  and its tag list are a separate design. Voice tags never reach this voice (they are removed before any engine sees the text).
+
+### Emotion on every path (added 2026-10-13)
+
+Whoever speaks with the Inworld voice gets the emotion, whatever the player's Expressive emotions setting says and whichever
+provider writes the replies.
+
+| Provider | How the marks get into the reply |
+| --- | --- |
+| Convai (free tier or the player's own Convai key) | The turn's dynamic context carries the emotion block (`EXPRESSIVE_TEXT`, `docs/EMOTION_TAGS.md`); Convai writes `{tags}` inline. Measured on real Convai characters: 100 % valid, every reply opens with a tag, about 2 tags a reply. |
+| Mistral, Groq, Local AI | The same block, in the notes layer of the system message (`bridge/mistral-prompt.mjs`, one builder for all three). |
+| Any provider, a reply with no tag (the model forgot, a bark, a short line) | A fallback reads the words with the face's small lexicon (`bridge/text-emotion.mjs`): a clear feeling becomes one mark at the start of that request's text; a weak or unclear text is spoken plainly. No request, no model, well under a millisecond, once per reply part. |
+
+How it is forced: `ExpressiveEmotions.active` is the player's setting **or** `forcedBy()`, which the bridge sets to "the chosen voice is
+Inworld" (`localVoice.cloud === 'inworld'`). While it holds, the block is added to the turn (`contextFor`), the marks are kept
+(`process`) and the streamed head's marks are kept. The player's setting itself is never changed. The marks also drive the face
+(the same marks the face uses with the setting on), so a player with the setting off who picks Inworld gets mark-driven faces too.
+Cost: the block is about 1,400 characters of prompt on turns where the setting was off (the notes layer is the stable, cached part
+for Mistral); no extra request, no per-frame work, no new timer.
+
+The Convai cloud voice is unchanged: it would read braces aloud, so it still gets no block.
+
+### Non-verbal sounds (Natural speech)
+
+Inworld's `inworld-tts-2` renders six bracketed sounds as audio events, not words (steering page and prompting guide): `[laugh]`,
+`[sigh]`, `[clear throat]`, `[breathe]`, `[cough]`, `[yawn]`. They do not change the delivery.
+
+| Our tag (OmniVoice's list, or Inworld's own) | Spoken as |
+| --- | --- |
+| `laughter`, `laugh` | `[laugh]` |
+| `sigh` | `[sigh]` |
+| `breathe`, `cough`, `yawn`, `clear-throat` | the same name in Inworld's form |
+| `confirmation-en`, `question-en`, `question-ah`, `question-oh`, `surprise-ah`, `surprise-oh`, `dissatisfaction-hnn`, the Chinese and Japanese interjections | no match: removed, never spoken |
+
+- The setting that governs it is Natural speech (off by default). With it on and Inworld speaking, the turn's block offers
+  Inworld's own `[laugh]`, `[sigh]` and `[breathe]` (not OmniVoice's list, not Pocket's "pauses only" wording), on the same dice,
+  places and rules as OmniVoice; the character's own "how they talk" line is reused.
+- Every tag is removed from the subtitles, history and memory on every provider and voice, as before; nothing is ever read aloud.
+- `NaturalSpeech.process` keeps where each sound sat (`voiceMarks`, only while Natural speech is on); the adapter puts the mapped
+  sound at the same word, after the feeling instruction if both sit there, at most two a request, never the same twice in a row.
+  A reply voiced in two parts keeps the head's sounds (`ReplyStream.headSounds`) and the tail's (from the finished reply, counted
+  from where the tail begins).
 
 ## Measured
 
@@ -147,7 +186,9 @@ in `E:\CyberpunkConvai-offload\work\inworld-2026-10-13\`).
 - The format is raw PCM16 with no header at 24 kHz: decoded and checked sample by sample in the tests.
 - Steering is audible in the numbers: the same angry line was 4.32 s (RMS 0.067) plain and 5.74 s (RMS 0.081) with the anger
   instruction; the sad line came out slow and quiet (8.58 s, RMS 0.037). Whether it sounds right is for the user to listen to.
-- The whole live session spoke 456 characters of the account's free allowance, plus the earlier smoke runs.
+- A reply with no tag, steered from its words (the fallback): a sad line came out slow and quiet (11.26 s, RMS 0.027), an angry one
+  fast and loud (4.38 s, RMS 0.073). A line with `{joy}` and a `[laughter]` mapped to `[laugh]`: 5.02 s; listen for a laugh.
+- The whole live session spoke 456 + 174 characters of the account's free allowance, plus the earlier smoke runs.
 
 ## Limits and open points
 
@@ -158,7 +199,7 @@ in `E:\CyberpunkConvai-offload\work\inworld-2026-10-13\`).
 - A new character's first reply may be Pocket's if its voice is not made yet (two clones a minute on the free plan; about 9 s for
   one). Warm-up at "prepare" makes this rare.
 - Cloning game actors' voices is the player's own risk on their own account (terms above).
-- Natural speech non-verbal tags are not mapped.
+- The fallback reads a whole request text for one feeling; it cannot place a change of feeling inside a reply (only the character's own tags can).
 - The Voxtral branch of `VoiceSelection` does not use the `ReplyVoice` lock yet.
 
 ## Live checks in game (user)
@@ -172,4 +213,7 @@ Install the committed `mod/` files and the bridge from this branch (never `mod/d
 5. Remove the key: the entry reads "... · needs Inworld key" and Apply refuses it.
 6. Switch the network off mid-session: the next reply is Pocket's, whole, with one "not ready yet" notice; no reply changes voice
    in the middle.
-7. Emotion: a reply with a strong feeling ({anger:strong}, {sadness}) sounds different from a plain one.
+7. Emotion: a reply with a strong feeling ({anger:strong}, {sadness}) sounds different from a plain one. Turn Expressive emotions
+   OFF in Settings > Voices and talk again with the Inworld voice: the replies still carry emotion (`[Inworld] first audio ... 1 emotion
+   tag` in the log), on Convai, Mistral, Groq and Local alike.
+8. With Natural speech on: now and then a real laugh, sigh or breath (not the word) at a natural spot; none of it in the subtitles.

@@ -27,7 +27,7 @@ import {mkdir, readFile, rename, rm, writeFile} from 'node:fs/promises';
 import {dirname} from 'node:path';
 import {cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
-import {steerText} from './inworld-steering.mjs';
+import {steerText, fallbackMarks} from './inworld-steering.mjs';
 import {INWORLD_VOICES_ENDPOINT} from './inworld-key.mjs';
 
 export const INWORLD_ENDPOINTS = Object.freeze({
@@ -430,8 +430,8 @@ export class InworldVoice {
   // ---- speaking -------------------------------------------------------------------------------------------------------------
 
   /**
-   * Speaks `text` as the voice `key`, handing `onPcm` 24 kHz mono float32 packets of Pocket's shape. `emotion` ({marks, from}) carries
-   * the Expressive emotions marks of the text. Resolves with the stream's summary. Throws an InworldError when nothing was delivered (the
+   * Speaks `text` as the voice `key`, handing `onPcm` 24 kHz mono float32 packets of Pocket's shape. `emotion` ({marks, sounds, from}) carries
+   * the Expressive emotions marks and the non-verbal sounds of the text. Resolves with the stream's summary. Throws an InworldError when nothing was delivered (the
    * caller uses Pocket for the whole reply), `cancelled` when `signal` aborts, and the consumer's own error (marked `sink`) when `onPcm` fails.
    */
   async synthesizeStream(key, text, {signal, onPcm, emotion} = {}) {
@@ -492,7 +492,13 @@ export class InworldVoice {
   /** One request for the whole text of this part. */
   async #stream({key, text, apiKey, voiceId, emotion, signal, onPcm, queued}) {
     const id = ++this.sequence, started = this.now();
-    const steered = this.steering && emotion?.marks?.length ? steerText(text, emotion.marks, {from: emotion.from ?? 0}) : steerText(text, null);
+    // The character's own marks steer the voice. A reply that carries none (the model wrote no tag, or the provider could not be asked)
+    // is read by the same small lexicon the face uses: a clear feeling in the words steers it, anything else is spoken plainly.
+    const written = Array.isArray(emotion?.marks) && emotion.marks.length > 0;
+    const inferred = this.steering && !written ? fallbackMarks(text) : [];
+    const steered = !this.steering ? steerText(text, null)
+      : steerText(text, written ? emotion.marks : inferred, {from: written ? emotion?.from ?? 0 : 0, sounds: emotion?.sounds, soundsFrom: emotion?.from ?? 0});
+    steered.source = written ? 'tags' : inferred.length ? 'text' : 'none';
     let delivered = 0, chunks = 0, firstMs = null, sentAt = null, bytesCarry = Buffer.alloc(0), pending = new Float32Array(0);
     const emit = async samples => {
       const packet = {version: 1, engine: 'pocket-tts', profile: key, owner: this.owner, id, index: chunks + 1,
@@ -576,12 +582,12 @@ export class InworldVoice {
       }
       if (!delivered) throw this.fail('request', 'answered without audio');
       this.chars += text.length;
-      this.log(`first audio ${Math.round(firstMs)}ms, chars ${text.length}${steered.tags ? `, ${steered.tags} emotion tag${steered.tags === 1 ? '' : 's'}` : ''}`);
+      this.log(`first audio ${Math.round(firstMs)}ms, chars ${text.length}${steered.tags ? `, ${steered.tags} emotion tag${steered.tags === 1 ? '' : 's'}${steered.source === 'text' ? ' (from the words)' : ''}` : ''}${steered.sounds ? `, ${steered.sounds} sound${steered.sounds === 1 ? '' : 's'}` : ''}`);
       return {provider: 'inworld', engine: 'inworld', sampleRate: INWORLD_RATE, channels: 1, frames: delivered, chunks,
         duration: delivered / INWORLD_RATE, modelSha256: MODEL_ID, truncated: !done,
         timing: {voiceProvider: 'pocket', voiceEngine: 'inworld', voiceCloud: true, voiceWarm: true,
           voiceFirstPcmReceivedMs: firstMs, voiceGenerationMs: this.now() - started, voiceRoundTripMs: this.now() - started,
-          voiceQueueMs: sentAt - queued, voiceRequests: 1, voiceEmotionTags: steered.tags, ...(done ? {} : {voiceTruncated: true})}};
+          voiceQueueMs: sentAt - queued, voiceRequests: 1, voiceEmotionTags: steered.tags, voiceEmotionSource: steered.source, voiceSounds: steered.sounds, ...(done ? {} : {voiceTruncated: true})}};
     } finally {
       this.clearTimer(timer);
       signal?.removeEventListener('abort', onAbort);

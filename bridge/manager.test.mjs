@@ -2603,6 +2603,8 @@ test('settings review wording: short voice description, experimental gestures, f
     assert(voices.description:find('about 0.2 s', 1, true) and voices.description:find('1 to 2.5 s', 1, true))
     assert(not voices.description:find('%', 1, true), 'no listening percentages in the voice description')
     assert(not voices.description:find(string.char(10), 1, true) and utf8.len(voices.description) < 600, 'the voice description stays short')
+    assert(voices.description:find('Inworld also speaks with emotion.', 1, true), 'the Inworld voice is described as speaking with emotion')
+    assert(not voices.description:lower():find('recommended', 1, true), 'no voice is called recommended')
     assert(row('bodyGestures').label == 'Body gestures (experimental)' and row('bodyGestures').defaultValue == true and row('bodyGestures').value == true)
     assert(row('sitWithYou') == nil, 'companions always sit with V: there is no Sit with you setting')
     assert(row('autoConnectNearby').defaultValue == true and row('keepPreparedVoices').defaultValue == true)

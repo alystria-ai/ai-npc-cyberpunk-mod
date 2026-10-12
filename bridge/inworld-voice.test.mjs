@@ -617,3 +617,42 @@ test('the routing log names the Inworld voice, and Pocket with the reason when i
     await h.voice.close();
   } finally { await server.close(); }
 });
+
+// ---- emotion on every path: the fallback for an untagged reply, and the non-verbal sounds ----------------------------------------
+
+test('a reply with no feeling tag is steered from what its words clearly say; an unclear one is spoken plainly', async () => {
+  const server = await serve();
+  try {
+    const {voice} = voiceFor(server);
+    const sad = await voice.synthesizeStream('judy-alvarez', 'I am so sorry, V. I really miss him.', {onPcm() {}});
+    const body = server.requests.filter(item => item.path === '/speech').at(-1).body;
+    assert.match(body.text, /^\[say sadly in a quiet low voice\] I am so sorry/);
+    assert.equal(sad.timing.voiceEmotionSource, 'text'); assert.equal(sad.timing.voiceEmotionTags, 1);
+    const plain = await voice.synthesizeStream('judy-alvarez', 'Meet me at the corner at nine.', {onPcm() {}, emotion: {marks: []}});
+    assert.equal(server.requests.filter(item => item.path === '/speech').at(-1).body.text, 'Meet me at the corner at nine.');
+    assert.equal(plain.timing.voiceEmotionSource, 'none'); assert.equal(plain.timing.voiceEmotionTags, 0);
+    // The character's own marks win: nothing is inferred beside them, even when the words say something else.
+    const tagged = await voice.synthesizeStream('judy-alvarez', 'I am so sorry, V.', {onPcm() {}, emotion: {marks: [{at: 0, name: 'joy', strength: 'subtle'}]}});
+    assert.equal(server.requests.filter(item => item.path === '/speech').at(-1).body.text, '[say with warm amusement] I am so sorry, V.');
+    assert.equal(tagged.timing.voiceEmotionSource, 'tags');
+    // Switched off, nothing is added.
+    const off = voiceFor(server, {steering: false});
+    await off.voice.synthesizeStream('judy-alvarez', 'I am so sorry, V. I really miss him.', {onPcm() {}});
+    assert.equal(server.requests.filter(item => item.path === '/speech').at(-1).body.text, 'I am so sorry, V. I really miss him.');
+  } finally { await server.close(); }
+});
+
+test('the character\'s non-verbal sounds go into the text as Inworld\'s sounds; the ones with no match are dropped', async () => {
+  const server = await serve();
+  try {
+    const {voice} = voiceFor(server);
+    const text = 'I told him no, and he still showed up.';
+    const result = await voice.synthesizeStream('judy-alvarez', text, {onPcm() {}, emotion: {marks: [], sounds: [{at: text.indexOf('and'), name: 'laughter'}, {at: 0, name: 'question-oh'}]}});
+    assert.equal(server.requests.filter(item => item.path === '/speech').at(-1).body.text, 'I told him no, [laugh] and he still showed up.');
+    assert.equal(result.timing.voiceSounds, 1);
+    // The second part of a reply: its offsets count from where it begins in the whole reply.
+    const tail = 'and he still showed up. Typical.';
+    await voice.synthesizeStream('judy-alvarez', tail, {onPcm() {}, emotion: {marks: [], from: 15, sounds: [{at: 15 + tail.indexOf('Typical'), name: 'sigh'}, {at: 4, name: 'laugh'}]}});
+    assert.equal(server.requests.filter(item => item.path === '/speech').at(-1).body.text, 'and he still showed up. [sigh] Typical.');
+  } finally { await server.close(); }
+});

@@ -33,14 +33,14 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
         if(!text||localSignal.aborted)return null;
         // The feelings in force where the tail begins are marked for the voice (Expressive emotions; the cloud voice steers with them).
         const full=stream.text,from=Math.max(0,full.indexOf(text,stream.head?.length??0));
-        const emotion={marks:stream.meta?.emotionMarks,from};
+        const emotion={marks:stream.meta?.emotionMarks,sounds:stream.meta?.voiceMarks,from};
         const buffered=new BufferedPcm({signal:localSignal,synthesize:(onPcm,options)=>voice.synthesizeStream(voiceKey,text,{...options,onPcm,reply,emotion})});
         buffered.start();return buffered;
       }):null;
       tail?.catch(()=>{});
       markStage('ttsSent');
       let response=prefetched?await prefetched.drain(feed,{signal:localSignal})
-        :await voice.synthesizeStream(voiceKey,result.text,{signal:localSignal,onPcm:feed,reply,emotion:{marks:result.emotionMarks}});
+        :await voice.synthesizeStream(voiceKey,result.text,{signal:localSignal,onPcm:feed,reply,emotion:{marks:result.emotionMarks,sounds:result.voiceMarks}});
       if(tail){
         const buffered=await tail;
         if(buffered){

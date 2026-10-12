@@ -300,6 +300,9 @@ const phoneKnowledge = new PlayerPhoneKnowledge({router: knowledgeRouter, getBou
 const naturalSpeech = new NaturalSpeech();
 // "Expressive emotions": the character marks its own feelings inline; the marks drive the face (bridge/expressive-emotions.mjs).
 const expressiveEmotions = new ExpressiveEmotions();
+// The Inworld cloud voice speaks every reply with emotion, so its marks are asked for and kept whatever the player's Expressive emotions
+// setting says (docs/CLOUD_VOICE_INWORLD.md). `localVoice` is created above; the function runs per turn, never per frame.
+expressiveEmotions.forcedBy = () => localVoice.cloud === 'inworld';
 // "Follow-up questions": the character sometimes shows interest in the player inside the reply it is already giving (bridge/follow-up.mjs).
 const followUp = new FollowUp();
 // Facial emotion selection (bridge/emotion-selector.mjs): player message + reply + character manner + Convai's own
@@ -620,11 +623,13 @@ const routingLog = new VoiceRoutingLog({path: resolve(runtime, ROUTING_LOG_NAME)
 const voiceSources = {pocket: voiceConfig, omni: omniVoiceConfigs};
 // Whether the Natural speech block went into the latest context built for each turn (for the log line below).
 const naturalSpeechBlocks = new Map();
+// The engine whose sounds Natural speech offers: the Inworld cloud voice rides on Pocket but renders its own list of sounds.
+const soundEngine = engine => engine === 'pocket' && localVoice.cloud === 'inworld' ? 'inworld' : engine;
 const naturalSpeechContext = input => {
   const prepared = preparedInputs.get(input);
   const phone = input.channel === 'phone' || prepared?.route?.channel === 'phone';
   const spoken = !phone && !input.reaction && localVoice.playbackEnabled !== false;
-  const engine = turnVoice(input).engine;
+  const engine = soundEngine(turnVoice(input).engine);
   const block = naturalSpeech.contextFor({engine, spoken, sessionId: realtimeSessions.get(sessionKey(input)),
     turn: input?.requestId || input?.id, trait: traitFor(input.profileKey), profile: input.profileKey,
     name: profileFor(input, roster)?.name, language: turnVoice(input).language});
@@ -947,10 +952,11 @@ async function finishedReply(streamed, spoken) {
 }
 function mergeFinishedReply(spoken, final, streamed) {
   const text = final?.text ?? streamed.stream.text;
-  const {speechText: _speech, emotionMarks: _marks, ...rest} = spoken;
+  const {speechText: _speech, emotionMarks: _marks, voiceMarks: _sounds, ...rest} = spoken;
   return {...rest, ...(final?.sessionID !== undefined ? {sessionID: final.sessionID} : {}), text,
     ...(final?.speechText !== undefined ? {speechText: final.speechText} : {}),
     ...(final?.emotionMarks !== undefined ? {emotionMarks: final.emotionMarks} : {}),
+    ...(final?.voiceMarks !== undefined ? {voiceMarks: final.voiceMarks} : {}),
     ...(final?.naturalDevices !== undefined ? {naturalDevices: final.naturalDevices} : {}),
     timing: {...final?.timing, ...spoken.timing}};
 }
@@ -1090,8 +1096,8 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     // the previous speaker); the whole text is still sent to Pocket once.
     // Pocket's worker is FIFO, so this runs right after the prior speaker's job.
     // The Inworld cloud voice turns the reply's emotion marks into steering (docs/CLOUD_VOICE_INWORLD.md); the other voices ignore them.
-    const replyMarks = result.emotionMarks;
-    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm, emotion: {marks: replyMarks}})});
+    const replyMarks = result.emotionMarks, replySounds = result.voiceMarks;
+    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm, emotion: {marks: replyMarks, sounds: replySounds}})});
     prefetched.start().then(() => ahead.markReady(), () => {});
     try {
       await ahead.waitClaimed(signal);
@@ -1219,10 +1225,10 @@ async function respondStreamed(input, profile, {signal, current}) {
   if (voice.engine !== 'pocket' || localVoice.playbackEnabled === false || (await readSpeechState()).continuousAvailable !== true) return whole();
   throwIfCancelled(signal);
   // The tags written inside the first sentence move the face from its first frame (the finished reply re-plans with all of them).
-  const headMarks = expressiveEmotions.enabled ? stream.headMarks : [];
+  const headMarks = expressiveEmotions.active ? stream.headMarks : [];
   if (headMarks.length && !marks.length) marks.push(...headMarks);
   const partial = {text: head, transport: 'realtime', sessionID: config.sessionId, timing: {streamedHead: true},
-    ...(headMarks.length ? {emotionMarks: headMarks} : {})};
+    ...(headMarks.length ? {emotionMarks: headMarks} : {}), ...(naturalSpeech.enabled && stream.headSounds.length ? {voiceMarks: stream.headSounds} : {})};
   return synthesizeReply(input, partial, signal, current, profile, undefined, {stream, final, marks, signal});
 }
 

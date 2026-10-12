@@ -80,7 +80,7 @@ export class ReplyStream {
   constructor({name = '', isTag = () => false, speak = true, limits = {}} = {}) {
     Object.assign(this, {name, isTag, speak});
     this.limits = {...REPLY_STREAM_LIMITS, ...limits};
-    this.raw = ''; this.clean = ''; this.view = ''; this.headText = null; this.headMarks_ = []; this.sentenceSeen = false;
+    this.raw = ''; this.clean = ''; this.view = ''; this.headText = null; this.headMarks_ = []; this.headSounds_ = []; this.sentenceSeen = false;
     this.finishedText = null; this.failure = null; this.diverged = false; this.attempts = 1;
     this.reject = null;   // optional (text) => boolean, set by the text host: a head it refuses is not committed
     this.head_ = deferred(); this.final_ = deferred();
@@ -91,6 +91,8 @@ export class ReplyStream {
   get head() { return this.headText; }
   /** The emotion marks ({at, name, strength}, `at` an offset in the head) of the tags written inside the head; [] without any. */
   get headMarks() { return this.headMarks_; }
+  /** The sounds ({at, name}, `at` an offset in the head) of the voice tags written inside the head; [] without any. */
+  get headSounds() { return this.headSounds_; }
   /** True once a head was committed. */
   get committed() { return this.headText !== null; }
   /** True once the reply is finished (or failed): the voice's text is final. */
@@ -131,6 +133,7 @@ export class ReplyStream {
       if (found) {
         this.headText = found.text;
         this.headMarks_ = this.#marksWithin(found.text.length);
+        this.headSounds_ = this.#marksWithin(found.text.length, 'sounds');
         this.head_.resolve(found.text);
         this.#changed();
       }
@@ -148,10 +151,10 @@ export class ReplyStream {
   }
 
   // The emotion tags written inside the first `length` characters of the display text.
-  #marksWithin(length) {
+  #marksWithin(length, kind = 'marks') {
     try {
       const cut = heldFrom(this.clean);
-      return parseTagged(cut >= 0 ? this.clean.slice(0, cut) : this.clean).marks.filter(mark => mark.at < length);
+      return parseTagged(cut >= 0 ? this.clean.slice(0, cut) : this.clean)[kind].filter(mark => mark.at < length);
     } catch { return []; }
   }
 

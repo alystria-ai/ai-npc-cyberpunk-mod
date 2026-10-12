@@ -186,9 +186,9 @@ test('a streamed reply gives both parts one reply-voice lock and the emotion mar
   await deliverPocketSpeech({input,profile,result:{...result,text:head,emotionMarks:marks},current:async()=>true,voice,host,speech,stream});
   assert.equal(seen.length,2);
   assert.ok(seen[0].reply instanceof ReplyVoice&&seen[0].reply===seen[1].reply,'one lock for the reply');
-  assert.deepEqual(seen[0].emotion,{marks});
+  assert.deepEqual(seen[0].emotion,{marks,sounds:undefined});
   assert.equal(seen[1].text,'Touch her again and I swear I will end you.');
-  assert.deepEqual(seen[1].emotion,{marks,from:full.indexOf('Touch')});
+  assert.deepEqual(seen[1].emotion,{marks,sounds:undefined,from:full.indexOf('Touch')});
 });
 
 test('a streamed reply whose model fails after the first sentence ends with that sentence',async()=>{

@@ -76,7 +76,7 @@ test('a tagged reply whose sentences are all short has no head, exactly as befor
 test('the bridge hands the head\'s emotion marks to the face planner and the live mark list', async () => {
   const {readFileSync} = await import('node:fs');
   const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(source, /const headMarks = expressiveEmotions\.enabled \? stream\.headMarks : \[\];/);
+  assert.match(source, /const headMarks = expressiveEmotions\.active \? stream\.headMarks : \[\];/);
   assert.match(source, /if \(headMarks\.length && !marks\.length\) marks\.push\(\.\.\.headMarks\);/);
   assert.match(source, /\.\.\.\(headMarks\.length \? \{emotionMarks: headMarks\} : \{\}\)/);
 });
