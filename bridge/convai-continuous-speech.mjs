@@ -36,7 +36,11 @@ export class ConvaiContinuousSpeech {
     // hold(): true while this turn is a look-ahead that must keep buffering and
     // publish nothing. onText(text, userText): the complete reply text is known.
     hold = () => false, onHeld = () => {}, onText = () => {},
+    // leaseWake(): a promise that resolves when the game's lease file is replaced (bridge/file-wake.mjs), so the host's clock poll that
+    // is waiting for the first lease runs at once instead of after its 40 ms sleep (docs/LATENCY_2026-10-13.md, 4.2).
+    leaseWake,
     now = Date.now, token = randomUUID(), faceBuilder, jaliFace, planExpression}) {
+    this.leaseWake = leaseWake;
     this.planExpression = planExpression; this.onTimeline = onTimeline;
     this.input = input; this.profile = profile; this.current = current; this.signal = signal;
     this.readControl = readControl; this.writeState = writeState; this.writeReply = writeReply;
@@ -58,7 +62,10 @@ export class ConvaiContinuousSpeech {
   get options() {
     return {token: this.token, onFrame: snapshot => this.frame(snapshot), pcmCursor: () => this.pcmCursor(),
       // A held look-ahead turn only buffers: the host may poll it less often.
-      pollMs: () => this.hold() ? 120 : undefined, wake: () => this.hold() ? this.woken : undefined};
+      pollMs: () => this.hold() ? 120 : undefined,
+      // Held: until the game submits the turn. Admitted but no lease read yet: until the game writes its lease. Afterwards the 40 ms poll
+      // alone carries the stream (a wake on every lease refresh would only add polls).
+      wake: () => this.hold() ? this.woken : this.controlAt === undefined ? this.leaseWake?.() : undefined};
   }
 
   // Next analysis frame wanted from the renderer, or undefined (no model).
@@ -219,16 +226,12 @@ export class ConvaiContinuousSpeech {
       this.splitFace = supported; this.faceSegments = segments;
     }
     let faceField = {face: this.face};
+    // The first publication does not wait for the face file (docs/LATENCY_2026-10-13.md, 4.3): the game cannot use a face before it has
+    // the reply, so the state and the reply go out together and the face file follows at once; the state carries its revision from the
+    // next poll on, and the lease (the sound) is not granted before that poll, so no sound starts without its face.
+    const first = !this.published;
     if (this.splitFace) {
-      if (this.face && this.faceWritten !== this.faceRevision) {
-        const owner = {version: 1, id: this.token, requestId: this.input.requestId,
-          generation: this.input.generation, entity: this.input.entity};
-        const committed = await this.commit(value => this.writeFace(value, {segments: this.faceSegments === true}),
-          {...owner, revision: this.faceRevision, face: this.face}, false);
-        if (committed === false) throw Error('Continuous speech face could not be committed');
-        // null: the game was reading the old file; the next poll writes again.
-        if (committed !== null) this.faceWritten = this.faceRevision;
-      }
+      if (!first) await this.commitFace();
       faceField = this.faceWritten ? {faceRevision: this.faceWritten} : {};
     }
     const document = {version: 1, id: this.token, requestId: this.input.requestId,
@@ -241,12 +244,14 @@ export class ConvaiContinuousSpeech {
     if (captions) document.captions = captions;
     const expression = ownedExpressionReceipt(snapshot.expressionSignal, this.input);
     if (expression) document.expression = expression;
+    // The state is committed and the owner is checked before the reply is written (a cancel or a failed state write never admits audio),
+    // so the two stay in sequence.
     const stateCommitted = await this.commit(this.writeState, document, snapshot.ended);
     if (stateCommitted === false) throw Error('Continuous speech state could not be committed');
     if (!await this.valid()) throw Error('Continuous speech owner changed');
     // A file the game was reading at that instant: publish on the next poll.
     if (stateCommitted === null) return this.published ? this.control() : quiet();
-    if (!this.published) {
+    if (first) {
       const reply = {requestId: this.input.requestId, generation: this.input.generation,
         entity: this.input.entity, profile: this.profile.key, text: snapshot.text,
         ...(snapshot.userText ? {userText: snapshot.userText} : {}),
@@ -256,6 +261,8 @@ export class ConvaiContinuousSpeech {
       if (!replyCommitted) throw Error('Continuous speech admission could not be committed');
       this.published = true; this.publishedAt = this.now();
       await this.onPublished({publishedAt: this.publishedAt, initialBufferedSeconds: duration});
+      // The face file follows the reply at once; the state carries its revision from the next poll on.
+      if (this.splitFace) await this.commitFace();
     }
     if (!this.started && this.position > 0) {
       this.started = true;
@@ -271,6 +278,18 @@ export class ConvaiContinuousSpeech {
     if (snapshot.ended) { this.ended = true; this.model?.close(); return quiet(); }
     if (!await this.valid()) throw Error('Continuous speech owner changed');
     return this.control();
+  }
+
+  // Writes the facial timeline file when its revision changed (the state then carries `faceRevision`).
+  async commitFace() {
+    if (!this.face || this.faceWritten === this.faceRevision) return;
+    const owner = {version: 1, id: this.token, requestId: this.input.requestId,
+      generation: this.input.generation, entity: this.input.entity};
+    const committed = await this.commit(value => this.writeFace(value, {segments: this.faceSegments === true}),
+      {...owner, revision: this.faceRevision, face: this.face}, false);
+    if (committed === false) throw Error('Continuous speech face could not be committed');
+    // null: the game was reading the old file; the next poll writes again.
+    if (committed !== null) this.faceWritten = this.faceRevision;
   }
 
   // Once per reply, when its text and audio source are both complete: the plan and face this stream ends with (the

@@ -363,9 +363,11 @@ test('when the game advertises it, the facial timeline goes to its own file only
   assert.deepEqual({...faces[0], face: undefined}, {version: 1, id: 'continuous-1', ...owner, revision: 1, face: undefined});
   assert.ok(faces[0].face.frames.length > 2);
   assert.equal(f.states.at(-1).face, undefined);
-  assert.equal(f.states.at(-1).faceRevision, 1);
+  // The first publication does not wait for the face file: its state has no revision yet, the next poll's state does.
+  assert.equal(f.states.at(-1).faceRevision, undefined);
   // Unchanged audio and face: the state is republished, the large face is not.
   await f.stream.frame({...snapshot, positionSeconds: .1});
+  assert.equal(f.states.at(-1).faceRevision, 1);
   assert.equal(faces.length, 1); assert.equal(f.states.at(-1).faceRevision, 1);
   // A grown source changes the face; a sharing error keeps the old revision until the next poll.
   failNext = true;
@@ -392,6 +394,35 @@ test('a game that reads segmented face files is handed that layout, and a plain-
     f.control();
     await f.stream.frame(f.snapshot({faces: poses(.5), facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}));
     assert.deepEqual(seen, [{segments: mode === 'segments'}]);
+    await f.stream.frame(f.snapshot({faces: poses(.5), facesFormat: 'arkit61', facesTimebase: 'audio-seconds', positionSeconds: .1}));
     assert.equal(f.states.at(-1).faceRevision, 1);
   }
+});
+
+test('the first publication writes the state and the reply before the face file, and the face is on disk before the frame returns', async () => {
+  const order = [];
+  const f = fixture(owner, {faceFile: async () => true, writeFace: async () => { order.push('face'); await new Promise(done => setTimeout(done, 15)); return true; }});
+  f.onState = async () => { order.push('state'); };
+  f.onReply = async () => { order.push('reply'); };
+  f.control();
+  await f.stream.frame(f.snapshot({faces: poses(.5), facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}));
+  assert.deepEqual(order, ['state', 'reply', 'face']);
+  assert.equal(f.published.length, 1, 'published is reported before the face write');
+  assert.ok(f.events.indexOf('published') < f.events.length, 'the face is written after onPublished');
+  await f.stream.frame(f.snapshot({faces: poses(.5), facesFormat: 'arkit61', facesTimebase: 'audio-seconds', positionSeconds: .1}));
+  assert.equal(order.filter(name => name === 'face').length, 1, 'an unchanged face is not written again');
+  assert.equal(f.states.at(-1).faceRevision, 1);
+});
+
+test('the playback wake: held turns wake on release, admitted turns wake on the first lease only, and not after it', async () => {
+  let leases = 0;
+  const f = fixture(owner, {leaseWake: () => { leases++; return Promise.resolve('lease'); }});
+  assert.equal(await f.stream.options.wake(), 'lease', 'admitted, no lease read yet: the lease file wakes the poll');
+  f.control();
+  await f.stream.frame(f.snapshot());
+  assert.equal(f.stream.options.wake(), undefined, 'a lease was read: the 40 ms poll alone carries the stream');
+  assert.equal(leases, 1);
+  const held = heldFixture(owner);
+  assert.equal(held.stream.options.wake(), held.stream.woken, 'a held look-ahead still wakes on its release');
+  assert.equal(fixture(owner).stream.options.wake(), undefined, 'no lease latch: nothing to wake on');
 });

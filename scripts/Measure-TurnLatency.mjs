@@ -20,11 +20,12 @@ import {resolve, dirname} from 'node:path';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const load = path => import(pathToFileURL(resolve(root, path)).href);
 const [{TextProviderHost, mistralRoute}, {MistralMemory}, {MistralProvider}, {GroqKey}, {PersonaBook}, {RealtimeHost}, {deliverPocketSpeech},
-  {ReplyStream}, {TurnClock, withClock}, {ConvaiContinuousSpeech}, {ownedPocketFace}, {hasEmotionTag}, {NaturalSpeech}, {ExpressiveEmotions}] = await Promise.all([
+  {ReplyStream}, {TurnClock, withClock}, {ConvaiContinuousSpeech}, {ownedPocketFace}, {hasEmotionTag}, {NaturalSpeech}, {ExpressiveEmotions}, {MicrophoneSession}, {createLocalSttChannel}, {startVoiceKeyStream}] = await Promise.all([
   load('bridge/text-provider-host.mjs'), load('bridge/mistral-memory.mjs'), load('bridge/mistral-key.mjs'), load('bridge/groq-key.mjs'),
   load('bridge/mistral-prompt.mjs'), load('bridge/realtime-host.mjs'), load('bridge/pocket-speech.mjs'), load('bridge/reply-stream.mjs'),
   load('bridge/turn-clock.mjs'), load('bridge/convai-continuous-speech.mjs'), load('bridge/pocket-facial-stream.mjs'),
-  load('bridge/emotion-tags.mjs'), load('bridge/natural-speech.mjs'), load('bridge/expressive-emotions.mjs')]);
+  load('bridge/emotion-tags.mjs'), load('bridge/natural-speech.mjs'), load('bridge/expressive-emotions.mjs'),
+  load('bridge/microphone-session.mjs'), load('bridge/local-stt-capture.mjs'), load('bridge/voice-key-stream.mjs')]);
 
 const args = process.argv.slice(2);
 const option = (name, fallback) => { const at = args.indexOf(name); return at >= 0 ? args[at + 1] : fallback; };
@@ -86,7 +87,43 @@ function simulatedVoice({firstAudioMs, speed}) {
 }
 
 // ---- one turn ---------------------------------------------------------------------------------------------------------------------
-async function oneTurn({host, stream, model, voice, reply, chatDefaults}) {
+// The voice key (--voice-key): the turn goes through the real MicrophoneSession and the real local speech channel (recognition itself is
+// instant here), and the reply is voiced either when it is whole ('whole', the route before 2026-10-13) or from its first sentence
+// ('streamed', bridge/voice-key-stream.mjs, the route now).
+async function voiceKeyTurn({mode, text, config, input, profile, current, voice, host, speech, clock}) {
+  let streamed, delivered;
+  const channel = createLocalSttChannel({reply: (used, options) => text.reply(used, options),
+    stt: {availability: () => ({available: true, reason: null}), start: async () => {}, pushAudio: () => true, heard: () => '',
+      finish: async () => ({text: 'Hey Judy, long time no see.', seconds: 1}), cancel: async () => {}},
+    capture: {begin: async () => ({device: 'bench'}), end: async () => {}, abort: async () => {}}});
+  let failure;
+  const mic = new MicrophoneSession({minRecordMs: 0, hostFactory: channel, onState: async () => {},
+    prepareReply: async (_input, signal) => {
+      if (mode !== 'streamed') return undefined;
+      streamed = startVoiceKeyStream({stream: new ReplyStream({name: 'Judy Alvarez', isTag: hasEmotionTag}), signal,
+        speak: async ({stream, final}) => {
+          const head = await stream.headReady;
+          const result = head ? {text: head, transport: 'realtime', timing: {}} : await final;
+          clock.mark('voiceStart');
+          const spoken = await deliverPocketSpeech({input, profile, result, current, voice, host, speech, ...(head ? {stream} : {})});
+          const finished = await final;
+          return head && stream.text !== finished.text ? {audioError: 'the stream text differs from the finished reply'} : spoken;
+        }});
+      return streamed.options;
+    },
+    onReply: async (_input, result) => {
+      if (streamed) { streamed.finish({...result, transport: 'realtime'}); delivered = await streamed.spoken; return; }
+      clock.mark('voiceStart');
+      delivered = await deliverPocketSpeech({input, profile, result: {...result, transport: 'realtime'}, current, voice, host, speech});
+    },
+    onError: async (_input, error) => { failure = error; }});
+  await mic.start(input, config);
+  await mic.finish(input.requestId, {input, config});
+  if (failure) throw failure;
+  return delivered;
+}
+
+async function oneTurn({host, stream, model, voice, reply, chatDefaults, mic}) {
   const server = await languageModel({...model, ...(reply ? {reply} : {})});
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => 'api-key=aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL\n', writeText: async () => {},
     groq: new GroqKey({keyPath: 'g.txt'})});
@@ -109,7 +146,9 @@ async function oneTurn({host, stream, model, voice, reply, chatDefaults}) {
   const config = {text: 'Hey Judy, long time no see.', sessionId: 'bench', context: 'CURRENT PERSON\nBench.', local: {profileKey: input.profileKey, name: 'Judy Alvarez', channel: 'private'}};
   try {
     await withClock(clock, async () => {
-      if (!stream) {
+      if (mic) {
+        delivered = await voiceKeyTurn({mode: mic, text, config, input, profile, current, voice, host, speech, clock});
+      } else if (!stream) {
         const result = await text.reply(config, {});
         clock.mark('voiceStart');
         delivered = await deliverPocketSpeech({input, profile, result: {...result, transport: 'realtime'}, current, voice, host, speech});
@@ -131,14 +170,14 @@ async function oneTurn({host, stream, model, voice, reply, chatDefaults}) {
 }
 
 const median = values => { const sorted = [...values].sort((a, b) => a - b); return sorted[Math.floor(sorted.length / 2)]; };
-async function scenario({label, model, voiceModel, stream, warm, reply, chatDefaults, makeVoice, extra}) {
+async function scenario({label, model, voiceModel, stream, warm, reply, chatDefaults, makeVoice, extra, mic}) {
   const rows = [], notes = [];
   for (let run = 0; run < RUNS; run++) {
     const host = new RealtimeHost({muteBrowser: true});
     const made = makeVoice ? await makeVoice() : null;
     try {
       if (warm) await host.prewarmLocal();
-      rows.push(await oneTurn({host, stream, model, voice: made ? made.voice : simulatedVoice(voiceModel), reply, chatDefaults}));
+      rows.push(await oneTurn({host, stream, model, voice: made ? made.voice : simulatedVoice(voiceModel), reply, chatDefaults, mic}));
       if (made) notes.push(made.report());
     } finally { await host.close(); await made?.close(); }
   }
@@ -276,6 +315,19 @@ if (args.includes('--live')) {
   for (const [name, reply] of Object.entries(LIVE_REPLIES)) {
     for (const stream of [false, true]) {
       const row = await scenario({label: `mistral + voxtral-live, ${name}`, model: {firstTokenMs: Number(option('--first-token-ms', 650)), msPerChar: 3.5}, voiceModel: VOICES['voxtral-live'], stream, warm: true, reply});
+      results.push(row); console.log(JSON.stringify(row));
+    }
+  }
+  const target = option('--json', null);
+  if (target) await writeFile(target, JSON.stringify(results, null, 1));
+  process.exit(0);
+}
+// --voice-key: the voice key on a text route (docs/LATENCY_2026-10-13.md 4.1), the reply voiced whole against from its first sentence.
+if (args.includes('--voice-key')) {
+  for (const [modelName, voiceName] of [['mistral', 'voxtral'], ['groq', 'voxtral'], ['local', 'voxtral'], ['local', 'pocket']]) {
+    if (only && !`${modelName} + ${voiceName}`.includes(only)) continue;
+    for (const mic of ['whole', 'streamed']) {
+      const row = await scenario({label: `voice key, ${modelName} + ${voiceName}, ${mic}`, model: MODELS[modelName], voiceModel: VOICES[voiceName], stream: mic === 'streamed', warm: true, mic});
       results.push(row); console.log(JSON.stringify(row));
     }
   }

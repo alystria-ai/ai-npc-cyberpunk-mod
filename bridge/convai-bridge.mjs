@@ -3,7 +3,8 @@ import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {archetypeContext, isAmbientProfile, parseInput, profileFor} from './protocol.mjs';
 import {configureKnowledgeParts} from './knowledge-parts.mjs';
-import {audioReady} from './speech-audio.mjs';
+import {audioReady, prepareSpeech} from './speech-audio.mjs';
+import {createSpeechStateReader, audioAvailable} from './speech-state-cache.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {encodeSegmentedFace} from './continuous-face-file.mjs';
@@ -20,6 +21,7 @@ import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
+import {startVoiceKeyStream} from './voice-key-stream.mjs';
 import {createHash, randomUUID} from 'node:crypto';
 import {homedir} from 'node:os';
 import {conversationScope} from './group-context.mjs';
@@ -78,11 +80,12 @@ import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack} from './local-ai-pack.mjs';
 import {LocalLlmServer} from './local-llm-server.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
-import {watchFiles} from './file-wake.mjs';
+import {watchFiles, createWakeSignal} from './file-wake.mjs';
+const leaseWake = createWakeSignal();
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
-import {DEFAULT_MODELS as MISTRAL_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor} from './mistral-client.mjs';
+import {DEFAULT_MODELS as MISTRAL_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -487,9 +490,14 @@ const sessions = new Map();
 const realtimeSessions = new Map();
 const audioDepot = resolve(game, 'r6/audioware/CyberpunkConvai');
 const lipsync = new PhoneticLipsync({project});
-const readSpeechState = async () => {
+const speechStateFile = async () => {
   try { return JSON.parse(await readFile(resolve(runtime, 'speech-state.json'), 'utf8')); } catch { return {}; }
 };
+// The game's heartbeat file: readSpeechState() reads it (receipts, the watchdog, the speech slots); readSpeechStateCached() answers a turn's
+// questions from a read at most 1 s old (bridge/speech-state-cache.mjs).
+const speechStateReader = createSpeechStateReader({read: speechStateFile});
+const readSpeechState = () => speechStateReader.fresh();
+const readSpeechStateCached = () => speechStateReader.cached();
 const slots = new SpeechSlots({depot: audioDepot, readState: readSpeechState});
 let streamWriting=Promise.resolve(),streaming=0;
 function writeStreamManifest(document,current){
@@ -528,7 +536,7 @@ const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemo
 const mistralSpeech = createLocalSpeech({
   stt: new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable}),
   capture: new LocalSttCapture({getBrowser: hostBrowser(realtime)})});
-for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: host === realtime});
+for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: host === realtime, warmCloud: warmConnection});
 function localTurn(input, prepared = preparedInputs.get(input)) {
   const route = prepared ?? routeFor(input);
   const channel = route?.route?.channel ?? (input.channel === 'phone' ? 'phone' : input.group ? 'group' : 'private');
@@ -1051,7 +1059,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
       // written is already rendering (respondStreamed). It is used when it is the phrase this reply starts with, else dropped.
       const reuse=omniSpeculation&&omniSpeculation.phrase===voiced[0]&&omniSpeculation.language===language&&omniSpeculation.steps===steps;
       if(omniSpeculation&&!reuse)omniSpeculation.cancel();
-      const first=reuse?omniSpeculation.promise:synthesizeOmniPhrase(voiceKey,voiced[0],{signal,steps,language});
+      const first=reuse?omniSpeculation.promise:synthesizeOmniPhrase(voiceKey,voiced[0],{signal,steps,language,preStore:true});
       // Queue phrase 2 behind phrase 1 now: the GPU renders it while phrase 1's
       // lip analysis, storage and publication run, instead of after them.
       let second;
@@ -1072,7 +1080,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
       return {...result,audio:undefined,faces:[],captions:[],audioError:'Local voice is unavailable; showing the written reply.'};
     }
   }
-  if ((await readSpeechState()).continuousAvailable !== true) {
+  if ((await readSpeechStateCached()).continuousAvailable !== true) {
     logVoiceRoute(input, profile, {engine: 'none', language: voice.language}, {reason: 'local streaming unavailable: written reply only'});
     return {...result, audio: undefined, faces: [], captions: [],
       audioError: 'Local streaming is unavailable; showing the written reply.'};
@@ -1097,22 +1105,31 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
 }
 
-async function synthesizeOmniPhrase(profile,text,options){
+// options.preStore (the reply's first phrase): the audio is written for its speech slot while the face analysis runs, not after it
+// (bridge/speech-audio.mjs prepareSpeech); the result carries `preStored` for publishResult.
+async function synthesizeOmniPhrase(profile,text,{preStore=false,...options}={}){
   markStage('ttsSent');
   const generated=await localVoice.synthesize(profile,text,options);
   markStage('firstPcm');
+  let preStored;
+  // The analysis is started first (it runs in a worker), then the file is prepared on this thread while that runs: the other way round
+  // the preparation's 10 ms of decoding and levelling would delay the start of the analysis.
+  const analysing=jaliFace?jaliFace.analyseWav(generated.audio,{...options,text}):null;// the phrase as voiced, tags included
+  analysing?.catch(()=>{});
+  if(preStore&&typeof generated.audio==='string')try{preStored=prepareSpeech(generated.audio,audioDepot);}catch{/* the ordinary store follows */}
+  const withStore=result=>preStored?{...result,preStored}:result;
   if(jaliFace)try{
-    const facial=await jaliFace.analyseWav(generated.audio,{...options,text});// the phrase as voiced, tags included
-    return {...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}};
+    const facial=await analysing;
+    return withStore({...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}});
   }catch(error){
-    throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Facial model fallback:',error.message);
+    if(options?.signal?.aborted)void preStored?.discard();throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Facial model fallback:',error.message);
   }
   try{
     const facial=await lipsync.analyse(generated.audio,options);
-    return {...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}};
+    return withStore({...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}});
   }catch(error){
-    throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Omni lip-sync fallback:',error.message);
-    return {...generated,timing:{...generated.timing,voiceProvider:'omni'}};
+    if(options?.signal?.aborted)void preStored?.discard();throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Omni lip-sync fallback:',error.message);
+    return withStore({...generated,timing:{...generated.timing,voiceProvider:'omni'}});
   }
 }
 
@@ -1144,11 +1161,12 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       lookahead.setSource({input, text, userText, current: current.sourceValid || current});
     },
     readControl: () => readFile(resolve(runtime, 'continuous-control.json'), 'utf8'),
+    leaseWake: () => leaseWake.next(),
     writeState: value => atomic(resolve(runtime, 'continuous-speech.json'), JSON.stringify(value), options),
     writeFace: (value, {segments} = {}) => atomic(resolve(runtime, 'continuous-face.json'),
       segments ? encodeSegmentedFace(value) : JSON.stringify(value), options),
     // The game's adapter says how it reads the timeline file: segments (decoded by changed segment), a plain document or not at all.
-    faceFile: async () => { const state = await readSpeechState(); return state.continuousFaceSegments === true ? 'segments' : state.continuousFaceFile === true; },
+    faceFile: async () => { const state = await readSpeechStateCached(); return state.continuousFaceSegments === true ? 'segments' : state.continuousFaceFile === true; },
     writeReply: value => atomic(replyPath, JSON.stringify({...value, ...keyNotice()}), options),
     onPublished: timing => { markPublished(input.requestId, timing.publishedAt);
       return measure(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },
@@ -1174,7 +1192,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
 // splitter, local TTS worker or per-phrase Audioware file queue.
 async function convaiReply(input, profile, current, signal) {
   logVoiceRoute(input, profile, {engine: 'convai', language: turnVoice(input).language});
-  const state = await readSpeechState();
+  const state = await readSpeechStateCached();
   // Retain the complete-file adapter until this game session advertises the
   // new Lua admission controller; installing files alone does not load them.
   if (state.continuousAvailable !== true) {
@@ -1195,12 +1213,21 @@ async function convaiReply(input, profile, current, signal) {
 // CYBERPUNK_CONVAI_REPLY_STREAM=0) switches it off.
 async function respondStreamed(input, profile, {signal, current}) {
   const config = realtimeConfig(input);
-  const stream = new ReplyStream({name: config.local?.name ?? profile?.name ?? '', isTag: hasEmotionTag});
-  const marks = [];
-  stream.onChange(() => { if (stream.complete && Array.isArray(stream.meta?.emotionMarks)) marks.splice(0, marks.length, ...stream.meta.emotionMarks); });
+  const stream = newReplyStream(config, profile);
   const final = Promise.resolve(realtime.reply(config, {signal, stream})).then(result => ({...result, transport: 'realtime'}));
   final.catch(() => {});
-  const whole = async () => synthesizeReply(input, await final, signal, current, profile);
+  return voiceStreamedReply(input, profile, {signal, current, stream, final, config});
+}
+const newReplyStream = (config, profile) => new ReplyStream({name: config.local?.name ?? profile?.name ?? '', isTag: hasEmotionTag});
+
+// The voice half of a streamed reply, shared by a typed turn (respondStreamed) and a voice-key turn (bridge/voice-key-stream.mjs, started
+// from prepareReply while the text host is still writing the reply). 'stream' is the ReplyStream the text host feeds, 'final' the
+// finished reply's promise. 'userText' (voice key only) is what the player said: the first sentence's admission carries it.
+// 'receiptPrepared' is the turn's knowledge receipt when it is not the default one (undefined: the default).
+async function voiceStreamedReply(input, profile, {signal, current, stream, final, config, userText = () => '', receiptPrepared}) {
+  const marks = [];
+  stream.onChange(() => { if (stream.complete && Array.isArray(stream.meta?.emotionMarks)) marks.splice(0, marks.length, ...stream.meta.emotionMarks); });
+  const whole = async () => synthesizeReply(input, await final, signal, current, profile, receiptPrepared);
   const head = await abortable(stream.headReady, signal);
   if (!head) return whole();
   const voice = replyVoice({plan: turnVoice(input), text: head, local: localChoice(input.profileKey)});
@@ -1209,24 +1236,26 @@ async function respondStreamed(input, profile, {signal, current}) {
     const phrase = splitSpeechText(head)[0], language = voice.language && voice.language !== 'en' ? voice.language : undefined, steps = localVoice.steps;
     const controller = new AbortController(), cancel = () => controller.abort();
     signal?.addEventListener('abort', cancel, {once: true});
-    const promise = synthesizeOmniPhrase(voiceKeyFor(input), phrase, {signal: controller.signal, steps, language});
+    const promise = synthesizeOmniPhrase(voiceKeyFor(input), phrase, {signal: controller.signal, steps, language, preStore: true});
     promise.catch(() => {});
     final.then(() => {}, cancel);
-    try { return await synthesizeReply(input, await final, signal, current, profile, undefined, undefined, {phrase, language, steps, promise, cancel}); }
+    try { return await synthesizeReply(input, await final, signal, current, profile, receiptPrepared, undefined, {phrase, language, steps, promise, cancel}); }
     finally { signal?.removeEventListener('abort', cancel); cancel(); }
   }
-  if (voice.engine !== 'pocket' || localVoice.playbackEnabled === false || (await readSpeechState()).continuousAvailable !== true) return whole();
+  if (voice.engine !== 'pocket' || localVoice.playbackEnabled === false || (await readSpeechStateCached()).continuousAvailable !== true) return whole();
   throwIfCancelled(signal);
   // The tags written inside the first sentence move the face from its first frame (the finished reply re-plans with all of them).
   const headMarks = expressiveEmotions.enabled ? stream.headMarks : [];
   if (headMarks.length && !marks.length) marks.push(...headMarks);
+  const said = userText();
   const partial = {text: head, transport: 'realtime', sessionID: config.sessionId, timing: {streamedHead: true},
+    ...(said ? {userText: said} : {}),
     ...(headMarks.length ? {emotionMarks: headMarks} : {})};
-  return synthesizeReply(input, partial, signal, current, profile, undefined, {stream, final, marks, signal});
+  return synthesizeReply(input, partial, signal, current, profile, receiptPrepared, {stream, final, marks, signal});
 }
 
 async function respond(input, profile, {signal, prepared, current} = {}) {
-  if (localVoice.playbackEnabled!==false&&await audioReady(runtime)) {
+  if (localVoice.playbackEnabled!==false&&audioAvailable(await readSpeechStateCached())) {
     if (prepared) {
       let cached;
       try { cached = await prepared; }
@@ -1281,7 +1310,7 @@ async function publishResult(input, profile, result, current = async () => true,
     return true;
   }
   const preparationStartedAt = Date.now();
-  let audio, face, stream, audioError = result.audioError;
+  let audio, face, stream, audioError = result.audioError, diagnostic;
   if (result.audio) {
     try {
       if(result.streamPlan){
@@ -1290,12 +1319,13 @@ async function publishResult(input, profile, result, current = async () => true,
           synthesize:(text,options)=>synthesizeOmniPhrase(result.streamPlan.voiceKey??profile.key,text,{...options,language:result.streamPlan.language})});
         const first=await stream.begin(result);audio=first.audio;face=first.face;
       }else{
-        const id=randomUUID();await slots.begin(id,current);audio=await slots.write(id,1,result.audio,current);
+        const id=randomUUID();await slots.begin(id,current);audio=await slots.write(id,1,result.audio,current,result.preStored);
       }
       if (!await current()) { stream?.closeQueue(); return false; }
       try { face ??= buildFacialTimeline(result, input); }
       catch (error) { console.error('[CyberpunkConvai] Facial timing unavailable:', error.message); }
-      await atomic(resolve(runtime, 'last-speech-timing.json'), JSON.stringify({
+      // A diagnostic file (40 KB): written after the reply is committed, not in front of it (docs/LATENCY_2026-10-13.md, 4.6).
+      diagnostic = () => atomic(resolve(runtime, 'last-speech-timing.json'), JSON.stringify({
         requestId: input.requestId, faces: result.faces, facesFormat: result.facesFormat,
         captions: result.captions, duration: audio.duration, face,
       }), {signal, isCurrent: current, isCurrentSync: current.sync});
@@ -1313,6 +1343,7 @@ async function publishResult(input, profile, result, current = async () => true,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audio, face, audioError,
     stream:stream?.descriptor(),updated: Date.now(), ...keyNotice()}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) { stream?.closeQueue(); return false; }
+  void diagnostic?.().catch(() => {});
   logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
     plan: result.expressionPlan, face, signal: result.expressionSignal});
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
@@ -1343,6 +1374,8 @@ async function publishResult(input, profile, result, current = async () => true,
 const micPath = resolve(runtime, 'microphone-command.json');
 const microphoneKnowledge = new Map();
 const microphoneSpeech = new Map();
+// Voice-key turns on a text route that are voiced while the reply is written (bridge/voice-key-stream.mjs), by request id.
+const microphoneStreams = new Map();
 let micObserved = await readFile(micPath, 'utf8').catch(() => '');
 let micPolling = false;
 // What Convai has heard of V's recording so far, for the game to show while V talks (mod/microphone.lua reads it on its
@@ -1361,7 +1394,7 @@ async function publishHeard(recording) {
 const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
   onState: (state, input) => atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state, requestId: input.requestId, updated: Date.now()})),
   prepareReply: async (input, signal) => {
-    if(localVoice.playbackEnabled===false||turnUsesLocal(input)||(await readSpeechState()).continuousAvailable!==true)return;
+    if (localVoice.playbackEnabled === false) return;
     const prepared = microphoneKnowledge.get(input.requestId);
     const current = async () => {
       if (stopped || signal.aborted || mic.current?.requestId !== input.requestId || !prepared) return false;
@@ -1371,34 +1404,56 @@ const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
     };
     current.sync = () => !stopped && !signal.aborted && mic.current?.requestId === input.requestId
       && prepared && knowledgeRouter.currentSync(prepared);
+    // A local voice on a text route (Mistral, Groq, the local AI): the reply is voiced while it is still being written, as a typed turn's
+    // is (bridge/voice-key-stream.mjs). Without a safe first sentence, another voice or no continuous playback it is voiced whole, as before.
+    if (turnUsesLocal(input)) {
+      if (!mistral.active || !replyStreaming || input.reaction || !prepared) return;
+      const config = realtimeConfig(input), profile = profileFor(input, roster);
+      const streamed = startVoiceKeyStream({stream: newReplyStream(config, profile), signal,
+        speak: ({stream, final, signal: own, userText}) => voiceStreamedReply(input, profile, {signal: own, current, stream, final, config, userText, receiptPrepared: prepared})});
+      microphoneStreams.set(input.requestId, streamed);
+      signal.addEventListener('abort', () => { if (microphoneStreams.get(input.requestId) === streamed) microphoneStreams.delete(input.requestId); }, {once: true});
+      return streamed.options;
+    }
+    if ((await readSpeechStateCached()).continuousAvailable !== true) return;
     const speech = continuousSpeech(input, profileFor(input, roster), current, signal, prepared);
     microphoneSpeech.set(input.requestId, speech);
     return {liveSpeech: speech.options};
   },
   onReply: async (input, result, signal) => {
-    if (stopped) return;
-    const prepared = microphoneKnowledge.get(input.requestId);
-    if (!prepared || !await knowledgeRouter.current(prepared)) return;
-    const command = JSON.parse(await readFile(micPath, 'utf8'));
-    if (command.input?.requestId !== input.requestId || command.action === 'cancel') return;
-    const current = async () => {
-      if (stopped || signal?.aborted) return false;
-      const latest = JSON.parse(await readFile(micPath, 'utf8').catch(() => '{}'));
-      return latest.input?.requestId === input.requestId && latest.action !== 'cancel' && await knowledgeRouter.current(prepared);
-    };
-    current.sync = () => !stopped && !signal?.aborted && knowledgeRouter.currentSync(prepared);
-    const speech = microphoneSpeech.get(input.requestId);
-    const spoken = await synthesizeReply(input, {...result, transport: 'realtime',
-      ...(speech ? {liveDelivery: {published: speech.published, ended: speech.ended,
-        generated: speech.generated, id: speech.token}} : {})}, signal, current, profileFor(input, roster), prepared);
-    if (!spoken.liveDelivery?.generated) {
-      await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
-      stagedKnowledgeTurn(prepared, {replyText: result.text, userText: result.userText});
-    }
-    await publishResult(input, profileFor(input, roster), spoken, current, signal);
-    microphoneSpeech.delete(input.requestId);
+    // A voice-key turn on a text route has been voiced since its first sentence (prepareReply): it only needs the finished reply.
+    const streamed = microphoneStreams.get(input.requestId);
+    microphoneStreams.delete(input.requestId);
+    let handedOn = false;
+    try {
+      if (stopped) return;
+      const prepared = microphoneKnowledge.get(input.requestId);
+      if (!prepared || !await knowledgeRouter.current(prepared)) return;
+      const command = JSON.parse(await readFile(micPath, 'utf8'));
+      if (command.input?.requestId !== input.requestId || command.action === 'cancel') return;
+      const current = async () => {
+        if (stopped || signal?.aborted) return false;
+        const latest = JSON.parse(await readFile(micPath, 'utf8').catch(() => '{}'));
+        return latest.input?.requestId === input.requestId && latest.action !== 'cancel' && await knowledgeRouter.current(prepared);
+      };
+      current.sync = () => !stopped && !signal?.aborted && knowledgeRouter.currentSync(prepared);
+      const speech = microphoneSpeech.get(input.requestId);
+      let spoken;
+      if (streamed) { handedOn = true; streamed.finish({...result, transport: 'realtime'}); spoken = await streamed.spoken; }
+      else spoken = await synthesizeReply(input, {...result, transport: 'realtime',
+        ...(speech ? {liveDelivery: {published: speech.published, ended: speech.ended,
+          generated: speech.generated, id: speech.token}} : {})}, signal, current, profileFor(input, roster), prepared);
+      if (!spoken.liveDelivery?.generated) {
+        await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
+        stagedKnowledgeTurn(prepared, {replyText: result.text, userText: result.userText});
+      }
+      await publishResult(input, profileFor(input, roster), spoken, current, signal);
+      microphoneSpeech.delete(input.requestId);
+    } finally { if (streamed && !handedOn) streamed.abort(); }
   },
   onError: async (input, error) => {
+    microphoneStreams.get(input.requestId)?.fail(error);
+    microphoneStreams.delete(input.requestId);
     await microphoneSpeech.get(input.requestId)?.fail().catch(() => {});
     microphoneSpeech.delete(input.requestId);
     console.error('[CyberpunkConvai] Microphone:', error.message);
@@ -2017,6 +2072,8 @@ async function applyProviderChoice() {
   providerSwitching = true;
   try {
     mistral.apply();
+    // The cloud provider's connection (DNS, TCP, TLS) opens now, not in front of the first turn (docs/LATENCY_2026-10-13.md, 4.5/4.7).
+    if (mistral.active && (mistral.route === 'mistral' || mistral.route === 'groq')) void warmConnection({provider: mistral.route});
     dropPrefetch(); prefetchObserved = '';
     await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
     sessions.clear(); realtimeSessions.clear();
@@ -2168,6 +2225,8 @@ watchFiles(runtime, {
   'last-input.json': tick,
   'microphone-command.json': () => pollMicrophone().catch(error => console.error('[CyberpunkConvai] Microphone poll:', error.message)),
   'phone-chat-input.json': () => pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)),
+  // The game's playback lease releases the first sound: the playback pump polls the moment it is written (docs/LATENCY_2026-10-13.md, 4.2).
+  'continuous-control.json': () => leaseWake.fire(),
 }, {log: message => console.error('[CyberpunkConvai] ' + message)});
 async function shutdown() {
   if (stopped) return;

@@ -4,7 +4,7 @@ import {EventEmitter} from 'node:events';
 import {mkdtempSync, rmSync, writeFileSync, renameSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {watchFiles} from './file-wake.mjs';
+import {watchFiles, createWakeSignal} from './file-wake.mjs';
 
 function fakeWatch() {
   const state = {listener: null, watcher: null, options: null, directory: null};
@@ -101,4 +101,29 @@ test('the real watcher sees an atomic replace (temp file and rename) of a watche
   const at = await Promise.race([seen, new Promise(done => setTimeout(() => done(null), 2000))]);
   assert.ok(at !== null, 'the handler ran');
   assert.ok(at - started < 500, `woke after ${Math.round(at - started)} ms`);
+});
+
+test('a wake signal resolves its waiters when fired, and a fire nobody waited for is not lost', async () => {
+  const signal = createWakeSignal();
+  let woke = 0;
+  const first = signal.next().then(() => { woke++; });
+  const second = signal.next();
+  assert.equal(first === second, false);
+  await new Promise(done => setTimeout(done, 5));
+  assert.equal(woke, 0, 'nothing resolves before a fire');
+  signal.fire();
+  await first; await second;
+  assert.equal(woke, 1);
+  // Nobody waiting: the fire is kept for the next wait (and only for one).
+  signal.fire(); signal.fire();
+  let early = false;
+  await signal.next().then(() => { early = true; });
+  assert.equal(early, true);
+  let pending = true;
+  signal.next().then(() => { pending = false; });
+  await new Promise(done => setTimeout(done, 5));
+  assert.equal(pending, true, 'the kept fire was used once');
+  signal.fire();
+  await new Promise(done => setTimeout(done, 5));
+  assert.equal(pending, false);
 });
