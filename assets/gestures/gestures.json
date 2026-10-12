@@ -398,11 +398,11 @@
     "Character.Judy": {
       "key": "judy",
       "rig": "woman_base",
-      "talk": "arms_crossed",
+      "talk": "judy_own",
       "idle": "judy",
       "flavour": true,
       "fallback": "on_sides",
-      "note": "Talks from the arms-crossed stance loop, whose feet are the feet of every clip it plays (leg gap 0). Her ambient idle_stand loop (judy_own) put her feet 37.6 cm from every arms-crossed clip, so each gesture blended her legs through each other (Oct 8, again Oct 12 after Round 6b); judy_own has no clip inside the 8 cm leg gate and no character maps to it now.",
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
       "idleSource": "character"
     },
     "Character.Panam": {
@@ -438,11 +438,11 @@
     "Character.alex": {
       "key": "alex",
       "rig": "woman_base",
-      "talk": "arms_crossed",
+      "talk": "judy_own",
       "idle": "alex",
       "flavour": true,
       "fallback": "on_sides",
-      "note": "Talks from the arms-crossed stance loop, whose feet are the feet of every clip it plays (leg gap 0). Her ambient idle_stand loop (judy_own) put her feet 37.6 cm from every arms-crossed clip, so each gesture blended her legs through each other (Oct 8, again Oct 12 after Round 6b); judy_own has no clip inside the 8 cm leg gate and no character maps to it now.",
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
       "idleSource": "character workspot"
     },
     "Character.Claire": {

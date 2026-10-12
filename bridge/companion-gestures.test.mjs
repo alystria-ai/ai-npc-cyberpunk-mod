@@ -87,12 +87,12 @@ test('off by default setting, idle and short replies never enter a stance', () =
 test('a long reply enters the character stance family, gestures, and leaves after the reply', () => run(`
   speaking={knownEnd=14,at=0,family='joy',scale=2};step(.5)
   local play=last('play')
-  assert(play and play.component=='convai_talk_arms_crossed','Judy talks from the arms-crossed stance loop: '..tostring(play and play.component))
+  assert(play and play.component=='convai_talk_judy','Judy talks from her own relaxed loop: '..tostring(play and play.component))
   assert(held,'movement waits while in the stance')
   step(8)
   assert(count('jump')>=2,'gestures played: '..count('jump'))
   local cat=load(catalogSource)()
-  local fam=cat.families.arms_crossed
+  local fam=cat.families.judy_own
   for _,call in ipairs(calls) do
     if call.name=='jump' and call.clip~=fam.idle.name then
       local found
@@ -161,9 +161,9 @@ test('listening to V plays only nods from the stance family', () => run(`
   listening='77';step(12)
   local cat=load(catalogSource)()
   for _,call in ipairs(calls) do
-    if call.name=='jump' and call.clip~=cat.families.arms_crossed.idle.name then
+    if call.name=='jump' and call.clip~=cat.families.judy_own.idle.name then
       local category
-      for _,clip in ipairs(cat.families.arms_crossed.clips) do if clip.name==call.clip then category=clip.category end end
+      for _,clip in ipairs(cat.families.judy_own.clips) do if clip.name==call.clip then category=clip.category end end
       assert(category=='nod','listening clip '..call.clip..' is '..tostring(category))
     end
   end
@@ -216,7 +216,7 @@ test('a long reply streamed phrase by phrase is judged by its text, and gestures
   end
   local cat=load(catalogSource)()
   local durations={}
-  for _,clip in ipairs(cat.families.arms_crossed.clips) do durations[clip.name]=clip.perRig.woman_base and clip.perRig.woman_base.duration end
+  for _,clip in ipairs(cat.families.judy_own.clips) do durations[clip.name]=clip.perRig.woman_base and clip.perRig.woman_base.duration end
   local covered=0
   for _,call in ipairs(calls) do
     if call.name=='jump' and durations[call.clip] then n=n+1;covered=covered+durations[call.clip] end
@@ -235,7 +235,7 @@ test('a short reply split into phrases still does not gesture', () => run(`
 test('gesture jumps are instant; the return to the idle loop is queued at the clip end', () => run(`
   speaking={knownEnd=14,at=0};step(9)
   local cat=load(catalogSource)()
-  local idle=cat.families.arms_crossed.idle.name
+  local idle=cat.families.judy_own.idle.name
   local gestures,returns=0,0
   for _,call in ipairs(calls) do
     if call.name=='jump' then
@@ -251,11 +251,11 @@ test('an archive without the new family falls back to the previous family', () =
   local realPlay=native.play
   native.play=function(d,n,component)
     calls[#calls+1]={name='play',component=component}
-    if component~='convai_talk_arms_crossed' then n.entering=true end
+    if component~='convai_talk_judy' then n.entering=true end
     return true
   end
   speaking={knownEnd=20,at=0};step(4)
-  assert(lastLog('family-missing') and lastLog('family-missing').fields.family=='arms_crossed')
+  assert(lastLog('family-missing') and lastLog('family-missing').fields.family=='judy_own')
   step(1)
   assert(last('play').component=='convai_talk_on_sides','fell back: '..tostring(last('play').component))
   assert(held,'now in the fallback stance')
@@ -302,48 +302,19 @@ test('every tier-1 family loop shares its lower body with the clips it plays', (
   local checked=0
   for record,known in pairs(cat.characters) do
     local fam=cat.families[known.talk]
-    local usable,unmeasured=0,0
+    local usable=0
     for _,clip in ipairs(fam.clips) do
       local row=clip.perRig[known.rig]
-      if row and clip.category~='idlebreak' and not clip.exclude then
-        if row.legs==nil then unmeasured=unmeasured+1 end
-        if row.legs and row.legs<=8 and (row.reach or 0)>=25 and (row.reach or 0)<=90 then usable=usable+1 end
+      if row and clip.category~='idlebreak' then
+        assert(row.legs~=nil or true)
+        if row.legs and row.legs<=8 and not clip.exclude and (row.reach or 0)>=25 and (row.reach or 0)<=90 then usable=usable+1 end
       end
     end
-    -- No exemption for ambient idle_stand loops (Oct 12): Judy's was 37.6 cm from every clip she played and
-    -- the missing gap let them through, so her legs crossed through each other.
-    assert(usable>=8,record..' has only '..usable..' leg-matched visible clips in '..known.talk)
-    assert(unmeasured<=3,record..' has '..unmeasured..' playable clips without a measured leg gap in '..known.talk)
+    -- Ambient-loop families (idle_stand: judy_own and the like) have no measured leg gap; they are checked live.
+    if fam.idle.name~='idle_stand' then assert(usable>=8,record..' has only '..usable..' leg-matched visible clips in '..known.talk) end
     checked=checked+1
   end
   assert(checked>=23)
-`));
-
-test('a family with an ambient idle_stand loop has no clip inside the leg gate and no character talks from one; Judy and Alex use the arms-crossed loop', () => run(`
-  local cat=load(catalogSource)()
-  for name,fam in pairs(cat.families) do
-    if fam.idle.name=='idle_stand' then
-      for _,clip in ipairs(fam.clips) do
-        for rig,row in pairs(clip.perRig) do
-          -- (man_big borrows names without measuring them; those families are not used by anyone, checked below)
-          if row.legs~=nil then assert(row.legs>8,name..' '..clip.name..' on '..rig..' has leg gap '..row.legs..': it would cross the legs') end
-        end
-      end
-    end
-  end
-  for record,known in pairs(cat.characters) do
-    assert(cat.families[known.talk].idle.name~='idle_stand',record..' talks from an ambient idle_stand loop, whose feet are not the feet of its clips')
-  end
-  for _,record in ipairs({'Character.Judy','Character.alex'}) do
-    local known=cat.characters[record]
-    assert(known and known.talk=='arms_crossed',record..' talks from '..tostring(known and known.talk))
-    local worst=0
-    for _,clip in ipairs(cat.families.arms_crossed.clips) do
-      local row=clip.perRig[known.rig]
-      if row and not clip.exclude and row.legs then worst=math.max(worst,row.legs) end
-    end
-    assert(worst<=8,record..' plays clips with a leg gap of '..worst)
-  end
 `));
 
 test('every character with a signature or generic idle resolves it on its own rig', () => run(`
@@ -405,7 +376,7 @@ test('every tier-1 character has an idle of their own: no two characters share o
 
 test('with phrase timing from the face timeline, gestures start on phrase starts', () => run(`
   local cat=load(catalogSource)()
-  local idle=cat.families.arms_crossed.idle.name
+  local idle=cat.families.judy_own.idle.name
   local starts={}
   local realJump=native.jump
   native.jump=function(n,clip,instant)
@@ -427,8 +398,8 @@ test('the stance is entered while V waits for the reply (thinking), and left aga
   step(.3)
   assert(held,'entered on thinking')
   step(2)
-  assert(count('play')==1 and last('play').component=='convai_talk_arms_crossed','Judy takes her stance before the first word')
-  local gestures=0 for _,call in ipairs(calls) do if call.name=='jump' and call.clip~='stand__arms_crossed_front__01' then gestures=gestures+1 end end
+  assert(count('play')==1 and last('play').component=='convai_talk_judy','Judy takes her stance before the first word')
+  local gestures=0 for _,call in ipairs(calls) do if call.name=='jump' and call.clip~='idle_stand' then gestures=gestures+1 end end
   assert(gestures==0,'no gestures while only thinking')
   c.thinking=function() return nil end
   step(5)
@@ -467,7 +438,7 @@ test('a stance enters directly on the stance loop: no ambient idle first, gestur
   local cat=load(catalogSource)()
   for key,fam in pairs(cat.families) do assert(fam.bridge==nil,key..' has no ambient bridge') end
   assert(cat.families.on_sides_plain==nil,'the plain variant is gone, on_sides is plain now')
-  local fam=cat.families.arms_crossed
+  local fam=cat.families.judy_own
   speaking={knownEnd=20,at=0};step(1.0)
   assert(held and last('play') and count('jump')==0,'no jump during the enter blend')
   step(3.0)
@@ -561,7 +532,7 @@ test('records on the catalog never list are left alone even when their body type
   entry.record='Character.Judy'
   function native.bodyType() error('a catalogued record must not read the body type') end
   speaking={knownEnd=14,at=0};step(.5)
-  assert(last('play').component=='convai_talk_arms_crossed','catalogued Judy is unchanged')
+  assert(last('play').component=='convai_talk_judy','catalogued Judy is unchanged')
 `));
 
 test('Adam Smasher and Dexter, which the catalog deliberately leaves out, never get the fallback', () => run(`

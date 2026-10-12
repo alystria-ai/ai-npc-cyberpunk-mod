@@ -781,31 +781,3 @@ All 29 catalogued characters were checked live (staged under the kill switch, ta
 ### Round 5g follow-up (October 11): the attach snap did not hold for Alt
 
 Live on a fresh invite of Alt (V and the Static floor at z 49.200): the attach snap ran (`loweredBy` 0.30 for both Evelyn and Alt, read through a read-only probe), yet `movement-trace.ndjson` shows Alt at z 49.500 from her first sample, 49.359 and 49.254 over the next 6 s as she turned (`attend_turn`), 49.241 and 49.200 at her first `attend_step`, and then 49.200 for good. The teleport inside `attachFollower` is undone by what follows it (`SetAIRole`, `ai:OnAttach()` put the copy back on the navmesh). The lowering now runs 0.5 s after attach (`settleOnFloor` in `mod/companions.lua`, called from the update loop only while `entry.floorFix` exists), re-checks 1 s later if she was moved, and stops after two tries; tests in `bridge/companion-placement.test.mjs`.
-
-
-## Round 7 (October 13): Judy's legs crossed through each other, the leg gate was never applied to her
-
-Live report (Judy beside a car, arms crossed, legs twisted at the shins, feet at odd angles; also before the C++ port, so not the native movement). `probe.log` for the same minutes (2026-10-12 21:20-21:22Z): `begin convai_talk_judy` 21:20:45, `gesture stand__arms_crossed_front__01__talk__neutral__09` 21:21:57, `exit reply ended` 21:22:06, `flavour-begin convai_idle_jackie_hips` 21:22:11; the screenshot is dated 21:22:17Z. Earlier the same evening: five more `begin convai_talk_judy` with one to three arms-crossed clips each, and idle flavours borrowed from other characters (`panam_hips`, `jackie_hips`, `generic_hips`).
-
-**Cause (offline numbers, `assets/gestures/clip-motion.json`).** Round 6b (October 11) moved Judy and Alex from the `arms_crossed` family to `judy_own`, whose loop is her ambient `idle_stand` (`wa_judy_unarmed_locomotion_relaxed`) so the stance entry would not slide. The clips it plays are still the generic woman arms-crossed set, and every one of them starts and ends with the same feet:
-
-| Pose (hips space, cm, left lateral/forward, right lateral/forward) | Feet |
-|---|---|
-| Judy's ambient `idle_stand` (the `judy_own` loop) | 15.1 / -52.8, 32.5 / -45.4 |
-| every clip of the arms-crossed set (and its own idle clip, the `arms_crossed` loop) | -22.5 / -29.9, 3.3 / -31.1 |
-
-That is a 37.6 cm gap on all 95 playable `judy_own` clips; the policy's leg gate (`maximumLegGap` 8 cm, Oct 8: "feet 15-46 cm apart in hip space, so blends crossed legs") should have rejected every one. It did not, because the catalog carried no `legs` value for them: the build measured the gap only when the loop was an interactive-scene clip and treated a locomotion `idle_stand` as unmeasured, and the selection treats a missing gap as "fine". A test comment even exempted ambient-loop families ("checked live"). So each gesture blended the legs from one pose to the other twice (0.9 s clip blend-out, instant jump in), and the clip itself stood her in the other pose; the arms-crossed upper body hides nothing. The same hole existed for every `*_own` and `*_sides` family (`panam_own`, `rogue_own`, `woman_sides`, ...), but only Judy and Alex mapped to one. The Oct 8 captures (`gesture-captures/legs-body-sheet.jpg`, arms-crossed loop, gate on) show clean legs; the screenshot does not.
-
-Not the cause: turning in place (the stance waits for `facingError` <= 35 degrees and the workspot never moves the entity, Rounds 5e-5f), the car (she was settled beside V, `exit movement` only at 21:03 and 21:20), additive layering (the workspot plays full-body clips; there is no partial-body layer).
-
-**Fix (catalog and build only; no archive rebuild, the installed `a71aa51e` archive already has `convai_talk_arms_crossed`):**
-
-1. `assets/gestures/gestures.json`: Judy and Alex talk from `arms_crossed` again (loop = the arms-crossed idle clip, leg gap 0 to every clip). `judy_own` stays in the archive and the catalog but nobody maps to it.
-2. `scripts/Build-GestureAssets.mjs`: an ambient `idle_stand` loop now counts as measured (its feet are in `clip-motion.json` `idles`), so every clip of such a family gets its real gap (25-40 cm) and the gate rejects it; and the build now fails unless each character's talk family on her rig keeps at least 8 visible clips with a measured gap of 8 cm or less (the old mapping fails with "only 0 leg-matched visible clips in judy_own"). `mod/gesture-catalog.lua` regenerated from the 2.31 extracts of the last build (`build-5b8c38d1...`; reproduced the committed catalog byte for byte before the change; the diff is the new `legs` values and the two `talk` lines).
-3. Tests: no exemption for ambient loops in the tier-1 leg test, a new test that no character talks from an `idle_stand` family and that such families have no clip inside the gate (Judy and Alex play only gap-0 clips), the generated-catalog policy test expects zero clips from an ambient family on woman and man rigs, and the controller tests now expect `convai_talk_arms_crossed` for Judy.
-
-**Trade-off.** Round 6b measured the `arms_crossed` stance entry moving Judy about 15 % closer to V and 22 px sideways (Alex 21-23 px) over the enter blend; that is back, once per talk stance, in exchange for gestures that no longer cross her legs. A proper fix of both needs a stance loop in her own ambient pose with clips whose lower body matches it, which the archives do not have (no clip is within 24 cm of her ambient feet): either a bridge sequence that blends the legs inside the workspot or an authored lower-body mask, both animation-data work and an archive rebuild; not done.
-
-**Open.** The signature idle pool also puts `panam_hips`, `jackie_hips` and `generic_hips` on Judy (`generic.mix`); those are separate workspots entered from her ambient pose (0.5 s blend) and their lower bodies were checked for presence, not for foot distance to each rig's ambient pose.
-
-To check live (CET reload only): Judy beside V, send a long message: she folds her arms in the stance (a small shift at entry) and her legs stay apart and straight through every gesture and at the exit; `probe.log` `begin` shows `convai_talk_arms_crossed`. Alex the same.
