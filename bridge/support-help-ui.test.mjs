@@ -11,7 +11,7 @@ const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = name => readFileSync(new URL(`../mod/${name}`, import.meta.url), 'utf8');
 const managerSource = read('manager.lua'), queueSource = read('manager-party.lua'), mcmSource = read('mcm.lua');
 const voicePreviewSource = read('voice-preview.lua'), fontsSource = read('ui-fonts.lua'), mcmFontsSource = read('mcm-fonts.lua');
-const supportSource = read('support-report.lua'), serviceSource = read('service-status.lua');
+const supportSource = read('support-report.lua'), serviceSource = read('service-status.lua'), editorSource = read('character-editor.lua');
 
 function run(code) {
   const state = lauxlib.luaL_newstate();
@@ -142,6 +142,7 @@ const mcmFixture = (withSupport = true) => `
     if path == 'voice-preview.lua' then return (function() ${voicePreviewSource} end)() end
     if path == 'support-report.lua' then if not ${withSupport} then error('module absent') end return (function() ${supportSource} end)() end
     if path == 'service-status.lua' then return (function() ${serviceSource} end)() end
+    if path == 'character-editor.lua' then return (function() ${editorSource} end)() end
     if path == 'ui-fonts.lua' then return (function() ${fontsSource} end)() end
     if path == 'mcm-fonts.lua' then return (function() ${mcmFontsSource} end)() end
     return originalDofile(path)
@@ -323,3 +324,67 @@ test('without the support module the manager is unchanged and shows no Help entr
   assert(invoke('tab:settings').ok)
   assert(not row('help') and not category('help'))
 `));
+// ---- Settings > Edit characters (docs/CHARACTER_EDITOR.md): one action that writes one small command file, and nothing else
+const editorPageSource = readFileSync(new URL('../bridge/character-editor-page.mjs', import.meta.url), 'utf8');
+const pageSources = [...new Set([...editorPageSource.matchAll(/\bT\('((?:[^'\\]|\\.)*)'/g)].map(match => match[1]).concat(['Character editor', 'Close editor']))];
+const catalogStrings = JSON.parse(readFileSync(new URL('../localization/en.json', import.meta.url), 'utf8')).strings;
+
+test('Settings offers Edit characters, and Open writes one fresh command with every sentence of the page and the interface language', () => run(`${helpFixture()}
+  jsonFile('runtime/knowledge-status.json', {updated = os.time() * 1000.0})
+  assert(invoke('tab:settings').ok)
+  local open = row('character-editor:open')
+  assert(open and open.type == 'action' and open.value == 'Open' and not open.disabled, 'the Open row is offered')
+  assert(open.label == 'Edit characters', 'the row label')
+  assert(open.description:find('Mistral, Groq and Local, not Convai', 1, true), 'the row says the editor does not apply to Convai')
+  local writesBefore = #fileWrites
+  local result = invoke('character-editor:open')
+  assert(result.ok, tostring(result.error))
+  assert(#fileWrites == writesBefore + 1 and fileWrites[#fileWrites].path == 'runtime/editor-command.json', 'exactly one small file is written, got ' .. (#fileWrites - writesBefore))
+  local command = jsonFixtures[files['runtime/editor-command.json']]
+  assert(command.version == 1 and command.action == 'open' and command.language == 'en', 'command header')
+  assert(type(command.id) == 'string' and command.id:match('^e%d+%-%d+$') and command.issuedAt == os.time() * 1000.0, 'id and time')
+  local count = 0
+  for source, text in pairs(command.strings) do count = count + 1; assert(type(source) == 'string' and text == source, 'English shows the source: ' .. source) end
+  assert(count == ${pageSources.length}, 'every sentence of the page is sent, got ' .. count)
+  assert(command.strings['Save'] and command.strings['Convai is answering right now, so these changes have no effect yet. Choose Mistral, Groq or Local as the conversation provider in the settings.'])
+  local first = command.id
+  advance(1)
+  assert(invoke('character-editor:open').ok)
+  assert(jsonFixtures[files['runtime/editor-command.json']].id ~= first, 'every click is a new command')
+  -- Nothing is polled and nothing runs per frame: the module has no update, and a pumped menu writes nothing more.
+  local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
+  local settled = commandWrites()
+  pump(true, 20); pump(false, 20)
+  assert(commandWrites() == settled, 'a pumped menu sends no further command')
+`));
+
+test('Open says so when the conversation service is not running, and writes nothing', () => run(`${helpFixture()}
+  jsonFile('runtime/bridge-service.json', {state = 'stopped', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 5000})
+  assert(invoke('tab:settings').ok)
+  local result = invoke('character-editor:open')
+  assert(not result.ok and result.error == 'The conversation service is not running, so the editor cannot open. Restart the game.', tostring(result.error))
+  assert(not files['runtime/editor-command.json'])
+`));
+
+test('a failed write is reported, and without the module the settings page is unchanged', () => run(`${helpFixture()}
+  jsonFile('runtime/knowledge-status.json', {updated = os.time() * 1000.0})
+  assert(invoke('tab:settings').ok)
+  failSave = true
+  local result = invoke('character-editor:open')
+  assert(not result.ok and result.error == 'The editor could not be opened. Try again.', tostring(result.error))
+  failSave = false
+  assert(invoke('character-editor:open').ok)
+`));
+
+test('the page sentences, the module and the catalogue agree, and every one is in all fifteen dictionaries', () => {
+  const luaText = readFileSync(new URL('../mod/character-editor.lua', import.meta.url), 'utf8');
+  const unescape = text => text.replace(/\\(['\\])/g, '$1');
+  const inLua = [...luaText.matchAll(/\['((?:[^'\\]|\\.)*)'\] = ui\.t\('((?:[^'\\]|\\.)*)'\),/g)].map(match => { assert.equal(match[1], match[2]); return unescape(match[1]); });
+  assert.deepEqual([...inLua].sort(), [...pageSources].sort(), 'mod/character-editor.lua sends exactly the sentences the page uses');
+  for (const source of [...pageSources, 'Edit characters', 'The conversation service is not running, so the editor cannot open. Restart the game.',
+    'The editor could not be opened. Try again.', 'Opening the editor in your browser. Switch to your browser if it does not come to the front.'])
+    assert(source in catalogStrings, `${source} is in localization/en.json`);
+  const forbidden = /\b(?:api key|token|secret|credential|password|AMM)\b/i;
+  for (const source of pageSources) assert.doesNotMatch(source, forbidden, source);
+  assert.doesNotMatch(luaText.replace(/--.*$/gm, ''), /\bupdate\b|Observe|Override|GameInstance|Game\./, 'no per-frame hook and no native call');
+});
