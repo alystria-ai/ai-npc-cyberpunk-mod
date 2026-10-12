@@ -2391,9 +2391,12 @@ registerForEvent('onUpdate', function(delta)
     local mark = convaiPerfMark
     mark('init:session')
     local menuPlayer = Game.GetPlayer()
+    -- Each native call through CET costs the game thread; the world check below reuses this frame's answers.
+    local requests
     local sessionOk, sessionReady = pcall(function()
-        return not worldSuspended and menuPlayer and menuPlayer:IsAttached()
-            and not menuPlayer:IsDeadNoStatPool() and not Game.GetSystemRequestsHandler():IsPreGame()
+        if worldSuspended or not menuPlayer or not menuPlayer:IsAttached() or menuPlayer:IsDeadNoStatPool() then return false end
+        requests = Game.GetSystemRequestsHandler()
+        return not requests:IsPreGame()
     end)
     if not sessionOk or not sessionReady then
         if sessionHasState then abandonSession('world unavailable',fastTravelActive~=nil) end
@@ -2426,10 +2429,9 @@ registerForEvent('onUpdate', function(delta)
         warmConversation(nil, nil)
     end
     local worldOk, worldReady = pcall(function()
-        if not menuPlayer or not menuPlayer:IsAttached() then return false end
+        -- The session check above found V attached and not in pre-game this frame.
         local definitions = Game.GetAllBlackboardDefs()
-        return not Game.GetSystemRequestsHandler():IsGamePaused()
-            and not Game.GetSystemRequestsHandler():IsPreGame()
+        return not requests:IsGamePaused()
             and not Game.GetBlackboardSystem():Get(definitions.UI_System):GetBool(definitions.UI_System.IsInMenu)
             and not menuPlayer:ConvaiComposerOpen()
     end)

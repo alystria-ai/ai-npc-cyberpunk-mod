@@ -493,6 +493,18 @@ assert(posted == 1, 'Developer mode shows the dismissal confirmation: ' .. tostr
 `);
 });
 
+test('a frame asks the game once whether V is attached and not in pre-game', () => run(`
+events.onInit(); events.onUpdate(0); events.onUpdate(0.2)
+local attached, handlers, pregame = 0, 0, 0
+local isAttached, getRequests, isPreGame = player.IsAttached, Game.GetSystemRequestsHandler, requests.IsPreGame
+player.IsAttached = function(self) attached = attached + 1; return isAttached(self) end
+Game.GetSystemRequestsHandler = function() handlers = handlers + 1; return getRequests() end
+requests.IsPreGame = function(...) pregame = pregame + 1; return isPreGame(...) end
+events.onUpdate(0.001)
+assert(attached == 1 and handlers == 1 and pregame == 1,
+    'IsAttached ' .. attached .. ', GetSystemRequestsHandler ' .. handlers .. ', IsPreGame ' .. pregame)
+`));
+
 test('the NPC diagnostic hotkey is gone, but the request file still triggers a capture and a response', () => run(`
 events.onInit(); events.onUpdate(0)
 assert(hotkeys.cyberpunk_convai_diagnostic == nil, 'the diagnostic hotkey is still registered')
