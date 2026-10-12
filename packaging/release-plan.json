@@ -138,6 +138,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/player-gear.lua"
         },
         {
+          "source": "mod/turn-context.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/turn-context.lua"
+        },
+        {
           "source": "mod/world-knowledge.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/world-knowledge.lua"
         },
@@ -580,6 +584,7 @@
             "bridge/support-report.mjs",
             "bridge/text-emotion.mjs",
             "bridge/transport-pool.mjs",
+            "bridge/turn-context.mjs",
             "bridge/vendor-memory.mjs",
             "bridge/voice-config-paths.mjs",
             "bridge/voice-preview.mjs",

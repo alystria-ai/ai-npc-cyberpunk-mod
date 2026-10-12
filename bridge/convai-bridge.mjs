@@ -34,6 +34,7 @@ import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
+import {turnContextDiagnostic} from './turn-context.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
 import {detectOmniPack} from './omni-pack.mjs';
@@ -1038,6 +1039,8 @@ async function publishResult(input, profile, result, current = async () => true,
   logFollowUp(input, result);
   // One line per reply: whether this turn's context carried V's gear (bridge/player-gear.mjs), or why not. Counts only, no names.
   try { if (!input.reaction) console.error(`[PlayerGear] profile=${input.profileKey} ${gearDiagnostic(input)}`); } catch { /* a log line never affects a reply */ }
+  // And whether it carried the "right now" block (clock, place, company; bridge/turn-context.mjs). Counts only.
+  try { if (!input.reaction) console.error(`[TurnContext] profile=${input.profileKey} ${turnContextDiagnostic(input, {ambient: isAmbientProfile(input.profileKey)})}`); } catch { /* a log line never affects a reply */ }
   if (result.continuous) {
     if (!result.liveDelivery?.published || !result.liveDelivery.ended) throw Error('Continuous speech did not finish');
     // The game already received admission, live text and the consumed-sample

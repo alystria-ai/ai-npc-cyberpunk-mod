@@ -571,6 +571,17 @@ local function capturePlayerGear() return playerGear and playerGear:capture() or
 groupChat.capturePlayerGear = capturePlayerGear
 microphone.capturePlayerGear = capturePlayerGear
 
+-- What is going on around V right now (game clock, district, who is with V, vehicle, V's gender and lifepath), attached to
+-- manual turns and worded first in the context by the bridge (bridge/turn-context.mjs). Read on demand when a turn is built,
+-- cached for a few seconds, never per frame. Optional: the adapter keeps working unchanged if this module is absent.
+do
+    local loaded, module = pcall(dofile, 'turn-context.lua')
+    convaiTurnContext = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
+        place = function() return currentDistrict() end,
+        party = function(player, radius) return companions.conversationCandidates(player, radius) end}) or nil
+    microphone.captureTurnContext = function() return convaiTurnContext and convaiTurnContext:capture() or nil end
+end
+
 -- entity: the addressed character's ID ("<hash>ULL") for a private conversation. A generic resident or archetype
 -- has no connection without its body, so the bridge opens that NPC's own route while V types or speaks.
 local function warmConversation(participants, key, entity)
@@ -635,6 +646,7 @@ phoneChat.typingOpened = function(player, contact)
 end
 -- V's gear: one line per real read (bridge/player-gear.mjs logs the other half per reply), so a test shows what was built.
 if playerGear then playerGear.options.log = log end
+if convaiTurnContext then convaiTurnContext.options.log = log end
 -- Doors, lifts, fast travel and stranded followers: one line per recovery
 -- decision (companions.lua note(), throttled per kind; never per frame).
 companions.recoveryLog = function(kind, fields)
@@ -1458,6 +1470,7 @@ local function sendRequest(context)
         context.gameDialogue = context.gameDialogue or convaiGameDialogue:capture()
     end
     if not context.reaction and convaiPlayerGear then context.gear = context.gear or convaiPlayerGear:capture() end
+    if not context.reaction and convaiTurnContext then context.turnContext = context.turnContext or convaiTurnContext:capture() end
     -- Automatic turns have one subject. Manual conversations may still discuss
     -- recent combat and pickups together when V asks about them.
     if context.reaction and context.reaction.kind == 'loot' then context.battle = nil
@@ -2158,6 +2171,7 @@ local function abandonSession(reason,preserveTransit)
     -- A load, death or detach ends the scene; fast travel keeps the last lines.
     if preserveTransit ~= true and convaiGameDialogue then convaiGameDialogue:reset(reason) end
     if playerGear then playerGear:reset(reason) end
+    if convaiTurnContext then convaiTurnContext:reset(reason) end
     microphone.cancel()
     groupChat.cancel()
     phoneChat.abandon()

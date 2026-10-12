@@ -7,7 +7,9 @@ import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {currentJournalHistory, parseJournalHistory, selectJournalHistory} from './journal-history.mjs';
 import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs';
 import {gameDialogueContext} from './game-dialogue.mjs';
-import {gearContext} from './player-gear.mjs';
+import {gearContext, visibleGearContext} from './player-gear.mjs';
+import {turnContext} from './turn-context.mjs';
+import {isAmbientProfile} from './protocol.mjs';
 
 const unavailable = () => ({version: 1, status: 'unavailable'});
 
@@ -144,11 +146,20 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
 }
 
 export function conversationContext(input) {
+  // The "right now" block goes first: Mistral's context cap keeps the head, so it can never be cut.
+  const ambient = isAmbientProfile(input?.profileKey);
+  const now = turnContext(input, {ambient});
+  // A pedestrian, vendor or other ordinary NPC is a stranger to V: it gets no journal, jobs, history, world facts or
+  // authority text (all of it is V's own save), and sees only what a bystander could see of V.
+  if (ambient) {
+    return [now, groupContext(input), gameDialogueContext(input), battleContext(input), lootContext(input), visibleGearContext(input),
+      SPOKEN_OUTPUT, followUpContext(input)].filter(Boolean).join('\n\n');
+  }
   const attached = input[TRUSTED_KNOWLEDGE];
   const trusted = attached?.identity && attached.identity === contextIdentity(input) ? attached : null;
   const knowledge = trusted?.knowledgeContext || (input.worldKnowledge !== undefined ? WORLD_UNAVAILABLE : '');
   const history = trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
-  return [groupContext(input), knowledge, trusted?.recencyContext, history, trusted?.jobsContext,
+  return [now, groupContext(input), knowledge, trusted?.recencyContext, history, trusted?.jobsContext,
     journalContext(input.journal), gameDialogueContext(input),
     battleContext(input), lootContext(input), gearContext(input),
     knowledge || history ? CURRENT_AUTHORITY : '', SPOKEN_OUTPUT, followUpContext(input)].filter(Boolean).join('\n\n');
