@@ -35,6 +35,21 @@ const PROVOKED_NUDGE = '\n\n(Answer again as yourself, a real person, in plain w
 // Reminder appended once when a reply said a line the character has already said (an example line of its profile, or its own last reply).
 const FRESH_WORDS_NUDGE = '\n\n(Answer again in fresh words: do not repeat an example line or anything you have already said.)';
 
+// How long the cloud routes wait for a reply to start. Mistral answers with its first words in 0.4 to 2 s; a request with no answer
+// after 6 s is a hung connection (the network dropped it without telling anyone), and a new connection is faster than waiting. So:
+// 6 s for the first attempt, one retry with 8 s, a stream that goes quiet for 8 s is cut. The worst case is about 14.5 s, then the
+// reply is a short line in the character's voice instead of an error (HOLDING_LINES). The 2026-10-13 record had one hung request
+// wait the old 25 s limit, then a retry that answered in 2 s: 30 s for a reply.
+export const CLOUD_CHAT_LIMITS = Object.freeze({firstByteMs: 6000, retryFirstByteMs: 8000, stallMs: 8000, retries: 1, backoffMs: [300]});
+
+// What a character says when the service did not answer in time (twice) or a server fault ended the reply, so the player gets a
+// short in-character line instead of a long silence and an error. Never recorded in the character's memory.
+export const HOLDING_LINES = Object.freeze([
+  'Hang on, V. I lost my train of thought there. Say that again?',
+  'Sorry, V. I spaced out for a second. What was that?',
+  'Hold on. I lost you for a moment there. Say it again?',
+]);
+
 const LOCAL_UNAVAILABLE =/\[local:unavailable\]/;
 /** Is this error "the local AI cannot be used" (not installed, not enough graphics memory, would not start)? */
 export const isLocalUnavailable = error => LOCAL_UNAVAILABLE.test(typeof error?.message === 'string' ? error.message : '');
@@ -48,8 +63,9 @@ export const isLocalUnavailable = error => LOCAL_UNAVAILABLE.test(typeof error?.
  * token budget; docs/FREE_CLOUD_OPTION_RESEARCH.md).
  */
 export function mistralRoute({provider, model = () => DEFAULT_MODELS, chat = streamChat, endpoint, gapMs = 1100, onFailure, onSuccess,
-  cacheScope = '', now = () => performance.now(), scheduler, priorities = {TEXT: 0, BACKGROUND: 2}} = {}) {
+  cacheScope = '', now = () => performance.now(), scheduler, priorities = {TEXT: 0, BACKGROUND: 2}, chatDefaults = CLOUD_CHAT_LIMITS} = {}) {
   return {name: 'mistral', provider: 'mistral', chat, endpoint, gapMs, now, blocked: new Map(), nextSlot: 0, scheduler, priorities,
+    chatDefaults,
     noteHeaders: scheduler ? headers => { try { scheduler.noteHeaders(headers); } catch { /* spacing is best effort */ } } : undefined,
     models: () => [model()].flat().map(id => ({id})),
     async connect() { return {apiKey: provider.apiKey}; },
@@ -77,7 +93,7 @@ const GROQ_DAILY = /per day|\bTPD\b|\bRPD\b|daily/i;
  */
 export function groqRoute({provider, chat = streamChat, endpoint, onFailure, onSuccess,
   models = () => GROQ_MODELS} = {}) {
-  return {name: 'groq', provider: 'groq', chat, endpoint, gapMs: 0, blocked: new Map(), nextSlot: 0, models,
+  return {name: 'groq', provider: 'groq', chat, endpoint, gapMs: 0, blocked: new Map(), nextSlot: 0, models, chatDefaults: CLOUD_CHAT_LIMITS,
     async connect() { return {apiKey: provider.groqApiKey}; },
     cacheBody: () => ({}),
     jsonBody: () => ({response_format: {type: 'json_object'}}),
@@ -149,6 +165,7 @@ export class TextProviderHost {
     if (!provider) throw Error('Text provider required');
     Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs});
     this.summaries = new Set();
+    this.holdingTurns = 0;
     this.timers = new Set();
     this.closed = false;
     // Facts are extracted by the memory store when it is idle; it calls back here for the model request.
@@ -189,6 +206,7 @@ export class TextProviderHost {
           return await route.chat({apiKey: lease.apiKey, model: item.id, messages, signal, endpoint: lease.endpoint ?? route.endpoint,
             provider: route.provider, maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
             ...(route.chatDefaults ?? {}), ...rest, onHeaders: route.noteHeaders,
+            onRetry: ({attempt, error, waitMs, ms}) => this.log(`${route.label} attempt ${attempt} failed after ${ms} ms (${error.kind}${error.status ? ` ${error.status}` : ''}${error.slow ? ', no answer in time' : ''}); asking again in ${waitMs} ms`),
             extraBody: {...route.cacheBody(profileKey), ...(item.body ?? {}), ...extraBody}});
         } catch (error) {
           if (!(error instanceof MistralError) || !error.zeroQuota) throw error;
@@ -254,6 +272,7 @@ export class TextProviderHost {
         markStage('replyReturned');
         const result = this.transformReply({text: reply, sessionID: config.sessionId, transport: route.name,
           timing: {provider: route.name, llmMs: elapsed, model: response.model ?? route.models()[0]?.id, attempts: response.attempts,
+            ...(response.failed?.length ? {llmFailed: response.failed} : {}),
             ...(feed.committed ? {streamedHead: true} : {})}});
         feed.finish(result.text, result);
         return result;
@@ -261,6 +280,8 @@ export class TextProviderHost {
         if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) { feed.fail(error); throw error; }
         route.failure(error);
         if (index < candidates.length - 1 && route.fallsBack(error)) { this.log(`${route.label} could not answer; using ${candidates[index + 1].label}`); continue; }
+        const standing = this.#standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey: local.profileKey});
+        if (standing) return standing;
         feed.fail(error);
         throw error;
       }
@@ -268,6 +289,30 @@ export class TextProviderHost {
     const none = new MistralError('request', 'has no route for this provider');
     feed.fail(none);
     throw none;
+  }
+
+  /**
+   * A reply the service could not finish (no answer in time after the retry, a stream that went quiet, a server fault):
+   *  - the first sentence was already spoken: that sentence is the reply (the voice and the written reply agree, nothing is switched);
+   *  - nothing was spoken and the service was merely slow: a short line in the character's voice (HOLDING_LINES), not recorded in its
+   *    memory, instead of an error and a long silence. A battle or loot bark just stops, as it does for every failure.
+   * Any other failure (a refused key, a limit, no network) is still an error: the player can act on it. Returns the reply or null.
+   */
+  #standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey}) {
+    if (!(error instanceof MistralError) || route.name === 'local') return null;
+    const head = feed.committed ? feed.head : '';
+    if (!head && (reaction || !error.slow)) return null;
+    const spoken = head || HOLDING_LINES[this.holdingTurns++ % HOLDING_LINES.length];
+    // What the character really said is remembered; the holding line is not (it answers nothing).
+    if (head && !reaction) { this.memory.record({...memoryKey, v: text, r: stripSpeechTags(head)}); this.#summarize(route, profileKey); }
+    this.log(head ? `${route.label} stopped after the first sentence (${error.kind}); that sentence is the reply`
+      : `${route.label} did not answer in time (${(error.failed ?? []).map(item => `${item.kind} ${item.ms} ms`).join(', ') || error.kind}); the character says a short holding line`);
+    markStage('replyReturned');
+    const result = this.transformReply({text: spoken, sessionID: config.sessionId, transport: route.name,
+      timing: {provider: route.name, llmMs: Math.round(this.now() - started), model: route.models()[0]?.id, attempts: error.failed?.length ?? 1,
+        ...(error.failed?.length ? {llmFailed: error.failed} : {}), ...(head ? {streamedHead: true, replyCutShort: error.kind} : {holdingLine: true})}});
+    feed.finish(result.text, result);
+    return result;
   }
 
   async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed}) {

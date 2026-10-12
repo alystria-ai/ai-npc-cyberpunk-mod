@@ -2,7 +2,8 @@
 -- enqueue their arguments. All native identity/tree/font work runs from update
 -- or restoreNow, the latter reserved for top-level CET shutdown.
 local M = {}
-local MAX_EVENTS, FIND_BUDGET, WALK_BUDGET, MAX_ROWS = 2048, 2048, 1024, 2048
+-- WALK_BUDGET: widgets visited per update (about 4-6 native calls each, so a batch stays near a frame of work).
+local MAX_EVENTS, FIND_BUDGET, WALK_BUDGET, MAX_ROWS = 2048, 2048, 160, 2048
 local RENDER = 'MCMRenderRoot'
 
 function M.new(options)
@@ -22,7 +23,8 @@ function M.new(options)
     local function find(root, wanted, depth, budget)
         if not root or depth < 0 or budget.left <= 0 then return nil end
         budget.left = budget.left - 1
-        if root:GetName() == CName.new(wanted) then return root end
+        if type(wanted) == 'string' then wanted = CName.new(wanted) end
+        if root:GetName() == wanted then return root end
         local ok, count = pcall(function() return root:GetNumChildren() end)
         if ok then
             for index = 0, math.min(count, MAX_ROWS) - 1 do
@@ -46,13 +48,19 @@ function M.new(options)
         scope.clear()
         state = nil
     end
-    local function roots(controller)
-        local render = find(controller:GetRootWidget(), RENDER, 18, {left = FIND_BUDGET})
-        if not render then return nil end
+    local function findRender(controller)
+        return find(controller:GetRootWidget(), RENDER, 18, {left = FIND_BUDGET})
+    end
+    -- One pass over the render chrome. The scan stops at each wanted widget, so
+    -- the rows and sidebar entries are never walked here.
+    local function scanChrome(render)
         local result = {render = render}
-        local wanted = {content_title = 'title', status = 'status',
+        local wanted = {}
+        for widgetName, resultName in pairs({content_title = 'title', status = 'status',
             mcm_content_scroll_content = 'content', mcm_sidebar_scroll_content = 'sidebar',
-            description_text = 'description'}
+            description_text = 'description'}) do
+            wanted[#wanted + 1] = {CName.new(widgetName), resultName}
+        end
         local budget = {left = FIND_BUDGET}
         local function scan(widget, depth)
             if not widget or depth < 0 or budget.left <= 0 then return end
@@ -60,8 +68,8 @@ function M.new(options)
             -- CET can return an empty NameToString for an unresolved name.
             -- The installed renderer publishes these exact CName identities.
             local identity, target = widget:GetName()
-            for widgetName, resultName in pairs(wanted) do
-                if identity == CName.new(widgetName) then target = resultName; break end
+            for _, pair in ipairs(wanted) do
+                if identity == pair[1] then target = pair[2]; break end
             end
             if target then
                 result[target] = widget
@@ -79,6 +87,18 @@ function M.new(options)
         end
         scan(render, 14)
         return result
+    end
+    local function roots(controller)
+        local render = findRender(controller)
+        if not render then return nil end
+        return scanChrome(render)
+    end
+    -- A widget the renderer replaced is detached from its parent. Where the
+    -- parent cannot be read, treat the widget as stale.
+    local function attached(widget)
+        if not widget then return false end
+        local ok, parent = pcall(function() return widget:GetParentWidget() end)
+        return ok and parent ~= nil
     end
     local function ownDescription()
         if not state then return false end
@@ -146,7 +166,8 @@ function M.new(options)
         generation = generation + 1
         state = {controller = controller, key = identity, generation = generation,
             owned = false, sidebarIds = {}, rowIds = {}, hover = nil,
-            pending = false, code = ui.current(), revision = ui.revision()}
+            pending = false, full = false, rescan = true, checkDescription = false,
+            code = ui.current(), revision = ui.revision()}
     end
     local function consume()
         local queued = events
@@ -154,19 +175,23 @@ function M.new(options)
         for _, event in ipairs(queued) do
             if event.kind == 'overflow' then restoreCurrent(); clear()
             elseif event.kind == 'refresh' then
-                if state then state.pending = true end
+                if state then state.pending, state.full = true, true end
             else
                 local identity = key(event.controller)
                 if identity and event.kind == 'begin' then begin(event.controller, identity)
                 elseif state and identity == state.key then
                     -- Use the newest still-resolvable CET weak wrapper.
                     state.controller = event.controller
+                    -- A render, a sidebar change, a finished select or a measure
+                    -- tick can change any text: those repaint everything. A hover or
+                    -- a description update changes only the shared description, so it
+                    -- repaints only that (a full pass per hover cost 20-100 ms).
                     if event.kind == 'title' then
                         state.owned = event.id == label() and active()
-                        state.pending = true
+                        state.pending, state.full, state.rescan = true, true, true
                     elseif event.kind == 'sidebar' then
                         state.sidebarIds[event.id] = true
-                        state.pending = true
+                        state.pending, state.full, state.rescan = true, true, true
                     elseif event.kind == 'row' then state.rowIds[event.id] = true
                     elseif event.kind == 'hover' then
                         -- MCM restores its base description on every hover-out,
@@ -176,24 +201,39 @@ function M.new(options)
                     elseif event.kind == 'description' then
                         -- Replacing the rich-text widget does not change the
                         -- hover owner. Begin/hover-out already clear it.
-                        state.pending = true
-                    elseif event.kind == 'dirty' then state.pending = true
+                        state.pending, state.rescan = true, true
+                    elseif event.kind == 'describe' then
+                        state.pending, state.checkDescription = true, true
+                    elseif event.kind == 'dirty' then state.pending, state.full = true, true
                     elseif event.kind == 'detach' then clear() end
                 end
             end
         end
+    end
+    -- Whether the content rows can need a font at all: a language with its own
+    -- family, a font already applied (to restore) or, when the caller says so,
+    -- a page that shows native language names (an autonym in a Latin locale).
+    local function contentNeedsFonts(code)
+        if type(options.contentMayNeedFonts) ~= 'function' then return true end
+        if library.family(code) or scope.count() > 0 then return true end
+        local ok, needed = pcall(options.contentMayNeedFonts)
+        return not ok or needed ~= false
     end
     local function paint()
         if not state then return end
         local code, revision = ui.current(), ui.revision()
         if state.code ~= code or state.revision ~= revision then
             state.code, state.revision, state.pending, state.work = code, revision, true, nil
+            state.full = true
         end
         if not state.pending and not state.work then return end
         if key(state.controller) ~= state.key then clear(); return end
-        local found = roots(state.controller)
-        if not found then return end
-        local renderKey = key(found.render)
+        -- The render root is searched on every paint: it is the identity check
+        -- that stops old ownership from reaching a new screen (near the top of
+        -- the tree, so the search is short).
+        local render = findRender(state.controller)
+        if not render then return end
+        local renderKey = key(render)
         if not renderKey then return end
         if state.renderKey and state.renderKey ~= renderKey then
             -- Missing a begin event must not transfer old ownership to a new
@@ -201,6 +241,18 @@ function M.new(options)
             clear(); return
         end
         state.renderKey = renderKey
+        if not state.found or state.rescan
+            or (state.checkDescription and state.found.description and not attached(state.found.description)) then
+            state.found, state.rescan = scanChrome(render), false
+        end
+        state.checkDescription = false
+        local found = state.found
+        if not state.full and not state.work then
+            -- Description only: no generation change, so the font records of the rows stay.
+            scope.apply(found.description, ownDescription() and code or false)
+            state.pending = false
+            return
+        end
         if not state.work then
             state.work = {index = 0}
             scope.begin()
@@ -209,6 +261,7 @@ function M.new(options)
         shared(found, code, false, budget)
         local content = found.content
         local count = content and math.min(content:GetNumChildren(), MAX_ROWS) or 0
+        if not contentNeedsFonts(code) then count = 0 end
         local contentCode = state.owned and active() and code or false
         while state.work.index < count and budget.left > 0 do
             local child = content:GetWidgetByIndex(state.work.index)
@@ -220,7 +273,7 @@ function M.new(options)
         end
         if state.work.index >= count then
             scope.finish()
-            state.work, state.pending = nil, false
+            state.work, state.pending, state.full = nil, false, false
         end
     end
 
@@ -242,7 +295,8 @@ function M.new(options)
             enqueue('hover', controller, id, hovered == true)
         end)
         ObserveAfter('SettingsMainGameController', 'McmUiSetDescription', function(controller) enqueue('description', controller) end)
-        for _, method in ipairs({'McmUiUpdateDescription', 'McmUiEndSelect', 'McmUiOnSidebarTextMeasureTick'}) do
+        ObserveAfter('SettingsMainGameController', 'McmUiUpdateDescription', function(controller) enqueue('describe', controller) end)
+        for _, method in ipairs({'McmUiEndSelect', 'McmUiOnSidebarTextMeasureTick'}) do
             ObserveAfter('SettingsMainGameController', method, function(controller) enqueue('dirty', controller) end)
         end
         -- Cycling a draft updates the string-list value in place; it does not
@@ -252,6 +306,9 @@ function M.new(options)
         Observe('SettingsMainGameController', 'OnUninitialize', function(controller) enqueue('detach', controller) end)
     end
     function S.update()
+        -- Nothing queued and nothing to repaint: no closure, no native call.
+        if #events == 0 and (not state or (not state.pending and not state.work
+            and state.code == ui.current() and state.revision == ui.revision())) then return true end
         local ok, problem = pcall(function() consume(); paint() end)
         if not ok then lastError = tostring(problem) end
         return ok

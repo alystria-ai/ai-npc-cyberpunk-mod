@@ -48,6 +48,7 @@ local function publish()
         local r = receipt()
         f:write(json.encode({available = M.available, continuousAvailable = M.continuousAvailable == true,
             continuousFaceFile = M.continuousAvailable == true and continuous ~= nil and continuous.faceFile == true or nil,
+            continuousFaceSegments = M.continuousAvailable == true and continuous ~= nil and continuous.faceSegments == true or nil,
             updated = os.time() * 1000,
             requestId = M.requestId, slot = M.slot, state = M.state or 'idle',
             position = M.position, paused = M.paused, error = M.error, face = face.status(),

@@ -7,7 +7,10 @@
     "pluginDirectory": "red4ext/plugins/CyberpunkConvai",
     "pluginDll": "CyberpunkConvai.dll",
     "maxGameRootLength": 70,
-    "maxPathLength": 255
+    "maxPathLength": 255,
+    "nativeDirectory": "red4ext/plugins/CyberpunkConvaiNative",
+    "nativeDll": "CyberpunkConvaiNative.dll",
+    "localAiDirectory": "red4ext/plugins/CyberpunkConvai/app/local-ai"
   },
   "limits": {
     "assetBytes": 1950000000,
@@ -77,6 +80,64 @@
         "audio_tokenizer/config.json": {"size": 2531, "sha256": "eefb20806f7104e77c9a5277c9df0f9bb8826b08eb1d4e8ab2b9829b6ef9fac1"},
         "audio_tokenizer/model.safetensors": {"size": 805665628, "sha256": "fe7c5e8785e0a05833e1bfc3e002ec7f55af21e306b2e7154a448c1f54ccfb0d"},
         "audio_tokenizer/preprocessor_config.json": {"size": 206, "sha256": "ae61eea88558608ee2fa86d2aec9fce8d99a5ff75d09cb7651ccce21ae1d9084"}
+      }
+    }
+  },
+  "native": {
+    "notes": "The optional native plugin (native/core, docs/NATIVE_REWRITE_PLAN.md). The package works without the DLL: the Lua keeps its own path. runtime/native-off.txt lists the systems that start off because they are not yet proven in the real game: one name per line, a missing file means all on.",
+    "off": ["actuator", "vehicles", "chauffeur", "passage", "faces"],
+    "offFile": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime/native-off.txt",
+    "licences": {
+      "RED4ext.SDK-LICENSE.md": "packaging/licenses/RED4ext.SDK-LICENSE.md",
+      "yyjson-LICENSE.txt": "native/core/third_party/yyjson/LICENSE"
+    }
+  },
+  "localAi": {
+    "notes": "The two optional Local AI downloads (docs/LOCAL_AI.md, docs/LOCAL_MODEL_CHOICE.md). Each pack carries the llama-server build, the embedding model and its own chat model, plus a manifest fragment that bridge/local-ai-pack.mjs merges. Every file is the unmodified upstream file, checked against the SHA-256 recorded here. With --models local, a developer folder (--local-ai-source, or CYBERPUNK_CONVAI_LOCAL_AI_DEV) is used instead of downloading, and each file in it is checked against the same hash.",
+    "server": {
+      "name": "llama.cpp llama-server (Vulkan build)",
+      "version": "b11560",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11560/llama-b11560-bin-win-vulkan-x64.zip",
+      "size": 32084455,
+      "sha256": "2ef19cf51dd5f037dcac25e57f2299b4ffae0c9620b83a14cf9b3f60860b72fc",
+      "local": "dl-llama-vulkan/vulkan.zip",
+      "license": "MIT",
+      "keep": ["llama-server.exe", "*.dll", "LICENSE*"],
+      "drop": ["llama-batched-bench-impl.dll", "llama-bench-impl.dll", "llama-cli-impl.dll", "llama-completion-impl.dll",
+        "llama-fit-params-impl.dll", "llama-perplexity-impl.dll", "llama-quantize-impl.dll", "ggml-rpc.dll"],
+      "require": ["llama-server.exe", "llama-server-impl.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-vulkan.dll", "ggml-cpu-x64.dll"]
+    },
+    "embed": {
+      "name": "granite-embedding-107m-multilingual Q8_0",
+      "repository": "lmstudio-community/granite-embedding-107m-multilingual-GGUF",
+      "revision": "fe02f2818f3aefb661ec656cab3be19024e40acd",
+      "file": "granite-embedding-107m-multilingual-Q8_0.gguf",
+      "size": 121020096,
+      "sha256": "15691dfe830257f569a1e3521977351d16eac18e48e414908dc98ed9b8455e07",
+      "local": "dl-granite-emb/granite-embedding-107m-multilingual-Q8_0.gguf",
+      "dim": 384,
+      "license": "Apache-2.0"
+    },
+    "tiers": {
+      "standard": {
+        "name": "Gemma 4 E4B",
+        "repository": "google/gemma-4-E4B-it-qat-q4_0-gguf",
+        "revision": "4b4a2c1d584be7264f87aac328a1bc739ce81b6c",
+        "file": "gemma-4-E4B_q4_0-it.gguf",
+        "size": 5154941280,
+        "sha256": "676c35070db6dbe52f93e9c864ee0fba4eddea94b9c875d9cb10daff453fbaee",
+        "local": "dl-gemma4-e4b/gemma-4-E4B_q4_0-it.gguf",
+        "license": "Apache-2.0"
+      },
+      "lite": {
+        "name": "Qwen3.5-2B",
+        "repository": "unsloth/Qwen3.5-2B-GGUF",
+        "revision": "f6d5376be1edb4d416d56da11e5397a961aca8ae",
+        "file": "Qwen3.5-2B-Q4_K_M.gguf",
+        "size": 1280835840,
+        "sha256": "aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223",
+        "local": "dl-qwen35-2b/Qwen3.5-2B-Q4_K_M.gguf",
+        "license": "Apache-2.0"
       }
     }
   },

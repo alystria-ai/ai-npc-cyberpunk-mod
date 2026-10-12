@@ -8,7 +8,7 @@ const prefix='jr-native.';
 const ids=['disasterpiece-evelyn-extracted','both-evelyn-burial-received','revolution-overnight','pyramid-dive-completed'].map(id=>prefix+id);
 const authored=pack.rules.filter(rule=>ids.includes(rule.id));
 const selectedIds=result=>result.diagnostics.rules.filter(row=>row.status==='selected'&&ids.includes(row.ruleId)).map(row=>row.ruleId).sort();
-const contextFacts=result=>JSON.parse(result.context.slice(result.context.indexOf('\n')+1)).facts;
+const contextFacts=result=>{const data=JSON.parse(result.context.slice(result.context.indexOf('\n')+1));return [...(data.choices??[]),...data.facts];};
 function snapshot({facts={},journal={},channel='private',profiles=['judy-alvarez'],gameVersion='2.31',disclosures=[]}={}) {
  return {version:1,status:'ready',gameVersion,generation:1,capturedAt:'2026-10-01T08:00:00.000Z',
   audience:{channel,profileKeys:profiles},facts,journal,disclosures,activeQuestKeys:[]};

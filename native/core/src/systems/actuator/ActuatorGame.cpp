@@ -83,46 +83,29 @@ bool CallVector(Slot& aSlot, const Object& aObject, const char* aName, RED4ext::
     return RED4ext::ExecuteFunction(static_cast<void*>(aObject.instance), function, &aOut);
 }
 
-// NPCPuppet.IsInCombat(npc), a static function resolved once.
-struct StaticSlot
-{
-    CBaseFunction* function = nullptr;
-    bool resolved = false;
-};
-StaticSlot g_combat;
-
+// NPCPuppet.IsInCombat(npc): a static function that the game's script compiler registered as
+// "IsInCombat;ScriptedPuppet" on NPCPuppet (final.redscripts, 2026-10-13), so CClass::GetFunction("IsInCombat")
+// finds nothing; the lookup goes by script name and parameter count (convai::game::StaticFunction).
+// Resolved once on a hit; a miss is looked up again (the scripts may not have loaded), and logged once.
 CBaseFunction* CombatFunction()
 {
-    if (!g_combat.resolved)
+    static CBaseFunction* function = nullptr;
+    static uint32_t misses = 0;
+    // After a miss the class chain is walked again only every 256th call (the tick asks for every companion).
+    if (!function && (misses == 0 || (misses & 0xFF) == 0))
     {
-        // Resolved only on success, so a lookup before the scripts loaded is tried again later.
-        CClass* type = convai::game::Class("NPCPuppet");
-        CBaseFunction* function = type ? type->GetFunction("IsInCombat") : nullptr;
-        if (function && function->flags.isStatic && function->params.Size() == 1 && function->returnType)
+        CBaseFunction* found = convai::game::StaticFunction("NPCPuppet", "IsInCombat", 1);
+        if (found && found->returnType)
         {
-            g_combat.function = function;
-            g_combat.resolved = true;
-        }
-        else if (type)
-        {
-            // The class is loaded, so the answer will not change this session: say it once and let
-            // Lua keep reading the combat flag. (Live 2026-10-13: this line was logged on every tick,
-            // 2784 times in six minutes.)
-            g_combat.resolved = true;
-            if (function)
-            {
-                CONVAI_WARN("Actuator: NPCPuppet.IsInCombat resolved to a function that is %s with %u parameters, not a "
-                            "one-argument static one; Lua reads the combat flag",
-                            function->flags.isStatic ? "static" : "not static",
-                            static_cast<unsigned>(function->params.Size()));
-            }
-            else
-            {
-                CONVAI_WARN("Actuator: NPCPuppet.IsInCombat was not found; Lua reads the combat flag");
-            }
+            function = found;
+            CONVAI_INFO("Actuator: combat flag read through NPCPuppet.%s", found->shortName.ToString());
         }
     }
-    return g_combat.function;
+    if (!function)
+    {
+        ++misses;
+    }
+    return function;
 }
 
 bool ReadCombat(const Object& aNpc, bool& aOut)

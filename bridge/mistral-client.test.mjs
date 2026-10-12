@@ -236,3 +236,50 @@ test('a daily limit is not retried, a per-minute one with a long wait is not eit
   const mistral = mapFailure(429, {message: 'Requests rate limit exceeded'}, {headers: headers(), provider: 'mistral'});
   assert.equal(retryable(mistral), true);
 });
+
+// ---- hung requests: the first ask is cut early and asked again; a stream that goes quiet is cut ---------------------------------------
+
+const hangs = (url, init) => new Promise((resolve, reject) => init.signal.addEventListener('abort', () => reject(Object.assign(Error('aborted'), {name: 'AbortError'}))));
+
+test('a hung first ask is cut at firstByteMs and the retry has its own limit; the attempts that failed are listed and reported', async () => {
+  let calls = 0;
+  const retries = [], began = performance.now();
+  const result = await streamChat({apiKey: KEY, messages: [], firstByteMs: 60, retryFirstByteMs: 500, retries: 1, backoffMs: [5], sleepImpl: async () => {},
+    onRetry: info => retries.push(info), fetchImpl: async (url, init) => { calls++; return calls === 1 ? hangs(url, init) : sse(delta('Here.')); }});
+  assert.equal(result.text, 'Here.'); assert.equal(result.attempts, 2); assert.equal(calls, 2);
+  assert.ok(performance.now() - began < 400, 'the hung ask cost its own short limit, not the default');
+  assert.equal(result.failed.length, 1); assert.equal(result.failed[0].kind, 'network'); assert.ok(result.failed[0].ms >= 50);
+  assert.equal(retries.length, 1); assert.equal(retries[0].attempt, 1); assert.equal(retries[0].error.slow, true); assert.equal(retries[0].waitMs, 5);
+  // The retry limit is its own: a retry slower than firstByteMs but inside retryFirstByteMs still answers.
+  calls = 0;
+  const slowRetry = await streamChat({apiKey: KEY, messages: [], firstByteMs: 40, retryFirstByteMs: 400, retries: 1, backoffMs: [1], sleepImpl: async () => {},
+    fetchImpl: async (url, init) => { calls++; if (calls === 1) return hangs(url, init); await new Promise(done => setTimeout(done, 150)); return sse(delta('Late but fine.')); }});
+  assert.equal(slowRetry.text, 'Late but fine.');
+});
+
+test('every ask hanging ends with a slow network error that lists each attempt', async () => {
+  const error = await streamChat({apiKey: KEY, messages: [], firstByteMs: 30, retryFirstByteMs: 30, retries: 1, backoffMs: [1], sleepImpl: async () => {}, fetchImpl: hangs}).catch(e => e);
+  assert.equal(error.kind, 'network'); assert.equal(error.slow, true); assert.equal(error.failed.length, 2);
+  assert.equal(failureKind(error), 'network');
+  const unreachable = await streamChat({apiKey: KEY, messages: [], retries: 0, fetchImpl: async () => { throw Error('connect ECONNREFUSED'); }}).catch(e => e);
+  assert.equal(unreachable.slow, false, 'no network at all is not "the service was slow"');
+  const fault = await streamChat({apiKey: KEY, messages: [], retries: 0, fetchImpl: async () => fail(503, {message: 'overloaded'})}).catch(e => e);
+  assert.equal(fault.kind, 'network'); assert.equal(fault.slow, true);
+  const refused = await streamChat({apiKey: KEY, messages: [], retries: 0, fetchImpl: async () => fail(401, {message: 'no'})}).catch(e => e);
+  assert.equal(refused.slow, false);
+});
+
+test('a stream that starts and then goes quiet is cut after stallMs, not after the whole-request limit', async () => {
+  // Like a real response body, it errors when the request is aborted.
+  const quietAfterFirst = init => ({ok: true, status: 200, headers: new Headers(), body: new ReadableStream({start(controller) {
+    controller.enqueue(encoder.encode(delta('Hey V, come in.')));
+    init.signal.addEventListener('abort', () => controller.error(Object.assign(Error('aborted'), {name: 'AbortError'})));
+  }})});
+  const began = performance.now();
+  const error = await streamChat({apiKey: KEY, messages: [], retries: 0, firstByteMs: 2000, stallMs: 60, totalMs: 5000, fetchImpl: async (url, init) => quietAfterFirst(init)}).catch(e => e);
+  assert.equal(error.kind, 'network'); assert.equal(error.slow, true); assert.match(error.message, /went quiet/);
+  assert.ok(performance.now() - began < 1000);
+  // With stallMs off the old behaviour stays: only the first-byte and total limits apply.
+  const steady = await streamChat({apiKey: KEY, messages: [], retries: 0, fetchImpl: async () => sse(delta('A'), delta('B'), 'data: [DONE]\n\n')});
+  assert.equal(steady.text, 'AB'); assert.deepEqual(steady.failed, []);
+});

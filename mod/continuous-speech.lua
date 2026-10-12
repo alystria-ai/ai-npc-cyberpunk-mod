@@ -4,7 +4,9 @@
 -- faceFile: this adapter reads the facial timeline from its own file
 -- (runtime/continuous-face.json) when the bridge publishes faceRevision; an
 -- inline `face` from an older bridge is still accepted.
-local M = {version = 1, available = true, faceFile = true}
+-- faceSegments: that file may use the segmented layout (bridge/continuous-face-file.mjs):
+-- the game then decodes only the segments that changed since its last read.
+local M = {version = 1, available = true, faceFile = true, faceSegments = true}
 local owner, sequence, poll, wait, previous, lastUpdated, volumePoll, volume = nil, 0, 0, 0, nil, nil, 0, nil
 local readSequence, acceptedSequence = 0, 0
 -- Main-thread cost: every CET io.open/os.rename
@@ -14,6 +16,8 @@ local readSequence, acceptedSequence = 0, 0
 -- and decoded only when its revision changes, at most every FACE_PERIOD.
 local CONTROL_PERIOD, FACE_PERIOD = .15, .2
 local written, faceTimeline, faceRevision, faceReadAt = nil, nil, nil, nil
+-- Segment lines of the face file, decoded once: kind -> index -> {text = the line, rows = its decoded value}.
+local segmentCache = {}
 -- Wall clock for the write and face timers (menus report zero delta). Tests replace it.
 M.now = function() return os.clock() end
 local states = {open=true, starting=true, ready=true, buffering=true, playing=true, paused=true,
@@ -116,6 +120,7 @@ function M.stop()
     write(false, true, 0, 0)
     owner, previous, lastUpdated, volume, speakerDistance = nil, nil, nil, nil, nil
     written, faceTimeline, faceRevision, faceReadAt = nil, nil, nil, nil
+    segmentCache = {}
     readSequence, acceptedSequence = 0, 0
 end
 
@@ -152,6 +157,7 @@ function M.start(context, descriptor, player, actor, paused)
     owner = {id=descriptor.id,requestId=context.requestId,generation=context.generation,entity=context.entity,player=playerID}
     poll, wait, volumePoll = 0, 0, 0
     written, faceTimeline, faceRevision, faceReadAt = nil, nil, nil, nil
+    segmentCache = {}
     local authorized, level, pan = pcall(function()
         assert(validActors(player, actor), 'Continuous speech target unavailable')
         gameVolume()
@@ -162,13 +168,127 @@ function M.start(context, descriptor, player, actor, paused)
     return true
 end
 
+-- Segmented layout: the document is one JSON value whose three long row lists (frames, model expression
+-- frames, expression keys) sit one segment of rows per line, each line starting with "[" and no other
+-- line doing so. Joining the other lines gives a small skeleton (lists empty) that carries `seg`, the
+-- segment count per list. A segment whose line text is unchanged keeps its decoded rows, so a poll
+-- decodes the newest segment or two, not the whole timeline (a pure-Lua decode costs ~0.5 ms per KB).
+-- kind -> {path to the list in the face, true for number rows (SEGMENT_ROWS per line) / false for one array per line}.
+local FACE_KINDS = {
+    f = {{'frames'}, true}, m = {{'modelExpressions', 'frames'}, true}, k = {{'expressionTrack', 'keys'}, true},
+    t = {{'tracks'}, false}, a = {{'expressionTrack', 'families'}, false}, s = {{'expressionTrack', 'segments'}, false},
+}
+-- '[[1,2],[3]]' -> {{1,2},{3}} by plain number matching, or nil for anything else (the caller then
+-- uses json.decode for that one segment).
+local function fastRows(text)
+    local rows, count = {}, 0
+    for inner in text:gmatch('%[([^%[%]]*)%]') do
+        local row, size = {}, 0
+        for token in inner:gmatch('[^,]+') do
+            local number = tonumber(token)
+            if number == nil then return nil end
+            size = size + 1; row[size] = number
+        end
+        count = count + 1; rows[count] = row
+    end
+    return rows
+end
+local function segmentRows(kind, index, line)
+    local cache = segmentCache[kind]
+    if not cache then cache = {}; segmentCache[kind] = cache end
+    local entry = cache[index]
+    if entry and entry.text == line then return entry.rows end
+    local text = line:byte(-1) == 44 and line:sub(1, -2) or line
+    local rows = FACE_KINDS[kind][2] and fastRows(text)
+    if not rows then
+        local ok, decoded = pcall(json.decode, text)
+        if not ok or type(decoded) ~= 'table' then return nil end
+        rows = decoded
+    end
+    cache[index] = {text = line, rows = rows}
+    return rows
+end
+local function faceParent(face, path)
+    local parent = face
+    for step = 1, #path - 1 do parent = parent[path[step]]; if type(parent) ~= 'table' then return nil end end
+    return parent
+end
+local function segmentedFace(raw)
+    local skeleton, segments, count, position, length = {}, {}, 0, 1, #raw
+    while position <= length do
+        local stop = raw:find('\n', position, true) or length + 1
+        local line = raw:sub(position, stop - 1)
+        if line:byte(1) == 91 then count = count + 1; segments[count] = line
+        else skeleton[#skeleton + 1] = line end
+        position = stop + 1
+    end
+    local ok, value = pcall(json.decode, table.concat(skeleton))
+    if not ok or type(value) ~= 'table' or type(value.seg) ~= 'table' or type(value.face) ~= 'table'
+        or type(value.seg.order) ~= 'string' then return nil end
+    local used = 0
+    for at = 1, #value.seg.order do
+        local kind = value.seg.order:sub(at, at)
+        local spec, wanted = FACE_KINDS[kind], value.seg[kind]
+        if not spec or not integer(wanted, 1, 100000) then return nil end
+        local rows, size = {}, 0
+        for index = 1, wanted do
+            used = used + 1
+            local part = segments[used] and segmentRows(kind, index, segments[used])
+            if not part then return nil end
+            if spec[2] then for row = 1, #part do size = size + 1; rows[size] = part[row] end else rows = part end
+        end
+        local cache = segmentCache[kind]
+        for index = #cache, wanted + 1, -1 do cache[index] = nil end
+        local parent = faceParent(value.face, spec[1])
+        if not parent then return nil end
+        parent[spec[1][#spec[1]]] = rows
+    end
+    if used ~= count then return nil end
+    return value
+end
+-- Fallback when the segment lines cannot be read line by line: the whole document is still valid JSON.
+-- Row lists arrive as an array of segments (arrays of rows) and are flattened; a one-line list arrives wrapped once.
+local function flatSegments(value)
+    if type(value) ~= 'table' or type(value.seg) ~= 'table' or type(value.face) ~= 'table' then return nil end
+    for kind, spec in pairs(FACE_KINDS) do
+        local wanted = value.seg[kind]
+        if wanted ~= nil and not null(wanted) then
+            local parent = faceParent(value.face, spec[1])
+            if not parent then return nil end
+            local segments, rows, size = parent[spec[1][#spec[1]]], {}, 0
+            if type(segments) ~= 'table' then return nil end
+            if spec[2] then
+                for _, part in ipairs(segments) do
+                    if type(part) ~= 'table' then return nil end
+                    for at = 1, #part do size = size + 1; rows[size] = part[at] end
+                end
+                parent[spec[1][#spec[1]]] = rows
+            elseif wanted == 1 and type(segments[1]) == 'table' then parent[spec[1][#spec[1]]] = segments[1] end
+        end
+    end
+    return value
+end
+
 -- The timeline file carries the same owner and a revision that only grows.
 local function readFace()
     local file = io.open('runtime/continuous-face.json', 'rb')
     if not file then return nil end
     local raw = file:read(4000001); file:close()
     if type(raw) ~= 'string' or #raw > 4000000 then return nil end
-    local ok, value = pcall(json.decode, raw)
+    local ok, value
+    if raw:find('\n', 1, true) then
+        value = segmentedFace(raw)
+        if value == nil then
+            segmentCache = {}
+            ok, value = pcall(json.decode, raw)
+            value = ok and flatSegments(value) or nil
+        end
+        ok = value ~= nil
+    else
+        ok, value = pcall(json.decode, raw)
+        -- A segmented document with no segment line (every list empty or absent) has no newline either.
+        if ok and type(value) == 'table' and type(value.seg) == 'table' then value = flatSegments(value); ok = value ~= nil end
+    end
     if not ok or type(value) ~= 'table' or value.version ~= 1 or not same(value)
         or not integer(value.revision, 1, 2147483647) or (faceRevision and value.revision <= faceRevision)
         or type(value.face) ~= 'table' or not finite(value.face.duration) then return nil end

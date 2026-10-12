@@ -34,7 +34,7 @@ test('the block words the clock, the place, the company, the vehicle and V for a
     + 'Also with V: Panam. V is in a vehicle. V is a woman (she/her), lifepath Street Kid. '
     + 'Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine). Do not recite it.');
   assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length} characters`);
-  assert.equal(MAX_CHARS, 620);
+  assert.equal(MAX_CHARS, 700);
 });
 
 test('the part of the day and the nearest hour', () => {
@@ -95,11 +95,18 @@ test('the addressed character is not listed among the people with V, and the blo
   for (const [, run] of long.matchAll(/(x{20,})/g)) assert.equal(run.length >= 20, true);
 });
 
-test('a phone message says it is a call, where V is, and that her own place and doing are not given', () => {
-  const text = turnContext(turn({channel: 'phone', turnContext: scene({party: []})}));
-  assert.match(text, /You are on a phone call with V, not with V in person; V is in Kabuki, Watson\. Where you are and what you are doing are not given\./);
-  assert.doesNotMatch(text, /with V in person in/);
-  assert.ok(text.endsWith('Do not recite it.'));
+test('a phone message says it is a text chat, the time, where V is and what V does, and that she is elsewhere with her own place not given', () => {
+  const text = turnContext(turn({channel: 'phone', turnContext: scene({party: [], vehicle: false, motion: 'walking'})}));
+  assert.equal(text, 'Right now (from the game, this turn only): You are messaging V by text on the phone, not talking to V in person; V is in Kabuki, Watson. '
+    + 'You are somewhere else; where you are and what you are doing are not given. It is late night, about 2 AM. V is walking. V is a woman (she/her), lifepath Street Kid. '
+    + "Treat this as fact: you are not with V and cannot see V's surroundings, and you do not know how near or far you are, so never say you are there, close or nearby. "
+    + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine). Do not recite it.');
+  assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length} characters`);
+  assert.doesNotMatch(text, /phone call|with V in person in|never claim to be anywhere else/);
+  // V driving, and no district: each part stands alone.
+  assert.match(turnContext(turn({channel: 'phone', turnContext: scene({district: undefined, area: undefined, driving: true})})), /not talking to V in person\. You are somewhere else;[^]*V is driving\./);
+  // She is not told who stands next to V: a person on the other end of a text cannot know.
+  assert.doesNotMatch(turnContext(turn({channel: 'phone', turnContext: scene({vehicle: false})})), /Also with V|Panam/);
 });
 
 test('the block is the very first thing in the conversation context, before the world knowledge and the journal', () => {
@@ -390,7 +397,7 @@ test('the module is on demand only: no frame hook, no observer, no file, no time
   assert.doesNotMatch(source.split(/\r?\n/).map(row => row.replace(/--.*$/, '')).join('\n'), /Weather|StatPoolsSystem|GetStatPool|HeatStage/);
 });
 
-test('every manual in-person send path captures the block; reactions never do, and the phone does not yet', () => {
+test('every manual send path captures the block (in person, microphone and phone); reactions never do', () => {
   const send = initSource.slice(initSource.indexOf('local function sendRequest(context)'), initSource.indexOf('-- A managed copy can be reassigned'));
   assert.match(send, /if not context\.reaction and convaiTurnContext then context\.turnContext = context\.turnContext or convaiTurnContext:capture\(\) end/);
   assert.match(initSource, /microphone\.captureTurnContext = function\(\) return convaiTurnContext and convaiTurnContext:capture\(\) or nil end/);
@@ -400,7 +407,10 @@ test('every manual in-person send path captures the block; reactions never do, a
   assert.match(initSource, /if convaiTurnContext then convaiTurnContext:reset\(reason\) end/);
   assert.match(initSource, /if convaiTurnContext then convaiTurnContext\.options\.log = log end/);
   assert.equal(microphoneSource.match(/context\.turnContext = M\.captureTurnContext and M\.captureTurnContext\(\)/g).length, 2);
-  assert.doesNotMatch(phoneSource, /captureTurnContext|\.turnContext\b/);
+  // The phone reads it once, when a message is sent, through the same wrapper the microphone uses.
+  assert.match(phoneSource, /local turnContext = capture\(M\.captureTurnContext\)/);
+  assert.equal(phoneSource.match(/captureTurnContext/g).length, 1, 'one read, on the send path');
+  assert.match(initSource, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
   // The only readers are those turn paths.
   assert.equal((initSource.match(/convaiTurnContext:capture\(\)/g) || []).length, 2, 'the send path and the microphone wrapper');
 });
@@ -455,7 +465,7 @@ test('a stranger is told nothing about what it does; a phone contact is told the
   assert.match(stranger, /You are a stranger to V/);
   const phone = turnContext(turn({channel: 'phone', turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', activity: 'following'}]})}));
   assert.doesNotMatch(phone, /on foot|following V|in person in/);
-  assert.match(phone, /Where you are and what you are doing are not given/);
+  assert.match(phone, /You are somewhere else; where you are and what you are doing are not given/);
 });
 
 test('the Mistral and Local prompt carries the context line and one rule that outranks her own earlier lines', () => {
@@ -470,6 +480,20 @@ test('the Mistral and Local prompt carries the context line and one rule that ou
   assert.match(system, /The "Right now" section at the end of this message is the plain truth about where you are and what you are doing[^]*If V asks what you are up to, answer from it\. Never claim to be somewhere else[^.]*or to have just been doing something unless it says so, even if an earlier line of yours did/);
   assert.ok(system.trimEnd().endsWith('Do not recite it.'), 'the block is the last thing before the turns');
   assert.equal(system.split('\n').filter(line => /^\d+\. /.test(line)).length, 9, 'still nine rules');
+});
+
+test('the Mistral and Local prompt repeats the phone sentence before the words of V and keeps the phone rule beside rule 7', () => {
+  const persona = {name: 'Judy', backstory: 'A braindance editor.', style: '', samples: [], ambient: false, known: true};
+  const now = turnContext(turn({channel: 'phone', turnContext: scene({vehicle: false, party: []})}));
+  const messages = buildMessages({persona, contextParts: {now, notes: '', world: '', volatile: ''}, history: [], text: 'what are you up to?'});
+  const last = messages.at(-1).content;
+  assert.ok(last.startsWith('[YOU, RIGHT NOW: You are messaging V by text on the phone, not talking to V in person; V is in Kabuki, Watson. You are somewhere else; where you are and what you are doing are not given. '
+    + 'You are not with V and cannot see V; never say you are there, close or nearby, and name no place or task of your own right now.]\n\nV says: what are you up to?'), last.slice(0, 400));
+  assert.doesNotMatch(last, /That is all you are doing/);
+  assert.match(messages[0].content, /If it says you are messaging V by text, you are somewhere else, with no view of V's surroundings[^.]*: stay with your own known life/);
+  assert.ok(messages[0].content.includes('You are messaging V by text on the phone'), 'the block is in the system message');
+  assert.ok(messages[0].content.trimEnd().endsWith('Do not recite it.'));
+  assert.equal(messages[0].content.split('\n').filter(line => /^\d+\. /.test(line)).length, 9, 'still nine rules');
 });
 
 const activityLua = `

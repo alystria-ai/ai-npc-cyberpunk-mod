@@ -131,6 +131,8 @@ local modules={
  end},
  ['journal-history.lua']={new=function(options)
   historyOptions=options;options.now=function()return now end
+  -- the collector paces unrequested scans by the clock; these fixtures step fake seconds, so nothing waits
+  options.restGap=0;options.restFactor=0
   options.adapter={isReady=collectionReady,
    roots=function(lane)
     historyReads=historyReads+1

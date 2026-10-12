@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {MistralHost, attachMistral} from './mistral-host.mjs';
-import {TextProviderHost, attachTextProvider, groqRoute, localRoute, mistralRoute, GROQ_MODELS, isLocalUnavailable} from './text-provider-host.mjs';
+import {TextProviderHost, attachTextProvider, groqRoute, localRoute, mistralRoute, GROQ_MODELS, isLocalUnavailable, CLOUD_CHAT_LIMITS, HOLDING_LINES} from './text-provider-host.mjs';
 import {MistralMemory, MEMORY_LIMITS} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
 import {GroqKey, parseGroqKey} from './groq-key.mjs';
@@ -25,6 +25,7 @@ async function fakeServer(script) {
       const body = JSON.parse(raw);
       requests.push({headers: request.headers, body, url: request.url});
       const answer = script(body, requests.length);
+      if (answer?.hang) return;                                  // never answers (a connection the network dropped)
       if (typeof answer === 'object' && answer.status) {
         response.writeHead(answer.status, {'content-type': 'application/json', ...answer.headers});
         response.end(JSON.stringify({error: {code: answer.status, message: answer.message ?? 'failed'}}));
@@ -115,7 +116,7 @@ test('facts: the request carries what is known, and the answer is parsed defensi
 
 // ---- Mistral: cache key, model order ---------------------------------------------------------------------------------------
 
-async function harness(script, {preference = 'mistral', groqKey = null, mistralKey = MISTRAL_KEY, host: hostOptions = {}, groqScript} = {}) {
+async function harness(script, {preference = 'mistral', groqKey = null, mistralKey = MISTRAL_KEY, host: hostOptions = {}, groqScript, chatDefaults} = {}) {
   const server = await fakeServer(script);
   const groqServer = groqScript ? await fakeServer(groqScript) : null;
   const groq = groqKey ? await new GroqKey({keyPath: 'g.txt', readText: async () => `api-key=${groqKey}\n`, writeText: async () => {}}).load() : new GroqKey({keyPath: 'g.txt'});
@@ -124,7 +125,7 @@ async function harness(script, {preference = 'mistral', groqKey = null, mistralK
   provider.setPreference(preference); provider.apply();
   const memory = await MistralMemory.open({path: null});
   const logs = [];
-  const mistral = mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, cacheScope: 'scope1'});
+  const mistral = mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, cacheScope: 'scope1', ...(chatDefaults ? {chatDefaults} : {})});
   const routes = {mistral, ...(groqServer ? {groq: groqRoute({provider, endpoint: groqServer.endpoint})} : {})};
   const host = new TextProviderHost({provider, memory, personas: book, routes, log: line => logs.push(line), ...hostOptions});
   const close = async () => { host.close(); await server.close(); await groqServer?.close(); };
@@ -471,4 +472,95 @@ test('facts: the character\'s own passing claims about what it was doing are nev
   assert.deepEqual(parseFacts(raw).map(fact => fact.text), ['V told me their sister Mika loves old vinyl.', 'I promised V a ride to the Badlands.']);
   const [system] = factMessages({name: 'Judy', turns: [{v: 'hi', r: 'Hey.'}]});
   assert.match(system.content, /never record my own activity claims/);
+});
+
+// ---- a request that hangs: cut early, asked again, then a line in the character's voice instead of silence ---------------------------
+
+const QUICK = {firstByteMs: 80, retryFirstByteMs: 120, stallMs: 150, retries: 1, backoffMs: [5]};
+
+test('the cloud routes give up on a silent request after 6 s, ask once more with 8 s, and cut a stream that goes quiet after 8 s', () => {
+  assert.deepEqual({...CLOUD_CHAT_LIMITS}, {firstByteMs: 6000, retryFirstByteMs: 8000, stallMs: 8000, retries: 1, backoffMs: [300]});
+  assert.ok(CLOUD_CHAT_LIMITS.firstByteMs + CLOUD_CHAT_LIMITS.backoffMs[0] + CLOUD_CHAT_LIMITS.retryFirstByteMs < 15000, 'the worst case before the holding line');
+});
+
+test('a request that never answers is asked again at once and the reply arrives; the failed ask is in the timing and the log', async () => {
+  const {server, host, logs, close} = await harness((_body, count) => count === 1 ? {hang: true} : 'Sure thing, V. Come on in and sit down.', {chatDefaults: QUICK});
+  try {
+    const started = performance.now();
+    const result = await host.reply(turn('hello'));
+    assert.equal(result.text, 'Sure thing, V. Come on in and sit down.');
+    assert.equal(server.requests.length, 2); assert.equal(result.timing.attempts, 2);
+    assert.equal(result.timing.llmFailed.length, 1); assert.equal(result.timing.llmFailed[0].kind, 'network');
+    assert.ok(performance.now() - started < 1500, 'not the 25 s the hung request used to take');
+    assert.ok(logs.some(line => /attempt 1 failed after \d+ ms \(network, no answer in time\); asking again/.test(line)), logs.join('|'));
+  } finally { await close(); }
+});
+
+test('a service that stays silent gives a short line in the character\'s voice, not an error, and the line is not remembered', async () => {
+  const {host, memory, close} = await harness(() => ({hang: true}), {chatDefaults: QUICK});
+  try {
+    const result = await host.reply(turn('hello there'));
+    assert.ok(HOLDING_LINES.includes(result.text), result.text);
+    assert.equal(result.timing.holdingLine, true); assert.equal(result.timing.attempts, 2);
+    assert.equal(result.timing.llmFailed.length, 2);
+    assert.deepEqual(memory.recall({profileKey: 'judy-alvarez', channel: 'private'}).turns, [], 'the holding line answers nothing: it is not recorded as a talk');
+    const again = await host.reply(turn('hello again'));
+    assert.notEqual(again.text, result.text, 'the lines take turns');
+  } finally { await close(); }
+});
+
+test('a holding line goes through a stream like any reply, so the voice and the subtitles speak it', async () => {
+  const {ReplyStream} = await import('./reply-stream.mjs');
+  const {host, close} = await harness(() => ({hang: true}), {chatDefaults: QUICK});
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    const result = await host.reply(turn('hello'), {stream});
+    assert.equal(await stream.finished, result.text); assert.ok(HOLDING_LINES.includes(stream.text));
+  } finally { await close(); }
+});
+
+test('a refused key, a limit and a battle bark are not turned into a holding line', async () => {
+  const refused = await harness(() => ({status: 401, message: 'bad key'}), {chatDefaults: QUICK});
+  try { await assert.rejects(refused.host.reply(turn('hello')), error => failureKind(error) === 'key'); } finally { await refused.close(); }
+  const quiet = await harness(() => ({hang: true}), {chatDefaults: QUICK});
+  try { await assert.rejects(quiet.host.reply(turn('hello', {reaction: {phase: 'start'}})), error => failureKind(error) === 'network'); } finally { await quiet.close(); }
+});
+
+test('a server fault is a holding line too, after its retry', async () => {
+  const {server, host, close} = await harness(() => ({status: 503, message: 'overloaded'}), {chatDefaults: QUICK});
+  try {
+    const result = await host.reply(turn('hello'));
+    assert.ok(HOLDING_LINES.includes(result.text)); assert.equal(server.requests.length, 2);
+  } finally { await close(); }
+});
+
+test('a stream that goes quiet after the first sentence ends with that sentence as the whole reply, which is remembered', async () => {
+  const {ReplyStream} = await import('./reply-stream.mjs');
+  const first = 'Hey V, good to see you here again, come in and sit.';
+  const server = await new Promise(done => {
+    const requests = [];
+    const http = createServer((request, response) => {
+      request.resume();
+      request.on('end', () => {
+        requests.push(1);
+        response.writeHead(200, {'content-type': 'text/event-stream'});
+        response.write(`data: ${JSON.stringify({choices: [{index: 0, delta: {content: `${first} What can`}}]})}\n\n`);   // then silence
+      });
+    });
+    http.listen(0, '127.0.0.1', () => done({http, requests, endpoint: `http://127.0.0.1:${http.address().port}/v1/chat/completions`}));
+  });
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}, groq: new GroqKey({keyPath: 'g.txt'})});
+  await provider.load(); provider.setPreference('mistral'); provider.apply();
+  const memory = await MistralMemory.open({path: null}), logs = [];
+  const host = new TextProviderHost({provider, memory, personas: book, log: line => logs.push(line),
+    routes: {mistral: mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, chatDefaults: {...QUICK, retries: 0}})}});
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    const result = await host.reply(turn('hello'), {stream});
+    assert.equal(stream.head, first); assert.equal(result.text, first);
+    assert.equal(result.timing.streamedHead, true); assert.equal(result.timing.replyCutShort, 'network');
+    assert.equal(stream.tail, '', 'no tail to voice');
+    assert.equal(memory.recall({profileKey: 'judy-alvarez', channel: 'private'}).turns.at(-1).r, first);
+    assert.ok(logs.some(line => line.includes('that sentence is the reply')), logs.join('|'));
+  } finally { host.close(); server.http.closeAllConnections?.(); await new Promise(done => server.http.close(done)); }
 });

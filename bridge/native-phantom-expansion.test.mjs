@@ -18,7 +18,7 @@ function resolve(snapshot=base(),profileKey='alex',inputPack=pack){
   return resolveKnowledge({pack:inputPack,snapshot,profileKey,maxChars:12000});
 }
 const selected=result=>result.diagnostics.rules.filter(row=>newIds.includes(row.ruleId)&&row.status==='selected').map(row=>row.ruleId).sort();
-const content=result=>JSON.parse(result.context.slice(result.context.indexOf('\n')+1)).facts;
+const content=result=>{const data=JSON.parse(result.context.slice(result.context.indexOf('\n')+1));return [...(data.choices??[]),...data.facts];};
 
 test('Phantom expansion admits exactly three reviewed outcomes with positive durable receipts',()=>{
   assert.equal(validateKnowledgePack(pack).ok,true);

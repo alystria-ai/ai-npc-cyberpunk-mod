@@ -55,6 +55,7 @@ struct Layout
     CProperty* hard = nullptr;
     CProperty* back = nullptr;
     CProperty* distance = nullptr;
+    CProperty* parentSpace = nullptr; // request.calculatePositionInParentSpace, optional
 
     CClass* partClass = nullptr;
     CRTTIBaseArrayType* partsType = nullptr;
@@ -260,6 +261,13 @@ bool Resolve(Layout& L)
         return Miss("request.limits does not have the four numeric limit fields", L.limitsClass ? L.limitsClass : L.requestClass);
     }
 
+    // Optional: a game without it only loses the parent-space solve of a seated request.
+    L.parentSpace = Property(L.requestClass, "calculatePositionInParentSpace");
+    if (L.parentSpace && !IsNumeric(L.parentSpace->type))
+    {
+        L.parentSpace = nullptr;
+    }
+
     // The parameter types come from the registered signatures, so no type name is guessed.
     auto* styleType = L.setStyle->params[0]->type;
     if (!styleType || styleType->GetType() != rt::ERTTIType::Enum)
@@ -450,6 +458,12 @@ FillResult Fill(const convai::game::Object& aEvent, const convai::game::Object& 
         !WriteNumber(L.distance, StructField(L.distance, limits), aPlan.hardLimitDistance))
     {
         return decline("the limits could not be written");
+    }
+
+    // A seated request is solved in the car's space (the game's own in-vehicle look-at does the same).
+    if (aPlan.parentSpace && L.parentSpace)
+    {
+        WriteNumber(L.parentSpace, StructField(L.parentSpace, request), 1.0);
     }
 
     // 5. The additional parts, passed as a game array.

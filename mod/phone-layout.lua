@@ -78,9 +78,14 @@ function M.reportNavigation(player)
     print('[CyberpunkConvai] ' .. line)
 end
 
-function M.refresh(force)
-    local player = Game.GetPlayer()
-    if not player or not player:ConvaiPhoneIsOpen() then
+-- player/open: the caller's per-frame answers (init.lua onUpdate asks once for all the phone work). Called with
+-- no player (a wrapped manager update, a test) it asks for itself.
+function M.refresh(force, player, open)
+    if player == nil then
+        player = Game.GetPlayer()
+        open = player and player:ConvaiPhoneIsOpen()
+    end
+    if not player or not open then
         if M.wasOpen and player then M.reportNavigation(player) end
         M.wasOpen = false; return
     end
@@ -89,10 +94,13 @@ function M.refresh(force)
     if not force and M.wasOpen then return end
     M.wasOpen, M.selected, M.lastError = true, nil, nil
     M.scan = {rows = 0, nodes = 0}
+    -- CName comparisons: one native call per controller or widget instead of a call and a string.
+    M.hudName = M.hudName or CName.new('NewHudPhoneGameController')
+    M.rowName = M.rowName or CName.new('PhoneContactItemVirtualController')
+    local hudName, rowName = M.hudName, M.rowName
     for _, layer in ipairs(Game.GetInkSystem():GetLayers()) do
         for _, controller in ipairs(layer:GetGameControllers()) do
-            local class = NameToString(controller:GetClassName())
-            if class == 'NewHudPhoneGameController' then
+            if controller:GetClassName() == hudName then
                 -- The base ink controller returned by GetGameControllers may
                 -- not expose private script fields. Its widget tree still
                 -- contains the live virtual row controllers.
@@ -102,7 +110,7 @@ function M.refresh(force)
                     if not widget or depth > 18 or nodes >= 2500 then return end
                     nodes = nodes + 1
                     local row = widget:GetController()
-                    if row and NameToString(row:GetClassName()) == 'PhoneContactItemVirtualController' then
+                    if row and row:GetClassName() == rowName then
                         apply(row); rows = rows + 1; return
                     end
                     local compound, count = pcall(function() return widget:GetNumChildren() end)

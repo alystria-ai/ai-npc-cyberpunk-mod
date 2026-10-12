@@ -36,12 +36,14 @@ const PROVIDER_LABELS = Object.freeze({mistral: 'Mistral', groq: 'Groq', local: 
  * The message carries `[mistral:<kind>]` so the bridge can classify a failure from its text alone, like convai-quota.mjs.
  */
 export class MistralError extends Error {
-  constructor(kind, detail, {status, retryAfterMs, apiKey, zeroQuota = false, provider = 'mistral'} = {}) {
+  constructor(kind, detail, {status, retryAfterMs, apiKey, zeroQuota = false, provider = 'mistral', slow = false} = {}) {
     provider = PROVIDER_LABELS[provider] ? provider : 'mistral';
     super(`${PROVIDER_LABELS[provider]} ${redact(detail, apiKey).slice(0, 200)} [${provider}:${kind}]`);
     this.name = 'MistralError';
     // zeroQuota: the account has no allowance at all for this model (retrying cannot help; another model may work).
-    Object.assign(this, {kind, status, retryAfterMs, zeroQuota, provider});
+    // slow: the service was reachable but did not answer in time (no response, or a stream that went quiet), or answered with a server
+    // fault; the caller may speak a short in-character line instead of an error (docs/MISTRAL.md).
+    Object.assign(this, {kind, status, retryAfterMs, zeroQuota, provider, slow});
   }
 }
 
@@ -92,7 +94,7 @@ export function mapFailure(status, body, {headers, apiKey, provider} = {}) {
     return error;
   }
   if (status === 404 || ((status === 400 || status === 422) && /model/.test(lower))) return new MistralError('model', detail, options);
-  if (status === 408 || status === 500 || status === 502 || status === 503 || status === 504 || status === 529) return new MistralError('network', detail, options);
+  if (status === 408 || status === 500 || status === 502 || status === 503 || status === 504 || status === 529) return new MistralError('network', detail, {...options, slow: true});
   return new MistralError('request', detail, options);
 }
 
@@ -180,39 +182,53 @@ const contentText = content => typeof content === 'string' ? content
  *   apiKey, model, messages [{role, content}], maxTokens, temperature
  *   onDelta(text, soFar): called for each piece of reply text
  *   shouldStop(soFar): return true to end the reply early (the reply length cap); the stream is cancelled and the text so far is returned
- *   signal: the caller's cancellation; firstByteMs / totalMs: timeouts; retries / backoffMs: for 429, 5xx, a timeout, an empty answer
- * Returns {text, model, finishReason, usage, attempts}.
+ *   signal: the caller's cancellation
+ *   firstByteMs: how long a request may take to deliver its first piece of reply (response headers included); `retryFirstByteMs`
+ *     (default: the same) is the limit of the later attempts. A request that hangs (a connection the network dropped without telling
+ *     anyone) is cut at this limit and sent again on a new connection: the 2026-10-13 live record had one hang for the whole 25 s limit
+ *     before the retry answered in 2 s (docs/LATENCY_2026-10-12.md).
+ *   stallMs: once the reply has started, silence this long ends the attempt (0: off); totalMs: the whole attempt
+ *   retries / backoffMs: for 429, 5xx, a timeout, an empty answer
+ *   onRetry({attempt, error, waitMs}): called before each retry, so the caller can log why a turn took long
+ * Returns {text, model, finishReason, usage, attempts, failed: [{kind, status, ms}]} (`failed` lists the attempts that were given up).
  */
 export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTokens = 300, temperature = 0.8, onDelta, shouldStop,
-  signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, totalMs = 70000, retries = 2,
-  backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', onHeaders} = {}) {
+  signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, totalMs = 70000, retries = 2,
+  backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', onHeaders, onRetry, now = () => performance.now()} = {}) {
   if (typeof apiKey !== 'string' || apiKey.length < 8) throw new MistralError('key', 'has no API key', {provider});
   const url = checkedEndpoint(endpoint ?? (provider === 'groq' ? GROQ_ENDPOINT : MISTRAL_ENDPOINT), provider);
   let lastError;
+  const failed = [];
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (signal?.aborted) throw signal.reason ?? abortError();
+    const began = now();
     try {
-      const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs,
-        totalMs, extraBody, provider, onHeaders});
-      return {...result, attempts: attempt + 1};
+      const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url,
+        firstByteMs: attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders});
+      return {...result, attempts: attempt + 1, failed};
     } catch (error) {
       if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) throw signal?.aborted ? (signal.reason ?? abortError()) : error;
       lastError = error instanceof MistralError ? error : new MistralError('network', redact(error?.message ?? 'request failed', apiKey), {apiKey, provider});
-      if (attempt >= retries || !retryable(lastError)) throw lastError;
+      failed.push({kind: lastError.kind, status: lastError.status, ms: Math.round(now() - began)});
+      if (attempt >= retries || !retryable(lastError)) { lastError.failed = failed; throw lastError; }
       const wait = Math.min(lastError.retryAfterMs ?? backoffMs[Math.min(attempt, backoffMs.length - 1)] ?? 2000, 8000);
+      try { onRetry?.({attempt: attempt + 1, error: lastError, waitMs: wait, ms: failed.at(-1).ms}); } catch { /* an observer never fails a reply */ }
       await sleepImpl(wait, signal);
     }
   }
+  lastError.failed = failed;
   throw lastError;
 }
 
-async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, totalMs, extraBody, provider, onHeaders}) {
+async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders}) {
   const controller = new AbortController();
-  let timedOut = false;
+  let timedOut = false, started = false;
   const onAbort = () => controller.abort(signal.reason);
   signal?.addEventListener('abort', onAbort, {once: true});
   const total = setTimeout(() => { timedOut = true; controller.abort(); }, totalMs);
+  // The first piece of the reply is waited for `firstByteMs`; after that, silence is waited for `stallMs` (0: only the total limit).
   let first = setTimeout(() => { timedOut = true; controller.abort(); }, firstByteMs);
+  const quiet = () => { clearTimeout(first); if (stallMs > 0) first = setTimeout(() => { timedOut = true; controller.abort(); }, stallMs); };
   try {
     let response;
     try {
@@ -221,7 +237,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
         headers: {Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', Accept: 'text/event-stream'},
         body: JSON.stringify({model, messages, stream: true, max_tokens: maxTokens, temperature, ...extraBody})});
     } catch (error) {
-      if (timedOut) throw new MistralError('network', 'did not answer in time', {apiKey, provider});
+      if (timedOut) throw new MistralError('network', 'did not answer in time', {apiKey, provider, slow: true});
       if (signal?.aborted) throw signal.reason ?? abortError();
       throw new MistralError('network', `could not be reached (${redact(error?.cause?.code ?? error?.message ?? 'network error', apiKey)})`, {apiKey, provider});
     }
@@ -236,7 +252,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
     let text = '', actualModel, finishReason, usage, stoppedEarly = false;
     try {
       for await (const data of sseData(response.body)) {
-        clearTimeout(first);
+        quiet();
         if (data === '[DONE]') break;
         let chunk; try { chunk = JSON.parse(data); } catch { continue; }
         if (chunk?.object === 'error' || chunk?.error) throw mapFailure(Number.isInteger(chunk.code) ? chunk.code : Number.isInteger(chunk.error?.code) ? chunk.error.code : 502, chunk, {apiKey, provider});
@@ -247,6 +263,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
         const piece = contentText(choice.delta?.content);
         if (piece) {
           if (!text) markStage('firstToken');
+          started = true;
           text += piece;
           onDelta?.(piece, text);
           if (shouldStop?.(text)) { stoppedEarly = true; break; }
@@ -255,7 +272,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
         if (choice.finish_reason === 'error') throw new MistralError('network', 'stopped the reply with an error', {apiKey, provider});
       }
     } catch (error) {
-      if (timedOut) throw new MistralError('network', 'did not finish in time', {apiKey, provider});
+      if (timedOut) throw new MistralError('network', started ? 'went quiet before the reply was finished' : 'did not finish in time', {apiKey, provider, slow: true});
       if (signal?.aborted) throw signal.reason ?? abortError();
       throw error;
     }

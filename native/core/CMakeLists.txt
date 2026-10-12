@@ -51,6 +51,7 @@ add_library(convai_core STATIC
   src/core/FileIo.cpp
   src/core/Log.cpp
   src/core/Paths.cpp
+  src/core/ScriptNames.cpp
   src/core/Signatures.cpp
   src/core/Switches.cpp
   ${CONVAI_SYSTEM_CORE_SOURCES}

@@ -2,6 +2,7 @@ import {PocketFacialStream} from './pocket-facial-stream.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
 import {BufferedPcm} from './group-lookahead.mjs';
 import {markStage} from './turn-clock.mjs';
+import {Utterance} from './voice-utterance.mjs';
 
 // Dialogue/memory stays with the original Convai turn. Only its complete text
 // is sent once to the local student; an independent PCM renderer starts from
@@ -13,6 +14,9 @@ import {markStage} from './turn-clock.mjs';
 // (the head), which is voiced at once. When the reply is finished its rest (the tail) is voiced as the same utterance: it is
 // synthesized as soon as it is known, buffered, and its packets continue the head's numbering under the head's identity. The
 // subtitles and the face follow the text as it grows (snapshot text, PocketFacialStream.setText).
+// One reply, one voice: the head's call decides the engine (an `Utterance`, bridge/voice-utterance.mjs) and the tail is spoken by
+// that engine only. If the head was heard in the cloud voice and the tail cannot be had from it (after its second ask), the reply
+// ends after the head (`voiceTailFailed`); it is never finished by Pocket.
 export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,result,current,signal,voice,host,speech,lipsync,phoneAnalysis,jaliFace,onAnalysis,prefetched,stream}) {
   const facial=new PocketFacialStream({input,lipsync,phoneAnalysis,jaliFace,signal,expressionSignal:result.expressionSignal,text:result.text,textComplete:!stream,onAnalysis});
   try {
@@ -26,18 +30,27 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
         facial.push(packet);return emit(packet);
       };
       // The tail is synthesized (into memory) while the head is still being voiced or played.
+      const utterance=new Utterance();
       const tail=stream?stream.finished.then(()=>stream.tail,()=>'').then(text=>{
         if(!text||localSignal.aborted)return null;
-        const buffered=new BufferedPcm({signal:localSignal,synthesize:(onPcm,options)=>voice.synthesizeStream(voiceKey,text,{...options,onPcm})});
+        const buffered=new BufferedPcm({signal:localSignal,synthesize:(onPcm,options)=>voice.synthesizeStream(voiceKey,text,{...options,onPcm,utterance,role:'tail'})});
         buffered.start();return buffered;
       }):null;
       tail?.catch(()=>{});
       markStage('ttsSent');
-      let response=prefetched?await prefetched.drain(feed,{signal:localSignal})
-        :await voice.synthesizeStream(voiceKey,result.text,{signal:localSignal,onPcm:feed});
+      let response;
+      try{
+        response=prefetched?await prefetched.drain(feed,{signal:localSignal})
+          :await voice.synthesizeStream(voiceKey,result.text,{signal:localSignal,onPcm:feed,utterance,role:'head'});
+      }catch(error){utterance.decide('pocket');throw error;}
+      utterance.settle(response);
       if(tail){
         const buffered=await tail;
-        if(buffered){
+        if(buffered&&response.truncated){
+          // The first sentence's audio was cut: the rest would follow a gap in the sentence. The reply ends there.
+          buffered.discard();
+          response={...response,timing:{...response.timing,voiceTailSkipped:true}};
+        }else if(buffered){
           if(!last)throw Error('The first sentence produced no audio');
           const base={...last};
           const continued=packet=>feed({...packet,owner:base.owner,id:base.id,profile:base.profile,modelSha256:base.modelSha256,
@@ -52,6 +65,7 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
             throwIfCancelled(localSignal);throwIfCancelled(signal);
             // The rest of the reply could not be voiced: what was spoken stands (the written reply is complete).
             buffered.discard();
+            try{console.error(`[Voice] the rest of the reply could not be voiced (${String(error?.message??error).slice(0,120)}); it ends after the first sentence, the voice is not switched`);}catch{}
             response={...response,truncated:true,timing:{...response.timing,voiceTailFailed:true}};
           }
         }

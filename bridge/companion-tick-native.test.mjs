@@ -229,7 +229,8 @@ const fakePlugin = `
     local gap = space.distance(at, player)
     local facing = space.angle(direction, space.bearing(at, player))
     local flags, state, id = 0, -1, -1
-    if not unavailable.combat then flags = flags + 1 + (npc.combat and 2 or 0) end
+    -- BIAS_COMBAT: a plugin whose combat flag is the opposite of the game's (a test sets it).
+    if not unavailable.combat then flags = flags + 1 + (((npc.combat and true or false) ~= (BIAS_COMBAT == true)) and 2 or 0) end
     if command and not unavailable.state then flags = flags + 4; state = ENUM[command.state] end
     if command and not unavailable.id then flags = flags + 8; id = command.id or 0 end
     return table.concat({flags, num(at.x), num(at.y), num(at.z), num(at.w), num(f.x), num(f.y), state, id,
@@ -426,11 +427,12 @@ test('the parity proof: Lua answers while it runs, then the plugin, with identic
     assert(state.proven == true, 'the proof should have finished: ' .. serialize(state))
     assert(state.mismatches == 0 and state.ticks == 12 and state.moving >= 3, serialize(state))
     assert(state.compared > 12, 'the canary keeps comparing after the proof: ' .. serialize(state))
+    assert(state.combatSeen >= 12 and state.combatCompared >= 12, 'the combat flag is part of the proof: ' .. serialize(state))
     assert(#failures == 0, table.concat(failures, ';'))
     assert((calls.Sense or 0) + (calls.SenseIdle or 0) > 12, 'the plugin was called every tick')
     local proven = false
     for _, line in ipairs(LOGLINES) do
-      if line:find('parity proven over 12 senses') then proven = true end
+      if line:find('parity proven over 12 senses') and line:find('combat flag read by the plugin, compared', 1, true) then proven = true end
       assert(not line:find('PARITY MISMATCH'), line)
     end
     assert(proven, table.concat(LOGLINES, '|'))
@@ -449,6 +451,49 @@ test('the proof needs the companion to walk: standing still proves nothing', () 
     for i = 1, 30 do companions.update(player, 0.2) end
     local state = shimModule.state()
     assert(state.proven == false and state.ticks >= 5 and state.moving == 0, serialize(state))
+    -- The open window narrows to one sense in four once the first senses are in: 5 + (25 / 4), not 30.
+    local senses = (calls.Sense or 0) + (calls.SenseIdle or 0)
+    assert(senses >= 5 and senses <= 13, 'the standing window is sparse: ' .. senses .. ' plugin senses in 30 ticks')
+    OUT = 'ok'
+  `);
+  assert.equal(out, 'ok');
+});
+
+test('the combat flag is part of the parity proof: a plugin that reads it backwards is caught', () => {
+  const body = `${serializer}${hook}${fakePlugin}`;
+  const out = run(`KEEP_PROOF = true
+    ${body}
+    local shimModule = MODULES['companion-tick-native.lua']
+    shimModule.configure(12, 3, 7)
+    BIAS_COMBAT = true
+    ${scenario}
+    local state = shimModule.state()
+    assert(state.proven == false and state.mismatches >= 3, serialize(state))
+    assert(#failures == 1 and failures[1]:find('parity'), table.concat(failures, ';'))
+    local named = false
+    for _, line in ipairs(LOGLINES) do if line:find('PARITY MISMATCH in combat: plugin', 1, true) then named = true end end
+    assert(named, table.concat(LOGLINES, '|'))
+    OUT = 'ok'
+  `);
+  assert.equal(out, 'ok');
+});
+
+test('a plugin that cannot read the combat flag still proves the rest, and the log says Lua reads it', () => {
+  const body = `${serializer}${hook}${fakePlugin}`;
+  const out = run(`KEEP_PROOF = true
+    ${body}
+    local shimModule = MODULES['companion-tick-native.lua']
+    shimModule.configure(12, 3, 0)
+    unavailable.combat = true
+    ${scenario}
+    local state = shimModule.state()
+    assert(state.proven == true and state.combatSeen == 0 and state.mismatches == 0, serialize(state))
+    local said = false
+    for _, line in ipairs(LOGLINES) do
+      if line:find('parity proven') and line:find('combat flag read by Lua', 1, true) then said = true end
+    end
+    assert(said, table.concat(LOGLINES, '|'))
+    assert((calls['game.IsInCombat'] or 0) > 0, 'Lua reads the combat flag itself')
     OUT = 'ok'
   `);
   assert.equal(out, 'ok');

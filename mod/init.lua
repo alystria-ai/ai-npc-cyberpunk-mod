@@ -102,6 +102,13 @@ convaiWorldKnowledge = worldKnowledge
 -- Requests name the world and journal parts by revision; each part is written once (docs/PERFORMANCE_NATIVE_PLAN.md 1b).
 local partsLoaded, knowledgeParts = pcall(dofile, 'knowledge-parts.lua')
 if not partsLoaded or type(knowledgeParts) ~= 'table' then knowledgeParts = nil end
+-- Finished scans are encoded a few entries per frame so the first turn that needs them writes a ready string, and an
+-- unrequested journal scan is paced (one page, then a rest) instead of taking a page every frame.
+journalHistory.pace = true
+if knowledgeParts and type(knowledgeParts.newEncoder) == 'function' then
+    local function newEncoder(map) return knowledgeParts.newEncoder(map) end
+    worldKnowledge.newEncoder, journalHistory.newEncoder = newEncoder, newEncoder
+end
 
 -- Lease heartbeats (world-session, party-connections, relationship-state, companion-invitations,
 -- nearby-connections, speech-state) are refreshed every 2 s and most counted whole os.time() seconds,
@@ -116,8 +123,12 @@ convaiHeartbeatSlot = function()
     return true
 end
 
+local worldSessionToken, worldSessionReady
 local function publishWorldSession(frame, ready, force)
     local now = os.time()
+    -- Unchanged and still leased (the common case, twice per frame): no table or string is built.
+    if not force and frame and frame.worldToken == worldSessionToken and (ready == true) == worldSessionReady
+        and worldSessionAt and now >= worldSessionAt and now - worldSessionAt < 2 then return end
     local value = {version = 1, token = frame and frame.worldToken or (knowledgeLaunch .. '-' .. (knowledgeEpoch + 1)),
         generation = frame and frame.generation or (knowledgeEpoch + 1), ready = ready == true, updated = now * 1000}
     local signature = value.token .. ':' .. tostring(value.ready)
@@ -131,10 +142,17 @@ local function publishWorldSession(frame, ready, force)
     local file = io.open('runtime/world-session.json', 'wb'); if not file then return end
     local written, closed = file:write(raw), file:close(); if not written or not closed then return end
     worldSessionSignature, worldSessionAt = signature, now
+    worldSessionToken, worldSessionReady = frame and frame.worldToken or nil, ready == true
 end
 
 local function refreshKnowledgeFrame()
     if not knowledgeAllowed then return knowledgeUnavailable() end
+    -- The frame is a pure function of the epoch: reuse it instead of building a table and a token string every call.
+    local held = knowledgeFrame
+    if held and held.status == 'ready' and held.generation == knowledgeEpoch + 1 then
+        publishWorldSession(held, true)
+        return held
+    end
     local frame = {version = 1, status = 'ready', generation = knowledgeEpoch + 1,
         worldToken = knowledgeLaunch .. '-' .. (knowledgeEpoch + 1)}
     if knowledgeFrame and not sameKnowledgeOwner(knowledgeOwner(knowledgeFrame), knowledgeOwner(frame)) then
@@ -163,13 +181,24 @@ end
 local function configureKnowledge()
     if knowledgeConfigured then return end
     knowledgeConfigured = true
-    local file = io.open('world-knowledge.json', 'rb')
-    if not file then return end
-    local raw = file:read(16 * 1024 * 1024 + 1); file:close()
-    if type(raw) ~= 'string' or #raw > 16 * 1024 * 1024 then return end
-    local decoded, pack = pcall(json.decode, raw)
+    -- The reviewed pack is 9 MB (the bridge's sources, evidence and rules); the collector needs only the allowlist
+    -- selectors, which loadPack keeps in runtime/knowledge-pack-lua.json after the first session (a ~220 ms decode
+    -- on the first frame, every session, before).
+    local pack
+    if type(worldKnowledge.loadPack) == 'function' then
+        local okPack, loaded = pcall(worldKnowledge.loadPack, {open = io.open, decode = json.decode, encode = json.encode,
+            source = 'world-knowledge.json', cache = 'runtime/knowledge-pack-lua.json'})
+        if okPack then pack = loaded end
+    else
+        local file = io.open('world-knowledge.json', 'rb')
+        if not file then return end
+        local raw = file:read(16 * 1024 * 1024 + 1); file:close()
+        if type(raw) ~= 'string' or #raw > 16 * 1024 * 1024 then return end
+        local decoded, whole = pcall(json.decode, raw)
+        if decoded then pack = whole end
+    end
     local versionOk, version = pcall(function() return Game.GetSystemRequestsHandler():GetGameVersion() end)
-    if decoded and type(pack) == 'table' and versionOk and type(version) == 'string' then
+    if type(pack) == 'table' and versionOk and type(version) == 'string' then
         worldKnowledge:configure(pack, {gameVersion = version})
     end
 end
@@ -178,6 +207,10 @@ end
 -- is coming or the journal changed. A global, so callers deep in onUpdate add no upvalue.
 convaiDemandKnowledge = function(lanes)
     pcall(worldKnowledge.demand, worldKnowledge, 0)
+    -- A history scan already under way (the first one after a load takes minutes when paced) finishes at full speed now.
+    if not lanes and type(journalHistory.scanning) == 'function' and journalHistory:scanning('history') then
+        lanes = {'active', 'history'}
+    end
     pcall(journalHistory.demand, journalHistory, lanes or {'active'}, 0)
 end
 local function updateKnowledge(delta)
@@ -647,6 +680,8 @@ do
             return companions.activityInputs(seats)
         end}) or nil
     microphone.captureTurnContext = function() return convaiTurnContext and convaiTurnContext:capture() or nil end
+    -- A phone chat reads it once per message too (mod/phone-chat.lua, when the message is sent).
+    phoneChat.captureTurnContext = microphone.captureTurnContext
 end
 
 -- entity: the addressed character's ID ("<hash>ULL") for a private conversation. A generic resident or archetype
@@ -671,14 +706,25 @@ end
 warmConversation(nil, nil)
 
 local lastPartyHint, lastPartyHeartbeat = nil, 0
+-- The per-frame call re-derives the party's profile list (a table and a concat per frame). A change reaches the
+-- bridge through companions.onPartyChanged (forced); this look only backs it up, so it runs every PARTY_LOOK
+-- seconds of wall clock. A heartbeat refused its slot below retries on the next frame.
+local PARTY_LOOK = 0.25
+local partyLookAt, partyRetry = nil, false
 local function publishPartyConnections(force)
+    if not force and not partyRetry then
+        local wall = os.clock()
+        if partyLookAt and wall >= partyLookAt and wall - partyLookAt < PARTY_LOOK then return end
+        partyLookAt = wall
+    end
+    partyRetry = false
     local keys, encoded = {}, {}
     for _, key in ipairs(companions.connectionProfiles()) do
         if manager.profileEnabled(key) then keys[#keys + 1] = key end
     end
     local signature, now = table.concat(keys, ','), os.time()
     if not force and signature == lastPartyHint and now - lastPartyHeartbeat < 2 then return end
-    if not force and signature == lastPartyHint and not convaiHeartbeatSlot() then return end
+    if not force and signature == lastPartyHint and not convaiHeartbeatSlot() then partyRetry = true; return end
     for _, key in ipairs(keys) do encoded[#encoded + 1] = json.encode(key) end
     -- In place (one open, not open+remove+rename): the bridge ignores a partial
     -- read (PartyConnections.ingest rejects it) and keeps the last snapshot.
@@ -1135,12 +1181,20 @@ local function beginFocus(player, npc)
     return true
 end
 
+-- UI_System.IsInMenu. The blackboard definition and its id are script constants (the blackboard is found by
+-- that id on every read), so they are read once, not with GetAllBlackboardDefs and two property reads per call.
+-- A global, so onUpdate's closure gains no upvalue.
+convaiInMenu = function()
+    local cache = convaiHeartbeat
+    if not cache.menuDefinition then
+        local definition = Game.GetAllBlackboardDefs().UI_System
+        cache.menuFlag, cache.menuDefinition = definition.IsInMenu, definition
+    end
+    return Game.GetBlackboardSystem():Get(cache.menuDefinition):GetBool(cache.menuFlag)
+end
+
 local function gameplayCanAcquire(player)
-    local ok, inMenu = pcall(function()
-        local definitions = Game.GetAllBlackboardDefs()
-        return Game.GetBlackboardSystem():Get(definitions.UI_System)
-            :GetBool(definitions.UI_System.IsInMenu)
-    end)
+    local ok, inMenu = pcall(convaiInMenu)
     if not ok or inMenu then return false end
     local composerOk, composerOpen = pcall(function() return player:ConvaiComposerOpen() end)
     return composerOk and not composerOpen
@@ -1488,7 +1542,7 @@ local function toggleVoice(groupMode)
         -- boolean, asked only here, when the voice key is pressed.
         if manager.voiceNeedsConvai() then
             convaiNotices.send(player, 'voice-needs-convai',
-                ui.t('Speaking to companions needs Convai for now. Set Conversation provider to Convai in Settings > Development, or type your message.'))
+                ui.t('Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Development, or type your message.'))
             return
         end
         if not gameplayCanAcquire(player) then return end
@@ -1677,6 +1731,8 @@ local mergeSuppressedUntil = 0
 -- this many seconds after combat was confirmed over (its own window is 40).
 local CLOSING_LOOT_WAIT = 14
 local battleCandidatesOk, battleSampleAt = nil, nil
+-- The voice and subtitle flags only change from a menu: read with each battle sample (every 0.5 s), not every tick.
+local battleOutputs = nil
 
 local function reactionManualActivity()
     return {text = active ~= nil, group = groupChat.round ~= nil,
@@ -1808,6 +1864,7 @@ local function updateBattles(player, elapsed, worldReady)
         battleSample = battleObserver.sample(player)
         battleSampleAt = os.time() * 1000
         battlePeople, battleCandidatesOk = reactionPeople(player, battleSample)
+        battleOutputs = reactionOutputs(player)
     end
     local now = os.time()
     battles.update(battleSample, worldReady and elapsed or 0, now, manager.battleReactions(), battlePeople)
@@ -1828,7 +1885,7 @@ local function updateBattles(player, elapsed, worldReady)
         worldReady = worldReady, enabled = manager.lootReactions(), now = now, people = battlePeople})
     local manual = active ~= nil or groupChat.round ~= nil
         or (microphone.context ~= nil and microphone.state ~= 'reply') or phoneChat.pending ~= nil
-    local outputs = reactionOutputs(player)
+    local outputs = battleOutputs or reactionOutputs(player)
     if automatic then
         local speaker
         for _, person in ipairs(battlePeople) do
@@ -2134,6 +2191,19 @@ local function openManager()
     end
 end
 
+-- The phone queues a request only while it is open, so the per-frame ConvaiPhoneTakeRequest read waits for an open
+-- phone (and a short while after it closes, so a request queued as it closes is still taken). A closed phone is
+-- still drained once a second, as a backstop for a request left from before a CET reload.
+local PHONE_DRAIN_GRACE, PHONE_DRAIN_IDLE = 1.5, 1.0
+local phoneSeenAt, phoneDrainedAt = nil, nil
+local function phoneDrainDue(phoneOpen)
+    local wall = os.clock()
+    if phoneOpen then phoneSeenAt = wall
+    elseif phoneSeenAt and wall >= phoneSeenAt and wall - phoneSeenAt < PHONE_DRAIN_GRACE then phoneDrainedAt = wall
+    elseif phoneDrainedAt and wall >= phoneDrainedAt and wall - phoneDrainedAt < PHONE_DRAIN_IDLE then return false end
+    phoneDrainedAt = wall
+    return true
+end
 local function processPhoneAction(player)
     local queue = mcm.party and mcm.party()
     if not queue then return end
@@ -2309,8 +2379,12 @@ registerForEvent('onInit', function()
     -- is the game's own journal listener; it fires on entry state changes only, never per frame.
     local journalHooked, journalHookError = pcall(ObserveAfter, 'JournalNotificationQueue', 'OnJournalUpdate', function()
         worldKnowledge.journalChangedAt = os.clock()
+        -- Resting caches are no longer known current (see the collectors' eventDriven rule).
+        if type(worldKnowledge.markChanged) == 'function' then worldKnowledge:markChanged() end
+        if type(journalHistory.markChanged) == 'function' then journalHistory:markChanged() end
     end)
-    if not journalHooked then log('Journal change hook unavailable: ' .. tostring(journalHookError)) end
+    if not journalHooked then log('Journal change hook unavailable: ' .. tostring(journalHookError))
+    else worldKnowledge.eventDriven, journalHistory.eventDriven = true, true end
     lootObserver.configure({captureContext = captureLootContext})
     lootObserver.install()
     if convaiVanillaReactions then
@@ -2402,6 +2476,39 @@ registerForEvent('onInit', function()
     end
 end)
 
+-- The face layer's per-frame context (speech.update -> facial-playback beginExpressionFrame / updateExpressions). It was a new table
+-- plus a new actors table every frame and an IsInCombat call in a pcall closure every frame (init:expressionContext about 1.1 ms/s).
+-- Now ONE context table is refilled each frame (its readers only look at it during the call and keep no reference), the actor rows
+-- already come from companions.expressionActors (rebuilt at most every 0.1 s), and V's combat state is sampled at that same 0.1 s
+-- cadence, or at once when the party's rows were rebuilt, so a face still reacts to combat within 0.1 s. Not ready: no rows, blocked,
+-- and the sample is forgotten so the first ready frame reads fresh. A global function, so onUpdate's closure gains no upvalue.
+do
+    local EMPTY, SAMPLE = {}, 0.1
+    local context = {paused = true, actors = EMPTY, blocked = true}
+    local state = {rows = nil, at = nil, blocked = true}
+    convaiExpressionFrame = function(menuPlayer, worldReady, pending)
+        context.paused = not worldReady
+        context.thinkingEntity = pending and pending.entity
+        context.thinkingRequestId = pending and pending.requestId
+        context.listeningEntity = microphone.state == 'recording' and microphone.context and microphone.context.entity or nil
+        if not worldReady then
+            state.rows, state.at, state.blocked = nil, nil, true
+            context.actors, context.blocked = EMPTY, true
+            return context
+        end
+        local sampled, rows = pcall(companions.expressionActors, menuPlayer)
+        if not sampled or type(rows) ~= 'table' then rows = EMPTY end
+        local now = os.clock()
+        -- A fresh rows table is the 0.1 s rebuild (or a party change); the clock check covers a failed or empty rows read.
+        if rows ~= state.rows or not state.at or now < state.at or now - state.at >= SAMPLE then
+            local known, inCombat = pcall(function() return menuPlayer:IsInCombat() end)
+            state.blocked = not known or inCombat == true
+            state.rows, state.at = rows, now
+        end
+        context.actors, context.blocked = rows, state.blocked
+        return context
+    end
+end
 registerForEvent('onUpdate', function(delta)
     -- Last chance for the native core plugin to bind (a global, so this closure gains no upvalue).
     if convaiNative and convaiNative.pending then pcall(convaiNative.redetect, 'onUpdate') end
@@ -2457,9 +2564,8 @@ registerForEvent('onUpdate', function(delta)
     end
     local worldOk, worldReady = pcall(function()
         -- The session check above found V attached and not in pre-game this frame.
-        local definitions = Game.GetAllBlackboardDefs()
         return not requests:IsGamePaused()
-            and not Game.GetBlackboardSystem():Get(definitions.UI_System):GetBool(definitions.UI_System.IsInMenu)
+            and not convaiInMenu()
             and not menuPlayer:ConvaiComposerOpen()
     end)
     worldReady = worldOk and worldReady
@@ -2487,7 +2593,12 @@ registerForEvent('onUpdate', function(delta)
     local mcmOk, mcmError = pcall(mcm.update, menuPlayer, worldReady)
     if not mcmOk then log('MCM update failed: ' .. tostring(mcmError)) end
     mark('init:invitations')
-    local phoneActionOk, phoneActionError = pcall(processPhoneAction, menuPlayer)
+    -- One phone-open read per frame, shared by the request drain and the layout and style refreshes (each used to
+    -- fetch the player and ask again). A failed read counts as closed, as it did for them.
+    local phoneRead, phoneOpen = pcall(function() return menuPlayer:ConvaiPhoneIsOpen() end)
+    phoneOpen = phoneRead and phoneOpen == true
+    local phoneActionOk, phoneActionError = true, nil
+    if phoneDrainDue(phoneOpen) then phoneActionOk, phoneActionError = pcall(processPhoneAction, menuPlayer) end
     if not phoneActionOk then log('Phone action failed: ' .. tostring(phoneActionError)) end
     local invitationOk, invitationError = pcall(invitations.update)
     if not invitationOk then log('Invitation preparation failed: ' .. tostring(invitationError)) end
@@ -2497,23 +2608,14 @@ registerForEvent('onUpdate', function(delta)
     publishPartyConnections(false)
     if autoConnect then pcall(autoConnect.heartbeat) end
     mark('init:phone')
-    local phoneOk, phoneError = pcall(phoneLayout.refresh)
+    local phoneOk, phoneError = pcall(phoneLayout.refresh, false, menuPlayer, phoneOpen)
     if not phoneOk then phoneLayout.lastError = tostring(phoneError) end
-    local styleOk, styleError = pcall(phoneChatStyle.refresh)
+    local styleOk, styleError = pcall(phoneChatStyle.refresh, false, menuPlayer, phoneOpen)
     if not styleOk then phoneChatStyle.lastError = tostring(styleError) end
     local chatOk, chatError = pcall(phoneChat.update, menuPlayer, delta)
     if not chatOk then phoneChat.lastError = tostring(chatError) end
     mark('init:expressionContext')
-    local expressionActors,expressionBlocked={},true
-    if worldReady then
-        local sampled,rows=pcall(companions.expressionActors,menuPlayer)
-        if sampled and type(rows)=='table' then expressionActors=rows end
-        local combatKnown,inCombat=pcall(function() return menuPlayer:IsInCombat() end)
-        expressionBlocked=not combatKnown or inCombat==true
-    end
-    local expressionContext={paused=not worldReady,actors=expressionActors,blocked=expressionBlocked,
-        thinkingEntity=pending and pending.entity,thinkingRequestId=pending and pending.requestId,
-        listeningEntity=microphone.state=='recording' and microphone.context and microphone.context.entity or nil}
+    local expressionContext=convaiExpressionFrame(menuPlayer,worldReady,pending)
     mark('init:speech')
     local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0,expressionContext)
     if not speechOk then

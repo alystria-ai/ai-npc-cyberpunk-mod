@@ -313,10 +313,18 @@ local function look(s,style,player,settings,seated)
     end
     event:SetStyle(Enum.new('animLookAtStyle','Normal'))
     event.bodyPart=CName.new('Eyes')
-    event.request.limits.softLimitDegrees=style=='full' and 70 or 45
-    event.request.limits.hardLimitDegrees=style=='full' and 120 or 100
-    event.request.limits.backLimitDegrees=120
+    -- Seated requests are wider: a passenger sits side by side with V, so V's head is about 90 degrees
+    -- off her forward axis, between the soft and the hard limit of the standing request (a faded look).
+    -- Her body is fixed to the car, so the request is also solved in the car's space, like the game's
+    -- own in-vehicle look-at (reactionComponent ActivateReactionLookAt(inVehicle)).
+    local full=style=='full'
+    local soft,hard,back=full and 70 or 45,full and 120 or 100,120
+    if seated then soft,hard,back=full and 100 or 60,full and 150 or 120,150 end
+    event.request.limits.softLimitDegrees=soft
+    event.request.limits.hardLimitDegrees=hard
+    event.request.limits.backLimitDegrees=back
     event.request.limits.hardLimitDistance=5
+    if seated then event.request.calculatePositionInParentSpace=true end
     local head=LookAtPartRequest.new()
     head.partName,head.weight,head.suppress,head.mode=CName.new('Head'),(style=='full' and 0.18 or 0.05)*strength,1,0
     local parts={head}
@@ -350,6 +358,20 @@ function M.applyLook(s,style,player,settings,seated)
     return ok,s.lookError
 end
 
+-- How much of a look a passenger gets while the car moves, by the car's speed in m/s. The full look
+-- (eyes and a head turn) below about 8, the narrow one (eyes and a small head turn) up to about 20, none
+-- faster. Each limit has a margin, so a speed that hovers at one never flips the request (each change
+-- retires one event and adds another). An unreadable speed gets the narrow look only.
+local SEATED_FULL,SEATED_NARROW,SEATED_MARGIN=8,20,2
+local function seatedStyle(previous,speed)
+    if not speed then return 'side' end
+    local full=previous=='full' and SEATED_FULL+SEATED_MARGIN or SEATED_FULL-SEATED_MARGIN
+    if speed<=full then return 'full' end
+    local narrow=(previous=='full' or previous=='side') and SEATED_NARROW+SEATED_MARGIN or SEATED_NARROW-SEATED_MARGIN
+    if speed<=narrow then return 'side' end
+    return 'none'
+end
+
 function M.applySeatedLook(s,c,dt)
     dt=math.max(0,tonumber(dt) or 0)
     s.clock=s.clock+dt
@@ -357,8 +379,8 @@ function M.applySeatedLook(s,c,dt)
     s.seatedAttention=attention
     local ready=c.ready==true and c.vehicle~=nil and c.seat~=nil
     local reason=c.reason or 'Wait for stable seating'
+    local speed=bounded(c.speed,0,math.huge,nil)
     if ready and c.seat=='seat_front_left' then
-        local speed=bounded(c.speed,0,math.huge,nil)
         if not speed or speed>0.5 then ready=false; reason='Driver watches the road' end
     end
     if ready then
@@ -369,10 +391,14 @@ function M.applySeatedLook(s,c,dt)
         attention.vehicle,attention.seat=nil,nil
         attention.stableFor=0
     end
-    local style=ready and attention.stableFor>=0.5 and c.selected==true and 'full' or 'none'
-    attention.phase=style=='full' and 'seated-attend' or 'seated-idle'
-    attention.reason=style=='full' and 'Attend with eyes and head while seated'
-        or (ready and attention.stableFor>=0.5 and 'No selected seated attention' or reason)
+    local attending=ready and attention.stableFor>=0.5 and c.selected==true
+    local style=attending and seatedStyle(attention.style,speed) or 'none'
+    attention.style=style
+    attention.phase=style~='none' and 'seated-attend' or 'seated-idle'
+    if style=='full' then attention.reason='Attend with eyes and head while seated'
+    elseif style=='side' then attention.reason='Attend with the eyes and a small head turn while the car moves'
+    elseif attending then attention.reason='The car is too fast for a seated look'
+    else attention.reason=ready and attention.stableFor>=0.5 and 'No selected seated attention' or reason end
     attention.speed=c.speed
     return M.applyLook(s,style,c.player,c.gazeSettings,true)
 end

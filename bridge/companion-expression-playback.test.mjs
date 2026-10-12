@@ -1116,6 +1116,55 @@ test('a sleeping face wakes at once for a reaction or a reply, re-checks every 0
  face.idleSleep=false;n=#a.frames;tick(1/30);assert(#a.frames==n+1,'switch off: every frame writes')
 `));
 
+// Perf 2026-10-13: the development install loads mod/face-test.lua. Merely having the probe loaded used to keep every
+// idle face awake (about 20 ms/s per companion in the live capture); it now matters only while a run, a trace or a leftover field exists.
+test('a loaded but idle face-test probe lets the face sleep; a probe run (or its leftover fields) wakes it', () => runProbe(`${seeded(77)}
+ for _=1,60 do tick(1/30) end
+ local slot=face.expressions[a.id];assert(slot.sleepAt,'settled at idle with the probe loaded')
+ local writes,n=0,0
+ for _=1,300 do n=#a.frames;tick(1/30);if #a.frames>n then writes=writes+1 end end
+ assert(writes<150,'the idle face sleeps with the probe loaded: '..writes..' of 300 frames')
+ -- A run writes every frame (its hooks need each one).
+ request('p1\\nface-test judy smile 4 writer');tick(1/30);tick(1/30)
+ for _=1,20 do n=#a.frames;tick(1/30);assert(#a.frames==n+1,'a probe run keeps the face writing') end
+ assert(last(a).lips_l_corner_up==1,'the run is written')
+ -- Off: the leftover probe fields are cleared on the next frames, then the face settles and sleeps again.
+ request('p2\\nface-test judy off');for _=1,12 do tick(1/30) end
+ assert(next(face.faceTest.touched)==nil and last(a).lips_l_corner_up<.5,'the fields are cleared')
+ for _=1,400 do tick(1/30) end;local woke=0;while not face.expressions[a.id].sleepAt and woke<60 do tick(1/30);woke=woke+1 end -- a blink may be in flight
+ assert(face.expressions[a.id].sleepAt,'asleep again after the run')
+`));
+
+// Perf 2026-10-13: an idle copy writes only the controls that changed into its own feature object. Whatever was
+// written last must still be what the object holds, through a feeling, a blink over widened eyes and the fall back.
+test('an idle copy writes only changed controls, and its feature still holds exactly the written pose', () => run(`${seeded(5)}
+ face.idleSleep=false
+ local tracks=${literal(Object.keys(expressionTarget()))}
+ local function check(why)
+  local slot=face.expressions[a.id];local feature,written=slot.feature,slot.writtenPose
+  for _,track in ipairs(tracks) do assert(feature[track]==written[track],why..' '..track..': '..tostring(feature[track])..' vs '..tostring(written[track])) end
+  assert(feature.eye_l_blink==nil or feature.eye_l_blink>=0)
+ end
+ local sawBlinkOverWiden=false
+ -- A held fear (no expiry): widened eyes that stay constant, so only a blink changes what is on the feature.
+ face.beginExpression(context,${literal(receipt("Fear", 3, 0))});face.expressionHeard(context)
+ for i=1,900 do
+  tick(1/30);check('tick '..i)
+  local f=last(a);if (f.eye_l_blink or 0)>.2 and (f.eye_l_widen or 0)>.01 and f.eye_l_widen<.4 then sawBlinkOverWiden=true end
+ end
+ assert(sawBlinkOverWiden,'a blink closed widened eyes in this run')
+ `));
+
+test('a settled idle copy writes almost nothing into its feature object: only the blink controls cross between full frames', () => run(`${seeded(5)}
+ face.idleSleep=false
+ for _=1,600 do tick(1/30) end
+ local slot=face.expressions[a.id];local count=0
+ local real=slot.feature;slot.feature=setmetatable({},{__index=real,__newindex=function(_,k,v) count=count+1;real[k]=v end})
+ for _=1,300 do tick(1/30) end
+ -- The proxy is a new object, so its first frame writes every control (25 writes); then blinks (two controls per frame).
+ assert(count<25+300*2*.2,'only changed controls cross: '..count..' writes in 300 frames')
+`));
+
 test('a phrase boundary now and then brings a blink, and a separate phrase never ends on a half-closed lid', () => {
   const spans = [0.3, 2, 4, 6].map((start, i, all) => ({start, end: all[i + 1] ?? 8, from: 0, to: 1, dominant: null, tags: [], top: [], anchored: true}));
   const track = {version: 1, format: 'emotion-mix-v1', families: ['joy', 'trust', 'sadness', 'anger', 'fear', 'disgust', 'surprise', 'anticipation'],
@@ -1526,3 +1575,97 @@ test('October 9: a same-feeling stretch does not sag and lift the brows: no reve
   assert.ok(turn.eye_l_brows_lower[Math.round(1.9 / turn.dt)] > .4, 'angry before the change');
   assert.ok(turn.eye_l_brows_lower[later] < .12 && turn.eye_l_brows_raise_out[later] > .12, `anger -> joy: lower ${turn.eye_l_brows_lower[later]} raise ${turn.eye_l_brows_raise_out[later]}`);
 });
+
+// ---- the per-frame face context (mod/init.lua convaiExpressionFrame): reused tables, combat sampled at the rows' 0.1 s cadence
+const initSource = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+const frameSource = initSource.match(/do\r?\n    local EMPTY, SAMPLE = \{\}, 0\.1[\s\S]*?\r?\nend\r?\n(?=registerForEvent\('onUpdate')/)?.[0];
+function runFrame(body) {
+  const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
+  const program = `
+local clock, combatCalls, combat, rowsCalls = 0, 0, false, 0
+os.clock = function() return clock end
+local rows = {{entity = 'a'}}
+companions = {expressionActors = function() rowsCalls = rowsCalls + 1; return rows end}
+microphone = {state = 'idle'}
+local player = {IsInCombat = function() combatCalls = combatCalls + 1; if combat == 'error' then error('native') end; return combat == true end}
+${frameSource}
+${body}`;
+  const result = lauxlib.luaL_dostring(vm, to_luastring(program));
+  const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
+  lua.lua_close(vm); assert.equal(result, lua.LUA_OK, error);
+}
+
+test('the face context is one reused table: no new context or actors table per frame, and no upvalue added to onUpdate', () => {
+  assert.ok(frameSource, 'the frame function was not found in init.lua');
+  assert.match(initSource, /local expressionContext=convaiExpressionFrame\(menuPlayer,worldReady,pending\)/);
+  const update = initSource.slice(initSource.indexOf("registerForEvent('onUpdate'"));
+  assert.doesNotMatch(update.slice(0, update.indexOf("mark('init:speech')")), /local expressionContext=\{|expressionActors,expressionBlocked/);
+  runFrame(`
+local first = convaiExpressionFrame(player, true, nil)
+for _ = 1, 50 do clock = clock + 0.016; local again = convaiExpressionFrame(player, true, nil); assert(again == first, 'a new context table') end
+assert(first.actors == rows, 'the actor rows are the companion module cache itself')
+local off = convaiExpressionFrame(player, false, nil)
+assert(off == first and off.paused == true and off.blocked == true and next(off.actors) == nil, 'not ready: no rows, blocked')
+local empty = off.actors
+assert(convaiExpressionFrame(player, false, nil).actors == empty, 'the not-ready actors table is one shared table too')
+`);
+});
+
+test('V\'s combat is sampled at the rows cadence (0.1 s), at once on a party change, and a face reacts within 0.1 s as before', () => {
+  runFrame(`
+local ctx = convaiExpressionFrame(player, true, nil)
+assert(combatCalls == 1 and ctx.blocked == false)
+-- 60 frames at 16 ms (about 1 s) sample about ten times, not sixty
+for _ = 1, 60 do clock = clock + 0.016; convaiExpressionFrame(player, true, nil) end
+assert(combatCalls >= 9 and combatCalls <= 11, 'IsInCombat calls in one second: ' .. combatCalls)
+-- combat starts: the face layer is told blocked within 0.1 s
+combat = true
+local seen
+for frame = 1, 8 do clock = clock + 0.016; seen = frame; if convaiExpressionFrame(player, true, nil).blocked then break end end
+assert(convaiExpressionFrame(player, true, nil).blocked == true and seen <= 7, 'blocked after ' .. seen .. ' frames')
+-- combat ends: unblocked within 0.1 s
+combat = false
+local freed
+for frame = 1, 8 do clock = clock + 0.016; freed = frame; if not convaiExpressionFrame(player, true, nil).blocked then break end end
+assert(convaiExpressionFrame(player, true, nil).blocked == false and freed <= 7, 'unblocked after ' .. freed .. ' frames')
+-- a rebuilt rows table (the companion module's 0.1 s rebuild or a party change) is sampled at once
+combat = true; rows = {{entity = 'a'}, {entity = 'b'}}
+local before = combatCalls
+assert(convaiExpressionFrame(player, true, nil).blocked == true and combatCalls == before + 1, 'a party change was not sampled at once')
+`);
+});
+
+test('an unknown combat state blocks, a failed rows read gives no rows, and the first ready frame reads fresh', () => runFrame(`
+combat = 'error'
+local ctx = convaiExpressionFrame(player, true, nil)
+assert(ctx.blocked == true, 'an unreadable combat state blocks the faces')
+combat = false; clock = clock + 0.2
+assert(convaiExpressionFrame(player, true, nil).blocked == false)
+companions.expressionActors = function() error('native') end
+clock = clock + 0.2
+local failed = convaiExpressionFrame(player, true, nil)
+assert(next(failed.actors) == nil and failed.blocked == false, 'a failed rows read: no actors, the sampled combat state stands')
+local calls = combatCalls
+for _ = 1, 5 do clock = clock + 0.016; convaiExpressionFrame(player, true, nil) end
+assert(combatCalls == calls, 'the empty fallback is throttled by the clock, not read every frame')
+-- loading screen: forgotten, so the first ready frame samples again
+convaiExpressionFrame(player, false, nil)
+companions.expressionActors = function() return rows end
+local n = combatCalls; combat = true
+assert(convaiExpressionFrame(player, true, nil).blocked == true and combatCalls == n + 1)
+-- a clock that went backwards (a reload) does not freeze the sample
+clock = 0
+local m = combatCalls
+convaiExpressionFrame(player, true, nil)
+assert(combatCalls == m + 1)
+`));
+
+test('the thinking and listening owners still reach the face layer each frame, and clear again', () => runFrame(`
+local ctx = convaiExpressionFrame(player, true, {entity = '7ULL', requestId = 'r-1'})
+assert(ctx.thinkingEntity == '7ULL' and ctx.thinkingRequestId == 'r-1' and ctx.listeningEntity == nil)
+microphone.state = 'recording'; microphone.context = {entity = '9ULL'}
+ctx = convaiExpressionFrame(player, true, nil)
+assert(not ctx.thinkingEntity and not ctx.thinkingRequestId and ctx.listeningEntity == '9ULL')
+microphone.state = 'idle'
+assert(convaiExpressionFrame(player, true, nil).listeningEntity == nil)
+`));

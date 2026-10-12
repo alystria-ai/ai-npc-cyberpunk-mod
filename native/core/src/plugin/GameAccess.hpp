@@ -41,12 +41,35 @@ using Object = RED4ext::Handle<RED4ext::IScriptable>;
 RED4ext::CClass* Class(const char* aName);
 RED4ext::CBaseFunction* Method(RED4ext::CClass* aClass, const char* aName);
 
+// True when aFunction is the script function aName. The script compiler names a function that has
+// overloads, or parameters it wants to tell apart, with the parameter types appended after a ';':
+// the game's static NPCPuppet.IsInCombat(puppet) is registered as "IsInCombat;ScriptedPuppet" and
+// PlayerPuppet's member as "IsInCombat;" (final.redscripts, 2026-10-13), so a lookup by the plain
+// name (CClass::GetFunction) finds neither. A "Class::" prefix is ignored. Matches the plain name too.
+bool FunctionIs(const RED4ext::CBaseFunction* aFunction, const char* aName);
+
+// A static function of the class or of the nearest base class that declares one named aName with
+// exactly aParamCount parameters (FunctionIs naming), resolved once and cached when found. Null when
+// there is none; a miss logs once what the class does have under that name.
+// aClassName is the game's native class name (script-defined classes have no other name).
+RED4ext::CBaseFunction* StaticFunction(const char* aClassName, const char* aName, uint32_t aParamCount);
+
 // GetPlayer(GameInstance). Empty while no player exists (menus, loading).
 Object Player();
 
-// GameInstance.Get<System>() style access, e.g. System("QuestsSystem") calls
-// ScriptGameInstance.GetQuestsSystem(). Empty on failure.
+// A game system by its class name, e.g. System("QuestsSystem"): the instance's own system lookup for that
+// class. Empty on failure.
 Object System(const char* aSystemName);
+
+// The game's own GameInstance.<aShortName>(gameInstance) system getter ("GetMountingFacility",
+// "GetMappinSystem", "GetScriptableSystemsContainer", "GetSceneSystem"), the call redscript and CET make.
+// These are NOT global functions: in final.redscripts (2026-10-13) they are native static functions of
+// the class GameInstance (native name ScriptGameInstance) that take the game instance as their one
+// parameter. They are looked up there first, then as globals ("Name;GameInstance" and by short name),
+// then in every class's functions; the route that worked is logged once. If no function can be found or
+// run, the system is asked for by its native class name (the instance's own system lookup).
+// Empty while the world or the function is missing.
+Object GameSystem(const char* aShortName);
 
 bool IsA(const Object& aObject, const char* aClassName);
 

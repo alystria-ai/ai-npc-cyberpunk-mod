@@ -20,7 +20,7 @@ const MAX_ENTRIES = 0xFFFF;
 const NAME = /^[^\\:*?"<>|\x00-\x1f]+$/;
 
 // Formats that are already compressed (or are dense model weights) are stored as-is.
-const STORED = /\.(?:safetensors|npz|gz|zip|7z|png|jpe?g|webp|woff2?|pt|pth|ckpt|onnx|whl)$/i;
+const STORED = /\.(?:safetensors|npz|gz|zip|7z|png|jpe?g|webp|woff2?|pt|pth|ckpt|onnx|whl)$|\.gguf(?:\.part\d+)?$/i;
 
 export function dosDateTime(date) {
   const year = Math.min(2107, Math.max(1980, date.getUTCFullYear()));

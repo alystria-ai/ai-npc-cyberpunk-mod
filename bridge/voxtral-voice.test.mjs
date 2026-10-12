@@ -10,6 +10,7 @@ import {ownedLocalPcmPacket} from './local-pcm-host.mjs';
 import {cloudReferenceOf, describeVoiceRoute, formatVoiceRoute} from './voice-routing-log.mjs';
 import {LOCAL_VOICE_KEYS} from './resident-voice.mjs';
 import {MistralScheduler, PRIORITY} from './mistral-rate.mjs';
+import {Utterance} from './voice-utterance.mjs';
 
 // No spacing between starts, so a test is not slowed by the one-second precaution the real scheduler keeps (tested in mistral-rate.test.mjs).
 const fastScheduler = () => new MistralScheduler({spacingMs: 0});
@@ -504,7 +505,7 @@ test('multilingual conversations keep the cloud voice out: Pocket is skipped, so
   } finally { await server.close(); }
 });
 
-test('the routing log names the cloud voice, and Pocket with the reason when it fell back', async () => {
+test('the routing log names the cloud voice; Pocket with a reason only when the cloud voice cannot be asked; an earlier timeout is carried as cloudLast', async () => {
   const server = await serve(async () => { await wait(300); });
   try {
     const h = selection(server, {voxtral: {limits: {firstAudioMs: 40}}});
@@ -515,9 +516,17 @@ test('the routing log names the cloud voice, and Pocket with the reason when it 
     assert.equal(record.requested, 'Mistral cloud voice (Voxtral)'); assert.equal(record.used, 'Mistral cloud voice (Voxtral)'); assert.equal(record.fallback, null);
     assert.ok(record.reference, 'the log names the reference the cloud voice clones from');
     await h.voice.synthesizeStream('judy-alvarez', 'Late.', {onPcm() {}});
+    // The line for the NEXT reply is written before that reply is voiced: a timeout on this one must not make it claim Pocket (2026-10-13:
+    // the line said used=Pocket for a reply that Voxtral then spoke from start to end).
     record = describe();
-    assert.equal(record.used, 'Pocket'); assert.equal(record.fallback, 'Mistral cloud voice fell back (timeout)');
-    assert.ok(formatVoiceRoute(record).includes('fallback="Mistral cloud voice fell back (timeout)"'));
+    assert.equal(record.used, 'Mistral cloud voice (Voxtral)'); assert.equal(record.fallback, null); assert.equal(record.cloudLast, 'timeout');
+    const line = formatVoiceRoute(record);
+    assert.ok(line.includes('used="Mistral cloud voice (Voxtral)"') && line.includes('cloudLast=timeout') && !line.includes('fallback='), line);
+    // No key: the cloud voice cannot be asked at all, so Pocket is what speaks, and the line says why.
+    h.cloud.getKey = () => null;
+    record = describe();
+    assert.equal(record.used, 'Pocket'); assert.equal(record.fallback, 'Mistral cloud voice has no key'); assert.equal(record.cloudLast, undefined);
+    assert.ok(formatVoiceRoute(record).includes('fallback="Mistral cloud voice has no key"'));
     await h.voice.close();
   } finally { await server.close(); }
 });
@@ -710,8 +719,8 @@ test('the first part failing sends the whole reply to Pocket and drops the secon
   } finally { await server.close(); }
 });
 
-test('the second part failing before its audio is played: the result hands the unspoken rest to Pocket, and the service is noted as down', async () => {
-  for (const second of [{then: 500}, {delay: 10, deltas: [level(2400, 0.5)], then: 'drop', dropAfter: 0}]) {
+test('the second part failing before its audio: it is asked for again once, then the reply ends after the first part; Pocket never speaks the rest', async () => {
+  for (const second of [{then: 500}, {delay: 10, deltas: [], then: 'drop', dropAfter: 0}]) {
     const server = await planned([
       {name: 'first', input: FIRST, deltas: [level(24000, 0.25), level(24000, 0.25)], gap: 40},
       {name: 'second', input: REST, ...second}]);
@@ -720,28 +729,52 @@ test('the second part failing before its audio is played: the result hands the u
       const {voice} = voiceFor(server, {onLog: line => logs.push(line)});
       const sink = collect();
       const result = await voice.synthesizeStream('judy-alvarez', LONG, sink);
-      assert.equal(result.remainder, REST);
+      assert.equal(result.remainder, undefined, 'there is no rest for another voice to speak'); assert.equal(result.continuation, undefined);
+      assert.equal(result.truncated, true);
       assert.deepEqual([...new Set(valuesOf(sink.packets))], [0.25], 'only the first part was played');
-      assert.deepEqual(result.continuation, {owner: sink.packets[0].owner, id: sink.packets[0].id, modelSha256: sink.packets[0].modelSha256,
-        index: sink.packets.length + 1, offsetFrames: 48000});
       assert.equal(result.frames, 48000);
+      assert.equal(server.requests.filter(request => request.body.input === REST).length, 2, 'the second part was asked for twice');
       assert.ok(voice.degraded, 'the player is told once that the cloud voice is not ready');
-      assert.ok(logs.some(line => line.includes('the rest of the reply fell back to Pocket')), logs.join('|'));
+      assert.ok(logs.some(line => line.includes('the rest of the reply: ') && line.includes('asking again')), logs.join('|'));
+      assert.ok(logs.some(line => line.includes('the rest of the reply could not be spoken') && line.includes('the voice is not switched')), logs.join('|'));
+      assert.ok(!logs.some(line => line.includes('fell back to Pocket')), logs.join('|'));
     } finally { await server.close(); }
   }
 });
 
-test('a second part with no audio when the first part is nearly over is given up on: Pocket speaks the rest', async () => {
-  const server = await planned([
+test('a second part with no audio when the first part is nearly over is waited for, asked for again, and never given to Pocket', async () => {
+  // The first ask never answers, the second does: the rest is spoken, in the same voice, after a gap.
+  const asks = {};
+  const server = await serve(async (request, response, record) => {
+    const input = record.body.input;
+    asks[input] = (asks[input] ?? 0) + 1;
+    if (input === REST && asks[input] === 1) return;            // hangs
+    sse(response);
+    response.write(delta(bytesOf(level(input === FIRST ? 4800 : 9600, input === FIRST ? 0.25 : 0.5))));
+    response.end(done);
+  });
+  try {
+    const logs = [];
+    const {voice} = voiceFor(server, {limits: {splitMarginMs: 100, tailFirstAudioMs: 150, tailRetryAudioMs: 2000}, onLog: line => logs.push(line)});
+    const sink = collect();
+    const result = await voice.synthesizeStream('judy-alvarez', LONG, sink);
+    assert.equal(asks[REST], 2); assert.equal(result.truncated, false);
+    assert.deepEqual([...new Set(valuesOf(sink.packets))], [0.25, 0.5]); assert.equal(result.frames, 4800 + 9600);
+    assert.equal(voice.degraded, null, 'a rest that arrived on the second ask is a success');
+    assert.ok(logs.some(line => line.includes('asking again')), logs.join('|'));
+  } finally { await server.close(); }
+  // Both asks hang: the reply ends after the first part within the two limits, not after the server's delay.
+  const slow = await planned([
     {name: 'first', input: FIRST, deltas: [level(4800, 0.25)]},
     {name: 'second', input: REST, delay: 3000, deltas: [level(2400, 0.5)]}]);
   try {
-    const {voice} = voiceFor(server, {limits: {splitMarginMs: 100}});
+    const {voice} = voiceFor(slow, {limits: {splitMarginMs: 100, tailFirstAudioMs: 120, tailRetryAudioMs: 180}});
     const started = performance.now();
     const result = await voice.synthesizeStream('judy-alvarez', LONG, collect());
-    assert.equal(result.remainder, REST);
+    assert.equal(result.truncated, true); assert.equal(result.remainder, undefined);
     assert.ok(performance.now() - started < 1500, 'did not wait for the slow request');
-  } finally { await server.close(); }
+    assert.equal(voice.degraded.reason, 'timeout');
+  } finally { await slow.close(); }
 });
 
 test('a second part that fails after its audio has started ends the reply there; nothing is spoken twice', async () => {
@@ -773,31 +806,142 @@ test('cancelling a split reply stops both requests', async () => {
   } finally { await server.close(); }
 });
 
-test('the voice selection speaks the rest of a split reply with Pocket as the same reply when the second request fails', async () => {
+test('the voice selection never finishes a split reply with Pocket: the second request failing ends the reply after the first part', async () => {
   const server = await planned([
     {name: 'first', input: FIRST, deltas: [level(24000, 0.25)]},
     {name: 'second', input: REST, then: 500}]);
   try {
     const packets = [];
-    const h = selection(server, {pocket: async (name, text, options) => {
-      assert.equal(text, REST); assert.equal(name, 'judy-alvarez');
-      for (const index of [1, 2]) await options.onPcm({version: 1, engine: 'pocket-tts', profile: name, owner: 'f'.repeat(32), id: 9, index,
-        sampleRate: 24000, channels: 1, pcm: level(2400, 0.9), format: 'f32le', offsetFrames: (index - 1) * 2400, frames: 2400,
-        timebase: 'audio-seconds', startSeconds: (index - 1) * 0.1, modelSha256: 'f'.repeat(64)});
-      return {provider: 'pocket', frames: 4800, chunks: 2, duration: 0.2, timing: {voiceProvider: 'pocket'}};
-    }});
+    const h = selection(server, {pocket: async () => { throw Error('Pocket must not be asked for the rest of a reply the cloud voice began'); }});
     h.voice.update({voiceProvider: 'voxtral'}, null, false);
     await h.voice.start();
     const result = await h.voice.synthesizeStream('judy-alvarez', LONG, {onPcm: packet => { packets.push(packet); }});
-    const cloud = packets.filter(packet => packet.pcm[0] === 0.25), pocket = packets.filter(packet => packet.pcm[0] === Math.fround(0.9));
-    assert.equal(cloud.length, 10); assert.equal(pocket.length, 2);
-    packets.forEach((packet, at) => {
-      assert.equal(packet.index, at + 1); assert.equal(packet.owner, packets[0].owner); assert.equal(packet.id, packets[0].id);
-      assert.equal(packet.modelSha256, packets[0].modelSha256); assert.equal(packet.offsetFrames, at * 2400);
-      assert.equal(packet.startSeconds, packet.offsetFrames / 24000);
-    });
-    for (const packet of packets) assert.equal(ownedLocalPcmPacket(packet, {token: 'token', frames: packet.offsetFrames, index: packet.index - 1}).packet.index, packet.index);
-    assert.equal(result.frames, 24000 + 4800); assert.equal(result.chunks, 12); assert.equal(h.cloud.degraded.reason, 'network');
+    assert.equal(h.calls.length, 0, 'Pocket was not asked');
+    assert.equal(packets.length, 10); assert.ok(packets.every(packet => packet.pcm[0] === 0.25));
+    assert.equal(result.truncated, true); assert.equal(result.frames, 24000); assert.equal(h.cloud.degraded.reason, 'network');
+  } finally { await server.close(); }
+});
+
+// ---- one reply, one voice: a streamed first sentence (head) and the rest (tail) -----------------------------------------------------
+
+const HEAD = 'Hey V, good to see you here again.';
+const TAIL = 'What can I do for you tonight, now that you are here, and do you want a drink first?';
+const headOf = (h, sink, extra = {}) => h.voice.synthesizeStream('judy-alvarez', HEAD, {onPcm: sink.onPcm, utterance: extra.utterance, role: 'head'});
+const tailOf = (h, sink, utterance) => h.voice.synthesizeStream('judy-alvarez', TAIL, {onPcm: sink.onPcm, utterance, role: 'tail'});
+const pocketPackets = value => async (name, text, options) => {
+  for (const index of [1, 2]) await options.onPcm({version: 1, engine: 'pocket-tts', profile: name, owner: 'f'.repeat(32), id: 9, index,
+    sampleRate: 24000, channels: 1, pcm: level(2400, value), format: 'f32le', offsetFrames: (index - 1) * 2400, frames: 2400,
+    timebase: 'audio-seconds', startSeconds: (index - 1) * 0.1, modelSha256: 'f'.repeat(64)});
+  return {provider: 'pocket', frames: 4800, chunks: 2, duration: 0.2, timing: {voiceProvider: 'pocket'}};
+};
+
+test('head and tail in the cloud voice: the tail is asked for again after a timeout and Pocket never speaks any of the reply', async () => {
+  const asks = {};
+  const server = await serve(async (request, response, record) => {
+    const input = record.body.input;
+    asks[input] = (asks[input] ?? 0) + 1;
+    if (input === TAIL && asks[input] === 1) return;             // the first ask of the tail hangs (a server-side spike)
+    sse(response);
+    response.write(delta(bytesOf(level(input === HEAD ? 4800 : 9600, input === HEAD ? 0.25 : 0.5))));
+    response.end(done);
+  });
+  try {
+    const logs = [];
+    const h = selection(server, {voxtral: {limits: {tailFirstAudioMs: 120, tailRetryAudioMs: 2000}, onLog: line => logs.push(line)},
+      pocket: async () => { throw Error('Pocket must not speak any of this reply'); }});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    const utterance = new Utterance(), head = collect(), tail = collect();
+    // The tail is asked for in parallel with the head, as soon as its text is known.
+    const [headResult, tailResult] = await Promise.all([headOf(h, head, {utterance}), tailOf(h, tail, utterance)]);
+    assert.equal(utterance.engine, 'voxtral');
+    assert.deepEqual([...new Set(valuesOf(head.packets))], [0.25]); assert.deepEqual([...new Set(valuesOf(tail.packets))], [0.5]);
+    assert.equal(headResult.provider, 'voxtral'); assert.equal(tailResult.provider, 'voxtral'); assert.equal(h.calls.length, 0);
+    assert.equal(asks[TAIL], 2, 'the tail was asked for twice'); assert.equal(asks[HEAD], 1);
+    assert.ok(logs.some(line => line.includes('asking again')), logs.join('|'));
+    assert.equal(h.voice.cloudFallback, null, 'a tail that arrived on the second ask is not a failure');
+  } finally { await server.close(); }
+});
+
+test('head in the cloud voice, tail failing twice: the tail fails (the reply ends after the head), and Pocket is not asked', async () => {
+  const server = await planned([
+    {name: 'head', input: HEAD, deltas: [level(4800, 0.25)]},
+    {name: 'tail', input: TAIL, then: 503}]);
+  try {
+    const logs = [];
+    const h = selection(server, {voxtral: {onLog: line => logs.push(line)}, pocket: async () => { throw Error('Pocket must not speak the tail'); }});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    const utterance = new Utterance(), head = collect(), tail = collect();
+    const settled = await Promise.allSettled([headOf(h, head, {utterance}), tailOf(h, tail, utterance)]);
+    assert.equal(settled[0].status, 'fulfilled'); assert.equal(settled[1].status, 'rejected');
+    assert.equal(settled[1].reason.kind, 'network'); assert.equal(tail.packets.length, 0); assert.equal(head.packets.length, 2);
+    assert.equal(h.calls.length, 0, 'the reply was not switched to Pocket');
+    assert.equal(server.requests.filter(request => request.body.input === TAIL).length, 2, 'asked for twice');
+    assert.ok(logs.some(line => line.includes('the voice is not switched')), logs.join('|'));
+  } finally { await server.close(); }
+});
+
+test('head failing before any audio: Pocket speaks the whole reply, and the tail that the cloud voice already had is dropped', async () => {
+  const server = await planned([
+    {name: 'head', input: HEAD, then: 503},
+    {name: 'tail', input: TAIL, deltas: [level(4800, 0.5)]}]);
+  try {
+    const h = selection(server, {pocket: pocketPackets(Math.fround(0.9))});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    const utterance = new Utterance(), head = collect(), tail = collect();
+    await Promise.all([headOf(h, head, {utterance}), tailOf(h, tail, utterance)]);
+    assert.equal(utterance.engine, 'pocket');
+    assert.deepEqual(h.calls.map(call => call.text), [HEAD, TAIL], 'Pocket spoke both pieces');
+    assert.ok(head.packets.every(packet => packet.pcm[0] === Math.fround(0.9)));
+    assert.ok(tail.packets.length > 0 && tail.packets.every(packet => packet.pcm[0] === Math.fround(0.9)), 'no cloud audio in the tail');
+  } finally { await server.close(); }
+});
+
+test('the tail\'s cloud audio is held until the head is known to be in the cloud voice, then handed on in order', async () => {
+  const server = await planned([
+    {name: 'head', input: HEAD, delay: 350, deltas: [level(2400, 0.25)]},
+    {name: 'tail', input: TAIL, deltas: [level(2400, 0.5), level(2400, 0.5)], gap: 20}]);
+  try {
+    const h = selection(server, {pocket: async () => { throw Error('Pocket must not speak'); }});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    const utterance = new Utterance(), head = collect(), tail = collect();
+    const speaking = Promise.all([headOf(h, head, {utterance}), tailOf(h, tail, utterance)]);
+    await wait(200);
+    assert.equal(tail.packets.length, 0, 'the tail answered first, but its audio waits for the head\'s decision');
+    assert.equal(utterance.engine, null);
+    await speaking;
+    assert.equal(utterance.engine, 'voxtral'); assert.equal(head.packets.length, 1); assert.equal(tail.packets.length, 2);
+    assert.deepEqual(tail.packets.map(packet => packet.index), [1, 2]);
+  } finally { await server.close(); }
+});
+
+test('a tail whose head was spoken by Pocket sends nothing to the cloud voice', async () => {
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(level(2400, 0.5)))); response.end(done); });
+  try {
+    const h = selection(server, {pocket: pocketPackets(Math.fround(0.9))});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    const utterance = new Utterance(); utterance.decide('pocket');
+    const tail = collect();
+    await tailOf(h, tail, utterance);
+    assert.equal(server.requests.length, 0); assert.deepEqual(h.calls.map(call => call.text), [TAIL]);
+    // With the cloud voice not chosen at all, head and tail are Pocket's and nothing else happens.
+    h.voice.update({voiceProvider: 'pocket'}, null, false);
+    const other = new Utterance(), headSink = collect(), tailSink = collect();
+    await headOf(h, headSink, {utterance: other}); await tailOf(h, tailSink, other);
+    assert.equal(other.engine, 'pocket'); assert.equal(server.requests.length, 0);
+  } finally { await server.close(); }
+});
+
+test('cancelling while the tail waits for the head stops the tail\'s request', async () => {
+  const server = await planned([{name: 'tail', input: TAIL, delay: 500, deltas: [level(2400, 0.5)]}]);
+  try {
+    const h = selection(server);
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    const utterance = new Utterance(), controller = new AbortController(), tail = collect();
+    const speaking = h.voice.synthesizeStream('judy-alvarez', TAIL, {onPcm: tail.onPcm, signal: controller.signal, utterance, role: 'tail'});
+    await wait(80); controller.abort();
+    await assert.rejects(speaking, error => error.name === 'AbortError' || /cancel/i.test(error.message));
+    await wait(80);
+    assert.ok(server.requests.every(request => request.closed), 'the connection was closed');
   } finally { await server.close(); }
 });
 

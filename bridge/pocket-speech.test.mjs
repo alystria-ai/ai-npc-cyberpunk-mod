@@ -181,3 +181,78 @@ test('a streamed reply whose model fails after the first sentence ends with that
   const reply=await deliverPocketSpeech({input,profile,result:{...result,text:head},current:async()=>true,voice,host,speech,stream});
   assert.deepEqual(calls,[head]);assert.equal(emitted.length,1);assert.deepEqual(late,{text:head,complete:true});assert.equal(reply.continuous,true);
 });
+
+// ---- one reply, one voice (docs/CLOUD_VOICE_VOXTRAL.md) -----------------------------------------------------------------------
+
+const streamedFixture=async()=>{
+  const {ReplyStream}=await import('./reply-stream.mjs');
+  const full='Hey V, good to see you here again. What can I do for you tonight?';
+  const stream=new ReplyStream({name:'Johnny'});
+  stream.update('Hey V, good to see you here again. What can');
+  const pk=(owner,id,index,offsetFrames)=>({...packet(index,offsetFrames),owner,id,profile:'johnny',modelSha256:'a'.repeat(64)});
+  const speech={token:'one-voice-token',published:true,ended:true,generated:true,frame(){},async fail(){}};
+  return {stream,full,head:stream.head,pk,speech};
+};
+const streamedHost=(stream,full,emitted,out)=>({async playLocalPcm(config,produce){
+  const produced=produce(async value=>{emitted.push(value);},{signal:new AbortController().signal});
+  await new Promise(done=>setTimeout(done,15));
+  stream.finish(full);
+  out.generated=await produced;
+  return{...out.generated,timing:{voiceProvider:'pocket',...out.generated.timing}};
+}});
+
+test('the head and the tail of a streamed reply are asked for as one utterance: the same decision object, roles head and tail',async()=>{
+  const {stream,full,head,pk,speech}=await streamedFixture();
+  const seen=[],emitted=[],out={};
+  const voice={async synthesizeStream(key,text,{onPcm,utterance,role}){
+    seen.push({text,role,utterance});
+    await onPcm(pk('1'.repeat(32),text===head?1:9,1,0));
+    return{frames:9600,chunks:1,provider:'voxtral',timing:{}};
+  }};
+  await deliverPocketSpeech({input,profile,result:{...result,text:head},current:async()=>true,voice,host:streamedHost(stream,full,emitted,out),speech,stream});
+  assert.deepEqual(seen.map(item=>item.role),['head','tail']);
+  assert.ok(seen[0].utterance&&seen[0].utterance===seen[1].utterance,'one decision shared by both calls');
+  assert.equal(seen[0].utterance.engine,'voxtral','the head\'s result settles the engine');
+});
+
+test('when the tail cannot be voiced the reply ends after the first sentence, is marked, and nothing else speaks',async()=>{
+  const {stream,full,head,pk,speech}=await streamedFixture();
+  const calls=[],emitted=[],out={},logs=[];
+  const voice={async synthesizeStream(key,text,{onPcm}){
+    calls.push(text);
+    if(text===head){await onPcm(pk('1'.repeat(32),1,1,0));return{frames:9600,chunks:1,provider:'voxtral',timing:{}};}
+    throw Object.assign(Error('Voxtral gave no audio [voxtral:timeout]'),{kind:'timeout'});
+  }};
+  const original=console.error;console.error=line=>logs.push(String(line));
+  let reply;
+  try{reply=await deliverPocketSpeech({input,profile,result:{...result,text:head},current:async()=>true,voice,host:streamedHost(stream,full,emitted,out),speech,stream});}
+  finally{console.error=original;}
+  assert.deepEqual(calls,[head,'What can I do for you tonight?']);
+  assert.equal(emitted.length,1,'only the first sentence was voiced');
+  assert.equal(out.generated.truncated,true);assert.equal(out.generated.timing.voiceTailFailed,true);assert.equal(reply.continuous,true);
+  assert.ok(logs.some(line=>line.includes('the voice is not switched')),logs.join('|'));
+});
+
+test('a first sentence whose audio was cut short is not followed by the tail',async()=>{
+  const {stream,full,head,pk,speech}=await streamedFixture();
+  const emitted=[],out={};
+  const voice={async synthesizeStream(key,text,{onPcm}){
+    if(text===head){await onPcm(pk('1'.repeat(32),1,1,0));return{frames:9600,chunks:1,truncated:true,provider:'voxtral',timing:{}};}
+    await onPcm(pk('2'.repeat(32),9,1,0));return{frames:9600,chunks:1,provider:'voxtral',timing:{}};
+  }};
+  await deliverPocketSpeech({input,profile,result:{...result,text:head},current:async()=>true,voice,host:streamedHost(stream,full,emitted,out),speech,stream});
+  assert.equal(emitted.length,1,'the tail would follow a gap in the sentence');
+  assert.equal(out.generated.timing.voiceTailSkipped,true);
+});
+
+test('a head that fails still settles the decision so a tail waiting on it is not left hanging',async()=>{
+  const {stream,full,head,speech}=await streamedFixture();
+  let decision;
+  const voice={async synthesizeStream(key,text,{utterance,role}){
+    if(role==='head'){decision=utterance;throw Error('renderer stopped');}
+    return{frames:0};
+  }};
+  const host={async playLocalPcm(config,produce){stream.finish(full);return produce(async()=>{},{signal:new AbortController().signal});}};
+  await deliverPocketSpeech({input,profile,result:{...result,text:head},current:async()=>true,voice,host,speech,stream}).catch(()=>{});
+  assert.equal(decision.engine,'pocket');
+});
