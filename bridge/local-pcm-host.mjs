@@ -1,4 +1,5 @@
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
+import {markStage} from './turn-clock.mjs';
 
 const TOKEN = /^[A-Za-z0-9_-]{1,128}$/;
 const SHA = /^[a-f0-9]{64}$/;
@@ -95,14 +96,16 @@ export class LocalPcmHost {
     this.retirements.set(page, retirement); return retirement;
   }
 
-  async play(config, producer, {signal, current = () => true, onFrame, getFace} = {}) {
+  // liveText: optional () => ({text, complete}). A reply whose text is still being written (bridge/reply-stream.mjs) starts the voice on
+  // its first sentence; the renderer holds only that text, so each clock snapshot carries the live text and whether it is final.
+  async play(config, producer, {signal, current = () => true, onFrame, getFace, liveText} = {}) {
     throwIfCancelled(signal);
     if (this.failure) throw this.failure;
     if (this.active || this.closing) throw Error('Local PCM playback is already owned');
     if (!config || typeof config.token !== 'string' || !TOKEN.test(config.token) || !textValue(config.text, 12000) || !config.text.trim()
         || (config.userText !== undefined && !textValue(config.userText, 1200))
         || typeof producer !== 'function' || typeof current !== 'function' || typeof onFrame !== 'function'
-        || (getFace !== undefined && typeof getFace !== 'function')) throw Error('Invalid local PCM admission');
+        || (getFace !== undefined && typeof getFace !== 'function') || (liveText !== undefined && typeof liveText !== 'function')) throw Error('Invalid local PCM admission');
     // Take a separate immutable copy of text and provider emotion correlation.
     config = jsonCopy(config, 'local PCM admission');
     const controller = new AbortController(), epoch = this.epoch;
@@ -114,6 +117,7 @@ export class LocalPcmHost {
     let producerTask, pump, page, result, final, succeeded = false, frames = 0, index = 0, identity;
     let emitting = false, firstAcceptedMs = null, rendererReady, rendererReadyMs = null;
     const started = this.now();
+    markStage('playStart');
     const check = async () => {
       if (controller.signal.aborted) throw controller.signal.reason || cancelled();
       if (this.active !== turn || this.epoch !== epoch || !await abortable(Promise.resolve().then(current), controller.signal))
@@ -138,7 +142,7 @@ export class LocalPcmHost {
             || ack.offsetFrames !== frames || ack.frames !== expected.frames || ack.receivedFrames !== frames + expected.frames)
           throw Error('Local PCM renderer did not acknowledge the owned copy');
         frames += expected.frames; index = expected.index; identity = owned.identity;
-        firstAcceptedMs ??= this.now() - started;
+        if (firstAcceptedMs === null) { firstAcceptedMs = this.now() - started; markStage('firstPcmAccepted'); }
         return ack;
       } finally { emitting = false; }
     };
@@ -149,6 +153,8 @@ export class LocalPcmHost {
       // instead of preceding it. Packets and the clock pump wait for it; the
       // renderer still plays nothing before the game's admission.
       rendererReady = (async () => {
+        // A page being warmed is this turn's page: wait for it instead of opening a second one.
+        if (!this.page && this.warming) await this.bounded(this.warming, this.commandTimeoutMs * 4, 'Local PCM page startup timed out', controller.signal).catch(() => {});
         if (this.page?.isClosed?.()) this.page = null;
         if (!this.page) {
           const creating = Promise.resolve().then(() => this.createPage());
@@ -164,7 +170,7 @@ export class LocalPcmHost {
         turn.page = page;
         await evaluate(config => window.localPcm.begin(config), config);
         await check();
-        rendererReadyMs = this.now() - started;
+        rendererReadyMs = this.now() - started; markStage('rendererReady');
       })();
       rendererReady.catch(() => {});
       pump = (async () => {
@@ -175,6 +181,7 @@ export class LocalPcmHost {
             this.commandTimeoutMs, 'Local PCM renderer clock timed out', controller.signal);
           await check();
           if (snapshot.error) throw Error('Local PCM renderer failed');
+          if (liveText) { const live = liveText(); snapshot.text = live.text; snapshot.textComplete = live.complete === true; }
           if (getFace) {
             const face = await abortable(Promise.resolve().then(() => getFace(snapshot)), controller.signal);
             await check();
@@ -238,6 +245,22 @@ export class LocalPcmHost {
         }
       } finally { if (this.active === turn) this.active = null; }
     }
+  }
+
+  // Opens the renderer page ahead of the first turn (the browser, the page and its audio worklet take about a second). Never
+  // interrupts a turn and never throws: a page that cannot open is simply opened again by the turn that needs it.
+  async warm() {
+    if (this.active || this.closing || this.failure) return false;
+    if (this.page && !this.page.isClosed?.()) return true;
+    const epoch = this.epoch;
+    this.warming ??= (async () => {
+      try {
+        const page = await this.bounded(Promise.resolve().then(() => this.createPage()), this.commandTimeoutMs * 4, 'Local PCM page warm-up timed out');
+        if (this.epoch !== epoch || this.closing || (this.page && !this.page.isClosed?.())) { await this.dispose(page).catch(() => {}); return false; }
+        this.page = page; return true;
+      } catch { return false; } finally { this.warming = null; }
+    })();
+    return this.warming;
   }
 
   close() {

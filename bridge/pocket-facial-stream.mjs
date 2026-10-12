@@ -30,7 +30,7 @@ export function pocketAnalysisWav(pcm) {
 // Only the part of a result that is still ahead of the device cursor can be
 // admitted. Completed work is not evidence of phonetic coverage at playback.
 export class PocketFacialStream {
-  constructor({input, lipsync, phoneAnalysis, jaliFace, signal, expressionSignal, text, onAnalysis = () => {}}) {
+  constructor({input, lipsync, phoneAnalysis, jaliFace, signal, expressionSignal, text, textComplete = true, onAnalysis = () => {}}) {
     if (typeof input?.requestId !== 'string' || typeof input.entity !== 'string' || !Number.isSafeInteger(input.generation))
       throw Error('Pocket facial stream needs an owned utterance');
     Object.assign(this,{input,lipsync,signal,expressionSignal,onAnalysis});
@@ -45,7 +45,7 @@ export class PocketFacialStream {
       // and supersedes the phone/Rhubarb paths. Failure leaves the envelope.
       try{
         // The whole reply text is known before the first packet: the text path aligns it as the PCM streams.
-        this.model=jaliFace.begin(RATE,typeof text==='string'?{text}:{});this.lipsync=undefined;phoneAnalysis=undefined;
+        this.model=jaliFace.begin(RATE,typeof text==='string'?{text,textComplete}:{});this.lipsync=undefined;phoneAnalysis=undefined;
         this.model.onUpdate=()=>{if(this.closed)return;this.revision++;this.cached=this.geometry=null;};
       }catch{this.model=null;}
     }
@@ -65,6 +65,9 @@ export class PocketFacialStream {
     }
     if (signal?.aborted) this.close();
   }
+  // A reply voiced while it is still being written (bridge/reply-stream.mjs): the text grows from its first sentence to the whole
+  // reply, and `complete` says it is final. Only the text-aligned face model uses the words.
+  setText(text,complete=true){if(!this.closed)this.model?.setText?.(text,complete);}
   assertActive() { throwIfCancelled(this.signal); throwIfCancelled(this.controller.signal); }
   measure(event) {
     try { Promise.resolve(this.onAnalysis(event)).catch(()=>{}); }

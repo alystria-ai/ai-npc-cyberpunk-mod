@@ -14,6 +14,8 @@ import {planSignal, phraseOffsets, traitFor} from './emotion-analysis.mjs';
 import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
 import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
+import {ReplyStream} from './reply-stream.mjs';
+import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
@@ -31,6 +33,7 @@ import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
+import {createReferencePreparer} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
@@ -78,6 +81,7 @@ import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor} from './mistral-client.mjs';
+import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -136,8 +140,18 @@ const jaliFace = await JaliFace.load(resolve(stateDirectory, 'lipsync-model')).c
 // The Mistral cloud voice (docs/CLOUD_VOICE_VOXTRAL.md): an optional Companion voice that clones each character from its
 // OmniVoice long reference on the player's Mistral key. Pocket stays loaded as the fallback for any reply it cannot deliver in time.
 // The key is read from the Mistral provider on each call (it can be pasted or removed while the game runs); `mistral` is created below.
+// The reference clip is sent with every request, so a smaller one is a shorter wait for the first sound (bridge/voxtral-reference.mjs):
+// 16 kHz mono and cut to about 8 s (MP3 as well when ffmpeg is on the machine), prepared once per character and kept in <references>/prepared.
+// CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE=1 sends the clips whole, as before.
+// Reply streaming (bridge/reply-stream.mjs): on unless settings.json "replyStreaming": false or this variable is 0. Kept up here, beside the other
+// environment reads, so the sections of this file that tests evaluate on their own never touch `process`.
+const replyStreamingForcedOff = process.env.CYBERPUNK_CONVAI_REPLY_STREAM === '0';
+let replyStreaming = !replyStreamingForcedOff;
+const voxtralReferenceRoot = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || resolve(stateDirectory, 'voice-references');
 const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } },
-  referenceRoot: process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || resolve(stateDirectory, 'voice-references'),
+  referenceRoot: voxtralReferenceRoot,
+  prepare: process.env.CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE === '1' ? undefined
+    : createReferencePreparer({cacheDirectory: resolve(voxtralReferenceRoot, 'prepared'), onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
   onLog: message => process.stderr.write(message)});
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
@@ -512,7 +526,7 @@ const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemo
 const mistralSpeech = createLocalSpeech({
   stt: new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable}),
   capture: new LocalSttCapture({getBrowser: hostBrowser(realtime)})});
-for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech});
+for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: host === realtime});
 function localTurn(input, prepared = preparedInputs.get(input)) {
   const route = prepared ?? routeFor(input);
   const channel = route?.route?.channel ?? (input.channel === 'phone' ? 'phone' : input.group ? 'group' : 'private');
@@ -526,6 +540,9 @@ let polling = false, active = null, stopped = false;
 let prefetchPolling = false, prefetchObserved = '', partyObserved = '', partyWasFresh = false;
 let prewarmObserved = await readFile(prewarmPath, 'utf8').catch(() => '');
 const latency = new Map();
+// One TurnClock per request (bridge/turn-clock.mjs): the moment every stage of the turn was reached. `measure` writes its snapshot
+// into the turn's record (`stages`) each time the record is written. Bounded like the records.
+const turnClocks = new Map();
 let metricsWriting = Promise.resolve();
 let connectionMetricsWriting = Promise.resolve();
 
@@ -871,14 +888,23 @@ const invitations = new CompanionInvitations({memory: relationshipRoutes.invitat
 
 function measure(input, values) {
   const previous = latency.get(input.requestId) || {requestId: input.requestId, profile: input.profileKey, groupIndex: input.group?.index};
-  latency.set(input.requestId, {...previous, ...values});
+  const clock = turnClocks.get(input.requestId);
+  latency.set(input.requestId, {...previous, ...values, ...(clock ? {stages: clock.snapshot()} : {})});
   while (latency.size > 24) latency.delete(latency.keys().next().value);
+  while (turnClocks.size > 24) { turnClocks.get(turnClocks.keys().next().value)?.stop(); turnClocks.delete(turnClocks.keys().next().value); }
   // No dialogue, API keys or character session IDs are written to metrics.
   metricsWriting = metricsWriting.catch(() => {}).then(() => atomic(resolve(runtime, 'bridge-latency.json'), JSON.stringify({
     version: 1, updated: Date.now(), turns: [...latency.values()],
   })));
   return metricsWriting;
 }
+// A record update the turn does not wait for (the writes still go out in order). The ones before the model request used to be
+// awaited, so every turn waited for two file replacements (each a write and a rename, 5 to 60 ms on a busy disk) before asking
+// the model anything.
+const note = (input, values) => { void measure(input, values).catch(() => {}); };
+const turnMark = (requestId, name, at) => { turnClocks.get(requestId)?.mark(name, at); };
+// The reply reached the game: the turn's clock stops watching the event loop.
+const markPublished = (requestId, at) => { const clock = turnClocks.get(requestId); clock?.mark('published', at); clock?.stop(); };
 
 const prefetch = new GroupPrefetch({prepare: async (input, {signal}) => {
   // The SDK has no session fork/rollback. Existing sessions are warm-only so
@@ -894,7 +920,33 @@ const prefetch = new GroupPrefetch({prepare: async (input, {signal}) => {
 const lookahead = new GroupLookahead({start: entry => startAhead(entry)});
 const dropPrefetch = () => { prefetch.invalidate(); lookahead.cancel(); };
 
-async function synthesizeReply(input, result, signal, current, profile = profileFor(input, roster), receiptPrepared = preparedInputs.get(input)) {
+// `streamed` (optional, set by respondStreamed): the reply is still being written and `result` holds only its first sentence, which
+// is voiced at once; the finished reply is merged into the returned result when the voice is done (bridge/reply-stream.mjs).
+async function synthesizeReply(input, result, signal, current, profile = profileFor(input, roster), receiptPrepared = preparedInputs.get(input), streamed, omniSpeculation) {
+  const spoken = await synthesizeReplyBody(input, result, signal, current, profile, receiptPrepared, streamed, omniSpeculation);
+  if (!streamed) return spoken;
+  return streamed.settle ? streamed.settle(spoken) : mergeFinishedReply(spoken, await finishedReply(streamed, spoken), streamed);
+}
+// The finished reply of a streamed turn, or null when the model failed after the first sentence was spoken (that sentence stands).
+async function finishedReply(streamed, spoken) {
+  try { return await streamed.final; }
+  catch (error) {
+    if (streamed.signal?.aborted) throw error;
+    console.error('[CyberpunkConvai] Reply ended after its first sentence:', error.message);
+    return null;
+  }
+}
+function mergeFinishedReply(spoken, final, streamed) {
+  const text = final?.text ?? streamed.stream.text;
+  const {speechText: _speech, emotionMarks: _marks, ...rest} = spoken;
+  return {...rest, ...(final?.sessionID !== undefined ? {sessionID: final.sessionID} : {}), text,
+    ...(final?.speechText !== undefined ? {speechText: final.speechText} : {}),
+    ...(final?.emotionMarks !== undefined ? {emotionMarks: final.emotionMarks} : {}),
+    ...(final?.naturalDevices !== undefined ? {naturalDevices: final.naturalDevices} : {}),
+    timing: {...final?.timing, ...spoken.timing}};
+}
+
+async function synthesizeReplyBody(input, result, signal, current, profile, receiptPrepared, streamed, omniSpeculation) {
   if(localVoice.playbackEnabled===false)return{...result,audio:undefined,faces:[],captions:[]};
   const turnPlan = turnVoice(input);
   if (turnPlan.engine === 'convai') {
@@ -910,6 +962,7 @@ async function synthesizeReply(input, result, signal, current, profile = profile
   }
   const omni = voice.engine === 'omni', language = voice.language && voice.language !== 'en' ? voice.language : undefined;
   const voiceKey = voiceKeyFor(input);
+  markStage('voiceStart');
   throwIfCancelled(signal);
   // The face's plan (bridge/emotion-selector.mjs): the player's message and the reply, the character's manner and the
   // previous turn's mood; the character's own tags (Expressive emotions) win, then Convai's own label. Text-only
@@ -951,8 +1004,10 @@ async function synthesizeReply(input, result, signal, current, profile = profile
   };
   let plan = planFor(result.expressionSignal);
   result = withPlan(result, plan);
-  emotionSelection.remember(input.profileKey, plan);
-  expressionReceipt(plan, result.expressionSignal, {convai: result.expressionSignal?.basis === 'ordered' || result.expressionSignal?.basis === 'response-id'
+  // A streamed reply is planned again when it is finished (the plan above only covers its first sentence): the mood is
+  // remembered and the receipt written once, from the whole reply.
+  if (!streamed) emotionSelection.remember(input.profileKey, plan);
+  if (!streamed) expressionReceipt(plan, result.expressionSignal, {convai: result.expressionSignal?.basis === 'ordered' || result.expressionSignal?.basis === 'response-id'
     ? result.expressionSignal.emotion : null, convaiLate: late.settled ? null : 'pending'});
   // Convai's late label, once known: one more receipt (and, for Omni, the plan used from the first face on).
   const refine = () => {
@@ -964,6 +1019,18 @@ async function synthesizeReply(input, result, signal, current, profile = profile
     return true;
   };
   if (!omni) late.promise?.then(() => refine(), () => {});
+  if (streamed) streamed.settle = async spoken => {
+    const final = await finishedReply(streamed, spoken);
+    const merged = mergeFinishedReply(spoken, final, streamed);
+    const {expressionSignal: _signal, expressionPlan: _plan, ...base} = merged;
+    result = {...base, ...(final?.expressionSignal !== undefined ? {expressionSignal: final.expressionSignal} : {})};
+    plan = planFor(result.expressionSignal);
+    result = withPlan(result, plan);
+    emotionSelection.remember(input.profileKey, plan);
+    expressionReceipt(plan, result.expressionSignal, {convai: null, convaiLate: null, streamed: true});
+    return {...base, ...(result.expressionSignal !== undefined ? {expressionSignal: result.expressionSignal} : {}),
+      ...(result.expressionPlan ? {expressionPlan: result.expressionPlan} : {})};
+  };
   const ahead = current?.ahead;
   if(omni){
     // The one GPU worker is FIFO. A look-ahead phrase queued while the speaker
@@ -976,7 +1043,11 @@ async function synthesizeReply(input, result, signal, current, profile = profile
       const phrases=splitSpeechText(result.text),steps=localVoice.steps;
       // Voice tags (Natural speech) go to OmniVoice only, where the model wrote them; subtitles keep the clean phrase.
       const voiced=(naturalSpeech.enabled?speechPhrases(phrases,result.speechText,omniTagsFor(language)):undefined)??phrases;
-      const first=synthesizeOmniPhrase(voiceKey,voiced[0],{signal,steps,language});
+      // OmniVoice renders one phrase at a time: the first phrase of a reply whose first sentence was seen while it was still being
+      // written is already rendering (respondStreamed). It is used when it is the phrase this reply starts with, else dropped.
+      const reuse=omniSpeculation&&omniSpeculation.phrase===voiced[0]&&omniSpeculation.language===language&&omniSpeculation.steps===steps;
+      if(omniSpeculation&&!reuse)omniSpeculation.cancel();
+      const first=reuse?omniSpeculation.promise:synthesizeOmniPhrase(voiceKey,voiced[0],{signal,steps,language});
       // Queue phrase 2 behind phrase 1 now: the GPU renders it while phrase 1's
       // lip analysis, storage and publication run, instead of after them.
       let second;
@@ -1003,7 +1074,7 @@ async function synthesizeReply(input, result, signal, current, profile = profile
       audioError: 'Local streaming is unavailable; showing the written reply.'};
   }
   logVoiceRoute(input, profile, voice);
-  const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true, result.emotionMarks, {player, late});
+  const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true, streamed ? streamed.marks : result.emotionMarks, {player, late});
   let prefetched;
   if (ahead?.isHeld()) {
     // Synthesize now, into memory (the one renderer page may still be draining
@@ -1018,12 +1089,14 @@ async function synthesizeReply(input, result, signal, current, profile = profile
     } catch (error) { prefetched.discard(); throw error; }
   }
   return deliverPocketSpeech({input, profile, voiceKey, result, current, signal, voice: localVoice, host: realtime, speech,
-    phoneAnalysis:localVoice.phoneAnalysis,jaliFace,prefetched,
+    phoneAnalysis:localVoice.phoneAnalysis,jaliFace,prefetched,stream:streamed?.stream,
     onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
 }
 
 async function synthesizeOmniPhrase(profile,text,options){
+  markStage('ttsSent');
   const generated=await localVoice.synthesize(profile,text,options);
+  markStage('firstPcm');
   if(jaliFace)try{
     const facial=await jaliFace.analyseWav(generated.audio,{...options,text});// the phrase as voiced, tags included
     return {...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}};
@@ -1065,8 +1138,12 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     writeFace: value => atomic(resolve(runtime, 'continuous-face.json'), JSON.stringify(value), options),
     faceFile: async () => (await readSpeechState()).continuousFaceFile === true,
     writeReply: value => atomic(replyPath, JSON.stringify({...value, ...keyNotice()}), options),
-    onPublished: timing => measure(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}),
-    onStarted: timing => measure(input, {...timing, continuousPlaybackObserved: true}),
+    onPublished: timing => { markPublished(input.requestId, timing.publishedAt);
+      return measure(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },
+    // The first renderer state with audio in it: the moment the sound can start (the turn's record, bridge/turn-clock.mjs).
+    onAudio: () => { turnMark(input.requestId, 'firstPcmAccepted'); turnMark(input.requestId, 'firstFrame'); },
+    onStarted: timing => { turnMark(input.requestId, 'playbackObserved', timing.continuousPlaybackFirstObservedAt);
+      return measure(input, {...timing, continuousPlaybackObserved: true}); },
     onGenerated: async text => {
       // Microphone context refresh creates a new projection at finish. Its
       // generated/delivered receipts still belong to the original submitted
@@ -1099,6 +1176,39 @@ async function convaiReply(input, profile, current, signal) {
   } catch (error) { await speech.fail().catch(() => {}); throw error; }
 }
 
+// A text-route reply (Mistral, Groq, the local AI) is voiced while it is still being written (bridge/reply-stream.mjs): the first
+// complete sentence goes to the voice as soon as the model has written it, the rest follows when the reply is finished. Only the
+// Pocket-engine voices (Pocket and Voxtral) take part; a reply with no safe first sentence, another voice, or no continuous
+// playback is built and voiced as a whole, exactly as before. "replyStreaming": false in settings.json (or
+// CYBERPUNK_CONVAI_REPLY_STREAM=0) switches it off.
+async function respondStreamed(input, profile, {signal, current}) {
+  const config = realtimeConfig(input);
+  const stream = new ReplyStream({name: config.local?.name ?? profile?.name ?? '', isTag: hasEmotionTag});
+  const marks = [];
+  stream.onChange(() => { if (stream.complete && Array.isArray(stream.meta?.emotionMarks)) marks.splice(0, marks.length, ...stream.meta.emotionMarks); });
+  const final = Promise.resolve(realtime.reply(config, {signal, stream})).then(result => ({...result, transport: 'realtime'}));
+  final.catch(() => {});
+  const whole = async () => synthesizeReply(input, await final, signal, current, profile);
+  const head = await abortable(stream.headReady, signal);
+  if (!head) return whole();
+  const voice = replyVoice({plan: turnVoice(input), text: head, local: localChoice(input.profileKey)});
+  if (voice.engine === 'omni' && localVoice.playbackEnabled !== false) {
+    // The first phrase renders while the model writes the rest.
+    const phrase = splitSpeechText(head)[0], language = voice.language && voice.language !== 'en' ? voice.language : undefined, steps = localVoice.steps;
+    const controller = new AbortController(), cancel = () => controller.abort();
+    signal?.addEventListener('abort', cancel, {once: true});
+    const promise = synthesizeOmniPhrase(voiceKeyFor(input), phrase, {signal: controller.signal, steps, language});
+    promise.catch(() => {});
+    final.then(() => {}, cancel);
+    try { return await synthesizeReply(input, await final, signal, current, profile, undefined, undefined, {phrase, language, steps, promise, cancel}); }
+    finally { signal?.removeEventListener('abort', cancel); cancel(); }
+  }
+  if (voice.engine !== 'pocket' || localVoice.playbackEnabled === false || (await readSpeechState()).continuousAvailable !== true) return whole();
+  throwIfCancelled(signal);
+  const partial = {text: head, transport: 'realtime', sessionID: config.sessionId, timing: {streamedHead: true}};
+  return synthesizeReply(input, partial, signal, current, profile, undefined, {stream, final, marks, signal});
+}
+
 async function respond(input, profile, {signal, prepared, current} = {}) {
   if (localVoice.playbackEnabled!==false&&await audioReady(runtime)) {
     if (prepared) {
@@ -1112,6 +1222,7 @@ async function respond(input, profile, {signal, prepared, current} = {}) {
     throwIfCancelled(signal);
     // Mistral has no Convai audio: a turn that would use the cloud voice (no local voice available) is a written reply.
     if (!turnUsesLocal(input) && !mistral.active) return convaiReply(input, profile, current, signal);
+    if (mistral.active && replyStreaming && !current?.ahead && !input.reaction) return respondStreamed(input, profile, {signal, current});
     return synthesizeReply(input, {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'}, signal, current, profile);
   }
   prefetch.invalidate(); prepared?.cancel();
@@ -1193,6 +1304,7 @@ async function publishResult(input, profile, result, current = async () => true,
   prefetch.published(input, result.text);
   // Reconsider the prediction file after a source reply becomes valid.
   prefetchObserved = '';
+  markPublished(input.requestId);
   await measure(input, {transport: result.transport || 'rest', timing: result.timing, preparation: result.preparation,
     audioStoreMs: Date.now() - preparationStartedAt, publishedAt: Date.now(), audioDurationSeconds: audio?.duration,
     stream:stream?{id:stream.manifest.streamId,chunks:stream.phrases.length,mode:'omni-phrases'}:undefined,
@@ -1517,7 +1629,7 @@ async function tick() {
       return;
     }
     const controller = new AbortController();
-    const request = active = {input, raw, owner, controller, receivedAt: Date.now()};
+    const request = active = {input, raw, owner, controller, receivedAt: Date.now(), writtenAt: stamp.mtimeMs};
     // Native decision/history context is projected at actual submission. A
     // raw prediction cannot be substituted for that verified context.
     void processInput(request);
@@ -1534,7 +1646,19 @@ function startAhead(entry) {
   return request;
 }
 
+// Runs the turn under its own TurnClock, so every stage the turn reaches (here and in the text route, the voice, the PCM host
+// and the continuous speech) lands in this turn's record (bridge/turn-clock.mjs). The clock watches the event loop until the
+// turn is published.
 async function processInput(request, prepared) {
+  const clock = new TurnClock({origin: request.receivedAt});
+  if (Number.isFinite(request.writtenAt) && request.writtenAt <= request.receivedAt + 5) clock.mark('inputWritten', request.writtenAt);
+  clock.mark('received', request.receivedAt);
+  if (request.input?.requestId) turnClocks.set(request.input.requestId, clock);
+  clock.watch({maxMs: 20_000});
+  return withClock(clock, () => runInput(request, prepared, clock));
+}
+
+async function runInput(request, prepared, clock) {
   let input = request.input;
   const {controller} = request;
   const ahead = request.lookahead;
@@ -1573,6 +1697,7 @@ async function processInput(request, prepared) {
     }
     knowledgeTurn = await knowledgeRouter.prepare(input, {worldToken: worldSession?.token, generation: worldSession?.generation});
     stages.knowledgePreparedMs = performance.now() - preparationStarted;
+    clock.mark('knowledge');
     input = knowledgeTurn.input; request.input = input; preparedInputs.set(input, knowledgeTurn);
     if (!await current()) return;
     // No speculative user turn may enter identified character memory.
@@ -1583,6 +1708,7 @@ async function processInput(request, prepared) {
     if (admission?.memory) stages.memory = admission.memory;
     await knowledgeRouter.submitted(knowledgeTurn);
     stages.submissionRecordedMs = performance.now() - preparationStarted;
+    clock.mark('admitted');
     if (!await current()) return;
     // Only the first speaker of a group round may admit an action (sending
     // companions away), so a look-ahead skips the admission that would also
@@ -1592,7 +1718,7 @@ async function processInput(request, prepared) {
         && await request.owner.current(),
       isCurrentSync: () => !stopped && !controller.signal.aborted && knowledgeRouter.currentSync(knowledgeTurn)});
     rememberKnowledgeTurn(knowledgeTurn);
-    await measure(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : prepared ? 'claimed' : 'none'},
+    note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : prepared ? 'claimed' : 'none'},
       journalStatus: input.journal?.status || 'not-supplied', journalObjectives: input.journal?.quest?.objectives.length || 0,
       battleStatus: input.battle?.status || 'not-supplied', reaction: input.reaction?.phase});
     if (!ahead) await status('thinking', profile.name);
@@ -1603,7 +1729,8 @@ async function processInput(request, prepared) {
     // The speaker being heard already holds this round's group connections.
     if (canWarm && !ahead) await connections.setRequest(input, turnRoute);
     throwIfCancelled(controller.signal);
-    await measure(input, {transportRequestedAt: Date.now(), connectionWarm,
+    clock.mark('transport');
+    note(input, {transportRequestedAt: Date.now(), connectionWarm,
       submissionStages: {...stages, beforeTransportMs: performance.now() - preparationStarted}});
     const result = await respond(input, profile, {signal: controller.signal, prepared, current});
     // Ready but not yet submitted by the game: hold until it is, or cancelled.
@@ -1675,6 +1802,7 @@ async function pollPrefetch() {
     }
     const row = latency.get(speech.requestId);
     if (row && speech.state === 'playing' && speech.position > 0 && !row.nativePlaybackObserved) {
+      turnMark(speech.requestId, 'playbackObserved');
       await measure({requestId: speech.requestId, profileKey: row.profile}, {nativePlaybackObserved: true,
         nativePlaybackFirstObservedAt: Date.now(), nativePlaybackPositionSeconds: speech.position,
         nativePlaybackStartEstimateAt: Date.now() - speech.position * 1000});
@@ -1932,6 +2060,7 @@ async function pollSettings(checkShutdown = true) {
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
+    replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
     // Multilingual conversations changes which voice a turn uses (and so its instructions).
     // (The voice selection reads the same setting: while it is on, a fallback never lands on Pocket.)
     const multilingualChanged = multilingual.update(settings);
@@ -1979,6 +2108,9 @@ await status('waiting');
 await pollSettings(false);
 await pollKnowledge();
 void localVoice.start().catch(error => console.error('[CyberpunkConvai] Local voice startup:', error.message));
+// A text route (Mistral, Groq, the local AI) opens no Convai connection, so nothing else starts the hidden browser that renders the
+// local voice; the first reply would wait for it (about a second and a half under a running game). Start it now.
+if (mistral.active && localVoice.playbackEnabled !== false) void realtime.prewarmLocal();
 console.log('[CyberpunkConvai] Convai conversation bridge ready');
 // A poll is one stat of the request file until Lua replaces it, so a short
 // interval costs little and removes up to 150 ms from every turn's start.

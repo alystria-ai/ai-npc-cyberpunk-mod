@@ -31,6 +31,8 @@ export class ConvaiContinuousSpeech {
   // ~100 KB a few times per utterance instead of on every 40 ms state poll.
   constructor({input, profile, current, signal, readControl, writeState, writeReply, writeFace, faceFile,
     onPublished = async () => {}, onStarted = async () => {}, onGenerated = async () => {}, onTimeline = () => {},
+    // onAudio(): once, the first renderer state that holds audio was accepted (the turn's latency record).
+    onAudio = () => {},
     // hold(): true while this turn is a look-ahead that must keep buffering and
     // publish nothing. onText(text, userText): the complete reply text is known.
     hold = () => false, onHeld = () => {}, onText = () => {},
@@ -39,7 +41,7 @@ export class ConvaiContinuousSpeech {
     this.input = input; this.profile = profile; this.current = current; this.signal = signal;
     this.readControl = readControl; this.writeState = writeState; this.writeReply = writeReply;
     this.writeFace = writeFace; this.faceFile = faceFile; this.faceRevision = 0; this.faceWritten = 0;
-    this.onPublished = onPublished; this.onStarted = onStarted; this.onGenerated = onGenerated;
+    this.onPublished = onPublished; this.onStarted = onStarted; this.onGenerated = onGenerated; this.onAudio = onAudio; this.audioSeen = false;
     this.hold = hold; this.onHeld = onHeld; this.onText = onText; this.textAnnounced = false;
     this.woken = new Promise(resolve => { this.resolveWake = resolve; });
     this.faceBuilder = faceBuilder || ((snapshot, input, jali) => buildProviderFacialTimeline(snapshot, input, jali));
@@ -159,6 +161,7 @@ export class ConvaiContinuousSpeech {
       || duration - snapshot.positionSeconds > .025)) throw Error('Continuous speech ended before audible drain');
     this.sampleRate = snapshot.sampleRate; this.channels = snapshot.channels;
     this.receivedFrames = snapshot.receivedFrames; this.sourceComplete = snapshot.sourceComplete;
+    if (!this.audioSeen) { this.audioSeen = true; try { this.onAudio(); } catch {} }
     // A device timestamp may be quantized by one render quantum. Never move
     // the native face/subtitle clock backwards when that estimate changes.
     this.position = Math.max(this.position, Math.min(duration, snapshot.positionSeconds));

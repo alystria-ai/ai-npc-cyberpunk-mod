@@ -5,6 +5,7 @@
 // The player's API key is used for exactly one thing: the Authorization header of a request to its own provider (api.mistral.ai or
 // api.groq.com). It is never put in a message, a log line, an error text or a state file; every message that leaves this module goes
 // through `redact`. A different endpoint is accepted only when it is on this computer (the tests' fake server, the local AI).
+import {markStage} from './turn-clock.mjs';
 export const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions';
 export const MISTRAL_MODELS_ENDPOINT = 'https://api.mistral.ai/v1/models';
 export const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
@@ -215,6 +216,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
   try {
     let response;
     try {
+      markStage('llmSent');
       response = await fetchImpl(url, {method: 'POST', signal: controller.signal,
         headers: {Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', Accept: 'text/event-stream'},
         body: JSON.stringify({model, messages, stream: true, max_tokens: maxTokens, temperature, ...extraBody})});
@@ -223,6 +225,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
       if (signal?.aborted) throw signal.reason ?? abortError();
       throw new MistralError('network', `could not be reached (${redact(error?.cause?.code ?? error?.message ?? 'network error', apiKey)})`, {apiKey, provider});
     }
+    markStage('llmHeaders');
     // The rate-limit headers go to the caller (the shared request scheduler reads a per-second limit from them).
     try { onHeaders?.(response.headers); } catch { /* an observer never fails a reply */ }
     if (!response.ok) {
@@ -243,6 +246,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
         if (!choice) continue;
         const piece = contentText(choice.delta?.content);
         if (piece) {
+          if (!text) markStage('firstToken');
           text += piece;
           onDelta?.(piece, text);
           if (shouldStop?.(text)) { stoppedEarly = true; break; }

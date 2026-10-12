@@ -124,3 +124,60 @@ test('the picked voice variant speaks while the profile stays the character; wit
     assert.deepEqual(keys,[expected]);assert.equal(reply.continuous,true);
   }
 });
+
+test('a streamed reply voices its first sentence at once and its rest as the same utterance, with the text growing under it',async()=>{
+  const {ReplyStream}=await import('./reply-stream.mjs');
+  const {TurnClock,withClock}=await import('./turn-clock.mjs');
+  const full='Hey V, good to see you here again. What can I do for you tonight?';
+  const stream=new ReplyStream({name:'Johnny'});
+  stream.update('Hey V, good to see you here again. What can');
+  const head=stream.head;assert.equal(head,'Hey V, good to see you here again.');
+  const emitted=[],calls=[],faceTexts=[];
+  const pk=(owner,id,index,offsetFrames)=>({...packet(index,offsetFrames),owner,id,profile:'johnny',modelSha256:'a'.repeat(64)});
+  const voice={async synthesizeStream(key,text,{onPcm}){
+    calls.push(text);
+    if(text===head){await onPcm(pk('1'.repeat(32),1,1,0));await onPcm(pk('1'.repeat(32),1,2,9600));return{frames:19200,chunks:2};}
+    await onPcm(pk('2'.repeat(32),9,1,0));await onPcm(pk('2'.repeat(32),9,2,9600));return{frames:19200,chunks:2};
+  }};
+  const speech={token:'streamed-token',published:true,ended:true,generated:true,frame(){},async fail(){}};
+  let early,late;
+  const host={async playLocalPcm(config,produce,options){
+    assert.equal(config.text,head,'the renderer starts with the first sentence only');
+    early=options.liveText();
+    const produced=produce(async value=>{emitted.push(value);},{signal:new AbortController().signal});
+    await new Promise(done=>setTimeout(done,15));
+    assert.equal(emitted.length,2,'the first sentence is voiced before the reply is finished');
+    stream.finish(full);
+    const result=await produced;
+    late=options.liveText();
+    faceTexts.push(options.getFace({text:late.text,textComplete:late.complete,receivedFrames:38400,sourceComplete:true,positionSeconds:1.6}) ?? null);
+    return{...result,timing:{voiceProvider:'pocket'}};
+  }};
+  const clock=new TurnClock({origin:0});
+  const reply=await withClock(clock,()=>deliverPocketSpeech({input,profile,result:{...result,text:head},current:async()=>true,voice,host,speech,stream}));
+  assert.deepEqual(calls,[head,'What can I do for you tonight?']);
+  assert.deepEqual(emitted.map(value=>value.index),[1,2,3,4]);
+  assert.deepEqual(emitted.map(value=>value.offsetFrames),[0,9600,19200,28800],'the rest continues the first sentence\'s numbering');
+  assert.ok(emitted.every(value=>value.owner==='1'.repeat(32)&&value.id===1),'one utterance identity');
+  assert.deepEqual(early,{text:head,complete:false});
+  assert.deepEqual(late,{text:full,complete:true});
+  assert.equal(reply.continuous,true);
+  assert.ok(clock.has('ttsSent')&&clock.has('firstPcm'));
+});
+
+test('a streamed reply whose model fails after the first sentence ends with that sentence',async()=>{
+  const {ReplyStream}=await import('./reply-stream.mjs');
+  const stream=new ReplyStream({name:'Johnny'});
+  stream.update('Hey V, good to see you here again. What can');
+  const head=stream.head,emitted=[],calls=[];
+  const voice={async synthesizeStream(key,text,{onPcm}){calls.push(text);await onPcm({...packet(1,0),owner:'1'.repeat(32),id:1,profile:'j',modelSha256:'a'.repeat(64)});return{frames:9600};}};
+  const speech={token:'t',published:true,ended:true,generated:true,frame(){},async fail(){}};
+  let late;
+  const host={async playLocalPcm(config,produce,options){
+    const run=produce(async value=>{emitted.push(value);},{signal:new AbortController().signal});
+    await new Promise(done=>setTimeout(done,10));stream.fail(Error('network'));
+    const produced=await run;late=options.liveText();return{...produced,timing:{}};
+  }};
+  const reply=await deliverPocketSpeech({input,profile,result:{...result,text:head},current:async()=>true,voice,host,speech,stream});
+  assert.deepEqual(calls,[head]);assert.equal(emitted.length,1);assert.deepEqual(late,{text:head,complete:true});assert.equal(reply.continuous,true);
+});

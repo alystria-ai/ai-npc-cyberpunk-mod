@@ -6,6 +6,7 @@ import {TransportPool, abortable, cancelled, throwIfCancelled, transportKey, Ses
 import {CONNECTION_LIMIT} from './party-connections.mjs';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
 import {LocalPcmHost} from './local-pcm-host.mjs';
+import {markStage} from './turn-clock.mjs';
 
 const PCM_MODULES = Object.freeze([
   'continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs', 'continuous-pcm-core.mjs',
@@ -366,10 +367,19 @@ export class RealtimeHost {
   // True while a local PCM turn still owns the single renderer page, including
   // its drain and retirement after the audible end.
   get localPcmBusy() { return !!this.localPcm?.active; }
+  // Starts the hidden browser and opens the local voice's renderer page before the first turn needs it (about a second on a cold
+  // start, which a text route otherwise pays in front of its first reply). Never throws and never interrupts a turn.
+  async prewarmLocal({signal} = {}) {
+    try {
+      await this.start({signal});
+      return await (this.localPcm?.warm?.() ?? false);
+    } catch { return false; }
+  }
   async playLocalPcm(config, producer, options = {}) {
     const {signal, current = () => true} = options;
     throwIfCancelled(signal);
     await abortable(this.start({signal}), signal);
+    markStage('browserReady');
     throwIfCancelled(signal);
     const epoch = this.epoch, local = this.localPcm;
     if (!local || this.closing) throw cancelled();

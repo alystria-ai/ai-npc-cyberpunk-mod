@@ -368,3 +368,52 @@ test('RealtimeHost owns the separate local lane and cancels it during an epoch c
   await host.close(); assert.equal(await callbackCurrent(), false); assert.equal(closed, 1);
   assert.equal(host.sessions.owners.size, before, 'local PCM does not bind Convai memory sessions');
 });
+
+test('live text: each clock snapshot carries the reply text as written so far and whether it is final', {timeout: 5000}, async t => {
+  const {host, players, track} = fixture(t);
+  const live = {text: 'Hey V, good to see you here again.', complete: false}, seen = [];
+  const gate = deferred();
+  const pending = track(host.play({token: 'live-text', text: live.text}, async emit => {
+    await emit(packet());
+    await gate.promise;
+    live.text = 'Hey V, good to see you here again. What can I do for you?'; live.complete = true;
+    await emit(packet({index: 2, offsetFrames: 9600}));
+    return {};
+  }, {liveText: () => ({...live}), onFrame: frame => { seen.push({text: frame.text, complete: frame.textComplete}); return control; }}));
+  await until(() => seen.length >= 2);
+  assert.deepEqual(seen[0], {text: 'Hey V, good to see you here again.', complete: false});
+  gate.resolve();
+  await until(() => players[0]?.sealed);
+  players[0].finish();
+  await pending;
+  assert.deepEqual(seen.at(-1), {text: 'Hey V, good to see you here again. What can I do for you?', complete: true});
+});
+
+test('warm opens the renderer page ahead of the turn, and a turn that starts meanwhile uses that one page', {timeout: 5000}, async t => {
+  const {host, pages, players, track} = fixture(t);
+  assert.equal(await host.warm(), true);
+  assert.equal(pages.length, 1);
+  assert.equal(await host.warm(), true, 'a warm page is kept');
+  assert.equal(pages.length, 1);
+  const pending = track(host.play({token: 'after-warm', text: 'Hello there, V.'}, async emit => { await emit(packet()); return {}; },
+    {onFrame: () => control}));
+  await until(() => players[0]?.sealed);
+  players[0].finish();
+  await pending;
+  assert.equal(pages.length, 1, 'the turn used the warmed page');
+  assert.equal(await host.warm(), true);
+  assert.equal(pages.length, 1);
+});
+
+test('RealtimeHost.prewarmLocal starts the browser and warms the local page, and never throws', async () => {
+  const host = new RealtimeHost();
+  const calls = [];
+  host.start = async () => { calls.push('start'); };
+  host.localPcm = {async warm() { calls.push('warm'); return true; }};
+  assert.equal(await host.prewarmLocal(), true);
+  assert.deepEqual(calls, ['start', 'warm']);
+  host.start = async () => { throw Error('no browser installed'); };
+  assert.equal(await host.prewarmLocal(), false);
+  host.start = async () => {}; host.localPcm = null;
+  assert.equal(await host.prewarmLocal(), false);
+});

@@ -386,3 +386,78 @@ test('the shared Mistral scheduler paces every Mistral request: replies as text 
     host.close();
   } finally { await server.close(); }
 });
+
+// ---- Streaming the first sentence to the voice (docs/LATENCY_2026-10-12.md) ----------------------------------------------------
+
+test('a stream is handed its first sentence before the reply is finished, and the finished reply keeps it', async () => {
+  const {ReplyStream} = await import('./reply-stream.mjs');
+  const {host, close} = await harness(() => 'Hey V, good to see you here again. What can I do for you tonight? Pull up a chair.');
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    let headWhen = null;
+    stream.onChange(() => { if (headWhen === null) headWhen = stream.complete ? 'after' : 'before'; });
+    const result = await host.reply(turn('hello'), {stream});
+    assert.equal(headWhen, 'before', 'the head appeared while the reply was still streaming');
+    assert.equal(stream.head, 'Hey V, good to see you here again.');
+    assert.equal(stream.complete, true);
+    assert.equal(stream.text, result.text);
+    assert.equal(stream.tail, 'What can I do for you tonight? Pull up a chair.');
+    assert.equal(result.timing.streamedHead, true);
+  } finally { await close(); }
+});
+
+test('a reply that breaks character after its first sentence is cut back to that sentence and not asked for again', async () => {
+  const {ReplyStream} = await import('./reply-stream.mjs');
+  const {server, host, close} = await harness(() => 'Hey V, good to see you here again. As an AI language model I cannot really help you.');
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    const result = await host.reply(turn('hello'), {stream});
+    assert.equal(server.requests.length, 1, 'no second attempt once a sentence was spoken');
+    assert.equal(result.text, 'Hey V, good to see you here again.');
+    assert.equal(stream.tail, '');
+  } finally { await close(); }
+});
+
+test('a short reply, or a failure, leaves the stream without a head and the reply is built as before', async () => {
+  const {ReplyStream} = await import('./reply-stream.mjs');
+  const short = await harness(() => 'Sure thing, V.');
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    const result = await short.host.reply(turn('hello'), {stream});
+    assert.equal(stream.head, null);
+    assert.equal(await stream.headReady, null);
+    assert.equal(stream.text, 'Sure thing, V.');
+    assert.equal(result.text, 'Sure thing, V.');
+  } finally { await short.close(); }
+  const failing = await harness(() => ({status: 401, message: 'bad key'}));
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    await assert.rejects(failing.host.reply(turn('hello'), {stream}));
+    assert.equal(await stream.headReady, null);
+    assert.equal(stream.complete, true);
+    await assert.rejects(stream.finished);
+  } finally { await failing.close(); }
+});
+
+test('a turn without a stream still marks its stages on the turn clock', async () => {
+  const {TurnClock, withClock} = await import('./turn-clock.mjs');
+  const {host, close} = await harness(() => 'Hey V, good to see you here again. What can I do for you tonight?');
+  try {
+    const clock = new TurnClock({origin: 0});
+    await withClock(clock, () => host.reply(turn('hello')));
+    for (const name of ['recalled', 'promptBuilt', 'llmSent', 'firstToken', 'firstSentence', 'fullText', 'replyReturned']) assert.ok(clock.has(name), name);
+    assert.ok(clock.at('firstToken') <= clock.at('fullText'));
+  } finally { await close(); }
+});
+
+test('warm on an attached host asks the host to open its local voice page', async () => {
+  const {host, provider, close} = await harness(() => 'x');
+  try {
+    let prewarmed = 0;
+    const original = {reply: async () => ({}), prepare: async () => ({}), warm: async () => ({}), readiness: async () => ({}), lateEmotion: async () => ({}),
+      refreshIdle: async () => true, voiceChannel: () => ({}), prewarmLocal: async () => { prewarmed++; }};
+    attachTextProvider(original, {provider, mistral: host});
+    await original.warm({local: {profileKey: 'judy-alvarez', name: 'Judy Alvarez'}});
+    assert.equal(prewarmed, 1);
+  } finally { await close(); }
+});

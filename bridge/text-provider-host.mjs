@@ -14,6 +14,8 @@ import {PersonaBook, buildMessages, cleanReply, capPoint, capReply, breaksCharac
   summaryMessages, factMessages, parseFacts, systemHead, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
+import {ReplyStream} from './reply-stream.mjs';
+import {markStage} from './turn-clock.mjs';
 
 const isTag = group => hasEmotionTag(group);
 const pause = (ms, signal) => new Promise((resolve, reject) => {
@@ -202,7 +204,12 @@ export class TextProviderHost {
     return list;
   }
 
-  async reply(config, {signal} = {}) {
+  /**
+   * `stream` (optional, bridge/reply-stream.mjs): the voice's view of the reply while it is written. It is fed the text as it
+   * arrives, told when the reply is finished (with the text the voice and subtitles end with) or failed, and a first sentence
+   * that is safe to speak is handed to the voice before the model is done. Without one the reply is built exactly as before.
+   */
+  async reply(config, {signal, stream} = {}) {
     if (signal?.aborted) throw cancelled();
     const local = config?.local;
     if (!local || typeof local.profileKey !== 'string') throw new MistralError('request', 'turn has no character');
@@ -214,6 +221,8 @@ export class TextProviderHost {
     const persona = this.personas.persona(local.profileKey, local.name);
     const reaction = !!config.reaction;
     const memoryKey = {profileKey: local.profileKey, channel: local.channel, ambientKey: local.ambientKey};
+    // The stream the reply text goes through: the voice's, or one that only marks the first sentence on the turn's clock.
+    const feed = stream ?? new ReplyStream({name: persona.name, isTag, speak: false});
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
     // What the memory store remembers that bears on V's words (private and phone talk of a named character; empty otherwise and
     // whenever it cannot answer in a few hundred milliseconds).
@@ -222,35 +231,48 @@ export class TextProviderHost {
       try { remembered = await this.memory.retrieve({...memoryKey, query: text, signal}) ?? []; } catch { remembered = []; }
       if (signal?.aborted) throw cancelled();
     }
+    markStage('recalled');
     const candidates = this.#candidates();
     for (const [index, route] of candidates.entries()) {
       try {
-        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey});
+        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed});
         const elapsed = Math.round(this.now() - started);
-        const {response, reply} = outcome;
+        const {response} = outcome;
+        // What was already spoken stands: a finished reply that does not begin with it is cut back to it.
+        const reply = feed.reconcile(outcome.reply);
         // The exchange is remembered without tags (what the player read), except a battle / loot line, which is not a talk.
         if (!reaction) {
           this.memory.record({...memoryKey, v: text, r: stripSpeechTags(reply)});
           this.#summarize(route, local.profileKey);
         }
-        return this.transformReply({text: reply, sessionID: config.sessionId, transport: route.name,
-          timing: {provider: route.name, llmMs: elapsed, model: response.model ?? route.models()[0]?.id, attempts: response.attempts}});
+        markStage('replyReturned');
+        const result = this.transformReply({text: reply, sessionID: config.sessionId, transport: route.name,
+          timing: {provider: route.name, llmMs: elapsed, model: response.model ?? route.models()[0]?.id, attempts: response.attempts,
+            ...(feed.committed ? {streamedHead: true} : {})}});
+        feed.finish(result.text, result);
+        return result;
       } catch (error) {
-        if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) throw error;
+        if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) { feed.fail(error); throw error; }
         route.failure(error);
         if (index < candidates.length - 1 && route.fallsBack(error)) { this.log(`${route.label} could not answer; using ${candidates[index + 1].label}`); continue; }
+        feed.fail(error);
         throw error;
       }
     }
-    throw new MistralError('request', 'has no route for this provider');
+    const none = new MistralError('request', 'has no route for this provider');
+    feed.fail(none);
+    throw none;
   }
 
-  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey}) {
+  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed}) {
     const build = nudge => buildMessages({persona, memory: recalled.summary, history: recalled.turns, context: config.context,
       contextParts: config.contextParts, remembered, text: nudge ? text + IN_CHARACTER_NUDGE : text, reaction, limits: this.limits});
     const shouldStop = soFar => capPoint(cleanReply(soFar, {name: persona.name, isTag}), this.limits) >= 0;
     const run = async nudge => {
-      const response = await this.#request(route, build(nudge), signal, {shouldStop, profileKey});
+      const messages = build(nudge);
+      markStage('promptBuilt');
+      const response = await this.#request(route, messages, signal, {shouldStop, profileKey, onDelta: (_piece, soFar) => { try { feed.update(soFar); } catch { /* the voice's view of the reply never breaks the reply */ } }});
+      markStage('fullText');
       let cleaned = cleanReply(response.text, {name: persona.name, isTag});
       if (response.finishReason === 'length') cleaned = trimUnfinished(cleaned);
       const reply = capReply(cleaned, this.limits);
@@ -259,10 +281,16 @@ export class TextProviderHost {
     };
     let outcome = await run(false);
     // A reply that steps out of character, or is a model's reasoning, gets one more try. The second answer is used unless it
-    // is reasoning again, which is never spoken (it counts as an empty answer).
+    // is reasoning again, which is never spoken (it counts as an empty answer). A reply whose first sentence the voice already
+    // started is not tried again: that sentence was checked before it was spoken, so it stands and the rest is dropped.
     if ((breaksCharacter(outcome.reply) || leaksReasoning(outcome.reply) || looksCut(outcome.reply)) && !signal?.aborted) {
-      this.log('reply broke character; asking once more');
-      try { outcome = await run(true); } catch (error) { if (signal?.aborted) throw error; /* keep the first */ }
+      if (feed.committed) {
+        this.log('reply broke character after its first sentence was spoken; keeping that sentence');
+        outcome = {...outcome, reply: feed.head};
+      } else {
+        this.log('reply broke character; asking once more');
+        try { outcome = await run(true); } catch (error) { if (signal?.aborted) throw error; /* keep the first */ }
+      }
     }
     if (leaksReasoning(outcome.reply) || looksCut(outcome.reply) && outcome.reply.split(/\s+/).length < 4) throw new MistralError('empty', 'answered with its reasoning or a cut-off line', {provider: route.provider});
     route.success();
@@ -354,9 +382,10 @@ export class TextProviderHost {
  *   warm      succeeds at once and opens no connection (an invitation is ready without one); the local AI loads its persona prefix
  *   readiness reports a ready connection
  *   voiceChannel  a channel that refuses with a message the voice key turns into a notice (until local speech recognition exists)
+ * `prewarmVoice` (default true): a warm-up also opens the host's local voice renderer (the phone host has none to open).
  * `speech` is an optional hook for local speech recognition (bridge/local-stt.mjs): {available(): boolean, voiceChannel({reply})}.
  */
-export function attachTextProvider(host, {provider, mistral, speech} = {}) {
+export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true} = {}) {
   const textHost = mistral;
   const original = {reply: host.reply, prepare: host.prepare, warm: host.warm, readiness: host.readiness, lateEmotion: host.lateEmotion,
     refreshIdle: host.refreshIdle, voiceChannel: host.voiceChannel};
@@ -376,6 +405,8 @@ export function attachTextProvider(host, {provider, mistral, speech} = {}) {
   host.warm = function warm(config, options) {
     if (!provider.active) return original.warm.call(this, withoutLocal(config), options);
     if (provider.route === 'local') void textHost.prewarm?.(config);
+    // The local voice's browser and renderer page open now, while V types or looks, not in front of the first reply.
+    if (prewarmVoice) void this.prewarmLocal?.();
     return Promise.resolve({connectionMs: 0, provider: provider.route});
   };
   host.readiness = function readiness(config, options) {
