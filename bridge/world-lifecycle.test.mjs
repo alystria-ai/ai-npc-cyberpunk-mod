@@ -498,9 +498,17 @@ events.onInit(); events.onUpdate(0)
 assert(hotkeys.cyberpunk_convai_diagnostic == nil, 'the diagnostic hotkey is still registered')
 assert(hotkeys.cyberpunk_convai_text and hotkeys.cyberpunk_convai_manager)
 files['runtime/diagnostic-request.txt'] = 'probe-1'
+-- Developer mode off: the mailbox is read every 4 s, inside the request scripts' 8-10 s deadlines.
 events.onUpdate(1)
+assert((stats.loads['diagnostics.lua'] or 0) == 0, 'the mailbox was read within a second with Developer mode off')
+events.onUpdate(3)
 assert((stats.loads['diagnostics.lua'] or 0) == 1, 'the request file did not start a capture')
 assert(files['runtime/diagnostic-response.txt'] == 'probe-1')
+-- Developer mode on: within a second.
+stats.developer = true
+files['runtime/diagnostic-request.txt'] = 'probe-2'
+events.onUpdate(1)
+assert((stats.loads['diagnostics.lua'] or 0) == 2 and files['runtime/diagnostic-response.txt'] == 'probe-2')
 `));
 
 test('a phone invitation shows a player the preparing line once at any wait and nothing else; the acknowledgement is gone, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}

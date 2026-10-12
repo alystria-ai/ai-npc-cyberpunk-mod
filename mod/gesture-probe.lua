@@ -837,8 +837,9 @@ function M.tick(player, step, rows)
         end
     end
     if M.clock >= M.pollAt then
-        -- Developer mailbox: one CET io.open costs 1-2 ms of the game thread, so poll once a second.
-        M.pollAt = M.clock + (M.pollPeriod or 1)
+        -- Developer mailbox: one CET io.open costs 1-2 ms of the game thread, so poll once a second (every 4 s with
+        -- Developer mode off; init.lua's convaiDevMailboxPeriod).
+        M.pollAt = M.clock + (M.pollPeriod or (convaiDevMailboxPeriod and convaiDevMailboxPeriod()) or 1)
         local ok, err = pcall(poll)
         if not ok then log('poll-error', {error = tostring(err)}) end
     end

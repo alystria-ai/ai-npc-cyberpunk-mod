@@ -197,3 +197,16 @@ test('unknown commands and missing targets answer without side effects', () => r
   send('start nobody');step(.3)
   assert(count('create')==0)
 `));
+
+test('without a test period the mailbox follows the game: once a second with Developer mode on, every 4 s off', () => run(`
+  m.pollPeriod=nil
+  local developer=false
+  convaiDevMailboxPeriod=function() return developer and 1 or 4 end
+  m.pollAt=m.clock
+  step(.1);send('bogus');step(1.5)
+  assert(response()=='','answered within 1.5 s with Developer mode off')
+  step(2.6);assert(response():find('n1',1,true)==1,'no answer within 4 s')
+  developer=true;step(4.1)
+  send('bogus');step(1.1);assert(response():find('n2',1,true)==1,'no answer within a second with Developer mode on')
+  convaiDevMailboxPeriod=nil
+`));

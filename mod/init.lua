@@ -434,6 +434,10 @@ local pending = nil
 local pendingKnowledgeOwner = nil
 local poll = 0
 local diagnosticPoll = 0
+-- Developer mailboxes (runtime/diagnostic-request.txt here, face-test and gesture-probe requests in their probes):
+-- each poll is one CET io.open (1-3 ms of the game thread). They answer within a second with Developer mode on and
+-- every 4 s otherwise, which the request scripts' 8-10 s deadlines still cover. A global: the probes read it.
+convaiDevMailboxPeriod = function() return manager.developerMode() and 1 or 4 end
 local lastDiagnosticRequest = nil
 local focusUntil = nil
 local focusMode = nil
@@ -2479,7 +2483,7 @@ registerForEvent('onUpdate', function(delta)
         subtitles.clear()
     end
     diagnosticPoll = diagnosticPoll + (tonumber(delta) or 0)
-    if diagnosticPoll >= 1 then -- developer mailbox; each CET io.open costs 1-2 ms
+    if diagnosticPoll >= convaiDevMailboxPeriod() then -- developer mailbox; each CET io.open costs 1-3 ms
         diagnosticPoll = 0
         local request = io.open('runtime/diagnostic-request.txt', 'rb')
         if request then
