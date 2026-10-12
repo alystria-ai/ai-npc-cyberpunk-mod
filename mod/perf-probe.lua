@@ -4,8 +4,14 @@
 -- them per 2 s window and writes runtime/perf-probe.json. With Developer mode
 -- off, only the per-frame tick runs: one cached flag check, no allocation.
 -- os.clock has 1 ms resolution in CET; means over many calls stay unbiased.
+-- init.lua runs this file twice (hookRegistrations at the very top, install
+-- after the modules load). A second chunk would get its own 'enabled' flag,
+-- so the hook and onUpdate wrappers made by the first one never recorded
+-- (no 'hook:' or 'event:onUpdate' rows in the 2026-10-11 live capture).
+if type(convaiPerfProbe) == 'table' and convaiPerfProbe.chunkLoaded then return convaiPerfProbe end
 local M = convaiPerfProbe or {}
 convaiPerfProbe = M
+M.chunkLoaded = true
 local WINDOW, HISTORY, FLAG_PERIOD = 2, 150, 1
 local clock = os.clock
 
@@ -93,17 +99,29 @@ local function wrapAll()
     wrap(convaiVanillaReactions, 'stimulus', 'vanilla.stimulus')
     wrap(convaiVanillaReactions, 'reaction', 'vanilla.reaction')
     wrap(convaiVanillaReactions, 'bump', 'vanilla.bump')
+    -- The rest of the per-frame top half of onUpdate, so 'event:onUpdate'
+    -- minus the wrapped sections leaves only init.lua's own local work.
+    wrap(convaiUiLocale, 'update', 'ui.update')
+    wrap(convaiComposerInput, 'update', 'composer.update')
+    wrap(convaiPhoneLayout, 'refresh', 'phoneLayout.refresh')
+    wrap(convaiPhoneChatStyle, 'refresh', 'phoneChatStyle.refresh')
+    wrap(convaiAutoConnect, 'heartbeat', 'autoConnect.heartbeat')
+    wrap(convaiAutoConnect, 'update', 'autoConnect.update')
+    for _, row in ipairs(M.watched or {}) do wrap(row[1], row[2], row[3]) end
 end
 
 local function publish(now)
     local span = math.max(now - windowAt, 1e-6)
     local speech = convaiSpeech
+    local heapOk, heap = pcall(collectgarbage, 'count')
     local row = {at = os.time(), span = span, fps = frames / span,
         frameMeanMs = frames > 0 and 1000 * frameSum / frames or 0, frameMaxMs = 1000 * frameMax,
         over25ms = over25, over40ms = over40,
         speaking = type(speech) == 'table' and speech.requestId ~= nil,
         continuous = type(speech) == 'table' and speech.continuous == true,
-        sections = {}, opens = opens}
+        sections = {}, opens = opens,
+        -- Lua heap after the window: shared 50-90 ms frames may be GC steps.
+        luaKB = heapOk and type(heap) == 'number' and heap or nil}
     for label, s in pairs(stats) do
         row.sections[label] = {calls = s[1], msPerSecond = 1000 * s[2] / span, maxMs = 1000 * s[3]}
     end
@@ -181,6 +199,16 @@ function M.hookRegistrations()
             return registerEvent(event, handler, ...)
         end
     end
+    return true
+end
+
+-- Module tables init.lua keeps only as locals (manager, tactics, ...): their
+-- fields are wrapped on the first enabled frame like the globals above.
+function M.watch(tbl, field, label)
+    if type(tbl) ~= 'table' or type(field) ~= 'string' then return false end
+    M.watched = M.watched or {}
+    M.watched[#M.watched + 1] = {tbl, field, label or field}
+    if wrapped then wrap(tbl, field, label or field) end
     return true
 end
 

@@ -383,6 +383,13 @@ convaiCompanions = companions
 -- Developer-mode frame-cost probe (runtime/perf-probe.json). It wraps module
 -- table fields from outside, so the onUpdate closure gains no upvalue.
 pcall(function() dofile('perf-probe.lua').install(companions, function() return manager.developerMode() end) end)
+pcall(function()
+    local probe = convaiPerfProbe
+    probe.watch(manager, 'update', 'manager.update'); probe.watch(tactics, 'update', 'tactics.update')
+    probe.watch(microphone, 'update', 'microphone.update'); probe.watch(movementLog, 'update', 'movementLog.update')
+    probe.watch(worldKnowledge, 'update', 'worldKnowledge.update'); probe.watch(journalHistory, 'update', 'journalHistory.update')
+    probe.watch(relationshipState, 'update', 'relationshipState.update')
+end)
 local generation = 0
 local active = nil
 local pending = nil

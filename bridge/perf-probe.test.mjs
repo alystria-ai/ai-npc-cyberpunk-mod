@@ -80,3 +80,20 @@ assert(stim and stim.calls>=10*row.fps*row.span-20,'hook calls '..tostring(stim 
 assert(math.abs(stim.maxMs-1)<.001 and row.sections['hook:AIMoveToCommandHandler.UpdateCommand'].maxMs-2<.001)
 assert(math.abs(row.sections['event:onUpdate'].maxMs-3)<.001)
 `));
+
+test('a second load returns the first probe, so hooks wrapped at the top of init.lua still record', () => run(`
+local install1,watch1=P.install,P.watch
+local again=(function()${probe}end)()
+assert(again==P and P.install==install1 and P.watch==watch1,'second load built a separate probe')
+local registered={}
+Override=function(class,method,handler) registered[class..'.'..method]=handler end
+assert(P.hookRegistrations())
+Override('PlayerPuppet','OnAction',function() t=t+.001 end)
+local tactics={update=function() t=t+.004 end}
+assert(again.watch(tactics,'update','tactics.update'))
+developer=true;t=t+2
+for _=1,240 do frame(false);registered['PlayerPuppet.OnAction']();tactics.update() end
+local row=written.history[#written.history]
+assert(row.sections['hook:PlayerPuppet.OnAction'],'hook wrapped by the first load did not record')
+assert(math.abs(row.sections['tactics.update'].maxMs-4)<.001,'watched section missing')
+`));
