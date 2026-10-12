@@ -3,22 +3,26 @@
 How the player release is built, what it contains and how it starts. Players read
 `packaging/PLAYER_README.md` instead (it ships in every package and is the release notes).
 
-## The three packages
+## The five packages
 
 | Package | Where players get it | Contents |
 |---|---|---|
 | `CyberpunkConvai-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, `README.txt` and `release.json`. |
 | `CyberpunkConvai-Runtime-<v>.zip` | GitHub Releases of this repository | Everything else needed to play: the RED4ext launcher, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
 | `CyberpunkConvai-OmniPack-<v>-partNofM.zip` | GitHub | Optional OmniVoice pack: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
+| `CyberpunkConvai-LocalAI-Standard-<v>[-partNofM].zip` | GitHub | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB): the llama-server Vulkan build, the embedding model and the chat model, in 1 GB parts. |
+| `CyberpunkConvai-LocalAI-Lite-<v>.zip` | GitHub | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB), the same server and embedding model. |
 
 Why this split: Nexus Mods scans every upload and holds files that its scanners flag for manual
 review (help.nexusmods.com articles 128 and 117); it has no blanket rule against DLLs or
-executables, but a text-only file never needs that review and is never quarantined. The large,
+executables, but a text-only file never needs that review and is never quarantined. The Nexus page
+must list RED4ext among the requirements (with CET, redscript, Codeware, TweakXL, Audioware and
+Mod Configuration Menu): the Runtime package's launcher and native plugin are RED4ext plugins. The large,
 binary runtime goes to GitHub Releases as plain zips, which is how the core frameworks
 (RED4ext, Codeware, TweakXL, Audioware) are distributed too; RED4ext also builds in Actions and
 publishes SHA-256 values with each release, which this pipeline does as well.
 
-All three use game-root-relative paths and merge into one install. Versions must match;
+All five use game-root-relative paths and merge into one install. Versions must match;
 `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the
 Runtime one.
 
@@ -59,11 +63,16 @@ red4ext/plugins/CyberpunkConvai/
     launcher/                start-service.mjs, prepare-state.mjs, assemble-parts.mjs
     licenses/                third-party notices (Python packages keep theirs in *.dist-info)
     omni/                    the OmniVoice pack, when installed
+    local-ai/                the Local AI pack(s), when installed (llama/, models/, licenses/, manifest.*.json)
   voices/                    reference clips (outside app/: the Omni worker requires it)
+    prepared/                the Mistral voice's references, already cut and encoded (see below)
+red4ext/plugins/CyberpunkConvaiNative/
+  CyberpunkConvaiNative.dll  the native core plugin (native/core, compiled in the build) and its licence texts
 bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/
   *.lua, locales/, *.json    Scripts package
   data/                      player state, created on first start
   runtime/                   Lua <-> bridge exchange files
+    native-off.txt           which native systems stay off (Runtime package, see below)
 r6/scripts/CyberpunkConvai/  redscript (Scripts package)
 r6/audioware/CyberpunkConvai speech.yml + eight silent reply slots (Runtime)
 archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_ambient_driver_guard (Runtime)
@@ -91,6 +100,52 @@ entry whose game-relative path would exceed 255 characters under a 70-character 
 
 The embedded Pythons use their `._pth` file (`Lib\site-packages`, `..\bridge`, `import site`), so
 they ignore any Python installed on the machine.
+
+### The native plugin and `native-off.txt`
+
+`red4ext/plugins/CyberpunkConvaiNative/CyberpunkConvaiNative.dll` is built from `native/core` in the release build
+(the CMake project that `scripts/Build-NativeCore.ps1` drives, MSVC from Visual Studio 2022, static CRT, `/Brepro`; the RED4ext SDK
+is fetched by CMake at the commit pinned in `native/core/CMakeLists.txt`). The Runtime job of the workflow checks the toolchain
+before building and the clean-install test inspects the DLL with `convai_plugin_host.exe` (it checks the file without running game
+code). The package works without it: `--no-native` leaves it out and the Lua falls back to its own path for every system
+(`mod/native-core.lua`). The plugin's licence texts (RED4ext.SDK, yyjson) sit next to the DLL.
+
+`bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime/native-off.txt` ships with exactly `actuator`, `vehicles`,
+`chauffeur`, `passage` and `faces`: the systems that are not yet proven in the real game start switched off. One name per line,
+`#` starts a comment, `all` switches everything off; the plugin polls the file about once a second and the Lua reads it too. A
+**missing file means every system is on**, so the file is part of the package, and a player turns a system on by deleting its line.
+The list lives in `native.off` in `packaging/release.config.json`; change it there when a system has been proven.
+
+### Local AI packs
+
+Two optional downloads (`docs/LOCAL_AI.md`): `localai-standard` (Gemma 4 E4B) and `localai-lite` (Qwen3.5-2B). Each holds the
+`llama-server` Vulkan build b11560 (only the server and its DLLs), the granite embedding model, one chat model, a manifest fragment
+(`manifest.standard.json` or `manifest.lite.json`, merged by `bridge/local-ai-pack.mjs`), the licence texts and the notices, under
+`red4ext/plugins/CyberpunkConvai/app/local-ai/`. The two packs repeat the shared server, embedding and notice files byte for byte, so
+extracting both only overwrites identical bytes. The standard model file is over the size limit, so it is split into 1 GB parts and
+joined (and hash-checked) by `assemble-parts.mjs` on the first start. Every file is the unmodified upstream file, pinned in the
+`localAi` block of `release.config.json` by URL, revision and SHA-256; a developer folder can stand in with `--models local`.
+Licences (all redistributable with the licence text, which the packs carry): llama.cpp MIT, the LLVM OpenMP runtime Apache-2.0 with
+LLVM exceptions, Gemma 4 E4B Apache-2.0 (Google also publishes a prohibited use policy), Qwen3.5-2B Apache-2.0, granite-embedding
+Apache-2.0. `THIRD_PARTY_NOTICES.md` has the table.
+
+### Pre-built Mistral voice references
+
+Voxtral (the Mistral voice) sends each character's reference clip with every request. The bridge shrinks it (mono, 16 kHz, cut to
+about 8 s in a pause, then a 32 kbit/s MP3 made with ffmpeg) and keeps the result in `<references>/prepared`, one slot per voice
+key, named by the hash of the source clip (`bridge/voxtral-reference.mjs`). A player without ffmpeg would send the 265 KB WAV
+instead of the 33 KB MP3, so the build makes the slots itself with the bridge's own code (`VoxtralVoice.build`, the call a
+conversation makes) and ships them in `voices/prepared/`. `prepare-state.mjs` sets `CYBERPUNK_CONVAI_OMNI_REFERENCES` to `voices/`
+for every install (the Omni worker only exists with the pack, so this cannot trip its all-or-none check), which is where the bridge
+looks first.
+
+- The **Runtime** package carries the slots for the Pocket clips.
+- The **OmniVoice pack** carries the slots for the clips it adds (a Mistral voice clones from the OmniVoice long clip when the pack
+  is installed, else the short one, else Pocket's); a slot identical to the Runtime package's is not repeated. A slot is keyed by the
+  clip's hash, so a key whose clip differs overwrites the Runtime's. Extract the Runtime first and the OmniVoice pack second; the
+  other order only costs an ffmpeg re-encode (or the larger WAV) for those keys until the bridge rewrites the slot.
+- The build needs `ffmpeg` on `PATH` (or `CYBERPUNK_CONVAI_FFMPEG`) and fails without it. The workflow installs it.
+- Slot files carry a fixed `written` time, so the same inputs give the same package.
 
 ### Player state (`data/`)
 
@@ -126,7 +181,10 @@ into a release. Inputs:
   `final/` (`packaging/fetch-models.py`, every file checked against `final/MANIFEST.json`), or from
   the developer `runtime/` folder with `--models local`. The Pocket export is also checked against
   the hashes in its voice config, and every reference clip against its descriptor.
-- The launcher, compiled from `native/autostart` with MSVC (`/Brepro`, reproducible).
+- The launcher, compiled from `native/autostart` with MSVC (`/Brepro`, reproducible), and the native plugin from `native/core`
+  (`--native PATH` supplies a prebuilt DLL, `--no-native` omits it).
+- `ffmpeg`, for the pre-built Mistral voice references.
+- The Local AI files, downloaded from their pinned URLs (no secret needed).
 
 Archives are deterministic (`packaging/lib/zip.mjs`): sorted entries, one timestamp (the commit
 time), fixed deflate level, weights stored. Each archive stays under 1.95 GB (GitHub's limit is
@@ -138,9 +196,10 @@ are split into `.partN` byte ranges with a `.parts.json`, joined on first start.
 ### Local dry run and install test
 
 ```powershell
-node packaging/build-release.mjs --version 0.2 --dry-run                 # Scripts + Runtime + Omni
+node packaging/build-release.mjs --version 0.2 --dry-run                 # all five packages
 node packaging/build-release.mjs --version 0.2 --dry-run --packages scripts,runtime
-node packaging/test-release-install.mjs --version 0.2 --packages dist/release/packages [--omni] [--key-file runtime/convai-key.txt]
+node packaging/build-release.mjs --version 0.2 --dry-run --packages localai-standard,localai-lite
+node packaging/test-release-install.mjs --version 0.2 --packages dist/release/packages [--omni] [--local-ai] [--key-file runtime/convai-key.txt]
 node --test packaging/release.test.mjs
 ```
 
@@ -163,7 +222,7 @@ To try a build in the real game, remove the development launcher first
 `v0.N` tag. Job 1 builds and install-tests Scripts + Runtime on `windows-2025`, keeps the Scripts
 zip as a workflow artifact (for Nexus), and creates the GitHub release `v0.N` in this same
 repository, uploading the packages to it. Job 2 builds the OmniVoice pack and adds it to the same
-release. Large packages are not stored as workflow artifacts (private-repository artifact storage
+release; job 3 (a matrix of `standard` and `lite`) builds the two Local AI packs and adds them too. Large packages are not stored as workflow artifacts (private-repository artifact storage
 is small).
 
 The release is published immediately, not left as a draft (the manual run has a `publish` switch

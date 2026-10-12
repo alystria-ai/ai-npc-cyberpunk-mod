@@ -8,7 +8,10 @@
 # Packages are uploaded to a release in this same repository with the built-in GITHUB_TOKEN
 # (permission: contents: write), and the release is published immediately. While the repository
 # is private, only collaborators can see it. The Scripts package is also kept as a workflow
-# artifact for uploading to Nexus Mods. See docs/PACKAGING.md.
+# artifact for uploading to Nexus Mods. The Runtime package carries the native plugin, which the
+# build compiles with MSVC and CMake (both are on the Windows runner; the RED4ext SDK is fetched by
+# CMake at the commit pinned in native/core/CMakeLists.txt). The OmniVoice pack and the two Local AI
+# packs are built by their own jobs and added to the same release as separate downloads. See docs/PACKAGING.md.
 name: Release
 
 on:
@@ -19,6 +22,10 @@ on:
         required: true
       omni:
         description: Also build the optional OmniVoice pack
+        type: boolean
+        default: true
+      localai:
+        description: Also build the two optional Local AI packs (standard and lite)
         type: boolean
         default: true
       publish:
@@ -78,8 +85,24 @@ jobs:
           python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
           npm ci --no-audit --no-fund
 
+      # The Mistral voice's reference clips are cut and encoded to MP3 at build time (bridge/voxtral-reference.mjs), so players need no ffmpeg.
+      - name: ffmpeg (pre-builds the Mistral voice references)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { choco install ffmpeg -y --no-progress; if ($LASTEXITCODE -ne 0) { throw 'Could not install ffmpeg.' } }
+          $ffmpeg = Get-Command ffmpeg -ErrorAction Stop
+          & $ffmpeg.Source -version | Select-Object -First 1
+
       - name: Release pipeline tests
         run: node --test packaging/release.test.mjs
+
+      - name: Native toolchain (MSVC and CMake build the native plugin)
+        shell: pwsh
+        run: |
+          cmake --version | Select-Object -First 1
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          & $vswhere -version '[17.0,18.0)' -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property displayName
+          if ($LASTEXITCODE -ne 0) { throw 'Visual Studio 2022 with the C++ tools is required to build the native plugin.' }
 
       - name: Build Scripts and Runtime
         shell: pwsh
@@ -149,6 +172,14 @@ jobs:
           python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
           npm ci --no-audit --no-fund
 
+      # The Mistral voice's reference clips are cut and encoded to MP3 at build time (bridge/voxtral-reference.mjs), so players need no ffmpeg.
+      - name: ffmpeg (pre-builds the Mistral voice references)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { choco install ffmpeg -y --no-progress; if ($LASTEXITCODE -ne 0) { throw 'Could not install ffmpeg.' } }
+          $ffmpeg = Get-Command ffmpeg -ErrorAction Stop
+          & $ffmpeg.Source -version | Select-Object -First 1
+
       - name: Build the OmniVoice pack
         shell: pwsh
         env:
@@ -171,3 +202,42 @@ jobs:
           $files = Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName
           gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-omni.txt"
           if ($LASTEXITCODE -ne 0) { throw 'Uploading the OmniVoice pack failed.' }
+
+  localai:
+    name: Local AI pack (${{ matrix.tier }})
+    needs: runtime
+    if: github.ref_type == 'tag' || inputs.localai
+    runs-on: windows-2025
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        tier: [standard, lite]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # The packs hold unmodified upstream files (the llama.cpp build and the GGUF models), each downloaded from its pinned
+      # URL and checked against the SHA-256 in packaging/release.config.json. No secret is needed.
+      - name: Build the Local AI pack
+        shell: pwsh
+        run: |
+          Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+          node packaging/build-release.mjs --version "${{ needs.runtime.outputs.version }}" --packages "localai-${{ matrix.tier }}" `
+            --models hf --out $env:OUT --cache $env:CACHE
+          Remove-Item -Recurse -Force "$env:OUT\stage" -ErrorAction SilentlyContinue
+          Get-ChildItem "$env:OUT\packages" -Filter *.zip | Format-Table Name, @{n='GB';e={[math]::Round($_.Length/1GB,2)}}
+
+      - name: Add the Local AI pack to the release
+        if: github.ref_type == 'tag' || inputs.publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'v${{ needs.runtime.outputs.version }}'
+          Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-localai-${{ matrix.tier }}.txt"
+          $files = Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName
+          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-localai-${{ matrix.tier }}.txt"
+          if ($LASTEXITCODE -ne 0) { throw 'Uploading the Local AI pack failed.' }

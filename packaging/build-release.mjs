@@ -8,17 +8,24 @@
 //   CyberpunkConvai-Runtime-<v>[...].zip   launcher, bundled Node/Chrome/Python, bridge, models, voices,
 //                                          game archives and the Audioware bank (GitHub)
 //   CyberpunkConvai-OmniPack-<v>-partNofM.zip  optional OmniVoice GPU pack (GitHub)
-// plus SHA256SUMS.txt and release-manifest.json. See docs/PACKAGING.md.
+//   CyberpunkConvai-LocalAI-Standard-<v>-partNofM.zip  optional Local AI pack, Gemma 4 E4B (GitHub)
+//   CyberpunkConvai-LocalAI-Lite-<v>.zip   optional Local AI pack, Qwen3.5-2B (GitHub)
+// plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
+// (red4ext/plugins/CyberpunkConvaiNative) and runtime/native-off.txt. See docs/PACKAGING.md.
 //
 // Options:
 //   --version V        release version, 2077.N or 2077.N.M (required)
 //   --dry-run          local build: models from the developer runtime/ folder, no key embedded
 //   --models local|hf  where trained models come from (default: hf, or local with --dry-run)
-//   --packages LIST    comma list of scripts,runtime,omni (default: all three)
+//   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite (default: all five)
 //   --source REF       git ref to package (default HEAD); --worktree packages the working tree instead
 //   --key-env NAME     embed the Convai key from this environment variable (never printed)
 //   --key-file PATH    embed the Convai key from this file (local testing only)
 //   --launcher PATH    use a prebuilt launcher DLL instead of compiling native/autostart with MSVC
+//   --native PATH      use a prebuilt CyberpunkConvaiNative.dll instead of compiling native/core with MSVC
+//   --no-native        leave the native plugin out (the Lua keeps its own path)
+//   --local-ai-source DIR  with --models local: a folder shaped like the Local AI developer folder
+//                      (default: CYBERPUNK_CONVAI_LOCAL_AI_DEV); a file missing there is downloaded
 //   --python EXE       host CPython used to run pip (default: python)
 //   --out DIR, --cache DIR   output and download-cache folders (default dist/release, dist/release-cache)
 import {createHash} from 'node:crypto';
@@ -47,14 +54,16 @@ if (!isReleaseVersion(version)) {
 }
 const dryRun = flag('--dry-run');
 const modelSource = value('--models', dryRun ? 'local' : 'hf');
-const packages = new Set(value('--packages', 'scripts,runtime,omni').split(',').map(item => item.trim()).filter(Boolean));
+const PACKAGE_IDS = ['scripts', 'runtime', 'omni', 'localai-standard', 'localai-lite'];
+const packages = new Set(value('--packages', PACKAGE_IDS.join(',')).split(',').map(item => item.trim()).filter(Boolean));
+const localAiSource = value('--local-ai-source', process.env.CYBERPUNK_CONVAI_LOCAL_AI_DEV);
 const out = resolve(value('--out', resolve(project, 'dist/release')));
 const cache = resolve(value('--cache', resolve(project, 'dist/release-cache')));
 const hostPython = value('--python', 'python');
 const sourceRef = value('--source', 'HEAD');
 const useWorktree = flag('--worktree');
 if (!['local', 'hf'].includes(modelSource)) throw Error('--models must be local or hf');
-for (const name of packages) if (!['scripts', 'runtime', 'omni'].includes(name)) throw Error(`Unknown package: ${name}`);
+for (const name of packages) if (!PACKAGE_IDS.includes(name)) throw Error(`Unknown package: ${name}`);
 
 const log = message => console.log(`[${((Date.now() - started) / 1000).toFixed(0).padStart(4)}s] ${message}`);
 
@@ -190,6 +199,39 @@ async function buildLauncher(source) {
   return resolve(output, 'CyberpunkConvaiLauncher.dll');
 }
 
+// The optional native plugin (native/core). Built with MSVC and CMake like the launcher. The package works without it,
+// because the Lua keeps its own path for every system, but a failed build fails the release unless --no-native says so.
+async function buildNative(source) {
+  if (flag('--no-native')) return null;
+  const prebuilt = value('--native');
+  if (prebuilt) {
+    if (!existsSync(resolve(prebuilt))) throw Error(`--native: ${prebuilt} does not exist.`);
+    return resolve(prebuilt);
+  }
+  const output = resolve(out, 'native-core');
+  await rm(output, {recursive: true, force: true});
+  log('Compiling the native plugin from native/core with MSVC (the headless tests run as part of it).');
+  await run('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+    resolve(source.root, 'scripts/Build-NativeCore.ps1'), '-ProjectDirectory', source.root, '-OutputDirectory', output], {quiet: true});
+  const dll = resolve(output, 'CyberpunkConvaiNative.dll');
+  if (!existsSync(dll)) throw Error('The native build produced no DLL.');
+  // The file-only inspector the install test runs on the extracted DLL (it maps the image without running any of its code).
+  const host = resolve(output, 'build/Release/convai_plugin_host.exe');
+  await mkdir(resolve(out, 'native'), {recursive: true});
+  if (existsSync(host)) await copyFile(host, resolve(out, 'native/convai_plugin_host.exe'));
+  await rm(resolve(output, 'build'), {recursive: true, force: true});
+  return dll;
+}
+
+// runtime/native-off.txt: the systems that start off because they are not yet proven in the real game. The plugin and the
+// Lua read it (native/core/src/core/Switches.hpp); a missing file means every system is on.
+function nativeOffText(config) {
+  return ['# Native systems that start off in this release because they are not yet proven in the real game.',
+    "# Each one runs the mod's own script path instead. One name per line; \"all\" turns every system off;",
+    '# a missing file turns every system on. A later update changes this list.',
+    ...config.native.off, ''].join('\n');
+}
+
 function launcherIni() {
   const lines = [
     '; Cyberpunk Convai: starts the conversation service with the game and stops it when the game exits.',
@@ -258,6 +300,21 @@ async function runtimePackage(source, config, models, key) {
   pkg.add(`${plugin}/launcher.ini`, {buffer: launcherIni()});
   pkg.text(`${plugin}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${plugin}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
+
+  // The optional native plugin: RED4ext loads it from red4ext/plugins/<name>/, and runtime/native-off.txt keeps the systems
+  // that are not yet proven in the real game on their script path.
+  const nativeDll = await buildNative(source);
+  if (nativeDll) {
+    const native = config.layout.nativeDirectory;
+    pkg.file(`${native}/${config.layout.nativeDll}`, nativeDll);
+    for (const [name, rel] of Object.entries(config.native.licences)) pkg.file(`${native}/${name}`, resolve(source.root, rel));
+    pkg.text(`${native}/README.txt`, 'Optional speed-up plugin for Cyberpunk Convai, loaded by RED4ext.\r\n'
+      + 'Cyberpunk Convai works the same without it: delete this folder and the mod runs entirely from its scripts.\r\n'
+      + 'Systems that are not yet proven in the game start switched off; see runtime\\native-off.txt in the mod folder.\r\n');
+    pkg.text(config.native.offFile, nativeOffText(config));
+    notices.push('Native plugin (red4ext/plugins/CyberpunkConvaiNative/CyberpunkConvaiNative.dll, built from native/core in this release): yyjson 0.12.0 (MIT, Copyright (c) 2020 YaoYuan)'
+      + ' and the RED4ext.SDK headers (MIT, Copyright (c) 2020 - present Octavian Dima); the licence texts are in that folder.');
+  }
 
   // Node.js: the official Windows build, node.exe and its licence only.
   const nodeZip = await download(tool.node.url, resolve(cache, 'downloads', basename(tool.node.url)), tool.node.sha256, log);
@@ -346,6 +403,11 @@ async function runtimePackage(source, config, models, key) {
   // Pocket reference clips: only those the live configuration uses, each checked against its hash.
   const pocketRefs = await referencesOf(pocketConfig, models);
   for (const [rel, path] of pocketRefs) pkg.file(`${plugin}/voices/${rel}`, path);
+  // The Mistral voice's reference clips, already cut and encoded as MP3, where the bridge's cache looks first (voices/prepared).
+  const voxtral = await voxtralCache(source, models, resolve(stage, 'voxtral-prepared'), [{version: 2, provider: 'hybrid', engine: 'omnivoice', voices: pocketConfig.voices}],
+    {label: 'Voxtral references (Pocket clips)'});
+  await pkg.tree(`${plugin}/voices/prepared`, voxtral.directory);
+  log(`Voxtral references: ${voxtral.keys.length} voices, ${(voxtral.bytes / 1e6).toFixed(2)} MB in the Runtime package.`);
 
   // Launcher scripts, application metadata and notices.
   for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
@@ -372,8 +434,56 @@ async function runtimePackage(source, config, models, key) {
   pkg.text(`${app}/licenses/THIRD_PARTY_NOTICES.md`, await readFile(resolve(source.root, 'THIRD_PARTY_NOTICES.md'), 'utf8'));
   pkg.json(`${app}/release.json`, {product: config.product, package: 'runtime', version, commit: source.commit,
     node: tool.node.version, python: tool.python.version, browser: `${tool.browser.name} ${tool.browser.version}`,
-    pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: key ? 'package' : 'player'});
+    pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: key ? 'package' : 'player',
+    nativePlugin: nativeDll ? await sha256File(nativeDll) : 'none'});
   return pkg;
+}
+
+// Pre-built Mistral voice references. Voxtral sends each character's reference clip with every request; the bridge makes it small
+// (mono 16 kHz, cut to about 8 s, then a 32 kbit/s MP3 with ffmpeg) and keeps the result in <voices>/prepared, one slot per voice key,
+// named by the source clip's hash. A player without ffmpeg would otherwise send the 265 KB WAV instead of the 33 KB MP3.
+// This builds those slots with the bridge's own code (VoxtralVoice.build, the same call a conversation makes), from `configs`
+// (registry configurations in the bridge's order of preference), and returns {directory, keys, bytes, skipped}.
+// `except`: a Map of key -> signature already shipped by another package; a slot with the same signature is left out.
+async function voxtralCache(source, models, directory, configs, {except = new Map(), label = 'Voxtral references'} = {}) {
+  const bridge = name => import(pathToFileURL(resolve(source.root, 'bridge', name)).href);
+  const {VoxtralVoice} = await bridge('voxtral-voice.mjs');
+  const {createReferencePreparer, findFfmpeg} = await bridge('voxtral-reference.mjs');
+  const {createVoiceProfileRegistry} = await bridge('voice-profile-registry.mjs');
+  if (!await findFfmpeg()) throw Error(`${label}: ffmpeg is needed to pre-build the MP3 references (put it on PATH or set CYBERPUNK_CONVAI_FFMPEG).`);
+  await rm(directory, {recursive: true, force: true});
+  await mkdir(directory, {recursive: true});
+  const root = resolve(directory, '..', 'voxtral-root');
+  const registries = configs.map(createVoiceProfileRegistry);
+  const voice = new VoxtralVoice({getKey: () => null, referenceRoot: root, registry: registries,
+    read: async path => {
+      const file = models.referencePath(posix(relative(root, path)));
+      if (!file || !existsSync(file)) throw Object.assign(Error('missing reference clip'), {code: 'ENOENT'});
+      return readFile(file);
+    },
+    prepare: createReferencePreparer({cacheDirectory: directory, onLog: message => log(`${label}: ${message}`)})});
+  const keys = [...new Set(registries.flatMap(registry => registry.keys))].sort();
+  const skipped = [];
+  for (const name of keys) {
+    const made = await voice.build(name);
+    if (!made) throw Error(`${label}: no reference could be prepared for ${name}.`);
+    if (made.format !== 'mp3') throw Error(`${label}: ${name} was not encoded as an MP3 (is ffmpeg working?).`);
+    if (!existsSync(join(directory, `${name}.json`))) throw Error(`${label}: ${name} was not cached (its key cannot name a cache slot).`);
+  }
+  let bytes = 0;
+  const kept = [];
+  for (const name of keys) {
+    const metaPath = join(directory, `${name}.json`), meta = JSON.parse(await readFile(metaPath, 'utf8'));
+    if (except.get(name) === meta.signature) { skipped.push(name); await rm(metaPath); await rm(join(directory, `${name}.${meta.format}`)); continue; }
+    // The build time is not part of what a slot means; a fixed value keeps the package reproducible.
+    meta.written = '2026-01-01T00:00:00.000Z';
+    await writeFile(metaPath, JSON.stringify(meta));
+    bytes += meta.bytes + (await stat(metaPath)).size;
+    kept.push(name);
+    except.set(name, meta.signature);
+  }
+  await rm(root, {recursive: true, force: true});
+  return {directory, keys: kept, bytes, skipped};
 }
 
 function templateOf(config) {
@@ -462,9 +572,9 @@ async function omniPackage(source, config, models) {
 
   // OmniVoice voice configurations and their reference clips.
   const configs = config.models.groups.find(item => item.target === 'voice-configs/');
-  const seen = new Set();
+  const seen = new Set(), values = {};
   for (const name of ['local-voices.autobest-short.json', 'local-voices.autobest-long.json']) {
-    const value = JSON.parse(await readFile(models.files.get(configs.bucket + name), 'utf8'));
+    const value = values[name] = JSON.parse(await readFile(models.files.get(configs.bucket + name), 'utf8'));
     if (value.revision !== model.revision) throw Error(`${name} names OmniVoice ${value.revision}, not the packaged ${model.revision}.`);
     const copy = structuredClone(value); delete copy.proposal;
     pkg.json(`${omni}/defaults/${name}`, copy);
@@ -473,9 +583,87 @@ async function omniPackage(source, config, models) {
       seen.add(rel); pkg.file(`${plugin}/voices/${rel}`, path);
     }
   }
+  // The Mistral voice clones from the OmniVoice clips (long first, then short, then Pocket's) when this pack is installed, and its
+  // prepared reference is kept per voice by the clip's hash. The Runtime package carries the slots for the Pocket clips; this pack
+  // overwrites the ones whose clip differs. Slots the Runtime package already holds (same clip) are not repeated.
+  const pocketConfig = JSON.parse(await readFile(models.files.get(configs.bucket + 'pocket-voices.autobest.json'), 'utf8'));
+  const shipped = new Map();
+  await voxtralCache(source, models, resolve(stage, 'voxtral-pocket'), [{version: 2, provider: 'hybrid', engine: 'omnivoice', voices: pocketConfig.voices}],
+    {except: shipped, label: 'Voxtral references (Pocket clips, for comparison)'});
+  const voxtral = await voxtralCache(source, models, resolve(stage, 'voxtral-prepared'),
+    [values['local-voices.autobest-long.json'], values['local-voices.autobest-short.json']], {except: shipped, label: 'Voxtral references (OmniVoice clips)'});
+  await pkg.tree(`${plugin}/voices/prepared`, voxtral.directory);
+  log(`Voxtral references: ${voxtral.keys.length} voices, ${(voxtral.bytes / 1e6).toFixed(2)} MB in the OmniVoice pack (${voxtral.skipped.length} identical to the Runtime package's).`);
   pkg.text(`${omni}/THIRD-PARTY-NOTICES.txt`, ['Cyberpunk Convai OmniVoice pack - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
   pkg.json(`${omni}/omni-pack.json`, {product: config.product, package: 'omni', version, commit: '' + source.commit,
     python: tool.omniPython.version, model: `${model.repository}@${model.revision}`, adapter: `${studio.repository}@${studio.revision}`});
+  return pkg;
+}
+
+// A Local AI download (docs/LOCAL_AI.md): the llama-server build, the embedding model and one chat model, with a manifest
+// fragment that bridge/local-ai-pack.mjs merges with the other pack's. Both packs ship identical server, embedding and notice
+// files, so extracting the second over the first only overwrites identical bytes.
+const globToRegExp = pattern => new RegExp('^' + pattern.split('*').map(part => part.replace(/[^A-Za-z0-9_-]/g, '\\$&')).join('.*') + '$', 'i');
+
+// A pinned file of the Local AI packs: from the developer folder when building with --models local and the file is there
+// (still checked against the recorded hash), else downloaded from the pinned URL.
+async function localAiFile(spec, url, cacheName) {
+  const developer = modelSource === 'local' && localAiSource && spec.local ? resolve(localAiSource, spec.local) : null;
+  if (developer && existsSync(developer)) {
+    if ((await stat(developer)).size !== spec.size || await sha256File(developer) !== spec.sha256) throw Error(`${developer} differs from the pinned ${cacheName}.`);
+    return developer;
+  }
+  return download(url, resolve(cache, 'local-ai', cacheName), spec.sha256, log);
+}
+
+async function localAiPackage(source, config, tierKey) {
+  const spec = config.localAi, tier = spec.tiers[tierKey];
+  const pkg = new Package(`localai-${tierKey}`);
+  const root = config.layout.localAiDirectory;
+  const huggingFace = item => `https://huggingface.co/${item.repository}/resolve/${item.revision}/${item.file}`;
+
+  // llama-server: the official release build, unmodified. Only the server and the libraries it loads ship; the other command
+  // line tools of the release do not.
+  const zip = await localAiFile(spec.server, spec.server.url, `llama-${spec.server.version}-vulkan-x64.zip`);
+  const extracted = resolve(cache, 'extract', `llama-${spec.server.version}`);
+  await extractZip(zip, extracted);
+  const keep = spec.server.keep.map(globToRegExp), drop = new Set(spec.server.drop);
+  const shipped = (await readdir(extracted)).filter(name => keep.some(pattern => pattern.test(name)) && !drop.has(name)).sort();
+  for (const name of spec.server.require) if (!shipped.includes(name)) throw Error(`The llama.cpp ${spec.server.version} download has no ${name}.`);
+  for (const name of shipped) pkg.file(`${root}/llama/${name}`, resolve(extracted, name));
+
+  // The embedding model and this pack's chat model (split into parts by splitLargeFiles when over the download limit).
+  const embedPath = await localAiFile(spec.embed, huggingFace(spec.embed), spec.embed.file);
+  pkg.file(`${root}/models/${spec.embed.file}`, embedPath);
+  const chatPath = await localAiFile(tier, huggingFace(tier), tier.file);
+  pkg.file(`${root}/models/${tier.file}`, chatPath);
+
+  pkg.json(`${root}/manifest.${tierKey}.json`, {version: 1, server: 'llama/llama-server.exe',
+    [tierKey]: {file: `models/${tier.file}`, name: tier.name},
+    embed: {file: `models/${spec.embed.file}`, dim: spec.embed.dim, id: spec.embed.file.replace(/\.gguf$/i, '').toLowerCase()}});
+
+  // Licence texts and notices. The same bytes in both packs.
+  const licences = resolve(source.root, 'packaging/licenses');
+  pkg.file(`${root}/licenses/Apache-2.0.txt`, resolve(licences, 'Apache-2.0.txt'));
+  pkg.file(`${root}/licenses/llama.cpp-MIT.txt`, resolve(licences, 'llama.cpp-MIT.txt'));
+  pkg.text(`${root}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
+  const standard = spec.tiers.standard, lite = spec.tiers.lite;
+  const notices = [
+    `llama.cpp ${spec.server.version} (llama-server, Vulkan build for Windows x64, the unmodified official release without its other command line tools) - ${spec.server.license}, Copyright (c) 2023-2026 The ggml authors: licenses/llama.cpp-MIT.txt;`
+      + ' the LLVM OpenMP runtime it includes (libomp.dll) has its licence in llama/LICENSE-LLVM-OpenMP - https://github.com/ggml-org/llama.cpp/tree/' + spec.server.version,
+    `${standard.name} (instruction-tuned, QAT q4_0 GGUF; Local AI standard only) - Google, ${standard.license}: licenses/Apache-2.0.txt - https://huggingface.co/${standard.repository}`
+      + ' - Google also publishes a prohibited use policy for Gemma: https://ai.google.dev/gemma/prohibited_use_policy',
+    `${lite.name} (Q4_K_M GGUF made by Unsloth; Local AI lite only) - Alibaba Cloud (Qwen), ${lite.license}, Copyright 2026 Alibaba Cloud: licenses/Apache-2.0.txt`
+      + ` - https://huggingface.co/Qwen/Qwen3.5-2B and https://huggingface.co/${lite.repository}`,
+    `${spec.embed.name} (embedding model for memory search; both packs) - IBM Granite, ${spec.embed.license}: licenses/Apache-2.0.txt`
+      + ` - https://huggingface.co/ibm-granite/granite-embedding-107m-multilingual and the GGUF at https://huggingface.co/${spec.embed.repository}`,
+    'The model files are the unmodified converted files of the publishers named above.',
+    'Cyberpunk Convai itself: Cyberpunk Convai Use License, see LICENSE.txt in this folder.',
+  ];
+  pkg.text(`${root}/THIRD-PARTY-NOTICES.txt`, ['Cyberpunk Convai Local AI packs - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
+  pkg.json(`${root}/local-ai-${tierKey}.json`, {product: config.product, package: `localai-${tierKey}`, version, commit: '' + source.commit,
+    llamaCpp: spec.server.version, model: `${tier.repository}@${tier.revision}`, modelFile: tier.file, modelSha256: tier.sha256,
+    embedModel: `${spec.embed.repository}@${spec.embed.revision}`});
   return pkg;
 }
 
@@ -484,7 +672,7 @@ async function splitLargeFiles(pkg, config) {
   for (const [name, entry] of [...pkg.entries]) {
     const size = await sizeOf(entry);
     if (size <= config.limits.splitFileBytes) continue;
-    if (!entry.source || !name.includes('/app/omni/')) throw Error(`${name} is too large to ship in one piece.`);
+    if (!entry.source || !/\/app\/(?:omni|local-ai)\//.test(name)) throw Error(`${name} is too large to ship in one piece.`);
     const sha = await sha256File(entry.source);
     const parts = [];
     for (let start = 0, index = 1; start < size; start += config.limits.splitPartBytes, index++) {
@@ -547,9 +735,11 @@ async function main() {
     scripts: async () => { const {pkg, devOnlyExcluded} = await scriptsPackage(source, config); report.devOnlyLuaExcluded = devOnlyExcluded; return pkg; },
     runtime: () => runtimePackage(source, config, models, key),
     omni: () => omniPackage(source, config, models),
+    'localai-standard': () => localAiPackage(source, config, 'standard'),
+    'localai-lite': () => localAiPackage(source, config, 'lite'),
   };
-  const titles = {scripts: 'Scripts', runtime: 'Runtime', omni: 'OmniPack'};
-  for (const id of ['scripts', 'runtime', 'omni']) {
+  const titles = {scripts: 'Scripts', runtime: 'Runtime', omni: 'OmniPack', 'localai-standard': 'LocalAI-Standard', 'localai-lite': 'LocalAI-Lite'};
+  for (const id of PACKAGE_IDS) {
     if (!packages.has(id)) continue;
     log(`Staging the ${titles[id]} package.`);
     const pkg = await builders[id]();
@@ -568,6 +758,13 @@ async function main() {
   for (const item of Object.values(report.packages).flatMap(entry => entry.archives)) {
     for (const entry of await listZip(resolve(out, 'packages', item.file))) {
       if (/^misc\//.test(entry.name)) throw Error(`${item.file} contains developer-only material: ${entry.name}`);
+      // Only the shipped launcher and the native plugin may install a RED4ext plugin. The development launcher
+      // (red4ext/plugins/CyberpunkConvaiLauncher) must never ship: with it, two services start.
+      if (/^red4ext\//i.test(entry.name) && /\.(?:dll|ini)$/i.test(entry.name)
+          && !entry.name.startsWith(`${config.layout.pluginDirectory}/`) && !entry.name.startsWith(`${config.layout.nativeDirectory}/`)) {
+        throw Error(`${item.file} installs an unexpected RED4ext plugin file: ${entry.name}`);
+      }
+      if (/(?:^|\/)CyberpunkConvaiLauncher[^/]*$/i.test(entry.name)) throw Error(`${item.file} contains the development launcher: ${entry.name}`);
       if (/(?:^|\/)(?:convai-key\.txt|kaggle-access-token\.txt|huggingface-[^/]*\.txt|\.env|(?:player|vendor)-memory[^/]*\.(?:json|bak|tmp|corrupt)|phone-sessions\.json|characters-verified\.json)$/i.test(entry.name)) {
         throw Error(`${item.file} contains a forbidden file: ${entry.name}`);
       }
