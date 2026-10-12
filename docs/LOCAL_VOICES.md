@@ -1,6 +1,8 @@
 # Shared local voices
 
 The Mistral cloud voice (Voxtral, 2026-10-12) is a seventh Companion voices entry that rides on the Pocket route and falls back to
+Pocket for any reply it cannot deliver in time: see `docs/CLOUD_VOICE_VOXTRAL.md`.
+
 ## Voice report and reference picker (one page)
 
 `scripts/Reference-Picker.mjs` serves the research listening report and the reference-clip controls on one page. Open the
