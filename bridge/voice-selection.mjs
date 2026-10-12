@@ -550,13 +550,35 @@ export class VoiceSelection {
     // error, no first audio in time) speaks this reply with Pocket, which is already loaded; the voice reports it so the
     // player is told once (cloudFallback). A failure of the consumer or a cancellation is not a fallback.
     if (this.cloudActive && this.voxtral.ready) {
-      try { return await this.voxtral.synthesizeStream(profile, spoken, options); }
+      let cloud;
+      try { cloud = await this.voxtral.synthesizeStream(profile, spoken, options); }
       catch (error) {
         throwIfCancelled(options.signal);
         if (error?.sink) throw error;
       }
+      if (cloud && !cloud.remainder) return cloud;
+      if (cloud) return this.finishWithPocket(client, profile, cloud, options);
     }
     return client.synthesizeStream(profile, spoken, options);
+  }
+  // A split reply whose second request failed: its first part has been spoken by Voxtral; Pocket speaks the rest as the same
+  // reply (its packets are renumbered to continue the first part's, under the first part's identity).
+  async finishWithPocket(client, profile, cloud, options) {
+    const base = cloud.continuation;
+    const onPcm = options.onPcm && (packet => options.onPcm({...packet, owner: base.owner, id: base.id, modelSha256: base.modelSha256,
+      index: base.index + packet.index - 1, offsetFrames: base.offsetFrames + packet.offsetFrames,
+      startSeconds: (base.offsetFrames + packet.offsetFrames) / 24000}));
+    let rest;
+    try { rest = await client.synthesizeStream(profile, cloud.remainder, {...options, onPcm}); }
+    catch (error) {
+      throwIfCancelled(options.signal);
+      if (error?.sink) throw error;
+      // Pocket could not speak the rest either: the first part stands (the written reply is complete).
+      return {...cloud, remainder: undefined, continuation: undefined, truncated: true};
+    }
+    const frames = cloud.frames + (rest.frames ?? 0);
+    return {...rest, frames, chunks: (cloud.chunks ?? 0) + (rest.chunks ?? 0), duration: frames / 24000,
+      timing: {...rest.timing, ...cloud.timing, voicePocketRemainder: true}};
   }
   // `language` (ISO 639-1, e.g. 'es') reaches the worker for a reply that is not in English.
   async synthesize(profile,text,options={}){

@@ -36,7 +36,8 @@ work exactly as with Pocket. Group chat look-ahead (`BufferedPcm`) is unchanged.
   and `speech.audio.done`. Bytes can split anywhere, including inside a sample; the decoder carries the remainder.
 - `ref_audio` is the character's reference clip, chosen as in "Which clip is cloned" below (a clip over 25 s is cut). Saved
   voices need a paid plan, so the clip is sent with **every** call; its base64 form is cached per voice in memory (32 voices).
-- **One request per reply**, streamed, never one per sentence.
+- **One request per reply**, streamed, never one per sentence, with one exception: a long reply (160 characters or more) is split
+  once, into its first sentence and the rest (see "Long replies").
 - The key goes only in the Authorization header; messages pass through `redact`; it is never logged or written to a state file.
 
 ## Fallback rule
@@ -49,7 +50,7 @@ speaks that reply:
 | --- | --- | --- |
 | No Mistral key | `no-key` | Pocket until a key appears |
 | No clip at all for this character (see below) | `no-reference` | Pocket for this character; the rest still use Voxtral |
-| No first audio in 4 s (counted from the moment the request is sent, not when it queued) or waiting over 6 s behind other Mistral requests | `timeout` | next reply tries again |
+| No first audio in 7 s (counted from the moment the request is sent, not when it queued) or waiting over 6 s behind other Mistral requests | `timeout` | next reply tries again |
 | 429 | `limit` | cool-down for `Retry-After` (20 s when none, at most 60 s); every Mistral request pauses for it |
 | 401 / 403 | `key` | 60 s cool-down |
 | Network error, 5xx, stalled stream (8 s of silence) | `network` | next reply tries again |
@@ -59,6 +60,29 @@ speaks that reply:
 **The rule for a character with no clip at all: Pocket**, as in the table. A stock Voxtral voice would be a different, generic voice
 that does not match the character (the preset voices carry only gender and language tags), so none is used. Today that is
 nobody who has a clip: see the next section for `8ug8ear` and `jake-estevez`.
+
+## Long replies: two requests
+
+The first audio of a long reply was observed to take over the old 4 s limit in game (2026-10-12, Alex, Local provider: "fell back to
+Pocket: timeout" on the third, longest reply). So a reply of 160 characters or more is sent as **two requests started together**
+(`splitReply`):
+
+- The first request holds the first sentence (at least 40 characters, so a short "Hey V." joins the next sentence; with no sentence end
+  in reach, up to the last comma, semicolon or colon before 120 characters). The rest is the second request. If the rest would be
+  under 40 characters, or there is nowhere to cut, the reply stays one request.
+- The scheduler starts both at once. The first part's audio is handed to the player as it arrives. The second part's audio is held
+  until the first part has been handed on, then released, at once if it is complete, otherwise a little (1.5 s) before the first
+  part's audio would run out, so the player hears one reply with its packets in order (same owner, id, increasing index and offset).
+- If the first request fails before audio, the second is dropped and Pocket speaks the whole reply, as for a short reply.
+- **If the second request fails before any of its audio was played** (an error, a drop, or no audio by the time the first part is nearly
+  over), the result carries the unspoken rest as `remainder` and the voice selection has **Pocket speak it as the same reply**: its
+  packets are renumbered to continue the first part's (`finishWithPocket`). The player gets the usual once-per-session notice. If
+  Pocket cannot speak it either, the reply ends after the first part.
+- If the second request fails after its audio has started playing, the reply ends there (`truncated: true`); nothing is spoken twice.
+
+The first-audio limit is 7 s from the send. Every Voxtral reply logs `[Voxtral] first audio Nms, chars N` (with the two request sizes
+for a split reply, and `second request first audio Nms`), and every fallback logs its reason with the detail (for example `gave no
+audio within 7000 ms`), so the real distribution can be read from `runtime/bridge.stderr.log`.
 
 ## Which clip is cloned
 
@@ -84,7 +108,8 @@ Checked here on 2026-10-12: `8ug8ear` and `jake-estevez` are "unprepared" in all
 speak with Pocket until someone extracts clips for them. Judy, Johnny, Adam Smasher, Ana Friedman and Blue Moon have extracted clips as well.
 
 If audio is already playing and the stream then fails, the reply's audio ends early (the written reply is complete) rather than
-playing two voices; the result carries `truncated: true`. A failure of the consumer (`onPcm` throwing) or a cancellation is not a
+playing two voices; the result carries `truncated: true`. (A failure of the *second* request of a split reply before any of its
+audio was played is different: Pocket speaks the rest, see below.) A failure of the consumer (`onPcm` throwing) or a cancellation is not a
 fallback.
 
 The player is told **once per session** per fallback: "Mistral cloud voice (Voxtral) is not ready yet. Companions are using Pocket ·
@@ -123,8 +148,12 @@ scheduler is paused or slowed.
   (zero-crossing rate and level consistent with speech).
 - Smoke call with the extracted-clips source (Judy, registries empty, 2026-10-12): the joined 48 kHz file was accepted, first audio
   at 2.1 s, 5.76 s of speech at a normal level.
+- Long reply, two live calls (2026-10-12, Judy, 317 characters): sent as two requests (41 + 275 characters) first audio came at
+  2.07 s and the second request's at 2.94 s, 23.6 s of speech in 5.2 s; the same text as one request had first audio at 2.07 s and
+  21.8 s of speech in 4.2 s. So on this probe the length of the text did not move the first audio; the split is a hedge against the
+  slow starts seen in game and in the research (a spike costs only the first sentence's wait), not a measured gain on the median.
 - From `docs/FREE_CLOUD_OPTION_RESEARCH.md`: first audio median 1.24 s over six warm runs (0.98 to 1.56 s) with one 11 s spike
-  in about ten calls, which is why the 4 s first-audio limit and the Pocket fallback exist. A reply of about 90 characters costs
+  in about ten calls, which is why a first-audio limit (now 7 s) and the Pocket fallback exist. A reply of about 90 characters costs
   about 90 of the 12,000 input characters a minute.
 
 ## Limits
@@ -133,5 +162,8 @@ scheduler is paused or slowed.
 - The audio style comes from the reference clip (Voxtral has no tags or style field), so Natural speech is limited to pauses
   and Expressive emotions use the usual text-based expression.
 - A voice that is routed to Pocket for one reply sounds like Pocket for that reply; nothing is cross-faded.
+- The routing log (`runtime/bridge.stderr.log`, `[VoiceRouting]`) names, under `ref=`, the reference Voxtral clones from (long set, else
+  short, else Pocket), not the Pocket reference it rides on; before 2026-10-12 it showed the Pocket one (for Alex, `picked/autobest/pocket
+  16.59s` although the long set has an entry). Clips extracted for a character, the last resort, show as `-`.
 - The Characters sidebar names "Mistral cloud voice (Voxtral)" for every character routed locally while the voice is active,
   including any that fall back to Pocket for want of a clip.

@@ -49,6 +49,25 @@ export function referenceOf(voice, backend, key, sources = {}) {
 }
 
 /**
+ * The reference the Mistral cloud voice (Voxtral) clones a voice key from: the first of the OmniVoice long set, the short set and
+ * the Pocket set that lists one, as bridge/voxtral-voice.mjs picks it (clips extracted for the character, its last resort, are not
+ * listed in any set: null).
+ */
+export function cloudReferenceOf(voice, key, sources = {}) {
+  const sets = [[voice.omniVariants?.long?.registry, sources.omni?.long], [voice.omniVariants?.short?.registry, sources.omni?.short],
+    [voice.registries?.pocket, sources.pocket]];
+  for (const [registry, raw] of sets) {
+    const entry = registry?.profiles?.[key];
+    if (!entry?.reference) continue;
+    const path = String(entry.reference);
+    const set = path.startsWith(REFERENCE_ROOT) ? path.slice(REFERENCE_ROOT.length).split('/').slice(0, -1).join('/') : '';
+    const seconds = secondsOf(raw?.voices?.[key]);
+    return {set: set || path.split('/').at(-2) || 'reference', ...(seconds === undefined ? {} : {seconds})};
+  }
+  return null;
+}
+
+/**
  * Why the voice that spoke is not the one chosen in Settings; null when they agree. Pure over the voice selection's
  * state. `plan` is the turn plan (bridge/multilingual.mjs planTurnVoice), `engine` the voice that actually speaks:
  * 'pocket' | 'omni' | 'convai' | 'none' (written reply only).
@@ -107,7 +126,9 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
   const record = {time: now(), profile: key, name: profile?.name ?? input?.name ?? '?',
     requested: cloud ? CLOUD_LABEL : requestedLabel(voice.requestedProvider, voice.requestedOmniSteps, voice.requestedOmniReference),
     engine, voiceKey: local ? (voiceKey ?? key) : undefined,
-    reference: local ? referenceOf(voice, engine, voiceKey ?? key, sources) : null,
+    // The Mistral cloud voice clones from its own pick of the reference sets, not from the Pocket one it rides on.
+    reference: !local ? null : cloud && engine === 'pocket' && !cloudWhy ? cloudReferenceOf(voice, voiceKey ?? key, sources)
+      : referenceOf(voice, engine, voiceKey ?? key, sources),
     fallback: reason ?? (cloudWhy ? `Mistral cloud voice ${cloudWhy.reason === 'no-key' ? 'has no key' : 'fell back (' + cloudWhy.reason + ')'}` : null)
       ?? fallbackReason(voice, key, {plan, engine})};
   if (engine === 'omni') record.used = `OmniVoice ${voice.omniSteps} ${voice.omniReference}`;

@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {resolve} from 'node:path';
-import {VoxtralVoice, VoxtralError, VOXTRAL_LIMITS, capWav, joinWavs, mapStatus, redact, sseEvents} from './voxtral-voice.mjs';
+import {VoxtralVoice, VoxtralError, VOXTRAL_LIMITS, capWav, joinWavs, mapStatus, redact, splitReply, sseEvents} from './voxtral-voice.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {ownedLocalPcmPacket} from './local-pcm-host.mjs';
-import {describeVoiceRoute, formatVoiceRoute} from './voice-routing-log.mjs';
+import {cloudReferenceOf, describeVoiceRoute, formatVoiceRoute} from './voice-routing-log.mjs';
 import {LOCAL_VOICE_KEYS} from './resident-voice.mjs';
 import {MistralScheduler, PRIORITY} from './mistral-rate.mjs';
 
@@ -266,7 +266,7 @@ test('capWav cuts a long reference to the working length and fixes the header; s
   assert.equal(cut.length, 44 + 25 * 24000 * 2); assert.equal(cut.readUInt32LE(40), 25 * 24000 * 2); assert.equal(cut.readUInt32LE(4), cut.length - 8);
   const short = wav(5); assert.equal(capWav(short, 25), short);
   const other = Buffer.from('not a wav file at all, just bytes'); assert.equal(capWav(other, 25), other);
-  assert.equal(VOXTRAL_LIMITS.firstAudioMs, 4000);
+  assert.equal(VOXTRAL_LIMITS.firstAudioMs, 7000);
 });
 
 // ---- where the reference comes from: long set, short set, Pocket, then clips extracted for the character ----------------------
@@ -386,7 +386,7 @@ const pocketSettings = voices => ({version: 1, provider: 'pocket', engine: 'pock
   model: {sha256: 'a'.repeat(64), configSha256: 'b'.repeat(64), tokenizerSha256: 'c'.repeat(64), receiptSha256: 'd'.repeat(64),
     inputIdentity: 'e'.repeat(64), selectedStep: 1500}});
 
-function selection(server, {key = KEY, voxtral = {}} = {}) {
+function selection(server, {key = KEY, voxtral = {}, pocket = null} = {}) {
   const calls = [], states = [];
   const voices = Object.fromEntries(LOCAL_VOICE_KEYS.map(name => [name, {reference: `runtime/voice-references/${name}.wav`,
     sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.'}]));
@@ -401,7 +401,7 @@ function selection(server, {key = KEY, voxtral = {}} = {}) {
       return {get loaded() { return loaded; }, hasProfile: name => Object.hasOwn(config.voices, name), profileReady: name => loaded && Object.hasOwn(config.voices, name),
         async prepareProfile(name) { return {provider: 'pocket', ready: true, profile: name}; },
         async start() { loaded = true; onState({state: 'ready', resident: true}); },
-        async synthesizeStream(name, text, options) { calls.push({name, text}); await options.onPcm?.({marker: 'pocket'}); return {audio: 'pocket'}; },
+        async synthesizeStream(name, text, options) { calls.push({name, text}); if (pocket) return pocket(name, text, options); await options.onPcm?.({marker: 'pocket'}); return {audio: 'pocket'}; },
         async close() { loaded = false; onState({state: 'stopped'}); }};
     }});
   return {voice, cloud, calls, states};
@@ -513,6 +513,7 @@ test('the routing log names the cloud voice, and Pocket with the reason when it 
       plan: {engine: 'pocket'}, reply: {engine: 'pocket'}, now: () => 0});
     let record = describe();
     assert.equal(record.requested, 'Mistral cloud voice (Voxtral)'); assert.equal(record.used, 'Mistral cloud voice (Voxtral)'); assert.equal(record.fallback, null);
+    assert.ok(record.reference, 'the log names the reference the cloud voice clones from');
     await h.voice.synthesizeStream('judy-alvarez', 'Late.', {onPcm() {}});
     record = describe();
     assert.equal(record.used, 'Pocket'); assert.equal(record.fallback, 'Mistral cloud voice fell back (timeout)');
@@ -597,4 +598,217 @@ test('the voice selection hands Voxtral the long set, the short set and the Pock
     assert.ok(cloud.registries[2].profiles['judy-alvarez'], 'the Pocket set last');
     await voice.close?.();
   } finally { await server.close(); }
+});
+
+// ---- long replies: the first sentence and the rest as two requests sent together --------------------------------------------
+
+const FIRST = 'I did not expect to see you down here, V.';
+const REST = 'Anyway, there is a long story behind all of this and I will tell it to you slowly, because you deserve to hear all of it.';
+const LONG = `${FIRST} ${REST}`;
+
+test('splitReply: a short reply is one request; a long one splits after the first sentence that holds enough, else at a clause break; a tiny rest is not split off', () => {
+  assert.deepEqual(splitReply('Hello there, V.'), ['Hello there, V.']);
+  assert.deepEqual(splitReply(LONG), [FIRST, REST]);
+  // A short opening joins the next sentence, so the first request is not just "Hey V.".
+  const opening = `Hey V. ${FIRST} ${REST}`;
+  assert.deepEqual(splitReply(opening), [`Hey V. ${FIRST}`, REST]);
+  // Ellipses, question marks, closing quotes and line breaks end a sentence; a decimal point and an abbreviation without a space do not.
+  assert.deepEqual(splitReply(`Is that really what you want to do with the rest of your night?" ${REST} ${REST}`), ['Is that really what you want to do with the rest of your night?"', `${REST} ${REST}`]);
+  assert.deepEqual(splitReply(`Well... that is something to think about for a while, isn't it? ${REST} ${REST}`)[0], 'Well... that is something to think about for a while, isn\'t it?');
+  assert.deepEqual(splitReply(`The cost is 3.5 million eddies and then some more besides that,\n${REST} ${REST}`)[0], 'The cost is 3.5 million eddies and then some more besides that,');
+  // No sentence end in reach: the last comma before 120 characters.
+  const run = 'we went down to the old market and then across the river, past the burned out towers and the gangs on the corner, and all along the road ' + REST;
+  const [head, tail] = splitReply(run);
+  assert.ok(head.endsWith('corner,') && head.length <= 120 && run.startsWith(head) && `${head} ${tail}` === run, head);
+  // Nothing to cut at, or too little left over: one request.
+  assert.equal(splitReply('x'.repeat(200)).length, 1);
+  assert.equal(splitReply(`${'a'.repeat(150)}. ok.`).length, 1);
+  assert.equal(splitReply(undefined).length, 1);
+});
+
+// A server that answers by the text it was sent: `plans[text]` = {delay, deltas: [Float32Array...], then: 'done' | 'drop' | status}.
+function planned(plans) {
+  const at = {};
+  return serve(async (request, response, record) => {
+    const plan = plans.find(candidate => record.body?.input === candidate.input);
+    at[plan?.name] = performance.now();
+    if (!plan) { response.writeHead(400); response.end('unexpected text'); return; }
+    if (plan.delay) await wait(plan.delay);
+    if (typeof plan.then === 'number') { response.writeHead(plan.then, {'content-type': 'application/json'}); response.end('{"message":"no"}'); return; }
+    sse(response);
+    for (const [index, samplesOut] of (plan.deltas ?? []).entries()) {
+      if (index && plan.gap) await wait(plan.gap);
+      response.write(delta(bytesOf(samplesOut)));
+    }
+    if (plan.then === 'drop') { await wait(plan.dropAfter ?? 0); response.destroy(); return; }
+    response.end(done);
+  }).then(server => Object.assign(server, {at}));
+}
+const level = (count, value) => new Float32Array(count).fill(value);
+const valuesOf = packets => packets.map(packet => packet.pcm[0]);
+
+test('a long reply goes out as two requests started together, and the audio reaches the player in order as one reply', async () => {
+  const server = await planned([
+    {name: 'first', input: FIRST, delay: 150, deltas: [level(24000, 0.25), level(24000, 0.25)]},
+    {name: 'second', input: REST, deltas: [level(4800, 0.5), level(4800, 0.5)]}]);
+  try {
+    const logs = [];
+    const {voice} = voiceFor(server, {onLog: line => logs.push(line)});
+    const sink = collect();
+    const result = await voice.synthesizeStream('judy-alvarez', LONG, sink);
+    assert.equal(server.requests.length, 2);
+    assert.deepEqual(server.requests.map(request => request.body.input).sort(), [FIRST, REST].sort());
+    assert.ok(Math.abs(server.at.second - server.at.first) < 100, 'the second request did not wait for the first to finish');
+    // The second part answered first, but its audio waits for the first part's: 0.25 for 2 s, then 0.5.
+    const values = valuesOf(sink.packets);
+    assert.deepEqual([...new Set(values)], [0.25, 0.5]);
+    assert.equal(values.indexOf(0.5), 20, 'ten 100 ms packets per second of the first part, two seconds');
+    sink.packets.forEach((packet, at) => {
+      assert.equal(packet.index, at + 1); assert.equal(packet.owner, sink.packets[0].owner); assert.equal(packet.id, sink.packets[0].id);
+      assert.equal(packet.offsetFrames, sink.packets.slice(0, at).reduce((sum, earlier) => sum + earlier.frames, 0));
+    });
+    assert.equal(result.frames, 48000 + 9600); assert.equal(result.chunks, sink.packets.length);
+    assert.equal(result.truncated, false); assert.equal(result.remainder, undefined); assert.equal(result.timing.voiceRequests, 2);
+    assert.ok(logs.some(line => /\[Voxtral\] first audio \d+ms, chars \d+/.test(line)), logs.join('|'));
+    assert.ok(logs.some(line => line.includes(`chars ${LONG.length}`)));
+    assert.equal(voice.degraded, null);
+  } finally { await server.close(); }
+});
+
+test('a short reply stays one request', async () => {
+  const server = await planned([{name: 'only', input: 'Hello there, V.', deltas: [level(2400, 0.1)]}]);
+  try {
+    const {voice} = voiceFor(server);
+    const result = await voice.synthesizeStream('judy-alvarez', 'Hello there, V.', collect());
+    assert.equal(server.requests.length, 1); assert.equal(result.timing.voiceRequests, 1);
+  } finally { await server.close(); }
+});
+
+test('a second part that is slower than the first part\'s audio is played as it arrives, once the first part is done', async () => {
+  const server = await planned([
+    {name: 'first', input: FIRST, deltas: [level(9600, 0.25)]},
+    {name: 'second', input: REST, delay: 120, gap: 60, deltas: [level(4800, 0.5), level(4800, 0.5), level(4800, 0.5)]}]);
+  try {
+    const {voice} = voiceFor(server, {limits: {splitMarginMs: 100}});
+    const sink = collect();
+    const result = await voice.synthesizeStream('judy-alvarez', LONG, sink);
+    assert.deepEqual([...new Set(valuesOf(sink.packets))], [0.25, 0.5]);
+    assert.equal(result.frames, 9600 + 14400); assert.equal(result.truncated, false);
+  } finally { await server.close(); }
+});
+
+test('the first part failing sends the whole reply to Pocket and drops the second request', async () => {
+  const server = await planned([
+    {name: 'first', input: FIRST, then: 503},
+    {name: 'second', input: REST, delay: 300, deltas: [level(2400, 0.5)]}]);
+  try {
+    const {voice} = voiceFor(server);
+    const sink = collect();
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', LONG, sink), {kind: 'network'});
+    assert.equal(sink.packets.length, 0, 'nothing of the second part is played without the first');
+    assert.equal(voice.degraded.reason, 'network');
+  } finally { await server.close(); }
+});
+
+test('the second part failing before its audio is played: the result hands the unspoken rest to Pocket, and the service is noted as down', async () => {
+  for (const second of [{then: 500}, {delay: 10, deltas: [level(2400, 0.5)], then: 'drop', dropAfter: 0}]) {
+    const server = await planned([
+      {name: 'first', input: FIRST, deltas: [level(24000, 0.25), level(24000, 0.25)], gap: 40},
+      {name: 'second', input: REST, ...second}]);
+    try {
+      const logs = [];
+      const {voice} = voiceFor(server, {onLog: line => logs.push(line)});
+      const sink = collect();
+      const result = await voice.synthesizeStream('judy-alvarez', LONG, sink);
+      assert.equal(result.remainder, REST);
+      assert.deepEqual([...new Set(valuesOf(sink.packets))], [0.25], 'only the first part was played');
+      assert.deepEqual(result.continuation, {owner: sink.packets[0].owner, id: sink.packets[0].id, modelSha256: sink.packets[0].modelSha256,
+        index: sink.packets.length + 1, offsetFrames: 48000});
+      assert.equal(result.frames, 48000);
+      assert.ok(voice.degraded, 'the player is told once that the cloud voice is not ready');
+      assert.ok(logs.some(line => line.includes('the rest of the reply fell back to Pocket')), logs.join('|'));
+    } finally { await server.close(); }
+  }
+});
+
+test('a second part with no audio when the first part is nearly over is given up on: Pocket speaks the rest', async () => {
+  const server = await planned([
+    {name: 'first', input: FIRST, deltas: [level(4800, 0.25)]},
+    {name: 'second', input: REST, delay: 3000, deltas: [level(2400, 0.5)]}]);
+  try {
+    const {voice} = voiceFor(server, {limits: {splitMarginMs: 100}});
+    const started = performance.now();
+    const result = await voice.synthesizeStream('judy-alvarez', LONG, collect());
+    assert.equal(result.remainder, REST);
+    assert.ok(performance.now() - started < 1500, 'did not wait for the slow request');
+  } finally { await server.close(); }
+});
+
+test('a second part that fails after its audio has started ends the reply there; nothing is spoken twice', async () => {
+  const server = await planned([
+    {name: 'first', input: FIRST, deltas: [level(4800, 0.25)]},
+    {name: 'second', input: REST, deltas: [level(4800, 0.5), level(4800, 0.5)], gap: 150, then: 'drop', dropAfter: 400}]);
+  try {
+    const {voice} = voiceFor(server, {limits: {splitMarginMs: 100}});
+    const sink = collect();
+    const result = await voice.synthesizeStream('judy-alvarez', LONG, sink);
+    assert.equal(result.truncated, true); assert.equal(result.remainder, undefined);
+    assert.deepEqual([...new Set(valuesOf(sink.packets))], [0.25, 0.5]);
+  } finally { await server.close(); }
+});
+
+test('cancelling a split reply stops both requests', async () => {
+  const server = await planned([
+    {name: 'first', input: FIRST, delay: 400, deltas: [level(2400, 0.25)]},
+    {name: 'second', input: REST, delay: 400, deltas: [level(2400, 0.5)]}]);
+  try {
+    const {voice} = voiceFor(server);
+    const controller = new AbortController(), sink = collect();
+    const speaking = voice.synthesizeStream('judy-alvarez', LONG, {...sink, signal: controller.signal});
+    await wait(100); controller.abort();
+    await assert.rejects(speaking, error => error.name === 'AbortError' || /cancel/i.test(error.message));
+    await wait(100);
+    assert.equal(sink.packets.length, 0);
+    assert.ok(server.requests.every(request => request.closed), 'both connections were closed');
+  } finally { await server.close(); }
+});
+
+test('the voice selection speaks the rest of a split reply with Pocket as the same reply when the second request fails', async () => {
+  const server = await planned([
+    {name: 'first', input: FIRST, deltas: [level(24000, 0.25)]},
+    {name: 'second', input: REST, then: 500}]);
+  try {
+    const packets = [];
+    const h = selection(server, {pocket: async (name, text, options) => {
+      assert.equal(text, REST); assert.equal(name, 'judy-alvarez');
+      for (const index of [1, 2]) await options.onPcm({version: 1, engine: 'pocket-tts', profile: name, owner: 'f'.repeat(32), id: 9, index,
+        sampleRate: 24000, channels: 1, pcm: level(2400, 0.9), format: 'f32le', offsetFrames: (index - 1) * 2400, frames: 2400,
+        timebase: 'audio-seconds', startSeconds: (index - 1) * 0.1, modelSha256: 'f'.repeat(64)});
+      return {provider: 'pocket', frames: 4800, chunks: 2, duration: 0.2, timing: {voiceProvider: 'pocket'}};
+    }});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false);
+    await h.voice.start();
+    const result = await h.voice.synthesizeStream('judy-alvarez', LONG, {onPcm: packet => { packets.push(packet); }});
+    const cloud = packets.filter(packet => packet.pcm[0] === 0.25), pocket = packets.filter(packet => packet.pcm[0] === Math.fround(0.9));
+    assert.equal(cloud.length, 10); assert.equal(pocket.length, 2);
+    packets.forEach((packet, at) => {
+      assert.equal(packet.index, at + 1); assert.equal(packet.owner, packets[0].owner); assert.equal(packet.id, packets[0].id);
+      assert.equal(packet.modelSha256, packets[0].modelSha256); assert.equal(packet.offsetFrames, at * 2400);
+      assert.equal(packet.startSeconds, packet.offsetFrames / 24000);
+    });
+    for (const packet of packets) assert.equal(ownedLocalPcmPacket(packet, {token: 'token', frames: packet.offsetFrames, index: packet.index - 1}).packet.index, packet.index);
+    assert.equal(result.frames, 24000 + 4800); assert.equal(result.chunks, 12); assert.equal(h.cloud.degraded.reason, 'network');
+  } finally { await server.close(); }
+});
+
+test('the routing log names the reference the cloud voice clones from (long, else short, else Pocket), not the Pocket one it rides on', () => {
+  const entry = set => ({profiles: {alex: {reference: `runtime/voice-references/picked/autobest/${set}/alex.wav`}}});
+  const voice = {omniVariants: {long: {registry: {profiles: {}}}, short: {registry: entry('omni-short')}}, registries: {pocket: entry('pocket')}};
+  const sources = {omni: {short: {voices: {alex: {pick: {seconds: 9.5}}}}}, pocket: {voices: {alex: {pick: {seconds: 16.59}}}}};
+  assert.deepEqual(cloudReferenceOf(voice, 'alex', sources), {set: 'picked/autobest/omni-short', seconds: 9.5});
+  voice.omniVariants.long.registry = entry('omni-long');
+  assert.equal(cloudReferenceOf(voice, 'alex', sources).set, 'picked/autobest/omni-long');
+  voice.omniVariants.long.registry = {profiles: {}}; voice.omniVariants.short.registry = {profiles: {}};
+  assert.deepEqual(cloudReferenceOf(voice, 'alex', sources), {set: 'picked/autobest/pocket', seconds: 16.59});
+  assert.equal(cloudReferenceOf(voice, 'someone', sources), null);
 });

@@ -33,7 +33,13 @@ export const VOXTRAL_ENDPOINT = 'https://api.mistral.ai/v1/audio/speech';
 export const VOXTRAL_MODEL = 'voxtral-mini-tts-latest';
 export const VOXTRAL_RATE = 24000;
 export const VOXTRAL_LIMITS = Object.freeze({
-  firstAudioMs: 4000,        // no audio by then: Pocket speaks this reply
+  firstAudioMs: 7000,        // no audio this long after the request was sent: Pocket speaks this reply (a long reply is split to stay well inside)
+  splitMinChars: 160,        // a reply shorter than this is one request
+  firstPartMinChars: 40,     // the first request of a split reply holds at least this much (a short opening joins the next sentence)
+  firstPartMaxChars: 120,    // with no sentence end near, the first request ends at a clause break before this
+  restMinChars: 40,          // a split that would leave less than this for the second request is not made
+  splitMarginMs: 1500,       // the second request's audio is released this long before the first one's would run out
+  splitGraceMs: 400,         // the second request is always given at least this long after the first part is done
   stallMs: 8000,             // silence this long inside a running stream ends it
   maxChars: 4000,            // longer text goes to Pocket (the model's context is 4,096 tokens)
   maxQueueMs: 6000,          // waiting this long behind other Mistral requests: Pocket speaks this reply
@@ -156,6 +162,43 @@ export function joinWavs(clips, {targetSeconds = VOXTRAL_LIMITS.extractedTargetS
   header.writeUInt32LE(format.rate, 24); header.writeUInt32LE(format.rate * align, 28); header.writeUInt16LE(align, 32);
   header.writeUInt16LE(format.bits, 34); header.write('data', 36, 'latin1'); header.writeUInt32LE(data.length, 40);
   return Buffer.concat([header, data]);
+}
+
+// ---- long replies -------------------------------------------------------------------------------------------------------------
+
+/**
+ * A long reply as [first sentence, the rest] so the first request is short and its audio starts sooner; anything else is [text].
+ * The first part ends at the first sentence end (a full stop, ! ? or an ellipsis followed by a space, or a line break) that leaves at
+ * least `firstPartMinChars` characters in it (a short "Hey V." joins the next sentence); when no sentence end comes before
+ * `firstPartMaxChars`, at the last comma, semicolon, colon or dash before it. Short replies, and a split that would leave the rest
+ * under `restMinChars`, stay one request.
+ */
+export function splitReply(text, {splitMinChars = VOXTRAL_LIMITS.splitMinChars, firstPartMinChars = VOXTRAL_LIMITS.firstPartMinChars,
+    firstPartMaxChars = VOXTRAL_LIMITS.firstPartMaxChars, restMinChars = VOXTRAL_LIMITS.restMinChars} = {}) {
+  if (typeof text !== 'string' || text.length < splitMinChars) return [text];
+  const closers = '"\')]”’', ends = '.!?…';
+  const spaceAt = at => at >= text.length || text[at] === ' ' || text[at] === '\t' || text[at] === '\n' || text[at] === '\r';
+  let cut = -1;
+  for (let at = 0; at < text.length && cut < 0; at++) {
+    const char = text[at];
+    if (char === '\n' && at + 1 >= firstPartMinChars) cut = at + 1;
+    else if (ends.includes(char)) {
+      let end = at + 1;
+      while (end < text.length && (ends.includes(text[end]) || closers.includes(text[end]))) end++;
+      if (spaceAt(end) && end >= firstPartMinChars) cut = end;
+      at = end - 1;
+    }
+  }
+  if (cut < 0 || cut > firstPartMaxChars * 2) {
+    // No sentence end in reach: the last clause break before the maximum.
+    cut = -1;
+    for (let at = Math.min(firstPartMaxChars, text.length - 1); at >= firstPartMinChars; at--) {
+      if (',;:'.includes(text[at - 1]) && text[at] === ' ') { cut = at + 1; break; }
+    }
+  }
+  if (cut < firstPartMinChars) return [text];
+  const first = text.slice(0, cut).trim(), rest = text.slice(cut).trim();
+  return first && rest.length >= restMinChars ? [first, rest] : [text];
 }
 
 // ---- server-sent events -------------------------------------------------------------------------------------------------
@@ -308,51 +351,164 @@ export class VoxtralVoice {
       const reference = await this.reference(key);
       throwIfCancelled(signal);
       if (!reference) throw fail('no-reference', 'has no reference clip for this voice');
-      const result = await this.stream({key, text, apiKey, reference, signal, onPcm, queued, fail});
-      this.note(null);
+      const {partFailure, ...result} = await this.stream({key, text, apiKey, reference, signal, onPcm, queued, fail});
       this.spoke++;
+      // The second request of a split reply can fail on its own: the caller speaks the rest with Pocket (result.remainder).
+      if (partFailure) this.noteFailure(partFailure, 'the rest of the reply');
+      else this.note(null);
       return result;
     } catch (error) {
-      if (error instanceof VoxtralError) {
-        if (error.kind === 'limit' && error.status === 429) this.until = this.clock() + (error.retryAfterMs ?? this.limits.limitCooldownMs);
-        if (error.kind === 'key') this.until = this.clock() + this.limits.keyCooldownMs;
-        // A voice without a reference, or text that cannot be spoken, is that reply's problem, not the service's.
-        if (error.kind !== 'text' && error.kind !== 'no-reference') this.note(error.kind);
-        this.log(`fell back to Pocket: ${error.kind}${error.status ? ` (HTTP ${error.status})` : ''}`);
-      }
+      if (error instanceof VoxtralError) this.noteFailure(error);
       throw error;
     }
   }
 
+  /** Records why Voxtral could not deliver (a limit or a refused key pauses requests) and says so in the log. */
+  noteFailure(error, scope = '') {
+    if (error.kind === 'limit' && error.status === 429) this.until = this.clock() + (error.retryAfterMs ?? this.limits.limitCooldownMs);
+    if (error.kind === 'key') this.until = this.clock() + this.limits.keyCooldownMs;
+    // A voice without a reference, or text that cannot be spoken, is that reply's problem, not the service's.
+    if (error.kind !== 'text' && error.kind !== 'no-reference') this.note(error.kind);
+    // The message is already scrubbed of the key; its detail says which limit was hit (for example how long it waited).
+    const detail = String(error.message ?? '').replace(/^Voxtral /, '').replace(/ \[voxtral:[a-z-]+\]$/, '');
+    this.log(`${scope ? scope + ' ' : ''}fell back to Pocket: ${error.kind}${error.status ? ` (HTTP ${error.status})` : ''}${detail ? ` - ${detail}` : ''}`);
+  }
+
+  /**
+   * One reply as one request, or (a long reply) as two requests sent together: its first sentence, for a fast first audio, and the
+   * rest. The packets reach `onPcm` in order: the first part as it arrives, the second part held until the first one is done
+   * and then released (at once if it is complete, else when the first part's audio is about to run out). If the second part
+   * fails before any of its audio was handed on, the result carries the unspoken text as `remainder` (the caller speaks it with
+   * Pocket); once its audio has started the reply simply ends early.
+   */
   async stream({key, text, apiKey, reference, signal, onPcm, queued, fail}) {
+    const parts = splitReply(text, this.limits);
+    const id = ++this.sequence, started = this.now();
+    let delivered = 0, chunks = 0, firstEmitAt = null;
+    const emit = async samples => {
+      const packet = {version: 1, engine: 'pocket-tts', profile: key, owner: this.owner, id, index: chunks + 1,
+        sampleRate: VOXTRAL_RATE, channels: 1, pcm: samples, format: 'f32le', offsetFrames: delivered,
+        frames: samples.length, timebase: 'audio-seconds', startSeconds: delivered / VOXTRAL_RATE,
+        modelSha256: MODEL_ID, timing: {voicePcmReceivedMs: this.now() - started}};
+      try { await onPcm(packet); }
+      catch (error) { error.sink = true; throw error; }
+      delivered += samples.length; chunks++;
+      firstEmitAt ??= this.now();
+    };
+    const part = (partText, partSignal, onSamples) => this.fetchPart({text: partText, apiKey, reference, signal: partSignal, fail, onSamples});
+    const summary = (first, extra = {}) => {
+      const truncated = !first.done || !!extra.truncated;
+      return {provider: 'voxtral', engine: 'voxtral', sampleRate: VOXTRAL_RATE, channels: 1, frames: delivered, chunks,
+        duration: delivered / VOXTRAL_RATE, modelSha256: MODEL_ID, truncated,
+        timing: {voiceProvider: 'pocket', voiceEngine: 'voxtral', voiceCloud: true, voiceWarm: true,
+          voiceFirstPcmReceivedMs: first.firstMs, voiceGenerationMs: this.now() - started, voiceRoundTripMs: this.now() - started,
+          voiceQueueMs: first.sentAt - queued, voiceReferenceBytes: reference.bytes, voiceReferenceSource: reference.source,
+          voiceRequests: parts.length, ...(truncated ? {voiceTruncated: true} : {})}};
+    };
+    const logFirst = first => this.log(`first audio ${Math.round(first.firstMs)}ms, chars ${text.length}`
+      + (parts.length > 1 ? ` (first request ${parts[0].length} chars, second ${parts[1].length})` : ''));
+
+    if (parts.length === 1) {
+      const first = await part(parts[0], signal, emit);
+      if (!delivered) throw fail('request', 'answered without audio');
+      logFirst(first);
+      return summary(first);
+    }
+
+    // Two requests, started together. The second one's audio is held until the first one's has been handed on.
+    const second = new AbortController();
+    const relay = () => second.abort(cancelled());
+    signal?.addEventListener('abort', relay, {once: true});
+    if (signal?.aborted) relay();
+    const held = [];
+    let live = false, forwarded = 0, secondFailure = null, secondDone = false, secondFirstMs = null, secondCut = false, timer = null;
+    // The first request is made first: the scheduler serves requests of one priority in the order they were asked.
+    const firstTask = part(parts[0], signal, emit);
+    firstTask.catch(() => {});
+    const secondTask = part(parts[1], second.signal, async samples => {
+      if (live) { forwarded++; await emit(samples); } else held.push(samples);
+    }).then(result => { secondDone = true; secondFirstMs = result.firstMs; secondCut = !result.done; }, error => { secondFailure = error; });
+    try {
+      let first;
+      try { first = await firstTask; }
+      catch (error) { second.abort(cancelled()); await secondTask; throw error; }
+      if (!delivered) { second.abort(cancelled()); await secondTask; throw fail('request', 'answered without audio'); }
+      logFirst(first);
+      if (!first.done) {
+        // The first part ended early: its audio is cut here, and the rest would follow a gap in the sentence. Stop at this point.
+        second.abort(cancelled()); await secondTask;
+        return summary(first);
+      }
+      // Wait for the second part, but not past the moment the first part's audio would run out (a little before it).
+      if (!secondDone && !secondFailure) {
+        const remaining = Math.max(this.limits.splitGraceMs, delivered / VOXTRAL_RATE * 1000 - (this.now() - firstEmitAt) - this.limits.splitMarginMs);
+        if (remaining > 0) {
+          await Promise.race([secondTask, new Promise(finish => { timer = this.setTimer(finish, remaining); timer?.unref?.(); })]);
+          this.clearTimer(timer);
+        }
+      }
+      throwIfCancelled(signal);
+      if (!secondFailure && !secondDone && !held.length) {
+        // Nothing of the second part has arrived and the first part's audio is nearly over: Pocket speaks the rest now.
+        second.abort(cancelled('Voxtral second request abandoned')); await secondTask;
+        throwIfCancelled(signal);
+        secondFailure = fail('timeout', 'gave no audio for the rest of the reply in time');
+      } else if (!secondFailure && secondDone && secondCut && !forwarded) {
+        // The second request ended early before any of its audio was handed on: drop that part and let Pocket speak all of it.
+        held.length = 0;
+        secondFailure = fail('network', 'ended the rest of the reply early');
+      }
+      if (!secondFailure) {
+        // Whatever is held goes now; if the second part is still running, the rest follows as it arrives.
+        while (held.length) { forwarded++; await emit(held.shift()); }
+        live = true;
+        await secondTask;
+        throwIfCancelled(signal);
+      }
+      if (secondFailure) {
+        if (secondFailure.sink || !(secondFailure instanceof VoxtralError)) throw secondFailure;
+        // No audio of the second part reached the player: Pocket speaks it. Otherwise the reply ends where its audio stopped.
+        const result = summary(first, forwarded ? {truncated: true} : {});
+        if (!forwarded) {
+          result.remainder = parts[1];
+          result.continuation = {owner: this.owner, id, modelSha256: MODEL_ID, index: chunks + 1, offsetFrames: delivered};
+        }
+        result.partFailure = secondFailure;
+        return result;
+      }
+      if (secondFirstMs !== null) this.log(`second request first audio ${Math.round(secondFirstMs)}ms`);
+      return summary(first, secondCut ? {truncated: true} : {});
+    } finally {
+      this.clearTimer(timer);
+      signal?.removeEventListener('abort', relay);
+      if (!second.signal.aborted) second.abort(cancelled('Voxtral reply completed'));
+    }
+  }
+
+  /**
+   * One request: sends `text`, reads the server-sent events and hands `onSamples` whole 100 ms frames of float32 audio, in order.
+   * Resolves with {done, frames, firstMs (from the send to the first audio), sentAt}. Before any audio has been handed on every
+   * failure throws a VoxtralError; after that a failure ends this request's audio where it stopped (done: false).
+   */
+  async fetchPart({text, apiKey, reference, signal, fail, onSamples}) {
     const controller = new AbortController();
     const onAbort = () => controller.abort(cancelled());
     signal?.addEventListener('abort', onAbort, {once: true});
     if (signal?.aborted) onAbort();
-    let timer, timedOut = null, delivered = 0, chunks = 0, firstMs = null;
+    let timer, timedOut = null, frames = 0, firstMs = null, sentAt = null;
     const arm = (ms, kind) => {
       this.clearTimer(timer);
       timer = this.setTimer(() => { timedOut = kind; controller.abort(Error(`voxtral ${kind}`)); }, ms);
       timer?.unref?.();
     };
-    const id = ++this.sequence, started = this.now();
     let carry = Buffer.alloc(0), pending = new Float32Array(0), response;
-    const emit = async packetSamples => {
-      const packet = {version: 1, engine: 'pocket-tts', profile: key, owner: this.owner, id, index: chunks + 1,
-        sampleRate: VOXTRAL_RATE, channels: 1, pcm: packetSamples, format: 'f32le', offsetFrames: delivered,
-        frames: packetSamples.length, timebase: 'audio-seconds', startSeconds: delivered / VOXTRAL_RATE,
-        modelSha256: MODEL_ID, timing: {voicePcmReceivedMs: this.now() - started}};
-      try { await onPcm(packet); }
-      catch (error) { error.sink = true; throw error; }
-      delivered += packetSamples.length; chunks++;
-      firstMs ??= this.now() - started;
-    };
-    // Whole 100 ms packets while audio arrives; the remainder waits for the next event or the end.
+    // Whole 100 ms frames while audio arrives; the remainder waits for the next event or the end.
     const push = async (bytes, final) => {
       const joined = carry.length ? Buffer.concat([carry, bytes]) : bytes;
       const whole = joined.length - (joined.length % 4);
       carry = Buffer.from(joined.subarray(whole));
       if (whole) {
+        firstMs ??= this.now() - sentAt;
         const samples = new Float32Array(whole / 4);
         for (let at = 0; at < samples.length; at++) {
           const value = joined.readFloatLE(at * 4);
@@ -366,7 +522,8 @@ export class VoxtralVoice {
       let from = 0;
       while (pending.length - from >= size || (final && pending.length - from > 0)) {
         const end = Math.min(from + size, pending.length);
-        await emit(pending.slice(from, end));
+        await onSamples(pending.slice(from, end));
+        frames += end - from;
         from = end;
       }
       if (from) pending = pending.slice(from);
@@ -375,6 +532,7 @@ export class VoxtralVoice {
       try {
         response = await this.scheduler.schedule(() => {
           // The first-audio limit counts from the moment the request is sent, not from when it queued behind other Mistral requests.
+          sentAt = this.now();
           arm(this.limits.firstAudioMs, 'timeout');
           return this.fetchImpl(this.endpoint, {method: 'POST', signal: controller.signal,
             headers: {authorization: `Bearer ${apiKey}`, 'content-type': 'application/json', accept: 'text/event-stream'},
@@ -401,27 +559,22 @@ export class VoxtralVoice {
           if (event?.type === 'speech.audio.delta' && typeof event.audio_data === 'string') {
             await push(Buffer.from(event.audio_data, 'base64'), false);
             // Audio is flowing: the first-audio limit is over, a long silence is the next limit.
-            if (delivered) arm(this.limits.stallMs, 'stall');
+            if (frames) arm(this.limits.stallMs, 'stall');
           } else if (event?.type === 'speech.audio.done') { done = true; break; }
           else if (event?.type === 'error' || event?.error) throw fail('request', String(event.message ?? event.error?.message ?? 'reported an error'));
         }
         await push(Buffer.alloc(0), true);
       } catch (error) {
         throwIfCancelled(signal);
-        if (error.sink || error instanceof VoxtralError && delivered === 0) throw error;
-        if (delivered === 0) throw timedOut === 'timeout' ? fail('timeout', `gave no audio within ${this.limits.firstAudioMs} ms`) : fail('network', error?.message || 'stream failed');
-        // Audio is already playing: end this reply's audio here, after the last whole sample received.
-        this.log(`stream ended early after ${(delivered / VOXTRAL_RATE).toFixed(1)} s: ${redact(error?.message, apiKey).slice(0, 80)}`);
+        if (error.sink || error instanceof VoxtralError && frames === 0) throw error;
+        if (frames === 0) throw timedOut === 'timeout' ? fail('timeout', `gave no audio within ${this.limits.firstAudioMs} ms`) : fail('network', error?.message || 'stream failed');
+        // Audio is already playing: end this request's audio here, after the last whole sample received.
+        this.log(`stream ended early after ${(frames / VOXTRAL_RATE).toFixed(1)} s: ${redact(error?.message, apiKey).slice(0, 80)}`);
         done = false;
         try { await push(Buffer.alloc(0), true); } catch (flushError) { if (flushError.sink) throw flushError; }
       }
-      if (!delivered) throw fail('request', 'answered without audio');
-      const truncated = !done;
-      return {provider: 'voxtral', engine: 'voxtral', sampleRate: VOXTRAL_RATE, channels: 1, frames: delivered, chunks,
-        duration: delivered / VOXTRAL_RATE, modelSha256: MODEL_ID, truncated,
-        timing: {voiceProvider: 'pocket', voiceEngine: 'voxtral', voiceCloud: true, voiceWarm: true,
-          voiceFirstPcmReceivedMs: firstMs, voiceGenerationMs: this.now() - started, voiceRoundTripMs: this.now() - started,
-          voiceQueueMs: started - queued, voiceReferenceBytes: reference.bytes, voiceReferenceSource: reference.source, ...(truncated ? {voiceTruncated: true} : {})}};
+      if (!frames) throw fail('request', 'answered without audio');
+      return {done, frames, firstMs, sentAt};
     } finally {
       this.clearTimer(timer);
       signal?.removeEventListener('abort', onAbort);
