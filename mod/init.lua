@@ -698,6 +698,16 @@ local function log(line)
     end
     print('[CyberpunkConvai] ' .. line)
 end
+-- Managed companions crouch and stand with V (mod/companion-stance.lua). The hook is installed in onInit.
+local stanceModule, stanceBuilt = nil, nil
+do
+    local loaded, module = pcall(dofile, 'companion-stance.lua')
+    if loaded and type(module) == 'table' then
+        local built, value = pcall(module.new, {log = log})
+        if built and type(value) == 'table' then stanceModule, stanceBuilt = module, value; companions.stance = value
+        else log('Companion stance unavailable: ' .. tostring(value)) end
+    else log('Companion stance unavailable: ' .. tostring(module)) end
+end
 -- V's horizontal speed in m/s, read once when a text box takes the keyboard. If V
 -- keeps walking after typing (a key-up the game never saw), the log line shows
 -- whether V was already moving at that moment. 'n/a' when the game will not say.
@@ -2321,6 +2331,7 @@ registerForEvent('onInit', function()
     convaiLocomotion.install(function(npc, command)
         return companions.ownsTravelCommand(npc, command)
     end)
+    if stanceModule then stanceModule.install(stanceBuilt, log) end
     dofile('composer-input.lua').install()
     dofile('phone-input.lua').install()
     phoneLayout.install()
