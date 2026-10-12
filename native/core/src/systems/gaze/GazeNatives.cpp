@@ -20,7 +20,7 @@ namespace
 using namespace convai;
 
 constexpr const char* kSystem = "gaze";
-constinit rtti::StaticClass g_class("ConvaiNativeGaze");
+constinit rtti::StaticClass g_class("ConvaiNativeGaze", "gaze");
 
 std::string ToString(const RED4ext::CString& aText)
 {

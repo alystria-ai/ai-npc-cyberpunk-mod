@@ -95,14 +95,15 @@ CBaseFunction* CombatFunction()
 {
     if (!g_combat.resolved)
     {
-        g_combat.resolved = true;
+        // Resolved only on success, so a lookup before the scripts loaded is tried again later.
         CClass* type = convai::game::Class("NPCPuppet");
         CBaseFunction* function = type ? type->GetFunction("IsInCombat") : nullptr;
         if (function && function->flags.isStatic && function->params.Size() == 1 && function->returnType)
         {
             g_combat.function = function;
+            g_combat.resolved = true;
         }
-        else
+        else if (type)
         {
             CONVAI_WARN("Actuator: NPCPuppet.IsInCombat is not a one-argument static function");
         }
@@ -162,12 +163,14 @@ int32_t ReadState(const Object& aNpc, const Object& aCommand)
 
 int32_t Capabilities()
 {
-    static int32_t caps = -1;
-    if (caps >= 0)
+    // Cached only once every required function was found: a read before the scripts loaded (main
+    // menu) must not freeze an incomplete answer for the session.
+    static int32_t cached = -1;
+    if (cached >= 0)
     {
-        return caps;
+        return cached;
     }
-    caps = 0;
+    int32_t caps = 0;
     CClass* puppet = convai::game::Class("NPCPuppet");
     auto has = [&](CClass* aType, const char* aName) { return aType && aType->GetFunction(aName) != nullptr; };
     caps |= has(puppet, "IsAttached") ? kCapIsAttached : 0;
@@ -185,6 +188,10 @@ int32_t Capabilities()
     caps |= CombatFunction() ? kCapInCombat : 0;
     CONVAI_INFO("Actuator: capabilities 0x%x (required 0x%x)", static_cast<unsigned>(caps),
                 static_cast<unsigned>(kCapRequired));
+    if ((caps & kCapRequired) == kCapRequired)
+    {
+        cached = caps;
+    }
     return caps;
 }
 

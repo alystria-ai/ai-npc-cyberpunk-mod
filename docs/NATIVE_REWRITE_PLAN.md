@@ -87,6 +87,23 @@ shows a message box otherwise): RTTI classes are created inside the register cal
 holders are `constinit`. Static CRT, no destructors under the loader lock, Guard around every
 native, kill switch per system (`runtime/native-off.txt`: one system name per line, or `all`).
 
+**Registration is all or nothing per system.** `StaticClass::Static` only records a native.
+After every system recorded, `rtti::CommitAll` (post-register callback) resolves every parameter
+and return type of the class against the game's RTTI (`core/Signatures.hpp`, tested headless),
+builds every function, checks each kept all its parameters, and only then adds them to the class.
+Any failure adds nothing, trips the system (`SystemEnabled` false, reason in `Status()` and the
+log line `RTTI: <class> (<system>) not registered, system <system> is disabled ...`), and the
+Lua shim stays on its own path. Why: RED4ext's `AddParam` and `SetReturnType` return false
+silently for an unknown type name, which used to leave a function registered with a parameter
+missing. Game-class lookups (`game::Class`, `Method`) cache hits only, so a lookup made before the
+scripts loaded is retried.
+
+**faces is disabled in game 2.31.** `Frame` and `Check` take `array:Double`, a type this game
+never creates (its exe has array:Float, Int32, String and Bool only). The commit refuses the whole
+faces system and facial-playback.lua keeps its Lua path. To enable it, pass the clock and speech
+vectors as `array:Float` (clock as offset from a Lua-side base, to keep precision) or as one
+String, change the natives and `facial-playback.lua` together, and re-run the in-game check.
+
 **Build.** `scripts/Build-NativeCore.ps1` (CMake, Visual Studio 2022 x64, RED4ext.SDK at commit
 `ad727771`, a local checkout via `-SdkDirectory` or FetchContent), then ctest. Output:
 `dist/native-core/CyberpunkConvaiNative.dll`.

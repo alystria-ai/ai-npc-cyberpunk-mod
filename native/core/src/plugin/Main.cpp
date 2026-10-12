@@ -18,6 +18,7 @@
 
 #include <RED4ext/RED4ext.hpp>
 
+#include "Rtti.hpp"
 #include "Systems.hpp"
 #include "core/FileIo.hpp"
 #include "core/Log.hpp"
@@ -73,6 +74,7 @@ void RegisterTypes()
             catch (...)
             {
                 CONVAI_ERROR("System %s failed to register its types", system.name);
+                convai::GlobalSwitches().Trip(system.name, "type registration failed");
             }
         }
     }
@@ -95,6 +97,9 @@ void PostRegisterTypes()
             }
         }
     }
+    // Every system has recorded its natives. Each class now registers all of them or none, and a
+    // system whose class cannot (an unknown parameter type, a refused parameter) is tripped.
+    convai::rtti::CommitAll();
 }
 
 void ControlFileChanged(std::string_view aContent)
@@ -128,6 +133,11 @@ bool Load()
     io.SetControlFile("native-off.txt", &ControlFileChanged);
 
     auto* rtti = RED4ext::CRTTISystem::Get();
+    if (!rtti)
+    {
+        CONVAI_ERROR("The RTTI system is not available; the mod keeps its Lua path");
+        return false;
+    }
     rtti->AddRegisterCallback(&RegisterTypes);
     rtti->AddPostRegisterCallback(&PostRegisterTypes);
 

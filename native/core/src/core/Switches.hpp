@@ -24,6 +24,9 @@ public:
 
     bool Enabled(std::string_view aSystem) const;
 
+    // True when aSystem tripped (the file switches do not count). The reason is in DescribeJson().
+    bool Tripped(std::string_view aSystem) const;
+
     // {"off":["io"],"tripped":{"gaze":"3 exceptions"}} - for Status().
     std::string DescribeJson() const;
 

@@ -110,6 +110,19 @@ bool Switches::Enabled(std::string_view aSystem) const
     return true;
 }
 
+bool Switches::Tripped(std::string_view aSystem) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    for (const auto& [name, reason] : m_tripped)
+    {
+        if (name == aSystem)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::string Switches::DescribeJson() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
