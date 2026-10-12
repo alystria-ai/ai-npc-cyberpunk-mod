@@ -41,6 +41,7 @@ Last consolidated 2026-10-11 (closed items are listed in the Captain's log entry
 - **Dynamic context:** check what we already feed the AI (location, weather, time of day, and so on). Add whatever is missing.
 - **Keep "continue from game dialogue".** When V talks to a game character with a spawned companion nearby, the companion gets that dialogue as context. It helps her follow and assist on the quest.
 - **Later check: quest decisions.** Does the NPC know which choice V made in a quest (the decision itself, not just what happened in the quest)?
+- **Cut latency wherever possible (after the provider, context and performance work settles).** Measure each stage of a turn: input to bridge, prompt build, LLM first token, first audio, face and subtitle start. Measure it for every route (Convai, Mistral or Groq, local), then cut the biggest waits.
 - ~~Raise Haiku's standing for swarm and fan-out tasks in the agent model rules~~ done 2026-10-12.
 
 ### Work in progress (paused 2026-10-11, saved patches in the gitignored `runtime/wip/`)
