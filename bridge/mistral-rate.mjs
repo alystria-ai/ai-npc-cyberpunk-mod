@@ -1,41 +1,49 @@
 // One scheduler for every request the bridge sends to api.mistral.ai (text replies, text-to-speech, background work).
 //
-// Why: a free Mistral key may be limited to about one request per second for the whole workspace, so a text reply and the
-// spoken form of the previous one, or two group speakers, can collide. The scheduler spaces the *starts* of requests
-// (default 1.05 s; a request that is already running is never held back), serves the most urgent waiting request first
-// (PRIORITY.TEXT before PRIORITY.TTS before PRIORITY.BACKGROUND, oldest first within a level), and when Mistral answers 429 it
-// pauses every start for the server's `retry-after`.
-//
-// Measured 2026-10-12 on the developer's free key: three requests started at the same moment (two text, one TTS) all answered
-// 200; the response headers carry only per-minute limits (requests and tokens for text, input characters for TTS) and no
-// per-second one. The spacing is therefore a precaution that costs a request at most about a second of waiting when two
-// start together; it is raised if a per-second header or a 429 says so (docs/CLOUD_VOICE_VOXTRAL.md).
+// Why: a free Mistral key shares its allowance between everything on the workspace, so a text reply, the speech of the previous one
+// and a background summary all draw on it. Measured 2026-10-12 on the developer's free key: there is NO per-second limit (a text, a
+// speech and a text back to back, and three requests started at the same moment, all answered 200); the response headers carry only
+// per-minute limits (188 requests a minute for ministral-8b text, about 12,000 characters a minute for speech). So:
+//   - a request STARTS IMMEDIATELY (the default spacing is 0); a request already running never holds the next one back;
+//   - when requests do wait (a pause, or the slow mode below), the most urgent goes first: PRIORITY.TEXT before PRIORITY.TTS before
+//     PRIORITY.BACKGROUND, oldest first within a level;
+//   - the per-minute headers of every answer are read; only when an allowance is nearly used up (10% or 2 requests left) does the
+//     scheduler slow down (an even spread of a request allowance over the minute, else about one start a second), and it relaxes when
+//     a later answer shows room again or after 30 s; an allowance at 0 pauses starts until its Retry-After (else 5 s);
+//   - on a 429 every start pauses for the server's `retry-after`, then starts are kept about 1 s apart for a minute, then relaxed
+//     (docs/CLOUD_VOICE_VOXTRAL.md).
 //
 // API (shared instance: `import {mistralScheduler, PRIORITY} from './mistral-rate.mjs'`):
 //   mistralScheduler.schedule(task, {priority = PRIORITY.TEXT, signal, retries = 0, maxQueueMs, label})
 //     task({signal, sentAt, attempt}) is called when the request may start; `sentAt` is that moment (start first-audio or
 //     first-token timers from it, not from the call to schedule). It returns a promise; its value or error is what schedule
 //     returns. A task that throws an error with status 429 (and no `zeroQuota`) is run again, up to `retries` times, after
-//     the error's `retryAfterMs` (else the spacing), ahead of anything of lower priority.
+//     the error's `retryAfterMs` (else a second), ahead of anything of lower priority.
 //     `signal` aborting while queued rejects with an AbortError and the task never runs; once started, the task owns its signal.
 //     `maxQueueMs`: waiting longer than this in the queue rejects with an error whose `code` is 'queue-timeout' (the task never runs).
-//   mistralScheduler.noteHeaders(headers)   call with every response's Headers: a per-second limit header sets the spacing.
-//   mistralScheduler.pause(ms)              nothing starts for ms (a 429 outside schedule's own retry, e.g. one handled by the caller).
-//   mistralScheduler.stats()                {spacingMs, queued, started, pausedForMs}, for the diagnostics.
+//   mistralScheduler.noteHeaders(headers)   call with every response's Headers (see above).
+//   mistralScheduler.pause(ms)              nothing starts for ms (a 429 outside schedule's own retry, e.g. one handled by the caller);
+//                                           it also starts the one-minute slow mode.
+//   mistralScheduler.stats()                {spacingMs, queued, started, pausedForMs, slowForMs}, for the diagnostics.
 import {cancelled} from './transport-pool.mjs';
 
 export const PRIORITY = Object.freeze({TEXT: 0, TTS: 1, BACKGROUND: 2});
-export const DEFAULT_SPACING_MS = 1050;
+export const DEFAULT_SPACING_MS = 0;        // starts are not spaced unless the server says so
+export const SLOW_SPACING_MS = 1000;        // the spacing while slowed down (after a 429, or with an allowance nearly used up)
 const MIN_SPACING_MS = 250, MAX_SPACING_MS = 5000, MAX_PAUSE_MS = 60_000;
+const SLOW_AFTER_429_MS = 60_000, SLOW_AFTER_HEADERS_MS = 30_000, EMPTY_PAUSE_MS = 5000;
+const LOW_FRACTION = 0.1, LOW_COUNT = 2;
 
 export class MistralScheduler {
   constructor({spacingMs = DEFAULT_SPACING_MS, now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
     Object.assign(this, {baseSpacingMs: spacingMs, now, setTimer, clearTimer});
     this.spacing = spacingMs; this.queue = []; this.sequence = 0;
     this.lastStart = -Infinity; this.pausedUntil = 0; this.timer = null; this.timerAt = 0;
-    this.started = 0; this.calm = 0;
+    this.started = 0;
+    this.slowUntil = 0; this.slowSpacing = SLOW_SPACING_MS; this.slowFrom429 = false;
   }
-  get spacingMs() { return this.spacing; }
+  /** The spacing in force now: the base (0 unless a per-second header set one), or the slow-mode spacing while that lasts. */
+  get spacingMs() { return this.now() < this.slowUntil ? Math.max(this.spacing, this.slowSpacing) : this.spacing; }
 
   schedule(task, {priority = PRIORITY.TEXT, signal, retries = 0, maxQueueMs, label} = {}) {
     if (typeof task !== 'function') return Promise.reject(Error('A scheduled Mistral request needs a task'));
@@ -56,30 +64,67 @@ export class MistralScheduler {
     });
   }
 
-  /** A 429 handled by the caller: no request starts for `ms` (at most a minute). */
+  /** A 429 handled by the caller: no request starts for `ms` (at most a minute), then starts are kept about a second apart for a minute. */
   pause(ms) {
-    const wait = Math.min(Math.max(Number(ms) || this.spacing, 0), MAX_PAUSE_MS);
+    const wait = Math.min(Math.max(Number(ms) || SLOW_SPACING_MS, 0), MAX_PAUSE_MS);
     this.pausedUntil = Math.max(this.pausedUntil, this.now() + wait);
-    this.calm = 0;
-    this.spacing = Math.min(MAX_SPACING_MS, Math.round(this.spacing * 1.25));
+    this.slowUntil = Math.max(this.slowUntil, this.now() + SLOW_AFTER_429_MS);
+    this.slowSpacing = SLOW_SPACING_MS; this.slowFrom429 = true;
     this.pump();
   }
 
-  /** Reads a response's rate-limit headers. Only a per-second request limit changes the spacing; per-minute and per-model figures do not. */
+  /**
+   * Reads a response's rate-limit headers. A per-second request limit sets the base spacing. Per-minute figures change nothing until
+   * an allowance is nearly used up (10% or 2 left): then starts are slowed (an even spread of a request allowance over the minute,
+   * else about a second) for 30 s, or until a later answer shows room. An allowance at 0 pauses starts until Retry-After (else 5 s).
+   */
   noteHeaders(headers) {
     const read = name => { const raw = headers?.get?.(name); const value = raw === null || raw === undefined || raw === '' ? NaN : Number(raw); return Number.isFinite(value) ? value : null; };
     const perSecond = read('x-ratelimit-limit-req-second') ?? read('x-ratelimit-limit-requests-second');
-    if (perSecond && perSecond > 0) {
-      this.spacing = Math.min(MAX_SPACING_MS, Math.max(MIN_SPACING_MS, Math.ceil(1000 / perSecond * 1.05)));
-      this.calm = 0;
-    } else if (++this.calm >= 20 && this.spacing > this.baseSpacingMs) {
-      // Twenty good answers in a row after a 429: ease back toward the default.
-      this.spacing = Math.max(this.baseSpacingMs, Math.round(this.spacing * 0.9)); this.calm = 0;
+    if (perSecond && perSecond > 0) this.spacing = Math.min(MAX_SPACING_MS, Math.max(MIN_SPACING_MS, Math.ceil(1000 / perSecond * 1.05)));
+    // Every per-minute allowance the answer reports: {name: {limit, remaining}}.
+    const allowances = new Map();
+    const note = (name, value) => {
+      const match = /^x-ratelimit-(limit|remaining)-(.+)-minute$/.exec(String(name).toLowerCase());
+      if (!match || !Number.isFinite(value)) return;
+      const entry = allowances.get(match[2]) ?? {};
+      entry[match[1]] = value; allowances.set(match[2], entry);
+    };
+    try { if (typeof headers?.forEach === 'function') headers.forEach((value, name) => note(name, Number(value))); } catch { /* not iterable */ }
+    for (const name of ['req', 'requests', 'tokens', 'chars', 'characters', 'input-characters', 'input-chars']) {
+      for (const kind of ['limit', 'remaining']) {
+        const header = `x-ratelimit-${kind}-${name}-minute`;
+        const value = read(header);
+        if (value !== null) note(header, value);
+      }
     }
+    let low = null, empty = false;
+    for (const [name, {limit, remaining}] of allowances) {
+      if (!(limit > 0) || !(remaining >= 0)) continue;
+      if (remaining === 0) empty = true;
+      if (remaining <= Math.max(LOW_COUNT, limit * LOW_FRACTION)) {
+        const spacing = /^req/.test(name) ? Math.min(MAX_SPACING_MS, Math.max(MIN_SPACING_MS, Math.ceil(60_000 / limit * 1.1))) : SLOW_SPACING_MS;
+        low = Math.max(low ?? 0, spacing);
+      }
+    }
+    const now = this.now();
+    if (empty) {
+      const retry = read('retry-after');
+      this.pausedUntil = Math.max(this.pausedUntil, now + Math.min(MAX_PAUSE_MS, retry !== null ? retry * 1000 : EMPTY_PAUSE_MS));
+    }
+    if (low !== null) {
+      this.slowSpacing = Math.max(low, this.slowFrom429 && now < this.slowUntil ? this.slowSpacing : 0);
+      this.slowUntil = Math.max(this.slowUntil, now + SLOW_AFTER_HEADERS_MS);
+    } else if (allowances.size && !this.slowFrom429) {
+      this.slowUntil = 0;   // room again
+    }
+    if (now >= this.slowUntil) this.slowFrom429 = false;
+    this.pump();
   }
 
   stats() {
-    return {spacingMs: this.spacing, queued: this.queue.length, started: this.started, pausedForMs: Math.max(0, this.pausedUntil - this.now())};
+    return {spacingMs: this.spacingMs, queued: this.queue.length, started: this.started, pausedForMs: Math.max(0, this.pausedUntil - this.now()),
+      slowForMs: Math.max(0, this.slowUntil - this.now())};
   }
 
   expire(time) {
@@ -97,7 +142,7 @@ export class MistralScheduler {
       const time = this.now();
       this.expire(time);
       if (!this.queue.length) return;
-      const due = Math.max(this.lastStart + this.spacing, this.pausedUntil);
+      const due = Math.max(this.lastStart + this.spacingMs, this.pausedUntil);
       if (time >= due) { this.start(this.take(), time); continue; }
       // Wake for the next start or the next queue expiry, whichever comes first.
       let wake = due;
@@ -123,7 +168,7 @@ export class MistralScheduler {
     Promise.resolve().then(() => entry.task({signal: entry.signal, sentAt: time, attempt})).then(entry.resolve, error => {
       if (error?.status === 429 && !error.zeroQuota && attempt < entry.retries && !entry.signal?.aborted) {
         // Wait out the server's retry-after for everything, then run this one again before lower priorities.
-        this.pause(error.retryAfterMs ?? this.spacing);
+        this.pause(error.retryAfterMs ?? SLOW_SPACING_MS);
         entry.signal?.addEventListener('abort', entry.onAbort, {once: true});
         entry.enqueuedAt = this.now();
         this.queue.push(entry);

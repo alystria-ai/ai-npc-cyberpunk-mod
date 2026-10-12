@@ -73,25 +73,28 @@ instead." for a permanent one (no key). It reuses the existing `voice-fallback` 
 
 ## One shared Mistral scheduler
 
-A free Mistral key may be limited to about one request a second for the whole workspace, shared by text replies and speech.
-`bridge/mistral-rate.mjs` spaces the **starts** of requests (default 1.05 s; a running request never blocks the next), serves the
-most urgent waiting request first (`PRIORITY.TEXT` before `PRIORITY.TTS` before `PRIORITY.BACKGROUND`, oldest first within a
-level), retries a 429 after its `Retry-After`, and lets only a per-second header (`x-ratelimit-limit-req-second`) change the
-spacing. API:
+Text replies, speech and background memory work share one Mistral key, so they share one allowance.
+`bridge/mistral-rate.mjs` starts every request **immediately** (the default spacing is 0; a running request never blocks the next).
+When requests have to wait it serves the most urgent first (`PRIORITY.TEXT` before `PRIORITY.TTS` before `PRIORITY.BACKGROUND`, oldest
+first within a level). It reads the per-minute headers of every answer and slows down only when an allowance is nearly used up (10% or
+2 left: an even spread over the minute for requests, about a second for characters or tokens; it relaxes when a later answer shows room
+or after 30 s), pauses until `Retry-After` when one is at 0, and on a 429 pauses for its `Retry-After`, keeps starts about a second
+apart for a minute and then relaxes. A per-second header (`x-ratelimit-limit-req-second`), if one ever appears, sets the base spacing. API:
 
 ```js
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 await mistralScheduler.schedule(({signal, sentAt, attempt}) => fetch(...), {priority: PRIORITY.TEXT, signal, retries: 1, maxQueueMs: 6000});
 mistralScheduler.noteHeaders(response.headers);   // after every response
 mistralScheduler.pause(ms);                       // a 429 handled by the caller
-mistralScheduler.stats();                         // {spacingMs, queued, started, pausedForMs}
+mistralScheduler.stats();                         // {spacingMs, queued, started, pausedForMs, slowForMs}
 ```
 
 Group chat: several speakers queue in turn. Measured 2026-10-12 on the developer's free key (a handful of calls): text, then
 speech, then text in sequence all answered 200; two text requests and one speech request started at the same moment all answered
 200; no 429 and no per-second header appeared. The headers carry only per-minute figures (text: `x-ratelimit-limit-req-minute`
-188 and 625,000 tokens for `ministral-8b`; speech: 12,000 input characters a minute). The 1.05 s spacing is therefore a precaution
-that costs a request about a second of waiting at most when two start together.
+188 and 625,000 tokens for `ministral-8b`; speech: 12,000 input characters a minute). No spacing is therefore applied by default: it
+would only delay the voice of a reply by up to a second (more in group chat). `maxQueueMs` (6 s for speech) only matters while the
+scheduler is paused or slowed.
 
 ## Measured
 
