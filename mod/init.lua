@@ -1542,7 +1542,7 @@ local function toggleVoice(groupMode)
         -- boolean, asked only here, when the voice key is pressed.
         if manager.voiceNeedsConvai() then
             convaiNotices.send(player, 'voice-needs-convai',
-                ui.t('Speaking to companions needs Convai for now. Set Conversation provider to Convai in Settings > Development, or type your message.'))
+                ui.t('Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Development, or type your message.'))
             return
         end
         if not gameplayCanAcquire(player) then return end

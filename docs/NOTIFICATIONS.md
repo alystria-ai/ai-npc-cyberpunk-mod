@@ -78,7 +78,7 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `talk-no-profile` | Player | {name} does not have a conversation profile configured yet. | The talk key is pressed at a character without a profile | 20 |
 | `group-needs-two` | Player | Group chat needs two characters nearby. Use {key} for one person. | The group key is pressed with fewer than two characters | 20 |
 | `talk-connecting` | Player | Preparing connection to {name}… | A conversation starts (talk key, composer or voice) with a character, a party copy included, who is not connected yet; never from gaze or a warm-up | 10 |
-| `voice-needs-convai` | Player | Speaking to companions needs Convai for now. Set Conversation provider to Convai in Settings > Development, or type your message. | A voice key (talk by voice or group voice chat) is pressed while Mistral is in use and this computer cannot recognise speech locally; no recording starts | 15 |
+| `voice-needs-convai` | Player | Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Development, or type your message. | A voice key (talk by voice or group voice chat) is pressed while Mistral is in use and this computer cannot recognise speech locally; no recording starts | 15 |
 | `mic-connecting` | Player | Connecting microphone - wait for Listening | The voice key is pressed, and again when it is pressed while the microphone is still connecting (that press is ignored) | none |
 | `mic-listening` | Player | Listening - press {key} again to finish | The microphone is recording | none |
 | `mic-finish-hint` | Player | Use {key} to finish this recording. | The other chat's voice key is pressed during a recording | 10 |
