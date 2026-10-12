@@ -9,6 +9,10 @@ import {VoiceSelection} from './voice-selection.mjs';
 import {ownedLocalPcmPacket} from './local-pcm-host.mjs';
 import {describeVoiceRoute, formatVoiceRoute} from './voice-routing-log.mjs';
 import {LOCAL_VOICE_KEYS} from './resident-voice.mjs';
+import {MistralScheduler, PRIORITY} from './mistral-rate.mjs';
+
+// No spacing between starts, so a test is not slowed by the one-second precaution the real scheduler keeps (tested in mistral-rate.test.mjs).
+const fastScheduler = () => new MistralScheduler({spacingMs: 0});
 
 const KEY = 'k'.repeat(8) + 'Secret0123456789abcdefghijkl';
 
@@ -60,7 +64,7 @@ const sse = response => response.writeHead(200, {'content-type': 'text/event-str
 function voiceFor(server, extra = {}) {
   const reads = [];
   const voice = new VoxtralVoice({getKey: () => KEY, referenceRoot: resolve('fixture-references'), registry: registryOf(),
-    endpoint: server.endpoint, read: async path => { reads.push(path); return REFERENCE; }, ...extra});
+    endpoint: server.endpoint, read: async path => { reads.push(path); return REFERENCE; }, scheduler: fastScheduler(), ...extra});
   return {voice, reads};
 }
 const collect = () => { const packets = []; return {packets, onPcm: packet => { packets.push(packet); }}; };
@@ -189,8 +193,10 @@ test('429 is a limit: the reply falls back, further calls wait out Retry-After w
   });
   try {
     let time = 1_000_000;
-    const {voice} = voiceFor(server, {clock: () => time});
+    const paused = [], scheduler = {schedule: task => Promise.resolve().then(() => task({})), noteHeaders() {}, pause: ms => paused.push(ms)};
+    const {voice} = voiceFor(server, {clock: () => time, scheduler});
     await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hi.', collect()), {kind: 'limit', status: 429});
+    assert.deepEqual(paused, [12000], 'the shared scheduler holds text requests for the same retry-after');
     assert.equal(voice.degraded.reason, 'limit'); assert.equal(voice.ready, false);
     await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hi.', collect()), {kind: 'limit'});
     assert.equal(server.requests.length, 1, 'no second request inside the cool-down');
@@ -275,7 +281,7 @@ function selection(server, {key = KEY, voxtral = {}} = {}) {
   const voices = Object.fromEntries(LOCAL_VOICE_KEYS.map(name => [name, {reference: `runtime/voice-references/${name}.wav`,
     sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.'}]));
   const cloud = new VoxtralVoice({getKey: () => key, referenceRoot: resolve('fixture-references'), endpoint: server.endpoint,
-    read: async () => REFERENCE, ...voxtral});
+    read: async () => REFERENCE, scheduler: fastScheduler(), ...voxtral});
   const longVoices = Object.fromEntries(LOCAL_VOICE_KEYS.map(name => [name, {reference: `runtime/voice-references/${name}.wav`,
     sha256: sha(REFERENCE), transcript: 'Ready when you are, V.'}]));
   const voice = new VoiceSelection(pocketSettings(voices), {voxtral: cloud, onState: value => states.push(value),
@@ -402,5 +408,71 @@ test('the routing log names the cloud voice, and Pocket with the reason when it 
     assert.equal(record.used, 'Pocket'); assert.equal(record.fallback, 'Mistral cloud voice fell back (timeout)');
     assert.ok(formatVoiceRoute(record).includes('fallback="Mistral cloud voice fell back (timeout)"'));
     await h.voice.close();
+  } finally { await server.close(); }
+});
+
+// ---- the shared Mistral scheduler: one request per reply, text first, the timeout counts from the send ------------------------
+
+test('a reply of several sentences is one streamed request, never one per sentence', async () => {
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(9000)))); response.end(done); });
+  try {
+    const {voice} = voiceFor(server);
+    await voice.synthesizeStream('judy-alvarez', 'First sentence. Second one, longer. And a third? Yes! Done.', collect());
+    assert.equal(server.requests.length, 1);
+    assert.equal(server.requests[0].body.input, 'First sentence. Second one, longer. And a third? Yes! Done.');
+  } finally { await server.close(); }
+});
+
+test('behind another Mistral request the voice waits its turn, and its first-audio limit starts at the send, not at the queueing', async () => {
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    const scheduler = new MistralScheduler({spacingMs: 250});
+    const {voice} = voiceFor(server, {scheduler, limits: {firstAudioMs: 100}});
+    const order = [];
+    const text = scheduler.schedule(async () => { order.push('text'); }, {priority: PRIORITY.TEXT});
+    const started = performance.now();
+    const spoken = await voice.synthesizeStream('judy-alvarez', 'Queued behind a text request.', {onPcm() { order.push('audio'); }});
+    await text;
+    assert.ok(performance.now() - started >= 230, 'it waited for the slot (longer than its own 100 ms first-audio limit)');
+    assert.equal(spoken.truncated, false); assert.equal(voice.degraded, null); assert.equal(server.requests.length, 1);
+    assert.equal(order[0], 'text');
+  } finally { await server.close(); }
+});
+
+test('a text request that arrives while the speech is queued goes first', async () => {
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    const scheduler = new MistralScheduler({spacingMs: 150}), order = [];
+    const {voice} = voiceFor(server, {scheduler});
+    const occupy = scheduler.schedule(async () => { order.push('earlier request'); });
+    const speech = voice.synthesizeStream('judy-alvarez', 'Hi.', {onPcm() {}}).then(() => order.push('speech'));
+    await wait(20);
+    const text = scheduler.schedule(async () => { order.push('text reply'); }, {priority: PRIORITY.TEXT});
+    await Promise.all([occupy, speech, text]);
+    assert.deepEqual(order, ['earlier request', 'text reply', 'speech']);
+  } finally { await server.close(); }
+});
+
+test('several group speakers go out one after another, spaced by the scheduler, each as its own single request', async () => {
+  const times = [];
+  const server = await serve((request, response) => { times.push(performance.now()); sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    const scheduler = new MistralScheduler({spacingMs: 120});
+    const {voice} = voiceFor(server, {scheduler});
+    await Promise.all(['one', 'two', 'three'].map(name => voice.synthesizeStream('judy-alvarez', `Line ${name}.`, collect())));
+    assert.equal(server.requests.length, 3);
+    assert.ok(times[1] - times[0] >= 100 && times[2] - times[1] >= 100, `spaced: ${times.map(t => Math.round(t - times[0]))}`);
+    assert.deepEqual(server.requests.map(request => request.body.input).sort(), ['Line one.', 'Line three.', 'Line two.']);
+  } finally { await server.close(); }
+});
+
+test('a line that waits too long in the queue falls back to Pocket without ever being sent', async () => {
+  const server = await serve((request, response) => { sse(response); response.end(done); });
+  try {
+    const scheduler = new MistralScheduler({spacingMs: 600});
+    const {voice} = voiceFor(server, {scheduler, limits: {maxQueueMs: 60}});
+    await scheduler.schedule(async () => {});
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Too late.', collect()), {kind: 'timeout'});
+    assert.equal(server.requests.length, 0); assert.equal(voice.degraded.reason, 'timeout');
   } finally { await server.close(); }
 });

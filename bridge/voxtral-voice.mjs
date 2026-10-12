@@ -16,12 +16,16 @@
 //    every failure (no key, no reference, a refused or limited request, a network error, no first audio within `firstAudioMs`)
 //    throws a VoxtralError, and the caller speaks that reply with Pocket instead. Once audio is playing a later failure ends
 //    that reply's audio early (the written reply is complete) rather than playing two voices.
+//  - One request per reply (the whole text, streamed), never one per sentence: a free Mistral key may be limited to about one
+//    request a second for the whole workspace, shared with the text replies. Every request goes through the shared scheduler
+//    (bridge/mistral-rate.mjs), text first; the first-audio limit counts from the moment the request is actually sent.
 //  - The key is only ever put in the Authorization header of a request to api.mistral.ai; it is never logged, put in a message
 //    or kept in a state file. Messages pass through `redact`.
 import {createHash, randomBytes} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {resolve, sep} from 'node:path';
 import {cancelled, throwIfCancelled} from './transport-pool.mjs';
+import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 
 export const VOXTRAL_ENDPOINT = 'https://api.mistral.ai/v1/audio/speech';
 export const VOXTRAL_MODEL = 'voxtral-mini-tts-latest';
@@ -30,6 +34,7 @@ export const VOXTRAL_LIMITS = Object.freeze({
   firstAudioMs: 4000,        // no audio by then: Pocket speaks this reply
   stallMs: 8000,             // silence this long inside a running stream ends it
   maxChars: 4000,            // longer text goes to Pocket (the model's context is 4,096 tokens)
+  maxQueueMs: 6000,          // waiting this long behind other Mistral requests: Pocket speaks this reply
   frameSamples: 2400,        // 100 ms packets, the size Pocket's own packets are in the same range
   maxReferenceSeconds: 25,   // a longer clip is cut (the searched references are 8 to 18 s)
   maxReferenceBytes: 4_000_000,
@@ -138,9 +143,9 @@ export class VoxtralVoice {
    */
   constructor({getKey, referenceRoot, registry, onChange = () => {}, onLog = () => {}, fetchImpl = globalThis.fetch,
     read = readFile, endpoint = VOXTRAL_ENDPOINT, limits = {}, setTimer = setTimeout, clearTimer = clearTimeout,
-    now = () => performance.now(), clock = Date.now} = {}) {
+    now = () => performance.now(), clock = Date.now, scheduler = mistralScheduler} = {}) {
     if (typeof getKey !== 'function') throw Error('Invalid Voxtral configuration');
-    Object.assign(this, {getKey, referenceRoot, registry, onChange, onLog, fetchImpl, read, endpoint, setTimer, clearTimer, now, clock});
+    Object.assign(this, {getKey, referenceRoot, registry, onChange, onLog, fetchImpl, read, endpoint, setTimer, clearTimer, now, clock, scheduler});
     this.limits = Object.freeze({...VOXTRAL_LIMITS, ...limits});
     this.references = new Map();      // voice key -> Promise<{base64, bytes, seconds}|null>
     this.owner = randomBytes(16).toString('hex'); this.sequence = 0;
@@ -273,18 +278,26 @@ export class VoxtralVoice {
       if (from) pending = pending.slice(from);
     };
     try {
-      arm(this.limits.firstAudioMs, 'timeout');
       try {
-        response = await this.fetchImpl(this.endpoint, {method: 'POST', signal: controller.signal,
-          headers: {authorization: `Bearer ${apiKey}`, 'content-type': 'application/json', accept: 'text/event-stream'},
-          body: JSON.stringify({model: VOXTRAL_MODEL, input: text, ref_audio: reference.base64, response_format: 'pcm', stream: true})});
+        response = await this.scheduler.schedule(() => {
+          // The first-audio limit counts from the moment the request is sent, not from when it queued behind other Mistral requests.
+          arm(this.limits.firstAudioMs, 'timeout');
+          return this.fetchImpl(this.endpoint, {method: 'POST', signal: controller.signal,
+            headers: {authorization: `Bearer ${apiKey}`, 'content-type': 'application/json', accept: 'text/event-stream'},
+            body: JSON.stringify({model: VOXTRAL_MODEL, input: text, ref_audio: reference.base64, response_format: 'pcm', stream: true})});
+        }, {priority: PRIORITY.TTS, signal: controller.signal, maxQueueMs: this.limits.maxQueueMs});
       } catch (error) {
         throwIfCancelled(signal);
+        if (error?.code === 'queue-timeout') throw fail('timeout', 'waited too long behind other Mistral requests');
         throw timedOut ? fail('timeout', `gave no audio within ${this.limits.firstAudioMs} ms`) : fail('network', error?.message || 'is unreachable');
       }
+      this.scheduler.noteHeaders(response.headers);
       if (!response.ok) {
         const body = await response.text().catch(() => '');
-        throw mapStatus(response.status, body, {headers: response.headers, apiKey});
+        const failure = mapStatus(response.status, body, {headers: response.headers, apiKey});
+        // A 429 holds every Mistral request (text included) for the server's retry-after.
+        if (failure.kind === 'limit') this.scheduler.pause(failure.retryAfterMs);
+        throw failure;
       }
       if (!response.body) throw fail('request', 'answered without a stream');
       let done = false;
