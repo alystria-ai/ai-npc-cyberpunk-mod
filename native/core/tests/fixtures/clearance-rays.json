@@ -1,0 +1,204 @@
+{
+ "system": "clearance",
+ "source": "mod/companion-clearance.lua",
+ "cases": [
+  {
+   "name": "sight: visible",
+   "input": {"fn":"sight","from":{"x":100,"y":200,"z":51.6},"to":{"x":110,"y":205,"z":51.2},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {
+    "deferredCount": 0,
+    "queries": [
+     {"from":[100,200,51.599998474121094],"group":"Static","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Dynamic","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Terrain","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Collider","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Destructible","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Vehicle","to":[110,205,51.20000076293945]}
+    ],
+    "used": 6,
+    "visible": true,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "sight: visible, no budget",
+   "input": {"fn":"sight","from":{"x":100,"y":200,"z":51.6},"to":{"x":110,"y":205,"z":51.2},"budget":null,"hitAt":-1},
+   "output": {
+    "queries": [
+     {"from":[100,200,51.599998474121094],"group":"Static","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Dynamic","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Terrain","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Collider","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Destructible","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Vehicle","to":[110,205,51.20000076293945]}
+    ],
+    "used": 6,
+    "visible": true,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "sight: blocked by Static",
+   "input": {"fn":"sight","from":{"x":100,"y":200,"z":51.6},"to":{"x":110,"y":205,"z":51.2},"budget":{"limit":192,"used":0},"hitAt":0},
+   "output": {"deferredCount":0,"queries":[{"from":[100,200,51.599998474121094],"group":"Static","to":[110,205,51.20000076293945]}],"used":1,"visible":false,"wire":"1 1 1"}
+  },
+  {
+   "name": "sight: blocked by Dynamic",
+   "input": {"fn":"sight","from":{"x":100,"y":200,"z":51.6},"to":{"x":110,"y":205,"z":51.2},"budget":{"limit":192,"used":0},"hitAt":1},
+   "output": {
+    "deferredCount": 0,
+    "queries": [{"from":[100,200,51.599998474121094],"group":"Static","to":[110,205,51.20000076293945]},{"from":[100,200,51.599998474121094],"group":"Dynamic","to":[110,205,51.20000076293945]}],
+    "used": 2,
+    "visible": false,
+    "wire": "1 2 2"
+   }
+  },
+  {
+   "name": "sight: blocked by Terrain",
+   "input": {"fn":"sight","from":{"x":100,"y":200,"z":51.6},"to":{"x":110,"y":205,"z":51.2},"budget":{"limit":192,"used":0},"hitAt":2},
+   "output": {
+    "deferredCount": 0,
+    "queries": [
+     {"from":[100,200,51.599998474121094],"group":"Static","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Dynamic","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Terrain","to":[110,205,51.20000076293945]}
+    ],
+    "used": 3,
+    "visible": false,
+    "wire": "1 3 3"
+   }
+  },
+  {
+   "name": "sight: blocked by Collider",
+   "input": {"fn":"sight","from":{"x":100,"y":200,"z":51.6},"to":{"x":110,"y":205,"z":51.2},"budget":{"limit":192,"used":0},"hitAt":3},
+   "output": {
+    "deferredCount": 0,
+    "queries": [
+     {"from":[100,200,51.599998474121094],"group":"Static","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Dynamic","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Terrain","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Collider","to":[110,205,51.20000076293945]}
+    ],
+    "used": 4,
+    "visible": false,
+    "wire": "1 4 4"
+   }
+  },
+  {
+   "name": "sight: blocked by Destructible",
+   "input": {"fn":"sight","from":{"x":100,"y":200,"z":51.6},"to":{"x":110,"y":205,"z":51.2},"budget":{"limit":192,"used":0},"hitAt":4},
+   "output": {
+    "deferredCount": 0,
+    "queries": [
+     {"from":[100,200,51.599998474121094],"group":"Static","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Dynamic","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Terrain","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Collider","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Destructible","to":[110,205,51.20000076293945]}
+    ],
+    "used": 5,
+    "visible": false,
+    "wire": "1 5 5"
+   }
+  },
+  {
+   "name": "sight: blocked by Vehicle",
+   "input": {"fn":"sight","from":{"x":100,"y":200,"z":51.6},"to":{"x":110,"y":205,"z":51.2},"budget":{"limit":192,"used":0},"hitAt":5},
+   "output": {
+    "deferredCount": 0,
+    "queries": [
+     {"from":[100,200,51.599998474121094],"group":"Static","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Dynamic","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Terrain","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Collider","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Destructible","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Vehicle","to":[110,205,51.20000076293945]}
+    ],
+    "used": 6,
+    "visible": false,
+    "wire": "1 6 6"
+   }
+  },
+  {
+   "name": "sight: exactly six queries left",
+   "input": {"fn":"sight","from":{"x":100,"y":200,"z":51.6},"to":{"x":110,"y":205,"z":51.2},"budget":{"limit":192,"used":186},"hitAt":-1},
+   "output": {
+    "deferredCount": 0,
+    "queries": [
+     {"from":[100,200,51.599998474121094],"group":"Static","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Dynamic","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Terrain","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Collider","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Destructible","to":[110,205,51.20000076293945]},
+     {"from":[100,200,51.599998474121094],"group":"Vehicle","to":[110,205,51.20000076293945]}
+    ],
+    "used": 6,
+    "visible": true,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "sight: negative coordinates",
+   "input": {"fn":"sight","from":{"x":-3.3,"y":-4.4,"z":-5.5},"to":{"x":-30,"y":40,"z":5},"budget":{"limit":192,"used":0},"hitAt":-1},
+   "output": {
+    "deferredCount": 0,
+    "queries": [
+     {"from":[-3.299999952316284,-4.400000095367432,-5.5],"group":"Static","to":[-30,40,5]},
+     {"from":[-3.299999952316284,-4.400000095367432,-5.5],"group":"Dynamic","to":[-30,40,5]},
+     {"from":[-3.299999952316284,-4.400000095367432,-5.5],"group":"Terrain","to":[-30,40,5]},
+     {"from":[-3.299999952316284,-4.400000095367432,-5.5],"group":"Collider","to":[-30,40,5]},
+     {"from":[-3.299999952316284,-4.400000095367432,-5.5],"group":"Destructible","to":[-30,40,5]},
+     {"from":[-3.299999952316284,-4.400000095367432,-5.5],"group":"Vehicle","to":[-30,40,5]}
+    ],
+    "used": 6,
+    "visible": true,
+    "wire": "0 6"
+   }
+  },
+  {
+   "name": "floor: a floor 0.3 m below",
+   "input": {"fn":"floor","at":{"x":10,"y":20,"z":50},"maxDrop":null,"rayHit":true,"rayZ":49.70000076293945},
+   "output": {"queries":[{"from":[10,20,50.599998474121094],"group":"Static","to":[10,20,49.20000076293945]}],"used":1,"wire":"1 49.70000076293945","z":49.70000076293945}
+  },
+  {
+   "name": "floor: drop of 0.04 m is too small",
+   "input": {"fn":"floor","at":{"x":10,"y":20,"z":50},"maxDrop":null,"rayHit":true,"rayZ":49.959999084472656},
+   "output": {"queries":[{"from":[10,20,50.599998474121094],"group":"Static","to":[10,20,49.20000076293945]}],"used":1,"wire":"0 0"}
+  },
+  {
+   "name": "floor: drop of 0.06 m",
+   "input": {"fn":"floor","at":{"x":10,"y":20,"z":50},"maxDrop":null,"rayHit":true,"rayZ":49.939998626708984},
+   "output": {"queries":[{"from":[10,20,50.599998474121094],"group":"Static","to":[10,20,49.20000076293945]}],"used":1,"wire":"1 49.939998626708984","z":49.939998626708984}
+  },
+  {
+   "name": "floor: drop of 0.36 m is over the default",
+   "input": {"fn":"floor","at":{"x":10,"y":20,"z":50},"maxDrop":null,"rayHit":true,"rayZ":49.63999938964844},
+   "output": {"queries":[{"from":[10,20,50.599998474121094],"group":"Static","to":[10,20,49.20000076293945]}],"used":1,"wire":"0 0"}
+  },
+  {
+   "name": "floor: drop of 0.36 m under maxDrop 0.45",
+   "input": {"fn":"floor","at":{"x":10,"y":20,"z":50},"maxDrop":0.45,"rayHit":true,"rayZ":49.63999938964844},
+   "output": {"queries":[{"from":[10,20,50.599998474121094],"group":"Static","to":[10,20,49.20000076293945]}],"used":1,"wire":"1 49.63999938964844","z":49.63999938964844}
+  },
+  {
+   "name": "floor: drop of 0.5 m over maxDrop 0.45",
+   "input": {"fn":"floor","at":{"x":10,"y":20,"z":50},"maxDrop":0.45,"rayHit":true,"rayZ":49.5},
+   "output": {"queries":[{"from":[10,20,50.599998474121094],"group":"Static","to":[10,20,49.20000076293945]}],"used":1,"wire":"0 0"}
+  },
+  {
+   "name": "floor: floor above the point",
+   "input": {"fn":"floor","at":{"x":10,"y":20,"z":50},"maxDrop":null,"rayHit":true,"rayZ":50.20000076293945},
+   "output": {"queries":[{"from":[10,20,50.599998474121094],"group":"Static","to":[10,20,49.20000076293945]}],"used":1,"wire":"0 0"}
+  },
+  {
+   "name": "floor: no hit",
+   "input": {"fn":"floor","at":{"x":10,"y":20,"z":50},"maxDrop":null,"rayHit":false,"rayZ":49.70000076293945},
+   "output": {"queries":[{"from":[10,20,50.599998474121094],"group":"Static","to":[10,20,49.20000076293945]}],"used":1,"wire":"0 0"}
+  },
+  {
+   "name": "floor: negative coordinates",
+   "input": {"fn":"floor","at":{"x":-100.5,"y":-200.25,"z":-3},"maxDrop":null,"rayHit":true,"rayZ":-3.299999952316284},
+   "output": {"queries":[{"from":[-100.5,-200.25,-2.4000000953674316],"group":"Static","to":[-100.5,-200.25,-3.799999952316284]}],"used":1,"wire":"1 -3.299999952316284","z":-3.299999952316284}
+  }
+ ]
+}

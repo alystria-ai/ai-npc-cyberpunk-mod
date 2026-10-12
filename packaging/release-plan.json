@@ -230,6 +230,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-actuator.lua"
         },
         {
+          "source": "mod/companion-tick-native.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-tick-native.lua"
+        },
+        {
           "source": "mod/companion-locomotion.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-locomotion.lua"
         },

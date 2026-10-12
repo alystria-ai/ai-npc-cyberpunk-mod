@@ -7,6 +7,11 @@ local behavior = dofile('companion-behavior.lua')
 local space = dofile('companion-space.lua')
 local travel = dofile('companion-travel.lua')
 local actuator = dofile('companion-actuator.lua')
+-- Optional native tick (mod/companion-tick-native.lua, plugin system "actuator"). A missing module, a
+-- missing plugin or a switched-off system keeps every read below exactly as the Lua wrote it.
+local tickOk, tickNative = pcall(dofile, 'companion-tick-native.lua')
+if not tickOk or type(tickNative) ~= 'table' then tickNative = nil end
+if actuator.useNativeTick then actuator.useNativeTick(tickNative) end
 local placement = dofile('companion-placement.lua')
 local passage = dofile('companion-passage.lua')
 local clearance = dofile('companion-clearance.lua')
@@ -272,14 +277,8 @@ end
 local placeDrop = .45
 local function floorBelow(at, maxDrop)
     if not clearance.take(1) then return false end
-    local ok, floor = pcall(function()
-        local hit, trace = Game.GetSpatialQueriesSystem():SyncRaycastByCollisionGroup(
-            Vector4.new(at.x, at.y, at.z + .6, 1), Vector4.new(at.x, at.y, at.z - .8, 1), CName.new('Static'), false, false)
-        if hit ~= true or not trace or not trace.position then return nil end
-        local drop = at.z - trace.position.z
-        if drop < .05 or drop > (maxDrop or .35) then return nil end
-        return trace.position.z
-    end)
+    -- The ray runs in companion-clearance.lua (floorZ), natively when the plugin is on.
+    local ok, floor = pcall(clearance.floorZ, at, maxDrop)
     if not ok then return nil end
     return floor
 end
@@ -737,20 +736,8 @@ local sightGroups={'Static','Dynamic','Terrain','Collider','Destructible','Vehic
 function M.visibleFromCrosshair(from,to)
     if not spatialBudget or not clearance.isPoint(from) or not clearance.isPoint(to)
         or not clearance.available(#sightGroups) then return false end
-    local ok,visible=pcall(function()
-        local spatial=Game.GetSpatialQueriesSystem()
-        if not spatial then return false end
-        local start=Vector4.new(from.x,from.y,from.z,1)
-        local finish=Vector4.new(to.x,to.y,to.z,1)
-        for _,group in ipairs(sightGroups) do
-            if not clearance.take(1) then return false end
-            -- CET returns the out TraceResult. Boolean HIT is authoritative;
-            -- nil/non-Boolean responses never certify an unobstructed ray.
-            local hit=spatial:SyncRaycastByCollisionGroup(start,finish,CName.new(group),false,false)
-            if type(hit)~='boolean' or hit then return false end
-        end
-        return true
-    end)
+    -- The six rays run in companion-clearance.lua (sightClear), natively when the plugin is on.
+    local ok,visible=pcall(clearance.sightClear,from,to)
     return ok and visible==true
 end
 
@@ -2108,10 +2095,13 @@ function M.update(player,delta,focusEntity)
     local ready={}
     for _,entry in ipairs(entries) do
         if entry.state=='ready' then
-            if not entry.npc:IsAttached() then
+            -- 0 missing, 1 dead, 2 alive. The native answers both checks in one call; nil asks the game from Lua.
+            local life=tickNative and tickNative.life(entry.npc)
+            if life==nil then life=entry.npc:IsAttached() and (entry.npc:IsDeadNoStatPool() and 1 or 2) or 0 end
+            if life==0 then
                 entry.state='missing'; actuator.abandon(entry.motor)
                 equipment.abandon(entry.equipment); vehicles.remove(fleet,entry.serial)
-            elseif entry.npc:IsDeadNoStatPool() then
+            elseif life==1 then
                 entry.state='dead'; actuator.abandon(entry.motor)
                 equipment.abandon(entry.equipment); vehicles.remove(fleet,entry.serial)
             else ready[#ready+1]=entry end
@@ -2152,15 +2142,29 @@ function M.update(player,delta,focusEntity)
     -- make later members react to partially updated group state.
     for _,entry in ipairs(ready) do
         if not vehicles.owns(fleet,entry.serial) then
-                local at=space.copy(entry.npc:GetWorldPosition())
-                entry.speed=entry.position and space.ground(entry.position,at)/step or 0
-                entry.position=at
-                local forward=entry.npc:GetWorldForward()
-                entry.direction=space.unit(forward.x,forward.y)
-                entry.maxSpeed=math.max(entry.maxSpeed or 0,entry.speed)
-                entry.playerGap=space.distance(at,playerPosition)
-                entry.facingError=space.angle(entry.direction,space.bearing(at,playerPosition))
-                actuator.sense(entry.motor,at,entry.speed,step)
+                -- One native call answers the reads and the maths below; nil runs the original lines.
+                local tick=tickNative and tickNative.sense(entry,playerPosition,step)
+                local at
+                if tick then
+                    at=tick.at
+                    entry.speed=tick.speed
+                    entry.position=at
+                    entry.direction=tick.direction
+                    entry.maxSpeed=math.max(entry.maxSpeed or 0,entry.speed)
+                    entry.playerGap=tick.playerGap
+                    entry.facingError=tick.facingError
+                else
+                    at=space.copy(entry.npc:GetWorldPosition())
+                    entry.speed=entry.position and space.ground(entry.position,at)/step or 0
+                    entry.position=at
+                    local forward=entry.npc:GetWorldForward()
+                    entry.direction=space.unit(forward.x,forward.y)
+                    entry.maxSpeed=math.max(entry.maxSpeed or 0,entry.speed)
+                    entry.playerGap=space.distance(at,playerPosition)
+                    entry.facingError=space.angle(entry.direction,space.bearing(at,playerPosition))
+                end
+                entry.sensedCombat=tick and tick.combat -- nil: read below
+                actuator.sense(entry.motor,at,entry.speed,step,tick)
                 order[#order+1]=entry
                 company.people[#company.people+1]={id=tostring(entry.entityID.hash),position=at,
                     phase=entry.person.phase}
@@ -2223,7 +2227,8 @@ function M.update(player,delta,focusEntity)
                 if space.clear(point,playerPosition,others,id,nil,entry.clearance) then restTarget=point; break end
             end
             entry.targetGap=space.distance(entry.position,groupFrame.moving and travelTarget or restTarget)
-            local fightingOk,fighting=pcall(function() return NPCPuppet.IsInCombat(entry.npc) end)
+            local fightingOk,fighting=true,entry.sensedCombat
+            if fighting==nil then fightingOk,fighting=pcall(function() return NPCPuppet.IsInCombat(entry.npc) end) end
             local context={
                 id=id,slot=entry.lane,frame=groupFrame,player=player,npc=entry.npc,clearance=entry.clearance,
                 position=entry.position,direction=entry.direction,speed=entry.speed,
