@@ -369,7 +369,8 @@ companions.onBeforeRemove = speech.clearEntity
 phoneChat.configure(profiles, manager, {
     captureBinding = capturePhoneBinding,
     captureWorldKnowledge = function(_, key)
-        knowledgePhoneCapture = captureKnowledge({profileKey = key}, 'phone')
+        -- By revision: the phone request (rewritten into phone-chat-input.json every 3 s while it waits) stays small.
+        knowledgePhoneCapture = captureKnowledge({profileKey = key}, 'phone', true)
         return knowledgePhoneCapture and knowledgePhoneCapture.worldKnowledge or knowledgeUnavailable()
     end,
     captureJournalHistory = function()

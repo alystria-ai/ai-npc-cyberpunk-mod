@@ -5,6 +5,7 @@ import {parseJournal, conversationContext} from './quest-context.mjs';
 import {parseBattle} from './battle-context.mjs';
 import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
+import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseGameDialogue} from './game-dialogue.mjs';
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -116,8 +117,10 @@ export function parsePhoneState(raw) {
   const requestBinding = parsePhoneBinding(state.version === 2 ? state.request.saveIdentity : undefined);
   if (phoneBindingKey(requestBinding) !== phoneBindingKey(saveIdentity)) return null;
   const journal = parseJournal(state.request.journal), battle = parseBattle(state.request.battle);
-  const worldKnowledge = state.request.worldKnowledge === undefined ? undefined : parseWorldSnapshot(state.request.worldKnowledge);
-  const journalHistory = state.request.journalHistory === undefined ? undefined : parseJournalHistory(state.request.journalHistory);
+  // World facts and journal rows named by revision come from the parts the game published (bridge/knowledge-parts.mjs).
+  const knowledge = resolveKnowledgeParts({worldKnowledge: state.request.worldKnowledge, journalHistory: state.request.journalHistory});
+  const worldKnowledge = knowledge.worldKnowledge === undefined ? undefined : parseWorldSnapshot(knowledge.worldKnowledge);
+  const journalHistory = knowledge.journalHistory === undefined ? undefined : parseJournalHistory(knowledge.journalHistory);
   const gameDialogue = parseGameDialogue(state.request.gameDialogue);
   const memoryReset=state.request.memoryReset===undefined ? undefined : parsePhoneReset(state.request.memoryReset);
   if (state.request.memoryReset!==undefined && !memoryReset) return null;

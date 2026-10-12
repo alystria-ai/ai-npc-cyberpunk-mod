@@ -2527,8 +2527,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1442",
-        "mod/init.lua:1494"
+        "mod/init.lua:1446",
+        "mod/init.lua:1498"
       ]
     },
     "Continue from game dialogue": {
@@ -2568,7 +2568,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1921"
+        "mod/init.lua:1925"
       ]
     },
     "Convai voice": {
@@ -2868,7 +2868,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2190"
+        "mod/init.lua:2194"
       ]
     },
     "Cyberpunk Convai: group text chat": {
@@ -2876,7 +2876,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2187"
+        "mod/init.lua:2191"
       ]
     },
     "Cyberpunk Convai: group voice chat": {
@@ -2884,7 +2884,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2189"
+        "mod/init.lua:2193"
       ]
     },
     "Cyberpunk Convai: talk by text": {
@@ -2892,7 +2892,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2186"
+        "mod/init.lua:2190"
       ]
     },
     "Cyberpunk Convai: talk by voice": {
@@ -2900,7 +2900,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2188"
+        "mod/init.lua:2192"
       ]
     },
     "DETAILS  {page} / {pages}": {
@@ -3089,7 +3089,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1055"
+        "mod/init.lua:1059"
       ]
     },
     "Fast travel cancelled the companion trip.": {
@@ -3222,7 +3222,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1236"
+        "mod/init.lua:1240"
       ]
     },
     "Group chat needs two characters nearby. Use {key} for one person.": {
@@ -3231,7 +3231,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1235"
+        "mod/init.lua:1239"
       ]
     },
     "Head tracking strength": {
@@ -3636,7 +3636,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1936",
+        "mod/init.lua:1940",
         "mod/phone-chat-style.lua:46",
         "mod/phone-chat.lua:10"
       ]
@@ -3646,7 +3646,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1943"
+        "mod/init.lua:1947"
       ]
     },
     "Mistral key": {
@@ -3662,7 +3662,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1945"
+        "mod/init.lua:1949"
       ]
     },
     "Mistral: free limit reached for now": {
@@ -3695,7 +3695,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1938",
+        "mod/init.lua:1942",
         "mod/phone-chat-style.lua:47",
         "mod/phone-chat.lua:11"
       ]
@@ -3895,7 +3895,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2580"
+        "mod/init.lua:2584"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -4189,7 +4189,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:933"
+        "mod/init.lua:937"
       ]
     },
     "Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them.": {
@@ -4288,7 +4288,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1433"
+        "mod/init.lua:1437"
       ]
     },
     "Press your Talk by voice shortcut to finish recording.": {
@@ -4296,7 +4296,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1434"
+        "mod/init.lua:1438"
       ]
     },
     "Previous": {
@@ -4858,7 +4858,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1458"
+        "mod/init.lua:1462"
       ]
     },
     "Speech: {list}": {
@@ -5082,8 +5082,8 @@
       ],
       "references": [
         "mod/companion-adoption.lua:369",
-        "mod/init.lua:262",
-        "mod/init.lua:266"
+        "mod/init.lua:265",
+        "mod/init.lua:269"
       ]
     },
     "That character model is unavailable.": {
@@ -5180,7 +5180,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1940",
+        "mod/init.lua:1944",
         "mod/phone-chat-style.lua:48",
         "mod/phone-chat.lua:12"
       ]
@@ -5322,7 +5322,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1917"
+        "mod/init.lua:1921"
       ]
     },
     "The conversation service could not start. Restart the game, or see Help in Settings.": {
@@ -5422,7 +5422,7 @@
       ],
       "references": [
         "mod/gameplay-actions.lua:216",
-        "mod/init.lua:275"
+        "mod/init.lua:278"
       ]
     },
     "The game could not verify a safe companion position.": {
@@ -5927,7 +5927,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:1431"
+        "mod/init.lua:1435"
       ]
     },
     "V changed seats or vehicles.": {
@@ -6334,7 +6334,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1919"
+        "mod/init.lua:1923"
       ]
     },
     "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.": {
@@ -6342,7 +6342,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1923"
+        "mod/init.lua:1927"
       ]
     },
     "Your Convai plan has no room for conversation memory, so companions will not remember past talks.": {
@@ -6350,7 +6350,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1931"
+        "mod/init.lua:1935"
       ]
     },
     "Your car has no free passenger seat for V.": {
@@ -6490,7 +6490,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1912",
+        "mod/init.lua:1916",
         "mod/phone-chat-style.lua:45",
         "mod/phone-chat.lua:7"
       ]
@@ -6648,7 +6648,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1213"
+        "mod/init.lua:1217"
       ]
     },
     "{name} is already with you.": {
@@ -6698,7 +6698,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2132"
+        "mod/init.lua:2136"
       ]
     },
     "{name} joined your group.": {
@@ -7062,7 +7062,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1235"
+        "mod/init.lua:1239"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7283,7 +7283,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:1431"
+        "mod/init.lua:1435"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7397,7 +7397,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1213"
+        "mod/init.lua:1217"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7421,7 +7421,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:2132"
+        "mod/init.lua:2136"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

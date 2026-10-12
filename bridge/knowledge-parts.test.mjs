@@ -7,6 +7,7 @@ import {configureKnowledgeParts, resolveKnowledgeParts} from './knowledge-parts.
 import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
 import {parseInput} from './protocol.mjs';
+import {parsePhoneState} from './phone-chat.mjs';
 
 // docs/PERFORMANCE_NATIVE_PLAN.md item 1b: a turn names the world and journal parts by revision instead of carrying
 // them. The bridge must rebuild exactly the snapshots the Lua collectors' capture() returns.
@@ -185,4 +186,14 @@ test('parseInput rebuilds the parts, and a kept part survives its file being rep
   assert.equal(again.worldKnowledge.facts.b.value, -2, 'the revision the request names, from the bridge\'s store');
   assert.equal(reads.filter(name => name === 'knowledge-world.json').length, 1, 'read once');
   assert.equal(parseInput(JSON.stringify({...request, ...out.second.request})).worldKnowledge.facts.b.value, 3);
+});
+
+test('phone chat requests name the parts too, and the phone parser rebuilds the same snapshots', () => {
+  const out = run(`settle();return snapshot()`);
+  configureKnowledgeParts({runtimeDir: 'runtime', readFile: store(out.files)});
+  const state = {version: 1, world: 'w1', updated: 1, active: true,
+    request: {id: 'w1-1', contact: 'judy', text: 'Hello', ...out.request}};
+  const parsed = parsePhoneState(JSON.stringify(state));
+  assert.deepEqual(parsed.request.worldKnowledge, parseWorldSnapshot(out.full.world));
+  assert.deepEqual(parsed.request.journalHistory, parseJournalHistory(out.full.history));
 });
