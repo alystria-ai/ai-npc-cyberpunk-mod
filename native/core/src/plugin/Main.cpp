@@ -107,11 +107,14 @@ bool Load()
     convai::log::SetSink(&LogSink);
 
     const auto* runtime = g_sdk ? g_sdk->runtime : nullptr;
-    if (!runtime || runtime->major != convai::kGameMajor || runtime->minor != convai::kGameMinor)
+    const convai::GameVersion game =
+        runtime ? convai::GameVersionFromSemVer(runtime->major, runtime->minor, runtime->patch) : convai::GameVersion{};
+    if (!convai::IsSupportedGame(game))
     {
-        CONVAI_ERROR("Game version %d.%d is not the supported %d.%d; the mod keeps its Lua path",
-                     runtime ? runtime->major : -1, runtime ? static_cast<int>(runtime->minor) : -1,
-                     convai::kGameMajor, convai::kGameMinor);
+        CONVAI_ERROR("Game version %d.%02d (product %d.%d.%lld) is not the supported %d.%02d; the mod keeps its Lua path",
+                     game.major, game.minor, runtime ? static_cast<int>(runtime->major) : -1,
+                     runtime ? static_cast<int>(runtime->minor) : -1,
+                     runtime ? static_cast<long long>(runtime->patch) : -1LL, convai::kGameMajor, convai::kGameMinor);
         return false;
     }
 
