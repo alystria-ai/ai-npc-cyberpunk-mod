@@ -191,6 +191,8 @@ end, list = function() return copy(members) end,
     conversationCandidates = function() return {} end,
     abandon = noOp,
     dismissAll = function() note('companions-dismiss-all') end}
+-- The real one caches conversationCandidates for 0.1 s; the fixture asks every frame.
+function companions.expressionActors(player) return companions.conversationCandidates(player, 1000) end
 function companions.definition(key)
     if key == 'judy-alvarez' then return {name = 'Judy', id = 'Character.Judy', profileKey = key, profileName = 'Judy'} end
     if key == 'johnny-silverhand' then return {name = 'Johnny', id = 'Character.Silverhand', profileKey = key, profileName = 'Johnny'} end

@@ -681,6 +681,20 @@ function M.conversationCandidates(player, radius)
     return result
 end
 
+-- The per-frame face writer's actor rows (init.lua onUpdate). conversationCandidates
+-- costs about 0.1 ms of native reads per call (perf probe 2026-10-11, 45 calls/s), so
+-- the rows are rebuilt at most every 0.1 s, or at once when the party list changes.
+-- The writer re-checks ownership and attachment of every row it uses.
+local expressionRows, expressionRowsAt, expressionRowsList, expressionRowsCount
+function M.expressionActors(player)
+    local now = os.clock()
+    if expressionRows and expressionRowsList == entries and expressionRowsCount == #entries
+        and now >= expressionRowsAt and now - expressionRowsAt < 0.1 then return expressionRows end
+    expressionRows = M.conversationCandidates(player, 1000)
+    expressionRowsAt, expressionRowsList, expressionRowsCount = now, entries, #entries
+    return expressionRows
+end
+
 -- Native targeting can omit occupants. Admit only current managed passengers
 -- whose real mount agrees with the transport controller and V's current car.
 function M.seatedCandidates(player)

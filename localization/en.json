@@ -2187,8 +2187,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:956",
-        "mod/companions.lua:962"
+        "mod/companions.lua:970",
+        "mod/companions.lua:976"
       ]
     },
     "Choose a short or a long voice reference.": {
@@ -4914,8 +4914,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:953",
-        "mod/companions.lua:961"
+        "mod/companions.lua:967",
+        "mod/companions.lua:975"
       ]
     },
     "Step out before starting a new companion trip.": {
@@ -5107,7 +5107,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:964"
+        "mod/companions.lua:978"
       ]
     },
     "That confirmation is no longer active.": {

@@ -2380,7 +2380,7 @@ registerForEvent('onUpdate', function(delta)
     if not chatOk then phoneChat.lastError = tostring(chatError) end
     local expressionActors,expressionBlocked={},true
     if worldReady then
-        local sampled,rows=pcall(companions.conversationCandidates,menuPlayer,1000)
+        local sampled,rows=pcall(companions.expressionActors,menuPlayer)
         if sampled and type(rows)=='table' then expressionActors=rows end
         local combatKnown,inCombat=pcall(function() return menuPlayer:IsInCombat() end)
         expressionBlocked=not combatKnown or inCombat==true

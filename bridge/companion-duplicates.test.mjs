@@ -507,3 +507,20 @@ test('reassigning or dismissing a copy never changes what phone Chat and memory 
   assert.doesNotMatch(phoneChatSource, /convaiCompanions|companions\.|manager-party|\.dismiss\(|setProfile/,
     'phone Chat must not depend on which copies are in the party');
 });
+
+test('the face writer\'s actor rows are rebuilt at most every 0.1 s, and at once when the party changes', () => run(`
+  local first,second=spawn(),spawn()
+  for _,npc in pairs(entities) do function npc:GetBodyType() return 'Female' end end
+  local clock,scans=50,0
+  os.clock=function() return clock end
+  local scan=companions.conversationCandidates
+  companions.conversationCandidates=function(...) scans=scans+1; return scan(...) end
+  local rows=companions.expressionActors(player)
+  assert(#rows==2 and scans==1)
+  for _=1,5 do clock=clock+.015; assert(companions.expressionActors(player)==rows) end
+  assert(scans==1,'rows rebuilt within 0.1 s: '..scans)
+  clock=clock+.05; assert(#companions.expressionActors(player)==2 and scans==2)
+  assert(companions.dismiss(1)); tick(2)
+  assert(#companions.expressionActors(player)==1 and scans==3,'a changed party kept the old rows')
+  companions.conversationCandidates=scan
+`));
