@@ -647,6 +647,8 @@ end
 -- V's gear: one line per real read (bridge/player-gear.mjs logs the other half per reply), so a test shows what was built.
 if playerGear then playerGear.options.log = log end
 if convaiTurnContext then convaiTurnContext.options.log = log end
+-- Continue from game dialogue: one line the first time each of its four hooks fires in a session (mod/game-dialogue.lua).
+if gameDialogue then gameDialogue.options.log = log end
 -- Doors, lifts, fast travel and stranded followers: one line per recovery
 -- decision (companions.lua note(), throttled per kind; never per frame).
 companions.recoveryLog = function(kind, fields)

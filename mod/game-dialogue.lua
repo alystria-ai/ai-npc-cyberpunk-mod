@@ -134,10 +134,10 @@ Instance.__index = Instance
 
 -- options: now(), enabled(), resolve(speaker) -> profileKey, name;
 -- resolveName(name) -> profileKey; contactKey(contact) -> profileKey;
--- present() -> {profileKey}; native (adapter override); observe (hook registrar).
+-- present() -> {profileKey}; native (adapter override); observe (hook registrar); log(line) (the first sighting of each hook).
 function M.new(options)
     options = options or {}
-    local self = setmetatable({options = options, native = options.native or nativeAdapter()}, Instance)
+    local self = setmetatable({options = options, native = options.native or nativeAdapter(), fired = {}}, Instance)
     self:reset('created')
     self.counts = {hooks = {}, types = {}, skipped = {}, recorded = 0}
     return self
@@ -394,8 +394,22 @@ function Instance:dump(path)
     return true
 end
 
+-- The first time each of the four hooks fires in a session, one probe.log line (options.log): a normal play session then
+-- proves which hooks the game really calls, with no console and no per-frame cost (a callback runs per dialogue line or choice
+-- screen, and after the first sighting this is one table lookup). 'fired' survives reset(); a CET reload starts it afresh.
+local HOOK_NAMES = {show = 'BaseSubtitlesGameController.ShowDialogLines', event = 'BaseSubtitlesGameController.OnShowDialogLine',
+    choice = 'PreventionSystem.OnPlayerChoice', hubs = 'InteractionUIBase.OnDialogsData'}
+function Instance:firstSighting(source)
+    if self.fired[source] then return end
+    self.fired[source] = true
+    if type(self.options.log) == 'function' then
+        pcall(self.options.log, 'Game dialogue: hook ' .. source .. ' fired (' .. (HOOK_NAMES[source] or source) .. ')')
+    end
+end
+
 function Instance:guard(source, fn)
     return function(...)
+        self:firstSighting(source)
         local ok, err = pcall(fn, ...)
         if not ok then self.lastError = source .. ': ' .. tostring(err) end
     end

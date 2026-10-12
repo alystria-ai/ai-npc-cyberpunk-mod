@@ -385,6 +385,49 @@ test('install registers the subtitle, choice and hub hooks; a failing hook is co
   assert(installed:status().lastError:find('boom'))
 `));
 
+test('each of the four hooks writes one probe.log line the first time it fires in a session, and no more', () => {
+  lua$(`
+  local hooks, lines = {}, {}
+  local installed = api.new({native = N, now = function() return now end,
+    log = function(line) lines[#lines + 1] = line end,
+    resolve = function(speaker) local p = profiles[speaker.id]; if p then return p[1], p[2] end end,
+    observe = function(class, method, fn) hooks[class .. '.' .. method] = fn end})
+  assert(installed:install())
+  assert(#lines == 0, 'installing a hook logs nothing')
+  local line = {id = 5, type = 'Regular', speaker = JUDY, text = 'Hooked.'}
+  local SHOW, EVENT = 'BaseSubtitlesGameController.ShowDialogLines', 'BaseSubtitlesGameController.OnShowDialogLine'
+  local CHOICE, HUBS = 'PreventionSystem.OnPlayerChoice', 'InteractionUIBase.OnDialogsData'
+  hooks[SHOW](nil, {line}); hooks[SHOW](nil, {line}); hooks[SHOW](nil, {line})
+  assert(#lines == 1 and lines[1] == 'Game dialogue: hook show fired (' .. SHOW .. ')', lines[1])
+  hooks[EVENT](nil, {line}); hooks[EVENT](nil, {line})
+  assert(#lines == 2 and lines[2] == 'Game dialogue: hook event fired (' .. EVENT .. ')', lines[2])
+  hooks[HUBS](nil, {choiceHubs = {{id = 7, title = 'Judy', choices = {{localizedName = 'Okay.'}}}}})
+  hooks[HUBS](nil, {choiceHubs = {}})
+  assert(#lines == 3 and lines[3] == 'Game dialogue: hook hubs fired (' .. HUBS .. ')', lines[3])
+  hooks[CHOICE](nil, {isSuccess = true, visualizerType = 'Dialog', choiceIdx = 0})
+  hooks[CHOICE](nil, {isSuccess = true, visualizerType = 'Dialog', choiceIdx = 0})
+  assert(#lines == 4 and lines[4] == 'Game dialogue: hook choice fired (' .. CHOICE .. ')', lines[4])
+  -- A fired hook stays quiet for the rest of the session, through a world reset and with the setting off.
+  installed:reset('save restored'); enabled = false
+  for _, name in ipairs({SHOW, EVENT, CHOICE, HUBS}) do hooks[name](nil, {line}) end
+  assert(#lines == 4, 'one line per hook per session')
+  -- Even a call the module ignores proves that the game called the hook; a failing log never breaks it.
+  local quiet = api.new({native = N, now = function() return now end, log = function() error('log failed') end,
+    observe = function(class, method, fn) hooks[class .. '.' .. method] = fn end})
+  assert(quiet:install())
+  hooks[SHOW](nil, 'not a table')
+  assert(quiet.fired.show == true and quiet:status().lastError == nil)
+  -- No log function at all is fine too.
+  local silent = api.new({native = N, now = function() return now end,
+    observe = function(class, method, fn) hooks[class .. '.' .. method] = fn end})
+  assert(silent:install()); hooks[CHOICE](nil, nil)
+  assert(silent.fired.choice == true)
+`);
+  assert.match(initSource, /if gameDialogue then gameDialogue\.options\.log = log end/);
+  // Still no per-frame work: the first-sighting check runs inside the observer callbacks only.
+  assert.doesNotMatch(source, /registerForEvent|onUpdate/);
+});
+
 test('group rounds share one snapshot with the prepared and voiced speakers', () => {
   const vm = `local group = (function() ${groupSource} end)()
     local captures = 0
