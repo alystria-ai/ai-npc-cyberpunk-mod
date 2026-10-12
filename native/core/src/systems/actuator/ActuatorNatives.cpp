@@ -22,7 +22,7 @@ namespace
 using namespace convai;
 using actuator::game::Object;
 
-constinit rtti::StaticClass g_class("ConvaiNativeActuator");
+constinit rtti::StaticClass g_class("ConvaiNativeActuator", "actuator");
 constexpr const char* kSystem = "actuator";
 
 void Capabilities(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, int32_t* aOut, int64_t)
@@ -70,23 +70,6 @@ void SenseIdle(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, RED4ext::CSt
                                    std::string()));
 }
 
-// A function whose parameter type the game does not know would register with a missing
-// parameter, and then misread its arguments. Check every type first and skip the function (the
-// Lua shim sees the native missing and stays on its own path).
-bool TypesExist(std::initializer_list<const char*> aTypes)
-{
-    auto* rtti = RED4ext::CRTTISystem::Get();
-    for (const char* name : aTypes)
-    {
-        if (!rtti || !rtti->GetType(name))
-        {
-            CONVAI_ERROR("Actuator: RTTI type %s is unknown, natives that use it are not registered", name);
-            return false;
-        }
-    }
-    return true;
-}
-
 void RegisterTypes()
 {
     g_class.RegisterType();
@@ -94,32 +77,31 @@ void RegisterTypes()
 
 void PostRegisterTypes()
 {
+    // All or nothing: the plugin checks every type of every native before it registers any of them
+    // (rtti::CommitAll), and a system with an unknown type is disabled whole.
     g_class.Static("Capabilities", &Capabilities, "Int32", {});
-    if (TypesExist({"Int32", "String", "Bool", "Double", "handle:gameObject", "handle:AICommand"}))
-    {
-        g_class.Static("Life", &Life, "Int32", {{"handle:gameObject", "npc"}});
-        g_class.Static("CommandState", &CommandState, "Int32",
-                       {{"handle:gameObject", "npc"}, {"handle:AICommand", "command"}});
-        g_class.Static("Sense", &Sense, "String",
-                       {{"handle:gameObject", "npc"},
-                        {"handle:AICommand", "command"},
-                        {"Bool", "hasPrevious"},
-                        {"Double", "previousX"},
-                        {"Double", "previousY"},
-                        {"Double", "playerX"},
-                        {"Double", "playerY"},
-                        {"Double", "playerZ"},
-                        {"Double", "step"}});
-        g_class.Static("SenseIdle", &SenseIdle, "String",
-                       {{"handle:gameObject", "npc"},
-                        {"Bool", "hasPrevious"},
-                        {"Double", "previousX"},
-                        {"Double", "previousY"},
-                        {"Double", "playerX"},
-                        {"Double", "playerY"},
-                        {"Double", "playerZ"},
-                        {"Double", "step"}});
-    }
+    g_class.Static("Life", &Life, "Int32", {{"handle:gameObject", "npc"}});
+    g_class.Static("CommandState", &CommandState, "Int32",
+                   {{"handle:gameObject", "npc"}, {"handle:AICommand", "command"}});
+    g_class.Static("Sense", &Sense, "String",
+                   {{"handle:gameObject", "npc"},
+                    {"handle:AICommand", "command"},
+                    {"Bool", "hasPrevious"},
+                    {"Double", "previousX"},
+                    {"Double", "previousY"},
+                    {"Double", "playerX"},
+                    {"Double", "playerY"},
+                    {"Double", "playerZ"},
+                    {"Double", "step"}});
+    g_class.Static("SenseIdle", &SenseIdle, "String",
+                   {{"handle:gameObject", "npc"},
+                    {"Bool", "hasPrevious"},
+                    {"Double", "previousX"},
+                    {"Double", "previousY"},
+                    {"Double", "playerX"},
+                    {"Double", "playerY"},
+                    {"Double", "playerZ"},
+                    {"Double", "step"}});
 }
 } // namespace
 

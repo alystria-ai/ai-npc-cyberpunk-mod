@@ -32,7 +32,7 @@ namespace
 {
 using namespace convai;
 
-constinit rtti::StaticClass g_class("ConvaiNativeFaces");
+constinit rtti::StaticClass g_class("ConvaiNativeFaces", "faces");
 constexpr const char* kSystem = "faces";
 
 faces::FaceEngine g_engine;
@@ -314,8 +314,6 @@ void RegisterTypes()
     g_class.RegisterType();
 }
 
-constexpr int kNativeCount = 11;
-
 void PostRegisterTypes()
 {
     const char* handle = "handle:IScriptable";
@@ -332,43 +330,9 @@ void PostRegisterTypes()
     g_class.Static("Clear", &Clear, "Bool", {});
     g_class.Static("Check", &Check, "Int32", {{"array:Double", "ctl"}, {"array:Double", "speech"}});
     g_class.Static("Info", &Info, "String", {});
-
-    // A registration that failed (a parameter type the game does not know) only logs inside
-    // Static(); count what is really there so the log line says so in one place.
-    auto* rtti = RED4ext::CRTTISystem::Get();
-    auto* type = rtti ? rtti->GetClass(g_class.Name()) : nullptr;
-    struct Expected
-    {
-        const char* name;
-        std::uint32_t params;
-    };
-    int found = 0;
-    if (type)
-    {
-        for (const Expected& want : {Expected{"Frame", 5}, Expected{"Speaker", 2}, Expected{"Safe", 1},
-                                     Expected{"Turn", 1}, Expected{"Applied", 1}, Expected{"ZeroPose", 1},
-                                     Expected{"NoteReset", 1}, Expected{"Release", 1}, Expected{"Clear", 0},
-                                     Expected{"Check", 2}, Expected{"Info", 0}})
-        {
-            const auto* function = type->GetFunction(want.name);
-            if (function && function->params.Size() == want.params && function->returnType)
-            {
-                ++found;
-            }
-            else
-            {
-                CONVAI_ERROR("faces: %s is not registered with its %u parameters", want.name, want.params);
-            }
-        }
-    }
-    if (found == kNativeCount)
-    {
-        CONVAI_INFO("faces: %d natives registered", found);
-    }
-    else
-    {
-        CONVAI_ERROR("faces: only %d of %d natives registered", found, kNativeCount);
-    }
+    // array:Double is not an RTTI type this game creates (the exe has array:Float, Int32, String and
+    // Bool), so rtti::CommitAll refuses the whole system with a log line naming Frame and the type,
+    // trips "faces", and facial-playback.lua keeps its Lua path. See docs/NATIVE_REWRITE_PLAN.md.
 }
 } // namespace
 

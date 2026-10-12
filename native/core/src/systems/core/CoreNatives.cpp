@@ -17,7 +17,7 @@ namespace
 {
 using namespace convai;
 
-constinit rtti::StaticClass g_class("ConvaiNative");
+constinit rtti::StaticClass g_class("ConvaiNative", "core");
 
 std::string ToString(const RED4ext::CString& aText)
 {

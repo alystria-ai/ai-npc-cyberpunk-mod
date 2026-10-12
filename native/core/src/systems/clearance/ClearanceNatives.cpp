@@ -22,7 +22,7 @@ namespace
 using namespace convai;
 using namespace convai::clearance;
 
-constinit rtti::StaticClass g_class("ConvaiNativeClearance");
+constinit rtti::StaticClass g_class("ConvaiNativeClearance", "clearance");
 constexpr const char* kSystem = "clearance";
 constexpr int kBudgetCap = 1000000;
 

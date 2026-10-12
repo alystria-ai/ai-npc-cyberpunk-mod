@@ -12,8 +12,10 @@ namespace convai::game
 {
 namespace
 {
-// Game thread only, so no locking. Misses are cached too (nullptr), so a function that a patch
-// renamed costs one failed lookup per session, not one per call.
+// Game thread only, so no locking. Only hits are cached: a miss before the scripts finished loading
+// (a class the game defines in script) must not stay a miss for the whole session. A miss logs once
+// per name and is looked up again on the next call (one hash lookup for a class, one walk of the
+// class chain for a method; the callers only reach it behind a capability check).
 std::unordered_map<std::string, RED4ext::CClass*>& Classes()
 {
     static std::unordered_map<std::string, RED4ext::CClass*> classes;
@@ -25,10 +27,21 @@ std::unordered_map<std::string, RED4ext::CBaseFunction*>& Methods()
     static std::unordered_map<std::string, RED4ext::CBaseFunction*> methods;
     return methods;
 }
+
+// True the first time a name is reported missing.
+bool FirstMiss(const std::string& aKey)
+{
+    static std::unordered_map<std::string, bool> reported;
+    return reported.emplace(aKey, true).second;
+}
 } // namespace
 
 RED4ext::CClass* Class(const char* aName)
 {
+    if (!aName || !*aName)
+    {
+        return nullptr;
+    }
     auto& classes = Classes();
     auto it = classes.find(aName);
     if (it != classes.end())
@@ -37,8 +50,11 @@ RED4ext::CClass* Class(const char* aName)
     }
     auto* rtti = RED4ext::CRTTISystem::Get();
     RED4ext::CClass* type = rtti ? rtti->GetClass(aName) : nullptr;
-    classes.emplace(aName, type);
-    if (!type)
+    if (type)
+    {
+        classes.emplace(aName, type);
+    }
+    else if (FirstMiss(std::string("class ") + aName))
     {
         CONVAI_WARN("Game access: class %s not found", aName);
     }
@@ -47,7 +63,7 @@ RED4ext::CClass* Class(const char* aName)
 
 RED4ext::CBaseFunction* Method(RED4ext::CClass* aClass, const char* aName)
 {
-    if (!aClass)
+    if (!aClass || !aName || !*aName)
     {
         return nullptr;
     }
@@ -61,8 +77,11 @@ RED4ext::CBaseFunction* Method(RED4ext::CClass* aClass, const char* aName)
         return it->second;
     }
     RED4ext::CBaseFunction* function = aClass->GetFunction(aName);
-    methods.emplace(key, function);
-    if (!function)
+    if (function)
+    {
+        methods.emplace(key, function);
+    }
+    else if (FirstMiss(key))
     {
         CONVAI_WARN("Game access: %s not found", key.c_str());
     }

@@ -13,7 +13,7 @@ namespace
 {
 using namespace convai;
 
-constinit rtti::StaticClass g_class("ConvaiNativeIo");
+constinit rtti::StaticClass g_class("ConvaiNativeIo", "io");
 constexpr const char* kSystem = "io";
 
 std::string ToString(const RED4ext::CString& aText)

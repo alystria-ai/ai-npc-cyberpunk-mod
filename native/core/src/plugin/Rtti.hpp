@@ -8,7 +8,7 @@
 // DLL registered would stop the game from starting, while a missing DLL here only means the Lua
 // probe fails and the Lua path keeps running.
 //
-//   static convai::rtti::StaticClass g_class("ConvaiNativeExample");
+//   constinit convai::rtti::StaticClass g_class("ConvaiNativeExample", "example");   // class, system
 //
 //   static void Add(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, int32_t* aOut, int64_t)
 //   {
@@ -19,6 +19,7 @@
 //
 //   void RegisterTypes() { g_class.RegisterType(); }
 //   void PostRegisterTypes() { g_class.Static("Add", &Add, "Int32", {{"Int32", "a"}, {"Int32", "b"}}); }
+//   // Main calls CommitAll() after every PostRegisterTypes: all natives of the class register, or none.
 //
 // Rules:
 //   - Natives run on the game thread. Keep them to microseconds: copy, compute, enqueue.
@@ -36,11 +37,15 @@
 #include "core/Log.hpp"
 #include "core/Switches.hpp"
 
+#include "core/Signatures.hpp"
+
 #include <atomic>
 #include <exception>
+#include <functional>
 #include <initializer_list>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace convai::rtti
 {
@@ -62,75 +67,89 @@ struct Param
 // Constructing a CClass resolves game addresses through RED4ext, so the class object must not
 // exist before RED4ext has loaded us: a global TTypedClass would run the SDK's address resolver
 // at DLL load and show a modal error box when the DLL is loaded without RED4ext. StaticClass
-// therefore only stores the name; the CClass is built inside RegisterType(), which runs from
+// therefore only stores the names; the CClass is built inside RegisterType(), which runs from
 // the RTTI register callback that Main(Load) installs. It is never destroyed (RTTI keeps it).
+//
+// Registration is all or nothing per system. Static() only records a native; CommitAll() (Main,
+// after every system's PostRegisterTypes) then resolves every parameter and return type of the
+// whole class against the game's RTTI, builds every function, checks each came out with its
+// parameters, and only then adds them to the class. When anything fails, no function is added,
+// the system's kill switch is tripped with the reason (the Lua shim reads it through
+// ConvaiNative.SystemEnabled and keeps its own path), and the class stays an empty shell that
+// Lua cannot call into. Nothing registered by a failed system is ever callable.
 class StaticClass
 {
 public:
-    explicit constexpr StaticClass(const char* aName) noexcept
+    constexpr StaticClass(const char* aName, const char* aSystem) noexcept
         : m_name(aName)
+        , m_system(aSystem)
     {
     }
 
-    // From the RTTI register callback.
-    void RegisterType()
-    {
-        if (m_class)
-        {
-            return;
-        }
-        RED4ext::CNamePool::Add(m_name);
-        m_class = new RED4ext::TTypedClass<StaticHost>(m_name);
-        m_class->flags = {.isNative = true};
-        RED4ext::CRTTISystem::Get()->RegisterType(m_class);
-    }
+    // From the RTTI register callback. Returns false (and trips the system) when the class could
+    // not be built.
+    bool RegisterType();
 
-    // From the RTTI post-register callback.
+    // From the RTTI post-register callback: records one native, registers nothing yet.
     template<typename TOut>
     void Static(const char* aName, RED4ext::ScriptingFunction_t<TOut> aFunction, const char* aReturnType,
                 std::initializer_list<Param> aParams)
     {
-        if (!m_class)
-        {
-            CONVAI_ERROR("RTTI: %s.%s registered before its class", m_name, aName);
-            return;
-        }
-        if (!m_parented)
-        {
-            m_class->parent = RED4ext::CRTTISystem::Get()->GetClass("IScriptable");
-            m_parented = true;
-        }
-        RED4ext::CBaseFunction::Flags flags{};
-        flags.isNative = true;
-        flags.isStatic = true;
-        flags.isFinal = true;
-        auto* function = RED4ext::CClassStaticFunction::Create(m_class, aName, aName, aFunction, flags);
-        if (!function)
-        {
-            CONVAI_ERROR("RTTI: could not create %s.%s", m_name, aName);
-            return;
-        }
+        Pending native;
+        native.signature.name = aName ? aName : "";
+        native.signature.returnType = aReturnType ? aReturnType : "";
         for (const Param& param : aParams)
         {
-            function->AddParam(param.type, param.name);
+            native.signature.params.emplace_back(param.type ? param.type : "", param.name ? param.name : "");
         }
-        if (aReturnType)
-        {
-            function->SetReturnType(aReturnType);
-        }
-        m_class->RegisterFunction(function);
+        native.create = [aFunction](RED4ext::CClass* aClass, const char* aFunctionName,
+                                    RED4ext::CBaseFunction::Flags aFlags) -> RED4ext::CClassFunction* {
+            return RED4ext::CClassStaticFunction::Create(aClass, aFunctionName, aFunctionName, aFunction, aFlags);
+        };
+        Record(std::move(native));
     }
+
+    // Builds and registers everything recorded, or nothing. True when the system is usable.
+    bool Commit() noexcept;
 
     const char* Name() const noexcept
     {
         return m_name;
     }
 
+    const char* System() const noexcept
+    {
+        return m_system;
+    }
+
+    // True once Commit() registered every native.
+    bool Registered() const noexcept
+    {
+        return m_registered;
+    }
+
 private:
+    struct Pending
+    {
+        NativeSignature signature;
+        std::function<RED4ext::CClassFunction*(RED4ext::CClass*, const char*, RED4ext::CBaseFunction::Flags)> create;
+    };
+
+    void Record(Pending&& aNative);
+    bool Fail(const std::string& aReason) noexcept;
+
     const char* m_name;
+    const char* m_system;
     RED4ext::TTypedClass<StaticHost>* m_class = nullptr;
-    bool m_parented = false;
+    bool m_committed = false;
+    bool m_registered = false;
+    std::vector<Pending>* m_pending = nullptr; // heap, so the object stays constant-initialised
 };
+
+// Commits every class that built its type or recorded a native (a class whose RegisterType failed
+// or never ran fails its commit, which trips its system). Runs from the post-register callback
+// after every system has recorded its natives.
+void CommitAll() noexcept;
 
 // Reads each parameter in order, then steps over the ParamEnd opcode.
 template<typename... T>
