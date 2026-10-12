@@ -651,6 +651,8 @@ return {
     ["Local AI"] = "Локальний ШІ",
     ["Local AI (this computer)"] = "Локальний ШІ (цей комп'ютер)",
     ["Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development."] = "Локальний ШІ не вдалося запустити, тож використовується хмарний провайдер. Перевір Локальний ШІ в меню Налаштування > Розробка.",
+    ["Local AI could not answer that. Try again in a moment."] = "Локальний ШІ не вдалося відповісти. Спробуй ще раз за мить.",
+    ["Local AI could not answer that one, so a cloud provider did."] = "Локальний ШІ не вдалося відповісти на це, тож відповів хмарний провайдер.",
     ["Not enough graphics memory"] = "Недостатньо графічної пам'яті",
     ["Paste Groq key"] = "Вставити ключ Groq",
     ["Remove my Groq key"] = "Видалити мій ключ Groq",

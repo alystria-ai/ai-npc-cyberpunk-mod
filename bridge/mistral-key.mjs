@@ -56,6 +56,7 @@ export class MistralProvider {
     groq?.onChange?.(() => { this.groqLimit = null; this.groqBlockedUntil = 0; this.#changed(); });
     this.key = null; this.preference = 'convai'; this.applied = 'convai';
     this.noKeyPending = false; this.voicePending = false; this.limit = null; this.sttAvailable = false;
+    this.localTurnNoticePending = false;
     this.localBroken = null; this.localNoticePending = false; // why the local AI cannot be used (null: it can), and the one notice for it
     this.listeners = new Set();
   }
@@ -108,6 +109,11 @@ export class MistralProvider {
     this.localBroken = reason || 'start-failed'; this.localNoticePending = true;
     this.#changed();
   }
+  /**
+   * One local turn could not be answered and the player's cloud provider answered it instead: the reply carries a notice
+   * ('local-turn-fallback', once per call; the game limits how often it shows). The local AI stays the provider.
+   */
+  noteLocalTurnFallback() { if (this.applied === 'local') this.localTurnNoticePending = true; }
   /** Adopts the requested provider; call only at an idle boundary. Returns whether it changed. */
   apply() {
     const changed = this.pending;
@@ -124,9 +130,10 @@ export class MistralProvider {
   secrets() { return [this.key, ...(this.groq?.secrets?.() ?? [])].filter(Boolean); }
   noteLimit(kind) { this.limit = kind ? {kind, at: Date.now()} : null; this.#changed(); }
   noteSuccess() { if (this.limit) { this.limit = null; this.#changed(); } }
-  /** 'mistral-no-key', 'groq-no-key', 'mistral-voice' or 'local-fallback' once each (the game shows them with the next reply), else undefined. */
+  /** 'mistral-no-key', 'groq-no-key', 'mistral-voice', 'local-fallback' or 'local-turn-fallback' once each (the game shows them with the next reply), else undefined. */
   takeNotice({cloudVoice = false} = {}) {
     if (this.localNoticePending && this.applied !== 'local') { this.localNoticePending = false; return 'local-fallback'; }
+    if (this.localTurnNoticePending) { this.localTurnNoticePending = false; return 'local-turn-fallback'; }
     if (this.noKeyPending && this.applied === 'convai') { this.noKeyPending = false; return 'mistral-no-key'; }
     if (this.groqNoKeyPending && this.applied === 'convai') { this.groqNoKeyPending = false; return 'groq-no-key'; }
     if (this.voicePending && this.applied === 'mistral' && cloudVoice) { this.voicePending = false; return 'mistral-voice'; }

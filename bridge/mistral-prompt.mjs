@@ -50,6 +50,11 @@ const clip = (text, limit) => {
   return points.length <= limit ? points.join('') : points.slice(0, limit - 1).join('').trimEnd() + '…';
 };
 
+// What the messages of a request were built from, left on them (not enumerable, so the request body is unchanged) so a route that learns
+// what its server can take can build the prompt again, smaller (bridge/prompt-budget.mjs).
+export const PROMPT_SOURCE = Symbol.for('cyberpunk-convai.prompt-source');
+export const withPromptSource = (messages, args) => { Object.defineProperty(messages, PROMPT_SOURCE, {value: args, enumerable: false}); return messages; };
+
 /** The roster rows (named characters, then archetypes) by profile key. */
 export class PersonaBook {
   constructor(rows = []) {
@@ -185,7 +190,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
   if (!v2) {
     const live = capContext(`${CONTEXT_PREFIX}${context || 'This is a private conversation with V.'}`, limits.context);
     messages.push({role: 'user', content: `[LIVE CONTEXT for this moment: facts and instructions for you, never to be read aloud]\n${live}\n\n${message}`});
-    return messages;
+    return withPromptSource(messages, arguments[0]);
   }
   // What the character remembers that bears on these words: facts V told it, promises, tastes (bridge/memory-store.mjs).
   const facts = [];
@@ -206,7 +211,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
     volatile ? `[THIS TURN: notes for you, never to be read aloud]\n${volatile}` : '',
     facts.length ? `[THINGS YOU REMEMBER ABOUT V THAT MAY MATTER NOW: true unless the world context says otherwise; mention one only if it fits]\n${facts.join('\n')}` : '',
     message].filter(Boolean).join('\n\n')});
-  return messages;
+  return withPromptSource(messages, arguments[0]);
 }
 
 // ---- Reply cleaning ----------------------------------------------------------------------------------------------------

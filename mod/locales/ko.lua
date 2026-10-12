@@ -651,6 +651,8 @@ return {
     ["Local AI"] = "로컬 AI",
     ["Local AI (this computer)"] = "로컬 AI (이 컴퓨터)",
     ["Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development."] = "로컬 AI를 시작할 수 없어 클라우드 제공업체를 사용합니다. 설정 > 개발에서 로컬 AI를 확인하세요.",
+    ["Local AI could not answer that. Try again in a moment."] = "로컬 AI가 답변하지 못했습니다. 잠시 후 다시 시도하세요.",
+    ["Local AI could not answer that one, so a cloud provider did."] = "로컬 AI가 답변하지 못해서 클라우드 제공업체가 답변했습니다.",
     ["Not enough graphics memory"] = "그래픽 메모리가 부족함",
     ["Paste Groq key"] = "Groq 키 붙여넣기",
     ["Remove my Groq key"] = "내 Groq 키 제거",

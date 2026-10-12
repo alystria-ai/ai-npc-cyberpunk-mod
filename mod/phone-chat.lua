@@ -14,6 +14,7 @@ local MISTRAL_STATUS = {
     ['groq-limit'] = 'Groq’s free limit is reached for now. Try again in a moment.',
     ['groq-model'] = 'The Groq model is unavailable right now. Try again in a minute.',
     ['local-fallback'] = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development.',
+    ['local-failed'] = 'Local AI could not answer that. Try again in a moment.',
 }
 local function copy(value)
     if type(value) ~= 'table' then return value end

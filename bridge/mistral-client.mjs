@@ -61,8 +61,9 @@ export function errorCodeFor(error) {
   const kind = failureKind(error);
   const text = typeof error === 'string' ? error : typeof error?.message === 'string' ? error.message : '';
   const provider = /\[(mistral|groq|local):/.exec(text)?.[1] ?? 'mistral';
-  // The local AI has no key or limit of its own; the bridge's fallback to Convai carries its own code.
-  if (provider === 'local') return undefined;
+  // The local AI has no key or limit of its own. A server that could not be started has its own code in the bridge (local-fallback);
+  // any other failure of a turn (a refused prompt, no answer, a server that went away) is 'local-failed'.
+  if (provider === 'local') return kind ? 'local-failed' : undefined;
   return kind === 'key' ? `${provider}-key` : kind === 'limit' ? `${provider}-limit` : kind === 'model' ? `${provider}-model` : undefined;
 }
 
@@ -91,6 +92,13 @@ export function mapFailure(status, body, {headers, apiKey, provider} = {}) {
     const error = new MistralError('limit', 'rate limited', options);
     // A daily allowance does not clear by waiting a few seconds: no retry (Groq says "tokens per day"; its body is the only hint).
     error.daily = /per day|TPD|RPD|daily/i.test(lower);
+    return error;
+  }
+  // llama-server refuses a prompt longer than its context and says how many tokens it counted (docs/LOCAL_AI.md, "Context budget").
+  if (status === 400 && (body?.error?.type === 'exceed_context_size_error' || /exceeds the available context size/i.test(text))) {
+    const counted = /request \((\d+) tokens\).*\((\d+) tokens\)/.exec(text);
+    const error = new MistralError('request', detail, options);
+    error.overflow = {promptTokens: Number(body?.error?.n_prompt_tokens ?? counted?.[1]) || undefined, contextTokens: Number(body?.error?.n_ctx ?? counted?.[2]) || undefined};
     return error;
   }
   if (status === 404 || ((status === 400 || status === 422) && /model/.test(lower))) return new MistralError('model', detail, options);

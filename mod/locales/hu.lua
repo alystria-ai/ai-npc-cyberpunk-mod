@@ -651,6 +651,8 @@ return {
     ["Local AI"] = "Helyi MI",
     ["Local AI (this computer)"] = "Helyi MI (ez a számítógép)",
     ["Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development."] = "A helyi MI nem tudott elindulni, ezért felhőszolgáltató van használatban. Ellenőrizd a helyi MI-t a Beállítások > Fejlesztés menüpontban.",
+    ["Local AI could not answer that. Try again in a moment."] = "A helyi MI nem tudott válaszolni. Próbáld újra kis idő múlva.",
+    ["Local AI could not answer that one, so a cloud provider did."] = "A helyi MI erre nem tudott válaszolni, ezért egy felhőszolgáltató válaszolt.",
     ["Not enough graphics memory"] = "Nincs elég grafikus memória",
     ["Paste Groq key"] = "Groq-kulcs beillesztése",
     ["Remove my Groq key"] = "Groq-kulcsom eltávolítása",

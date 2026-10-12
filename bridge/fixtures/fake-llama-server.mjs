@@ -11,6 +11,9 @@
 //   FAKE_LLAMA_DEVICES         the device lines printed by --list-devices
 //   FAKE_LLAMA_PRINT_KEY       print the API key to stderr (to test redaction)
 //   FAKE_LLAMA_ARGS_FILE       write the received argv (JSON) here
+//   FAKE_LLAMA_CTX             the n_ctx /props reports (default: the -c argument, else 4096)
+//   FAKE_LLAMA_CHARS_PER_TOKEN characters per token for /tokenize, the prompt count and the context check (default 4)
+// A request whose prompt is longer than the context is refused like the real server does (400, exceed_context_size_error).
 import {createServer} from 'node:http';
 import {createHash} from 'node:crypto';
 import {readFileSync, writeFileSync, existsSync} from 'node:fs';
@@ -46,6 +49,8 @@ const host = options['--host'] ?? '127.0.0.1';
 const startedAt = Date.now();
 const delayMs = Number(process.env.FAKE_LLAMA_DELAY_MS || 0);
 const crashAfter = Number(process.env.FAKE_LLAMA_CRASH_AFTER || 0);
+const contextSize = Number(process.env.FAKE_LLAMA_CTX || options['-c'] || 4096);
+const charsPerToken = Number(process.env.FAKE_LLAMA_CHARS_PER_TOKEN || 4);
 const embedding = Boolean(options['--embedding'] || options['--embeddings']);
 const requests = [];
 let served = 0;
@@ -82,10 +87,21 @@ const server = createServer((request, response) => {
       send(response, 200, {object: 'list', model: json.model, data: inputs.map((text, index) => ({object: 'embedding', index, embedding: vector(text)}))});
       return finish();
     }
+    if (url === '/props') return send(response, 200, {default_generation_settings: {n_ctx: contextSize}, total_slots: 1});
+    if (url === '/tokenize') {
+      requests.push({path: url, chars: String(json.content ?? '').length});
+      return send(response, 200, {tokens: Array.from({length: Math.ceil(String(json.content ?? '').length / charsPerToken)}, (_, index) => index)});
+    }
     if (url === '/v1/chat/completions') {
       const messages = Array.isArray(json.messages) ? json.messages : [];
       const promptChars = messages.reduce((sum, message) => sum + String(message.content ?? '').length, 0);
-      requests.push({path: url, stream: Boolean(json.stream), maxTokens: json.max_tokens ?? null, promptChars,
+      const promptTokens = Math.ceil(promptChars / charsPerToken) + messages.length * 4;
+      if (promptTokens > contextSize) {
+        requests.push({path: url, refused: true, promptChars, promptTokens});
+        return send(response, 400, {error: {code: 400, type: 'exceed_context_size_error', n_prompt_tokens: promptTokens, n_ctx: contextSize,
+          message: `request (${promptTokens} tokens) exceeds the available context size (${contextSize} tokens), try increasing it`}});
+      }
+      requests.push({path: url, stream: Boolean(json.stream), maxTokens: json.max_tokens ?? null, promptChars, promptTokens,
         cachePrompt: json.cache_prompt ?? null, messages: messages.length});
       const last = [...messages].reverse().find(message => message.role === 'user')?.content ?? '';
       let reply = process.env.FAKE_LLAMA_REPLY ?? 'Echo: ' + String(last).slice(0, 40);
@@ -95,10 +111,11 @@ const server = createServer((request, response) => {
         for (const word of reply.split(/(?<= )/))
           response.write('data: ' + JSON.stringify({choices: [{index: 0, delta: {content: word}}]}) + '\n\n');
         response.write('data: ' + JSON.stringify({choices: [{index: 0, delta: {}, finish_reason: 'stop'}]}) + '\n\n');
+        if (json.stream_options?.include_usage) response.write('data: ' + JSON.stringify({choices: [], usage: {prompt_tokens: promptTokens, completion_tokens: reply.split(' ').length}}) + '\n\n');
         response.end('data: [DONE]\n\n');
       } else {
         send(response, 200, {object: 'chat.completion', model: json.model, choices: [{index: 0, message: {role: 'assistant', content: reply}, finish_reason: 'stop'}],
-          usage: {prompt_tokens: Math.ceil(promptChars / 4), completion_tokens: 1}});
+          usage: {prompt_tokens: promptTokens, completion_tokens: 1}});
       }
       return finish();
     }

@@ -651,6 +651,8 @@ return {
     ["Local AI"] = "本地 AI",
     ["Local AI (this computer)"] = "本地 AI（这台电脑）",
     ["Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development."] = "本地 AI 无法启动，因此使用云服务提供商。请在 设置 > 开发 中检查本地 AI。",
+    ["Local AI could not answer that. Try again in a moment."] = "本地 AI 无法回答这个问题。请稍后再试。",
+    ["Local AI could not answer that one, so a cloud provider did."] = "本地 AI 无法回答这个问题，因此由云服务提供商回答。",
     ["Not enough graphics memory"] = "显存不足",
     ["Paste Groq key"] = "粘贴 Groq 密钥",
     ["Remove my Groq key"] = "移除我的 Groq 密钥",

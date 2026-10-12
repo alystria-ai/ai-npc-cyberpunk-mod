@@ -2044,6 +2044,14 @@ local function keyReplyNotice(reply)
     if reply.errorCode == 'local-fallback' or reply.keyNotice == 'local-fallback' then
         return 'local-fallback', ui.t('Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development.')
     end
+    -- A turn the local AI could not answer, with no cloud provider to take it over: say so (the next turn tries again).
+    if reply.errorCode == 'local-failed' then
+        return 'local-failed', ui.t('Local AI could not answer that. Try again in a moment.')
+    end
+    -- A turn the local AI could not answer and the player's cloud provider did: the reply carries this one-line note.
+    if reply.keyNotice == 'local-turn-fallback' then
+        return 'local-turn-fallback', ui.t('Local AI could not answer that one, so a cloud provider did.')
+    end
     if reply.keyNotice == 'groq-no-key' then
         return 'groq-no-key', ui.t('Groq has no key yet, so Convai is used. Add your key in Settings > Development.')
     end
@@ -2062,7 +2070,8 @@ local function sendProviderNotice(player, keyId, keyText)
     if keyId == 'mistral-no-key' then convaiNotices.send(player, 'mistral-no-key', keyText)
     elseif keyId == 'mistral-voice' then convaiNotices.send(player, 'mistral-voice', keyText)
     elseif keyId == 'groq-no-key' then convaiNotices.send(player, 'groq-no-key', keyText)
-    elseif keyId == 'local-fallback' then convaiNotices.send(player, 'local-fallback', keyText) end
+    elseif keyId == 'local-fallback' then convaiNotices.send(player, 'local-fallback', keyText)
+    elseif keyId == 'local-turn-fallback' then convaiNotices.send(player, 'local-turn-fallback', keyText) end
 end
 
 local function reactionCanDeliver(context, player)
@@ -2824,6 +2833,9 @@ registerForEvent('onUpdate', function(delta)
                         -- Local AI could not start and the turn failed: the notice for a turn V asked for, like the Mistral failures.
                         elseif keyId == 'local-fallback' then
                             if not pending.reaction then convaiNotices.send(player, 'local-fallback', keyText) end
+                        -- A local turn failed and nothing took it over: the same rule, its own notice.
+                        elseif keyId == 'local-failed' then
+                            if not pending.reaction then convaiNotices.send(player, 'local-failed', keyText) end
                         elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'groq-no-key' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end

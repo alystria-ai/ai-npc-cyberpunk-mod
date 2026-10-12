@@ -366,7 +366,9 @@ test('errors name their provider, and only a refused Mistral or Groq key becomes
   assert.equal(errorCodeFor(groq), 'groq-limit');
   const local = new MistralError('network', 'could not be reached', {provider: 'local'});
   assert.match(local.message, /^The local AI .*\[local:network\]$/);
-  assert.equal(errorCodeFor(local), undefined);
+  // A failed local turn (no answer, a refused prompt, a server that went away) has its own code; one that could not start does not.
+  assert.equal(errorCodeFor(local), 'local-failed');
+  assert.equal(errorCodeFor(new Error('The local AI is not available [local:unavailable]')), undefined);
   assert.equal(errorCodeFor(new MistralError('key', 'x')), 'mistral-key');
 });
 

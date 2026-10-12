@@ -387,7 +387,7 @@ const phoneSessionPath = resolve(stateDirectory, 'phone-sessions.json');
 let phoneSessions = {};
 try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
 const phone = new PhoneChat({
-  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return code === 'daily-limit' || /^(mistral|groq)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined; },
+  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return code === 'daily-limit' || /^(mistral|groq|local)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined; },
   contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
@@ -510,8 +510,8 @@ const realtime = new RealtimeHost({onCompanionAction: packet => companionActions
 // scope is a hash of the state folder, so the Mistral cache key never carries a secret or a name.
 const textRoutes = {
   mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12)}),
-  groq: groqRoute({provider: mistral}),
-  local: localRoute({server: localServer, provider: mistral}),
+  groq: groqRoute({provider: mistral, log: message => console.error('[TextProvider] ' + message)}),
+  local: localRoute({server: localServer, provider: mistral, log: message => console.error('[TextProvider] ' + message)}),
 };
 const providerOfCharacter = new Map();
 const profileOfCharacter = config => {
@@ -697,8 +697,10 @@ const conversationBlocks = input => {
 const joinedContext = blocks => blocks.map(item => item.text).filter(Boolean).join('\n\n');
 const conversationContext = input => joinedContext(conversationBlocks(input));
 // {now, notes, world, volatile} for the text providers' prompt layout; only built while one of them answers.
-const contextPartsOf = blocks => Object.fromEntries(['now', 'notes', 'world', 'volatile']
-  .map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))]));
+// `worldBlocks` lists the world blocks one by one (with their keys) so a small context can cut them in order of priority.
+const contextPartsOf = blocks => ({...Object.fromEntries(['now', 'notes', 'world', 'volatile']
+  .map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
+  worldBlocks: blocks.filter(item => item.tier === 'world' && item.text).map(item => ({key: item.key, text: item.text}))});
 const textProviderContext = input => {
   noteTurn(input);
   const blocks = conversationBlocks(input);
@@ -2144,7 +2146,19 @@ const prefetchTimer = setInterval(() => { void pollPrefetch().catch(error => con
 const lookaheadTimer = setInterval(() => { void pollLookahead().catch(error => console.error('[CyberpunkConvai] Look-ahead poll:', error.message)); }, 60);
 const settingsTimer = setInterval(() => { void pollSettings().catch(error => console.error('[CyberpunkConvai] Settings poll:', error.message)); }, 500);
 const phoneTimer = setInterval(() => { void pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)); }, 150);
-const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(error => console.error('[CyberpunkConvai] Knowledge poll:', error.message)); }, 500);
+// The status file the game reads can be held open by the game for a moment (Windows refuses the rename: EPERM/EBUSY); the next poll
+// writes it again, so the same message is logged at most once a minute, with how many were left out.
+let knowledgePollQuiet = {message: '', at: 0, skipped: 0};
+function logKnowledgePoll(error) {
+  const message = String(error?.message ?? error);
+  const kind = message.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '*');   // the temp file name differs every time
+  const now = Date.now();
+  if (kind === knowledgePollQuiet.message && now - knowledgePollQuiet.at < 60_000) { knowledgePollQuiet.skipped++; return; }
+  const skipped = knowledgePollQuiet.skipped;
+  knowledgePollQuiet = {message: kind, at: now, skipped: 0};
+  console.error('[CyberpunkConvai] Knowledge poll:', message + (skipped ? ` (${skipped} more of the same were not logged)` : ''));
+}
+const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(logKnowledgePoll); }, 500);
 const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error => console.error('[CyberpunkConvai] Memory control:', error.message)); }, 500);
 const supportTimer = setInterval(() => { void supportReport.poll().catch(error => console.error('[CyberpunkConvai] Support report:', error.message)); }, 500);
 // The same polls run a few milliseconds after the game replaces their file (bridge/file-wake.mjs): a typed or spoken turn and a

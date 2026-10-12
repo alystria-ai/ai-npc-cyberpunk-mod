@@ -651,6 +651,8 @@ return {
     ["Local AI"] = "Místní AI",
     ["Local AI (this computer)"] = "Místní AI (tento počítač)",
     ["Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development."] = "Místní AI se nepodařilo spustit, takže se používá cloudový poskytovatel. Zkontroluj Místní AI v Nastavení > Vývoj.",
+    ["Local AI could not answer that. Try again in a moment."] = "Místní AI na to nedokázala odpovědět. Zkus to za chvíli.",
+    ["Local AI could not answer that one, so a cloud provider did."] = "Místní AI na to nedokázala odpovědět, takže odpověděl cloudový poskytovatel.",
     ["Not enough graphics memory"] = "Nedostatek paměti grafiky",
     ["Paste Groq key"] = "Vložit klíč Groq",
     ["Remove my Groq key"] = "Odebrat můj klíč Groq",

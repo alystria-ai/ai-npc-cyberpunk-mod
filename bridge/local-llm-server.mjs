@@ -46,7 +46,12 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
   liteMinFreeMiB: 2000,
   standardHeadroomMiB: 1200,   // free VRAM needed beyond the model file: KV cache, compute buffers, a little spare
   liteHeadroomMiB: 700,
-  contextSize: 8192,
+  contextSize: 8192,           // the smallest context the ladder below ends in
+  // The context the server is started with, largest first: the first one whose extra KV cache still fits the free VRAM. Measured on the
+  // RTX 4080 Laptop (docs/LOCAL_AI.md, "Context size"): going from 8k to 16k costs 136 MiB on Gemma 4 E4B and 104 MiB on Qwen3.5-2B (f16
+  // KV cache; q8_0 saves only another 90 MiB and prefills a third slower), so the largest entry is taken wherever the tier itself fits.
+  contextLadder: [16384, 12288, 8192],
+  kvMiBPerKToken: {standard: 17, lite: 13},   // KV cache growth per 1,000 tokens of context, f16
   idleMs: 600_000,             // weights leave VRAM after ten idle minutes
   startupMs: 180_000,          // the first start compiles Vulkan shaders (about a minute)
   warmupMs: 240_000,           // one warm-up request, first time included
@@ -119,6 +124,18 @@ export function chooseTier({tier = 'auto', standard, lite, freeMiB, standardSize
   if (standard && freeMiB >= tierNeedMiB('standard', standardSizeMiB)) return 'standard';
   if (lite && freeMiB >= tierNeedMiB('lite', liteSizeMiB)) return 'lite';
   throw new LocalAiUnavailable('low-memory');
+}
+
+// The context to start a tier with: the largest of the ladder whose extra KV cache (beyond the 8k the tier's headroom was measured at)
+// still fits in `freeMiB` on top of the tier's own need. Unknown free memory takes the largest.
+export function chooseContext({tier, freeMiB, sizeMiB, ladder = LOCAL_LLM_LIMITS.contextLadder} = {}) {
+  const perK = LOCAL_LLM_LIMITS.kvMiBPerKToken[tier] ?? LOCAL_LLM_LIMITS.kvMiBPerKToken.standard;
+  const need = tierNeedMiB(tier, sizeMiB);
+  for (const context of ladder) {
+    const extra = Math.max(0, (context - LOCAL_LLM_LIMITS.contextSize) / 1024 * perK);
+    if (!Number.isFinite(freeMiB) || freeMiB >= need + extra) return context;
+  }
+  return ladder.at(-1) ?? LOCAL_LLM_LIMITS.contextSize;
 }
 
 const defaultFileSizeMiB = file => { try { return statSync(file).size / 1048576; } catch { return 0; } };
@@ -344,16 +361,18 @@ function abortable(promise, signal) {
 export class LocalLlmServer extends EventEmitter {
   #state = 'stopped'; #reason = null; #tier = null; #model = null; #firstTime = false;
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
-  #warmed = new Set();
+  #warmed = new Set(); #contextSize = 0;
 
   // command/argsPrefix replace pack.server when spawning (tests); processOptions go to LlamaProcess (tests).
-  constructor({pack, tier = 'auto', contextSize = LOCAL_LLM_LIMITS.contextSize, spawnImpl = spawn, fetchImpl = fetch, listDevices,
+  // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
+  constructor({pack, tier = 'auto', contextSize, spawnImpl = spawn, fetchImpl = fetch, listDevices,
       freeVramMiB = nvidiaFreeMiB, idleMs = LOCAL_LLM_LIMITS.idleMs, startupMs = LOCAL_LLM_LIMITS.startupMs, warmup = true,
       warmupMs = LOCAL_LLM_LIMITS.warmupMs, stateFile, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
       log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
       beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, environment = process.env, command, argsPrefix = [], processOptions = {}} = {}) {
     super();
-    Object.assign(this, {pack, tierSetting: tier, contextSize, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
+    const fixedContext = Number.parseInt(contextSize ?? environment.CYBERPUNK_CONVAI_LOCAL_CTX ?? '', 10);
+    Object.assign(this, {pack, tierSetting: tier, contextSize: Number.isFinite(fixedContext) && fixedContext >= 2048 ? fixedContext : null, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
       warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, argsPrefix, processOptions, freeMemMiB,
       beforeStart, beforeStartMs, fileSizeMiB});
     const configured = Number.parseInt(cacheRamMiB ?? environment.CYBERPUNK_CONVAI_LOCAL_CACHE_RAM ?? '', 10);
@@ -364,6 +383,7 @@ export class LocalLlmServer extends EventEmitter {
 
   status() {
     const status = {state: this.#state, tier: this.#tier, model: this.#model};
+    if (this.#contextSize && (this.#state === 'ready' || this.#state === 'warming')) status.contextSize = this.#contextSize;
     if (this.#reason) status.reason = this.#reason;
     if (this.#firstTime) status.firstTime = true;
     return status;
@@ -375,7 +395,8 @@ export class LocalLlmServer extends EventEmitter {
     this.emit('state', this.status());
   }
 
-  #handle() { return {endpoint: this.#info.endpoint, apiKey: this.#info.apiKey, model: this.#model, tier: this.#tier}; }
+  // contextSize: the server's own n_ctx per slot (read from /props once it is up), so a prompt is fitted to what is really there.
+  #handle() { return {endpoint: this.#info.endpoint, apiKey: this.#info.apiKey, model: this.#model, tier: this.#tier, contextSize: this.#info.contextSize}; }
 
   // Starts the server if needed; resolves when it is ready. Concurrent callers share one start.
   async ensure({signal} = {}) {
@@ -489,7 +510,8 @@ export class LocalLlmServer extends EventEmitter {
       standardSizeMiB: pack.tiers?.standard ? this.fileSizeMiB(pack.tiers.standard.file) : 0,
       liteSizeMiB: pack.tiers?.lite ? this.fileSizeMiB(pack.tiers.lite.file) : 0});
     const tier = pack.tiers[tierKey];
-    this.#tier = tierKey; this.#model = tier.name;
+    const contextSize = this.contextSize ?? chooseContext({tier: tierKey, freeMiB, sizeMiB: this.fileSizeMiB(tier.file)});
+    this.#tier = tierKey; this.#model = tier.name; this.#contextSize = contextSize;
     const cacheRamMiB = this.cacheRamMiB ?? defaultCacheRamMiB(Number(this.freeMemMiB()));
     const signature = this.#signature(tier.file);
     this.#loadWarmed();
@@ -498,7 +520,7 @@ export class LocalLlmServer extends EventEmitter {
 
     const proc = new LlamaProcess({command: this.command, argsPrefix: this.argsPrefix, spawnImpl: this.spawnImpl, fetchImpl: this.fetchImpl,
       startupMs: this.startupMs, log: this.log, label: 'llama-server',
-      buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize: this.contextSize, cacheRamMiB}),
+      buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB}),
       ...this.processOptions});
     this.#proc = proc;
     proc.on('exit', info => this.#onExit(proc, info));
@@ -512,7 +534,10 @@ export class LocalLlmServer extends EventEmitter {
       throw new LocalAiUnavailable('start-failed', error?.code);
     }
     this.#guard(generation);
-    this.#info = {endpoint: proc.baseUrl + '/v1/chat/completions', apiKey: proc.apiKey};
+    const serverContext = await this.#readContext(proc, contextSize);
+    this.#guard(generation);
+    this.#info = {endpoint: proc.baseUrl + '/v1/chat/completions', base: proc.baseUrl, apiKey: proc.apiKey, contextSize: serverContext};
+    this.#contextSize = serverContext;
     this.#setState('warming');
 
     if (this.warmup) {
@@ -528,6 +553,33 @@ export class LocalLlmServer extends EventEmitter {
     this.#setState('ready');
     this.#arm();
     return this.#handle();
+  }
+
+  // The context the server really has (n_ctx per slot, GET /props); the one it was asked for when it does not say.
+  async #readContext(proc, requested) {
+    try {
+      const response = await this.fetchImpl(proc.baseUrl + '/props', {headers: {authorization: 'Bearer ' + proc.apiKey}, signal: AbortSignal.timeout(3000)});
+      const body = response.ok ? await response.json() : null;
+      const value = Number(body?.default_generation_settings?.n_ctx ?? body?.n_ctx);
+      if (Number.isFinite(value) && value >= 512) return value;
+    } catch { /* an older server or a fake one: use what was asked for */ }
+    return requested;
+  }
+
+  /**
+   * The server's own token count of a text (POST /tokenize), or null when it cannot say (stopped, an error, no answer in time). Never
+   * starts the server. About 50 to 150 ms for 30,000 characters, so it is asked only when a prompt comes near the limit.
+   */
+  async tokenize(text, {signal, timeoutMs = 2500} = {}) {
+    const info = this.#info;
+    if (!info?.base || this.#state !== 'ready') return null;
+    try {
+      const timeout = AbortSignal.timeout(timeoutMs);
+      const response = await this.fetchImpl(info.base + '/tokenize', {method: 'POST', signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+        headers: {'content-type': 'application/json', authorization: 'Bearer ' + info.apiKey}, body: JSON.stringify({content: String(text ?? '')})});
+      const body = response.ok ? await response.json() : null;
+      return Array.isArray(body?.tokens) ? body.tokens.length : null;
+    } catch { return null; }
   }
 
   #emitStatus() { this.emit('state', this.status()); }

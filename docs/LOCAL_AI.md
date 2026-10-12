@@ -38,6 +38,11 @@ do anything:
 
 If the pack is missing or the model cannot start, the same fallback applies. Choosing Local again tries again.
 
+If Local AI cannot answer one particular turn (for example the model went away mid-reply), that turn is answered by your cloud provider
+(Mistral with a saved key, else Groq with a saved key) and you see "Local AI could not answer that one, so a cloud provider did." at most
+once every ten minutes. With no cloud account saved you see "Local AI could not answer that. Try again in a moment." instead of silence.
+Local AI stays the chosen provider either way.
+
 ### Which combination to pick
 
 Graphics memory (video memory) each part adds on top of what the game itself uses. These are estimates from measurements on one
@@ -137,6 +142,84 @@ least its file size plus 1.2 GB, else lite if it is at least its file size plus 
 `MistralProvider.noteLocalFailure` is called once, and the provider falls back to Mistral (with a key) or Convai at the next idle boundary
 with the single `local-fallback` notice.
 
+### Context budget
+
+A prompt must never be longer than the server's context (n_ctx), or the request is refused (HTTP 400, `exceed_context_size_error`) and the
+player hears nothing. That was the live bug of 2026-10-12: a fixed 8,192-token server context against a prompt that was bounded only in
+characters (a named character's persona and the output rules are about 4.5k tokens on their own, and the world blocks, history and
+memories could add more than 4k), so one turn at a busy place sent 8,790 tokens, was refused, and was neither retried nor handed to
+another provider.
+
+`bridge/prompt-budget.mjs` fits every Local and Groq request before it is sent (`budgetedChat`, wrapped around the route's `chat` in
+`localRoute` and `groqRoute`). `buildMessages` leaves its arguments on the messages (a non-enumerable symbol property, never sent), so the
+budget rebuilds the prompt with less in it instead of cutting a string.
+
+- **The limit.** `n_ctx` from the server (`GET /props`, in the supervisor's handle as `contextSize`; Groq: 8,000 tokens, the free plan's
+  per-minute allowance, which is also the most one request may carry) minus a reply reserve (320 tokens; 256 for Groq) minus a safety
+  margin (the larger of 48 tokens and 1.5% of n_ctx). Mistral's cloud models have contexts of 128k and more, so they are not fitted.
+- **The count.** An estimate first: characters per token learned from the server's own counts (`TokenMeter`: the lowest recent ratio times
+  0.97; 3.6 before anything is learned, the prompt really measures about 4.2), plus the chat template's cost per message; Chinese,
+  Japanese and Korean count about a token a character, other scripts about half a token. A prompt that is clearly under the limit is sent
+  as it is. One that is near it or over it is counted by the server (`POST /tokenize`, about 50 to 150 ms for 30,000 characters) and the cut
+  is decided on that count. The reply's closing chunk carries `usage.prompt_tokens` (`stream_options.include_usage`), which the meter learns
+  from.
+- **The order of cuts**, lowest priority first, each step only while the prompt is still too long: the jobs block, the journal-history
+  block, the recent-events block and the gear block (each halved once, then dropped), the retrieved memories (one at a time), the older
+  turns of the conversation (never the last two), the older-talk summary (halved once, then dropped), the tracked-quest block, the world
+  facts (halved once), the volatile notes (capped), the last turns, the world block as a whole (capped), and the persona's example lines.
+  Never cut: the persona and rules, the format notes, the "Right now" block and the player's words. A prompt that does not fit with all of
+  that gone is a failed request (`PromptTooLarge`, kind `request`), which takes the fallback path below.
+- **Prefix caching.** The layout (stable first, changing last) is kept, and the cuts are discrete and deterministic: a block is halved once
+  and then dropped, never trimmed a little more each turn, so the early part of the prompt changes only when a threshold is crossed and not
+  on every turn (hybrid models such as Qwen3.5 and Gemma 4 lose every cache checkpoint after one changed early token).
+- **A refusal anyway.** If the server still refuses (`error.overflow`: its `n_prompt_tokens` and `n_ctx`), the count is learned into the
+  meter and the same turn is fitted again and sent once more. A second refusal is final.
+- Every cut is logged as `[TextProvider] The local AI: prompt N of M tokens; cut: ...`.
+
+### Context size
+
+The supervisor starts `llama-server` with the largest context of a ladder whose extra KV cache fits the free video memory
+(`chooseContext` in `bridge/local-llm-server.mjs`: 16,384, 12,288, 8,192) and then reads the real `n_ctx` from `/props`. Measured on the
+RTX 4080 Laptop (Vulkan, `-fa on`, one slot, f16 KV cache), video memory after the model is loaded and the context is allocated:
+
+| Model | n_ctx 8,192 | 12,288 | 16,384 | KV cost per 1,000 tokens |
+|---|---|---|---|---|
+| Standard (Gemma 4 E4B) | 3,008 MiB | 3,076 MiB | 3,144 MiB | 17 MiB |
+| Lite (Qwen3.5-2B) | 1,399 MiB | 1,451 MiB | 1,503 MiB | 13 MiB |
+
+Both models keep a small cache (sliding-window or hybrid attention), so 16k costs only 136 MiB (standard) or 104 MiB (lite) more than 8k.
+That is why 16,384 is the default for both tiers wherever the tier itself fits. OmniVoice is never pushed out by it: the ladder is checked
+against the free memory after OmniVoice has loaded (the order in "When it does not fit" is unchanged) and steps down to 12,288 or 8,192
+only when that extra 70 to 140 MiB is not free. The player-facing table's "about 3.1 GB" and "about 1.5 GB" cover the 8k to 16k range. A
+quantised cache (`q8_0`) was measured too: it saves only another 75 to 90 MiB, and the first long prompt prefilled slower on the Vulkan
+build, so it is not used. A fuller prompt costs prefill time, not memory: a 15,700-token prompt prefilled in about 7 s (standard) and 3 s
+(lite) cold; with the stable prefix cached a normal turn sends only its new tail.
+
+`CYBERPUNK_CONVAI_LOCAL_CTX` (or the constructor's `contextSize`) fixes the context for development and tests.
+
+### When Local AI cannot answer a turn
+
+`localRoute` falls back for any failure of a turn (a prompt that cannot fit, a server that went away, no first byte in time): to Mistral
+when a key is saved, else to Groq when a Groq key is saved and not blocked (`TextProviderHost#candidates`). The turn's reply is the cloud
+provider's, and `MistralProvider.noteLocalTurnFallback()` queues the `local-turn-fallback` notice (sent as `keyNotice` on that reply; the
+game shows it at most every ten minutes). With no cloud provider the turn fails with the game code `local-failed` (`errorCodeFor`), shown
+as "Local AI could not answer that. Try again in a moment." (the phone shows the same words). Automatic reactions show neither notice.
+A server that could not start keeps its own path (`local-fallback`, see "Provider state"). Both notices are in `docs/NOTIFICATIONS.md`; the
+strings are in the 15 locale files and `localization/en.json`.
+
+### The knowledge status file (EPERM in the bridge log)
+
+`Knowledge poll: EPERM ... rename 'runtime\knowledge-status.json.<id>.tmp'` is the bridge's atomic write (temp file, then rename over the
+target, twice a second) meeting a reader that has the target open without the delete share: Windows refuses the rename for as long as it
+is open (reproduced with a C-runtime-style open held for a moment). The reader is the game's own heartbeat check, `mod/service-status.lua`,
+when it reads through CET's `io.open` (the C runtime, no `FILE_SHARE_DELETE`). With the native core on, that read is the worker's, which
+opens with `FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE` (`native/core/src/core/FileIo.cpp`), so the plugin needs no change. The
+rename is retried with backoff for about 300 ms (`bridge/guarded-file.mjs`), the previous file stays intact and the next poll writes
+again, so a miss costs one heartbeat and nothing else. The log line is written at most once a minute per message (`logKnowledgePoll` in
+`bridge/convai-bridge.mjs`, with a count of the ones left out). If it keeps coming with the native core on, look for `Native core: io=lua`
+in the CET log (a tripped switch or `runtime/native-off.txt`): CET's `io.open` cannot be given a share mode, so the only cure for a Lua
+reader is to read through the native core.
+
 ### Provider state
 
 `conversationProvider` is `convai | mistral | local | groq`. `MistralProvider` (`bridge/mistral-key.mjs`) keeps `preference` (the
@@ -165,10 +248,19 @@ See "Prompt order (layout v2)" in `docs/MISTRAL.md`: persona and rules, then wor
 the turns. That keeps llama.cpp's prompt cache (hybrid models such as Qwen3.5 and Gemma 4 lose every checkpoint after one changed early
 token) and Mistral's cache valid.
 
+### Actions
+
+The same companion-action path as Mistral applies (see "Companion actions" in `docs/MISTRAL.md`): the decision is a separate 12-token
+request to the local model, and the reply carries the `GAME ACTIONS` note. It is skipped when no action is offered. The local model is not
+yet measured on it (`scripts/Eval-MistralPrompt.mjs --actions --local <port>`).
+
 ### Tests
 
 `npm test` covers the supervisor against `bridge/fixtures/fake-llama-server.mjs`, the pack detector, the embedder, the shared host and its
-routes, the prompt layout and the memory store (with a fake embedder). No test starts a real model.
+routes, the prompt layout and the memory store (with a fake embedder). No test starts a real model. The fake server reports `/props`, counts
+`/tokenize` and refuses an over-long prompt with the real 400 body (`FAKE_LLAMA_CTX`, `FAKE_LLAMA_CHARS_PER_TOKEN`).
+`bridge/prompt-budget.test.mjs` covers the trimming and `bridge/local-context.test.mjs` the supervisor's context, the fitted turn, the cloud
+fallback and its notice.
 
 ### Live checks (need the game and a GPU)
 

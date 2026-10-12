@@ -150,7 +150,9 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
 
 // The blocks of a turn's base context, in the order Convai gets them, each tagged by how often it changes (layout v2 of
 // bridge/mistral-prompt.mjs puts the stable tiers first so a prefix cache keeps working): 'now' (the right-now block), 'world'
-// (quest, journal, relationship, gear: changes on game events), 'notes' (fixed wording) and 'volatile' (this turn only).
+// (quest, journal, relationship, gear: changes on game events), 'notes' (fixed wording) and 'volatile' (this turn only). A world block
+// may carry a `key` (knowledge, recency, history, jobs, journal, gear): a text provider whose context is too small cuts the blocks
+// that have one, the lowest-priority first (bridge/prompt-budget.mjs); a block without one is never cut by itself.
 export function conversationContextBlocks(input) {
   // The "right now" block goes first: Mistral's context cap keeps the head, so it can never be cut.
   const ambient = isAmbientProfile(input?.profileKey);
@@ -159,17 +161,17 @@ export function conversationContextBlocks(input) {
   // authority text (all of it is V's own save), and sees only what a bystander could see of V.
   if (ambient) {
     return [{tier: 'now', text: now}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: gameDialogueContext(input)},
-      {tier: 'volatile', text: battleContext(input)}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', text: visibleGearContext(input)},
+      {tier: 'volatile', text: battleContext(input)}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: visibleGearContext(input)},
       {tier: 'notes', text: SPOKEN_OUTPUT}, {tier: 'volatile', text: followUpContext(input)}];
   }
   const attached = input[TRUSTED_KNOWLEDGE];
   const trusted = attached?.identity && attached.identity === contextIdentity(input) ? attached : null;
   const knowledge = trusted?.knowledgeContext || (input.worldKnowledge !== undefined ? WORLD_UNAVAILABLE : '');
   const history = trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
-  return [{tier: 'now', text: now}, {tier: 'world', text: groupContext(input)}, {tier: 'world', text: knowledge},
-    {tier: 'world', text: trusted?.recencyContext}, {tier: 'world', text: history}, {tier: 'world', text: trusted?.jobsContext},
-    {tier: 'world', text: journalContext(input.journal)}, {tier: 'volatile', text: gameDialogueContext(input)},
-    {tier: 'volatile', text: battleContext(input)}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', text: gearContext(input)},
+  return [{tier: 'now', text: now}, {tier: 'world', text: groupContext(input)}, {tier: 'world', key: 'knowledge', text: knowledge},
+    {tier: 'world', key: 'recency', text: trusted?.recencyContext}, {tier: 'world', key: 'history', text: history}, {tier: 'world', key: 'jobs', text: trusted?.jobsContext},
+    {tier: 'world', key: 'journal', text: journalContext(input.journal)}, {tier: 'volatile', text: gameDialogueContext(input)},
+    {tier: 'volatile', text: battleContext(input)}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: gearContext(input)},
     {tier: 'world', text: knowledge || history ? CURRENT_AUTHORITY : ''}, {tier: 'notes', text: SPOKEN_OUTPUT},
     {tier: 'volatile', text: followUpContext(input)}];
 }

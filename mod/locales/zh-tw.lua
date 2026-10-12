@@ -651,6 +651,8 @@ return {
     ["Local AI"] = "本機 AI",
     ["Local AI (this computer)"] = "本機 AI（這台電腦）",
     ["Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development."] = "本機 AI 無法啟動，因此使用雲端服務供應商。請在 設定 > 開發 中檢查本機 AI。",
+    ["Local AI could not answer that. Try again in a moment."] = "本機 AI 無法回答這個問題。請稍後再試。",
+    ["Local AI could not answer that one, so a cloud provider did."] = "本機 AI 無法回答這個問題，因此由雲端服務供應商回答。",
     ["Not enough graphics memory"] = "顯示記憶體不足",
     ["Paste Groq key"] = "貼上 Groq 金鑰",
     ["Remove my Groq key"] = "移除我的 Groq 金鑰",

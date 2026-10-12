@@ -651,6 +651,8 @@ return {
     ["Local AI"] = "Yerel AI",
     ["Local AI (this computer)"] = "Yerel AI (bu bilgisayar)",
     ["Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development."] = "Yerel AI başlatılamadı, bu yüzden bulut sağlayıcı kullanılıyor. Ayarlar > Geliştirme bölümünden Yerel AI'yi kontrol et.",
+    ["Local AI could not answer that. Try again in a moment."] = "Yerel AI bunu yanıtlayamadı. Birazdan tekrar dene.",
+    ["Local AI could not answer that one, so a cloud provider did."] = "Yerel AI bunu yanıtlayamadı, bu yüzden yanıtı bulut sağlayıcı verdi.",
     ["Not enough graphics memory"] = "Grafik belleği yetersiz",
     ["Paste Groq key"] = "Groq anahtarını yapıştır",
     ["Remove my Groq key"] = "Groq anahtarımı kaldır",

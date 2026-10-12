@@ -651,6 +651,8 @@ return {
     ["Local AI"] = "Локальный ИИ",
     ["Local AI (this computer)"] = "Локальный ИИ (этот компьютер)",
     ["Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development."] = "Локальный ИИ не удалось запустить, поэтому используется облачный провайдер. Проверьте Локальный ИИ в меню Настройки > Разработка.",
+    ["Local AI could not answer that. Try again in a moment."] = "Локальный ИИ не смог ответить. Попробуйте снова через некоторое время.",
+    ["Local AI could not answer that one, so a cloud provider did."] = "Локальный ИИ не смог ответить на это, поэтому ответил облачный провайдер.",
     ["Not enough graphics memory"] = "Недостаточно видеопамяти",
     ["Paste Groq key"] = "Вставить ключ Groq",
     ["Remove my Groq key"] = "Удалить мой ключ Groq",

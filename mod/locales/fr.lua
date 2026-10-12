@@ -651,6 +651,8 @@ return {
     ["Local AI"] = "IA locale",
     ["Local AI (this computer)"] = "IA locale (cet ordinateur)",
     ["Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development."] = "L'IA locale n'a pas pu démarrer, un fournisseur cloud est donc utilisé. Vérifiez l'IA locale dans Paramètres > Développement.",
+    ["Local AI could not answer that. Try again in a moment."] = "L'IA locale n'a pas pu répondre. Réessayez dans un instant.",
+    ["Local AI could not answer that one, so a cloud provider did."] = "L'IA locale n'a pas pu répondre à cette question, c'est donc un fournisseur cloud qui a répondu.",
     ["Not enough graphics memory"] = "Mémoire graphique insuffisante",
     ["Paste Groq key"] = "Coller la clé d'API Groq",
     ["Remove my Groq key"] = "Retirer ma clé d'API Groq",

@@ -114,7 +114,7 @@ test('ensure starts the server on the discrete GPU with the key in a file, and n
   assert.equal(info.tier, 'standard');
   assert.equal(info.model, 'Qwen3.5-4B');
   assert.match(info.apiKey, /^[0-9a-f]{64}$/);
-  assert.deepEqual(server.status(), {state: 'ready', tier: 'standard', model: 'Qwen3.5-4B'});
+  assert.deepEqual(server.status(), {state: 'ready', tier: 'standard', model: 'Qwen3.5-4B', contextSize: 16384});
   assert.equal(calls.length, 1);
   const args = calls[0].args;
   assert.ok(args.includes('--api-key-file'));

@@ -16,6 +16,7 @@ import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {markStage} from './turn-clock.mjs';
+import {budgetedChat, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
 
 const isTag = group => hasEmotionTag(group);
 const pause = (ms, signal) => new Promise((resolve, reject) => {
@@ -92,7 +93,11 @@ const GROQ_DAILY = /per day|\bTPD\b|\bRPD\b|daily/i;
  * provider (Groq is left alone for a while) and the turn falls through to the next route (Mistral) when there is one.
  */
 export function groqRoute({provider, chat = streamChat, endpoint, onFailure, onSuccess,
-  models = () => GROQ_MODELS} = {}) {
+  models = () => GROQ_MODELS, log = () => {}} = {}) {
+  // A request above the plan's 8,000 tokens a minute (reply included) is refused for good, so the prompt is cut to fit
+  // (bridge/prompt-budget.mjs). Groq reports no token count the host reads, so this is an estimate with the default ratio.
+  const meter = new TokenMeter();
+  chat = budgetedChat(chat, {budget: () => ({contextTokens: GROQ_REQUEST_TOKENS, reserveTokens: 256, meter}), onFit: fit => log('Groq: ' + describeFit(fit))});
   return {name: 'groq', provider: 'groq', chat, endpoint, gapMs: 0, blocked: new Map(), nextSlot: 0, models, chatDefaults: CLOUD_CHAT_LIMITS,
     async connect() { return {apiKey: provider.groqApiKey}; },
     cacheBody: () => ({}),
@@ -109,6 +114,8 @@ export function groqRoute({provider, chat = streamChat, endpoint, onFailure, onS
     },
     label: 'Groq'};
 }
+// The most tokens one Groq request may carry on the free plan (tokens per minute).
+export const GROQ_REQUEST_TOKENS = 8000;
 // Request fields per model. Reasoning must stay off or low and must not use up the reply's token budget.
 export const GROQ_MODELS = Object.freeze([
   {id: 'qwen/qwen3.8-27b', body: {reasoning_effort: 'none'}, maxTokens: 200},
@@ -122,7 +129,22 @@ export const GROQ_MODELS = Object.freeze([
  * supervisor's per-session key on a loopback port. Starting the server is part of `connect` (it waits for the model to load on the
  * first turn after an idle unload). Background work (summaries, facts) never starts the server: it runs only while it is loaded.
  */
-export function localRoute({server, chat = streamChat, provider, onFailure} = {}) {
+export function localRoute({server, chat = streamChat, provider, onFailure, log = () => {}} = {}) {
+  // Every request is fitted to the context the server really has (bridge/prompt-budget.mjs): n_ctx is read from the server, the prompt is
+  // cut in a fixed order of priority when it does not fit, and a refusal that still comes (an estimate that was low) is learned from.
+  const meters = new Map();
+  chat = budgetedChat(chat, {
+    budget: async options => {
+      const handle = await server.ensure({signal: options?.signal});
+      if (!(handle?.contextSize > 0)) return null;
+      if (!meters.has(handle.model)) meters.set(handle.model, new TokenMeter());
+      const count = typeof server.tokenize !== 'function' ? undefined : async messages => {
+        const tokens = await server.tokenize(messages.map(message => message.content).join('\n'), {signal: options?.signal});
+        return tokens === null ? null : tokens + templateTokens(messages.length);
+      };
+      return {contextTokens: handle.contextSize, meter: meters.get(handle.model), count};
+    },
+    onFit: fit => log('The local AI: ' + describeFit(fit))});
   return {name: 'local', provider: 'local', chat, gapMs: 0, blocked: new Map(), nextSlot: 0,
     models: () => [{id: 'local'}],
     async connect(signal, {background = false} = {}) {
@@ -133,11 +155,16 @@ export function localRoute({server, chat = streamChat, provider, onFailure} = {}
       return {apiKey: connection.apiKey, endpoint: connection.endpoint, model: connection.model,
         release: () => { try { if (done) done(); else server.touch?.(); } catch { /* the idle timer is best effort */ } }};
     },
-    cacheBody: () => ({}),
+    // The closing chunk of a reply carries the server's own count of the prompt, which the token meter learns from.
+    cacheBody: () => ({stream_options: {include_usage: true}}),
     chatDefaults: {retries: 1, backoffMs: [400], firstByteMs: 90_000, totalMs: 90_000},
     jsonBody: () => ({response_format: {type: 'json_schema', json_schema: {name: 'facts', strict: true, schema: FACT_SCHEMA}}}),
     summarizeAllowed: () => true,
-    fallsBack: () => false,
+    // Any failure of a local turn (a refused prompt, no answer, a server that went away) hands the turn to the player's cloud provider
+    // when there is one (TextProviderHost#candidates); without one the turn fails and the game says so (local-failed).
+    fallsBack: () => true,
+    // The turn is about to be answered by the cloud: the game tells the player once (a start that failed has its own notice).
+    fellBack(error) { if (!isLocalUnavailable(error)) provider?.noteLocalTurnFallback?.(); },
     success() { /* nothing to clear */ },
     failure(error) {
       if (isLocalUnavailable(error)) provider?.noteLocalFailure?.(error.reason ?? 'start-failed');
@@ -225,6 +252,12 @@ export class TextProviderHost {
     if (!first) throw new MistralError('request', 'has no route for this provider');
     const list = [first];
     if (first.name === 'groq' && this.routes.mistral && this.provider.apiKey) list.push(this.routes.mistral);
+    // The local AI: the player's own cloud provider answers a turn it could not (Mistral when a key is saved, else Groq).
+    if (first.name === 'local') {
+      const groqReady = this.routes.groq && this.provider.groqApiKey && Date.now() >= (this.provider.groqBlockedUntil ?? 0);
+      const cloud = this.routes.mistral && this.provider.apiKey ? this.routes.mistral : groqReady ? this.routes.groq : null;
+      if (cloud) list.push(cloud);
+    }
     return list;
   }
 
@@ -279,7 +312,11 @@ export class TextProviderHost {
       } catch (error) {
         if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) { feed.fail(error); throw error; }
         route.failure(error);
-        if (index < candidates.length - 1 && route.fallsBack(error)) { this.log(`${route.label} could not answer; using ${candidates[index + 1].label}`); continue; }
+        if (index < candidates.length - 1 && route.fallsBack(error) && !feed.committed) {
+          this.log(`${route.label} could not answer (${failureKind(error) ?? 'error'}); using ${candidates[index + 1].label}`);
+          try { route.fellBack?.(error); } catch { /* a notice never fails the turn */ }
+          continue;
+        }
         const standing = this.#standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey: local.profileKey});
         if (standing) return standing;
         feed.fail(error);
