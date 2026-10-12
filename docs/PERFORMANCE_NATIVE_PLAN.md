@@ -11,6 +11,66 @@ about 2 FPS (44 to 46); at 60 fps it is worth about 4 FPS.
 
 ## 1. Evidence
 
+**Live probe, 2026-10-12** (the fixed probe from `2821b31`, on HEAD's `mod/` as of `c7daf0c`: the first three
+quick wins and the context work installed; `perf-probe-capture-20261012.json`, 67 two-second windows,
+10:12:09-10:14:21 UTC). Read it for what it is. It does **not** hold the planned 8-minute run (quiet, street,
+walking, voice chat). Matched against `probe.log`, it covers a fresh session: about 28 s before a save load
+(windows 1-14, 58.6 fps, menu or loading likely), the load itself (windows 15-19, frames up to 426 ms), then
+about 94 s in game (windows 20-66): Alex summoned at 10:13:14, one **typed** reply at 10:13:28 that spoke
+for about 6 s (3 windows). There is no walking and no voice turn. The `perf-live-20261012.json` copy is
+byte-identical to the 2026-10-08 `perf-live-final.json`, so it is stale and not used.
+
+In game (windows 20-66, 94.5 s): 48.4 fps mean, 20.7 ms mean frame, 503 frames over 25 ms and 59 over 40 ms.
+
+| Section (in game, 94.5 s) | Calls/s | ms/s | ms/call | Max ms |
+| --- | --- | --- | --- | --- |
+| **`event:onUpdate` (the whole callback)** | 48.4 | **179.4** | 3.70 | 144 |
+| `worldKnowledge.update` | 48.4 | **58.1** | 1.20 | 26 |
+| `io.open` (all files, nested) | 12.5 | 24.5 | 1.95 | 21 |
+| `mcm.update` | 48.4 | 19.2 | 0.40 | 64 |
+| `speech.update` | 48.4 | 15.6 | 0.32 | 19 |
+| of which `face.updateExpressions` | 48.4 | 10.2 | 0.21 | 19 |
+| `journalHistory.update` | 48.4 | **11.3** | 0.23 | 16 |
+| `phoneChat.update` | 48.4 | 9.1 | 0.19 | 15 |
+| `os.rename` (nested) | 1.7 | 6.1 | 3.61 | 6 |
+| `invitations.update` | 48.4 | 5.9 | 0.12 | 15 |
+| `companions.update` (10 Hz) | 7.7 | 4.9 | 0.63 | 22 |
+| `relationshipState.update` | 48.4 | 4.8 | 0.10 | 14 |
+| `phoneChatStyle.refresh` | 48.4 | 4.4 | 0.09 | 63 |
+| `manager.update` (10 Hz) | 9.1 | 3.9 | 0.43 | 22 |
+| `json.encode` (nested) | 54.5 | 2.8 | 0.05 | 81 |
+| `autoConnect.update` + `heartbeat` | | 4.7 | | 15 |
+| `json.decode` 4-32 KB (nested) | 1.1 | 2.2 | 1.97 | 5 |
+| `gameplayActions.update` (10 Hz) | 9.1 | 1.6 | 0.18 | 7 |
+| `os.remove` (nested) | 1.7 | 1.4 | 0.81 | 2 |
+| everything else wrapped | | < 3 | | |
+
+What it says:
+- **The mod's Lua takes 3.7 ms of every 20.7 ms frame: 18 % of the game thread.** If the game is limited by
+  its main thread, that is about 10 FPS (48 to 58). It is the first measurement of the whole callback.
+- **The knowledge collectors are the largest single cost: 69 ms/s (worldKnowledge 58.1 + journalHistory
+  11.3), 1.43 ms per frame, every frame,** 39 % of the callback. They ran at the same rate before the save
+  load (66 ms/s in windows 1-14). Removing 90 % of it is worth about 3.4 FPS at 48 fps.
+- **File IO is second: 32 ms/s** (`io.open` 24.5 + `os.rename` 6.1 + `os.remove` 1.4), 0.66 ms per frame.
+  By file, per second: `memory-chat-resets.json` read 1.8, `companion-actions.json` read 1.5,
+  `diagnostic-request.txt` 1.0, `face-test-request.txt` 1.0 and `gesture-probe-request.txt` 0.8 (these two
+  are development-only), `local-voice-state.json` 0.6, then one each per 2 s for `speech-state`, `reply.json`,
+  invitations, party, nearby (`.tmp` + rename), relationship (`.tmp` + rename), world-session,
+  invitations-state and `bridge-service`, plus `probe.log` and `mcm.log` appends (0.3 each).
+- **init.lua's own unwrapped work in `onUpdate` is about 34 ms/s** (the callback minus its top-level wrapped
+  sections, about 145 ms/s). It holds the nearby and relationship renames and other inline polls.
+- `mcm.update` is about 5 ms/s at rest after `cc9d911`; the 19 ms/s mean comes from windows 48-51
+  (87-278 ms/s, frames up to 64 ms), most likely with the MCM page or pause menu open.
+- The face writer cost 10.2 ms/s with one companion before `cf1cdda` (the idle sleep, item 4).
+- **The Lua heap swings between 22 and 46 MB** in game, with a GC drop in half the windows: at least
+  1.7 MB/s of allocation. Collection cost lands in whichever section triggers it.
+- **Hooks are still unmeasured:** there are `event:onUpdate` rows but no `hook:` rows, although
+  `probe.log` shows the game-dialogue hooks firing. Every hook registers inside `onInit`, and CET can bind
+  its own `Observe`/`Override` again there; `49f89b8` re-wraps them at the start of each `onInit` handler and
+  records `hooksWrapped` per window, so the next capture shows whether the wrap took.
+- 23 of the 47 in-game windows have their worst frame mostly inside `onUpdate` (onUpdate max over 60 % of
+  the frame max). The other half are stalls outside the mod's Lua.
+
 **Live probe, 2026-10-11** (`<mod>/runtime/perf-probe.json`, 150 two-second windows, 302 s). Developer mode on,
 one idle companion (Alex, holding), nobody speaking, phone and menus closed, 43.8 fps mean, 23.0 ms mean frame.
 15 % of frames were over 25 ms and 3.6 % over 40 ms; the median window's worst frame was 56 ms.
@@ -47,7 +107,7 @@ Observe/Override hook, and init.lua's own local work in `onUpdate` (see 1.1).
 4.8 ms and `os.remove` about 1.2 ms. A native call into the game costs roughly 10-25 µs. So a single file
 operation costs as much as 150-300 native calls.
 
-### 1.1 The probe could not see hooks (fixed)
+### 1.1 The probe could not see hooks (fixed in two steps)
 
 `init.lua` loads `perf-probe.lua` twice: `hookRegistrations` at the top, `install` after the modules. The
 second chunk got its own `enabled` flag, so every `hook:Class.Method` and `event:onUpdate` wrapper made by the
@@ -58,6 +118,10 @@ Commit `2821b31` fixes this: a second load returns the first chunk. It also time
 - the rest of the per-frame top half: `ui.update`, the composer, phone layout and style, auto-connect;
 - the 10 Hz `manager`, `tactics`, `microphone` and `movementLog` updates;
 - `worldKnowledge.update`, `journalHistory.update` and `relationshipState.update`.
+
+The 2026-10-12 capture then had `event:onUpdate` rows but still no `hook:` rows. Every hook registers inside
+`onInit`, where CET can bind its own `Observe`/`Override` again; `49f89b8` re-wraps them at the start of each
+`onInit` handler and records `hooksWrapped` per window.
 
 It also records the Lua heap (`luaKB`) per window. 65 of the 150 windows hold a frame over 60 ms with no mod
 section near that, which looks like a shared stall: a GC step, the file system or antivirus, or a game hitch.
@@ -71,25 +135,48 @@ probes (`packaging/release.config.json` `devOnlyLua`), so players pay a little l
 
 ## 2. Ranked hot paths
 
-Ranked by expected ms/s saved, then by how sure the number is. Done items name their commit.
+**Order by measured cost, 2026-10-12** (in game, one companion, section 1). Item numbers stay as first
+written, since commits and `TODO.md` cite them.
+
+| Rank | Item | Measured ms/s | Per frame at 48 fps | Route |
+| --- | --- | --- | --- | --- |
+| 1 | 1: knowledge collectors | **69** | 1.43 ms | Lua redesign first (event-driven, long idle cadence); C++ collector only if still over ~5 ms/s |
+| 2 | 15: init.lua's own `onUpdate` work | ~34 (unattributed) | 0.70 ms | Attribute first (wrap its inline blocks), then Lua |
+| 3 | 2: file IO, all files | 32 | 0.66 ms | Lua cadence cuts now; C++ async IO removes the rest |
+| 4 | 4: face writer | 10.2 | 0.21 ms | **Done (`cf1cdda`)**, pending the in-game check |
+| 5 | 6: phone chat | 9.1 | 0.19 ms | Lua (binding cache, reset-read period) |
+| 6 | 8: invitations | 5.9 | 0.12 ms | Lua: its remaining per-frame work |
+| 7 | 5: MCM at rest | ~5 | 0.10 ms | Done (`cc9d911`); spikes only with the page open |
+| 8 | 7: companion tick | 4.9 | 0.10 ms | Lua; walking still unmeasured |
+| 9 | 16: `relationshipState.update` | 4.8 | 0.10 ms | Lua: per-frame check, 2 s rename |
+| 10 | 17: auto-connect + phone style | 4.7 + 4.4 | 0.19 ms | Lua: per-frame refresh gating |
+| - | 1b: per-turn request | one 26-81 ms hitch per turn | | Lua and bridge (in progress) |
+| - | 18: GC, at least 1.7 MB/s allocated | spread over all sections | | Fewer per-frame tables (collectors, phone, face) |
+| - | 3: continuous speech, 10: hooks | not in this capture | | Re-measure |
+
+Item details (costs before the 2026-10-12 capture are the 2026-10-11 numbers):
 
 | # | Hot path (file:line) | Rate | Cost | Fix and route |
 | --- | --- | --- | --- | --- |
-| 1 | World-knowledge and journal collectors: `updateKnowledge` (`init.lua:157`) steps `world-knowledge.lua:365` and `journal-history.lua:267` from `onUpdate` | Every frame. A cycle reads ~994 facts and journal entries at up to 32 per frame or 2 ms (measured on a 1 ms clock, so 1-3 ms). A new cycle starts about every second, so ~1,000 native reads/s on ~70 % of frames. Journal pages run every 2 s (active lane) and every 30 s (history). About 21 readiness calls per frame on top. | **Unmeasured. Estimated 20-90 ms/s.** Probably the largest item. | **Event-driven plus redscript** (section 4). Rescan only when the journal or facts change: redscript journal-state callbacks and a dirty flag. Refresh at once when the composer, phone chat or talk key opens. Idle cadence 30-60 s. Lua's `capture()` rejects a cache older than 5 s (`world-knowledge.lua:457`), so the age rule must change with it; the bridge allows 10 s for journal history. **C++ only if** an event-driven Lua or redscript collector still measures over ~5 ms/s. |
+| 1 | World-knowledge and journal collectors: `updateKnowledge` (`init.lua:157`) steps `world-knowledge.lua:365` and `journal-history.lua:267` from `onUpdate` | Every frame. A cycle reads ~994 facts and journal entries at up to 32 per frame or 2 ms (measured on a 1 ms clock, so 1-3 ms). A new cycle starts about every second, so ~1,000 native reads/s on ~70 % of frames. Journal pages run every 2 s (active lane) and every 30 s (history). About 21 readiness calls per frame on top. | **Measured 2026-10-12: 69 ms/s in game** (worldKnowledge 58.1, journalHistory 11.3), 1.43 ms per frame, and the same before a save load. The largest item. | **Event-driven plus redscript** (section 4). Rescan only when the journal or facts change: redscript journal-state callbacks and a dirty flag. Refresh at once when the composer, phone chat or talk key opens. Idle cadence 30-60 s. Lua's `capture()` rejects a cache older than 5 s (`world-knowledge.lua:457`), so the age rule must change with it; the bridge allows 10 s for journal history. **C++ only if** an event-driven Lua or redscript collector still measures over ~5 ms/s. |
 | 1b | Per-turn request: `sendRequest` (`init.lua:1466`) JSON-encodes `journalHistory` (643 KB) and `worldKnowledge` (151 KB) into a 796 KB `last-input.json` on the main thread | Each turn V sends | A 26-72 ms hitch per turn (`json.encode` max in both captures) plus about 9 ms of file operations | **Lua and bridge.** Publish the knowledge snapshot to its own file only when it changes; the turn carries only its revision. Better: the bridge keeps the snapshot and gets deltas. |
-| 2 | Lease and heartbeat files (inventory in section 7) | 2-3 s heartbeats, polls at 0.5-1 s | **~46 ms/s measured** (`io.open` + `os.rename` + `os.remove`), mostly as 3-12 ms spikes. The 2 s heartbeats all key on whole `os.time()` seconds, so several land in one frame: probably the recurring 50 ms frame. | **Done in part:** world-session, party and invitation leases are written in place (`a9fc6a5`, about 9 ms/s less). **Lua next:** stagger the phases, read memory-chat resets every 5-10 s instead of 0.5 s, write `phone-chat-input` in place every 8 s, read `local-voice-state` and `bridge-service` every 5-10 s, poll the diagnostic mailbox only when `diagnostics.lua` is installed. **C++:** an async IO thread removes all of it (section 3). |
+| 2 | Lease and heartbeat files (inventory in section 7) | 2-3 s heartbeats, polls at 0.5-1 s | **~46 ms/s measured on 2026-10-11, 32 ms/s on 2026-10-12** after `a9fc6a5` (`io.open` + `os.rename` + `os.remove`; per-file rates in section 1), mostly as 3-12 ms spikes. The 2 s heartbeats all key on whole `os.time()` seconds, so several land in one frame: probably the recurring 50 ms frame. | **Done in part:** world-session, party and invitation leases are written in place (`a9fc6a5`, about 9 ms/s less). **Lua next:** stagger the phases, read memory-chat resets every 5-10 s instead of 0.5 s, write `phone-chat-input` in place every 8 s, read `local-voice-state` and `bridge-service` every 5-10 s, poll the diagnostic mailbox only when `diagnostics.lua` is installed. **C++:** an async IO thread removes all of it (section 3). |
 | 3 | Continuous speech while a companion speaks: `continuous-speech.lua:217` | 25 Hz | One `io.open` (~3 ms) plus `json.decode` of up to 12k characters every 40 ms, plus the control-file write. **Estimated 75-100 ms/s while speaking**, a 3 ms hitch on about every second frame. | **C++ async read** (section 3) is the real fix. Lua stopgap: skip the decode when the bridge's revision is unchanged. Do not lower the poll rate without the 80 ms lag allowance at `speech.lua:416`. |
-| 4 | Idle face writer: `face.updateExpressions` (`facial-playback.lua:783`), `applyFeature` (`:695`) | Every frame, per companion | **21.9 ms/s measured with one companion**, linear in party size. Per actor per frame: about 10 calls for ownership, 17 for `safeExpressionActor` (`:328`) including 5 `CName.new` and 5 status-effect checks, about 60 property reads and writes on the native feature, and a new `appliedPose` table. | **Lua.** Partial, no behaviour change: hoist the `CName`s, skip `owns()` for the speaking actor, build `appliedPose` only on demand. Larger: let a settled idle face sleep (no write while the pose is converged and no blink is due), wake at the next blink or within 0.25 s, re-check scene, combat and status every 0.25 s instead of every frame. Needs an in-game check that the native feature holds its last frame. Later, the whole idle layer could move into redscript. |
+| 4 | Idle face writer: `face.updateExpressions` (`facial-playback.lua:783`), `applyFeature` (`:695`) | Every frame, per companion | **21.9 ms/s measured with one companion (10.2 on 2026-10-12)**, linear in party size. Per actor per frame: about 10 calls for ownership, 17 for `safeExpressionActor` (`:328`) including 5 `CName.new` and 5 status-effect checks, about 60 property reads and writes on the native feature, and a new `appliedPose` table. | **Done (`cf1cdda`): a settled idle face sleeps** between blinks (no native reads or writes), wakes for a blink, a feeling, speech or a phase change, and re-checks every 0.25 s. Needs the in-game check in section 6. Still open: hoist the `CName`s, skip `owns()` for the speaking actor, build `appliedPose` only on demand. Larger: let a settled idle face sleep (no write while the pose is converged and no blink is due), wake at the next blink or within 0.25 s, re-check scene, combat and status every 0.25 s instead of every frame. Needs an in-game check that the native feature holds its last frame. Later, the whole idle layer could move into redscript. |
 | 5 | `mcm.update` per-frame `active()` (`mcm.lua:68`) called MCM's `getDiagnostics`, a deep copy of every provider, up to 100 errors and 100 history entries | Every frame | 12.9 ms/s measured | **Done (`cc9d911`):** re-read at most every 0.25 s while our page is not shown. |
 | 6 | `phoneChat.update` (`phone-chat.lua:404`) | Every frame, plus a 10 Hz tick | 13.6 ms/s measured: the reset journal read (~5.4), the `phone-chat-input` heartbeat as an atomic write (~5.5), and a per-frame `json.encode` + `json.decode` round trip of the binding (`:405`, ~2.5; it makes the 44/s decode and most of the 48/s encode) | **Lua:** cache the binding by world generation (it depends on nothing else), plus the item 2 file fixes. |
 | 7 | `companions.update` (`companions.lua`, 10 Hz) | 10 Hz | 7.6 ms/s idle, 30-40 native calls and ~150 tables per tick. While walking: 30-60 collision `Overlap` calls/s per companion; one tick may spend the 192-query frame budget (`companion-clearance.lua:10`) in a single frame. | **Lua:** run the full tick at 2 Hz while every copy is settled and V stands still (one V position read per tick as the wake-up), cache the six collision `CName`s, lower the per-frame query limit. **C++ later**, if walking measures high: a batched box-check native, one call per route instead of 6 per box. |
-| 8 | `invitations.update` (`invitation-readiness.lua`) | Every frame | 6.5 ms/s measured, almost all one atomic write every 2 s | **Done (`a9fc6a5`):** written in place. |
+| 8 | `invitations.update` (`invitation-readiness.lua`) | Every frame | 6.5 ms/s measured on 2026-10-11, almost all one atomic write every 2 s; 5.9 ms/s on 2026-10-12 after the fix, so per-frame work remains | **Done in part (`a9fc6a5`):** written in place. **Lua next:** the per-frame `synchronize` and world table. |
 | 9 | Per-frame `conversationCandidates(player, 1000)` (`init.lua` expression context) | Every frame | 4.5 ms/s measured | **Done (`a3e7bc6`):** `companions.expressionActors`, rebuilt at most every 0.1 s or on a party change. |
 | 10 | CET hooks on hot natives (unmeasured until `2821b31`) | See right | Unknown; each call pays the CET trampoline even when the handler returns early | `AIMoveToCommandHandler.UpdateCommand` (`companion-locomotion.lua:38`) fires per AI tick for every NPC on a MoveTo; it runs the full path whenever a companion exists. `ReactionManagerComponent.OnEventReceived` and four sibling Overrides (`vanilla-reactions.lua:243`) fire for every stimulus to every NPC, for the rest of the session after the first conversation. `ChatterLineLogicController.UpdateProjection` and `IsBubble` (`subtitles.lua:734`, `:741`) fire per visible chatter line per frame, always registered. The loot hooks run 5+ native calls before checking `enabled`. **Redscript:** `@wrapMethod` filters that test a flag on the NPC, or the mod's ownership, and only then call an empty mod-only method that Lua observes. Lua then sees only our companions. Register the chatter Overrides lazily, as `vanilla-reactions` already does, and check `enabled` first in the loot hooks. |
 | 11 | `updateGaze` → `targetAtCrosshair` (`init.lua:1081`, `:896`) | 5 Hz | Estimated 1-5 ms/s, more in crowds. It runs a `GetTargetParts` scan within 8 m plus head-slot transforms even with no companion and auto-connect off. | **Lua:** skip when neither a companion nor auto-connect needs it; use cached positions for owned copies. |
 | 12 | Turn-time polls: `reply.json` at 10 Hz while a reply is pending (`init.lua:2556`, up to 90 s); `microphone-state.json` at 10 Hz while recording | 10 Hz during waits | About 30 ms/s while waiting | **Lua** 3-4 Hz (adds 0.1-0.25 s of reply latency), or the C++ reader. |
 | 13 | `log()` opens and closes `probe.log` for every line (`init.lua:625`) | Per log line | About 3 ms per line | **Lua:** buffer lines and append at most once a second, with a flush on shutdown. |
 | 14 | `gesture-catalog.lua` (35k lines) is loaded by separate `dofile`s in `companion-gestures.lua:47` and `companion-seating.lua:492`, plus the development probe | Load time | Two or three heap copies, so GC pressure | **Lua:** load once and share it. |
+| 15 | init.lua's own work in `onUpdate` (the inline blocks between the wrapped calls) | Every frame and 10 Hz | **~34 ms/s**: `event:onUpdate` 179 minus its wrapped top-level sections (~145). Holds the nearby lease write and rename, the diagnostic mailbox poll, the focus, gaze and talk-target work | **Attribute first:** have the probe time the inline blocks (`perf-probe.watch` cannot reach them; split them into module functions or add labelled timers in Developer mode only). Then Lua fixes. |
+| 16 | `relationshipState.update` (`relationship-state.lua`) | Every frame | 4.8 ms/s | **Lua:** gate the per-frame check; the 2 s write keeps its rename (the bridge acts on an empty read). |
+| 17 | `autoConnect.update`/`heartbeat` and `phoneChatStyle.refresh` | Every frame (heartbeat, style), 10 Hz (update) | 4.7 + 4.4 ms/s; the style refresh peaked at 63 ms in one frame | **Lua:** refresh the style only when the phone is shown or its inputs change. |
+| 18 | Lua allocation and GC | Continuous | The heap swings between 22 and 46 MB with a drop in half the windows: at least 1.7 MB/s allocated. GC steps land in whichever section allocates | **Lua:** fewer per-frame tables (collector jobs and copies, the phone binding round trip, the face writer's tables, now reused). |
 
 ## 3. Native route
 
@@ -99,7 +186,7 @@ Each class of hot path gets a different route:
 
 - **C++ RED4ext plugin for file IPC.** This is the one measured cost Lua cannot fix. CET Lua has no
   asynchronous file IO, so every lease, mailbox and stream read runs on the game thread at 1-5 ms per
-  operation. That is ~46 ms/s idle (item 2) and an estimated 75-100 ms/s while speaking (item 3). A native
+  operation. That is ~46 ms/s idle (item 2; 32 ms/s on 2026-10-12 after the in-place leases) and an estimated 75-100 ms/s while speaking (item 3). A native
   worker thread does the IO off the game thread, and the main thread pays a few microseconds per call.
 - **Redscript for hook filtering and change events** (items 1 and 10). Compiled redscript in a `@wrapMethod`
   is far cheaper than a CET trampoline on a native that fires for every NPC. The journal system already
@@ -107,7 +194,7 @@ Each class of hot path gets a different route:
 - **Lua fixes for everything else** (items 4-9, 11-14): caching, lower rates, gating and dirty flags. Most
   per-frame cost is many small native calls and table churn, and moving it into C++ would still cross the
   same boundary.
-- **Not C++ yet:** the knowledge collector (try event-driven first), the idle face layer (try sleeping first),
+- **Not C++ yet:** the knowledge collector (measured 69 ms/s; try event-driven Lua first, see section 4), the idle face layer (try sleeping first),
   and spatial queries (measure walking first). Each can follow if the probe still shows it high after the
   Lua or redscript fix.
 
@@ -170,32 +257,39 @@ Plan:
 
 ## 4. Order of work
 
-1. **Measure with the fixed probe** (section 6). Get real numbers for the collectors (item 1), the hooks
-   (item 10), init.lua's own local work, and walking and speaking. Re-rank before building anything large.
-2. **Remaining Lua quick wins**, smallest risk first:
-   - the phone binding cache (item 6);
-   - the reset-journal and voice-state read periods, and `phone-chat-input` in place (item 2);
-   - the diagnostic mailbox only when `diagnostics.lua` is present;
-   - the face writer's partial fixes (item 4);
-   - lazy chatter Overrides and `enabled`-first loot hooks (item 10);
-   - the gaze skip (item 11), buffered `log()` (item 13), and one shared gesture catalog (item 14);
-   - staggered heartbeat phases (item 2).
-3. **Knowledge collector redesign** (items 1 and 1b):
-   - event-driven rescans from redscript journal callbacks;
-   - a refresh on composer, phone or talk open;
-   - a long idle cadence;
-   - a knowledge snapshot file plus a revision in the turn instead of 796 KB per turn.
-   This needs the bridge's knowledge side; coordinate it with the dynamic-context work
-   (`docs/DYNAMIC_CONTEXT_AUDIT.md`).
-4. **Redscript hook filters** for `UpdateCommand` and `ReactionManagerComponent`, if step 1 shows them.
-   A compile error disables the whole mod's redscript, so each filter is small and built in isolation first.
-5. **The native IPC plugin.** Build it behind automatic detection with the Lua fallback. Compare the probe
-   with the DLL present and removed. Move the continuous-speech read first (largest), then the leases, then
-   the mailboxes and reply polls.
-6. **Face writer sleep gate** (item 4), with an in-game check of blinks, the resting smile, expressions after
-   speech, combat and scene blocking.
-7. **Companion tick settle gating, and a batched spatial native** (item 7), only if walking measurements
-   justify them.
+Revised 2026-10-12 from the first whole-callback measurement (section 1).
+
+**Collector redesign before C++ file IO.** The collectors cost 69 ms/s (1.43 ms per frame), file IO 32 ms/s
+(0.66 ms). The collector fix is pure Lua and needs no build, DLL or patch-day fallback. Each collector read
+costs about 58 µs through CET (58 ms/s over roughly 1,000 reads/s), so the cost is the read count: reading
+only when the journal changes, or before a turn, removes most of it. A C++ collector would make each read
+nearly free, but it needs much more game API surface than the file layer, and it waits on the plugin. The
+two do not conflict: the C++ file layer on `native-core` can proceed in parallel, and its first targets stay
+the leases, mailboxes and the continuous-speech read.
+
+1. **Knowledge collector redesign** (item 1), in Lua, together with 1b (the revision-based payload; it
+   touches the same capture path):
+   - stop stepping once a fresh cycle is cached; rescan on a long idle cadence (30-60 s) and at once when
+     the composer, phone chat or talk key opens;
+   - lower the per-frame budget from 2 ms to a few reads per frame;
+   - later, redscript journal callbacks as a dirty flag;
+   - change the 5 s cache age rule and the bridge's 10 s journal rule with it, so the first send still has
+     fresh context.
+   Expected: most of 69 ms/s, about 3 FPS at 48 fps.
+2. **Lua file-IO cadence cuts** (item 2), about 10 ms/s: memory-chat resets every 5-10 s instead of 0.5 s
+   (a fresh read before submission already exists), `companion-actions.json` and `local-voice-state.json`
+   less often, the diagnostic mailbox only when `diagnostics.lua` is installed.
+3. **Attribute init.lua's own 34 ms/s** (item 15) with Developer-mode timers, then fix what it shows.
+4. **Smaller per-frame Lua wins:** phone chat (item 6), invitations (item 8), relationship (item 16), phone
+   style and auto-connect (item 17), lazy chatter Overrides and `enabled`-first loot hooks (item 10), the
+   gaze skip (item 11), buffered `log()` (item 13), one shared gesture catalog (item 14).
+5. **The native IPC plugin** (`native-core`), behind automatic detection with the Lua fallback. Compare the
+   probe with the DLL present and removed. The continuous-speech read first, then the leases, then the
+   mailboxes and reply polls.
+6. **Redscript hook filters** for `UpdateCommand` and `ReactionManagerComponent`, once the hook rows
+   (`49f89b8`) show their cost. A compile error disables the whole mod's redscript, so each filter is small
+   and built in isolation first.
+7. **Companion tick settle gating and a batched spatial native** (item 7), only if walking measures high.
 
 ## 5. Risks
 
@@ -235,9 +329,14 @@ After the coordinator installs the committed `mod/` files (CET reload):
 5. Send `<mod>/runtime/perf-probe.json`. It keeps the last 5 minutes, so copy it right after step 4, or after
    each step for clean windows.
 
+The 2026-10-12 copy held a fresh session (load, one typed reply), not these steps; repeat them, and copy
+the file within 5 minutes of the step to keep. The face check for `cf1cdda`: at idle, blinks and the resting
+smile look as before, and the face never snaps to neutral between blinks (that would mean the native feature
+does not keep its last frame; set `convaiFacialPlayback.idleSleep=false` in the CET console to compare).
+
 The new rows to read are:
 - `event:onUpdate`, the whole callback;
-- `hook:*`, the per-hook calls and ms/s;
+- `hook:*`, the per-hook calls and ms/s, and `hooksWrapped` (above 0 once the wrap took);
 - `worldKnowledge.update`, `journalHistory.update` and `relationshipState.update`;
 - `luaKB`.
 
