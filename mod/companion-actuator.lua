@@ -265,6 +265,25 @@ local function moodDrop(s)
     local ok,drop=pcall(face.gazeDrop,s.entityKey)
     return ok and type(drop)=='number' and drop==drop and math.max(-0.2,math.min(0,drop)) or 0
 end
+-- Native core, system "gaze" (native/core/src/systems/gaze): Fill configures a LookAtAddEvent created
+-- here in one call. It returns 0 built, 1 declined for this input (this file builds it, as before),
+-- 2 unavailable (the game's classes differ: this system stays on Lua for the session). Kill switch:
+-- a line "gaze" in runtime/native-off.txt, or convaiNative.off('gaze').
+local function nativeLook(player,style,height,strength,seated)
+    if type(convaiNative)~='table' or type(convaiNative.use)~='function' or player==nil then return nil end
+    if not convaiNative.use('gaze') then return nil end
+    local ok,event,code=pcall(function()
+        local created=LookAtAddEvent.new()
+        return created,ConvaiNativeGaze.Fill(created,player,style,height,strength,seated)
+    end)
+    if ok and code==0 then return event end
+    if not ok then convaiNative.fail('gaze',event)
+    elseif code~=1 then
+        local asked,why=pcall(function() return ConvaiNativeGaze.Problem() end)
+        convaiNative.fail('gaze',asked and why or ('Fill returned '..tostring(code)))
+    end
+    return nil
+end
 local function look(s,style,player,settings,seated)
     seated=seated==true
     local height=bounded(settings and settings.eyeContactHeight,-0.10,0.10,0)+moodDrop(s)
@@ -281,7 +300,12 @@ local function look(s,style,player,settings,seated)
     -- argument is targetOffsetEntity (local). Height must stay world-vertical,
     -- so use the provider's separate worldOffset rather than tilting with an
     -- attachment/camera. At zero, make exactly the accepted native request.
-    local event=LookAtAddEvent.new()
+    -- With the native core's "gaze" system on, one native call configures the
+    -- whole event (about 40 CET calls on this path); the ownership, removal and
+    -- retry rules below are the same either way.
+    local event=nativeLook(player,style,height,strength,seated)
+    if not event then
+    event=LookAtAddEvent.new()
     event:SetEntityTarget(player,CName.new('pla_default_tgt'),Vector4.new(0,0,0,0))
     if height~=0 then
         if not event.targetPositionProvider then error('Native eye-contact target provider unavailable') end
@@ -305,6 +329,7 @@ local function look(s,style,player,settings,seated)
         parts[#parts+1]=chest
     end
     event:SetAdditionalPartsArray(parts)
+    end
     local cleared,err=clearLook(s)
     if not cleared then error(err) end
     -- Claim before QueueEvent: a native exception may follow its side effect.
