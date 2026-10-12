@@ -25,6 +25,9 @@ import {PersonaBook, LIMITS, breaksCharacter, joinBlocks, buildMessages} from '.
 import {streamChat, redact, validateKey} from '../bridge/mistral-client.mjs';
 import {mistralScheduler} from '../bridge/mistral-rate.mjs';
 import {actionMenu} from '../bridge/text-actions.mjs';
+import {ReplyStream} from '../bridge/reply-stream.mjs';
+import {screenWords} from '../bridge/text-action-words.mjs';
+import {hasEmotionTag} from '../bridge/emotion-tags.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = resolve(project, 'runtime/mistral-prompt-eval');
@@ -576,6 +579,13 @@ if (flag('report-actions')) {
     const flat = rows.map(r => ({...r.call, action: r.action ?? null, situation: r.situation, id: r.situation}));
     console.log(`\n== ${name}: ${rows.length} action replies`);
     console.log('  ALL      ' + actionStats(flat).line);
+    // Time to the reply's first sentence (what the voice waits for) and to the whole reply, by whether V asked for an action.
+    const quant = (list, q) => list.length ? [...list].sort((x, y) => x - y)[Math.min(list.length - 1, Math.floor(q * list.length))] : null;
+    for (const [what, pick] of [['asked an action ', r => r.call.expect], ['asked nothing   ', r => !r.call.expect],
+      ['  screen passes ', r => !r.call.expect && screenWords(r.v, {}).length], ['  screen stops  ', r => !r.call.expect && !screenWords(r.v, {}).length]]) {
+      const mine = rows.filter(pick).filter(r => typeof r.headMs === 'number');
+      if (mine.length) console.log(`  latency ${what} head median ${quant(mine.map(r => r.headMs), 0.5)} ms, p90 ${quant(mine.map(r => r.headMs), 0.9)} ms   whole median ${quant(mine.map(r => r.ms), 0.5)} ms   (${mine.length} replies)`);
+    }
     for (const code of DO_CODES) {
       const mine = flat.filter(r => r.expect === code || r.action === code);
       if (mine.length) {
@@ -733,8 +743,12 @@ async function runCell(cell, sample) {
   const send = async text => {
     const {context, contextParts} = contextFor(c, cell.situation, text, cell.party, cell.scene);
     const at = Date.now();
-    const reply = await host.reply({local, text, context, contextParts, sessionId, ...(asked ? {companionAction: offerFor(cell.call, persona.name)} : {})});
-    return {text: reply.text, ms: Date.now() - at, model: reply.timing?.model, attempts: reply.timing?.attempts};
+    // The voice's view of the reply, as in the game: headMs is when its first sentence could be spoken (the whole reply when it has none).
+    const stream = new ReplyStream({name: persona.name, isTag: hasEmotionTag, speak: false});
+    let headMs = null;
+    stream.onChange(() => { if (headMs === null && stream.head) headMs = Date.now() - at; });
+    const reply = await host.reply({local, text, context, contextParts, sessionId, ...(asked ? {companionAction: offerFor(cell.call, persona.name)} : {})}, {stream});
+    return {text: reply.text, ms: Date.now() - at, headMs: headMs ?? Date.now() - at, model: reply.timing?.model, attempts: reply.timing?.attempts};
   };
   const history = [];
   for (const setup of cell.setup) { const turn = await send(setup); history.push({v: setup, r: turn.text}); }
@@ -744,7 +758,7 @@ async function runCell(cell, sample) {
   const action = !message ? null : message.tactic ? 'FIGHT' : message.follow ? 'FOLLOW' : message.leave !== undefined ? 'LEAVE' : 'DRIVE';
   return {character: c.id, situation: cell.situation, sample, history: history.length ? history : undefined, v: cell.v, reply: turn.text, truth: cell.scene?.truth,
     ...(cell.call ? {call: {expect: cell.call.expect, promise: cell.call.promise, needs: cell.call.needs, offer: cell.call.offer}, action} : {}), ...(cell.scene?.phone ? {phone: true, context: flag('no-phone-context') ? 'none' : 'block'} : {}),
-    ms: turn.ms, model: turn.model, attempts: turn.attempts, ...checks(turn.text, persona.name)};
+    ms: turn.ms, headMs: turn.headMs, model: turn.model, attempts: turn.attempts, ...checks(turn.text, persona.name)};
 }
 
 const jobs = cells.flatMap(cell => Array.from({length: n}, (_, i) => ({cell, sample: i + 1})));

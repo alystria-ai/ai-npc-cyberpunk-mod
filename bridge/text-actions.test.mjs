@@ -198,10 +198,13 @@ async function fakeServer(script) {
     request.on('data', chunk => { raw += chunk; });
     request.on('end', () => {
       const body = JSON.parse(raw); requests.push(body);
-      const answer = script(body, requests.length);
-      response.writeHead(200, {'content-type': 'text/event-stream'});
-      for (const piece of String(answer).match(/.{1,5}/gs) ?? []) response.write(`data: ${JSON.stringify({choices: [{index: 0, delta: {content: piece}}]})}\n\n`);
-      response.end(`data: ${JSON.stringify({choices: [{delta: {}, finish_reason: 'stop'}]})}\n\ndata: [DONE]\n\n`);
+      let answer = script(body, requests.length), wait = 0;
+      if (answer && typeof answer === 'object') ({text: answer, wait = 0} = answer);   // {text, wait}: the answer comes after `wait` ms
+      setTimeout(() => {
+        response.writeHead(200, {'content-type': 'text/event-stream'});
+        for (const piece of String(answer).match(/.{1,5}/gs) ?? []) response.write(`data: ${JSON.stringify({choices: [{index: 0, delta: {content: piece}}]})}\n\n`);
+        response.end(`data: ${JSON.stringify({choices: [{delta: {}, finish_reason: 'stop'}]})}\n\ndata: [DONE]\n\n`);
+      }, wait);
     });
   });
   await new Promise(done => server.listen(0, '127.0.0.1', done));
@@ -253,19 +256,19 @@ test('the decision comes first, the reply is told about it, the game gets the ac
 
 test('each offered action is delivered as the message the Convai client would send; none, an unoffered action or an unclear answer deliver nothing', async () => {
   const cases = [
-    ['DRIVE', ride(), [{version: 1, token: TOKEN}]],
-    ['FIGHT', noRide({tactic: target()}), [{version: 1, token: TOKEN, tactic: 'fight'}]],
-    ['FOLLOW', noRide({follow: {name: 'Judy Alvarez'}}), [{version: 1, token: TOKEN, follow: true}]],
-    ['DISMISSED', noRide({leave: {members: [{name: 'Judy Alvarez', self: true}]}}), [{version: 1, token: TOKEN, leave: 1}]],
-    ['NONE', ride(), []],
-    ['FIGHT', ride(), []],
-    ['DRIVE then more words', ride(), []],
-    ['', ride(), []],
+    ['DRIVE', ride(), [{version: 1, token: TOKEN}], 'drive for me'],
+    ['FIGHT', noRide({tactic: target()}), [{version: 1, token: TOKEN, tactic: 'fight'}], 'attack him'],
+    ['FOLLOW', noRide({follow: {name: 'Judy Alvarez'}}), [{version: 1, token: TOKEN, follow: true}], 'come with me'],
+    ['DISMISSED', noRide({leave: {members: [{name: 'Judy Alvarez', self: true}]}}), [{version: 1, token: TOKEN, leave: 1}], 'you can go'],
+    ['NONE', ride(), [], 'drive for me'],
+    ['FIGHT', ride(), [], 'drive for me'],
+    ['DRIVE then more words', ride(), [], 'drive for me'],
+    ['', ride(), [], 'drive for me'],
   ];
-  for (const [answer, offer, expected] of cases) {
+  for (const [answer, offer, expected, said] of cases) {
     const {host, delivered, close} = await harness(script(() => answer || '.', 'Fine, V.'));
     try {
-      const result = await host.reply(turn('please', {companionAction: offer}));
+      const result = await host.reply(turn(said, {companionAction: offer}));
       await settle();
       assert.deepEqual(delivered, expected, answer);
       assert.equal(result.text, 'Fine, V.');
@@ -367,4 +370,125 @@ test('a failing hook never fails or delays the spoken reply', async () => {
     assert.equal(result.text, 'Sure, get in.');
     assert.ok(logs.some(line => /action DRIVE failed: mailbox busy/.test(line)), logs.join('|'));
   } finally { host.close(); await server.close(); }
+});
+
+// ---- Latency: the decision is skipped for ordinary talk and overlaps the reply otherwise ---------------------------------------
+
+test('ordinary talk sends no decision request at all and the reply still knows what it cannot do', async () => {
+  const {server, host, delivered, close} = await harness(script(() => 'DRIVE', 'Holding up fine, V. Thanks for asking.'));
+  try {
+    const result = await host.reply(turn('How are you holding up?', {companionAction: ride()}));
+    await settle();
+    assert.equal(server.requests.length, 1, 'only the reply');
+    assert.match(server.requests[0].messages.at(-1).content, /not asking you to do anything the game can carry out/);
+    assert.equal(result.text, 'Holding up fine, V. Thanks for asking.');
+    assert.equal(delivered.length, 0);
+  } finally { await close(); }
+});
+
+test('one possible action: the reply starts with the decision, waits for it before the voice hears anything, and the action goes out', async () => {
+  const times = {};
+  const start = performance.now();
+  const {server, host, delivered, close} = await harness(body => {
+    const kind = isDecision(body) ? 'decision' : 'reply';
+    times[kind] = performance.now() - start;
+    return kind === 'decision' ? {text: 'DRIVE', wait: 200} : 'Sure, hop in and buckle up. I will take us there. Do not touch the radio.';
+  });
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    let firstHead = null;
+    stream.onChange(() => { if (firstHead === null && stream.head) firstHead = performance.now() - start; });
+    const result = await host.reply(turn('drive for me', {companionAction: ride()}), {stream});
+    await settle();
+    assert.ok(Math.abs(times.reply - times.decision) < 120, `both start together (decision ${times.decision}, reply ${times.reply})`);
+    assert.ok(firstHead === null || firstHead >= 190, `the voice heard nothing before the decision agreed (${firstHead})`);
+    assert.equal(server.requests.length, 2);
+    assert.match(server.requests.find(body => !isDecision(body)).messages.at(-1).content, /V is asking you to drive them/);
+    assert.equal(result.text, 'Sure, hop in and buckle up. I will take us there. Do not touch the radio.');
+    assert.deepEqual(delivered, [{version: 1, token: TOKEN}]);
+  } finally { await close(); }
+});
+
+test('the decision disagrees with the guess: the early reply is dropped unheard and the reply is written again with the right notes', async () => {
+  const {server, host, delivered, close} = await harness(body => {
+    if (isDecision(body)) return {text: 'NONE', wait: 100};
+    return /is asking you to drive/.test(body.messages.at(-1).content) ? 'Sure, get in and hold on tight, I will drive. Buckle up, V, we are going.' : 'I drive just fine, V. Why do you ask?';
+  });
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    const heard = [];
+    stream.onChange(() => heard.push(stream.head ?? ''));
+    const result = await host.reply(turn('I wonder who will drive us there someday.', {companionAction: ride()}), {stream});
+    await settle();
+    assert.equal(result.text, 'I drive just fine, V. Why do you ask?');
+    assert.equal(server.requests.length, 3, 'decision, the early reply, the real reply');
+    assert.ok(heard.every(head => !/get in|tight|will drive/.test(head)), 'the voice never heard the early reply');
+    assert.doesNotMatch(JSON.stringify(stream), /get in and hold on/);
+    assert.equal(delivered.length, 0);
+  } finally { await close(); }
+});
+
+test('two possible actions: the reply waits for the decision, which names one of them', async () => {
+  const times = {};
+  const start = performance.now();
+  const {host, delivered, server, close} = await harness(body => {
+    const kind = isDecision(body) ? 'decision' : 'reply';
+    times[kind] = performance.now() - start;
+    return kind === 'decision' ? {text: 'FIGHT', wait: 150} : 'On it, V.';
+  });
+  try {
+    const result = await host.reply(turn('Attack him and then follow me', {companionAction: noRide({tactic: target(), follow: {name: 'Judy Alvarez'}})}));
+    await settle();
+    assert.ok(times.reply - times.decision >= 120, `the reply came after the decision (${times.decision}, ${times.reply})`);
+    assert.match(server.requests.find(body => !isDecision(body)).messages.at(-1).content, /V is telling you to attack/);
+    assert.equal(result.text, 'On it, V.');
+    assert.deepEqual(delivered, [{version: 1, token: TOKEN, tactic: 'fight'}]);
+  } finally { await close(); }
+});
+
+test('a question about the character is guessed as plain talk: the reply starts at once, and an action in the answer rewrites it', async () => {
+  const menu = actionMenu(ride());
+  for (const [line, guess] of [['Do you know how to drive?', 'NONE'], ['Nice car, by the way. Who built the engine?', 'NONE'], ['Did you ever fight in the pits?', 'NONE'],
+    ['Can you drive for me?', 'DRIVE'], ['Do you mind driving?', 'DRIVE'], ['Take the wheel.', 'DRIVE'], ['Hey. Drive for me.', 'DRIVE'], ['Fahr bitte.', 'DRIVE']]) {
+    assert.equal(menu.guess(line, menu.screen(line)), guess, line);
+  }
+  const times = {};
+  const start = performance.now();
+  const {server, host, delivered, close} = await harness(body => {
+    const kind = isDecision(body) ? 'decision' : 'reply';
+    times[kind] = performance.now() - start;
+    return kind === 'decision' ? {text: 'NONE', wait: 200} : 'I drive fine, V. Why do you ask? It is not that hard.';
+  });
+  try {
+    const result = await host.reply(turn('Do you know how to drive?', {companionAction: ride()}));
+    await settle();
+    assert.ok(Math.abs(times.reply - times.decision) < 120, 'the reply did not wait for the decision');
+    assert.equal(server.requests.length, 2, 'the guess held: no second reply');
+    assert.match(server.requests.find(body => !isDecision(body)).messages.at(-1).content, /not asking you to do anything the game can carry out/);
+    assert.equal(result.text, 'I drive fine, V. Why do you ask? It is not that hard.');
+    assert.equal(delivered.length, 0);
+  } finally { await close(); }
+  // The guess was wrong: the decision says the line was a request after all.
+  const late = await harness(body => isDecision(body) ? 'DRIVE' : /is asking you to drive/.test(body.messages.at(-1).content) ? 'Sure, hop in. I will drive us there.' : 'Hm, why?');
+  try {
+    const result = await late.host.reply(turn('Do you want to drive for me?', {companionAction: ride()}));
+    await settle();
+    assert.equal(result.text, 'Sure, hop in. I will drive us there.');
+    assert.deepEqual(late.delivered, [{version: 1, token: TOKEN}]);
+  } finally { await late.close(); }
+});
+
+test('a route that serves one request at a time (the local server) never overlaps the decision with the reply', async () => {
+  const times = {};
+  const start = performance.now();
+  const {host, close} = await harness(body => {
+    const kind = isDecision(body) ? 'decision' : 'reply';
+    times[kind] = performance.now() - start;
+    return kind === 'decision' ? {text: 'DRIVE', wait: 150} : 'Sure, hop in. I will drive.';
+  });
+  try {
+    host.routes.mistral.parallel = false;
+    await host.reply(turn('drive for me', {companionAction: ride()}));
+    assert.ok(times.reply - times.decision >= 120, 'the reply came after the decision');
+  } finally { await close(); }
 });

@@ -146,7 +146,9 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       return {contextTokens: handle.contextSize, meter: meters.get(handle.model), count};
     },
     onFit: fit => log('The local AI: ' + describeFit(fit))});
-  return {name: 'local', provider: 'local', chat, gapMs: 0, blocked: new Map(), nextSlot: 0,
+  // parallel: false: the server answers one request at a time (one slot), so an action decision does not overlap the reply; measured
+  // 2026-10-13: the overlap gained nothing on Gemma 4 with one slot or two (docs/LOCAL_AI.md, Actions).
+  return {name: 'local', provider: 'local', chat, gapMs: 0, blocked: new Map(), nextSlot: 0, parallel: false,
     models: () => [{id: 'local'}],
     async connect(signal, {background = false} = {}) {
       if (background && server.status().state !== 'ready') throw new MistralError('network', 'is not loaded right now', {provider: 'local'});
@@ -287,7 +289,12 @@ export class TextProviderHost {
     // for is decided by a tiny request of its own that runs while the memory store retrieves (bridge/text-actions.mjs).
     const menu = !reaction && typeof this.deliverAction === 'function' ? actionMenu(config.companionAction) : null;
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
-    const deciding = menu?.rows.length ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal}) : null;
+    // Only a line with a word a request could use is sent to the decision (bridge/text-action-words.mjs): ordinary talk pays nothing.
+    const maybe = menu?.rows.length ? menu.screen(text, recalled.turns.at(-1)) : [];
+    const deciding = maybe.length ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal}) : null;
+    // One action it could be: the reply is written at once as if V asked for it, and held back from the voice until the decision agrees
+    // (see #replyOn); with several, or on a route that serves one request at a time (`parallel: false`), the reply waits for the decision.
+    const guess = maybe.length && this.routes[this.provider.route]?.parallel !== false ? menu.guess(text, maybe) : null;
     // What the memory store remembers that bears on V's words (private and phone talk of a named character; empty otherwise and
     // whenever it cannot answer in a few hundred milliseconds).
     let remembered = [];
@@ -295,15 +302,16 @@ export class TextProviderHost {
       try { remembered = await this.memory.retrieve({...memoryKey, query: text, signal}) ?? []; } catch { remembered = []; }
       if (signal?.aborted) throw cancelled();
     }
-    const decision = deciding ? await deciding : null;
+    const decision = deciding && !guess ? await deciding : null;
     if (signal?.aborted) throw cancelled();
-    const act = decision && menu ? menu.message(decision) : null;
-    const actionNotes = menu ? menu.notes(act ? decision.code : null) : '';
+    const chosen = decided => decided && menu.message(decided) ? decided.code : null;
+    const actionNotes = menu ? menu.notes(guess ? (guess === 'NONE' ? null : guess) : chosen(decision)) : '';
+    const speculation = guess ? {guess, deciding, confirms: decided => (chosen(decided) ?? 'NONE') === guess, notesFor: decided => menu.notes(chosen(decided))} : null;
     markStage('recalled');
     const candidates = this.#candidates();
     for (const [index, route] of candidates.entries()) {
       try {
-        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes});
+        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation});
         const elapsed = Math.round(this.now() - started);
         const {response} = outcome;
         // What was already spoken stands: a finished reply that does not begin with it is cut back to it.
@@ -314,7 +322,7 @@ export class TextProviderHost {
           this.#summarize(route, local.profileKey);
         }
         markStage('replyReturned');
-        if (act) this.#act({code: decision.code, message: act});
+        if (deciding) { const settled = await deciding, act = settled && menu.message(settled); if (act) this.#act({code: settled.code, message: act}); }
         const result = this.transformReply({text: reply, sessionID: config.sessionId, transport: route.name,
           timing: {provider: route.name, llmMs: elapsed, model: response.model ?? route.models()[0]?.id, attempts: response.attempts,
             ...(response.failed?.length ? {llmFailed: response.failed} : {}),
@@ -389,19 +397,34 @@ export class TextProviderHost {
     }
   }
 
-  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes}) {
+  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation}) {
     // This turn's action notes go last in the prompt, after everything that can be cached.
-    const contextParts = actionNotes && config.contextParts ? {...config.contextParts, volatile: joinBlocks([config.contextParts.volatile, actionNotes])} : config.contextParts;
-    const context = actionNotes && !config.contextParts ? joinBlocks([config.context, actionNotes]) : config.context;
-    const build = nudge => buildMessages({persona, memory: recalled.summary, history: recalled.turns, context,
-      contextParts, remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits});
+    let notes = actionNotes;
+    const build = nudge => buildMessages({persona, memory: recalled.summary, history: recalled.turns,
+      context: notes && !config.contextParts ? joinBlocks([config.context, notes]) : config.context,
+      contextParts: notes && config.contextParts ? {...config.contextParts, volatile: joinBlocks([config.contextParts.volatile, notes])} : config.contextParts,
+      remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits});
+    // A speculative request (reply()) assumes V asked for the guessed action. It shows the voice nothing until the decision agrees; if the
+    // decision says otherwise it is cancelled and the reply is written again with the right notes.
+    const spec = speculation ? {controller: new AbortController(), open: false, latest: '', missed: false, over: false} : null;
+    speculation?.deciding.then(decided => {
+      if (spec.over) return;
+      if (speculation.confirms(decided)) { spec.open = true; try { feed.update(spec.latest); } catch { /* the voice's view never breaks the reply */ } }
+      else { spec.missed = true; notes = speculation.notesFor(decided); spec.controller.abort(); }
+    });
     // An action code ("[DRIVE]") is never part of the reply: the voice, the subtitles and the memory see the text without it.
     const visible = soFar => splitActions(soFar, {streaming: true}).text;
     const shouldStop = soFar => capPoint(cleanReply(visible(soFar), {name: persona.name, isTag}), this.limits) >= 0;
     const run = async nudge => {
       const messages = build(nudge);
       markStage('promptBuilt');
-      const response = await this.#request(route, messages, signal, {shouldStop, profileKey, onDelta: (_piece, soFar) => { try { feed.update(visible(soFar)); } catch { /* the voice's view of the reply never breaks the reply */ } }});
+      const sent = spec && !spec.over ? (signal ? AbortSignal.any([signal, spec.controller.signal]) : spec.controller.signal) : signal;
+      const response = await this.#request(route, messages, sent, {shouldStop, profileKey, onDelta: (_piece, soFar) => {
+        const shown = visible(soFar);
+        if (spec && !spec.over) { spec.latest = shown; if (!spec.open) return; }
+        try { feed.update(shown); } catch { /* the voice's view of the reply never breaks the reply */ }
+      }});
+      if (spec && !spec.over) { await speculation.deciding; if (spec.missed) throw new MistralError('request', 'the action decision changed the notes'); }
       markStage('fullText');
       const {text: spoken} = splitActions(response.text);
       let cleaned = cleanReply(spoken, {name: persona.name, isTag});
@@ -415,7 +438,12 @@ export class TextProviderHost {
     // V trying to make the character say it is an AI or a script: the reply must not take those words up, even to deny them.
     const provoked = !reaction && provokesAiTalk(text);
     if (feed && typeof feed === 'object') feed.reject = said.length || provoked ? head => repeatsLine(head, said) || (provoked && takesUpAiTalk(head)) : null;
-    let outcome = await run('');
+    let outcome;
+    try { outcome = await run(''); } catch (error) {
+      if (!spec?.missed || signal?.aborted) throw error;
+      spec.over = true;
+      outcome = await run('');
+    }
     // A reply that steps out of character, or is a model's reasoning, gets one more try. The second answer is used unless it
     // is reasoning again, which is never spoken (it counts as an empty answer). A reply whose first sentence the voice already
     // started is not tried again: that sentence was checked before it was spoken, so it stands and the rest is dropped.

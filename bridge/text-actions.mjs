@@ -21,6 +21,7 @@
 // There is no wait / stay / sit command in the game, so none is offered, and the prompt says so.
 
 import {parseDriveUnavailable} from './companion-actions.mjs';
+import {screenWords} from './text-action-words.mjs';
 
 export const ACTION_CODES = Object.freeze(['DRIVE', 'FIGHT', 'FOLLOW', 'LEAVE']);
 
@@ -108,6 +109,17 @@ export function actionMenu(offer) {
   const named = rows.find(row => row.code === 'LEAVE' && /DISMISSED followed/.test(row.what));
   return {
     codes: rows.map(row => row.code), rows, limits,
+    /** The offered codes V's words could be about (bridge/text-action-words.mjs); [] means no decision request is worth sending. */
+    screen: (text, last) => screenWords(text, {codes: rows.map(row => row.code), last}),
+    /**
+     * What the reply should be written for while the decision is out: 'NONE' for a question about the character ("do you know how to
+     * drive?", "did you ever fight?"), the only action the screen found, or null (the reply waits). A wrong guess costs a second
+     * reply, never a wrong action: the reply is held back until the decision agrees.
+     */
+    guess: (text, found) => {
+      const sentence = String(text ?? '').trim().split(/(?<=[.!?])\s+/).at(-1) ?? '';   // the question is the last sentence
+      return TALK.test(sentence) && !REQUEST_QUESTION.test(sentence) ? 'NONE' : found.length === 1 ? found[0] : null;
+    },
     notes(code) {
       const row = rows.find(item => item.code === code);
       const head = row ? `GAME ACTIONS: ${row.tell}: agree in your own words, in one or two short sentences, and promise nothing more. Never speak of codes or the game.`
@@ -141,6 +153,11 @@ export function actionMenu(offer) {
     },
   };
 }
+
+// A line that asks the character something about itself or the past rather than asking it to do something (English only; another
+// language is guessed as a request, which is only a little slower when it is not).
+const TALK = /^(?:[^?!.]{0,30}[,:] )?(?:do|did|does|have|has|had|who|what|why|how|where|when|which|is|are|was|were|ever|remember|isn'?t|aren'?t)\b[^]*\?$/i;
+const REQUEST_QUESTION = /^(?:[^?!.]{0,30}[,:] )?(?:can|could|would|will|won'?t|wanna|want to|mind|do you mind|do you want|do you wanna|do you think you could)\b/i;
 
 // A code in a reply is never spoken: the character is not told about codes, but a small model may still write one.
 const TAG = /\[\s*(?:action\s*[:=]\s*)?(drive|fight|follow|leave|dismissed|none)\b\s*(?:[:=]\s*([^\]\n]{0,40}))?\]/gi;

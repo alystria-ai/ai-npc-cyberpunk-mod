@@ -1,0 +1,767 @@
+{
+ "note": "Phrasings for bridge/text-action-words.test.mjs: requests for each companion action (160) and ordinary talk (120, about 30 of them look-alikes that mention a car, a fight or leaving without asking). Written independently of the screen by a separate agent, then used to tune it.",
+ "requests": [
+  {
+   "code": "DRIVE",
+   "text": "Get us to the marked spot, use my ride."
+  },
+  {
+   "code": "LEAVE",
+   "text": "That's all for now, you can split."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Open fire on the marked guy."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Get in there and beat the crap out of him."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Acompáñame en todo esto."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Hop in the driver's seat and take us to the pin."
+  },
+  {
+   "code": "FIGHT",
+   "text": "내가 표시한 적을 공격해."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Steer us to the map marker."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Pick a fight with the target, I want him down."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Drive us to the marker on the map."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Stay in my crew and move with me."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Пойдём вместе, ты со мной."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Pode ir embora, você está dispensado."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Smash the mark on my map."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Come with us wherever we go next."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Разберись с тем, кого я отметил."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Engage the enemy I pinned."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Idź za mną, nie zostawaj w tyle."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Conduis-nous jusqu'au point sur la carte, s'il te plaît."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Go at the guy I marked, full force."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "I'd feel better if you watched my back, so stick with me."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Dirige até o marcador no mapa, por favor."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Puoi andare, ti congedo."
+  },
+  {
+   "code": "DRIVE",
+   "text": "マップのマーカーまで運転してくれる？"
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Keep pace with me while we walk."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Я устал, садись за руль."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Bounce, I've got it covered from here."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Не отставай, держись рядом со мной."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Estás despedido, puedes irte."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Fall in beside me and don't split off."
+  },
+  {
+   "code": "DRIVE",
+   "text": "I am wiped, get us there."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "I need you right behind me."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Zawieź nas do znacznika na mapie."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Fahr uns bitte zu dem Punkt auf der Karte."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "私についてきて、離れないで。"
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Don't lag behind, stay with me."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Time to throw down with the guy I marked."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Leave. You're dismissed."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Schalt ihn aus, den Markierten da drüben."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Stay on my tail."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "No te quedes atrás, ven conmigo."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Scram, I don't need you hanging around anymore."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Fica comigo e não fique para trás."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Walk with me, I could use the company."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Llévanos al punto que marqué en el mapa."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Take the wheel, I'm wiped."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Du bist entlassen, mach's gut."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Hurt that enemy I flagged on the map."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Benimle gel, geride kalma."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Let's start a fight with the marked enemy."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Всё, можешь идти, я тебя отпускаю."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Je suis crevé, prends le volant."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Ataca al objetivo que marqué en el mapa."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Stick close, don't wander off."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Make him regret it."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Haritada işaretlediğim hedefe saldır."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Walk off, your shift's over."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Hang with me, I'm not going alone."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Your turn at the wheel."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Carry me to the spot on the map."
+  },
+  {
+   "code": "FIGHT",
+   "text": "That guy in the red jacket, handle him."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Get out of my party."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Go on, I'm releasing you from the crew."
+  },
+  {
+   "code": "LEAVE",
+   "text": "I'm sending you home, thanks for the help."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Take a hike, I'm done with you here."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Geh, ich brauche dich heute nicht mehr."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Be my wingman from here on out."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Bleib bei mir und lauf mir nicht weg."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Go kill the guy on the map."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Tag along, we're heading out."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Peace out, I'll handle things solo from now on."
+  },
+  {
+   "code": "LEAVE",
+   "text": "You're done for now, take off."
+  },
+  {
+   "code": "LEAVE",
+   "text": "你可以走了，我让你离队。"
+  },
+  {
+   "code": "DRIVE",
+   "text": "Can you drive? Get us to the waypoint."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Go away for a bit, I'm done with you."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Show him what happens to people who cross us, the marked one."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Do the driving, I'm done for the night."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Join my party and travel with me."
+  },
+  {
+   "code": "DRIVE",
+   "text": "I'll navigate, you drive us to the spot."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Put him in the ground, the one on the waypoint."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Greif den Typen an, den ich markiert habe."
+  },
+  {
+   "code": "LEAVE",
+   "text": "You can go now, I don't need backup."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Tu peux partir, je te libère."
+  },
+  {
+   "code": "FIGHT",
+   "text": "マップでマークした敵を攻撃しろ。"
+  },
+  {
+   "code": "LEAVE",
+   "text": "Drop out of the squad, I'm sending you away."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Уходи, ты свободен."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Take out the target I marked."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Komm mit, wir gehen zusammen weiter."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Attaque la cible que j'ai marquée."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Travel with me until I say otherwise."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "나랑 같이 가자, 뒤처지지 마."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Let's ride over to the spot I marked on the map."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Let's roll, you're with me."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "You're coming with me on this one."
+  },
+  {
+   "code": "LEAVE",
+   "text": "I've got it from here, you can go."
+  },
+  {
+   "code": "LEAVE",
+   "text": "I'm kicking you from the party, sorry."
+  },
+  {
+   "code": "LEAVE",
+   "text": "이제 가도 돼, 파티에서 내보낼게."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Waste the marker on the map."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Give him a beating he won't forget."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "跟着我，别落下。"
+  },
+  {
+   "code": "FIGHT",
+   "text": "You're on overwatch, go after the guy I tagged."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Light him up."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Don't peel off, you're on my squad."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Dégage, je m'en occupe seul."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Règle son compte à celui de la carte, vite."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Thanks for everything, see you around, you're free."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Cut down the guy I pinned."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Ich bin fertig, übernimm du das Steuer."
+  },
+  {
+   "code": "FIGHT",
+   "text": "去打我在地图上标记的那个目标。"
+  },
+  {
+   "code": "DRIVE",
+   "text": "Head to the marked location, I'm too tired to drive."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Ataca o alvo que marquei no mapa."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Take my car to the waypoint, will you?"
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Shadow me for the rest of the trip."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Dale una paliza al tipo que señalé."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Dismissed. Go do your own thing."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Hit the target I tagged, now."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Możesz odejść, zwalniam cię."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "I want you at my side for this."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Head out, my squad's done with you."
+  },
+  {
+   "code": "LEAVE",
+   "text": "You're off the team. Go."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Would you mind driving? The marker's on the map."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Thanks, but I'm letting you go."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Keep up with me, V's moving."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Accompany me, I'm heading out."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Attacca il bersaglio che ho segnato sulla mappa."
+  },
+  {
+   "code": "DRIVE",
+   "text": "开车带我去地图上标记的地方吧。"
+  },
+  {
+   "code": "FIGHT",
+   "text": "Zaatakuj cel, który zaznaczyłem na mapie."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Estoy agotado, conduce tú hasta el marcador."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Haritadaki işaretli yere sürer misin?"
+  },
+  {
+   "code": "LEAVE",
+   "text": "Get lost for now, I'll call you if I need you."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Атакуй цель, которую я отметил."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Отвези нас в отмеченную точку на карте."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Get behind the wheel and take us there."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Attack the one I highlighted."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Gidebilirsin, seni ekipten çıkarıyorum."
+  },
+  {
+   "code": "LEAVE",
+   "text": "もういい、解散だ。行っていいぞ。"
+  },
+  {
+   "code": "LEAVE",
+   "text": "Vamoose, you're free to roam."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Deal with the marked enemy, make it messy."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Guida tu fino al punto che ho segnato sulla mappa."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Floor it to the pin I dropped."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Suis-moi, on ne se sépare pas."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Ferry us to the waypoint in my car."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Charge the target on my map."
+  },
+  {
+   "code": "DRIVE",
+   "text": "You're driving. Waypoint's set."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Reste avec moi, ne traîne pas."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Vieni con me, non restare indietro."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Take the car over to the pin."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Chauffeur me to the marker, please."
+  },
+  {
+   "code": "FIGHT",
+   "text": "Go teach that marked punk a lesson."
+  },
+  {
+   "code": "LEAVE",
+   "text": "We're good, you can clear out."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Take us to the waypoint, I'd rather not drive right now."
+  },
+  {
+   "code": "LEAVE",
+   "text": "Vete, ya no te necesito en el grupo."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Mind if you tag along for the ride?"
+  },
+  {
+   "code": "DRIVE",
+   "text": "Hey, could you pilot us to the marker?"
+  },
+  {
+   "code": "LEAVE",
+   "text": "Step away from my crew and head off."
+  },
+  {
+   "code": "DRIVE",
+   "text": "Can you take the car to where I marked?"
+  },
+  {
+   "code": "DRIVE",
+   "text": "Drive us over to the destination on my map."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Come on, follow me."
+  },
+  {
+   "code": "DRIVE",
+   "text": "지도에 찍어 둔 곳까지 운전해 줘."
+  },
+  {
+   "code": "FOLLOW",
+   "text": "Come along with me."
+  }
+ ],
+ "chat": [
+  "How's the weather looking in Night City today?",
+  "Did you sleep at all last night?",
+  "What's your favorite noodle place around here?",
+  "I can't believe how loud this district is.",
+  "Remember the first time we met? You were so suspicious of me.",
+  "What do you think of the new Arasaka tower?",
+  "Got any tips for surviving the Badlands?",
+  "Honestly, your jacket is awesome.",
+  "What kind of music are you listening to lately?",
+  "Thanks for patching me up back there.",
+  "Sorry I snapped at you earlier.",
+  "Do you ever miss the old neighborhood?",
+  "I think I'm getting too attached to this city.",
+  "You always smell like cigarettes and rain, you know that?",
+  "Where do we find the Maelstrom?",
+  "What's the deal with the fixer in Watson?",
+  "Who runs the ripperdoc clinic in Heywood these days?",
+  "Ever tried the synthetic coffee at the corner stand?",
+  "I heard a rumor the Voodoo Boys are recruiting again.",
+  "How did you end up in this line of work?",
+  "You ever think about getting out of Night City for good?",
+  "That was a hilarious thing you said to the cop.",
+  "I'm kind of nervous about tomorrow's job.",
+  "Do you believe in luck, or is it all just skill?",
+  "Tell me one thing nobody knows about you.",
+  "Is the rain ever going to stop around here?",
+  "The skyline looks gorgeous at night, doesn't it?",
+  "Are you hungry? I'm starving.",
+  "What's your favorite song to hum when you're stressed?",
+  "I got you a little something from the vending machine.",
+  "Did you hear about the blackout in Pacifica?",
+  "You're way better at poker than I expected.",
+  "Do you ever get tired of all the chrome?",
+  "How many years have you been living in the Combat Zone?",
+  "I love the way you laugh when someone falls over.",
+  "Got any stories about your childhood?",
+  "Honestly I just want a quiet night in.",
+  "What's the best way to clear my head after a rough night?",
+  "Do you think the corpos will ever stop lying?",
+  "My ribs still hurt from earlier, honestly.",
+  "Did you ever read those old Johnny Silverhand comics?",
+  "You seem quieter today. Everything okay?",
+  "I could really go for some ramen right now.",
+  "What's the wildest thing you've ever seen in this city?",
+  "Thanks for always having my back.",
+  "I'm sorry for dragging you into all of this.",
+  "That lounge downtown has the best jazz, right?",
+  "You ever picked up a new hobby just to pass the time?",
+  "Do you ever dream about open roads and empty deserts?",
+  "I'll never forget the look on your face when we won that race.",
+  "What's the best way to get a decent apartment here?",
+  "Are the street vendors in Kabuki still open this late?",
+  "Tell me a joke, I could use a laugh.",
+  "You're the only person I trust in this whole city.",
+  "I think you're kind of cute when you're annoyed.",
+  "Do you think we'll ever get a real break?",
+  "Did you hear the gossip about the Militech shipment?",
+  "I bet you can't name every bar in Japantown.",
+  "Nice weather for a walk, huh?",
+  "Which of your old friends do you still talk to?",
+  "Honestly I'm just tired of all the betrayal around here.",
+  "What's the biggest mistake you ever made?",
+  "Do you think the stars are real out here, or is it just smog?",
+  "Sometimes I wonder what my life would've been like without the chip.",
+  "Do you know how to drive?",
+  "I used to fight in the pits, back in the day.",
+  "Remember when we left Kabuki in a hurry?",
+  "Nice car, by the way. Who built the engine?",
+  "Did you ever learn to drive a motorcycle?",
+  "Your driving scared me half to death last time.",
+  "Why did the last driver quit his job?",
+  "I'm glad the fight at the bar didn't end worse.",
+  "What's the story behind that scar from the fight?",
+  "Have you ever left Night City for more than a week?",
+  "Where did you go after you left Arasaka?",
+  "How long does it take to get to Pacifica on foot?",
+  "I've never seen a car like that one before, it's gorgeous.",
+  "Do you still miss the car you crashed in the Badlands?",
+  "Who taught you to fight so well, honestly?",
+  "Our fight with the Maelstrom was a total mess, wasn't it?",
+  "Did you enjoy the ride through Heywood last week?",
+  "I heard driving in the rain is a nightmare out here.",
+  "Are you going to the concert tonight, or staying in?",
+  "Do you think Jackie would have left town if he could?",
+  "Ever miss those old days when we'd leave the city every weekend?",
+  "I'm sorry you had to fight your way out of the club that night.",
+  "Are the roads in the Badlands always this dusty?",
+  "My old car got towed, which is a lot like being left behind.",
+  "Have you ever been to the fight club in Watson?",
+  "What's your opinion on people who drive recklessly through Downtown?",
+  "Panam, where did you learn to ride so fast?",
+  "The last guy who tried to fight me ended up in a dumpster.",
+  "Do you miss the old days when you were with your gang?",
+  "How many cars do you think a fixer like Wakako has?",
+  "Wie ist das Wetter heute in Night City?",
+  "Hast du Hunger? Ich könnte einen Döner vertragen.",
+  "Danke, dass du mich heute Abend unterstützt hast.",
+  "Tu as déjà goûté le café synthétique du coin ?",
+  "Désolé pour hier soir, j'étais vraiment fatigué.",
+  "Ta veste est magnifique, elle vient d'où ?",
+  "¿Crees que algún día dejará de llover aquí?",
+  "Me encanta la música que pones en la radio.",
+  "Lo siento, no quise ser tan brusco contigo.",
+  "Secondo te il ramen di Watson è davvero il migliore?",
+  "Mi manca il sole, a volte.",
+  "Você já ouviu falar daquele bar em Japantown?",
+  "Obrigado por cuidar de mim ontem à noite.",
+  "Czy kiedyś tęsknisz za starą dzielnicą?",
+  "Ta pogoda jest okropna, prawda?",
+  "Как ты думаешь, корпорации когда-нибудь перестанут врать?",
+  "Спасибо, что прикрыла меня вчера.",
+  "Какая самая странная вещь, которую ты видела в городе?",
+  "Bu şehirde hiç huzur bulabildin mi?",
+  "Bugün çok yorgunum, sen nasılsın?",
+  "今日のナイトシティの天気はどう？",
+  "昨日はありがとう、本当に助かった。",
+  "오늘 밤 날씨 정말 좋다, 그렇지?",
+  "어제는 미안했어, 내가 너무 예민했지.",
+  "你最喜欢的夜宵是什么？",
+  "这座城市的霓虹灯真漂亮。"
+ ]
+}
