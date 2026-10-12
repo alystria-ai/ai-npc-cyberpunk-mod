@@ -2,6 +2,10 @@ import {createHash} from 'node:crypto';
 
 // observations matches mod/world-knowledge.lua CAPTURE_LIMIT: a pack whose fact
 // or journal allowlist exceeds it would disable the Lua collector at load.
+// The oldest world snapshot a turn may use (from its capturedAt, the end of the game's sampling cycle). The game
+// rescans its facts and journal every 30 s, on a journal change and when V opens the composer, phone chat or talk
+// key (mod/world-knowledge.lua maxAgeSeconds 45), instead of every second.
+export const WORLD_SNAPSHOT_MAX_AGE_MS = 45_000;
 const LIMIT = Object.freeze({snapshotBytes: 256 * 1024, packBytes: 16 * 1024 * 1024,
   profiles: 256, sources: 2048, evidence: 4096, inventory: 4096, rules: 2048,
   observations: 1024, activeQuests: 32, disclosures: 128, nodes: 128, depth: 8,

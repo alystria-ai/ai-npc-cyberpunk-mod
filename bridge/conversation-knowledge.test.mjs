@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {KnowledgeRouter} from './conversation-knowledge.mjs';
 import {conversationContext} from './quest-context.mjs';
+import {WORLD_SNAPSHOT_MAX_AGE_MS} from './world-knowledge.mjs';
 
 const NOW = Date.parse('2026-09-30T12:00:00Z');
 const clone = value => structuredClone(value);
@@ -184,7 +185,7 @@ test('fallback world generation reaches the parent heartbeat and a mismatched ge
 });
 
 test('stale, wrong-audience and client-written context strings are never attached', async () => {
-  for (const mutate of [input => { input.worldKnowledge.capturedAt = new Date(NOW - 5001).toISOString(); },
+  for (const mutate of [input => { input.worldKnowledge.capturedAt = new Date(NOW - WORLD_SNAPSHOT_MAX_AGE_MS - 1).toISOString(); },
     input => { input.worldKnowledge.audience.profileKeys = ['panam-palmer']; },
     input => { input.worldKnowledge.worldToken = 'another-world'; }]) {
     const f = fixture({identifiedEnabled: true}); mutate(f.input);

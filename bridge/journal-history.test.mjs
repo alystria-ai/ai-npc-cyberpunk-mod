@@ -99,16 +99,33 @@ assert(out.coverage.active.status=='partial' and #out.quests[1].objectives==0)
 `));
 
 test('active observations expire quickly, history has an explicit longer lease, and tracked unknown is distinct from untracked', () => run(fixture + `
-local m=module.new(options); finish(m); now=1006
+local m=module.new(options); finish(m); now=1016
 local out=m:capture(context); assert(out.coverage.active.status=='expired' and out.coverage.history.status=='complete')
 assert(#out.quests==1 and out.quests[1].id=='2')
 options.adapter.tracked=function() return {status='untracked'} end
 m.adapter.tracked=options.adapter.tracked; assert(m:capture(context).tracked.status=='untracked')
 m.adapter.tracked=function() error('unknown tracking state') end
 assert(m:capture(context).tracked.status=='unknown')
-now=1181; out=m:capture(context); assert(#out.quests==0 and out.coverage.history.status=='expired')
+now=1601; out=m:capture(context); assert(#out.quests==0 and out.coverage.history.status=='expired')
 ready=false; assert(m:capture(context).status=='unavailable'); ready=true
 assert(m:capture(context).status=='unavailable')
+`));
+
+test('lanes rest between scans with no native call (active 10 s, history 300 s) and a demand rescans a lane at once', () => run(fixture + `
+local checks=0; local isReady=options.adapter.isReady
+options.adapter.isReady=function() checks=checks+1; return isReady() end
+local m=module.new(options); finish(m)
+local roots,before=counts.roots,checks
+for i=1,90 do now=1000+i/10; m:update(context) end
+assert(counts.roots==roots and checks==before,'resting lanes read nothing: '..(checks-before))
+rootRows.active[1].title='Renamed Quest'
+m:demand({'active'},2); assert(m.lanes.active.next==nil and m.lanes.history.next~=nil)
+for _=1,20 do m:update(context) end
+local out=m:capture(context); local seen
+for _,q in ipairs(out.quests) do if q.id=='1' then seen=q.title end end
+assert(seen=='Renamed Quest','the demanded active lane rescanned: '..tostring(seen))
+-- A lane whose cache began under minAge seconds ago is not scanned again.
+m:demand({'active'},2); assert(m.lanes.active.next~=nil)
 `));
 
 test('initial background progress is explicitly partial, and changing inventory length or clock rollback cannot masquerade as a complete scan', () => run(fixture + `
@@ -284,7 +301,7 @@ function journal:GetEntryTimestamp(entry) stampReads=stampReads+1; return {secon
 GameTime={GetSeconds=function(t) return t.seconds end}
 local m=module.new(`);
   const actual = run(typed + `local first=stampReads
-clock=1040; for i=1,100 do m:update(context) end
+clock=1310; for i=1,100 do m:update(context) end
 local out=m:capture(context); out.typeReads,out.rescanned=typeReads,stampReads>first; return out`);
   assert.equal(actual.rescanned, true, 'the test really scanned the history lane twice');
   assert.equal(actual.typeReads, 1, 'cooked quest types are cached per session, not re-read every scan');

@@ -277,12 +277,15 @@ function M.new(options)
         batchSize = math.floor(bounded(options.batchSize, 32, 1, 128)),
         budgetSeconds = bounded(options.budgetSeconds, 0.002, 0.0001, 0.01),
         -- The lease is measured from the start of the sampling cycle, so the
-        -- oldest observation in a published snapshot is at most this old. With
-        -- whole-second os.time and a short refresh, a cycle of d seconds keeps
-        -- the cache valid while ceil(d)+floor(d) <= maxAge; 5 s admits ~3 s
-        -- cycles (about twice the reviewed pack's observation count).
-        maxAgeSeconds = bounded(options.maxAgeSeconds, 5, 0.25, 5),
-        refreshSeconds = bounded(options.refreshSeconds, 0.25, 0, 2),
+        -- oldest observation in a published snapshot is at most this old. A
+        -- cycle reads ~1,000 facts and journal entries (each ~58 us through
+        -- CET); it rests refreshSeconds between cycles and runs at once on
+        -- demand (a journal change, the composer, phone chat or talk key; see
+        -- init.lua), so a turn V types or speaks gets a cycle that finished
+        -- moments before it. maxAge covers refresh + two cycles + whole-second
+        -- os.time rounding. The bridge's limit is WORLD_SNAPSHOT_MAX_AGE_MS.
+        maxAgeSeconds = bounded(options.maxAgeSeconds, 45, 0.25, 60),
+        refreshSeconds = bounded(options.refreshSeconds, 30, 0, 40),
         journalDepth = math.floor(bounded(options.journalDepth, 12, 1, 16)),
         serial = 0, stamps = {}, reason = 'not-configured'}, Collector)
 end
@@ -367,6 +370,14 @@ function Collector:update(context)
     local worldToken = type(context) == 'table' and context.worldToken or nil
     if not self.config then return self:progress() end
     if generation ~= self.generation or worldToken ~= self.worldToken then self:reset(generation, 'capture-pending', worldToken) end
+    -- Resting between cycles: no native call at all. capture() re-checks the
+    -- world itself, so a world that stopped being ready is never served.
+    if not self.job and self.cache and self.nextRefresh then
+        local ok, now = pcall(self.now)
+        if ok and type(now) == 'number' and now < self.nextRefresh and (not self.lastNow or now >= self.lastNow) then
+            return self:progress()
+        end
+    end
     local ready, why = self:checkWorld(generation, worldToken)
     if not ready then self:reset(nil, why); return self:progress() end
     local now = self:clock()
@@ -444,6 +455,15 @@ function Collector:update(context)
         self.job, self.nextRefresh, self.reason = nil, now + self.refreshSeconds, nil
     end
     return self:progress()
+end
+
+-- A turn is coming (or the journal just changed): start a cycle on the next
+-- update unless one is running or the cache began less than minAge seconds ago.
+function Collector:demand(minAge)
+    if self.job or not self.cache then self.nextRefresh = nil; return true end
+    local ok, now = pcall(self.now)
+    if not ok or type(now) ~= 'number' or now - self.cache.started >= (minAge or 2) then self.nextRefresh = nil; return true end
+    return false
 end
 
 function Collector:capture(context)

@@ -6,6 +6,7 @@ import {parseJournal, journalContext, conversationContext, withConversationKnowl
 import {parseInput} from './protocol.mjs';
 import {inputIdentity} from './group-prefetch.mjs';
 import {PhoneChat, parsePhoneState} from './phone-chat.mjs';
+import {WORLD_SNAPSHOT_MAX_AGE_MS} from './world-knowledge.mjs';
 
 const snapshot = {version: 1, status: 'active', quest: {id: '-123', title: 'Visible quest', objectives: [
   {id: '456', text: 'Meet a friend.', tracked: true, optional: false},
@@ -166,7 +167,7 @@ test('trusted context cannot survive IPC or be reused for another request, chara
 test('load binding and freshness are explicit and never inferred from the conversation counter or capture itself', () => {
   for (const options of [{}, {...knowledgeOptions, generation: input.generation},
     {...knowledgeOptions, worldToken: 'another-activation'}, {...knowledgeOptions, worldToken: undefined},
-    {...knowledgeOptions, now: knowledgeNow + 10001}]) {
+    {...knowledgeOptions, now: knowledgeNow + WORLD_SNAPSHOT_MAX_AGE_MS + 1}]) {
     const context = conversationContext(withConversationKnowledge(knowledgeInput(), options));
     assert.doesNotMatch(context, /Reviewed current-save fact|Revealed past quest/);
     assert.match(context, /Visible quest/);

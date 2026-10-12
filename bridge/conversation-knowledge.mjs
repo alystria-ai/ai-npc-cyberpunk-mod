@@ -1,5 +1,5 @@
 import {createHash, randomUUID} from 'node:crypto';
-import {parseWorldSnapshot} from './world-knowledge.mjs';
+import {WORLD_SNAPSHOT_MAX_AGE_MS, parseWorldSnapshot} from './world-knowledge.mjs';
 import {withConversationKnowledge} from './quest-context.mjs';
 import {isAmbientProfile} from './protocol.mjs';
 
@@ -42,7 +42,7 @@ function sameWorld(identity, binding) {
 function fresh(snapshot, now) {
   const age = now - Date.parse(snapshot?.capturedAt);
   return snapshot?.status === 'ready' && validToken(snapshot.worldToken)
-    && Number.isFinite(age) && age >= -1000 && age <= 5000;
+    && Number.isFinite(age) && age >= -1000 && age <= WORLD_SNAPSHOT_MAX_AGE_MS;
 }
 
 const HISTORY_HEADER = 'Historical records attributed to this character, from the verified current playthrough and branch. '

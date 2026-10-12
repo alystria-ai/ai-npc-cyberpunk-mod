@@ -3,7 +3,7 @@ import {groupContext} from './group-context.mjs';
 import {followUpContext} from './conversation-style.mjs';
 import {battleContext} from './battle-context.mjs';
 import {lootContext} from './loot-context.mjs';
-import {parseWorldSnapshot} from './world-knowledge.mjs';
+import {WORLD_SNAPSHOT_MAX_AGE_MS, parseWorldSnapshot} from './world-knowledge.mjs';
 import {currentJournalHistory, parseJournalHistory, selectJournalHistory} from './journal-history.mjs';
 import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs';
 import {gameDialogueContext} from './game-dialogue.mjs';
@@ -123,7 +123,7 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
   if (input.journalHistory !== undefined) result.journalHistory = parseJournalHistory(input.journalHistory);
   const snapshot = result.worldKnowledge, capturedAt = Date.parse(snapshot?.capturedAt), age = now - capturedAt;
   const current = currentBinding(snapshot, generation, worldToken) && sameAudience(result, snapshot)
-    && Number.isFinite(now) && Number.isFinite(age) && age >= -1000 && age <= 5000;
+    && Number.isFinite(now) && Number.isFinite(age) && age >= -1000 && age <= WORLD_SNAPSHOT_MAX_AGE_MS;
   const projected = current && typeof knowledgeContext === 'string' && knowledgeContext.length <= 12000
     ? knowledgeContext.trim() : '';
   const trackedJournal = parseJournal(result.journal);

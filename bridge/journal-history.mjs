@@ -147,7 +147,7 @@ export function currentJournalHistory({snapshot, generation, worldToken, now = D
 
 /** A quest row is usable while its lane observation is within the lane's age limit. */
 export function freshQuest(history, row, age, now) {
-  const lane = history.coverage[row.lane]; const maximum = row.lane === 'active' || row.state === 'active' ? 15 : 300;
+  const lane = history.coverage[row.lane]; const maximum = row.lane === 'active' || row.state === 'active' ? 15 : 600;
   return !(lane.ageSeconds + age > maximum || now - row.observedAtMs > maximum * 1000);
 }
 

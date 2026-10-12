@@ -158,8 +158,11 @@ function M.new(options)
         maxQuests=option(options.maxQuests,1024,1,2048),maxNodes=option(options.maxNodes,8192,1,16384),
         maxObjectives=option(options.maxObjectives,4096,1,8192),maxPerQuest=option(options.maxPerQuest,128,1,256),
         maxDepth=option(options.maxDepth,12,1,16),maxBytes=option(options.maxBytes,1500000,1000,1500000),
-        activeAge=option(options.activeMaxAge,5,1,15),historyAge=option(options.historyMaxAge,180,15,300),
-        activeInterval=option(options.activeRefresh,2,1,10),historyInterval=option(options.historyRefresh,30,5,120)},Collector)
+        -- Lanes rest between scans and rescan at once on demand (a journal change, the composer, phone chat or
+        -- talk key; see init.lua). The bridge's limits (bridge/journal-history.mjs freshQuest) are 15 s for
+        -- active quests and 600 s for history, above these ages plus one scan.
+        activeAge=option(options.activeMaxAge,15,1,15),historyAge=option(options.historyMaxAge,600,15,600),
+        activeInterval=option(options.activeRefresh,10,1,60),historyInterval=option(options.historyRefresh,300,5,900)},Collector)
     self:reset(); return self
 end
 function Collector:reset()
@@ -265,6 +268,14 @@ function Collector:step(lane,now)
     elseif readingRoots then job.cursor=page.next else task.cursor=page.next end
 end
 function Collector:update(context)
+    -- Both lanes resting: no native call at all (capture() re-checks the world itself).
+    if plain(context) and self.generation~=nil and self.generation==context.generation and self.worldToken==context.worldToken then
+        local ok,now=pcall(self.now)
+        if ok and type(now)=='number' and self.lastNow and now>=self.lastNow then
+            local function resting(lane) local value=self.lanes[lane]; return not value.job and value.next and now<value.next end
+            if resting('active') and resting('history') then self.tick=self.tick+1; return {status='collecting'} end
+        end
+    end
     local now=self:check(context)
     if not now then self:reset(); return {status='unavailable'} end
     if self.generation~=context.generation or self.worldToken~=context.worldToken then
@@ -276,6 +287,16 @@ function Collector:update(context)
     if lane then self:step(lane,now) end
     if not self:check(context) then self:reset(); return {status='unavailable'} end
     return {status='collecting',lane=lane}
+end
+-- A turn is coming (or the journal just changed): each named lane ('active', 'history') scans on the next update
+-- unless it is scanning already or its cache began less than minAge seconds ago.
+function Collector:demand(lanes,minAge)
+    local ok,now=pcall(self.now)
+    for _,lane in ipairs(lanes or {'active'}) do
+        local target=self.lanes[lane]
+        if target and not target.job and (not target.cache or not ok or type(now)~='number'
+            or now-target.cache.started>=(minAge or 2)) then target.next=nil end
+    end
 end
 function Collector:capture(context)
     local now=self:check(context)

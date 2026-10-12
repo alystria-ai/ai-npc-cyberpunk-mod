@@ -154,7 +154,25 @@ local function configureKnowledge()
     end
 end
 
+-- The collectors rest between scans (world 30 s, active quests 10 s, history 300 s) and scan at once when a turn
+-- is coming or the journal changed. A global, so callers deep in onUpdate add no upvalue.
+convaiDemandKnowledge = function(lanes)
+    pcall(worldKnowledge.demand, worldKnowledge, 0)
+    pcall(journalHistory.demand, journalHistory, lanes or {'active'}, 0)
+end
 local function updateKnowledge(delta)
+    -- A journal change (JournalNotificationQueue.OnJournalUpdate, onInit) rescans everything once the burst settles;
+    -- opening phone chat with a contact rescans before V's first message there.
+    local dirty = worldKnowledge.journalChangedAt
+    if dirty and os.clock() - dirty >= 1 then
+        worldKnowledge.journalChangedAt = nil
+        pcall(worldKnowledge.demand, worldKnowledge, 0); pcall(journalHistory.demand, journalHistory, {'active', 'history'}, 0)
+    end
+    local phone = convaiPhoneChat and convaiPhoneChat.contact or nil
+    if phone ~= worldKnowledge.phoneContact then
+        worldKnowledge.phoneContact = phone
+        if phone then convaiDemandKnowledge() end
+    end
     local before = refreshKnowledgeFrame()
     if before.status == 'paused' then return end
     if before.status ~= 'ready' then
@@ -1338,6 +1356,7 @@ local function beginTextNow(groupMode, waited)
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
             profileKey = key, participants = participants, archetype = primary.archetype}
         warmConversation(participants, key, identity)
+        convaiDemandKnowledge() -- fresh world and journal by the time V sends
         if connectNote then convaiNotices.send(player, 'talk-connecting', connectNote) end
         pending = nil
         log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name
@@ -1451,6 +1470,7 @@ local function toggleVoice(groupMode)
             context.requestId = tostring(os.time()) .. '-' .. tostring(generation) .. '-' .. entity
         end
         active, pending, pendingKnowledgeOwner = nil, nil, nil
+        convaiDemandKnowledge() -- fresh by the time the recording finishes (its second capture)
         if microphone.begin(context, function() return voiceTargetValid(npc, context) end) then
             beginFocus(player, npc)
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
@@ -2216,6 +2236,12 @@ registerForEvent('onInit', function()
     if not lookLoaded then log('Seated free look failed: ' .. tostring(lookResult))
     elseif not lookResult then log('Seated free look unavailable: ' .. tostring(lookReason)) end
     if convaiGameDialogue and not convaiGameDialogue:install() then log('Game dialogue capture unavailable') end
+    -- Journal changes wake the resting knowledge collectors (updateKnowledge). The quest HUD's notification queue
+    -- is the game's own journal listener; it fires on entry state changes only, never per frame.
+    local journalHooked, journalHookError = pcall(ObserveAfter, 'JournalNotificationQueue', 'OnJournalUpdate', function()
+        worldKnowledge.journalChangedAt = os.clock()
+    end)
+    if not journalHooked then log('Journal change hook unavailable: ' .. tostring(journalHookError)) end
     lootObserver.configure({captureContext = captureLootContext})
     lootObserver.install()
     if convaiVanillaReactions then

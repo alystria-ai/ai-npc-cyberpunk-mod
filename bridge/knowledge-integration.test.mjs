@@ -234,7 +234,7 @@ test('private sends use the fresh Lua world and audience, preserving battle and 
  assert(out.journalHistory.generation==live.generation and out.journalHistory.worldToken==live.token)
  assert(out.battle.status=='ended'and out.loot.batch=='loot-kept'and out.reaction==nil)
  assert(actionOfferReads==1 and out.chauffeurOffer==nil,'a private send checks the unavailable driving offer')
- factValue=2;now=now+1;runtime.step(0);out.worldKnowledge.facts.observed_fact.value=999
+ factValue=2;hooks.OnJournalUpdate();now=now+1;runtime.step(0);out.worldKnowledge.facts.observed_fact.value=999
  assert(runtime.send(input('second')))
  assert(stored('runtime/last-input.json').worldKnowledge.facts.observed_fact.value==2)
  assert(actionOfferReads==2 and not convaiGameplayActions.inspect().pending)
@@ -288,8 +288,19 @@ test('native collection stays bounded per frame and expired snapshots never reus
  assert(factReads==96 and runtime.capture(input('partial-two')).worldKnowledge.status=='unavailable')
  runtime.step(0);assert(factReads==100)
  assert(runtime.capture(input('complete')).worldKnowledge.status=='ready')
- now=now+6
+ now=now+46
  assert(runtime.capture(input('expired')).worldKnowledge.status=='unavailable')
+`));
+
+test('the knowledge collectors rest between scans and rescan on a journal change or before a turn', () => run(`
+ start();local facts,history=factReads,historyReads
+ for _=1,18 do now=now+0.5;tick() end
+ assert(factReads==facts and historyReads==history,'resting: '..(factReads-facts)..' fact and '..(historyReads-history)..' history reads')
+ -- A journal change rescans both once the burst settles (1 s).
+ hooks.OnJournalUpdate();tick();assert(factReads==facts,'not within the same second')
+ now=now+1;tick();assert(factReads>facts and historyReads>history,'rescanned after a journal change')
+ -- The composer, phone chat and talk key demand a scan before the turn.
+ facts=factReads;convaiDemandKnowledge();tick();assert(factReads>facts,'rescanned on demand')
 `));
 
 test('shared resident profiles never receive a verified knowledge identity', () => run(`
@@ -313,7 +324,7 @@ test('actual group preview and dispatch capture the exact current audience and r
  assert(preview.worldKnowledge.audience.channel=='group'and #preview.worldKnowledge.audience.profileKeys==2)
  assert(preview.worldKnowledge.audience.profileKeys[2]=='alex'and preview.worldKnowledge.identity.status=='unknown')
  assert(preview.worldKnowledge.worldToken==stored('runtime/world-session.json').token)
- now=now+1;factValue=3;runtime.step(0)
+ hooks.OnJournalUpdate();now=now+1;factValue=3;runtime.step(0)
  group.completed(first.requestId,true);local next=group.next(3,now,live)
  assert(next.requestId==prepared.requestId and runtime.send(next))
  assert(stored('runtime/last-input.json').worldKnowledge.facts.observed_fact.value==3)
@@ -400,7 +411,7 @@ test('microphone begin and finish capture fresh facts without changing request o
  assert(microphone.begin(context))
  local initial=stored('runtime/microphone-command.json')
  assert(initial.action=='start'and initial.input.worldKnowledge.facts.observed_fact.value==1)
- factValue=4;journalVersion=2;now=now+1;runtime.step(0)
+ factValue=4;journalVersion=2;hooks.OnJournalUpdate();now=now+1;runtime.step(0)
  assert(microphone.finish()==context)
  local final=stored('runtime/microphone-command.json')
  assert(final.action=='finish'and final.input.worldKnowledge.facts.observed_fact.value==4)
@@ -450,7 +461,7 @@ test('real group voice hotkey freezes three distinct speakers, uses the first mi
  assert(first.worldKnowledge.audience.channel=='group'and first.followUpQuestions==nil)
  tick();assert(files['runtime/last-input.json']==nil and #commands==1)
  micState('recording');tick();assert(feedback[#feedback]=='Listening - press the same voice chat shortcut again to finish')
- looked=judy;people={alex};now=1002;journalVersion=2;factValue=2;runtime.step(0)
+ looked=judy;people={alex};hooks.OnJournalUpdate();now=1002;journalVersion=2;factValue=2;runtime.step(0)
  hotkeys.cyberpunk_convai_voice()
  assert(microphone.context==context and #commands==1 and group.round.stage=='recording')
  assert(feedback[#feedback]=='Press your Group voice chat shortcut to finish recording.')

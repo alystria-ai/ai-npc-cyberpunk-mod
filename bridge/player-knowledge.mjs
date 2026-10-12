@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {parseWorldSnapshot, resolveKnowledge, validateKnowledgePack, warmKnowledgePack} from './world-knowledge.mjs';
+import {WORLD_SNAPSHOT_MAX_AGE_MS, parseWorldSnapshot, resolveKnowledge, validateKnowledgePack, warmKnowledgePack} from './world-knowledge.mjs';
 import {parseJournal, withConversationKnowledge} from './quest-context.mjs';
 import {isAmbientProfile} from './protocol.mjs';
 import {questPathsFromPack} from './quest-overview.mjs';
@@ -63,7 +63,7 @@ function inputRoute(input, requestedChannel) {
 function freshSnapshot(snapshot, binding, route, now) {
   const age = now - Date.parse(snapshot?.capturedAt);
   return snapshot?.status === 'ready' && sameBinding(snapshot, binding)
-    && Number.isFinite(now) && Number.isFinite(age) && age >= -1000 && age <= 5000
+    && Number.isFinite(now) && Number.isFinite(age) && age >= -1000 && age <= WORLD_SNAPSHOT_MAX_AGE_MS
     && snapshot.audience.channel === route.channel
     && JSON.stringify([...snapshot.audience.profileKeys].sort()) === JSON.stringify(route.audience);
 }

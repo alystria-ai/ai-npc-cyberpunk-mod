@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {PlayerKnowledge} from './player-knowledge.mjs';
 import {conversationContext} from './quest-context.mjs';
+import {WORLD_SNAPSHOT_MAX_AGE_MS} from './world-knowledge.mjs';
 
 const NOW = Date.parse('2026-09-30T12:00:00.000Z');
 const USER = 'bf5a7019-3e8c-47a2-9367-a9b6d179d89d';
@@ -238,7 +239,7 @@ test('truly missing or expired parent world never invents an ID, warms, submits 
 });
 
 test('stale/future/mismatched/invalid full captures cannot supply facts or broader history', async () => {
-  for (const mutate of [input => { input.worldKnowledge.capturedAt = new Date(NOW - 5001).toISOString(); },
+  for (const mutate of [input => { input.worldKnowledge.capturedAt = new Date(NOW - WORLD_SNAPSHOT_MAX_AGE_MS - 1).toISOString(); },
     input => { input.worldKnowledge.capturedAt = new Date(NOW + 1001).toISOString(); },
     input => { input.worldKnowledge.worldToken = 'prior-world'; },
     input => { input.worldKnowledge.generation = 11; },

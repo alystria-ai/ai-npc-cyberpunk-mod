@@ -114,13 +114,29 @@ assert(m:configure(pack,{gameVersion='2.31',factKeys={'positive'}})); finish(m)
 assert(calls.facts==1 and m:capture(context).facts.positive.value==1)
 `));
 
-test('the default lease admits a three-second sampling cycle but still expires five seconds after it began', () => run(fixture + `
+test('the default lease admits a three-second sampling cycle and the 30 s rest, and expires 45 s after it began', () => run(fixture + `
 for i=1,4 do fact('item'..i); values['item'..i]=1 end
 options.batchSize=1; local m=configured(); m:update(context)
 time=101; m:update(context); time=102; m:update(context); time=103; m:update(context); m:update(context)
 assert(m:capture(context).status=='ready', 'a cycle that took three seconds must stay usable')
-time=105; assert(m:capture(context).status=='ready')
-time=105.5; assert(m:capture(context).reason=='capture-expired')
+time=145; assert(m:capture(context).status=='ready')
+time=145.5; assert(m:capture(context).reason=='capture-expired')
+`));
+
+test('between cycles the collector rests 30 s with no native call, and a demand starts the next cycle at once', () => run(fixture + `
+fact('positive'); local readyCalls=0; local isReady=options.adapter.isReady
+options.adapter.isReady=function() readyCalls=readyCalls+1; return isReady() end
+local m=configured(); finish(m); assert(m:capture(context).facts.positive.value==1)
+local reads,checks=calls.facts,readyCalls
+for i=1,260 do time=103+i/10; m:update(context) end
+assert(calls.facts==reads and readyCalls==checks, 'resting frames read nothing: '..(readyCalls-checks))
+values.positive=5
+assert(m:demand(2) and m.nextRefresh==nil); finish(m)
+assert(calls.facts==reads+1 and m:capture(context).facts.positive.value==5, 'the demanded cycle read the new value')
+-- A cycle that began under minAge seconds ago is fresh enough: no second cycle.
+assert(not m:demand(2) and m.nextRefresh~=nil)
+-- After the rest the next cycle starts by itself.
+time=time+30.5; m:update(context); assert(m.job or calls.facts==reads+2)
 `));
 
 test('every request gets an independent audience, identity and snapshot copy', () => run(fixture + `
@@ -186,10 +202,10 @@ local m=configured(); finish(m); assert(m:capture(context).facts.positive.value=
 m.adapter.readFact=function() error('native fact failure') end
 m.adapter.readJournal=function() error('native journal failure') end
 m.adapter.readLifepath=function() error('native lifepath failure') end
-time=101; finish(m); local out=m:capture(context)
+time=101; m:demand(0); finish(m); local out=m:capture(context)
 assert(out.facts.positive.status=='unknown' and out.journal['1'].status=='unknown' and out.lifepath.status=='unknown')
 time=99; assert(m:capture(context).status=='unavailable')
-time=102; finish(m); m.adapter.isReady=function() error('native world failure') end
+time=102; m:demand(0); finish(m); m.adapter.isReady=function() error('native world failure') end
 assert(m:capture(context).status=='unavailable')
 `));
 

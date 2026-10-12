@@ -3,7 +3,7 @@ import {mkdir, open, readFile, rename, unlink} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {QuestMemoryLedger} from './quest-memory.mjs';
-import {parseWorldSnapshot, resolveKnowledge, validateKnowledgePack} from './world-knowledge.mjs';
+import {WORLD_SNAPSHOT_MAX_AGE_MS, parseWorldSnapshot, resolveKnowledge, validateKnowledgePack} from './world-knowledge.mjs';
 import {isAmbientProfile} from './protocol.mjs';
 
 const MAX_BYTES = 256 * 1024;
@@ -703,7 +703,7 @@ export class KnowledgeService {
       const members = audienceFor(input.profileKey, channel, input.audience ?? snapshot.audience?.profileKeys);
       const capturedAt = Date.parse(snapshot.capturedAt), age = this.now() - capturedAt;
       if (snapshot.status !== 'ready' || snapshot.generation !== input.generation || !Number.isFinite(age)
-          || age < -1000 || age > this.heartbeatMs
+          || age < -1000 || age > WORLD_SNAPSHOT_MAX_AGE_MS
           || snapshot.audience.channel !== channel || JSON.stringify([...snapshot.audience.profileKeys].sort()) !== JSON.stringify(members)) {
         snapshot = {version: 1, status: 'unavailable'};
       }
