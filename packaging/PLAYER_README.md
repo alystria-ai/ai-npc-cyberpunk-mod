@@ -47,7 +47,7 @@ If Windows reports an error while extracting, use 7-Zip (https://www.7-zip.org) 
 
 ## Local AI
 
-Convai free tier works out of the box with no setup and gives better quality responses. Local AI is for playing without an account or without the internet. It needs a separate graphics card that supports Vulkan (NVIDIA or AMD), at least 16 GB of system memory (32 GB recommended) and about 5 GB more than usual while it runs. The first start after installing takes about a minute while your graphics card prepares the model; Settings > Development shows "Warming up" and then "Ready". The model is unloaded after ten minutes without a conversation.
+Convai free tier works out of the box with no setup and gives better quality responses. Local AI is for playing without an account or without the internet. It needs a separate graphics card that supports Vulkan (NVIDIA or AMD), at least 16 GB of system memory (32 GB is better) and about 5 GB more than usual while it runs. The first start after installing takes about a minute while your graphics card prepares the model; Settings > Development shows "Warming up" and then "Ready". The model is unloaded after ten minutes without a conversation.
 
 If your graphics card is short of memory the mod steps down by itself and keeps your voice before it keeps the model: the standard model gives way to the lite model, and if the lite model does not fit either, the text comes from Mistral or Convai, with one notice. Your voice only changes as a last resort. The standard model checks that about 6 GB of video memory is free when it starts; with less, the lite model is used.
 

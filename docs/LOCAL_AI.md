@@ -71,7 +71,7 @@ headroom (standard: the 5.15 GB model file plus 1200 MiB, so about 6 GB free; li
 once loaded. A 6 GB card therefore always starts lite or falls back, even when the standard model would have fitted at runtime. The rule
 is deliberate (a margin so the game keeps its textures), and the player README states "about 6 GB free" for standard.
 
-You also need about 5 GB more system memory than with Convai (16 GB total at least, 32 GB recommended) and an NVIDIA or AMD graphics
+You also need about 5 GB more system memory than with Convai (16 GB total at least, 32 GB is better) and an NVIDIA or AMD graphics
 card that supports Vulkan. A computer without a separate graphics card cannot use Local AI.
 
 ## For developers
