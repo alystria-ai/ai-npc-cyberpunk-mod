@@ -164,20 +164,21 @@ local function wallBetween(spatial,clearance,a,b)
     end
     return false
 end
-function M.carSpot(state,v,towards,occupied,body,clearance)
-    if not state.candidates then
-        local dx,dy=towards.x-v.x,towards.y-v.y
-        local length=math.sqrt(dx*dx+dy*dy)
-        if length<.001 then dx,dy=0,1 else dx,dy=dx/length,dy/length end
-        state.candidates,state.index={},1
-        for _,radius in ipairs(M.policy.carRings) do
-            for _,step in ipairs({0,1,-1,2,-2,3,-3,4}) do
-                local co,si=math.cos(step*math.pi/4),math.sin(step*math.pi/4)
-                state.candidates[#state.candidates+1]={x=v.x+(dx*co-dy*si)*radius,
-                    y=v.y+(dy*co+dx*si)*radius,ux=dx*co-dy*si,uy=dy*co+dx*si}
-            end
+local function buildCandidates(state,v,towards)
+    local dx,dy=towards.x-v.x,towards.y-v.y
+    local length=math.sqrt(dx*dx+dy*dy)
+    if length<.001 then dx,dy=0,1 else dx,dy=dx/length,dy/length end
+    state.candidates,state.index={},1
+    for _,radius in ipairs(M.policy.carRings) do
+        for _,step in ipairs({0,1,-1,2,-2,3,-3,4}) do
+            local co,si=math.cos(step*math.pi/4),math.sin(step*math.pi/4)
+            state.candidates[#state.candidates+1]={x=v.x+(dx*co-dy*si)*radius,
+                y=v.y+(dy*co+dx*si)*radius,ux=dx*co-dy*si,uy=dy*co+dx*si}
         end
     end
+end
+function M.carSpot(state,v,towards,occupied,body,clearance)
+    if not state.candidates then buildCandidates(state,v,towards) end
     local ok,spot,reason,pending=pcall(function()
         local spatial=Game.GetSpatialQueriesSystem()
         if not spatial then return nil,'physics-unavailable' end
@@ -255,5 +256,223 @@ function M.trailPoints(trail,position,near,far,limit)
         end
     end
     return result
+end
+
+-- Optional native path -----------------------------------------------------------------------
+-- With the CyberpunkConvaiNative plugin loaded and its 'passage' switch on, carSpot runs its
+-- physics loop in C++ (native/core/src/systems/passage): one CET call per update instead of up to
+-- 24 units of floor and wall rays and body overlaps (about 40 Vector4.new/CName.new/query calls).
+-- "Car" here is a LIFT car; nothing in this file reads vehicle seats. Everything above is the
+-- original Lua and stays the fallback:
+--   * kill switch: a line "passage" in runtime/native-off.txt, or convaiNative.off('passage') in the
+--     CET console; three faults inside the plugin's natives also switch it off;
+--   * the search state (candidate list, next index, car floor) and the per-update query budget stay
+--     Lua tables: the plugin is told what is left and reports the queries it issued, which are added
+--     to the budget through clearance.spend (a clearance module without remaining/spend runs the Lua);
+--   * a native call that fails or answers unreadably calls convaiNative.fail('passage', ...): this
+--     module stays on Lua for the session and probe.log says why. A game query that fails inside the
+--     plugin does the same, after the queries it made are charged;
+--   * before the first use the plugin runs its own queries in the world (SelfTest); 'wait' means no
+--     world yet (the Lua runs and the proof is retried in 2 s);
+--   * the first VERIFY answers also run the original on the same state and budget, compare spot,
+--     reason, state and queries used, and fail on any difference (the original's result is used).
+--     convaiNative.passageVerify = true compares every call; convaiNative.passageStats counts them.
+-- Wire format: PassageCore.hpp.
+local NATIVE='passage' -- the convaiNative system name (kill switch, probe.log)
+local VERIFY=8
+local BIG=1000000
+local luaCarSpot=M.carSpot
+
+local function bound(value) return type(value)=='table' or type(value)=='userdata' end
+local nativeClass
+local function resolve()
+    if nativeClass then return nativeClass end
+    local ok,class=pcall(function() return ConvaiNativePassage end)
+    if ok and bound(class) then nativeClass=class end
+    return nativeClass
+end
+local function note(line)
+    pcall(function()
+        local file=io.open('runtime/probe.log','a')
+        if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'),' ',line,'\n'); file:close() end
+    end)
+end
+local function stats(api)
+    local row=api.passageStats
+    if type(row)~='table' then
+        row={native=0,lua=0,fallback=0,verified=0,compared=0,mismatches=0}
+        api.passageStats=row
+    end
+    return row
+end
+local function finite(value) return type(value)=='number' and value==value and math.abs(value)<10000000 end
+local function number(token)
+    if token=='nan' then return 0/0 end
+    if token=='inf' then return math.huge end
+    if token=='-inf' then return -math.huge end
+    return tonumber(token)
+end
+
+-- true once the plugin's game access is proven in this session.
+local function proven(class,api)
+    if api.passageProven then return true end
+    local now=os.clock()
+    if api.passageRetry and now<api.passageRetry then return false end
+    local ok,text=pcall(function() return class.SelfTest() end)
+    text=ok and tostring(text) or ('error: '..tostring(text))
+    if text:sub(1,4)=='wait' then
+        -- No world yet, or a lookup that never works: five waits in a row count as a failure.
+        api.passageWaits=(api.passageWaits or 0)+1
+        if api.passageWaits>5 then api.fail(NATIVE,'self-test: '..text); return false end
+        api.passageRetry=now+2
+        return false
+    end
+    if text~='ok' then api.fail(NATIVE,'self-test: '..text); return false end
+    api.passageProven=true
+    note('Native core: passage self-test passed (game queries work in the world)')
+    return true
+end
+
+-- "x y ux uy " for every candidate, built once per search.
+local function candidateText(state)
+    local parts={}
+    for index,c in ipairs(state.candidates) do
+        parts[index]=('%.17g %.17g %.17g %.17g'):format(c.x,c.y,c.ux,c.uy)
+    end
+    return table.concat(parts,' ')
+end
+-- "x y " for every occupied position the original would measure; nil when the list holds something
+-- the plugin cannot take (the original then decides what to do with it).
+local function occupiedText(occupied)
+    local parts={}
+    for _,other in ipairs(occupied or {}) do
+        local at=other.position or other
+        if at and at.x then
+            if not (finite(at.x) and finite(at.y)) then return nil end
+            parts[#parts+1]=('%.17g %.17g'):format(at.x,at.y)
+        end
+    end
+    return table.concat(parts,' ')
+end
+
+-- "<status> <used> ..." as numbers, or nil.
+local function decode(text)
+    if type(text)~='string' then return nil end
+    local f,count={},0
+    for token in text:gmatch('%S+') do
+        count=count+1
+        f[count]=number(token)
+        if f[count]==nil then return nil end
+    end
+    local status=f[1]
+    local want={[0]=9,[1]=7,[2]=6,[4]=3}
+    if want[status]~=count then return nil end
+    return f
+end
+
+local function sameSpot(a,b)
+    if a==nil or b==nil then return a==b end
+    return math.abs(a.x-b.x)<1e-4 and math.abs(a.y-b.y)<1e-4 and math.abs(a.z-b.z)<1e-4
+end
+
+-- Calls the plugin with the search state as it is now. Returns the decoded fields, or nil plus a
+-- reason ('lua': run the original, no failure; 'failed': the system was switched off).
+local function ask(class,api,state,v,occupied,body,clearance)
+    if not (finite(v.x) and finite(v.y) and finite(v.z)) then return nil,'lua' end
+    local radius,height=.4,2.1
+    if body then
+        if not (finite(body.radius) and finite(body.height)) then return nil,'lua' end
+        radius,height=body.radius,body.height
+    end
+    local policy=M.policy
+    if not (finite(policy.carFloor) and math.floor(policy.carQueries)==policy.carQueries) then return nil,'lua' end
+    local others=occupiedText(occupied)
+    if not others then return nil,'lua' end
+    local candidates=state.nativeCandidates
+    if not candidates or state.nativeCandidatesFor~=state.candidates then
+        candidates=candidateText(state)
+        state.nativeCandidates,state.nativeCandidatesFor=candidates,state.candidates
+    end
+    local left=clearance.remaining()
+    local ok,text=pcall(class.CarSpot,v.x,v.y,v.z,candidates,others,radius,height,policy.carQueries,
+        policy.carFloor,left,state.index,state.floor~=nil,state.floor or 0)
+    if not ok then api.fail(NATIVE,'carSpot: '..tostring(text)); return nil,'failed' end
+    if text=='' then return nil,'lua' end -- unreadable arguments (not a game failure): the original decides
+    local f=decode(text)
+    if not f then api.fail(NATIVE,'carSpot: unreadable reply '..tostring(text)); return nil,'failed' end
+    if f[1]==4 then
+        -- The plugin's game call failed. Queries it already made still count against this update.
+        clearance.spend(f[2],false)
+        api.fail(NATIVE,'carSpot: game query failed (code '..tostring(f[3])..')')
+        return nil,'failed'
+    end
+    return f,text
+end
+
+function M.carSpot(state,v,towards,occupied,body,clearance)
+    local api=convaiNative
+    if type(api)~='table' or type(api.use)~='function' or api.use(NATIVE)~=true then
+        return luaCarSpot(state,v,towards,occupied,body,clearance)
+    end
+    local class=resolve()
+    if not class then
+        api.fail(NATIVE,'ConvaiNativePassage is not registered')
+        return luaCarSpot(state,v,towards,occupied,body,clearance)
+    end
+    if type(clearance)~='table' or type(clearance.remaining)~='function' or type(clearance.spend)~='function'
+        or type(clearance.spent)~='function' or not proven(class,api) then
+        return luaCarSpot(state,v,towards,occupied,body,clearance)
+    end
+    local row=stats(api)
+    if not state.candidates then buildCandidates(state,v,towards) end
+    local f,why=ask(class,api,state,v,occupied,body,clearance)
+    if not f then
+        row[why=='failed' and 'fallback' or 'lua']=row[why=='failed' and 'fallback' or 'lua']+1
+        return luaCarSpot(state,v,towards,occupied,body,clearance)
+    end
+    local status=f[1]
+    local used,deferred,index,hasFloor,floor=f[2],f[3]==1,f[4],f[5]==1,f[6]
+    local spot,reason,pending
+    if status==0 then spot=Vector4.new(f[7],f[8],f[9],1)
+    elseif status==1 then reason=f[7]==1 and 'no-car-floor' or 'physics-unavailable'
+    else pending=true end
+
+    if api.passageVerify==true or row.verified<VERIFY then
+        -- Both paths on the same state and budget; the original's answer is the one used.
+        local budgeted=clearance.remaining()<BIG
+        local usedBefore,deferredBefore=clearance.spent()
+        local lSpot,lReason,lPending=luaCarSpot(state,v,towards,occupied,body,clearance)
+        local usedAfter,deferredAfter=clearance.spent()
+        row.compared=row.compared+1
+        local same=sameSpot(spot,lSpot) and reason==lReason and (pending==true)==(lPending==true)
+            and state.index==index and (state.floor~=nil)==hasFloor
+            and (not hasFloor or math.abs(state.floor-floor)<1e-4)
+            and (not budgeted or (usedAfter-usedBefore==used and (deferredAfter-deferredBefore==1)==deferred))
+        if not same then
+            row.mismatches=row.mismatches+1
+            note(('Native core: passage MISMATCH: plugin status %d used %d index %d floor %s, Lua spot=%s reason=%s '
+                ..'pending=%s index %s used %s'):format(status,used,index,tostring(hasFloor and floor),
+                tostring(lSpot~=nil),tostring(lReason),tostring(lPending),tostring(state.index),
+                tostring(usedAfter-usedBefore)))
+            api.fail(NATIVE,'carSpot differs from the Lua')
+        else
+            row.verified=row.verified+1
+            if row.verified==VERIFY then note('Native core: passage carSpot matched the Lua '..VERIFY..' times, now native') end
+        end
+        return lSpot,lReason,lPending
+    end
+
+    row.native=row.native+1
+    clearance.spend(used,deferred)
+    state.index=index
+    state.floor=hasFloor and floor or nil
+    return spot,reason,pending
+end
+
+-- Developer mode (perf-probe) times the entry point as passage.carSpot, so the two paths can be
+-- compared with convaiNative.off('passage') / convaiNative.on('passage').
+local probe=convaiPerfProbe
+if type(probe)=='table' and type(probe.watch)=='function' then
+    pcall(probe.watch,M,'carSpot','passage.carSpot')
 end
 return M

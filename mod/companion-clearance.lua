@@ -232,6 +232,19 @@ local function remaining()
     if left<=0 then return 0 end
     return left>=BIG and BIG or math.floor(left)
 end
+M.remaining=remaining
+-- The passage module runs its physics in the plugin and reports how many queries it issued; they are
+-- charged to the same per-update budget the Lua take()/available() calls use.
+function M.spend(used,deferred)
+    if budget then
+        if type(used)=='number' and used>0 then budget.used=budget.used+used end
+        if deferred then budget.deferred=budget.deferred+1 end
+    end
+end
+function M.spent()
+    if not budget then return 0,0 end
+    return budget.used,budget.deferred
+end
 local function note(line)
     pcall(function()
         local file=io.open('runtime/probe.log','a')
