@@ -18,10 +18,11 @@ import {resolve, dirname} from 'node:path';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const load = path => import(pathToFileURL(resolve(root, path)).href);
 const [{TextProviderHost, mistralRoute}, {MistralMemory}, {MistralProvider}, {GroqKey}, {PersonaBook}, {RealtimeHost}, {deliverPocketSpeech},
-  {ReplyStream}, {TurnClock, withClock}, {ConvaiContinuousSpeech}, {ownedPocketFace}] = await Promise.all([
+  {ReplyStream}, {TurnClock, withClock}, {ConvaiContinuousSpeech}, {ownedPocketFace}, {hasEmotionTag}, {NaturalSpeech}, {ExpressiveEmotions}] = await Promise.all([
   load('bridge/text-provider-host.mjs'), load('bridge/mistral-memory.mjs'), load('bridge/mistral-key.mjs'), load('bridge/groq-key.mjs'),
   load('bridge/mistral-prompt.mjs'), load('bridge/realtime-host.mjs'), load('bridge/pocket-speech.mjs'), load('bridge/reply-stream.mjs'),
-  load('bridge/turn-clock.mjs'), load('bridge/convai-continuous-speech.mjs'), load('bridge/pocket-facial-stream.mjs')]);
+  load('bridge/turn-clock.mjs'), load('bridge/convai-continuous-speech.mjs'), load('bridge/pocket-facial-stream.mjs'),
+  load('bridge/emotion-tags.mjs'), load('bridge/natural-speech.mjs'), load('bridge/expressive-emotions.mjs')]);
 
 const args = process.argv.slice(2);
 const option = (name, fallback) => { const at = args.indexOf(name); return at >= 0 ? args[at + 1] : fallback; };
@@ -33,13 +34,21 @@ const sleep = ms => new Promise(done => setTimeout(done, ms));
 
 // ---- the simulated language model -------------------------------------------------------------------------------------------------
 const REPLY = 'Hey choom, good to see you again. You look like you have not slept in days. Come on, sit down, I will make us something warm and you can tell me everything that happened out there.';
-async function languageModel({firstTokenMs, msPerChar}) {
+// The three replies of the 2026-10-13 live record, written the way the model writes them with Expressive emotions on: a {tag} before the
+// words it applies to, so every reply opens with one (bridge/emotion-tags.mjs). The harness' own default reply has no tags, which is why
+// it never showed that a tagged reply got no streamed head.
+const LIVE_REPLIES = {
+  'live-1 (short sentences)': '{calm}Hey. {interest}What’s up? I was just finishing up some hardware checks in the basement.',
+  'live-2 (one long first part)': '{calm}Work’s… work. {surprise}But I mean, the kind of work that lets me decide what to leave in and what to cut out. {calm}That’s the difference. {interest}You ever notice how some days you just want to sit in the dark and listen to the hum of the machines? {joy}That’s my idea of a good day.',
+  'live-3 (two short, one long)': '{calm}No, it’s not. It’s a workshop. {calm}I just finished a few tweaks on a couple of old dolls, some Clouds leftovers, if you can believe that.',
+};
+async function languageModel({firstTokenMs, msPerChar, reply = REPLY}) {
   const server = createServer((request, response) => {
     request.resume();
     request.on('end', async () => {
       response.writeHead(200, {'content-type': 'text/event-stream'});
       await sleep(firstTokenMs);
-      for (const piece of REPLY.match(/.{1,6}/gs)) {
+      for (const piece of reply.match(/.{1,6}/gs)) {
         response.write(`data: ${JSON.stringify({choices: [{index: 0, delta: {content: piece}}]})}\n\n`);
         await sleep(piece.length * msPerChar);
       }
@@ -73,13 +82,14 @@ function simulatedVoice({firstAudioMs, speed}) {
 }
 
 // ---- one turn ---------------------------------------------------------------------------------------------------------------------
-async function oneTurn({host, stream, model, voice}) {
-  const server = await languageModel(model);
+async function oneTurn({host, stream, model, voice, reply}) {
+  const server = await languageModel({...model, ...(reply ? {reply} : {})});
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => 'api-key=aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL\n', writeText: async () => {},
     groq: new GroqKey({keyPath: 'g.txt'})});
   await provider.load(); provider.setPreference('mistral'); provider.apply();
   const memory = await MistralMemory.open({path: null});
-  const text = new TextProviderHost({provider, memory, personas: book, routes: {mistral: mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, cacheScope: 'bench'})}, log: () => {}});
+  const naturalSpeech = new NaturalSpeech(), expressive = new ExpressiveEmotions();
+  const text = new TextProviderHost({provider, memory, personas: book, transformReply: result => expressive.process(naturalSpeech.process(result)), routes: {mistral: mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, cacheScope: 'bench'})}, log: () => {}});
   const input = {requestId: 'bench-turn', entity: '17ULL', generation: 1, profileKey: 'judy-alvarez'};
   const profile = {key: input.profileKey, name: 'Judy Alvarez'};
   const clock = new TurnClock({origin: performance.timeOrigin + performance.now()});
@@ -100,7 +110,7 @@ async function oneTurn({host, stream, model, voice}) {
         clock.mark('voiceStart');
         delivered = await deliverPocketSpeech({input, profile, result: {...result, transport: 'realtime'}, current, voice, host, speech});
       } else {
-        const replyStream = new ReplyStream({name: 'Judy Alvarez'});
+        const replyStream = new ReplyStream({name: 'Judy Alvarez', isTag: hasEmotionTag});
         const done = text.reply(config, {stream: replyStream}); done.catch(() => {});
         const head = await replyStream.headReady;
         const result = head ? {text: head, transport: 'realtime', timing: {}} : await done;
@@ -117,17 +127,17 @@ async function oneTurn({host, stream, model, voice}) {
 }
 
 const median = values => { const sorted = [...values].sort((a, b) => a - b); return sorted[Math.floor(sorted.length / 2)]; };
-async function scenario({label, model, voiceModel, stream, warm}) {
+async function scenario({label, model, voiceModel, stream, warm, reply}) {
   const rows = [];
   for (let run = 0; run < RUNS; run++) {
     const host = new RealtimeHost({muteBrowser: true});
     try {
       if (warm) await host.prewarmLocal();
-      rows.push(await oneTurn({host, stream, model, voice: simulatedVoice(voiceModel)}));
+      rows.push(await oneTurn({host, stream, model, voice: simulatedVoice(voiceModel), reply}));
     } finally { await host.close(); }
   }
   const pick = name => { const values = rows.map(row => row.marks[name]).filter(Number.isFinite); return values.length ? Math.round(median(values)) : null; };
-  const out = {label, stream, warm, runs: RUNS};
+  const out = {label, stream, warm, runs: RUNS, ...(reply ? {reply: reply.slice(0, 40)} : {})};
   for (const name of ['firstToken', 'firstSentence', 'fullText', 'replyReturned', 'voiceStart', 'browserReady', 'playStart', 'rendererReady', 'ttsSent', 'firstPcm', 'firstPcmAccepted', 'published', 'playbackObserved']) out[name] = pick(name);
   out.stalls = rows.flatMap(row => row.stalls ?? []).length;
   out.ok = rows.every(row => row.ok); out.spokenSeconds = Math.round(median(rows.map(row => row.spokenSeconds)) * 10) / 10;
@@ -146,6 +156,20 @@ const VOICES = {
   pocket: {firstAudioMs: 170, speed: 6},
 };
 const results = [], only = option('--only', null);
+// --live: the three replies of the live record, written with Expressive emotions' tags, through Mistral + a Voxtral whose first audio is
+// the median measured on 2026-10-13 (1.3 s; docs/LATENCY_2026-10-12.md), whole reply first against the first sentence first.
+if (args.includes('--live')) {
+  VOICES['voxtral-live'] = {firstAudioMs: Number(option('--voice-ms', 1300)), speed: 2.5};
+  for (const [name, reply] of Object.entries(LIVE_REPLIES)) {
+    for (const stream of [false, true]) {
+      const row = await scenario({label: `mistral + voxtral-live, ${name}`, model: {firstTokenMs: Number(option('--first-token-ms', 650)), msPerChar: 3.5}, voiceModel: VOICES['voxtral-live'], stream, warm: true, reply});
+      results.push(row); console.log(JSON.stringify(row));
+    }
+  }
+  const target = option('--json', null);
+  if (target) await writeFile(target, JSON.stringify(results, null, 1));
+  process.exit(0);
+}
 for (const [modelName, voiceName] of [['mistral', 'voxtral'], ['groq', 'voxtral'], ['local', 'voxtral'], ['local', 'pocket'], ['mistral', 'pocket']]) {
   if (only && !`${modelName} + ${voiceName}`.includes(only)) continue;
   for (const [stream, warm] of [[false, false], [false, true], [true, true]]) {
