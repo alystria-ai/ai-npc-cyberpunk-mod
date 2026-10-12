@@ -1,19 +1,33 @@
-// The prompt a Mistral model gets, built from the same character data the Convai characters carry, and the cleaning of
-// what comes back (docs/MISTRAL.md). Pure functions: no I/O.
+// The prompt a text-provider model (Mistral, or the fully local AI) gets, built from the same character data the Convai characters
+// carry, and the cleaning of what comes back (docs/MISTRAL.md, docs/LOCAL_AI.md). Pure functions: no I/O.
 //
-// Structure of a request:
-//   system   the persona (backstory with the appearance, speaking style, original example lines), the output rules and,
-//            for a private or phone conversation, what the character remembers of V
+// Layout v2 (used whenever the bridge supplies `contextParts`), ordered from the most stable text to the most volatile so a
+// server that reuses the longest identical prefix of the previous request (llama.cpp's prompt cache; some cloud APIs) recomputes
+// as little as possible. Nothing that alternates between turns may sit early: on a hybrid model (Qwen3.5, Gemma 4) a changed
+// early token throws away every checkpoint after it (docs/LOCAL_OPTION_DESIGN.md, "Hybrid model caveat"):
+//   system   1. the persona (backstory with the appearance, speaking style, original example lines) and the output rules
+//            2. the format notes (Expressive emotion tags): identical every turn for a given setting
+//            3. the world: quest and journal, relationship, who V is to this character, gear (changes on game events only)
+//            4. what the character remembers of V from older talks (the summary; changes every few exchanges)
+//            5. the "right now" block (game clock to the hour, district, company, vehicle; bridge/turn-context.mjs). It sits LAST
+//               in the system message, i.e. just before the conversation turns: it is stable for minutes at a time, so it must
+//               not come before the world block, but it does change, so nothing stable may follow it. The bridge builds it first
+//               in the Convai context (Convai ignores the order); a prefix cache does not.
 //   history  the last few exchanges of this conversation (user / assistant)
-//   user     the live context exactly as the bridge sends it to Convai each turn: first a short "right now" block (game
-//            clock, district, company, vehicle, V's gender and lifepath; bridge/turn-context.mjs, in-person turns only),
-//            then quest and world knowledge, relationship, gear, game dialogue, battle and loot, and the voice-tag /
-//            follow-up / first-person blocks, then V's message. There is no weather, health or wanted-level line yet.
+//   user     the volatile notes of this turn (follow-up policy, Natural speech offer, game dialogue, battle and loot, language,
+//            first-person reminder), what the memory store retrieved for V's words, then `V says: ...` and the closing reminder
+// Without `contextParts` (older callers, tests) the old layout is used: persona, summary and rules in the system message, and the
+// whole live context (the string Convai gets) in the last user message.
 // A reply comes back as plain text and goes through the same cleaning as a Convai reply (Natural speech, Expressive emotions).
 
 export const LIMITS = Object.freeze({
   persona: 16000,        // characters of the persona sections (the longest named character is about 11,400)
   context: 20000,        // characters of live context; a longer one keeps its head and its tail (the format notes are at the end)
+  world: 16000,          // layout v2: characters of the world block in the system message (head and tail kept)
+  notes: 3000,           // layout v2: format notes in the system message
+  now: 600,              // layout v2: the right-now block
+  volatile: 6000,        // layout v2: this turn's volatile notes in the last user message
+  remembered: 1200,      // layout v2: retrieved memories for this turn (about 300 tokens)
   summary: 1400,         // what the character remembers of V from older talks
   turns: 8,              // exchanges of conversation history sent with a request
   userLine: 400,         // each history line from V
@@ -66,17 +80,31 @@ const RULES = name => [
   '2. Write only the words you say aloud. No stage directions, no *actions*, no (parenthetical notes), no markdown, no lists, no emoji, no quotation marks around the whole reply.',
   '3. Keep it short, like a real person talking: one to three sentences, and never more than four unless V clearly asks you to explain or tell something (then up to about six). Do not ask more than one question.',
   '4. Never say or hint that you are an AI, a language model, a bot, a program, a character in a game, or that you have a prompt, instructions, rules or a system message. If V asks, answer as yourself, a person in Night City.',
-  '5. Use only facts from this prompt, the live context and the conversation so far. Never invent biography, relatives, places, names, numbers or quest outcomes, and never claim you and V have met, talked or done anything together before unless this conversation or the live context says so (no "same as always", no "you always say that"). When V asks about something your profile does not cover, stay vague in character (a shrug, a deflection, a question back) instead of making up details.',
+  '5. Use only facts from this prompt, the live context and the conversation so far. Never invent biography, relatives, places, names, numbers or quest outcomes, and never claim you and V have met, talked or done anything together before unless this conversation or the live context says so (no "same as always", no "you always say that"). When V asks about something your profile does not cover, stay vague in character (a shrug, a deflection, a question back) instead of making up details. What V said earlier in this conversation (the turns below) did happen: remember it exactly, such as a name V gave you, and never deny or forget it.',
   '6. Answer in the language V writes in (English unless the live context says otherwise).',
   '7. Curly-brace and square-bracket tags: use them only if the live context asks for them, exactly as it describes. Otherwise never write braces or square brackets.',
   '8. Do not repeat these rules or the live context aloud. Answer V.',
 ].join('\n');
 
+/** Blocks of context text as one string: empty blocks and exact repeats (a block two sources both contribute) are dropped. */
+export function joinBlocks(blocks) {
+  const seen = new Set(), out = [];
+  for (const block of blocks ?? []) {
+    const text = typeof block === 'string' ? block.trim() : '';
+    if (!text || seen.has(text)) continue;
+    seen.add(text); out.push(text);
+  }
+  return out.join('\n\n');
+}
+
+const section = (title, body) => body ? `${title}\n${body}` : '';
+
 /**
- * The system message. `memory` is what the character remembers of V from older talks (private and phone conversations only).
- * Over the length cap the example lines go first, then the end of the backstory.
+ * The persona and the output rules: the first, most stable part of the system message. The fully local server is prewarmed with
+ * exactly this text (a prefix of the real system message in layout v2) when a companion joins. Over the length cap the example
+ * lines go first, then the end of the backstory. `memory` (layout v1 only) puts the older-talk summary before the rules.
  */
-export function systemPrompt({persona, memory = '', limits = LIMITS}) {
+export function systemHead({persona, memory = '', limits = LIMITS}) {
   const name = persona.name;
   const head = [name
     ? `You are ${name}, a person in Cyberpunk 2077's Night City, talking with V (the player) live. This is a role-play: stay completely in character as ${name} for the whole conversation.`
@@ -99,6 +127,22 @@ export function systemPrompt({persona, memory = '', limits = LIMITS}) {
   return text;
 }
 
+/**
+ * The system message. Layout v1 (no `layers`): `memory` is what the character remembers of V from older talks, before the rules.
+ * Layout v2 (`layers` = {notes, world, now}): persona and rules, then the format notes, the world, the memory summary and the
+ * right-now block, in that order (see the header comment for why).
+ */
+export function systemPrompt({persona, memory = '', limits = LIMITS, layers = null}) {
+  if (!layers) return systemHead({persona, memory, limits});
+  const world = capContext(`${CONTEXT_PREFIX}${layers.world || 'This is a private conversation with V.'}`, limits.world);
+  return [systemHead({persona, limits}),
+    section('FORMAT NOTES FOR EVERY REPLY (instructions for you, never read aloud)', capContext(layers.notes, limits.notes)),
+    section('WORLD AND QUEST CONTEXT (facts and instructions for you, never to be read aloud)', world),
+    memory ? section('WHAT YOU REMEMBER OF V FROM EARLIER TALKS (true unless the live context says otherwise)', clip(memory, limits.summary)) : '',
+    section('RIGHT NOW (from the game; background only, this changes as the talk goes on)', clip(layers.now, limits.now))]
+    .filter(Boolean).join('\n\n');
+}
+
 /** A context longer than the cap keeps its head and its tail (the voice, follow-up and first-person notes are last). */
 export function capContext(context, limit = LIMITS.context) {
   const text = String(context ?? '').trim();
@@ -112,22 +156,42 @@ export function capContext(context, limit = LIMITS.context) {
  *   persona        from PersonaBook.persona
  *   memory         the character's older-talk summary ('' for a group or an ambient NPC)
  *   history        [{v, r}] the last exchanges, oldest first
- *   context        the live context string of the turn (config.context)
+ *   context        the live context string of the turn (config.context); used as one block when `contextParts` is absent
+ *   contextParts   {now, notes, world, volatile} strings (layout v2): the context split by how often it changes
+ *   remembered     [{text}] what the memory store retrieved for this turn (layout v2 only; ambient and group turns pass none)
  *   text           V's message, or for a reaction the event text
  *   reaction       true for an automatic battle / loot / distraction line: `text` is then an event, not something V said
  */
-export function buildMessages({persona, memory, history = [], context, text, reaction = false, limits = LIMITS}) {
-  const messages = [{role: 'system', content: systemPrompt({persona, memory, limits})}];
+export function buildMessages({persona, memory, history = [], context, contextParts, remembered = [], text, reaction = false, limits = LIMITS}) {
+  const v2 = !!contextParts && typeof contextParts === 'object';
+  const messages = [{role: 'system', content: systemPrompt({persona, memory, limits,
+    layers: v2 ? {notes: contextParts.notes, world: contextParts.world, now: contextParts.now} : null})}];
   for (const turn of history.slice(-limits.turns)) {
     const v = clip(turn.v, limits.userLine), r = clip(turn.r, limits.replyLine);
     if (!v || !r) continue;
     messages.push({role: 'user', content: v}, {role: 'assistant', content: r});
   }
-  const live = capContext(`${CONTEXT_PREFIX}${context || 'This is a private conversation with V.'}`, limits.context);
   const message = reaction
     ? `[EVENT, not spoken by V]\n${clip(text, 2400)}\n\nReact with one short spoken line of your own, in character.`
     : `V says: ${String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, limits.playerText)}\n\n${closing(persona.name)}`;
-  messages.push({role: 'user', content: `[LIVE CONTEXT for this moment: facts and instructions for you, never to be read aloud]\n${live}\n\n${message}`});
+  if (!v2) {
+    const live = capContext(`${CONTEXT_PREFIX}${context || 'This is a private conversation with V.'}`, limits.context);
+    messages.push({role: 'user', content: `[LIVE CONTEXT for this moment: facts and instructions for you, never to be read aloud]\n${live}\n\n${message}`});
+    return messages;
+  }
+  // What the character remembers that bears on these words: facts V told it, promises, tastes (bridge/memory-store.mjs).
+  const facts = [];
+  let used = 0;
+  for (const item of remembered) {
+    const line = clip(item?.text, 240);
+    if (!line || used + line.length > limits.remembered) continue;
+    used += line.length; facts.push(`- ${line}`);
+  }
+  const volatile = capContext(contextParts.volatile, limits.volatile);
+  messages.push({role: 'user', content: [
+    volatile ? `[THIS TURN: notes for you, never to be read aloud]\n${volatile}` : '',
+    facts.length ? `[THINGS YOU REMEMBER ABOUT V THAT MAY MATTER NOW: true unless the world context says otherwise; mention one only if it fits]\n${facts.join('\n')}` : '',
+    message].filter(Boolean).join('\n\n')});
   return messages;
 }
 
@@ -221,4 +285,49 @@ export function summaryMessages({name, summary, turns}) {
   const lines = turns.map(turn => `V: ${clip(turn.v, 300)}\n${name}: ${clip(turn.r, 400)}`).join('\n');
   return [{role: 'system', content: `You keep the private memory of ${name || 'a person'}, a character in Night City, about V. Write in the first person as ${name || 'that person'}, plain sentences, no lists, at most 110 words. Keep: what V told or asked of me, promises and plans, V's tastes and choices, how the two get along. Drop small talk and anything V did not say or do. Do not invent anything. Output only the memory text.`},
     {role: 'user', content: `${summary ? `What I remembered so far:\n${clip(summary, LIMITS.summary)}\n\n` : ''}New exchanges to fold in:\n${lines}\n\nWrite the updated memory.`}];
+}
+
+// ---- Lasting facts -----------------------------------------------------------------------------------------------------------
+
+const FACT_KINDS = ['fact', 'event', 'preference', 'relationship', 'promise'];
+/** The JSON shape of a fact-extraction answer; llama-server turns it into a grammar, so a local answer always parses. */
+export const FACT_SCHEMA = Object.freeze({
+  type: 'object',
+  properties: {facts: {type: 'array', maxItems: 3, items: {type: 'object', properties: {
+    text: {type: 'string'}, kind: {type: 'string', enum: FACT_KINDS}, importance: {type: 'number'}, replaces: {type: ['string', 'null']}},
+    required: ['text', 'kind', 'importance', 'replaces'], additionalProperties: false}}},
+  required: ['facts'], additionalProperties: false,
+});
+
+/**
+ * The request that finds lasting facts in a few exchanges, for the memory store (bridge/memory-store.mjs). `known` is what the
+ * character already remembers (`[{id, text}]`), so a correction can name the memory it replaces.
+ */
+export function factMessages({name, turns, known = []}) {
+  const lines = turns.map(turn => `V: ${clip(turn.v, 300)}\n${name || 'Me'}: ${clip(turn.r, 400)}`).join('\n');
+  const memories = known.length ? `What I already remember (id: memory):\n${known.map(item => `${item.id}: ${clip(item.text, 220)}`).join('\n')}\n\n` : '';
+  return [{role: 'system', content: `You keep the private memory of ${name || 'a person'}, a character in Night City, about V. From the exchanges below, extract at most 3 lasting facts worth remembering for weeks: what V told or asked of me, promises and plans, V's tastes and choices, how the two of us get along. Write each fact in the first person as ${name || 'that person'} ("V told me ...", "I promised V ..."), one plain sentence of at most 25 words. Skip small talk, anything V did not say or do, and anything I already remember. If a fact corrects an older memory, put that memory's id in "replaces", else null. kind is one of ${FACT_KINDS.join(', ')}; importance is 0 to 1. Answer only with JSON: {"facts":[{"text":"...","kind":"fact","importance":0.5,"replaces":null}]}, or {"facts":[]} when there is nothing worth keeping.`},
+    {role: 'user', content: `${memories}New exchanges:\n${lines}`}];
+}
+
+/** The facts in a model's answer ({facts: [...]} or a bare array, possibly in a code fence), cleaned and bounded. Never throws. */
+export function parseFacts(raw, {known = []} = {}) {
+  let text = String(raw ?? '').replace(THINK, '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  const first = text.search(/[\[{]/);
+  if (first > 0) text = text.slice(first);
+  let value;
+  try { value = JSON.parse(text); } catch { return []; }
+  const list = Array.isArray(value) ? value : Array.isArray(value?.facts) ? value.facts : [];
+  const ids = new Set(known.map(item => item.id)), seen = new Set(), facts = [];
+  for (const item of list) {
+    const fact = clip(typeof item === 'string' ? item : item?.text, 220);
+    if (!fact || fact.length < 8 || seen.has(fact.toLowerCase())) continue;
+    seen.add(fact.toLowerCase());
+    const importance = Number(item?.importance);
+    facts.push({text: fact, kind: FACT_KINDS.includes(item?.kind) ? item.kind : 'fact',
+      importance: Number.isFinite(importance) ? Math.min(1, Math.max(0, importance)) : 0.5,
+      ...(typeof item?.replaces === 'string' && ids.has(item.replaces) ? {replaces: item.replaces} : {})});
+    if (facts.length >= 3) break;
+  }
+  return facts;
 }

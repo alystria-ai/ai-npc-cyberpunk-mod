@@ -441,13 +441,17 @@ export class IntrinsicCharacterContext {
 /** Same dynamic-context route for phone/private text and microphone. Never
  * touches TTS, creates a warm turn, or reads supplied intrinsicContext strings.
  * Missing admission/group/automatic turns retain their ordinary base context. */
-export function createIntrinsicConversationContext({baseContext, intrinsic, resolveAdmission, isCurrentSync}) {
+export function createIntrinsicConversationContext({baseContext, baseBlocks, intrinsic, resolveAdmission, isCurrentSync}) {
   if (typeof baseContext !== 'function' || !(intrinsic instanceof IntrinsicCharacterContext)
       || typeof resolveAdmission !== 'function' || typeof isCurrentSync !== 'function') fail('invalid wrapper');
-  return input => {
-    const base = baseContext(input);
+  const selectedFor = input => {
     let selected = '';
     try { selected = intrinsic.select(input, resolveAdmission(input), isCurrentSync).context; } catch {}
-    return [base, selected].filter(Boolean).join('\n\n');
+    return selected;
   };
+  const wrapper = input => [baseContext(input), selectedFor(input)].filter(Boolean).join('\n\n');
+  // The same context as tagged blocks (conversationContextBlocks in bridge/quest-context.mjs), for the text providers' prompt layout.
+  wrapper.blocks = input => [...(typeof baseBlocks === 'function' ? baseBlocks(input) : [{tier: 'world', text: baseContext(input)}]),
+    {tier: 'world', text: selectedFor(input)}];
+  return wrapper;
 }
