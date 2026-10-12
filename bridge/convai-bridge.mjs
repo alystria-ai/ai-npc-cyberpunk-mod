@@ -29,6 +29,7 @@ import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
 import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
+import {VoxtralVoice} from './voxtral-voice.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
@@ -125,10 +126,17 @@ catch{console.error('[CyberpunkConvai] Optional phone analyser configuration fai
 const jaliFace = await JaliFace.load(resolve(stateDirectory, 'lipsync-model')).catch(error => {
   console.error('[CyberpunkConvai] Facial model unavailable:', error.message); return null;
 });
+// The Mistral cloud voice (docs/CLOUD_VOICE_VOXTRAL.md): an optional Companion voice that clones each character from its
+// OmniVoice long reference on the player's Mistral key. Pocket stays loaded as the fallback for any reply it cannot deliver in time.
+// The key is read from the Mistral provider on each call (it can be pasted or removed while the game runs); `mistral` is created below.
+const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } },
+  referenceRoot: process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || resolve(stateDirectory, 'voice-references'),
+  onLog: message => process.stderr.write(message)});
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
+  voxtral:voxtralVoice,
   // The optional OmniVoice pack (worker Python, model weights, adapter); Settings greys Omni out without it.
   omniPack:()=>detectOmniPack({project,config:omniVoiceConfigs.long}),
   profileKeys:roster.map(profile=>profile.key),

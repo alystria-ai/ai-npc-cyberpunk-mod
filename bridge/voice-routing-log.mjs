@@ -19,6 +19,9 @@ const REFERENCE_ROOT = 'runtime/voice-references/';
 // Matches the Settings menu (mod/manager.lua OMNI_LABELS).
 const OMNI_TIERS = {'16:short': 'Balanced', '16:long': 'Quality', '32:short': 'High Quality', '32:long': 'Ultra Quality'};
 
+// Matches the Settings menu (mod/manager.lua voiceLabel).
+const CLOUD_LABEL = 'Mistral cloud voice (Voxtral)';
+
 /** The voice choice as the player reads it in Settings: "Pocket · Performance", "OmniVoice · Quality", "Convai · Cloud voice". */
 export function requestedLabel(provider, steps, reference) {
   if (provider === 'pocket') return 'Pocket · Performance';
@@ -97,13 +100,18 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
   const engine = reply?.engine ?? plan?.engine ?? 'convai';
   const key = input?.profileKey ?? profile?.key ?? '?';
   const local = engine === 'pocket' || engine === 'omni';
+  // The Mistral cloud voice (Voxtral) rides on Pocket: chosen, it is what the player asked for; it speaks unless it has no key
+  // or fell back (bridge/voxtral-voice.mjs), in which case Pocket does and the reason is logged.
+  const cloud = voice.cloudActive === true && voice.requestedProvider === 'pocket';
+  const cloudWhy = cloud && engine === 'pocket' ? voice.cloudFallback : null;
   const record = {time: now(), profile: key, name: profile?.name ?? input?.name ?? '?',
-    requested: requestedLabel(voice.requestedProvider, voice.requestedOmniSteps, voice.requestedOmniReference),
+    requested: cloud ? CLOUD_LABEL : requestedLabel(voice.requestedProvider, voice.requestedOmniSteps, voice.requestedOmniReference),
     engine, voiceKey: local ? (voiceKey ?? key) : undefined,
     reference: local ? referenceOf(voice, engine, voiceKey ?? key, sources) : null,
-    fallback: reason ?? fallbackReason(voice, key, {plan, engine})};
+    fallback: reason ?? (cloudWhy ? `Mistral cloud voice ${cloudWhy.reason === 'no-key' ? 'has no key' : 'fell back (' + cloudWhy.reason + ')'}` : null)
+      ?? fallbackReason(voice, key, {plan, engine})};
   if (engine === 'omni') record.used = `OmniVoice ${voice.omniSteps} ${voice.omniReference}`;
-  else if (engine === 'pocket') record.used = 'Pocket';
+  else if (engine === 'pocket') record.used = cloud && !cloudWhy ? CLOUD_LABEL : 'Pocket';
   else if (engine === 'none') record.used = 'none (written reply only)';
   else record.used = `Convai cloud (${profile?.voiceName ?? 'character voice'})`;
   if (voice.multilingual) record.language = reply?.language ?? plan?.language ?? undefined;

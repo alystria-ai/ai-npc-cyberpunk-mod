@@ -9,7 +9,11 @@ import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
 // CPU/CUDA workers retire through confirmed EOF before another backend starts.
-export const canonicalVoiceProvider = value => ['hybrid','omnivoice'].includes(value) ? 'omni' : value;
+// The Mistral cloud voice (Voxtral) is a choice of the Settings menu but not a backend: it rides on Pocket TTS (which
+// stays loaded as the fallback for any reply Voxtral cannot deliver in time), so its routing is Pocket's and only the
+// synthesis of each reply differs (bridge/voxtral-voice.mjs).
+export const canonicalVoiceProvider = value => ['hybrid','omnivoice'].includes(value) ? 'omni' : value==='voxtral' ? 'pocket' : value;
+export const cloudVoiceChoice = value => value==='voxtral' ? 'voxtral' : null;
 // OmniVoice reads either its short (up to 10 s) or its long (up to 18 s) searched reference per character.
 export const canonicalOmniReference = value => OMNI_REFERENCES.includes(value) ? value : null;
 // Fallback order, best first: OmniVoice (16 or 32 steps), Pocket TTS, Convai. The Settings menu lists Pocket first
@@ -47,10 +51,19 @@ export class VoiceSelection {
     this.availabilities={pocket:new Set(pocketRegistry.keys),convai:new Set()};
     // The optional OmniVoice pack (worker Python, model weights): a function or a fixed {installed, missing}.
     this.omniPackSource=options.omniPack||(()=>({installed:true,missing:[]}));
+    // The Mistral cloud voice: `cloud` is the committed choice, `requestedCloud` the saved setting waiting for an idle boundary.
+    this.cloud=this.requestedCloud=null;
+    this.voxtral=options.voxtral||null;
     this.clock = options.clock || Date.now;
     this.packCheckedAt=0;this.refreshOmniPack();
     this.omniReference=this.requestedOmniReference=DEFAULT_OMNI_REFERENCE;
     this.activateOmni();
+    // Voxtral clones each character from the OmniVoice long reference; it reports when it falls back or recovers.
+    if(this.voxtral){
+      this.voxtral.setReferences?.(this.omniVariants.long.registry);
+      const previous=this.voxtral.onChange;
+      this.voxtral.onChange=degraded=>{try{previous?.(degraded);}finally{if(!this.closed)this.publish();}};
+    }
     this.options = options;
     // A draft must stay unchanged this long before it may prepare a model, so
     // cycling quickly through the choices never starts or retires a worker.
@@ -133,6 +146,18 @@ export class VoiceSelection {
       .find(backend=>this.backendUsable(backend)&&!(this.multilingual&&backend==='pocket'))||'convai';
   }
   get resolvedProvider(){return this.resolve(this.requestedProvider);}
+  // The Mistral cloud voice speaks replies: chosen, committed, with Pocket as the route it rides on.
+  get cloudActive(){return this.cloud==='voxtral'&&!!this.voxtral&&this.provider==='pocket';}
+  // Why the cloud voice is not the one speaking, for the Settings status line and the one notice: no key, or its last
+  // reply fell back (nothing is reported before a first failure, and it clears by itself with the next good reply).
+  get cloudFallback(){
+    if(!this.cloudActive)return null;
+    const value={from:'voxtral',to:'pocket'};
+    if(!this.voxtral.hasKey)return {...value,temporary:false,reason:'no-key'};
+    const degraded=this.voxtral.degraded;
+    if(!degraded)return null;
+    return {...value,temporary:degraded.reason!=='key'&&degraded.reason!=='no-key',reason:degraded.reason};
+  }
   // Set only once the fallback is the committed route, so the player is told
   // after the voice actually changed, never during a pending switch.
   // `temporary` marks an Omni that is being loaded again in the background; the voice returns by itself.
@@ -174,6 +199,7 @@ export class VoiceSelection {
       for(const key of this.routeKeys)this.routeChanges.add(key);
     }
     const chosen=canonicalVoiceProvider(settings?.voiceProvider);
+    if(typeof settings?.voiceProvider==='string')this.requestedCloud=cloudVoiceChoice(settings.voiceProvider);
     if (['pocket','omni','convai'].includes(chosen)){
       // Choosing a provider again retries it, even if it failed earlier.
       if(chosen!==this.requestedProvider){
@@ -190,7 +216,7 @@ export class VoiceSelection {
     if(typeof settings?.keepPreparedVoices==='boolean'&&settings.keepPreparedVoices!==this.keepPrepared)
       this.setKeepPrepared(settings.keepPreparedVoices);
   }
-  get pending() { return this.provider!==this.resolvedProvider
+  get pending() { return this.provider!==this.resolvedProvider||this.cloud!==this.requestedCloud
     ||(this.provider==='omni'&&(this.omniSteps!==this.requestedOmniSteps||this.omniReference!==this.requestedOmniReference)); }
   get availabilityPending() { const verified=this.verifiedAvailabilities.get(this.verifiedKey(this.provider));
     return !!verified&&!equalSet(this.availability,verified); }
@@ -281,7 +307,10 @@ export class VoiceSelection {
   publish(state = this.state, extra = {}) {
     this.state = state;
     const value = {...this.details, version: 1, state, provider: this.provider,
-      requestedProvider: this.requestedProvider, fallback: this.fallback, pending: this.pending,
+      requestedProvider: this.requestedProvider, fallback: this.fallback??this.cloudFallback, pending: this.pending,
+      cloudVoice:this.cloudActive?'voxtral':null,
+      voxtral:this.voxtral?{key:this.voxtral.hasKey,degraded:this.voxtral.degraded?.reason??null,spoke:this.voxtral.spoke,
+        fellBack:this.voxtral.fellBack}:null,
       playbackEnabled:this.playbackEnabled,
       omniSteps:this.omniSteps,requestedOmniSteps:this.requestedOmniSteps,
       omniReference:this.omniReference,requestedOmniReference:this.requestedOmniReference,
@@ -323,6 +352,7 @@ export class VoiceSelection {
       target=next;
     }
     this.provider=target;
+    this.cloud=this.requestedCloud;
     this.omniSteps=this.requestedOmniSteps;
     if(this.clientBackend==='omni')this.client?.setSteps(this.omniSteps);
     const changedRoutes = this.profileKeys.filter(key => previous.has(key) !== this.usesProfile(key));
@@ -513,8 +543,20 @@ export class VoiceSelection {
     await abortable(this.start(), options.signal); throwIfCancelled(options.signal);
     const client = this.client;
     if (!client || this.clientBackend!=='pocket'||!this.usesProfile(profile))throw Error('Voice selection changed before synthesis');
-    // Pocket cannot render voice tags and would read them aloud: a last line of defence behind the display strip.
-    return client.synthesizeStream(profile, stripSpeechTags(text), options);
+    // Pocket cannot render voice tags and would read them aloud: a last line of defence behind the display strip. The same
+    // goes for the cloud voice.
+    const spoken = stripSpeechTags(text);
+    // The Mistral cloud voice, when chosen and usable. Any failure before its audio starts (no key, a limit, a network
+    // error, no first audio in time) speaks this reply with Pocket, which is already loaded; the voice reports it so the
+    // player is told once (cloudFallback). A failure of the consumer or a cancellation is not a fallback.
+    if (this.cloudActive && this.voxtral.ready) {
+      try { return await this.voxtral.synthesizeStream(profile, spoken, options); }
+      catch (error) {
+        throwIfCancelled(options.signal);
+        if (error?.sink) throw error;
+      }
+    }
+    return client.synthesizeStream(profile, spoken, options);
   }
   // `language` (ISO 639-1, e.g. 'es') reaches the worker for a reply that is not in English.
   async synthesize(profile,text,options={}){
