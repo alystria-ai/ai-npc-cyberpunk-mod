@@ -342,3 +342,45 @@ test('without the plugin verify mode is off and reads nothing', () => run(`
 local M, api = boot(false)
 assert(api.verifying('actuator') == false and n('Revision') == 0)
 `));
+
+test('revision(): nil without the plugin, before a file is read, for an unrouted name and while io is off; else the worker revision', () => run(`
+local M, api = boot(false)
+assert(api.revision('reply.json') == nil, 'no plugin')
+convaiNative, io, os = nil, realIo, realOs
+M, api = boot(true)
+external('reply.json', '{"requestId":"1"}')
+assert(api.revision('reply.json') == nil, 'not read yet: the worker does not watch it')
+local f = io.open('runtime/reply.json', 'rb'); assert(f:read('*a') == '{"requestId":"1"}'); f:close()
+local first = api.revision('reply.json')
+assert(type(first) == 'number' and first > 0, tostring(first))
+local reads = n('Read')
+assert(api.revision('reply.json') == first, 'unchanged bytes keep their revision')
+assert(n('Read') == reads, 'a revision check never reads the file')
+external('reply.json', '{"requestId":"2"}')
+local second = api.revision('reply.json')
+assert(second ~= first, 'new bytes, new revision')
+assert(api.revision('not-routed.json') == nil)
+enabled = false; advance(1)
+assert(api.revision('reply.json') == nil, 'io switched off')
+`));
+
+test('init.lua checks reply.json through revision() every 30 ms while a reply is due, before its 0.1 s throttle', () => {
+  const update = init.slice(init.indexOf("registerForEvent('onUpdate'"));
+  const probe = update.indexOf("convaiNative.revision('reply.json')");
+  const throttle = update.indexOf('if poll < 0.1 then return end');
+  assert.ok(probe > 0 && throttle > probe, 'the probe sits before the throttle');
+  const block = update.slice(update.lastIndexOf('if pending', probe), throttle);
+  assert.match(block, /replyProbe >= 0\.03/);
+  assert.match(block, /poll = 0\.1/);
+});
+
+test('phone-chat.lua checks phone-chat-output.json through revision() every 30 ms while a reply is due, before its 0.1 s tick', () => {
+  const phone = readFileSync(new URL('../mod/phone-chat.lua', import.meta.url), 'utf8');
+  const update = phone.slice(phone.indexOf('function M.update(player, delta)'));
+  const probe = update.indexOf("convaiNative.revision('phone-chat-output.json')");
+  const tick = update.indexOf('if M.tick < 0.10 then return end');
+  assert.ok(probe > 0 && tick > probe, 'the probe sits before the tick');
+  const block = update.slice(update.lastIndexOf('if M.pending', probe), tick);
+  assert.match(block, /M\.replyProbe >= 0\.03/);
+  assert.match(block, /M\.tick = 0\.10/);
+});

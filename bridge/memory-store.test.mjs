@@ -741,3 +741,37 @@ test('timers exist only while there is work and are unref\'d', async () => {
   assert.equal(STORE_LIMITS.characters, MEMORY_LIMITS.characters);
 });
 
+
+test('retrieve does not wait for an embedder that is not running: it is warmed for the next turn and this one gets nothing', async () => {
+  const {store, embedder, clock} = await setup({files: memories()});
+  let running = false, warms = 0;
+  embedder.ready = () => running;
+  embedder.warm = async () => { warms++; };
+  const pending = store.retrieve({profileKey: 'judy-alvarez', query: 'v whiskey', timeoutMs: 400});
+  let settled = false; pending.then(() => { settled = true; });
+  await settle();
+  assert.equal(settled, true, 'answered without advancing the clock');
+  assert.deepEqual(await pending, []);
+  assert.equal(warms, 0, 'the start waits until the turn has moved on');
+  assert.equal(clock.count, 1, 'only the deferred start is armed, no timeout');
+  await clock.advance(0);
+  assert.equal(warms, 1);
+  assert.equal(embedder.calls.length, 0, 'no query was sent to a server that is still starting');
+  running = true;
+  assert.equal((await store.retrieve({profileKey: 'judy-alvarez', query: 'v whiskey'})).length, 2, 'a running embedder is used as before');
+  assert.equal(warms, 1);
+});
+
+test('warm() starts the embedder when there is one, never throws, and is false without one', async () => {
+  const {store, embedder} = await setup({files: memories()});
+  let warms = 0;
+  assert.equal(store.warm(), false, 'an embedder without warm()');
+  embedder.warm = () => { warms++; throw new Error('no'); };
+  assert.equal(store.warm(), false);
+  embedder.warm = async () => { warms++; throw new Error('later'); };
+  assert.equal(store.warm(), true);
+  await settle();
+  assert.equal(warms, 2);
+  const none = await setup({files: memories(), embedder: null});
+  assert.equal(none.store.warm(), false);
+});

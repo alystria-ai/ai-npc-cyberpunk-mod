@@ -437,6 +437,16 @@ function M.update(player, delta)
     else
         M.saveIdentity = currentBinding
     end
+    -- A reply due: the native plugin's revision of phone-chat-output.json is checked every 30 ms (one number, no disk access)
+    -- and a new reply is shown on this frame's tick instead of up to 0.1 s later. Without the plugin nothing changes.
+    if M.pending and M.tick < 0.10 and type(convaiNative) == 'table' and convaiNative.revision then
+        M.replyProbe = (M.replyProbe or 0) + math.max(tonumber(delta) or 0, 1 / 60)
+        if M.replyProbe >= 0.03 then
+            M.replyProbe = 0
+            local revision = convaiNative.revision('phone-chat-output.json')
+            if revision and revision ~= M.replyRevision then M.replyRevision = revision; M.tick = 0.10 end
+        end
+    end
     if M.tick < 0.10 then return end
     local elapsed = M.tick
     M.tick = 0

@@ -306,6 +306,13 @@ export class MemoryStore {
 
   // ---------------------------------------------------------------- retrieval (hot path)
   #available() { try { return !!this.embedder && this.embedder.available() === true; } catch { return false; } }
+  // An embedder without ready() is taken to answer at once (the old behaviour, and the tests' fake).
+  #ready() { try { return typeof this.embedder?.ready !== 'function' || this.embedder.ready() === true; } catch { return false; } }
+  /** Starts the embedder ahead of the next retrieval (composer open, a cold retrieval). Never throws and never waits. */
+  warm() {
+    if (!this.#available() || typeof this.embedder?.warm !== 'function') return false;
+    try { void Promise.resolve(this.embedder.warm()).catch(() => {}); return true; } catch { return false; }
+  }
   /**
    * The records worth remembering for this line, best first: [{id, kind, text}]. Empty for ordinary NPCs, the group channel, an
    * empty query, a missing embedder, or when embedding does not finish within `timeoutMs` (the late result is discarded).
@@ -316,6 +323,11 @@ export class MemoryStore {
     if (!row || !text || !row.index?.recs.length || signal?.aborted || !this.#available()) return [];
     const embedder = this.embedder;
     if (row.embedder?.id !== embedder.id || row.embedder.dim !== embedder.dim) return [];
+    // An embedder that is not running yet (the local one starts a llama-server, 2 to 8 s, longer under the game) cannot answer
+    // within the timeout: it is started for the next turn and this one does not wait. Before this, every turn on a cold or
+    // failing embedder waited the whole timeout (about 410 ms in the 2026-10-13 live records) for nothing.
+    // The start itself (a process spawn, about 15 ms of this thread) waits until the turn has sent its request.
+    if (!this.#ready()) { this.setTimer(() => this.warm(), 0)?.unref?.(); return []; }
     const generation = this.generation;
     const vec = await this.#embedQuery(text, timeoutMs, signal);
     if (!vec || vec.length !== embedder.dim || generation !== this.generation || this.rows.get(profileKey) !== row || signal?.aborted) return [];

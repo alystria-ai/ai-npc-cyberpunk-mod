@@ -180,3 +180,42 @@ test('normalize handles zero vectors', () => {
   const unit = normalize([3, 4]);
   assert.ok(Math.abs(unit[0] - 0.6) < 1e-6 && Math.abs(unit[1] - 0.8) < 1e-6);
 });
+
+test('buildEmbedArgs turns the fit pass off (every parameter is given; the pass only loads the model twice)', () => {
+  const args = buildEmbedArgs({model: 'E.gguf', port: 5000, keyFile: 'K', threads: 1});
+  assert.equal(args[args.indexOf('-fit') + 1], 'off');
+});
+
+test('ready() is false until the server runs; warm() starts it in the background without a query', async t => {
+  const {embedder, calls} = harness(t);
+  assert.equal(embedder.ready(), false);
+  const warming = embedder.warm();
+  assert.equal(embedder.ready(), false, 'starting is not ready');
+  assert.equal(await warming, true);
+  assert.equal(embedder.ready(), true);
+  assert.equal(calls.length, 1);
+  assert.equal(await embedder.warm(), true, 'a running server is not started again');
+  assert.equal(calls.length, 1);
+  assert.equal((await embedder.embed(['hello']))[0].length, 8);
+  assert.equal(calls.length, 1, 'the query used the warmed server');
+});
+
+test('warm() does not retry a failed start for retryMs, and never throws', async t => {
+  let now = 0;
+  const {embedder, calls} = harness(t, {startupMs: 200, retryMs: 60_000, now: () => now, env: {FAKE_LLAMA_NEVER_HEALTHY: '1'}});
+  assert.equal(await embedder.warm(), false);
+  assert.equal(embedder.ready(), false);
+  assert.equal(calls.length, 1);
+  now = 59_000;
+  assert.equal(await embedder.warm(), false);
+  assert.equal(calls.length, 1, 'inside retryMs nothing is spawned');
+  now = 61_000;
+  assert.equal(await embedder.warm(), false);
+  assert.equal(calls.length, 2, 'after retryMs one more start is tried');
+});
+
+test('warm() does nothing without the embedding model', async t => {
+  const {embedder, calls} = harness(t, {withEmbed: false});
+  assert.equal(await embedder.warm(), false);
+  assert.equal(calls.length, 0);
+});

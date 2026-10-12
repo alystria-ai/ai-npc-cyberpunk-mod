@@ -78,6 +78,7 @@ import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack} from './local-ai-pack.mjs';
 import {LocalLlmServer} from './local-llm-server.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
+import {watchFiles} from './file-wake.mjs';
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
@@ -1113,8 +1114,14 @@ async function synthesizeOmniPhrase(profile,text,options){
   }
 }
 
+// Status writes are queued in call order, so a caller may leave one unawaited (a turn's 'thinking' no longer holds up the
+// provider request) without an older state ever landing after a newer one.
+let statusWriting = Promise.resolve();
 async function status(state, detail = '') {
-  await atomic(statusPath, JSON.stringify({state, detail: detail.slice(0, 200), updated: Date.now()}));
+  const text = JSON.stringify({state, detail: detail.slice(0, 200), updated: Date.now()});
+  const job = statusWriting.catch(() => {}).then(() => atomic(statusPath, text));
+  statusWriting = job;
+  return job;
 }
 
 function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false, marks,
@@ -1736,7 +1743,7 @@ async function runInput(request, prepared, clock) {
     note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : prepared ? 'claimed' : 'none'},
       journalStatus: input.journal?.status || 'not-supplied', journalObjectives: input.journal?.quest?.objectives.length || 0,
       battleStatus: input.battle?.status || 'not-supplied', reaction: input.reaction?.phase});
-    if (!ahead) await status('thinking', profile.name);
+    if (!ahead) void status('thinking', profile.name).catch(() => {});
     const canWarm = await audioReady(runtime);
     throwIfCancelled(controller.signal);
     // How warm this turn's page already was (opened at the talk key, the composer, a look or a partner).
@@ -2140,6 +2147,14 @@ const phoneTimer = setInterval(() => { void pollPhone().catch(error => console.e
 const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(error => console.error('[CyberpunkConvai] Knowledge poll:', error.message)); }, 500);
 const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error => console.error('[CyberpunkConvai] Memory control:', error.message)); }, 500);
 const supportTimer = setInterval(() => { void supportReport.poll().catch(error => console.error('[CyberpunkConvai] Support report:', error.message)); }, 500);
+// The same polls run a few milliseconds after the game replaces their file (bridge/file-wake.mjs): a typed or spoken turn and a
+// phone message no longer wait half an interval (25 ms for the request, 75 ms for the microphone and the phone) to be seen.
+// The intervals above stay as the fallback. The watcher never keeps the process alive.
+watchFiles(runtime, {
+  'last-input.json': tick,
+  'microphone-command.json': () => pollMicrophone().catch(error => console.error('[CyberpunkConvai] Microphone poll:', error.message)),
+  'phone-chat-input.json': () => pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)),
+}, {log: message => console.error('[CyberpunkConvai] ' + message)});
 async function shutdown() {
   if (stopped) return;
   await companionActions.revoke();

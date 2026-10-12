@@ -8,6 +8,8 @@
 //   embedder.available()                    -> boolean   the embedding model file is there
 //   embedder.id / embedder.dim              -> e.g. 'granite-embedding-107m-multilingual-q8_0' / 384
 //   await embedder.embed(['text'], {signal}) -> Float32Array[]  (each L2-normalised)
+//   embedder.ready()                        -> boolean   the server is running: a query answers in tens of milliseconds
+//   embedder.warm()                         -> starts the server in the background (not again for retryMs after a failed start)
 //   await embedder.close()
 // Failures throw an Error whose message starts with `[local:embed]`. Another backend can replace this class as long
 // as it keeps available() / id / dim / embed() / close().
@@ -17,7 +19,8 @@ import {LlamaProcess} from './local-llm-server.mjs';
 const fileExists = path => { try { return statSync(path).isFile(); } catch { return false; } };
 
 export const LOCAL_EMBED_LIMITS = Object.freeze({
-  idleMs: 90_000,        // the server exits this long after the last use
+  idleMs: 300_000,       // the server exits this long after the last use (turns of one conversation are often minutes apart)
+  retryMs: 60_000,       // a failed start is not tried again by warm() for this long
   startupMs: 60_000,     // loading a 120 MB model takes well under a second; this is generous
   requestMs: 30_000,
   maxChars: 1500,        // longer texts are cut
@@ -28,7 +31,9 @@ export const LOCAL_EMBED_LIMITS = Object.freeze({
 export function buildEmbedArgs({model, port, keyFile, threads = 1, host = '127.0.0.1'}) {
   if (!model || !port || !keyFile) throw TypeError('model, port and keyFile are required');
   return ['-m', model, '--embedding', '--device', 'none', '-ngl', '0', '-t', String(threads), '-tb', String(threads),
-    '-c', '2048', '-b', '2048', '-ub', '2048', '-np', '1', '--no-webui', '--host', host, '--port', String(port), '--api-key-file', keyFile];
+    // -fit off: the parameters are all given, so llama-server's fit pass (which loads the model a second time to measure the
+    // devices) only costs time: the start went from 6.3-7.7 s to 2.6-3.4 s on this machine (b11560, 2026-10-13).
+    '-c', '2048', '-b', '2048', '-ub', '2048', '-np', '1', '-fit', 'off', '--no-webui', '--host', host, '--port', String(port), '--api-key-file', keyFile];
 }
 
 function embedError(message, cause) {
@@ -56,14 +61,15 @@ export function normalize(values) {
 }
 
 export class LlamaEmbedder {
-  #proc = null; #starting = null; #inflight = 0; #idleTimer = null; #generation = 0;
+  #proc = null; #starting = null; #inflight = 0; #idleTimer = null; #generation = 0; #failedAt = -Infinity;
 
   // command/argsPrefix replace pack.server when spawning (tests); processOptions go to LlamaProcess (tests).
   constructor({pack, spawnImpl, fetchImpl = fetch, idleMs = LOCAL_EMBED_LIMITS.idleMs, threads = 1, startupMs = LOCAL_EMBED_LIMITS.startupMs,
       requestMs = LOCAL_EMBED_LIMITS.requestMs, exists = fileExists, setTimer = setTimeout, clearTimer = clearTimeout, log = () => {},
-      maxChars = LOCAL_EMBED_LIMITS.maxChars, command, argsPrefix = [], processOptions = {}} = {}) {
+      maxChars = LOCAL_EMBED_LIMITS.maxChars, command, argsPrefix = [], processOptions = {}, retryMs = LOCAL_EMBED_LIMITS.retryMs,
+      now = () => performance.now()} = {}) {
     Object.assign(this, {pack, spawnImpl, fetchImpl, idleMs, startupMs, requestMs, exists, setTimer, clearTimer, log, maxChars,
-      argsPrefix, processOptions});
+      argsPrefix, processOptions, retryMs, now});
     this.threads = Math.max(1, Math.min(4, threads | 0 || 1));
     this.command = command ?? pack?.server;
   }
@@ -76,6 +82,17 @@ export class LlamaEmbedder {
     if (!file || !this.exists(file) || !this.command) return false;
     // The server file is checked too, unless a test supplies its own command.
     return this.command !== this.pack?.server || this.exists(this.command);
+  }
+
+  // True while the server runs: a query is answered at once (35 to 60 ms on one core), not after a 2 to 8 s start.
+  ready() { return !!this.#proc?.running; }
+
+  // Starts the server ahead of the query that needs it (memory retrieval does not wait for a start). No-op while it runs or
+  // starts, and for retryMs after a failed start; never throws. The server then exits idleMs after its last use, as usual.
+  warm() {
+    if (this.#proc?.running || this.#starting) return this.#starting ?? Promise.resolve(true);
+    if (!this.available() || this.now() - this.#failedAt < this.retryMs) return Promise.resolve(false);
+    return this.#ensure().then(() => { this.#arm(); return true; }, () => false);
   }
 
   async embed(texts, {signal} = {}) {
@@ -115,6 +132,7 @@ export class LlamaEmbedder {
         proc.once('exit', () => { if (this.#proc === proc) { this.#proc = null; this.#disarm(); } });
         return proc;
       }, async error => {
+        this.#failedAt = this.now();
         await proc.stop();
         this.log('[local] embedding server did not start: ' + (error?.code || error?.message));
         throw embedError('the embedding server did not start (' + (error?.code || 'error') + ')');

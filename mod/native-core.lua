@@ -25,11 +25,13 @@
 -- the handover from the Lua path to the plugin can neither lose nor repeat a write.
 local M = {API = 1}
 
--- Read by the bridge, polled by the worker every N ms (the Lua readers ran at about this rate).
+-- Read by the bridge, polled by the worker every N ms (the Lua readers ran at about this rate). reply.json and
+-- phone-chat-output.json are polled faster: init.lua and phone-chat.lua check their revision every 30 ms while a reply is due,
+-- so the worker's poll is the rest of that wait (a stat on the worker thread; an unread channel still backs off to 500 ms).
 local READS = {
     ['continuous-speech.json'] = 15, ['continuous-face.json'] = 30, ['speech-stream.json'] = 30,
-    ['reply.json'] = 30, ['microphone-heard.json'] = 50, ['microphone-state.json'] = 50,
-    ['companion-actions.json'] = 50, ['phone-chat-output.json'] = 50,
+    ['reply.json'] = 15, ['microphone-heard.json'] = 50, ['microphone-state.json'] = 50,
+    ['companion-actions.json'] = 50, ['phone-chat-output.json'] = 25,
     ['audio-delay.json'] = 250, ['memory-chat-resets.json'] = 250, ['diagnostic-request.txt'] = 250,
     ['companion-invitations-state.json'] = 250, ['bridge-service.json'] = 250, ['knowledge-status.json'] = 250,
     ['local-voice-state.json'] = 250, ['memory-status.json'] = 250, ['own-key-state.json'] = 250,
@@ -421,6 +423,14 @@ function M.install(options)
     os = setmetatable({rename = rename, remove = remove}, {__index = realOs})
     api.realIo, api.realOs = realIo, realOs
     api.flush = function(timeoutMs) return native(Io.Flush, timeoutMs or 500) == true end
+    -- The worker's revision of a routed file this mod already reads (a number that changes when the bytes change), or nil while
+    -- the plugin's io is off. A mutex and a copy of one number, no disk access: init.lua checks reply.json with it every 30 ms
+    -- while a reply is due, instead of waiting for its 0.1 s tick (docs/LATENCY_2026-10-13.md).
+    api.revision = function(name)
+        if not present or not watched[name] or not ioActive() then return nil end
+        local revision = native(Io.Revision, name)
+        return type(revision) == 'number' and revision or nil
+    end
     api.held = function() local count = 0; for _ in pairs(held) do count = count + 1 end; return count end
 
     -- Late binding: try again at onInit and on the first onUpdate ('onUpdate' is the last try).

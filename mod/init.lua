@@ -483,6 +483,9 @@ local active = nil
 local pending = nil
 local pendingKnowledgeOwner = nil
 local poll = 0
+-- While a reply is due, reply.json's revision is checked every 30 ms (see the probe before the 0.1 s throttle in onUpdate).
+-- replyRaw / replyDecoded: the last reply.json text and its decoded value, so an unchanged file is not decoded on every tick.
+local replyProbe, replyRevision, replyRaw, replyDecodeOk, replyDecoded = 0, nil, nil, false, nil
 local diagnosticPoll = 0
 -- Developer mailboxes (runtime/diagnostic-request.txt here, face-test and gesture-probe requests in their probes):
 -- each poll is one CET io.open (1-3 ms of the game thread). They answer within a second with Developer mode on and
@@ -2644,6 +2647,17 @@ registerForEvent('onUpdate', function(delta)
         end
     end
     poll = poll + (tonumber(delta) or 0)
+    -- A reply due: the native plugin's copy of reply.json is checked every 30 ms (one revision number: no disk access, no
+    -- decode), and a new reply runs this tick at once instead of up to 0.1 s later (about 40 ms sooner on average, on every
+    -- reply). Without the plugin (revision() is nil) nothing changes: a CET io.open costs 1-3 ms, too much for 30 ms.
+    if pending and poll < 0.1 and convaiNative and convaiNative.revision then
+        replyProbe = replyProbe + (tonumber(delta) or 0)
+        if replyProbe >= 0.03 then
+            replyProbe = 0
+            local revision = convaiNative.revision('reply.json')
+            if revision and revision ~= replyRevision then replyRevision = revision; poll = 0.1 end
+        end
+    end
     if poll < 0.1 then return end
     local elapsedPoll = poll
     poll = 0
@@ -2776,7 +2790,9 @@ registerForEvent('onUpdate', function(delta)
         if replyFile then
             local raw = replyFile:read('*a')
             replyFile:close()
-            local valid, reply = pcall(json.decode, raw)
+            -- The same text (a waiting turn reads the previous reply on every tick) is decoded once.
+            if raw ~= replyRaw then replyRaw = raw; replyDecodeOk, replyDecoded = pcall(json.decode, raw) end
+            local valid, reply = replyDecodeOk, replyDecoded
             if valid and type(reply) == 'table'
                 and reply.requestId == pending.requestId
                 and reply.generation == pending.generation
