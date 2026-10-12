@@ -131,11 +131,11 @@ Apache-2.0. `THIRD_PARTY_NOTICES.md` has the table.
 
 ### Pre-built Mistral voice references
 
-Voxtral (the Mistral voice) sends each character's reference clip with every request. The bridge shrinks it (mono, 16 kHz, cut to
-about 8 s in a pause, then a 32 kbit/s MP3 made with ffmpeg) and keeps the result in `<references>/prepared`, one slot per voice
-key, named by the hash of the source clip (`bridge/voxtral-reference.mjs`). A player without ffmpeg would send the 265 KB WAV
-instead of the 33 KB MP3, so the build makes the slots itself with the bridge's own code (`VoxtralVoice.build`, the call a
-conversation makes) and ships them in `voices/prepared/`. `prepare-state.mjs` sets `CYBERPUNK_CONVAI_OMNI_REFERENCES` to `voices/`
+Voxtral (the Mistral voice) sends each character's reference clip with every request. The bridge shrinks it (mono, 24 kHz, cut to
+about 8.5 s in a pause, then a 40 kbit/s MP3 made with ffmpeg; `REFERENCE_PREPARATION` in `bridge/voxtral-reference.mjs`) and keeps the
+result in `<references>/prepared`, one slot per voice key, named by a hash of the source clip and those settings. A player without
+ffmpeg would send the 408 KB WAV instead of the 43 KB MP3, so the build makes the slots itself with the bridge's own code
+(`VoxtralVoice.build`, the call a conversation makes, so a change of settings there needs no change in the build) and ships them in `voices/prepared/`. `prepare-state.mjs` sets `CYBERPUNK_CONVAI_OMNI_REFERENCES` to `voices/`
 for every install (the Omni worker only exists with the pack, so this cannot trip its all-or-none check), which is where the bridge
 looks first.
 
