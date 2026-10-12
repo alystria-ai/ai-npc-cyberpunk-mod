@@ -313,6 +313,12 @@ function M.new(options)
         if not ok then lastError = tostring(problem) end
         return ok
     end
+    -- Whether a repaint that can change what the rows look like is queued or under way: the page's veil (mcm.lua) waits for
+    -- it, so rows never show the default font and then switch. False when no font is applied or could be (an English page).
+    function S.busy()
+        if not contentNeedsFonts(ui.current()) then return false end
+        return #events > 0 or (state ~= nil and (state.pending or state.work ~= nil))
+    end
     function S.invalidate() enqueue('refresh') end
     function S.reset()
         -- Called for world teardown: discard ownership without touching a

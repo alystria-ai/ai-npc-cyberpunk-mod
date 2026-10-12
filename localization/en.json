@@ -42,7 +42,7 @@
     ]
   },
   "counts": {
-    "strings": 661,
+    "strings": 671,
     "dynamicTemplates": 58,
     "contexts": 35
   },
@@ -292,11 +292,16 @@
     "Listening - press {key} again to finish": "Listening - press {key} again to finish",
     "Load a save before inviting a companion.": "Load a save before inviting a companion.",
     "Loading": "Loading",
+    "Loading the OmniVoice voice…": "Loading the OmniVoice voice…",
+    "Loading the Pocket voice…": "Loading the Pocket voice…",
     "Loading...": "Loading...",
     "Local (needs Local AI pack)": "Local (needs Local AI pack)",
     "Local AI": "Local AI",
     "Local AI (this computer)": "Local AI (this computer)",
     "Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development.": "Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development.",
+    "Local AI could not start. Check Local AI in Settings > Development.": "Local AI could not start. Check Local AI in Settings > Development.",
+    "Local AI is ready.": "Local AI is ready.",
+    "Local AI is warming up…": "Local AI is warming up…",
     "Manage": "Manage",
     "Memories can be managed here.": "Memories can be managed here.",
     "Memory": "Memory",
@@ -352,11 +357,14 @@
     "Not added": "Not added",
     "Not configured": "Not configured",
     "Not enough graphics memory": "Not enough graphics memory",
+    "Not enough graphics memory for Local AI. A cloud provider is used instead.": "Not enough graphics memory for Local AI. A cloud provider is used instead.",
     "Not installed": "Not installed",
     "Not running": "Not running",
     "Off": "Off",
+    "OmniVoice could not load. See Help in Settings.": "OmniVoice could not load. See Help in Settings.",
     "OmniVoice is an optional add-on for computers with a capable GPU. Pocket TTS needs nothing extra.": "OmniVoice is an optional add-on for computers with a capable GPU. Pocket TTS needs nothing extra.",
     "OmniVoice pack": "OmniVoice pack",
+    "OmniVoice voice is ready.": "OmniVoice voice is ready.",
     "OmniVoice · Balanced": "OmniVoice · Balanced",
     "OmniVoice · High Quality": "OmniVoice · High Quality",
     "OmniVoice · Quality": "OmniVoice · Quality",
@@ -385,7 +393,9 @@
     "Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them.": "Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them.",
     "Please wait for the current requests to finish.": "Please wait for the current requests to finish.",
     "Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.": "Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.",
+    "Pocket could not load. See Help in Settings.": "Pocket could not load. See Help in Settings.",
     "Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. The Mistral cloud voice (Voxtral) speaks in each companion’s own voice using your Mistral key, whichever provider writes the replies; it needs a key and speaks English only. Convai uses its cloud; if a choice cannot run, a simpler voice takes over and you are told once.": "Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. The Mistral cloud voice (Voxtral) speaks in each companion’s own voice using your Mistral key, whichever provider writes the replies; it needs a key and speaks English only. Convai uses its cloud; if a choice cannot run, a simpler voice takes over and you are told once.",
+    "Pocket voice is ready.": "Pocket voice is ready.",
     "Pocket · Performance": "Pocket · Performance",
     "Prepares the conversation with a character you look at, walk up to or have just talked to, so they answer without a wait; it pauses during combat and scenes. At most two characters are kept ready at any moment, at most one new connection starts every 3 seconds and a character is released after 40 seconds unused, so a crowd never adds up.": "Prepares the conversation with a character you look at, walk up to or have just talked to, so they answer without a wait; it pauses during combat and scenes. At most two characters are kept ready at any moment, at most one new connection starts every 3 seconds and a character is released after 40 seconds unused, so a crowd never adds up.",
     "Preparing a reply": "Preparing a reply",
@@ -633,8 +643,8 @@
     "Where the logs are": "Where the logs are",
     "Which provider answers your conversations right now and, for Convai, which plan pays for them. Changes wait until no conversation is running.": "Which provider answers your conversations right now and, for Convai, which plan pays for them. Changes wait until no conversation is running.",
     "Who can talk": "Who can talk",
-    "Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.": "Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.",
-    "Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with Mistral, so type your messages. The change waits until no conversation is running; choose Apply.": "Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with Mistral, so type your messages. The change waits until no conversation is running; choose Apply.",
+    "Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.": "Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.",
+    "Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with Mistral, so type your messages. The change waits until no conversation is running; choose Apply.": "Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with Mistral, so type your messages. The change waits until no conversation is running; choose Apply.",
     "Write a message...": "Write a message...",
     "Write a message...  /  Enter to send  /  Esc to stop typing": "Write a message...  /  Enter to send  /  Esc to stop typing",
     "YOUR PARTY": "YOUR PARTY",
@@ -1391,8 +1401,13 @@
       "Listening - press the same voice chat shortcut again to finish",
       "Listening - press {key} again to finish",
       "Load a save before inviting a companion.",
+      "Loading the OmniVoice voice…",
+      "Loading the Pocket voice…",
       "Local AI (this computer)",
       "Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development.",
+      "Local AI could not start. Check Local AI in Settings > Development.",
+      "Local AI is ready.",
+      "Local AI is warming up…",
       "Memory clear confirmed for {target}.",
       "Memory: remembers your conversations",
       "Microphone connection timed out. Please try again.",
@@ -1420,12 +1435,17 @@
       "None yet",
       "Not added",
       "Not enough graphics memory",
+      "Not enough graphics memory for Local AI. A cloud provider is used instead.",
       "Not installed",
       "Not running",
       "Off",
+      "OmniVoice could not load. See Help in Settings.",
+      "OmniVoice voice is ready.",
       "Page {page} / {pages}",
       "Pending: {voice}",
       "Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.",
+      "Pocket could not load. See Help in Settings.",
+      "Pocket voice is ready.",
       "Pocket · Performance",
       "Preparing connection to {name}…",
       "Preparing voices",
@@ -1504,8 +1524,8 @@
       "Waiting for the conversation to end",
       "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.",
       "Warming up",
-      "Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.",
-      "Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with Mistral, so type your messages. The change waits until no conversation is running; choose Apply.",
+      "Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.",
+      "Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with Mistral, so type your messages. The change waits until no conversation is running; choose Apply.",
       "You: {text}",
       "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development.",
       "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.",
@@ -2600,14 +2620,6 @@
         "mod/mcm.lua:1025"
       ]
     },
-    "Convai free tier": {
-      "contexts": [
-        "mcm.options"
-      ],
-      "references": [
-        "mod/mcm.lua:821"
-      ]
-    },
     "Convai API key": {
       "contexts": [
         "mcm.readonly"
@@ -2630,6 +2642,14 @@
       ],
       "references": [
         "mod/init.lua:1947"
+      ]
+    },
+    "Convai free tier": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:821"
       ]
     },
     "Convai voice": {
@@ -3656,6 +3676,22 @@
         "mod/mcm.lua:346"
       ]
     },
+    "Loading the OmniVoice voice…": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:69"
+      ]
+    },
+    "Loading the Pocket voice…": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:73"
+      ]
+    },
     "Loading...": {
       "contexts": [
         "legacy.manager"
@@ -3694,6 +3730,30 @@
       ],
       "references": [
         "mod/init.lua:1978"
+      ]
+    },
+    "Local AI could not start. Check Local AI in Settings > Development.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:80"
+      ]
+    },
+    "Local AI is ready.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:78"
+      ]
+    },
+    "Local AI is warming up…": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:77"
       ]
     },
     "Manage": {
@@ -4165,6 +4225,14 @@
         "mod/mcm.lua:707"
       ]
     },
+    "Not enough graphics memory for Local AI. A cloud provider is used instead.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:79"
+      ]
+    },
     "Not installed": {
       "contexts": [
         "mcm.voice-status",
@@ -4194,6 +4262,14 @@
         "mod/mcm.lua:326"
       ]
     },
+    "OmniVoice could not load. See Help in Settings.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:71"
+      ]
+    },
     "OmniVoice is an optional add-on for computers with a capable GPU. Pocket TTS needs nothing extra.": {
       "contexts": [
         "mcm.readonly"
@@ -4208,6 +4284,14 @@
       ],
       "references": [
         "mod/mcm.lua:1069"
+      ]
+    },
+    "OmniVoice voice is ready.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:70"
       ]
     },
     "OmniVoice · Balanced": {
@@ -4443,12 +4527,28 @@
         "mod/manager.lua:724"
       ]
     },
+    "Pocket could not load. See Help in Settings.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:75"
+      ]
+    },
     "Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. The Mistral cloud voice (Voxtral) speaks in each companion’s own voice using your Mistral key, whichever provider writes the replies; it needs a key and speaks English only. Convai uses its cloud; if a choice cannot run, a simpler voice takes over and you are told once.": {
       "contexts": [
         "mcm.setting"
       ],
       "references": [
         "mod/mcm.lua:1056"
+      ]
+    },
+    "Pocket voice is ready.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:74"
       ]
     },
     "Pocket · Performance": {
@@ -6539,7 +6639,7 @@
         "mod/mcm.lua:948"
       ]
     },
-    "Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.": {
+    "Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.": {
       "contexts": [
         "ui.localized"
       ],
@@ -6547,7 +6647,7 @@
         "mod/mcm.lua:685"
       ]
     },
-    "Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with Mistral, so type your messages. The change waits until no conversation is running; choose Apply.": {
+    "Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with Mistral, so type your messages. The change waits until no conversation is running; choose Apply.": {
       "contexts": [
         "ui.localized"
       ],

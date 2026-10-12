@@ -309,3 +309,29 @@ test('an idle adapter makes no native call per update', () => run(`
   for index = 1, 100 do frame() end
   assert(rootReads == reads)
 `));
+
+test('busy says whether a repaint that can change fonts is queued or under way, so a page is not shown half-fonted', () => run(`
+  assert(adapter.busy() == false, 'busy with no page')
+  local p = render(true)
+  for index = 1, 700 do p.content.children[#p.content.children + 1] = widget('row-' .. index, 'Owned') end
+  assert(adapter.busy() == true, 'a render is queued')
+  local frames = 0
+  repeat frame(); frames = frames + 1 until not adapter.busy() or frames > 30
+  assert(frames > 1 and frames <= 30, 'a large page finishes over several frames: ' .. frames)
+  assert(assigned(p.content.children[#p.content.children]) and not adapter.inspect().pending)
+  -- A hover is a description-only repaint: it never needs the rows hidden, and it ends at once.
+  emit('McmUiEmitHover', reference(), 'ours', '', true)
+  frame(); assert(adapter.busy() == false)
+`));
+
+test('busy is false on a Latin page that shows no native language names', () => run(`
+  code, revision = 'en', 9
+  local gated = (function() ${source} end)().new({ui = ui, fonts = library,
+    label = function() return ui.t('Companion Manager') end,
+    active = function() guard(); return ownActive end,
+    contentMayNeedFonts = function() return false end})
+  gated.install()
+  render(true)
+  assert(gated.busy() == false, 'a page with nothing to restyle was held back')
+  assert(gated.update())
+`));

@@ -8,6 +8,9 @@ local manager, queue, entry, api, provider
 local view, modelQuery, modelPage = 'home', '', 1
 local actions, hooksInstalled, refreshQueued = {}, false, false
 local owner, lastSignature, pollAt, searchFrames, snapshotAt = nil, '', 0, 0, 0
+-- What the page that is on screen was built from (pageSignature) and what the last once-a-second look found. The page is
+-- drawn again when they differ, or when something forces it (refreshQueued: a language change, a Back, a new save ...).
+local renderedSignature = ''
 local lastError = ''
 local actionFeedback, memoryActionCommand
 local preparationTarget, preparationStatus, preparationActionFeedback
@@ -56,6 +59,25 @@ local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); file:close() end
     print('[CyberpunkConvai] ' .. message)
+end
+
+-- The slow components whose loading is announced (convaiNotices.loading, mod/notices.lua), in the order their lines show, and the
+-- line of each state. A state other than 'loading' and 'ready' is a failure: the line says what to do.
+local LOAD_KEYS = {'omni', 'pocket', 'local-ai'}
+local function loadingText(key, state)
+    if key == 'omni' then
+        if state == 'loading' then return ui.t('Loading the OmniVoice voice…') end
+        if state == 'ready' then return ui.t('OmniVoice voice is ready.') end
+        return ui.t('OmniVoice could not load. See Help in Settings.')
+    elseif key == 'pocket' then
+        if state == 'loading' then return ui.t('Loading the Pocket voice…') end
+        if state == 'ready' then return ui.t('Pocket voice is ready.') end
+        return ui.t('Pocket could not load. See Help in Settings.')
+    end
+    if state == 'loading' then return ui.t('Local AI is warming up…') end
+    if state == 'ready' then return ui.t('Local AI is ready.') end
+    if state == 'no-memory' then return ui.t('Not enough graphics memory for Local AI. A cloud provider is used instead.') end
+    return ui.t('Local AI could not start. Check Local AI in Settings > Development.')
 end
 
 local function player()
@@ -247,28 +269,55 @@ local function styleRow(row, widgets, budget)
     end
 end
 
+-- A page that was just drawn shows the framework's own look (cyan, unaligned labels) until it is styled, which takes one to
+-- three frames in batches: every redraw flashed that. So the rows are hidden (opacity 0, the layout is untouched) from the
+-- moment the page is found until it is styled and its fonts are in place, then shown at their own opacity. The page is never
+-- hidden longer than VEIL_MAX seconds, whatever happens, and a veil on a page that was drawn again is gone with its widget.
+local VEIL_MAX = 0.75
+local function veilPage(content)
+    local read, opacity = pcall(function() return content:GetOpacity() end)
+    if pcall(function() content:SetOpacity(0.0) end) then
+        presentation.veil = {widget = content, opacity = read and tonumber(opacity) or 1.0, at = os.clock()}
+    end
+end
+
+local function unveilPage()
+    local held = presentation.veil
+    if not held then return end
+    presentation.veil = nil
+    pcall(function() held.widget:SetOpacity(held.opacity) end)
+end
+
 -- Called only by top-level onUpdate, never inside an observed native call.
 -- CET shares a finite scratch arena across nested reflected calls. Walking
 -- the UI from a native hook can exhaust it even if every getter is valid.
 -- A new page is styled in batches (presentation.job); presentation.pending stays
 -- set until the last batch, which also holds back the Back button and the status
 -- line. A hover-out only re-tints that row's label (presentation.restyle), not the page.
+-- Finds the new page's parts and hides its rows; returns the job, or nil when there is nothing to style.
+local function beginStyleJob()
+    if not presentation.active or not active() or not presentation.controller then
+        presentation.pending = false
+        return nil
+    end
+    local found = locateRoots(presentation.controller)
+    presentation.roots = found
+    presentation.statusWidget, presentation.renderRoot = found.status, found.render
+    local content = found.content
+    if not content then presentation.pending = false; return nil end
+    veilPage(content)
+    local job = {content = content, count = math.min(content:GetNumChildren(), 1200), index = 0,
+        rows = {}, widgets = {}, at = 0}
+    presentation.job = job
+    return job
+end
+
 local function styleCompletedPage()
     if presentation.pending then
         local job = presentation.job
         if not job then
-            if not presentation.active or not active() or not presentation.controller then
-                presentation.pending = false
-                return
-            end
-            local found = locateRoots(presentation.controller)
-            presentation.roots = found
-            presentation.statusWidget, presentation.renderRoot = found.status, found.render
-            local content = found.content
-            if not content then presentation.pending = false; return end
-            job = {content = content, count = math.min(content:GetNumChildren(), 1200), index = 0,
-                rows = {}, widgets = {}, at = 0}
-            presentation.job = job
+            job = beginStyleJob()
+            if not job then return end
         end
         local budget = {left = STYLE_BUDGET}
         while job.index < job.count and budget.left > 0 do
@@ -300,6 +349,10 @@ local function styleCompletedPage()
     end
 end
 function M.styleStep() return styleCompletedPage() end
+-- Right after this module drew a page itself (reloadMod), in the same frame: the rows are hidden before the frame is shown.
+function M.styleBegin()
+    if presentation.pending and not presentation.job then return beginStyleJob() end
+end
 
 local function readonly(id, label, value, description, raw)
     raw = raw or {}
@@ -771,8 +824,8 @@ local function ownKeyRows(snapshot)
     else groqStatus = ui.t('Not added') end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
-        and ui.t('Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.')
-        or ui.t('Who writes your companions’ replies. Convai is the default and the recommended choice, with better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with Mistral, so type your messages. The change waits until no conversation is running; choose Apply.')
+        and ui.t('Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.')
+        or ui.t('Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with Mistral, so type your messages. The change waits until no conversation is running; choose Apply.')
     if mistral.pending then using = ui.t('Waiting for the conversation to end')
     elseif mistral.effective == 'mistral' then
         if mistral.limit == 'rate' or mistral.limit == 'daily' then using = ui.t('Mistral: free limit reached for now')
@@ -843,11 +896,66 @@ local function ownKeyRows(snapshot)
     return rows
 end
 
+-- What the current page shows that can change without the player touching it, as one string: the page is drawn again only
+-- when this changes, so a state the page does not show (a voice going from loading to ready while the Characters list is
+-- open, the voice status line that is rewritten in place) never redraws it. Every field below is read by that page's rows.
+local function pageSignature(snapshot)
+    local parts = {view}
+    local function add(text) parts[#parts + 1] = text end
+    local function memorySignature()
+        local memory = snapshot.memory
+        add(table.concat({memory.state, tostring(memory.talkedToCount), memory.feedback,
+            memory.selectedKey or '', memory.confirmation and memory.confirmation.token or '',
+            memory.command and memory.command.id or '', memory.command and memory.command.scope or '',
+            memory.command and memory.command.profileKey or '', memory.command and memory.command.state or ''}, '|'))
+    end
+    if view == 'characters' or view == 'party' then
+        add(tostring(queue.message()))
+        add(tostring(queue.count()))
+        for _, member in ipairs(queue.list()) do
+            add(table.concat({member.id, member.state or '', member.profileKey or '', member.error or '', member.dismissError or ''}, '|'))
+        end
+    end
+    if view == 'party' then
+        local trip = queue.chauffeur()
+        add(table.concat({trip.phase or '', tostring(trip.stopPending), trip.reason or '', trip.error or ''}, '|'))
+    end
+    if view == 'characters' or view == 'memory' or view == 'memory-characters' then memorySignature() end
+    if view == 'characters' then
+        local voice, pack = snapshot.localVoice, manager.omniPack()
+        add(table.concat({voice.provider or '', tostring(voice.cloudVoice), tostring(voice.omniSteps), tostring(voice.omniReference),
+            table.concat(voice.routedProfiles or {}, ','), tostring(pack.known), tostring(pack.installed),
+            tostring((snapshot.mistral or {}).saved)}, '|'))
+    end
+    if view == 'models' then
+        add(tostring(#snapshot.models))
+        add(tostring(snapshot.scan.finished))
+    end
+    if support and view == 'help' then add('help:' .. support.signature() .. '|' .. support.serviceState()) end
+    if view == 'settings' then
+        -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
+        -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears. The voice status line
+        -- is not here: it is updated in place.
+        local own, pack, mistral = snapshot.ownKey, manager.omniPack(), snapshot.mistral or {}
+        local groq = type(mistral.groq) == 'table' and mistral.groq or {}
+        add(table.concat({'key', tostring(own.saved), own.tail or '', own.active, tostring(own.pending),
+            own.result or '', own.limit or '', tostring(own.limitOwn), tostring(own.memoryOff),
+            own.daily and (tostring(own.daily.left) .. '/' .. tostring(own.daily.blocked)) or ''}, '|'))
+        add(table.concat({'provider', tostring(mistral.saved), mistral.tail or '', mistral.provider or '', mistral.effective or '',
+            mistral.localAi or '', tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
+            tostring(groq.saved), groq.tail or '', groq.limit or '', groq.result or '',
+            tostring(pack.known), tostring(pack.installed)}, '|'))
+    end
+    return table.concat(parts, '\n')
+end
+
 local function schema()
     local currentPlayer = player()
     owner = identity(currentPlayer)
     queue.bind(owner)
     local snapshot, party = manager.snapshot(currentPlayer), queue.list()
+    renderedSignature = pageSignature(snapshot)
+    lastSignature = renderedSignature
     actions = {}
     currentBack = nil
     local categories = {}
@@ -1492,7 +1600,10 @@ function M.install()
     end)
     Observe('SettingsMainGameController', 'McmUiEmitSearch', function(_, context, value)
         if context == 'content' and active() then
-            modelQuery, modelPage, searchFrames = tostring(value or ''):sub(1, 100), 1, 6
+            -- The page is drawn again 6 frames after the last change of the text. Emitting the text it already has (the
+            -- search box cleared by a navigation, which then draws its page) is no change: it drew every page twice.
+            local text = tostring(value or ''):sub(1, 100)
+            if text ~= modelQuery then modelQuery, modelPage, searchFrames = text, 1, 6 end
         end
     end)
     -- Leaving Settings with unapplied changes must ask first. MCM asks only from its
@@ -1656,6 +1767,18 @@ function M.slowUpdate(currentPlayer, worldReady)
     end
     local progress = board and board.take(worldReady == true)
     if progress then messages[#messages + 1] = {id = 'invite-board', text = progress.message} end
+    -- A slow component loading (the OmniVoice voice after a switch or at start, Local AI warming up): its line is shown again
+    -- every few seconds until the "ready" line replaces it. The board reads the state at most once a second while nothing loads.
+    if type(convaiNotices) == 'table' and type(convaiNotices.loading) == 'function' and type(manager.loadStatus) == 'function' then
+        local lines = convaiNotices.loading(worldReady == true, LOAD_KEYS, manager.loadStatus, loadingText)
+        if lines then
+            for _, line in ipairs(lines) do
+                if line.phase == 'loading' then messages[#messages + 1] = {id = 'load-progress', text = line.text}
+                elseif line.phase == 'ready' then messages[#messages + 1] = {id = 'load-ready', text = line.text}
+                else messages[#messages + 1] = {id = 'load-failed', text = line.text} end
+            end
+        end
+    end
     if #messages > 0 and currentPlayer then
         -- The same native neutral warning channel used by phone invitations, through the one
         -- notice gate (notices.lua): each line is shown or dropped by its class.
@@ -1691,10 +1814,14 @@ function M.update(currentPlayer, worldReady)
     -- our translated sidebar item readable when another mod is selected.
     fontPresentation.update()
     pcall(restoreStatusLine)
-    if not activeForUpdate(presentation.active or presentation.pending == true) then return end
+    if not activeForUpdate(presentation.active or presentation.pending == true) then
+        if presentation.veil then unveilPage() end
+        return
+    end
     local styleOk, styleError = pcall(M.styleStep)
     if not styleOk then
         presentation.pending, presentation.job = false, nil
+        unveilPage()
         lastError = 'Settings presentation: ' .. tostring(styleError)
     end
     local placed, placeError = pcall(placeBackButton)
@@ -1703,58 +1830,45 @@ function M.update(currentPlayer, worldReady)
     if not movedOk then lastError = 'Status line: ' .. tostring(movedError) end
     local bannerOk, bannerError = pcall(updatePreparationBanner)
     if not bannerOk then lastError = 'Preparation presentation: ' .. tostring(bannerError) end
+    -- The rows are shown once the page is styled and its fonts are applied (or after VEIL_MAX, whatever is left).
+    local held = presentation.veil
+    if held and (os.clock() - held.at > VEIL_MAX or (not presentation.pending and not (fontPresentation.busy and fontPresentation.busy()))) then
+        unveilPage()
+    end
     if searchFrames > 0 then
         searchFrames = searchFrames - 1
         if searchFrames == 0 then refreshQueued = true end
     end
-    if view == 'models' then
-        local finished = manager.scanModels()
-        if finished ~= M.scanComplete or (not finished and now >= (M.nextScanRefresh or 0)) then
-            M.scanComplete, M.nextScanRefresh, refreshQueued = finished, now + 1, true
-        end
-    end
+    -- The scan runs a bounded batch a frame; the page follows it through pageSignature (the number of models found).
+    if view == 'models' then manager.scanModels() end
     if now >= snapshotAt then
         snapshotAt = now + 1
         local snapshot = manager.snapshot(currentPlayer)
         local statusOk, statusError = pcall(updateVoiceStatus, snapshot)
         if not statusOk then lastError = 'Voice service presentation: ' .. tostring(statusError) end
-        local signature = {queue.message(), tostring(queue.count()), snapshot.localVoice.state or '',
-            snapshot.localVoice.provider or '', tostring(snapshot.localVoice.pending),
-            tostring(snapshot.localVoice.previewActive), tostring(snapshot.localVoice.preparationOnly)}
-        local trip = queue.chauffeur()
-        signature[#signature + 1] = table.concat({trip.phase or '', tostring(trip.stopPending),
-            trip.reason or '', trip.error or ''}, '|')
         local memory = snapshot.memory
         if memory.command and memory.command.id == memoryActionCommand then actionFeedback = memory.feedback end
-        signature[#signature + 1] = table.concat({memory.state, tostring(memory.talkedToCount), memory.feedback,
-            memory.selectedKey or '', memory.confirmation and memory.confirmation.token or '',
-            memory.command and memory.command.id or '', memory.command and memory.command.scope or '',
-            memory.command and memory.command.profileKey or '', memory.command and memory.command.state or ''}, '|')
-        for _, member in ipairs(queue.list()) do
-            signature[#signature + 1] = table.concat({member.id, member.state or '', member.profileKey or '', member.error or '', member.dismissError or ''}, '|')
-        end
         if support and view == 'help' then
-            -- Refresh the Help page when the report state or service state changes.
+            -- The Help banner follows the report state.
             local reportSignature = support.signature()
             if reportSignature ~= supportSignature then
                 supportSignature = reportSignature
                 actionFeedback = support.banner() or actionFeedback
             end
-            signature[#signature + 1] = 'help:' .. reportSignature .. '|' .. support.serviceState()
         end
-        if view == 'settings' then
-            -- The key status page changes when the bridge answers a Paste or Remove, or reports a used-up plan.
-            local own = snapshot.ownKey
-            signature[#signature + 1] = table.concat({'key', tostring(own.saved), own.tail or '', own.active, tostring(own.pending),
-                own.result or '', own.limit or '', tostring(own.limitOwn), tostring(own.memoryOff)}, '|')
-        end
-        signature = table.concat(signature, '\n')
-        if signature ~= lastSignature then lastSignature, refreshQueued = signature, true end
+        lastSignature = pageSignature(snapshot)
     end
-    if refreshQueued and searchFrames == 0 and not api.hasDrafts(MOD_KEY) then
+    -- A page is drawn again when something forces it, or when what it shows has changed since it was built. A change that
+    -- came while changes were pending (the redraw waits for Apply or Revert) is dropped if the page built since shows it.
+    if (refreshQueued or lastSignature ~= renderedSignature) and searchFrames == 0 and not api.hasDrafts(MOD_KEY) then
         refreshQueued = false
         local _, err = api.reloadMod(MOD_KEY)
         if err then lastError = tostring(err) end
+        -- The page is new now: hide its rows in this frame, before it is shown, and style them over the next ones.
+        if presentation.pending then
+            local begun, beginError = pcall(M.styleBegin)
+            if not begun then lastError = 'Settings presentation: ' .. tostring(beginError) end
+        end
     end
 end
 
@@ -1785,8 +1899,9 @@ function M.resetSession()
     actionFeedback = nil
     memoryActionCommand = nil
     preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
-    owner, lastSignature, refreshQueued = nil, '', true
+    owner, lastSignature, renderedSignature, refreshQueued = nil, '', '', true
     slowAt, lastWorldReady = 0, nil
+    if type(convaiNotices) == 'table' and type(convaiNotices.resetLoading) == 'function' then convaiNotices.resetLoading() end
     presentation = {active = false, rows = {}}
     fontPresentation.reset()
     voicePreview.reset()

@@ -93,9 +93,28 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `action-queued` | Developer | {name} is going to distract {target}. | A companion action was accepted | none |
 | `party-stop-trip` | Player | Stopping the trip. Wait for the car to stop before stepping out. | Stop trip pressed in the Manager | 15 |
 | `trip-failed` | Player | The trip's error or failure reason | A driving trip failed | 15 |
+| `load-progress` | Player | Loading the OmniVoice voice… / Loading the Pocket voice… / Local AI is warming up… | A slow component is loading (the OmniVoice or Pocket voice engine the player chose, Local AI while its model server warms up), once the load has lasted 1.5 s. Shown again every 3 s (never on top of another notice that is younger than 3 s) until the ready line replaces it | none |
+| `load-ready` | Player | OmniVoice voice is ready. / Pocket voice is ready. / Local AI is ready. | The component finished loading, only when its loading line was shown. Once; waits for gameplay if it finished in a menu | none |
+| `load-failed` | Player | OmniVoice could not load. See Help in Settings. / Pocket could not load. See Help in Settings. / Local AI could not start. Check Local AI in Settings > Development. / Not enough graphics memory for Local AI. A cloud provider is used instead. | The component failed while its loading line was up (a voice failure that has a fallback is left to `voice-fallback`). Once | none |
 | `trip-guidance` | Developer | Your companion is driving to the selected waypoint. / Your companion is ready. Get in the passenger seat to start the trip. / The car has stopped. Step out so your companion can leave the driver seat. | Driving steps | none |
 | `tactic-outcome` | Developer | {name} called off the distraction. / The distraction target is gone. / The distraction fell apart: combat started. / {name} could not reach the target. / {name} could not engage the target. | A companion tactic ended | none |
 | `support-report-saved` | Developer | Support report saved: {path} | A Help report finished | once |
+
+## Loading notices
+
+A switch that takes time (an OmniVoice voice after a voice change or at start, Local AI warming up for about a minute the first time) says so
+instead of leaving the player wondering. The loading board in `mod/notices.lua` (`convaiNotices.loading`) keeps one entry per component:
+the loading line appears when the load has lasted 1.5 s and is shown again every 3 s, because a notice is gone after a few seconds and the
+next one replaces it, until the "ready" line (or a failure line that says what to do) replaces it. A load that finishes quickly shows nothing.
+Popups only show in gameplay, so an outcome reached in a menu is shown on the first gameplay tick.
+
+Status signals read, all of them already published by the bridge and read on a slow tick (never per frame; nothing is read while nothing loads
+except the once-a-second check):
+- OmniVoice and Pocket: `runtime/local-voice-state.json` (`workerBackend`, `requestedProvider`, `state` loading / ready), decoded by `mod/manager.lua` anyway.
+  Only the engine the player chose counts, and only the model load (`loading`), not a per-character preparation (`warming`).
+- Local AI: `localAi` in `runtime/mistral-state.json` (warming, ready, failed, no-memory), read only while Local is the conversation provider.
+No signal exists yet for the Mistral cloud voice's reference preparation (it is a cached, sub-second step), the voice browser's warm-up or the
+Inworld voice; each can add a state to `manager.loadStatus` and two lines to `loadingText` in `mod/mcm.lua` when it has one.
 
 ## Adding a notice
 
@@ -133,3 +152,5 @@ no "bridge", no "eight metres"). Earlier: 248c14c, a20c7a1, e7e9760 (calmer invi
 2026-10-10 (connect before joined): on a player's own Convai key the invited companion's connection was never opened at all: the single-session plan treated every invitation as ready at once, so "joined" came with no connection and the first talk showed "Preparing connection" (the shared key was unaffected, and none of the notice changes touched this). An invitation now opens its own companion's connection before she is ready, one at a time, and a failed attempt does not fail the invitation. The wait notice is unchanged: it shows at a talk, composer or voice start only, never from gaze.
 
 2026-10-10 (preparing line back, once per join): a companion whose connection is being prepared on spawn or join gets "Preparing connection to {name}…" (the existing wait notice string, so no new translation), then "{name} joined your group." once she has joined. It is decided when the board first sees the invitation (`mod/manager-party.lua`, `openConnection`, one read of `runtime/party-connection-state.json` through `autoConnect.connected`): connection open or invitation already ready means no preparing line. The line is posted once per invitation (a paused menu that hides it gets one gameplay presentation, like every board notice); several companions share one notice with a line each, and two copies of one character share a line. The old "joining" progress line, the ready line and "Connecting" stay removed. Event-driven: the board is sampled by the existing update that already runs it; nothing new per frame.
+
+2026-10-13: loading notices (`load-progress`, `load-ready`, `load-failed`): a slow OmniVoice, Pocket or Local AI load is announced until it is ready.

@@ -411,6 +411,36 @@ function M.mistral()
         limit = mistralLimits[state.limit] and state.limit or nil, model = model, stt = state.stt == true}
 end
 
+-- What is loading right now, for the loading notices (convaiNotices.loading in notices.lua). A table key -> state:
+--   omni, pocket   the local voice engine the player chose: 'loading' while its model loads (the bridge's state 'loading'; its
+--                  'warming' and 'speaking' are per-character work after the load), 'ready' once it is up, 'error' on a failure
+--                  that has no fallback (a fallback has its own notice, so it ends the loading line quietly)
+--   local-ai       'loading' while the model server warms up, 'ready', or 'failed' / 'no-memory'; only read while Local is the
+--                  chosen conversation provider
+-- Nothing is read from disk here for the voices (updateLocalVoice has decoded the bridge's file already); runtime/mistral-state.json
+-- is read through updateMistral (at most every 1.5 s) and only while Local is chosen. The table is reused; callers read it at once.
+local loadSignals = {}
+function M.loadStatus()
+    local signals = loadSignals
+    signals.omni, signals.pocket, signals['local-ai'] = nil, nil, nil
+    local voice = localVoiceState
+    local engine = voice.workerBackend
+    if (engine == 'omni' or engine == 'pocket') and voice.requestedProvider == engine then
+        local phase = voice.state
+        if phase == 'loading' then signals[engine] = 'loading'
+        elseif phase == 'ready' or phase == 'warming' or phase == 'speaking' then signals[engine] = 'ready'
+        elseif phase == 'error' and type(voice.fallback) ~= 'table' then signals[engine] = 'error' end
+    end
+    if settings and settings.conversationProvider == 'local' then
+        updateMistral()
+        local localAi = mistralState.localAi
+        if localAi == 'warming' then signals['local-ai'] = 'loading'
+        elseif localAi == 'ready' then signals['local-ai'] = 'ready'
+        elseif localAi == 'failed' or localAi == 'no-memory' then signals['local-ai'] = localAi end
+    end
+    return signals
+end
+
 function M.confirmMemoryClear(token)
     updateMemory()
     local confirmation = memoryConfirmation

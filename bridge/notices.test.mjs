@@ -284,3 +284,127 @@ test('the notice board posts no progress, to a player or a developer, and only t
     assert.equal(status, lua.LUA_OK, status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1)));
   } finally { lua.lua_close(state); }
 });
+
+// The loading board: a slow component's line is shown again until its ready line replaces it.
+const boardSetup = `
+  local clock = 100
+  notices.clock = function() return clock end
+  local state, reads = {}, 0
+  local KEYS = {'omni', 'local-ai'}
+  local function read() reads = reads + 1; return state end
+  local function describe(key, value) return key .. ':' .. value end
+  -- One tick: what the caller does, lines shown as one notice through sendLines.
+  local function tick(world, seconds)
+    clock = clock + (seconds or 0.25)
+    local lines = notices.loading(world ~= false, KEYS, read, describe)
+    if not lines then return nil end
+    local out = {}
+    for _, line in ipairs(lines) do
+      local id = line.phase == 'loading' and 'load-progress' or line.phase == 'ready' and 'load-ready' or 'load-failed'
+      out[#out + 1] = {id = id, text = line.text}
+    end
+    notices.sendLines(player, out)
+    return lines
+  end
+  local function run(seconds, world)
+    for _ = 1, seconds * 4 do tick(world) end
+  end
+`;
+
+test('a loading line appears after 1.5 s, is shown again every 3 s and is replaced once by the ready line', () => {
+  run(`${boardSetup}
+    state.omni = 'loading'
+    run(1); assert(#shown == 0, 'a quick load showed a line')
+    run(1)
+    assert(#shown == 1 and shown[1] == 'omni:loading', 'no loading line after 2 s: ' .. #shown)
+    run(2.5); assert(#shown == 1, 'shown again before 3 s')
+    run(1); assert(#shown == 2, 'not shown again after 3 s')
+    run(20); assert(#shown >= 8 and #shown <= 9, 'every 3 s for 23 s: ' .. #shown)
+    for _, text in ipairs(shown) do assert(text == 'omni:loading') end
+    local before = #shown
+    state.omni = 'ready'
+    run(1)
+    assert(#shown == before + 1 and shown[#shown] == 'omni:ready', 'ready line ' .. tostring(shown[#shown]))
+    run(30); assert(#shown == before + 1, 'something was shown after the ready line')
+  `);
+});
+
+test('a load that finishes before its line was shown says nothing, a failure always does, a cancelled load is silent', () => {
+  run(`${boardSetup}
+    state.omni = 'loading'; run(1); state.omni = 'ready'; run(10)
+    assert(#shown == 0, 'a one-second load was announced')
+    state.omni = 'loading'; run(1); state['local-ai'] = nil; state.omni = 'error'; run(2)
+    assert(#shown == 1 and shown[1] == 'omni:error', 'a failure within the delay was not announced: ' .. tostring(shown[1]))
+    run(30); assert(#shown == 1, 'the failure repeated')
+    shown = {}
+    state.omni = 'loading'; run(5); local seen = #shown; assert(seen >= 1)
+    state.omni = nil; run(30)
+    assert(#shown == seen, 'a cancelled load announced an outcome')
+    -- a state that was never loading is not an outcome either
+    state['local-ai'] = 'failed'; run(5); assert(#shown == seen)
+  `);
+});
+
+test('several components share one notice, with the outcome first, and a failure names its variant', () => {
+  run(`${boardSetup}
+    state.omni, state['local-ai'] = 'loading', 'loading'
+    local seen
+    for _ = 1, 20 do local lines = tick(); if lines and not seen then seen = #lines end end
+    assert(seen == 2 and shown[1] == 'omni:loading\\nlocal-ai:loading', shown[1])
+    state.omni = 'ready'; state['local-ai'] = 'no-memory'
+    local lines
+    for _ = 1, 4 do lines = tick() or lines end
+    assert(shown[#shown] == 'omni:ready\\nlocal-ai:no-memory', shown[#shown])
+  `);
+});
+
+test('a loading line never lands on a notice younger than 3 s, and an outcome reached in a menu waits for gameplay', () => {
+  run(`${boardSetup}
+    state.omni = 'loading'
+    run(3)
+    assert(#shown == 1)
+    notices.send(player, 'service-down', 'Another notice')
+    local atNotice = #shown
+    run(2.5); assert(#shown == atNotice, 'the loading line covered a younger notice')
+    run(1); assert(#shown == atNotice + 1 and shown[#shown] == 'omni:loading')
+    -- The load finishes in a menu: nothing is shown there, the first gameplay tick says it once.
+    state.omni = 'ready'
+    run(10, false); local menu = #shown
+    assert(menu == atNotice + 1, 'a popup was posted while paused')
+    tick(true); assert(#shown == menu + 1 and shown[#shown] == 'omni:ready')
+    run(10); assert(#shown == menu + 1)
+    -- Waiting longer than 90 s in a menu drops the outcome: it would be stale.
+    state.omni = 'loading'; run(5); local before = #shown
+    state.omni = 'ready'; run(100, false); run(1)
+    assert(#shown == before, 'a stale ready line was shown')
+  `);
+});
+
+test('with nothing loading the state is read once a second at most and no line is built', () => {
+  run(`${boardSetup}
+    local built = 0
+    describe = function() built = built + 1; return 'x' end
+    for _ = 1, 80 do tick() end
+    assert(reads >= 19 and reads <= 21, 'read ' .. reads .. ' times in 20 s')
+    assert(built == 0 and #shown == 0)
+    state.omni = 'loading'
+    local startReads = reads
+    for _ = 1, 20 do tick() end
+    assert(reads - startReads >= 19, 'while loading it is read on every call')
+    notices.resetLoading(); state.omni = nil
+    for _ = 1, 8 do tick() end
+    assert(#shown <= 2, 'a reset board announced an outcome')
+  `);
+});
+
+test('the loading ids are Player notices without a repeat window, and a read that fails is treated as nothing loading', () => {
+  assert.equal(entries['load-progress'].class, 'player');
+  assert.equal(entries['load-ready'].class, 'player');
+  assert.equal(entries['load-failed'].class, 'player');
+  for (const id of ['load-progress', 'load-ready', 'load-failed']) assert.equal(entries[id].repeatS, null, `${id}: the board repeats it itself`);
+  run(`${boardSetup}
+    read = function() error('state unreadable') end
+    for _ = 1, 40 do tick() end
+    assert(#shown == 0)
+  `);
+});

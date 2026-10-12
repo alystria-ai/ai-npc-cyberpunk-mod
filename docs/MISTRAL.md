@@ -1,8 +1,8 @@
 # Mistral as a conversation provider
 
 For a player who has used up the shared Convai conversations (or who prefers it), companions can answer through
-[Mistral](https://mistral.ai) (La Plateforme, `api.mistral.ai`) with the player's own free Mistral key. Convai free tier stays the default and
-the recommended choice, with better quality responses. Mistral replaces only the text that companions say; everything after the
+[Mistral](https://mistral.ai) (La Plateforme, `api.mistral.ai`) with the player's own free Mistral key. Convai free tier stays the default.
+It works with no setup and gives better quality responses. Mistral replaces only the text that companions say; everything after the
 text is the same code. Local speech-to-text for the voice key is documented in `docs/LOCAL_STT.md`.
 
 ## What the player does

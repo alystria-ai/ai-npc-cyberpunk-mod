@@ -13,6 +13,7 @@ const managerSource = readFileSync(new URL('../mod/manager.lua', import.meta.url
 const companionsSource = readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8');
 const queueSource = readFileSync(new URL('../mod/manager-party.lua', import.meta.url), 'utf8');
 const mcmSource = readFileSync(new URL('../mod/mcm.lua', import.meta.url), 'utf8');
+const noticesSource = readFileSync(new URL('../mod/notices.lua', import.meta.url), 'utf8');
 const entrySource = readFileSync(new URL('../mod/mcm-entry.lua', import.meta.url), 'utf8');
 const voicePreviewSource = readFileSync(new URL('../mod/voice-preview.lua', import.meta.url), 'utf8');
 const fontsSource = readFileSync(new URL('../mod/ui-fonts.lua', import.meta.url), 'utf8');
@@ -4659,6 +4660,7 @@ const stylingFixture = `
     function value:GetMargin() return {left = self.left, top = 48, right = 0, bottom = 0} end
     function value:SetMargin(margin) self.left = margin.left end
     function value:GetWidth() return self.width end
+    function value:GetHeight() return 10 end
     function value:SetWidth(width) self.width = width end
     function value:GetScale() return {X = 1, Y = 1} end
     function value:GetController() return nil end
@@ -4735,5 +4737,286 @@ test('a freshly drawn page is styled in bounded batches, every row is styled, an
     content.children = {widget('x_managed_label', 48)}
     open(); mcm.update(player, false)
     assert(not mcm.inspect().presentation.pending and content.children[1].color == 'MainColors.Red')
+  `);
+});
+
+// Settings flicker: a drawn page is hidden until styled, and a page is drawn again only when what it shows changed.
+const opacityFixture = `
+  content.opacity = 1
+  local opacities = {}
+  function content:GetOpacity() return self.opacity end
+  function content:SetOpacity(value) self.opacity = value; opacities[#opacities + 1] = value end
+`;
+
+test('a freshly drawn page is hidden until it is styled, shown again at its own opacity, and never hidden longer than 0.75 s', () => {
+  run(`${mcmFixture}${stylingFixture}
+    local clock = 10
+    os.clock = function() return clock end
+    ${opacityFixture}
+    content.opacity = 0.9
+    local function fill()
+      content.children = {}
+      for index = 1, 500 do content.children[index] = widget('r' .. index .. '_managed_label', 48) end
+    end
+    fill(); open()
+    assert(content.opacity == 0.9 and #opacities == 0, 'the veil was raised inside the native observer')
+    mcm.update(player, false)
+    assert(content.opacity == 0 and mcm.inspect().presentation.pending)
+    local frames = 1
+    while mcm.inspect().presentation.pending and frames < 40 do
+      assert(content.opacity == 0, 'rows were visible while unstyled (frame ' .. frames .. ')')
+      mcm.update(player, false); frames = frames + 1
+    end
+    assert(not mcm.inspect().presentation.pending and frames > 1)
+    assert(content.opacity == 0.9 and #opacities == 2 and opacities[1] == 0 and opacities[2] == 0.9,
+      'the page was not shown again at its own opacity: ' .. tostring(content.opacity))
+    -- A page whose styling is slow is shown after 0.75 s anyway, unfinished rather than hidden.
+    fill(); open(); mcm.update(player, false)
+    assert(content.opacity == 0 and mcm.inspect().presentation.pending)
+    clock = clock + 1; mcm.update(player, false)
+    assert(content.opacity == 0.9, 'the veil outlived its limit')
+    -- A page that cannot be styled (no content) is never left hidden.
+    content.children = {}; open(); mcm.update(player, false); mcm.update(player, false)
+    assert(content.opacity == 0.9 and not mcm.inspect().presentation.pending)
+  `);
+});
+
+test('a page that failed to style is shown, and a page the manager leaves is not left hidden', () => {
+  run(`${mcmFixture}${stylingFixture}
+    local clock = 10
+    os.clock = function() return clock end
+    ${opacityFixture}
+    for index = 1, 50 do content.children[index] = widget('r' .. index .. '_managed_label', 48) end
+    content.children[20].GetName = function() error('native failure') end
+    open(); mcm.update(player, false)
+    assert(content.opacity == 0 or content.opacity == 1)
+    for _ = 1, 5 do mcm.update(player, false) end
+    assert(content.opacity == 1, 'a styling error left the page hidden')
+    assert(not mcm.inspect().presentation.pending)
+    -- The page stops being the manager's while it is hidden (another mod is selected): the rows come back.
+    for index = 1, 500 do content.children[index] = widget('s' .. index .. '_managed_label', 48) end
+    open(); mcm.update(player, false)
+    assert(content.opacity == 0)
+    activeMod = 'another-mod:page'
+    clock = clock + 2
+    mcm.update(player, false); mcm.update(player, false)
+    assert(content.opacity == 1, 'a page that is no longer ours stayed hidden')
+  `);
+});
+
+test('a state the page does not show never draws it again, a visible change does, and a change made under pending drafts is dropped when the page was drawn since', () => {
+  run(`${mcmFixture}${stylingFixture}
+    local clock = 1000
+    os.time = function() return clock end
+    os.clock = function() return clock end
+    ${opacityFixture}
+    -- A drawn page is made of new widgets, which start at full opacity.
+    local drawn = open
+    open = function() content.opacity = 1; drawn() end
+    nativeApi.reloadMod = function()
+      reloads = reloads + 1; loaded = registered.loadMod('manager'); open(); return loaded
+    end
+    local voice = {state = 'loading', provider = 'pocket', workerBackend = 'omni', requestedProvider = 'omni',
+      omniPack = {installed = false, missing = {'model'}}, updated = clock * 1000}
+    jsonFixtures['voice-flicker'] = voice
+    files['runtime/local-voice-state.json'] = 'voice-flicker'
+    -- The Back button can be added to this page (a page that cannot take it is drawn again as a list, which is not what is tested).
+    local addBottom = controller.McmUiAddBottomActionAt
+    controller.McmUiAddBottomActionAt = function(self, id, label, x, y, width, active)
+      addBottom(self, id, label, x, y, width, active)
+      render.children[#render.children + 1] = widget('mcm_action_' .. id, 0)
+    end
+    local function second()
+      clock = clock + 1; voice.updated = clock * 1000; mcm.update(player, false)
+    end
+    -- The first update of a session draws once (the interface language is read); only what follows is counted.
+    mcm.update(player, false); reloads = 0
+    assert(invoke('tab:settings').ok)
+    open(); mcm.update(player, false)
+    assert(reloads == 0, 'drawn on opening: ' .. reloads)
+    -- The Settings page shows the voice status in place: loading, warming, speaking and ready never draw it again.
+    for _, state in ipairs({'loading', 'warming', 'ready', 'speaking', 'ready', 'loading', 'ready'}) do
+      voice.state = state; second()
+      assert(reloads == 0, 'drawn after the state ' .. state)
+    end
+    for _ = 1, 5 do second() end
+    assert(reloads == 0, 'the Settings page was drawn ' .. reloads .. ' times for voice states and for opening')
+    -- What it does show: the OmniVoice pack appearing changes the voice list. The page is hidden at once, in that frame.
+    voice.omniPack = {installed = true, missing = {}}; second()
+    assert(reloads == 1, 'a visible change did not draw the page')
+    assert(content.opacity == 0, 'the new page was shown unstyled')
+    second(); second()
+    assert(content.opacity == 1 and not mcm.inspect().presentation.pending, 'the new page stayed hidden')
+    second(); second(); assert(reloads == 1, 'the page was drawn again for nothing')
+    -- Pending drafts hold a redraw; the page that MCM draws after Apply already shows the change, so no second draw follows.
+    drafts = true
+    voice.omniPack = {installed = false, missing = {'model'}}; second(); second()
+    assert(reloads == 1, 'a draft was discarded by a redraw')
+    loaded = registered.loadMod('manager'); open()
+    drafts = false
+    second(); second(); second()
+    assert(reloads == 1, 'a change already shown by the page drawn after Apply drew it again')
+    voice.omniPack = {installed = true, missing = {}}; second()
+    assert(reloads == 2, 'a later visible change was missed')
+    -- Characters: the voice state is not shown, the voice in use is.
+    assert(invoke('settings:back').ok, 'back'); assert(invoke('tab:characters').ok, 'characters')
+    open(); second(); second()
+    local before = reloads
+    for _, state in ipairs({'loading', 'ready', 'speaking', 'ready'}) do voice.state = state; second() end
+    assert(reloads == before, 'Characters was drawn again for a voice state')
+    voice.provider = 'omni'; second()
+    assert(reloads == before + 1, 'Characters did not follow the voice in use')
+    -- Home shows nothing that changes by itself.
+    assert(invoke('characters:back').ok, 'home')
+    open(); second(); second()
+    before = reloads
+    voice.provider, voice.omniPack = 'pocket', {installed = false, missing = {'model'}}
+    for _ = 1, 4 do second() end
+    assert(reloads == before, 'Home was drawn again')
+  `);
+});
+
+test('the models page follows the scan by the number of models found, not by the clock, and stops when it is finished', () => {
+  run(`${mcmFixture}
+    local clock = 1000
+    os.time = function() return clock end
+    os.clock = function() return clock end
+    mcm.update(player, false); reloads = 0
+    assert(invoke('tab:models').ok)
+    local ticks = 0
+    while not manager.snapshot(player).scan.finished and ticks < 200 do clock = clock + 1; mcm.update(player, false); ticks = ticks + 1 end
+    assert(manager.snapshot(player).scan.finished, 'the scan did not finish')
+    assert(reloads <= ticks + 1, 'drawn ' .. reloads .. ' times in ' .. ticks .. ' seconds')
+    clock = clock + 1; mcm.update(player, false); clock = clock + 1; mcm.update(player, false)
+    local settled = reloads
+    for _ = 1, 8 do clock = clock + 1; mcm.update(player, false) end
+    assert(reloads == settled, 'a finished scan kept drawing the page')
+  `);
+});
+
+// Loading notices: a slow OmniVoice or Local AI load is announced until it is ready (mod/notices.lua loading board,
+// manager.loadStatus, mod/mcm.lua). Gameplay frames of 0.25 s; the manager reads the bridge's files as it does in the game.
+const loadingFixture = `
+  local clock = 1000
+  os.time = function() return clock end
+  os.clock = function() return clock end
+  local shown = {}
+  function player:ConvaiPhoneFeedback(text) shown[#shown + 1] = text end
+  convaiNotices = (function() ${noticesSource} end)()
+  convaiNotices.configure(function() return false end)
+  local voice = {state = 'loading', provider = 'pocket', workerBackend = 'omni', requestedProvider = 'omni',
+    omniPack = {installed = true, missing = {}}, updated = clock * 1000}
+  jsonFixtures['voice-loading'] = voice
+  files['runtime/local-voice-state.json'] = 'voice-loading'
+  local function step(seconds, world)
+    for _ = 1, seconds * 4 do
+      clock = clock + 0.25; voice.updated = clock * 1000
+      manager.update(player, 0.25)
+      mcm.update(player, world ~= false)
+    end
+  end
+  mcm.update(player, true)
+`;
+
+test('OmniVoice loading is announced after 1.5 s, repeated every 3 s, and replaced by one ready line; a quick load says nothing', () => {
+  run(`${mcmFixture}${loadingFixture}
+    step(1); assert(#shown == 0, 'a notice before the load had lasted 1.5 s: ' .. tostring(shown[1]))
+    step(1.5)
+    assert(#shown == 1 and shown[1] == 'Loading the OmniVoice voice…', tostring(shown[1]))
+    step(20)
+    assert(#shown >= 7 and #shown <= 9, 'every 3 s for 22 s: ' .. #shown)
+    for _, text in ipairs(shown) do assert(text == 'Loading the OmniVoice voice…', text) end
+    local before = #shown
+    -- warming and speaking are per-character work, not a load
+    voice.state = 'ready'; step(1)
+    assert(#shown == before + 1 and shown[#shown] == 'OmniVoice voice is ready.', tostring(shown[#shown]))
+    voice.state = 'warming'; step(10); voice.state = 'speaking'; step(10); voice.state = 'ready'; step(10)
+    assert(#shown == before + 1, 'a per-character preparation was announced: ' .. tostring(shown[#shown]))
+    -- A load that ends before the loading line is due is silent.
+    shown = {}
+    voice.state = 'loading'; step(1); voice.state = 'ready'; step(10)
+    assert(#shown == 0, 'a one-second load was announced')
+  `);
+});
+
+test('a voice load that fails says what to do once, unless a fallback voice has its own notice', () => {
+  run(`${mcmFixture}${loadingFixture}
+    step(4); assert(#shown >= 1)
+    voice.state = 'error'; step(2)
+    assert(shown[#shown] == 'OmniVoice could not load. See Help in Settings.', tostring(shown[#shown]))
+    local count = #shown
+    step(30); assert(#shown == count, 'the failure repeated')
+    -- With a fallback the bridge's own fallback notice speaks; the loading line just ends.
+    voice.state = 'loading'; step(4)
+    local before = #shown
+    voice.state = 'error'; voice.fallback = {from = 'omni', to = 'pocket'}; step(20)
+    for index = before + 1, #shown do assert(shown[index] ~= 'OmniVoice could not load. See Help in Settings.', 'doubled the fallback notice') end
+    -- Switching to another voice mid-load cancels it silently.
+    voice.fallback = nil; voice.state = 'loading'; voice.requestedProvider = 'omni'; step(4)
+    local seen = #shown
+    voice.requestedProvider = 'pocket'; voice.workerBackend = 'omni'; step(20)
+    assert(#shown == seen, 'a load nobody wants anymore was announced')
+  `);
+});
+
+test('the Pocket voice load is announced the same way and a load in a menu is announced when gameplay returns', () => {
+  run(`${mcmFixture}${loadingFixture}
+    voice.workerBackend, voice.requestedProvider = 'pocket', 'pocket'
+    step(4); assert(shown[#shown] == 'Loading the Pocket voice…', tostring(shown[#shown]))
+    local before = #shown
+    -- The load ends while a menu is open: no popup there, one line when gameplay is back.
+    voice.state = 'ready'; step(10, false)
+    assert(#shown == before, 'a popup was posted from a menu')
+    step(1)
+    assert(#shown == before + 1 and shown[#shown] == 'Pocket voice is ready.', tostring(shown[#shown]))
+  `);
+});
+
+test('Local AI warming up is announced while Local is the provider, with a ready line, and its state is not read otherwise', () => {
+  run(`${mcmFixture}${loadingFixture}
+    voice.state = 'ready'
+    activeMod = nil   -- the settings page is not open: only the loading board reads anything
+    local reads = 0
+    local open = io.open
+    io.open = function(path, mode) if path == 'runtime/mistral-state.json' then reads = reads + 1 end return open(path, mode) end
+    local mistral = {provider = 'local', effective = 'local', localAi = 'warming'}
+    jsonFixtures['mistral-loading'] = mistral
+    files['runtime/mistral-state.json'] = 'mistral-loading'
+    -- Convai is the provider: Local AI is not read at all.
+    step(10)
+    assert(reads == 0, 'mistral-state.json was read while Local was not the provider: ' .. reads)
+    local applied, why = manager.applySettings(player, {conversationProvider = 'local'}); assert(applied, tostring(why))
+    -- Idle, the state is looked at once a second; then the load must last 1.5 s.
+    step(3)
+    assert(shown[#shown] == 'Local AI is warming up…', tostring(shown[#shown]))
+    local count = #shown
+    step(12); assert(#shown >= count + 3, 'the line was not shown again')
+    mistral.localAi = 'ready'; step(2)
+    assert(shown[#shown] == 'Local AI is ready.', tostring(shown[#shown]))
+    count = #shown
+    step(20); assert(#shown == count)
+    -- A server that was unloaded after idle time warms up again when it is needed.
+    mistral.localAi = 'warming'; step(3); assert(shown[#shown] == 'Local AI is warming up…')
+    mistral.localAi = 'no-memory'; step(2)
+    assert(shown[#shown] == 'Not enough graphics memory for Local AI. A cloud provider is used instead.', tostring(shown[#shown]))
+    mistral.localAi = 'warming'; step(3); mistral.localAi = 'failed'; step(2)
+    assert(shown[#shown] == 'Local AI could not start. Check Local AI in Settings > Development.', tostring(shown[#shown]))
+  `);
+});
+
+test('with nothing loading the loading status is read about once a second and costs no notice work, and a new session forgets old loads', () => {
+  run(`${mcmFixture}${loadingFixture}
+    voice.state = 'ready'
+    local calls = 0
+    local status = manager.loadStatus
+    manager.loadStatus = function() calls = calls + 1; return status() end
+    step(20)
+    assert(calls >= 18 and calls <= 22, 'read ' .. calls .. ' times in 20 s')
+    assert(#shown == 0)
+    voice.state = 'loading'; step(4)
+    assert(#shown >= 1)
+    mcm.resetSession()
+    voice.state = 'ready'; shown = {}
+    step(10); assert(#shown == 0, 'an old session announced its outcome: ' .. tostring(shown[1]))
   `);
 });
