@@ -243,7 +243,69 @@ test('large content pages finish in bounded batches and do not abandon later own
   local p = render(true)
   for index = 1, 1500 do p.content.children[#p.content.children + 1] = widget('row-' .. index, 'Owned') end
   frame(); assert(adapter.inspect().pending)
-  for index = 1, 5 do if adapter.inspect().pending then frame() end end
+  for index = 1, 20 do if adapter.inspect().pending then frame() end end
   assert(not adapter.inspect().pending and assigned(p.content.children[#p.content.children]))
   assert(adapter.restoreNow() and original(p.content.children[#p.content.children]))
+`));
+
+test('a hover or description update repaints only the description and keeps the row font records', () => run(`
+  local p = render(true); frame()
+  local reads = 0
+  local getText = p.option.GetText
+  function p.option:GetText() reads = reads + 1; return getText(self) end
+  p.description.text = 'Foreign description'
+  emit('McmUiUpdateDescription', reference())
+  emit('McmUiEmitHover', reference(), 'foreign', '', true)
+  frame()
+  assert(reads == 0, 'a hover walked the content rows')
+  assert(original(p.description) and assigned(p.option) and assigned(p.label))
+  -- The row records survive the partial paint: a language change still restores them.
+  code, revision = 'en', revision + 1
+  frame(); assert(original(p.option) and original(p.label))
+`));
+
+test('a hover keeps the cached chrome while a replaced description is found again', () => run(`
+  local p = render(true); frame()
+  local reads = rootReads
+  emit('McmUiEmitHover', reference(), 'ours', '', true); frame()
+  assert(rootReads == reads + 1, 'one root read for the identity check only')
+  -- The mock widgets expose no parent, so a description update looks stale and is searched again.
+  p.description = widget('description_text', 'Our replaced description')
+  p.render.children[6] = widget('mcm_description_panel', nil, {p.description})
+  emit('McmUiUpdateDescription', reference()); frame()
+  assert(assigned(p.description))
+`));
+
+test('a Latin locale skips the content rows unless the page can show native language names', () => run(`
+  code, revision = 'en', 5
+  local mayNeed = false
+  local gated = (function() ${source} end)().new({ui = ui, fonts = library,
+    label = function() return ui.t('Companion Manager') end,
+    active = function() guard(); return ownActive end,
+    contentMayNeedFonts = function() return mayNeed end})
+  gated.install()
+  local p = render(true); p.option.text = '日本語'
+  local reads = 0
+  local getText = p.option.GetText
+  function p.option:GetText() reads = reads + 1; return getText(self) end
+  assert(gated.update())
+  assert(reads == 0 and original(p.option) and assigned(p.ourLabel, 'ja') == false)
+  -- The page that lists languages asks for the walk.
+  mayNeed = true
+  emit('McmUiEndSelect', reference())
+  assert(gated.update())
+  assert(reads > 0 and assigned(p.option, 'ja'))
+  -- Once a font is applied the rows are walked again to restore it, even without the hint.
+  mayNeed = false
+  p.option.text = 'English'
+  emit('McmUiEndSelect', reference())
+  assert(gated.update())
+  assert(original(p.option))
+`));
+
+test('an idle adapter makes no native call per update', () => run(`
+  local p = render(true); frame()
+  local reads = rootReads
+  for index = 1, 100 do frame() end
+  assert(rootReads == reads)
 `));

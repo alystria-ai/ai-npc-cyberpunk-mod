@@ -1314,11 +1314,12 @@ test('native settings styling waits for the final title, aligns scaled rows and 
     frame()
     assert(changed.color == 'MainColors.Red', 'customized framework colours replaced the requested default red')
     handlers.McmUiSetManagedLabelState(reference(202), 'new-toggle', false, true)
-    assert(not mcm.inspect().presentation.pending, 'another controller queued styling on this page')
+    assert(not mcm.inspect().presentation.pending and mcm.inspect().presentation.restyling == 0,
+      'another controller queued styling on this page')
     handlers.OnUninitialize(reference(202))
     assert(mcm.inspect().presentation.active, 'another controller cleared the current page')
     handlers.McmUiSetManagedLabelState(reference(), 'new-toggle', false, true)
-    assert(mcm.inspect().presentation.pending, 'a fresh wrapper lost native menu ownership')
+    assert(mcm.inspect().presentation.restyling == 1, 'a fresh wrapper lost native menu ownership')
     handlers.OnUninitialize(reference())
     assert(not mcm.inspect().presentation.active, 'native menu detach retained the page wrapper')
     local readsBeforeDetach = rootReads
@@ -1465,6 +1466,9 @@ const managerBannerFixture = `
 const managerPopupFixture = `
   local popupClock, nativeCallback, popups, popupStep = 1000, false, {}, 4
   os.time = function() return popupClock end
+  -- The settings integration runs its gameplay work on a 0.25 s tick: every popup tick is longer.
+  local popupHighRes = 5000
+  os.clock = function() return popupHighRes end
   function player:ConvaiPhoneFeedback(message)
     assert(not nativeCallback, 'manager action callback posted a native popup')
     popups[#popups + 1] = message
@@ -1472,7 +1476,7 @@ const managerPopupFixture = `
   -- One tick is four seconds: longer than the notice board's minimum show time (3 s)
   -- before routine progress and the next stage show, so existing flows still see each stage.
   local function popupTick(worldReady)
-    popupClock = popupClock + popupStep
+    popupClock, popupHighRes = popupClock + popupStep, popupHighRes + popupStep
     mcm.update(player, worldReady == true)
   end
   -- The bridge's open connections (mod/auto-connect.lua connected()): an invitation whose connection is open skips the preparing line.
@@ -1940,8 +1944,10 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 1}}).ok and saved.voiceProvider == 'pocket')
     -- The pack appears (installed while the game runs): the entries become plain labels and can be applied.
     clock = clock + 20
-    jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}},
+    -- Identical file text is one state (the manager decodes it once), so a changed state is a changed text.
+    jsonFixtures['voice-runtime-pack'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}},
       updated = clock * 1000}
+    files['runtime/local-voice-state.json'] = 'voice-runtime-pack'
     manager.snapshot(player)
     loaded = registered.loadMod('manager')
     assert(row('voiceProvider').elements[2] == 'OmniVoice · Balanced')
@@ -2256,8 +2262,9 @@ test('the Characters sidebar shows the settings in effect for each character, no
   assert(not viktor:find('Memory:', 1, true) and not viktor:find('In your party', 1, true) and not viktor:find('Behavior', 1, true)
     and not viktor:find('Relationship', 1, true), viktor)
   -- Without the optional pack, a saved OmniVoice choice that is not running says so; switching a behavior off drops its name.
-  jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'pocket', routedProfiles = {}, updated = memoryClock * 1000.0,
+  jsonFixtures['voice-runtime-nopack'] = {state = 'ready', provider = 'pocket', routedProfiles = {}, updated = memoryClock * 1000.0,
     omniPack = {installed = false, missing = {}}}
+  files['runtime/local-voice-state.json'] = 'voice-runtime-nopack'
   assert(manager.applySettings(player, {battleReactions = false, lootReactions = false, bodyGestures = true}))
   reload()
   assert(description('viktor-vektor'):find('Voice: OmniVoice · Balanced · needs Omni pack', 1, true), description('viktor-vektor'))
@@ -2643,6 +2650,9 @@ test('native MCM shows no invitation progress and keeps reserved copies editable
     loaded = registered.loadMod('manager')
     assert(#spawned == 1 and row('dismiss:live:1').value == 'Dismiss' and not row('state:live:1'))
     assert(not party.message():find('joined your group', 1, true), 'accepted spawn was reported as joined')
+    -- The queue is flushed on the settings integration's 0.25 s tick.
+    local tickClock = os.clock()
+    os.clock = function() return tickClock + 1 end
     members[1].state = 'ready'; mcm.update(player, true)
     loaded = registered.loadMod('manager')
     assert(not row('state:live:1') and not row('feedback') and party.message():find('joined your group', 1, true))
@@ -3064,6 +3074,38 @@ test('native manager pages profiles, searches case-insensitively, and persists k
     failSave = true; request('toggle-profile:person-15')
     assert(manager.profileEnabled('person-15') == true)
     assert(player.feedback:find('could not be saved', 1, true))
+  `);
+});
+
+test('the local voice state is decoded once per distinct file text, and a copy that goes stale stays stale', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles); manager.prepare(player)
+    local clock = 1000
+    os.time = function() return clock end
+    jsonFixtures['voice-a'] = {state = 'ready', provider = 'pocket', routedProfiles = {'viktor-vektor'}, updated = clock * 1000}
+    files['runtime/local-voice-state.json'] = 'voice-a'
+    local decodes, decode = {}, json.decode
+    json.decode = function(value) decodes[value] = (decodes[value] or 0) + 1; return decode(value) end
+    -- Ten seconds of 10 Hz frames: five reads of the file, one decode of the same text.
+    for _ = 1, 100 do clock = clock + 0.1; manager.update(player, 0.1) end
+    assert(decodes['voice-a'] == 1, 'the same text was decoded ' .. tostring(decodes['voice-a']) .. ' times')
+    assert(manager.snapshot(player).localVoice.state == 'ready')
+    -- Nothing rewrites the file: its stamp ages past 15 s and the voices read as waiting, still without a decode.
+    for _ = 1, 150 do clock = clock + 0.1; manager.update(player, 0.1) end
+    assert(decodes['voice-a'] == 1, 'a stale state was decoded again')
+    local stale = manager.snapshot(player).localVoice
+    assert(stale.state == 'waiting' and #(stale.routedProfiles or {}) == 0, 'stale state: ' .. tostring(stale.state))
+    -- The bridge rewrites it (new stamp, new text): decoded once more and fresh again.
+    jsonFixtures['voice-b'] = {state = 'ready', provider = 'omni', routedProfiles = {'viktor-vektor'}, updated = clock * 1000}
+    files['runtime/local-voice-state.json'] = 'voice-b'
+    for _ = 1, 50 do clock = clock + 0.1; manager.update(player, 0.1) end
+    assert(decodes['voice-b'] == 1 and decodes['voice-a'] == 1)
+    local fresh = manager.snapshot(player).localVoice
+    assert(fresh.state == 'ready' and fresh.provider == 'omni', 'a changed file was not picked up')
+    -- The file disappears: nothing is cached over it.
+    files['runtime/local-voice-state.json'] = nil
+    for _ = 1, 50 do clock = clock + 0.1; manager.update(player, 0.1) end
+    assert(manager.snapshot(player).localVoice.state == 'waiting')
   `);
 });
 
@@ -4543,18 +4585,155 @@ test('a stale install without Alt (roster and manager-characters from before 202
   `);
 });
 
-test('the per-frame MCM update asks MCM for its diagnostics at most four times a second while our page is not shown', () => {
+test('the per-frame MCM update asks MCM for its diagnostics once a second while our page is not shown and four times a second while it is', () => {
   run(`${mcmFixture}
     local clock, reads = 10, 0
     os.clock = function() return clock end
     local diagnostics = nativeApi.getDiagnostics
     nativeApi.getDiagnostics = function() reads = reads + 1; return diagnostics() end
-    for _ = 1, 30 do mcm.update(player, true); clock = clock + 1 / 60 end
-    assert(reads <= 3, 'diagnostics read ' .. reads .. ' times in half a second')
-    -- With our page shown the update reads it fresh on every frame, as before.
+    for _ = 1, 60 do mcm.update(player, true); clock = clock + 1 / 60 end
+    assert(reads <= 2, 'diagnostics read ' .. reads .. ' times in one second with the page closed')
+    -- Our page opening is noticed by the hooks in the same frame (presentation.pending), and
+    -- while it is shown the answer is re-read every 0.25 s, not on every frame.
     handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    assert(mcm.inspect().presentation.active, 'the hook did not mark our page shown')
     reads = 0
-    for _ = 1, 5 do mcm.update(player, true); clock = clock + 1 / 60 end
-    assert(reads >= 5, 'page shown but diagnostics read only ' .. reads .. ' times')
+    for _ = 1, 30 do mcm.update(player, true); clock = clock + 1 / 60 end
+    assert(reads >= 1 and reads <= 5, 'page shown: diagnostics read ' .. reads .. ' times in half a second')
+  `);
+});
+
+test('with the settings menu closed the queue flush, notices and player identity run on a 0.25 s tick, and a queue change or resume runs it at once', () => {
+  run(`${mcmFixture}
+    local clock, flushes, identities = 10, 0, 0
+    os.clock = function() return clock end
+    local party = mcm.party()
+    local flush = party.flush
+    party.flush = function(...) flushes = flushes + 1; return flush(...) end
+    local getId = player.GetEntityID
+    function player:GetEntityID() identities = identities + 1; return getId(self) end
+    for _ = 1, 120 do mcm.update(player, true); clock = clock + 1 / 60 end
+    assert(flushes >= 7 and flushes <= 9, 'flushed ' .. flushes .. ' times in two seconds')
+    assert(identities <= flushes + 3, 'the player identity was read outside the tick: ' .. identities .. ' for ' .. flushes)
+    -- A queue change is flushed by the next frame, inside the tick period.
+    mcm.update(player, true)
+    local before = flushes
+    party.dismiss('no-such-copy')
+    mcm.update(player, true)
+    assert(flushes == before + 1, 'a queue change waited for the tick')
+    -- Returning to gameplay runs it at once, so a spawn is not held a quarter second after a menu.
+    mcm.update(player, false)
+    before = flushes
+    mcm.update(player, true)
+    assert(flushes == before + 1, 'the first gameplay frame did not flush')
+  `);
+});
+
+test('a notice is held at most one tick: a voice switch reaches the player once and is never lost', () => {
+  run(`${mcmFixture}
+    local clock = 10
+    os.clock = function() return clock end
+    local sent = {}
+    convaiNotices = {sendLines = function(_, lines) for _, line in ipairs(lines) do sent[#sent + 1] = line.id end return #lines end}
+    mcm.update(player, true); clock = clock + 1 / 60
+    local taken = 0
+    manager.takeNaturalSpeechNotice = function() taken = taken + 1; return taken == 1 and 'Voice switched.' or nil end
+    local frames = 0
+    while #sent == 0 and frames < 60 do mcm.update(player, true); clock = clock + 1 / 60; frames = frames + 1 end
+    assert(#sent == 1 and sent[1] == 'voice-switched', 'the notice was lost')
+    assert(frames <= 16, 'the notice waited ' .. frames .. ' frames')
+    for _ = 1, 60 do mcm.update(player, true); clock = clock + 1 / 60 end
+    assert(#sent == 1, 'the notice repeated')
+  `);
+});
+
+const stylingFixture = `
+  CName = {new = function(value) return value end}
+  NameToString = function(value) return value end
+  local counters = {binds = {}, content = 0, indexed = 0}
+  local function widget(name, left, children)
+    local value = {name = name, left = left or 0, width = 200, children = children or {}}
+    function value:GetName() return self.name end
+    function value:GetNumChildren() if self == counters.contentWidget then counters.content = counters.content + 1 end return #self.children end
+    function value:GetWidgetByIndex(index) counters.indexed = counters.indexed + 1; return self.children[index + 1] end
+    function value:GetMargin() return {left = self.left, top = 48, right = 0, bottom = 0} end
+    function value:SetMargin(margin) self.left = margin.left end
+    function value:GetWidth() return self.width end
+    function value:SetWidth(width) self.width = width end
+    function value:GetScale() return {X = 1, Y = 1} end
+    function value:GetController() return nil end
+    function value:BindProperty(property, color)
+      self.color = color; counters.binds[self.name] = (counters.binds[self.name] or 0) + 1
+    end
+    return value
+  end
+  local content = widget('mcm_content_scroll_content')
+  counters.contentWidget = content
+  local status = widget('status')
+  local sidebar = widget('mcm_sidebar_scroll_content', 0, {widget('mod-entry')})
+  local render = widget('MCMRenderRoot', 0, {content, status, sidebar})
+  local root = widget('root', 0, {render})
+  function controller:GetRootWidget() return root end
+  local function reference() return setmetatable({nativeIdentity = 101}, {__index = controller}) end
+  local function open()
+    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', 'Mods', '', 0, '', true, true, 0, function() end)
+    handlers.McmUiSetContentTitle(reference(), 'Companion Manager')
+  end
+`;
+
+test('a hover-out re-tints only its own label instead of walking the page again', () => {
+  run(`${mcmFixture}${stylingFixture}
+    local labels = {}
+    for _, id in ipairs({'a', 'b', 'c'}) do
+      labels[id] = widget(id .. '_managed_label', 48)
+      content.children[#content.children + 1] = labels[id]
+    end
+    open()
+    mcm.update(player, false)
+    assert(not mcm.inspect().presentation.pending and labels.a.color == 'MainColors.Red' and labels.c.color == 'MainColors.Red')
+    local binds, reads, indexed = counters.binds.b_managed_label, counters.content, counters.indexed
+    labels.b.color = 'native-cyan'
+    handlers.McmUiSetManagedLabelState(reference(), 'b', true, true)
+    handlers.McmUiSetManagedLabelState(reference(), 'b', false, true)
+    assert(mcm.inspect().presentation.restyling == 1 and not mcm.inspect().presentation.pending)
+    mcm.update(player, false)
+    assert(labels.b.color == 'MainColors.Red', 'the hovered label kept its native tint')
+    assert(counters.binds.b_managed_label == binds + 1 and counters.binds.a_managed_label == 1 and counters.binds.c_managed_label == 1)
+    assert(counters.content == reads and counters.indexed == indexed, 'the page was walked again for one label')
+    assert(mcm.inspect().presentation.restyling == 0)
+    -- A row still hovered is left to the native feedback.
+    labels.a.color = 'native-hover'
+    handlers.McmUiEmitHover(reference(), 'a', '', true)
+    handlers.McmUiEmitHover(reference(), 'c', '', false)
+    mcm.update(player, false)
+    assert(labels.a.color == 'native-hover' and labels.c.color == 'MainColors.Red')
+  `);
+});
+
+test('a freshly drawn page is styled in bounded batches, every row is styled, and the Back button waits for the last batch', () => {
+  run(`${mcmFixture}${stylingFixture}
+    local rows = {}
+    for index = 1, 500 do
+      rows[index] = widget('r' .. index .. '_managed_label', 48)
+      content.children[#content.children + 1] = rows[index]
+    end
+    open()
+    local before = counters.indexed
+    mcm.update(player, false)
+    assert(counters.indexed - before <= 310, 'the first frame visited ' .. (counters.indexed - before) .. ' widgets')
+    assert(mcm.inspect().presentation.pending and mcm.inspect().presentation.styling, 'a 500-row page finished in one frame')
+    assert(#bottomActions == 0, 'the Back button was placed before the page was styled')
+    local frames = 1
+    while mcm.inspect().presentation.pending and frames < 40 do
+      before = counters.indexed
+      mcm.update(player, false); frames = frames + 1
+      assert(counters.indexed - before <= 310, 'a batch visited ' .. (counters.indexed - before) .. ' widgets')
+    end
+    assert(not mcm.inspect().presentation.pending and frames <= 20, 'styling took ' .. frames .. ' frames')
+    for index = 1, 500 do assert(rows[index].color == 'MainColors.Red', 'row ' .. index .. ' was not styled') end
+    -- A new render drops an unfinished batch and starts again.
+    content.children = {widget('x_managed_label', 48)}
+    open(); mcm.update(player, false)
+    assert(not mcm.inspect().presentation.pending and content.children[1].color == 'MainColors.Red')
   `);
 });
