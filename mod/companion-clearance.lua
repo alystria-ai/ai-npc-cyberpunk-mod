@@ -180,15 +180,19 @@ end
 -- segment, sightClear and floorZ run in C++ (native/core/src/systems/clearance): one CET call per
 -- check instead of 14 per box (Vector4.new x2, CName.new x6, Overlap x6), and the plugin's own
 -- query loop. Everything above is the original Lua and stays the fallback:
---   * kill switch: a line "clearance" in runtime/native-off.txt, or convaiNative.off('clearance')
---     in the CET console; three faults inside the plugin's natives also switch it off;
+--   * kill switch: a line "clearance" in runtime/native-off.txt (the plugin re-reads it about once a
+--     second; the CET console cannot reach convaiNative, each CET mod has its own environment);
+--     three faults inside the plugin's natives also switch it off;
 --   * a native call that fails or answers unreadably calls convaiNative.fail('clearance', ...):
 --     this module stays on Lua for the session and probe.log says why;
 --   * before the first use, the plugin runs its own queries in the world (SelfTest) and its box
 --     orientation is compared with Quaternion.BuildFromDirectionVector/ToEulerAngles; any
---     difference keeps the Lua path;
---   * convaiNative.clearanceVerify = true (CET console) runs BOTH paths for every call, returns the
---     Lua answer and logs any difference to probe.log; convaiNative.clearanceStats counts the calls.
+--     difference keeps the Lua path. With no world loaded yet (main menu, a load in progress) the
+--     self-test only waits: Lua runs meanwhile and the test is asked again every 2 s, then every
+--     10 s, for as long as the session lasts;
+--   * a line "clearance" in runtime/native-verify.txt runs BOTH paths for every call, returns the Lua
+--     answer and logs any difference (and a count every 250 calls) to probe.log. The test hook
+--     convaiNative.clearanceVerify = true (set from Lua, as the tests do) does the same.
 -- The per-update query budget stays a Lua table: the plugin is told what is left and reports the
 -- queries it issued, which are added to budget.used here.
 local BIG=1000000
@@ -373,10 +377,14 @@ local function proven(class,api)
     local ok,text=pcall(function() return class.SelfTest() end)
     text=ok and tostring(text) or ('error: '..tostring(text))
     if text:sub(1,4)=='wait' then
-        -- No world yet, or a lookup that never works: five waits in a row count as a failure.
+        -- No world yet (the plugin found the class, but no game instance holds the system): never a
+        -- failure. Lua answers meanwhile and the proof is retried, every 2 s at first and every 10 s
+        -- once it has waited 15 times. A game that has no such class says 'fail' instead.
         api.clearanceWaits=(api.clearanceWaits or 0)+1
-        if api.clearanceWaits>5 then api.fail(NATIVE,'self-test: '..text); return false end
-        api.clearanceRetry=now+2
+        api.clearanceRetry=now+(api.clearanceWaits>15 and 10 or 2)
+        if api.clearanceWaits==1 or api.clearanceWaits%30==0 then
+            note('Native core: clearance self-test waits ('..text..', wait '..api.clearanceWaits..'); Lua answers meanwhile')
+        end
         return false
     end
     if text~='ok' then api.fail(NATIVE,'self-test: '..text); return false end
@@ -440,7 +448,10 @@ local function route(name,nat,lua,progress,...)
         row.fallback=row.fallback+1
         return lua(...)
     end
-    if api.clearanceVerify==true then
+    local verifying=api.clearanceVerify==true
+    -- api.verifying answers from a value it re-checks about once a second and never raises.
+    if not verifying and type(api.verifying)=='function' then verifying=api.verifying(NATIVE)==true end
+    if verifying then
         local l1,l2,l3,l4=lua(...)
         row.compared=row.compared+1
         local spent=(budget and budget.used or 0)-before
@@ -478,7 +489,7 @@ function M.sightClear(from,to) return route('sight',natSight,luaSight,nil,from,t
 function M.floorZ(at,maxDrop) return route('floor',natFloor,luaFloor,nil,at,maxDrop) end
 
 -- Developer mode (perf-probe) times each entry point as clearance.<name>, so the two paths can be
--- compared with convaiNative.off('clearance') / convaiNative.on('clearance').
+-- compared by adding and removing the line "clearance" in runtime/native-off.txt.
 local probe=convaiPerfProbe
 if type(probe)=='table' and type(probe.watch)=='function' then
     for _,name in ipairs({'body','recheck','segment','sightClear','floorZ'}) do

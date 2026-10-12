@@ -1,5 +1,7 @@
 #include "GazeGame.hpp"
 
+#include "plugin/GameAccess.hpp"
+
 #include "core/Log.hpp"
 
 #include <RED4ext/RTTISystem.hpp>
@@ -214,10 +216,12 @@ bool Resolve(Layout& L)
     {
         return Miss("RTTI unavailable");
     }
-    L.eventClass = rtti->GetClass("LookAtAddEvent");
+    // The game's RTTI name is entLookAtAddEvent; "LookAtAddEvent" is only the script alias CET and
+    // redscript use, which GetClass does not know (live 2026-10-13: "class LookAtAddEvent not found").
+    L.eventClass = convai::game::Class("entLookAtAddEvent");
     if (!L.eventClass)
     {
-        return Miss("class LookAtAddEvent not found");
+        return Miss("class entLookAtAddEvent (script name LookAtAddEvent) not found");
     }
     L.setTarget = L.eventClass->GetFunction("SetEntityTarget");
     L.setStyle = L.eventClass->GetFunction("SetStyle");

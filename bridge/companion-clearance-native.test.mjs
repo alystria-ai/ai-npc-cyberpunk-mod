@@ -572,6 +572,51 @@ test('the self-test: a failure keeps the Lua, a missing world waits and retries'
   assert(logLines[#logLines]:find('clearance self%-test passed'))
 `));
 
+test('a missing world never fails the self-test: Lua answers and it is asked again, every 10 s after 15 waits', () => shim(`
+  selfTest = 'wait no spatial queries system yet (no world is loaded)'
+  local budgetValue = {limit = 192, used = 0, deferred = 0}
+  local mod = fresh(budgetValue)
+  for attempt = 1, 40 do
+    convaiNative.clearanceRetry = nil -- the retry time has come
+    queries, budgetValue.used = {}, 0
+    assert(mod.body({x = 1, y = 2, z = 3}) == true and #queries == 6 and #calls == 0, 'Lua answers while waiting')
+    assert(#fails == 0, 'wait ' .. attempt .. ' failed the system: ' .. table.concat(fails, ';'))
+    local pause = convaiNative.clearanceRetry - os.clock()
+    if attempt <= 15 then assert(pause > 1 and pause <= 2.01, 'two seconds at first: ' .. pause)
+    else assert(pause > 9 and pause <= 10.01, 'ten seconds after 15 waits: ' .. pause) end
+  end
+  assert(convaiNative.clearanceWaits == 40)
+  local waits = 0
+  for _, line in ipairs(logLines) do if line:find('clearance self%-test waits') then waits = waits + 1 end end
+  assert(waits == 2, 'logged on the first wait and every 30th, not every time: ' .. waits)
+  -- a world appears later: the plugin takes over
+  selfTest, convaiNative.clearanceRetry, queries = 'ok', nil, {}
+  mod.body({x = 1, y = 2, z = 3})
+  assert(#calls == 1 and #queries == 0 and convaiNative.clearanceProven == true)
+`));
+
+test('a game without the spatial queries class fails the self-test at once and keeps Lua', () => shim(`
+  selfTest = 'fail the game has no class gameSpatialQueriesSystem'
+  local mod = fresh({limit = 192, used = 0, deferred = 0})
+  assert(mod.body({x = 1, y = 2, z = 3}) == true and #queries == 6 and #calls == 0)
+  assert(#fails == 1 and fails[1]:find('no class gameSpatialQueriesSystem'), table.concat(fails, ';'))
+`));
+
+test('verify mode also follows the verifying switch (runtime/native-verify.txt)', () => shim(`
+  local budgetValue = {limit = 192, used = 0, deferred = 0}
+  local mod = fresh(budgetValue)
+  local asked = {}
+  convaiNative.verifying = function(name) asked[#asked + 1] = name; return name == 'clearance' end
+  reply = '0 6'
+  assert(mod.body({x = 1, y = 2, z = 3}) == true)
+  assert(#queries == 6 and budgetValue.used == 6, 'the Lua path ran: verify mode')
+  assert(convaiNative.clearanceStats.compared == 1 and convaiNative.clearanceStats.mismatches == 0)
+  assert(asked[1] == 'clearance')
+  convaiNative.verifying = function() return false end
+  queries = {}
+  assert(mod.body({x = 1, y = 2, z = 3}) == true and #queries == 0, 'switched off: the plugin answers alone')
+`));
+
 test('the self-test: a plugin whose box orientation differs from the game stays off', () => shim(`
   orientationShift = 5
   local mod = fresh({limit = 192, used = 0, deferred = 0})

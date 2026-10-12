@@ -11,8 +11,12 @@
 --   io.open(path, 'r'/'rb')  the worker's latest copy (it polls the file); a Lua string is reused
 --                            until the file's revision changes. A missing file returns nil.
 --   io.open(log, 'a')        buffered appends, flushed by the worker every 0.5 s.
--- Kill switch: a line "io" or "all" in runtime/native-off.txt (convaiNative.off('io')). Three
--- faults inside the plugin's io natives also switch it off. Every change logs one probe.log line.
+-- Kill switch: a line "io" or "all" in runtime/native-off.txt (the plugin re-reads it about once a
+-- second). Three faults inside the plugin's io natives also switch it off. Every change logs one
+-- probe.log line. Everything here lives in this mod's own Lua environment: the CET console cannot see
+-- the global convaiNative (each CET mod has its own), so the file is the way to switch a system.
+-- Developer mode: a line naming a system (or "all") in runtime/native-verify.txt makes that system's
+-- shim run its own Lua path beside the plugin and log any difference (api.verifying(system)).
 --
 -- Late binding: init.lua installs this before CET has bound the plugin's RTTI classes, so the
 -- classes can still be nil here. Then io and os get pass-through tables at once (so every module
@@ -243,6 +247,40 @@ function M.install(options)
         end
     end
     api.use = function(system) return evaluate(system) == true end
+
+    -- Developer mode (runtime/native-verify.txt): the names listed there, or "all". The plugin's file
+    -- worker polls the file, so asking costs one native call a second, never a CET io.open, and
+    -- nothing at all without the plugin.
+    local verify = {names = {}, revision = nil, next = -math.huge, watched = false}
+    api.verifying = function(system)
+        if not present then return false end
+        local now = clock()
+        if now >= verify.next then
+            verify.next = now + 1
+            local ok = pcall(function()
+                if not verify.watched then verify.watched = true; Io.Watch('native-verify.txt', 1000, false) end
+                local revision = Io.Revision('native-verify.txt')
+                if revision ~= verify.revision then
+                    verify.revision = revision
+                    local names, listed = {}, {}
+                    if type(revision) == 'number' and revision > 0 then
+                        for line in tostring(Io.Read('native-verify.txt')):gmatch('[^\r\n]+') do
+                            local name = (line:gsub('#.*', '')):match('^%s*(.-)%s*$'):lower()
+                            if name ~= '' then names[name] = true; listed[#listed + 1] = name end
+                        end
+                    end
+                    local was = next(verify.names) ~= nil
+                    verify.names = names
+                    table.sort(listed)
+                    if #listed > 0 or was then
+                        log('Native core: verify mode ' .. (#listed > 0 and ('on for ' .. table.concat(listed, ', ')) or 'off'))
+                    end
+                end
+            end)
+            if not ok then verify.names = {} end
+        end
+        return verify.names[system] == true or verify.names.all == true
+    end
     api.fail = fail
     api.onChange = function(system, callback)
         systems[system] = systems[system] or {on = nil, next = -math.huge}

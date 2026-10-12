@@ -46,6 +46,11 @@ void Note(std::uint64_t aStart)
     }
 }
 
+// The game's RTTI name of the spatial queries system. "SpatialQueriesSystem" is only the script
+// alias CET and redscript use; GetClass does not know it (live 2026-10-13: "class SpatialQueriesSystem
+// not found", so the self-test could never pass). SDK: game/SpatialQueriesSystem.hpp.
+constexpr const char* kSystemClass = "gameSpatialQueriesSystem";
+
 // The game system for a class, found by the class itself or by the interface it is registered
 // under (gameISpatialQueriesSystem). A candidate only counts when it really is the wanted class.
 RED4ext::IScriptable* FindSystem(const char* aClassName)
@@ -82,7 +87,7 @@ QueryStats GetQueryStats()
 
 GameProbe::GameProbe()
 {
-    m_system = FindSystem("SpatialQueriesSystem");
+    m_system = FindSystem(kSystemClass);
     if (!m_system)
     {
         m_error = kErrorNoSystem;
@@ -203,8 +208,14 @@ std::string SelfTest()
     GameProbe probe;
     if (!probe.Ready())
     {
-        // No world yet, or a lookup that does not work: the Lua side counts the waits.
-        return "wait the spatial queries system was not found";
+        // A game without the class cannot get better: "fail" keeps the Lua path for the session.
+        if (!game::Class(kSystemClass))
+        {
+            return "fail the game has no class gameSpatialQueriesSystem";
+        }
+        // The class exists but no game instance holds the system: the main menu or a load in progress.
+        // The Lua shim asks again later, for as long as the session lasts (it never gives up on a wait).
+        return "wait no spatial queries system yet (no world is loaded)";
     }
     char text[160];
 

@@ -310,3 +310,35 @@ OUT = table.concat(lines, '\\n')`;
   assert.ok(cases.some(item => item.output.channel === 'reply.json.tmp'));
   assert.ok(!cases.some(item => item.input.path.includes('..') && item.output.channel));
 });
+
+test('runtime/native-verify.txt turns developer verify mode on per system, read once a second without a CET io.open', () => run(`
+local M, api = boot(true)
+assert(type(api.verifying) == 'function')
+local opens = real.open
+assert(api.verifying('actuator') == false and api.verifying('clearance') == false, 'no file: off')
+assert(watches['native-verify.txt'] and watches['native-verify.txt'][1] == 1000, 'the plugin worker polls it')
+external('native-verify.txt', '# a comment\\nActuator  \\n\\nclearance # trailing\\n')
+assert(api.verifying('actuator') == false, 'checked at most once a second')
+advance(1.1)
+assert(api.verifying('actuator') == true and api.verifying('clearance') == true and api.verifying('gaze') == false)
+assert(lastPrint():find('Native core: verify mode on for actuator, clearance'), lastPrint())
+assert(real.open == opens, 'no CET io.open was needed')
+external('native-verify.txt', 'all\\n')
+advance(1.1)
+assert(api.verifying('gaze') == true, 'all')
+external('native-verify.txt', '')
+advance(1.1)
+assert(api.verifying('actuator') == false and lastPrint():find('Native core: verify mode off'), lastPrint())
+-- the file disappears
+external('native-verify.txt', 'actuator\\n'); advance(1.1); assert(api.verifying('actuator') == true)
+disk['runtime/native-verify.txt'] = nil; external('native-verify.txt', nil); advance(1.1)
+assert(api.verifying('actuator') == false)
+-- a broken plugin never raises into the shim
+broken = true; advance(1.1)
+assert(api.verifying('actuator') == false)
+`));
+
+test('without the plugin verify mode is off and reads nothing', () => run(`
+local M, api = boot(false)
+assert(api.verifying('actuator') == false and n('Revision') == 0)
+`));

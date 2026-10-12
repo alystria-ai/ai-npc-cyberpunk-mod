@@ -35,7 +35,9 @@ namespace convai::game
 {
 using Object = RED4ext::Handle<RED4ext::IScriptable>;
 
-// Cached CRTTISystem lookups.
+// Cached CRTTISystem lookups. Class() takes the game's native RTTI name (entLookAtAddEvent,
+// gameSpatialQueriesSystem, gameObject); GetClass alone does not know the script aliases, so a miss
+// is retried as a script name (LookAtAddEvent). A miss is never cached, a hit always is.
 RED4ext::CClass* Class(const char* aName);
 RED4ext::CBaseFunction* Method(RED4ext::CClass* aClass, const char* aName);
 

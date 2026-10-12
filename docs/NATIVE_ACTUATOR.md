@@ -40,7 +40,16 @@ command handles).
 
 ## Switches
 
-- `runtime/native-off.txt`: a line `actuator` (or `all`); `convaiNative.off('actuator')` / `.on('actuator')` in the CET console.
+- `runtime/native-off.txt`: a line `actuator` (or `all`). The CET console cannot reach `convaiNative` (each CET mod has its own
+  environment), so this file is the only route. The plugin re-reads it about once a second. Sub-switches send one part back to
+  the game's own reads and leave the others native: `actuator.life`, `actuator.sense`, `actuator.state`.
+- `runtime/native-verify.txt`: a line `actuator` (or `all`; `#` starts a comment) keeps the Lua reads in use and compares every
+  plugin read with them.
+- Parity proof: the plugin's reads are not used until 40 senses (10 of them with the companion walking faster than 0.5 m/s) matched
+  the Lua reads with zero differences; then `Native core: actuator parity proven over N senses (M with the companion walking); the
+  plugin reads are in use`. Afterwards every 100th sense is compared (canary). A difference logs
+  `Native core: actuator PARITY MISMATCH <field>: plugin X, Lua Y`; the third one switches the system off for the session
+  (`Native core: actuator=lua (native call failed: parity: ...)`).
 - Three native faults switch it off for the session.
 - `probe.log` shows `Native core: actuator=native (...)` or `=lua (reason)` on the first use and on every change,
   then `Native core: actuator capabilities N (all)`.

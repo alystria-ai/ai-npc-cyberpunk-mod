@@ -43,16 +43,16 @@ through the shim and requires the original results, budget and cursor.
 
 ## Safety
 
-- Kill switch: a line `clearance` in `runtime/native-off.txt`, or `convaiNative.off('clearance')` / `convaiNative.on('clearance')` in the CET console. Three faults inside the natives also switch it off.
+- Kill switch: a line `clearance` in `runtime/native-off.txt`, (the CET console cannot reach `convaiNative`, so the file is the only route). Three faults inside the natives also switch it off.
 - A native that raises, answers unreadably or reports a failed game call (status 4) calls `convaiNative.fail('clearance', ...)`: the module stays on Lua for the session and probe.log says why. Queries the plugin already made are still charged to the budget.
-- Before the first native use the shim runs `SelfTest` (a speck of sky must hit nothing in any group, a 30 m box and a ray down from V must hit something) and compares the plugin's box orientation with `Quaternion.ToEulerAngles(Quaternion.BuildFromDirectionVector(...))` for eight directions. Any difference keeps the Lua path. No world yet (`wait`) retries every 2 s, and fails after five waits.
+- Before the first native use the shim runs `SelfTest` (a speck of sky must hit nothing in any group, a 30 m box and a ray down from V must hit something) and compares the plugin's box orientation with `Quaternion.ToEulerAngles(Quaternion.BuildFromDirectionVector(...))` for eight directions. Any difference keeps the Lua path. No world yet (`wait`: the game has no spatial queries system until a save is loaded) never fails: Lua answers, and the test is asked again every 2 s, then every 10 s after 15 waits. A missing class `gameSpatialQueriesSystem` fails at once.
 - Arguments the plugin does not take (a non-finite rotation, a fractional cursor) run the original Lua without switching anything off. Invalid positions and shapes are answered like the Lua (`false`, "could not verify...", `{unavailable=true}`) without a native call.
 - Behaviour differences by design: none in results. A non-Boolean `Overlap` answer cannot occur natively; a failed call falls back to the Lua path instead of reporting "could not verify".
 
 ## Verify mode and statistics
 
-- `convaiNative.clearanceVerify = true` (CET console): every call runs BOTH paths, returns the Lua answer, and logs `Native core: clearance MISMATCH in <fn>: ...` to probe.log for any difference in result, rejection group/box, queries spent or segment cursor (first 20), plus a summary line every 250 calls.
-- `convaiNative.clearanceStats` = `{native, lua, fallback, compared, mismatches}`.
+- A line `clearance` in `runtime/native-verify.txt` (or `convaiNative.clearanceVerify = true` set from Lua): every call runs BOTH paths, returns the Lua answer, and logs `Native core: clearance MISMATCH in <fn>: ...` to probe.log for any difference in result, rejection group/box, queries spent or segment cursor (first 20), plus a summary line every 250 calls.
+- `convaiNative.clearanceStats` = `{native, lua, fallback, compared, mismatches}` (a Lua table, read by the tests and by diagnostics code; not reachable from the CET console).
 - `print(ConvaiNativeClearance.Stats())`: native call counts, queries, and the time spent inside the game's own query calls (`micros`, `maxMicros`).
 - Developer mode (perf-probe) times `clearance.body`, `clearance.segment`, `clearance.recheck`, `clearance.sightClear` and `clearance.floorZ`.
 
@@ -63,6 +63,6 @@ From the call counts and the measured CET cost of 10-60 microseconds a call (`do
 ## In-game check
 
 1. Install, restart the game, load a save. probe.log: `Native core: clearance=native (plugin 0.1.0, api 1)` once a companion exists, then `clearance self-test passed`.
-2. Verify mode: console `convaiNative.clearanceVerify = true`; invite a companion in a room with furniture, walk through a door, and drive a short distance. After a minute: `print(convaiNative.clearanceStats.compared, convaiNative.clearanceStats.mismatches)`. Mismatches must be 0 (a car or NPC moving between the two runs can cause the odd one; read the logged detail).
-3. Turn verify off (`convaiNative.clearanceVerify = false`) and play normally: companions place, walk, stop at doors and squeeze through gaps as before.
-4. A/B: Developer mode on, walk 60 s with the companion following, read `runtime/perf-probe.json` rows `clearance.segment` and `clearance.body`; then `convaiNative.off('clearance')`, repeat the same walk, compare; `convaiNative.on('clearance')` to restore.
+2. Verify mode: add the line `clearance` to `runtime/native-verify.txt`; invite a companion in a room with furniture, walk through a door, and drive a short distance. After a minute read probe.log: there must be no `Native core: clearance MISMATCH` lines (a car or NPC moving between the two runs can cause the odd one; read the logged detail).
+3. Remove the line from `native-verify.txt` and play normally: companions place, walk, stop at doors and squeeze through gaps as before.
+4. A/B: Developer mode on, walk 60 s with the companion following, read `runtime/perf-probe.json` rows `clearance.segment` and `clearance.body`; then add the line `clearance` to `native-off.txt`, repeat the same walk, compare; remove the line to restore.
