@@ -188,8 +188,20 @@ const fakePlugin = `
   failures = {}
   switchOn = true
   -- Only the actuator system exists in this fake plugin; the other systems stay on Lua.
-  convaiNative = {use = function(name) if name ~= 'actuator' then return false end count('use'); return switchOn end,
+  -- The system and its parts (actuator.life, actuator.sense, actuator.state) answer to the same switch,
+  -- unless a test turns one part off on its own.
+  partsOff = {}
+  convaiNative = {use = function(name)
+      if name ~= 'actuator' and not name:find('^actuator%.') then return false end
+      count('use'); return switchOn and not partsOff[name] end,
     fail = function(name, detail) if name ~= 'actuator' then return end failures[#failures + 1] = tostring(detail); switchOn = false end}
+  -- probe.log lines of the shim, for the tests that read them.
+  LOGLINES = {}
+  io.open = function() return {write = function(self, ...) LOGLINES[#LOGLINES + 1] = table.concat({...}); return self end,
+    close = function() return true end} end
+  -- The proof of the real shim takes 40 senses and the canary runs every 100th: the older tests ask for
+  -- the native answers from the first tick, and the proof tests below configure their own.
+  if not KEEP_PROOF then MODULES['companion-tick-native.lua'].configure(0, 0, 0) end
   local space = MODULES['companion-space.lua']
   local capabilities = 127
   function setCapabilities(value) capabilities = value end
@@ -212,7 +224,8 @@ const fakePlugin = `
     local p, f = npc.pos, npc.forward
     local speed = hasPrevious and space.ground({x = previousX, y = previousY}, p) / stepSeconds or 0
     local direction = space.unit(f.x, f.y)
-    local at, player = {x = p.x, y = p.y, z = p.z or 0, w = p.w or 1}, {x = playerX, y = playerY, z = playerZ}
+    -- BIAS_Z: a plugin that reads a different height than the game does (a test sets it).
+    local at, player = {x = p.x, y = p.y, z = (p.z or 0) + (BIAS_Z or 0), w = p.w or 1}, {x = playerX, y = playerY, z = playerZ}
     local gap = space.distance(at, player)
     local facing = space.angle(direction, space.bearing(at, player))
     local flags, state, id = 0, -1, -1
@@ -396,6 +409,139 @@ test('without convaiNative or the module the original Lua reads run', () => {
     assert((calls.Sense or 0) + (calls.Life or 0) == 0)
   `);
   assert.equal(out, reference);
+});
+
+// The parity proof (2026-10-13): the plugin's answers are compared with Lua's own reads before they are used.
+test('the parity proof: Lua answers while it runs, then the plugin, with identical results', () => {
+  const body = `${serializer}${hook}${fakePlugin}`;
+  const reference = run(`${body}
+    switchOn = false
+    ${scenario}`);
+  const out = run(`KEEP_PROOF = true
+    ${body}
+    local shimModule = MODULES['companion-tick-native.lua']
+    shimModule.configure(12, 3, 7)
+    ${scenario}
+    local state = shimModule.state()
+    assert(state.proven == true, 'the proof should have finished: ' .. serialize(state))
+    assert(state.mismatches == 0 and state.ticks == 12 and state.moving >= 3, serialize(state))
+    assert(state.compared > 12, 'the canary keeps comparing after the proof: ' .. serialize(state))
+    assert(#failures == 0, table.concat(failures, ';'))
+    assert((calls.Sense or 0) + (calls.SenseIdle or 0) > 12, 'the plugin was called every tick')
+    local proven = false
+    for _, line in ipairs(LOGLINES) do
+      if line:find('parity proven over 12 senses') then proven = true end
+      assert(not line:find('PARITY MISMATCH'), line)
+    end
+    assert(proven, table.concat(LOGLINES, '|'))
+  `);
+  assert.equal(out, reference);
+});
+
+test('the proof needs the companion to walk: standing still proves nothing', () => {
+  const body = `${serializer}${hook}${fakePlugin}`;
+  const out = run(`KEEP_PROOF = true
+    ${body}
+    local shimModule = MODULES['companion-tick-native.lua']
+    shimModule.configure(5, 3, 0)
+    local npc = spawn(); useCetStates(npc)
+    npc.pos = Vector4.new(1.5, 0.05, 0); npc.forward = Vector4.new(0, 1)
+    for i = 1, 30 do companions.update(player, 0.2) end
+    local state = shimModule.state()
+    assert(state.proven == false and state.ticks >= 5 and state.moving == 0, serialize(state))
+    OUT = 'ok'
+  `);
+  assert.equal(out, 'ok');
+});
+
+test('a plugin that reads a different height is caught by the proof, logged, and switched off', () => {
+  const body = `${serializer}${hook}${fakePlugin}`;
+  const reference = run(`${body}
+    switchOn = false
+    ${scenario}`);
+  const out = run(`KEEP_PROOF = true
+    ${body}
+    local shimModule = MODULES['companion-tick-native.lua']
+    shimModule.configure(12, 3, 7)
+    BIAS_Z = 0.3
+    ${scenario}
+    local state = shimModule.state()
+    assert(state.proven == false and state.mismatches >= 3, serialize(state))
+    assert(#failures == 1 and failures[1]:find('parity'), table.concat(failures, ';'))
+    local zLines = 0
+    for _, line in ipairs(LOGLINES) do if line:find('PARITY MISMATCH position%.z: plugin') then zLines = zLines + 1 end end
+    assert(zLines >= 1, table.concat(LOGLINES, '|'))
+  `);
+  // The Lua reads answered throughout: the companion behaved exactly as without the plugin.
+  assert.equal(out, reference);
+});
+
+test('the canary catches a plugin that starts to differ after the proof passed', () => {
+  const body = `${serializer}${hook}${fakePlugin}`;
+  const out = run(`KEEP_PROOF = true
+    ${body}
+    local shimModule = MODULES['companion-tick-native.lua']
+    shimModule.configure(8, 2, 3)
+    local STEPS = ${stepsLua}
+    local npc = spawn(); useCetStates(npc)
+    local provenAt
+    for index, s in ipairs(STEPS) do
+      npc.pos = Vector4.new(s.x, s.y, s.z); npc.forward = Vector4.new(s.fx, s.fy)
+      player.pos = Vector4.new(s.px, s.py, s.pz)
+      if index == 24 then BIAS_Z = 0.3 end
+      companions.update(player, s.dt)
+      if not provenAt and shimModule.state().proven then provenAt = index end
+    end
+    assert(provenAt and provenAt < 24, 'proven before the plugin starts to differ: ' .. tostring(provenAt))
+    assert(#failures == 1 and failures[1]:find('parity'), table.concat(failures, ';'))
+    OUT = 'ok'
+  `);
+  assert.equal(out, 'ok');
+});
+
+test('verify mode compares every tick and never lets the plugin answer', () => {
+  const body = `${serializer}${hook}${fakePlugin}`;
+  const reference = run(`${body}
+    switchOn = false
+    ${scenario}`);
+  const out = run(`KEEP_PROOF = true
+    ${body}
+    local shimModule = MODULES['companion-tick-native.lua']
+    shimModule.configure(0, 0, 0)
+    convaiNative.verifying = function(name) return name == 'actuator' end
+    ${scenario}
+    local state = shimModule.state()
+    assert(state.compared >= 30 and state.mismatches == 0, serialize(state))
+    assert(#failures == 0, table.concat(failures, ';'))
+  `);
+  assert.equal(out, reference);
+  // A difference is reported in verify mode too, and Lua still answers.
+  const bad = run(`KEEP_PROOF = true
+    ${body}
+    MODULES['companion-tick-native.lua'].configure(0, 0, 0)
+    convaiNative.verifying = function() return true end
+    BIAS_Z = 0.3
+    ${scenario}
+    assert(#failures == 1 and failures[1]:find('parity'), table.concat(failures, ';'))
+  `);
+  assert.equal(bad, reference);
+});
+
+test('one part of the system can be turned off on its own', () => {
+  const body = `${serializer}${hook}${fakePlugin}`;
+  const reference = run(`${body}
+    switchOn = false
+    ${scenario}`);
+  for (const [part, silent, other] of [['life', 'Life', 'Sense'], ['sense', 'Sense', 'Life'], ['state', 'CommandState', 'Sense']]) {
+    const out = run(`${body}
+      partsOff['actuator.${part}'] = true
+      ${scenario}
+      assert((calls.${silent} or 0) == 0, '${part} is off, so ${silent} is never called')
+      assert((calls.${other} or 0) + (calls.SenseIdle or 0) > 0, 'the other parts stay native')
+      assert(#failures == 0)
+    `);
+    assert.equal(out, reference, `${part} off changed behaviour`);
+  }
 });
 
 test('companions.lua and the actuator keep the shim optional and use it only in the tick', () => {

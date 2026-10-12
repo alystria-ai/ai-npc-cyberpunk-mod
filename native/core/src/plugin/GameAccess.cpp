@@ -50,6 +50,13 @@ RED4ext::CClass* Class(const char* aName)
     }
     auto* rtti = RED4ext::CRTTISystem::Get();
     RED4ext::CClass* type = rtti ? rtti->GetClass(aName) : nullptr;
+    if (!type && rtti)
+    {
+        // Redscript and CET know many native classes by an alias (LookAtAddEvent for entLookAtAddEvent,
+        // SpatialQueriesSystem for gameSpatialQueriesSystem), and GetClass only answers to the native
+        // name. Callers pass the native name; a script name still resolves here.
+        type = rtti->GetClassByScriptName(aName);
+    }
     if (type)
     {
         classes.emplace(aName, type);

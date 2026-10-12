@@ -67,7 +67,8 @@ counted; three faults turn that system off for the session.
 code receives entities from Lua (the world policy: only mod-spawned copies get mod systems,
 ordinary NPCs only talk, story NPCs nothing) and never enumerates NPCs itself. `mod/native-core.lua`
 installs first in init.lua and publishes `convaiNative`: `use(system)` (cached 0.5 s, logs every
-change), `fail(system, err)`, `status()`, `probe()`, `on/off(system)`.
+change), `fail(system, err)`, `status()`, `probe()`, `verifying(system)` (reads `runtime/native-verify.txt`), `on/off(system)`
+(internal: the CET console cannot reach `convaiNative`, so the switches are the lines of `runtime/native-off.txt`).
 
 **IO thread.** One worker thread (below normal priority) does all disk IO: atomic replace through a
 POSIX-semantics rename (works while the bridge holds the old file open), coalescing of queued

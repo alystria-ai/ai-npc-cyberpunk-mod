@@ -26,7 +26,7 @@ local function trackLimit(track)
     return limits[track] or .5
 end
 -- Native core, system "faces" (native/core/src/systems/faces, docs/NATIVE_PORT_BRIEF.md). When the plugin is
--- loaded and the switch is on (runtime/native-off.txt line "faces", or convaiNative.off('faces')), the per-frame
+-- loaded and the switch is on (no line "faces" in runtime/native-off.txt), the per-frame
 -- writer runs in C++: one call computes the pose block of a slot (pose, droop, flicks, mouth budget, ducks,
 -- voice brows, written and applied poses) and writes the ConvaiFaceFeature and applies it, instead of about 100
 -- CET property and method calls per actor and frame. The slot lifecycle, blinkWeight, ownerLevel and the speech

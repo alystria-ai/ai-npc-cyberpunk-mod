@@ -105,7 +105,21 @@ CBaseFunction* CombatFunction()
         }
         else if (type)
         {
-            CONVAI_WARN("Actuator: NPCPuppet.IsInCombat is not a one-argument static function");
+            // The class is loaded, so the answer will not change this session: say it once and let
+            // Lua keep reading the combat flag. (Live 2026-10-13: this line was logged on every tick,
+            // 2784 times in six minutes.)
+            g_combat.resolved = true;
+            if (function)
+            {
+                CONVAI_WARN("Actuator: NPCPuppet.IsInCombat resolved to a function that is %s with %u parameters, not a "
+                            "one-argument static one; Lua reads the combat flag",
+                            function->flags.isStatic ? "static" : "not static",
+                            static_cast<unsigned>(function->params.Size()));
+            }
+            else
+            {
+                CONVAI_WARN("Actuator: NPCPuppet.IsInCombat was not found; Lua reads the combat flag");
+            }
         }
     }
     return g_combat.function;

@@ -88,9 +88,10 @@ end
 ```
 
 `convaiNative.use` re-reads the switch every 0.5 s and logs `Native core: <name>=native|lua
-(reason)` on every change. Kill switch: a line `<name>` (or `all`) in `runtime/native-off.txt`, or
-`convaiNative.off('<name>')` in the CET console. Three faults inside the system's natives also
-switch it off.
+(reason)` on every change. Kill switch: a line `<name>` (or `all`) in `runtime/native-off.txt`, and
+nothing else: each CET mod has its own environment, so the CET console cannot reach `convaiNative`.
+To run both paths and log any difference, add the name to `runtime/native-verify.txt` and read it
+through `convaiNative.verifying('<name>')`. Three faults inside the system's natives also switch it off.
 
 ## 4. Parity-test pattern
 

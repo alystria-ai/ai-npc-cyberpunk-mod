@@ -268,7 +268,7 @@ end
 -- Native core, system "gaze" (native/core/src/systems/gaze): Fill configures a LookAtAddEvent created
 -- here in one call. It returns 0 built, 1 declined for this input (this file builds it, as before),
 -- 2 unavailable (the game's classes differ: this system stays on Lua for the session). Kill switch:
--- a line "gaze" in runtime/native-off.txt, or convaiNative.off('gaze').
+-- a line "gaze" in runtime/native-off.txt.
 local function nativeLook(player,style,height,strength,seated)
     if type(convaiNative)~='table' or type(convaiNative.use)~='function' or player==nil then return nil end
     if not convaiNative.use('gaze') then return nil end
