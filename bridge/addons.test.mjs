@@ -4,7 +4,7 @@ import {mkdtemp, mkdir, writeFile, readFile, rm, stat} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {resolve} from 'node:path';
-import {ADDON_API_VERSION, ADDON_ENV, ADDON_PROVIDERS, AddonHost, CET_MODS, addonRoots, apiCompatible, discoverAddons, fixedProvider,
+import {ADDON_API_VERSION, ADDON_ENV, ADDON_PROVIDERS, AddonHost, CET_MODS, LOCAL_REMARK_GAP_S, addonRoots, apiCompatible, discoverAddons, fixedProvider,
   inspectReference, isAddonProfile, isNearDuplicate, lineSimilarity, parseAddonInput, parseAddonReaction, parseAddonSettings,
   parseAddonState, parseApiVersion, sharedMemory, speakerProfileKey, validateManifest} from './addons.mjs';
 import {parseInput} from './protocol.mjs';
@@ -134,8 +134,10 @@ test('without add-ons the host is inert: no rows, ids, blocks, files, timers or 
 test('the bridge only touches add-ons through the host, and every touch is a no-op without one', () => {
   const bridge = read('./convai-bridge.mjs');
   const uses = [...bridge.matchAll(/addonHost\.(\w+)/g)].map(match => match[1]);
-  assert.deepEqual([...new Set(uses)].sort(), ['active', 'afterReply', 'beginTurn', 'blocks', 'extend', 'isSpeaker', 'loadJournal', 'onWarm',
-    'providerNotice', 'publishStatus', 'review', 'routeFor', 'trigger', 'voiceConfigPaths', 'watchHandlers']);
+  assert.deepEqual([...new Set(uses)].sort(), ['active', 'afterReply', 'beginTurn', 'blocks', 'extend', 'isSpeaker', 'loadJournal', 'localPace',
+    'onWarm', 'providerNotice', 'publishStatus', 'remarkStarted', 'review', 'routeFor', 'trigger', 'voiceConfigPaths', 'watchHandlers']);
+  // A remark on the local AI inside its default pace is answered at once with addon-pace, before any text request.
+  assert.match(bridge, /const pace = remark \? addonHost\.localPace\(profile\.key, route\) : 0;\n\s*if \(pace > 0\) \{[\s\S]{0,260}errorCode: 'addon-pace', retryAfter: pace\}/);
   // An add-on speaker branches off before any Convai step of a turn; every other turn is unchanged.
   assert.match(bridge, /if \(profile && addonHost\.isSpeaker\(profile\.key\)\) \{ await runAddonTurn\(request, input, profile, current, clock\); return; \}\n\s*if \(!profile \|\| !ids\[profile\.key\]\)/);
   assert.match(bridge, /text: battleTrigger\(input\), reaction: input\.reaction,/, 'the Convai / text-provider config keeps the battle trigger');
@@ -214,6 +216,27 @@ test('providers: add-on speakers use Mistral or the local AI only, the player\'s
   const view = sharedMemory(store);
   assert.equal(view.recall(), 'r');
   assert.equal(view.setExtractor, undefined);
+});
+
+test('local AI pace: with the default gap a remark on the local AI waits about 20 s after the last one; Mistral and a chosen gap never wait', () => {
+  let now = 0;
+  const host = new AddonHost({addons: [skippy()], now: () => now});
+  assert.equal(LOCAL_REMARK_GAP_S, 20);
+  assert.equal(host.localPace('addon-skippy-gun', 'local'), 0, 'the first remark starts at once');
+  host.remarkStarted('addon-skippy-gun', 'local');
+  now = 10_000;
+  assert.equal(host.localPace('addon-skippy-gun', 'local'), 10);
+  assert.equal(host.localPace('addon-skippy-gun', 'mistral'), 0, 'Mistral is not held');
+  host.remarkStarted('addon-skippy-gun', 'mistral');
+  now = 19_500;
+  assert.equal(host.localPace('addon-skippy-gun', 'local'), 1, 'rounded up');
+  now = 20_000;
+  assert.equal(host.localPace('addon-skippy-gun', 'local'), 0);
+  // A gap the player picked is used as it is (the game spaces it).
+  host.remarkStarted('addon-skippy-gun', 'local');
+  host.observeSettings(JSON.stringify({version: 1, addons: {skippy: {remarkGap: 1, remarkGapChosen: true}}}));
+  assert.equal(host.localPace('addon-skippy-gun', 'local'), 0);
+  assert.equal(host.localPace('judy-alvarez', 'local'), 0, 'not an add-on speaker');
 });
 
 test('modes: each personality has its own stable persona prefix, switched by the turn or the game state', () => {

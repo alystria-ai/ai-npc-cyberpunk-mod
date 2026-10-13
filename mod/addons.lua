@@ -8,9 +8,10 @@
 -- Everything runs on the main mod's existing 0.1 s tick (M.tick, only while live) and on events the main mod already has.
 -- No native object is kept across a save load: anchors are resolved again whenever they are needed.
 --
--- Remarks are rare on purpose (the user's decision, 2026-10-13): each add-on has a "Remarks" setting (Rare / Low / Normal, default
--- Low) that sets a long gap between its remarks and a budget per episode (one fight, or five minutes outside combat), with the
--- last remark of the budget kept for a moment of priority 4 or 5. Add-on speakers' text comes only from Mistral or the local AI.
+-- How often an add-on speaks is the player's choice (the user's decision, 2026-10-13): "Time between remarks" (4 to 60 s, default 10)
+-- and "Most remarks per fight" (5 to 50 or no limit, default 30; outside combat per five minutes), with the last remark of the cap kept
+-- for a moment of priority 4 or 5. One remark at a time: nothing new starts while one is written or spoken, and a remark whose moment
+-- has passed (about 3 s) is dropped. Add-on speakers' text comes only from Mistral or the local AI.
 local M = {API_MAJOR = 1, API_MINOR = 0, live = false}
 M.API_VERSION = M.API_MAJOR .. '.' .. M.API_MINOR
 
@@ -37,9 +38,12 @@ local LIMITS = {blocks = 8, blockText = 1500, eventText = 600, companionBlocks =
     facts = 4000, settings = 24}
 local GLOBAL_GAP = 2          -- seconds of quiet after any speech before an add-on remark starts
 local LEASE_PERIOD = 1        -- the bridge drops an automatic request whose lease is older than five seconds
--- The "Remarks" setting every add-on with a speaker gets: seconds between two remarks of the add-on, and remarks per episode.
-local RATES = {{label = 'Rare', gap = 60, budget = 2}, {label = 'Low', gap = 30, budget = 3}, {label = 'Normal', gap = 20, budget = 5}}
-local RATE_DEFAULT = 2
+-- The two settings every add-on with a speaker gets (values are 1-based indexes into these lists).
+local GAPS = {4, 6, 8, 10, 15, 20, 30, 60}             -- "Time between remarks", seconds
+local GAP_DEFAULT = 4                                    -- 10 s
+local CAPS = {5, 10, 20, 30, 50, math.huge}              -- "Most remarks per fight"; the last is "No limit"
+local CAP_DEFAULT = 4                                    -- 30
+local DEFAULT_TTL = 3         -- a remark that cannot be heard within about 3 s of its moment is dropped
 local EPISODE_IDLE = 300      -- outside combat an episode is a rolling five minutes; a fight is one episode
 local PROVIDER_QUIET = 120    -- seconds without remarks after the bridge said no text provider is set up
 local MODE_ID = '^[a-z][a-z0-9%-]*$'
@@ -219,10 +223,11 @@ end
 
 -- ---- How often an add-on speaks -------------------------------------------------------------------------------------------
 
-local function rateOf(addon)
-    local value = addon.values and addon.values.remarkRate
-    return RATES[type(value) == 'number' and RATES[value] and value or RATE_DEFAULT]
+local function choice(list, value, default)
+    return list[type(value) == 'number' and list[value] and value or default]
 end
+local function gapOf(addon) return choice(GAPS, addon.values and addon.values.remarkGap, GAP_DEFAULT) end
+local function capOf(addon) return choice(CAPS, addon.values and addon.values.remarkCap, CAP_DEFAULT) end
 
 local function episodeOf(addon)
     local episode = addon.episode
@@ -233,10 +238,11 @@ end
 -- nil when the add-on may make a remark of this priority now, else why not.
 local function rateBlocked(addon, priority)
     if addon.quietUntil and clock < addon.quietUntil then return 'no-provider' end
-    local rate, episode = rateOf(addon), episodeOf(addon)
-    if episode.count >= rate.budget then return 'episode-budget' end
-    if episode.count == rate.budget - 1 and priority < 4 then return 'episode-budget' end
-    local gap = priority >= 5 and rate.gap / 2 or rate.gap
+    if addon.paceUntil and clock < addon.paceUntil then return 'addon-gap' end
+    local cap, episode = capOf(addon), episodeOf(addon)
+    if episode.count >= cap then return 'episode-budget' end
+    if episode.count == cap - 1 and priority < 4 then return 'episode-budget' end
+    local gap = priority >= 5 and gapOf(addon) / 2 or gapOf(addon)
     if addon.lastRemarkAt and clock - addon.lastRemarkAt < gap then return 'addon-gap' end
     return nil
 end
@@ -297,7 +303,8 @@ api.register = guard('register', function(def)
         enabled = true, handlers = {}, speakers = {}, companion = {}, companionOrder = {}, state = nil,
         settingsDef = nil, values = settingsValues[id] or {}, events = {}, episode = {start = clock, count = 0},
         lastRemarkAt = nil, quietUntil = nil, memories = {}, warm = nil}
-    if not RATES[addon.values.remarkRate] then addon.values.remarkRate = RATE_DEFAULT end
+    if not GAPS[addon.values.remarkGap] then addon.values.remarkGap = GAP_DEFAULT end
+    if not CAPS[addon.values.remarkCap] then addon.values.remarkCap = CAP_DEFAULT end
     addons[id] = addon
     M.live = true
     if host and host.watchParty then pcall(host.watchParty, function() partyDirty = true end) end
@@ -365,11 +372,17 @@ Handle.remark = guard('remark', function(self, speakerId, event)
     local entry = {speaker = speaker, at = clock, event = {event = event.event, text = trim(event.text, LIMITS.eventText), facts = facts,
         priority = math.floor(number(event.priority, 1, 5, 2)), maxWords = math.floor(number(event.maxWords, 3, 60, 14)),
         interrupt = event.interrupt == true, cooldown = cooldown}}
-    entry.expires = clock + number(event.ttl, 1, 30, 4)
+    entry.ttl = number(event.ttl, 1, 30, DEFAULT_TTL)
+    entry.expires = clock + entry.ttl
     -- One waiting remark per speaker and event name: the newer facts replace the older ones.
     for index = #queue, 1, -1 do
         local other = queue[index]
         if other.speaker == speaker and other.event.event == entry.event.event then table.remove(queue, index) end
+    end
+    -- While a remark is being written or spoken, at most one waits behind it (the strongest; a tie goes to the newer moment).
+    if flight and #queue > 0 then
+        for _, other in ipairs(queue) do if other.event.priority > entry.event.priority then return false, 'busy' end end
+        for index = #queue, 1, -1 do local other = table.remove(queue, index); drop(other, 'replaced') end
     end
     if #queue >= LIMITS.queue then
         local weakest, at = nil, nil
@@ -460,7 +473,9 @@ Handle.settings = guard('settings', function(self, section)
     for _, item in ipairs(section.items) do
         if #items >= LIMITS.settings then break end
         if type(item) ~= 'table' or type(item.id) ~= 'string' or #item.id > 32 or not item.id:match('^[%w_]+$') then return false, 'invalid setting id' end
-        if item.id == 'remarkRate' then return false, 'remarkRate is the built-in Remarks setting' end
+        if item.id == 'remarkGap' or item.id == 'remarkCap' or item.id == 'remarkGapChosen' or item.id == 'remarkRate' then
+            return false, item.id .. ' is a built-in setting'
+        end
         local label = trim(item.label, 80)
         if not label then return false, 'setting ' .. item.id .. ' needs a label' end
         local entry = {id = item.id, label = label, kind = item.kind, description = trim(item.description, 600) or ''}
@@ -751,11 +766,13 @@ local function schedule(player, state, worldReady)
             context.requestId = tostring(now) .. '-' .. tostring(generation) .. '-' .. entity
             local episode = episodeOf(speaker.addon)
             flight = {requestId = context.requestId, speaker = speaker, event = event.event, priority = event.priority,
-                stage = 'pending', entity = entity, episode = episode, episodeStart = episode.start}
+                stage = 'pending', entity = entity, episode = episode, episodeStart = episode.start, at = entry.at, ttl = entry.ttl or DEFAULT_TTL}
             local ok, sent = false, false
             if lease(true) then ok, sent = pcall(host.submit, context, object) end
             if ok and sent then
                 episode.count = episode.count + 1
+                -- No build-up behind the remark in flight: only the strongest waiting one is kept (the queue is sorted, best first).
+                while #queue > 1 do drop(table.remove(queue), 'replaced') end
                 if event.cooldown > 0 then speaker.events[event.event] = clock end
                 log('Remark: ' .. speaker.key .. ' event=' .. event.event .. ' priority=' .. event.priority)
             else
@@ -809,6 +826,8 @@ end
 --- The reply of an add-on remark arrived: may it play now? (init.lua reactionCanDeliver)
 function M.canDeliver(context, player)
     if not flight or type(context) ~= 'table' or flight.requestId ~= context.requestId then return false end
+    -- The moment has passed (the reply took too long): a late remark is worse than none.
+    if flight.at and clock - flight.at > flight.ttl then release('stale', true); return false end
     local sample = host and host.sample and host.sample(player) or watch.sample
     local blocked, why = sceneBlocked(sample, flight.speaker)
     if blocked then release(why, true); return false end
@@ -874,6 +893,9 @@ function M.replyError(context, reply)
             addon.providerNoticeShown = true
             notify(trim(reply.error, 200) or (addon.name .. ' needs a free Mistral key or the Local AI pack.'))
         end
+    elseif reply.errorCode == 'addon-pace' then
+        -- The local AI is spacing this add-on's remarks to keep the GPU free for the game: wait before the next one.
+        speaker.addon.paceUntil = clock + number(reply.retryAfter, 1, 60, 10)
     end
 end
 
@@ -887,12 +909,18 @@ function M.settingsSections()
         local def = addon.settingsDef
         local items = {}
         if next(addon.speakers) ~= nil then
-            local labels = {}
-            for index, rate in ipairs(RATES) do labels[index] = rate.label end
-            items[1] = {mcmId = 'addon:' .. id .. ':remarkRate', label = 'Remarks', kind = 'select', elements = labels,
-                value = addon.values.remarkRate, default = RATE_DEFAULT,
-                description = 'How often ' .. addon.name .. ' speaks up on its own. Rare: at most 2 remarks a fight, a minute apart. '
-                    .. 'Low: at most 3, 30 seconds apart. Normal: at most 5, 20 seconds apart. The last one is kept for the best moment.'}
+            local gaps, caps = {}, {}
+            for index, seconds in ipairs(GAPS) do gaps[index] = seconds .. ' s' end
+            for index, count in ipairs(CAPS) do caps[index] = count == math.huge and 'No limit' or tostring(count) end
+            items[1] = {mcmId = 'addon:' .. id .. ':remarkGap', label = 'Time between remarks', kind = 'select', elements = gaps,
+                value = addon.values.remarkGap, default = GAP_DEFAULT,
+                description = 'The shortest quiet time between two remarks of ' .. addon.name .. ', counted from the end of the last one. '
+                    .. 'The biggest moments (a near death, the end of a fight) need only half of it. While its text comes from the Local AI '
+                    .. 'and you keep the default, ' .. addon.name .. ' waits about 20 seconds between remarks to keep the graphics card free for the game.'}
+            items[2] = {mcmId = 'addon:' .. id .. ':remarkCap', label = 'Most remarks per fight', kind = 'select', elements = caps,
+                value = addon.values.remarkCap, default = CAP_DEFAULT,
+                description = 'How many remarks ' .. addon.name .. ' may make in one fight (outside combat: in five minutes). '
+                    .. 'The last one is kept for a big moment.'}
         end
         if #items > 0 or (def and #def.items > 0) then
             for _, item in ipairs(def and def.items or {}) do
@@ -910,7 +938,8 @@ local function settingFor(mcmId)
     local id, key = mcmId:match('^addon:([%w%-]+):([%w_]+)$')
     local addon = id and addons[id]
     if not addon then return nil end
-    if key == 'remarkRate' and next(addon.speakers) ~= nil then return addon, {id = 'remarkRate', kind = 'select', elements = RATES} end
+    if key == 'remarkGap' and next(addon.speakers) ~= nil then return addon, {id = 'remarkGap', kind = 'select', elements = GAPS} end
+    if key == 'remarkCap' and next(addon.speakers) ~= nil then return addon, {id = 'remarkCap', kind = 'select', elements = CAPS} end
     if not addon.settingsDef then return nil end
     for _, item in ipairs(addon.settingsDef.items) do if item.id == key then return addon, item end end
     return nil
@@ -936,7 +965,11 @@ function M.commitSettings()
     local changes = staged
     staged = nil
     if not changes or #changes == 0 then return true end
-    for _, change in ipairs(changes) do change.addon.values[change.id] = change.value end
+    for _, change in ipairs(changes) do
+        change.addon.values[change.id] = change.value
+        -- A gap the player picked is kept as it is on every provider (the Local AI's longer default applies only to the default).
+        if change.id == 'remarkGap' then change.addon.values.remarkGapChosen = true end
+    end
     local doc = {version = 1, addons = {}}
     for _, id in ipairs(order) do doc.addons[id] = addons[id].values end
     for id, values in pairs(settingsValues or {}) do if not addons[id] then doc.addons[id] = values end end
@@ -970,7 +1003,7 @@ function M.reset(reason)
         local addon = addons[id]
         if #addon.companionOrder > 0 or addon.state ~= nil then had = true end
         addon.companion, addon.companionOrder, addon.state = {}, {}, nil
-        addon.episode, addon.lastRemarkAt, addon.quietUntil = {start = clock, count = 0}, nil, nil
+        addon.episode, addon.lastRemarkAt, addon.quietUntil, addon.paceUntil = {start = clock, count = 0}, nil, nil, nil
     end
     if had then writeState(true) end
     if sessionOpen then sessionOpen = false; emit('sessionEnded', {reason = reason}) end

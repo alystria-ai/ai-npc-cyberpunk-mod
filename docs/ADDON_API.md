@@ -180,7 +180,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 | Method | What it does |
 |---|---|
 | `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
-| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `queue-full` or `add-on disabled`. |
+| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
 | `handle:setMode(speakerId, modeId)` | Switches the speaker's personality (a mode in the manifest). It is sent with every turn and in `runtime/addon-state.json`. |
 | `handle:remember(speakerId, text)` | Keeps a memory the speaker can call back to later, for example "V spared the Tyger Claw who begged." At most 300 characters; a repeat is ignored. The bridge keeps the last 12 per speaker across game sessions. |
 | `handle:setContext(speakerId, key, text, tier)` | Adds a prompt block to every turn of this speaker until it is cleared with `text = nil`. At most 8 blocks of 1,500 characters. `tier` is `'world'` (default; changes rarely), `'volatile'` (changes every turn) or `'notes'`. |
@@ -219,7 +219,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 | `turnStarted` / `turnEnded` | `{requestId, profileKey, reaction, addon}` for any conversation turn |
 | `speechStarted` / `speechEnded` | `{requestId, name}` / `{requestId}` |
 | `remarkStarted` | `{speaker, event}`: the remark is heard (or its caption is shown) |
-| `remarkFinished` | `{speaker, event, reason, spoken}`. `reason` is one of `finished`, `not-delivered`, `manual-priority`, `scene`, `scene-tier`, `speaker-unavailable`, `interrupted`, `cancelled`, `add-on-disabled` or `anchor-changed` |
+| `remarkFinished` | `{speaker, event, reason, spoken}`. `reason` is one of `finished`, `not-delivered`, `stale`, `manual-priority`, `scene`, `scene-tier`, `speaker-unavailable`, `interrupted`, `cancelled`, `add-on-disabled` or `anchor-changed` |
 | `remarkDropped` | `{speaker, event, reason}`: the remark was never sent. `reason` is one of `replaced`, `expired`, `scene`, `speaker-unavailable`, `speaker-cooldown`, `addon-gap`, `episode-budget` or `request-write-failed` |
 | `settingChanged` | `{id, value}`, sent on the tick after Apply (never inside the menu) |
 
@@ -227,24 +227,34 @@ A handler that throws three times is removed. The main mod has no kill, headshot
 hooks the game itself in its own `init.lua` with `Observe`/`ObserveAfter` on the game function, keeps each handler to a few
 table writes, and never polls in `onUpdate` (see Skippy below).
 
-## Remarks: few, and at the best moments
+## Remarks: as often as the player likes, never piled up
 
-Players should hear about **2 to 4 remarks in a typical fight**, each at a moment worth a line. Every add-on with a speaker gets a
-built-in **Remarks** setting:
+How often an add-on speaks is the player's choice. Every add-on with a speaker gets two built-in settings:
 
-| Remarks | Gap between two remarks of the add-on | Remarks per episode |
+| Setting | Choices | Default |
 |---|---|---|
-| Rare | 60 s | 2 |
-| **Low** (default) | 30 s | 3 |
-| Normal | 20 s | 5 |
+| **Time between remarks** | 4, 6, 8, 10, 15, 20, 30 or 60 s, counted from the end of the last remark | **10 s** (about 20 s on the local AI, see below) |
+| **Most remarks per fight** | 5, 10, 20, 30, 50 or No limit; outside combat, per rolling five minutes | **30** |
+
+At the defaults a busy fight gets a line every 10 to 15 seconds, so remark on every moment worth a line and let the priorities
+pick. The rules:
 
 - An **episode** is one fight, from `combatStarted` until the next fight starts. Outside combat it is a rolling five minutes.
-- The **last remark of the budget is kept for priority 4 or 5.** With Low, two remarks of any priority can be made, and the third
-  only for a big moment.
+- The **last remark of the cap is kept for priority 4 or 5**, so the end of a long fight still gets its line.
 - A **priority 5** remark needs only half the gap, so a near-death line right after a first-kill line still gets through.
-- A remark that was never heard (the player started talking, a scene began, or the bridge dropped it as a repeat) does not spend
-  the budget or start the gap.
-- `handle:remark` refuses at once (`addon-gap`, `episode-budget`) when a remark could not be made, so the add-on does no work for it.
+- A remark that was never heard (the player started talking, a scene began, the reply came too late, or the bridge dropped it as
+  a repeat) does not count toward the cap or start the gap.
+- **One remark at a time.** No new remark starts while one is being written or spoken. While one is in flight, at most one waits
+  behind it: the strongest (a tie goes to the newer moment). A weaker one is refused with `busy`; an equal or stronger one replaces
+  the waiting one.
+- **A late remark is dropped.** If the reply arrives more than `ttl` seconds (3 s by default) after the moment, it is dropped
+  (`remarkFinished` with `stale`) instead of playing late. A waiting remark that cannot start within `ttl` expires.
+- **On the local AI** the bridge keeps the default gap at about 20 seconds between remark starts
+  (`LOCAL_REMARK_GAP_S`; the reply is `errorCode: 'addon-pace'` with `retryAfter`, and the game waits that long). Each remark is a
+  GPU burst of about half a second beside the game, and its frame-time cost is not measured yet, so the default keeps it rare. A
+  gap the player picks is used as it is.
+- `handle:remark` refuses at once (`addon-gap`, `episode-budget`, `busy`) when a remark could not be made, so the add-on does no work
+  for it.
 
 Choose priorities like this:
 
@@ -253,7 +263,7 @@ Choose priorities like this:
 | 5 | the moment of the fight or ride | near death; fight end | arrival; V nearly dies in the cab |
 | 4 | a highlight | first kill; headshot streak (3+); a civilian hit in Pacifist mode | V boards; a crash; a police chase starts |
 | 3 | notable | a weapon mode change; a long reload under fire | a landmark passed |
-| 1–2 | filler; usually not worth asking | an ordinary kill | small talk |
+| 1–2 | filler; heard only when nothing better is waiting | an ordinary kill | small talk |
 
 The other remark fields:
 
@@ -262,7 +272,7 @@ The other remark fields:
 | `event` | required | A name for the moment, such as `first-kill`. One waiting remark is kept per speaker and event; newer facts replace older ones. |
 | `text` | `[<add-on>] <event>` | What happened, in one plain sentence. It becomes the start of the trigger. |
 | `facts` | none | Plain data, at most 4,000 bytes as JSON (`{streak = 3, weapon = 'Skippy'}`). The speaker may use only these facts. |
-| `ttl` | 4 s (1–30) | A remark that cannot start within this time is dropped, never played late. |
+| `ttl` | 3 s (1–30) | A remark that cannot start, or whose reply does not arrive, within this time of its moment is dropped, never played late. Give a slow moment, such as a fight end, a longer one. |
 | `maxWords` | 14 (3–60) | The trigger asks for one line of at most this many words. Use 6–12 for barks. |
 | `interrupt` | false | Stops a remark of a *lower* priority that is playing. |
 | `cooldown` | 0 | Seconds before the same event may be remarked again. |
@@ -295,8 +305,10 @@ pause for two minutes. For remarks the notice is shown once per session; a messa
 - The default route is Mistral for a Convai player who has saved a key. That player keeps Convai for companions, and Skippy and
   Delamain use their Mistral key.
 - Each remark is one request of a few hundred new tokens. The persona and the mode are a stable prefix that Mistral caches.
-- An add-on's request budget is its Remarks setting: at most 3 requests a fight with Low, and at most 5 with Normal.
-- Mistral requests are paced by the same scheduler as the companions' requests on that key (about one a second on the free plan).
+- An add-on's request budget is its two settings. Because the gap counts from the end of the last remark, even the shortest gap
+  (4 s) means about one request every 6 to 8 seconds, and never two remarks at once.
+- Mistral requests are paced by the same scheduler as the companions' requests on that key (about one a second on the free plan),
+  so a remark and a companion reply share that second and nothing is refused for rate.
 - On the local AI a remark uses the GPU only while it is written. If the pack is installed but not running, the first remark starts
   it, so call `handle:prepare` when a fight or ride begins.
 - An add-on turn never touches Convai and never counts toward the shared key's 100 conversations a day.
@@ -405,8 +417,10 @@ handle:settings({title = 'Skippy', description = 'The talking smart pistol.', it
 }})
 ```
 
-- The section appears on the main settings page after Reactions, with the built-in **Remarks** setting first.
-- `id` uses letters, digits and `_`. `remarkRate` is reserved for the built-in setting. At most 24 items; `kind` is `bool` or
+- The section appears on the main settings page after Reactions, with the built-in **Time between remarks** and **Most remarks per
+  fight** settings first.
+- `id` uses letters, digits and `_`. `remarkGap`, `remarkCap`, `remarkGapChosen` and `remarkRate` are reserved for the built-in
+  settings. At most 24 items; `kind` is `bool` or
   `select` (2–12 elements, and `default` is the 1-based index).
 - Changes are checked when the player applies them, saved only if the main Apply succeeds, written to
   `runtime/addon-settings.json`, and announced by `settingChanged` on the next tick.
@@ -502,9 +516,10 @@ check the list of calls.
 4. A vehicle anchor survives `IsAttached`, and no `IsDeadNoStatPool` call reaches a vehicle.
 5. Delamain detection: the add-on's `available()` recognises a Delamain cab ride, and remarks stay silent while the game's own
    Delamain dialogue plays (scene tier above 1, or dialogue).
-6. The Local AI pack starts when a remark needs it and no FPS is lost outside the request.
+6. The Local AI pack starts when a remark needs it and no FPS is lost outside the request. Measure the frame time during a
+   remark at the local AI's default (about 20 s) and at a 10 s gap; shorten `LOCAL_REMARK_GAP_S` only if both are clean.
 7. The provider notice appears once with no Mistral key and no Local AI pack.
-8. Remarks per fight feel right on Low (2–4 heard in a typical fight).
+8. Remarks feel right at the defaults (10 s, 30 a fight): frequent but never piled up, and none plays after its moment.
 
 ## Building Skippy and Delamain
 
@@ -514,7 +529,8 @@ Build against this document and `addons/example/`.
 - One speaker, `gun`, anchored to `'player'` and available while V holds Skippy.
 - Two modes in the manifest, `killer` and `puppy`, chosen by a Personality setting through `setMode`.
 - Kill, headshot, damage and civilian-hit detection in Skippy's own `init.lua`, through `Observe` hooks with O(1) handlers.
-- Remarks: first kill (4), headshot streak of 3 or more (4), near death (5), a civilian hit in Pacifist mode (4), fight end (5).
+- Remarks: first kill (4), headshot streak of 3 or more (4), near death (5), a civilian hit in Pacifist mode (4), fight end (5),
+  and ordinary kills (2) as filler for the short gaps.
 - `prepare('gun')` on `combatStarted`.
 - `remember` for memorable fights.
 - An eval script with at least one full fight per mode.

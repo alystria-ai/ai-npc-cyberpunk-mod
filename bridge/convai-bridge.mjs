@@ -1864,12 +1864,20 @@ async function runAddonTurn(request, input, profile, current, clock) {
   addonHost.beginTurn(input);
   const route = addonHost.routeFor(profile.key, addonRouteState());
   if (!route) { await fail(addonHost.providerNotice(profile.key), 'addon-provider'); return; }
+  const remark = input.reaction?.kind === 'addon';
+  // The local AI keeps the default remark gap at about 20 s, so its GPU bursts stay rare beside the game (LOCAL_REMARK_GAP_S).
+  const pace = remark ? addonHost.localPace(profile.key, route) : 0;
+  if (pace > 0) {
+    await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
+      error: '', errorCode: 'addon-pace', retryAfter: pace}), {signal, isCurrent: current, isCurrentSync: current.sync});
+    return;
+  }
+  if (remark) addonHost.remarkStarted(profile.key, route);
   note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : 'none'}, reaction: input.reaction?.phase, addonRoute: route});
   if (!ahead) void status('thinking', profile.name).catch(() => {});
   clock.mark('admitted');
   const host = addonTextHost(route, profile.key);
   const config = addonTurnConfig(input, profile);
-  const remark = input.reaction?.kind === 'addon';
   const voiced = localVoice.playbackEnabled !== false && turnUsesLocal(input) && audioAvailable(await readSpeechStateCached());
   throwIfCancelled(signal);
   let result;

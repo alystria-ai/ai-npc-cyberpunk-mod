@@ -167,7 +167,7 @@ test('priority, interruption, replacement and cooldowns', () => {
     assert(handle:remark('gun', {event = 'urgent', priority = 4, interrupt = true}))
     tick()
     assert(dropped[#dropped].reason == 'interrupted', tostring(dropped[#dropped].reason))
-    tick(3)
+    tick(2)
     assert(submitted[#submitted].context.reaction.event == 'urgent')
     -- An event cooldown.
     assert(select(2, other:remark('v', {event = 'calm', cooldown = 30})) == 'event-cooldown')
@@ -262,63 +262,107 @@ test('settings: one section per add-on, checked changes held until Apply, saved 
     assert(select(2, handle:settings({items = {{id = 'x', label = 'X', kind = 'slider'}}})) == 'setting kind must be bool or select')
     return files['runtime/addon-settings.json']
   `);
-  assert.deepEqual(JSON.parse(saved), {version: 1, addons: {skippy: {personality: 2, remarks: true, remarkRate: 2}}});
+  assert.deepEqual(JSON.parse(saved), {version: 1, addons: {skippy: {personality: 2, remarks: true, remarkGap: 4, remarkCap: 4}}});
 });
 
-test('remark rate: a long gap, a small budget per fight with the last remark kept for a big moment, and a Remarks setting', () => {
-  run(`${WORLD}
+test('remark pacing: the two settings, half the gap for priority 5, the cap with its reserved slot, and unheard remarks are free', () => {
+  const saved = run(`${WORLD}
     M.attach(host)
     local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
     handle:speaker({id = 'gun', name = 'Skippy', minGap = 2})
-    -- Every add-on with a speaker gets the built-in Remarks setting, default Low.
+    -- Every add-on with a speaker gets "Time between remarks" (default 10 s) and "Most remarks per fight" (default 30).
     local sections = M.settingsSections()
-    assert(#sections == 1 and sections[1].title == 'Skippy' and sections[1].items[1].mcmId == 'addon:skippy:remarkRate')
-    assert(sections[1].items[1].elements[1] == 'Rare' and sections[1].items[1].elements[3] == 'Normal' and handle:setting('remarkRate') == 2)
-    assert(select(2, handle:settings({items = {{id = 'remarkRate', label = 'X', kind = 'bool'}}})) ~= nil, 'the id is reserved')
+    local gap, cap = sections[1].items[1], sections[1].items[2]
+    assert(#sections == 1 and sections[1].title == 'Skippy' and gap.mcmId == 'addon:skippy:remarkGap' and cap.mcmId == 'addon:skippy:remarkCap')
+    assert(table.concat(gap.elements, ',') == '4 s,6 s,8 s,10 s,15 s,20 s,30 s,60 s' and gap.default == 4 and gap.value == 4)
+    assert(table.concat(cap.elements, ',') == '5,10,20,30,50,No limit' and cap.default == 4 and cap.value == 4)
+    assert(gap.description:find('about 20 seconds', 1, true), 'the help text names the Local AI default')
+    for _, reserved in ipairs({'remarkGap', 'remarkCap', 'remarkRate'}) do
+        assert(select(2, handle:settings({items = {{id = reserved, label = 'X', kind = 'bool'}}})) ~= nil, reserved .. ' is reserved')
+    end
     local function hear()
         tick()
         local id = submitted[#submitted].context.requestId
         state.pendingId, state.speechId = nil, id; tick(); state.speechId = nil; tick()
     end
-    -- A fight starts: a new episode of at most three remarks (Low), 30 seconds apart.
+    -- The default 10 s gap, counted from the end of the last remark; priority 5 needs 5 s.
     state.sample = {available = true, combat = true, tier = 1}; tick()
     assert(handle:remark('gun', {event = 'first-kill', priority = 4})); hear()
-    assert(#submitted == 1)
-    tick(10)
+    tick(4)
     assert(select(2, handle:remark('gun', {event = 'kill', priority = 3})) == 'addon-gap')
-    tick(5)
+    tick(1)
     assert(handle:remark('gun', {event = 'near-death', priority = 5}), 'priority 5 needs only half the gap'); hear()
-    tick(31)
-    -- Two spoken: the last of three is kept for priority 4 or 5.
-    assert(select(2, handle:remark('gun', {event = 'kill', priority = 3})) == 'episode-budget')
-    assert(handle:remark('gun', {event = 'headshot-streak', priority = 4})); hear()
-    tick(60)
-    assert(select(2, handle:remark('gun', {event = 'fight-end', priority = 5})) == 'episode-budget', 'three a fight')
-    assert(#submitted == 3)
-    -- Out of combat a new fight is a new episode.
+    tick(10)
+    assert(handle:remark('gun', {event = 'kill', priority = 3})); hear()
+    -- 4 s and at most 5 a fight: the fifth is kept for priority 4 or 5.
+    assert(M.stageSetting('addon:skippy:remarkGap', 1) and M.stageSetting('addon:skippy:remarkCap', 1) and M.commitSettings())
     state.sample = {available = true, combat = false, tier = 1}; tick()
-    state.sample = {available = true, combat = true, tier = 1}; tick()
-    assert(handle:remark('gun', {event = 'first-kill', priority = 4}))
-    -- A remark that was never heard (the bridge dropped it as a repeat) does not spend the budget or start the gap.
-    tick()
+    state.sample = {available = true, combat = true, tier = 1}; tick(4)
+    local before = #submitted
+    for index = 1, 4 do assert(handle:remark('gun', {event = 'kill' .. index, priority = 3})); hear(); tick(4) end
+    assert(#submitted == before + 4)
+    assert(select(2, handle:remark('gun', {event = 'kill5', priority = 3})) == 'episode-budget')
+    assert(handle:remark('gun', {event = 'streak', priority = 4})); hear(); tick(4)
+    assert(select(2, handle:remark('gun', {event = 'fight-end', priority = 5})) == 'episode-budget', 'five a fight')
+    -- A remark that was never heard (dropped as a repeat) does not spend the cap or start the gap.
+    assert(M.stageSetting('addon:skippy:remarkCap', 6) and M.commitSettings())
+    state.sample = {available = true, combat = false, tier = 1}; tick()
+    state.sample = {available = true, combat = true, tier = 1}; tick(4)
+    assert(handle:remark('gun', {event = 'first-kill', priority = 4})); tick()
     state.pendingId = nil; tick()
     assert(M._test.flight() == nil)
-    tick(3)
+    tick(2.5)
     assert(handle:remark('gun', {event = 'kill', priority = 3}), 'no gap after an unheard remark'); hear()
-    -- Rare: two a fight, a minute apart.
-    assert(M.stageSetting('addon:skippy:remarkRate', 1) and M.commitSettings())
-    state.sample = {available = true, combat = false, tier = 1}; tick()
-    state.sample = {available = true, combat = true, tier = 1}; tick(61)
-    assert(handle:remark('gun', {event = 'kill', priority = 3})); hear()
-    tick(61)
-    assert(select(2, handle:remark('gun', {event = 'kill2', priority = 3})) == 'episode-budget')
-    assert(handle:remark('gun', {event = 'fight-end', priority = 5}))
-    -- Outside combat an episode is a rolling five minutes.
-    state.sample = {available = true, combat = false, tier = 1}; hear()
-    tick(61)
-    assert(select(2, handle:remark('gun', {event = 'calm', priority = 5})) == 'episode-budget')
+    -- No limit.
+    for index = 1, 12 do tick(4); assert(handle:remark('gun', {event = 'k' .. index, priority = 2})); hear() end
+    -- Outside combat the cap counts a rolling five minutes.
+    assert(M.stageSetting('addon:skippy:remarkCap', 1) and M.commitSettings())
+    state.sample = {available = true, combat = false, tier = 1}; tick(301)
+    for index = 1, 4 do tick(4); assert(handle:remark('gun', {event = 'calm' .. index, priority = 3})); hear() end
+    tick(4)
+    assert(select(2, handle:remark('gun', {event = 'calm5', priority = 3})) == 'episode-budget')
     tick(301)
-    assert(handle:remark('gun', {event = 'calm', priority = 3}))
+    assert(handle:remark('gun', {event = 'calm6', priority = 3}))
+    return files['runtime/addon-settings.json']
+  `);
+  const values = JSON.parse(saved).addons.skippy;
+  assert.equal(values.remarkGap, 1);
+  assert.equal(values.remarkGapChosen, true, 'a picked gap is kept on every provider; the bridge sees it');
+});
+
+test('one remark at a time: nothing builds up behind a remark in flight, a late reply is dropped, and the local AI can ask for a pause', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'gun', name = 'Skippy', minGap = 2})
+    local dropReasons, finished = {}, {}
+    handle:on('remarkDropped', function(payload) dropReasons[#dropReasons + 1] = payload.event .. ':' .. payload.reason end)
+    handle:on('remarkFinished', function(payload) finished[#finished + 1] = payload.reason end)
+    assert(M.stageSetting('addon:skippy:remarkGap', 1) and M.commitSettings())
+    tick()
+    assert(handle:remark('gun', {event = 'first-kill', priority = 4})); tick()
+    local context = submitted[1].context
+    -- While it is written: one waiting remark at most, the strongest (a tie goes to the newer moment).
+    assert(handle:remark('gun', {event = 'kill', priority = 2}))
+    assert(handle:remark('gun', {event = 'streak', priority = 3}))
+    assert(#M._test.queue() == 1 and M._test.queue()[1].event.event == 'streak' and dropReasons[1] == 'kill:replaced')
+    assert(select(2, handle:remark('gun', {event = 'kill2', priority = 1})) == 'busy')
+    tick(); tick()
+    assert(#submitted == 1, 'nothing starts while a remark is in flight')
+    -- The reply arrives after the moment has passed (about 3 s): dropped, never played late.
+    tick(3)
+    assert(M.canDeliver(context, player) == false and finished[1] == 'stale' and dropped[1].reason == 'stale')
+    tick()
+    assert(dropReasons[#dropReasons] == 'streak:expired', 'the waiting remark has expired too')
+    -- The local AI asks for a pause (it keeps the default gap at about 20 s): no remark until it is over.
+    tick(5)
+    assert(handle:remark('gun', {event = 'kill3', priority = 3})); tick()
+    M.replyError(submitted[2].context, {errorCode = 'addon-pace', error = '', retryAfter = 8})
+    state.pendingId = nil; tick(); tick(2.5)
+    assert(select(2, handle:remark('gun', {event = 'kill4', priority = 5})) == 'addon-gap')
+    tick(8)
+    assert(handle:remark('gun', {event = 'kill4', priority = 3}))
+    assert(#notices == 0, 'a pause is silent')
   `);
 });
 
