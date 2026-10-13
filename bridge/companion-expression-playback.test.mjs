@@ -1611,6 +1611,19 @@ assert(convaiExpressionFrame(player, false, nil).actors == empty, 'the not-ready
 `);
 });
 
+test('teardown: abandonSession resets the face context, so no cached actor row (an NPC handle) outlives the session', () => {
+  assert.match(initSource, /resetGaze\(\)\r?\n    if convaiExpressionReset then convaiExpressionReset\(\) end/);
+  runFrame(`
+local ctx = convaiExpressionFrame(player, true, nil)
+assert(ctx.actors == rows and rowsCalls == 1)
+convaiExpressionReset()
+assert(ctx.actors ~= rows and ctx.blocked == true and ctx.paused == true and next(ctx.actors) == nil, 'the rows were kept')
+clock = clock + 0.001
+local again = convaiExpressionFrame(player, true, nil)
+assert(rowsCalls == 2 and again.actors == rows, 'the rows are read afresh in the next session')
+`);
+});
+
 test('V\'s combat is sampled at the rows cadence (0.1 s), at once on a party change, and a face reacts within 0.1 s as before', () => {
   runFrame(`
 local ctx = convaiExpressionFrame(player, true, nil)

@@ -524,3 +524,21 @@ test('the face writer\'s actor rows are rebuilt at most every 0.1 s, and at once
   assert(#companions.expressionActors(player)==1 and scans==3,'a changed party kept the old rows')
   companions.conversationCandidates=scan
 `));
+
+test('teardown: abandoning the session drops the cached actor rows (they hold NPC handles), whatever the clock says', () => run(`
+  local first=spawn()
+  for _,npc in pairs(entities) do function npc:GetBodyType() return 'Female' end end
+  local clock=80
+  os.clock=function() return clock end
+  local scans=0
+  local scan=companions.conversationCandidates
+  companions.conversationCandidates=function(...) scans=scans+1; return scan(...) end
+  local rows=companions.expressionActors(player)
+  assert(scans==1 and #rows==1 and rows[1].npc~=nil)
+  companions.abandon()
+  clock=clock+.01
+  local after=companions.expressionActors(player)
+  assert(scans==2 and after~=rows, 'the rows with the old NPC handles were served after the session was abandoned')
+  assert(#after==0)
+  companions.conversationCandidates=scan
+`));

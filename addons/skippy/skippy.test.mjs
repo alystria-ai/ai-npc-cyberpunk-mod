@@ -474,6 +474,31 @@ test('Skippy registers, installs only event hooks, and stays silent until V hold
   assert.ok(!result.names.some(name => /onUpdate|OnTick|Update$/.test(name)), 'nothing per frame');
 });
 
+test('teardown: after the main mod releases its session no hook reads the player or the weapon; the new session reads them afresh', () => {
+  const result = playSkippy(`
+    local reads = 0
+    local original = ScriptedPuppet.GetActiveWeapon
+    ScriptedPuppet.GetActiveWeapon = function(...) reads = reads + 1; return original(...) end
+    swapRaw()
+    local live = reads
+    -- A save load: init.lua's abandonSession resets the add-ons while the engine destroys the player and the HUD.
+    M.reset('player detached')
+    reads = 0
+    swapRaw()
+    hooks['gameuiCrosshairContainerController.OnInitialize']()
+    hooks['PlayerPuppet.OnCombatStateChanged'](nil, 3)
+    hooks['PlayerPuppet.OnHealthUpdateEvent'](nil, {healthDifference = -5})
+    local torn = reads
+    tick(0.1)                 -- the new session's first tick opens it and sessionStarted reads the weapon once
+    local started = reads
+    swapRaw()
+    return json.encode({live = live, torn = torn, started = started, after = reads})`);
+  assert.ok(result.live > 0, 'a weapon swap reads the weapon in a live session');
+  assert.equal(result.torn, 0, 'no weapon or player read while the session is released');
+  assert.ok(result.started > 0, 'the new session reads the weapon afresh');
+  assert.ok(result.after > result.started, 'hooks work again in the new session');
+});
+
 test('holding Skippy, a fight start makes the opening remark with the mode, the place and the weapon facts', () => {
   const result = playSkippy(`
     swap()

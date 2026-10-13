@@ -142,3 +142,44 @@ test('init.lua installs it once from onInit with the seating classifier, and not
   assert(!/onUpdate|registerForEvent|SetFlat/.test(body.replace(/--.*$/gm, '')), 'no frame handler, no TweakDB write');
   assert.equal((body.match(/ObserveAfter\(/g) || []).length, 4, 'enter, exit, forced exit, scene camera');
 });
+
+test('teardown: once the main mod releases its session, leaving the Workspot state calls nothing in the engine', () => run(`
+local hooks={}
+function ObserveAfter(class,method,fn) hooks[class..'.'..method]=fn end
+local cancelled,players=0,0
+Game={GetPlayer=function() players=players+1 return {GetEntityID=function() return 1 end,QueueEvent=function() end} end,
+  GetDelaySystem=function() return {DelayEvent=function() return 7 end,CancelDelay=function() cancelled=cancelled+1 end} end,
+  GetAllBlackboardDefs=function() return {PlayerStateMachine={SceneTier=1,Vehicle=2}} end,
+  GetBlackboardSystem=function() return {GetLocalInstanced=function() return {GetInt=function(_,k) return k==1 and 3 or 0 end} end} end,
+  GetWorkspotSystem=function() return {GetWorkspotInstance=function() return nil end} end}
+SetCameraParamsWithOverridesEvent={new=function() return {} end}
+CName={new=function(n) return n end}
+local suspended=false
+local controller=look.install({classify=seatingModule.classify,live=function() return not suspended end})
+assert(controller and hooks['WorkspotEvents.OnEnter'] and hooks['WorkspotEvents.OnExit'] and hooks['WorkspotEvents.OnForcedExit'])
+-- A scene sit (tier 3, no workspot instance): the entry is widened and a delayed copy is pending.
+hooks['WorkspotEvents.OnEnter']()
+assert(controller.sitting=='scene' and controller.pending==7)
+-- The save loads: the main mod is suspended before the state machine leaves Workspot.
+suspended=true
+local before=players
+hooks['WorkspotEvents.OnForcedExit']()
+assert(cancelled==0 and players==before, 'the exit called into the delay system or the player while the world is torn down')
+assert(controller.pending==nil and controller.sitting==nil, 'the state is forgotten')
+-- A new session, a new sit, a normal stand-up: the delayed copy is cancelled as before.
+suspended=false
+hooks['WorkspotEvents.OnEnter']()
+assert(controller.pending==7)
+hooks['WorkspotEvents.OnExit']()
+assert(cancelled==1 and controller.pending==nil)
+`));
+
+test('teardown: the gesture and seating controllers and the MCM page keep no handle from the old world after abandon', () => {
+  const gestures = readFileSync(new URL('../mod/companion-gestures.lua', import.meta.url), 'utf8');
+  const mcm = readFileSync(new URL('../mod/mcm.lua', import.meta.url), 'utf8');
+  const body = (text, from) => text.slice(text.indexOf(from), text.indexOf('\n    end\n', text.indexOf(from)));
+  assert.match(body(gestures, 'function self.abandon'), /self\.player = nil/);
+  assert.match(body(seating, 'function self.abandon'), /self\.player = nil/);
+  assert.match(mcm.slice(mcm.indexOf('function M.resetSession'), mcm.indexOf('function M.shutdown')), /statusOriginal, contentHold = nil, nil/);
+  assert.match(mcm.slice(mcm.indexOf("Observe('SettingsMainGameController', 'OnUninitialize'")), /statusOriginal = nil/);
+});

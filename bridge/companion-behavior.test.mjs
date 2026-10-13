@@ -232,6 +232,7 @@ const nativeFacing = `
     SetArgumentObject=function(context,name,value) context[name]=value end,
   }
   local motion=(function() ${locomotion} end)()
+  convaiLocomotion=motion
   motion.install(companions.ownsTravelCommand)
 `;
 
@@ -260,6 +261,36 @@ test('native retained facing is cleared only for the current owned travel comman
   assert(context._facingTarget==player, 'story NPC facing must remain untouched')
   context.owner=npc; companions.abandon(); observer(handler,context,travel)
   assert(context._facingTarget==player, 'an old copy cannot retain command ownership across save unload')
+`));
+
+test('teardown: the MoveTo observer makes no native call before a copy exists and from the moment the session is abandoned', () => run(`${fixture}
+  ${nativeFacing}
+  local owners=0
+  local getOwner=ScriptExecutionContext.GetOwner
+  ScriptExecutionContext.GetOwner=function(context) owners=owners+1; return getOwner(context) end
+  local context={}
+  local command={id=1, rotateEntityTowardsFacingTarget=false}
+  assert(motion.active==false, 'no copy yet')
+  observer(handler,context,command)
+  assert(owners==0, 'the observer read an NPC context with no managed copy')
+  local npc=spawn(); tick(3)
+  assert(motion.active==true, 'a managed copy turns the observer on')
+  context.owner=npc
+  observer(handler,context,command)
+  assert(owners>0, 'the observer works while a copy exists')
+  -- The player detaches (a save load): no update runs again until the next session, so abandon must turn the observer off.
+  companions.abandon()
+  assert(motion.active==false, 'abandon turns the observer off')
+  owners=0
+  for _=1,50 do observer(handler,context,command) end
+  assert(owners==0, 'the observer read AI contexts that the engine is destroying')
+  -- A fast travel keeps the party: the next update turns the observer on again.
+  local again=spawn(); tick(3)
+  assert(motion.active==true)
+  assert(companions.beginFastTravel()); companions.abandon(true)
+  assert(motion.active==false, 'also off while a fast travel detaches the player')
+  tick(1)
+  assert(motion.active==(#companions.list()>0))
 `));
 
 test('native facing cleanup respects explicit targets and skips unconfigured mappings', () => run(`${fixture}
