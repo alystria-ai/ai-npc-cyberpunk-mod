@@ -2316,6 +2316,7 @@ function M.install()
             presentation = {active = false, rows = {}}
             voiceSelectors = {}
             contentHold, renderOwn, early = nil, false, {on = false}
+            statusOriginal = nil -- the widget dies with this screen; restoreStatusLine would call into it
             lastDrawKey, scrollBefore = nil, nil
         end
     end)
@@ -2680,6 +2681,8 @@ function M.resetSession()
     -- pending work instead of relying on that ID to detect a new world.
     queue.bind(nil)
     manager.cancelMemoryConfirmation()
+    -- Widget handles of the old settings screen: drop them without the native restore (restoreStatusLine, releaseStaleHold).
+    statusOriginal, contentHold = nil, nil
     actionFeedback = nil
     memoryActionCommand = nil
     preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0

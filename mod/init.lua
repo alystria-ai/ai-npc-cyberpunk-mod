@@ -2510,12 +2510,17 @@ local function abandonSession(reason,preserveTransit)
     if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
     phoneCatalogReady = false
     resetGaze()
+    if convaiExpressionReset then convaiExpressionReset() end
     manager.reset()
     warmConversation(nil, nil)
     if autoConnect then pcall(autoConnect.reset) end
     publishPartyConnections(true)
     sessionHasState, poll = false, 0
     log('Session references released: ' .. reason)
+    -- Every handle the mod held is dropped above; collect them now, while the engine still owns the objects, so no Lua
+    -- finalizer releases a puppet or vehicle later, in the middle of the world unload or of the next session's start. A
+    -- fast travel keeps its world, so it is left alone. Runs once per unload, never per frame.
+    if preserveTransit ~= true then pcall(collectgarbage) end
 end
 
 registerForEvent('onInit', function()
@@ -2533,6 +2538,8 @@ registerForEvent('onInit', function()
     local lookLoaded, lookResult, lookReason = pcall(function()
         return dofile('seated-look.lua').install({
             classify = dofile('companion-seating.lua').classify,
+            -- False from the player's detach until the next session is up: the exit hooks then make no native call.
+            live = function() return not worldSuspended end,
             log = function(kind, fields)
                 if manager.developerMode() then
                     local ok, text = pcall(json.encode, fields)
@@ -2656,6 +2663,12 @@ do
     local EMPTY, SAMPLE = {}, 0.1
     local context = {paused = true, actors = EMPTY, blocked = true}
     local state = {rows = nil, at = nil, blocked = true}
+    -- abandonSession: the cached rows hold NPC handles, and onUpdate (which would clear them) does not run until the next session.
+    convaiExpressionReset = function()
+        state.rows, state.at, state.blocked = nil, nil, true
+        context.actors, context.blocked, context.paused = EMPTY, true, true
+        context.thinkingEntity, context.thinkingRequestId, context.listeningEntity = nil, nil, nil
+    end
     convaiExpressionFrame = function(menuPlayer, worldReady, pending)
         context.paused = not worldReady
         context.thinkingEntity = pending and pending.entity

@@ -1257,6 +1257,7 @@ function M.new(options)
     function self.abandon()
         -- World teardown: devices are not persistent; no native calls here.
         self.states, session, self.swept = {}, nil, false
+        self.player = nil -- the tick stores V's handle; do not pin the old player across the unload
     end
 
     -- While seating owns her (walking to the seat, placing, seated, standing

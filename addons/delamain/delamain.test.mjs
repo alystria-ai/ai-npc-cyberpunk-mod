@@ -743,3 +743,42 @@ test('the host passes what V said to the speakerBlocks hook, and the quest endin
   // No fact, mode or state of the add-on carries the quest outcome: nothing verified says which sq025_delamain_fate value is which ending.
   assert.doesNotMatch(readFileSync(new URL('./init.lua', import.meta.url), 'utf8') + readFileSync(new URL('./bridge.mjs', import.meta.url), 'utf8'), /sq025_delamain_fate\s*\)|GetFactStr\('sq025/);
 });
+
+test('teardown: once the main mod releases its session, no cab hook reads the game; the new session picks the cab up again', () => {
+  lua(`
+    sit()
+    step(1); step(2); step(3); tick()
+    assert(Delamain.cab.state == 3 and handle:live() == true)
+    -- A save load: init.lua's abandonSession resets the add-ons while the engine is destroying the cab.
+    M.reset('player detached')
+    assert(handle:live() == false, 'the session is closed')
+    local before, requests = {}, #submitted
+    for key, value in pairs(calls) do before[key] = value end
+    facts.delamain_taxi_state = 6
+    hooks['DelamainTaxiComponent.OnFactChanged'](component, {})
+    hooks['DelamainTaxiComponent.OnGameAttach'](component, {})
+    hooks['DelamainTaxiComponent.StartAutoDrive'](component, {})
+    hooks['DelamainTaxiComponent.OnDelamainTaxiArrivedEvent'](component, {})
+    hooks['DelamainTaxiComponent.CancelRide'](component, {})
+    hooks['DelamainTaxiSystem.OnStartDelamainTaxiRequest']({}, {m_price = 90})
+    hooks['PreventionSystem.OnDistrictAreaEntered']({})
+    for key, value in pairs(calls) do assert(before[key] == value, 'a hook read the game after the session was released: ' .. key) end
+    assert(Delamain.cab.state == 0 and Delamain.pendingFare == nil, 'no state is written after the session ended')
+    assert(#submitted == requests, 'no remark is requested from a torn-down world')
+    -- The new session: its first tick opens it and the hooks work again.
+    state.sample = {available = true, combat = false, tier = 1, vehicle = false}; player.vehicle = nil; tick()
+    assert(handle:live() == true)
+    local noted
+    for _, line in ipairs(logs) do if line:find('cab callbacks ignored while the previous session was released', 1, true) then noted = line end end
+    assert(noted and noted:find('DelamainTaxiComponent.OnFactChanged x1', 1, true) and noted:find('PreventionSystem.OnDistrictAreaEntered x1', 1, true), tostring(noted))
+    local reads = calls.fact or 0
+    hooks['DelamainTaxiComponent.OnFactChanged'](component, {})
+    assert((calls.fact or 0) > reads, 'hooks read the game again in the new session')
+  `);
+});
+
+test('teardown: the add-on hook tests the session before any game read', () => {
+  const source = readFileSync(new URL('./init.lua', import.meta.url), 'utf8');
+  const hook = source.slice(source.indexOf('local function hook('), source.indexOf('local function installHooks'));
+  assert.ok(hook.includes('handle:live()') && hook.indexOf('handle:live()') < hook.indexOf('pcall(fn, self'));
+});

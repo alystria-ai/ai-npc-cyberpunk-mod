@@ -935,6 +935,11 @@ end
 function M.abandon(preserveTransit)
     -- Native components may already be torn down. Dropping references is enough:
     -- these DynamicEntitySystem copies are explicitly nonpersistent.
+    -- The MoveTo observer (companion-locomotion.lua) reads the owner of every walking NPC's AI context while this is true. It is
+    -- only refreshed by update(), which does not run until the next session is up, so switch it off here, before the world dies.
+    if convaiLocomotion then convaiLocomotion.active=false end
+    -- The face writer's cached actor rows hold every ready copy's (and every nearby talk candidate's) NPC handle.
+    expressionRows,expressionRowsAt,expressionRowsList,expressionRowsCount=nil,nil,nil,nil
     if M.bodyAnimation and M.bodyAnimation.abandon then pcall(M.bodyAnimation.abandon,'companions-abandoned') end
     if M.stance and M.stance.abandon then pcall(M.stance.abandon) end
     for _,entry in ipairs(entries) do

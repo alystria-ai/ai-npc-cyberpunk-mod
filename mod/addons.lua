@@ -771,6 +771,14 @@ function Handle.state(self)
         remark = flight ~= nil and flight.speaker.addon == (self and self.record) and flight.speaker.id or nil}
 end
 
+--- handle:live() -> true from the first tick of a session until the main mod releases its references (a load, a detach, a death,
+--- fast travel, shutdown). An add-on's game hooks (Observe callbacks) return at once when it is false: the engine is then
+--- destroying or building the world, and a native call from a callback on a half-built or half-destroyed object can crash.
+--- A plain boolean read; costs nothing.
+function Handle.live()
+    return sessionOpen == true
+end
+
 --- handle:party() -> the profile keys of the companions that follow V now. A read for the add-on's own events (a ride, a fight):
 --- it costs one party lookup, never runs on its own, and returns an empty list when the party cannot be read.
 function Handle.party(self)

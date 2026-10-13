@@ -102,6 +102,12 @@ function M.new(native)
         if id ~= nil then pcall(native.cancel, id) end
     end
 
+    -- The session was released (a load, a detach, a death): drop the state without a native call. The delayed event died
+    -- with the old world, and a CancelDelay on the engine's delay system now is a call into something being destroyed.
+    function self.forget()
+        self.pending, self.sitting = nil, nil
+    end
+
     return self
 end
 
@@ -140,10 +146,16 @@ function M.install(options)
     end
     function native.cancel(id) Game.GetDelaySystem():CancelDelay(id) end
     local controller = M.new(native)
+    -- options.live() is false while the main mod has released its session (a save load tears the player's state machine down
+    -- and exits the Workspot state with a delayed copy still pending): the exit hooks then only forget it, and make no call
+    -- into the delay system. Entering is never gated: the player state machine cannot enter a state during a teardown,
+    -- and a save loaded while V sits must still be widened.
+    local live = options.live
+    local function left() if not live or live() then controller.left() else controller.forget() end end
     local hooked, reason = pcall(function()
         ObserveAfter('WorkspotEvents', 'OnEnter', function() controller.entered() end)
-        ObserveAfter('WorkspotEvents', 'OnExit', function() controller.left() end)
-        ObserveAfter('WorkspotEvents', 'OnForcedExit', function() controller.left() end)
+        ObserveAfter('WorkspotEvents', 'OnExit', left)
+        ObserveAfter('WorkspotEvents', 'OnForcedExit', left)
         ObserveAfter('DefaultTransition', 'QueueSetCameraParamsEvent_Tier3Scene', function() controller.sceneCamera() end)
     end)
     if not hooked then return nil, tostring(reason) end

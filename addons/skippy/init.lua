@@ -253,7 +253,11 @@ end
 -- Every hook goes through here: it returns at once unless V holds Skippy, never throws, and records its own time.
 local function hook(name, gate, fn)
     return function(...)
-        if gate == 'holding' and not S.holding then return end
+        if gate == 'holding' then
+            if not S.holding then return end
+        -- An ungated hook (a weapon swap, a crosshair start) reads the player and the weapon: never while the main mod has
+        -- released its session (a load or detach), when those objects are being destroyed. 'sessionStarted' reads it afresh.
+        elseif not (Skippy.handle and Skippy.handle:live()) then return end
         local t0 = os.clock()
         local ok, err = pcall(fn, ...)
         local m = S.meter[name]

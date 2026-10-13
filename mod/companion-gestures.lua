@@ -542,6 +542,7 @@ function M.new(options)
         -- Native teardown: devices are non-persistent; no native calls here.
         self.states = {}
         self.swept = false
+        self.player = nil -- the tick stores V's handle; do not pin the old player across the unload
     end
 
     function self.snapshot()

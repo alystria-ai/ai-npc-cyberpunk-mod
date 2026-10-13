@@ -389,6 +389,17 @@ end
 local function hook(kind, class, method, fn)
     local observe = kind == 'before' and ObserveBefore or ObserveAfter
     local ok, err = pcall(observe, class, method, function(self, ...)
+        -- Not while the main mod has released its session (a load, a detach, a death): the cab, its component and the quest
+        -- system are then being destroyed, and a native read from this callback can crash the game (pcall cannot catch that).
+        -- A cab found at the start of a session is picked up by 'sessionStarted'.
+        if not Delamain.handle or not Delamain.handle:live() then
+            -- Counted by name and logged at the next session start: it shows which cab callbacks the engine sends while it tears a world down.
+            local skipped = Delamain.skipped
+            if not skipped then skipped = {}; Delamain.skipped = skipped end
+            local key = class .. '.' .. method
+            skipped[key] = (skipped[key] or 0) + 1
+            return
+        end
         local good, problem = pcall(fn, self, ...)
         if not good then Delamain.hooks[class .. '.' .. method .. '!'] = tostring(problem) end
     end)
@@ -492,6 +503,14 @@ registerForEvent('onInit', function()
         handle:setCompanionContext('ride', nil)
     end)
     handle:on('sessionStarted', function()
+        local skipped = Delamain.skipped
+        if skipped then
+            Delamain.skipped = nil
+            local parts = {}
+            for key, count in pairs(skipped) do parts[#parts + 1] = key .. ' x' .. count end
+            table.sort(parts)
+            handle:log('cab callbacks ignored while the previous session was released: ' .. table.concat(parts, ', '))
+        end
         -- A cab found when the game loads: pick the state up silently (and assume V is in it when it is a ride state).
         Delamain.cab.state = 0
         local value = readState()
