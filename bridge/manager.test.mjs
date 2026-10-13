@@ -818,11 +818,20 @@ test('Back joins the bottom button row, the status line moves to the top left, a
     handlers.McmUiSetContentTitle(controller, 'Companion Manager')
     mcm.update(player, false)
     assert(#bottomActions == 2 and bottomActions[2].x == 760)
-    -- The click returns to the parent page; pending changes block it like every MCM action.
+    -- The click returns to the parent page. With pending changes it does what Esc does: MCM's own "Unsaved changes" dialog is
+    -- asked for (McmUiEmitClosing, the call Esc ends in), the page stays, and a click while that dialog is open or within 2 s asks nothing more.
+    local clock, asked = 700, 0
+    os.clock = function() return clock end
+    controller.McmUiEmitClosing = function() asked = asked + 1 end
     drafts = true; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
-    assert(mcm.inspect().view == 'settings', 'Back ignored pending changes')
+    assert(mcm.inspect().view == 'settings' and asked == 1, 'Back with pending changes did not open the confirmation')
+    clock = clock + 0.5; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
+    assert(mcm.inspect().view == 'settings' and asked == 1, 'a second click asked again within the window')
+    clock = clock + 5; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
+    assert(mcm.inspect().view == 'settings' and asked == 2, 'Cancel then Back did not ask again')
+    -- Apply or Discard clears the changes: Back goes back as usual.
     drafts = false; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
-    assert(mcm.inspect().view == 'home')
+    assert(mcm.inspect().view == 'home' and asked == 2, 'Back with nothing pending did not go back')
     loaded = registered.loadMod('manager')
     handlers.McmUiEmitAction(controller, 'something-else'); assert(mcm.inspect().view == 'home')
     -- Leaving our page restores a status widget that survives.

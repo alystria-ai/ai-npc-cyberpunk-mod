@@ -1776,17 +1776,6 @@ function M.install()
             if not hovered then presentation.restyle[id] = true end
         end
     end)
-    Observe('SettingsMainGameController', 'McmUiEmitAction', function(controller, id)
-        if id ~= BACK_ID or not currentBack or not api or not active() then return end
-        local ok, pending = pcall(api.hasDrafts, MOD_KEY)
-        if ok and pending == true then
-            -- MCM refuses navigation while changes are pending, and so does this.
-            log('Back ignored: apply or revert the pending changes first')
-            return
-        end
-        currentBack.callback({interaction = {controller = controller}})
-        refreshQueued = true
-    end)
     Observe('SettingsMainGameController', 'McmUiEmitSearch', function(_, context, value)
         if context == 'content' and active() then
             -- The page is drawn again 6 frames after the last change of the text. Emitting the text it already has (the
@@ -1836,6 +1825,15 @@ function M.install()
         if ok then return open == true end
         return os.clock() - ask.at < 20
     end
+    -- Esc (the game's OnBack) and the page's Back button share this: with unapplied changes the leave is held and MCM's own
+    -- "Unsaved changes" dialog is asked for (at most once in 2 s, never while it is open, never more than 5 times so the
+    -- player is not trapped). Returns true when the leave was held.
+    local function holdForDrafts(controller, why)
+        if not (pendingDrafts() and ask.count < 5) then return false end
+        probe(why .. ' held (drafts pending)')
+        if os.clock() - ask.at > 2 and not modalOpen(controller) then askBeforeLeaving(controller, why) end
+        return true
+    end
     local function hookInput(method)
         local hooked, hookError = pcall(Override, 'SettingsMainGameController', method, function(controller, event, wrapped)
             if presentation.active and ownsPresentation(controller) then
@@ -1877,12 +1875,7 @@ function M.install()
     local backHooked, backHookError = pcall(Override, 'SettingsMainGameController', 'OnBack', function(controller, ...)
         local args = table.pack(...)
         local original = args[args.n]
-        if presentation.active and ownsPresentation(controller) and pendingDrafts() and ask.count < 5 then
-            local now = os.clock()
-            probe('OnBack held (drafts pending)')
-            if now - ask.at > 2 and not modalOpen(controller) then askBeforeLeaving(controller, 'OnBack') end
-            return true
-        end
+        if presentation.active and ownsPresentation(controller) and holdForDrafts(controller, 'OnBack') then return true end
         -- On a sub-page, Esc goes back to its parent; on Home it closes Settings. A
         -- repeated event for the same key, right after going back, is swallowed so it
         -- cannot go on to close Settings from Home.
@@ -1900,6 +1893,13 @@ function M.install()
         return original(table.unpack(args, 1, args.n - 1))
     end)
     if not backHooked then probe('could not hook OnBack: ' .. tostring(backHookError)) end
+    -- The Back button in the bottom row: with unapplied changes it does what Esc does (the same dialog), otherwise it goes back.
+    Observe('SettingsMainGameController', 'McmUiEmitAction', function(controller, id)
+        if id ~= BACK_ID or not currentBack or not api or not active() then return end
+        if holdForDrafts(controller, 'Back') then return end
+        currentBack.callback({interaction = {controller = controller}})
+        refreshQueued = true
+    end)
     Override('SettingsMainGameController', 'RequestClose', function(controller, wrapped)
         local pending = (presentation.active or active()) and pendingDrafts()
         probe('RequestClose drafts=' .. tostring(pending))
