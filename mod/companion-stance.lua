@@ -4,8 +4,32 @@
 -- Mechanism (game scripts, NPCPuppet.ChangeStanceState and npcStateComponent): the
 -- same call the game's own AI tasks use to crouch an NPC. It sets the NPC's stance
 -- (gamedataNPCStanceState.Crouch / Stand), the 'stanceState' animation feature and
--- the 'inCrouch' anim wrapper, so the follower's own locomotion graph plays the
--- crouched pose and walk. No AI role, command or movement code is touched.
+-- the 'inCrouch' anim wrapper. No AI role, command or movement code is touched.
+--
+-- Why that alone did nothing outside combat (live 2026-10-14: the log said "crouch hls=Relaxed",
+-- the blackboard read Crouch, Evelyn stood): the NPC's locomotion graph plays the crouched walk
+-- inside the high-level state's locomotion wrapper (npcStateComponent: Alerted -> 'alertedLocomotion',
+-- Combat -> 'combatLocomotion', Stealth -> 'stealthLocomotion', Relaxed -> none). In Relaxed the
+-- 'inCrouch' wrapper has no crouched locomotion to blend into (the likely cause, not yet proven in
+-- game; the head reading below decides it). Vanilla followers crouch with V only in stealth, where
+-- their own AI has put them in the Stealth high-level state.
+--
+-- So a crouch is now two steps, the way the game does it: first NPCPuppet.ChangeHighLevelState(Stealth)
+-- (the call AIFollowerTakedownCommandHandler and the 'alwaysUseStealth' move commands make; no senses
+-- preset change, no prevention registration, and AIFollowerRole barks only with a hostile threat), then
+-- 0.15 s later the stance call (two state-change signals in one frame could overwrite each other). The
+-- fallback is Alerted, used only when the head slot shows the Stealth crouch did not come down. A state the
+-- game chose itself is never changed (only Relaxed is raised), and a state we raised is put back to Relaxed
+-- when V stands (stance call first, then the high-level call), but only while it still reads the level
+-- we set. Gestures and the holster handoff require Relaxed, so it must come back: it is read back and
+-- re-issued like the stand.
+--
+-- Read-back, in three layers, each on a bounded timer: the stance and high-level blackboards (did the
+-- request stick), and the Head slot height above her feet (did the body really go down: one slot read
+-- per check, compared with her standing height read before the crouch). Every method line in probe.log
+-- names the method and the result: 'crouch issued via stealth ...', then 'crouch confirmed via stealth:
+-- head down 0.40 m' or 'crouch NOT visible via stealth ...; trying alerted'. A stand ends in
+-- 'stand confirmed ... head back' or 'stand not kept by the game'.
 --
 -- Trigger: V's stance changes only through PlayerPuppet.OnLocomotionStateChanged
 -- (the game's own blackboard listener, fired on change and never per frame).
@@ -44,9 +68,19 @@ local DEFAULTS = {
     syncEvery = 0.5,    -- seconds between checks while a crouch is active (events apply at the next 10 Hz tick)
     verifyAfter = 0.6,  -- seconds before a crouch we issued is read back
     retryGap = 1.0,     -- seconds between re-issues after the game's AI reset a crouch
+    standRetryGap = 0.6, -- seconds between re-issues of a stand the game ignored (the stand path stays quick)
     maxRetries = 3,     -- re-issues per crouch before the module leaves that companion alone
     logGap = 1.0,       -- seconds between probe-log lines for one companion
+    stanceGap = 0.15,   -- seconds between the high-level call and the stance call (one signal per frame)
+    seenWithin = 2.0,   -- seconds after the stance call in which the head must come down, or the next method runs
+    seenDrop = 0.2,     -- metres the Head slot must drop below her standing height to count as crouched
+    standRise = 0.12,   -- metres below her standing height the head may stay once she stands
+    -- Methods in order. 'stealth' and 'alerted' raise that high-level state before the stance call.
+    -- Remove both to get the stance call alone.
+    methods = {'stealth', 'alerted'},
 }
+-- Method name -> gamedataNPCHighLevelState it raises.
+local LEVEL = {stealth = 'Stealth', alerted = 'Alerted'}
 
 -- CET adapter. Every read is a pcall and returns nil when the game will not say.
 function M.nativeAdapter()
@@ -75,11 +109,34 @@ function M.nativeAdapter()
             return STANCE[npc:GetPuppetStateBlackboard():GetInt(defs.Stance)]
         end)
     end
-    -- 'Relaxed', 'Alerted', ... for the probe log only (nil when unreadable).
+    -- 'Relaxed', 'Stealth', 'Alerted', ... (nil when unreadable).
     function N.highLevel(npc)
         return try(function()
             local state = npc:GetHighLevelStateFromBlackboard()
             return tostring(state.value or state)
+        end)
+    end
+    -- NPCPuppet.ChangeHighLevelState: the call the game's follower and move-command tasks make
+    -- (queues one NPCStateChangeSignal; returns early when the blackboard already matches).
+    function N.setHighLevel(npc, name)
+        local ok, err = pcall(function()
+            if not npc:IsA('NPCPuppet') then error('not an NPC puppet') end
+            NPCPuppet.ChangeHighLevelState(npc, Enum.new('gamedataNPCHighLevelState', name))
+        end)
+        return ok, ok and nil or tostring(err)
+    end
+    -- Head slot height above her feet in metres, or nil. One slot read; same call as init.lua's
+    -- seated measure. Standing about 1.6-1.7, crouched about 1.0-1.2.
+    function N.headRise(npc)
+        return try(function()
+            local slot = npc:GetSlotComponent()
+            if not slot then return nil end
+            local found, transform = slot:GetSlotTransform(CName.new('Head'))
+            if not found or not transform then return nil end
+            local head = WorldPosition.ToVector4(WorldTransform.GetWorldPosition(transform))
+            local feet = npc:GetWorldPosition()
+            if not head or not feet or type(head.z) ~= 'number' or type(feet.z) ~= 'number' then return nil end
+            return head.z - feet.z
         end)
     end
     function N.set(npc, name)
@@ -100,24 +157,28 @@ function M.new(options)
     for key, value in pairs(DEFAULTS) do cfg[key] = value end
     for key, value in pairs(options.config or {}) do cfg[key] = value end
 
-    local T = {events = 0, applied = 0, stands = 0, retries = 0}
+    local T = {events = 0, applied = 0, stands = 0, retries = 0, escalations = 0}
     local crouched = nil        -- V's last known crouch; nil until the first event or one read
     local dirty = false
     local holding = 0           -- companions currently held crouched by this module
     local clock, nextSync = 0, 0
     local episode = 0           -- bumped on every change of V's stance
-    local records = {}          -- serial -> {at, retries, episode, gaveUp}
-    local pending = {}          -- serial -> {at, retries}: a stand issued and not yet read back
+    -- serial -> {at, stanceAt, retries, episode, gaveUp, method, label, raised, stanceDue, baseline, settled}
+    local records = {}
+    -- serial -> {at, retries, stand, level, hlsSent, baseline}: a stand issued and not yet read back,
+    -- and/or a raised high-level state not yet put back
+    local pending = {}
     local pendingCount = 0
     local waiting = {}          -- serial -> reason a wanted crouch is held back (logged once per reason)
     local lastSay = {}
 
     local function label(entry) return tostring(entry.profileKey or entry.name or entry.serial) end
     -- One probe-log line per companion at most every logGap seconds; the lines in
-    -- between are counted and mentioned on the next one.
-    local function say(entry, text)
+    -- between are counted and mentioned on the next one. Method and result lines are
+    -- forced: they are what a live test is read from.
+    local function say(entry, text, force)
         local last = lastSay[entry.serial]
-        if last and clock - last.at < cfg.logGap then
+        if not force and last and clock - last.at < cfg.logGap then
             last.skipped = last.skipped + 1
             return
         end
@@ -126,13 +187,20 @@ function M.new(options)
         pcall(log, 'Companion stance: ' .. text .. ' (' .. label(entry) .. ')' .. extra)
     end
 
-    -- ' hls=Relaxed' on the lines that matter when a pose looks wrong; one blackboard read.
-    local function hls(entry)
-        local read = native.highLevel and native.highLevel(entry.npc)
-        return read and (' hls=' .. tostring(read)) or ''
+    local function fmt(value) return string.format('%.2f', tonumber(value) or 0) end
+    local function wake(after) nextSync = math.min(nextSync, clock + after) end
+    local function hlsRead(entry) return native.highLevel and native.highLevel(entry.npc) or nil end
+    -- ' stance=Crouch hls=Stealth': what the blackboards read now (two cheap reads).
+    local function stateText(entry)
+        local hls = hlsRead(entry)
+        return ' stance=' .. tostring(native.stance(entry.npc)) .. (hls and (' hls=' .. tostring(hls)) or '')
     end
     local function clearPending(serial)
         if pending[serial] then pending[serial] = nil; pendingCount = pendingCount - 1 end
+    end
+    local function setPending(serial, p)
+        if not pending[serial] then pendingCount = pendingCount + 1 end
+        pending[serial] = p
     end
 
     -- The game's blackboard event for V's stance. No native call here.
@@ -148,44 +216,220 @@ function M.new(options)
         dirty = true
     end
 
+    -- Puts a high-level state this module raised back to Relaxed, but only while it still
+    -- reads the level we set (never over combat, fear, unconscious or anything the game chose).
+    local function dropRaise(entry, record)
+        local level = record.raised
+        if not level then return end
+        record.raised = nil
+        if hlsRead(entry) == level and native.setHighLevel then native.setHighLevel(entry.npc, 'Relaxed') end
+    end
+
+    -- Takes the next method that can run: raises the high-level state (Stealth, then Alerted)
+    -- the way the game's own follower tasks do (NPCPuppet.ChangeHighLevelState), without
+    -- touching the stance yet. Only from Relaxed (or from the level we raised ourselves): a
+    -- state the game chose is never changed. Returns the method name, or nil when none is left
+    -- (the stance call alone, as before).
+    local function pickMethod(entry, record)
+        while true do
+            record.method = record.method + 1
+            local name = cfg.methods[record.method]
+            if not name then break end
+            local level = LEVEL[name]
+            if level and native.setHighLevel and native.highLevel then
+                local cur = native.highLevel(entry.npc)
+                if cur == nil or (cur ~= 'Relaxed' and cur ~= record.raised) then break end
+                local ok, err = native.setHighLevel(entry.npc, level)
+                if ok then
+                    record.raised, record.label, record.at = level, name, clock
+                    record.from = record.from or cur
+                    return name
+                end
+                say(entry, 'high-level ' .. level .. ' failed: ' .. tostring(err), true)
+            end
+        end
+        record.label = 'stance'
+        return nil
+    end
+
+    -- The stance call. With a raised high-level state it follows the raise by stanceGap: two
+    -- state-change signals in one frame could overwrite each other.
+    local function issueCrouch(entry, record, first)
+        local ok, err = native.set(entry.npc, 'Crouch')
+        if not ok then
+            say(entry, 'crouch failed: ' .. tostring(err), true)
+            dropRaise(entry, record)
+            if records[entry.serial] == record then records[entry.serial] = nil; holding = holding - 1 end
+            return false
+        end
+        record.stanceDue = false
+        record.at, record.stanceAt = clock, clock
+        wake(cfg.verifyAfter)
+        if first then
+            T.applied = T.applied + 1
+            say(entry, 'crouch issued via ' .. record.label .. (record.raised
+                and (' (hls ' .. tostring(record.from) .. ' -> ' .. record.raised .. ', then stance Crouch)') or '')
+                .. stateText(entry), true)
+        end
+        return true
+    end
+
+    local function beginCrouch(entry, inherited)
+        local record = {at = clock, retries = 0, episode = episode, method = 0, label = 'stance',
+            stanceDue = true, raised = inherited}
+        record.baseline = native.headRise and native.headRise(entry.npc) or nil
+        records[entry.serial] = record
+        holding = holding + 1
+        if pickMethod(entry, record) then
+            wake(cfg.stanceGap)         -- the stance call follows on the next short timer
+            return
+        end
+        issueCrouch(entry, record, true)
+    end
+
     local function release(entry, record, reason)
         records[entry.serial] = nil
         holding = holding - 1
+        local p = {at = clock, retries = 0, stand = false, level = record.raised, baseline = record.baseline}
+        local before = pending[entry.serial]
+        if not p.level and before then p.level = before.level end
         -- Stand only from the crouch this module set; cover or a vehicle seat
         -- chosen by the game's AI is left alone.
         local now = native.stance(entry.npc)
+        local line
         if now == 'Crouch' or now == nil then
             local ok, err = native.set(entry.npc, 'Stand')
             if ok then
                 T.stands = T.stands + 1
-                say(entry, 'stand' .. (reason and (' - ' .. reason) or '') .. hls(entry))
-                -- Read back later: the request can be ignored without any error.
-                if not pending[entry.serial] then pendingCount = pendingCount + 1 end
-                pending[entry.serial] = {at = clock, retries = 0}
+                p.stand = true
+                line = 'stand issued' .. (reason and (' - ' .. reason) or '') .. ' via stance'
+                    .. (p.level and (', then hls ' .. p.level .. ' -> Relaxed') or '')
             else
-                say(entry, 'stand failed: ' .. tostring(err))
+                say(entry, 'stand failed: ' .. tostring(err), true)
             end
         else
-            say(entry, 'stand not needed, stance is ' .. tostring(now))
+            say(entry, 'stand not needed, stance is ' .. tostring(now), true)
+        end
+        if p.stand or p.level then
+            -- Read back later: the request can be ignored without any error.
+            setPending(entry.serial, p)
+            wake(p.level and cfg.stanceGap or cfg.verifyAfter)
+            if line then say(entry, line .. stateText(entry), true) end
         end
     end
 
-    -- A stand we issued: read it back and re-issue it while the stance still reads Crouch.
+    -- A stand we issued, and/or a raised high-level state: put the state back after the stance
+    -- call, read both back, and re-issue what the game ignored.
     local function verifyStand(entry, p)
+        if p.level and not p.hlsSent then
+            if clock - p.at < cfg.stanceGap then return end
+            if hlsRead(entry) == p.level then
+                local ok, err = native.setHighLevel(entry.npc, 'Relaxed')
+                if not ok then say(entry, 'hls Relaxed failed: ' .. tostring(err), true) end
+                p.hlsSent, p.at = true, clock
+                wake(cfg.verifyAfter)
+                return
+            end
+            p.level = nil               -- the game moved it on (combat, ...): not ours to restore
+        end
         if clock - p.at < cfg.verifyAfter then return end
-        if native.stance(entry.npc) ~= 'Crouch' then
-            -- Stand, or the game's own cover or seat, or unreadable: nothing left to fix.
+        local stanceBad = p.stand and native.stance(entry.npc) == 'Crouch'
+        local hlsBad = p.level ~= nil and hlsRead(entry) == p.level
+        if not stanceBad and not hlsBad then
+            local headText = ''
+            if p.baseline and native.headRise then
+                local rise = native.headRise(entry.npc)
+                if rise then
+                    local low = p.baseline - rise
+                    if low > cfg.standRise then
+                        if clock - p.at < cfg.seenWithin then wake(cfg.syncEvery); return end
+                        clearPending(entry.serial)
+                        say(entry, 'stand: blackboards read Stand but the head is still down ' .. fmt(low) .. ' m'
+                            .. stateText(entry), true)
+                        return
+                    end
+                    headText = ', head back (' .. fmt(low) .. ' m below standing)'
+                end
+            end
             clearPending(entry.serial)
+            say(entry, 'stand confirmed' .. stateText(entry) .. headText, true)
             return
         end
         if p.retries >= cfg.maxRetries then
             clearPending(entry.serial)
-            say(entry, 'stand not kept by the game' .. hls(entry))
-        elseif clock - p.at >= cfg.retryGap then
-            local ok = native.set(entry.npc, 'Stand')
+            say(entry, 'stand not kept by the game' .. stateText(entry), true)
+        elseif clock - p.at >= cfg.standRetryGap then
             p.retries, p.at = p.retries + 1, clock
             T.retries = T.retries + 1
-            if ok then say(entry, 'stand again') end
+            if stanceBad then
+                if native.set(entry.npc, 'Stand') then say(entry, 'stand again', true) end
+            elseif native.setHighLevel(entry.npc, 'Relaxed') then
+                say(entry, 'hls Relaxed again', true)
+            end
+            wake(cfg.standRetryGap)
+        end
+    end
+
+    -- The head slot did not come down although the blackboards say Crouch: the next method, or none.
+    local function escalate(entry, record, low)
+        local name = record.label
+        local text = 'crouch NOT visible via ' .. name .. ': head down only ' .. fmt(low) .. ' m' .. stateText(entry)
+        T.escalations = T.escalations + 1
+        if record.raised and pickMethod(entry, record) then
+            record.stanceAt = clock     -- the stance is already Crouch; only the high-level state changes
+            wake(cfg.verifyAfter)
+            say(entry, text .. '; trying ' .. record.label, true)
+            return
+        end
+        record.settled = true
+        dropRaise(entry, record)
+        say(entry, text .. '; no method left' .. (name ~= 'stance' and ', hls back to Relaxed' or ''), true)
+    end
+
+    -- Read back a crouch we hold: the game's AI may have stood her up or reset the high-level
+    -- state, and the head tells whether the pose is really down.
+    local function checkCrouch(entry, record)
+        if record.gaveUp or clock - record.at < cfg.verifyAfter then return end
+        if native.stance(entry.npc) == 'Stand' then
+            if record.retries >= cfg.maxRetries then
+                record.gaveUp = true
+                dropRaise(entry, record)
+                say(entry, 'crouch not kept by the game', true)
+            elseif clock - record.at >= cfg.retryGap then
+                local ok = native.set(entry.npc, 'Crouch')
+                record.retries, record.at = record.retries + 1, clock
+                T.retries = T.retries + 1
+                if ok then say(entry, 'crouch again') end
+            end
+            return
+        end
+        if record.raised and hlsRead(entry) == 'Relaxed' then
+            -- The game's AI put the high-level state back: raise it again, a few times.
+            if record.retries >= cfg.maxRetries then
+                record.gaveUp, record.raised = true, nil
+                say(entry, 'crouch: the game keeps resetting hls to Relaxed after ' .. record.label, true)
+            else
+                record.retries, record.at = record.retries + 1, clock
+                T.retries = T.retries + 1
+                native.setHighLevel(entry.npc, record.raised)
+                say(entry, 'crouch: hls fell back to Relaxed, raised again (' .. record.label .. ')', true)
+            end
+            return
+        end
+        if record.settled then return end
+        local rise = record.baseline and native.headRise and native.headRise(entry.npc) or nil
+        if not rise then
+            record.settled = true
+            say(entry, 'crouch confirmed via ' .. record.label .. ' by the blackboards only (no head reading)'
+                .. stateText(entry), true)
+            return
+        end
+        local low = record.baseline - rise
+        if low >= cfg.seenDrop then
+            record.settled = true
+            say(entry, 'crouch confirmed via ' .. record.label .. ': head down ' .. fmt(low) .. ' m' .. stateText(entry), true)
+        elseif clock - record.stanceAt >= cfg.seenWithin then
+            escalate(entry, record, low)
         end
     end
 
@@ -203,39 +447,35 @@ function M.new(options)
             waiting[entry.serial] = nil
             if not record then
                 local now = native.stance(entry.npc)
-                if pending[entry.serial] and now == 'Crouch' then
+                local p = pending[entry.serial]
+                if p and now == 'Crouch' then
                     -- V crouched again before the last stand took effect: the crouch is
                     -- still there and is ours, so hold it and stand it with V next time.
                     clearPending(entry.serial)
-                    records[entry.serial] = {at = clock, retries = 0, episode = episode}
+                    local adopted = {at = clock, stanceAt = clock, retries = 0, episode = episode, method = 0,
+                        label = 'stance', settled = true}
+                    if p.level and hlsRead(entry) == p.level then adopted.raised, adopted.label = p.level, p.level:lower() end
+                    records[entry.serial] = adopted
                     holding = holding + 1
                     return
                 end
-                clearPending(entry.serial)
                 -- A companion the game's AI already has crouched or in cover, or that
                 -- sits in a vehicle, is not ours to change.
-                if now ~= nil and now ~= 'Stand' then return end
-                local ok, err = native.set(entry.npc, 'Crouch')
-                if not ok then say(entry, 'crouch failed: ' .. tostring(err)); return end
-                records[entry.serial] = {at = clock, retries = 0, episode = episode}
-                holding = holding + 1
-                T.applied = T.applied + 1
-                say(entry, 'crouch' .. hls(entry))
+                if now ~= nil and now ~= 'Stand' then
+                    if p and not p.level then clearPending(entry.serial) end
+                    return
+                end
+                -- A raised state not yet put back stays ours: this crouch takes it over.
+                local inherited = p and p.level or nil
+                clearPending(entry.serial)
+                beginCrouch(entry, inherited)
                 return
             end
-            if record.gaveUp or clock - record.at < cfg.verifyAfter then return end
-            -- Read back what was issued: the game's AI may have stood her up again.
-            if native.stance(entry.npc) == 'Stand' then
-                if record.retries >= cfg.maxRetries then
-                    record.gaveUp = true
-                    say(entry, 'crouch not kept by the game')
-                elseif clock - record.at >= cfg.retryGap then
-                    local ok = native.set(entry.npc, 'Crouch')
-                    record.retries, record.at = record.retries + 1, clock
-                    T.retries = T.retries + 1
-                    if ok then say(entry, 'crouch again') end
-                end
+            if record.stanceDue then
+                if not record.raised or clock - record.at >= cfg.stanceGap then issueCrouch(entry, record, true) end
+                return
             end
+            checkCrouch(entry, record)
             return
         end
         if record then release(entry, record, crouched and reason or nil); return end
@@ -243,7 +483,7 @@ function M.new(options)
             -- V crouches and this copy may not yet: say why, once per reason, so a late crouch is explained.
             if waiting[entry.serial] ~= reason then
                 waiting[entry.serial] = reason
-                say(entry, 'crouch waiting - ' .. tostring(reason))
+                say(entry, 'crouch waiting - ' .. tostring(reason), true)
             end
         else
             waiting[entry.serial] = nil
