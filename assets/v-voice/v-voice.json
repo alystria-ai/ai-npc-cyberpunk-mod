@@ -3,61 +3,49 @@
   "voices": {
     "male": {
       "file": "v-male.wav",
-      "transcript": "If anything's wrong, just say so. I'm sure we can figure it out. Looks like it was a campsite. Someone tried living here? Fine idea. Let's get us some power. I'll look around for access points.",
-      "sha256": "f6d277efb6d5061497080f4cbad001b031a486e9a347a809f2701a1d0a4b1906",
-      "seconds": 11.37,
+      "transcript": "How do you know the threat's real and not just a joke in poor taste? It's not me you should be explaining yourself to. Know why you're not gettin' it? 'Cause you assume she was driven by 'er feelin's. Well, wrong.",
+      "sha256": "f3f209cd151576aa905bc37f1b6f310c54ab80abb70868d31689778c9e3df159",
+      "seconds": 13.6,
       "sampleRate": 24000,
       "clips": [
         {
-          "stringId": "1745927602763223040",
-          "stem": "v_q000_m_183ac7e786405000.wem",
-          "scene": "q000",
-          "seconds": 3.88
+          "stringId": "1815556036332003328",
+          "stem": "v_mq028_m_193226988762a000.wem",
+          "scene": "mq028",
+          "seconds": 4.38
         },
         {
-          "stringId": "3092609873373446152",
-          "stem": "v_q301_m_2aeb284b634a4008.wem",
-          "scene": "q301",
-          "seconds": 3.29
+          "stringId": "1806589853595480064",
+          "stem": "v_mq040_m_19124be66e623000.wem",
+          "scene": "mq040",
+          "seconds": 2.37
         },
         {
-          "stringId": "1786411909749796864",
-          "stem": "v_q103_m_18ca9c2ac729f000.wem",
-          "scene": "q103",
-          "seconds": 3.7
+          "stringId": "3550813253645279232",
+          "stem": "v_q306_m_314705d75746a000.wem",
+          "scene": "q306",
+          "seconds": 6.05
         }
       ]
     },
     "female": {
       "file": "v-female.wav",
-      "transcript": "Ready to plan, strategize? Got everything we need? You're a stranger in a strange land. Goin' with you. Honestly? Was countin' on more than hotel blueprints. God's honest truth. But nobody moves through the net quite like she does.",
-      "sha256": "3a068cb72da325221a4cb57860a70c3484bcc2cd814dcef370bd9c3b5e98f465",
-      "seconds": 14.45,
+      "transcript": "Know how you feel. Also left the corp behind, wasn't easy. But it gets better, I promise. Care to be a bit more specific? Wouldn't mind knowing what to expect.",
+      "sha256": "7c56592e4194f765ddf1630cfab7bd6a0a3770f9a51165e3d1a6ba00e66007b8",
+      "seconds": 11.55,
       "sampleRate": 24000,
       "clips": [
         {
-          "stringId": "2936182166706151424",
-          "stem": "v_q305_f_28bf6a1fc25b6000.wem",
-          "scene": "q305",
-          "seconds": 3.0
+          "stringId": "3337851633124098048",
+          "stem": "v_mq305_f_2e526e602951c000.wem",
+          "scene": "mq305",
+          "seconds": 6.87
         },
         {
-          "stringId": "1711585098991681536",
-          "stem": "v_q112_f_17c0c59444404000.wem",
-          "scene": "q112",
-          "seconds": 2.99
-        },
-        {
-          "stringId": "3479775964388528128",
-          "stem": "v_q303_f_304aa5cd8f521000.wem",
-          "scene": "q303",
-          "seconds": 3.15
-        },
-        {
-          "stringId": "2025727061291298816",
-          "stem": "v_q114_f_1c1cd4078c29f000.wem",
-          "scene": "q114",
-          "seconds": 4.56
+          "stringId": "1906901358081982468",
+          "stem": "v_sq026_f_1a76acae962fc004.wem",
+          "scene": "sq026",
+          "seconds": 4.28
         }
       ]
     }
