@@ -251,7 +251,12 @@ test('fixups repair the game names Moonshine mishears, and can be replaced', () 
 
 // The real Python worker and model, when this machine has them (a developer machine, or the packaged runtime).
 const here = fileURLToPath(new URL('..', import.meta.url));
-const real = new LocalStt({project: here, pythonExecutable: resolve(here, 'vendor/pocket-tts-env/Scripts/python.exe')});
+// A real Python process and model: when the whole suite runs at once it can take far longer than the 30 s production allowance to load.
+const REAL_WORKER_LIMITS = {startupMs: 120_000, finishMs: 60_000,
+  // Normal priority: the production worker runs below normal so a decode never competes with the game, which on a computer
+  // busy with the whole suite starves it for minutes.
+  lowerPriority: false, priority: 'normal'};
+const real = new LocalStt({project: here, pythonExecutable: resolve(here, 'vendor/pocket-tts-env/Scripts/python.exe'), ...REAL_WORKER_LIMITS});
 const sample = new URL('./fixtures/local-stt-sample.wav', import.meta.url);
 test('real worker: silence is no speech, and a clean read decodes to its words', {skip: !real.available() && 'local speech recognition is not installed here'}, async () => {
   await real.start('silence');
@@ -266,7 +271,7 @@ test('real worker: silence is no speech, and a clean read decodes to its words',
     assert.match(result.text, /manner less interesting/i);
     assert.ok(result.ms < 3000, 'final decode ' + result.ms + ' ms');
     // With a live-words decode that already covered the clip and only silence after it, finish decodes nothing again.
-    const quick = new LocalStt({project: here, pythonExecutable: resolve(here, 'vendor/pocket-tts-env/Scripts/python.exe'), partialIntervalMs: 100});
+    const quick = new LocalStt({project: here, pythonExecutable: resolve(here, 'vendor/pocket-tts-env/Scripts/python.exe'), partialIntervalMs: 100, ...REAL_WORKER_LIMITS});
     const partials = [];
     quick.on('partial', event => partials.push(event.text));
     await quick.start('reuse');

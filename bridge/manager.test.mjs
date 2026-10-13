@@ -5249,6 +5249,9 @@ test('with the settings menu closed the queue flush, notices and player identity
   run(`${mcmFixture}
     local clock, flushes, identities = 10, 0, 0
     os.clock = function() return clock end
+    -- The once-a-second work (settings re-install, preparation feedback) follows the wall clock os.time, which also reads the
+    -- player on a real second boundary: hold it still so the count below is only the tick.
+    os.time = function() return 0 end
     local party = mcm.party()
     local flush = party.flush
     party.flush = function(...) flushes = flushes + 1; return flush(...) end

@@ -629,10 +629,14 @@ test('a text request that arrives while the speech is queued goes first', async 
 });
 
 test('several group speakers go out one after another, spaced by the scheduler, each as its own single request', async () => {
+  // The spacing is the scheduler's: measure when it releases each request, not when the local server happens to see it
+  // (that arrival time carries scheduling jitter of tens of milliseconds on a loaded machine).
   const times = [];
-  const server = await serve((request, response) => { times.push(performance.now()); sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
   try {
     const scheduler = new MistralScheduler({spacingMs: 120});
+    const schedule = scheduler.schedule.bind(scheduler);
+    scheduler.schedule = (task, options) => schedule(() => { times.push(performance.now()); return task(); }, options);
     const {voice} = voiceFor(server, {scheduler});
     await Promise.all(['one', 'two', 'three'].map(name => voice.synthesizeStream('judy-alvarez', `Line ${name}.`, collect())));
     assert.equal(server.requests.length, 3);

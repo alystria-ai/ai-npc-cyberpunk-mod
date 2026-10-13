@@ -184,12 +184,17 @@ test('a second recording after a finished one uses a fresh channel and recognise
 
 // The browser half, end to end, with Chrome's fake microphone fed from a recorded clip (nobody is recorded).
 const here = fileURLToPath(new URL('..', import.meta.url));
+// A real Python process and model: when the whole suite runs at once it can take far longer than the 30 s production allowance to load.
+const REAL_WORKER_LIMITS = {startupMs: 120_000, finishMs: 60_000,
+  // Normal priority: the production worker runs below normal so a decode never competes with the game, which on a computer
+  // busy with the whole suite starves it for minutes.
+  lowerPriority: false, priority: 'normal'};
 const sample = resolve(here, 'bridge/fixtures/local-stt-sample.wav');
-const stt = new LocalStt({project: here, pythonExecutable: resolve(here, 'vendor/pocket-tts-env/Scripts/python.exe')});
+const stt = new LocalStt({project: here, pythonExecutable: resolve(here, 'vendor/pocket-tts-env/Scripts/python.exe'), ...REAL_WORKER_LIMITS});
 const browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER
   || ['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(path => existsSync(path));
 const skip = (!stt.available() && 'local speech recognition is not installed here') || (!browserExecutable && 'no Chromium browser found') || (!existsSync(sample) && 'sample missing');
-test('browser capture: AudioWorklet chunks reach the recogniser and the clip is transcribed', {skip, timeout: 90000}, async () => {
+test('browser capture: AudioWorklet chunks reach the recogniser and the clip is transcribed', {skip, timeout: 240_000}, async () => {
   const browser = await chromium.launch({executablePath: browserExecutable, headless: true,
     args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${sample}%noloop`,
       '--autoplay-policy=no-user-gesture-required', '--mute-audio']});
@@ -206,7 +211,7 @@ test('browser capture: AudioWorklet chunks reach the recogniser and the clip is 
     stt.pushAudio = chunk => { received += chunk.byteLength; return wrapped(chunk); };
     await f.mic.start(input, config);
     assert.equal(f.states.at(-1), 'recording');
-    const deadline = Date.now() + 40_000;
+    const deadline = Date.now() + 120_000;
     while ((received < 153_600 + 16_000 || !partials.length) && Date.now() < deadline) await tick(100);
     assert.ok(received >= 153_600, `the whole clip reached the recogniser (${received} bytes)`);
     assert.ok(stt.heard() === '' || /\w/.test(stt.heard()));
