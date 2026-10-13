@@ -204,3 +204,85 @@ test('wiring: companions.lua ticks it from the 10 Hz update and never loads it b
   // Nothing in the module runs per frame.
   assert.doesNotMatch(source, /registerForEvent/);
 });
+
+test('a stand is read back and re-issued while the stance still reads Crouch, then given up after three tries', () => {
+  const [result] = run(`${harness}
+    local s = newStance(); local n = npc('Stand')
+    s.playerState(1); step(s, {entry(1, n)}, nil, 10)
+    n.ignore = true -- the game ignores the stand requests
+    s.playerState(0); step(s, {entry(1, n)}, nil, 200)
+    local stuck = n.stance
+    n.ignore = false
+    step(s, {entry(1, n)}, nil, 50)
+    local count = 0
+    for _, c in ipairs(calls) do if c == 'Stand' then count = count + 1 end end
+    export(stuck .. ',' .. count .. ',' .. tostring(s.holds(1)) .. ',' .. tostring(logs[#logs]:find('stand not kept') ~= nil))`);
+  // original stand plus three re-issues, then stopped
+  assert.equal(result, 'Crouch,4,false,true');
+});
+
+test('a stand that takes effect on the first try is not repeated and stops reading the stance', () => {
+  const [result] = run(`${harness}
+    local reads = 0
+    local base = native.stance
+    native.stance = function(n) reads = reads + 1; return base(n) end
+    local s = newStance(); local n = npc('Stand')
+    s.playerState(1); step(s, {entry(1, n)}, nil, 5)
+    s.playerState(0); step(s, {entry(1, n)}, nil, 20)
+    local after = reads
+    step(s, {entry(1, n)}, nil, 200)
+    export(table.concat(calls, '/') .. ',' .. n.stance .. ',' .. tostring(s.holds(1)) .. ',' .. (reads == after and 'quiet' or 'reading'))`);
+  assert.equal(result, 'Crouch/Stand,Stand,false,quiet');
+});
+
+test('V crouching again before the stand took effect adopts the crouch that is still there', () => {
+  const [result] = run(`${harness}
+    local s = newStance(); local n = npc('Stand')
+    s.playerState(1); step(s, {entry(1, n)}, nil, 3)
+    n.ignore = true
+    s.playerState(0); step(s, {entry(1, n)}, nil, 1) -- stand issued, ignored: still Crouch
+    s.playerState(1); step(s, {entry(1, n)}, nil, 1)
+    local held = s.holding()
+    n.ignore = false
+    s.playerState(0); step(s, {entry(1, n)}, nil, 3)
+    export(held .. ',' .. n.stance .. ',' .. table.concat(calls, '/'))`);
+  assert.equal(result, '1,Stand,Crouch/Stand/Stand');
+});
+
+test('holds() is true while crouched and while a stand is unconfirmed, and gestures read it', () => {
+  const [result] = run(`${harness}
+    local s = newStance(); local n = npc('Stand')
+    local a = tostring(s.holds(1))
+    s.playerState(1); step(s, {entry(1, n)}, nil, 2)
+    local b = tostring(s.holds(1))
+    s.playerState(0); step(s, {entry(1, n)}, nil, 1)
+    local c = tostring(s.holds(1)) -- stand issued, not yet read back
+    step(s, {entry(1, n)}, nil, 30)
+    export(a .. ',' .. b .. ',' .. c .. ',' .. tostring(s.holds(1)))`);
+  assert.equal(result, 'false,true,true,false');
+  assert.match(companionsSource, /crouched=stance~=nil and \(stance\.crouched\(\) or stance\.holds\(entry\.serial\)\)/);
+});
+
+test('a copy in a workspot while V crouches waits, says why once, and crouches when the workspot ends', () => {
+  const [result] = run(`${harness}
+    local s = newStance(); local n = npc('Stand'); n.workspot = true
+    s.playerState(1); step(s, {entry(1, n)}, nil, 20)
+    local waiting = n.stance .. '/' .. #calls
+    n.workspot = false; step(s, {entry(1, n)}, nil, 6)
+    local waits = 0
+    for _, l in ipairs(logs) do if l:find('crouch waiting - workspot', 1, true) then waits = waits + 1 end end
+    export(waiting .. ',' .. n.stance .. ',' .. waits)`);
+  assert.equal(result, 'Stand/0,Crouch,1');
+});
+
+test('log lines for crouch and stand carry the high-level state when the adapter reads it', () => {
+  const [result] = run(`${harness}
+    native.highLevel = function() return 'Relaxed' end
+    local s = newStance(); local n = npc('Stand')
+    s.playerState(1); step(s, {entry(1, n)}, nil, 1)
+    step(s, {entry(1, n)}, nil, 20)
+    s.playerState(0); step(s, {entry(1, n)}, nil, 20)
+    export(logs[1] .. '|' .. logs[2])`);
+  assert.match(result, /crouch \(judy\)|crouch hls=Relaxed \(judy\)/);
+  assert.match(result, /stand hls=Relaxed \(judy\)/);
+});

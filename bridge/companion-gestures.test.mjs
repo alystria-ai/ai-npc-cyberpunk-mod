@@ -636,3 +636,33 @@ test('a catalogued character rotates her own idle with the rig\'s clean generic 
   speaking={knownEnd=14,at=0};step(2)
   assert(last('play').component=='convai_talk_on_sides','talks from on_sides: '..tostring(last('play').component))
 `));
+
+test('no idle or talk stance starts while V crouches or the copy is held crouched, and a running one leaves at once', () => run(`
+  entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
+  context.crouched=true
+  step(60)
+  assert(count('play')==0 and idles()==0,'no idle while crouched')
+  speaking={knownEnd=20,at=0};step(3)
+  assert(talks()==0,'no talk stance while crouched')
+  speaking=nil;step(1)
+  context.crouched=false
+  step(3)
+  assert(idles()==1,'the idle starts once V stands: '..idles())
+  context.crouched=true;step(.3)
+  assert(count('exit')==1 and lastLog('exit').fields.reason=='crouching' and not last('exit').instant,'leaves for a crouch with the fast exit')
+  step(.5)
+  assert(not held and lastLog('finished').fields.reason=='crouching','released')
+  local plays=count('play')
+  step(60)
+  assert(count('play')==plays,'and stays out while crouched')
+`));
+
+test('a crouch while the workspot is only starting cancels it without stranding the copy', () => run(`
+  entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
+  for i=1,30 do step(.1);if count('play')>=1 then break end end
+  assert(count('play')==1,'started')
+  context.crouched=true;step(.1)
+  assert(lastLog('finished') and lastLog('finished').fields.reason=='crouching','finished at once')
+  step(2)
+  assert(count('play')==1,'no new play')
+`));
