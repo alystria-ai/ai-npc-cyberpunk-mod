@@ -260,6 +260,11 @@ test('local: a pinned model that could not be used says so once, only while Loca
   control.status();
   assert.deepEqual(control.status().localModels, [{id: 'standard', name: 'Gemma-4-E4B', sizeMiB: 5280}]);
   assert.equal('localModels' in new MistralControl({provider, commandPath: 'm.json', publish() {}}).status(), false);
+  // Custom models that cannot be used are published as names and reason codes only, and only when there are some.
+  const problems = [{name: 'Embedder', reason: 'embedding'}];
+  assert.deepEqual(new MistralControl({provider, commandPath: 'm.json', publish() {}, localModelProblems: () => problems}).status().localModelProblems, problems);
+  assert.equal('localModelProblems' in new MistralControl({provider, commandPath: 'm.json', publish() {}, localModelProblems: () => []}).status(), false);
+  assert.equal('localModelProblems' in new MistralControl({provider, commandPath: 'm.json', publish() {}}).status(), false);
 });
 
 test('Groq: requested with its key, left alone for a while after a limit, then tried again; Mistral or Convai answer meanwhile', async () => {

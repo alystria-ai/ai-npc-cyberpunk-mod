@@ -2172,7 +2172,7 @@ local function keyReplyNotice(reply)
     end
     -- The Local AI model the player chose is missing or does not fit, and Auto chose another: said once per choice.
     if reply.keyNotice == 'local-model-fallback' then
-        return 'local-model-fallback', ui.t('The Local AI model you chose is missing or does not fit in the free graphics memory, so Auto was used instead.')
+        return 'local-model-fallback', ui.t('The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so Auto was used instead.')
     end
     if reply.keyNotice == 'groq-no-key' then
         return 'groq-no-key', ui.t('Groq has no key yet, so Convai is used. Add your key in Settings > Development.')

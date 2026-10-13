@@ -6,6 +6,7 @@
 //   FAKE_LLAMA_DELAY_MS        /health answers 503 until this long after start
 //   FAKE_LLAMA_NEVER_HEALTHY   /health always answers 503
 //   FAKE_LLAMA_EXIT_AT_START   exit at once with this code
+//   FAKE_LLAMA_EXIT_FOR_MODEL  exit(1) at once when the -m file path contains this text (a model llama.cpp cannot load)
 //   FAKE_LLAMA_CRASH_AFTER     exit(7) right after answering this many /v1 requests
 //   FAKE_LLAMA_REPLY           the chat reply text (default: an echo of the last user message)
 //   FAKE_LLAMA_DEVICES         the device lines printed by --list-devices
@@ -38,6 +39,11 @@ if (options['--list-devices']) {
 if (process.env.FAKE_LLAMA_EXIT_AT_START) {
   process.stderr.write('fake-llama: exiting at start\n');
   process.exit(Number(process.env.FAKE_LLAMA_EXIT_AT_START));
+}
+
+if (process.env.FAKE_LLAMA_EXIT_FOR_MODEL && String(options['-m'] ?? '').includes(process.env.FAKE_LLAMA_EXIT_FOR_MODEL)) {
+  process.stderr.write('fake-llama: cannot load this model\n');
+  process.exit(1);
 }
 
 const keyFile = options['--api-key-file'];

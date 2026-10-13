@@ -2324,6 +2324,47 @@ test('Local AI model: a row with Auto first and each installed model by its name
   `);
 });
 
+test('Local AI model: custom models are marked, show the memory they need or that the card is too small, and unusable ones are named in the help', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function state(tag, value)
+      jsonFixtures['custom-' .. tag] = value
+      files['runtime/mistral-state.json'] = 'custom-' .. tag
+      clock = clock + 2
+    end
+    assert(invoke('tab:settings').ok)
+    state('one', {provider = 'local', effective = 'local', saved = false, localModels = {
+      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280},
+      {id = 'custom:mine', name = 'My Model', sizeMiB = 4096, custom = true, needMiB = 5296},
+      {id = 'custom:huge', name = 'Huge', sizeMiB = 40960, custom = true, needMiB = 42160, tooLarge = true},
+      {id = 'custom:odd', name = 'Odd', sizeMiB = 100, custom = false, tooLarge = true}},
+      localModelProblems = {{name = 'Embedder', reason = 'embedding'}, {name = 'Gone', reason = 'missing'}, {name = 'Fake', reason = 'bad-gguf'},
+        {name = 'Locked', reason = 'unreadable'}, {name = 'Bad', reason = 'other'}, {name = 5, reason = 'missing'}}})
+    loaded = registered.loadMod('manager')
+    local pick = row('localModel')
+    assert(#pick.elements == 5 and pick.elements[1] == 'Auto' and pick.elements[2] == 'Gemma-4-E4B', table.concat(pick.elements, '|'))
+    assert(pick.elements[3] == 'My Model (custom)' and pick.elements[4] == 'Huge (custom, too large for this graphics card)', table.concat(pick.elements, '|'))
+    assert(pick.elements[5] == 'Odd', 'only custom models are marked, whatever else the file says')
+    local help = tostring(pick.description)
+    assert(help:find('Gemma-4-E4B (5.2 GB)', 1, true), help)
+    assert(help:find('My Model (custom, 4.0 GB, needs about 5.2 GB of graphics memory)', 1, true), help)
+    assert(help:find('Huge (custom, 40.0 GB, too large for this graphics card)', 1, true), help)
+    assert(help:find('Models marked custom are ones you added yourself.', 1, true), help)
+    assert(help:find('Not usable: Embedder: an embedding model, not a chat model; Gone: file not found; Fake: not a valid GGUF file; Locked: could not be read.', 1, true), help)
+    assert(not help:find('Bad', 1, true), 'an unknown reason is dropped')
+    -- Pinning a custom model saves its id; it can be chosen even though it is too large (the bridge then falls back to Auto with one notice).
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 3}}).ok and saved.localModel == 'custom:mine')
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 4}}).ok and saved.localModel == 'custom:huge')
+    loaded = registered.loadMod('manager')
+    assert(row('localModel').value == 4)
+    -- No custom models: the row is as before, with no note about them.
+    state('none', {provider = 'local', effective = 'local', saved = false, localModels = {{id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}}})
+    loaded = registered.loadMod('manager')
+    local plain = tostring(row('localModel').description)
+    assert(not plain:find('custom', 1, true) and not plain:find('Not usable', 1, true), plain)
+  `);
+});
+
 test('the Mistral cloud voice speaks English only here: Multilingual conversations refuses it and moves a saved choice to the Convai cloud voice', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end
@@ -5033,7 +5074,7 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     assert(#sent == 3 and sent[3] == 'local-fallback=d', table.concat(sent, ';'))
     -- The Local AI model the player chose is missing or does not fit: one line on the reply that follows, under its own id.
     id, text = notice({keyNotice = 'local-model-fallback', text = 'Hello'})
-    assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing or does not fit in the free graphics memory, so Auto was used instead.', text)
+    assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so Auto was used instead.', text)
     sendProviderNotice({}, 'local-model-fallback', 'e')
     assert(#sent == 4 and sent[4] == 'local-model-fallback=e', table.concat(sent, ';'))
     assert(notice({errorCode = 'quota-shared'}) == 'quota-exhausted', 'the Convai refusals keep their own notice')

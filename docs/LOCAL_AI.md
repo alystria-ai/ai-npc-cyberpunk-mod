@@ -49,8 +49,11 @@ model by its name (the sizes are in the help text). Only one model is ever loade
   Mature content off, or without the pack, Auto never picks an uncensored model.
 - Choosing a model pins it: that model loads whatever fits better, and whatever Mature content says (a pinned uncensored model with
   Mature content off simply runs without the Mature rules).
-- A pinned model that is missing, or does not fit the free graphics memory, falls back to Auto, with one notice ("The Local AI model
-  you chose is missing or does not fit in the free graphics memory, so Auto was used instead."), not repeated at the next start.
+- A pinned model that is missing, does not fit the free graphics memory or did not start, falls back to Auto, with one notice ("The
+  Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so Auto was used instead."), not
+  repeated at the next start.
+- Models you add yourself (see "Add your own model" below) are listed after the built-in ones with "(custom)" and are never picked by
+  Auto unless their entry says `"auto": true`.
 - A change applies when Local AI is the chosen provider, at an idle moment: the old server is stopped (its graphics memory is freed)
   and the new model loads. It waits for a reply in flight and never restarts in the middle of one, and it does nothing when the
   loaded model already satisfies the new choice. While another provider answers nothing loads; the next start reads the choice.
@@ -60,6 +63,112 @@ If Local AI cannot answer one particular turn (for example the model went away m
 (Mistral with a saved key, else Groq with a saved key) and you see "Local AI could not answer that one, so a cloud provider did." at most
 once every ten minutes. With no cloud account saved you see "Local AI could not answer that. Try again in a moment." instead of silence.
 Local AI stays the chosen provider either way.
+
+### Add your own model
+
+You can add chat models of your own to the **Local AI model** row. There is no screen for it: you copy the model file into a folder and
+list it in a small text file. The model then appears in the row after the built-in ones, marked "(custom)", and you can pick it there.
+Only one model is ever loaded, so nothing else changes.
+
+**1. Find the Local AI folder.** In a normal install it is `red4ext\plugins\CyberpunkConvai\app\local-ai\` inside your Cyberpunk 2077
+folder (the same folder the Local AI packs unpack into; it contains `manifest.standard.json` or `manifest.lite.json`). Make a folder
+called `custom` inside it. Put your model file there. The mod never copies, moves or deletes your files.
+
+**2. Write `manifest.custom.json`** next to the other manifests (a plain text file; a text editor is enough):
+
+```json
+{
+  "version": 1,
+  "models": [
+    {
+      "file": "custom/MyModel-Q4_K_M.gguf",
+      "name": "My Model",
+      "uncensored": false,
+      "auto": false,
+      "family": "llama",
+      "contextSize": 8192,
+      "chatTemplate": "chatml"
+    }
+  ]
+}
+```
+
+| Key | Needed | Meaning |
+|---|---|---|
+| `file` | yes | Path of the `.gguf` file, relative to the Local AI folder, inside it (no drive letter, no `..`). |
+| `name` | no | The name shown in the row, 1 to 60 characters. Default: the file name. |
+| `uncensored` | no | `true` only if the model really has no content limits of its own. With **Mature content** on, the content rules read this flag (never the file name); the hard limits and the output screen still apply. Default `false`. |
+| `auto` | no | `true` lets **Auto** pick this model. Default `false`: the model is used only when you choose it in the row. |
+| `family` | no | A short label such as `qwen` or `llama`. It is used for the Mature content rules; a model the mod does not know gets the restrained level. |
+| `contextSize` | no | The context (in tokens, 2048 to 262144) the model starts with. A bigger context uses more graphics memory. Default: the same automatic choice as the built-in models (16,384 when it fits). |
+| `chatTemplate` | no | The name of a built-in llama.cpp chat template (for example `chatml`, `llama3`, `gemma`), for a file that has no usable template of its own. Leave it out when the model has one. |
+
+You can list up to 16 models. A wrong entry is skipped and the rest still work. Changes are picked up within a few seconds while the
+game runs (the settings page shows the new list the next time it refreshes), and a model you pick loads the next time Local AI starts
+or at the next idle moment.
+
+**3. Choose it.** In Settings > Development, open **Local AI model** and pick "My Model (custom)", then **Apply**.
+
+**What the mod checks.** When it looks at your manifest it checks, without loading anything:
+
+- the file exists and is a GGUF file (it starts with the bytes `GGUF` and has a version llama.cpp reads);
+- it is not an embedding model (those cannot chat). This is read from the file's architecture and pooling type;
+- its size, from which the help text of the row tells you about how much graphics memory it needs ("needs about 5.2 GB of graphics memory");
+- it can fit the card at all. A model that needs more than your graphics card's total memory is still listed, marked "too large for
+  this graphics card", and Auto never picks it.
+
+A model that fails a check is not offered. The row's help text names it ("Not usable: Embedder: an embedding model, not a chat model")
+and the log says why in one line.
+
+**Requirements for a model**
+
+- A **GGUF** file of an architecture that the bundled llama.cpp (`llama-server`, Vulkan build) supports. The mod cannot check this
+  in advance; a model it cannot load fails at the first start (see below).
+- An **instruct or chat** model with a chat template. A base model (no "instruct" or "chat" in its name) answers badly or rambles.
+  The template is read from the file; set `chatTemplate` only if the model has none.
+- The **Q4_K_M** quantisation is the recommended size/quality trade. Smaller quants lose quality; bigger ones use more memory.
+- A split model (`name-00001-of-00003.gguf`): list only the first part and keep all parts in the same folder.
+- Do not use a model for an image (`mmproj`) or an embedding model.
+
+**How much graphics memory a model needs.** About the file size plus 0.7 GB for a file under 3 GB, plus 1.2 GB from 3 GB up (room for the
+conversation, which is kept in graphics memory too), on top of what the game and your voice use. Rough guide for Q4_K_M:
+
+| Model size | File | Free graphics memory to plan for |
+|---|---|---|
+| 1B to 2B | about 1 to 1.5 GB | about 2 to 2.5 GB |
+| 3B to 4B | about 2 to 2.7 GB | about 3 to 3.5 GB |
+| 7B to 9B | about 4.4 to 5.5 GB | about 6 to 7 GB |
+| 12B to 14B | about 7.5 to 9 GB | about 9 to 10.5 GB |
+
+The table in "Which combination to pick" below shows what the voice and the game add. If your card is smaller than the model needs, it
+is marked "too large" and you cannot use it; if there is not enough memory free at the moment, Auto uses a smaller model and a model
+you picked is replaced by Auto with one notice. A smaller `contextSize` (for example 8192) saves memory.
+
+**Auto and your models.** Auto keeps preferring the built-in models: it never picks a custom model unless that entry says
+`"auto": true`. A model with `"auto": true` competes with the others by size: the largest model that fits the free graphics memory
+wins, and on equal sizes the built-in one wins. With **Mature content** on, Auto prefers uncensored models first; a custom model joins
+that group only with both `"uncensored": true` and `"auto": true`. A model you pick in the row is used whatever Auto would have chosen
+(as long as it fits).
+
+**If a model will not start.** If the model's file is found but llama.cpp cannot load it (an unsupported architecture, a damaged file, not
+enough memory once loaded), the mod shows "The Local AI model you chose is missing, does not fit in the free graphics memory or did not
+start, so Auto was used instead." once, and Auto answers instead. The mod does not try that model again until its file changes or
+you restart the game.
+
+**If it does not show up.** Open the bridge log, `bridge.stderr.log`, in the `data` folder of the mod
+(`red4ext\plugins\CyberpunkConvai\data\`), and look for lines starting with `[LocalAI] [custom models]`. Each problem is one line, for
+example:
+
+- `skipped "custom/x.bin": only .gguf files are accepted` - fix the entry in the manifest;
+- `"My Model" is not usable: the file x.gguf was not found` - the path or the file name is wrong (Windows hides extensions: check
+  that the file is not called `x.gguf.gguf` or `x.gguf.txt`);
+- `"My Model" is too large for this graphics card` - pick a smaller model or quant;
+- `manifest.custom.json is not valid JSON` - a comma or a quote is wrong; a free JSON checker finds it quickly.
+
+Make sure the Local AI pack itself is installed (the **Local AI model** row only matters when Local is the Conversation provider) and
+that the file is named `manifest.custom.json` (not `.txt`). An embedding model can only be spotted when its header says so; a file with
+an unusual header may pass the check and then fail to start, which the notice above covers. Whether a model has a chat template is not
+checked ahead of time.
 
 ### Which combination to pick
 
@@ -255,7 +364,7 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   rules above (largest file that fits, headroom by tier: file + 1.2 GB standard, + 0.7 GB lite, and by size for a Mature model: standard
   headroom from 3,000 MiB; unknown free memory takes the smallest model of the group) and reports `fellBack: 'missing' | 'low-memory'`
   when a pin was replaced. `stillSatisfies` says whether the loaded model already meets a changed choice.
-- `bridge/local-llm-server.mjs`: the `selection` option (`() => {pin, matureOn, matureModels}`) is read when a start begins, never per turn.
+- `bridge/local-llm-server.mjs`: the `selection` option (`() => {pin, matureOn, matureModels, customModels}`) is read when a start begins, never per turn.
   A pin that cannot be used emits `model-fallback` once per start. `reselect()` is called by the bridge when the choice changes while Local
   AI is the provider; it reloads only when the loaded model no longer satisfies the choice, only with nothing in flight (`end()` re-checks,
   and a choice that changed during a start is checked 250 ms after it is ready), by `stop()` followed by `ensure()`. The older `tier`
@@ -264,6 +373,28 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   with Mature content and the Mature pack's presence; it re-lists the installed models and republishes the status at most every 5 s). The
   fallback becomes the `local-model-fallback` notice (`MistralProvider.noteLocalModelFallback`, sent as `keyNotice` on the next reply),
   once per distinct pin and reason until the pin changes.
+- Custom models (`bridge/custom-models.mjs`, tests `custom-models.test.mjs`, `custom-model-choice.test.mjs` and the custom block at the end
+  of `local-llm-server.test.mjs`): `CustomModelScanner.scan({totalVramMiB})` reads `manifest.custom.json` (the Local AI folder, else the
+  dev folder when only that has it, like the Mature marker), validates each entry strictly (relative path inside the folder, `.gguf`, name
+  of 1 to 60 characters, boolean `uncensored`/`auto`, `family` label, integer `contextSize` 2048 to 262144, `chatTemplate` name; at most
+  16) and logs every bad entry once as `[custom models] ...` (a repeat of the same line is not logged again; nothing throws). Per file it
+  stats (every look) and reads the first 2 MiB only when the size or time changed: the GGUF magic and version (2 or 3), then the
+  key/value pairs up to the tokenizer for `general.architecture`, `<arch>.pooling_type` and `<arch>.context_length`. Reasons published
+  with the status as `localModelProblems` (`[{name, reason}]`, reason `missing | bad-gguf | embedding | unreadable`, no paths):
+  a missing file, a file under 1 MiB, wrong magic or version or no architecture, an encoder architecture (`bert`, `nomic-bert`,
+  `jina-bert-*`, `modern-bert`, `neo-bert`, `eurobert`, `t5encoder`, `clip`, ...) or any `pooling_type` other than 0, and a read error. Not
+  checked (documented limits): whether llama.cpp supports the architecture, whether the model has a chat template, and an embedding
+  model whose header gives neither away. A model whose file plus the tier headroom is more than the card's total memory is listed with
+  `tooLarge` (the total comes from `llama-server --list-devices` after the first start, else from one `nvidia-smi` call at most once a
+  minute while the manifest lists models); `chooseLocalModel` never picks it, and a pin on it falls back with `low-memory`. The published
+  list entry of a custom model also carries `custom: true` and `needMiB`, and `mcm.lua` adds the "(custom)" label and the memory line to the
+  help. Ids are `custom:<file name>`. Auto rule: `autoEligible` (built-in always, custom only with `auto: true`); with Mature content on, the
+  uncensored eligible models are tried first. The server starts a custom model with its `contextSize` (else the ladder) and
+  `--chat-template`; the loaded server's `modelHints` (`{uncensored, family}`) reach `allowanceFor(name, hints)`, where the flag decides
+  in both directions and the name is not read for it. A custom model that fails to start (or dies while warming up) is marked broken
+  for that file size until `reset()` or a restart, a `model-fallback` event with reason `start-failed` is emitted once (the same
+  `local-model-fallback` notice), and the start is repeated at once with Auto's choice. The fake server fixture refuses a model with
+  `FAKE_LLAMA_EXIT_FOR_MODEL=<text in the path>`.
 - Lua: `localModel` (`auto` or an id; `manager.lua` validates ids, `mcm.lua` builds the row from `manager.localModelChoices()` and maps the
   selected position back to an id). A saved pin that is not in the list shows as Auto and stays saved.
 
