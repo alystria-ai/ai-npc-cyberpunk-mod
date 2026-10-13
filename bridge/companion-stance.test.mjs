@@ -172,7 +172,7 @@ test('log lines read Companion stance', () => {
     local s = newStance(); local n = npc('Stand')
     s.playerState(1); step(s, {entry(1, n)})
     export(logs[1])`);
-  assert.match(result, /^Companion stance: crouch \(judy\)/);
+  assert.match(result, /^Companion stance: crouch issued via stance.* \(judy\)$/);
 });
 
 test('install registers one ObserveAfter hook on PlayerPuppet and forwards the state', () => {
@@ -282,7 +282,195 @@ test('log lines for crouch and stand carry the high-level state when the adapter
     s.playerState(1); step(s, {entry(1, n)}, nil, 1)
     step(s, {entry(1, n)}, nil, 20)
     s.playerState(0); step(s, {entry(1, n)}, nil, 20)
-    export(logs[1] .. '|' .. logs[2])`);
-  assert.match(result, /crouch \(judy\)|crouch hls=Relaxed \(judy\)/);
-  assert.match(result, /stand hls=Relaxed \(judy\)/);
+    export(table.concat(logs, '|'))`);
+  assert.match(result, /crouch issued via stance stance=Crouch hls=Relaxed \(judy\)/);
+  assert.match(result, /stand issued via stance stance=Stand hls=Relaxed \(judy\)/);
+});
+
+// ---- High-level state methods (2026-10-14): Relaxed shows no crouch, so Stealth is raised first ----
+
+// A fake game where the crouched pose only shows in the listed high-level states, as the locomotion
+// wrappers suggest: the head slot is 1.7 m above her feet standing and 1.1 m crouched.
+const hlsHarness = `${harness}
+local seen = {Stealth = true, Alerted = true}
+local function npc2(over)
+  local n = npc('Stand'); n.hls = 'Relaxed'; n.ignoreHls = false
+  for k, v in pairs(over or {}) do n[k] = v end
+  return n
+end
+native.highLevel = function(n) return n.hls end
+native.setHighLevel = function(n, name)
+  calls[#calls + 1] = 'hls:' .. name
+  if not n.ignoreHls then n.hls = name end
+  return true
+end
+local headReads = 0
+native.headRise = function(n)
+  headReads = headReads + 1
+  if n.noHead then return nil end
+  return (n.stance == 'Crouch' and seen[n.hls]) and 1.1 or 1.7
+end
+local function count(prefix)
+  local c = 0
+  for _, l in ipairs(logs) do if l:find(prefix, 1, true) then c = c + 1 end end
+  return c
+end
+`;
+
+test('a crouch outside combat raises Stealth first, the stance call follows after a short gap, and the head confirms it', () => {
+  const [result] = run(`${hlsHarness}
+    local s = newStance(); local n = npc2()
+    s.playerState(1)
+    step(s, {entry(1, n)}, nil, 1)
+    local first = table.concat(calls, '/') .. ':' .. n.stance
+    step(s, {entry(1, n)}, nil, 30)
+    export(first .. '|' .. table.concat(calls, '/') .. '|' .. n.hls .. '|' .. n.stance .. '|' .. count('crouch confirmed via stealth: head down 0.60 m'))`);
+  // tick 1: only the high-level call; the stance call comes on a later tick, never in the same frame
+  assert.equal(result, 'hls:Stealth:Stand|hls:Stealth/Crouch|Stealth|Crouch|1');
+});
+
+test('standing restores Relaxed after the stance call, reads both back and confirms with the head', () => {
+  const [result] = run(`${hlsHarness}
+    local s = newStance(); local n = npc2()
+    s.playerState(1); step(s, {entry(1, n)}, nil, 30)
+    s.playerState(0); step(s, {entry(1, n)}, nil, 1)
+    local first = table.concat(calls, '/') .. ':' .. n.stance .. '/' .. n.hls
+    step(s, {entry(1, n)}, nil, 30)
+    export(first .. '|' .. table.concat(calls, '/') .. '|' .. n.stance .. '/' .. n.hls .. '|' .. tostring(s.holds(1)) .. '|' .. count('stand confirmed') .. '|' .. count('head back'))`);
+  assert.equal(result, 'hls:Stealth/Crouch/Stand:Stand/Stealth|hls:Stealth/Crouch/Stand/hls:Relaxed|Stand/Relaxed|false|1|1');
+});
+
+test('when Stealth shows no crouch the head sees it and Alerted is tried, then restored on standing', () => {
+  const [result] = run(`${hlsHarness}
+    seen = {Alerted = true}
+    local s = newStance(); local n = npc2()
+    s.playerState(1); step(s, {entry(1, n)}, nil, 60)
+    local crouched = table.concat(calls, '/') .. '|' .. n.hls
+    s.playerState(0); step(s, {entry(1, n)}, nil, 40)
+    export(crouched .. '|' .. n.hls .. '|' .. n.stance .. '|' .. count('NOT visible via stealth') .. count('trying alerted') .. count('confirmed via alerted: head down 0.60 m'))`);
+  assert.equal(result, 'hls:Stealth/Crouch/hls:Alerted|Alerted|Relaxed|Stand|111');
+});
+
+test('when no method shows a crouch she gets Relaxed back, says so, and still stands normally', () => {
+  const [result] = run(`${hlsHarness}
+    seen = {}
+    local s = newStance(); local n = npc2()
+    s.playerState(1); step(s, {entry(1, n)}, nil, 120)
+    local mid = n.hls .. '/' .. n.stance
+    local reads = headReads
+    step(s, {entry(1, n)}, nil, 100)
+    local quiet = reads == headReads
+    s.playerState(0); step(s, {entry(1, n)}, nil, 30)
+    export(mid .. '|' .. tostring(quiet) .. '|' .. n.hls .. '/' .. n.stance .. '|' .. count('no method left') .. '|' .. s.holding())`);
+  assert.equal(result, 'Relaxed/Crouch|true|Relaxed/Stand|1|0');
+});
+
+test('a high-level state the game chose is never changed, raised or restored', () => {
+  const [result] = run(`${hlsHarness}
+    local s = newStance(); local a, b = npc2({hls = 'Stealth'}), npc2({hls = 'Alerted'})
+    s.playerState(1); step(s, {entry(1, a), entry(2, b)}, nil, 40)
+    s.playerState(0); step(s, {entry(1, a), entry(2, b)}, nil, 40)
+    local hlsCalls = 0
+    for _, c in ipairs(calls) do if c:find('hls:', 1, true) then hlsCalls = hlsCalls + 1 end end
+    export(hlsCalls .. ',' .. a.hls .. ',' .. b.hls .. ',' .. a.stance .. ',' .. b.stance)`);
+  assert.equal(result, '0,Stealth,Alerted,Stand,Stand');
+});
+
+test('combat taking the high-level state while she is crouched is not undone when V stands', () => {
+  const [result] = run(`${hlsHarness}
+    local s = newStance(); local n = npc2()
+    s.playerState(1); step(s, {entry(1, n)}, nil, 30)
+    n.hls = 'Combat'; n.combat = true
+    step(s, {entry(1, n)}, nil, 10)
+    s.playerState(0); step(s, {entry(1, n)}, nil, 30)
+    local hlsCalls = {}
+    for _, c in ipairs(calls) do if c:find('hls:', 1, true) then hlsCalls[#hlsCalls + 1] = c end end
+    export(table.concat(hlsCalls, '/') .. '|' .. n.hls .. '|' .. tostring(s.holds(1)))`);
+  assert.equal(result, 'hls:Stealth|Combat|false');
+});
+
+test('the game resetting the raised state to Relaxed is raised again three times, then left with an explanation', () => {
+  const [result] = run(`${hlsHarness}
+    local s = newStance(); local n = npc2()
+    s.playerState(1)
+    for _ = 1, 400 do n.hls = 'Relaxed'; step(s, {entry(1, n)}, nil, 1) end
+    local raises = 0
+    for _, c in ipairs(calls) do if c == 'hls:Stealth' then raises = raises + 1 end end
+    export(raises .. '|' .. count('keeps resetting hls') .. '|' .. n.hls)`);
+  // the first raise plus three re-raises
+  assert.equal(result, '4|1|Relaxed');
+});
+
+test('a Relaxed restore the game ignores is re-issued three times and then reported', () => {
+  const [result] = run(`${hlsHarness}
+    local s = newStance(); local n = npc2()
+    s.playerState(1); step(s, {entry(1, n)}, nil, 30)
+    n.ignoreHls = true
+    s.playerState(0); step(s, {entry(1, n)}, nil, 200)
+    local relaxed = 0
+    for _, c in ipairs(calls) do if c == 'hls:Relaxed' then relaxed = relaxed + 1 end end
+    export(relaxed .. '|' .. n.stance .. '|' .. tostring(s.holds(1)) .. '|' .. count('stand not kept by the game'))`);
+  assert.equal(result, '4|Stand|false|1');
+});
+
+test('V crouching again before Relaxed was restored keeps ownership, so the next stand restores it', () => {
+  const [result] = run(`${hlsHarness}
+    local s = newStance(); local n = npc2()
+    s.playerState(1); step(s, {entry(1, n)}, nil, 30)
+    s.playerState(0); step(s, {entry(1, n)}, nil, 1) -- stance Stand sent, Relaxed not yet
+    s.playerState(1); step(s, {entry(1, n)}, nil, 30)
+    local mid = n.hls .. '/' .. n.stance
+    s.playerState(0); step(s, {entry(1, n)}, nil, 40)
+    export(mid .. '|' .. n.hls .. '/' .. n.stance .. '|' .. s.holding() .. '|' .. tostring(s.holds(1)))`);
+  assert.equal(result, 'Stealth/Crouch|Relaxed/Stand|0|false');
+});
+
+test('a blocker stands her and restores Relaxed, and she is raised and crouched again afterwards', () => {
+  const [result] = run(`${hlsHarness}
+    local s = newStance(); local n = npc2()
+    local reason
+    local function blocker() return reason end
+    s.playerState(1); step(s, {entry(1, n)}, blocker, 30)
+    reason = 'vehicle'; step(s, {entry(1, n)}, blocker, 30)
+    local blocked = n.hls .. '/' .. n.stance
+    reason = nil; step(s, {entry(1, n)}, blocker, 30)
+    export(blocked .. '|' .. n.hls .. '/' .. n.stance)`);
+  assert.equal(result, 'Relaxed/Stand|Stealth/Crouch');
+});
+
+test('without a head reading the blackboards confirm the crouch and nothing is escalated', () => {
+  const [result] = run(`${hlsHarness}
+    local s = newStance(); local n = npc2({noHead = true})
+    s.playerState(1); step(s, {entry(1, n)}, nil, 60)
+    export(n.hls .. '/' .. n.stance .. '|' .. count('by the blackboards only') .. '|' .. count('NOT visible') .. '|' .. count('trying alerted'))`);
+  assert.equal(result, 'Stealth/Crouch|1|0|0');
+});
+
+test('an adapter without a high-level setter keeps the stance-only behaviour', () => {
+  const [result] = run(`${hlsHarness}
+    native.setHighLevel = nil
+    local s = newStance(); local n = npc2()
+    s.playerState(1); step(s, {entry(1, n)}, nil, 1)
+    export(table.concat(calls, '/') .. '|' .. n.hls .. '|' .. (logs[1]:find('via stance', 1, true) and 'stance' or logs[1]))`);
+  assert.equal(result, 'Crouch|Relaxed|stance');
+});
+
+test('the checks stay bounded: a long crouch reads the head only until it is confirmed', () => {
+  const [result] = run(`${hlsHarness}
+    local reads = 0
+    local base = native.stance
+    native.stance = function(n) reads = reads + 1; return base(n) end
+    local s = newStance(); local n = npc2()
+    s.playerState(1); step(s, {entry(1, n)}, nil, 600) -- 60 s
+    export(headReads .. ',' .. (reads <= 140 and 'ok' or reads))`);
+  // one baseline read and one confirming read
+  assert.equal(result, '2,ok');
+});
+
+test('the native adapter raises the state with NPCPuppet.ChangeHighLevelState and reads the Head slot', () => {
+  assert.match(source, /NPCPuppet\.ChangeHighLevelState\(npc, Enum\.new\('gamedataNPCHighLevelState', name\)\)/);
+  assert.match(source, /GetSlotTransform\(CName\.new\('Head'\)\)/);
+  assert.match(source, /methods = \{'stealth', 'alerted'\}/);
+  // Only the 10 Hz companion tick and the one blackboard observer drive it.
+  assert.doesNotMatch(source, /registerForEvent|onUpdate/);
 });
