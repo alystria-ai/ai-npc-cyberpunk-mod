@@ -5238,6 +5238,9 @@ const earlyFixture = `
   controller.McmUiGetLayoutMetric = function(_, metric) return ({[13] = 320, [20] = 100, [23] = 800, [27] = 1000, [28] = 900})[metric] or -1 end
   local page
   function controller:GetRootWidget() return page.root end
+  -- The content scroll position: what the page being replaced reports, and what is set on the new scroll controller.
+  local scrollNow, scrolls = 0, 0
+  controller.McmUiGetContentScrollPosition = function() return scrollNow end
   -- One draw of the manager's page, in MCM's order. Options: rows = {managed, action, readonly}, categories, bar (labels of the
   -- buttons on the bar line), plain (the text override does nothing: the creations bypass it), ignoresX (the game ignores the
   -- x it is given for a managed label), noState (no managed-label state call), badCategory, finish = false (the draw never ends),
@@ -5249,6 +5252,12 @@ const earlyFixture = `
       viewport = widget('scroll_area', 0, 0, 800, 700), texts = {}, markers = {}, labels = {}, actions = {}, readonly = {},
       values = {}, headings = {}, passed = {}}
     p.root = widget('root', 0, 0, 1920, 1080, {p.render}); p.render.parent = p.root
+    p.scroll = 0
+    p.wrapper.GetController = function()
+      return {GetScrollPosition = function() return p.scroll end,
+        SetScrollPosition = function(_, value) p.scroll = value; scrolls = scrolls + 1 end}
+    end
+    if o.badScroller then p.wrapper.GetController = function() error('no controller') end end
     for i = 0, 2 do
       local entry = widget('mcm_entry_' .. i, 20, i * 42, 300, 42); entry.parent = p.list; p.list.children[i + 1] = entry
     end
@@ -5273,7 +5282,9 @@ const earlyFixture = `
       p.render.children[#p.render.children + 1] = sidebar
       return {content = p.list, wrapper = sidebar}
     end)
-    handlers.McmUiBeginContent(ref, 400, 0.25, true, function(height, scroll, ready)
+    handlers.McmUiBeginContent(ref, 400, o.scroll or 0, true, function(height, scroll, ready)
+      p.beginScroll = scroll
+      p.scroll = o.sticks and scroll or 0
       handlers.McmUiCreateScrollArea(ref, p.render, 'mcm_content_scroll', 100, 200, 800, 700, 2000, function()
         p.wrapper.children, p.viewport.children = {p.viewport}, {p.content}
         p.content.parent, p.viewport.parent, p.wrapper.parent = p.viewport, p.wrapper, p.render
@@ -5508,6 +5519,60 @@ test('a draw that never reaches its end still gets its held bottom buttons, wher
     clock = clock + 1
     mcm.update(player, false)
     assert(p.wrapper.visible == true, 'the page stayed hidden after a draw that never ended')
+  `);
+});
+
+test('a redrawn page keeps its scroll position, whether MCM lost it or never set it, and a page that was left starts at the top', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    local rows = {managed = 3, action = 1}
+    -- MCM hands over its captured position but it does not hold on the hidden, still empty page: set again with the show.
+    local p = draw({rows = rows, scroll = 0.4})
+    assert(p.beginScroll == 0.4 and p.wrapper.visible == true and p.scroll == 0.4 and scrolls == 1, 'position lost: ' .. tostring(p.scroll))
+    -- It holds: nothing is set again.
+    p = draw({rows = rows, scroll = 0.4, sticks = true})
+    assert(p.scroll == 0.4 and scrolls == 1, 'a position that held was set again')
+    -- MCM skipped its capture (it passes 0) but the page being replaced is at 0.6: the same page, so 0.6 is kept and MCM is told.
+    scrollNow = 0.6
+    p = draw({rows = rows, scroll = 0})
+    assert(p.beginScroll == 0.6 and p.scroll == 0.6 and scrolls == 2, 'the old position was not carried over: ' .. tostring(p.scroll))
+    -- At the top both ways: nothing to restore.
+    scrollNow = 0
+    p = draw({rows = rows, scroll = 0})
+    assert(p.beginScroll == 0 and p.scroll == 0 and scrolls == 2)
+    -- Idle frames never touch the scroll.
+    mcm.update(player, false); local before = calls
+    for _ = 1, 6 do mcm.update(player, false) end
+    assert(calls == before and scrolls == 2)
+    -- Another page of the manager: the old position is not carried over (the first draw of a page has no 'same page').
+    scrollNow = 0.7
+    assert(invoke('settings:back').ok)
+    p = draw({rows = rows, scroll = 0})
+    assert(p.beginScroll == 0 and p.scroll == 0 and scrolls == 2, 'a new page inherited the old scroll position')
+    -- The page after that is the same page again.
+    p = draw({rows = rows, scroll = 0})
+    assert(p.scroll == 0.7 and scrolls == 3)
+  `);
+});
+
+test('a page held for the older pass gets its scroll position back when it is shown', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    local rows = {managed = 3}
+    draw({rows = rows})
+    scrollNow = 0.5
+    local p = draw({rows = rows, scroll = 0.5, ignoresX = true})
+    assert(p.wrapper.visible == false and p.scroll == 0, 'the held page was shown or scrolled early')
+    settle()
+    assert(p.wrapper.visible == true and p.scroll == 0.5, 'the older pass did not restore the scroll position: ' .. tostring(p.scroll))
+    -- A draw that never ends: the stale-hold release restores it as well.
+    local q = draw({rows = rows, scroll = 0.3, finish = false})
+    clock = clock + 2
+    mcm.update(player, false)
+    assert(q.wrapper.visible == true and q.scroll == 0.3, 'the stale hold did not restore the scroll position')
+    -- A scroll controller that fails never stops the page from being shown.
+    local r = draw({rows = rows, scroll = 0.2, badScroller = true})
+    assert(r.wrapper.visible == true and mcm.inspect().early.shown >= 1, 'a failing scroll controller stopped the page from being shown')
   `);
 });
 

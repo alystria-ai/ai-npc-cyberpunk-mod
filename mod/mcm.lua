@@ -57,6 +57,14 @@ local statusOriginal
 -- stay empty.
 local contentHold, holdDisabled
 local HOLD_MAX = 1.5
+-- The scroll position of the content survives a redraw. MCM captures it before it draws and hands it to McmUiBeginContent,
+-- which sets it on the new, still empty scroll area; a page created hidden (contentHold) or drawn after a capture that MCM
+-- skipped came back at the top. So the position is remembered for the page being drawn (scrollBefore: read once from the old page
+-- in McmUiBegin, only when the page is the one drawn last, lastDrawKey) and set again on the wrapper's scroll controller in the
+-- same call that shows the content, when it is not already there.
+local lastDrawKey, scrollBefore
+local scrollLogBudget = 12
+local function pageKey() return view .. '|' .. tostring(modelPage) .. '|' .. tostring(modelQuery) end
 -- The refusal MCM shows when a change would be applied automatically. It goes to
 -- MCM's status line, which is moved to the top of the content column.
 local function hintPending() return ui.t('Change pending. Choose Apply to use it, or Revert to discard it.') end
@@ -291,6 +299,29 @@ end
 -- moment the page is found until it is styled and its fonts are in place, then shown at their own opacity. The page is never
 -- hidden longer than VEIL_MAX seconds, whatever happens, and a veil on a page that was drawn again is gone with its widget.
 local VEIL_MAX = 0.75
+
+-- Puts the content back at the scroll position the page had before it was drawn again (three native calls, none when the
+-- position is zero or already right). Never raises.
+local function applyScroll(wrapper, want)
+    want = tonumber(want)
+    if not wrapper or not want or want < 0.002 then return end
+    local ok, err = pcall(function()
+        local scroller = wrapper:GetController()
+        local current = tonumber(scroller:GetScrollPosition()) or 0
+        if math.abs(current - want) > 0.002 then
+            scroller:SetScrollPosition(math.min(1, want))
+            if scrollLogBudget > 0 then
+                scrollLogBudget = scrollLogBudget - 1
+                log('Probe: scroll position restored ' .. tostring(current) .. ' -> ' .. tostring(want))
+            end
+        end
+    end)
+    if not ok and scrollLogBudget > 0 then
+        scrollLogBudget = scrollLogBudget - 1
+        log('Probe: scroll position could not be restored: ' .. tostring(err))
+    end
+end
+
 local function veilPage(content)
     local read, opacity = pcall(function() return content:GetOpacity() end)
     if pcall(function() content:SetOpacity(0.0) end) then
@@ -306,7 +337,10 @@ local function unveilPage()
     if held then
         presentation.veil = nil
         pcall(function() held.widget:SetOpacity(held.opacity) end)
-        if contentHold and held.wrapper and pcall(function() held.wrapper:SetVisible(true) end) then contentHold = nil end
+        if contentHold and held.wrapper and pcall(function() held.wrapper:SetVisible(true) end) then
+            applyScroll(held.wrapper, contentHold.scroll)
+            contentHold = nil
+        end
     end
 end
 
@@ -317,7 +351,9 @@ local function releaseStaleHold()
     if not hold or os.clock() - hold.at < HOLD_MAX then return end
     contentHold = nil
     local shown = pcall(function()
-        locateRoots(hold.controller).content:GetParentWidget():GetParentWidget():SetVisible(true)
+        local wrapper = locateRoots(hold.controller).content:GetParentWidget():GetParentWidget()
+        wrapper:SetVisible(true)
+        applyScroll(wrapper, hold.scroll)
     end)
     if not shown then holdDisabled, refreshQueued = true, true end
 end
@@ -986,7 +1022,8 @@ local function earlyFinish(controller, state, owned)
             if not read or not margin or margin.left ~= 20 then reason = 'label geometry' end
         end
         if not reason then
-            if not pcall(function() state.wrapper:SetVisible(true) end) then reason = 'wrapper' end
+            if not pcall(function() state.wrapper:SetVisible(true) end) then reason = 'wrapper'
+            else applyScroll(state.wrapper, contentHold and contentHold.scroll) end
         end
     end
     if reason then
@@ -2000,6 +2037,12 @@ function M.install()
             presentation.preparationSignature = preparationStatus.signature
         end
         presentation.statusText = status
+        -- Redrawing the page that was drawn last: its scroll position is read from the old page, which still exists here.
+        scrollBefore = nil
+        if own and renderOwn and lastDrawKey == pageKey() then
+            local read, position = pcall(function() return controller:McmUiGetContentScrollPosition() end)
+            if read and type(position) == 'number' then scrollBefore = position end
+        end
         earlyBegin(own == true)
         if not early.on then
             return wrapped(title, subtitle, sidebarTitle, contentTitle, status, statusKind,
@@ -2020,8 +2063,12 @@ function M.install()
     Override('SettingsMainGameController', 'McmUiBeginContent', function(controller, height, scroll, ready, wrapped)
         if renderOwn and ready == true then
             renderOwn = false
-            contentHold = {controller = controller, at = os.clock()}
-            return wrapped(height, scroll, false)
+            -- MCM's own position, or the old page's when MCM lost it (a capture it skipped).
+            local want = tonumber(scroll) or 0
+            if want < 0.002 and scrollBefore and scrollBefore >= 0.002 then want = math.min(1, scrollBefore) end
+            scrollBefore = nil
+            contentHold = {controller = controller, at = os.clock(), scroll = want}
+            return wrapped(height, want, false)
         end
         return wrapped(height, scroll, ready)
     end)
@@ -2029,6 +2076,7 @@ function M.install()
         local owned = title == ui.t(LABEL) and active()
         local key = owned and controllerKey(controller) or nil
         owned = owned and key ~= nil
+        lastDrawKey = owned and pageKey() or nil
         local previous = owned and presentation.beginKey == key and presentation or {}
         -- Queue only Lua data here. No ink traversal, getters or setters.
         presentation = {active = owned, pending = owned, rows = {}, hovered = {}, tint = {}, restyle = {}, title = title,
@@ -2054,6 +2102,7 @@ function M.install()
             presentation = {active = false, rows = {}}
             voiceSelectors = {}
             contentHold, renderOwn, early = nil, false, {on = false}
+            lastDrawKey, scrollBefore = nil, nil
         end
     end)
     ObserveAfter('SettingsSelectorController', 'McmUiConfigureBase', function(controller, host, id)
@@ -2418,6 +2467,7 @@ function M.resetSession()
     slowAt, lastWorldReady = 0, nil
     if type(convaiNotices) == 'table' and type(convaiNotices.resetLoading) == 'function' then convaiNotices.resetLoading() end
     presentation, early = {active = false, rows = {}}, {on = false}
+    lastDrawKey, scrollBefore = nil, nil
     fontPresentation.reset()
     voicePreview.reset()
     entry.reset()
