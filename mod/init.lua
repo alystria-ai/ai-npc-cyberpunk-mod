@@ -1305,6 +1305,18 @@ local function logTalkTarget(decision)
     if ok then log(line) end
 end
 
+-- A character in V's own car, or one of V's companions (key press only: it walks the few managed companions).
+local function companionOrPassenger(player, npc)
+    if type(companions.owns) == 'function' and companions.owns(npc) == true then return true end
+    local ok, id = pcall(function() return tostring(npc:GetEntityID().hash) end)
+    if not ok then return false end
+    for _, seat in ipairs(companions.seatedCandidates(player)) do
+        local same, seatId = pcall(function() return tostring(seat:GetEntityID().hash) end)
+        if same and seatId == id then return true end
+    end
+    return false
+end
+
 local function selectConversation(player, groupMode, singleAction)
     local npc, reason, decision = targetAtCrosshair()
     logTalkTarget(decision)
@@ -1334,7 +1346,11 @@ local function selectConversation(player, groupMode, singleAction)
     if voices and voices[1] then
         if groupMode then for _, voice in ipairs(voices) do candidates[#candidates + 1] = voice end end
         local aimed = npc and profileIdentity(npc)
-        if not aimed or not supportedProfiles[aimed] or not profileEnabled(player, aimed) then
+        local characterAimed = aimed and supportedProfiles[aimed] and profileEnabled(player, aimed)
+        -- V sits in the vehicle a voice is anchored to (a cab's AI): only a character in that car with V, or one of V's companions,
+        -- takes the key from it. A pedestrian drifting through the windscreen's cone does not (resolved here, on the key press).
+        if characterAimed and voices[1].vehicle and not companionOrPassenger(player, npc) then characterAimed = false end
+        if not characterAimed then
             local voice = voices[1]
             local together = groupMode and groupChat.choose(voice, candidates, supportedProfiles) or nil
             if together and #together < 2 then

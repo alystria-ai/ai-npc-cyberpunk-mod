@@ -444,11 +444,18 @@ export function onSettings(values) {}
 
 ## Talk and group conversation
 
-- **Talk key (typed).** An available speaker answers the talk key when no character with a profile is under the crosshair. A
-  character V aims at always wins. Replies use the same route, persona, voice and subtitles as remarks, and stream their first
-  sentence to the voice.
-- **Voice key.** Not supported for add-on speakers yet. Pressing it with only an add-on voice in reach shows: "Skippy answers
-  typed messages only for now. Use {key}." In a group, voice rounds leave add-on voices out.
+- **Talk key (typed, F6).** An available speaker answers the talk key when no character with a profile is under the crosshair. A
+  character V aims at wins. One exception for a speaker with `anchor = 'vehicle'` while V sits in that vehicle (a cab's AI):
+  only a character in the car with V, or one of V's companions, takes the key from it; a pedestrian drifting through the
+  windscreen's aiming cone does not (the cab's interior, the windscreen or nothing under the crosshair all mean the speaker).
+  The choice is made on the key press only, from the speakers' `available` and anchor; nothing runs per frame, and the main mod
+  names no add-on. Replies use the same route, persona, voice and subtitles as remarks, and stream their first sentence to the voice.
+- **Voice key (F7, F10).** Not supported for add-on speakers yet. Pressing F7 with only an add-on voice in reach shows: "Skippy
+  answers typed messages only for now. Use {key}." In a group, voice rounds leave add-on voices out. A speaker's voice turn would
+  need: speech recognition of V's recording handed to the add-on turn route (`runAddonTurn` takes `input.text`; the microphone
+  path today binds a recording to a Convai or character route through `profileFor` and the knowledge router), microphone lease and
+  cancel handling for a profile key that is not in the character roster, and group voice rounds that put an add-on voice among
+  the spoken participants. That reaches into the microphone session, so it was left out.
 - **Group conversation** (`group = true`). The speaker joins the nearby companions in a group round and hears their lines, and they
   hear its lines. An add-on voice is never part of a companion's routing audience, so a companion's route and memory stay the same
   as without the add-on. Use `setCompanionContext` to tell companions where they are (Delamain: "You are riding in a Delamain cab
@@ -547,7 +554,7 @@ check the list of calls.
 
 | Where | What |
 |---|---|
-| `mod/init.lua` | Loads `addons.lua` with `pcall`; returns `{addons = …}` for `GetMod`. Talk target: add-on voices after aimed characters, and never for the voice key. `sendRequest`/`decorate`; `reactionCanDeliver` → `canDeliver`; `groupAudience` → `participantLive`; the reply error branch → `replyError`; `warmConversation` skips add-on voices; tick, reset and shutdown. |
+| `mod/init.lua` | Loads `addons.lua` with `pcall`; returns `{addons = …}` for `GetMod`. Talk target: add-on voices after aimed characters (a vehicle-anchored voice outranks characters outside V's car: `companionOrPassenger`), never for the voice key. `sendRequest`/`decorate`; `reactionCanDeliver` → `canDeliver`; `groupAudience` → `participantLive`; the reply error branch → `replyError`; `warmConversation` skips add-on voices; tick, reset and shutdown. |
 | `mod/speech.lua`, `continuous-speech.lua`, `subtitles.lua` | `voiceOnly`: no face calls, no `IsDeadNoStatPool` check, subtitles owned by the player. |
 | `mod/group-chat.lua` | `voiceOnly` rows; add-on voices are left out of the other speakers' audience. |
 | `mod/mcm.lua`, `mod/notices.lua` | Add-on settings sections; the `addon-notice` notice. |
