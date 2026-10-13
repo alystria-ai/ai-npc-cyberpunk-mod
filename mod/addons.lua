@@ -861,7 +861,8 @@ function M.talkCandidates(player, groupMode)
                 local object, entity = resolveAnchor(speaker, player)
                 if entity then
                     list[#list + 1] = {npc = object, entity = entity, name = speaker.name, bodyType = '',
-                        profileKey = speaker.key, voiceOnly = true, distance = 0, priority = speaker.talkPriority}
+                        profileKey = speaker.key, voiceOnly = true, distance = 0, priority = speaker.talkPriority,
+                        vehicle = speaker.anchor == 'vehicle' or nil}
                 end
             end
         end

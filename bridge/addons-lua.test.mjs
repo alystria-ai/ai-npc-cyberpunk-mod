@@ -436,6 +436,7 @@ test('talk keys and group rounds: an available speaker is offered as a voice-onl
     player.vehicle = car
     local list = M.talkCandidates(player, false)
     assert(#list == 1 and list[1].voiceOnly == true and list[1].entity == '88ULL' and list[1].npc == car and list[1].profileKey == 'addon-cab-voice')
+    assert(list[1].vehicle == true, 'a vehicle-anchored voice is flagged for the talk-target rule')
     assert(#M.talkCandidates(player, true) == 1)
     assert(M.participantLive(list[1], player))
     open = false
