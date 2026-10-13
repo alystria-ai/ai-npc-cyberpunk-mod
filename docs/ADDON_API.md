@@ -193,6 +193,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 | `handle:cancel(speakerId)` | Drops the speaker's waiting remarks and stops its remark that is playing. |
 | `handle:notify(text)` | One on-screen notice (at most 200 characters; a repeat within 10 s is dropped). |
 | `handle:state()` | `{worldReady, combat, vehicle, scene, speaking, conversation, remark}`, read from the last tick. It costs nothing. |
+| `handle:party()` | The profile keys of the companions following V now (at most 16), read on demand when the add-on calls it (a ride starts, a fight starts). An empty list when the party cannot be read. `companionJoined` / `companionLeft` only report changes, so use this for the party that was already there. |
 | `handle:native()` | A read-only view of the main mod's optional native plugin: `present()`, `use(system)`, `revision(name)`, `status()`. Every call is guarded and returns `false`/`nil` without the plugin, so the add-on never needs the DLL. |
 | `handle:log(text)` | One line in the main mod's log. |
 
