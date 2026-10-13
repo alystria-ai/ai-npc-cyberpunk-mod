@@ -112,6 +112,9 @@ test('a manifest with an unsafe file name or a bad transcript is not used', asyn
 test('V\'s gender comes from the turn context only', () => {
   assert.equal(vGenderOf({gender: 'male'}), 'male');
   assert.equal(vGenderOf({gender: 'female'}), 'female');
+  // V's voice tone wins over the resolved gender: a female-bodied V with the male voice speaks with the male clip.
+  assert.equal(vGenderOf({gender: 'female', voice: 'male'}), 'male');
+  assert.equal(vGenderOf({gender: 'male', voice: 'female'}), 'female');
   for (const value of [undefined, null, {}, {gender: 'robot'}, {gender: 'Female'}]) assert.equal(vGenderOf(value), null);
   assert.equal(V_VOICE_KEYS.male, 'v-male'); assert.equal(V_VOICE_KEYS.female, 'v-female');
 });

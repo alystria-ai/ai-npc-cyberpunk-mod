@@ -69,6 +69,7 @@ export function parseTurnContext(value) {
     if (typeof value.area === 'string' && PLACE.test(value.area) && value.area !== value.district) result.area = value.area;
   }
   if (Object.hasOwn(GENDERS, value.gender)) result.gender = value.gender;
+  if (Object.hasOwn(GENDERS, value.voice)) result.voice = value.voice;
   if (Object.hasOwn(LIFEPATHS, value.lifepath)) result.lifepath = value.lifepath;
   if (Object.hasOwn(WEATHER, value.weather)) result.weather = value.weather;
   if (Object.hasOwn(HEALTH, value.health)) result.health = value.health;

@@ -830,3 +830,11 @@ test('init and phone chat pass the same snapshot on, so the phone gets the weath
   const bridgePhone = readFileSync(new URL('./phone-chat.mjs', import.meta.url), 'utf8');
   assert.match(bridgePhone, /parseTurnContext\(state\.request\.turnContext\)/);
 });
+
+test("V's voice tone passes through on its own and never reaches the model's words", () => {
+  const parsed = parseTurnContext({version: 1, status: 'ready', gender: 'female', voice: 'male'});
+  assert.equal(parsed.voice, 'male');
+  assert.equal(parsed.gender, 'female');
+  assert.equal(parseTurnContext({version: 1, status: 'ready', voice: 'robot'}).voice, undefined);
+  assert.equal(describeTurnContext(parseTurnContext({version: 1, status: 'ready', voice: 'male'})).text, '');
+});

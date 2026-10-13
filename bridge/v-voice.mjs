@@ -77,9 +77,12 @@ export const extraVoices = references => Object.values(references?.voices ?? {})
 
 // ---- V's gender, the line, and the audio --------------------------------------------------------------------------------------
 
-/** 'male' or 'female' from the turn's context (the game's own answer for V), or null when it is not known. */
+/**
+ * 'male' or 'female' for V's voice: V's voice tone from the character creator (`voice`, which the game's own V lines follow), else
+ * the resolved gender when the tone could not be read; null when neither is known.
+ */
 export function vGenderOf(turnContext) {
-  const value = turnContext?.gender;
+  const value = turnContext?.voice ?? turnContext?.gender;
   return value === 'male' || value === 'female' ? value : null;
 }
 

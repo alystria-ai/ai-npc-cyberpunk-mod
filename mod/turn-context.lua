@@ -207,6 +207,13 @@ local function nativeAdapter()
         return math.floor(seconds / 3600), math.floor(seconds % 3600 / 60), 'seconds'
     end
     function N.gender(player) return player:GetResolvedGenderName() end
+    -- V's voice tone ("brain gender" in the character creator), which can differ from the body. The game picks V's voice lines
+    -- and how NPCs address V from it, so V's voice for typed lines follows it. Nil when the state cannot be read.
+    function N.voice()
+        local state = Game.GetCharacterCustomizationSystem():GetState()
+        if not state then return nil end
+        return state:IsBrainGenderMale() and 'male' or 'female'
+    end
     -- The game's Master volume times its Dialogue volume, 0 to 1 (the same two settings mod/continuous-speech.lua reads for a
     -- companion's voice, verified against Audioware). Read only while V's voice for typed lines is on (options.wantVolume).
     function N.volume()
@@ -375,6 +382,9 @@ function Instance:read()
     end
     local sex = gender(call(N.gender, player))
     if sex then snapshot.gender = sex; count = count + 1 end
+    -- Not counted as something read: only V's voice for typed lines uses it, never the words the bridge writes.
+    local tone = gender(call(N.voice, player))
+    if tone then snapshot.voice = tone end
     -- The game's dialogue loudness, for V's voice for typed lines only (options.wantVolume). Not counted as something read: it
     -- is no part of the words the bridge writes, and a snapshot that holds only it is no snapshot.
     if call(self.options.wantVolume) == true then
