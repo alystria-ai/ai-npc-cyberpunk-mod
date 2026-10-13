@@ -186,6 +186,11 @@ local function speakerBlocks(speaker)
     return blocks
 end
 
+-- A speaker with stock requests sends its context blocks with them (handle:stock): a change of a block is a change of the file.
+local function stockTouch(speaker)
+    if speaker.stockOrder and #speaker.stockOrder > 0 then stateDirty = true end
+end
+
 -- ---- The request in flight -------------------------------------------------------------------------------------------
 
 local function lease(valid)
@@ -371,7 +376,7 @@ Handle.remark = guard('remark', function(self, speakerId, event)
     if cooldown > 0 and speaker.events[event.event] and clock - speaker.events[event.event] < cooldown then return false, 'event-cooldown' end
     local entry = {speaker = speaker, at = clock, event = {event = event.event, text = trim(event.text, LIMITS.eventText), facts = facts,
         priority = math.floor(number(event.priority, 1, 5, 2)), maxWords = math.floor(number(event.maxWords, 3, 60, 14)),
-        interrupt = event.interrupt == true, cooldown = cooldown}}
+        interrupt = event.interrupt == true, cooldown = cooldown, stock = event.stock == true}}
     entry.ttl = number(event.ttl, 1, 30, DEFAULT_TTL)
     entry.expires = clock + entry.ttl
     -- One waiting remark per speaker and event name: the newer facts replace the older ones.
@@ -406,6 +411,7 @@ Handle.setContext = guard('setContext', function(self, speakerId, key, text, tie
     if not text then
         speaker.contexts[key], speaker.contextTiers[key] = nil, nil
         for index = #speaker.contextOrder, 1, -1 do if speaker.contextOrder[index] == key then table.remove(speaker.contextOrder, index) end end
+        stockTouch(speaker)
         return true
     end
     if not speaker.contexts[key] then
@@ -414,6 +420,7 @@ Handle.setContext = guard('setContext', function(self, speakerId, key, text, tie
     end
     speaker.contexts[key] = text
     speaker.contextTiers[key] = (tier == 'volatile' or tier == 'notes') and tier or 'world'
+    stockTouch(speaker)
     return true
 end)
 
@@ -578,6 +585,111 @@ Handle.remember = guard('remember', function(self, speakerId, text)
     return true
 end)
 
+-- ---- Stock: lines the bridge writes ahead of a moment (docs/ADDON_API.md, "Stock") ------------------------------------------
+-- A fresh remark costs a model call and the voice; a prepared line costs only the voice. The add-on describes the line it will want
+-- ("V is about to kill another enemy"); the bridge keeps a few ready, and handle:remark(..., {stock = true}) uses one when it can.
+-- Limits shared with the bridge (bridge/addons.mjs ADDON_LIMITS stock*).
+local STOCK = {keys = 12, text = 600, slots = 8, slotName = 48, blocks = 4, blocksText = 3000}
+
+local function sameValue(a, b)
+    if type(a) ~= type(b) then return false end
+    if type(a) ~= 'table' then return a == b end
+    for key, value in pairs(a) do if not sameValue(value, b[key]) then return false end end
+    for key in pairs(b) do if a[key] == nil then return false end end
+    return true
+end
+
+--- handle:stock(speakerId, key, {text, facts, maxWords, want, ttl, slots} | nil) -> true, or false and the reason. nil clears the key.
+Handle.stock = guard('stock', function(self, speakerId, key, spec)
+    local speaker = speakerOf(self, speakerId)
+    if not speaker then return false, 'unknown speaker' end
+    if type(key) ~= 'string' or #key > 48 or not key:match('^[%w_%.:%-]+$') then return false, 'stock key is required (letters, digits, _ . : -)' end
+    speaker.stock, speaker.stockOrder = speaker.stock or {}, speaker.stockOrder or {}
+    if spec == nil then
+        if speaker.stock[key] then
+            speaker.stock[key] = nil
+            for index = #speaker.stockOrder, 1, -1 do if speaker.stockOrder[index] == key then table.remove(speaker.stockOrder, index) end end
+            stateDirty = true
+        end
+        return true
+    end
+    if type(spec) ~= 'table' then return false, 'stock spec must be a table or nil' end
+    if not speaker.addon.enabled then return false, 'add-on disabled' end
+    local text = trim(spec.text, STOCK.text)
+    if not text then return false, 'stock text is required' end
+    local facts = nil
+    if spec.facts ~= nil then
+        if type(spec.facts) ~= 'table' then return false, 'facts must be a table' end
+        local encoded = encode(spec.facts)
+        if not encoded or #encoded > LIMITS.facts then return false, 'facts are too large' end
+        facts = spec.facts
+    end
+    local slots = {}
+    if spec.slots ~= nil then
+        local count = 0
+        if type(spec.slots) ~= 'table' then return false, 'slots must be a list of names' end
+        for _ in pairs(spec.slots) do count = count + 1 end
+        if count ~= #spec.slots or count > STOCK.slots then return false, 'slots must be a list of at most ' .. STOCK.slots .. ' names' end
+        local seen = {}
+        for _, name in ipairs(spec.slots) do
+            if type(name) ~= 'string' or #name > STOCK.slotName or not name:match('^[%w_%.]+$') then return false, 'invalid slot name (letters, digits, _ .)' end
+            if not seen[name] then seen[name] = true; slots[#slots + 1] = name end
+        end
+    end
+    local fresh = {key = key, text = text, facts = facts, maxWords = math.floor(number(spec.maxWords, 3, 60, 10)),
+        want = math.floor(number(spec.want, 1, 4, 2)), ttl = math.floor(number(spec.ttl, 10, 300, 90)), slots = slots}
+    local old = speaker.stock[key]
+    if old then
+        local same = true
+        for _, field in ipairs({'text', 'facts', 'maxWords', 'want', 'ttl', 'slots'}) do
+            if not sameValue(old[field], fresh[field]) then same = false; break end
+        end
+        if same then return true end
+    elseif #speaker.stockOrder >= STOCK.keys then
+        return false, 'too many stock entries (at most ' .. STOCK.keys .. ' per speaker)'
+    else
+        speaker.stockOrder[#speaker.stockOrder + 1] = key
+    end
+    -- The revision only grows: the bridge drops the lines it wrote for an earlier one, also after the key was cleared and set again.
+    speaker.stockRev = (speaker.stockRev or 0) + 1
+    fresh.rev = speaker.stockRev
+    speaker.stock[key] = fresh
+    stateDirty = true
+    return true
+end)
+
+-- The stock rows of an add-on for runtime/addon-state.json: {speaker, key, text, facts, maxWords, want, ttl, slots, rev, blocks}.
+-- `blocks` is a copy of the speaker's context blocks at write time (at most 4, 3000 characters), so the bridge writes in its voice.
+local function stockRows(addon)
+    local rows, ids = {}, {}
+    for id, speaker in pairs(addon.speakers) do if speaker.stockOrder and #speaker.stockOrder > 0 then ids[#ids + 1] = id end end
+    table.sort(ids)
+    for _, id in ipairs(ids) do
+        local speaker = addon.speakers[id]
+        local blocks, total = {}, 0
+        for _, block in ipairs(speakerBlocks(speaker)) do
+            if #blocks >= STOCK.blocks then break end
+            if total + #block.text <= STOCK.blocksText then total = total + #block.text; blocks[#blocks + 1] = block end
+        end
+        for _, key in ipairs(speaker.stockOrder) do
+            local entry = speaker.stock[key]
+            rows[#rows + 1] = {speaker = id, key = key, text = entry.text, facts = entry.facts, maxWords = entry.maxWords, want = entry.want,
+                ttl = entry.ttl, slots = entry.slots, rev = entry.rev, blocks = blocks}
+        end
+    end
+    return rows
+end
+
+-- Forgets every stock request of an add-on (a save load, death or shutdown: the add-on asks again from its new events).
+local function clearStock(addon)
+    local had = false
+    for _, speaker in pairs(addon.speakers) do
+        if speaker.stockOrder and #speaker.stockOrder > 0 then had = true end
+        speaker.stock, speaker.stockOrder = {}, {}
+    end
+    return had
+end
+
 --- handle:state() -> {worldReady, combat, vehicle, scene, speaking, conversation, remark}
 function Handle.state(self)
     local sample = watch.sample or {}
@@ -618,9 +730,10 @@ local function stateDocument()
         local blocks, modes, anyMode = {}, {}, false
         for _, key in ipairs(addon.companionOrder) do blocks[#blocks + 1] = {key = key, text = addon.companion[key]} end
         for speakerId, speaker in pairs(addon.speakers) do if speaker.mode then modes[speakerId] = speaker.mode; anyMode = true end end
-        if #blocks > 0 or addon.state ~= nil or anyMode or #addon.memories > 0 or addon.warm then
+        local stock = stockRows(addon)
+        if #blocks > 0 or addon.state ~= nil or anyMode or #addon.memories > 0 or addon.warm or #stock > 0 then
             doc.addons[id] = {companionContext = blocks, state = addon.state, modes = anyMode and modes or nil,
-                memories = #addon.memories > 0 and addon.memories or nil, warm = addon.warm}
+                memories = #addon.memories > 0 and addon.memories or nil, warm = addon.warm, stock = #stock > 0 and stock or nil}
         end
     end
     return doc
@@ -762,7 +875,8 @@ local function schedule(player, state, worldReady)
                 reaction = {kind = 'addon', addon = speaker.addon.id, speaker = speaker.id, event = event.event,
                     priority = event.priority, expiresAt = math.floor((now + math.max(1, entry.expires - clock)) * 1000)},
                 addon = {id = speaker.addon.id, speaker = speaker.id, event = event.event, text = event.text,
-                    facts = event.facts, maxWords = event.maxWords, mode = speaker.mode, blocks = speakerBlocks(speaker)}}
+                    facts = event.facts, maxWords = event.maxWords, mode = speaker.mode, blocks = speakerBlocks(speaker),
+                    stock = event.stock or nil}}
             context.requestId = tostring(now) .. '-' .. tostring(generation) .. '-' .. entity
             local episode = episodeOf(speaker.addon)
             flight = {requestId = context.requestId, speaker = speaker, event = event.event, priority = event.priority,
@@ -1001,7 +1115,8 @@ function M.reset(reason)
     local had = false
     for _, id in ipairs(order) do
         local addon = addons[id]
-        if #addon.companionOrder > 0 or addon.state ~= nil then had = true end
+        local hadStock = clearStock(addon)
+        if #addon.companionOrder > 0 or addon.state ~= nil or hadStock then had = true end
         addon.companion, addon.companionOrder, addon.state = {}, {}, nil
         addon.episode, addon.lastRemarkAt, addon.quietUntil, addon.paceUntil = {start = clock, count = 0}, nil, nil, nil
     end

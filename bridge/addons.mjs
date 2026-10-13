@@ -22,6 +22,7 @@ import {createHash} from 'node:crypto';
 import {basename, dirname, isAbsolute, resolve, sep} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {readPcmWav} from './speech-audio.mjs';
+import {AddonStock} from './addon-stock.mjs';
 
 /** The add-on API this main mod implements. A manifest asking for the same major and an equal or lower minor is compatible. */
 export const ADDON_API_VERSION = '1.0';
@@ -45,7 +46,9 @@ export const CET_MODS = 'bin/x64/plugins/cyber_engine_tweaks/mods';
 export const ADDON_LIMITS = Object.freeze({addons: 8, speakers: 4, persona: 12000, samples: 12, rules: 12, line: 600,
   blocks: 8, blockText: 1500, blocksTotal: 4000, facts: 4000, eventText: 600, companionBlocks: 4, companionText: 600,
   referenceBytes: 8 * 1024 * 1024, referenceSeconds: 20, transcript: 2000, hookMs: 5, modes: 4, recentLines: 12, recentShown: 6,
-  recentChecked: 8, memories: 12, memoriesShown: 6, memoryText: 300});
+  recentChecked: 8, memories: 12, memoriesShown: 6, memoryText: 300,
+  // Stock (bridge/addon-stock.mjs); the game side keeps the same numbers in mod/addons.lua STOCK.
+  stockKeys: 12, stockText: 600, stockSlots: 8, stockSlotName: 48, stockBlocks: 4, stockBlocksText: 3000});
 
 const ADDON_ID = /^[a-z][a-z0-9-]{1,23}$/;
 const SPEAKER_ID = /^[a-z][a-z0-9-]{0,23}$/;
@@ -239,19 +242,59 @@ export function parseAddonInput(value) {
     const cleaned = facts(value.facts);
     if (JSON.stringify(cleaned).length <= ADDON_LIMITS.facts) result.facts = cleaned;
   }
-  if (Array.isArray(value.blocks)) {
-    let total = 0;
-    const blocks = [];
-    for (const block of value.blocks.slice(0, ADDON_LIMITS.blocks)) {
-      if (!object(block) || typeof block.key !== 'string' || !BLOCK_KEY.test(block.key)) continue;
-      const body = text(block.text, ADDON_LIMITS.blockText);
-      if (!body || total + body.length > ADDON_LIMITS.blocksTotal) continue;
-      total += body.length;
-      blocks.push({key: block.key, text: body, tier: TIERS.has(block.tier) ? block.tier : 'world'});
-    }
-    if (blocks.length) result.blocks = blocks;
-  }
+  const blocks = cleanBlocks(value.blocks, ADDON_LIMITS.blocks, ADDON_LIMITS.blocksTotal);
+  if (blocks.length) result.blocks = blocks;
+  if (value.stock === true) result.stock = true;
   return result;
+}
+
+// Prompt blocks from the game: at most `most` of them, `total` characters in all (a block that would pass the total is skipped).
+function cleanBlocks(list, most, total) {
+  const blocks = [];
+  let used = 0;
+  for (const block of (Array.isArray(list) ? list : []).slice(0, most)) {
+    if (!object(block) || typeof block.key !== 'string' || !BLOCK_KEY.test(block.key)) continue;
+    const body = text(block.text, ADDON_LIMITS.blockText);
+    if (!body || used + body.length > total) continue;
+    used += body.length;
+    blocks.push({key: block.key, text: body, tier: TIERS.has(block.tier) ? block.tier : 'world'});
+  }
+  return blocks;
+}
+
+const SLOT_NAME = /^[A-Za-z0-9_.]{1,48}$/;
+const clampInt = (value, low, high, fallback) => Number.isFinite(value) ? Math.max(low, Math.min(high, Math.floor(value))) : fallback;
+
+/**
+ * The `stock` rows of one add-on in the state file (handle:stock in mod/addons.lua): the lines to write ahead of time. A row with
+ * a bad speaker, key, text, facts, slot or rev is dropped; numbers are clamped; at most 12 keys per speaker.
+ */
+export function parseAddonStock(list) {
+  const rows = [], seen = new Set(), perSpeaker = new Map();
+  for (const row of (Array.isArray(list) ? list : []).slice(0, ADDON_LIMITS.stockKeys * ADDON_LIMITS.speakers)) {
+    if (!object(row) || typeof row.speaker !== 'string' || !SPEAKER_ID.test(row.speaker)
+        || typeof row.key !== 'string' || !EVENT_NAME.test(row.key)) continue;
+    const body = text(row.text, ADDON_LIMITS.stockText);
+    if (!body || !Number.isSafeInteger(row.rev) || row.rev < 0) continue;
+    const id = `${row.speaker}\u0000${row.key}`;
+    if (seen.has(id) || (perSpeaker.get(row.speaker) ?? 0) >= ADDON_LIMITS.stockKeys) continue;
+    let rowFacts;
+    if (row.facts !== undefined && row.facts !== null) {
+      if (!object(row.facts)) continue;
+      rowFacts = facts(row.facts);
+      if (JSON.stringify(rowFacts).length > ADDON_LIMITS.facts) continue;
+    }
+    // An object (an empty Lua table encoded as {}) is an empty list; anything else that is not a list of valid names drops the row.
+    const wanted = Array.isArray(row.slots) ? row.slots : object(row.slots) && !Object.keys(row.slots).length ? [] : null;
+    if (!wanted || wanted.length > ADDON_LIMITS.stockSlots || wanted.some(name => typeof name !== 'string' || !SLOT_NAME.test(name))) continue;
+    seen.add(id);
+    perSpeaker.set(row.speaker, (perSpeaker.get(row.speaker) ?? 0) + 1);
+    rows.push({speaker: row.speaker, key: row.key, text: body, ...(rowFacts ? {facts: rowFacts} : {}),
+      maxWords: clampInt(row.maxWords, 3, 60, 10), want: clampInt(row.want, 1, 4, 2), ttl: clampInt(row.ttl, 10, 300, 90),
+      slots: [...new Set(wanted)], rev: row.rev,
+      blocks: cleanBlocks(row.blocks, ADDON_LIMITS.stockBlocks, ADDON_LIMITS.stockBlocksText)});
+  }
+  return rows;
 }
 
 /** The reaction of an automatic add-on remark: {kind: 'addon', addon, speaker, event, expiresAt}, or null when malformed. */
@@ -292,7 +335,8 @@ export function parseAddonState(raw, {notBefore = 0} = {}) {
     }
     const warm = object(entry.warm) && typeof entry.warm.speaker === 'string' && SPEAKER_ID.test(entry.warm.speaker) && Number.isFinite(entry.warm.at)
       ? {speaker: entry.warm.speaker, at: entry.warm.at} : null;
-    addons[id] = {companionContext: companion, ...(object(entry.state) ? {state: facts(entry.state)} : {}), modes, memories, ...(warm ? {warm} : {})};
+    addons[id] = {companionContext: companion, ...(object(entry.state) ? {state: facts(entry.state)} : {}), modes, memories, ...(warm ? {warm} : {}),
+      stock: parseAddonStock(entry.stock)};
   }
   return {addons};
 }
@@ -407,6 +451,9 @@ export class AddonHost {
     this.journalTimer = null;
     this.warmed = new Map();         // addonId -> the last warm stamp seen in the state file
     this.onWarm = null;              // profileKey => void: the bridge warms the speaker's text route
+    // Lines written ahead of time (bridge/addon-stock.mjs). Holds nothing, and starts nothing, until an add-on asks for stock.
+    this.stock = this.active ? new AddonStock({now: () => this.now(), recent: key => this.recentLines(key)}) : null;
+    this.onStock = null;             // () => void: the stock changed or may need lines; the bridge starts or stops its pump
     this.localRemarkAt = new Map();  // addonId -> when its last remark started on the local AI
   }
 
@@ -743,6 +790,22 @@ export class AddonHost {
         if (this.speakers.has(key)) try { this.onWarm?.(key); } catch { /* a warm-up is best effort */ }
       }
     }
+    this.#observeStock();
+  }
+
+  // The wanted lines of every speaker (an add-on or speaker that is not in the file wants none). The bridge hears about it only
+  // when there is stock, or there just was: a game without stock never calls back.
+  #observeStock() {
+    if (!this.stock) return;
+    let changed = false;
+    for (const addon of this.addons) {
+      const rows = this.state.addons[addon.id]?.stock ?? [];
+      for (const speaker of addon.speakers) {
+        const mine = rows.filter(row => row.speaker === speaker.id);
+        if (this.stock.configure(speaker.profileKey, mine, {mode: this.modeOf(speaker.profileKey)?.id ?? null})) changed = true;
+      }
+    }
+    if (changed || this.stock.size) try { this.onStock?.(); } catch { /* the pump is best effort */ }
   }
 
   /** Reads the add-on settings file the game writes on Apply, and tells each module its values. */

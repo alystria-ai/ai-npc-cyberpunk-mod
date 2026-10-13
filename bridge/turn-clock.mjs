@@ -24,6 +24,7 @@ const nowMs = () => {
  *   received          the bridge read the request
  *   knowledge         the turn's knowledge (journal, world, gear) was prepared
  *   admitted          memory admission and the receipt were recorded
+ *   stock             an add-on remark took a line the model wrote ahead of time (bridge/addon-stock.mjs); no model call follows
  *   transport         the reply was requested from the conversation route
  *   recalled          the text route recalled the character's memory (history, retrieved facts)
  *   promptBuilt       the model's messages were built
@@ -44,7 +45,7 @@ const nowMs = () => {
  *   published         the reply was published to the game (it may start the sound)
  *   playbackObserved  the renderer's clock showed sound playing
  */
-export const STAGES = Object.freeze(['inputWritten', 'received', 'knowledge', 'admitted', 'transport', 'recalled', 'promptBuilt',
+export const STAGES = Object.freeze(['inputWritten', 'received', 'knowledge', 'admitted', 'stock', 'transport', 'recalled', 'promptBuilt',
   'llmSent', 'llmHeaders', 'firstToken', 'firstSentence', 'fullText', 'replyReturned', 'voiceStart', 'browserReady', 'playStart', 'rendererReady', 'ttsSent', 'firstPcm',
   'firstPcmAccepted', 'firstFrame', 'published', 'playbackObserved']);
 

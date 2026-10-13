@@ -1839,6 +1839,7 @@ function startAhead(entry) {
 // and the continuous speech) lands in this turn's record (bridge/turn-clock.mjs). The clock watches the event loop until the
 // turn is published.
 async function processInput(request, prepared) {
+  stockCancel?.();   // a turn needs the text route now: a line being written ahead of time gives way
   const clock = new TurnClock({origin: request.receivedAt});
   if (Number.isFinite(request.writtenAt) && request.writtenAt <= request.receivedAt + 5) clock.mark('inputWritten', request.writtenAt);
   clock.mark('received', request.receivedAt);
@@ -1857,6 +1858,52 @@ function addonTurnConfig(input, profile) {
     context: joinedContext(blocks), contextParts: contextPartsOf(blocks),
     local: {profileKey: input.profileKey, name: profile.name, channel: input.group ? 'group' : 'private'}};
 }
+// Stock (docs/ADDON_API.md, "Stock", bridge/addon-stock.mjs): while an add-on asks for prepared lines the model writes them ahead of
+// the moment, one at a time, only while nothing else needs the machine, and only on Mistral (a background generation on the local AI
+// would take the GPU from the game in the middle of a fight). Nothing here exists without add-ons or without a stock request.
+const addonStock = addonHost.stock;
+let stockTimer = null, stockCancel = null, stockRunning = false;
+async function stockGenerate({profileKey, entry, mode, avoid, route}) {
+  const owner = addonHost.speakers.get(profileKey), profile = profileFor({profileKey}, roster);
+  if (!owner || !profile) throw Error('unknown add-on speaker');
+  const prepared = avoid.length ? [{key: 'prepared', tier: 'volatile',
+    text: `Lines already prepared for later (never repeat their jokes or wording):\n${avoid.map(line => `- ${line}`).join('\n')}`}] : [];
+  const input = {profileKey, text: entry.text, reaction: {kind: 'addon', addon: owner.addon.id, speaker: owner.speaker.id, event: entry.key, expiresAt: Date.now() + 60_000},
+    addon: {id: owner.addon.id, speaker: owner.speaker.id, event: entry.key, text: entry.text, facts: entry.facts, maxWords: entry.maxWords,
+      ...(mode ? {mode} : {}), blocks: [...entry.blocks, ...prepared], stock: true}};
+  // A reaction is never recorded in the speaker's conversation memory (TextProviderHost.reply), so these lines leave no trace there.
+  const config = addonTurnConfig(input, profile);
+  config.text += (entry.slots.length ? ` Where a live number belongs, write it as a slot in curly braces, only these slots: ${entry.slots.map(name => `{${name}}`).join(' ')}.`
+    : ' Do not use curly braces.') + ' Write one line for the moment this happens, to be spoken a few seconds from now; do not state anything that may already be untrue.';
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 20_000);
+  stockCancel = () => controller.abort();
+  try {
+    return (await addonTextHost(route, profileKey).reply(config, {signal: controller.signal})).text;
+  } catch (error) {
+    throw timedOut ? Error('the line took too long') : error;
+  } finally { clearTimeout(timer); stockCancel = null; }
+}
+function stockTick() {
+  if (!addonStock || stockRunning || stopped) return;
+  if (!addonStock.size) { clearInterval(stockTimer); stockTimer = null; return; }
+  stockRunning = true;
+  // Outside the clock of whatever turn started this (the async context would carry its stage marks into the stock line).
+  void withClock(undefined, () => addonStock.pump({now: Date.now, generate: stockGenerate, busy: () => stopped || voiceBoundaryBusy(),
+    route: profileKey => { const route = addonHost.routeFor(profileKey, addonRouteState()); return route === 'mistral' ? route : null; }}))
+    .then(result => { if (result.status === 'failed') console.error(`[Addons] Stock line for ${result.profileKey}/${result.key} not written: ${result.reason}`); })
+    .catch(error => console.error('[Addons] Stock pump:', error.message))
+    .finally(() => { stockRunning = false; });
+}
+// The state file changed (or was read again): the one-second pump timer runs while any entry is wanted and stops with the last one.
+// The timer also covers lines going stale, which no event announces.
+function stockWake() {
+  if (!addonStock || stopped) return;
+  if (addonStock.size && !stockTimer) { stockTimer = setInterval(stockTick, 1000); stockTimer.unref?.(); }
+  stockTick();
+}
+if (addonStock) addonHost.onStock = stockWake;
 async function runAddonTurn(request, input, profile, current, clock) {
   const {controller} = request, ahead = request.lookahead, signal = controller.signal;
   const fail = (error, errorCode) => atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
@@ -1877,7 +1924,13 @@ async function runAddonTurn(request, input, profile, current, clock) {
   if (!ahead) void status('thinking', profile.name).catch(() => {});
   clock.mark('admitted');
   const host = addonTextHost(route, profile.key);
-  const config = addonTurnConfig(input, profile);
+  // A remark that asked for stock uses a line the model wrote ahead (filled with this moment's numbers) when one is ready; with
+  // none ready it is written now, exactly as without stock. Either way the pump gets a chance to refill soon after.
+  const stocked = remark && input.addon?.stock && addonStock
+    ? addonStock.take(profile.key, input.addon.event, {mode: addonHost.modeOf(profile.key)?.id ?? null, facts: input.addon.facts}) : null;
+  if (remark && input.addon?.stock && addonStock) { note(input, {addonStock: stocked ? 'hit' : 'miss'}); stockWake(); }
+  if (stocked) clock.mark('stock');
+  const config = stocked ? (noteTurn(input), null) : addonTurnConfig(input, profile);
   const voiced = localVoice.playbackEnabled !== false && turnUsesLocal(input) && audioAvailable(await readSpeechStateCached());
   throwIfCancelled(signal);
   let result;
@@ -1888,7 +1941,8 @@ async function runAddonTurn(request, input, profile, current, clock) {
     final.catch(() => {});
     result = await voiceStreamedReply(input, profile, {signal, current, stream, final, config});
   } else {
-    const reply = {...await host.reply(config, {signal}), transport: 'realtime'};
+    const reply = stocked ? {text: stocked, model: 'stock', finishReason: 'stop', transport: 'realtime'}
+      : {...await host.reply(config, {signal}), transport: 'realtime'};
     // A remark is checked against the speaker's recent lines before anything is spoken.
     if (remark && addonHost.review(input, reply.text).duplicate) {
       console.error(`[Addons] ${profile.key}: remark dropped (it repeated a recent line)`);
@@ -2424,6 +2478,8 @@ async function shutdown() {
   clearInterval(supportTimer); supportReport.close();
   clearInterval(editorTimer); await editorControl.close().catch(() => {});
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
+  if (stockTimer) { clearInterval(stockTimer); stockTimer = null; }
+  stockCancel?.();
   await invitations.clear('service-stopped');
   await voiceRouteSync.catch(() => {});
   await relationshipRouteSync.catch(() => {});
