@@ -303,7 +303,7 @@ local function lowerToFloor(entry, npc, actual)
         -- its own locomotion (companion-actuator.lua, Oct 5 trace; live again 2026-10-11: Alex and Judy were put back
         -- at 49.50 each time). nil: the previous command is still being cancelled, try again next tick.
         local angles = Quaternion.ToEulerAngles(npc:GetWorldOrientation())
-        return actuator.teleport(entry.motor, Vector4.new(actual.x, actual.y, floor, 1), angles and angles.yaw or 0)
+        return actuator.teleport(entry.motor, Vector4.new(actual.x, actual.y, floor, 1), angles and angles.yaw or 0, 'floor-lowering')
     end)
     if not ok then return nil end
     if sent == nil then return false end
@@ -1245,7 +1245,7 @@ local function paceTarget(entry,frame)
     local motor=entry.motor
     -- Close followers travel alongside V in their lane (a move at V's gait),
     -- not by native follow; both are pacing V while V moves.
-    local following=motor.kind=='follow' and motor.stage=='following'
+    local following=motor.kind=='follow' and (motor.stage=='following' or motor.stage=='walking-leg')
     local alongside=motor.kind=='move' and (motor.stage=='walking' or motor.stage=='walking-leg')
         and frame and frame.moving
     if not (following or alongside) or not entry.playerGap then return 1 end
@@ -1367,7 +1367,16 @@ function M.carry(player)
             ok,err=pcall(function()
                 facility:Teleport(npc,Vector4.new(v.x+r.dx,v.y+r.dy,v.z+r.dz,1),r.angles)
             end)
-            if ok then r.entry.carrySent=(r.entry.carrySent or 0)+1 end
+            if ok then
+                r.entry.carrySent=(r.entry.carrySent or 0)+1
+                -- Once per ride, not per frame: she is moved with V while the lift car moves.
+                if not r.logged then
+                    r.logged=true
+                    local hook=rawget(_G,'convaiTeleportLog')
+                    if hook then pcall(hook,{reason='lift-carry',actor=tostring(npc:GetEntityID().hash),
+                        to={x=v.x+r.dx,y=v.y+r.dy,z=v.z+r.dz}}) end
+                end
+            end
         end
         if not ok then r.entry.carryError=tostring(err); table.remove(riders,index) end
     end
@@ -1523,8 +1532,11 @@ local function relocate(entry,player,rule,watched,lift)
     if entry.placementRule~=rule or index>#plans then index=1 end
     entry.placementRule=rule
     local plan=plans[index]
+    -- Recovery spots must be reachable by a swept walk from V's foothold, not only by a navmesh route.
+    local options={sweepRoute=true}
+    for key,value in pairs(plan.options or {}) do options[key]=value end
     local target,reason,deferred=placement.find(player,plan.preferred,occupiedPositions(entry),entry.clearance,
-        plan.accept,plan.options)
+        plan.accept,options)
     if deferred then entry.placementPlan=index; return nil end
     if not target then
         if index<#plans then entry.placementPlan=index+1; return nil end
@@ -1548,7 +1560,7 @@ local function relocate(entry,player,rule,watched,lift)
     end
     entry.placementPlan=nil
     local angles=Quaternion.ToEulerAngles(player:GetWorldOrientation())
-    local sent=actuator.teleport(entry.motor,target,angles and angles.yaw or 0)
+    local sent=actuator.teleport(entry.motor,target,angles and angles.yaw or 0,'relocate:'..tostring(rule))
     if sent==nil then return nil end
     if not sent then return false,'teleport-refused' end
     teleported(entry,target,rule,{plan=index,trail=plan.trail==true,watched=watched==true,
@@ -1565,7 +1577,7 @@ end
 local function carTeleport(entry,player,spot,visit,rule,how)
     local angles=Quaternion.ToEulerAngles(player:GetWorldOrientation())
     -- Never in view: the teleport is the last resort of a walk.
-    local sent=actuator.teleport(entry.motor,spot,angles and angles.yaw or 0)
+    local sent=actuator.teleport(entry.motor,spot,angles and angles.yaw or 0,'car:'..tostring(rule))
     if sent==nil then return nil end
     if not sent then
         note(entry,'relocation-failed',{rule=rule,reason='teleport-refused'})
@@ -2325,8 +2337,12 @@ function M.update(player,delta,focusEntity)
             -- movement waits exactly as it does for the native holster handoff.
             local body,bodyHolds=M.bodyAnimation,false
             if body then
+                local stance=M.stance
                 local observed,holds=pcall(body.observe,entry,{idle=idle and not equipment.holdsMovement(entry.equipment),
                     phase=decision.phase,combat=context.combat,selected=context.selected,
+                    -- V crouches, or this copy is held crouched / still being stood up: no gesture workspot
+                    -- may start over the pose, and a running one leaves (companion-stance.lua).
+                    crouched=stance~=nil and (stance.crouched() or stance.holds(entry.serial)) or false,
                     -- Settled without the copy's own speed: a workspot entry
                     -- slide is not a decision to walk.
                     settled=not groupFrame.moving and (groupFrame.rawSpeed or 0)<0.28

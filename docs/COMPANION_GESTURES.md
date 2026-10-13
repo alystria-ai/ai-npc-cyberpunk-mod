@@ -785,3 +785,13 @@ Live on a fresh invite of Alt (V and the Static floor at z 49.200): the attach s
 ## Round 7 (October 13): twisted legs, a wrong diagnosis (reverted)
 
 A screenshot of Judy with her legs twisted at the shins led first to the Round 6b `judy_own` talk loop (ambient idle 37.6 cm from every arms-crossed clip's feet, and no leg gap in the catalog for ambient-loop families). The user says the twist is older than Round 6b, so that change was reverted and nothing in the controller or catalog was changed. Still true as data: the arms-crossed clips and Judy's ambient idle differ by 37.6 cm and the build gives ambient-loop families no leg gap. Not established as a cause of anything seen live. The re-face after V moves and looks again was audited: no code path turns or steps her while a workspot holds her; the step (`attend_step`) starts as soon as the workspot exit finishes (`probe.log` 21:20:31Z `exit movement`, trace `settled` then `attend_step` 0.6 s later), during the exit pose blend. Unproven; open.
+
+## Round 8 (October 13): no gesture over a crouch
+
+Live (Carol Emeka, probe.log 09:48Z): V crouched, `Companion stance: crouch`; 14 s later an idle flavour gesture began (`flavour-begin`), the stance module saw her in a workspot and stood her (`stand - workspot`), crouched her again two seconds later, and the gesture exited `not relaxed`; when V stood the stand was logged, yet she stayed crouched.
+
+Rule now: a workspot and a crouch never overlap. `companions.lua` passes `crouched` in the observe context (V is crouched, or the stance module holds this copy crouched, or its stand is not yet confirmed). With it set, no idle or talk stance starts, and one that is running or starting leaves at once with the fast exit (reason `crouching`, log `exit`). `companion-stance.lua` waits while the workspot is still there (`Companion stance: crouch waiting - workspot`, once) and crouches when it ends. Idle gestures also do not run while V is in combat, as before. V in stealth is a crouch, so it is covered by the same flag.
+
+## Round 9 (October 13): leave the workspot, let the pose blend out, then walk
+
+The movement check watches V (0.75 m from the anchor taken when the workspot began, running, or the group frame moving for 0.8 s), and the follow is suppressed while a workspot holds the copy. After the exit signal the workspot is left within a tick, but the pose blends out for about 0.5 s more; the follow used to start in that window. `exitSettle` (0.4 s) now keeps the copy held after any non-instant exit; combat and transport exits stay instant. `Gestures drift` is logged once per workspot if the body moves more than 15 cm while held (Evelyn, 10:02:00Z: 0.24 m with V standing still, 45 s into `convai_idle_panam_hips`, cause not found).

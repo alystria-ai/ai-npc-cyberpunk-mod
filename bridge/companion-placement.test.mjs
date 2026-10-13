@@ -326,3 +326,21 @@ test('a body-sized pocket with no walkable exit toward V is not a spawn point',(
   spot=placement.find(player,Vector4.new(2,0,0),{})
   assert(spot and math.abs(spot.x-2)<.001 and math.abs(spot.y)<.001,'open ground no longer uses the preferred spot')
 `));
+
+// Live 2026-10-13: a companion ended up behind bars. A recovery spot is checked along the whole
+// walk from V's foothold, not only its last 1.5 m; invitations keep the original checks.
+test('a recovery spot behind a fence far from V is refused along the whole route, an invitation keeps the old check',()=>run(`${companionEngine}
+  ${world}
+  local placement=dofile('companion-placement.lua')
+  player.pos=Vector4.new(0,0,0)
+  -- A railing across the route 2.5 m from the spot: the last 1.5 m beside the spot are open.
+  solids={{group='Static',x1=.9,x2=1.1,y1=-3,y2=3,z1=.3,z2=2}}
+  local near=placement.find(player,Vector4.new(3,0,0),{})
+  assert(near,'the original check no longer accepts a spot with only the first metres clear')
+  assert(near.x>1.5,'the fixture spot is not behind the railing')
+  local recovery=placement.find(player,Vector4.new(3,0,0),{},nil,nil,{sweepRoute=true})
+  assert(not recovery or recovery.x<.9,'a recovery spot behind the railing was accepted')
+  solids={}
+  local open=placement.find(player,Vector4.new(3,0,0),{},nil,nil,{sweepRoute=true})
+  assert(open and math.abs(open.x-3)<.001,'open ground refused a recovery spot')
+`));

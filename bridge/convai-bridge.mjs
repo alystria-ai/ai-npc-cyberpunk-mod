@@ -101,7 +101,7 @@ import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
-import {AddonHost, fixedProvider, sharedMemory} from './addons.mjs';
+import {AddonHost, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -120,6 +120,7 @@ const ids = JSON.parse(await readFile(resolve(stateDirectory, 'characters.json')
 // Convai character (their text comes only from Mistral or the local AI, runAddonTurn). With no add-on installed the host is empty and adds nothing.
 const addonHost = await AddonHost.load({game, log: message => console.error('[Addons] ' + message)});
 addonHost.extend(roster, ids);
+addonHost.characterLookup = rosterLookup(roster);
 // runtime/relationship-profiles.json (the retired alternate affectionate profiles) is no longer read: every character has one profile.
 // Multilingual twins (docs/MULTILINGUAL_PROFILES.md): used only while "Multilingual conversations" is on. A missing
 // map is an English-only installation; a twin that no longer clones the current profile is left out.
@@ -2011,11 +2012,16 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
     final.catch(() => {});
     result = await voiceStreamedReply(input, profile, {signal, current, stream, final, config, userText: () => userText});
   } else {
-    const reply = stocked ? {text: stocked, model: 'stock', finishReason: 'stop', transport: 'realtime'}
-      : {...await host.reply(config, {signal}), transport: 'realtime'};
-    // A remark is checked against the speaker's recent lines before anything is spoken.
-    if (remark && addonHost.review(input, reply.text).duplicate) {
-      console.error(`[Addons] ${profile.key}: remark dropped (it repeated a recent line)`);
+    const generate = async attempt => ({...await host.reply(attempt === input ? config : addonTurnConfig(attempt, profile), {signal}), transport: 'realtime'});
+    const first = stocked ? {text: stocked, model: 'stock', finishReason: 'stop', transport: 'realtime'} : null;
+    // A remark is checked against the speaker's recent lines before anything is spoken. One that nearly repeats a recent line is written
+    // once more (with those lines named), unless that could not arrive before the remark goes stale; a conversation reply is never checked.
+    const made = remark ? await addonHost.produce(input, generate, {first})
+      : {reply: first ?? await generate(input), duplicate: false, retried: false};
+    const reply = made.reply;
+    if (made.retried) note(input, {addonRetry: made.duplicate ? 'still-repeated' : 'new-line'});
+    if (made.duplicate) {
+      console.error(`[Addons] ${profile.key}: remark dropped (it repeated a recent line${made.retried ? ' twice' : ''})`);
       await fail('', 'addon-duplicate');
       return;
     }

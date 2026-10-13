@@ -797,6 +797,13 @@ companions.recoveryLog = function(kind, fields)
     local ok, text = pcall(json.encode, fields or {})
     log('Companion recovery ' .. tostring(kind) .. ' ' .. (ok and text or ''))
 end
+-- Every place the mod puts a companion's feet somewhere (AI teleport, lift carry, vehicle exit
+-- placement) reports here with its reason, so no move of her can go unlogged (live 2026-10-13:
+-- "teleported" with no relocation line). Rare events, never per frame.
+convaiTeleportLog = function(fields)
+    local ok, text = pcall(json.encode, fields or {})
+    log('Companion teleport ' .. (ok and text or ''))
+end
 
 -- An NPC the mod addresses keeps quiet about V staring or standing close
 -- (mod/vanilla-reactions.lua). Reached through the global from beginFocus,

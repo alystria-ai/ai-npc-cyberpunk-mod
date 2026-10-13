@@ -786,4 +786,11 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "語音服務無法清除已儲存的語音設定。請檢查它是否正在執行，然後再試一次。",
     ["There was nothing to clear."] = "沒有需要清除的內容。",
     ["{size} · Saved voices: {count}"] = "{size} · 已儲存語音：{count}",
+    ["Auto model"] = "自動模型",
+    ["Invalid Mature content settings."] = "成人內容設定無效。",
+    ["Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else."] = "這需要本機 AI。若未安裝其選用套件，開啟成人內容不會改變其他任何設定。",
+    ["Mature content is off: {changes} put back. Choose Apply to use them."] = "成人內容已關閉：已還原{changes}。選擇「套用」以使用它們。",
+    ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "成人內容需要未安裝的本機 AI 套件。其他任何內容皆未變更。",
+    ["Mature content: {changes} selected too. Choose Apply to use them."] = "成人內容：{changes}也已選取。選擇「套用」以使用它們。",
+    ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "開啟時也會選擇本機 AI 作為對話提供者和自動模型，若陪伴語音是雲端語音，還會選擇本機語音（等待套用）。關閉時會還原先前的選擇。",
 }

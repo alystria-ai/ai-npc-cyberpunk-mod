@@ -33,6 +33,11 @@ local localeRevision = -1
 local AUTO_APPLY_WINDOW = 0.25
 local lastDraftEventAt = -1000
 local lastBackAt = -1000
+-- Mature content (see syncMature): a draft change only sets matureCheck in its callback; the work is done by M.update.
+-- matureReset: the drafts are all gone (Apply or Revert). matureSeen: the Mature content value last looked at (nil: take the saved
+-- one). matureMemory: what turning it on changed in the drafts, to put back if it is turned off before Apply. matureNotice:
+-- the one line that names the change, shown in place of MCM's "Pending: ..." status for a few seconds.
+local matureCheck, matureReset, matureSeen, matureMemory, matureNotice = false, false, nil, nil, nil
 -- The Companion voices list (menu order) lives with the draft preview: Pocket TTS, OmniVoice 16/32 steps with a
 -- short or long reference, Convai cloud voice.
 local voicePreviewModule = dofile('voice-preview.lua')
@@ -57,6 +62,14 @@ local statusOriginal
 -- stay empty.
 local contentHold, holdDisabled
 local HOLD_MAX = 1.5
+-- The scroll position of the content survives a redraw. MCM captures it before it draws and hands it to McmUiBeginContent,
+-- which sets it on the new, still empty scroll area; a page created hidden (contentHold) or drawn after a capture that MCM
+-- skipped came back at the top. So the position is remembered for the page being drawn (scrollBefore: read once from the old page
+-- in McmUiBegin, only when the page is the one drawn last, lastDrawKey) and set again on the wrapper's scroll controller in the
+-- same call that shows the content, when it is not already there.
+local lastDrawKey, scrollBefore
+local scrollLogBudget = 12
+local function pageKey() return view .. '|' .. tostring(modelPage) .. '|' .. tostring(modelQuery) end
 -- The refusal MCM shows when a change would be applied automatically. It goes to
 -- MCM's status line, which is moved to the top of the content column.
 local function hintPending() return ui.t('Change pending. Choose Apply to use it, or Revert to discard it.') end
@@ -219,7 +232,11 @@ end
 
 local function styleCategory(widget, parentLeft, parentScale, depth, budget)
     if depth <= 0 then return end
-    if budget then budget.left = budget.left - 1 end
+    if budget then
+        budget.left = budget.left - 1
+        -- A template is about ten widgets; far past its budget this is not one (the draw hooks cap their own work).
+        if budget.left < -200 then error('category template is too large') end
+    end
     local margin = widget:GetMargin()
     local left = parentLeft + margin.left * parentScale
     if widget:GetName() == CName.new('label') then
@@ -287,6 +304,29 @@ end
 -- moment the page is found until it is styled and its fonts are in place, then shown at their own opacity. The page is never
 -- hidden longer than VEIL_MAX seconds, whatever happens, and a veil on a page that was drawn again is gone with its widget.
 local VEIL_MAX = 0.75
+
+-- Puts the content back at the scroll position the page had before it was drawn again (three native calls, none when the
+-- position is zero or already right). Never raises.
+local function applyScroll(wrapper, want)
+    want = tonumber(want)
+    if not wrapper or not want or want < 0.002 then return end
+    local ok, err = pcall(function()
+        local scroller = wrapper:GetController()
+        local current = tonumber(scroller:GetScrollPosition()) or 0
+        if math.abs(current - want) > 0.002 then
+            scroller:SetScrollPosition(math.min(1, want))
+            if scrollLogBudget > 0 then
+                scrollLogBudget = scrollLogBudget - 1
+                log('Probe: scroll position restored ' .. tostring(current) .. ' -> ' .. tostring(want))
+            end
+        end
+    end)
+    if not ok and scrollLogBudget > 0 then
+        scrollLogBudget = scrollLogBudget - 1
+        log('Probe: scroll position could not be restored: ' .. tostring(err))
+    end
+end
+
 local function veilPage(content)
     local read, opacity = pcall(function() return content:GetOpacity() end)
     if pcall(function() content:SetOpacity(0.0) end) then
@@ -302,7 +342,10 @@ local function unveilPage()
     if held then
         presentation.veil = nil
         pcall(function() held.widget:SetOpacity(held.opacity) end)
-        if contentHold and held.wrapper and pcall(function() held.wrapper:SetVisible(true) end) then contentHold = nil end
+        if contentHold and held.wrapper and pcall(function() held.wrapper:SetVisible(true) end) then
+            applyScroll(held.wrapper, contentHold.scroll)
+            contentHold = nil
+        end
     end
 end
 
@@ -313,7 +356,9 @@ local function releaseStaleHold()
     if not hold or os.clock() - hold.at < HOLD_MAX then return end
     contentHold = nil
     local shown = pcall(function()
-        locateRoots(hold.controller).content:GetParentWidget():GetParentWidget():SetVisible(true)
+        local wrapper = locateRoots(hold.controller).content:GetParentWidget():GetParentWidget()
+        wrapper:SetVisible(true)
+        applyScroll(wrapper, hold.scroll)
     end)
     if not shown then holdDisabled, refreshQueued = true, true end
 end
@@ -598,6 +643,127 @@ local function updateVoiceStatus(snapshot)
     end
 end
 
+-- Mature content only works with the Local AI provider, and its replies must not go to a cloud voice. So turning it ON in the
+-- drafts also stages (as pending changes, before Apply) the Local AI provider, the Auto model and, when the companion voice is a
+-- cloud voice, a local one (OmniVoice Balanced when its pack is installed, else Pocket TTS); without the Local AI pack nothing
+-- else is touched. Turning it OFF puts back what that changed, unless the player changed it since. What was changed is kept in
+-- matureMemory while the drafts are pending and, once applied, in the saved settings (manager: matureRestore). All of it runs
+-- from M.update after a draft event, never in a hook, and costs nothing while no draft changes.
+local PROVIDER_IDS = {'convai', 'mistral', 'local', 'groq'}
+local LOCAL_AI_PRESENT = {ready = true, warming = true, ['no-memory'] = true, failed = true}
+local CLOUD_VOICES = {voxtral = true, inworld = true, convai = true}
+
+local function draftValue(key)
+    local ok, value, err = pcall(api.getValue, MOD_KEY .. ':' .. key)
+    if ok and not err then return value end
+end
+
+local function stageDraft(key, index)
+    local ok, done = pcall(api.setDraft, MOD_KEY .. ':' .. key, index)
+    return ok and done == true
+end
+
+local function voiceRecord(index)
+    local choice = VOICE_CHOICES[index]
+    if not choice then return nil end
+    return {provider = choice.provider, steps = choice.steps, reference = choice.reference}
+end
+
+local function voiceIndexOf(record)
+    if type(record) ~= 'table' then return nil end
+    return voicePreviewModule.indexOf({voiceProvider = record.provider, omniSteps = record.steps, omniReference = record.reference})
+end
+
+local function modelIndexOf(id)
+    for index, choice in ipairs(manager.localModelChoices()) do if choice.id == id then return index end end
+end
+
+local function matureTurnedOn()
+    local snapshot = manager.snapshot(player())
+    local installed = LOCAL_AI_PRESENT[(snapshot.mistral or {}).localAi] == true
+    local providerNow = draftValue('conversationProvider')
+    local record, names = {}, {}
+    local usingLocal = providerNow == 3
+    if not usingLocal and not installed then
+        matureMemory = nil
+        return ui.t('Mature content needs the Local AI pack, which is not installed. Nothing else was changed.')
+    end
+    if not usingLocal and PROVIDER_IDS[providerNow] and stageDraft('conversationProvider', 3) then
+        record.conversationProvider = {before = PROVIDER_IDS[providerNow], set = 'local'}
+        names[#names + 1] = ui.t('Local AI')
+        usingLocal = true
+    end
+    if usingLocal then
+        local choices = manager.localModelChoices()
+        local modelNow = draftValue('localModel')
+        if type(modelNow) == 'number' and modelNow ~= 1 and choices[modelNow] and stageDraft('localModel', 1) then
+            record.localModel = {before = choices[modelNow].id, set = 'auto'}
+            names[#names + 1] = ui.t('Auto model')
+        end
+        local voiceNow = draftValue('voiceProvider')
+        local choice = VOICE_CHOICES[voiceNow]
+        if choice and CLOUD_VOICES[choice.provider] then
+            -- Multilingual conversations refuses Pocket TTS: without the OmniVoice pack there is no local voice to move to.
+            local omni = manager.omniPack().installed == true
+            if omni or draftValue('multilingualConversations') ~= true then
+                local target = omni and 2 or 1
+                if stageDraft('voiceProvider', target) then
+                    record.voice = {before = voiceRecord(voiceNow), set = voiceRecord(target)}
+                    local chosen = VOICE_CHOICES[target]
+                    names[#names + 1] = manager.voiceLabel(chosen.provider, chosen.steps, chosen.reference)
+                end
+            end
+        end
+    end
+    matureMemory = next(record) and record or nil
+    if #names == 0 then return nil end
+    return ui.t('Mature content: {changes} selected too. Choose Apply to use them.', {changes = table.concat(names, ', ')})
+end
+
+local function matureTurnedOff()
+    local record = matureMemory
+    if not record then record = manager.snapshot(player()).settings.matureRestore end
+    matureMemory = nil
+    if type(record) ~= 'table' then return nil end
+    local names = {}
+    local part = record.conversationProvider
+    if part then
+        local now, was = draftValue('conversationProvider'), nil
+        for index, id in ipairs(PROVIDER_IDS) do if id == part.set then was = index end end
+        local back
+        for index, id in ipairs(PROVIDER_IDS) do if id == part.before then back = index end end
+        if now == was and back and stageDraft('conversationProvider', back) then names[#names + 1] = ui.t('Conversation provider') end
+    end
+    part = record.localModel
+    if part then
+        local now, back = draftValue('localModel'), modelIndexOf(part.before)
+        if now == modelIndexOf(part.set) and back and stageDraft('localModel', back) then names[#names + 1] = ui.t('Local AI model') end
+    end
+    part = record.voice
+    if part then
+        local now, back = draftValue('voiceProvider'), voiceIndexOf(part.before)
+        if now == voiceIndexOf(part.set) and back and stageDraft('voiceProvider', back) then names[#names + 1] = ui.t('Companion voices') end
+    end
+    if #names == 0 then return nil end
+    return ui.t('Mature content is off: {changes} put back. Choose Apply to use them.', {changes = table.concat(names, ', ')})
+end
+
+-- Looks at the Mature content draft after a draft event; acts only on a change of it.
+local function syncMature()
+    -- All drafts are gone (Apply or Revert): what was staged is moot, and a check queued before that looked at old drafts.
+    if matureReset then matureReset, matureCheck, matureSeen, matureMemory = false, false, nil, nil end
+    if not matureCheck then return end
+    matureCheck = false
+    local mature = draftValue('matureContent')
+    if type(mature) ~= 'boolean' then return end
+    local before = matureSeen
+    if before == nil then before = manager.snapshot(player()).settings.matureContent == true end
+    matureSeen = mature
+    if mature == before then return end
+    local text = mature and matureTurnedOn() or matureTurnedOff()
+    if text then matureNotice = {text = text, at = os.clock()} end
+end
+
 local function samplePreparationFeedback()
     if not preparationTarget then preparationStatus = nil; return end
     local current = queue.preparationFeedback()
@@ -705,7 +871,9 @@ local function placeStatusLine()
         -- keeps its place inside a clipped scroll area, so add the offsets of its
         -- containers up to the render root.
         local left, top, bottom, entryLeft = 0, 0, 0, nil
-        for index = 0, count - 1 do
+        -- The entries are laid out one under the other, so the first gives the column and the last the bottom: two entries
+        -- are read, not the whole list (this can run inside MCM's own draw, where a list of 50 mods would be 150 native calls).
+        for _, index in ipairs(count > 1 and {0, count - 1} or {0}) do
             local entry = list:GetWidgetByIndex(index)
             local margin = entry:GetMargin()
             entryLeft = entryLeft or margin.left
@@ -757,6 +925,290 @@ local function placeStatusLine()
             .. ' width=' .. tostring(width) .. ' (list bottom ' .. tostring(bottom) .. ', ' .. count .. ' entries)')
     end)
     if not ok then log('Status line could not be moved: ' .. tostring(err)) end
+end
+
+-- ---------------------------------------------------------------------------------------------------------------------------
+-- Early style: the page is given its final look while MCM draws it.
+--
+-- Every value change makes MCM draw the whole page again, from its own update, after this module's update in the frame. Styling
+-- it from this module's update therefore left the page in MCM's look for at least one frame (the first fix kept it hidden for
+-- the one to three frames the styling took: a blank page, then the status line and the bottom buttons jumped into place).
+-- So the final look is produced in the draw itself, with no widget work per row:
+--  * a row's label, marker and read-only label are created with the geometry, size and colour the styling pass would give them
+--    (the McmUiCreateText override changes only its arguments, inside the three row builders);
+--  * the category headers are styled right after they are created (a few native calls each);
+--  * the bottom action row is created once, with Back and the other buttons already in place (the buttons MCM adds on the
+--    bar line are held back by the McmUiAddBottomActionAt override and created together, shifted, at the end of the draw);
+--  * the status line is moved under the mod list at the end of the draw (about 15 native calls).
+-- The page's content is still created hidden (contentHold). At the end of the draw it is shown if every step above
+-- is known to have worked in this very draw (the hooks fired and agree with MCM's own counts, no step failed, the first label
+-- has the expected margin, no font has to be applied); otherwise it stays hidden and the older styling pass (veilPage and
+-- styleCompletedPage, which are idempotent over whatever this left) styles it and shows it, exactly as before. So a hook that is
+-- missing or does nothing on some game version costs nothing but the old behaviour. Three failed draws in a row switch it off.
+-- No per-frame cost: the overrides only act between McmUiBegin and McmUiSetContentTitle of the manager's own page.
+-- ---------------------------------------------------------------------------------------------------------------------------
+local RED_TOKEN = 'MainColors.Red'
+local early = {on = false}
+local earlyHooks, earlyOff, earlyFailures, earlyLogBudget = false, false, 0, 12
+local earlyReleased, earlyHeld, earlyLastReason = 0, 0, ''
+local pendingCategory
+local fontsLibrary
+
+local function earlyLog(text)
+    if earlyLogBudget > 0 then earlyLogBudget = earlyLogBudget - 1; log('Probe: early style ' .. text) end
+end
+
+-- Whether this draw shows text in a script that needs a font of its own (a Cyrillic, Chinese, Japanese or Korean interface, or a
+-- language chosen but not yet applied). Such a page is shown only after the font pass, so it keeps the older path.
+local function fontsNeeded()
+    local ok, needed = pcall(function()
+        fontsLibrary = fontsLibrary or dofile('ui-fonts.lua')
+        if fontsLibrary.family(ui.current()) then return true end
+        if type(fontPresentation.applied) == 'function' and fontPresentation.applied() then return true end
+        if view == 'settings' and api and type(api.getValue) == 'function' then
+            local read, index, err = pcall(api.getValue, MOD_KEY .. ':uiLanguage')
+            if not read or err then return true end
+            local choice = ui.choices()[index]
+            if not choice then return true end
+            return fontsLibrary.family(choice.value == 'auto' and ui.current() or choice.value) ~= nil
+        end
+        return false
+    end)
+    return not ok or needed == true
+end
+
+local function earlyBegin(own)
+    early = {on = own and earlyHooks and not earlyOff and not holdDisabled or false, at = os.clock(),
+        tint = {}, kinds = {}, step = 0, started = 0, captured = 0, settingRows = 0}
+    pendingCategory = nil
+    if early.on then early.fonts = fontsNeeded() end
+end
+
+-- What a row's text is created with: x, width, font size and whether the colour is the red label colour. Step is the order of
+-- the text inside the row builder (the managed row makes its marker first, then its label).
+local function earlyRowText(kind, step, x, width)
+    if kind == 'managed' then
+        if step == 1 then return 0, 12, nil, false end
+        if step == 2 then return 20, width + (x - 20), nil, true end
+    elseif kind == 'action' then
+        if step == 1 then return x, width, nil, true end
+    elseif kind == 'readonly' then
+        if step == 1 then return 0, width + x, CONTENT_FONT_SIZE, true end
+    end
+end
+
+local function earlyCaptured(state, kind, step, widget, name)
+    if not widget then return end
+    if not kind then
+        if NameToString(name) == 'status' then state.status = widget end
+        return
+    end
+    local id = state.rowId
+    if kind == 'managed' then
+        if step == 2 then
+            state.tint[id], state.kinds[id] = widget, 'managed'
+            state.captured = state.captured + 1
+            state.firstLabel = state.firstLabel or widget
+        end
+    elseif kind == 'action' then
+        if step == 1 then state.tint[id], state.kinds[id] = widget, 'action' end
+    elseif kind == 'readonly' then
+        if step == 1 then state.tint[id], state.kinds[id] = widget, 'readonly'
+        elseif step == 2 and id == MOD_KEY .. ':voice-status' then state.voiceStatus = widget end
+    end
+end
+
+local function earlyCreateText(controller, parent, name, value, x, y, width, height, fontSize, color, alignment, wrapped)
+    local state = early
+    local kind = state.on and state.row or nil
+    if not kind and not (state.on and state.phase == 'begin') then
+        return wrapped(parent, name, value, x, y, width, height, fontSize, color, alignment)
+    end
+    local newX, newWidth, newSize, newColor, step = x, width, fontSize, color, nil
+    if kind then
+        state.step = state.step + 1
+        step = state.step
+        local ok, nx, nw, ns, red = pcall(earlyRowText, kind, step, x, width)
+        if not ok then state.failed = state.failed or 'text'
+        elseif nx ~= nil then
+            newX, newWidth, newSize = nx, nw, ns or fontSize
+            if red then
+                local made, token = pcall(CName.new, RED_TOKEN)
+                if made then newColor = token else state.failed = state.failed or 'colour' end
+            end
+        end
+    end
+    local widget = wrapped(parent, name, value, newX, y, newWidth, height, newSize, newColor, alignment)
+    pcall(earlyCaptured, state, kind, step, widget, name)
+    return widget
+end
+
+-- Runs one of MCM's row builders with the row's kind and id known to the text override.
+local function earlyRow(kind, id, call)
+    local state = early
+    if not state.on then return call() end
+    state.row, state.rowId, state.step = kind, id, 0
+    if kind == 'managed' then state.started = state.started + 1 end
+    local ok, err = pcall(call)
+    state.row = nil
+    if not ok then error(err, 0) end
+end
+
+local function earlyScrollArea(controller, parent, name, x, y, width, height, contentHeight, wrapped)
+    local data = wrapped(parent, name, x, y, width, height, contentHeight)
+    local state = early
+    if state.on and data then
+        pcall(function()
+            if name == 'mcm_sidebar_scroll' then state.sidebar, state.render = data.content, parent
+            elseif name == 'mcm_content_scroll' then state.content, state.wrapper = data.content, data.wrapper end
+        end)
+    end
+    return data
+end
+
+local function earlyBottomAction(controller, id, label, x, y, width, active, wrapped)
+    local state = early
+    if state.on and not state.flushing and currentBack and backMode == 'bottom' and id ~= BACK_ID
+        and type(state.barY) == 'number' and type(y) == 'number' and math.abs(y - state.barY) <= 2 then
+        state.bar = state.bar or {}
+        state.bar[#state.bar + 1] = {id = id, label = label, x = x, y = y, width = width, active = active}
+        return
+    end
+    return wrapped(id, label, x, y, width, active)
+end
+
+-- Creates the buttons held back on the bar line, shifted to make room, and Back at the rightmost place (the geometry of
+-- placeBackButton). Whatever happens every held button is created. Returns false and the problem if Back could not be placed.
+local function earlyFlushBar(controller, state, withBack)
+    if state.barDone then return true end
+    state.barDone = true
+    local bar, created = state.bar or {}, 0
+    state.flushing = true
+    local ok, err = pcall(function()
+        local widest = 0
+        for _, held in ipairs(bar) do widest = math.max(widest, tonumber(held.width) or 0) end
+        local shift, backAt, backWidth = 0, nil, nil
+        if withBack then
+            local y, rightX = controller:McmUiGetLayoutMetric(27), controller:McmUiGetLayoutMetric(28)
+            local contentX, contentInner = controller:McmUiGetLayoutMetric(20), controller:McmUiGetLayoutMetric(23)
+            if type(y) ~= 'number' or y < 0 then error('layout metrics are unavailable') end
+            if type(rightX) ~= 'number' or rightX <= 0 then rightX = (contentX or 0) + (contentInner or 0) end
+            backWidth = widest > 0 and widest or math.max(120, (contentInner or 600) * 0.2)
+            shift = #bar > 0 and (backWidth + BAR_GAP) or 0
+            backAt = {y = y, x = rightX - backWidth}
+        end
+        for _, held in ipairs(bar) do
+            controller:McmUiAddBottomActionAt(held.id, held.label, held.x - shift, held.y, held.width, held.active)
+            created = created + 1
+        end
+        if backAt then
+            controller:McmUiAddBottomActionAt(BACK_ID, ui.t('Back'), backAt.x, backAt.y, backWidth, false)
+            state.backPlaced = true
+        end
+    end)
+    if not ok then
+        for index = created + 1, #bar do
+            local held = bar[index]
+            pcall(function() controller:McmUiAddBottomActionAt(held.id, held.label, held.x, held.y, held.width, held.active) end)
+        end
+    end
+    state.flushing = false
+    return ok, err
+end
+
+-- The end of the draw of the manager's own page (McmUiSetContentTitle). `presentation` is the new page's.
+local function earlyFinish(controller, state, owned)
+    local withBack = owned and currentBack ~= nil and backMode == 'bottom'
+    local barOk, barError = earlyFlushBar(controller, state, withBack)
+    if not barOk then
+        backMode, refreshQueued = 'list', true
+        log('Back could not be placed in the action row; using a row instead: ' .. tostring(barError))
+    elseif state.backPlaced then
+        presentation.backPlaced, presentation.backBar = true, #(state.bar or {})
+    end
+    local reason
+    if not owned then
+        reason = 'not the manager page'
+    elseif not (state.status and state.wrapper and state.render and state.sidebar) then
+        reason = 'widgets missing (status=' .. tostring(state.status ~= nil) .. ' wrapper=' .. tostring(state.wrapper ~= nil)
+            .. ' list=' .. tostring(state.sidebar ~= nil) .. ')'
+    else
+        presentation.controller = controller
+        presentation.statusWidget, presentation.renderRoot = state.status, state.render
+        presentation.roots = {render = state.render, status = state.status, sidebar = state.sidebar, content = state.content}
+        presentation.pending = false
+        placeStatusLine()
+        if state.failed then reason = 'a step failed: ' .. tostring(state.failed)
+        elseif not contentHold then reason = 'content not held by this draw'
+        elseif state.fonts then reason = 'fonts'
+        elseif state.started ~= state.settingRows then reason = 'row hook count ' .. state.started .. '/' .. state.settingRows
+        elseif state.started ~= state.captured then reason = 'labels ' .. state.captured .. '/' .. state.started
+        elseif state.firstLabel then
+            local read, margin = pcall(function() return state.firstLabel:GetMargin() end)
+            if not read or not margin or margin.left ~= 20 then reason = 'label geometry' end
+        end
+        if not reason then
+            if not pcall(function() state.wrapper:SetVisible(true) end) then reason = 'wrapper'
+            else applyScroll(state.wrapper, contentHold and contentHold.scroll) end
+        end
+    end
+    if reason then
+        -- The older pass styles and shows the page (it was hidden by the hold, and stays so until then).
+        if presentation.active then presentation.pending = true end
+        earlyHeld = earlyHeld + 1
+        earlyLastReason = reason
+        if reason ~= 'fonts' and reason ~= 'not the manager page' then
+            earlyFailures = earlyFailures + 1
+            if earlyFailures >= 3 then earlyOff = true; log('Early page style switched off after three draws it could not complete: ' .. reason) end
+        end
+        earlyLog('held: ' .. reason)
+        return
+    end
+    contentHold, earlyFailures, earlyReleased = nil, 0, earlyReleased + 1
+    presentation.tint, presentation.rows, presentation.voiceStatus = state.tint, state.kinds, state.voiceStatus
+    earlyLog('shown: rows=' .. tostring(state.started) .. ' categories=' .. tostring(state.categories or 0)
+        .. ' bar=' .. tostring(#(state.bar or {})) .. ' back=' .. tostring(state.backPlaced == true))
+end
+
+-- A draw that never reached its end (an error in MCM's own code): the held buttons are created where MCM put them.
+local function earlyStale()
+    local state = early
+    if not state.on or os.clock() - (state.at or 0) < 0.5 then return end
+    early = {on = false}
+    local controller = state.controller or presentation.controller
+    if controller and state.bar and not state.barDone then pcall(earlyFlushBar, controller, state, false) end
+end
+
+local function installEarly()
+    local complete = true
+    local function hook(register, class, method, callback)
+        local ok, err = pcall(register, class, method, callback)
+        if not ok then complete = false; log('Early style hook not installed: ' .. method .. ' (' .. tostring(err) .. ')') end
+    end
+    local main = 'SettingsMainGameController'
+    hook(Override, main, 'McmUiCreateText', earlyCreateText)
+    hook(Override, main, 'McmUiCreateScrollArea', earlyScrollArea)
+    hook(Override, main, 'McmUiAddBottomActionAt', earlyBottomAction)
+    hook(Override, main, 'McmUiAddManagedLabel', function(controller, id, label, marker, modified, y, wrapped)
+        return earlyRow('managed', id, function() return wrapped(id, label, marker, modified, y) end)
+    end)
+    hook(Override, main, 'McmUiAddActionSetting', function(controller, id, label, description, value, wrapped)
+        return earlyRow('action', id, function() return wrapped(id, label, description, value) end)
+    end)
+    hook(Override, main, 'McmUiAddReadonly', function(controller, id, label, description, value, wrapped)
+        return earlyRow('readonly', id, function() return wrapped(id, label, description, value) end)
+    end)
+    hook(ObserveAfter, 'SettingsCategoryController', 'McmUiSetup', function(controller)
+        if early.on then pendingCategory = controller end
+    end)
+    hook(ObserveAfter, main, 'McmUiAddCategory', function()
+        local state, category = early, pendingCategory
+        pendingCategory = nil
+        if not state.on or not category then return end
+        local ok, err = pcall(function() styleCategory(category:GetRootWidget(), 0, 1, 6, {left = 400}) end)
+        if ok then state.categories = (state.categories or 0) + 1 else state.failed = state.failed or 'category: ' .. tostring(err) end
+    end)
+    earlyHooks = complete
 end
 
 local function developerMode()
@@ -932,6 +1384,10 @@ local function ownKeyRows(snapshot)
         matureHelp = matureHelp .. ' ' .. (mistral.maturePack == true
             and ui.t('The Mature pack (uncensored models) is installed.')
             or ui.t('The Mature pack (uncensored models) is not installed. It is an optional download on the GitHub releases page of this mod.'))
+        matureHelp = matureHelp .. ' ' .. ui.t('Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back.')
+        if not LOCAL_AI_PRESENT[mistral.localAi] then
+            matureHelp = matureHelp .. ' ' .. ui.t('Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else.')
+        end
         if mistral.effective ~= 'local' then
             matureHelp = matureHelp .. ' ' .. ui.t('Your conversations are not using Local AI right now, so this has no effect for now.')
         end
@@ -1633,6 +2089,8 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 else return {ok = false, error = ui.t('That setting is read-only.')} end
                 applied[#applied + 1] = key
             end
+            -- Turning Mature content on in this Apply: what that staged is kept in the settings, so turning it off can undo it.
+            if values.matureContent == true and matureMemory then values.matureRestore = matureMemory end
             local ok, err, notice, reload
             if addonChanges > 0 and addonChanges == #applied then ok = true
             else ok, err, notice, reload = manager.applySettings(player(), values) end
@@ -1662,8 +2120,13 @@ local function connect()
         -- Record the moment of a draft change. This callback can run inside a
         -- native UI action, so it only stores a number.
         pcall(api.subscribe, 'drafts.changed', function(event)
-            if type(event) == 'table' and event.modKey == MOD_KEY and (tonumber(event.count) or 0) > 0 then
-                lastDraftEventAt = os.clock()
+            if type(event) == 'table' and event.modKey == MOD_KEY then
+                if (tonumber(event.count) or 0) > 0 then
+                    lastDraftEventAt = os.clock()
+                    matureCheck = true
+                else
+                    matureReset = true
+                end
             end
         end)
     end
@@ -1678,6 +2141,7 @@ function M.install()
     hooksInstalled = true
     entry.install()
     fontPresentation.install()
+    installEarly()
     -- MCM's stock action banner says "Completed" when a request is accepted.
     -- Preparation may run while paused; actor creation waits for gameplay.
     -- Render the actual queue message
@@ -1709,16 +2173,47 @@ function M.install()
             presentation.preparationApplied = true
             presentation.preparationSignature = preparationStatus.signature
         end
+        -- The line that names what Mature content staged, for a few seconds, instead of MCM's "Pending: <setting>".
+        if own and matureNotice then
+            if os.clock() - matureNotice.at < 8 and tostring(status):sub(1, 7) == 'Pending' then
+                status, statusKind = matureNotice.text, 0
+            elseif os.clock() - matureNotice.at >= 8 then
+                matureNotice = nil
+            end
+        end
         presentation.statusText = status
-        return wrapped(title, subtitle, sidebarTitle, contentTitle, status, statusKind,
+        -- Redrawing the page that was drawn last: its scroll position is read from the old page, which still exists here.
+        scrollBefore = nil
+        if own and renderOwn and lastDrawKey == pageKey() then
+            local read, position = pcall(function() return controller:McmUiGetContentScrollPosition() end)
+            if read and type(position) == 'number' then scrollBefore = position end
+        end
+        earlyBegin(own == true)
+        if not early.on then
+            return wrapped(title, subtitle, sidebarTitle, contentTitle, status, statusKind,
+                transientOwner, showSidebarSearch, showContentSearch, listSelectionMode)
+        end
+        -- The page is drawn with the early style (see the block above): the status text is the only widget the begin makes
+        -- that is kept, and the bottom row line is read once the layout exists.
+        early.controller, early.phase = controller, 'begin'
+        local state = early
+        local ok, err = pcall(wrapped, title, subtitle, sidebarTitle, contentTitle, status, statusKind,
             transientOwner, showSidebarSearch, showContentSearch, listSelectionMode)
+        state.phase = nil
+        if not ok then state.on = false; error(err, 0) end
+        local read, line = pcall(function() return controller:McmUiGetLayoutMetric(27) end)
+        if read then state.barY = line end
     end)
     -- The content of our own page is created hidden (see contentHold); only the flag is changed, no widget is touched.
     Override('SettingsMainGameController', 'McmUiBeginContent', function(controller, height, scroll, ready, wrapped)
         if renderOwn and ready == true then
             renderOwn = false
-            contentHold = {controller = controller, at = os.clock()}
-            return wrapped(height, scroll, false)
+            -- MCM's own position, or the old page's when MCM lost it (a capture it skipped).
+            local want = tonumber(scroll) or 0
+            if want < 0.002 and scrollBefore and scrollBefore >= 0.002 then want = math.min(1, scrollBefore) end
+            scrollBefore = nil
+            contentHold = {controller = controller, at = os.clock(), scroll = want}
+            return wrapped(height, want, false)
         end
         return wrapped(height, scroll, ready)
     end)
@@ -1726,6 +2221,7 @@ function M.install()
         local owned = title == ui.t(LABEL) and active()
         local key = owned and controllerKey(controller) or nil
         owned = owned and key ~= nil
+        lastDrawKey = owned and pageKey() or nil
         local previous = owned and presentation.beginKey == key and presentation or {}
         -- Queue only Lua data here. No ink traversal, getters or setters.
         presentation = {active = owned, pending = owned, rows = {}, hovered = {}, tint = {}, restyle = {}, title = title,
@@ -1733,12 +2229,25 @@ function M.install()
             statusAllowed = previous.statusAllowed, statusRestore = previous.statusRestore,
             statusText = previous.statusText, preparationApplied = previous.preparationApplied,
             preparationSignature = previous.preparationSignature}
+        -- The end of a draw that ran with the early style: the buttons held back are created, the status line placed, and the
+        -- page shown if all of it is known to have worked (otherwise pending stays set for the older styling pass).
+        if early.on then
+            local state = early
+            state.on = false
+            local finished, finishError = pcall(earlyFinish, controller, state, owned)
+            if not finished then
+                if presentation.active then presentation.pending = true end
+                earlyHeld, earlyLastReason = earlyHeld + 1, tostring(finishError)
+                log('Early page style failed: ' .. tostring(finishError))
+            end
+        end
     end)
     Observe('SettingsMainGameController', 'OnUninitialize', function(controller)
         if ownsPresentation(controller) then
             presentation = {active = false, rows = {}}
             voiceSelectors = {}
-            contentHold, renderOwn = nil, false
+            contentHold, renderOwn, early = nil, false, {on = false}
+            lastDrawKey, scrollBefore = nil, nil
         end
     end)
     ObserveAfter('SettingsSelectorController', 'McmUiConfigureBase', function(controller, host, id)
@@ -1765,6 +2274,7 @@ function M.install()
         -- Native hover remains visible. After leaving a changed row, only its
         -- draft marker carries the modified state; label text stays uniform.
         -- Only this row's label needs its tint back, so only it is queued.
+        if early.on then early.settingRows = early.settingRows + 1 end
         if presentation.active and ownsPresentation(controller) then
             presentation.hovered[id] = hovered == true
             if not hovered then presentation.restyle[id] = true end
@@ -1775,17 +2285,6 @@ function M.install()
             presentation.hovered[id] = hovered == true
             if not hovered then presentation.restyle[id] = true end
         end
-    end)
-    Observe('SettingsMainGameController', 'McmUiEmitAction', function(controller, id)
-        if id ~= BACK_ID or not currentBack or not api or not active() then return end
-        local ok, pending = pcall(api.hasDrafts, MOD_KEY)
-        if ok and pending == true then
-            -- MCM refuses navigation while changes are pending, and so does this.
-            log('Back ignored: apply or revert the pending changes first')
-            return
-        end
-        currentBack.callback({interaction = {controller = controller}})
-        refreshQueued = true
     end)
     Observe('SettingsMainGameController', 'McmUiEmitSearch', function(_, context, value)
         if context == 'content' and active() then
@@ -1836,6 +2335,15 @@ function M.install()
         if ok then return open == true end
         return os.clock() - ask.at < 20
     end
+    -- Esc (the game's OnBack) and the page's Back button share this: with unapplied changes the leave is held and MCM's own
+    -- "Unsaved changes" dialog is asked for (at most once in 2 s, never while it is open, never more than 5 times so the
+    -- player is not trapped). Returns true when the leave was held.
+    local function holdForDrafts(controller, why)
+        if not (pendingDrafts() and ask.count < 5) then return false end
+        probe(why .. ' held (drafts pending)')
+        if os.clock() - ask.at > 2 and not modalOpen(controller) then askBeforeLeaving(controller, why) end
+        return true
+    end
     local function hookInput(method)
         local hooked, hookError = pcall(Override, 'SettingsMainGameController', method, function(controller, event, wrapped)
             if presentation.active and ownsPresentation(controller) then
@@ -1877,12 +2385,7 @@ function M.install()
     local backHooked, backHookError = pcall(Override, 'SettingsMainGameController', 'OnBack', function(controller, ...)
         local args = table.pack(...)
         local original = args[args.n]
-        if presentation.active and ownsPresentation(controller) and pendingDrafts() and ask.count < 5 then
-            local now = os.clock()
-            probe('OnBack held (drafts pending)')
-            if now - ask.at > 2 and not modalOpen(controller) then askBeforeLeaving(controller, 'OnBack') end
-            return true
-        end
+        if presentation.active and ownsPresentation(controller) and holdForDrafts(controller, 'OnBack') then return true end
         -- On a sub-page, Esc goes back to its parent; on Home it closes Settings. A
         -- repeated event for the same key, right after going back, is swallowed so it
         -- cannot go on to close Settings from Home.
@@ -1900,6 +2403,13 @@ function M.install()
         return original(table.unpack(args, 1, args.n - 1))
     end)
     if not backHooked then probe('could not hook OnBack: ' .. tostring(backHookError)) end
+    -- The Back button in the bottom row: with unapplied changes it does what Esc does (the same dialog), otherwise it goes back.
+    Observe('SettingsMainGameController', 'McmUiEmitAction', function(controller, id)
+        if id ~= BACK_ID or not currentBack or not api or not active() then return end
+        if holdForDrafts(controller, 'Back') then return end
+        currentBack.callback({interaction = {controller = controller}})
+        refreshQueued = true
+    end)
     Override('SettingsMainGameController', 'RequestClose', function(controller, wrapped)
         local pending = (presentation.active or active()) and pendingDrafts()
         probe('RequestClose drafts=' .. tostring(pending))
@@ -2009,6 +2519,11 @@ function M.update(currentPlayer, worldReady)
     -- our translated sidebar item readable when another mod is selected.
     fontPresentation.update()
     if contentHold then releaseStaleHold() end
+    if early.on then earlyStale() end
+    if (matureCheck or matureReset) and api then
+        local synced, syncError = pcall(syncMature)
+        if not synced then lastError = 'Mature content: ' .. tostring(syncError) end
+    end
     pcall(restoreStatusLine)
     if not activeForUpdate(presentation.active or presentation.pending == true) then
         if presentation.veil then unveilPage() end
@@ -2075,6 +2590,9 @@ function M.inspect()
     return {available = api ~= nil, active = active(), view = view, entry = entry.state(),
         presentation = {active = presentation.active, pending = presentation.pending, title = presentation.title, rows = rowCount,
             restyling = restyling, styling = presentation.job ~= nil},
+        early = {hooks = earlyHooks, off = earlyOff, shown = earlyReleased, held = earlyHeld, reason = earlyLastReason,
+            failures = earlyFailures},
+        mature = {notice = matureNotice and matureNotice.text or nil, staged = matureMemory ~= nil},
         entryDetails = entry.inspect and entry.inspect() or nil,
         back = currentBack and {id = currentBack.id, label = currentBack.label} or nil, backMode = backMode,
         party = queue.list(), feedback = queue.message(), error = lastError,
@@ -2098,7 +2616,9 @@ function M.resetSession()
     owner, lastSignature, renderedSignature, refreshQueued = nil, '', '', true
     slowAt, lastWorldReady = 0, nil
     if type(convaiNotices) == 'table' and type(convaiNotices.resetLoading) == 'function' then convaiNotices.resetLoading() end
-    presentation = {active = false, rows = {}}
+    presentation, early = {active = false, rows = {}}, {on = false}
+    lastDrawKey, scrollBefore = nil, nil
+    matureCheck, matureReset, matureSeen, matureMemory, matureNotice = false, false, nil, nil, nil
     fontPresentation.reset()
     voicePreview.reset()
     entry.reset()
@@ -2114,7 +2634,7 @@ function M.shutdown(worldReady)
     voicePreview.shutdown()
     if api then pcall(api.providers.unregisterProvider, PROVIDER, provider.registrationKey) end
     api = nil
-    presentation = {active = false, rows = {}}
+    presentation, early = {active = false, rows = {}}, {on = false}
     voiceSelectors = {}
 end
 

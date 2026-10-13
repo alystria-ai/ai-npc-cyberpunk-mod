@@ -626,17 +626,17 @@ function api.isTaxi(car) return world.taxi[car.id]==true end
 primary.info.seats[1].occupant=nil; primary.info.seats[3].occupant='player'
 `;
 
-test('a taxi seats one companion in the free back seat and never uses the driver seat',()=>run(`${taxiFixture}
+test('a taxi seats the first companion in the front passenger seat (back right may be taken by the game Johnny) and never uses the driver seat',()=>run(`${taxiFixture}
   party(1); tick(40)
   assert(fleet.phase=='riding',fleet.phase)
-  assert(fleet.people[1].seat=='seat_back_right',fleet.people[1].seat)
+  assert(fleet.people[1].seat=='seat_front_right',fleet.people[1].seat)
   assert(#world.spawned==0 and primary.info.seats[1].occupant==nil)
 `));
 
-test('a taxi fills back right, then front right, and leaves the driver seat empty',()=>run(`${taxiFixture}
+test('a taxi fills front right, then back right, and leaves the driver seat empty',()=>run(`${taxiFixture}
   party(2); tick(60)
   assert(fleet.phase=='riding',fleet.phase)
-  assert(fleet.people[1].seat=='seat_back_right' and fleet.people[2].seat=='seat_front_right')
+  assert(fleet.people[1].seat=='seat_front_right' and fleet.people[2].seat=='seat_back_right')
   assert(primary.info.seats[1].occupant==nil,'the driver seat was used')
   for _,command in ipairs(world.commands) do assert(command.seat~='seat_front_left') end
   assert(#world.spawned==0)
@@ -681,7 +681,7 @@ test('the taxi arrival starts the exit while V still sits, and the fleet does no
   world.primary=primary; tick(60)
   -- Three of the five find no seat, so the fleet stays in boarding but the seated two ride.
   assert(fleet.phase=='boarding' and fleet.people[1].phase=='riding' and fleet.people[2].phase=='riding',fleet.phase)
-  assert(fleet.people[1].seat=='seat_back_right' and fleet.people[2].seat=='seat_front_right')
+  assert(fleet.people[1].seat=='seat_front_right' and fleet.people[2].seat=='seat_back_right')
 `));
 
 test('taxiArrived is ignored on foot, and teardown clears the taxi exit guard',()=>run(`${taxiFixture}

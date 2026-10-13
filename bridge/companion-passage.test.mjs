@@ -105,6 +105,8 @@ const world=`${companionEngine}
         for _,d in ipairs(doors) do
           if not d.open and (npc.pos.y-d.y)*(moved.y-d.y)<=0 then moved=npc.pos end
         end
+        -- A navmesh follow cannot enter ground that has no navmesh (a car floor).
+        if command.kind=='AIFollowTargetCommand' and not walkable(moved) then moved=npc.pos end
         npc.pos=Vector4.new(moved.x,moved.y,npc.pos.z)
       end
     end

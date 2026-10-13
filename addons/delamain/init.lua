@@ -223,13 +223,14 @@ local function syncCompanionContext()
     if rideLive() then handle:setCompanionContext('ride', companionNote()) else handle:setCompanionContext('ride', nil) end
 end
 
+local REENTER_WINDOW = 20   -- seconds after V steps out of the cab in which stepping back in continues the same ride
+
 local function endRide(why)
     local handle = Delamain.handle
     Delamain.ride, Delamain.retry = nil, nil
     if handle then
         handle:setState(nil)
         handle:setCompanionContext('ride', nil)
-        if why == 'exited' then handle:cancel(SPEAKER) end
     end
 end
 
@@ -469,6 +470,11 @@ registerForEvent('onInit', function()
     handle:on('vehicleEntered', function(payload)
         Delamain.cab.mounted = isCab(payload.vehicle, payload.vehicleId)
         if not Delamain.cab.mounted then return end
+        -- V is back after a short gap (the mount flickers during a seat change): the same ride. After a long one it is a new ride.
+        local ride = Delamain.ride
+        if ride and ride.exitedAt then
+            if os.time() - ride.exitedAt > REENTER_WINDOW then Delamain.ride = nil else ride.exitedAt = nil end
+        end
         sync(nil)
         if rideLive() then
             publish(); syncCompanionContext()
@@ -478,7 +484,11 @@ registerForEvent('onInit', function()
     handle:on('vehicleExited', function()
         if not Delamain.cab.mounted then return end
         Delamain.cab.mounted = false
-        endRide('exited')
+        -- Nothing is cancelled: a remark that is playing finishes (the main mod ends one only for a scene), and one still
+        -- waiting is given up by the main mod when the cab stays unavailable. The ride is kept for a short while in case V is back.
+        if Delamain.ride then Delamain.ride.exitedAt = os.time() end
+        handle:setState(nil)
+        handle:setCompanionContext('ride', nil)
     end)
     handle:on('sessionStarted', function()
         -- A cab found when the game loads: pick the state up silently (and assume V is in it when it is a ride state).

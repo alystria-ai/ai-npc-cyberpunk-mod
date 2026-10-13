@@ -5,14 +5,14 @@
 // the memory store and the journal live in memory only.
 //
 // Script (JSON):
-//   {"speaker": "gun", "mode": "killer", "memories": ["..."], "context": "V is in a Watson back alley at night.",
+//   {"speaker": "gun", "mode": "killer", "memories": ["..."], "context": "V is in a Watson back alley at night.", "state": {...},
 //    "steps": [{"event": "first-kill", "text": "V killed the first enemy.", "facts": {"weapon": "Skippy"}, "maxWords": 10,
 //               "blocks": [{"key": "fight", "text": "Four Tyger Claws.", "tier": "volatile"}], "mode": "puppy",
-//               "expect": "relieved it was quick"},
+//               "expect": "relieved it was quick", "state": {...}},
 //              {"say": "Skippy, how many left?"}]}
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
-import {ADDON_MANIFEST, AddonHost, fixedProvider, sampleLine, sharedMemory, validateManifest} from './addons.mjs';
+import {ADDON_MANIFEST, AddonHost, fixedProvider, rosterLookup, sampleLine, sharedMemory, validateManifest} from './addons.mjs';
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {TextProviderHost, mistralRoute} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
@@ -32,10 +32,20 @@ export function parseScript(raw) {
     return {event: step.event ?? null, say: step.say ?? null, text: typeof step.text === 'string' ? step.text : null,
       facts: step.facts && typeof step.facts === 'object' ? step.facts : null, maxWords: Number.isInteger(step.maxWords) ? step.maxWords : 14,
       blocks: Array.isArray(step.blocks) ? step.blocks : [], mode: typeof step.mode === 'string' ? step.mode : null,
-      expect: typeof step.expect === 'string' ? step.expect : ''};
+      state: object(step.state) ? step.state : null, expect: typeof step.expect === 'string' ? step.expect : ''};
   });
   return {speaker: value.speaker, mode: typeof value.mode === 'string' ? value.mode : null, context: typeof value.context === 'string' ? value.context : '',
-    memories: Array.isArray(value.memories) ? value.memories.filter(item => typeof item === 'string') : [], steps};
+    memories: Array.isArray(value.memories) ? value.memories.filter(item => typeof item === 'string') : [],
+    state: object(value.state) ? value.state : null, steps};
+}
+
+const object = value => !!value && typeof value === 'object' && !Array.isArray(value);
+
+// The add-on state the game would have written (what a bridge module's hooks see as `state`). A field named ...At holding a number
+// of zero or less is "that many seconds from now" (startedAt: -180 is three minutes ago); real epoch times are left alone.
+function liveState(value, now = Date.now()) {
+  if (!object(value)) return null;
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, /At$/.test(key) && Number.isFinite(item) && item <= 0 ? now + item * 1000 : item]));
 }
 
 const JUDGE_RUBRIC = `You judge one spoken line from a character in a Cyberpunk 2077 mod, strictly. Score it from 1 to 10 against this rubric:
@@ -84,6 +94,8 @@ export async function evaluateScript({addonDir, script, chat, apiKey = 'offline-
   const speaker = manifest.speakers.find(item => item.id === plan.speaker);
   if (!speaker) throw Error(`add-on ${manifest.id} has no speaker ${plan.speaker}`);
   const host = new AddonHost({addons: [manifest], log, startedAt: 0});
+  // Bridge modules may ask who a companion is (api.character); the evaluation answers from the project's roster, as the bridge does.
+  try { host.characterLookup = rosterLookup(JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8'))); } catch { /* none */ }
   await host.loadModules();
   const roster = [];
   host.extend(roster, {});
@@ -102,19 +114,28 @@ export async function evaluateScript({addonDir, script, chat, apiKey = 'offline-
       addon: {id: manifest.id, speaker: speaker.id, ...(remark ? {event: step.event, text: step.text ?? undefined, facts: step.facts ?? undefined,
         maxWords: step.maxWords} : {}), ...(step.mode ? {mode: step.mode} : {}), blocks: step.blocks}};
     host.beginTurn(input);
-    const blocks = [...(plan.context ? [{tier: 'now', text: plan.context}] : []), ...host.blocks(input)];
-    const contextParts = {...Object.fromEntries(TIERS.map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
-      worldBlocks: blocks.filter(item => item.tier === 'world' && item.text).map(item => ({key: item.key, text: item.text}))};
+    // A step's state replaces the script's, and stays until another step sets one (a ride goes on).
+    if (step.state || (index === 0 && plan.state)) {
+      const state = liveState(step.state ?? plan.state);
+      host.state = {addons: {[manifest.id]: {companionContext: [], state, modes: {}, memories: [], stock: []}}};
+    }
     const previous = host.recentLines(speaker.profileKey);
     const before = prompts.length;
-    const reply = await text.reply({text: remark ? host.trigger(input) : input.text, reaction: input.reaction, context: joinBlocks(blocks.map(item => item.text)),
-      contextParts, local: {profileKey: speaker.profileKey, name: speaker.name, channel: 'private'}});
-    const line = reply.text;
-    const review = host.review(input, line);
+    // One try: the same blocks, trigger and text host as the bridge's runAddonTurn. A repeated remark gets one more try (host.produce).
+    const generate = attempt => {
+      const blocks = [...(plan.context ? [{tier: 'now', text: plan.context}] : []), ...host.blocks(attempt)];
+      const contextParts = {...Object.fromEntries(TIERS.map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
+        worldBlocks: blocks.filter(item => item.tier === 'world' && item.text).map(item => ({key: item.key, text: item.text}))};
+      return text.reply({text: remark ? host.trigger(attempt) : attempt.text, reaction: attempt.reaction, context: joinBlocks(blocks.map(item => item.text)),
+        contextParts, local: {profileKey: speaker.profileKey, name: speaker.name, channel: 'private'}});
+    };
+    const made = remark ? await host.produce(input, generate) : {reply: await generate(input), duplicate: false, similar: null, retried: false};
+    const line = made.reply.text;
+    const review = {duplicate: made.duplicate, similar: made.similar};
     if (!review.duplicate) host.afterReply(input, line);
     const mode = host.modeOf(speaker.profileKey);
     const entry = {index: index + 1, event: step.event, say: step.say, mode: mode?.id ?? null, line, words: line.split(/\s+/).filter(Boolean).length,
-      duplicate: review.duplicate, similar: review.similar, ...(keepPrompts ? {prompt: prompts.slice(before).at(-1)} : {})};
+      duplicate: review.duplicate, similar: review.similar, retried: made.retried, ...(keepPrompts ? {prompt: prompts.slice(before).at(-1)} : {})};
     if (judge && !review.duplicate) {
       try { entry.verdict = await judge({speaker, mode, step, line, previous}); } catch (error) { entry.verdict = {score: null, notes: `judge failed: ${error.message}`}; }
     }

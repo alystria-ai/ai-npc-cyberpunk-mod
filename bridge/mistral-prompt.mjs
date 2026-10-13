@@ -90,22 +90,25 @@ export class PersonaBook {
     if (typeof row.intro === 'string' && row.intro.trim()) extra.intro = row.intro.trim();
     if (typeof row.identityRule === 'string' && row.identityRule.trim()) extra.identityRule = row.identityRule.trim();
     if (Array.isArray(row.rules) && row.rules.length) extra.rules = row.rules.filter(line => typeof line === 'string' && line.trim()).map(line => line.trim());
+    // An add-on speaker may set its own reply length for talk turns (persona.talkWords, docs/ADDON_API.md); an ordinary row never does.
+    if (Number.isInteger(row.talkWords) && row.talkWords >= 8 && row.talkWords <= 60) extra.talkWords = row.talkWords;
     return {name, ambient, backstory, style, samples, known: true, ...extra};
   }
 }
 
 // The last thing the model reads before it answers: the rules it most often drifts from. A small model does what the last line says,
 // so this one names the three that matter most for a spoken reply: begin with the answer, stay short, invent nothing.
-export const closing = name => `(Reply as ${name || 'this person'}, out loud: begin with your answer or reaction, one to three short sentences, no invented facts, nothing you are doing or have just done beyond what the Right now section says.)`;
+export const closing = (name, talkWords = 0) => `(Reply as ${name || 'this person'}, out loud: begin with your answer or reaction, ${talkWords ? `one or two short sentences and at most ${talkWords} words` : 'one to three short sentences'}, no invented facts, nothing you are doing or have just done beyond what the Right now section says.)`;
 
 // The rules, written for a small model (ministral-8b): a short numbered list in priority order, each rule one plain instruction.
 // There are deliberately no example replies here: the model copies a concrete example word for word, and a placeholder example
 // makes it write stage directions. Measured against the previous wording in docs/MISTRAL_PROMPT_PASS.md (scripts/Eval-MistralPrompt.mjs).
-const RULES = (name, identityRule = '') => [
+const RULES = (name, identityRule = '', talkWords = 0) => [
   'OUTPUT RULES (they outrank everything above about format)',
   `1. You speak out loud, as ${name || 'yourself'}, to V. First person only ("I", "me", "my"): never your own name for yourself, never a speaker label, never narration of yourself or the scene.`,
   '2. Say only the words you speak. No stage directions, *actions*, (notes), markdown, lists, emoji or quotation marks around the reply, and no dashes (use a comma or a full stop).',
-  '3. Be brief, like a real person talking: one to three short sentences, about 15 to 40 words, and one question at most. Go longer only when V asks you to explain or tell a story (then six sentences at most).',
+  talkWords ? `3. Be brief, like a real person talking: one or two short sentences, at most ${talkWords} words, and one question at most. Keep to that length even when V asks you to explain or tell a story.`
+    : '3. Be brief, like a real person talking: one to three short sentences, about 15 to 40 words, and one question at most. Go longer only when V asks you to explain or tell a story (then six sentences at most).',
   '4. Start with the answer or reaction itself. Never open by repeating V\'s words back ("This place?", "My mom?") and never open with a scene or a sound.',
   '5. Sound like this one person, not like an assistant or a helpline: no stock lines ("I am sorry you are going through this", "I am here for you", "heavy weight to carry", "What is on your mind?"). When V is hurting, comfort the way you would: bluntly, dryly, practically or gently, in your own words, and pick up the details V gave.',
   '6. Use only facts from this prompt, the context and the conversation. Invent no biography, relatives, places, names, numbers or past events, and never say you and V did something together before, or that you were expecting V, unless the context says so. If V asks about something your profile does not cover, stay vague in your own way (a shrug, a joke, a question back). What V told you earlier (the turns below, or what you remember of V) really happened: use it correctly and never contradict it.',
@@ -147,7 +150,7 @@ export function systemHead({persona, memory = '', limits = LIMITS, mature = null
       ...samples.map(line => `- ${line.replace(/\s*\n\s*/g, ' ')}`)] : []),
     ...(persona.memories?.length ? ['', 'WHAT YOU KNOW AND REMEMBER (true; let it colour what you say when it fits, never recite it)', ...persona.memories.map(line => `- ${line}`)] : []),
     ...(memory ? ['', 'WHAT YOU REMEMBER OF V FROM EARLIER TALKS (true unless the live context says otherwise)', clip(memory, limits.summary)] : []),
-    '', RULES(name, persona.identityRule)].join('\n');
+    '', RULES(name, persona.identityRule, persona.talkWords)].join('\n');
   let backstory = persona.backstory, samples = persona.samples;
   let text = build(backstory, samples);
   if (text.length > limits.persona + 2000) { samples = []; text = build(backstory, samples); }
@@ -209,7 +212,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
   }
   const message = reaction
     ? `[EVENT, not spoken by V]\n${clip(text, 2400)}\n\nReact with one short spoken line of your own, in character.`
-    : `V says: ${String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, limits.playerText)}\n\n${closing(persona.name)}`;
+    : `V says: ${String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, limits.playerText)}\n\n${closing(persona.name, persona.talkWords)}`;
   if (!v2) {
     const live = capContext(`${CONTEXT_PREFIX}${context || 'This is a private conversation with V.'}`, limits.context);
     messages.push({role: 'user', content: `[LIVE CONTEXT for this moment: facts and instructions for you, never to be read aloud]\n${live}\n\n${message}`});

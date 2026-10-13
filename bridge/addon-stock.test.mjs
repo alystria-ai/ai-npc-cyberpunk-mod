@@ -445,10 +445,10 @@ test('the stock pump in the bridge is wired behind the add-on host and the busy 
   assert.match(bridge, /return route === 'mistral' \? route : null;/);
   assert.match(bridge, /model: 'stock', finishReason: 'stop', transport: 'realtime'/);
   assert.match(bridge, /clock\.mark\('stock'\)/);
-  // The take comes before the model call, and the duplicate review and the voice still follow it.
+  // The take comes before the model call, and the duplicate check (with its one second try) and the voice still follow it.
   const turn = bridge.slice(bridge.indexOf('async function runAddonTurn'), bridge.indexOf('async function runInput'));
   assert.ok(turn.indexOf('addonStock.take(') < turn.indexOf('host.reply(config'));
-  assert.ok(turn.indexOf('host.reply(config') < turn.indexOf('addonHost.review(input, reply.text)'));
-  assert.ok(turn.indexOf('addonHost.review(input, reply.text)') < turn.indexOf('synthesizeReply(input, reply'));
+  assert.ok(turn.indexOf('host.reply(config') < turn.indexOf('addonHost.produce(input, generate'));
+  assert.ok(turn.indexOf('addonHost.produce(input, generate') < turn.indexOf('synthesizeReply(input, reply'));
   assert.match(turn, /addonHost\.afterReply\(input, result\.text\)/);
 });
