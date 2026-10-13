@@ -112,8 +112,11 @@ Outcome: `narrow` when V's health fell below 25 percent, `rough` when it fell be
   the subtitle through a filter on `SubtitlesGameController.ShouldDisplayLine`, the voice by stopping Wwise event
   `vo_3d_important` on the speaker (an unverified try: the scene system plays most dialogue without a named event; until a live test
   shows the voice stops, a remark still waits for the line to end). The quest, the mode choice and the scenes run as always. A line
-  counts as Skippy's when its speaker is named Skippy (or still the key `LocKey#46444`), or it is an `Invisible` line with no
-  readable speaker name while he is held; no other speaker's line is touched. Log: `[Addons] muted game line: Skippy <id> (...)`.
+  counts as Skippy's only when its string id is one of his own 76 game lines (`line-ids.lua`: the four mq007 scenes and his two cameo
+  lines, from the game's scene data) or its speaker is named Skippy (or still the key `LocKey#46444`); an unnamed `Invisible` line
+  that is not in that list is never touched. If the id cannot be read from a line the name rule alone applies, and the log says so
+  once (`the id of a game subtitle line could not be read ...`); the first five id matches are logged too
+  (`a game line was recognised by its id: ...`). Not yet checked in the game: that the id the hook sees is this string id. Log: `[Addons] muted game line: Skippy <id> (...)`.
   With the option off the game's lines play and a remark waits for them (every event has patience, see below) instead of talking over.
 - **Patience.** Every event is patient, by priority: 5 waits up to 12 s, 4 up to 8 s, 3 up to 6 s, 2 up to 4 s (a scene, a game line or
   a cold model that answered late; the moment must still be true: V holds Skippy). Skippy's speaker plays through ordinary scenes.

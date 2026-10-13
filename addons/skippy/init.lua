@@ -61,6 +61,9 @@ local RARITIES = {Trash = 'trash', Weak = 'weak', Normal = 'normal', Rare = 'rar
 local S = Skippy.S
 S.holding = false          -- V holds Skippy (the active weapon), refreshed on events
 S.combat = false
+S.lineIds = nil          -- Skippy's own game line ids (line-ids.lua), loaded at init; nil: names only
+S.idSeen = 0
+S.idUnreadable = false
 S.hits = {}                -- entity key -> the last hit V made on it {t, weapon, head, zone, stealth}
 S.hitCount = 0
 S.stealthSeenAt = nil
@@ -289,21 +292,41 @@ end
 
 -- Is this subtitle line the game's own Skippy? The main mod asks this for every game line, only while V holds Skippy (the rule's
 -- active()), and mutes the voice and the subtitle of the lines that say yes (handle:replaceGameLines, "Replace the game's own lines").
--- The game's Skippy speaks through an invisible speaker entity (Character.mq007_skippy, name key LocKey#46444), so a line is his when
--- the speaker is named Skippy (or still the bare key), or is an Invisible line with no readable speaker name at all. Nobody else's
--- line is claimed: a line with another speaker's name is never touched.
-local function skippyLine(line, context)
+-- Exactly two things claim a line, and nothing else does (a quest line, a radio, another off-screen speaker with no readable name
+-- is never touched):
+--   1. its string id is one of Skippy's own 76 lines (line-ids.lua: the mq007 scenes and his two cameo lines, from the game's data);
+--   2. its speaker is named Skippy, or is still the bare name key LocKey#46444.
+-- When the id cannot be read from the line (S.lineIds missing, or line.id unreadable) only rule 2 applies, and the log says so once.
+local function lineIdOf(line)
+    local digits = safe(function() return tostring(line.id.hash):match('(%d+)') end)
+    if type(digits) == 'string' and #digits >= 10 then return digits end
+    return nil
+end
+
+local function skippyLine(line)
+    local ids = S.lineIds
+    if ids then
+        local id = lineIdOf(line)
+        if id then
+            if ids[id] == true then
+                if S.idSeen < 5 then
+                    S.idSeen = S.idSeen + 1
+                    if Skippy.handle then Skippy.handle:log('a game line was recognised by its id: ' .. id) end
+                end
+                return true
+            end
+        elseif not S.idUnreadable then
+            S.idUnreadable = true
+            if Skippy.handle then Skippy.handle:log('the id of a game subtitle line could not be read (line.id.hash); matching lines by the speaker name only') end
+        end
+    end
     local name = safe(function()
         if type(line.speakerName) == 'string' and line.speakerName:find('%S') then return line.speakerName end
         if line.speaker then return line.speaker:GetDisplayName() end
         return nil
     end)
-    if type(name) == 'string' and name:find('%S') then
-        local lower = name:lower()
-        return lower:find('skippy', 1, true) ~= nil or name:find('LocKey#46444', 1, true) ~= nil
-    end
-    local typeName = context and context.typeName and context.typeName() or enumName(safe(function() return line.type end))
-    return typeName == 'Invisible'
+    if type(name) ~= 'string' then return false end
+    return name:lower():find('skippy', 1, true) ~= nil or name:find('LocKey#46444', 1, true) ~= nil
 end
 
 local function installHooks()
@@ -465,6 +488,8 @@ registerForEvent('onInit', function()
     end
     Skippy.handle = handle
     local Engine = loadSibling('engine.lua')
+    S.lineIds = loadSibling('line-ids.lua')
+    if not S.lineIds then handle:log('line-ids.lua is missing; the game\'s own Skippy lines are matched by the speaker name only') end
     if not Engine then
         print('[Skippy] engine.lua is missing; Skippy stays off.')
         return

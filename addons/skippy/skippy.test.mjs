@@ -16,6 +16,7 @@ import {describeVictim, momentBlock, overused, recentOpenings, remember, resetSe
 const dir = fileURLToPath(new URL('.', import.meta.url));
 const engineLua = readFileSync(new URL('./engine.lua', import.meta.url), 'utf8');
 const initLua = readFileSync(new URL('./init.lua', import.meta.url), 'utf8');
+const lineIdsLua = readFileSync(new URL('./line-ids.lua', import.meta.url), 'utf8');
 // The voice clip is game audio, kept out of git (.gitignore); a clean checkout (CI) skips the checks that need it.
 const voiceSkip = existsSync(new URL('./voice/skippy.wav', import.meta.url)) ? false : 'the voice clip is not in git; it is present only in a local checkout';
 
@@ -440,7 +441,7 @@ function playSkippy(script) {
     function registerForEvent(name, fn) events[name] = fn end
     ${GAME}
     register()
-    local sources = {['engine.lua'] = function() ${engineLua} end}
+    local sources = {['engine.lua'] = function() ${engineLua} end, ['line-ids.lua'] = function() ${lineIdsLua} end}
     function dofile(name) return sources[name]() end
     local Skippy = (function() ${initLua} end)()
     events.onInit()
@@ -592,7 +593,7 @@ test('the game\'s own Skippy lines are declared to the main mod (silenced, not w
     swap()
     local named = rule({speakerName = 'Skippy', id = {hash = '55'}, type = 'Regular'})
     local key = rule({speakerName = 'LocKey#46444', id = {hash = '56'}, type = 'Regular'})
-    local bark = rule({speakerName = '', id = {hash = '57'}, type = 'Invisible'})
+    local bark = rule({speakerName = '', id = {hash = '1999999999999999999'}, type = 'Invisible'})
     local other = rule({speakerName = 'Judy Alvarez', id = {hash = '58'}, type = 'Regular'})
     local otherInvisible = rule({speakerName = 'Panam', id = {hash = '59'}, type = 'Invisible'})
     local _, replace = rule({speakerName = 'Skippy', id = {hash = '55'}, type = 'Regular'})
@@ -602,12 +603,56 @@ test('the game\'s own Skippy lines are declared to the main mod (silenced, not w
   assert.equal(result.idle, false);
   assert.equal(result.named, 'Skippy');
   assert.equal(result.key, 'Skippy');
-  assert.equal(result.bark, 'Skippy', 'an Invisible line with no speaker name while he is held is his bark scene');
+  assert.equal(result.bark, false, 'an unnamed Invisible line that is not in his list is never claimed');
   assert.equal(result.other, false);
   assert.equal(result.otherInvisible, false, 'another speaker\'s line is never claimed, even an invisible one');
   assert.equal(result.replace, true, 'on by default');
   assert.equal(result.rules, 1);
   assert.equal(result.audio, 'vo_3d_important');
+});
+
+test('his line ids decide: a listed id is claimed with or without a name; an unlisted or unreadable unnamed Invisible line never is', () => {
+  const result = playSkippy(`
+    local function rule(line)
+        local r = M.matchLine(line, {typeName = function() return line.type end})
+        return r ~= nil
+    end
+    swap()
+    local listed = '1853117853792751620'      -- "New magazine detected. Message to user. Thanks, choom!"
+    local out = {}
+    out.listedUnnamed = rule({speakerName = '', id = {hash = listed}, type = 'Invisible'})
+    out.listedNoNameField = rule({id = {hash = listed .. 'ULL'}, type = 'Invisible'})
+    out.listedOtherName = rule({speakerName = 'Panam', id = {hash = listed}, type = 'Regular'})
+    out.unlistedUnnamed = rule({speakerName = '', id = {hash = '1999999999999999999'}, type = 'Invisible'})
+    out.unlistedNoName = rule({id = {hash = '1853117853792751621'}, type = 'Invisible'})
+    out.unlistedNamedOther = rule({speakerName = 'Rogue', id = {hash = '1999999999999999998'}, type = 'Invisible'})
+    out.namedSkippyUnlisted = rule({speakerName = 'Skippy', id = {hash = '1999999999999999997'}, type = 'Regular'})
+    out.unreadableUnnamed = rule({speakerName = '', type = 'Invisible'})
+    out.unreadableNamed = rule({speakerName = 'Skippy', type = 'Regular'})
+    local said = 0
+    for _, text in ipairs(logs) do if text:find('could not be read', 1, true) then said = said + 1 end end
+    out.said = said
+    return json.encode(out)`);
+  assert.equal(result.listedUnnamed, true);
+  assert.equal(result.listedNoNameField, true, 'a CET uint64 prints with a suffix; only the digits count');
+  assert.equal(result.listedOtherName, true, 'the list is the claim, whatever name the line shows');
+  assert.equal(result.unlistedUnnamed, false);
+  assert.equal(result.unlistedNoName, false, 'one digit off is another line');
+  assert.equal(result.unlistedNamedOther, false);
+  assert.equal(result.namedSkippyUnlisted, true, 'the name rule still applies');
+  assert.equal(result.unreadableUnnamed, false, 'an unreadable id falls back to the name rule alone');
+  assert.equal(result.unreadableNamed, true);
+  assert.equal(result.said, 1, 'one log line says the id could not be read');
+});
+
+test('line-ids.lua holds exactly Skippy\'s 76 lines as plain decimal strings', () => {
+  const ids = [...lineIdsLua.matchAll(/^\s*\['(\d+)'\] = true,/gm)].map(match => match[1]);
+  assert.equal(ids.length, 76);
+  assert.equal(new Set(ids).size, 76, 'no duplicates');
+  for (const id of ids) assert.match(id, /^[0-9]{19}$/, id);
+  for (const id of ['1853117853792751620', '1853060652847878144', '1851824651336962048']) assert.ok(ids.includes(id), id);
+  assert.match(lineIdsLua, /New magazine detected/);
+  assert.match(lineIdsLua, /Provocation\./);
 });
 
 test('Skippy has no subtitle hooks of its own any more, and a muted line does not stop the remark that waits for it', () => {
@@ -753,6 +798,6 @@ test('the add-on package builds with its Lua, manifest, bridge module, voice and
   const {names} = await buildAddon({dir, out});
   await rm(out, {recursive: true, force: true});
   const folder = 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvaiSkippy/';
-  for (const file of ['init.lua', 'engine.lua', 'convai-addon.json', 'bridge.mjs', 'voice/skippy.wav', 'EVENTS.md']) assert.ok(names.includes(folder + file), file);
+  for (const file of ['init.lua', 'engine.lua', 'line-ids.lua', 'convai-addon.json', 'bridge.mjs', 'voice/skippy.wav', 'EVENTS.md']) assert.ok(names.includes(folder + file), file);
   assert.ok(!names.some(name => /\.test\.mjs$|eval\//.test(name)));
 });
