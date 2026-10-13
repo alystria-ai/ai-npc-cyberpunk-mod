@@ -142,41 +142,41 @@
     }
   },
   "maturePack": {
-    "notes": "The optional Mature pack (docs/LOCAL_AI.md, 'Mature content'; packaging/MATURE_PACK_README.md): an optional download that holds the uncensored model files and the marker (manifest.mature.json) the main mod reads to say in the setting's help whether they are installed and to offer them in the Local AI model row (turning Mature content on selects the largest one that fits); the Mature content setting itself is part of the main mod and works without the pack. It is distributed ONLY as a file on the project's GitHub release (uploaded by hand, packaging/MATURE_PACK_RELEASE_NOTES.md), never on Nexus Mods, and the release workflow does not build or upload it. It is built only on request (--packages mature), never as part of the default set, and nothing of it is in the Runtime package. The model list is still PLACEHOLDERS: the model test agent is choosing the GGUFs (docs/MATURE_MODELS_RESEARCH.md); the build refuses to run until every entry is filled in and pinned by revision, size and hash like the Local AI models.",
-    "status": "placeholder",
+        "notes": "The optional Mature pack (docs/LOCAL_AI.md, 'Mature content'; packaging/MATURE_PACK_README.md): an optional download that holds exactly two uncensored model files, lite and good like the Local AI packs, and the marker (manifest.mature.json) the main mod reads to say in the setting's help whether they are installed and to offer them in the Local AI model row (turning Mature content on selects the good one if it fits, else the lite one); the Mature content setting itself is part of the main mod and works without the pack. It is distributed ONLY as a file on the project's GitHub release (uploaded by hand, packaging/MATURE_PACK_RELEASE_NOTES.md), never on Nexus Mods, and the release workflow does not build or upload it. It is built only on request (--packages mature), never as part of the default set, and nothing of it is in the Runtime package. Both models are pinned by revision, size and SHA-256 from the Hugging Face file listing (2026-10-14; not yet downloaded or run here); 'remote' is the file's path inside the repository when it is in a folder. They were chosen from the community data in docs/MATURE_MODELS_V2_2026-10-14.md and are to be confirmed with scripts/Eval-MatureSamples.mjs before the pack is built.",
+    "status": "pinned",
     "marker": "manifest.mature.json",
     "directory": "mature",
     "readme": "packaging/MATURE_PACK_README.md",
     "releaseNotes": "packaging/MATURE_PACK_RELEASE_NOTES.md",
     "licenceFiles": ["packaging/licenses/Apache-2.0.txt"],
-    "models": [
-      {
-        "placeholder": true,
-        "name": "PLACEHOLDER uncensored Qwen3.5 model (Qwen3.5-*-Uncensored-HauhauCS-*)",
+    "tiers": {
+      "lite": {
+        "name": "Qwen3.5-4B-MiniFantasy (uncensored)",
         "family": "qwen",
-        "baseModel": "Qwen3.5 (Alibaba Cloud), Apache-2.0",
-        "repository": "PLACEHOLDER",
-        "revision": "PLACEHOLDER",
-        "file": "PLACEHOLDER-qwen.gguf",
-        "size": 0,
-        "sha256": "PLACEHOLDER",
-        "local": "PLACEHOLDER",
+        "baseModel": "Qwen3.5-4B (Alibaba Cloud), Apache-2.0",
+        "repository": "Nubinu/Qwen3.5-4B-MiniFantasy-GGUF",
+        "revision": "84d82263ef444991519d30b63c2d73482659b23e",
+        "file": "Qwen3.5-4B-MiniFantasy-Q4_K_M.gguf",
+        "remote": "Q4_K_M/Qwen3.5-4B-MiniFantasy-Q4_K_M.gguf",
+        "size": 2708796576,
+        "sha256": "518915429d55e105cae2c44ae1138088ea0d5230cacff3bd5299ea13fd0397f3",
+        "local": "mature/Qwen3.5-4B-MiniFantasy-Q4_K_M.gguf",
         "license": "Apache-2.0"
       },
-      {
-        "placeholder": true,
-        "name": "PLACEHOLDER uncensored Gemma 4 E4B model (gemma-4-E4B-it-ultra-uncensored-heretic)",
+      "good": {
+        "name": "Gemma-4-E4B-MiniFantasy (uncensored)",
         "family": "gemma-4",
         "baseModel": "Gemma 4 E4B (Google), Apache-2.0",
-        "repository": "PLACEHOLDER",
-        "revision": "PLACEHOLDER",
-        "file": "PLACEHOLDER-gemma.gguf",
-        "size": 0,
-        "sha256": "PLACEHOLDER",
-        "local": "PLACEHOLDER",
+        "repository": "Nubinu/Gemma4-E4B-MiniFantasy-V1-GGUF",
+        "revision": "0affbba89d649061eea151c3266a026d23961f27",
+        "file": "Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf",
+        "remote": "Q4_K_M/Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf",
+        "size": 5335290656,
+        "sha256": "e67009205385bd00852f4aa722cf4c49dcf6892cd34c29c265c36a3014906cc2",
+        "local": "mature/Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf",
         "license": "Apache-2.0"
       }
-    ]
+    }
   },
   "models": {
     "bucket": "akshitireddy/cyberpunk-pocket-rolling-checkpoints",

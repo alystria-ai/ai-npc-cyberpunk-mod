@@ -14,12 +14,12 @@ The main mod has a **Mature content** setting (Settings > Development, under Con
 
 **What it adds**
 
-- Uncensored models for **Local AI**, running on your own graphics card.
+- Two uncensored models for **Local AI**, a lite one (about 2.7 GB) and a good one (about 5.3 GB), running on your own graphics card.
 - With Mature content on: strong language, graphic violence, drug and cyberware-abuse talk, dark and morally grey themes, crude humour, and flirting, romance and sexual content between consenting adults.
 
 **What does not change**
 
-- Characters stay themselves: personalities, boundaries and orientations apply, and they can say no. Romance follows the relationship your save has with them.
+- Characters stay themselves: their voices, personalities and orientations decide how they flirt and talk about sex, not whether they do. They are direct and explicit; your relationship with them sets the tone (a partner is the most forward).
 - The **hard limits are always on**, on every model, with or without this pack: no sexual content involving minors or anyone who seems under 18, none without consent, no bestiality or incest, nothing sexual about real people, no real-world instructions for weapons, explosives or drug synthesis, no hateful content about real protected groups. The mod holds them in a rule at the start of every conversation, in a check on your messages before any model sees them, and in a check on every reply sentence before it is spoken.
 - It applies to **Local AI only**. Convai, Mistral and Groq never get it.
 
@@ -28,7 +28,7 @@ The main mod has a **Mature content** setting (Settings > Development, under Con
 - You are 18 or older.
 - Cyberpunk Convai (the main mod, Scripts and Runtime, same version) and its requirements.
 - A Local AI pack (standard or lite) from this release page, working on your computer.
-- About PLACEHOLDER GB of free disk space.
+- About 8 GB of free disk space.
 
 **Install**
 
@@ -41,7 +41,7 @@ To turn it off, switch the setting off. To remove the pack, delete `manifest.mat
 
 **Credits and licences**
 
-The models are community fine-tunes of Apache-2.0 base models: PLACEHOLDER (Qwen3.5, Alibaba Cloud) and PLACEHOLDER (Gemma 4 E4B, Google). Licence texts are in the pack. Not made by or connected to CD Projekt Red.
+The models are community fine-tunes of Apache-2.0 base models: Qwen3.5-4B-MiniFantasy (lite; Qwen3.5, Alibaba Cloud) and Gemma-4-E4B-MiniFantasy (good; Gemma 4 E4B, Google). Licence texts are in the pack. Not made by or connected to CD Projekt Red.
 
 **AI disclosure**
 

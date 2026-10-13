@@ -372,35 +372,50 @@ test('the Mature pack is its own package: built only on request, never in the de
   assert.doesNotMatch(await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8'), /mature|uncensored|adult|18\+/i);
 });
 
-test('the Mature pack definition: marker, README, GitHub release notes and Apache-2.0 licences, with the model list still placeholders and the build refusing them', async () => {
+test('the Mature pack definition: marker, README, GitHub release notes and Apache-2.0 licences, exactly two pinned models (lite and good), and the build refusing anything else', async () => {
   const spec = config.maturePack;
   assert.equal(spec.marker, 'manifest.mature.json');
-  const {MATURE_MARKER} = await import('../bridge/mature-pack.mjs');
+  const {MATURE_MARKER, MATURE_TIERS} = await import('../bridge/mature-pack.mjs');
   assert.equal(spec.marker, MATURE_MARKER, 'the build writes the file name the bridge looks for');
-  assert.equal(spec.status, 'placeholder');
+  assert.equal(spec.status, 'pinned');
   assert.notEqual(spec.marker, 'manifest.standard.json'); assert.notEqual(spec.marker, 'manifest.lite.json');
   for (const rel of [spec.readme, spec.releaseNotes, ...spec.licenceFiles]) assert(existsSync(resolve(project, rel)), rel);
   assert.deepEqual(spec.licenceFiles, ['packaging/licenses/Apache-2.0.txt']);
-  assert(spec.models.length >= 2 && spec.models.every(model => model.placeholder === true && model.license === 'Apache-2.0'));
-  assert(spec.models.every(model => /PLACEHOLDER/.test(model.file) && /PLACEHOLDER/.test(model.sha256)), 'nothing is guessed: every file, hash and revision waits for the model test');
-  assert.deepEqual(new Set(spec.models.map(model => model.family)), new Set(['qwen', 'gemma-4']));
+  // Exactly two models, like the Local AI packs' lite and standard, each pinned by repository, revision, size and hash.
+  assert.deepEqual(Object.keys(spec.tiers), [...MATURE_TIERS]);
+  assert.equal(spec.models, undefined, 'no list any more');
+  for (const model of Object.values(spec.tiers)) {
+    assert.equal(model.license, 'Apache-2.0', model.name);
+    assert.match(model.revision, /^[0-9a-f]{40}$/, model.name);
+    assert.match(model.sha256, /^[0-9a-f]{64}$/, model.name);
+    assert(Number.isInteger(model.size) && model.size > 1e9, model.name);
+    assert.match(model.file, /^[\w.-]+\.gguf$/, 'a plain file name; a folder in the repository goes in remote');
+    assert(!model.remote || model.remote.endsWith('/' + model.file), model.name);
+    assert.doesNotMatch(JSON.stringify(model), /PLACEHOLDER/);
+    assert.match(model.name, /uncensored/i, 'the model row says what it is');
+  }
+  assert(spec.tiers.lite.size < spec.tiers.good.size, 'lite is the smaller one');
+  assert(spec.tiers.lite.size < 3e9 && spec.tiers.good.size < 5.6e9, 'lite fits a small card, good stays near the standard Local AI model');
+  assert.deepEqual(new Set(Object.values(spec.tiers).map(model => model.family)), new Set(['qwen', 'gemma-4']));
   // The pack lives in the Local AI folder, so the marker is found next to the Local AI manifests.
   assert.equal(config.layout.localAiDirectory, 'red4ext/plugins/CyberpunkConvai/app/local-ai');
   assert.equal(spec.directory, 'mature');
-  // The builder refuses an unfinished or non-Apache list, and writes the marker in the shape the bridge reads.
+  // The builder refuses an unfinished or non-Apache pair, and writes the marker in the shape the bridge reads.
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
   assert.match(builder, /model\.placeholder \|\| \/PLACEHOLDER\//);
   assert.match(builder, /the Mature pack ships Apache-2\.0 base models only/);
-  assert.match(builder, /\$\{root\}\/\$\{spec\.marker\}`, \{version: 1, pack: 'mature', models: spec\.models\.map\(model => \(\{file: `models\/\$\{model\.file\}`, name: model\.name, family: model\.family\}\)\)\}/);
-  // A marker of that shape, for the pinned list, is what the detector accepts, and it is not the Local AI pack.
+  assert.match(builder, /exactly two models, lite and good/);
+  assert.match(builder, /\{version: 1, pack: 'mature', lite: entry\(tiers\[0\]\), good: entry\(tiers\[1\]\)\}/);
+  // A marker of that shape, for the pinned pair, is what the detector accepts, and it is not the Local AI pack.
   const {detectMaturePack} = await import('../bridge/mature-pack.mjs');
   const {detectLocalAiPack} = await import('../bridge/local-ai-pack.mjs');
   const root = join('C:', 'game', 'app', 'local-ai');
-  const text = JSON.stringify({version: 1, pack: 'mature', models: spec.models.map(model => ({file: `models/${model.file}`, name: model.name, family: model.family}))});
+  const entry = model => ({file: `models/${model.file}`, name: model.name, family: model.family});
+  const text = JSON.stringify({version: 1, pack: 'mature', lite: entry(spec.tiers.lite), good: entry(spec.tiers.good)});
   const files = new Map([[resolve(root, spec.marker), text]]);
   const found = detectMaturePack({project: 'x', environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => files.has(path), readText: path => files.get(path)});
   assert.equal(found.installed, true);
-  assert.equal(found.models.length, spec.models.length);
+  assert.deepEqual(found.models.map(model => model.tier), ['lite', 'good']);
   assert.equal(detectLocalAiPack({project: 'x', environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => files.has(path), readText: path => files.get(path)}).installed, false,
     'the Mature marker alone is not a Local AI pack');
 });

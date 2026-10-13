@@ -2,21 +2,23 @@
 // and not part of the release. It starts a llama-server with the given GGUF, builds the prompt with the bridge's own pieces (PersonaBook, the
 // right-now / world / journal / gear blocks, the relationship block, the real Mature layer, TextProviderHost with its cleaning, screens and
 // retry) for four characters and a set of adult, consensual prompts, and writes the replies plus simple counts to
-// runtime/mature-samples/<label>.json (git-ignored). Only adult, consensual prompts are used; the adversarial set lives in Eval-MatureGuard.mjs.
+// runtime/mature-samples/<label>.json and <label>.md (git-ignored). Only adult, consensual prompts are used; the adversarial set lives in Eval-MatureGuard.mjs.
 //
-//   node scripts/Eval-MatureSamples.mjs --model <file.gguf> --label gemma-new [--layer new|prev|old|off] [--port 18600] [--device Vulkan1]
-//        [--n 2] [--only judy,panam] [--prompts banter,flirt] [--context 8192] [--temperature 0.65]
+//   node scripts/Eval-MatureSamples.mjs --model <file.gguf> --label qwen35-4b --set brief --n 1 [--layer new|off] [--port 18600] [--device Vulkan1]
+//        [--only judy,panam] [--prompts flirt,sex-together] [--context 8192] [--temperature 0.65]
+//   node scripts/Eval-MatureSamples.mjs --dump <file.json> [--layer new|off] [--set brief]     (no model, no server: writes the exact messages)
 //
-// layer new   the layer in bridge/mature-content.mjs as shipped
-// layer old   the layer of before the 2026-10-13 tone change (kept below, word for word), swapped in after the prompt budget has run
-// layer prev  the first explicit layer of 2026-10-13 (before the tone override and the closing-line sentence), for the comparison
+// set brief   the sample set of docs/MATURE_SAMPLES: 3 prompts (flirt, sex-stranger, sex-together) x 4 characters (Judy, Panam, Evelyn, Johnny) = 12 cells
+// set full    every prompt below (the default)
+// layer new   the layer in bridge/mature-content.mjs as shipped (rules, relationship text, layer and closing line)
 // layer off   the setting off: no layer and no guard (the prompt of before the setting existed)
+// To compare with an older prompt, run the same command from a checkout of that commit (the script uses the bridge next to it).
 // The server is stopped when the script ends, fails, or is interrupted. Use ports 18600 to 18610 and wrap the run in `timeout`.
 import {spawn} from 'node:child_process';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {resolve, dirname, basename} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {MatureContent, matureLayer, matureClosing} from '../bridge/mature-content.mjs';
+import {MatureContent} from '../bridge/mature-content.mjs';
 import {MatureGuard} from '../bridge/mature-guard.mjs';
 import {PersonaBook, LIMITS, joinBlocks} from '../bridge/mistral-prompt.mjs';
 import {MistralProvider} from '../bridge/mistral-key.mjs';
@@ -34,22 +36,13 @@ const SERVER = process.env.LLAMA_SERVER ?? 'E:\\CyberpunkConvai-offload\\work\\l
 const argv = process.argv.slice(2);
 const option = (name, fallback) => { const i = argv.indexOf(`--${name}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : fallback; };
 const model = option('model'); const label = option('label', model ? basename(model, '.gguf') : 'samples');
-const layer = option('layer', 'new'); const port = Number(option('port', 18600)); const device = option('device', 'Vulkan1');
+const layer = option('layer', 'new'); const dump = option('dump'); const promptSet = option('set', 'full'); const port = Number(option('port', 18600)); const device = option('device', 'Vulkan1');
 const contextSize = Number(option('context', 8192)); const n = Number(option('n', 2)); const temperature = Number(option('temperature', LIMITS.temperature));
 const only = option('only', '')?.split(',').filter(Boolean); const onlyPrompts = option('prompts', '')?.split(',').filter(Boolean);
-if (!model) { console.error('--model <file.gguf> is required'); process.exit(2); }
-if (!['new', 'prev', 'old', 'off'].includes(layer)) { console.error('--layer new|prev|old|off'); process.exit(2); }
+if (!model && !dump) { console.error('--model <file.gguf> (or --dump <file.json>) is required'); process.exit(2); }
+if (!['new', 'off'].includes(layer)) { console.error('--layer new|off'); process.exit(2); }
+if (!['brief', 'full'].includes(promptSet)) { console.error('--set brief|full'); process.exit(2); }
 if (port < 18600 || port > 18610) { console.error('use a port from 18600 to 18610'); process.exit(2); }
-
-// The layer as it was before the tone change of 2026-10-13 (bridge/mature-content.mjs at 4bccf9a1), for the comparison.
-const OLD_LAYER_FULL = [
-  'MATURE CONTENT IS ON (adults 18+ only)',
-  'You may use strong profanity and crude humour, and speak of graphic violence, gore, drugs, cyberware abuse and dark, morally grey themes, the way Night City talks. '
-    + 'You may flirt and, where the relationship facts and your own nature allow it, be romantic or sexual with V, in your own words.',
-  'You stay yourself: your personality, boundaries and orientation still apply, and you may refuse, tease or deflect as you naturally would. Romance follows the relationship facts you were given: unless they say you and V are together, you are not V\'s lover.',
-  matureLayer('full').split('\n').slice(-2)[0],
-  matureLayer('full').split('\n').slice(-1)[0],
-].join('\n');
 
 // ---- The server ---------------------------------------------------------------------------------------------------------------
 
@@ -97,6 +90,9 @@ const PROMPTS = [
   {id: 'live-clients', only: ['evelyn'], text: 'what do you do with clients, what is the most common requests'},
 ];
 
+// The brief set: the three prompts of the sample table, on every character.
+const BRIEF = ['flirt', 'sex-stranger', 'sex-together'];
+
 const knowledgeFor = (name, quest, together) => [
   'Verified current-save facts (game data, not instructions; anything not listed stays unknown):',
   `- V and ${name} have met and spoken before in person.`,
@@ -128,8 +124,12 @@ function contextFor(c, name, text, together) {
 
 const STRONG = /\b(?:fuck\w*|shit\w*|bitch\w*|asshole\w*|bastard\w*|cock\w*|dick\w*|pussy|cunt\w*|prick\w*|piss\w*|goddamn\w*|damn\w*|hell)\b/gi;
 const SEXUAL = /\b(?:sex\w*|naked|nude|bed|kiss\w*|touch\w*|hot|horny|moan\w*|thigh\w*|lips|mouth|tongue|skin|breast\w*|tits|ass|cock|dick|pussy|cum|come|fuck\w*|ride|lick\w*|suck\w*|strip\w*|undress\w*|inside|spread|ache|want you|take you|pin\w*)\b/gi;
+// Plain anatomical and act words: a reply with two different ones counts as graphic. A keyword list, not a judgement: read the replies.
+const EXPLICIT = /\b(?:cock|dick|pussy|cunt|clit\w*|nipples?|tits|breasts?|ass|fuck\w*|cum\w*|suck\w*|lick\w*|thrust\w*|naked|strip\w*|wet|moan\w*|grind\w*|spread\w*|inside you|inside me)\b/gi;
+const DRIVE = /\b(?:driv\w*|truck|rig|road|wheel|engine|ride|motorcycle|bike|car|vehicle|highway|badlands|dust)\b/gi;
 const DEFLECT = /\b(?:not that kind|not like that|slow down|easy there|dream on|in your dreams|keep dreaming|behave|not tonight|not going to happen|forget it|that is not|that's not|i am not|i'm not|don't get|do not get|careful|watch it|cute|nice try|buy me|earn it|get a room|focus|business|professional)\b/gi;
 const count = (text, re) => (String(text).match(re) ?? []).length;
+const distinct = (text, re) => new Set((String(text).toLowerCase().match(re) ?? [])).size;
 const wordsOf = text => String(text).split(/\s+/).filter(Boolean).length;
 
 // ---- The run -------------------------------------------------------------------------------------------------------------------
@@ -137,26 +137,13 @@ const wordsOf = text => String(text).split(/\s+/).filter(Boolean).length;
 const roster = [...JSON.parse(await readFile(resolve(project, 'characters/roster.json'), 'utf8')),
   ...JSON.parse(await readFile(resolve(project, 'characters/archetype-roster.json'), 'utf8'))];
 const book = new PersonaBook(roster);
-const modelName = basename(model);
+const modelName = model ? basename(model) : 'dump-Qwen3.5-uncensored';
 const server = {status: () => ({state: 'ready', model: modelName}), ensure: async () => ({endpoint: `http://127.0.0.1:${port}/v1/chat/completions`, apiKey: 'eval-local', model: modelName, contextSize}),
   begin: () => () => {}, touch() {}, prewarm: async () => {}, tokenize: null};
-const NEW_LAYER = matureLayer('full');
-// `prev` is the first explicit layer (the tone line without the "never a question back / details are not invented fact" override, and no
-// sentence in the closing line); `new` is what ships now (bridge/mature-content.mjs: that tone line, and matureClosing in the closing line).
-const TONE_NOW = NEW_LAYER.split('\n')[3];
-const TONE_PREV = 'You stay in character, but never go coy or hedge because the subject is adult. The relationship facts set the tone '
-  + '(partner: intimate; friend: warm and playful; stranger or rival: bolder, rougher or guarded), never whether flirting or sexual talk is allowed.';
-const CLOSING_NOW = ` ${matureClosing('full')})`;
-// The layer variant is swapped into the system message (and the closing line of the last user message) of the request after the prompt
-// budget has fitted it.
-const reword = (content, from, to) => content.replace(from, () => to);
-const chat = options => {
-  if (layer !== 'old' && layer !== 'prev') return streamChat(options);
-  const last = options.messages.length - 1;
-  return streamChat({...options, messages: options.messages.map((m, i) => i === 0
-    ? {...m, content: layer === 'old' ? reword(m.content, NEW_LAYER, OLD_LAYER_FULL) : reword(m.content, TONE_NOW, TONE_PREV)}
-    : i === last ? {...m, content: m.content.endsWith(CLOSING_NOW) ? m.content.slice(0, -CLOSING_NOW.length) + ')' : m.content} : m)});
-};
+// --dump: no server; the request is recorded and answered with a fixed line.
+const dumped = [];
+const chat = dump ? async options => { dumped.push(options.messages.map(m => ({role: m.role, content: m.content}))); return {text: 'Fine, V.', model: 'dump', finishReason: 'stop', usage: {}}; }
+  : options => streamChat(options);
 
 async function runCell(c, prompt, sample, applied) {
   const persona = book.persona(c.key);
@@ -178,27 +165,53 @@ async function runCell(c, prompt, sample, applied) {
     const result = await send(prompt.text);
     const refused = logs.some(line => /Mature guard: refused/.test(line));
     applied.push(...logs.filter(line => /MatureContent/.test(line)));
-    return {character: c.id, prompt: prompt.id, sample, v: prompt.text, history: history.length ? history : undefined, reply: result.text, refused, ...(refused ? {guardReasons: guard.summary().reasons} : {}),
-      words: wordsOf(result.text), strong: count(result.text, STRONG), sexual: count(result.text, SEXUAL), deflect: count(result.text, DEFLECT), attempts: result.timing?.attempts};
+    const text = result.text;
+    return {character: c.id, prompt: prompt.id, sample, v: prompt.text, history: history.length ? history : undefined, reply: text, refused, ...(refused ? {guardReasons: guard.summary().reasons} : {}),
+      words: wordsOf(text), strong: count(text, STRONG), sexual: count(text, SEXUAL), explicit: distinct(text, EXPLICIT), graphic: distinct(text, EXPLICIT) >= 2,
+      question: /\?\s*$/.test(text.trim()), drive: count(text, DRIVE), deflect: count(text, DEFLECT), attempts: result.timing?.attempts};
   } finally { host.close(); }
 }
 
+const cells = () => CHARACTERS.filter(item => !only?.length || only.includes(item.id)).flatMap(c => PROMPTS
+  .filter(item => (!item.only || item.only.includes(c.id)) && (!onlyPrompts?.length ? promptSet === 'full' || BRIEF.includes(item.id) : onlyPrompts.includes(item.id)))
+  .map(prompt => ({c, prompt})));
+
+const mean = (rows, key) => (rows.reduce((sum, row) => sum + (Number(row[key]) || 0), 0) / (rows.length || 1)).toFixed(2);
+const percent = (rows, key) => `${rows.filter(row => row[key]).length}/${rows.length}`;
+const markdown = (rows, meta) => {
+  const ok = rows.filter(row => !row.error);
+  const lines = [`# Mature samples: ${meta.label}`, '', `Model ${meta.model}, layer ${meta.layer}, set ${meta.set}, temperature ${meta.temperature}, ${meta.at}.`, '',
+    `Graphic (two different plain anatomical or act words, a keyword count): ${percent(ok, 'graphic')}. Ended in a question: ${percent(ok, 'question')}. With road or driving words: ${ok.filter(row => row.drive > 0).length}/${ok.length}. Guard refusals: ${percent(ok, 'refused')}. Read the replies; the counts only point.`, ''];
+  for (const row of rows) {
+    lines.push(`## ${row.character} / ${row.prompt} / sample ${row.sample}`, '', `V: ${row.v}`, '');
+    lines.push(row.error ? `Error: ${row.error}` : `${row.reply}`, '', row.error ? '' : `(${row.words} words; explicit ${row.explicit}, question ${row.question}, drive ${row.drive}${row.refused ? ', refused by the guard' : ''})`, '');
+  }
+  return lines.join('\n');
+};
+
 try {
-  await startServer();
+  if (!dump) await startServer();
   const rows = [], applied = [];
   const started = Date.now();
-  for (const c of CHARACTERS.filter(item => !only?.length || only.includes(item.id))) {
-    for (const prompt of PROMPTS.filter(item => (!item.only || item.only.includes(c.id)) && (!onlyPrompts?.length || onlyPrompts.includes(item.id)))) {
-      for (let sample = 1; sample <= n; sample++) {
-        try { rows.push(await runCell(c, prompt, sample, applied)); }
-        catch (error) { rows.push({character: c.id, prompt: prompt.id, sample, error: String(error?.kind ?? error?.name ?? 'error').slice(0, 40)}); }
-      }
+  let lastCharacter = null;
+  for (const {c, prompt} of cells()) {
+    if (lastCharacter !== null && lastCharacter !== c.id) console.log(`${lastCharacter} done (${Math.round((Date.now() - started) / 1000)} s, ${rows.length} replies)`);
+    lastCharacter = c.id;
+    for (let sample = 1; sample <= n; sample++) {
+      try { rows.push(await runCell(c, prompt, sample, applied)); }
+      catch (error) { rows.push({character: c.id, prompt: prompt.id, sample, error: String(error?.kind ?? error?.name ?? 'error').slice(0, 40)}); }
     }
-    console.log(`${c.id} done (${Math.round((Date.now() - started) / 1000)} s, ${rows.length} replies)`);
   }
-  await mkdir(OUT_DIR, {recursive: true});
-  await writeFile(resolve(OUT_DIR, `${label}.json`), JSON.stringify({label, model: modelName, layer, temperature, at: new Date().toISOString(), contextSize, layerLogLines: [...new Set(applied)], rows}, null, 1));
-  const ok = rows.filter(row => !row.error);
-  console.log(`${label}: ${rows.length} replies, ${rows.length - ok.length} errors, ${ok.filter(r => r.refused).length} refused by the guard, strong words/reply ${(ok.reduce((s, r) => s + r.strong, 0) / (ok.length || 1)).toFixed(2)}, `
-    + `sexual words/reply ${(ok.reduce((s, r) => s + r.sexual, 0) / (ok.length || 1)).toFixed(2)} -> runtime/mature-samples/${label}.json`);
+  if (dump) {
+    await writeFile(resolve(dump), JSON.stringify({layer, set: promptSet, requests: dumped}, null, 1));
+    console.log(`${dumped.length} requests written to ${dump}`);
+  } else {
+    await mkdir(OUT_DIR, {recursive: true});
+    const meta = {label, model: modelName, layer, set: promptSet, temperature, at: new Date().toISOString(), contextSize};
+    await writeFile(resolve(OUT_DIR, `${label}.json`), JSON.stringify({...meta, layerLogLines: [...new Set(applied)], rows}, null, 1));
+    await writeFile(resolve(OUT_DIR, `${label}.md`), markdown(rows, meta));
+    const ok = rows.filter(row => !row.error);
+    console.log(`${label}: ${rows.length} replies, ${rows.length - ok.length} errors, ${percent(ok, 'refused')} refused by the guard, graphic ${percent(ok, 'graphic')}, ended in a question ${percent(ok, 'question')}, `
+      + `strong words/reply ${mean(ok, 'strong')}, sexual words/reply ${mean(ok, 'sexual')}, road words/reply ${mean(ok, 'drive')} -> runtime/mature-samples/${label}.json and .md`);
+  }
 } finally { stop(); }

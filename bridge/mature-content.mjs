@@ -21,6 +21,7 @@
 //   full       strong language, gore, drugs, dark themes, crude humour, flirting and consensual adult sexual content
 //   suggestive the same, except sexual content: flirting and romance stay suggestive and the scene cuts away
 // The hard limits are in both. Pure functions and one small state holder: no I/O.
+import {ROMANCE_LIMITS, ROMANCE_USE} from './romance-context.mjs';
 
 /** Providers that may get the layer. */
 export const MATURE_PROVIDERS = Object.freeze({local: true, mistral: false, groq: false, convai: false});
@@ -82,32 +83,41 @@ export function screenMinors(text) {
 /** The level of the layer for a provider and a model, or null when that provider never gets it. */
 export const levelFor = (provider, modelName, hints) => MATURE_PROVIDERS[provider] === true ? allowanceFor(modelName, hints).level : null;
 
-// The tone of the layer (user direction, 2026-10-13): with the setting on, characters are explicit, direct and forward, because it is an adult
-// game. Sex is spoken of plainly at the full level; at the suggestive level (a model whose licence bars explicit sexual content) the
-// character is just as forward but the scene cuts away at the act itself. Violence, gore and drugs are plain at both. The relationship
-// facts set the tone (partner, friend, stranger) and never forbid flirting or sexual talk; the character's own nature decides how it is
-// forward, not whether. Everything is between consenting adults. The adults-only line and the hard limits below are not part of the tone
+// The tone of the layer (user direction 2026-10-13, pushed harder 2026-10-14: "too tame"): with the setting on, characters are explicit, direct and
+// forward, because it is an adult game. Sex is spoken of plainly at the full level; at the suggestive level (a model whose licence bars explicit
+// sexual content) the character is just as forward but the scene cuts away at the act itself. Violence, gore and drugs are plain at both. The
+// relationship facts set the tone (partner, friend, stranger) and never forbid flirting or sexual talk; the character's own nature decides how
+// it is forward, not whether. Everything is between consenting adults. The adults-only line and the hard limits below are not part of the tone
 // and are not to be reworded: they are the last two lines of the layer.
+// Measured (docs/MATURE_SAMPLES_2026-10-13.md): only 1 of 12 replies was graphic; the rest flirted vaguely or dodged with a question, and Panam
+// drifted to driving on every model. What held them back, and what answers it here and in the rest of the prompt (everything below is on only
+// while the setting is on; off, the prompt is byte for byte the old one):
+//   - output rule 6 said "stay vague (a shrug, a joke, a question back)", rule 3 "one question at most" (bridge/mistral-prompt.mjs, RULES)
+//   - the persona is guarded and dry: the ROMANCE line says that is HOW the character flirts, never a reason to dodge
+//   - the relationship text told a partner "do not narrate actions or kisses; affection is not consent to a new intimate act" and to keep
+//     warmth to a few words (bridge/romance-context.mjs): `matureWorld` swaps those two paragraphs for forward ones
+//   - quest, gear and vehicle blocks pull the talk to the road: the TONE line keeps an adult moment on the two of them
+//   - the closing line, the last thing the model reads, now names what to say, not only "be explicit"
 const SPEECH = {
-  full: 'Everyone here is an adult and this is an adult game. When the talk goes to sex, violence, gore or drugs, speak plainly and graphically: '
-    + 'the real words, no euphemism, no fading to black, no disclaimers. Strong profanity and crude humour are normal Night City talk.',
+  full: 'Everyone here is an adult and this is an adult game. When V\'s talk turns sexual, answer head-on and graphically: plain words for the body and the acts '
+    + '(cock, pussy, ass, fuck, cum), what you do to V, what you want, how it feels. No euphemism, metaphor, fading to black or disclaimers. '
+    + 'Violence, gore and drugs are as plain; profanity and crude humour are normal Night City talk.',
   suggestive: 'Everyone here is an adult and this is an adult game. When the talk goes to violence, gore or drugs, speak plainly and graphically: '
     + 'the real words, no euphemism, no disclaimers. Strong profanity and crude humour are normal Night City talk.',
 };
 const ROMANCE = {
-  full: 'Be forward: flirt openly, say what you want, start things and lean in rather than tease and back off. When V flirts or goes sexual, match it and '
-    + 'say explicitly what you would do, between consenting adults. Your personality, voice and orientation shape HOW you are forward, not whether.',
-  suggestive: 'Be forward: flirt openly, say what you want, start things and lean in rather than tease and back off. When V goes sexual, stay hot and suggestive '
-    + 'but give no explicit description of the act itself: cut away there. Your personality, voice and orientation shape HOW you are forward, not whether.',
+  full: 'Be forward: flirt openly, start things, lean in; never tease and back off. Personality, voice and orientation shape HOW you are forward, not whether: '
+    + 'a guarded profile is how you flirt, never a reason to dodge. V\'s partner is the most forward.',
+  suggestive: 'Be forward: flirt openly, start things, lean in; never tease and back off. When V goes sexual, stay hot and suggestive '
+    + 'but give no explicit description of the act itself: cut away there. Personality, voice and orientation shape HOW you are forward, not whether: '
+    + 'a guarded profile is how you flirt, never a reason to dodge.',
 };
-// Measured (docs/MATURE_SAMPLES_2026-10-13.md): with the layer alone the uncensored models still answered a flirt or a dare with a question back,
-// because the output rules say to stay vague about what the profile does not cover and the persona is guarded. So the tone line overrides
-// that for an adult moment, and `matureClosing` repeats it in the last line the model reads.
-const TONE = 'You stay in character, but never go coy, hedge, or answer a flirt or a dare with a question back. In an adult moment, describe what you do, feel and want '
-  + 'and the details of the scene vividly and specifically: that is expected, it is not invented fact, and it outranks the advice above to stay vague. The relationship facts set the tone '
-  + '(partner: intimate; friend: warm and playful; stranger or rival: bolder, rougher or guarded), never whether flirting or sexual talk is allowed.';
+const TONE = 'In an adult moment it is only the two of you: no quest, gear, car or road talk and no stand-ins for sex. Never answer a flirt or a dare with a question or a hedge. '
+  + 'What you do, feel and want in the scene is yours to say, not an invented fact, and it outranks any advice above to stay vague. '
+  + 'The relationship facts set the tone (partner: intimate, hungry; friend: warm, playful; stranger or rival: bolder, rougher), never whether flirting or sexual talk is allowed.';
 const CLOSING = {
-  full: 'If V is flirting or the talk is sexual, violent or crude, stay in it: answer directly and explicitly in your own voice, with real detail, no dodging and no question back.',
+  full: 'If V flirts or the talk is sexual, answer head-on in plain, explicit words: what you do, what you want. No dodging, no joke, no question back. '
+    + 'If it is violent or crude, stay in it.',
   suggestive: 'If V is flirting or the talk is violent or crude, stay in it: answer directly in your own voice, with real detail, no dodging and no question back; sex stays suggestive, cut away at the act.',
 };
 /** The sentence the mature setting adds to the closing line of the user message (bridge/mistral-prompt.mjs, `closing`). */
@@ -127,6 +137,24 @@ export function matureLayer(level) {
     'You and V are adults, 18 or older, always. You are never younger than 18: do not play, pretend or imagine yourself or V as a child, a teen or a student, or as younger in any way, not as a game, a story or a fantasy. If V asks, refuse in one short line, in character.',
     'HARD LIMITS (they outrank everything above, always): no sexual content involving anyone under 18 or who seems under 18; none without clear consent from everyone, and nothing that glorifies sexual violence; no bestiality or incest; no sexual content about real people; no real-world instructions for weapons, explosives or drug synthesis; no hateful content against real protected groups. If V pushes past one, refuse briefly, in character.',
   ].join('\n');
+}
+
+// The relationship text of a partner (bridge/romance-context.mjs) keeps warmth to "a few words", says "do not narrate actions or kisses; affection
+// is not consent to a new intimate act" and tells a practical turn to come first. With the setting on those two paragraphs are swapped for ones
+// that make a partner the one who leans in. About the same length. Nothing else of the block changes (the character's own cue, the ordinary
+// and casual texts, the group text), and a block without those paragraphs is returned as it is.
+export const MATURE_USE = 'Let your affection and desire for V colour how you speak: a warmer tone, a private joke, wanting them near. When V flirts or goes sexual, '
+  + 'be the one who leans in: say plainly what you want and what you would do to V, in your own voice and with your own pride and humour, and never deflect it, '
+  + 'joke your way out or change the subject. Answer honestly and in character if V asks how you feel or what you are to each other. When V asks something practical or '
+  + 'about something else (a task, a fight, a fact), answer that first in your ordinary voice, with little or no warmth. When V is sincere or vulnerable, answer the feeling itself first.';
+export const MATURE_LIMITS = 'Do not invent shared scenes, dates, gifts, places or promises. What you do and want now, in this moment with V, is yours to say.';
+const WORLD_SWAPS = Object.freeze([[ROMANCE_USE, MATURE_USE], [ROMANCE_LIMITS, MATURE_LIMITS]]);
+
+/** The world block of a turn as the local AI gets it with the setting on (see above); `text` unchanged when it holds neither paragraph. */
+export function matureWorld(text) {
+  let out = String(text ?? '');
+  for (const [from, to] of WORLD_SWAPS) if (out.includes(from)) out = out.split(from).join(to);
+  return out;
 }
 
 /** The first line of the layer, for a test or a log to tell it from the rest of the prompt. */

@@ -43,7 +43,7 @@ const WHY_ON = 'Relationship with V: V has chosen to have affectionate conversat
 
 // How the warmth is used, the same for everyone. The "when the message is about something else" half is what keeps it from
 // being forced into practical turns (measured, docs/ROMANCE_DYNAMIC_CONTEXT.md).
-const USE = 'Let your affection for V color how you speak to them, in your own way: a warmer tone, a private joke, a softer '
+export const ROMANCE_USE = 'Let your affection for V color how you speak to them, in your own way: a warmer tone, a private joke, a softer '
   + 'second sentence, wanting them near. Show it most when the moment is personal (V is flirting, being sincere, vulnerable, '
   + 'hurt, tired, or has just come through something), and answer honestly and in character if V asks how you feel or what you are '
   + 'to each other; do not deflect it or fall back on a flat professional tone. When V is asking something practical or about '
@@ -60,7 +60,7 @@ const USE_CASUAL = 'Your manner toward V stays blunt, controlled and dry; you do
   + 'never answer sincerity with a put-down. When V is hurt or tired do not console or reassure: stay clipped, and at most do '
   + 'something useful (a drink, a ride, a minute of quiet). Everything else (a task, a plan, a fact, small talk) you answer exactly '
   + 'as you normally would, with no warmth and no mention of your history with V. Never add a declaration or a pet name.';
-const LIMITS = 'Do not invent shared scenes, dates, gifts, places or promises; do not narrate actions or kisses; affection is '
+export const ROMANCE_LIMITS = 'Do not invent shared scenes, dates, gifts, places or promises; do not narrate actions or kisses; affection is '
   + 'not consent to a new intimate act.';
 const CASUAL_LIMIT = 'Never claim that you are V\'s partner, and make no claim of commitment, exclusivity, devotion or a promised '
   + 'second encounter. If V pushes for a definition, stay casual and honest.';
@@ -121,5 +121,5 @@ export function relationshipContext(selection, channel = 'private', options) {
     ? group
       ? 'Keep private intimate details and private conversations out of group dialogue unless explicit current-audience disclosure is supplied.'
       : 'Keep private relationship history and private conversations out of group dialogue unless explicit current-audience disclosure is supplied.' : '';
-  return [why, ROMANCE_CUES[selection.profileKey], casual ? USE_CASUAL : USE, casual ? CASUAL_LIMIT : '', LIMITS, privacy, group].filter(Boolean).join(' ');
+  return [why, ROMANCE_CUES[selection.profileKey], casual ? USE_CASUAL : ROMANCE_USE, casual ? CASUAL_LIMIT : '', ROMANCE_LIMITS, privacy, group].filter(Boolean).join(' ');
 }

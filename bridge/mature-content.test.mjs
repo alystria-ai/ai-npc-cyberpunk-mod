@@ -4,7 +4,9 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {GENERIC_REFUSALS, REFUSALS} from './mature-guard.mjs';
-import {MATURE_MARK, MATURE_PROVIDERS, MODEL_ALLOWANCE, MatureContent, allowanceFor, flagsMinorSexual, levelFor, matureClosing, matureLayer, screenMinors} from './mature-content.mjs';
+import {MATURE_LIMITS, MATURE_MARK, MATURE_PROVIDERS, MATURE_USE, MODEL_ALLOWANCE, MatureContent, allowanceFor, flagsMinorSexual, levelFor, matureClosing, matureLayer, matureWorld, screenMinors} from './mature-content.mjs';
+import {ROMANCE_LIMITS, ROMANCE_USE, relationshipContext} from './romance-context.mjs';
+import {RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {PersonaBook, buildMessages, closing, systemHead, systemPrompt} from './mistral-prompt.mjs';
 import {BUDGET, TokenMeter, estimateTokens, fitMessages, textTokens} from './prompt-budget.mjs';
 import {TextProviderHost, groqRoute, localRoute, mistralRoute} from './text-provider-host.mjs';
@@ -99,16 +101,21 @@ test('the layer is short (150 to 450 tokens) and the hard limits are in it, what
   }
   // The tone (user direction 2026-10-13): explicit, direct, forward; the relationship facts set the tone and never forbid; no softening.
   const full = matureLayer('full'), suggestive = matureLayer('suggestive');
-  assert.match(full, /speak plainly and graphically/);
-  assert.match(full, /no euphemism, no fading to black/);
+  assert.match(full, /answer head-on and graphically/);
+  assert.match(full, /\(cock, pussy, ass, fuck, cum\)/, 'the full level names the words');
+  assert.match(full, /No euphemism, metaphor, fading to black or disclaimers/);
   assert.match(full, /Be forward: flirt openly/);
-  assert.match(full, /say explicitly what you would do, between consenting adults/);
   assert.match(full, /HOW you are forward, not whether/);
+  assert.match(full, /a guarded profile is how you flirt, never a reason to dodge/);
+  assert.match(full, /V's partner is the most forward/);
   assert.match(full, /never whether flirting or sexual talk is allowed/);
+  assert.match(full, /Never answer a flirt or a dare with a question or a hedge/);
+  assert.match(full, /no quest, gear, car or road talk and no stand-ins for sex/, 'the adult moment stays on the two of them');
+  assert.match(full, /outranks any advice above to stay vague/);
   assert.doesNotMatch(full, /refuse, tease or deflect|not V's lover|unless they say/);
   assert.match(suggestive, /Be forward: flirt openly/);
   assert.match(suggestive, /give no explicit description of the act itself: cut away there/);
-  assert.doesNotMatch(suggestive, /sex, violence, gore or drugs|explicitly what you would do/, 'the suggestive level keeps the act itself off the page');
+  assert.doesNotMatch(suggestive, /cock|pussy|answer head-on and graphically|sex, violence, gore or drugs/, 'the suggestive level keeps the act itself off the page');
   // The adults-only line and the hard limits are the last two lines, word for word, at every level.
   for (const layer of [full, suggestive, matureLayer('x')]) {
     const lines = layer.split('\n');
@@ -130,12 +137,24 @@ test('off: the prompt is byte for byte the one built without the setting, in bot
   assert.equal(systemPrompt({persona: judy, mature: null}), systemPrompt({persona: judy}));
 });
 
-test('on: the layer is purely additive, one block after the output rules, before the format notes, and the same every turn', () => {
+// The old words of the two output rules the setting changes (2026-10-14), verbatim: with the setting off they are what the prompt says.
+const OLD_RULE_3 = '3. Be brief, like a real person talking: one to three short sentences, about 15 to 40 words, and one question at most. Go longer only when V asks you to explain or tell a story (then six sentences at most).';
+const OLD_RULE_6_END = 'If V asks about something your profile does not cover, stay vague in your own way (a shrug, a joke, a question back). What V told you earlier';
+
+test('on: the layer is one block after the output rules, before the format notes, and the same every turn; the rest differs only in rules 3 and 6', () => {
   const off = buildMessages(args())[0].content;
   const on = buildMessages(args({mature: 'full'}))[0].content;
   const layer = matureLayer('full');
   assert(on.includes(`\n\n${layer}\n\nFORMAT NOTES`));
-  assert.equal(on.replace(`\n\n${layer}`, ''), off, 'taking the layer out leaves exactly the prompt of before');
+  // Off, the two rules are the old words byte for byte; on, only those two lines differ (the world here has no partner text).
+  assert(off.includes(OLD_RULE_3) && off.includes(OLD_RULE_6_END), 'off: the old rules');
+  assert(!on.includes(OLD_RULE_3) && !on.includes('a question back'), 'on: neither rule offers a question back or the old length');
+  const lines = text => text.split('\n');
+  const offLines = lines(off);
+  const changed = lines(on.replace(`\n\n${layer}`, '')).map((line, index) => [line, offLines[index]]).filter(([a, b]) => a !== b);
+  assert.deepEqual(changed.map(([line]) => line.slice(0, 2)), ['3.', '6.'], 'only rules 3 and 6');
+  assert.match(changed[0][0], /Four in an adult moment\./);
+  assert.match(changed[1][0], /\(a shrug or a joke\), but never about flirting, desire or sex\./);
   assert(on.indexOf('OUTPUT RULES') < on.indexOf(MATURE_MARK) && on.indexOf(MATURE_MARK) < on.indexOf('FORMAT NOTES'));
   // Stable part: the right-now block, the world and the history change from turn to turn, the layer and everything before it do not.
   const next = buildMessages(args({mature: 'full', history: [], memory: 'Another memory.', contextParts: parts({now: 'It is morning.', world: 'Another world.'})}))[0].content;
@@ -151,9 +170,9 @@ test('the closing line gets one more sentence with the setting on, at the level 
   assert(base.endsWith('Right now section says.)'));
   const full = closing('Judy Alvarez', 0, 'full'), suggestive = closing('Judy Alvarez', 0, 'suggestive');
   assert.equal(full, base.replace(/\)$/, ` ${matureClosing('full')})`));
-  assert.match(full, /answer directly and explicitly in your own voice, with real detail, no dodging and no question back\.\)$/);
+  assert.match(full, /answer head-on in plain, explicit words: what you do, what you want\. No dodging, no joke, no question back\. If it is violent or crude, stay in it\.\)$/);
   assert.match(suggestive, /sex stays suggestive, cut away at the act\.\)$/);
-  assert.doesNotMatch(suggestive, /explicitly/);
+  assert.doesNotMatch(suggestive, /explicit/);
   // In the prompt: only the last message of the turn carries it; with the setting off the prompt is the old one.
   const on = buildMessages(args({mature: 'full'})), off = buildMessages(args());
   assert(on.at(-1).content.endsWith(closing(judy.name, judy.talkWords, 'full')));
@@ -400,4 +419,60 @@ test('the host replaces a flagged reply with the character\'s own refusal, logs 
   assert.equal((await off.host.reply(turn('hello'))).text, text);
   assert.equal(off.logs.some(line => /Mature/.test(line)), false);
   off.host.close();
+});
+
+// ---- Pushed harder (2026-10-14): what held the models back is answered while the setting is on, and only then --------------------------
+
+const partner = profileKey => relationshipContext({status: 'ready', profileKey, style: 'romantic', saveRelationship: {status: 'confirmed', evidenceRule: RELATIONSHIP_PROFILES[profileKey].rule}}, 'private');
+
+test('a partner\'s relationship text leans in with the setting on: the two paragraphs that held her back are swapped, nothing else of the block changes', () => {
+  for (const key of ['panam-palmer', 'judy-alvarez', 'river-ward', 'kerry-eurodyne']) {
+    const text = partner(key);
+    assert(text.includes(ROMANCE_USE) && text.includes(ROMANCE_LIMITS), key);
+    const swapped = matureWorld(text);
+    assert(!swapped.includes(ROMANCE_USE) && !swapped.includes(ROMANCE_LIMITS), key);
+    assert.doesNotMatch(swapped, /do not narrate actions or kisses|not consent to a new intimate act|at most a few words/, key);
+    assert(swapped.includes(MATURE_USE) && swapped.includes(MATURE_LIMITS));
+    assert(swapped.startsWith(text.slice(0, text.indexOf(ROMANCE_USE))), 'the confirmation and the character\'s own cue stay');
+    assert(textTokens(swapped, 4.2) < textTokens(text, 4.2), 'and the block is shorter, not longer');
+  }
+  // The casual-encounter text keeps its own paragraph (only the shared limits line is swapped); a block with neither paragraph is returned as it is.
+  const casual = partner('meredith-stout');
+  assert(matureWorld(casual).includes('stays blunt, controlled and dry'));
+  assert.equal(matureWorld('TRACKED QUEST: Pisces.'), 'TRACKED QUEST: Pisces.');
+  assert.equal(matureWorld(null), '');
+});
+
+test('in the prompt: the swap happens only with the setting on, in both layouts; off keeps the relationship text byte for byte', () => {
+  const world = `RELATIONSHIP: ${partner('panam-palmer')}\n\nTRACKED QUEST: Riders on the Storm.`;
+  const panam = book.persona('panam-palmer');
+  for (const withParts of [true, false]) {
+    const base = {persona: panam, memory: '', history: [], text: 'hey', ...(withParts ? {contextParts: parts({world})} : {context: world})};
+    const where = messages => withParts ? messages[0].content : messages.at(-1).content;
+    const off = where(buildMessages(base)), on = where(buildMessages({...base, mature: 'full'}));
+    assert(off.includes(ROMANCE_USE) && off.includes(ROMANCE_LIMITS) && !off.includes(MATURE_USE), `off, parts ${withParts}`);
+    assert(on.includes(MATURE_USE) && on.includes(MATURE_LIMITS) && !on.includes(ROMANCE_USE) && !on.includes('do not narrate actions or kisses'), `on, parts ${withParts}`);
+  }
+});
+
+test('on: nothing that tells the model to dodge is left in the prompt, and the closing line is the last thing it reads', () => {
+  const world = partner('judy-alvarez');
+  const messages = buildMessages(args({persona: judy, mature: 'full', contextParts: parts({world})}));
+  const everything = messages.map(message => message.content).join('\n');
+  assert.doesNotMatch(everything, /a question back\)|affection is not consent|do not narrate actions or kisses|you may refuse, tease or deflect/);
+  assert.match(messages[0].content, /never about flirting, desire or sex/);
+  assert.match(messages[0].content, /Four in an adult moment\./);
+  assert(messages.at(-1).content.endsWith(`${matureClosing('full')})`));
+  // The suggestive level gets the same rules and relationship text (it only keeps the act itself off the page).
+  const suggestive = buildMessages(args({persona: judy, mature: 'suggestive', contextParts: parts({world})}))[0].content;
+  assert(suggestive.includes(MATURE_USE) && suggestive.includes('never about flirting, desire or sex'));
+  // The hard limits and the adults-only line are in the system message once, word for word.
+  assert.equal(everything.split(LIMITS_LINE).length, 2);
+  assert.equal(everything.split(ADULTS_LINE).length, 2);
+});
+
+test('the push does not grow the prompt much: the layer and its closing sentence stay small', () => {
+  const layer = textTokens(matureLayer('full'), 4.2), closingSentence = textTokens(matureClosing('full'), 4.2);
+  assert(layer <= 450, `layer ${Math.round(layer)} tokens`);
+  assert(closingSentence <= 60, `closing sentence ${Math.round(closingSentence)} tokens`);
 });
