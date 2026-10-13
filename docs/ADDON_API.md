@@ -450,12 +450,21 @@ export function onSettings(values) {}
   windscreen's aiming cone does not (the cab's interior, the windscreen or nothing under the crosshair all mean the speaker).
   The choice is made on the key press only, from the speakers' `available` and anchor; nothing runs per frame, and the main mod
   names no add-on. Replies use the same route, persona, voice and subtitles as remarks, and stream their first sentence to the voice.
-- **Voice key (F7, F10).** Not supported for add-on speakers yet. Pressing F7 with only an add-on voice in reach shows: "Skippy
-  answers typed messages only for now. Use {key}." In a group, voice rounds leave add-on voices out. A speaker's voice turn would
-  need: speech recognition of V's recording handed to the add-on turn route (`runAddonTurn` takes `input.text`; the microphone
-  path today binds a recording to a Convai or character route through `profileFor` and the knowledge router), microphone lease and
-  cancel handling for a profile key that is not in the character roster, and group voice rounds that put an add-on voice among
-  the spoken participants. That reaches into the microphone session, so it was left out.
+- **Voice key (F7, F10).** The voice keys work with add-on speakers on the same target rules as the typed keys (a character under the
+  crosshair first; a vehicle-anchored voice outranks characters outside V's car; chosen on the key press only). Convai recognises
+  speech inside its own session, which an add-on speaker never opens, so V's recording is recognised on this computer by the
+  recogniser the Mistral route already uses (`bridge/local-stt.mjs`, `bridge/local-stt-capture.mjs`, the Moonshine model in the
+  hidden voice browser; `docs/LOCAL_STT.md`). It is the same whichever conversation provider the player chose, Convai included,
+  because it does not need the provider. The words then go to the add-on turn route (`runAddonTurn`: Mistral or the local AI,
+  never Convai), and the reply is voiced and captioned as any add-on reply. No Convai connection, memory or warm-up is opened.
+  The microphone lease, cancel and finish handling accept a profile key that is not in the character roster, and the live words
+  appear while V speaks. The recording's context blocks are added at the start and again at the finish (`microphone.decorate`).
+  Without the recogniser installed on this computer (the status `stt` flag the bridge publishes), F7 with only an add-on voice
+  in reach still shows: "{name} answers typed messages only for now. Use {key}.", and in a group the voice rounds leave the add-on
+  voices out. In a group voice round (F10) an add-on voice joins the companions: if it leads the round its own recording is
+  recognised as above; if a companion leads, the companion's recording keeps its Convai or Mistral route and the add-on voice
+  answers the recognised words as a later speaker, like a typed round. A companion's Convai audience and memory are unchanged by an
+  add-on voice being present.
 - **Group conversation** (`group = true`). The speaker joins the nearby companions in a group round and hears their lines, and they
   hear its lines. An add-on voice is never part of a companion's routing audience, so a companion's route and memory stay the same
   as without the add-on. Use `setCompanionContext` to tell companions where they are (Delamain: "You are riding in a Delamain cab
@@ -554,11 +563,12 @@ check the list of calls.
 
 | Where | What |
 |---|---|
-| `mod/init.lua` | Loads `addons.lua` with `pcall`; returns `{addons = …}` for `GetMod`. Talk target: add-on voices after aimed characters (a vehicle-anchored voice outranks characters outside V's car: `companionOrPassenger`), never for the voice key. `sendRequest`/`decorate`; `reactionCanDeliver` → `canDeliver`; `groupAudience` → `participantLive`; the reply error branch → `replyError`; `warmConversation` skips add-on voices; tick, reset and shutdown. |
+| `mod/init.lua` | Loads `addons.lua` with `pcall`; returns `{addons = …}` for `GetMod`. Talk target: add-on voices after aimed characters (a vehicle-anchored voice outranks characters outside V's car: `companionOrPassenger`), for the voice keys too when `manager.speechRecognitionReady()` (asked on the key press, with `microphone.decorate` adding the blocks). `sendRequest`/`decorate`; `reactionCanDeliver` → `canDeliver`; `groupAudience` → `participantLive`; the reply error branch → `replyError`; `warmConversation` skips add-on voices; tick, reset and shutdown. |
 | `mod/speech.lua`, `continuous-speech.lua`, `subtitles.lua` | `voiceOnly`: no face calls, no `IsDeadNoStatPool` check, subtitles owned by the player. |
 | `mod/group-chat.lua` | `voiceOnly` rows; add-on voices are left out of the other speakers' audience. |
+| `mod/microphone.lua`, `mod/manager.lua` | `microphone.decorate` (add-on blocks at start and finish); `manager.speechRecognitionReady()` (the bridge's `stt` flag). |
 | `mod/mcm.lua`, `mod/notices.lua` | Add-on settings sections; the `addon-notice` notice. |
-| `bridge/convai-bridge.mjs` | `AddonHost.load`, `extend` (roster rows; add-on Convai IDs removed), voice config merge, status, state/settings watchers, journal; `runAddonTurn` before every Convai step of `runInput`; one `TextProviderHost` per add-on route (`fixedProvider`, `sharedMemory`, never Groq); `onWarm`. |
+| `bridge/convai-bridge.mjs` | `AddonHost.load`, `extend` (roster rows; add-on Convai IDs removed), voice config merge, status, state/settings watchers, journal; `runAddonTurn` before every Convai step of `runInput`; one `TextProviderHost` per add-on route (`fixedProvider`, `sharedMemory`, never Groq); `onWarm`. The microphone poll's add-on branches (start, finish, watch) and `bridge/addon-voice.mjs` (the channel on the Mistral route's recogniser; `MicrophoneSession` passes its `hostFactory` the recording). |
 | `bridge/protocol.mjs`, `bridge/mistral-prompt.mjs` | The `addon` request field and reaction; persona rows with `intro`, `identityRule` and `rules`. |
 
 ## What the game must confirm live

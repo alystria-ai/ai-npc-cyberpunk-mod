@@ -485,8 +485,9 @@ test('init.lua: every call into the add-on API is skipped until an add-on is liv
   assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'decorate', 'isSpeaker', 'participantLive', 'replyError', 'talkCandidates']);
   assert.match(init, /if key and not participants and convaiAddons and convaiAddons\.live and convaiAddons\.isSpeaker\(key\) then key = nil end/);
   assert.match(init, /if type\(reply\.errorCode\) == 'string' and reply\.errorCode:find\('\^addon%-'\) then\s+if convaiAddons and convaiAddons\.live then convaiAddons\.replyError\(pending, reply, player\) end\s+elseif keyId == 'key-memory'/);
-  // The voice key never addresses an add-on voice (typed messages only for now), and no Convai warm-up or connect note is made for one.
-  assert.match(init, /if voices and voices\[1\] and singleAction == 'cyberpunk_convai_voice' then[^]*?return nil\s+end\s+voices = nil\s+end/);
+  // The voice key addresses an add-on voice only on a computer that can recognise speech (asked on the key press); otherwise typed
+  // messages only. No Convai warm-up or connect note is made for one.
+  assert.match(init, /if voices and voices\[1\] and singleAction == 'cyberpunk_convai_voice' and not addonHears then[^]*?return nil\s+end\s+voices = nil\s+end/);
   assert.match(init, /if not person\.voiceOnly then audience\[#audience \+ 1\] = person\.profileKey end/);
   assert.match(init, /local connectNote = autoConnect and not participants and not primary\.voiceOnly and autoConnect\.talkNotice\(key, name\) or nil/);
   assert.doesNotMatch(init, /seams\.warm/);

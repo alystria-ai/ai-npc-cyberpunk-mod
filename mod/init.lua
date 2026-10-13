@@ -1317,7 +1317,9 @@ local function companionOrPassenger(player, npc)
     return false
 end
 
-local function selectConversation(player, groupMode, singleAction)
+-- addonHears: this computer can recognise speech locally (manager.speechRecognitionReady), which an add-on voice needs to answer the
+-- voice keys; the caller asks it on the key press only, and only while an add-on is live.
+local function selectConversation(player, groupMode, singleAction, addonHears)
     local npc, reason, decision = targetAtCrosshair()
     logTalkTarget(decision)
     local candidates = groupMode and companions.conversationCandidates(player, 8) or {}
@@ -1331,8 +1333,9 @@ local function selectConversation(player, groupMode, singleAction)
     -- An installed add-on's voice (docs/ADDON_API.md: a talking gun in V's hand, a cab's voice) answers the talk keys while it
     -- is available and no character with a profile is under the crosshair; in a group it joins the nearby companions.
     local voices = convaiAddons and convaiAddons.live and convaiAddons.talkCandidates(player, groupMode) or nil
-    -- Add-on voices answer typed messages only for now (the voice key would need speech recognition on their Mistral / local AI route).
-    if voices and voices[1] and singleAction == 'cyberpunk_convai_voice' then
+    -- An add-on voice hears V through the bridge's local speech recognition (its answer comes from Mistral or the local AI, never
+    -- Convai). On a computer without it the voice keys leave add-on voices out and they answer typed messages only.
+    if voices and voices[1] and singleAction == 'cyberpunk_convai_voice' and not addonHears then
         local aimed = npc and profileIdentity(npc)
         if not groupMode and (not aimed or not supportedProfiles[aimed] or not profileEnabled(player, aimed)) then
             local shortcut = ui.boundKey('cyberpunk_convai_text')
@@ -1423,6 +1426,11 @@ microphone.onHeard = function(text)
     if not ok then return heardFallback('subtitle error: ' .. tostring(shown):sub(1, 200)) end
     if shown ~= true then return heardFallback('subtitle line refused') end
     return true
+end
+
+-- An add-on speaker's context blocks go with its spoken turn, as they do with a typed one (sendRequest).
+microphone.decorate = function(context)
+    if context.voiceOnly and convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
 end
 
 microphone.onCancelled = function(context, reason)
@@ -1618,7 +1626,8 @@ local function toggleVoice(groupMode)
             return
         end
         if not gameplayCanAcquire(player) then return end
-        local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_voice')
+        local addonHears = convaiAddons ~= nil and convaiAddons.live == true and manager.speechRecognitionReady() or false
+        local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_voice', addonHears)
         if not primary then return end
         if conversationServiceBlocked(player) then return end
         local npc, key, name, body, entity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity

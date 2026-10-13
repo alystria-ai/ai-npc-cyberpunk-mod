@@ -4715,6 +4715,32 @@ test('the voice key waits for Convai only while Mistral is in use and this compu
   `);
 });
 
+test('an add-on voice hears V whenever this computer can recognise speech, whichever provider is chosen', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function status(tag, value)
+      jsonFixtures['addon-voice-' .. tag] = value
+      files['runtime/mistral-state.json'] = 'addon-voice-' .. tag
+      clock = clock + 2
+    end
+    local function choose(index) assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = index}}).ok) end
+    assert(manager.speechRecognitionReady() == false, 'no status file: not ready')
+    status('a', {provider = 'convai', effective = 'convai', stt = true})
+    assert(manager.speechRecognitionReady() == true, 'a Convai player with the recogniser installed')
+    status('b', {provider = 'convai', effective = 'convai', stt = false})
+    assert(manager.speechRecognitionReady() == false)
+    status('c', {provider = 'convai', effective = 'convai'})
+    assert(manager.speechRecognitionReady() == false, 'a status without stt means no recognition')
+    for _, index in ipairs({2, 3, 4}) do
+      choose(index)
+      status('p' .. index, {provider = 'mistral', effective = 'mistral', saved = true, stt = true})
+      assert(manager.speechRecognitionReady() == true)
+    end
+    choose(1)
+    assert(manager.voiceNeedsConvai() == false, 'the companion check is untouched')
+  `);
+});
+
 test('the voice key follows the status file the bridge really publishes for Mistral, with and without local speech recognition', async () => {
   const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
   // The bridge side as convai-bridge.mjs wires it: the recogniser's availability becomes provider.sttAvailable, and the
