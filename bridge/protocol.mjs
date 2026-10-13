@@ -3,6 +3,7 @@
 import {parseGroup} from './group-context.mjs';
 import {parseJournal} from './quest-context.mjs';
 import {parseBattle, parseReaction} from './battle-context.mjs';
+import {parseAddonInput, parseAddonReaction} from './addons.mjs';
 import {parseLoot} from './loot-context.mjs';
 import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
@@ -52,7 +53,10 @@ function parseRequest(raw) {
   const turnContext = parseTurnContext(value.turnContext);
   const loot = parseLoot(value.loot, {entity, profileKey});
   if (loot === null) return null;
-  const battle = parseBattle(value.battle), reaction = parseReaction(value.reaction, battle, loot);
+  // An add-on speaker's turn data (docs/ADDON_API.md); absent for every ordinary turn.
+  const addon = parseAddonInput(value.addon);
+  const battle = parseBattle(value.battle);
+  const reaction = value.reaction?.kind === 'addon' ? parseAddonReaction(value.reaction, addon) : parseReaction(value.reaction, battle, loot);
   if (reaction === null) return null;
   // A malformed optional offer removes only gameplay admission; the original
   // conversation is still valid and must keep its actor/request identity.
@@ -69,7 +73,8 @@ function parseRequest(raw) {
     ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}),
     ...(followUnavailable ? {followUnavailable} : {}), ...(tacticUnavailable ? {tacticUnavailable} : {}), ...(driveUnavailable ? {driveUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
-    ...(gameDialogue ? {gameDialogue} : {}), ...(gear ? {gear} : {}), ...(turnContext ? {turnContext} : {})};
+    ...(gameDialogue ? {gameDialogue} : {}), ...(gear ? {gear} : {}), ...(turnContext ? {turnContext} : {}),
+    ...(addon ? {addon} : {})};
 }
 
 // Generic NPC profiles: the two ambient residents and every archetype (npc-*). They have no individual identity:

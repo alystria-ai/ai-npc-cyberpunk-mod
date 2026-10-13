@@ -274,6 +274,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/invitation-readiness.lua"
         },
         {
+          "source": "mod/addons.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/addons.lua"
+        },
+        {
           "source": "mod/auto-connect.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/auto-connect.lua"
         },
@@ -517,6 +521,7 @@
           "selection": "explicit production import closure, excluding tests and retired modules",
           "status": "source-import-closure-reviewed-not-packaged",
           "sourceFiles": [
+            "bridge/addons.mjs",
             "bridge/analysis-pcm.mjs",
             "bridge/audio-delay.mjs",
             "bridge/battle-context.mjs",

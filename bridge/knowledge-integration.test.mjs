@@ -5,7 +5,10 @@ import fengari from 'fengari';
 import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 
 const source = name => readFileSync(new URL(`../mod/${name}.lua`, import.meta.url), 'utf8');
-const initSource = source('init');
+// init.lua ends with the table CET hands to other mods (GetMod('CyberpunkConvai'), docs/ADDON_API.md). This harness runs the
+// file inside a function and returns its own table after it, so that final return statement is left out here.
+const initSource = source('init').replace(/\r?\nreturn \{addons = [^\n]*\s*$/, '\n');
+assert.notEqual(initSource, source('init'), 'init.lua no longer ends with the add-on API return');
 const microphoneSource = source('microphone');
 const groupSource = source('group-chat');
 const worldSource = source('world-knowledge');

@@ -458,6 +458,12 @@ local function prepare(speaker, text, actor, expected)
     M.entity = type(expected) == 'string' and expected or nil
     if validActor(actor, expected) then M.actor = actor end
     M.mode = M.requestedStyle
+    -- A speaker without a body (an add-on's voice, set by speech.lua for each reply) uses the cinematic dialogue line: there
+    -- is no head for an overhead caption. When its anchor is not a character, V owns the line, as with V's live words.
+    if M.voiceOnly == true then
+        M.mode, M.fallback = 'dialogue', 'voice-only'
+        if not M.actor then M.liveOwner = Game.GetPlayer() end
+    end
     if M.mode == 'overhead' and vehicleConversation(Game.GetPlayer()) then
         M.mode, M.fallback = 'dialogue', 'vehicle-interior'
     end

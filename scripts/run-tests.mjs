@@ -3,7 +3,7 @@
 //
 // The file list used to live inline in package.json's "test" script, which grew
 // past the Windows command-line limit (npm runs it through cmd.exe). This runner
-// finds the test files itself, so a new *.test.mjs under bridge/, packaging/ or
+// finds the test files itself, so a new *.test.mjs under bridge/, packaging/, addons/ or
 // scripts/ is picked up without editing package.json.
 //
 // Usage: node scripts/run-tests.mjs [extra node --test args, e.g. --test-reporter=dot]
@@ -14,7 +14,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SEARCH_DIRS = ["bridge", "packaging", "scripts", "auth-backend"];
+const SEARCH_DIRS = ["bridge", "packaging", "scripts", "auth-backend", "addons"];
 const TEST_SUFFIX = ".test.mjs";
 const NODE_TEST_FLAGS = ["--test", "--test-concurrency=8"];
 

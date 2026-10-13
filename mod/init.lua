@@ -67,6 +67,12 @@ local tactics = tacticModule('companion-tactics.lua', {env = tacticEnv}, {
     update = function() end, abandon = function() end, cancel = function() end})
 companions.tactics = tactics
 convaiCompanionTactics, convaiTargetMarking = tactics, marking
+-- Add-on API (mod/addons.lua, docs/ADDON_API.md). A global, so no function here gains an upvalue. Until an add-on registers,
+-- convaiAddons.live is false and every call below is skipped: the main mod behaves exactly as it does without the file.
+do
+    local loaded, module = pcall(dofile, 'addons.lua')
+    convaiAddons = loaded and type(module) == 'table' and module or nil
+end
 local lootObserver = dofile('loot-observer.lua')
 local loot = dofile('loot-reactions.lua').new()
 convaiLootObserver, convaiLootReactions = lootObserver, loot
@@ -692,10 +698,14 @@ local function warmConversation(participants, key, entity)
     local f = io.open('runtime/conversation-prewarm.json.tmp', 'wb')
     if not f then return end
     local hint = '{}'
+    -- An add-on voice never has a Convai connection to warm (docs/ADDON_API.md: Mistral or the local AI only).
+    if key and not participants and convaiAddons and convaiAddons.live and convaiAddons.isSpeaker(key) then key = nil end
     if key then
         local audience = {}
         if participants then
-            for _, person in ipairs(participants) do audience[#audience + 1] = person.profileKey end
+            for _, person in ipairs(participants) do
+                if not person.voiceOnly then audience[#audience + 1] = person.profileKey end
+            end
         else audience[1] = key end
         hint = json.encode({nonce = 'composer-' .. tostring(os.time()) .. '-' .. tostring(generation),
             audience = audience, group = participants ~= nil,
@@ -1300,7 +1310,39 @@ local function selectConversation(player, groupMode, singleAction)
         end
         candidates = enabled
     end
-    if not npc and groupMode and candidates[1] then npc = candidates[1].npc end
+    -- An installed add-on's voice (docs/ADDON_API.md: a talking gun in V's hand, a cab's voice) answers the talk keys while it
+    -- is available and no character with a profile is under the crosshair; in a group it joins the nearby companions.
+    local voices = convaiAddons and convaiAddons.live and convaiAddons.talkCandidates(player, groupMode) or nil
+    -- Add-on voices answer typed messages only for now (the voice key would need speech recognition on their Mistral / local AI route).
+    if voices and voices[1] and singleAction == 'cyberpunk_convai_voice' then
+        local aimed = npc and profileIdentity(npc)
+        if not groupMode and (not aimed or not supportedProfiles[aimed] or not profileEnabled(player, aimed)) then
+            local shortcut = ui.boundKey('cyberpunk_convai_text')
+            convaiNotices.send(player, 'addon-notice', shortcut
+                and ui.t('{name} answers typed messages only for now. Use {key}.', {name = voices[1].name, key = shortcut})
+                or ui.t('{name} answers typed messages only for now.', {name = voices[1].name}))
+            return nil
+        end
+        voices = nil
+    end
+    if voices and voices[1] then
+        if groupMode then for _, voice in ipairs(voices) do candidates[#candidates + 1] = voice end end
+        local aimed = npc and profileIdentity(npc)
+        if not aimed or not supportedProfiles[aimed] or not profileEnabled(player, aimed) then
+            local voice = voices[1]
+            local together = groupMode and groupChat.choose(voice, candidates, supportedProfiles) or nil
+            if together and #together < 2 then
+                local shortcut = ui.boundKey(singleAction)
+                convaiNotices.send(player, 'group-needs-two', shortcut
+                    and ui.t('Group chat needs two characters nearby. Use {key} for one person.', {key = shortcut})
+                    or ui.t('Group chat needs two characters nearby. Use private chat for one person.'))
+                return nil
+            end
+            log('Add-on voice conversation: profile=' .. voice.profileKey)
+            return voice, together
+        end
+    end
+    if not npc and groupMode and candidates[1] and not candidates[1].voiceOnly then npc = candidates[1].npc end
     if not npc then convaiNotices.send(player, 'talk-no-target', ui.t(reason)); return nil end
     local key, name, bodyType, archetype = profileIdentity(npc)
     if not key or not supportedProfiles[key] then
@@ -1431,8 +1473,8 @@ local function beginTextNow(groupMode, waited)
         if not primary then return end
         if conversationServiceBlocked(player) then return end
         local npc, key, name, bodyType, identity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
-        -- A character that is not connected yet makes V wait: say so (mod/auto-connect.lua).
-        local connectNote = autoConnect and not participants and autoConnect.talkNotice(key, name) or nil
+        -- A character that is not connected yet makes V wait: say so (mod/auto-connect.lua). An add-on voice has no connection.
+        local connectNote = autoConnect and not participants and not primary.voiceOnly and autoConnect.talkNotice(key, name) or nil
         generation = generation + 1
         local speedAtOpen = playerSpeedText(player)
         local moveAtOpen = moveStateText(player)
@@ -1447,24 +1489,26 @@ local function beginTextNow(groupMode, waited)
         groupChat.cancel()
         subtitles.clear()
         speech.target = npc
-        -- A world NPC's face gets the speech layer on demand (Face.reds ConvaiFaceRequest).
-        local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
-        if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
-            log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(faceStatus))
-        end
-        if focusEntity ~= identity then
-            local focused, reason = beginFocus(player, npc)
-            if not focused then
-                log('NPC focus unavailable: ' .. tostring(reason))
-            else
-                focusEntity = identity
+        -- A world NPC's face gets the speech layer on demand (Face.reds ConvaiFaceRequest). An add-on's voice has no face or gaze.
+        if not primary.voiceOnly then
+            local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
+            if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
+                log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(faceStatus))
+            end
+            if focusEntity ~= identity then
+                local focused, reason = beginFocus(player, npc)
+                if not focused then
+                    log('NPC focus unavailable: ' .. tostring(reason))
+                else
+                    focusEntity = identity
+                end
             end
         end
         focusMode = 'chat'
         resetGaze()
         focusUntil = os.time() + 45
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
-            profileKey = key, participants = participants, archetype = primary.archetype}
+            profileKey = key, participants = participants, archetype = primary.archetype, voiceOnly = primary.voiceOnly}
         warmConversation(participants, key, identity)
         convaiDemandKnowledge() -- fresh world and journal by the time V sends
         if connectNote then convaiNotices.send(player, 'talk-connecting', connectNote) end
@@ -1565,23 +1609,30 @@ local function toggleVoice(groupMode)
         warmConversation(participants, key, entity)
         speech.stop('microphone'); subtitles.clear()
         speech.target = npc
-        -- A world NPC's face gets the speech layer on demand (Face.reds ConvaiFaceRequest).
-        local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
-        if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
-            log('Face request: actor=' .. tostring(entity) .. ' status=' .. tostring(faceStatus))
+        -- A world NPC's face gets the speech layer on demand (Face.reds ConvaiFaceRequest). An add-on's voice has no face.
+        if not primary.voiceOnly then
+            local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
+            if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
+                log('Face request: actor=' .. tostring(entity) .. ' status=' .. tostring(faceStatus))
+            end
         end
         local context
         if groupMode then
             context = groupChat.startVoice('group-' .. tostring(os.time()) .. '-' .. tostring(generation), participants, generation, os.time())
         else
             context = {generation = generation, entity = entity, name = name, bodyType = body,
-                profileKey = key, text = '[Microphone]', sentAt = os.time(), archetype = primary.archetype}
+                profileKey = key, text = '[Microphone]', sentAt = os.time(), archetype = primary.archetype,
+                voiceOnly = primary.voiceOnly}
             context.requestId = tostring(os.time()) .. '-' .. tostring(generation) .. '-' .. entity
         end
         active, pending, pendingKnowledgeOwner = nil, nil, nil
         convaiDemandKnowledge() -- fresh by the time the recording finishes (its second capture)
-        if microphone.begin(context, function() return voiceTargetValid(npc, context) end) then
-            beginFocus(player, npc)
+        local function targetValid()
+            if primary.voiceOnly then return convaiAddons ~= nil and convaiAddons.participantLive(primary, Game.GetPlayer()) end
+            return voiceTargetValid(npc, context)
+        end
+        if microphone.begin(context, targetValid) then
+            if not primary.voiceOnly then beginFocus(player, npc) end
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
             local micNote = ui.t('Connecting microphone - wait for Listening')
             convaiNotices.sendLines(player, {{id = 'talk-connecting', text = connectNote}, {id = 'mic-connecting', text = micNote}})
@@ -1608,7 +1659,10 @@ local function sendRequest(context)
     else context.battle = context.battle or battles.capture() end
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
-    if not context.group and not context.reaction then gameplayActions.capture(context, 'private-text')
+    if context.voiceOnly then
+        -- An add-on's voice (docs/ADDON_API.md) cannot follow, fight or drive: no gameplay actions, and its context blocks.
+        if convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
+    elseif not context.group and not context.reaction then gameplayActions.capture(context, 'private-text')
     elseif context.group and context.group.index == 1 and not context.reaction then
         gameplayActions.capture(context, 'group-text')
     end
@@ -2074,6 +2128,7 @@ end
 
 local function reactionCanDeliver(context, player)
     if not context.reaction then return true end
+    if context.reaction.kind == 'addon' then return convaiAddons ~= nil and convaiAddons.canDeliver(context, player) end
     if not automatic or automatic.requestId ~= context.requestId then return false end
     -- A reply can become ready between the half-second observer samples. Read
     -- player scene/combat state and the owned speaker before playback.
@@ -2096,6 +2151,7 @@ local function groupAudience(player)
     local origin = player:GetWorldPosition()
     for _, person in ipairs(groupChat.round.participants) do
         local ok, nearby = pcall(function()
+            if person.voiceOnly then return convaiAddons ~= nil and convaiAddons.participantLive(person, player) end
             if not person.npc:IsAttached() or person.npc:IsDeadNoStatPool()
                 or tostring(person.npc:GetEntityID().hash) ~= person.entity then return false end
             -- Keep the actor/profile frozen at admission. A managed copy can
@@ -2171,12 +2227,14 @@ local function updateGroup(player)
     local context, actor = groupChat.next(generation, os.time(), live)
     if not context then focusUntil = os.time() + 1; return end
     speech.target = actor
-    -- A world NPC's face gets the speech layer on demand (Face.reds ConvaiFaceRequest).
-    local faceOk, faceStatus = pcall(function() return actor:ConvaiFaceRequest() end)
-    if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
-        log('Face request: actor=' .. tostring(context.entity) .. ' status=' .. tostring(faceStatus))
+    -- A world NPC's face gets the speech layer on demand (Face.reds ConvaiFaceRequest). An add-on's voice has no face.
+    if not context.voiceOnly then
+        local faceOk, faceStatus = pcall(function() return actor:ConvaiFaceRequest() end)
+        if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
+            log('Face request: actor=' .. tostring(context.entity) .. ' status=' .. tostring(faceStatus))
+        end
+        beginFocus(player, actor)
     end
-    beginFocus(player, actor)
     focusMode, focusEntity = 'chat', context.entity
     if not sendRequest(context) then groupChat.cancel(); log('Group request could not be written') end
 end
@@ -2287,6 +2345,55 @@ tacticEnv.log = function(line) log(line) end
 -- A copy's conversation profile can be reassigned (companions.setProfile).
 companions.onProfileChanged = function(entity) retirePrivateReply(entity, 'profile-reassigned') end
 
+-- The main mod seams the add-on API uses (docs/ADDON_API.md, "Main mod seams"). Plain functions over state this file already
+-- keeps; none runs unless an add-on has registered, and none runs per frame.
+if convaiAddons then
+    local seams = {log = function(line) log(line) end, native = function() return convaiNative end,
+        player = function() return Game.GetPlayer() end, outputs = function(player) return reactionOutputs(player) end,
+        sample = function(player) return battleObserver.sample(player) end,
+        nextGeneration = function() generation = generation + 1; return generation end,
+        registerProfile = function(key) supportedProfiles[key] = true end,
+        partyProfiles = function() return companions.connectionProfiles() end,
+        notify = function(player, text) convaiNotices.send(player, 'addon-notice', text) end}
+    -- What is going on now, read once per add-on tick.
+    seams.state = function()
+        return {active = active ~= nil, microphone = microphone.context ~= nil, group = groupChat.round ~= nil,
+            phone = phoneChat.pending ~= nil, automatic = automatic ~= nil,
+            pendingId = pending and pending.requestId or nil, pendingProfile = pending and pending.profileKey or nil,
+            pendingReaction = pending and pending.reaction and pending.reaction.kind or nil,
+            speechId = speech.requestId, speechName = speech.speaker, captions = subtitles.ownsUtterance() == true,
+            sample = battleSample}
+    end
+    -- An automatic add-on remark: the same request file, reply path and playback as every other turn.
+    seams.submit = function(context, anchor)
+        if active or pending or automatic or microphone.context or groupChat.round then return false end
+        local sent = sendRequest(context)
+        if sent then speech.target = anchor end
+        return sent
+    end
+    -- A remark the add-on scheduler withdrew: forget its request and stop its voice or caption, never a newer turn's.
+    seams.drop = function(requestId, reason, entity)
+        if pending and pending.requestId == requestId then pending, pendingKnowledgeOwner = nil, nil end
+        if privateReply and privateReply.requestId == requestId then privateReply = nil end
+        if requestFileId == requestId then requestFileId = nil; os.remove('runtime/last-input.json') end
+        if speech.requestId == requestId then pcall(speech.stop, reason)
+        elseif not speech.requestId and entity and subtitles.entity == entity and subtitles.ownsUtterance() then
+            pcall(subtitles.clearEntity, entity)
+        end
+    end
+    -- Companion joined/left events: wrap the party callback the first time an add-on asks.
+    seams.watchParty = function(fn)
+        if seams.partyWatched then return end
+        seams.partyWatched = true
+        local previous = companions.onPartyChanged
+        companions.onPartyChanged = function(...)
+            if previous then previous(...) end
+            pcall(fn)
+        end
+    end
+    convaiAddons.attach(seams)
+end
+
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', function() beginText(false) end)
 registerHotkey('cyberpunk_convai_group_text', 'Cyberpunk Convai: group text chat', function() beginText(true) end)
 registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice', function() toggleVoice(false) end)
@@ -2321,6 +2428,7 @@ local function abandonSession(reason,preserveTransit)
     active, pending, focusUntil, focusMode, focusEntity = nil, nil, nil, nil, nil
     pendingKnowledgeOwner = nil
     if convaiTalkGate then convaiTalkGate.waiting = nil end
+    if convaiAddons and convaiAddons.live then pcall(convaiAddons.reset, reason) end
     focusedCrowd, releasedCrowd = nil, nil
     if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
     phoneCatalogReady = false
@@ -2684,6 +2792,11 @@ registerForEvent('onUpdate', function(delta)
             log('Battle observation skipped: ' .. tostring(battleError))
         end
     end
+    -- Add-ons (docs/ADDON_API.md): only once one has registered.
+    if convaiAddons and convaiAddons.live then
+        local addonOk, addonError = pcall(convaiAddons.tick, player, elapsedPoll, worldReady)
+        if not addonOk then log('Add-on update failed: ' .. tostring(addonError)) end
+    end
     if focusUntil and not active and not pending and not speech.requestId and os.time() >= focusUntil then
         endFocus(player)
         focusUntil = nil
@@ -2785,7 +2898,11 @@ registerForEvent('onUpdate', function(delta)
                     if reply.error then
                         gameplayActions.revoke('reply-error', pending.requestId)
                         local keyId, keyText = keyReplyNotice(reply)
-                        if keyId == 'key-memory' then convaiNotices.send(player, 'key-memory', keyText)
+                        -- An add-on speaker's turn (docs/ADDON_API.md): no Mistral key or Local AI pack (one notice), or a remark
+                        -- that repeated a recent line (silent). The add-on file decides; nothing else is shown.
+                        if type(reply.errorCode) == 'string' and reply.errorCode:find('^addon%-') then
+                            if convaiAddons and convaiAddons.live then convaiAddons.replyError(pending, reply, player) end
+                        elseif keyId == 'key-memory' then convaiNotices.send(player, 'key-memory', keyText)
                         -- The daily allowance: a turn V asked for says so once; an automatic reaction just stops.
                         elseif keyId == 'daily-limit' then
                             if not pending.reaction then convaiNotices.send(player, 'daily-limit', keyText) end
@@ -2920,7 +3037,11 @@ registerForEvent('onShutdown', function()
     if liveWorld then endFocus(player) else focusedCrowd, releasedCrowd = nil, nil end
     if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
     pcall(movementLog.flush) -- buffered Developer movement trace
+    if convaiAddons and convaiAddons.live then pcall(convaiAddons.reset, 'shutdown') end
     focusMode = nil
     focusEntity = nil
     log('Game adapter shut down')
 end)
+
+-- GetMod('CyberpunkConvai') returns this table to other CET mods. `addons` is the add-on API (docs/ADDON_API.md).
+return {addons = convaiAddons and convaiAddons.public or nil}

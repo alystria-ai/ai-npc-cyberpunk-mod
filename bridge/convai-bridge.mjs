@@ -96,6 +96,7 @@ import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
+import {AddonHost, fixedProvider, sharedMemory} from './addons.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -110,6 +111,10 @@ const roster = [...JSON.parse(await readFile(resolve(project, 'characters/roster
     throw error;
   }))];
 const ids = JSON.parse(await readFile(resolve(stateDirectory, 'characters.json'), 'utf8'));
+// Add-on mods (docs/ADDON_API.md): each speaker an installed add-on brings becomes a roster row here. Add-on speakers never have a
+// Convai character (their text comes only from Mistral or the local AI, runAddonTurn). With no add-on installed the host is empty and adds nothing.
+const addonHost = await AddonHost.load({game, log: message => console.error('[Addons] ' + message)});
+addonHost.extend(roster, ids);
 // runtime/relationship-profiles.json (the retired alternate affectionate profiles) is no longer read: every character has one profile.
 // Multilingual twins (docs/MULTILINGUAL_PROFILES.md): used only while "Multilingual conversations" is on. A missing
 // map is an English-only installation; a twin that no longer clones the current profile is left out.
@@ -121,7 +126,10 @@ if (multilingualProfiles.skipped.length) console.error('[CyberpunkConvai] Multil
 const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, multilingual: multilingualProfiles.twins});
 // Which voice configuration files are live is named by runtime/voice-configs.json (bridge/voice-config-paths.mjs):
 // the searched references for Pocket and for OmniVoice's short and long choices, each falling back to the base file.
-const voiceConfigPaths = resolveVoiceConfigPaths(stateDirectory);
+// Add-on voices are merged into copies of these files (addons.<name> in the state folder); without add-on voices the paths are unchanged.
+const voiceConfigPaths = await addonHost.voiceConfigPaths(resolveVoiceConfigPaths(stateDirectory), {stateDirectory,
+  roots: process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES ? [process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES]
+    : [resolve(stateDirectory, 'voice-references'), resolve(project, 'runtime/voice-references')]});
 for (const warning of voiceConfigPaths.warnings) console.error('[CyberpunkConvai] Voice configuration: ' + warning);
 const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').catch(error => {
   if (error.code === 'ENOENT') return '{}';
@@ -193,6 +201,12 @@ const keyFileContent = readKeyFileText(await readFile(keyFile, 'utf8'));
 if (!keyFileContent) throw Error('Local Convai key file must contain api-key=...');
 const key = keyFileContent.key;
 await mkdir(runtime, {recursive: true});
+// Which add-ons were found and why any was not loaded, for the game to tell the player (docs/ADDON_API.md). With none, a status
+// file an earlier run left is removed and nothing is written. Then the add-on state and settings the game last wrote.
+await addonHost.publishStatus(runtime).catch(error => console.error('[Addons] Status not written:', error.message));
+for (const read of Object.values(addonHost.watchHandlers(runtime))) await read();
+// Each speaker's recent lines and memories of earlier fights or rides (runtime/addon-journal.json); nothing without add-ons.
+await addonHost.loadJournal(stateDirectory);
 // The key conversations use: the one this installation provides, or the player's own (docs/OWN_CONVAI_KEY.md). It changes
 // only at an idle boundary (applyKeyChoice). `quota` remembers a used-up plan for the settings page and the in-game notice.
 // The sign-in backend (docs/CONVAI_AUTH_BACKEND.md, auth-backend/): OFF unless CYBERPUNK_CONVAI_AUTH_BACKEND=1 (or convai-auth.json
@@ -598,6 +612,34 @@ const mistralSpeech = createLocalSpeech({
 // Two side by side: the action decision and the reply of one turn are two requests at once (bridge/mistral-client.mjs, warmConnection).
 const warmTurnConnections = options => warmConnection({...options, connections: 2});
 for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: host === realtime, warmCloud: warmTurnConnections});
+// Add-on speakers (docs/ADDON_API.md) answer only through Mistral or the local AI, whatever the player's conversation provider is:
+// one text host per route (and whether the local AI may fall back to Mistral), made the first time an add-on speaker needs it. They
+// share the routes (one pacing per Mistral key), the persona book and the memory store; none exists without add-ons.
+const addonTextHosts = new Map();
+function addonTextHost(route, profileKey) {
+  const allowsMistral = route === 'local' && addonHost.routeFor(profileKey, {applied: 'mistral', mistralKey: true}) === 'mistral';
+  const cacheKey = `${route}:${allowsMistral}`;
+  let host = addonTextHosts.get(cacheKey);
+  if (!host) {
+    host = new TextProviderHost({provider: fixedProvider(mistral, route), memory: sharedMemory(mistralMemory), personas: personaBook,
+      routes: {[route]: textRoutes[route], ...(allowsMistral ? {mistral: textRoutes.mistral} : {})}, transformReply: cleanReply, gate: memoryQuiet,
+      log: message => console.error('[Addons] ' + message)});
+    addonTextHosts.set(cacheKey, host);
+  }
+  return host;
+}
+// What an add-on speaker's turn may use right now: the player's provider, a saved Mistral key that was not refused, a working Local AI pack.
+const addonRouteState = () => {
+  const local = addonHost.active ? localAiStatus() : 'not-installed';
+  return {applied: mistral.applied, mistralKey: !!mistral.apiKey && mistral.limit?.kind !== 'invalid',
+    localReady: !['not-installed', 'no-memory', 'failed'].includes(local)};
+};
+// The game asked to warm a speaker (handle:prepare): open the Mistral connection, or load the speaker's prompt into the local AI.
+addonHost.onWarm = profileKey => {
+  const route = addonHost.routeFor(profileKey, addonRouteState());
+  if (route === 'mistral') void warmConnection({provider: 'mistral'}).catch(() => {});
+  else if (route === 'local') void addonTextHost(route, profileKey).prewarm({local: {profileKey}});
+};
 function localTurn(input, prepared = preparedInputs.get(input)) {
   const route = prepared ?? routeFor(input);
   const channel = route?.route?.channel ?? (input.channel === 'phone' ? 'phone' : input.group ? 'group' : 'private');
@@ -750,6 +792,8 @@ const conversationBlocks = input => {
   const block = (tier, text) => ({tier, text});
   return [...intrinsicConversationContext.blocks(input), block('world', archetypeContext(input)),
     block('world', admitted ? vendorMemoryContext(prepared) : ''),
+    // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
+    ...addonHost.blocks(input),
     block('world', admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
@@ -1803,6 +1847,54 @@ async function processInput(request, prepared) {
   return withClock(clock, () => runInput(request, prepared, clock));
 }
 
+// An add-on speaker's turn (docs/ADDON_API.md): a remark the add-on asked for, or V talking to it. Text comes from Mistral or the local
+// AI only (AddonHost.routeFor); with neither set up the game is told once (errorCode addon-provider). A remark that nearly repeats one
+// of the speaker's recent lines is dropped silently (addon-duplicate). The voice is the speaker's local voice when there is one.
+function addonTurnConfig(input, profile) {
+  noteTurn(input);
+  const blocks = [...intrinsicConversationContext.blocks(input), ...addonHost.blocks(input)];
+  return {text: input.reaction?.kind === 'addon' ? addonHost.trigger(input) : input.text, reaction: input.reaction,
+    context: joinedContext(blocks), contextParts: contextPartsOf(blocks),
+    local: {profileKey: input.profileKey, name: profile.name, channel: input.group ? 'group' : 'private'}};
+}
+async function runAddonTurn(request, input, profile, current, clock) {
+  const {controller} = request, ahead = request.lookahead, signal = controller.signal;
+  const fail = (error, errorCode) => atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
+    error, errorCode}), {signal, isCurrent: current, isCurrentSync: current.sync});
+  addonHost.beginTurn(input);
+  const route = addonHost.routeFor(profile.key, addonRouteState());
+  if (!route) { await fail(addonHost.providerNotice(profile.key), 'addon-provider'); return; }
+  note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : 'none'}, reaction: input.reaction?.phase, addonRoute: route});
+  if (!ahead) void status('thinking', profile.name).catch(() => {});
+  clock.mark('admitted');
+  const host = addonTextHost(route, profile.key);
+  const config = addonTurnConfig(input, profile);
+  const remark = input.reaction?.kind === 'addon';
+  const voiced = localVoice.playbackEnabled !== false && turnUsesLocal(input) && audioAvailable(await readSpeechStateCached());
+  throwIfCancelled(signal);
+  let result;
+  if (voiced && !remark && replyStreaming && !ahead) {
+    // A conversation streams its first sentence to the voice, like any text-provider turn.
+    const stream = newReplyStream(config, profile);
+    const final = Promise.resolve(host.reply(config, {signal, stream})).then(reply => ({...reply, transport: 'realtime'}));
+    final.catch(() => {});
+    result = await voiceStreamedReply(input, profile, {signal, current, stream, final, config});
+  } else {
+    const reply = {...await host.reply(config, {signal}), transport: 'realtime'};
+    // A remark is checked against the speaker's recent lines before anything is spoken.
+    if (remark && addonHost.review(input, reply.text).duplicate) {
+      console.error(`[Addons] ${profile.key}: remark dropped (it repeated a recent line)`);
+      await fail('', 'addon-duplicate');
+      return;
+    }
+    result = voiced ? await synthesizeReply(input, reply, signal, current, profile) : {...reply, ttsEnabled: false};
+  }
+  if (ahead) { ahead.markReady(); await ahead.waitClaimed(signal); }
+  if (!await current()) return;
+  await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
+  if (await publishResult(input, profile, result, current, signal)) addonHost.afterReply(input, result.text);
+}
+
 async function runInput(request, prepared, clock) {
   let input = request.input;
   const {controller} = request;
@@ -1834,6 +1926,8 @@ async function runInput(request, prepared, clock) {
     stages.cancelMicrophoneMs = performance.now() - preparationStarted;
     throwIfCancelled(controller.signal);
     const profile = profileFor(input, roster);
+    // An add-on speaker never takes the Convai path below (no knowledge route, no Convai memory or connection, no allowance).
+    if (profile && addonHost.isSpeaker(profile.key)) { await runAddonTurn(request, input, profile, current, clock); return; }
     if (!profile || !ids[profile.key]) {
       await status('unmatched-npc', `No verified profile for ${input.name} (${input.bodyType})`);
       await atomic(replyPath, JSON.stringify({...input, text: undefined,
@@ -2277,6 +2371,9 @@ const timer = setInterval(tick, 50);
 const micTimer = setInterval(() => { void pollMicrophone().catch(error => console.error('[CyberpunkConvai] Microphone poll:', error.message)); }, 150);
 const prefetchTimer = setInterval(() => { void pollPrefetch().catch(error => console.error('[CyberpunkConvai] Preparation poll:', error.message)); }, 150);
 const lookaheadTimer = setInterval(() => { void pollLookahead().catch(error => console.error('[CyberpunkConvai] Look-ahead poll:', error.message)); }, 60);
+// Add-ons only: the state and settings files are also read once a second, in case the directory watcher missed a change.
+const addonTimer = addonHost.active ? setInterval(() => { for (const read of Object.values(addonHost.watchHandlers(runtime))) void read(); }, 1000) : null;
+addonTimer?.unref?.();
 const settingsTimer = setInterval(() => { void pollSettings().catch(error => console.error('[CyberpunkConvai] Settings poll:', error.message)); }, 500);
 const phoneTimer = setInterval(() => { void pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)); }, 150);
 // The status file the game reads can be held open by the game for a moment (Windows refuses the rename: EPERM/EBUSY); the next poll
@@ -2303,6 +2400,8 @@ watchFiles(runtime, {
   'phone-chat-input.json': () => pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)),
   // The game's playback lease releases the first sound: the playback pump polls the moment it is written (docs/LATENCY_2026-10-13.md, 4.2).
   'continuous-control.json': () => leaseWake.fire(),
+  // The add-on state and settings the game writes (docs/ADDON_API.md); no entries without add-ons.
+  ...addonHost.watchHandlers(runtime),
 }, {log: message => console.error('[CyberpunkConvai] ' + message)});
 const editorTimer = setInterval(() => { void editorControl.poll().catch(error => console.error('[CyberpunkConvai] Character editor:', error.message)); }, 500);
 async function shutdown() {
