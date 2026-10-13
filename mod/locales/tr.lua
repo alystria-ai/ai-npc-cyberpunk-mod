@@ -786,4 +786,5 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "Ses servisi kaydedilmiş ses ayarlarını temizleyemedi. Çalıştığını kontrol edip yeniden dene.",
     ["There was nothing to clear."] = "Temizlenecek bir şey yoktu.",
     ["{size} · Saved voices: {count}"] = "{size} · Kaydedilmiş sesler: {count}",
+    ["Your message was not sent. Open the text box again and retype it."] = "Mesajın gönderilmedi. Metin kutusunu yeniden aç ve mesajı tekrar yaz.",
 }

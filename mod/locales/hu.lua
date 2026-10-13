@@ -786,4 +786,5 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "A hangszolgáltatás nem tudta törölni a mentett hangbeállításokat. Ellenőrizd, hogy fut-e, majd próbáld újra.",
     ["There was nothing to clear."] = "Nem volt mit törölni.",
     ["{size} · Saved voices: {count}"] = "{size} · Mentett hangok: {count}",
+    ["Your message was not sent. Open the text box again and retype it."] = "Az üzeneted nem lett elküldve. Nyisd meg újra a szövegmezőt, és írd be még egyszer.",
 }

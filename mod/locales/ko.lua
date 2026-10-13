@@ -786,4 +786,5 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "음성 서비스가 저장된 음성 설정을 지우지 못했습니다. 서비스가 실행 중인지 확인한 뒤 다시 시도하세요.",
     ["There was nothing to clear."] = "지울 항목이 없었습니다.",
     ["{size} · Saved voices: {count}"] = "{size} · 저장된 음성: {count}",
+    ["Your message was not sent. Open the text box again and retype it."] = "메시지가 전송되지 않았습니다. 텍스트 상자를 다시 열고 메시지를 다시 입력하세요.",
 }

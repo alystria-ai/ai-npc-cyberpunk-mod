@@ -786,4 +786,5 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "语音服务无法清除已保存的语音设置。请检查它是否正在运行，然后重试。",
     ["There was nothing to clear."] = "没有需要清除的内容。",
     ["{size} · Saved voices: {count}"] = "{size} · 已保存语音：{count}",
+    ["Your message was not sent. Open the text box again and retype it."] = "你的消息没有发送。请重新打开文本框并再次输入。",
 }

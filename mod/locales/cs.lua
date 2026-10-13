@@ -786,4 +786,5 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "Hlasová služba nemohla vymazat uložená nastavení hlasů. Zkontroluj, že běží, a zkus to znovu.",
     ["There was nothing to clear."] = "Nebylo co mazat.",
     ["{size} · Saved voices: {count}"] = "{size} · Uložené hlasy: {count}",
+    ["Your message was not sent. Open the text box again and retype it."] = "Tvoje zpráva nebyla odeslána. Znovu otevři textové pole a napiš ji ještě jednou.",
 }

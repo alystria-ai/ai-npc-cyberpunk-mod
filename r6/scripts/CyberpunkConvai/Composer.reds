@@ -91,6 +91,12 @@ private let m_convaiSubmittedText: String;
 @addField(PlayerPuppet)
 private let m_convaiSubmissionReady: Bool;
 
+// How the last text box closed, for probe.log (mod/init.lua convaiComposerWatch): "confirm" (a message), "empty" (Enter on an empty
+// box), "closed:<n>" (any other result, n = the game's GenericMessageNotificationResult number; Esc is a cancel) or "nodata" (closed
+// without a result). Written once per box, read once per box when it closes without a message.
+@addField(PlayerPuppet)
+private let m_convaiCloseInfo: String;
+
 @addMethod(PlayerPuppet)
 public final func ConvaiOpenComposer(characterName: String) -> Bool {
     if IsDefined(this.m_convaiComposerToken) {
@@ -108,6 +114,7 @@ public final func ConvaiOpenComposer(characterName: String) -> Bool {
 
     this.m_convaiSubmissionReady = false;
     this.m_convaiSubmittedText = "";
+    this.m_convaiCloseInfo = "";
     this.m_convaiComposerToken = GenericMessageNotification.ShowInput(
         controller,
         "TALK TO " + characterName,
@@ -125,13 +132,27 @@ public final func ConvaiOpenComposer(characterName: String) -> Bool {
 protected cb func OnConvaiComposerClosed(data: ref<inkGameNotificationData>) -> Bool {
     let result = data as GenericMessageNotificationCloseData;
     this.m_convaiComposerToken = null;
-    if IsDefined(result) && Equals(result.result, GenericMessageNotificationResult.Confirm) {
+    if !IsDefined(result) {
+        this.m_convaiCloseInfo = "nodata";
+        return true;
+    };
+    if Equals(result.result, GenericMessageNotificationResult.Confirm) {
         if StrLen(result.input) > 0 {
             this.m_convaiSubmittedText = result.input;
             this.m_convaiSubmissionReady = true;
+            this.m_convaiCloseInfo = "confirm";
+        } else {
+            this.m_convaiCloseInfo = "empty";
         };
+    } else {
+        this.m_convaiCloseInfo = "closed:" + IntToString(EnumInt(result.result));
     };
     return true;
+}
+
+@addMethod(PlayerPuppet)
+public final func ConvaiComposerClosedInfo() -> String {
+    return this.m_convaiCloseInfo;
 }
 
 @addMethod(PlayerPuppet)

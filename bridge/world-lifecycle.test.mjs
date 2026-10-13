@@ -1020,6 +1020,71 @@ assert(#notes() == 0, 'a queued drive posted a driving notice: ' .. table.concat
 test('a queued driving request posts no preparing notice with Developer mode off', () => run(drivePreparingNotice(false)));
 test('a queued driving request posts no preparing notice with Developer mode on', () => run(drivePreparingNotice(true)));
 
+// 2026-10-13 live: two text boxes (generations 12 and 13) closed within seconds and no "Native input captured" line, no bridge turn and no
+// word to the player followed. A text box that ends without a message now says how it ended (one probe.log line), and the ends where V
+// has lost words also post one notice.
+const composerEnds = `
+events.onInit(); events.onUpdate(0); privateConversation()
+local function logged(fragment) for _, line in ipairs(stats.logs) do if line:find(fragment, 1, true) then return line end end end
+local function lostNotes()
+    local out = {}
+    for _, item in ipairs(stats.trace) do if item.kind == 'feedback' and item.value:find('was not sent', 1, true) then out[#out + 1] = item.value end end
+    return out
+end
+local function openBox() hotkeys.cyberpunk_convai_text(); assert(player.composerOpen, 'the box did not open'); clock = clock + 3 end
+local function closeWith(info) player.composerOpen = false; player.closeInfo = info; events.onUpdate(0.1) end
+function player:ConvaiComposerClosedInfo() return self.closeInfo end
+`;
+test('a text box closed with an empty Enter or without a result says so once in probe.log and once to the player; Escape stays quiet', () => run(`${composerEnds}
+openBox(); closeWith('empty')
+assert(logged('Composer closed without a message: generation='), table.concat(stats.logs, ' | '))
+assert(logged('result=empty open=3s'), logged('Composer closed'))
+assert(#lostNotes() == 1 and lostNotes()[1] == 'Your message was not sent. Open the text box again and retype it.', table.concat(lostNotes(), ' | '))
+openBox(); closeWith('closed:1')
+assert(logged('result=closed:1'), 'Escape is logged')
+assert(#lostNotes() == 1, 'Escape is a choice: no notice')
+openBox(); closeWith('nodata')
+assert(logged('result=nodata') and #lostNotes() == 2, 'a close without any result is a lost message')
+assert(not logged('Native input captured'), 'nothing was captured')
+assert(files['runtime/last-input.json'] == nil, 'no request was written')
+`));
+
+test('redscript without the close report still logs the end of a text box, and posts nothing it cannot be sure of', () => run(`${composerEnds.replace(/function player:ConvaiComposerClosedInfo[^\n]*\n/, '')}
+openBox(); closeWith(nil)
+assert(logged('result=unknown open=3s'), table.concat(stats.logs, ' | '))
+assert(#lostNotes() == 0)
+`));
+
+test('a typed message that arrives after its character is gone is logged and the player is told', () => run(`${composerEnds}
+openBox()
+player.attached = false; events.onUpdate(0.1); player.attached = true
+player.composerOpen = false; player.submission = 'Where were you last night?'; clock = clock + 1; events.onUpdate(0.1)
+assert(logged('Late native input discarded after target loss'), table.concat(stats.logs, ' | '))
+assert(logged('Message lost: target lost before the text arrived'))
+assert(#lostNotes() == 1)
+assert(files['runtime/last-input.json'] == nil, 'no request was written')
+`));
+
+test('a message whose request cannot be written is logged and the player is told; the next message still goes out', () => run(`${composerEnds}
+local realOpen = io.open
+local failing = true
+io.open = function(path, mode)
+    if failing and path == 'runtime/last-input.json.tmp' then return nil end
+    return realOpen(path, mode)
+end
+openBox(); player.composerOpen = false; player.submission = 'Are you there?'; events.onUpdate(0.1)
+assert(logged('Native input captured: generation='), table.concat(stats.logs, ' | '))
+assert(logged('Message lost: request not sent generation='), table.concat(stats.logs, ' | '))
+assert(#lostNotes() == 1)
+assert(files['runtime/last-input.json'] == nil)
+failing = false
+clock = clock + 5
+openBox(); player.composerOpen = false; player.submission = 'Hello again.'; events.onUpdate(0.1)
+local input = json.decode(assert(files['runtime/last-input.json']))
+assert(input.text == 'Hello again.' and input.generation == 2)
+assert(#lostNotes() == 1, 'the second message was sent and posted nothing')
+`));
+
 test('actual new conversation, zero-delta menu, reply deadline and restored world each revoke late driving actions', () => run(`
 events.onInit();events.onUpdate(0);privateConversation()
 local input=submitText();local stale=drivePacket(input)

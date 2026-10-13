@@ -786,4 +786,5 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "Il servizio vocale non è riuscito a svuotare le configurazioni vocali salvate. Verifica che sia in esecuzione, poi riprova.",
     ["There was nothing to clear."] = "Non c'era nulla da svuotare.",
     ["{size} · Saved voices: {count}"] = "{size} · Voci salvate: {count}",
+    ["Your message was not sent. Open the text box again and retype it."] = "Il tuo messaggio non è stato inviato. Riapri la casella di testo e riscrivilo.",
 }

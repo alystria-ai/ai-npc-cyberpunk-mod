@@ -59,6 +59,7 @@ M.catalog = {
     ['talk-no-profile'] = {class = PLAYER, repeatS = 20},
     ['group-needs-two'] = {class = PLAYER, repeatS = 20},
     ['talk-connecting'] = {class = PLAYER, repeatS = 10},
+    ['message-lost'] = {class = PLAYER, repeatS = 5},         -- a typed message was dropped (empty text box confirmed, box closed without a result, request not written)
     ['voice-needs-convai'] = {class = PLAYER, repeatS = 15},   -- the voice key is pressed while Mistral is in use and this computer cannot recognise speech
     ['mic-connecting'] = {class = PLAYER},
     ['mic-listening'] = {class = PLAYER},

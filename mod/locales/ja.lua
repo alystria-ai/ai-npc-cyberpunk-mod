@@ -786,4 +786,5 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "音声サービスは保存済みの音声設定を消去できませんでした。サービスが動いているか確認してから、もう一度お試しください。",
     ["There was nothing to clear."] = "消去するものはありませんでした。",
     ["{size} · Saved voices: {count}"] = "{size} · 保存済みの音声: {count}",
+    ["Your message was not sent. Open the text box again and retype it."] = "メッセージは送信されませんでした。テキストボックスをもう一度開いて、入力し直してください。",
 }
