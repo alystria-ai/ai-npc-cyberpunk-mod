@@ -5,7 +5,7 @@ Usage:
 IDs are decimal string ids, best clip first (one cloud voice cuts its reference to about the first 8.5 s).  Either gender may be left out.
 Each clip: the LEFT channel only when the stereo channels are decorrelated (a mean downmix would comb-filter the voice, as for Delamain),
 else the mono mean (V's lines decode as mono, so in practice the clip as is); resampled to 24 kHz (scipy polyphase); leading/trailing
-silence below -45 dBFS trimmed with 80 ms of margin; joined with 0.25 s of silence; 16-bit PCM; no EQ, no denoise, no gain.
+silence below -45 dBFS trimmed with 80 ms of margin; joined with 0.4 s of silence; 16-bit PCM; no EQ, no denoise, no gain.
 Refuses a set whose total is over 20 s, under 8 s, or whose clips differ in gated loudness by more than 2 dB.
 Writes OUT_DIR/v-male.wav, OUT_DIR/v-female.wav, OUT_DIR/v-voice.json (committed manifest: UTF-8, 2-space indent, LF) and
 OUT_DIR/v-voice-build.json (metrics, ASR results and how it was made; status says nobody has listened and nothing is approved).
@@ -85,8 +85,8 @@ def main():
             "tool": "scripts/clip-search/v-voice (extract_v.py -> analyze_v.py -> asr_v.py -> build_reference.py)",
             "builtAt": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "source": "the game's own English voice lines of the player character V (male V: Gavin Drea, female V: Cherami Leigh), archive/pc/content and archive/pc/ep1 lang_en_voice.archive",
-            "recipe": "chosen channel (left only if the stereo channels are decorrelated, else mean; the V lines are mono) -> 24 kHz polyphase resample -> trim below -45 dBFS with 80 ms margin -> clips joined with 0.25 s silence -> 16-bit PCM; no EQ, no denoise, no gain",
-            "selection": "calm main/side quest lines, plain complete sentences, 2.5-6.5 s each, peak <= -3 dBFS, no clipping, not band-limited, loudness within 2 dB, ASR word similarity >= 0.95, best clip first",
+            "recipe": "chosen channel (left only if the stereo channels are decorrelated, else mean; the V lines are mono) -> 24 kHz polyphase resample -> trim below -45 dBFS with 80 ms margin -> clips joined with 0.4 s silence -> 16-bit PCM; no EQ, no denoise, no gain",
+            "selection": "the project's automatic reference search (scripts/clip-search/search.py, Pocket on the CPU) over V's calm quest lines (scripts/clip-search/v-voice/build_v_pool.py: spoken only, no combat/shouted delivery, no band-limited, dull, hot, comb, tone or reverb lines), ECAPA similarity to held-out real V lines; docs/V_VOICE.md has the scores",
         },
         "voices": details,
     }

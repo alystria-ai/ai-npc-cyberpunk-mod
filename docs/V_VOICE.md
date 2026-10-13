@@ -82,9 +82,48 @@ Marks, in milliseconds after V's line started: `voiceStart`, `playStart`, `rende
 
 ## The reference clips
 
-One short reference per gender, cut from V's own lines in the game archives (`v_*_m_*.wem` and `v_*_f_*.wem`), the same way the
-add-ons got theirs. Chosen from calm quest lines with a plain 7 to 17 word subtitle, checked by a speech recogniser against the
-subtitle, joined with 0.25 s gaps, 24 kHz mono. Male V: 11.4 s (three lines). Female V: 14.5 s (four lines).
+One reference per gender, cut from V's own lines in the game archives (`v_*_m_*.wem` and `v_*_f_*.wem`). **Male V: 13.6 s (three
+lines). Female V: 11.55 s (two lines).** 24 kHz mono, whole trimmed clips joined with 0.4 s gaps (the project's reference recipe),
+best clip first (one cloud voice cuts its reference to about the first 8.5 s).
+
+### How they were chosen (2026-10-14, second pass)
+
+The first clips (2026-10-14 morning: male 11.4 s from 3 lines, female 14.5 s from 4 lines) were picked by a script that only checked
+the subtitle with a speech recogniser and the loudness. They had no gross defect (no clipping, peaks at -5 to -8 dBFS, clean
+floor, no phone or radio effect, no music), but nothing in that pick measured whether the clone sounds like V, and it does not:
+on six held-out real V lines the cloned voice scored ECAPA 0.537 (male) and 0.429 (female) against V's own centroid, well under
+what the companions get from the automatic picker (0.6 to 0.8). A user listening on the Pocket voice called it "a bit off, a little
+low quality".
+
+The second pass feeds V into the project's automatic reference search (`scripts/clip-search/search.py`, the "Auto-best" that
+`scripts/reference-picker/autobest.mjs` loads), exactly as for the companions:
+
+1. `extract_v.py` pulls 1200 random calm quest lines per gender (plain 7 to 17 word subtitles, no effect or special-state scene).
+2. `build_v_pool.py` puts them in the picker's pool format: lines trimmed, loudness and ECAPA typicality, the picker's own
+   exclusions (band-limited, comb, tone, reverb), plus dull (99 percent of the energy under 3.5 kHz), noisy pauses and hot peaks,
+   and the game's scene index for delivery (`scripts/combat_flags/source_signal.py`: no combat or shouted lines; only lines the
+   game plays as "Spoken": V's inner-dialog, cyberspace and phone expressions, 12 percent of the pool, are out). About 650 male
+   and 560 female lines stay usable.
+3. `run_search.py` runs `search.py` for Pocket on the CPU (the live student, decoder v2): 14 real lines are held out of the
+   candidates; the search races single clips, grows sets under an 18 s cap, and scores the finalists on six fresh held-out real
+   V lines with two seeds (ECAPA speaker similarity first, PLS second).
+4. `compare_v.py` re-scores the old clips and the candidates on the same lines, renders four typed test sentences with each, and
+   adds artifact measures; an ASR check of the renders and `asr_v.py` / `build_reference.py` check and build the shipped files.
+
+| Set | Seconds | ECAPA (held-out V lines) | PLS |
+|---|---:|---:|---:|
+| Male, old clips | 11.4 | 0.537 +- 0.025 | 121.5 |
+| Male, search pick (2 clips) | 10.65 | 0.673 +- 0.017 | 115.5 |
+| **Male, shipped (3 clips)** | 13.6 | **0.677 +- 0.022** | 115.7 |
+| Female, old clips | 14.45 | 0.429 +- 0.043 | 100.3 |
+| **Female, shipped = search pick (2 clips)** | 11.55 | **0.521 +- 0.011** | 100.0 |
+
+The male pick is not the search's 2-clip winner: the two tie (0.677 vs 0.673, inside one standard error; the 3-clip set also scores
+higher on the four test sentences, 0.70 vs 0.68), and the 2-clip winner opens with a crude, mocking joke line that would colour
+every typed line, so the calm 3-clip set is shipped (3 seconds longer; OmniVoice adds about 42 ms per second of reference).
+Honest note: PLS (spectral closeness, secondary) is a little higher for the old male clips. The old clips were clean; what they
+lacked was likeness. The ASR matches the subtitles 0.98 to 1.00 for four of the five clips; the third male clip is 0.89 because the
+actor says "assumed" where the subtitle says "assume" (the audio is clear).
 
 - `assets/v-voice/v-voice.json` (committed): transcripts, hashes and the source lines (string id, file name, scene).
 - `assets/v-voice/v-male.wav`, `v-female.wav` and `v-voice-build.json` are **kept out of git** (`.gitignore`) like the add-on
@@ -92,11 +131,13 @@ subtitle, joined with 0.25 s gaps, 24 kHz mono. Male V: 11.4 s (three lines). Fe
   without them still works and says so; the setting then has no voice and stays silent.
 - The bridge looks in `<voice references>/v-voice` first (the installed mod), then `assets/v-voice` (a source checkout), and
   checks each clip against the hash in the manifest.
-- Rebuild: `scripts/clip-search/v-voice/` (`extract_v.py`, `analyze_v.py`, `asr_v.py`, `build_reference.py`). They need the game
-  archives, `vgmstream-cli`, the Oodle library and the voice inventory, like `scripts/clip-search/delamain/`. CPU only; they play
-  nothing.
-- **Nobody has listened to these clips yet and they are not approved.** The ASR matches the subtitles (0.94 to 1.00), which says
-  the audio is the line, not that it sounds like a good reference.
+- Rebuild: `scripts/clip-search/v-voice/` (`extract_v.py`, `build_v_pool.py`, `run_search.py`, `compare_v.py`, `asr_v.py`,
+  `build_reference.py`; `analyze_v.py` is the first pass's own filter and its metrics feed `build_v_pool.py`). They need the game
+  archives, `vgmstream-cli`, the Oodle library, the voice inventory, the scene index and the picker's ECAPA model, like
+  `scripts/clip-search/delamain/`; set `CLIP_SEARCH_ROOT` (the main checkout) and `CLIP_SEARCH_WORK` (a work folder) so nothing is
+  written on the game drive. CPU only; they play nothing.
+- **The new clips have been judged by measurements, not yet by ear.** Comparison files (the old and new references, rendered test
+  sentences, held-out real V lines) were written for the user to listen to; nothing is approved until they have.
 
 ## Where the code is
 

@@ -3,7 +3,7 @@ import math, re
 import numpy as np, soundfile as sf
 from scipy.signal import resample_poly
 
-RATE, GAP, MARGIN, THRESH_DB = 24000, 0.25, 0.08, -45.0
+RATE, GAP, MARGIN, THRESH_DB = 24000, 0.4, 0.08, -45.0   # GAP: the project standard (scripts/clip-search/common.py GAP_SECONDS), the length the search scored
 MONO_KEEP_RATIO = 0.9      # the mean downmix must keep at least 90% of the left channel's RMS, else the channels are decorrelated
 
 
