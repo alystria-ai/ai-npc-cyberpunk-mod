@@ -136,7 +136,8 @@ test('the bridge only touches add-ons through the host, and every touch is a no-
   const bridge = read('./convai-bridge.mjs');
   const uses = [...bridge.matchAll(/addonHost\.(\w+)/g)].map(match => match[1]);
   assert.deepEqual([...new Set(uses)].sort(), ['active', 'afterReply', 'beginTurn', 'blocks', 'extend', 'isSpeaker', 'loadJournal', 'localPace',
-    'onWarm', 'providerNotice', 'publishStatus', 'remarkStarted', 'review', 'routeFor', 'trigger', 'voiceConfigPaths', 'watchHandlers']);
+    'modeOf', 'onStock', 'onWarm', 'providerNotice', 'publishStatus', 'remarkStarted', 'review', 'routeFor', 'speakers', 'stock', 'trigger',
+    'voiceConfigPaths', 'watchHandlers']);
   // A remark on the local AI inside its default pace is answered at once with addon-pace, before any text request.
   assert.match(bridge, /const pace = remark \? addonHost\.localPace\(profile\.key, route\) : 0;\n\s*if \(pace > 0\) \{[\s\S]{0,260}errorCode: 'addon-pace', retryAfter: pace\}/);
   // An add-on speaker branches off before any Convai step of a turn; every other turn is unchanged.
