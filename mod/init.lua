@@ -91,7 +91,8 @@ end
 local function sameKnowledgeOwner(a, b)
     return a and b and a.session == b.session and a.generation == b.generation and a.worldToken == b.worldToken
 end
-local worldKnowledge = dofile('world-knowledge.lua').new({
+local worldKnowledgeModule = dofile('world-knowledge.lua')
+local worldKnowledge = worldKnowledgeModule.new({
     currentGeneration = function() return knowledgeFrame and knowledgeFrame.generation end,
     currentWorldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end})
 local journalHistory = dofile('journal-history.lua').new({
@@ -644,6 +645,11 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     end,
     resolveName = function(name) return (characterCatalog.resolve(catalog, {name = name, crowd = false})) end,
     contactKey = function(contact) return (companions.phoneContactKey(contact)) end,
+    -- The decision ledger (docs/QUEST_DECISIONS.md 4.4): off unless settings.decisionLedger; read once per picked dialogue option.
+    ledgerEnabled = function() return type(manager.decisionLedger) == 'function' and manager.decisionLedger() == true end,
+    worldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end,
+    gameTime = function() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end,
+    tracked = function() return questContext.trackedQuest and questContext.trackedQuest() end,
     present = function(radius)
         local keys = {}
         for _, person in ipairs(companions.conversationCandidates(Game.GetPlayer(), radius)) do keys[#keys + 1] = person.profileKey end

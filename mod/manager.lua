@@ -576,6 +576,8 @@ local function loadSettings()
     if type(settings.autoConnectNearby) ~= 'boolean' then settings.autoConnectNearby, settingsNeedSave = true, true end
     -- On by default: recent subtitled game dialogue is attached to the next manual turn (mod/game-dialogue.lua).
     if type(settings.gameDialogueContext) ~= 'boolean' then settings.gameDialogueContext, settingsNeedSave = true, true end
+    -- Off by default: the decision ledger (docs/QUEST_DECISIONS.md section 4.4) records V's picked dialogue options. Not proven in game; no menu entry.
+    if type(settings.decisionLedger) ~= 'boolean' then settings.decisionLedger, settingsNeedSave = false, true end
     if not isChoice(settings.eyeContactHeight, eyeContactHeights) then
         settings.eyeContactHeight, settingsNeedSave = 0, true
     end
@@ -896,6 +898,12 @@ end
 function M.gameDialogueContext()
     loadSettings()
     return settings.gameDialogueContext == true
+end
+
+-- Off by default (settings.json `decisionLedger`): V's picked dialogue options are kept and written to runtime/decision-ledger.json.
+function M.decisionLedger()
+    loadSettings()
+    return settings.decisionLedger == true
 end
 
 -- Read by the ordinary companion update, never by a native menu callback.
@@ -1440,6 +1448,7 @@ function M.snapshot(player)
             bodyGestures = settings.bodyGestures,
             autoConnectNearby = settings.autoConnectNearby,
             gameDialogueContext = settings.gameDialogueContext,
+            decisionLedger = settings.decisionLedger,
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
             audioDelay = settings.audioDelay,
@@ -1495,7 +1504,7 @@ function M.applySettings(player, values)
         if key == 'expressiveEmotions' then nextSettings.expressiveEmotionsChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
-            or key == 'gameDialogueContext'
+            or key == 'gameDialogueContext' or key == 'decisionLedger'
             or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions'
             or key == 'followUpInterest' or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
