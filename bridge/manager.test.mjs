@@ -225,15 +225,15 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
       assert(manager.mistral().maturePack == true)
       local matureOk, matureProblem, matureNotice = manager.applySettings(player, {matureContent = true})
       assert(matureOk and saved.matureContent == true and manager.snapshot(player).settings.matureContent == true)
-      assert(type(matureNotice) == 'string' and matureNotice:find('18+', 1, true), 'turning it on says once that it is for adults')
+      assert(matureNotice == nil, 'turning it on shows no notice')
       local _, _, again = manager.applySettings(player, {matureContent = true})
-      assert(again == nil, 'the line comes when it is turned on, not on every Apply')
+      assert(again == nil)
       -- The pack is not installed: the setting is still on and still works.
       pack(false)
       assert(saved.matureContent == true and manager.snapshot(player).settings.matureContent == true, 'not forced off without the pack')
       assert(manager.applySettings(player, {matureContent = false}) and saved.matureContent == false)
       local _, _, noticeNoPack = manager.applySettings(player, {matureContent = true})
-      assert(type(noticeNoPack) == 'string' and noticeNoPack:find('18+', 1, true), 'the 18+ line does not need the pack')
+      assert(noticeNoPack == nil, 'no notice with or without the pack')
       assert(manager.applySettings(player, {matureContent = false}) and saved.matureContent == false)
       os.clock = realClock
     end
@@ -2122,16 +2122,16 @@ test('turning Mature content on stages Local AI, the uncensored model and a loca
     assert(saved.voiceProvider == 'voxtral')
     user('matureContent', true)
     assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=2', drafts())
-    local notice = mcm.inspect().mature.notice
-    assert(notice and notice:find('Local AI', 1, true) and notice:find('Uncensored model', 1, true) and notice:find('OmniVoice', 1, true) and notice:find('Apply', 1, true), notice)
-    assert(select(2, notice:gsub('\\n', '')) == 0 and #notice < 200, 'one short line')
-    -- MCM would say "Pending: Mature content"; the redraw says what was staged instead, for a few seconds only.
+    local changes = mcm.inspect().mature.changes
+    assert(changes and changes:find('Local AI', 1, true) and changes:find('Uncensored model', 1, true) and changes:find('OmniVoice', 1, true), changes)
+    assert(mcm.inspect().mature.notice == nil, 'there is no Mature notice any more')
+    -- No notice either: MCM's own "Pending: Mature content" status stays as it is, now and a while later.
     local shown
     handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Companion Manager', 'Pending: Mature content', 0, '', true, true, 0, function(_, _, _, _, status) shown = status end)
-    assert(shown == notice, tostring(shown))
+    assert(shown == 'Pending: Mature content', tostring(shown))
     clock = clock + 9
     handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Companion Manager', 'Pending: Mature content', 0, '', true, true, 0, function(_, _, _, _, status) shown = status end)
-    assert(shown == 'Pending: Mature content', 'the notice outlived its time')
+    assert(shown == 'Pending: Mature content', tostring(shown))
     -- Nothing is saved before Apply.
     assert(saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral' and not saved.matureContent)
     assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
@@ -2152,8 +2152,8 @@ test('turning Mature content off puts the provider, model and voice back, except
     -- Off, nothing else touched: all three come back as pending changes, in one line.
     user('matureContent', false)
     assert(drafts() == 'conversationProvider=2,localModel=2,matureContent=false,voiceProvider=6', drafts())
-    local notice = mcm.inspect().mature.notice
-    assert(notice and notice:find('put back', 1, true) and notice:find('Conversation provider', 1, true) and notice:find('Local AI model', 1, true), notice)
+    local changes = mcm.inspect().mature.changes
+    assert(changes and changes:find('Conversation provider', 1, true) and changes:find('Local AI model', 1, true), changes)
     assert(apply({{id = 'matureContent', value = false}, {id = 'conversationProvider', value = 2}, {id = 'localModel', value = 2}, {id = 'voiceProvider', value = 6}}).ok)
     assert(saved.matureContent == false and saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral')
     assert(saved.matureRestore == nil, 'the way back stayed after Mature content was turned off')
@@ -2189,14 +2189,13 @@ test('Mature content turned on and off again before Apply leaves no pending chan
   `);
 });
 
-test('without the Local AI pack Mature content stages nothing else and says Local AI is needed, in the notice and in the help', () => {
+test('without the Local AI pack Mature content stages nothing else and the help says Local AI is needed', () => {
   run(`${mcmFixture}${matureFixture}
     startFrom({noPack = true})
     assert(tostring(row('matureContent').description):find('Local AI is needed', 1, true), 'the help does not say Local AI is needed')
     user('matureContent', true)
     assert(drafts() == 'matureContent=true', drafts())
-    local notice = mcm.inspect().mature.notice
-    assert(notice and notice:find('Local AI pack', 1, true) and notice:find('Nothing else', 1, true), notice)
+    assert(mcm.inspect().mature.changes == nil and mcm.inspect().mature.notice == nil)
     assert(apply({{id = 'matureContent', value = true}}).ok)
     assert(saved.matureContent == true and saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral')
     assert(saved.matureRestore == nil, 'a way back was saved though nothing was changed')
@@ -2210,21 +2209,21 @@ test('the voice moves to Pocket TTS without the OmniVoice pack, is left when it 
     startFrom({omni = false})
     user('matureContent', true)
     assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=1', drafts())
-    assert(mcm.inspect().mature.notice:find('Pocket', 1, true), mcm.inspect().mature.notice)
+    assert(mcm.inspect().mature.changes:find('Pocket', 1, true), mcm.inspect().mature.changes)
     user('matureContent', false)
     assert(drafts() == '', 'staged then unstaged: ' .. drafts())
-    -- A local voice already: the voice is not touched, and the notice names only the other two.
+    -- A local voice already: the voice is not touched, and the staged names are only the other two.
     assert(apply({{id = 'voiceProvider', value = 1}}).ok)
     user('matureContent', true)
     assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true', drafts())
-    assert(not mcm.inspect().mature.notice:find('Pocket', 1, true))
+    assert(not mcm.inspect().mature.changes:find('Pocket', 1, true))
     user('matureContent', false)
-    -- Already Local AI with the uncensored model and a local voice: nothing to stage and no notice.
+    -- Already Local AI with the uncensored model and a local voice: nothing to stage.
     assert(apply({{id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}}).ok)
     mcm.update(player, false)
     user('matureContent', true)
     assert(drafts() == 'matureContent=true', drafts())
-    assert(mcm.inspect().mature.notice == nil or not mcm.inspect().mature.notice:find('selected', 1, true))
+    assert(mcm.inspect().mature.changes == nil, tostring(mcm.inspect().mature.changes))
     assert(apply({{id = 'matureContent', value = true}}).ok and saved.matureRestore == nil)
     -- Multilingual conversations on, a cloud voice and no OmniVoice pack: there is no local voice to give, so the voice is left.
     assert(apply({{id = 'matureContent', value = false}, {id = 'voiceProvider', value = 8}, {id = 'expressiveEmotions', value = false}}).ok)
@@ -2239,15 +2238,15 @@ test('Mature content on with no uncensored model installed stages no model chang
     startFrom({noMature = true})
     user('matureContent', true)
     assert(drafts() == 'conversationProvider=3,matureContent=true,voiceProvider=2', drafts())
-    local notice = mcm.inspect().mature.notice
-    assert(notice and notice:find('Local AI', 1, true) and notice:find('OmniVoice', 1, true), notice)
-    assert(not notice:lower():find('model', 1, true), 'the notice mentions a model though none was staged: ' .. notice)
+    local changes = mcm.inspect().mature.changes
+    assert(changes and changes:find('Local AI', 1, true) and changes:find('OmniVoice', 1, true), changes)
+    assert(not changes:lower():find('model', 1, true), 'a model was named though none was staged: ' .. changes)
     assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
     assert(saved.matureContent == true and saved.localModel == 'standard', tostring(saved.localModel))
     assert(saved.matureRestore and saved.matureRestore.localModel == nil and saved.matureRestore.conversationProvider.before == 'mistral', 'a model part was recorded')
     user('matureContent', false)
     assert(drafts() == 'conversationProvider=2,matureContent=false,voiceProvider=6', drafts())
-    assert(not mcm.inspect().mature.notice:find('Local AI model', 1, true), mcm.inspect().mature.notice)
+    assert(not mcm.inspect().mature.changes:find('Local AI model', 1, true), mcm.inspect().mature.changes)
     -- Only an uncensored model that is not in the list counts as none: a published id that is not listed stages nothing either.
     state('ghost', {provider = 'mistral', effective = 'mistral', saved = true, localAi = 'ready', localModelDefault = 'standard', localModelMatureDefault = 'ghost',
       localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'lite', name = 'Qwen', sizeMiB = 1300}}})
@@ -2272,7 +2271,7 @@ test('Mature content on with the model already the uncensored one stages no mode
     loaded = registered.loadMod('manager'); pending = {}; emit(); mcm.update(player, false)
     user('matureContent', false)
     assert(drafts() == 'localModel=1,matureContent=false', drafts())
-    assert(mcm.inspect().mature.notice:find('Local AI model', 1, true), mcm.inspect().mature.notice)
+    assert(mcm.inspect().mature.changes:find('Local AI model', 1, true), mcm.inspect().mature.changes)
     assert(apply({{id = 'matureContent', value = false}, {id = 'localModel', value = 1}}).ok)
     assert(saved.localModel == 'lite' and saved.matureRestore == nil, tostring(saved.localModel))
   `);

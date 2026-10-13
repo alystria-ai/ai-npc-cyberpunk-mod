@@ -10,7 +10,7 @@ Optional 18+ models for Cyberpunk Convai. Replaces the Local AI models' built-in
 
 **For adults only (18+).**
 
-The main mod has a **Mature content** setting (Settings > Development, under Conversation provider). It is off by default, applies to Local AI only, and asks for an 18+ confirmation when turned on. With the standard Local AI models it already changes language, violence and tone, but those models are trained to refuse most adult content. This pack is an optional download that adds uncensored models, so the setting has its full effect.
+The main mod has a **Mature content** setting (Settings > Development, under Conversation provider). It is off by default, applies to Local AI only, and its help text says it is for adults (18+). With the standard Local AI models it already changes language, violence and tone, but those models are trained to refuse most adult content. This pack is an optional download that adds uncensored models, so the setting has its full effect.
 
 **What it adds**
 

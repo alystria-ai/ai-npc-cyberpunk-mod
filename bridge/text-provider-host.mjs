@@ -205,6 +205,7 @@ export class TextProviderHost {
     if (!provider) throw Error('Text provider required');
     Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, matureContent, matureGuard});
     this.summaries = new Set();
+    this.matureLogged = new Set();
     this.holdingTurns = 0;
     this.timers = new Set();
     this.closed = false;
@@ -430,10 +431,20 @@ export class TextProviderHost {
    * for it when it is not up yet, as the request would. Nothing is awaited while the setting is off.
    */
   async #matureLevel(route, signal) {
-    if (!this.matureContent?.enabled || route.name !== 'local') return null;
+    if (!this.matureContent?.enabled) return null;
+    if (route.name !== 'local') { this.#noteMature(`layer NOT applied (provider ${route.name} never gets it)`); return null; }
     let model = route.modelName?.() ?? null;
     if (!model && route.loadedModel) model = await route.loadedModel(signal);
-    return this.matureContent.forTurn(route.name, model, route.modelHints?.())?.level ?? null;
+    const level = this.matureContent.forTurn(route.name, model, route.modelHints?.())?.level ?? null;
+    if (level) this.#noteMature(`layer applied (level ${level}, model ${model ?? 'unknown'})`);
+    return level;
+  }
+
+  /** One log line per distinct fact for the life of this host (the bridge session): the setting is on, so say what the prompt got. Never the words of a turn. */
+  #noteMature(fact) {
+    if (this.matureLogged.has(fact)) return;
+    this.matureLogged.add(fact);
+    this.log(`[MatureContent] ${fact}`);
   }
 
   async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation}) {

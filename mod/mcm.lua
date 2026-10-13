@@ -35,9 +35,9 @@ local lastDraftEventAt = -1000
 local lastBackAt = -1000
 -- Mature content (see syncMature): a draft change only sets matureCheck in its callback; the work is done by M.update.
 -- matureReset: the drafts are all gone (Apply or Revert). matureSeen: the Mature content value last looked at (nil: take the saved
--- one). matureMemory: what turning it on changed in the drafts, to put back if it is turned off before Apply. matureNotice:
--- the one line that names the change, shown in place of MCM's "Pending: ..." status for a few seconds.
-local matureCheck, matureReset, matureSeen, matureMemory, matureNotice = false, false, nil, nil, nil
+-- one). matureMemory: what turning it on changed in the drafts, to put back if it is turned off before Apply. matureChanges: the
+-- names of what the last change staged or put back, for inspect() only: nothing is shown to the player (no notice on either side).
+local matureCheck, matureReset, matureSeen, matureMemory, matureChanges = false, false, nil, nil, nil
 -- The Companion voices list (menu order) lives with the draft preview: Pocket TTS, OmniVoice 16/32 steps with a
 -- short or long reference, Convai cloud voice.
 local voicePreviewModule = dofile('voice-preview.lua')
@@ -718,7 +718,7 @@ local function matureTurnedOn()
     local usingLocal = providerNow == 3
     if not usingLocal and not installed then
         matureMemory = nil
-        return ui.t('Mature content needs the Local AI pack, which is not installed. Nothing else was changed.')
+        return nil -- Without the Local AI pack nothing else is staged (the setting's help says Local AI is needed).
     end
     if not usingLocal and PROVIDER_IDS[providerNow] and stageDraft('conversationProvider', 3) then
         record.conversationProvider = {before = PROVIDER_IDS[providerNow], set = 'local'}
@@ -752,7 +752,7 @@ local function matureTurnedOn()
     end
     matureMemory = next(record) and record or nil
     if #names == 0 then return nil end
-    return ui.t('Mature content: {changes} selected too. Choose Apply to use them.', {changes = table.concat(names, ', ')})
+    return table.concat(names, ', ')
 end
 
 local function matureTurnedOff()
@@ -780,7 +780,7 @@ local function matureTurnedOff()
         if now == voiceIndexOf(part.set) and back and stageDraft('voiceProvider', back) then names[#names + 1] = ui.t('Companion voices') end
     end
     if #names == 0 then return nil end
-    return ui.t('Mature content is off: {changes} put back. Choose Apply to use them.', {changes = table.concat(names, ', ')})
+    return table.concat(names, ', ')
 end
 
 -- Looks at the Mature content draft after a draft event; acts only on a change of it.
@@ -795,8 +795,7 @@ local function syncMature()
     if before == nil then before = manager.snapshot(player()).settings.matureContent == true end
     matureSeen = mature
     if mature == before then return end
-    local text = mature and matureTurnedOn() or matureTurnedOff()
-    if text then matureNotice = {text = text, at = os.clock()} end
+    if mature then matureChanges = matureTurnedOn() else matureChanges = matureTurnedOff() end
 end
 
 local function samplePreparationFeedback()
@@ -1414,7 +1413,7 @@ local function ownKeyRows(snapshot)
     -- provider answers, and says whether the optional Mature pack (uncensored models) is installed (the bridge reports its marker).
     local matureRow
     do
-        local matureHelp = ui.t('Lets companions answer with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content, in the tone of Night City. For adults (18+) only. It applies to Local AI only: Convai, Mistral and Groq never get it. Characters stay themselves, follow your relationship with them and may say no; some things are never allowed (sex involving minors or without consent, sex about real people, hate, or real-world instructions for weapons or drugs). The uncensored models of the Mature pack give the full effect; the standard Local AI models are trained to refuse most sexual content. Off by default.')
+        local matureHelp = ui.t('Lets companions answer with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content, in the tone of Night City. For adults (18+) only. It applies to Local AI only: Convai, Mistral and Groq never get it. Some things are never allowed (sex involving minors or without consent, sex about real people, hate, or real-world instructions for weapons or drugs). The uncensored models of the Mature pack give the full effect; the standard Local AI models are trained to refuse most sexual content. Off by default.')
         matureHelp = matureHelp .. ' ' .. ui.t('A safety check on your messages and on the replies refuses anything romantic or sexual involving minors, on every model.')
         matureHelp = matureHelp .. ' ' .. (mistral.maturePack == true
             and ui.t('The Mature pack (uncensored models) is installed.')
@@ -2245,14 +2244,6 @@ function M.install()
             presentation.preparationApplied = true
             presentation.preparationSignature = preparationStatus.signature
         end
-        -- The line that names what Mature content staged, for a few seconds, instead of MCM's "Pending: <setting>".
-        if own and matureNotice then
-            if os.clock() - matureNotice.at < 8 and tostring(status):sub(1, 7) == 'Pending' then
-                status, statusKind = matureNotice.text, 0
-            elseif os.clock() - matureNotice.at >= 8 then
-                matureNotice = nil
-            end
-        end
         presentation.statusText = status
         -- Redrawing the page that was drawn last: its scroll position is read from the old page, which still exists here.
         scrollBefore = nil
@@ -2666,7 +2657,7 @@ function M.inspect()
             restyling = restyling, styling = presentation.job ~= nil},
         early = {hooks = earlyHooks, off = earlyOff, shown = earlyReleased, held = earlyHeld, reason = earlyLastReason,
             failures = earlyFailures},
-        mature = {notice = matureNotice and matureNotice.text or nil, staged = matureMemory ~= nil},
+        mature = {changes = matureChanges, staged = matureMemory ~= nil},
         entryDetails = entry.inspect and entry.inspect() or nil,
         back = currentBack and {id = currentBack.id, label = currentBack.label} or nil, backMode = backMode,
         party = queue.list(), feedback = queue.message(), error = lastError,
@@ -2694,7 +2685,7 @@ function M.resetSession()
     if type(convaiNotices) == 'table' and type(convaiNotices.resetLoading) == 'function' then convaiNotices.resetLoading() end
     presentation, early = {active = false, rows = {}}, {on = false}
     lastDrawKey, scrollBefore = nil, nil
-    matureCheck, matureReset, matureSeen, matureMemory, matureNotice = false, false, nil, nil, nil
+    matureCheck, matureReset, matureSeen, matureMemory, matureChanges = false, false, nil, nil, nil
     fontPresentation.reset()
     voicePreview.reset()
     entry.reset()

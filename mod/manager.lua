@@ -1801,9 +1801,6 @@ function M.applySettings(player, values)
     if nextSettings.matureContent ~= true or (settings.matureContent ~= true and values.matureRestore == nil) then
         nextSettings.matureRestore = nil
     end
-    -- Turning Mature content on says once, in one line, that the content is for adults.
-    local matureNotice = nextSettings.matureContent == true and settings.matureContent ~= true
-        and ui.t('Mature content is on: companions may use adult language and themes. For adults (18+) only.') or nil
     local previous = settings
     settings = nextSettings
     if not saveSettings() then
@@ -1819,11 +1816,10 @@ function M.applySettings(player, values)
         end
     end
     if companions.onPartyChanged then pcall(companions.onPartyChanged) end
-    if switchedVoice or cloudNotice or vVoiceNotice or matureNotice or #multilingual.notices > 0 then
+    if switchedVoice or cloudNotice or vVoiceNotice or #multilingual.notices > 0 then
         local notices = {}
         if cloudNotice then notices[#notices + 1] = cloudNotice end
         if vVoiceNotice then notices[#notices + 1] = vVoiceNotice end
-        if matureNotice then notices[#notices + 1] = matureNotice end
         if switchedVoice then
             local named = {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')}
             notices[#notices + 1] = nextSettings.naturalSpeech == true

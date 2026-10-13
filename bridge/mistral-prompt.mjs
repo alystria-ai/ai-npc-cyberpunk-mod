@@ -21,7 +21,7 @@
 // A reply comes back as plain text and goes through the same cleaning as a Convai reply (Natural speech, Expressive emotions).
 // Mature content (bridge/mature-content.mjs): for the fully local AI with the setting on, a short layer ends the system head, after the
 // output rules. It is part of the stable early text (the prefix cache keeps it) and the prompt budget never trims it. Off, nothing changes.
-import {matureLayer} from './mature-content.mjs';
+import {matureLayer, matureClosing} from './mature-content.mjs';
 
 import {applyOverride} from './character-overrides.mjs';
 
@@ -98,7 +98,9 @@ export class PersonaBook {
 
 // The last thing the model reads before it answers: the rules it most often drifts from. A small model does what the last line says,
 // so this one names the three that matter most for a spoken reply: begin with the answer, stay short, invent nothing.
-export const closing = (name, talkWords = 0) => `(Reply as ${name || 'this person'}, out loud: begin with your answer or reaction, ${talkWords ? `one or two short sentences and at most ${talkWords} words` : 'one to three short sentences'}, no invented facts, nothing you are doing or have just done beyond what the Right now section says.)`;
+// With the Mature setting on (`mature` = the level) one more sentence ends it (bridge/mature-content.mjs, matureClosing): measured on the
+// uncensored models, the persona and these rules outweigh the layer in the system message, and a clause here is what moves the reply.
+export const closing = (name, talkWords = 0, mature = null) => `(Reply as ${name || 'this person'}, out loud: begin with your answer or reaction, ${talkWords ? `one or two short sentences and at most ${talkWords} words` : 'one to three short sentences'}, no invented facts, nothing you are doing or have just done beyond what the Right now section says.${mature ? ` ${matureClosing(mature)}` : ''})`;
 
 // The rules, written for a small model (ministral-8b): a short numbered list in priority order, each rule one plain instruction.
 // There are deliberately no example replies here: the model copies a concrete example word for word, and a placeholder example
@@ -212,7 +214,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
   }
   const message = reaction
     ? `[EVENT, not spoken by V]\n${clip(text, 2400)}\n\nReact with one short spoken line of your own, in character.`
-    : `V says: ${String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, limits.playerText)}\n\n${closing(persona.name, persona.talkWords)}`;
+    : `V says: ${String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, limits.playerText)}\n\n${closing(persona.name, persona.talkWords, mature)}`;
   if (!v2) {
     const live = capContext(`${CONTEXT_PREFIX}${context || 'This is a private conversation with V.'}`, limits.context);
     messages.push({role: 'user', content: `[LIVE CONTEXT for this moment: facts and instructions for you, never to be read aloud]\n${live}\n\n${message}`});
@@ -244,6 +246,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
 
 const EMOJI = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}‍️]/gu;
 const THINK = /<think(?:ing)?>[\s\S]*?(?:<\/think(?:ing)?>|$)/gi;
+const STRAY_THINK = /<\/think(?:ing)?>/i;
 
 // The first word of a *stage direction*: what a character does (sighs, laughs, leans in, clears throat), not what it stresses.
 // Words that are also ordinary words ("look", "take", "hold") count only in their -s, -ed and -ing forms ("looks", "holding").
@@ -282,6 +285,9 @@ export function starred(text) {
  */
 export function cleanReply(raw, {name = '', isTag = () => false} = {}) {
   let text = String(raw ?? '').replace(/\r/g, '').replace(THINK, '').trim();
+  // A closing think tag with no opening one (the uncensored Qwen3.5 models emit it with reasoning off): what follows it is the answer; when
+  // nothing follows, the tag is a stray at the end of the answer and only the tag goes.
+  if (STRAY_THINK.test(text)) { const parts = text.split(STRAY_THINK); text = (parts.at(-1).trim() || parts.slice(0, -1).join(' ')).trim(); }
   // A leading "Name:" or "**Name:**" label, and a leading "V:" echo.
   const label = name ? name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : null;
   if (label) text = text.replace(new RegExp(`^[\\W_]*${label}[*_]{0,2}\\s*[:\\-–—]\\s*[*_]{0,2}\\s*`, 'i'), '');
