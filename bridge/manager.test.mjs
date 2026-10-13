@@ -2803,9 +2803,9 @@ test('the Characters sidebar shows the settings in effect for each character, no
   local function reload() loaded = registered.loadMod('manager') end
   assert(invoke('tab:characters').ok)
   reload()
-  -- Nothing is on (Expressive emotions, Follow-up questions and Body gestures are on by default, so they are switched off first)
+  -- Nothing is on (Expressive emotions, Follow-up questions, V’s voice and Body gestures are on by default, so they are switched off first)
   -- and nobody is in the party: the description, the voice and the conversation, and no advice text.
-  assert(manager.applySettings(player, {expressiveEmotions = false, followUpInterest = false, bodyGestures = false})); reload()
+  assert(manager.applySettings(player, {expressiveEmotions = false, followUpInterest = false, vVoice = false, bodyGestures = false})); reload()
   local plain = description('viktor-vektor')
   assert(plain == 'A ripperdoc.\\n\\nVoice: Convai voice\\nConversation: On', plain)
   assert(not plain:find('Invitations create', 1, true) and not plain:find('phone contacts', 1, true) and not plain:find('Memory and connection', 1, true))
@@ -4391,47 +4391,52 @@ test('Follow-up questions sits in the Voices category after Expressive emotions,
   `);
 });
 
-test('V\u2019s voice for typed lines is off by default, a saved boolean is kept, and it never stands beside the Convai cloud voice', () => {
+test('V’s voice for typed lines is on by default, a saved choice is kept, and beside the Convai cloud voice it stays on, inactive, with no refusal or notice', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
-    assert(saved.vVoice == false and manager.vVoice() == false)
-    assert(manager.snapshot(player).settings.vVoice == false)
-    for _, case in ipairs({{'missing', 'pocket', false}, {true, 'pocket', true}, {true, 'omni', true}, {true, 'voxtral', true}, {true, 'inworld', true},
-        {false, 'pocket', false}, {'yes', 'pocket', false}, {1, 'pocket', false},
-        -- A saved pairing with the Convai cloud voice (an older or hand-edited file) is turned off.
-        {true, 'convai', false}}) do
+    assert(saved.vVoice == true and manager.vVoice() == true)
+    assert(manager.snapshot(player).settings.vVoice == true)
+    -- The default voice may be the Convai cloud voice: still on, but nothing is active for it.
+    assert(manager.vVoiceActive() == (manager.snapshot(player).settings.voiceProvider ~= 'convai'))
+    for _, case in ipairs({{'missing', 'pocket', true}, {true, 'pocket', true}, {true, 'omni', true}, {true, 'voxtral', true}, {true, 'inworld', true},
+        -- Only an explicit false stays off; a value that is not a boolean is the default (on).
+        {false, 'pocket', false}, {false, 'convai', false}, {'yes', 'pocket', true}, {1, 'pocket', true},
+        -- A saved pairing with the Convai cloud voice loads as it was saved: on, not switched off.
+        {true, 'convai', true}, {'missing', 'convai', true}}) do
       seed = {version = 2, voiceProvider = case[2], enabledByKey = {}, future = {keep = 'unchanged'}}
       if case[1] ~= 'missing' then seed.vVoice = case[1] end
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
       assert(manager.vVoice() == case[3] and saved.vVoice == case[3], tostring(case[1]) .. ' ' .. case[2])
       assert(manager.snapshot(player).settings.vVoice == case[3])
+      assert(manager.snapshot(player).settings.voiceProvider == case[2], 'voice moved ' .. tostring(case[1]) .. ' ' .. case[2] .. ' -> ' .. tostring(manager.snapshot(player).settings.voiceProvider))
+      assert(manager.vVoiceActive() == (case[3] and case[2] ~= 'convai'), tostring(case[1]) .. ' ' .. case[2])
+      assert(manager.takeNaturalSpeechNotice() == nil, 'no notice at load')
       assert(saved.future.keep == 'unchanged')
     end
-    -- The voice is never moved because of it.
     seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}}
     files['runtime/settings.json'], saved = 'seed', nil
     manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.applySettings(player, {vVoice = true}) and manager.vVoice() and saved.vVoice == true and saved.voiceProvider == 'pocket')
-    assert(manager.takeNaturalSpeechNotice() == nil)
-    assert(manager.applySettings(player, {vVoice = 'yes'}) == false and manager.vVoice())
-    -- Choosing the Convai cloud voice keeps the voice and turns V's voice off, with one notice.
+    assert(manager.vVoice() and manager.vVoiceActive())
+    -- Choosing the Convai cloud voice keeps V's voice on (inactive), with no notice.
     local ok, err, notice = manager.applySettings(player, {voiceProvider = 'convai'})
-    assert(ok and not err and not manager.vVoice() and saved.vVoice == false and saved.voiceProvider == 'convai', tostring(err))
-    assert(notice and notice:find('cannot clone a voice', 1, true) and notice:find('V\u2019s voice was turned off', 1, true), tostring(notice))
-    -- Turning it on beside the Convai cloud voice is refused, whether the voice is saved or chosen in the same Apply.
-    local refused, why = manager.applySettings(player, {vVoice = true})
-    assert(refused == false and why:find('Pocket, OmniVoice, Mistral or Inworld', 1, true) and not manager.vVoice() and saved.vVoice == false, tostring(why))
-    assert(manager.applySettings(player, {voiceProvider = 'pocket'}) and manager.snapshot(player).settings.voiceProvider == 'pocket')
-    local together, reason = manager.applySettings(player, {voiceProvider = 'convai', vVoice = true})
-    assert(together == false and reason:find('cannot clone', 1, true) and manager.snapshot(player).settings.voiceProvider == 'pocket' and not manager.vVoice(), tostring(reason))
-    -- Choosing another voice that clones keeps it on.
-    assert(manager.applySettings(player, {vVoice = true}) and manager.vVoice())
+    assert(ok and not err and notice == nil and manager.vVoice() and saved.vVoice == true and saved.voiceProvider == 'convai', tostring(err))
+    assert(not manager.vVoiceActive() and manager.takeNaturalSpeechNotice() == nil)
+    -- Turning it on or off beside the Convai cloud voice is never refused.
+    assert(manager.applySettings(player, {vVoice = false}) and not manager.vVoice() and saved.vVoice == false and saved.voiceProvider == 'convai')
+    assert(manager.applySettings(player, {vVoice = true}) and manager.vVoice() and saved.voiceProvider == 'convai' and not manager.vVoiceActive())
+    assert(manager.takeNaturalSpeechNotice() == nil)
+    -- Switching to a voice that clones makes it work at once, with no extra step.
+    assert(manager.applySettings(player, {voiceProvider = 'pocket'}) and manager.vVoice() and manager.vVoiceActive())
+    assert(manager.applySettings(player, {voiceProvider = 'convai', vVoice = true}) and manager.vVoice() and not manager.vVoiceActive())
+    assert(manager.applySettings(player, {vVoice = 'yes'}) == false and manager.vVoice())
     assert(manager.applySettings(player, {voiceProvider = 'pocket', followUpInterest = false}) and manager.vVoice())
+    -- Explicitly turned off stays off through a voice change.
+    assert(manager.applySettings(player, {vVoice = false}) and manager.applySettings(player, {voiceProvider = 'convai'}) and manager.applySettings(player, {voiceProvider = 'pocket'}) and not manager.vVoice())
   `);
 });
 
-test('V\u2019s voice sits in the Voices category after Follow-up questions, is off by default, applies on its own and joins the Speech line', () => {
+test('V’s voice sits in the Voices category after Follow-up questions, is on by default, notes the voices it needs only beside the Convai voice, and applies on its own', () => {
   run(`${mcmFixture}
     assert(invoke('tab:settings').ok)
     local owner, order = nil, {}
@@ -4441,13 +4446,17 @@ test('V\u2019s voice sits in the Voices category after Follow-up questions, is o
         if item.id == 'vVoice' then owner = category end
       end
     end
-    assert(owner and owner.id == 'voices' and row('vVoice').label == 'V\u2019s voice for typed lines')
-    assert(row('vVoice').value == false and row('vVoice').defaultValue == false)
-    assert(row('vVoice').description:find('Off by default', 1, true) and row('vVoice').description:find('typed', 1, true)
+    assert(owner and owner.id == 'voices' and row('vVoice').label == 'V’s voice for typed lines')
+    assert(row('vVoice').value == true and row('vVoice').defaultValue == true)
+    assert(row('vVoice').description:find('On by default', 1, true) and row('vVoice').description:find('typed', 1, true)
         and row('vVoice').description:find('push-to-talk', 1, true))
+    assert(not row('vVoice').description:find('Off by default', 1, true) and not row('vVoice').description:find('cannot clone', 1, true))
     for _, banned in ipairs({'recommended', 'antivirus', 'embedded', 'paid'}) do
       assert(not row('vVoice').description:lower():find(banned, 1, true), banned)
     end
+    local note = 'Works with the Pocket, OmniVoice, Voxtral or Inworld voices.'
+    local voiceNow = manager.snapshot(player).settings.voiceProvider
+    assert((row('vVoice').description:find(note, 1, true) ~= nil) == (voiceNow == 'convai'), 'the note shows beside the Convai voice only')
     local at = {}
     for index, id in ipairs(order) do at[id] = index end
     assert(at.followUpInterest < at.vVoice, 'with the other speech settings')
@@ -4458,13 +4467,14 @@ test('V\u2019s voice sits in the Voices category after Follow-up questions, is o
     nativeApi.unsubscribe = function() return true end
     mcm.shutdown(); mcm.install()
     for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = 1}) end
-    local refused = registered.applyBatch('manager', {{id = 'vVoice', value = true}})
+    local refused = registered.applyBatch('manager', {{id = 'vVoice', value = false}})
     assert(refused.ok == false and refused.error:find('Change pending', 1, true))
-    assert(not manager.vVoice() and saved.vVoice == false)
+    assert(manager.vVoice() and saved.vVoice == true)
     clock = clock + 2
     local voiceBefore = manager.snapshot(player).settings.voiceProvider
-    assert(registered.applyBatch('manager', {{id = 'vVoice', value = true}}).ok and manager.vVoice())
+    assert(registered.applyBatch('manager', {{id = 'vVoice', value = false}}).ok and not manager.vVoice())
     assert(manager.snapshot(player).settings.voiceProvider == voiceBefore, 'no voice switch')
+    assert(manager.takeNaturalSpeechNotice() == nil)
   `);
 });
 

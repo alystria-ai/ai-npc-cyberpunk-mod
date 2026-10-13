@@ -31,7 +31,7 @@ no longer open it.
 - **Settings:** conversation participation, Memory and Relationships submenus,
   **Auto-connect nearby characters** (on by default and silent, see below), eye contact height, head tracking strength
   (Eyes only / Subtle / Gentle (default) / Strong), **Body gestures (experimental)** (on by default since 2026-10-11), voice playback,
-  **V's voice for typed lines** (off by default; speaks what you type in V's cloned voice before the companion answers, needs a voice that can clone, see `docs/V_VOICE.md`),
+  **V's voice for typed lines** (on by default; speaks what you type in V's cloned voice before the companion answers; does nothing beside the Convai cloud voice, which cannot clone, and the row says so; see `docs/V_VOICE.md`),
   **Keep prepared voices** (on by default), subtitles, automatic reactions, interface language and
   Developer mode (routine popups, a movement trace file, gesture logs and the setting in support reports; leave it off
   for normal play). The global voice choices are **Pocket · Performance (the default), OmniVoice · Balanced,

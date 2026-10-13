@@ -302,9 +302,14 @@ export class VVoice {
     this.logged = new Set();
   }
 
-  /** The setting (runtime/settings.json "vVoice"). Returns whether it changed. */
+  /**
+   * The setting (runtime/settings.json "vVoice"). On unless the player turned it off: a file that never stored it counts as on.
+   * With a voice that cannot clone (the Convai cloud voice) it stays on and simply does nothing (the plan below is not a
+   * cloning engine). Returns whether it changed.
+   */
   update(settings) {
-    const next = settings?.vVoice === true;
+    if (!settings || typeof settings !== 'object') return false;
+    const next = settings.vVoice !== false;
     if (next === this.enabled) return false;
     this.enabled = next;
     return true;
@@ -352,11 +357,11 @@ export class VVoice {
       this.lastGender = gender;
       const text = vLineText(input.text);
       if (!text) return null;
+      const plan = this.planFor(input, voice.key);
+      if (!plan || (plan.engine !== 'pocket' && plan.engine !== 'omni')) return null;
       const volume = input.turnContext?.dialogueVolume;
       if (typeof volume !== 'number' || !Number.isFinite(volume)) { this.once('volume', 'V\'s voice skipped: the game\'s dialogue volume is not known'); return null; }
       if (volume <= 0.001) return null;
-      const plan = this.planFor(input, voice.key);
-      if (!plan || (plan.engine !== 'pocket' && plan.engine !== 'omni')) return null;
       if (!this.ready(voice.key)) { this.once('ready:' + voice.key, `V's voice skipped: the chosen voice has no ${voice.key} voice yet`); return null; }
       const line = new VLine({input, key: voice.key, text, plan, volume: Math.min(1, volume), signal, log: this.log,
         play: (config, producer, options) => this.play(config, producer, options), stream: this.stream, render: this.render,
@@ -376,6 +381,8 @@ export class VVoice {
   /** The composer opened: warm the renderer page and the voice that was last used, so the first typed line is not the slow one. */
   warmUp({signal} = {}) {
     if (!this.enabled || !this.available) return;
+    // A voice that cannot clone (the Convai cloud voice) has no V line: nothing is warmed or prepared for it.
+    if (typeof this.ready === 'function' && !Object.values(this.voices).some(voice => voice?.key && this.ready(voice.key))) return;
     Promise.resolve().then(() => this.warm?.({signal})).catch(() => {});
     const gender = this.lastGender && this.voices[this.lastGender] ? this.lastGender : GENDERS.find(name => this.voices[name]);
     // With one clip, or after a first line, the voice to prepare is known; with two clips and no line yet it is not worth guessing.
