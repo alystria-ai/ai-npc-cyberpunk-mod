@@ -15,7 +15,7 @@ M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourA
     -- Idle flavour (characters marked flavour in the catalog, and the generic fallback): she goes into an idle as
     -- soon as she has been settled for a moment (a copy that never talked included), for 45-90 s, then again after a
     -- gap of 20-45 s measured from the end of the last one; five seconds after a reply ends (flavourAfterTalk).
-    flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {20, 45}, flavourLength = {45, 90}}
+    exitSettle = .4, driftNote = .15, flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {20, 45}, flavourLength = {45, 90}}
 
 local function distance(a, b)
     if not a or not b then return 0 end
@@ -259,6 +259,11 @@ function M.new(options)
     end
     local function finish(s, reason)
         note(s, 'finished', {reason = reason, exitLatency = s.exitAt and self.clock - s.exitAt})
+        -- The workspot is left a tenth of a second after the exit signal, but the pose blends out for
+        -- about half a second more (forced exit blend). Movement waits for that blend (observe keeps
+        -- reporting the copy held), so she is never walked across the floor in the idle pose. A fast
+        -- exit (combat, transport) and a start that never reached the workspot do not wait.
+        s.settleUntil = s.exitAt and not s.exitInstant and self.clock + policy.exitSettle or nil
         s.phase, s.clip, s.exitAt, s.lingerUntil, s.recovery = 'off', nil, nil, nil, nil
         s.healthFrom, s.wedgedSince = self.clock, nil
         -- Every stance entry is a visible pose shuffle (the ambient legs differ from the
@@ -285,7 +290,7 @@ function M.new(options)
             finish(s, reason); return
         end
         if s.phase ~= 'active' and s.phase ~= 'recovering' then return end
-        s.phase, s.exitAt, s.exitReason, s.escalated = 'exiting', self.clock, reason, nil
+        s.phase, s.exitAt, s.exitReason, s.escalated, s.exitInstant = 'exiting', self.clock, reason, nil, instant == true
         native.exit(s.entry.npc, instant)
         note(s, 'exit', {reason = reason, instant = instant == true})
     end
@@ -332,6 +337,7 @@ function M.new(options)
                     return
                 end
                 s.phase, s.activeAt = 'active', self.clock
+                s.homeAt, s.driftNoted = copy(s.entry.position), nil
                 note(s, 'active', {})
             elseif self.clock - s.playAt > 3 then
                 if not s.flavour and s.familyKey and s.known.fallback and s.familyKey ~= s.known.fallback then
@@ -367,6 +373,13 @@ function M.new(options)
         if moved > policy.playerMoved or (s.runningSince and self.clock - s.runningSince >= .3)
             or (s.unsettledSince and self.clock - s.unsettledSince > policy.unsettled) then
             requestExit(s, 'movement', false); return
+        end
+        -- Diagnostic: the workspot should hold her in place. Log once if the body moves anyway
+        -- (2026-10-13, Evelyn: 0.24 m with V standing still). One table read per tick.
+        if s.homeAt and not s.driftNoted and s.entry.position and distance(s.homeAt, s.entry.position) > policy.driftNote then
+            s.driftNoted = true
+            note(s, 'drift', {metres = distance(s.homeAt, s.entry.position),
+                after = s.activeAt and self.clock - s.activeAt, component = s.component})
         end
         if s.flavour then
             -- Signature idle: leave when its time is up or a conversation starts
@@ -486,7 +499,7 @@ function M.new(options)
             if #self.errors > 8 then table.remove(self.errors, 1) end
             pcall(requestExit, s, 'error', true)
         end
-        return HOLDING[s.phase] == true
+        return HOLDING[s.phase] == true or (s.settleUntil ~= nil and self.clock < s.settleUntil)
     end
 
     function self.tick(player, step, rows)

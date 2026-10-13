@@ -666,3 +666,42 @@ test('a crouch while the workspot is only starting cancels it without stranding 
   step(2)
   assert(count('play')==1,'no new play')
 `));
+
+test('movement ends the workspot first and the follow waits for the pose blend-out, so she is never walked in the idle pose', () => run(`
+  entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
+  step(3)
+  assert(lastLog('flavour-begin') and held,'in an idle, holding movement')
+  for i=1,8 do player.pos={x=i*.15,y=0,z=0};step(.1) end
+  assert(lastLog('exit') and lastLog('exit').fields.reason=='movement','exits on movement')
+  local at=count('exit')
+  -- the workspot is left within a tick, but movement still waits for the blend
+  local heldTicks,total=0,0
+  for i=1,12 do step(.1);total=total+1;if held then heldTicks=heldTicks+1 end end
+  assert(heldTicks>=3 and heldTicks<=5,'held about 0.4 s after the workspot is left: '..heldTicks)
+  assert(not held,'then released')
+  assert(count('exit')==at,'no second exit')
+`));
+
+test('a combat exit and a start that never entered the workspot do not delay movement', () => run(`
+  entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
+  step(3)
+  context.combat=true;step(.1);context.combat=false
+  for i=1,3 do step(.1) end
+  assert(lastLog('finished') and lastLog('finished').fields.reason=='combat','finished on combat')
+  assert(not held,'released at once after an instant exit')
+`));
+
+test('an idle workspot that moves the body is logged once as drift, with how long after entering', () => run(`
+  entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
+  entry.position={x=1,y=1,z=0}
+  step(3)
+  assert(held and not lastLog('drift'),'no drift yet')
+  entry.position={x=1.05,y=1,z=0};step(.5)
+  assert(not lastLog('drift'),'5 cm is not drift')
+  entry.position={x=1.3,y=1,z=0};step(.5)
+  local d=lastLog('drift')
+  assert(d and d.fields.metres>.2 and d.fields.after>0,'drift logged')
+  local n=0 for _,l in ipairs(logs) do if l.kind=='drift' then n=n+1 end end
+  step(1);for _,l in ipairs(logs) do if l.kind=='drift' then n=n-1 end end
+  assert(n==0,'once')
+`));
