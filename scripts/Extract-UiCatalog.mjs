@@ -14,7 +14,7 @@ const files = [
   'mod/companion-chauffeur-native.lua', 'mod/gameplay-actions.lua', 'mod/companion-adoption.lua',
   'mod/companion-clearance.lua', 'mod/companion-placement.lua',
   'mod/phone-chat.lua', 'mod/phone-chat-style.lua', 'mod/phone-input.lua',
-  'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua', 'mod/support-report.lua',
+  'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua', 'mod/support-report.lua', 'mod/character-editor.lua',
   'r6/scripts/CyberpunkConvai/Composer.reds',
   'r6/scripts/CyberpunkConvai/PhoneContacts.reds',
   'r6/scripts/CyberpunkConvai/PhoneChat.reds',
@@ -142,6 +142,10 @@ const reviewed = {
     'Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.',
     'Choose a character before clearing their memories about you.',
     'Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.',
+  ],
+  'mcm.prepared-voices': [
+    'How much disk the saved voice setups use. Pocket saves them while Keep prepared voices is on, and each one is made again in about a second the next time that voice speaks.',
+    'Delete all saved voice setups? Voice references and models are not touched. Each voice is made again, in about a second, the next time it speaks.',
   ],
   'mcm.relationships': [
     'Auto', 'Romantic', 'Casual', 'Ordinary',

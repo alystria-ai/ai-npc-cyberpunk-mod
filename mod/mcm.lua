@@ -17,6 +17,7 @@ local preparationTarget, preparationStatus, preparationActionFeedback
 local preparationAt = 0
 local presentation = {active = false, rows = {}}
 local voiceSelectors = {}
+local renderOwn = false   -- the page MCM is drawing now is ours (set by the McmUiBegin override)
 -- Everything that does not need a frame runs on this tick (see M.update). A queue
 -- change, a session reset and the return to gameplay run it on the next frame.
 local SLOW_PERIOD = 0.25
@@ -47,6 +48,15 @@ local BACK_ID = 'convai-bottom-back'
 local BAR_GAP = 20
 local backMode, currentBack = 'bottom', nil
 local statusOriginal
+-- A value change (a slider or option, a toggle) makes MCM draw the WHOLE page again from its own update, which runs after ours
+-- in the frame: the new rows, status line and buttons would show in MCM's default look for at least one frame before this
+-- module can style them. So the page's content is created hidden, in the same call that creates it (the McmUiBeginContent
+-- override below changes only its contentReady argument, no widget is touched), and shown again once it is styled
+-- (unveilPage). contentHold remembers the hold: {controller, at}. It is cleared when the content is shown, and a hold that
+-- nothing released within HOLD_MAX seconds (a style job that never started) is released by M.update, so the page can never
+-- stay empty.
+local contentHold, holdDisabled
+local HOLD_MAX = 1.5
 -- The refusal MCM shows when a change would be applied automatically. It goes to
 -- MCM's status line, which is moved to the top of the content column.
 local function hintPending() return ui.t('Change pending. Choose Apply to use it, or Revert to discard it.') end
@@ -55,6 +65,9 @@ local CONTENT_FONT_SIZE = 22
 -- manager works without it, and a load failure only hides the Help entry.
 local support, supportSignature
 local supportLoaded, supportFactory = pcall(dofile, 'support-report.lua')
+-- Edit characters: opens the character editor page in the player's browser. Optional like Help: without it the row is not shown.
+local editor
+local editorLoaded, editorFactory = pcall(dofile, 'character-editor.lua')
 local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); file:close() end
@@ -277,15 +290,32 @@ local VEIL_MAX = 0.75
 local function veilPage(content)
     local read, opacity = pcall(function() return content:GetOpacity() end)
     if pcall(function() content:SetOpacity(0.0) end) then
-        presentation.veil = {widget = content, opacity = read and tonumber(opacity) or 1.0, at = os.clock()}
+        -- The scroll wrapper is two levels up (content, scroll area, wrapper); it is the widget MCM hid at creation.
+        local found, wrapper = pcall(function() return content:GetParentWidget():GetParentWidget() end)
+        presentation.veil = {widget = content, wrapper = found and wrapper or nil,
+            opacity = read and tonumber(opacity) or 1.0, at = os.clock()}
     end
 end
 
 local function unveilPage()
     local held = presentation.veil
-    if not held then return end
-    presentation.veil = nil
-    pcall(function() held.widget:SetOpacity(held.opacity) end)
+    if held then
+        presentation.veil = nil
+        pcall(function() held.widget:SetOpacity(held.opacity) end)
+        if contentHold and held.wrapper and pcall(function() held.wrapper:SetVisible(true) end) then contentHold = nil end
+    end
+end
+
+-- The hold of a render that was never styled (or whose wrapper could not be found) is released here: the page is found again
+-- and shown. If even that fails the hold is switched off for the session and the page drawn again without it.
+local function releaseStaleHold()
+    local hold = contentHold
+    if not hold or os.clock() - hold.at < HOLD_MAX then return end
+    contentHold = nil
+    local shown = pcall(function()
+        locateRoots(hold.controller).content:GetParentWidget():GetParentWidget():SetVisible(true)
+    end)
+    if not shown then holdDisabled, refreshQueued = true, true end
 end
 
 -- Called only by top-level onUpdate, never inside an observed native call.
@@ -404,6 +434,8 @@ end
 
 local function navigate(nextView, context)
     view = nextView
+    -- Prepared voices on disk: the bridge measures once when Settings opens; the status is read only while Settings or the clear page is up.
+    manager.watchPreparedVoices(nextView == 'settings' or nextView == 'prepared-voices', nextView == 'settings')
     clearSearch(context)
     return true
 end
@@ -446,7 +478,7 @@ local function profileDescription(profile, snapshot, shared, count)
     if active == 'pocket' or active == 'omni' then
         for _, key in ipairs(snapshot.localVoice.routedProfiles or {}) do
             if key == profile.key then
-                voice = snapshot.localVoice.cloudVoice == 'voxtral' and manager.voiceLabel('voxtral')
+                voice = (snapshot.localVoice.cloudVoice == 'voxtral' or snapshot.localVoice.cloudVoice == 'inworld') and manager.voiceLabel(snapshot.localVoice.cloudVoice)
                     or manager.voiceLabel(active, snapshot.localVoice.omniSteps, snapshot.localVoice.omniReference)
                 routed = true
                 break
@@ -456,6 +488,9 @@ local function profileDescription(profile, snapshot, shared, count)
     -- The Mistral cloud voice needs a Mistral key: say so instead of naming a voice that will not be heard.
     if not routed and settings.voiceProvider == 'voxtral' and not (snapshot.mistral or {}).saved then
         voice = ui.t('{voice} · needs Mistral key', {voice = manager.voiceLabel('voxtral')})
+    end
+    if not routed and settings.voiceProvider == 'inworld' and not ((snapshot.mistral or {}).inworld or {}).saved then
+        voice = ui.t('{voice} · needs Inworld key', {voice = manager.voiceLabel('inworld')})
     end
     -- An OmniVoice choice cannot run without its pack: say so instead of naming a voice that will not be heard.
     if not routed and settings.voiceProvider == 'omni' and shared.pack.known and not shared.pack.installed then
@@ -494,7 +529,7 @@ local function voiceServiceLabel(state)
         return ui.t('Changing after the current reply')
     end
     local fallback = state.fallback
-    if type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral')
+    if type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral' or fallback.from == 'inworld')
         and (fallback.to == 'pocket' or fallback.to == 'convai') then
         local values = {
             status = ui.t(labels[state.state] or 'Waiting for voice service'),
@@ -532,6 +567,8 @@ local function voiceMenuLabels(pack, mistral)
             label = ui.t('{voice} · needs Omni pack', {voice = label})
         elseif choice.provider == 'voxtral' and not (mistral or {}).saved then
             label = ui.t('{voice} · needs Mistral key', {voice = label})
+        elseif choice.provider == 'inworld' and not ((mistral or {}).inworld or {}).saved then
+            label = ui.t('{voice} · needs Inworld key', {voice = label})
         end
         elements[index] = label
     end
@@ -779,6 +816,17 @@ local function memorySettings(snapshot)
     return rows
 end
 
+-- Settings > Voices > Prepared voices on disk: the total the bridge measured when Settings opened (bridge/prepared-voices.mjs).
+local function preparedVoicesValue(prepared)
+    if not prepared.known then return prepared.busy and ui.t('Checking…') or ui.t('Unavailable') end
+    if prepared.files == 0 then return ui.t('None') end
+    local size = prepared.bytes >= 1048576 and string.format('%.1f MB', prepared.bytes / 1048576)
+        or string.format('%d KB', math.max(1, math.ceil(prepared.bytes / 1024)))
+    return ui.t('{size} · Saved voices: {count}', {size = size, count = prepared.files})
+end
+
+local PREPARED_VOICES_ABOUT = 'How much disk the saved voice setups use. Pocket saves them while Keep prepared voices is on, and each one is made again in about a second the next time that voice speaks.'
+
 -- Development > Convai API key (docs/OWN_CONVAI_KEY.md). The text shown here is the status of the player's own key, never
 -- the key: only its last four characters, which the bridge publishes, are ever displayed.
 local function ownKeyRows(snapshot)
@@ -822,6 +870,15 @@ local function ownKeyRows(snapshot)
     elseif groq.saved and groq.tail then groqStatus = ui.t('Added (ends in {tail})', {tail = groq.tail})
     elseif groq.saved then groqStatus = ui.t('Added')
     else groqStatus = ui.t('Not added') end
+    -- Inworld (cloud voice): the same key status, from the bridge's `inworld` object.
+    local inworld = type(mistral.inworld) == 'table' and mistral.inworld or {}
+    local inworldStatus, inworldResult = nil, inworld.result
+    if inworldResult == 'invalid' then inworldStatus = ui.t('Inworld did not accept that key.')
+    elseif inworldResult == 'unreadable' then inworldStatus = ui.t('The clipboard could not be read.')
+    elseif inworldResult == 'failed' then inworldStatus = ui.t('The key could not be saved.')
+    elseif inworld.saved and inworld.tail then inworldStatus = ui.t('Added (ends in {tail})', {tail = inworld.tail})
+    elseif inworld.saved then inworldStatus = ui.t('Added')
+    else inworldStatus = ui.t('Not added') end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
         and ui.t('Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.')
@@ -919,11 +976,24 @@ local function ownKeyRows(snapshot)
             action('groq-key:remove', 'Remove my Groq key', 'Remove',
                 'Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai free tier.',
                 function() return manager.removeGroqKey() end, groq.saved == true),
+            readonly('inworld-key-status', 'Inworld key', inworldStatus,
+                'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
+            action('inworld-key:paste', 'Paste Inworld key', 'Paste from clipboard',
+                'Copy your key from Inworld first. It is read from the clipboard once, checked with Inworld and saved on this computer. You can also save it in the file player-inworld-key.txt in the conversation service folder. It is used only for the Inworld cloud voice.',
+                function() return manager.pasteInworldKey() end),
+            action('inworld-key:remove', 'Remove my Inworld key', 'Remove',
+                'Deletes the saved key. The Inworld cloud voice stops until you add a key again.',
+                function() return manager.removeInworldKey() end, inworld.saved == true),
             readonly('local-ai-status', 'Local AI', localAiStatus,
                 'Runs conversations on this computer with the optional Local AI pack. It needs free graphics memory while it works, and memory stays on this computer. Choose Local in Conversation provider, then Apply.', {value = true}),
             readonly('own-key-using', 'Conversations use', using,
                 'Which provider answers your conversations right now and, for Convai, which plan pays for them. Changes wait until no conversation is running.', {value = true}),
     }) do if item then rows[#rows + 1] = item end end
+    if editor then
+        rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
+            'Change a character’s bio, speaking style, speaking rules and memories in your browser. It works with Mistral, Groq and Local, not Convai. Changes are used from the next reply.',
+            function() return editor.request() end)
+    end
     return rows
 end
 
@@ -963,6 +1033,11 @@ local function pageSignature(snapshot)
         add(tostring(snapshot.scan.finished))
     end
     if support and view == 'help' then add('help:' .. support.signature() .. '|' .. support.serviceState()) end
+    if view == 'settings' or view == 'prepared-voices' then
+        local prepared = snapshot.preparedVoices
+        add(table.concat({'prepared', tostring(prepared.known), tostring(prepared.files), tostring(prepared.bytes), tostring(prepared.busy),
+            tostring(prepared.cleared and prepared.cleared.bytes), tostring(prepared.failed)}, '|'))
+    end
     if view == 'settings' then
         -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears. The voice status line
@@ -980,6 +1055,8 @@ local function pageSignature(snapshot)
         local modelKey = {'models'}
         for _, model in ipairs(mistral.localModels or {}) do modelKey[#modelKey + 1] = model.id .. ':' .. model.name .. ':' .. tostring(model.sizeMiB) end
         add(table.concat(modelKey, '|'))
+        -- Installed add-ons' own settings (docs/ADDON_API.md); nothing without one.
+        if convaiAddons and convaiAddons.live then add('addons:' .. convaiAddons.signature()) end
     end
     return table.concat(parts, '\n')
 end
@@ -999,7 +1076,7 @@ local function schema()
     -- party answers an invitation with a message from the queue.
     local canInvite = owner ~= nil
     if view == 'home' then
-        for _, tab in ipairs({{'characters', 'Characters'}, {'party', 'Current party'},
+        for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Current party'},
             {'models', 'Model browser'}, {'settings', 'Settings'}}) do
             -- The Model browser lists every character model in the game, so it says that and what joining means.
             local description = tab[1] == 'models'
@@ -1021,7 +1098,7 @@ local function schema()
                 available and (count > 0 and ui.t('Add copy ({count})',{count=count}) or 'Invite') or 'Profile only',
                 profileDescription(profile, snapshot, shared, count), function() return queue.invite(key) end, canInvite and available)
         end
-        categories[#categories + 1] = category('characters', 'Characters', rows,
+        categories[#categories + 1] = category('characters', 'Characters to invite', rows,
             'Search a character by name. Each invitation reserves a place and starts preparation immediately.')
     elseif view == 'party' then
         local trip = queue.chauffeur()
@@ -1152,7 +1229,7 @@ local function schema()
                     return ok, reason
                 end)
         end
-        categories[#categories + 1] = category('memory-characters', 'Character memories', rows)
+        categories[#categories + 1] = category('memory-characters', 'Whose memories', rows)
     elseif view == 'relationships' then
         rows[#rows + 1] = action('relationships:back', 'Back to settings', 'Back',
             'Return to conversation settings.', function(context) return navigate('settings', context) end)
@@ -1169,6 +1246,27 @@ local function schema()
         end
         categories[#categories + 1] = category('relationships', 'Relationships', rows,
             'Choose ordinary or romantic conversations for supported characters.')
+    elseif view == 'prepared-voices' then
+        local prepared = snapshot.preparedVoices
+        rows[#rows + 1] = action('prepared-voices:back', 'Back to settings', 'Back',
+            'Return to conversation settings.', function(context) return navigate('settings', context) end)
+        rows[#rows + 1] = readonly('prepared-voices-total', 'Prepared voices on disk', preparedVoicesValue(prepared), PREPARED_VOICES_ABOUT)
+        if prepared.cleared then
+            local result = prepared.cleared.bytes > 0
+                and ui.t('Cleared {size} of saved voice setups.', {size = string.format('%.1f MB', prepared.cleared.bytes / 1048576)})
+                or ui.t('There was nothing to clear.')
+            rows[#rows + 1] = readonly('prepared-voices-result', 'Result', result, result)
+        elseif prepared.failed then
+            rows[#rows + 1] = readonly('prepared-voices-result', 'Result', 'The request could not be completed.',
+                'The voice service could not clear the saved voice setups. Check that it is running, then try again.')
+        end
+        local confirm = 'Delete all saved voice setups? Voice references and models are not touched. Each voice is made again, in about a second, the next time it speaks.'
+        rows[#rows + 1] = readonly('prepared-voices-confirm', 'Confirm clearing', confirm, confirm)
+        rows[#rows + 1] = action('prepared-voices:confirm', 'Clear prepared voices', 'Delete', confirm,
+            function() return manager.clearPreparedVoices() end, prepared.known and prepared.files > 0 and not prepared.busy)
+        rows[#rows + 1] = action('prepared-voices:cancel', 'Cancel', 'Keep',
+            'Go back without deleting anything.', function(context) return navigate('settings', context) end)
+        categories[#categories + 1] = category('prepared-voices', 'Prepared voices', rows)
     elseif view == 'permissions' then
         rows[#rows + 1] = action('permissions:back', 'Back to settings', 'Back',
             'Return to conversation settings.', function(context) return navigate('settings', context) end)
@@ -1285,13 +1383,18 @@ local function schema()
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
-                'Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. The Mistral cloud voice (Voxtral) speaks in each companion’s own voice using your Mistral key, whichever provider writes the replies; it needs a key and speaks English only. Convai uses its cloud; if a choice cannot run, a simpler voice takes over and you are told once.',
+                'Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. The Mistral (Voxtral) and Inworld cloud voices speak in each companion’s own voice with your own key and any provider, in English only. Inworld also speaks with emotion. Convai uses its cloud; if a choice cannot run, a simpler voice takes over and you are told once.',
                 voiceMenuLabels(pack, snapshot.mistral), {elements = true}),
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it.',
                 delayLabels, {elements = true}),
             setting('keepPreparedVoices', 'Keep prepared voices', 'bool', snapshot.settings.keepPreparedVoices, true,
                 'Remember each companion’s prepared voice so summoning them again is quicker. Pocket TTS saves one small file per character (about 5 to 15 MB) in the mod’s runtime folder; OmniVoice does a short hidden warm-up at your chosen quality while a companion joins. Turn this off to save nothing on disk. The change applies without a restart.'),
+            readonly('prepared-voices', 'Prepared voices on disk', preparedVoicesValue(snapshot.preparedVoices), PREPARED_VOICES_ABOUT),
+            action('prepared-voices:open', 'Clear prepared voices', 'Clear',
+                'Delete the saved voice setups to free that disk space. Voice references and models are not touched. You confirm on the next page.',
+                function(context) return navigate('prepared-voices', context) end,
+                snapshot.preparedVoices.known and snapshot.preparedVoices.files > 0),
             setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
                 'Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice: choosing the Convai cloud voice keeps it and turns this off, and turning this on while the cloud voice is saved moves Companion voices to Pocket TTS. Off by default.'),
             setting('expressiveEmotions', 'Expressive emotions', 'bool', snapshot.settings.expressiveEmotions, true,
@@ -1315,6 +1418,18 @@ local function schema()
             setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, false,
                 'Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment.'),
         })
+        -- One section per installed add-on that has settings (docs/ADDON_API.md). The add-on wrote its own labels.
+        if convaiAddons and convaiAddons.live then
+            local own = {label = true, description = true, elements = true}
+            for _, section in ipairs(convaiAddons.settingsSections()) do
+                local list = {}
+                for _, item in ipairs(section.items) do
+                    list[#list + 1] = setting(item.mcmId, item.label, item.kind, item.value, item.default, item.description,
+                        item.elements, own)
+                end
+                categories[#categories + 1] = {id = section.id, name = section.title, description = section.description, settings = list}
+            end
+        end
         categories[#categories + 1] = category('development', 'Development', {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
                 'For testing and bug reports; leave it off for normal play. It shows routine companion popups (the joining step, dismissal confirmations, driving instructions such as boarding and exit, results of companion actions, and a notice when a support report is ready), writes a movement trace file in the mod’s runtime folder, logs body gesture decisions, and adds this setting to support reports. Preparation progress, joined notices, failures and replies to Stop trip remain visible when off.'),
@@ -1378,6 +1493,11 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
             developerMode = function() return developerMode() end})
         if created and type(instance) == 'table' then support = instance end
     end
+    if editorLoaded and type(editorFactory) == 'table' and type(editorFactory.new) == 'function' then
+        local created, instance = pcall(editorFactory.new, {ui = ui,
+            serviceState = function() return support and support.serviceState() or 'unknown' end})
+        if created and type(instance) == 'table' then editor = instance end
+    end
     provider = {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
         name = 'Cyberpunk Convai', shortName = 'CONVAI',
@@ -1430,6 +1550,9 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 return {ok = false, error = hintPending()}
             end
             local values, applied = {enabledByKey = {}, relationshipModes = {}}, {}
+            -- Add-on settings (docs/ADDON_API.md) are held until the main settings save succeeds.
+            local addonChanges = 0
+            if convaiAddons and convaiAddons.live then convaiAddons.discardSettings() end
             for _, change in ipairs(changes) do
                 local key = change.id
                 if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
@@ -1482,6 +1605,10 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     if choice.provider == 'voxtral' and not manager.mistral().saved then
                         return {ok = false, error = ui.t('Requires a Mistral key (add it in Settings > Development)')}
                     end
+                    -- The Inworld cloud voice needs an Inworld key of its own.
+                    if choice.provider == 'inworld' and not (manager.mistral().inworld or {}).saved then
+                        return {ok = false, error = ui.t('Requires an Inworld key (add it in Settings > Development)')}
+                    end
                     values.voiceProvider = choice.provider
                     if choice.provider == 'omni' then values.omniSteps, values.omniReference = choice.steps, choice.reference end
                 elseif key == 'eyeContactHeight' or key == 'headFollowStrength' then
@@ -1499,10 +1626,19 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     values.relationshipModes[key:sub(14)] = ({'auto', 'on', 'off'})[change.value]
                 elseif key:sub(1, 8) == 'enabled:' then values.enabledByKey[key:sub(9)] = change.value
                 elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
+                elseif key:sub(1, 6) == 'addon:' and convaiAddons and convaiAddons.live then
+                    local staged, problem = convaiAddons.stageSetting(key, change.value)
+                    if not staged then convaiAddons.discardSettings(); return {ok = false, error = problem} end
+                    addonChanges = addonChanges + 1
                 else return {ok = false, error = ui.t('That setting is read-only.')} end
                 applied[#applied + 1] = key
             end
-            local ok, err, notice, reload = manager.applySettings(player(), values)
+            local ok, err, notice, reload
+            if addonChanges > 0 and addonChanges == #applied then ok = true
+            else ok, err, notice, reload = manager.applySettings(player(), values) end
+            if addonChanges > 0 then
+                if ok then convaiAddons.commitSettings() else convaiAddons.discardSettings() end
+            end
             -- A voice switched for Natural speech, or tag settings turned off for the cloud voice, is told to the player
             -- here (the status line) and, once back in gameplay, as a notice; the page reloads so the lists and toggles
             -- show what was actually saved. A quiet turn-off (only the default was on) reloads without a notice.
@@ -1557,6 +1693,7 @@ function M.install()
         local allowed = own and statusKind ~= 2 and (completed or status == '')
         presentation = {active = false, rows = {}, beginKey = controllerKey(controller),
             statusAllowed = allowed, statusRestore = allowed and completed and '' or status}
+        renderOwn = own and not holdDisabled
         voiceSelectors = {}
         if own and actionFeedback and completed and statusKind ~= 2 then
             status, statusKind = actionFeedback, 0
@@ -1576,6 +1713,15 @@ function M.install()
         return wrapped(title, subtitle, sidebarTitle, contentTitle, status, statusKind,
             transientOwner, showSidebarSearch, showContentSearch, listSelectionMode)
     end)
+    -- The content of our own page is created hidden (see contentHold); only the flag is changed, no widget is touched.
+    Override('SettingsMainGameController', 'McmUiBeginContent', function(controller, height, scroll, ready, wrapped)
+        if renderOwn and ready == true then
+            renderOwn = false
+            contentHold = {controller = controller, at = os.clock()}
+            return wrapped(height, scroll, false)
+        end
+        return wrapped(height, scroll, ready)
+    end)
     ObserveAfter('SettingsMainGameController', 'McmUiSetContentTitle', function(controller, title)
         local owned = title == ui.t(LABEL) and active()
         local key = owned and controllerKey(controller) or nil
@@ -1592,6 +1738,7 @@ function M.install()
         if ownsPresentation(controller) then
             presentation = {active = false, rows = {}}
             voiceSelectors = {}
+            contentHold, renderOwn = nil, false
         end
     end)
     ObserveAfter('SettingsSelectorController', 'McmUiConfigureBase', function(controller, host, id)
@@ -1809,13 +1956,16 @@ function M.slowUpdate(currentPlayer, worldReady)
     end
     local progress = board and board.take(worldReady == true)
     if progress then messages[#messages + 1] = {id = 'invite-board', text = progress.message} end
-    -- A slow component loading (the OmniVoice voice after a switch or at start, Local AI warming up): its line is shown again
-    -- every few seconds until the "ready" line replaces it. The board reads the state at most once a second while nothing loads.
+    -- A slow component loading (the OmniVoice voice after a switch or at start, Local AI warming up): one notice that stays up
+    -- until the "ready" or failure line replaces it (convaiNotices.loading holds it on the game's warning line and refreshes it
+    -- rarely). The board reads the state at most once a second while nothing loads.
+    local releaseLoading = false
     if type(convaiNotices) == 'table' and type(convaiNotices.loading) == 'function' and type(manager.loadStatus) == 'function' then
-        local lines = convaiNotices.loading(worldReady == true, LOAD_KEYS, manager.loadStatus, loadingText)
+        local lines, release = convaiNotices.loading(worldReady == true, LOAD_KEYS, manager.loadStatus, loadingText)
+        releaseLoading = release == true
         if lines then
             for _, line in ipairs(lines) do
-                if line.phase == 'loading' then messages[#messages + 1] = {id = 'load-progress', text = line.text}
+                if line.phase == 'loading' then messages[#messages + 1] = {id = 'load-progress', text = line.text, instant = line.instant, mask = line.mask}
                 elseif line.phase == 'ready' then messages[#messages + 1] = {id = 'load-ready', text = line.text}
                 else messages[#messages + 1] = {id = 'load-failed', text = line.text} end
             end
@@ -1828,6 +1978,9 @@ function M.slowUpdate(currentPlayer, worldReady)
         local sent = convaiNotices.sendLines(currentPlayer, messages) > 0
         if sent and progress then progress.commit() end
     end
+    -- The loads ended without an outcome line (cancelled, or an outcome too old): take the held notice down, unless a newer
+    -- notice has already replaced it.
+    if releaseLoading and type(convaiNotices.release) == 'function' then convaiNotices.release(currentPlayer) end
     -- Read MCM's supported effective draft values from top-level update. The
     -- drafts.changed listener only marks this work pending in its callback.
     -- A staged voice never prepares a model, so no preview lease is ever offered.
@@ -1855,6 +2008,7 @@ function M.update(currentPlayer, worldReady)
     -- This also restores a shared description on foreign hover and keeps only
     -- our translated sidebar item readable when another mod is selected.
     fontPresentation.update()
+    if contentHold then releaseStaleHold() end
     pcall(restoreStatusLine)
     if not activeForUpdate(presentation.active or presentation.pending == true) then
         if presentation.veil then unveilPage() end

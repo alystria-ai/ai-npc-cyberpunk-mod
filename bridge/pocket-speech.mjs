@@ -33,7 +33,10 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
       const utterance=new Utterance();
       const tail=stream?stream.finished.then(()=>stream.tail,()=>'').then(text=>{
         if(!text||localSignal.aborted)return null;
-        const buffered=new BufferedPcm({signal:localSignal,synthesize:(onPcm,options)=>voice.synthesizeStream(voiceKey,text,{...options,onPcm,utterance,role:'tail'})});
+        // The feelings in force where the tail begins are marked for the voice (Expressive emotions; the cloud voice steers with them).
+        const full=stream.text,from=Math.max(0,full.indexOf(text,stream.head?.length??0));
+        const emotion={marks:stream.meta?.emotionMarks,sounds:stream.meta?.voiceMarks,from};
+        const buffered=new BufferedPcm({signal:localSignal,synthesize:(onPcm,options)=>voice.synthesizeStream(voiceKey,text,{...options,onPcm,utterance,role:'tail',emotion})});
         buffered.start();return buffered;
       }):null;
       tail?.catch(()=>{});
@@ -41,7 +44,7 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
       let response;
       try{
         response=prefetched?await prefetched.drain(feed,{signal:localSignal})
-          :await voice.synthesizeStream(voiceKey,result.text,{signal:localSignal,onPcm:feed,utterance,role:'head'});
+          :await voice.synthesizeStream(voiceKey,result.text,{signal:localSignal,onPcm:feed,utterance,role:'head',emotion:{marks:result.emotionMarks,sounds:result.voiceMarks}});
       }catch(error){utterance.decide('pocket');throw error;}
       utterance.settle(response);
       if(tail){
@@ -72,6 +75,8 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
       }
       facial.finish();return response;
     },{signal,current,onFrame:snapshot=>speech.frame(snapshot),
+      // The game's lease wakes the clock poll (speech.options.wake, bridge/convai-continuous-speech.mjs).
+      ...(typeof speech.options?.wake==='function'?{wake:()=>speech.options.wake()}:{}),
       ...(stream?{liveText:()=>({text:stream.text,complete:stream.complete})}:{}),
       getFace:snapshot=>{
         if(stream)facial.setText(snapshot.text,snapshot.textComplete);

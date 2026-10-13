@@ -238,6 +238,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-locomotion.lua"
         },
         {
+          "source": "mod/companion-stance.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-stance.lua"
+        },
+        {
           "source": "mod/companion-appearance.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-appearance.lua"
         },
@@ -268,6 +272,10 @@
         {
           "source": "mod/invitation-readiness.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/invitation-readiness.lua"
+        },
+        {
+          "source": "mod/addons.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/addons.lua"
         },
         {
           "source": "mod/auto-connect.lua",
@@ -330,6 +338,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/support-report.lua"
         },
         {
+          "source": "mod/character-editor.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/character-editor.lua"
+        },
+        {
           "source": "mod/movement-log.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/movement-log.lua"
         },
@@ -372,10 +384,6 @@
         {
           "source": "mod/companion-adoption.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-adoption.lua"
-        },
-        {
-          "source": "mod/tactic-perception.lua",
-          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/tactic-perception.lua"
         },
         {
           "source": "mod/companion-chauffeur.lua",
@@ -513,10 +521,16 @@
           "selection": "explicit production import closure, excluding tests and retired modules",
           "status": "source-import-closure-reviewed-not-packaged",
           "sourceFiles": [
+            "bridge/addons.mjs",
             "bridge/analysis-pcm.mjs",
             "bridge/audio-delay.mjs",
             "bridge/battle-context.mjs",
             "bridge/caption-cues.mjs",
+            "bridge/character-editor-control.mjs",
+            "bridge/character-editor-page.mjs",
+            "bridge/character-editor-server.mjs",
+            "bridge/character-editor.mjs",
+            "bridge/character-overrides.mjs",
             "bridge/chat-memory-resets.mjs",
             "bridge/companion-actions.mjs",
             "bridge/companion-expressions.mjs",
@@ -524,11 +538,11 @@
             "bridge/continuous-face-file.mjs",
             "bridge/convai-bridge.mjs",
             "bridge/convai-continuous-speech.mjs",
+            "bridge/convai-credential.mjs",
             "bridge/convai-key.mjs",
             "bridge/convai-quota.mjs",
             "bridge/conversation-style.mjs",
             "bridge/dialogue-level.mjs",
-            "bridge/distraction-context.mjs",
             "bridge/emotion-analysis.mjs",
             "bridge/emotion-lexicon.mjs",
             "bridge/emotion-selector.mjs",
@@ -536,6 +550,7 @@
             "bridge/expression-timeline.mjs",
             "bridge/expressive-emotions.mjs",
             "bridge/facial-timeline.mjs",
+            "bridge/file-wake.mjs",
             "bridge/follow-up.mjs",
             "bridge/game-dialogue.mjs",
             "bridge/game-launch.mjs",
@@ -545,6 +560,9 @@
             "bridge/group-prefetch.mjs",
             "bridge/guarded-file.mjs",
             "bridge/intrinsic-character-context.mjs",
+            "bridge/inworld-key.mjs",
+            "bridge/inworld-steering.mjs",
+            "bridge/inworld-voice.mjs",
             "bridge/jali-face-model.mjs",
             "bridge/jali-face.mjs",
             "bridge/journal-history.mjs",
@@ -593,6 +611,7 @@
             "bridge/pocket-facial-stream.mjs",
             "bridge/pocket-speech.mjs",
             "bridge/pocket-voice.mjs",
+            "bridge/prepared-voices.mjs",
             "bridge/prompt-budget.mjs",
             "bridge/protocol.mjs",
             "bridge/quest-context.mjs",
@@ -608,8 +627,11 @@
             "bridge/runtime-paths.mjs",
             "bridge/shared-key-guard.mjs",
             "bridge/speech-audio.mjs",
+            "bridge/speech-state-cache.mjs",
             "bridge/speech-stream.mjs",
             "bridge/support-report.mjs",
+            "bridge/text-action-words.mjs",
+            "bridge/text-actions.mjs",
             "bridge/text-emotion.mjs",
             "bridge/text-provider-host.mjs",
             "bridge/transport-pool.mjs",
@@ -617,6 +639,7 @@
             "bridge/turn-context.mjs",
             "bridge/vendor-memory.mjs",
             "bridge/voice-config-paths.mjs",
+            "bridge/voice-key-stream.mjs",
             "bridge/voice-preview.mjs",
             "bridge/voice-profile-registry.mjs",
             "bridge/voice-routing-log.mjs",

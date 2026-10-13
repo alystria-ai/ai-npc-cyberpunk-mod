@@ -181,3 +181,77 @@ test('Keep prepared voices is sent with each prepare and stream request only whi
   assert.equal(on.keepPrepared,true);on.setKeepPrepared(false);assert.equal(on.keepPrepared,false);
   on.setKeepPrepared('yes');assert.equal(on.keepPrepared,false,'only a real boolean turns it on');
 });
+
+// ---- the startup watchdog: a worker stuck while starting (a starved CPU, a hung import) is stopped and started once more, then given up ----
+
+function restartHarness() {
+  const timers = clock(), launches = [], logs = [], children = [];
+  const make = () => {
+    const child = new EventEmitter(); child.pid = 1000 + children.length; child.kills = 0; child.kill = () => { child.kills++; return true; };
+    child.stdout = new PassThrough(); child.stderr = new PassThrough();
+    child.stdin = new Writable({write(bytes, encoding, done) { done(); }});
+    children.push(child); return child;
+  };
+  const settings = config();
+  const client = new PocketVoice(settings, {project: process.cwd(), configPath: resolve('pocket-fixtures/config.json'),
+    pythonExecutable: resolve('pocket-fixtures/python.exe'), setTimer: timers.set, clearTimer: timers.clear,
+    onLog: line => logs.push(line), spawnImpl: (exe, args) => { launches.push(args); return make(); }});
+  const send = (child, frame) => child.stdout.write(JSON.stringify({owner: client.owner, ...frame}) + '\n');
+  const ready = child => send(child, {op: 'ready', protocolVersion: 1, engine: 'pocket-tts', device: 'cpu', dtype: 'torch.float32',
+    runtime: 'pytorch', layers: 6, decodeSteps: 1, sampleCfg: 1, threads: 2, gpuVramBytes: 0, sourceRevision: POCKET_SOURCE_REVISION,
+    sourceSha256: POCKET_SOURCE_SHA256, model: settings.model, workerPaths: settings.runtime,
+    profiles: [profile], preparedProfiles: [], referenceHashes: {[profile]: settings.voices[profile].sha256}});
+  return {client, timers, launches, logs, children, send, ready};
+}
+
+test('a worker stuck importing is stopped and started once more; the second one gets ready, and every phase is logged with its time', async () => {
+  const h = restartHarness();
+  const starting = h.client.start(); await tick();
+  assert.equal(h.launches.length, 1);
+  h.send(h.children[0], {op: 'state', state: 'loading'}); h.send(h.children[0], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
+  h.timers.advance(POCKET_LIMITS.stallMs['default'] - 1); await tick();
+  assert.equal(h.children[0].kills, 0, 'not yet');
+  h.timers.advance(1); await tick();
+  assert.equal(h.children[0].kills, 1, 'the stuck worker is stopped'); assert.equal(h.children[0].stdin.writableEnded, true);
+  assert.equal(h.launches.length, 1, 'the new worker starts when the old one is confirmed gone');
+  h.children[0].emit('close', 1); await tick();
+  assert.equal(h.launches.length, 2); assert.equal(h.client.failure, undefined); assert.equal(h.client.loaded, false);
+  h.send(h.children[1], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); h.ready(h.children[1]);
+  await starting; assert.equal(h.client.loaded, true);
+  const log = h.logs.join('');
+  assert.match(log, /\[PocketStart\] \+[\d.]+s attempt 1\/2: worker started/);
+  assert.match(log, /phase importing-dependencies/); assert.match(log, /stalled at importing-dependencies/);
+  assert.match(log, /attempt 2\/2: worker started/); assert.match(log, /attempt 2\/2: ready/);
+  h.client.close(); h.children[1].emit('close', 0);
+});
+
+test('a worker that stalls again is given up on cleanly: one restart only, no loop, the start fails', async () => {
+  const h = restartHarness();
+  const starting = h.client.start(), failed = assert.rejects(starting, /stalled/); await tick();
+  h.send(h.children[0], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
+  h.timers.advance(POCKET_LIMITS.stallMs['default']); await tick(); h.children[0].emit('close', 1); await tick();
+  assert.equal(h.launches.length, 2);
+  h.send(h.children[1], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
+  h.timers.advance(POCKET_LIMITS.stallMs['default']); await failed;
+  assert.equal(h.launches.length, 2, 'never a third worker'); assert.ok(h.client.failure);
+  assert.equal(h.children[1].stdin.writableEnded, true);
+  assert.match(h.logs.join(''), /stalled at importing-dependencies again; giving up/);
+  h.children[1].emit('close', 1); await tick();
+  await assert.rejects(h.client.start(), /stalled/);
+  assert.equal(h.launches.length, 2);
+});
+
+test('a worker that keeps moving through its phases is not restarted, and a slow phase gets its longer limit', async () => {
+  const h = restartHarness();
+  const starting = h.client.start(); await tick();
+  h.send(h.children[0], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
+  h.timers.advance(POCKET_LIMITS.stallMs['default'] - 1000); await tick();
+  h.send(h.children[0], {op: 'state', state: 'loading', phase: 'loading-student'}); await tick();
+  h.timers.advance(POCKET_LIMITS.stallMs['default'] + 1000); await tick();
+  assert.equal(h.children[0].kills, 0, 'loading the student has its own, longer limit');
+  h.send(h.children[0], {op: 'state', state: 'loading', phase: 'student-loaded'}); h.ready(h.children[0]);
+  await starting; assert.equal(h.launches.length, 1); assert.equal(h.client.loaded, true);
+  h.timers.advance(10 * POCKET_LIMITS.startupMs); await tick();
+  assert.equal(h.children[0].kills, 0, 'a worker that is ready is never judged by the startup limits');
+  h.client.close(); h.children[0].emit('close', 0);
+});

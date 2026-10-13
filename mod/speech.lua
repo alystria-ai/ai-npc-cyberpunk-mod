@@ -3,7 +3,16 @@
 -- A temporary buffer gap never advances the group to another speaker.
 local M = convaiSpeech or {heartbeat = 0, available = false}
 local captions = dofile('subtitles.lua')
-local face = dofile('facial-playback.lua')
+-- A speaker without a body (an add-on's voice, docs/ADDON_API.md) has no face: its per-utterance face calls do nothing, while
+-- the shared expression frame and status calls still reach the facial player. M.voiceOnly is false for every ordinary reply.
+local facial = dofile('facial-playback.lua')
+local NO_FACE = {start = true, sync = true, pause = true, stop = true, hold = true, updateContinuous = true,
+    beginExpression = true, acceptExpression = true, endExpression = true}
+local function noFace() end
+local face = setmetatable({}, {__index = function(_, key)
+    if M.voiceOnly and NO_FACE[key] then return noFace end
+    return facial[key]
+end})
 local continuous
 local function continuousAdapter()
     if continuous then return continuous end
@@ -120,6 +129,7 @@ function M.stop(reason)
     M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState = nil, nil, nil
     M.player, M.actor, M.requestId, M.slot, M.duration = nil, nil, nil, nil, nil
     M.state, M.position, M.paused = reason or 'idle', nil, false
+    M.voiceOnly = false
     publish()
 end
 
@@ -181,6 +191,8 @@ end
 
 function M.start(context, reply)
     M.stop()
+    M.voiceOnly = context.voiceOnly == true
+    captions.voiceOnly = M.voiceOnly
     M.outputDelay = readOutputDelay()
     M.streamReceipt = nil
     if reply.continuous ~= nil then
@@ -267,6 +279,7 @@ function M.abandon()
     M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
     M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState = nil, nil, nil
     M.player, M.actor, M.playerID, M.requestId = nil, nil, nil, nil
+    M.voiceOnly = false
     M.slot, M.duration, M.position, M.paused = nil, nil, 0, false
     M.state, M.available = 'idle', false
     publish()
@@ -434,7 +447,7 @@ local function updateSpeech(delta)
     end
     if not M.requestId then return end
     if not player or tostring(player:GetEntityID().hash) ~= M.playerID then M.abandon(); return end
-    if not M.actor:IsAttached() or M.actor:IsDeadNoStatPool() then M.stop('target-lost'); return end
+    if not M.actor:IsAttached() or (not M.voiceOnly and M.actor:IsDeadNoStatPool()) then M.stop('target-lost'); return end
     if not voiceEnabled(player) then
         fallback('muted', M.text); return
     end

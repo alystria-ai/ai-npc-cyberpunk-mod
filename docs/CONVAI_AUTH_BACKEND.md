@@ -1,5 +1,7 @@
 # Convai auth through a small backend: design and latency
 
+**Build status (2026-10-13, branch `convai-auth`):** the backend is built in `auth-backend/` (see its README for what each protection stops and does not, the settings and the deploy steps) and the bridge side is built behind an off-by-default switch. Where the build differs from the text below: the token is not persisted to disk (one request per bridge start instead); the server margin is 5 minutes with a client hint (`minLifeSeconds`, 15 minutes) so renewals always get a fresh token; limits and counters run as one Redis script (one command per request); a `per-install` token mode with revoke exists beside the default `shared` one; `/v1/*` paths became `/api/convai/token`, `/api/admin/turns`, `/api/healthz`, `/api/readyz`; the key-only runtime calls are removed in backend mode as section 2 proposes. Not deployed, not run against Convai.
+
 Research and design only, 2026-10-13. Nothing was built, installed or run against Convai: no conversation turn, no end-user creation, no token minted. The only network calls were read-only GETs (the chess backend's `/healthz` and `/readyz`, the two Convai host names with no key, and the public documentation).
 
 Question: the release package ships the project's shared Convai key inside the bridge (`bridge/key-codec.mjs`, scrambled, not secret). Could the bridge ask a small backend for a short-lived Convai token instead, as the chess game does, and would that add noticeable latency?

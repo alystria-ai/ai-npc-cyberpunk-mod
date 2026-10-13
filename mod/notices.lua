@@ -29,6 +29,8 @@ M.catalog = {
     ['phone-dismiss-reply'] = {class = PLAYER, repeatS = 20},
     ['phone-not-in-group'] = {class = PLAYER, repeatS = 20},
     ['phone-unavailable'] = {class = PLAYER, repeatS = 20},
+    -- Add-ons (docs/ADDON_API.md): an add-on that needs a newer main mod or could not load, and an add-on's own notice
+    ['addon-notice'] = {class = PLAYER, repeatS = 20},
     ['phone-queue-refused'] = {class = PLAYER, repeatS = 20},
     -- Conversation service and replies
     ['service-down'] = {class = PLAYER},               -- once per failure
@@ -70,7 +72,7 @@ M.catalog = {
     ['action-rejected'] = {class = PLAYER, repeatS = 15},
     ['party-stop-trip'] = {class = PLAYER, repeatS = 15},
     ['trip-failed'] = {class = PLAYER, repeatS = 15},
-    -- A slow component loading (the loading board below): shown again every few seconds until it is ready, no repeat window
+    -- A slow component loading (the loading board below): one notice that stays up until the outcome replaces it, no repeat window
     ['load-progress'] = {class = PLAYER},              -- "Loading the OmniVoice voice…", "Local AI is warming up…"
     ['load-ready'] = {class = PLAYER},                 -- the matching "… is ready." (only when the loading line was shown)
     ['load-failed'] = {class = PLAYER},                -- it could not load, and what to do
@@ -141,18 +143,106 @@ function M.permit(id, text)
     return type(text) == 'string' and text ~= '' and M.visible(id, developer) and not repeated(id, text, developer)
 end
 
+-- The loading notice stays up instead of timing out after five seconds. The game's warning line (the HUD's
+-- WarningMessageGameController) plays an intro and a jingle for every message it is given and hides it after the message's
+-- own `duration`; PlayerPuppet:SetWarningMessage always asks for 5 s. A message with a long duration is therefore posted
+-- straight to the same blackboard line (UI_Notifications.WarningMessage), once, and hidden on demand by a message with
+-- isShown = false. HOLD_S is the safety net: if the mod is reloaded or stops while one is up it still goes away by itself.
+-- screen.post returns 'native' (held), 'fallback' (the ordinary five-second notice, shown again by the board every
+-- RESHOW_S, the pre-2026-10-13 behaviour, used when the blackboard line cannot be written) or false. Tests replace M.screen.
+local LOADING_ID, HOLD_S = 'load-progress', 90
+local neutralKind
+local function messageKind()
+    if neutralKind == nil then
+        local ok, value = pcall(function() return Enum.new('SimpleMessageType', 'Neutral') end)
+        if not ok or value == nil then ok, value = pcall(function() return SimpleMessageType.Neutral end) end
+        neutralKind = ok and value or false
+    end
+    return neutralKind or nil
+end
+local function warningLine()
+    local definitions = Game.GetAllBlackboardDefs()
+    return Game.GetBlackboardSystem():Get(definitions.UI_Notifications), definitions.UI_Notifications.WarningMessage
+end
+local function writeLine(shown, text, instant)
+    local board, id = warningLine()
+    local message = SimpleScreenMessage.new()
+    message.isShown, message.message, message.isInstant = shown, text, instant == true
+    message.duration = shown and HOLD_S or 0
+    local kind = messageKind()
+    if kind ~= nil then message.type = kind end
+    board:SetVariant(id, ToVariant(message), true)
+end
+M.screen = {
+    post = function(player, text, instant)
+        if pcall(writeLine, true, text, instant) then return 'native' end
+        if M.ordinary(player, text) then return 'fallback' end
+        return false
+    end,
+    clear = function() return pcall(writeLine, false, '', false) end,
+    -- the message on the line now and whether it is shown (errors reach the caller's pcall)
+    read = function()
+        local board, id = warningLine()
+        local message = FromVariant(board:GetVariant(id))
+        return message.message, message.isShown == true
+    end,
+}
+
+-- The ordinary notice: the game's neutral warning line for five seconds (the only call of the native method).
+function M.ordinary(player, text)
+    return (pcall(function() player:ConvaiPhoneFeedback(text) end))
+end
+
+-- The notice held on screen: {text, at, mode, mask (which loads it lists), matched, checkedAt, menu}, or nil.
+local held
+M.lastSentAt = -1000
+M.clock = os.clock
+
+local function hold(player, text, instant, mask)
+    local ok, mode = pcall(M.screen.post, player, text, instant)
+    if not ok or not mode then return false end
+    local now = M.clock()
+    held = {text = text, at = now, mode = mode, mask = mask, matched = false, checkedAt = now, menu = false}
+    M.lastSentAt = now
+    return true
+end
+
+-- Take the held notice down, unless a newer notice already replaced it or is on screen (never hide someone else's).
+function M.release(player)
+    local was = held
+    held = nil
+    if not was or was.mode ~= 'native' or M.lastSentAt > was.at then return end
+    if not M.verifyOff and M.screen.read then
+        local ok, message, shown = pcall(M.screen.read)
+        if ok and message ~= nil and (not shown or message ~= was.text) then return end
+    end
+    pcall(M.screen.clear, player)
+end
+
 -- lines: array of {id = ..., text = ...}. The permitted ones are shown together as one notice
 -- (each notice replaces the previous one on screen). Returns how many lines were shown.
+-- Lines of the loading id (text, instant, mask) are posted as the held notice instead; they wait when another notice is
+-- shown in the same call (the board offers them again).
 function M.sendLines(player, lines)
     if not player then return 0 end
-    local texts = {}
+    local texts, loading, loadingCount, instant, mask = {}, nil, 0, false, nil
     for _, line in ipairs(lines) do
-        if M.permit(line.id, line.text) then texts[#texts + 1] = line.text end
+        if M.permit(line.id, line.text) then
+            if line.id == LOADING_ID then
+                loading, loadingCount = loading and (loading .. '\n' .. line.text) or line.text, loadingCount + 1
+                instant, mask = line.instant == true, line.mask
+            else
+                texts[#texts + 1] = line.text
+            end
+        end
     end
-    if #texts == 0 then return 0 end
-    local ok = pcall(function() player:ConvaiPhoneFeedback(table.concat(texts, '\n')) end)
-    if ok then M.lastSentAt = M.clock() end
-    return ok and #texts or 0
+    if #texts > 0 then
+        local ok = M.ordinary(player, table.concat(texts, '\n'))
+        if ok then M.lastSentAt = M.clock() end
+        return ok and #texts or 0
+    end
+    if loading then return hold(player, loading, instant, mask) and loadingCount or 0 end
+    return 0
 end
 
 -- One notice. Returns true when it was shown.
@@ -160,33 +250,53 @@ function M.send(player, id, text)
     return M.sendLines(player, {{id = id, text = text}}) > 0
 end
 
--- The loading board. A notice is gone after a few seconds and the next one replaces it, so "stays on screen until it is
--- ready" is the same line shown again every RESHOW_S, and then replaced by the "ready" line (or a failure line saying what
--- to do). One entry per slow component (the OmniVoice voice, Local AI ...), told by the caller as a state:
---   'loading'    in progress; the line appears once the load has lasted LOADING_DELAY_S (a quick one shows nothing)
+-- The loading board. One notice per slow component set, held on screen from the first line until the outcome replaces it
+-- (the "ready" line, or a failure line saying what to do): not repeated pop-ups. One entry per slow component (the
+-- OmniVoice voice, Local AI ...), told by the caller as a state:
+--   'loading'    in progress; the notice appears once the load has lasted LOADING_DELAY_S (a quick one shows nothing)
 --   'ready'      done; the ready line shows once, and only when the loading line was shown
 --   any other string (for example 'failed', 'no-memory') after 'loading': failed; the failure line shows once
---   nil          not loading, or no longer wanted (the player switched away, the service went quiet): nothing is shown
--- Popups only show in gameplay, so an outcome reached in a menu waits for the first gameplay tick (END_MAX_AGE_S at most).
--- A line is never put on top of another notice before that one has had RESHOW_S (lastSentAt covers every notice).
+--   nil          not loading, or no longer wanted (the player switched away, the service went quiet): the notice is taken down
+-- Several loads are one notice with a line each; when the set changes the text is updated in place (isInstant: no intro).
+-- Popups only show in gameplay, so an outcome reached in a menu waits for the first gameplay tick (END_MAX_AGE_S at most);
+-- a notice held while a menu opens is posted again, instantly, when gameplay returns. A line is never put on top of another
+-- notice of the mod before that one has had RESHOW_S (lastSentAt covers every notice), and after an outcome line the
+-- remaining loads wait END_SHOW_S for it to finish. A game notice (loot, encumbrance) that replaces ours is waited out: the
+-- line is read at most once a second and our notice is posted again once nothing is on screen. HOLD_S would hide the notice,
+-- so it is refreshed (instantly) every REFRESH_S.
 -- Cost: with nothing loading, one comparison per call and the state is read at most once a second (read is only called
--- then); while something loads it is read on every call, which the caller makes a few times a second, never per frame.
+-- then); while something loads it is read on every call, which the caller makes a few times a second, never per frame, and
+-- the screen is touched only to post, change or take down the notice, plus one read a second to see that it is still up.
 local RESHOW_S, LOADING_DELAY_S, IDLE_POLL_S, END_MAX_AGE_S = 3, 1.5, 1.0, 90
-M.lastSentAt = -1000
-M.clock = os.clock
-local board, boardBusy, boardRunAt = {}, false, -1000
+local END_SHOW_S, VERIFY_S, REFRESH_S = 5.5, 1.0, 80
+local board, boardBusy, boardRunAt, lastEndAt = {}, false, -1000, -1000
 local boardLines = {}
 
+-- Whether the held notice has to be posted again: the screen shows something else, or nothing.
+local function lostFromScreen(now)
+    held.checkedAt = now
+    if M.verifyOff or not M.screen.read then return false end
+    local ok, message, shown = pcall(M.screen.read)
+    if not ok or message == nil then return false end
+    if shown and message == held.text then held.matched = true; return false end
+    if shown then return false end                -- another notice is up: let it finish
+    if not held.matched then M.verifyOff = true; return false end   -- never saw ours there: the read cannot be trusted
+    return true
+end
+
 -- worldReady: popups are visible. keys: the components, in the order their lines are shown. read(): returns a table
--- key -> state. describe(key, state) returns the text of a line. Returns an array of {phase, key, text}, or nil when
--- there is nothing to show now; phase is 'loading', 'ready' or 'failed'. The caller shows the lines (sendLines) as one notice.
+-- key -> state. describe(key, state) returns the text of a line. Returns lines, release. lines is an array of
+-- {phase, key, text, instant, mask}, or nil when there is nothing to show now; phase is 'loading' (the notice to post or
+-- update: all current loads, to be sent as the load-progress id), 'ready' or 'failed' (an outcome, shown once, as an
+-- ordinary notice that replaces the held one). release is true when the held notice has to come down
+-- (M.release, after the caller's own notices were sent).
 function M.loading(worldReady, keys, read, describe)
     local now = M.clock()
     if not boardBusy and now - boardRunAt < IDLE_POLL_S then return nil end
     boardRunAt = now
     local ok, states = pcall(read)
     if not ok or type(states) ~= 'table' then states = {} end
-    boardBusy = false
+    boardBusy = held ~= nil
     for _, key in ipairs(keys) do
         local item = board[key]
         if not item then item = {}; board[key] = item end
@@ -203,7 +313,10 @@ function M.loading(worldReady, keys, read, describe)
         end
         if item.phase == 'loading' or item.ending then boardBusy = true end
     end
-    if not worldReady then return nil end
+    if not worldReady then
+        if held then held.menu = true end
+        return nil
+    end
     local lines, count, ended = boardLines, 0, false
     for _, key in ipairs(keys) do
         local item = board[key]
@@ -212,32 +325,53 @@ function M.loading(worldReady, keys, read, describe)
                 count, ended = count + 1, true
                 local line = lines[count] or {}
                 lines[count] = line
-                line.phase, line.key, line.text = item.ending, key, describe(key, item.state)
+                line.phase, line.key, line.text, line.instant, line.mask = item.ending, key, describe(key, item.state), nil, nil
             end
             item.ending = nil
         end
     end
-    local quiet = now - M.lastSentAt >= RESHOW_S
-    if ended or quiet then
-        for _, key in ipairs(keys) do
-            local item = board[key]
-            if item.phase == 'loading' and now - item.since >= LOADING_DELAY_S then
-                item.shown = true
-                count = count + 1
-                local line = lines[count] or {}
-                lines[count] = line
-                line.phase, line.key, line.text = 'loading', key, describe(key, 'loading')
+    if ended then held, lastEndAt = nil, now end   -- the outcome notice replaces the loading notice
+    local mask, active = 0, 0
+    for index, key in ipairs(keys) do
+        local item = board[key]
+        if item.phase == 'loading' and now - item.since >= LOADING_DELAY_S then mask, active = mask + 2 ^ (index - 1), active + 1 end
+    end
+    local release = false
+    if active == 0 then
+        release = held ~= nil
+    elseif not ended then
+        local quiet = now - M.lastSentAt >= RESHOW_S
+        local post, instant = false, false
+        if not held then
+            post = quiet and now - lastEndAt >= END_SHOW_S
+        elseif M.lastSentAt > held.at or held.mode == 'fallback' then
+            post = quiet                                      -- covered by another notice, or the ordinary notice has run its time
+        elseif held.menu or held.mask ~= mask or now - held.at >= REFRESH_S then
+            post, instant = true, true
+        elseif now - held.checkedAt >= VERIFY_S then
+            post = lostFromScreen(now)
+        end
+        if post then
+            for index, key in ipairs(keys) do
+                local item = board[key]
+                if item.phase == 'loading' and now - item.since >= LOADING_DELAY_S then
+                    item.shown = true
+                    count = count + 1
+                    local line = lines[count] or {}
+                    lines[count] = line
+                    line.phase, line.key, line.text, line.instant, line.mask = 'loading', key, describe(key, 'loading'), instant, mask
+                end
             end
         end
     end
-    if count == 0 then return nil end
+    if count == 0 then return nil, release end
     for index = count + 1, #lines do lines[index] = nil end
-    return lines
+    return lines, release
 end
 
 -- Forget what is loading (a new save, a reset): nothing from the old session is announced.
 function M.resetLoading()
-    board, boardBusy, boardRunAt = {}, false, -1000
+    board, boardBusy, boardRunAt, lastEndAt, held = {}, false, -1000, -1000, nil
 end
 convaiNotices = M
 return M

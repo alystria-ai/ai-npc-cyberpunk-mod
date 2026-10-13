@@ -291,8 +291,9 @@ token) and Mistral's cache valid.
 ### Actions
 
 The same companion-action path as Mistral applies (see "Companion actions" in `docs/MISTRAL.md`): the decision is a separate 12-token
-request to the local model, and the reply carries the `GAME ACTIONS` note. It is skipped when no action is offered. The local model is not
-yet measured on it (`scripts/Eval-MistralPrompt.mjs --actions --local <port>`).
+request to the local model, and the reply carries the `GAME ACTIONS` note. It is skipped when no action is offered. Measured on Gemma 4 E4B
+(`scripts/Eval-MistralPrompt.mjs --actions --local <port>`, 64 replies): precision 100%, recall 81%. The reply waits for the decision (a short prompt
+and a one-word answer, not yet timed on the player's hardware), so on a slow GPU this adds to the time before the first sound.
 
 ### Mature content
 

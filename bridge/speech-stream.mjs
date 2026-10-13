@@ -45,7 +45,7 @@ export class SpeechSlots {
       this.owner = id; this.leases.clear();
     });
   }
-  write(id, index, audio, current) {
+  write(id, index, audio, current, prepared) {
     return this.locked(async () => {
       if (id !== this.owner || !await current()) throw cancelled();
       const state = await this.readState();
@@ -59,7 +59,7 @@ export class SpeechSlots {
       }
       if (slot === undefined) throw Error('All speech slots are still in use');
       this.leases.set(slot, {id, index}); this.next = (slot + 1) % SLOT_COUNT;
-      const stored = await this.store(audio, this.depot, slot);
+      const stored = await this.store(audio, this.depot, slot, prepared ? {prepared} : undefined);
       if (id !== this.owner || !await current()) throw cancelled();
       return stored;
     });
@@ -110,7 +110,7 @@ export class SpeechStream {
   async append(result) {
     await this.assertCurrent();
     const index = this.manifest.chunks.length + 1;
-    const audio = await this.slots.write(this.manifest.streamId, index, result.audio, this.current);
+    const audio = await this.slots.write(this.manifest.streamId, index, result.audio, this.current, result.preStored);
     this.totalDuration += audio.duration;
     if (this.totalDuration > 120) throw Error('Speech exceeded two minutes');
     let face;

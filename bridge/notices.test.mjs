@@ -285,7 +285,9 @@ test('the notice board posts no progress, to a player or a developer, and only t
   } finally { lua.lua_close(state); }
 });
 
-// The loading board: a slow component's line is shown again until its ready line replaces it.
+
+// The loading board: one notice that stays up from the first loading line until the outcome replaces it. The game's
+// warning line is a mock (notices.screen): posts are what the HUD was given, clears what hid it, `screen` what is on it.
 const boardSetup = `
   local clock = 100
   notices.clock = function() return clock end
@@ -293,17 +295,25 @@ const boardSetup = `
   local KEYS = {'omni', 'local-ai'}
   local function read() reads = reads + 1; return state end
   local function describe(key, value) return key .. ':' .. value end
-  -- One tick: what the caller does, lines shown as one notice through sendLines.
+  local posts, clears, screen, mode = {}, 0, {'', false}, 'native'
+  notices.screen = {
+    post = function(_, text, instant) posts[#posts + 1] = {text = text, instant = instant}; screen = {text, true}; return mode end,
+    clear = function() clears = clears + 1; screen = {'', false} end,
+    read = function() return screen[1], screen[2] end}
+  player.ConvaiPhoneFeedback = function(_, text) shown[#shown + 1] = text; screen = {text, true} end
+  -- One tick: what the caller does. Loading lines go out as the load-progress id, outcomes as ordinary notices, then release.
   local function tick(world, seconds)
     clock = clock + (seconds or 0.25)
-    local lines = notices.loading(world ~= false, KEYS, read, describe)
-    if not lines then return nil end
-    local out = {}
-    for _, line in ipairs(lines) do
-      local id = line.phase == 'loading' and 'load-progress' or line.phase == 'ready' and 'load-ready' or 'load-failed'
-      out[#out + 1] = {id = id, text = line.text}
+    local lines, release = notices.loading(world ~= false, KEYS, read, describe)
+    if lines then
+      local out = {}
+      for _, line in ipairs(lines) do
+        local id = line.phase == 'loading' and 'load-progress' or line.phase == 'ready' and 'load-ready' or 'load-failed'
+        out[#out + 1] = {id = id, text = line.text, instant = line.instant, mask = line.mask}
+      end
+      notices.sendLines(player, out)
     end
-    notices.sendLines(player, out)
+    if release then notices.release(player) end
     return lines
   end
   local function run(seconds, world)
@@ -311,72 +321,186 @@ const boardSetup = `
   end
 `;
 
-test('a loading line appears after 1.5 s, is shown again every 3 s and is replaced once by the ready line', () => {
+test('the loading notice appears after 1.5 s, is posted once and stays, and the ready line replaces it', () => {
   run(`${boardSetup}
     state.omni = 'loading'
-    run(1); assert(#shown == 0, 'a quick load showed a line')
+    run(1); assert(#posts == 0 and #shown == 0, 'a quick load showed a notice')
     run(1)
-    assert(#shown == 1 and shown[1] == 'omni:loading', 'no loading line after 2 s: ' .. #shown)
-    run(2.5); assert(#shown == 1, 'shown again before 3 s')
-    run(1); assert(#shown == 2, 'not shown again after 3 s')
-    run(20); assert(#shown >= 8 and #shown <= 9, 'every 3 s for 23 s: ' .. #shown)
-    for _, text in ipairs(shown) do assert(text == 'omni:loading') end
-    local before = #shown
+    assert(#posts == 1 and posts[1].text == 'omni:loading' and not posts[1].instant, 'no loading notice after 2 s: ' .. #posts)
+    run(60); assert(#posts == 1, 'the notice was posted again: ' .. #posts)
+    assert(#shown == 0 and clears == 0, 'something else was shown or the notice was hidden')
     state.omni = 'ready'
     run(1)
-    assert(#shown == before + 1 and shown[#shown] == 'omni:ready', 'ready line ' .. tostring(shown[#shown]))
-    run(30); assert(#shown == before + 1, 'something was shown after the ready line')
+    assert(#shown == 1 and shown[1] == 'omni:ready', 'ready line ' .. tostring(shown[1]))
+    assert(#posts == 1 and clears == 0, 'the ready line replaces the notice; nothing hides it first')
+    run(30); assert(#shown == 1 and #posts == 1 and clears == 0, 'something was shown after the ready line')
   `);
 });
 
-test('a load that finishes before its line was shown says nothing, a failure always does, a cancelled load is silent', () => {
+test('the held notice is refreshed instantly just before the game would hide it', () => {
+  run(`${boardSetup}
+    state.omni = 'loading'
+    run(79); assert(#posts == 1, 'refreshed too early: ' .. #posts)
+    run(4); assert(#posts == 2 and posts[2].instant == true and posts[2].text == 'omni:loading', 'no refresh: ' .. #posts)
+    run(60); assert(#posts == 2, 'refreshed again within 80 s')
+    run(30); assert(#posts == 3)
+  `);
+});
+
+test('a load that finishes before its notice was shown says nothing, a failure always does, a cancelled load takes the notice down', () => {
   run(`${boardSetup}
     state.omni = 'loading'; run(1); state.omni = 'ready'; run(10)
-    assert(#shown == 0, 'a one-second load was announced')
+    assert(#posts == 0 and #shown == 0, 'a one-second load was announced')
     state.omni = 'loading'; run(1); state['local-ai'] = nil; state.omni = 'error'; run(2)
     assert(#shown == 1 and shown[1] == 'omni:error', 'a failure within the delay was not announced: ' .. tostring(shown[1]))
     run(30); assert(#shown == 1, 'the failure repeated')
-    shown = {}
-    state.omni = 'loading'; run(5); local seen = #shown; assert(seen >= 1)
-    state.omni = nil; run(30)
-    assert(#shown == seen, 'a cancelled load announced an outcome')
+    shown = {}; posts = {}
+    state.omni = 'loading'; run(5); assert(#posts == 1 and screen[2] == true)
+    state.omni = nil; run(2)
+    assert(clears == 1 and screen[2] == false, 'a cancelled load left its notice up')
+    run(30); assert(#shown == 0 and #posts == 1 and clears == 1, 'a cancelled load announced an outcome')
     -- a state that was never loading is not an outcome either
-    state['local-ai'] = 'failed'; run(5); assert(#shown == seen)
+    state['local-ai'] = 'failed'; run(5); assert(#shown == 0)
+    -- a failure while the notice is up replaces it
+    state.omni = 'loading'; run(5); state.omni = 'failed'; run(1)
+    assert(shown[#shown] == 'omni:failed' and clears == 1)
   `);
 });
 
-test('several components share one notice, with the outcome first, and a failure names its variant', () => {
+test('several loads are one notice that lists them; it changes in place and an outcome shows first', () => {
   run(`${boardSetup}
-    state.omni, state['local-ai'] = 'loading', 'loading'
-    local seen
-    for _ = 1, 20 do local lines = tick(); if lines and not seen then seen = #lines end end
-    assert(seen == 2 and shown[1] == 'omni:loading\\nlocal-ai:loading', shown[1])
-    state.omni = 'ready'; state['local-ai'] = 'no-memory'
-    local lines
-    for _ = 1, 4 do lines = tick() or lines end
+    state.omni = 'loading'; run(3)
+    assert(#posts == 1 and posts[1].text == 'omni:loading')
+    state['local-ai'] = 'loading'; run(3)
+    assert(#posts == 2 and posts[2].text == 'omni:loading\\nlocal-ai:loading' and posts[2].instant == true, 'the notice did not list both: ' .. posts[#posts].text)
+    -- One finishes: its ready line shows (replacing the notice), the other keeps loading and the notice returns after it.
+    state.omni = 'ready'; run(0.5)
+    assert(#shown == 1 and shown[1] == 'omni:ready', tostring(shown[1]))
+    run(4); assert(#posts == 2, 'the notice covered the ready line')
+    run(2); assert(#posts == 3 and posts[3].text == 'local-ai:loading', 'the remaining load was not shown again: ' .. posts[#posts].text)
+    state['local-ai'] = 'no-memory'; run(1)
+    assert(shown[#shown] == 'local-ai:no-memory', shown[#shown])
+    run(30); assert(#posts == 3 and clears == 0)
+    -- Both start together: one notice from the start.
+    shown, posts = {}, {}
+    state.omni, state['local-ai'] = 'loading', 'loading'; run(3)
+    assert(#posts == 1 and posts[1].text == 'omni:loading\\nlocal-ai:loading', posts[1] and posts[1].text)
+    -- Both end together: one outcome notice with a line each.
+    state.omni, state['local-ai'] = 'ready', 'no-memory'; run(1)
     assert(shown[#shown] == 'omni:ready\\nlocal-ai:no-memory', shown[#shown])
   `);
 });
 
-test('a loading line never lands on a notice younger than 3 s, and an outcome reached in a menu waits for gameplay', () => {
+test('a mod notice replaces the held one and the loading notice comes back after 3 s; never on a younger notice', () => {
   run(`${boardSetup}
     state.omni = 'loading'
     run(3)
-    assert(#shown == 1)
+    assert(#posts == 1)
     notices.send(player, 'service-down', 'Another notice')
-    local atNotice = #shown
-    run(2.5); assert(#shown == atNotice, 'the loading line covered a younger notice')
-    run(1); assert(#shown == atNotice + 1 and shown[#shown] == 'omni:loading')
+    run(2.5); assert(#posts == 1, 'the loading notice covered a younger notice')
+    run(1); assert(#posts == 2 and posts[2].text == 'omni:loading' and not posts[2].instant, 'it did not come back: ' .. #posts)
+    run(30); assert(#posts == 2)
+    -- A notice that arrives while the load ends is simply replaced by the outcome; nothing is hidden underneath.
+    notices.send(player, 'service-down', 'Again')
+    state.omni = 'ready'; run(1)
+    assert(shown[#shown] == 'omni:ready' and clears == 0)
+  `);
+});
+
+test('a menu: nothing is posted there, a notice held when it opens is posted again instantly, and an outcome waits for gameplay', () => {
+  run(`${boardSetup}
+    state.omni = 'loading'; run(3); assert(#posts == 1)
+    run(10, false); assert(#posts == 1 and #shown == 0, 'a popup was posted while paused')
+    tick(true); assert(#posts == 2 and posts[2].instant == true, 'the notice was not posted again after the menu: ' .. #posts)
+    run(30); assert(#posts == 2)
     -- The load finishes in a menu: nothing is shown there, the first gameplay tick says it once.
     state.omni = 'ready'
-    run(10, false); local menu = #shown
-    assert(menu == atNotice + 1, 'a popup was posted while paused')
-    tick(true); assert(#shown == menu + 1 and shown[#shown] == 'omni:ready')
-    run(10); assert(#shown == menu + 1)
-    -- Waiting longer than 90 s in a menu drops the outcome: it would be stale.
+    run(10, false); assert(#shown == 0 and #posts == 2)
+    tick(true); assert(#shown == 1 and shown[1] == 'omni:ready')
+    run(10); assert(#shown == 1 and #posts == 2 and clears == 0)
+    -- Waiting longer than 90 s in a menu drops the outcome (it would be stale) and the notice is taken down.
     state.omni = 'loading'; run(5); local before = #shown
     state.omni = 'ready'; run(100, false); run(1)
     assert(#shown == before, 'a stale ready line was shown')
+    assert(clears == 1, 'the stale notice stayed up: ' .. clears)
+    -- A load cancelled in a menu takes its notice down on the first gameplay tick.
+    state.omni = 'loading'; run(5); state.omni = nil; run(5, false); local was = clears
+    tick(true); assert(clears == was + 1)
+  `);
+});
+
+test('a game notice over ours is waited out, then ours comes back; an unreadable screen never causes a loop', () => {
+  run(`${boardSetup}
+    state.omni = 'loading'; run(3); assert(#posts == 1)
+    screen = {'You looted something', true}      -- the game's own notice replaced ours
+    run(10); assert(#posts == 1, 'our notice covered a game notice')
+    screen = {'', false}                         -- it timed out
+    run(1.5); assert(#posts == 2 and posts[2].text == 'omni:loading', 'ours did not come back: ' .. #posts)
+    run(20); assert(#posts == 2)
+    -- A screen that always reads as empty (the read cannot be trusted) is given up on after one post, no loop.
+    posts = {}
+    notices.resetLoading(); state.omni = nil; run(2); state.omni = 'loading'
+    notices.screen.read = function() return '', false end
+    run(60); assert(#posts <= 2, 'an untrustworthy read looped: ' .. #posts)
+    -- Cancelling takes a notice down even when the screen cannot be read.
+    notices.screen.read = function() error('no screen') end
+    state.omni = nil; run(2); assert(clears >= 1)
+  `);
+});
+
+test('release never hides a notice that is not ours', () => {
+  run(`${boardSetup}
+    state.omni = 'loading'; run(3)
+    screen = {'You looted something', true}
+    state.omni = nil; run(2)
+    assert(clears == 0, 'a game notice was hidden')
+    state.omni = 'loading'; run(3)
+    notices.send(player, 'service-down', 'Another notice')
+    state.omni = nil; run(2)
+    assert(clears == 0, 'a newer mod notice was hidden')
+  `);
+});
+
+test('when the game line cannot be written the notice falls back to the ordinary one, shown again every 3 s', () => {
+  run(`${boardSetup}
+    mode = 'fallback'
+    state.omni = 'loading'
+    run(2); assert(#posts == 1)
+    run(2.5); assert(#posts == 1)
+    run(1); assert(#posts == 2, 'not shown again after 3 s')
+    run(20); assert(#posts >= 8 and #posts <= 9, 'every 3 s: ' .. #posts)
+    state.omni = nil; run(2); assert(clears == 0, 'an ordinary notice was hidden')
+  `);
+  run(`
+    -- no Game here: the default screen falls back to PlayerPuppet:ConvaiPhoneFeedback
+    assert(notices.sendLines(player, {{id = 'load-progress', text = 'Loading', mask = 1}}) == 1)
+    assert(#shown == 1 and shown[1] == 'Loading')
+    notices.release(player)
+    assert(#shown == 1)
+  `);
+});
+
+test('the default screen writes the warning line with a long duration once, and hides it with isShown = false', () => {
+  run(`
+    local written = {}
+    local board = {SetVariant = function(_, id, value, force) written[#written + 1] = {id = id, value = value, force = force} end,
+      GetVariant = function() return written[#written] and written[#written].value end}
+    Game = {GetAllBlackboardDefs = function() return {UI_Notifications = {WarningMessage = 'warning-id'}} end,
+      GetBlackboardSystem = function() return {Get = function() return board end} end}
+    SimpleScreenMessage = {new = function() return {} end}
+    Enum = {new = function(name, value) return name .. '.' .. value end}
+    ToVariant = function(value) return value end
+    FromVariant = function(value) return value end
+    assert(notices.sendLines(player, {{id = 'load-progress', text = 'Loading the OmniVoice voice…', instant = false, mask = 1}}) == 1)
+    assert(#shown == 0 and #written == 1, 'the ordinary notice was used')
+    local message = written[1].value
+    assert(written[1].id == 'warning-id' and written[1].force == true)
+    assert(message.isShown == true and message.message == 'Loading the OmniVoice voice…' and message.duration >= 60)
+    assert(message.isInstant == false and message.type == 'SimpleMessageType.Neutral')
+    notices.release(player)
+    assert(#written == 2 and written[2].value.isShown == false and written[2].value.message == '', 'it was not hidden')
+    -- A second release has nothing to hide.
+    notices.release(player); assert(#written == 2)
   `);
 });
 
@@ -386,14 +510,26 @@ test('with nothing loading the state is read once a second at most and no line i
     describe = function() built = built + 1; return 'x' end
     for _ = 1, 80 do tick() end
     assert(reads >= 19 and reads <= 21, 'read ' .. reads .. ' times in 20 s')
-    assert(built == 0 and #shown == 0)
+    assert(built == 0 and #shown == 0 and #posts == 0)
     state.omni = 'loading'
     local startReads = reads
     for _ = 1, 20 do tick() end
     assert(reads - startReads >= 19, 'while loading it is read on every call')
     notices.resetLoading(); state.omni = nil
     for _ = 1, 8 do tick() end
-    assert(#shown <= 2, 'a reset board announced an outcome')
+    assert(#shown == 0, 'a reset board announced an outcome')
+  `);
+});
+
+test('while a notice is held the screen is read once a second and nothing is built or posted', () => {
+  run(`${boardSetup}
+    state.omni = 'loading'; run(3)
+    local built, screenReads, inner = 0, 0, notices.screen.read
+    describe = function(key, value) built = built + 1; return key .. ':' .. value end
+    notices.screen.read = function() screenReads = screenReads + 1; return inner() end
+    run(30)
+    assert(built == 0 and #posts == 1, 'lines were built or posted: ' .. built)
+    assert(screenReads >= 28 and screenReads <= 31, 'screen read ' .. screenReads .. ' times in 30 s')
   `);
 });
 
@@ -401,10 +537,10 @@ test('the loading ids are Player notices without a repeat window, and a read tha
   assert.equal(entries['load-progress'].class, 'player');
   assert.equal(entries['load-ready'].class, 'player');
   assert.equal(entries['load-failed'].class, 'player');
-  for (const id of ['load-progress', 'load-ready', 'load-failed']) assert.equal(entries[id].repeatS, null, `${id}: the board repeats it itself`);
+  for (const id of ['load-progress', 'load-ready', 'load-failed']) assert.equal(entries[id].repeatS, null, `${id}: the board decides when to show it`);
   run(`${boardSetup}
     read = function() error('state unreadable') end
     for _ = 1, 40 do tick() end
-    assert(#shown == 0)
+    assert(#shown == 0 and #posts == 0)
   `);
 });

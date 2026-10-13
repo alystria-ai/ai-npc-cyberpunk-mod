@@ -282,6 +282,19 @@ test('a cancelled pending action-context publication cannot send a user turn to 
   await api.close();
 });
 
+test('a connection opens with the sign-in backend token when the bridge supplies one, else with the key', async () => {
+  const {api, clients} = fixture();
+  const {key, ...withoutKey} = config;
+  await api.warm({...withoutKey, authToken: 'fixture-token-not-a-secret', ttsEnabled: false});
+  assert.equal(clients[0].options.authToken, 'fixture-token-not-a-secret');
+  assert.equal(Object.hasOwn(clients[0].options, 'apiKey'), false, 'a token connection carries no API key');
+  await api.close();
+  await api.warm({...config, ttsEnabled: false});
+  assert.equal(clients[1].options.apiKey, 'test-key');
+  assert.equal(Object.hasOwn(clients[1].options, 'authToken'), false);
+  await api.close();
+});
+
 test('emotion detection is enabled without changing the voice route or forcing generation mood',async()=>{
   const {api,clients,events}=fixture();await api.warm({...config,ttsEnabled:false});
   assert.equal(clients[0].options.enableEmotion,true);

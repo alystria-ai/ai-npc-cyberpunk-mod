@@ -165,7 +165,7 @@ const tacticFixture = fixture
   .replace("offer=function(entity)assert(entity=='22ULL');return offer end,",
     "offer=function(entity)assert(entity=='22ULL');return driveAvailable and offer or {available=false} end,\n tacticOffer=function(entity)assert(entity=='22ULL');return tactic end,\n queueTactic=function(kind,snapshot,entity)tactics[#tactics+1]={kind=kind,offer=snapshot,entity=entity};return true,'started' end,")
   .replace('local packets,queued,feedback={},{},{}',
-    "local packets,queued,feedback={},{},{}\nlocal tactics,driveAvailable={},false\nlocal tactic={available=true,actor={serial=2,id='22ULL',key='judy'},target={id='77ULL',name='Tyger Claw',hostile=true,distance=23},kinds={'fight','distract-return'}}");
+    "local packets,queued,feedback={},{},{}\nlocal tactics,driveAvailable={},false\nlocal tactic={available=true,actor={serial=2,id='22ULL',key='judy'},target={id='77ULL',name='Tyger Claw',hostile=true,distance=23},kinds={'fight'}}");
 function runTactic(body) {
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
   const status = lauxlib.luaL_dostring(vm, to_luastring(tacticFixture + body));
@@ -178,12 +178,12 @@ test('a marked-target offer is leased with the request and one offered tactic is
  assert(input.chauffeurOffer==nil and input.tacticOffer.target.id=='77ULL')
  local base=packet(input);base.offer=nil;base.action='companion-tactic'
  base.tacticOffer=clone(input.tacticOffer)
- local wrong=clone(base);wrong.tactic='distract-fight';publish(wrong);q.update(true);assert(#tactics==0,'unoffered kind')
+ local wrong=clone(base);wrong.tactic='dance';publish(wrong);q.update(true);assert(#tactics==0,'unoffered kind')
  local changed=clone(base);changed.tactic='fight';changed.tacticOffer.target.id='99ULL';publish(changed);q.update(true);assert(#tactics==0)
  local drive=clone(base);drive.action='drive-to-waypoint';drive.offer=clone(offer);publish(drive);q.update(true)
  assert(#queued==0,'no drive offer was leased')
- local good=clone(base);good.tactic='distract-return';publish(good);q.update(true)
- assert(#tactics==1 and tactics[1].kind=='distract-return' and tactics[1].offer.target.id=='77ULL' and tactics[1].entity=='22ULL')
+ local good=clone(base);good.tactic='fight';publish(good);q.update(true)
+ assert(#tactics==1 and tactics[1].kind=='fight' and tactics[1].offer.target.id=='77ULL' and tactics[1].entity=='22ULL')
  publish(clone(good));q.update(true);assert(#tactics==1,'consumed once')
  driveAvailable=true;input=context('request-2');assert(q.capture(input,'private-text'))
  assert(input.chauffeurOffer and input.tacticOffer,'both offers ride on one lease')
@@ -204,4 +204,38 @@ test('no marked target is reported to the bridge as one plain code, and never le
  tactic={available=true,actor={serial=2,id='22ULL',key='judy'},target={id='77ULL',name='Tyger Claw',hostile=true,distance=23},kinds={'fight'}}
  input=context('request-4');assert(q.capture(input,'private-text'))
  assert(input.tacticOffer and input.tacticUnavailable==nil)
+`));
+
+const driveFixture = tacticFixture
+  .replace("return driveAvailable and offer or {available=false} end,", "return driveAvailable and offer or driveRefusal end,")
+  .replace('local tactics,driveAvailable={},false', "local tactics,driveAvailable={},false\nlocal driveRefusal={available=false}");
+function runDrive(body) {
+  const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
+  const status = lauxlib.luaL_dostring(vm, to_luastring(driveFixture + body));
+  const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
+  lua.lua_close(vm); assert.equal(status, lua.LUA_OK, error);
+}
+
+test('a ride the game refuses is reported to the bridge as one plain code, and never leases a ride', () => runDrive(`
+ tactic={available=false}
+ driveRefusal={available=false,reason='No waypoint',code='no-waypoint'}
+ local input=context();assert(not q.capture(input,'private-text'))
+ assert(input.chauffeurOffer==nil and input.driveUnavailable=='no-waypoint' and q.inspect().driveUnavailable=='no-waypoint')
+ local again=context();again.requestId=input.requestId;assert(not q.capture(again,'private-text'))
+ assert(again.driveUnavailable=='no-waypoint','the same admission keeps the advisory')
+ driveRefusal={available=false,reason='Stopped',code='ambiguous-owned-car'}
+ input=context('request-2');assert(not q.capture(input,'private-text'))
+ assert(input.driveUnavailable=='no-car','several refusals share one code')
+ driveRefusal={available=false,reason='Elsewhere',code='some-new-code'}
+ input=context('request-3');assert(not q.capture(input,'private-text'))
+ assert(input.driveUnavailable==nil,'an unknown reason is not sent')
+ driveRefusal={available=false}
+ input=context('request-4');assert(not q.capture(input,'private-text'))
+ assert(input.driveUnavailable==nil,'no code, nothing sent')
+ driveRefusal={available=false,reason='No waypoint',code='no-waypoint'}
+ input=context('request-5');assert(not q.capture(input,'group-text'))
+ assert(input.driveUnavailable==nil,'only a private request carries it')
+ driveAvailable=true
+ input=context('request-6');assert(q.capture(input,'private-text'))
+ assert(input.chauffeurOffer and input.driveUnavailable==nil)
 `));

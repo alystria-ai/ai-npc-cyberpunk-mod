@@ -11,12 +11,12 @@ ID is never included in the page.
 
 Settings groups controls under **Conversations**, **Voices**, **Subtitles**,
 **Automatic reactions**, and **Phone messages**. Conversations offers separate
-**Manage** actions for Character conversations and Memory. Voice playback,
+**Manage** actions for Who can talk (formerly "Character conversations") and Memory. Voice playback,
 provider, quality and service status appear together; the simple switches remain
 on the Settings page.
 
-Memory has its own picker, status, Forget controls and inline confirmation rows.
-**Back to settings** returns from Memory or Character conversations to Settings.
+Memory has its own picker (the page is titled "Whose memories"; it was "Character memories" until 2026-10-14), status, Forget controls and inline confirmation rows.
+**Back to settings** returns from Memory or Who can talk to Settings.
 Settings stays selected in the navigation while either page or the memory picker
 is open.
 
@@ -189,7 +189,7 @@ settings page. Lua-only changes can use
 In-game acceptance should open **Settings → Memory → Manage**, choose an unspawned
 catalogue character, open and cancel a confirmation, and check the bridge count
 and availability feedback. Verify **Back to memory** from the picker and
-**Back to settings** from both Memory and Character conversations. Both the
+**Back to settings** from both Memory and Who can talk. Both the
 picker back-out and a cancelled confirmation should say that nothing was deleted
 (`bridge/manager.test.mjs` asserts the text, the absence of any command file and
 that no file is removed). A real

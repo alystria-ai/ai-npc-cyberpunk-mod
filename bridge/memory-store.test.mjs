@@ -740,6 +740,35 @@ test('timers exist only while there is work and are unref\'d', async () => {
   assert.equal(STORE_LIMITS.records, 600);
   assert.equal(STORE_LIMITS.characters, MEMORY_LIMITS.characters);
 });
+// ---- the character editor changes records and the summary (docs/CHARACTER_EDITOR.md)
+test('an edited record is pinned, re-embedded, saved, and kept as the player wrote it; the summary can be set and cleared', async () => {
+  const files = {};
+  seedFile(files, 'judy-alvarez', [{id: 'a', text: 'V likes whiskey', updated: T0 - 5}, {id: 'b', text: 'Judy owes V a favour', updated: T0}], {summary: 'Old summary.'});
+  const {store, fs, clock, embedder} = await setup({files});
+  assert.equal(store.learns, true);
+  const edited = store.editRecord('judy-alvarez', 'a', '  V likes   rye whiskey \u0000 ');
+  assert.deepEqual(edited, {id: 'a', kind: 'fact', text: 'V likes rye whiskey', pinned: true, updated: clock.now()});
+  assert.equal(store.editRecord('judy-alvarez', 'a', '   '), null);
+  assert.equal(store.editRecord('judy-alvarez', 'zzz', 'text'), null);
+  assert.equal(store.editRecord('nobody', 'a', 'text'), null);
+  assert.equal(store.editRecord('judy-alvarez', 'b', 'x'.repeat(500)).text.length, STORE_LIMITS.fact);
+  await clock.advance(0);
+  await settle();
+  assert(embedder.calls.some(texts => texts.includes('V likes rye whiskey')), 'the new text is embedded in the background');
+  assert.equal((await store.retrieve({profileKey: 'judy-alvarez', query: 'rye whiskey'}))[0].id, 'a');
+  assert.equal(store.setSummary('judy-alvarez', '  V asked   about the clinic. '), 'V asked about the clinic.');
+  assert.equal(store.recall({profileKey: 'judy-alvarez'}).summary, 'V asked about the clinic.');
+  assert.equal(store.setSummary('judy-alvarez', 's'.repeat(3000)).length, MEMORY_LIMITS.summary);
+  assert.equal(store.setSummary('judy-alvarez', ''), '');
+  assert.equal(store.setSummary('never-talked-to', ''), '', 'clearing a summary that is not there creates nothing');
+  assert.equal(store.size, 1);
+  assert.equal(store.setSummary('Bad Key!', 'text'), null);
+  await clock.advance(800);
+  const document = saved(fs, 'judy-alvarez');
+  assert.equal(document.summary, '');
+  assert.equal(document.records.find(record => record.id === 'a').pinned, true);
+  assert.equal(document.records.find(record => record.id === 'a').text, 'V likes rye whiskey');
+});
 
 
 test('retrieve does not wait for an embedder that is not running: it is warmed for the next turn and this one gets nothing', async () => {
@@ -774,4 +803,18 @@ test('warm() starts the embedder when there is one, never throws, and is false w
   assert.equal(warms, 2);
   const none = await setup({files: memories(), embedder: null});
   assert.equal(none.store.warm(), false);
+});
+
+test('a fact found later never rewrites a record the player wrote or edited', async () => {
+  const files = {};
+  seedFile(files, 'judy-alvarez', [{id: 'night', text: 'V really likes cheap whiskey after a long night shift', pinned: true}, {id: 'car', text: 'V drives an old Thorton Galena', pinned: true}]);
+  let output;
+  const {store, clock} = await setup({files, extractor: async () => output});
+  output = [fact('V really likes cheap whiskey after a long night shift nowadays')];
+  exchange(store, 'judy-alvarez', 6);
+  await clock.advance(0);
+  output = [fact('V sold the Thorton and now rides a bike', {replaces: 'car', kind: 'event'})];
+  exchange(store, 'judy-alvarez', 6);
+  await clock.advance(0);
+  assert.deepEqual(store.listRecords('judy-alvarez').map(record => record.text).sort(), ['V drives an old Thorton Galena', 'V really likes cheap whiskey after a long night shift']);
 });

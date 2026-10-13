@@ -648,7 +648,7 @@ test('voice selector arrows stay within their displayed direction and use effect
     local wrapped = function(forward)
       forwarded = forwarded + 1
       effective = effective + (forward and 1 or -1)
-      if effective > 7 then effective = 1 elseif effective < 1 then effective = 7 end
+      if effective > 8 then effective = 1 elseif effective < 1 then effective = 8 end
     end
     local emit = function(forward)
       if handlers.McmUiEmitStep then return handlers.McmUiEmitStep(selector, forward, wrapped) end
@@ -656,23 +656,23 @@ test('voice selector arrows stay within their displayed direction and use effect
     end
     emit(false)
     assert(effective == 1 and forwarded == 0, 'left at Pocket TTS must not wrap right')
-    for _, expected in ipairs({2, 3, 4, 5, 6, 7}) do emit(true); assert(effective == expected and forwarded == expected - 1) end
+    for _, expected in ipairs({2, 3, 4, 5, 6, 7, 8}) do emit(true); assert(effective == expected and forwarded == expected - 1) end
     emit(true)
-    assert(effective == 7 and forwarded == 6, 'right at Convai must not wrap left')
-    for _, expected in ipairs({6, 5, 4, 3, 2, 1}) do emit(false); assert(effective == expected and forwarded == 13 - expected) end
-    emit(false); assert(effective == 1 and forwarded == 12, 'left at Pocket TTS must not wrap right')
+    assert(effective == 8 and forwarded == 7, 'right at Convai must not wrap left')
+    for _, expected in ipairs({7, 6, 5, 4, 3, 2, 1}) do emit(false); assert(effective == expected and forwarded == 15 - expected) end
+    emit(false); assert(effective == 1 and forwarded == 14, 'left at Pocket TTS must not wrap right')
     assert(row('voiceProvider').defaultValue == 1)
     local elements = row('voiceProvider').elements
-    assert(#elements == 7 and elements[1] == 'Pocket · Performance')
+    assert(#elements == 8 and elements[1] == 'Pocket · Performance')
     assert(elements[2] == 'OmniVoice · Balanced' and elements[3] == 'OmniVoice · Quality')
     assert(elements[4] == 'OmniVoice · High Quality' and elements[5] == 'OmniVoice · Ultra Quality')
-    assert(elements[6] == 'Mistral cloud voice (Voxtral) · needs Mistral key' and elements[7] == 'Convai · Cloud voice')
+    assert(elements[6] == 'Mistral cloud voice (Voxtral) · needs Mistral key' and elements[7] == 'Inworld cloud voice · needs Inworld key' and elements[8] == 'Convai · Cloud voice')
     assert(row('omniSteps') == nil and row('omniReference') == nil, 'retired quality steps remain in the active menu')
     assert(row('keepPreparedVoices').type == 'bool' and row('keepPreparedVoices').value == true
       and row('keepPreparedVoices').defaultValue == true, 'Keep prepared voices is on by default')
     handlers.McmUiConfigureBase(selector, controller, 'another-mod:settings:voiceProvider')
     emit(false)
-    assert(effective == 7 and forwarded == 13, 'foreign selector behavior must pass through')
+    assert(effective == 8 and forwarded == 15, 'foreign selector behavior must pass through')
   `);
 });
 
@@ -1127,7 +1127,7 @@ test('with Auto Apply every setting waits for an explicit Apply: the automatic a
     assert(snapshotOf() == before and #fileWrites == writes and files['runtime/voice-preview.json'] == nil)
     -- The person presses Apply later: all of it commits at once.
     clock = clock + 2
-    local applied = registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}, {id = 'expressiveEmotions', value = false}, {id = 'subtitles', value = false},
+    local applied = registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}, {id = 'expressiveEmotions', value = false}, {id = 'subtitles', value = false},
       {id = 'developerMode', value = true}, {id = 'eyeContactHeight', value = 5}, {id = 'enabled:person-1', value = false}})
     assert(applied.ok and applied.atomic)
     local after = manager.snapshot(player).settings
@@ -1144,7 +1144,7 @@ test('with Auto Apply every setting waits for an explicit Apply: the automatic a
 test('the voice status names a pending voice in a short line and nothing prepares a model before Apply', () => {
   run(`${mcmFixture}
     assert(invoke('tab:settings').ok)
-    local pending = 7
+    local pending = 8
     nativeApi.getValue = function(key) assert(key == 'cyberpunk-convai:manager:voiceProvider'); return pending end
     nativeApi.hasDrafts = function() return false end
     CName = {new = function(value) return value end}
@@ -1956,7 +1956,7 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
     assert(invoke('tab:settings').ok)
     loaded = registered.loadMod('manager')
     local elements = row('voiceProvider').elements
-    assert(elements[1] == 'Pocket · Performance' and elements[7] == 'Convai · Cloud voice')
+    assert(elements[1] == 'Pocket · Performance' and elements[8] == 'Convai · Cloud voice')
     assert(elements[2] == 'OmniVoice · Balanced · needs Omni pack', elements[2])
     for index = 2, 5 do
       assert(elements[index]:find(' · needs Omni pack', 1, true), 'entry ' .. index)
@@ -1971,7 +1971,7 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
     end
     assert(not manager.applySettings(player, {voiceProvider = 'omni'}))
     -- Pocket and Convai stay selectable (Expressive emotions, on by default, would move the cloud voice back to Pocket).
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 1}}).ok and saved.voiceProvider == 'pocket')
     -- The pack appears (installed while the game runs): the entries become plain labels and can be applied.
     clock = clock + 20
@@ -2000,7 +2000,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     assert(invoke('tab:settings').ok)
     loaded = registered.loadMod('manager')
     local elements = row('voiceProvider').elements
-    assert(#elements == 7 and elements[6] == NEEDS and elements[7] == 'Convai · Cloud voice', elements[6])
+    assert(#elements == 8 and elements[6] == NEEDS and elements[8] == 'Convai · Cloud voice', elements[6])
     assert(manager.voiceLabel('voxtral') == 'Mistral cloud voice (Voxtral)')
     local before = saved.voiceProvider
     local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}})
@@ -2018,7 +2018,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     assert(manager.snapshot(player).settings.expressiveEmotions == true)
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}}).ok)
     -- Convai stays selectable, and the saved voice is found again in the list.
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
     assert(dofile('voice-preview.lua').indexOf({voiceProvider = 'voxtral'}) == 6)
   `);
 });
@@ -2151,6 +2151,146 @@ test('a Mistral cloud voice that fell back to Pocket is announced once, with the
   `);
 });
 
+test('the Inworld cloud voice says it needs an Inworld key and cannot be applied without one; with a key it applies, and the key is not the Mistral key', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function key(tag, value)
+      jsonFixtures['mistral-' .. tag] = value
+      files['runtime/mistral-state.json'] = 'mistral-' .. tag
+      clock = clock + 2
+    end
+    local NEEDS = 'Inworld cloud voice · needs Inworld key'
+    assert(invoke('tab:settings').ok)
+    loaded = registered.loadMod('manager')
+    assert(row('voiceProvider').elements[7] == NEEDS, row('voiceProvider').elements[7])
+    assert(manager.voiceLabel('inworld') == 'Inworld cloud voice')
+    local before = saved.voiceProvider
+    local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}})
+    assert(result.ok == false and result.error == 'Requires an Inworld key (add it in Settings > Development)', result.error)
+    assert(saved.voiceProvider == before)
+    assert(not manager.applySettings(player, {voiceProvider = 'inworld'}))
+    -- A Mistral key alone does not unlock it.
+    key('a', {provider = 'convai', effective = 'convai', saved = true})
+    loaded = registered.loadMod('manager')
+    assert(row('voiceProvider').elements[7] == NEEDS, row('voiceProvider').elements[7])
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok == false)
+    -- An Inworld key is saved: the entry is a plain label and can be applied.
+    key('b', {provider = 'convai', effective = 'convai', saved = true, inworld = {saved = true, tail = 'wxyz'}})
+    loaded = registered.loadMod('manager')
+    assert(row('voiceProvider').elements[7] == 'Inworld cloud voice', row('voiceProvider').elements[7])
+    assert(manager.mistral().inworld.saved == true and manager.mistral().inworld.tail == 'wxyz')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok)
+    assert(saved.voiceProvider == 'inworld' and manager.snapshot(player).settings.voiceProvider == 'inworld')
+    -- It rides on Pocket, so Expressive emotions stay on: they become its steering.
+    assert(manager.snapshot(player).settings.expressiveEmotions == true)
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
+    assert(dofile('voice-preview.lua').indexOf({voiceProvider = 'inworld'}) == 7)
+  `);
+});
+
+test('the Inworld key is pasted and removed from Settings > Development through its own command file, and the page shows only its last four characters', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    assert(invoke('tab:settings').ok)
+    assert(row('inworld-key-status').value == 'Not added', row('inworld-key-status').value)
+    assert(row('inworld-key:paste').label == 'Paste Inworld key', 'paste label')
+    assert(row('inworld-key:remove').label == 'Remove my Inworld key', 'remove label')
+    assert(invoke('inworld-key:paste').ok, 'paste invoke')
+    local command = jsonFixtures[files['runtime/inworld-key-command.json']]
+    assert(command.version == 1 and command.action == 'paste' and command.id:find(':ikey:1', 1, true), 'command')
+    assert(files['runtime/mistral-key-command.json'] == nil and files['runtime/groq-key-command.json'] == nil and files['runtime/memory-command.json'] == nil, 'other channels')
+    assert(row('inworld-key:remove').disabled == true, 'nothing to remove yet')
+    jsonFixtures['mistral-i'] = {provider = 'convai', effective = 'convai', saved = false, inworld = {saved = true, tail = 'wxyz'}}
+    files['runtime/mistral-state.json'] = 'mistral-i'
+    clock = clock + 2
+    assert(invoke('inworld-key:paste').ok)
+    assert(row('inworld-key-status').value == 'Added (ends in wxyz)' and row('inworld-key:remove').disabled ~= true, row('inworld-key-status').value)
+    assert(invoke('inworld-key:remove').ok)
+    command = jsonFixtures[files['runtime/inworld-key-command.json']]
+    assert(command.action == 'clear' and command.id:find(':ikey:', 1, true), 'clear command')
+  `);
+});
+
+test('Settings > Voices shows the prepared voices on disk, asked once when Settings opens, and Clear prepared voices confirms on its own page before it sends the command', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function status(tag, value) jsonFixtures[tag] = value; files['runtime/prepared-voices-state.json'] = tag; clock = clock + 2 end
+    local function command() return jsonFixtures[files['runtime/prepared-voices-command.json']] end
+    assert(files['runtime/prepared-voices-command.json'] == nil, 'nothing is asked before Settings opens')
+    assert(invoke('tab:settings').ok)
+    local asked = command()
+    assert(asked.version == 1 and asked.action == 'measure' and asked.id:find(':pv:1', 1, true), 'a measure request when Settings opens')
+    assert(files['runtime/memory-command.json'] == nil and files['runtime/inworld-key-command.json'] == nil, 'other channels untouched')
+    assert(row('prepared-voices').label == 'Prepared voices on disk' and row('prepared-voices').value == 'Checking…', row('prepared-voices').value)
+    assert(row('prepared-voices:open').disabled == true, 'nothing to clear until the total is known')
+    status('pv-a', {version = 1, state = 'ready', files = 3, bytes = 4 * 1048576, result = {id = asked.id, state = 'measured'}})
+    loaded = registered.loadMod('manager')
+    assert(row('prepared-voices').value == '4.0 MB · Saved voices: 3', row('prepared-voices').value)
+    assert(row('prepared-voices:open').disabled ~= true)
+    assert(invoke('prepared-voices:open').ok)
+    assert(command().id:find(':pv:1', 1, true), 'opening the clear page asks nothing new')
+    assert(row('prepared-voices-total').value == '4.0 MB · Saved voices: 3')
+    assert(row('prepared-voices:confirm') and row('prepared-voices:cancel'), 'confirm and cancel')
+    assert(row('prepared-voices:confirm').disabled ~= true)
+    -- Cancel goes back and deletes nothing: only a measure request is sent.
+    assert(invoke('prepared-voices:cancel').ok)
+    assert(command().action == 'measure' and command().id:find(':pv:2', 1, true))
+    status('pv-b', {version = 1, state = 'ready', files = 3, bytes = 4 * 1048576, result = {id = command().id, state = 'measured'}})
+    loaded = registered.loadMod('manager')
+    assert(invoke('prepared-voices:open').ok)
+    assert(invoke('prepared-voices:confirm').ok)
+    local clear = command()
+    assert(clear.version == 1 and clear.action == 'clear' and clear.id:find(':pv:3', 1, true), 'the clear command')
+    loaded = registered.loadMod('manager')
+    assert(row('prepared-voices:confirm').disabled == true, 'no second clear while the first waits for its answer')
+    status('pv-c', {version = 1, state = 'ready', files = 0, bytes = 0, result = {id = clear.id, state = 'cleared', files = 3, bytes = 4 * 1048576}})
+    loaded = registered.loadMod('manager')
+    assert(row('prepared-voices-result').value == 'Cleared 4.0 MB of saved voice setups.', row('prepared-voices-result').value)
+    assert(row('prepared-voices-total').value == 'None' and row('prepared-voices:confirm').disabled == true)
+    -- An answer to an older request is not shown as this one's result.
+    status('pv-d', {version = 1, state = 'ready', files = 2, bytes = 2048, result = {id = 'someone:pv:9', state = 'cleared', files = 9, bytes = 9}})
+    loaded = registered.loadMod('manager')
+    assert(row('prepared-voices-result') == nil and row('prepared-voices-total').value == '2 KB · Saved voices: 2', row('prepared-voices-total').value)
+    -- A bridge that cannot reach the folder reports a failure, shown plainly.
+    status('pv-e', {version = 1, state = 'unavailable', result = {id = clear.id, state = 'failed'}})
+    loaded = registered.loadMod('manager')
+    assert(row('prepared-voices-result').value == 'The request could not be completed.' and row('prepared-voices-total').value == 'Unavailable', row('prepared-voices-total').value)
+    assert(invoke('prepared-voices:back').ok)
+  `);
+});
+
+test('the Inworld cloud voice speaks English only here: Multilingual conversations refuses it and moves a saved choice off it', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    jsonFixtures['mistral-a'] = {provider = 'convai', effective = 'convai', saved = true, inworld = {saved = true, tail = 'wxyz'}}
+    files['runtime/mistral-state.json'] = 'mistral-a'
+    clock = clock + 2
+    assert(manager.applySettings(player, {voiceProvider = 'inworld'}))
+    assert(manager.snapshot(player).settings.voiceProvider == 'inworld')
+    local ok, err = manager.applySettings(player, {multilingualConversations = true})
+    assert(ok, err)
+    assert(manager.snapshot(player).settings.voiceProvider ~= 'inworld')
+    local refused, message = manager.applySettings(player, {voiceProvider = 'inworld'})
+    assert(refused == false and message == 'The Inworld cloud voice speaks only English here. Turn off Multilingual conversations to choose it.', message)
+  `);
+});
+
+test('an Inworld cloud voice that fell back to Pocket is announced once, with the usual wording and its own name', () => {
+  run(`${mcmFixture}${managerPopupFixture}
+    popupStep = 1
+    local state = {state = 'ready', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = nil, routedProfiles = {'johnny-silverhand'},
+      fallback = {from = 'inworld', to = 'pocket', temporary = true, reason = 'timeout'}, updated = popupClock * 1000}
+    jsonFixtures['voice-runtime'] = state
+    files['runtime/local-voice-state.json'] = 'voice-runtime'
+    popupTick(false); popupTick(false)
+    popupTick(true)
+    assert(#popups == 1 and popups[1] == 'Inworld cloud voice is not ready yet. Companions are using Pocket · Performance for now.', popups[1])
+    state.fallback.temporary = false
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 2 and popups[2] == 'Inworld cloud voice is unavailable. Companions are using Pocket · Performance instead.', popups[2])
+  `);
+});
+
 test('native Memory submenu has consistent parent navigation and preserves an unissued confirmation', () => {
   run(`${mcmFixture}${memoryFixture}
     publishMemory(1, {{profileKey = 'person-20'}})
@@ -2252,7 +2392,10 @@ test('backing out of the memory picker or cancelling a Forget confirmation says 
     local removed, originalRemove = {}, os.remove
     os.remove = function(path) removed[#removed + 1] = path; return originalRemove(path) end
     local function nothingDeleted()
-      assert(memoryWrites() == 0 and memoryRequest() == nil and #removed == 0, 'a back-out or cancel touched stored memory')
+      -- Opening Settings sends the prepared-voices measure request (its command file swaps through os.remove); that is not stored memory.
+      local touched = 0
+      for _, path in ipairs(removed) do if not tostring(path):find('prepared-voices', 1, true) then touched = touched + 1 end end
+      assert(memoryWrites() == 0 and memoryRequest() == nil and touched == 0, 'a back-out or cancel touched stored memory')
       assert(#members == 0 and #spawned == 0)
     end
     local pickerClosed = 'Character picker closed. Your selection is unchanged. Closing it deleted nothing.'
@@ -2586,7 +2729,7 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(not manager.lootReactions())
     assert(registered.applyBatch('manager', {{id = 'battleReactions', value = false}}).ok)
     assert(not manager.battleReactions())
-    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 7}, {id = 'subtitleStyle', value = 2}, {id = 'expressiveEmotions', value = false}})
+    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 8}, {id = 'subtitleStyle', value = 2}, {id = 'expressiveEmotions', value = false}})
     assert(applied.ok and applied.atomic and #applied.appliedIds == 4 and saved.omniSteps == 16)
     assert(saved.voiceProvider == 'convai')
     loaded = registered.loadMod('manager')
@@ -2597,7 +2740,7 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     end
     assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 1}}).ok)
     assert(manager.subtitleStyle() == 'dialogue' and saved.voiceProvider == 'convai')
-    assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok)
+    assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}}).ok)
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 0}}).ok)
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = '1'}}).ok)
     assert(registered.applyBatch('manager', {{id = 'keepPreparedVoices', value = false}}).ok and saved.keepPreparedVoices == false)
@@ -2605,7 +2748,7 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'long')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}}).ok)
     assert(saved.voiceProvider == 'omni' and saved.omniSteps == 32 and saved.omniReference == 'short')
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok and saved.voiceProvider == 'convai')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok and saved.voiceProvider == 'convai')
     assert(not registered.applyBatch('manager', {{id = 'voice', value = true}, {id = 'omniSteps', value = 1}}).ok)
     assert(saved.voice == false and saved.voiceProvider == 'convai', 'retired quality changes partially applied')
     assert(not registered.applyBatch('manager', {{id = 'disappearingMessages', value = true}}).ok)
@@ -2632,6 +2775,8 @@ test('settings review wording: short voice description, experimental gestures, f
     assert(voices.description:find('about 0.2 s', 1, true) and voices.description:find('1 to 2.5 s', 1, true))
     assert(not voices.description:find('%', 1, true), 'no listening percentages in the voice description')
     assert(not voices.description:find(string.char(10), 1, true) and utf8.len(voices.description) < 600, 'the voice description stays short')
+    assert(voices.description:find('Inworld also speaks with emotion.', 1, true), 'the Inworld voice is described as speaking with emotion')
+    assert(not voices.description:lower():find('recommended', 1, true), 'no voice is called recommended')
     assert(row('bodyGestures').label == 'Body gestures (experimental)' and row('bodyGestures').defaultValue == true and row('bodyGestures').value == true)
     assert(row('sitWithYou') == nil, 'companions always sit with V: there is no Sit with you setting')
     assert(row('autoConnectNearby').defaultValue == true and row('keepPreparedVoices').defaultValue == true)
@@ -3074,7 +3219,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(ok, err)
       assert(actual.getValue(key .. ':voice') == false and actual.getValue(key .. ':omniSteps') == nil)
       assert(manager.snapshot(player).settings.omniSteps == 16 and not actual.hasDrafts(key))
-      assert(actual.getValue(key .. ':voiceProvider') == 7)
+      assert(actual.getValue(key .. ':voiceProvider') == 8)
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
       assert(actual.getValue(key .. ':subtitleStyle') == 2 and manager.subtitleStyle() == 'overhead')
       assert(not manager.battleReactions() and actual.getValue(key .. ':battleReactions') == false)
@@ -3105,7 +3250,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       for _ = 1, 3 do mcm.update(player, false) end
       assert(files['runtime/voice-preview.json'] == nil, 'a pending voice offered a worker preview')
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
-      assert(actual.revert(key) and actual.getValue(key .. ':voiceProvider') == 7)
+      assert(actual.revert(key) and actual.getValue(key .. ':voiceProvider') == 8)
       assert(actual.setDraft(key .. ':voiceProvider', 4)); later(); assert(actual.apply(key))
       assert(manager.snapshot(player).settings.voiceProvider == 'omni' and manager.snapshot(player).settings.omniSteps == 32
         and manager.snapshot(player).settings.omniReference == 'short')
@@ -4906,6 +5051,99 @@ test('a freshly drawn page is hidden until it is styled, shown again at its own 
   `);
 });
 
+// A value change (slider, option, toggle) makes MCM draw the whole page again from its own update, after this module's in the
+// frame. The new page's content must never show in MCM's default look: it is created hidden, in the same call, and shown when
+// it is styled.
+const valueChangeFixture = `
+  local clock = 10
+  os.clock = function() return clock end
+  ${opacityFixture}
+`;
+const drawFixture = `
+  local wrapper = {visible = true, sets = {}}
+  function wrapper:SetVisible(value) self.visible = value; self.sets[#self.sets + 1] = value end
+  local scroll = {GetParentWidget = function() return wrapper end}
+  content.GetParentWidget = function() return scroll end
+  local passed = {}
+  -- What MCM does for one draw, in its own order; wrapper starts visible like a freshly created scroll area.
+  local function draw(title, text, kind)
+    wrapper.visible = true
+    content.opacity = 1
+    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', title or 'Companion Manager', text or '', kind or 0, '', true, true, 0,
+      function(_, _, _, _, statusArg) passed.status = statusArg end)
+    handlers.McmUiBeginContent(reference(), 400, 0.25, true, function(height, scrollPosition, ready)
+      passed.ready, passed.height, passed.scroll = ready, height, scrollPosition
+      wrapper.visible = ready
+    end)
+    handlers.McmUiSetContentTitle(reference(), 'Companion Manager')
+  end
+  local function fill(count)
+    content.children = {}
+    for index = 1, count do content.children[index] = widget('r' .. index .. '_managed_label', 48) end
+  end
+`;
+
+test('a value change draws the page with its content hidden in the same call, and shows it once it is styled', () => {
+  run(`${mcmFixture}${stylingFixture}${valueChangeFixture}${drawFixture}
+    fill(500)
+    for change = 1, 4 do
+      draw('Companion Manager', 'Pending: Voice')
+      assert(passed.ready == false and wrapper.visible == false, 'the page was created visible (change ' .. change .. ')')
+      assert(passed.height == 400 and passed.scroll == 0.25, 'the other arguments were changed')
+      assert(passed.status == 'Pending: Voice', 'the status text was changed: ' .. tostring(passed.status))
+      local frames = 0
+      repeat
+        assert(wrapper.visible == false, 'the content showed while unstyled (change ' .. change .. ', frame ' .. frames .. ')')
+        mcm.update(player, false); frames = frames + 1
+      until not mcm.inspect().presentation.pending or frames > 40
+      mcm.update(player, false)
+      assert(wrapper.visible == true and content.opacity == 1, 'the styled page was not shown (change ' .. change .. ')')
+    end
+    assert(#wrapper.sets == 4 and wrapper.sets[4] == true, 'the content was shown more than once per draw')
+  `);
+});
+
+test('only the manager is held: another mod page, and a page that wants itself hidden, are left as they are', () => {
+  run(`${mcmFixture}${stylingFixture}${valueChangeFixture}${drawFixture}
+    fill(5)
+    -- Another mod's page.
+    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', 'Another Mod', 'Opened.', 0, '', true, true, 0,
+      function(_, _, _, _, statusArg) passed.status = statusArg end)
+    handlers.McmUiBeginContent(reference(), 400, 0, true, function(_, _, ready) passed.ready = ready end)
+    assert(passed.ready == true and passed.status == 'Opened.', 'a foreign page was held')
+    -- Ours, but MCM itself wants the content hidden (it does for a page that still has to be measured): unchanged.
+    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', 'Companion Manager', '', 0, '', true, true, 0, function() end)
+    handlers.McmUiBeginContent(reference(), 400, 0, false, function(_, _, ready) passed.ready = ready end)
+    assert(passed.ready == false)
+    draw('Companion Manager', '')
+    for _ = 1, 4 do mcm.update(player, false) end
+    assert(wrapper.visible == true)
+  `);
+});
+
+test('a held page that was never styled is shown after 1.5 s, and a page that cannot be released switches the hold off', () => {
+  run(`${mcmFixture}${stylingFixture}${valueChangeFixture}${drawFixture}
+    fill(5)
+    draw('Companion Manager', 'Pending: Voice')
+    assert(wrapper.visible == false)
+    -- The settings page stops being the manager's before any styling ran (another mod is selected): the content comes back.
+    activeMod = 'another-mod:page'
+    mcm.update(player, false); assert(wrapper.visible == false, 'released too early')
+    clock = clock + 2
+    mcm.update(player, false)
+    assert(wrapper.visible == true, 'a page that is no longer ours stayed hidden')
+    -- A page whose scroll wrapper cannot be found is drawn again, and from then on never held.
+    activeMod = 'cyberpunk-convai:manager'
+    content.GetParentWidget = function() error('no parent') end
+    draw('Companion Manager', '')
+    assert(passed.ready == false)
+    activeMod = 'another-mod:page'
+    clock = clock + 2; mcm.update(player, false)
+    draw('Companion Manager', 'Pending: Voice')
+    assert(passed.ready == true, 'a page was held after the hold failed')
+  `);
+});
+
 test('a page that failed to style is shown, and a page the manager leaves is not left hidden', () => {
   run(`${mcmFixture}${stylingFixture}
     local clock = 10
@@ -5019,16 +5257,22 @@ test('the models page follows the scan by the number of models found, not by the
   `);
 });
 
-// Loading notices: a slow OmniVoice or Local AI load is announced until it is ready (mod/notices.lua loading board,
-// manager.loadStatus, mod/mcm.lua). Gameplay frames of 0.25 s; the manager reads the bridge's files as it does in the game.
+// Loading notices: a slow OmniVoice or Local AI load is one notice held on screen until its outcome replaces it (mod/notices.lua
+// loading board, manager.loadStatus, mod/mcm.lua). Gameplay frames of 0.25 s; the manager reads the bridge's files as it does in
+// the game. The game's warning line is a mock: `posts` is what the HUD was given as the held notice, `clears` what hid it, `shown`
+// the ordinary five-second notices (the outcome lines).
 const loadingFixture = `
   local clock = 1000
   os.time = function() return clock end
   os.clock = function() return clock end
-  local shown = {}
-  function player:ConvaiPhoneFeedback(text) shown[#shown + 1] = text end
+  local shown, posts, clears, screen = {}, {}, 0, {'', false}
+  function player:ConvaiPhoneFeedback(text) shown[#shown + 1] = text; screen = {text, true} end
   convaiNotices = (function() ${noticesSource} end)()
   convaiNotices.configure(function() return false end)
+  convaiNotices.screen = {
+    post = function(_, text, instant) posts[#posts + 1] = {text = text, instant = instant}; screen = {text, true}; return 'native' end,
+    clear = function() clears = clears + 1; screen = {'', false} end,
+    read = function() return screen[1], screen[2] end}
   local voice = {state = 'loading', provider = 'pocket', workerBackend = 'omni', requestedProvider = 'omni',
     omniPack = {installed = true, missing = {}}, updated = clock * 1000}
   jsonFixtures['voice-loading'] = voice
@@ -5043,53 +5287,59 @@ const loadingFixture = `
   mcm.update(player, true)
 `;
 
-test('OmniVoice loading is announced after 1.5 s, repeated every 3 s, and replaced by one ready line; a quick load says nothing', () => {
+test('OmniVoice loading is one notice after 1.5 s that stays until one ready line replaces it; a quick load says nothing', () => {
   run(`${mcmFixture}${loadingFixture}
-    step(1); assert(#shown == 0, 'a notice before the load had lasted 1.5 s: ' .. tostring(shown[1]))
+    step(1); assert(#posts == 0 and #shown == 0, 'a notice before the load had lasted 1.5 s: ' .. tostring(shown[1]))
     step(1.5)
-    assert(#shown == 1 and shown[1] == 'Loading the OmniVoice voice…', tostring(shown[1]))
-    step(20)
-    assert(#shown >= 7 and #shown <= 9, 'every 3 s for 22 s: ' .. #shown)
-    for _, text in ipairs(shown) do assert(text == 'Loading the OmniVoice voice…', text) end
-    local before = #shown
+    assert(#posts == 1 and posts[1].text == 'Loading the OmniVoice voice…' and not posts[1].instant, tostring(posts[1] and posts[1].text))
+    step(60)
+    assert(#posts == 1 and #shown == 0 and clears == 0, 'the notice was posted again or something else was shown: ' .. #posts)
     -- warming and speaking are per-character work, not a load
     voice.state = 'ready'; step(1)
-    assert(#shown == before + 1 and shown[#shown] == 'OmniVoice voice is ready.', tostring(shown[#shown]))
+    assert(#shown == 1 and shown[1] == 'OmniVoice voice is ready.', tostring(shown[1]))
+    assert(#posts == 1 and clears == 0, 'the ready line replaces the notice')
     voice.state = 'warming'; step(10); voice.state = 'speaking'; step(10); voice.state = 'ready'; step(10)
-    assert(#shown == before + 1, 'a per-character preparation was announced: ' .. tostring(shown[#shown]))
+    assert(#shown == 1 and #posts == 1, 'a per-character preparation was announced')
     -- A load that ends before the loading line is due is silent.
-    shown = {}
+    shown, posts = {}, {}
     voice.state = 'loading'; step(1); voice.state = 'ready'; step(10)
-    assert(#shown == 0, 'a one-second load was announced')
+    assert(#shown == 0 and #posts == 0, 'a one-second load was announced')
   `);
 });
 
 test('a voice load that fails says what to do once, unless a fallback voice has its own notice', () => {
   run(`${mcmFixture}${loadingFixture}
-    step(4); assert(#shown >= 1)
+    step(4); assert(#posts == 1)
     voice.state = 'error'; step(2)
     assert(shown[#shown] == 'OmniVoice could not load. See Help in Settings.', tostring(shown[#shown]))
     local count = #shown
-    step(30); assert(#shown == count, 'the failure repeated')
-    -- With a fallback the bridge's own fallback notice speaks; the loading line just ends.
+    step(30); assert(#shown == count and #posts == 1, 'the failure repeated')
+    -- With a fallback the bridge's own fallback notice speaks; the loading notice just comes down.
     voice.state = 'loading'; step(4)
-    local before = #shown
+    local before, hidden = #shown, clears
     voice.state = 'error'; voice.fallback = {from = 'omni', to = 'pocket'}; step(20)
     for index = before + 1, #shown do assert(shown[index] ~= 'OmniVoice could not load. See Help in Settings.', 'doubled the fallback notice') end
-    -- Switching to another voice mid-load cancels it silently.
+    assert(screen[1] ~= 'Loading the OmniVoice voice…', 'the loading notice stayed up after the load ended')
+    -- Switching to another voice mid-load cancels it silently and takes the notice down.
     voice.fallback = nil; voice.state = 'loading'; voice.requestedProvider = 'omni'; step(4)
-    local seen = #shown
+    local seen, posted = #shown, #posts
+    hidden = clears
     voice.requestedProvider = 'pocket'; voice.workerBackend = 'omni'; step(20)
-    assert(#shown == seen, 'a load nobody wants anymore was announced')
+    assert(#shown == seen and #posts == posted, 'a load nobody wants anymore was announced')
+    assert(clears == hidden + 1, 'a cancelled load left its notice up')
   `);
 });
 
 test('the Pocket voice load is announced the same way and a load in a menu is announced when gameplay returns', () => {
   run(`${mcmFixture}${loadingFixture}
     voice.workerBackend, voice.requestedProvider = 'pocket', 'pocket'
-    step(4); assert(shown[#shown] == 'Loading the Pocket voice…', tostring(shown[#shown]))
-    local before = #shown
+    step(4); assert(posts[#posts].text == 'Loading the Pocket voice…', tostring(posts[#posts] and posts[#posts].text))
+    -- A menu opens mid-load: nothing is posted there, and the notice is posted again, instantly, when gameplay is back.
+    local held = #posts
+    step(10, false); assert(#posts == held and #shown == 0, 'a popup was posted from a menu')
+    step(1); assert(#posts == held + 1 and posts[#posts].instant == true, 'the notice did not return after the menu')
     -- The load ends while a menu is open: no popup there, one line when gameplay is back.
+    local before = #shown
     voice.state = 'ready'; step(10, false)
     assert(#shown == before, 'a popup was posted from a menu')
     step(1)
@@ -5097,7 +5347,7 @@ test('the Pocket voice load is announced the same way and a load in a menu is an
   `);
 });
 
-test('Local AI warming up is announced while Local is the provider, with a ready line, and its state is not read otherwise', () => {
+test('Local AI warming up is one held notice while Local is the provider, with a ready line, and its state is not read otherwise', () => {
   run(`${mcmFixture}${loadingFixture}
     voice.state = 'ready'
     activeMod = nil   -- the settings page is not open: only the loading board reads anything
@@ -5113,19 +5363,36 @@ test('Local AI warming up is announced while Local is the provider, with a ready
     local applied, why = manager.applySettings(player, {conversationProvider = 'local'}); assert(applied, tostring(why))
     -- Idle, the state is looked at once a second; then the load must last 1.5 s.
     step(3)
-    assert(shown[#shown] == 'Local AI is warming up…', tostring(shown[#shown]))
-    local count = #shown
-    step(12); assert(#shown >= count + 3, 'the line was not shown again')
+    assert(#posts == 1 and posts[1].text == 'Local AI is warming up…', tostring(posts[#posts] and posts[#posts].text))
+    step(30); assert(#posts == 1 and #shown == 0, 'the notice was posted again')
     mistral.localAi = 'ready'; step(2)
     assert(shown[#shown] == 'Local AI is ready.', tostring(shown[#shown]))
-    count = #shown
-    step(20); assert(#shown == count)
+    local count = #shown
+    step(20); assert(#shown == count and #posts == 1)
     -- A server that was unloaded after idle time warms up again when it is needed.
-    mistral.localAi = 'warming'; step(3); assert(shown[#shown] == 'Local AI is warming up…')
+    mistral.localAi = 'warming'; step(3); assert(posts[#posts].text == 'Local AI is warming up…' and #posts == 2)
     mistral.localAi = 'no-memory'; step(2)
     assert(shown[#shown] == 'Not enough graphics memory for Local AI. A cloud provider is used instead.', tostring(shown[#shown]))
     mistral.localAi = 'warming'; step(3); mistral.localAi = 'failed'; step(2)
     assert(shown[#shown] == 'Local AI could not start. Check Local AI in Settings > Development.', tostring(shown[#shown]))
+  `);
+});
+
+test('OmniVoice and Local AI loading together are one notice with a line each', () => {
+  run(`${mcmFixture}${loadingFixture}
+    activeMod = nil
+    local mistral = {provider = 'local', effective = 'local', localAi = 'warming'}
+    jsonFixtures['mistral-loading'] = mistral
+    files['runtime/mistral-state.json'] = 'mistral-loading'
+    local applied, why = manager.applySettings(player, {conversationProvider = 'local'}); assert(applied, tostring(why))
+    step(6)
+    local last = posts[#posts]
+    assert(last.text:find('Loading the OmniVoice voice…', 1, true) and last.text:find('Local AI is warming up…', 1, true),
+      'both loads were not listed: ' .. last.text)
+    local count = #posts
+    step(40); assert(#posts == count and #shown == 0, 'the notice was posted again')
+    voice.state, mistral.localAi = 'ready', 'ready'; step(2)
+    assert(#shown == 1 and shown[1]:find('OmniVoice voice is ready.', 1, true) and shown[1]:find('Local AI is ready.', 1, true), tostring(shown[1]))
   `);
 });
 
@@ -5137,9 +5404,9 @@ test('with nothing loading the loading status is read about once a second and co
     manager.loadStatus = function() calls = calls + 1; return status() end
     step(20)
     assert(calls >= 18 and calls <= 22, 'read ' .. calls .. ' times in 20 s')
-    assert(#shown == 0)
+    assert(#shown == 0 and #posts == 0)
     voice.state = 'loading'; step(4)
-    assert(#shown >= 1)
+    assert(#posts >= 1)
     mcm.resetSession()
     voice.state = 'ready'; shown = {}
     step(10); assert(#shown == 0, 'an old session announced its outcome: ' .. tostring(shown[1]))

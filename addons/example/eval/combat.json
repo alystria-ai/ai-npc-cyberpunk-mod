@@ -1,0 +1,17 @@
+{
+  "speaker": "voice",
+  "mode": "dry",
+  "context": "V is on foot in a Watson back alley at night, light rain.",
+  "memories": ["A long fight (4 minutes) that V walked away from."],
+  "steps": [
+    {"event": "combat-start", "text": "A fight has just started around V.", "facts": {"where": "nearby"}, "maxWords": 10,
+      "expect": "a deadpan line about yet another fight"},
+    {"event": "fight-end", "text": "The fight around V is over.", "facts": {"seconds": 95}, "maxWords": 12,
+      "expect": "an understated verdict on the fight, maybe a callback to the earlier long fight"},
+    {"say": "Echo, be honest. How did I do?"},
+    {"event": "combat-start", "text": "A fight has just started around V.", "facts": {"where": "nearby"}, "maxWords": 10, "mode": "cheerful",
+      "expect": "an upbeat line, different from the first fight's line"},
+    {"event": "fight-end", "text": "The fight around V is over.", "facts": {"seconds": 40}, "maxWords": 12,
+      "expect": "a cheerful verdict that does not reuse earlier wording"}
+  ]
+}

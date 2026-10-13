@@ -207,6 +207,38 @@ test('finds seats along a couch and separate stools, nearest first', () => run(`
   assert(seats[1].offset*seats[2].offset<0,'both sides')
 `));
 
+test('a neighbouring chair whose near edge is under 0.5 m from V is found (centres about 0.65 m apart), V\'s own seat edge is not a seat', () => run(`
+  -- Chair surfaces at h .45 (V's own seat .45): the right neighbour spans .45-.85 (centre .65, seat 0.45 m wide), the left neighbour .55-.95.
+  local c={[1]={},[-1]={}}
+  for i=0,14 do local o=.45+i*.1
+    c[1][#c[1]+1]={offset=o,h=(o>=.45 and o<=.86) and .45 or 0}
+    c[-1][#c[-1]+1]={offset=o,h=(o>=.54 and o<=.96) and .45 or 0}
+  end
+  local seats=m.findSeats(c,m.kinds.chair,.45)
+  assert(#seats==2,'one chair each side: '..#seats)
+  assert(math.abs(seats[1].offset)>.6 and math.abs(seats[1].offset)<.76,'near chair centre '..seats[1].offset)
+  assert(seats[1].offset*seats[2].offset<0,'both sides')
+  -- The same at a bar stool pitch.
+  local st={[1]={},[-1]={}}
+  for i=0,14 do local o=.45+i*.1; st[1][#st[1]+1]={offset=o,h=(o<=.86) and .75 or 0}; st[-1][#st[-1]+1]={offset=o,h=0} end
+  local s=m.findSeats(st,m.kinds.stool,.75)
+  assert(#s==1 and math.abs(s[1].offset-.65)<.06,'a stool whose edge touches the search start is found')
+  -- V's own seat running a little past the first sample (an edge, one or two samples) never makes a seat, nor does a thin armrest.
+  local own={[1]={},[-1]={}}
+  for i=0,14 do local o=.45+i*.1
+    own[1][#own[1]+1]={offset=o,h=(o<=.56) and .45 or 0}
+    own[-1][#own[-1]+1]={offset=o,h=(o<=.46) and .45 or 0}
+  end
+  assert(#m.findSeats(own,m.kinds.chair,.45)==0,'no seat from the edge of the own seat')
+  local ownStool={[1]={},[-1]={}}
+  for i=0,14 do local o=.45+i*.1; ownStool[1][#ownStool[1]+1]={offset=o,h=(o<=.56) and .75 or 0}; ownStool[-1][#ownStool[-1]+1]={offset=o,h=0} end
+  assert(#m.findSeats(ownStool,m.kinds.stool,.75)==0,'no stool from the edge of the own seat')
+  -- A chair too close to V to sit beside (centre under 0.85 x pitch) is still refused.
+  local near={[1]={},[-1]={}}
+  for i=0,14 do local o=.45+i*.1; near[1][#near[1]+1]={offset=o,h=(o<=.66) and .45 or 0}; near[-1][#near[-1]+1]={offset=o,h=0} end
+  assert(#m.findSeats(near,m.kinds.chair,.45)==0,'a chair squeezed against V (run .45-.65, centre .55) is no seat')
+`));
+
 test('V sits on a couch: the companion walks to the free seat, sits, and stands when V does', () => run(`
   couch(-.35,1.7)
   step(1)

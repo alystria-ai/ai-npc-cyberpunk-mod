@@ -9,9 +9,10 @@ no longer open it.
 
 - **Manager shortcut (currently F4 locally):** requests the real pause menu's MCM entry and selects **Companion
   Manager**. **Esc → MCM → Companion Manager** is also available.
-- **Home:** four destination actions open Characters, Current party, Model browser
+- **Home:** four destination actions open Characters to invite, Current party, Model browser
   and Settings. The destination list appears only on this home page.
-- **Characters:** searchable researched profiles, including Johnny Silverhand
+- **Characters to invite** (named "Characters" until 2026-10-14; the three pages that sounded alike are now
+  Characters to invite, Who can talk and, under Memory, Whose memories): searchable researched profiles, including Johnny Silverhand
   and Adam Smasher, with Invite / Add copy actions for available models.
   This catalogue is independent of phone contacts and quest unlocks.
 - **Current party:** one row per actual or invited copy, "Name #number" with
@@ -104,10 +105,10 @@ handlers while the page is open (at most 60 per session), and for a close with u
 Live result: with no changes Esc fires `OnButtonRelease` (`UI_Cancel`, `cancel`, `back`), then
 `SettingsMainGameController.OnBack`, then `RequestClose`; the key guard asks before that.
 
-Every inner page ends with one **Back** action. Characters, Current party,
-Model browser and Settings return to the manager home; Relationships, Memory
-and Who can talk return to Settings. The memory character picker
-returns to Memory, and the removed per-copy conversation page no longer exists. Navigation clears the previous page's search.
+Every inner page ends with one **Back** action. Characters to invite, Current party,
+Model browser and Settings return to the manager home; Relationships, Memory,
+Who can talk and Prepared voices return to Settings. The memory character picker
+(Whose memories) returns to Memory, and the removed per-copy conversation page no longer exists. Navigation clears the previous page's search.
 The parent Back action remains visible when a search has no matching results.
 **Your group** (the Back action and the companion driver's trip status) appears only
 on Current party. Invitation actions still show their immediate native action
@@ -270,7 +271,7 @@ These are Developer mode only:
 - the **dismissed** result (the in-menu feedback line still reports it, and a
   failed dismissal is always shown);
 - the routine driving instructions (boarding, driving, exit);
-- companion tactic outcomes ("called off the distraction", "could not reach the target") and the
+- companion tactic outcomes ("could not engage the target") and the
   popup after a Settings Apply that switched the voice (the Settings status line says it).
 
 Turning Developer mode on changes nothing for invitations. The native phone script's own "{name}: invite
@@ -493,7 +494,7 @@ run and the installed-API check is explicitly skipped.
 Lua and catalogues were installed and SHA-256 verified; the previous installed
 Lua is in ignored `backups/mcm-lua-20260928-163622/`. The user reloaded CET and
 confirmed the manager appears in MCM. Their screenshots show the native
-Characters, empty Current party and Settings pages, including Invite controls
+Characters (now Characters to invite), empty Current party and Settings pages, including Invite controls
 and the 32-step default. The controller-readiness and runtime CName lookup
 fixes are installed. On September 29 the user confirmed **F4 opened the menu**
 and Iris joined through Invite. Johnny's apparently absent model was traced to
@@ -512,3 +513,22 @@ phone invitation controls use J/L.
 The one-shot `mcm-state:<nonce>` diagnostic writes `runtime/mcm-state.json`
 inside the installed mod. It reports the section, entry stage, party, feedback
 and API availability without opening a menu or creating a companion.
+
+## Changing a value does not flash the page (2026-10-13)
+
+Every change of a slider, option or toggle makes MCM draw the whole Settings screen again (`drafts.changed` queues a render, and
+`handleStep` / `handleNumber` in MCM's own surface queue one too; there is no in-place update). MCM draws from its own `onUpdate`, which
+runs after this mod's in the same frame, so the new rows showed in MCM's default look (cyan, unaligned) for at least one frame before
+this module could style them, then were hidden by the page veil, then shown: a flash on every tick of a slider.
+
+The content is now created hidden, in the same call that creates it. `mod/mcm.lua` overrides `McmUiBeginContent` for the manager's own page
+and passes `contentReady = false` (MCM then hides the scroll wrapper itself; no widget is touched in the hook). When the page is styled
+the veil lifts and the wrapper is shown again in the same update that places the Back button. A hold that was never released (the style job
+never started, the page stopped being ours) is released by `M.update` after 1.5 s, and if the wrapper cannot be found the hold is switched
+off for the session and the page is drawn again without it, so the page can never stay empty. Only the manager's own page is held; another
+mod's page, and a page for which MCM itself asks for hidden content, are passed through unchanged. Cost: one comparison per frame while
+nothing is held; nothing is walked in the observer.
+
+What is not changed: the status line and the bottom button row are still placed after the page is styled (the status line moves to the top of
+the column, Back is added and the other buttons shift), so on a value change they can still jump once; the page is blank for the one to three
+frames that styling takes. MCM's full redraw cannot be avoided from a provider.

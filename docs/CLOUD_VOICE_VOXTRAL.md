@@ -4,6 +4,16 @@ Added 2026-10-12. An optional Companion voice that speaks a reply with Mistral's
 cloned from the character's own reference clip (the OmniVoice long set first; see "Which clip is cloned"), on the player's free Mistral key. It works with any
 conversation provider (Convai free tier, Mistral, Groq or Local), because it only needs the key. Research and measurements behind the
 choice: `docs/FREE_CLOUD_OPTION_RESEARCH.md`.
+The Inworld cloud voice (`docs/CLOUD_VOICE_INWORLD.md`) is the sibling choice on the player's own Inworld key; the menu then has eight entries.
+
+**No local voice model runs while this voice is chosen (2026-10-13).** Choosing it starts no Pocket worker, no OmniVoice worker, no
+local text-to-speech of any kind: a worker that was running is retired when the choice is committed (at the next idle moment, like any
+voice switch), and nothing replaces it. Not using local resources is the point of the choice. It borrows only Pocket's **route** (the
+routing name `pocket`, `provider: 'pocket'` in the state file) and its **audio packet format**, which is what drives the subtitles,
+the lip sync and the face; no Pocket model is loaded for that. A reply the cloud cannot deliver is therefore never spoken locally:
+see "Fallback rule". (Live record, 2026-10-13 13:08: with Pocket kept loaded as a backup, a Pocket worker that hung at "importing
+dependencies" on a CPU starved by other jobs held the reply for more than two minutes while Voxtral was never asked. That coupling is
+gone.)
 
 Code: `bridge/voxtral-voice.mjs` (the adapter), `bridge/mistral-rate.mjs` (the shared request scheduler),
 `bridge/voice-selection.mjs` (routing and fallback), `bridge/voice-routing-log.mjs` (the log lines), `mod/voice-preview.lua`,
@@ -18,10 +28,10 @@ Apply refuses it ("Requires a Mistral key (add it in Settings > Development)"), 
 the pack. The key is the one used for the Mistral text option (`player-mistral-key.txt`, pasted in Settings > Development); the
 bridge publishes only whether one is saved (`runtime/mistral-state.json`, `saved`).
 
-It speaks English only here (the Pocket route it rides on is English): with Multilingual conversations on, choosing it is refused
+It speaks English only here (it uses Pocket's English route): with Multilingual conversations on, choosing it is refused
 ("The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it."), and turning Multilingual on
 beside a saved Voxtral choice moves the voice to OmniVoice (pack installed) or the Convai cloud voice, with the usual notice.
-Natural speech and Expressive emotions stay available: the voice rides on Pocket, whose tag handling it keeps (Natural speech is
+Natural speech and Expressive emotions stay available: the voice uses Pocket's route, whose tag handling it keeps (Natural speech is
 limited to pauses, as with Pocket).
 
 ## How it speaks
@@ -44,23 +54,26 @@ work exactly as with Pocket. Group chat look-ahead (`BufferedPcm`) is unchanged.
 
 ## Fallback rule
 
-Pocket stays loaded (this voice is a route on top of it), so any reply the cloud cannot deliver is spoken by Pocket, in the same
-reply slot, with no gap in the written text. **Only while nothing of the reply has been heard.** Before any audio has been
-delivered, each of these throws a `VoxtralError` and Pocket speaks that whole reply; once the first part of a reply has played in
-the cloud voice, the rest of it is never given to Pocket (see "One reply, one voice"):
+No local voice is loaded, so there is no local voice to fall back to. **Only while nothing of the reply has been heard** does a
+failure matter: before any audio has been delivered, each of these throws a `VoxtralError`. A request that gave no audio in time, lost
+its connection or was refused (`timeout`, `network`, `request`) is **asked once more with a longer wait** (10 s to first audio instead of
+7 s; `VoiceSelection.synthesizeHead`, `cloudRetryAudioMs`). A reply that still has no audio is shown as written text, with the one
+notice (`deliverPocketSpeech` returns the written reply). A turn whose voice has **no key at all** is routed to the Convai cloud voice
+instead (a written reply under the Mistral conversation provider, which has no Convai audio). Once the first part of a reply has played
+in the cloud voice, the rest of it is never given to another voice (see "One reply, one voice"):
 
 | Cause | Kind | After it |
 | --- | --- | --- |
-| No Mistral key | `no-key` | Pocket until a key appears |
-| No clip at all for this character (see below) | `no-reference` | Pocket for this character; the rest still use Voxtral |
-| No first audio in 7 s (counted from the moment the request is sent, not when it queued) or waiting over 6 s behind other Mistral requests | `timeout` | next reply tries again |
+| No Mistral key | `no-key` | the turn goes to the Convai cloud voice until a key appears |
+| No clip at all for this character (see below) | `no-reference` | written reply for this character; the rest still use Voxtral |
+| No first audio in 7 s (counted from the moment the request is sent, not when it queued) or waiting over 6 s behind other Mistral requests | `timeout` | asked once more (10 s); then a written reply; the next reply tries again |
 | 429 | `limit` | cool-down for `Retry-After` (20 s when none, at most 60 s); every Mistral request pauses for it |
 | 401 / 403 | `key` | 60 s cool-down |
 | Network error, 5xx, stalled stream (8 s of silence) | `network` | next reply tries again |
 | Refused request or unusable answer | `request` | next reply tries again |
-| Text over 4,000 characters, or nothing speakable | `text` | not a fallback event; Pocket speaks it |
+| Text over 4,000 characters, or nothing speakable | `text` | not a fallback event; written reply |
 
-**The rule for a character with no clip at all: Pocket**, as in the table. A stock Voxtral voice would be a different, generic voice
+**The rule for a character with no clip at all: a written reply**, as in the table. A stock Voxtral voice would be a different, generic voice
 that does not match the character (the preset voices carry only gender and language tags), so none is used. Today that is
 nobody: `8ug8ear` and `jake-estevez`, the last two, got reference sets on 2026-10-13.
 
@@ -76,8 +89,8 @@ Pocket: timeout" on the third, longest reply). So a reply of 160 characters or m
 - The scheduler starts both at once. The first part's audio is handed to the player as it arrives. The second part's audio is held
   until the first part has been handed on, then released, at once if it is complete, otherwise a little (1.5 s) before the first
   part's audio would run out, so the player hears one reply with its packets in order (same owner, id, increasing index and offset).
-- If the first request fails before audio, the second is dropped and Pocket speaks the whole reply, as for a short reply: nothing
-  has been heard yet.
+- If the first request fails before audio, the second is dropped and the reply is asked again once, then written, as for a short reply:
+  nothing has been heard yet.
 - **The second request never goes to Pocket** (changed 2026-10-13; before, a second request that failed before its audio was
   played was spoken by Pocket, a different voice, partway through the reply). It is asked for again once if its first ask fails
   before any audio (6 s to first audio, then 10 s: `tailFirstAudioMs`, `tailRetryAudioMs`), the first part's audio buying the
@@ -119,8 +132,8 @@ The same happened inside a single long reply: the second of its two requests fai
   subtitles are complete. It is logged: `[Voxtral] the rest of the reply could not be spoken, the reply ends after the part already heard
   (the voice is not switched): ...` and `[Voice] the rest of the reply could not be voiced (...)`. If the head's own audio was cut
   short, the tail is not played after it (`timing.voiceTailSkipped`).
-- **Only a failure before any audio may send a whole reply to Pocket**: the head failing, a short reply failing, a split reply's first
-  request failing.
+- **A failure before any audio ends the reply as written text** (after the one longer second ask): the head failing, a short reply
+  failing, a split reply's first request failing. (Until 2026-10-13 this handed the whole reply to Pocket; no local voice is loaded now.)
 - The same applies to a long reply that is not streamed (split into two requests): its second request is asked twice, then the reply ends.
 
 **Harness numbers** (`node scripts/Measure-TurnLatency.mjs --failures --only voxtral --spike-ms 9000`: the real `VoxtralVoice`,
@@ -163,10 +176,9 @@ playing two voices; the result carries `truncated: true`. The same holds for a f
 of a streamed reply (below): they are asked for again once, and then the reply ends. A failure of the consumer (`onPcm` throwing) or a
 cancellation is not a fallback.
 
-The player is told **once per session** per fallback: "Mistral cloud voice (Voxtral) is not ready yet. Companions are using Pocket ·
-Performance for now." for a temporary one (a timeout, a limit) and "... is unavailable. Companions are using Pocket · Performance
-instead." for a permanent one (no key). It reuses the existing `voice-fallback` notice; the bridge publishes it as
-`fallback: {from: 'voxtral', to: 'pocket', temporary, reason}` in `runtime/local-voice-state.json`.
+The player is told **once per session** per fallback, with the existing `voice-fallback` notice; the bridge publishes it as
+`fallback: {from: 'voxtral', to: 'convai', temporary, reason}` in `runtime/local-voice-state.json` (`to` was `pocket` before 2026-10-13).
+The notice wording still names the voice that stands in; with no local voice that is the Convai cloud voice, or the written reply.
 
 ## Why the cloud voice sounded muffled, and the reference as it is now (2026-10-13)
 
@@ -247,8 +259,8 @@ Judy (before 42.8 KB MP3). Order of preference with ffmpeg: Ogg Vorbis, then MP3
 bytes (a unit test checks it), so the release builder and a player with ffmpeg make the same file. The cache signature changes, so the next
 bridge start prepares each character's clip once (about 0.4 s).
 **If the API ever stops taking Ogg:** a 400 about the audio file, for an Ogg reference, switches `VoxtralVoice.safeFormat` on, drops the
-cached references and logs it; they are prepared as MP3 from then on. The reply that met the refusal is spoken by Pocket (nothing had been
-heard yet); a refusal during the tail of a reply ends that reply after its head, as any tail failure does.
+cached references and logs it; they are prepared as MP3 from then on. The reply that met the refusal is written only (nothing had been
+heard yet; no local voice stands in); a refusal during the tail of a reply ends that reply after its head, as any tail failure does.
 **For the release builder:** `createReferencePreparer({cacheDirectory})` (bridge/voxtral-reference.mjs) is the single code path: the bridge
 and `packaging/build-release.mjs` (`voxtralCache`) call it, a slot is `<key>.ogg` or `.mp3` or `.wav` plus a `.json` with the signature, and
 `prepare.signature(sha256)` names the settings a slot was made with. The builder needs ffmpeg with libvorbis (it fails when a slot comes out
@@ -314,7 +326,7 @@ scheduler is paused or slowed.
   21.8 s of speech in 4.2 s. So on this probe the length of the text did not move the first audio; the split is a hedge against the
   slow starts seen in game and in the research (a spike costs only the first sentence's wait), not a measured gain on the median.
 - From `docs/FREE_CLOUD_OPTION_RESEARCH.md`: first audio median 1.24 s over six warm runs (0.98 to 1.56 s) with one 11 s spike
-  in about ten calls, which is why a first-audio limit (now 7 s) and the Pocket fallback exist. A reply of about 90 characters costs
+  in about ten calls, which is why a first-audio limit (now 7 s) and the second ask exist. A reply of about 90 characters costs
   about 90 of the 12,000 input characters a minute.
 
 ## Limits
@@ -322,10 +334,10 @@ scheduler is paused or slowed.
 - English only (see above); the face and lip sync follow the audio, so a different voice speed is handled by the same packets.
 - The audio style comes from the reference clip (Voxtral has no tags or style field), so Natural speech is limited to pauses
   and Expressive emotions use the usual text-based expression.
-- A voice that is routed to Pocket for one reply sounds like Pocket for the whole of that reply (never for a part of it); nothing is
-  cross-faded. A reply whose rest the cloud could not deliver (after two asks) ends after its first part, in the cloud voice.
+- A reply is one voice from start to end; nothing is cross-faded. A reply whose rest the cloud could not deliver (after two asks)
+  ends after its first part, in the cloud voice.
 - The routing log (`runtime/bridge.stderr.log`, `[VoiceRouting]`) names, under `ref=`, the reference Voxtral clones from (long set, else
-  short, else Pocket), not the Pocket reference it rides on; before 2026-10-12 it showed the Pocket one (for Alex, `picked/autobest/pocket
+  short, else Pocket), not the Pocket reference whose route it uses; before 2026-10-12 it showed the Pocket one (for Alex, `picked/autobest/pocket
   16.59s` although the long set has an entry). Clips extracted for a character, the last resort, show as `-`.
 - The Characters sidebar names "Mistral cloud voice (Voxtral)" for every character routed locally while the voice is active,
-  including any that fall back to Pocket for want of a clip.
+  including any that have no clip (their replies are written only).

@@ -16,6 +16,13 @@ if not fonts and fontLibrary and type(fontLibrary.new) == 'function' then
     fonts = fontLibrary.new()
     M.fontScope, M.fontDirty = fonts, true
 end
+-- The fonts of the chat messages are a scope of their own (see linesPresented): the refresh below prunes the records of every widget it
+-- did not touch, which would forget a message font it had applied.
+local messageFonts = M.messageScope
+if not messageFonts and fontLibrary and type(fontLibrary.new) == 'function' then
+    messageFonts = fontLibrary.new()
+    M.messageScope = messageFonts
+end
 local function text(source, args)
     if locale and type(locale.t) == 'function' then return locale.t(source, args) end
     return (source:gsub('{([%w_]+)}', function(key)
@@ -347,6 +354,24 @@ function M.composer(controller, status)
     M.composerPatched = true
 end
 
+-- A new list of messages was presented (mod/phone-chat.lua). The game draws each message in the font of its own language, which has no
+-- glyphs for a reply in Japanese, Korean, Chinese or Russian when the game is set to another language. Whether any message is in such a
+-- script is decided here, once per presented list (a memoized lookup per message, never per frame). If one is, or an earlier list
+-- changed a font, the message list is walked at three set moments after the present (the game lays its rows out over several frames),
+-- each text getting the family of its own script and a recycled row that now holds Latin text getting its font back.
+function M.linesPresented(rows)
+    if not messageFonts then return end
+    local library, found = fontLibrary, false
+    if library and type(library.replyCode) == 'function' then
+        for _, row in ipairs(rows or {}) do
+            if library.replyCode(row.text) then found = true; break end
+        end
+    end
+    if not found and messageFonts.count() == 0 then M.replyFontAt = nil; return end
+    local now = os.clock()
+    M.replyFontAt = {now + 0.15, now + 0.6, now + 1.5}
+end
+
 -- Only called by the bounded top-level refresh. Native paint/focus callbacks
 -- above queue the flag; they never traverse or mutate native font resources.
 function M.composerFonts(controller)
@@ -359,6 +384,10 @@ function M.composerFonts(controller)
         if chat then fonts.apply(label, nil, '') else fonts.restore(label) end
     end
     if not chat then return end
+    if M.replyPass and path and messageFonts then
+        local area = find(path, 'MessagesScrollArea', 8) or path
+        messageFonts.walk(area, 'reply', {left = 600})
+    end
     local panel = find(controller:GetRootWidget(), 'convaiPhoneComposer', 8)
     if not panel then return end
     local hint = find(panel, 'convaiPhoneComposerHint', 1)
@@ -390,9 +419,16 @@ function M.refresh(force, player, open)
         player = Game.GetPlayer()
         open = player and player:ConvaiPhoneIsOpen()
     end
-    if not player or not open then M.wasOpen = false; return end
+    if not player or not open then
+        M.wasOpen, M.replyFontAt = false, nil
+        if messageFonts then messageFonts.clear() end   -- the rows die with the popup; plain Lua, no native call
+        return
+    end
     local localeRevision = revision()
-    if M.wasOpen and not force and not M.fontDirty and M.localeRevision == localeRevision then return end
+    -- A message font pass is due (linesPresented): one scan, then the next waits for its own moment.
+    local due = M.replyFontAt and M.replyFontAt[1] and os.clock() >= M.replyFontAt[1]
+    if due then table.remove(M.replyFontAt, 1); M.replyPass = true end
+    if M.wasOpen and not force and not M.fontDirty and not due and M.localeRevision == localeRevision then return end
     M.wasOpen, M.localeRevision = true, localeRevision
     if fonts and fonts.begin then fonts.begin() end
     local names = scanName()
@@ -455,7 +491,7 @@ function M.refresh(force, player, open)
         end
     end
     if fonts and fonts.finish then fonts.finish() end
-    M.fontDirty = false
+    M.fontDirty, M.replyPass = false, false
 end
 
 function M.install(live)

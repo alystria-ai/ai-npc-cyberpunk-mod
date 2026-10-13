@@ -24,7 +24,7 @@ The catalog currently contains **80 conversation profiles**: 78 named characters
 
 ### Your companions
 
-- Invite characters through **Companion Manager → Characters**, or use the selected phone contact's invite control.
+- Invite characters through **Companion Manager → Characters to invite**, or use the selected phone contact's invite control.
 - Keep several copies in your party, including invitations being prepared. **Current party** lists each copy as "Name #number" and lets you dismiss a particular one; it disappears at once.
 - Search installed character models through **Model browser**, including characters outside the phone catalog. A model can follow without an AI profile, or use a profile you assign separately.
 - Companions walk beside V, run to catch up, settle into loose positions, and respond to direct attention without reforming the whole group around camera turns. Close eye contact does not make a settled companion back away.
@@ -32,7 +32,7 @@ The catalog currently contains **80 conversation profiles**: 78 named characters
 - Summoned Johnny uses the game's solid appearance, including while seated and viewed up close. His story apparition remains separate.
 - Passenger boarding and seated eye/head attention. The vehicle controller also includes overflow carpooling and fast-travel recovery; their wider gameplay checks are still pending.
 - Ask a nearby companion to drive an owned car to the selected map waypoint, including a parked car restored with your save. They take the driver seat and wait for you to enter a passenger seat. You can change the waypoint during the trip; **Current party** shows its status and Stop trip.
-- Tag an enemy with the scanner (or just face one; the closest combat-capable NPC is used otherwise), then ask a companion to attack them or to distract them with a short five-line conversation; afterwards they come back, attack, or rejoin you, as you ask. Nearby NPCs barely notice V while it lasts. See [companion tactics](docs/COMPANION_TACTICS.md); not yet tested in game.
+- Tag an enemy with the scanner (or just face one; the closest NPC hostile to V is used otherwise), then ask a companion to attack them. See [companion tactics](docs/COMPANION_TACTICS.md); not yet tested in game.
 - **Settings → Development → Developer mode** enables routine popups for the joining step, dismissals and driving status. It defaults Off; invitation progress (preparing, connecting, ready, joined; a quick summon skips preparing and connecting), failures and other important notices always show.
 - Developer mode also records movement diagnostics during gameplay, including companions beyond conversation range. Logging survives CET reloads and keeps at most two 2 MiB files.
 - Following now tries a nearer point when an intermediate stopping point is blocked, and handles small differences between an actor's feet and the game's navigation surface. Long-distance stop/run behavior is still being checked in gameplay.
@@ -132,7 +132,7 @@ There is no finished one-click or two-ZIP installation yet. Use the following fl
 
    This builds and adds a small RED4ext plugin, `red4ext/plugins/CyberpunkConvaiLauncher/`. When the game starts with this mod installed, it starts `scripts/Supervise-ConversationBridge.mjs` hidden; the supervisor rebuilds the browser client, starts the bridge (or uses one that is already running), restarts it after a crash and stops it when the game exits, even after a game crash. No scheduled task, service or startup entry is created. `.\scripts\Uninstall-BridgeAutostart.ps1` removes it. Without the launcher, start the bridge by hand before playing with `.\scripts\Start-ConversationBridge.ps1`. While the service is starting, missing or failed, the talk shortcuts and Phone Chat show a short explanation instead of waiting for a reply.
 
-7. Load a save. Open CET's **Bindings**, assign shortcuts to the mod actions, and save. Open **Companion Manager**, choose **Characters**, invite someone, and return to gameplay after preparation.
+7. Load a save. Open CET's **Bindings**, assign shortcuts to the mod actions, and save. Open **Companion Manager**, choose **Characters to invite**, invite someone, and return to gameplay after preparation.
 
 The installed game adapter is at:
 

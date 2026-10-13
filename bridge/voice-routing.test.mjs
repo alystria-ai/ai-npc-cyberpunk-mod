@@ -45,6 +45,9 @@ function fixture({local = false, available = true, audioFailure = false, continu
     },
     throwIfCancelled: () => {}, audioReady: async () => available,
     readSpeechState: async () => ({continuousAvailable: continuous}),
+    // The turn path reads the cached copy (bridge/speech-state-cache.mjs); `available` stands for a live heartbeat here.
+    readSpeechStateCached: async () => ({available, updated: Date.now(), continuousAvailable: continuous}),
+    audioAvailable: state => state.available === true, prepareSpeech: () => ({discard() {}}), leaseWake: {next: () => undefined},
     readFile: async () => '{}', preparedInputs: new WeakMap(),
     ConvaiContinuousSpeech: class {
       constructor(options) { this.callbacks = options; this.published = true; this.ended = true; this.generated = true; this.token = 'continuous-owner';

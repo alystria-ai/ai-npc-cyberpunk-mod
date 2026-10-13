@@ -155,7 +155,7 @@ function poolTable(engine, v, clips) {
       h('td', {title: 'How typical of this character (0-100)'}, clip.ty == null ? '' : Math.round(clip.ty)),
       h('td', {class: clip.rel != null && Math.abs(clip.rel) > 3 ? 'warn' : ''}, clip.rel == null ? '' : `${clip.rel > 0 ? '+' : ''}${clip.rel.toFixed(1)}`),
       h('td', {}, clip.label ? [h('strong', {}, clip.label), ' · '] : null, clip.t, h('div', {class: 'meta'}, shortId(clip.id) + (clip.s === 'expanded' ? ' · added from the game files' : '') + (clip.k ? ` · ${clip.k}-processed` : ''),
-        clip.cb ? [' · ', h('span', {class: 'badge combat', title: `Flagged as combat or shouted delivery (score ${clip.cb.s}): ${(clip.cb.w ?? []).join('; ')}`}, 'combat')] : null))))));
+        clip.cb ? [' · ', h('span', {class: 'badge combat', title: `Flagged as combat or shouted delivery (score ${clip.cb.s}): ${(clip.cb.w ?? []).join('; ')}`}, 'combat')] : null)))));
     if (list.length > ps.limit) body.append(h('tr', {}, h('td', {colspan: 6}, h('button', {class: 'small', onclick: () => { ps.limit += 300; rows(); }}, `Show more (${list.length - ps.limit} left)`))));
     update();
   }
@@ -200,7 +200,7 @@ function autoBest(engine, v) {
   const found = state.card.autobest?.[v.set];
   if (!found) return null;
   const same = v.candidate?.ids.join('|') === found.ids.join('|'), inUse = v.current?.ids.join('|') === found.ids.join('|');
-  const score = `speaker similarity (ECAPA) ${found.ecapa.toFixed(3)}${found.ecapaSe != null ? ` ±${found.ecapaSe.toFixed(3)}` : ''}${found.today != null ? `, today's reference ${found.today.toFixed(3)}` : ''}${found.pls != null ? `, PLS ${found.pls}` : ''}`;
+  const score = found.ecapa == null ? (found.note ?? 'no ECAPA search for this set') : `speaker similarity (ECAPA) ${found.ecapa.toFixed(3)}${found.ecapaSe != null ? ` ±${found.ecapaSe.toFixed(3)}` : ''}${found.today != null ? `, today's reference ${found.today.toFixed(3)}` : ''}${found.pls != null ? `, PLS ${found.pls}` : ''}`;
   const measured = engine.id === 'omni' && found.latencyMs ? `; measured first-audio delay ${Object.entries(found.latencyMs).map(([steps, ms]) => `${(ms / 1000).toFixed(2)} s at ${steps} steps`).join(', ')}` : '';
   return h('div', {class: 'row', style: 'margin-top:8px'},
     h('button', {disabled: same || inUse, onclick: async () => {

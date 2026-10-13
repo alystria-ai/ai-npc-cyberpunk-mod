@@ -138,3 +138,25 @@ test('consumer cancellation stops read-ahead even though input.json has not chan
   assert.equal(h.writes.length, 3);
   assert.equal(h.manifests.at(-1).complete, false);
 });
+
+test('the first phrase prepared file reaches the slot store, and later phrases pass none', async () => {
+  const stores = [];
+  const h = harness(3, {});
+  h.stream.slots.store = async (base64, depot, slot, options) => { stores.push(options?.prepared ?? null); return {slot, event: `convai_reply_${slot}`, duration: 2}; };
+  const prepared = {marker: 'first phrase'};
+  await h.stream.begin({...audio, preStored: prepared}); h.ack(0);
+  await h.stream.finish();
+  assert.equal(stores[0], prepared);
+  assert.deepEqual(stores.slice(1), [null, null], 'a phrase without a prepared file is stored the ordinary way');
+});
+
+test('the bridge prepares the first phrase file while the face is analysed, and writes its diagnostic after the reply', async () => {
+  const {readFileSync} = await import('node:fs');
+  const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(source, /synthesizeOmniPhrase\(voiceKey,voiced\[0\],\{signal,steps,language,preStore:true\}\)/);
+  assert.match(source, /preStored=prepareSpeech\(generated\.audio,audioDepot\)/);
+  assert.match(source, /slots\.write\(id,1,result\.audio,current,result\.preStored\)/);
+  assert.ok(source.indexOf('diagnostic = () => atomic(resolve(runtime, \'last-speech-timing.json\')') < source.indexOf('void diagnostic?.()'));
+  assert.ok(source.indexOf('const committed = await atomic(replyPath') < source.indexOf('void diagnostic?.()'), 'the diagnostic follows the reply commit');
+  assert.doesNotMatch(source, /await atomic\(resolve\(runtime, 'last-speech-timing\.json'\)/);
+});

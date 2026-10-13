@@ -31,6 +31,7 @@ local OMNI_LABELS = {
 }
 local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
 local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it in Settings > Development)'
+local INWORLD_KEY_MISSING = 'Requires an Inworld key (add it in Settings > Development)'
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
 -- Natural speech and Expressive emotions need a local voice (the Convai cloud voice would read their tags aloud). The
 -- pending notice, once, after an Apply that switched the voice or turned the two settings off.
@@ -383,6 +384,84 @@ function M.removeGroqKey()
     return true, 'Your key was removed.'
 end
 
+-- The Inworld cloud voice's key (docs/CLOUD_VOICE_INWORLD.md): the same shape again, on its own command file and ids. Its status
+-- (saved, last four characters, the latest paste or remove) rides in the same status file, under `inworld`.
+local inworldCommand, inworldSequence = nil, 0
+
+local function sendInworldCommand(action)
+    memorySession = memorySession or memorySessionUUID()
+    inworldSequence = inworldSequence + 1
+    local command = {version = 1, id = memorySession .. ':ikey:' .. inworldSequence, action = action,
+        issuedAt = os.time() * 1000.0}
+    if not writeCommandFile('runtime/inworld-key-command.json', command) then
+        return false, 'The request could not be sent. Try again.'
+    end
+    inworldCommand = command.id
+    mistralReadAt = nil
+    return true
+end
+
+function M.pasteInworldKey()
+    local ok, reason = sendInworldCommand('paste')
+    if not ok then return false, reason end
+    return true, 'Checking…'
+end
+
+function M.removeInworldKey()
+    local ok, reason = sendInworldCommand('clear')
+    if not ok then return false, reason end
+    return true, 'Your key was removed.'
+end
+
+-- Prepared voices on disk (bridge/prepared-voices.mjs): the disk the saved voice setups use ("Keep prepared voices") and Clear prepared
+-- voices, in the same command file shape as the keys above. Nothing runs per frame: the bridge measures once when Settings opens (and
+-- when a clear finishes); this reads its small status file at most once every 1.5 s, and only while Settings or the clear page is open.
+local preparedState, preparedReadAt, preparedCommand, preparedSequence, preparedWatching = {}, nil, nil, 0, false
+
+local function sendPreparedVoicesCommand(action)
+    memorySession = memorySession or memorySessionUUID()
+    preparedSequence = preparedSequence + 1
+    local command = {version = 1, id = memorySession .. ':pv:' .. preparedSequence, action = action,
+        issuedAt = os.time() * 1000.0}
+    if not writeCommandFile('runtime/prepared-voices-command.json', command) then
+        return false, 'The request could not be sent. Try again.'
+    end
+    preparedCommand = command.id
+    preparedReadAt = nil
+    return true
+end
+
+-- `on`: Settings or the clear page is open (the status is read only then); `measure`: ask the bridge for a fresh total (Settings just opened).
+function M.watchPreparedVoices(on, measure)
+    preparedWatching = on == true
+    if preparedWatching and measure then sendPreparedVoicesCommand('measure') end
+end
+
+function M.clearPreparedVoices()
+    local ok, reason = sendPreparedVoicesCommand('clear')
+    if not ok then return false, reason end
+    return true, 'Clearing prepared voices…'
+end
+
+-- {known, files, bytes, busy, cleared = {bytes}, failed}: `result` is the answer to the player's latest request, and only that one.
+function M.preparedVoices()
+    if preparedWatching then
+        local clock = os.clock()
+        if not preparedReadAt or clock - preparedReadAt >= 1.5 then
+            preparedReadAt = clock
+            local value = readJSON('runtime/prepared-voices-state.json')
+            preparedState = type(value) == 'table' and value or {}
+        end
+    end
+    local state = preparedState
+    local result = type(state.result) == 'table' and preparedCommand and state.result.id == preparedCommand and state.result or nil
+    local known = state.state == 'ready' and wholeNumber(state.files) and wholeNumber(state.bytes)
+    return {known = known == true, files = known and state.files or 0, bytes = known and state.bytes or 0,
+        busy = preparedCommand ~= nil and (result == nil or result.state == 'working'),
+        cleared = result and result.state == 'cleared' and {bytes = wholeNumber(result.bytes) and result.bytes or 0} or nil,
+        failed = result ~= nil and result.state == 'failed'}
+end
+
 local mistralResults = {saved = true, cleared = true, invalid = true, unreadable = true, failed = true}
 local mistralLimits = {rate = true, daily = true, invalid = true, model = true}
 local localAiStates = {ready = true, warming = true, ['not-installed'] = true, ['no-memory'] = true, failed = true}
@@ -421,7 +500,11 @@ function M.mistral()
     local groq = type(state.groq) == 'table' and state.groq or {}
     local groqResult = type(groq.result) == 'table' and groq.result.id == groqCommand and groq.result.state or nil
     local groqTail = type(groq.tail) == 'string' and #groq.tail <= 8 and groq.tail or nil
+    local inworld = type(state.inworld) == 'table' and state.inworld or {}
+    local inworldResult = type(inworld.result) == 'table' and inworld.result.id == inworldCommand and inworld.result.state or nil
+    local inworldTail = type(inworld.tail) == 'string' and #inworld.tail <= 8 and inworld.tail or nil
     return {provider = providerName(state.provider),
+        inworld = {saved = inworld.saved == true, tail = inworldTail, result = mistralResults[inworldResult] and inworldResult or nil},
         groq = {saved = groq.saved == true, tail = groqTail, limit = mistralLimits[groq.limit] and groq.limit or nil,
             result = mistralResults[groqResult] and groqResult or nil},
         effective = providerName(state.effective),
@@ -501,13 +584,13 @@ end
 -- Maps any saved engine name to the nearest current choice. Unknown values
 -- take the default (Pocket TTS). Provider names stay stable so older saves keep
 -- working: Pocket TTS was and remains 'pocket', OmniVoice 'omni' (old 'hybrid'),
--- Convai 'convai', the Mistral cloud voice (Voxtral) 'voxtral'. Any Pocket variant name resolves to the one Pocket TTS entry.
+-- Convai 'convai', the Mistral cloud voice (Voxtral) 'voxtral', the Inworld cloud voice 'inworld'. Any Pocket variant name resolves to the one Pocket TTS entry.
 -- A save from before the short/long choice has no omniReference and migrates to
 -- 'long': whoever chose OmniVoice chose quality, and long is the better match.
 local function normalizeVoiceProvider(value)
     if type(value) ~= 'string' then return DEFAULT_VOICE_PROVIDER end
     local name = value:lower()
-    if name == 'convai' or name == 'voxtral' then return name end
+    if name == 'convai' or name == 'voxtral' or name == 'inworld' then return name end
     if name:find('pocket', 1, true) then return 'pocket' end
     if name:find('omni', 1, true) or name == 'hybrid' then return 'omni' end
     return DEFAULT_VOICE_PROVIDER
@@ -563,6 +646,8 @@ local function loadSettings()
     if type(settings.autoConnectNearby) ~= 'boolean' then settings.autoConnectNearby, settingsNeedSave = true, true end
     -- On by default: recent subtitled game dialogue is attached to the next manual turn (mod/game-dialogue.lua).
     if type(settings.gameDialogueContext) ~= 'boolean' then settings.gameDialogueContext, settingsNeedSave = true, true end
+    -- Off by default: the decision ledger (docs/QUEST_DECISIONS.md section 4.4) records V's picked dialogue options. Not proven in game; no menu entry.
+    if type(settings.decisionLedger) ~= 'boolean' then settings.decisionLedger, settingsNeedSave = false, true end
     if not isChoice(settings.eyeContactHeight, eyeContactHeights) then
         settings.eyeContactHeight, settingsNeedSave = 0, true
     end
@@ -604,7 +689,7 @@ local function loadSettings()
     -- speaks only English, so a saved pairing with it cannot stand (Apply never makes one): the voice moves to the cloud
     -- voice, which every installation can run. With the cloud voice, Multilingual wins over the two tag settings.
     if type(settings.multilingualConversations) ~= 'boolean' then settings.multilingualConversations, settingsNeedSave = false, true end
-    if settings.multilingualConversations and (settings.voiceProvider == 'pocket' or settings.voiceProvider == 'voxtral') then
+    if settings.multilingualConversations and (settings.voiceProvider == 'pocket' or settings.voiceProvider == 'voxtral' or settings.voiceProvider == 'inworld') then
         settings.voiceProvider, settingsNeedSave = 'convai', true
     end
     -- A saved cloud voice with a tag setting on (an older save): the voice is kept and the tag settings are turned off,
@@ -683,6 +768,7 @@ function M.voiceLabel(provider, steps, reference)
     if provider == 'pocket' then return ui.t('Pocket · Performance') end
     if provider == 'convai' then return ui.t('Convai · Cloud voice') end
     if provider == 'voxtral' then return ui.t('Mistral cloud voice (Voxtral)') end
+    if provider == 'inworld' then return ui.t('Inworld cloud voice') end
     return ui.t(OMNI_LABELS[(steps == 32 and '32' or '16') .. ':' .. (reference == 'short' and 'short' or 'long')])
 end
 
@@ -785,6 +871,10 @@ local function resolveMultilingualVoice(before, after, values, packInstalled)
         result.error = ui.t('The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.')
         return result
     end
+    if values.voiceProvider ~= nil and after.voiceProvider == 'inworld' then
+        result.error = ui.t('The Inworld cloud voice speaks only English here. Turn off Multilingual conversations to choose it.')
+        return result
+    end
     local effects = after.naturalSpeech == true or after.expressiveEmotions == true
     local function switched(voice)
         local named = {setting = ui.t('Companion voices'), voice = voice}
@@ -881,6 +971,12 @@ end
 function M.gameDialogueContext()
     loadSettings()
     return settings.gameDialogueContext == true
+end
+
+-- Off by default (settings.json `decisionLedger`): V's picked dialogue options are kept and written to runtime/decision-ledger.json.
+function M.decisionLedger()
+    loadSettings()
+    return settings.decisionLedger == true
 end
 
 -- Read by the ordinary companion update, never by a native menu callback.
@@ -989,7 +1085,7 @@ local function updateLocalVoice()
     -- The bridge reports a fallback only after it committed the lower voice.
     -- Tell the player once per fallback; the mark clears when the fallback ends.
     local fallback = state.fallback
-    if fresh and type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral')
+    if fresh and type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral' or fallback.from == 'inworld')
         and (fallback.to == 'pocket' or fallback.to == 'convai') then
         -- A temporary fallback and the permanent one it can turn into are announced separately, once each.
         local temporary = fallback.temporary == true
@@ -1251,8 +1347,8 @@ local function detail(player, item)
         body = clean(profile.summary or 'Conversation profile for ' .. profile.name, 1100)
             .. '\n\nConversation: ' .. (M.profileEnabled(profile.key) and 'on' or 'off')
             .. '\nCopies in party: ' .. copyCount(profile.key)
-        if localVoices[profile.key] and localVoiceState.cloudVoice == 'voxtral' then
-            body = body .. '\nVoice: ' .. M.voiceLabel('voxtral')
+        if localVoices[profile.key] and (localVoiceState.cloudVoice == 'voxtral' or localVoiceState.cloudVoice == 'inworld') then
+            body = body .. '\nVoice: ' .. M.voiceLabel(localVoiceState.cloudVoice)
         elseif localVoices[profile.key] and (localVoiceState.provider == 'pocket' or localVoiceState.provider == 'omni') then
             body = body .. '\nVoice: ' .. M.voiceLabel(localVoiceState.provider, localVoiceState.omniSteps, localVoiceState.omniReference)
         elseif profile.voiceName then body = body .. '\nVoice: ' .. clean(profile.voiceName, 140) end
@@ -1432,6 +1528,7 @@ function M.snapshot(player)
             bodyGestures = settings.bodyGestures,
             autoConnectNearby = settings.autoConnectNearby,
             gameDialogueContext = settings.gameDialogueContext,
+            decisionLedger = settings.decisionLedger,
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
             audioDelay = settings.audioDelay,
@@ -1450,6 +1547,7 @@ function M.snapshot(player)
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         ownKey = M.ownKey(),
+        preparedVoices = M.preparedVoices(),
         mistral = M.mistral(),
         localVoice = localVoiceState,
         memory = memorySnapshot(),
@@ -1488,7 +1586,7 @@ function M.applySettings(player, values)
         if key == 'expressiveEmotions' then nextSettings.expressiveEmotionsChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
-            or key == 'gameDialogueContext'
+            or key == 'gameDialogueContext' or key == 'decisionLedger'
             or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions'
             or key == 'followUpInterest' or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
@@ -1524,11 +1622,13 @@ function M.applySettings(player, values)
             nextSettings.uiLanguage = value
         elseif key == 'voiceProvider' then
             if value == 'hybrid' then value = 'omni' end
-            if value ~= 'pocket' and value ~= 'omni' and value ~= 'convai' and value ~= 'voxtral' then
+            if value ~= 'pocket' and value ~= 'omni' and value ~= 'convai' and value ~= 'voxtral' and value ~= 'inworld' then
                 return false, 'Choose one of the listed companion voices.'
             end
             -- The Mistral cloud voice speaks with the player's Mistral key (the same one the text replies use).
             if value == 'voxtral' and not M.mistral().saved then return false, VOXTRAL_KEY_MISSING end
+            -- The Inworld cloud voice speaks with the player's own Inworld key (its own key, pasted in Settings > Development).
+            if value == 'inworld' and not (M.mistral().inworld or {}).saved then return false, INWORLD_KEY_MISSING end
             -- An OmniVoice choice cannot be saved while the optional pack is missing; the choice never takes effect.
             if value == 'omni' and not M.omniPack().installed then return false, OMNI_PACK_MISSING end
             nextSettings.voiceProvider = value

@@ -1,10 +1,12 @@
 import {readFile, stat, mkdir} from 'node:fs/promises';
-import {statSync} from 'node:fs';
+import {readFileSync, statSync} from 'node:fs';
+import {decisionLedgerReader} from './game-dialogue.mjs';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {archetypeContext, isAmbientProfile, parseInput, profileFor} from './protocol.mjs';
 import {configureKnowledgeParts} from './knowledge-parts.mjs';
-import {audioReady} from './speech-audio.mjs';
+import {audioReady, prepareSpeech} from './speech-audio.mjs';
+import {createSpeechStateReader, audioAvailable} from './speech-state-cache.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {encodeSegmentedFace} from './continuous-face-file.mjs';
@@ -21,6 +23,7 @@ import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
+import {startVoiceKeyStream} from './voice-key-stream.mjs';
 import {createHash, randomUUID} from 'node:crypto';
 import {homedir} from 'node:os';
 import {conversationScope} from './group-context.mjs';
@@ -35,6 +38,9 @@ import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
+import {InworldVoice} from './inworld-voice.mjs';
+import {INWORLD_KEY_FILE, InworldKey} from './inworld-key.mjs';
+import {PreparedVoicesControl, preparedVoicesFolder} from './prepared-voices.mjs';
 import {createReferencePreparer} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
 import {variantSeed} from './voice-variants.mjs';
@@ -57,6 +63,10 @@ import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
+import {CharacterOverrides} from './character-overrides.mjs';
+import {CharacterEditor} from './character-editor.mjs';
+import {EditorServer} from './character-editor-server.mjs';
+import {EditorControl} from './character-editor-control.mjs';
 import {PlayerKnowledge} from './player-knowledge.mjs';
 import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowledge.mjs';
 import {atomicFile as atomic} from './guarded-file.mjs';
@@ -71,6 +81,7 @@ import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, setting
 import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, withoutIdentity} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {readKeyFileText} from './key-codec.mjs';
+import {AUTH_CONFIG_FILE, INSTALL_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
 import {DAILY_LIMIT, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
 import {MISTRAL_KEY_FILE, MistralControl, MistralProvider} from './mistral-key.mjs';
 import {TextProviderHost, attachTextProvider, groqRoute, isLocalUnavailable, localRoute, mistralRoute} from './text-provider-host.mjs';
@@ -82,12 +93,14 @@ import {detectLocalAiPack} from './local-ai-pack.mjs';
 import {LocalLlmServer} from './local-llm-server.mjs';
 import {describeLocalModels, listLocalModels, normalisePin} from './local-model-choice.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
-import {watchFiles} from './file-wake.mjs';
+import {watchFiles, createWakeSignal} from './file-wake.mjs';
+const leaseWake = createWakeSignal();
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
-import {DEFAULT_MODELS as MISTRAL_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor} from './mistral-client.mjs';
+import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
+import {AddonHost, fixedProvider, sharedMemory} from './addons.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -102,6 +115,10 @@ const roster = [...JSON.parse(await readFile(resolve(project, 'characters/roster
     throw error;
   }))];
 const ids = JSON.parse(await readFile(resolve(stateDirectory, 'characters.json'), 'utf8'));
+// Add-on mods (docs/ADDON_API.md): each speaker an installed add-on brings becomes a roster row here. Add-on speakers never have a
+// Convai character (their text comes only from Mistral or the local AI, runAddonTurn). With no add-on installed the host is empty and adds nothing.
+const addonHost = await AddonHost.load({game, log: message => console.error('[Addons] ' + message)});
+addonHost.extend(roster, ids);
 // runtime/relationship-profiles.json (the retired alternate affectionate profiles) is no longer read: every character has one profile.
 // Multilingual twins (docs/MULTILINGUAL_PROFILES.md): used only while "Multilingual conversations" is on. A missing
 // map is an English-only installation; a twin that no longer clones the current profile is left out.
@@ -113,7 +130,10 @@ if (multilingualProfiles.skipped.length) console.error('[CyberpunkConvai] Multil
 const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, multilingual: multilingualProfiles.twins});
 // Which voice configuration files are live is named by runtime/voice-configs.json (bridge/voice-config-paths.mjs):
 // the searched references for Pocket and for OmniVoice's short and long choices, each falling back to the base file.
-const voiceConfigPaths = resolveVoiceConfigPaths(stateDirectory);
+// Add-on voices are merged into copies of these files (addons.<name> in the state folder); without add-on voices the paths are unchanged.
+const voiceConfigPaths = await addonHost.voiceConfigPaths(resolveVoiceConfigPaths(stateDirectory), {stateDirectory,
+  roots: process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES ? [process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES]
+    : [resolve(stateDirectory, 'voice-references'), resolve(project, 'runtime/voice-references')]});
 for (const warning of voiceConfigPaths.warnings) console.error('[CyberpunkConvai] Voice configuration: ' + warning);
 const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').catch(error => {
   if (error.code === 'ENOENT') return '{}';
@@ -159,11 +179,17 @@ const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiK
   prepare: process.env.CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE === '1' ? undefined
     : createReferencePreparer({cacheDirectory: resolve(voxtralReferenceRoot, 'prepared'), onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
   onLog: message => process.stderr.write(message)});
+// The Inworld cloud voice (docs/CLOUD_VOICE_INWORLD.md): the same kind of choice, on the player's own Inworld key (player-inworld-key.txt in
+// the state folder, pasted in Settings). Each character is cloned once from the same reference clips; the voice ids are kept in
+// player-inworld-voices.json in the state folder. `inworldKey` is loaded below with the other keys.
+const inworldKey = await new InworldKey({keyPath: resolve(stateDirectory, INWORLD_KEY_FILE)}).load();
+const inworldVoice = new InworldVoice({getKey: () => inworldKey.key, referenceRoot: voxtralReferenceRoot,
+  storePath: resolve(stateDirectory, 'player-inworld-voices.json'), onLog: message => process.stderr.write(message)});
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
-  voxtral:voxtralVoice,
+  voxtral:voxtralVoice,inworld:inworldVoice,
   // The optional OmniVoice pack (worker Python, model weights, adapter); Settings greys Omni out without it.
   omniPack:()=>detectOmniPack({project,config:omniVoiceConfigs.long}),
   profileKeys:roster.map(profile=>profile.key),
@@ -179,10 +205,31 @@ const keyFileContent = readKeyFileText(await readFile(keyFile, 'utf8'));
 if (!keyFileContent) throw Error('Local Convai key file must contain api-key=...');
 const key = keyFileContent.key;
 await mkdir(runtime, {recursive: true});
+// Which add-ons were found and why any was not loaded, for the game to tell the player (docs/ADDON_API.md). With none, a status
+// file an earlier run left is removed and nothing is written. Then the add-on state and settings the game last wrote.
+await addonHost.publishStatus(runtime).catch(error => console.error('[Addons] Status not written:', error.message));
+for (const read of Object.values(addonHost.watchHandlers(runtime))) await read();
+// Each speaker's recent lines and memories of earlier fights or rides (runtime/addon-journal.json); nothing without add-ons.
+await addonHost.loadJournal(stateDirectory);
 // The key conversations use: the one this installation provides, or the player's own (docs/OWN_CONVAI_KEY.md). It changes
 // only at an idle boundary (applyKeyChoice). `quota` remembers a used-up plan for the settings page and the in-game notice.
+// The sign-in backend (docs/CONVAI_AUTH_BACKEND.md, auth-backend/): OFF unless CYBERPUNK_CONVAI_AUTH_BACKEND=1 (or convai-auth.json
+// says so) and an address and secret are set. When on, the shared account is reached with a short-lived token fetched in the
+// background (never on a turn); a player's own key is untouched. If the backend cannot be reached the embedded key stands in
+// (CYBERPUNK_CONVAI_AUTH_FALLBACK=0 removes that), reported in this log only.
+const authSettings = await readAuthSettings({path: resolve(stateDirectory, AUTH_CONFIG_FILE)});
+if (authSettings.problem) console.error(`[CyberpunkConvai] Sign-in backend is off: ${authSettings.problem}`);
+const modVersion = await readFile(resolve(project, 'package.json'), 'utf8').then(text => JSON.parse(text).version, () => undefined);
+const tokenSource = authSettings.enabled ? new TokenSource({url: authSettings.url, secret: authSettings.secret,
+  installId: await loadInstallId({path: resolve(stateDirectory, INSTALL_FILE)}),
+  version: typeof modVersion === 'string' && /^\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/.test(modVersion) ? modVersion : '0.0.0-dev',
+  fallback: authSettings.fallback, log: message => console.error('[CyberpunkConvai] ' + message)}) : null;
+if (tokenSource) {
+  console.error(`[CyberpunkConvai] Conversation sign-in: backend ${new URL(authSettings.url).host}, embedded-key fallback ${authSettings.fallback ? 'on' : 'off'}`);
+  tokenSource.start(); // in the background, in parallel with the rest of start-up
+}
 const keys = await new ConvaiKeys({sharedKey: key, playerKeyPath: resolve(stateDirectory, PLAYER_KEY_FILE),
-  playerUserPath: resolve(stateDirectory, PLAYER_USER_FILE)}).load();
+  playerUserPath: resolve(stateDirectory, PLAYER_USER_FILE), backend: tokenSource}).load();
 const quota = new QuotaWatch({keys});
 // The conversation provider (docs/MISTRAL.md): Convai, or the player's own free Mistral key for the text of a reply. The key
 // is stored in this state folder only and is used for requests to api.mistral.ai and nothing else. The provider in use changes at
@@ -190,7 +237,7 @@ const quota = new QuotaWatch({keys});
 // Groq (a second free cloud text provider) and the fully local AI (docs/LOCAL_AI.md) are the same kind of choice: a text provider
 // that answers through the shared host (bridge/text-provider-host.mjs). Both are off until the setting names them.
 const groqKey = await new GroqKey({keyPath: resolve(stateDirectory, GROQ_KEY_FILE)}).load();
-const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), groq: groqKey}).load();
+const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), groq: groqKey, inworld: inworldKey}).load();
 // The optional Local AI packs (standard and lite) and the supervisor of the model server. Nothing starts here: the server is
 // started when the player chooses Local, and stops by itself after ten idle minutes. A developer points CYBERPUNK_CONVAI_LOCAL_AI_DEV
 // at a folder of models (docs/LOCAL_AI.md).
@@ -258,7 +305,10 @@ const dailyLimit = limitFromEnvironment(process.env.CYBERPUNK_CONVAI_DAILY_LIMIT
 const turnGuard = await new SharedKeyGuard({limit: dailyLimit, applies: () => keys.source === 'shared',
   store: dailyLimit > 0 ? new UsageStore({machine: await machineId(), paths: [resolve(stateDirectory, 'daily-usage.json'),
     resolve(process.env.LOCALAPPDATA || homedir(), 'CyberpunkConvai', 'daily-usage.json')]}) : undefined,
-  onChange: () => { void ownKeyControl?.publishStatus().catch(() => {}); }}).load();
+  onChange: () => { tokenSource?.noteTurn(); void ownKeyControl?.publishStatus().catch(() => {}); }}).load();
+// What the hosts ask before a turn: the local gate as before, plus (backend mode only) the backend's own "daily allowance used"
+// answer, shown with the same notice. Both are synchronous checks of memory; nothing here touches the network.
+const hostGuard = tokenSource ? {check: () => { turnGuard.check(); keys.assertAllowed(); }, consume: () => turnGuard.consume()} : turnGuard;
 if (dailyLimit > 0) console.error(`[CyberpunkConvai] Shared conversation allowance: ${dailyLimit} turns a day, ${turnGuard.snapshot()?.left ?? dailyLimit} left today`);
 const currentKey = () => keys.current();
 // A player's key is a free plan with one conversation connection at a time: no look-ahead, no pre-opened connections.
@@ -296,18 +346,27 @@ const vendorMemory = await VendorMemory.open({path: resolve(stateDirectory, 'ven
   onWarning: message => console.error('[CyberpunkConvai] Vendor memory: ' + message)});
 let playerMemory;
 const memoryProvider = new PlayerMemoryApi({key, characterIds: relationshipRoutes.providerIds, markerKeys: relationshipRoutes.markerKeys,
+  credential: () => keys.credential(),
   historicalPairAllowed: ({profileKey, characterId}) => playerMemory?.hasContactedProviderPair(profileKey, characterId) === true});
+// Backend mode: no key-only call (character list, character read, character update) runs from a player's machine. Ownership is the
+// shipped id list; memory is switched on beforehand by scripts/Enable-CharacterMemory.mjs.
+if (keys.usesBackend) memoryProvider.use({key, own: false, backend: true});
 playerMemory = await PlayerMemory.open({path: resolve(stateDirectory, 'player-memory.json'),
   characterIds: relationshipRoutes.providerIds, characterFamilies: relationshipRoutes.providerFamilies,
   provider: memoryProvider, quiesce: quiescePlayerMemory, retired: providerKey => RETIRED_PROVIDER_KEY.test(providerKey)});
 const knowledgeRouter = new PlayerKnowledge({playerMemory, pack: knowledgePack, questCatalog,
   isWorldCurrent: worldCurrent, getBoundary: currentBoundary,
-  selectProfile: (profile, boundary) => relationshipRoutes.select(profile, boundary)});
+  selectProfile: (profile, boundary) => relationshipRoutes.select(profile, boundary),
+  // Off unless the game's decisionLedger setting writes the file (docs/QUEST_DECISIONS.md 4.4); one stat per turn when it does not exist.
+  decisionLedger: decisionLedgerReader(resolve(stateDirectory, 'decision-ledger.json'), {readFile: path => readFileSync(path, 'utf8'), statFile: statSync})});
 const phoneKnowledge = new PlayerPhoneKnowledge({router: knowledgeRouter, getBoundary: currentBoundary});
 // "Natural speech": the setting, and the display text of every reply with voice tags removed (bridge/natural-speech.mjs).
 const naturalSpeech = new NaturalSpeech();
 // "Expressive emotions": the character marks its own feelings inline; the marks drive the face (bridge/expressive-emotions.mjs).
 const expressiveEmotions = new ExpressiveEmotions();
+// The Inworld cloud voice speaks every reply with emotion, so its marks are asked for and kept whatever the player's Expressive emotions
+// setting says (docs/CLOUD_VOICE_INWORLD.md). `localVoice` is created above; the function runs per turn, never per frame.
+expressiveEmotions.forcedBy = () => localVoice.cloud === 'inworld';
 // "Follow-up questions": the character sometimes shows interest in the player inside the reply it is already giving (bridge/follow-up.mjs).
 const followUp = new FollowUp();
 // Facial emotion selection (bridge/emotion-selector.mjs): player message + reply + character manner + Convai's own
@@ -344,6 +403,8 @@ function memoryBlocked() {
   void ownKeyControl.publishStatus().catch(() => {});
 }
 const keyHostOptions = peers => ({exclusive: {enabled: singleSession, peers, retryMs: 1500},
+  // The backend token replaces the key in the config sent to Convai (unchanged without backend mode or with a player's own key).
+  credential: config => keys.credentialFor(config),
   onFailure: error => {
     const kind = quota.observe(error);
     if (kind === 'speaker') void adoptOrBlockMemory(); // a path that cannot retry (a voice turn): its next turn uses the account's memory user
@@ -351,7 +412,7 @@ const keyHostOptions = peers => ({exclusive: {enabled: singleSession, peers, ret
   },
   onSuccess: () => { quota.succeeded(); keys.settled(); },
   recover: memoryRecovery({keys, classify: classifyFailure, onBlocked: () => memoryBlocked(), onAdopted: () => memoryAdopted()})});
-const phoneRealtime = new RealtimeHost({transformReply: cleanReply, guard: turnGuard, ...keyHostOptions(() => [realtime])});
+const phoneRealtime = new RealtimeHost({transformReply: cleanReply, guard: hostGuard, ...keyHostOptions(() => [realtime])});
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {
   const requestId = prepared.input.requestId || prepared.input.id;
@@ -502,9 +563,14 @@ const sessions = new Map();
 const realtimeSessions = new Map();
 const audioDepot = resolve(game, 'r6/audioware/CyberpunkConvai');
 const lipsync = new PhoneticLipsync({project});
-const readSpeechState = async () => {
+const speechStateFile = async () => {
   try { return JSON.parse(await readFile(resolve(runtime, 'speech-state.json'), 'utf8')); } catch { return {}; }
 };
+// The game's heartbeat file: readSpeechState() reads it (receipts, the watchdog, the speech slots); readSpeechStateCached() answers a turn's
+// questions from a read at most 1 s old (bridge/speech-state-cache.mjs).
+const speechStateReader = createSpeechStateReader({read: speechStateFile});
+const readSpeechState = () => speechStateReader.fresh();
+const readSpeechStateCached = () => speechStateReader.cached();
 const slots = new SpeechSlots({depot: audioDepot, readState: readSpeechState});
 let streamWriting=Promise.resolve(),streaming=0;
 function writeStreamManifest(document,current){
@@ -516,7 +582,7 @@ function writeStreamManifest(document,current){
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
-  transformReply: cleanReply, guard: turnGuard, ...keyHostOptions(() => [phoneRealtime])});
+  transformReply: cleanReply, guard: hostGuard, ...keyHostOptions(() => [phoneRealtime])});
 // Mistral route (docs/MISTRAL.md): the same text reply path as Convai, with the persona built from characters/*.json and a small
 // local memory. attachMistral makes both hosts answer text turns through it while the provider is Mistral. `localTurn` names
 // the character, the channel and (for an ordinary NPC) its conversation, so the host can recall the right history; the Convai path
@@ -524,7 +590,7 @@ const realtime = new RealtimeHost({onCompanionAction: packet => companionActions
 // One host serves Mistral, Groq and the local AI (bridge/text-provider-host.mjs); `mistral.route` says which answers a turn. The cache
 // scope is a hash of the state folder, so the Mistral cache key never carries a secret or a name.
 const textRoutes = {
-  mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12)}),
+  mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, decisionModel: () => MISTRAL_DECISION_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12)}),
   groq: groqRoute({provider: mistral, log: message => console.error('[TextProvider] ' + message)}),
   local: localRoute({server: localServer, provider: mistral, log: message => console.error('[TextProvider] ' + message)}),
 };
@@ -533,6 +599,9 @@ const profileOfCharacter = config => {
   if (!providerOfCharacter.size) for (const table of [ids, relationshipRoutes.providerIds ?? {}]) for (const [profile, id] of Object.entries(table)) if (typeof id === 'string') providerOfCharacter.set(id, profile);
   return providerOfCharacter.get(config?.characterId);
 };
+// The player's own edits of a character (docs/CHARACTER_EDITOR.md): read from disk once here, then a plain lookup on every turn.
+const characterOverrides = await CharacterOverrides.open({dir: resolve(stateDirectory, 'character-overrides'), log: message => console.error('[Editor] ' + message)});
+const personaBook = new PersonaBook(roster, {overrides: characterOverrides});
 // "Mature content": read from the settings file when it changes (never per turn); only the local AI route ever uses it. The optional Mature
 // pack (uncensored models) does not gate it: its marker is looked for at most every 5 s, on the settings poll, only so the setting's help text
 // can say whether the uncensored models are installed (never per turn or per frame).
@@ -548,8 +617,10 @@ function maturePackInstalled(force = false) {
   return matureContent.pack;
 }
 maturePackInstalled(true);
-const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: new PersonaBook(roster), routes: textRoutes, matureContent,
-  transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message)});
+const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent,
+  transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
+  // A companion action the reply asked for ("[DRIVE]", bridge/text-actions.mjs) reaches the game the way a Convai action does.
+  deliverAction: message => companionActions.deliver(message)});
 // The hook for local speech recognition (bridge/local-stt.mjs and local-stt-capture.mjs; docs/LOCAL_STT.md). While Mistral is the
 // provider the voice key needs it: `available()` says whether this computer can recognise speech, `voiceChannel({reply})` returns
 // a channel (beginVoice / finishVoice / heard / close, like RealtimeHost.voiceChannel) whose finished recording is answered
@@ -558,7 +629,37 @@ const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemo
 const mistralSpeech = createLocalSpeech({
   stt: new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable}),
   capture: new LocalSttCapture({getBrowser: hostBrowser(realtime)})});
-for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: host === realtime});
+// Two side by side: the action decision and the reply of one turn are two requests at once (bridge/mistral-client.mjs, warmConnection).
+const warmTurnConnections = options => warmConnection({...options, connections: 2});
+for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: host === realtime, warmCloud: warmTurnConnections});
+// Add-on speakers (docs/ADDON_API.md) answer only through Mistral or the local AI, whatever the player's conversation provider is:
+// one text host per route (and whether the local AI may fall back to Mistral), made the first time an add-on speaker needs it. They
+// share the routes (one pacing per Mistral key), the persona book and the memory store; none exists without add-ons.
+const addonTextHosts = new Map();
+function addonTextHost(route, profileKey) {
+  const allowsMistral = route === 'local' && addonHost.routeFor(profileKey, {applied: 'mistral', mistralKey: true}) === 'mistral';
+  const cacheKey = `${route}:${allowsMistral}`;
+  let host = addonTextHosts.get(cacheKey);
+  if (!host) {
+    host = new TextProviderHost({provider: fixedProvider(mistral, route), memory: sharedMemory(mistralMemory), personas: personaBook,
+      routes: {[route]: textRoutes[route], ...(allowsMistral ? {mistral: textRoutes.mistral} : {})}, transformReply: cleanReply, gate: memoryQuiet,
+      log: message => console.error('[Addons] ' + message)});
+    addonTextHosts.set(cacheKey, host);
+  }
+  return host;
+}
+// What an add-on speaker's turn may use right now: the player's provider, a saved Mistral key that was not refused, a working Local AI pack.
+const addonRouteState = () => {
+  const local = addonHost.active ? localAiStatus() : 'not-installed';
+  return {applied: mistral.applied, mistralKey: !!mistral.apiKey && mistral.limit?.kind !== 'invalid',
+    localReady: !['not-installed', 'no-memory', 'failed'].includes(local)};
+};
+// The game asked to warm a speaker (handle:prepare): open the Mistral connection, or load the speaker's prompt into the local AI.
+addonHost.onWarm = profileKey => {
+  const route = addonHost.routeFor(profileKey, addonRouteState());
+  if (route === 'mistral') void warmConnection({provider: 'mistral'}).catch(() => {});
+  else if (route === 'local') void addonTextHost(route, profileKey).prewarm({local: {profileKey}});
+};
 function localTurn(input, prepared = preparedInputs.get(input)) {
   const route = prepared ?? routeFor(input);
   const channel = route?.route?.channel ?? (input.channel === 'phone' ? 'phone' : input.group ? 'group' : 'private');
@@ -589,7 +690,9 @@ const intrinsicConversationContext = createIntrinsicConversationContext({baseCon
 // is exactly the character's chosen voice; on (Settings keep the voice on OmniVoice or the cloud voice), a turn in
 // another language never reaches Pocket, and a cloud-voice turn never gets tag instructions.
 const turnVoices = new Map();
-const localChoice = profile => ({uses: localVoice.usesProfile(profile), provider: localVoice.provider});
+// A cloud voice with no key speaks nothing, so its turns go to the Convai cloud voice (a written reply under the Mistral provider,
+// which has no Convai audio); the cloud voices load no local model, so no local voice is ever the fallback.
+const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider});
 function turnVoice(input) {
   const id = input?.requestId || input?.id, cacheKey = id ? JSON.stringify([id, input.profileKey]) : null;
   if (cacheKey && turnVoices.has(cacheKey)) return turnVoices.get(cacheKey);
@@ -643,11 +746,13 @@ const routingLog = new VoiceRoutingLog({path: resolve(runtime, ROUTING_LOG_NAME)
 const voiceSources = {pocket: voiceConfig, omni: omniVoiceConfigs};
 // Whether the Natural speech block went into the latest context built for each turn (for the log line below).
 const naturalSpeechBlocks = new Map();
+// The engine whose sounds Natural speech offers: the Inworld cloud voice uses Pocket's route but renders its own list of sounds.
+const soundEngine = engine => engine === 'pocket' && localVoice.cloud === 'inworld' ? 'inworld' : engine;
 const naturalSpeechContext = input => {
   const prepared = preparedInputs.get(input);
   const phone = input.channel === 'phone' || prepared?.route?.channel === 'phone';
   const spoken = !phone && !input.reaction && localVoice.playbackEnabled !== false;
-  const engine = turnVoice(input).engine;
+  const engine = soundEngine(turnVoice(input).engine);
   const block = naturalSpeech.contextFor({engine, spoken, sessionId: realtimeSessions.get(sessionKey(input)),
     turn: input?.requestId || input?.id, trait: traitFor(input.profileKey), profile: input.profileKey,
     name: profileFor(input, roster)?.name, language: turnVoice(input).language});
@@ -709,6 +814,8 @@ const conversationBlocks = input => {
   const block = (tier, text) => ({tier, text});
   return [...intrinsicConversationContext.blocks(input), block('world', archetypeContext(input)),
     block('world', admitted ? vendorMemoryContext(prepared) : ''),
+    // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
+    ...addonHost.blocks(input),
     block('world', admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
@@ -972,10 +1079,11 @@ async function finishedReply(streamed, spoken) {
 }
 function mergeFinishedReply(spoken, final, streamed) {
   const text = final?.text ?? streamed.stream.text;
-  const {speechText: _speech, emotionMarks: _marks, ...rest} = spoken;
+  const {speechText: _speech, emotionMarks: _marks, voiceMarks: _sounds, ...rest} = spoken;
   return {...rest, ...(final?.sessionID !== undefined ? {sessionID: final.sessionID} : {}), text,
     ...(final?.speechText !== undefined ? {speechText: final.speechText} : {}),
     ...(final?.emotionMarks !== undefined ? {emotionMarks: final.emotionMarks} : {}),
+    ...(final?.voiceMarks !== undefined ? {voiceMarks: final.voiceMarks} : {}),
     ...(final?.naturalDevices !== undefined ? {naturalDevices: final.naturalDevices} : {}),
     timing: {...final?.timing, ...spoken.timing}};
 }
@@ -1081,7 +1189,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
       // written is already rendering (respondStreamed). It is used when it is the phrase this reply starts with, else dropped.
       const reuse=omniSpeculation&&omniSpeculation.phrase===voiced[0]&&omniSpeculation.language===language&&omniSpeculation.steps===steps;
       if(omniSpeculation&&!reuse)omniSpeculation.cancel();
-      const first=reuse?omniSpeculation.promise:synthesizeOmniPhrase(voiceKey,voiced[0],{signal,steps,language});
+      const first=reuse?omniSpeculation.promise:synthesizeOmniPhrase(voiceKey,voiced[0],{signal,steps,language,preStore:true});
       // Queue phrase 2 behind phrase 1 now: the GPU renders it while phrase 1's
       // lip analysis, storage and publication run, instead of after them.
       let second;
@@ -1102,7 +1210,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
       return {...result,audio:undefined,faces:[],captions:[],audioError:'Local voice is unavailable; showing the written reply.'};
     }
   }
-  if ((await readSpeechState()).continuousAvailable !== true) {
+  if ((await readSpeechStateCached()).continuousAvailable !== true) {
     logVoiceRoute(input, profile, {engine: 'none', language: voice.language}, {reason: 'local streaming unavailable: written reply only'});
     return {...result, audio: undefined, faces: [], captions: [],
       audioError: 'Local streaming is unavailable; showing the written reply.'};
@@ -1114,7 +1222,9 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     // Synthesize now, into memory (the one renderer page may still be draining
     // the previous speaker); the whole text is still sent to Pocket once.
     // Pocket's worker is FIFO, so this runs right after the prior speaker's job.
-    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm})});
+    // The Inworld cloud voice turns the reply's emotion marks into steering (docs/CLOUD_VOICE_INWORLD.md); the other voices ignore them.
+    const replyMarks = result.emotionMarks, replySounds = result.voiceMarks;
+    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm, emotion: {marks: replyMarks, sounds: replySounds}})});
     prefetched.start().then(() => ahead.markReady(), () => {});
     try {
       await ahead.waitClaimed(signal);
@@ -1127,22 +1237,31 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
 }
 
-async function synthesizeOmniPhrase(profile,text,options){
+// options.preStore (the reply's first phrase): the audio is written for its speech slot while the face analysis runs, not after it
+// (bridge/speech-audio.mjs prepareSpeech); the result carries `preStored` for publishResult.
+async function synthesizeOmniPhrase(profile,text,{preStore=false,...options}={}){
   markStage('ttsSent');
   const generated=await localVoice.synthesize(profile,text,options);
   markStage('firstPcm');
+  let preStored;
+  // The analysis is started first (it runs in a worker), then the file is prepared on this thread while that runs: the other way round
+  // the preparation's 10 ms of decoding and levelling would delay the start of the analysis.
+  const analysing=jaliFace?jaliFace.analyseWav(generated.audio,{...options,text}):null;// the phrase as voiced, tags included
+  analysing?.catch(()=>{});
+  if(preStore&&typeof generated.audio==='string')try{preStored=prepareSpeech(generated.audio,audioDepot);}catch{/* the ordinary store follows */}
+  const withStore=result=>preStored?{...result,preStored}:result;
   if(jaliFace)try{
-    const facial=await jaliFace.analyseWav(generated.audio,{...options,text});// the phrase as voiced, tags included
-    return {...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}};
+    const facial=await analysing;
+    return withStore({...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}});
   }catch(error){
-    throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Facial model fallback:',error.message);
+    if(options?.signal?.aborted)void preStored?.discard();throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Facial model fallback:',error.message);
   }
   try{
     const facial=await lipsync.analyse(generated.audio,options);
-    return {...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}};
+    return withStore({...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}});
   }catch(error){
-    throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Omni lip-sync fallback:',error.message);
-    return {...generated,timing:{...generated.timing,voiceProvider:'omni'}};
+    if(options?.signal?.aborted)void preStored?.discard();throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Omni lip-sync fallback:',error.message);
+    return withStore({...generated,timing:{...generated.timing,voiceProvider:'omni'}});
   }
 }
 
@@ -1174,11 +1293,12 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       lookahead.setSource({input, text, userText, current: current.sourceValid || current});
     },
     readControl: () => readFile(resolve(runtime, 'continuous-control.json'), 'utf8'),
+    leaseWake: () => leaseWake.next(),
     writeState: value => atomic(resolve(runtime, 'continuous-speech.json'), JSON.stringify(value), options),
     writeFace: (value, {segments} = {}) => atomic(resolve(runtime, 'continuous-face.json'),
       segments ? encodeSegmentedFace(value) : JSON.stringify(value), options),
     // The game's adapter says how it reads the timeline file: segments (decoded by changed segment), a plain document or not at all.
-    faceFile: async () => { const state = await readSpeechState(); return state.continuousFaceSegments === true ? 'segments' : state.continuousFaceFile === true; },
+    faceFile: async () => { const state = await readSpeechStateCached(); return state.continuousFaceSegments === true ? 'segments' : state.continuousFaceFile === true; },
     writeReply: value => atomic(replyPath, JSON.stringify({...value, ...keyNotice()}), options),
     onPublished: timing => { markPublished(input.requestId, timing.publishedAt);
       return measure(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },
@@ -1204,7 +1324,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
 // splitter, local TTS worker or per-phrase Audioware file queue.
 async function convaiReply(input, profile, current, signal) {
   logVoiceRoute(input, profile, {engine: 'convai', language: turnVoice(input).language});
-  const state = await readSpeechState();
+  const state = await readSpeechStateCached();
   // Retain the complete-file adapter until this game session advertises the
   // new Lua admission controller; installing files alone does not load them.
   if (state.continuousAvailable !== true) {
@@ -1225,12 +1345,21 @@ async function convaiReply(input, profile, current, signal) {
 // CYBERPUNK_CONVAI_REPLY_STREAM=0) switches it off.
 async function respondStreamed(input, profile, {signal, current}) {
   const config = realtimeConfig(input);
-  const stream = new ReplyStream({name: config.local?.name ?? profile?.name ?? '', isTag: hasEmotionTag});
-  const marks = [];
-  stream.onChange(() => { if (stream.complete && Array.isArray(stream.meta?.emotionMarks)) marks.splice(0, marks.length, ...stream.meta.emotionMarks); });
+  const stream = newReplyStream(config, profile);
   const final = Promise.resolve(realtime.reply(config, {signal, stream})).then(result => ({...result, transport: 'realtime'}));
   final.catch(() => {});
-  const whole = async () => synthesizeReply(input, await final, signal, current, profile);
+  return voiceStreamedReply(input, profile, {signal, current, stream, final, config});
+}
+const newReplyStream = (config, profile) => new ReplyStream({name: config.local?.name ?? profile?.name ?? '', isTag: hasEmotionTag});
+
+// The voice half of a streamed reply, shared by a typed turn (respondStreamed) and a voice-key turn (bridge/voice-key-stream.mjs, started
+// from prepareReply while the text host is still writing the reply). 'stream' is the ReplyStream the text host feeds, 'final' the
+// finished reply's promise. 'userText' (voice key only) is what the player said: the first sentence's admission carries it.
+// 'receiptPrepared' is the turn's knowledge receipt when it is not the default one (undefined: the default).
+async function voiceStreamedReply(input, profile, {signal, current, stream, final, config, userText = () => '', receiptPrepared}) {
+  const marks = [];
+  stream.onChange(() => { if (stream.complete && Array.isArray(stream.meta?.emotionMarks)) marks.splice(0, marks.length, ...stream.meta.emotionMarks); });
+  const whole = async () => synthesizeReply(input, await final, signal, current, profile, receiptPrepared);
   const head = await abortable(stream.headReady, signal);
   if (!head) return whole();
   const voice = replyVoice({plan: turnVoice(input), text: head, local: localChoice(input.profileKey)});
@@ -1239,24 +1368,26 @@ async function respondStreamed(input, profile, {signal, current}) {
     const phrase = splitSpeechText(head)[0], language = voice.language && voice.language !== 'en' ? voice.language : undefined, steps = localVoice.steps;
     const controller = new AbortController(), cancel = () => controller.abort();
     signal?.addEventListener('abort', cancel, {once: true});
-    const promise = synthesizeOmniPhrase(voiceKeyFor(input), phrase, {signal: controller.signal, steps, language});
+    const promise = synthesizeOmniPhrase(voiceKeyFor(input), phrase, {signal: controller.signal, steps, language, preStore: true});
     promise.catch(() => {});
     final.then(() => {}, cancel);
-    try { return await synthesizeReply(input, await final, signal, current, profile, undefined, undefined, {phrase, language, steps, promise, cancel}); }
+    try { return await synthesizeReply(input, await final, signal, current, profile, receiptPrepared, undefined, {phrase, language, steps, promise, cancel}); }
     finally { signal?.removeEventListener('abort', cancel); cancel(); }
   }
-  if (voice.engine !== 'pocket' || localVoice.playbackEnabled === false || (await readSpeechState()).continuousAvailable !== true) return whole();
+  if (voice.engine !== 'pocket' || localVoice.playbackEnabled === false || (await readSpeechStateCached()).continuousAvailable !== true) return whole();
   throwIfCancelled(signal);
   // The tags written inside the first sentence move the face from its first frame (the finished reply re-plans with all of them).
-  const headMarks = expressiveEmotions.enabled ? stream.headMarks : [];
+  const headMarks = expressiveEmotions.active ? stream.headMarks : [];
   if (headMarks.length && !marks.length) marks.push(...headMarks);
+  const said = userText();
   const partial = {text: head, transport: 'realtime', sessionID: config.sessionId, timing: {streamedHead: true},
-    ...(headMarks.length ? {emotionMarks: headMarks} : {})};
-  return synthesizeReply(input, partial, signal, current, profile, undefined, {stream, final, marks, signal});
+    ...(said ? {userText: said} : {}),
+    ...(headMarks.length ? {emotionMarks: headMarks} : {}), ...(naturalSpeech.enabled && stream.headSounds.length ? {voiceMarks: stream.headSounds} : {})};
+  return synthesizeReply(input, partial, signal, current, profile, receiptPrepared, {stream, final, marks, signal});
 }
 
 async function respond(input, profile, {signal, prepared, current} = {}) {
-  if (localVoice.playbackEnabled!==false&&await audioReady(runtime)) {
+  if (localVoice.playbackEnabled!==false&&audioAvailable(await readSpeechStateCached())) {
     if (prepared) {
       let cached;
       try { cached = await prepared; }
@@ -1311,7 +1442,7 @@ async function publishResult(input, profile, result, current = async () => true,
     return true;
   }
   const preparationStartedAt = Date.now();
-  let audio, face, stream, audioError = result.audioError;
+  let audio, face, stream, audioError = result.audioError, diagnostic;
   if (result.audio) {
     try {
       if(result.streamPlan){
@@ -1320,12 +1451,13 @@ async function publishResult(input, profile, result, current = async () => true,
           synthesize:(text,options)=>synthesizeOmniPhrase(result.streamPlan.voiceKey??profile.key,text,{...options,language:result.streamPlan.language})});
         const first=await stream.begin(result);audio=first.audio;face=first.face;
       }else{
-        const id=randomUUID();await slots.begin(id,current);audio=await slots.write(id,1,result.audio,current);
+        const id=randomUUID();await slots.begin(id,current);audio=await slots.write(id,1,result.audio,current,result.preStored);
       }
       if (!await current()) { stream?.closeQueue(); return false; }
       try { face ??= buildFacialTimeline(result, input); }
       catch (error) { console.error('[CyberpunkConvai] Facial timing unavailable:', error.message); }
-      await atomic(resolve(runtime, 'last-speech-timing.json'), JSON.stringify({
+      // A diagnostic file (40 KB): written after the reply is committed, not in front of it (docs/LATENCY_2026-10-13.md, 4.6).
+      diagnostic = () => atomic(resolve(runtime, 'last-speech-timing.json'), JSON.stringify({
         requestId: input.requestId, faces: result.faces, facesFormat: result.facesFormat,
         captions: result.captions, duration: audio.duration, face,
       }), {signal, isCurrent: current, isCurrentSync: current.sync});
@@ -1343,6 +1475,7 @@ async function publishResult(input, profile, result, current = async () => true,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audio, face, audioError,
     stream:stream?.descriptor(),updated: Date.now(), ...keyNotice()}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) { stream?.closeQueue(); return false; }
+  void diagnostic?.().catch(() => {});
   logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
     plan: result.expressionPlan, face, signal: result.expressionSignal});
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
@@ -1373,6 +1506,8 @@ async function publishResult(input, profile, result, current = async () => true,
 const micPath = resolve(runtime, 'microphone-command.json');
 const microphoneKnowledge = new Map();
 const microphoneSpeech = new Map();
+// Voice-key turns on a text route that are voiced while the reply is written (bridge/voice-key-stream.mjs), by request id.
+const microphoneStreams = new Map();
 let micObserved = await readFile(micPath, 'utf8').catch(() => '');
 let micPolling = false;
 // What Convai has heard of V's recording so far, for the game to show while V talks (mod/microphone.lua reads it on its
@@ -1391,7 +1526,7 @@ async function publishHeard(recording) {
 const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
   onState: (state, input) => atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state, requestId: input.requestId, updated: Date.now()})),
   prepareReply: async (input, signal) => {
-    if(localVoice.playbackEnabled===false||turnUsesLocal(input)||(await readSpeechState()).continuousAvailable!==true)return;
+    if (localVoice.playbackEnabled === false) return;
     const prepared = microphoneKnowledge.get(input.requestId);
     const current = async () => {
       if (stopped || signal.aborted || mic.current?.requestId !== input.requestId || !prepared) return false;
@@ -1401,34 +1536,56 @@ const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
     };
     current.sync = () => !stopped && !signal.aborted && mic.current?.requestId === input.requestId
       && prepared && knowledgeRouter.currentSync(prepared);
+    // A local voice on a text route (Mistral, Groq, the local AI): the reply is voiced while it is still being written, as a typed turn's
+    // is (bridge/voice-key-stream.mjs). Without a safe first sentence, another voice or no continuous playback it is voiced whole, as before.
+    if (turnUsesLocal(input)) {
+      if (!mistral.active || !replyStreaming || input.reaction || !prepared) return;
+      const config = realtimeConfig(input), profile = profileFor(input, roster);
+      const streamed = startVoiceKeyStream({stream: newReplyStream(config, profile), signal,
+        speak: ({stream, final, signal: own, userText}) => voiceStreamedReply(input, profile, {signal: own, current, stream, final, config, userText, receiptPrepared: prepared})});
+      microphoneStreams.set(input.requestId, streamed);
+      signal.addEventListener('abort', () => { if (microphoneStreams.get(input.requestId) === streamed) microphoneStreams.delete(input.requestId); }, {once: true});
+      return streamed.options;
+    }
+    if ((await readSpeechStateCached()).continuousAvailable !== true) return;
     const speech = continuousSpeech(input, profileFor(input, roster), current, signal, prepared);
     microphoneSpeech.set(input.requestId, speech);
     return {liveSpeech: speech.options};
   },
   onReply: async (input, result, signal) => {
-    if (stopped) return;
-    const prepared = microphoneKnowledge.get(input.requestId);
-    if (!prepared || !await knowledgeRouter.current(prepared)) return;
-    const command = JSON.parse(await readFile(micPath, 'utf8'));
-    if (command.input?.requestId !== input.requestId || command.action === 'cancel') return;
-    const current = async () => {
-      if (stopped || signal?.aborted) return false;
-      const latest = JSON.parse(await readFile(micPath, 'utf8').catch(() => '{}'));
-      return latest.input?.requestId === input.requestId && latest.action !== 'cancel' && await knowledgeRouter.current(prepared);
-    };
-    current.sync = () => !stopped && !signal?.aborted && knowledgeRouter.currentSync(prepared);
-    const speech = microphoneSpeech.get(input.requestId);
-    const spoken = await synthesizeReply(input, {...result, transport: 'realtime',
-      ...(speech ? {liveDelivery: {published: speech.published, ended: speech.ended,
-        generated: speech.generated, id: speech.token}} : {})}, signal, current, profileFor(input, roster), prepared);
-    if (!spoken.liveDelivery?.generated) {
-      await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
-      stagedKnowledgeTurn(prepared, {replyText: result.text, userText: result.userText});
-    }
-    await publishResult(input, profileFor(input, roster), spoken, current, signal);
-    microphoneSpeech.delete(input.requestId);
+    // A voice-key turn on a text route has been voiced since its first sentence (prepareReply): it only needs the finished reply.
+    const streamed = microphoneStreams.get(input.requestId);
+    microphoneStreams.delete(input.requestId);
+    let handedOn = false;
+    try {
+      if (stopped) return;
+      const prepared = microphoneKnowledge.get(input.requestId);
+      if (!prepared || !await knowledgeRouter.current(prepared)) return;
+      const command = JSON.parse(await readFile(micPath, 'utf8'));
+      if (command.input?.requestId !== input.requestId || command.action === 'cancel') return;
+      const current = async () => {
+        if (stopped || signal?.aborted) return false;
+        const latest = JSON.parse(await readFile(micPath, 'utf8').catch(() => '{}'));
+        return latest.input?.requestId === input.requestId && latest.action !== 'cancel' && await knowledgeRouter.current(prepared);
+      };
+      current.sync = () => !stopped && !signal?.aborted && knowledgeRouter.currentSync(prepared);
+      const speech = microphoneSpeech.get(input.requestId);
+      let spoken;
+      if (streamed) { handedOn = true; streamed.finish({...result, transport: 'realtime'}); spoken = await streamed.spoken; }
+      else spoken = await synthesizeReply(input, {...result, transport: 'realtime',
+        ...(speech ? {liveDelivery: {published: speech.published, ended: speech.ended,
+          generated: speech.generated, id: speech.token}} : {})}, signal, current, profileFor(input, roster), prepared);
+      if (!spoken.liveDelivery?.generated) {
+        await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
+        stagedKnowledgeTurn(prepared, {replyText: result.text, userText: result.userText});
+      }
+      await publishResult(input, profileFor(input, roster), spoken, current, signal);
+      microphoneSpeech.delete(input.requestId);
+    } finally { if (streamed && !handedOn) streamed.abort(); }
   },
   onError: async (input, error) => {
+    microphoneStreams.get(input.requestId)?.fail(error);
+    microphoneStreams.delete(input.requestId);
     await microphoneSpeech.get(input.requestId)?.fail().catch(() => {});
     microphoneSpeech.delete(input.requestId);
     console.error('[CyberpunkConvai] Microphone:', error.message);
@@ -1712,6 +1869,62 @@ async function processInput(request, prepared) {
   return withClock(clock, () => runInput(request, prepared, clock));
 }
 
+// An add-on speaker's turn (docs/ADDON_API.md): a remark the add-on asked for, or V talking to it. Text comes from Mistral or the local
+// AI only (AddonHost.routeFor); with neither set up the game is told once (errorCode addon-provider). A remark that nearly repeats one
+// of the speaker's recent lines is dropped silently (addon-duplicate). The voice is the speaker's local voice when there is one.
+function addonTurnConfig(input, profile) {
+  noteTurn(input);
+  const blocks = [...intrinsicConversationContext.blocks(input), ...addonHost.blocks(input)];
+  return {text: input.reaction?.kind === 'addon' ? addonHost.trigger(input) : input.text, reaction: input.reaction,
+    context: joinedContext(blocks), contextParts: contextPartsOf(blocks),
+    local: {profileKey: input.profileKey, name: profile.name, channel: input.group ? 'group' : 'private'}};
+}
+async function runAddonTurn(request, input, profile, current, clock) {
+  const {controller} = request, ahead = request.lookahead, signal = controller.signal;
+  const fail = (error, errorCode) => atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
+    error, errorCode}), {signal, isCurrent: current, isCurrentSync: current.sync});
+  addonHost.beginTurn(input);
+  const route = addonHost.routeFor(profile.key, addonRouteState());
+  if (!route) { await fail(addonHost.providerNotice(profile.key), 'addon-provider'); return; }
+  const remark = input.reaction?.kind === 'addon';
+  // The local AI keeps the default remark gap at about 20 s, so its GPU bursts stay rare beside the game (LOCAL_REMARK_GAP_S).
+  const pace = remark ? addonHost.localPace(profile.key, route) : 0;
+  if (pace > 0) {
+    await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
+      error: '', errorCode: 'addon-pace', retryAfter: pace}), {signal, isCurrent: current, isCurrentSync: current.sync});
+    return;
+  }
+  if (remark) addonHost.remarkStarted(profile.key, route);
+  note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : 'none'}, reaction: input.reaction?.phase, addonRoute: route});
+  if (!ahead) void status('thinking', profile.name).catch(() => {});
+  clock.mark('admitted');
+  const host = addonTextHost(route, profile.key);
+  const config = addonTurnConfig(input, profile);
+  const voiced = localVoice.playbackEnabled !== false && turnUsesLocal(input) && audioAvailable(await readSpeechStateCached());
+  throwIfCancelled(signal);
+  let result;
+  if (voiced && !remark && replyStreaming && !ahead) {
+    // A conversation streams its first sentence to the voice, like any text-provider turn.
+    const stream = newReplyStream(config, profile);
+    const final = Promise.resolve(host.reply(config, {signal, stream})).then(reply => ({...reply, transport: 'realtime'}));
+    final.catch(() => {});
+    result = await voiceStreamedReply(input, profile, {signal, current, stream, final, config});
+  } else {
+    const reply = {...await host.reply(config, {signal}), transport: 'realtime'};
+    // A remark is checked against the speaker's recent lines before anything is spoken.
+    if (remark && addonHost.review(input, reply.text).duplicate) {
+      console.error(`[Addons] ${profile.key}: remark dropped (it repeated a recent line)`);
+      await fail('', 'addon-duplicate');
+      return;
+    }
+    result = voiced ? await synthesizeReply(input, reply, signal, current, profile) : {...reply, ttsEnabled: false};
+  }
+  if (ahead) { ahead.markReady(); await ahead.waitClaimed(signal); }
+  if (!await current()) return;
+  await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
+  if (await publishResult(input, profile, result, current, signal)) addonHost.afterReply(input, result.text);
+}
+
 async function runInput(request, prepared, clock) {
   let input = request.input;
   const {controller} = request;
@@ -1743,6 +1956,8 @@ async function runInput(request, prepared, clock) {
     stages.cancelMicrophoneMs = performance.now() - preparationStarted;
     throwIfCancelled(controller.signal);
     const profile = profileFor(input, roster);
+    // An add-on speaker never takes the Convai path below (no knowledge route, no Convai memory or connection, no allowance).
+    if (profile && addonHost.isSpeaker(profile.key)) { await runAddonTurn(request, input, profile, current, clock); return; }
     if (!profile || !ids[profile.key]) {
       await status('unmatched-npc', `No verified profile for ${input.name} (${input.bodyType})`);
       await atomic(replyPath, JSON.stringify({...input, text: undefined,
@@ -2028,7 +2243,7 @@ async function applyKeyChoice() {
   try {
     const own = keys.requested.source === 'player';
     keys.apply();
-    memoryProvider.use({key: keys.current(), own});
+    memoryProvider.use({key: keys.current(), own, backend: keys.usesBackend});
     quota.clear();
     dropPrefetch(); prefetchObserved = '';
     await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
@@ -2047,6 +2262,8 @@ async function applyProviderChoice() {
   providerSwitching = true;
   try {
     mistral.apply();
+    // The cloud provider's connection (DNS, TCP, TLS) opens now, not in front of the first turn (docs/LATENCY_2026-10-13.md, 4.5/4.7).
+    if (mistral.active && (mistral.route === 'mistral' || mistral.route === 'groq')) void warmTurnConnections({provider: mistral.route});
     dropPrefetch(); prefetchObserved = '';
     await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
     sessions.clear(); realtimeSessions.clear();
@@ -2180,18 +2397,26 @@ const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, co
   publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
 quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  groqCommandPath: resolve(runtime, 'groq-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  groqCommandPath: resolve(runtime, 'groq-key-command.json'), inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),
   chatResetPath: resolve(runtime, 'memory-chat-resets.json'),
   chatResetFamilies: relationshipRoutes.providerFamilies,
   publish: value => atomic(resolve(runtime, 'memory-status.json'), JSON.stringify(value))});
+// Settings > Voices: the disk used by the saved voice setups ("Keep prepared voices") and Clear prepared voices (bridge/prepared-voices.mjs).
+const preparedVoices = await new PreparedVoicesControl({folder: () => preparedVoicesFolder(voiceConfig),
+  commandPath: resolve(runtime, 'prepared-voices-command.json'), statePath: resolve(runtime, 'prepared-voices-state.json')}).open();
 // Help > Generate report: a redacted zip of versions, status and log tails.
 // The key and provider IDs are passed only so they can be scrubbed from it.
 const supportReport = await SupportReportControl.open({game, runtime, stateDirectory, project,
   secrets: () => [...keys.secrets(), ...mistral.secrets()], knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
   bridge: () => ({busy: !!active, microphoneActive: !!mic.current})});
+// Settings > Edit characters: a local page, served only while it is open (bridge/character-editor-server.mjs).
+const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route});
+const editorControl = await EditorControl.open({server: new EditorServer({editor: characterEditor, log: message => console.error('[Editor] ' + message)}),
+  commandPath: resolve(runtime, 'editor-command.json'), statusPath: resolve(runtime, 'editor-status.json'),
+  log: message => console.error('[Editor] ' + message)});
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
@@ -2207,6 +2432,9 @@ const timer = setInterval(tick, 50);
 const micTimer = setInterval(() => { void pollMicrophone().catch(error => console.error('[CyberpunkConvai] Microphone poll:', error.message)); }, 150);
 const prefetchTimer = setInterval(() => { void pollPrefetch().catch(error => console.error('[CyberpunkConvai] Preparation poll:', error.message)); }, 150);
 const lookaheadTimer = setInterval(() => { void pollLookahead().catch(error => console.error('[CyberpunkConvai] Look-ahead poll:', error.message)); }, 60);
+// Add-ons only: the state and settings files are also read once a second, in case the directory watcher missed a change.
+const addonTimer = addonHost.active ? setInterval(() => { for (const read of Object.values(addonHost.watchHandlers(runtime))) void read(); }, 1000) : null;
+addonTimer?.unref?.();
 const settingsTimer = setInterval(() => { void pollSettings().catch(error => console.error('[CyberpunkConvai] Settings poll:', error.message)); }, 500);
 const phoneTimer = setInterval(() => { void pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)); }, 150);
 // The status file the game reads can be held open by the game for a moment (Windows refuses the rename: EPERM/EBUSY); the next poll
@@ -2223,25 +2451,33 @@ function logKnowledgePoll(error) {
 }
 const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(logKnowledgePoll); }, 500);
 const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error => console.error('[CyberpunkConvai] Memory control:', error.message)); }, 500);
+const preparedVoicesTimer = setInterval(() => { void preparedVoices.poll().catch(error => console.error('[CyberpunkConvai] Prepared voices:', error.message)); }, 500);
 const supportTimer = setInterval(() => { void supportReport.poll().catch(error => console.error('[CyberpunkConvai] Support report:', error.message)); }, 500);
 // The same polls run a few milliseconds after the game replaces their file (bridge/file-wake.mjs): a typed or spoken turn and a
 // phone message no longer wait half an interval (25 ms for the request, 75 ms for the microphone and the phone) to be seen.
 // The intervals above stay as the fallback. The watcher never keeps the process alive.
 watchFiles(runtime, {
   'last-input.json': tick,
+  'prepared-voices-command.json': () => preparedVoices.poll().catch(error => console.error('[CyberpunkConvai] Prepared voices:', error.message)),
   'microphone-command.json': () => pollMicrophone().catch(error => console.error('[CyberpunkConvai] Microphone poll:', error.message)),
   'phone-chat-input.json': () => pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)),
+  // The game's playback lease releases the first sound: the playback pump polls the moment it is written (docs/LATENCY_2026-10-13.md, 4.2).
+  'continuous-control.json': () => leaseWake.fire(),
+  // The add-on state and settings the game writes (docs/ADDON_API.md); no entries without add-ons.
+  ...addonHost.watchHandlers(runtime),
 }, {log: message => console.error('[CyberpunkConvai] ' + message)});
+const editorTimer = setInterval(() => { void editorControl.poll().catch(error => console.error('[CyberpunkConvai] Character editor:', error.message)); }, 500);
 async function shutdown() {
   if (stopped) return;
   await companionActions.revoke();
-  stopped = true; active?.controller.abort(); dropPrefetch(); audioWatch.stop();
+  stopped = true; active?.controller.abort(); dropPrefetch(); audioWatch.stop(); tokenSource?.stop();
   settleVoiceRouteWaiters(Error('Voice service is closed'));
   phone.close(); clearInterval(phoneTimer);
   phoneKnowledge.clear();
   clearInterval(knowledgeTimer);
-  clearInterval(memoryTimer);
+  clearInterval(memoryTimer); clearInterval(preparedVoicesTimer);
   clearInterval(supportTimer); supportReport.close();
+  clearInterval(editorTimer); await editorControl.close().catch(() => {});
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
   await invitations.clear('service-stopped');
   await voiceRouteSync.catch(() => {});

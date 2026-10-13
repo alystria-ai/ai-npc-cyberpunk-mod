@@ -4,6 +4,7 @@ import {parseJournal, withConversationKnowledge} from './quest-context.mjs';
 import {isAmbientProfile} from './protocol.mjs';
 import {questPathsFromPack} from './quest-overview.mjs';
 import {isParsed} from './parsed-snapshot.mjs';
+import {decisionLedgerContext, ledgerPicks} from './game-dialogue.mjs';
 
 const PROFILE = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const TOKEN = /^[A-Za-z0-9_:-][A-Za-z0-9._:/@+#-]{0,159}$/;
@@ -84,11 +85,12 @@ function freshSnapshot(snapshot, binding, route, now) {
 export class PlayerKnowledge {
   #prepared = new WeakMap();
 
-  constructor({playerMemory, pack, questCatalog = [], now = Date.now, isWorldCurrent, getBoundary, selectProfile} = {}) {
+  constructor({playerMemory, pack, questCatalog = [], now = Date.now, isWorldCurrent, getBoundary, selectProfile, decisionLedger} = {}) {
     if (!playerMemory || typeof playerMemory.route !== 'function' || typeof playerMemory.isCurrent !== 'function'
         || typeof now !== 'function' || isWorldCurrent !== undefined && typeof isWorldCurrent !== 'function'
         || getBoundary !== undefined && typeof getBoundary !== 'function'
-        || !isWorldCurrent && !getBoundary || selectProfile !== undefined && typeof selectProfile !== 'function') fail('INVALID_CONFIGURATION');
+        || !isWorldCurrent && !getBoundary || selectProfile !== undefined && typeof selectProfile !== 'function'
+        || decisionLedger !== undefined && typeof decisionLedger !== 'function') fail('INVALID_CONFIGURATION');
     if (!validateKnowledgePack(pack).ok) fail('INVALID_REVIEWED_PACK');
     this.playerMemory = playerMemory; this.pack = freeze(clone(pack));
     // The frozen copy is immutable; prepare it once here rather than per turn.
@@ -96,6 +98,8 @@ export class PlayerKnowledge {
     this.questPaths = questPathsFromPack(this.pack);
     this.questCatalog = freeze(clone(questCatalog)); this.now = now;
     this.isWorldCurrent = isWorldCurrent; this.getBoundary = getBoundary; this.selectProfile = selectProfile;
+    // Optional: () => the parsed runtime/decision-ledger.json (bridge/game-dialogue.mjs). Absent, the ledger costs nothing and changes nothing.
+    this.decisionLedger = decisionLedger;
   }
 
   #boundary() {
@@ -237,9 +241,19 @@ export class PlayerKnowledge {
     if (captureCurrent) {
       // Old native identity fields never qualify archive events. Only the
       // resolver's current-context string is consumed by this coordinator.
+      // The decision ledger's picks (off unless the game wrote the file for this world) share the same 8,000 characters.
+      let picks = '';
+      if (this.decisionLedger) {
+        try {
+          picks = decisionLedgerContext(ledgerPicks({ledger: this.decisionLedger(), worldToken: binding.worldToken,
+            gameTimeSeconds: snapshot.gameTimeSeconds, profileKey: route.profileKey}));
+        } catch { picks = ''; }
+      }
       const projection = resolveKnowledge({pack: this.pack, snapshot: {...snapshot, identity: {status: 'unknown'}},
-        profileKey: route.profileKey, query: frozen.text, maxChars: 8000});
-      if (projection.diagnostics.status === 'ready') { knowledgeContext = projection.context; sharedEvents = projection.shared; }
+        profileKey: route.profileKey, query: frozen.text, maxChars: 8000 - (picks ? picks.length + 1 : 0)});
+      if (projection.diagnostics.status === 'ready') {
+        knowledgeContext = picks ? projection.context + '\n' + picks : projection.context; sharedEvents = projection.shared;
+      }
     }
     // The tracked journal is bounded request data captured by Lua at admission;
     // parent raw-input ownership and this world guard establish its provenance.

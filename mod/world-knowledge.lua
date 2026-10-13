@@ -139,6 +139,7 @@ local function nativeGameTime()
     local stamp = tonumber(system:GetGameTimeStamp())
     return stamp and stamp == stamp and stamp >= 0 and stamp <= MAX_GAME_SECONDS and math.floor(stamp) or nil
 end
+M.nativeGameTime = nativeGameTime -- the game clock in seconds, or nil (the decision ledger stamps picks with it)
 -- gameJournalEntryState by integer value, built once: one EnumInt per read instead of up to three Enum.new.
 local stateByInt
 local function journalState(journal, entry)

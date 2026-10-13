@@ -1,7 +1,8 @@
 // A response is publishable only after its WAV has been validated and replaced
 // atomically. Audioware reads these fixed slots on demand, never from memory.
-import {readFile, writeFile, rename, mkdir} from 'node:fs/promises';
-import {resolve} from 'node:path';
+import {readFile, writeFile, rename, mkdir, rm, readdir} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
+import {resolve, dirname} from 'node:path';
 import {activeMakeupDb, levelWav} from './dialogue-level.mjs';
 
 export const SLOT_COUNT = 8;
@@ -58,6 +59,8 @@ export function silentWav() {
 export async function initializeAudioDepot(game) {
   const depot = resolve(game, 'r6/audioware/CyberpunkConvai');
   await mkdir(depot, {recursive: true});
+  // Files prepared by a bridge that ended before using them (prepareSpeech).
+  for (const name of await readdir(depot).catch(() => [])) if (PREPARED_FILE.test(name)) await rm(resolve(depot, name), {force: true}).catch(() => {});
   const lines = ['version: 1.0.0', 'voices:'];
   // All supported game locales use the chosen Convai voice. UI language does
   // not silently select another character or regenerate their voice.
@@ -72,8 +75,48 @@ export async function initializeAudioDepot(game) {
   return depot;
 }
 
-export async function storeSpeech(base64, depot, slot, {makeupDb = activeMakeupDb()} = {}) {
+// A speech file written ahead of its slot (docs/LATENCY_2026-10-13.md, 4.6): the OmniVoice first phrase is analysed for its face for
+// 0.1 to 2 s before it can be published, and the slot write (decode, dialogue level, file write) used to start only after that. This
+// does everything except choosing the slot while the analysis runs: the levelled WAV is written beside the slot files under a
+// temporary name, and `storeSpeech(..., {prepared})` only renames it into the slot it is given (the slot is chosen under the lock
+// that serializes slot use, so the lease and cancel rules of SpeechSlots are untouched). A prepared file nobody used (the turn
+// was cancelled) is removed by the next `prepareSpeech` after a minute and by `initializeAudioDepot`.
+const PREPARED_FILE = /^reply-pre-[0-9a-f-]{36}\.tmp$/;
+const preparedFiles = new Set();
+const PREPARED_MAX_AGE_MS = 60_000;
+export function prepareSpeech(base64, depot, {makeupDb = activeMakeupDb(), now = Date.now} = {}) {
+  for (const old of preparedFiles) if (!old.consumed && now() - old.createdAt > PREPARED_MAX_AGE_MS) old.discard();
+  const prepared = {temp: resolve(depot, `reply-pre-${randomUUID()}.tmp`), createdAt: now(), consumed: false, info: null};
+  preparedFiles.add(prepared);
+  prepared.ready = (async () => {
+    if (typeof base64 !== 'string' || base64.length > 32000000 || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) throw Error('Invalid speech audio');
+    const source = Buffer.from(base64, 'base64');
+    const info = inspectWav(source);
+    const bytes = makeupDb > 0 ? levelWav(readPcmWav(source), makeupDb) : source;
+    await writeFile(prepared.temp, bytes);
+    prepared.info = info;
+    return info;
+  })();
+  prepared.ready.catch(() => {});
+  // Removes the file unless a store took it (the store owns it from then on).
+  prepared.discard = () => {
+    if (prepared.consumed) return Promise.resolve();
+    prepared.consumed = true; preparedFiles.delete(prepared);
+    return prepared.ready.then(() => {}, () => {}).then(() => rm(prepared.temp, {force: true})).catch(() => {});
+  };
+  return prepared;
+}
+
+export async function storeSpeech(base64, depot, slot, {makeupDb = activeMakeupDb(), prepared} = {}) {
   if (!Number.isInteger(slot) || slot < 0 || slot >= SLOT_COUNT) throw Error('Invalid speech slot');
+  if (prepared && !prepared.consumed && dirname(prepared.temp) === resolve(depot)) {
+    prepared.consumed = true; preparedFiles.delete(prepared);
+    try {
+      const info = await prepared.ready;
+      await rename(prepared.temp, resolve(depot, `reply-${slot}.wav`));
+      return {slot, event: `convai_reply_${slot}`, ...info};
+    } catch { await rm(prepared.temp, {force: true}).catch(() => {}); /* the ordinary store below */ }
+  }
   if (typeof base64 !== 'string' || base64.length > 32000000 || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) throw Error('Invalid speech audio');
   const source = Buffer.from(base64, 'base64');
   const info = inspectWav(source);

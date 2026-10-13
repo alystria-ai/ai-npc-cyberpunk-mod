@@ -17,6 +17,25 @@ import {basename} from 'node:path';
 
 export const FILE_WAKE_DELAY_MS = 4;
 
+/**
+ * A latch a watched file wakes (docs/LATENCY_2026-10-13.md, 4.2). `next()` returns a promise that resolves the next time `fire()` is
+ * called; one that fired while nobody was waiting is not lost: the next `next()` resolves at once (a pump that was busy when the
+ * game wrote its lease still polls straight away). Waiters share one pending promise, so nothing builds up between fires.
+ */
+export function createWakeSignal() {
+  let waiting = null, fired = false;
+  return {
+    next() {
+      if (fired) { fired = false; return Promise.resolve(); }
+      waiting ??= (() => { let resolve; const promise = new Promise(done => { resolve = done; }); return {promise, resolve}; })();
+      return waiting.promise;
+    },
+    fire() {
+      if (waiting) { const {resolve} = waiting; waiting = null; resolve(); } else fired = true;
+    },
+  };
+}
+
 export function watchFiles(directory, handlers, {watch = fsWatch, delayMs = FILE_WAKE_DELAY_MS, setTimer = setTimeout,
   clearTimer = clearTimeout, log = () => {}} = {}) {
   const names = new Set(Object.keys(handlers ?? {}).filter(name => typeof handlers[name] === 'function'));

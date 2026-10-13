@@ -1,0 +1,2288 @@
+{
+ "version": 1,
+ "note": "Every unmapped outcome of the step B lanes, with the reason it has no row (2026-10-14). Codes: no-signal, zero-only, shared-writer, ambiguous, no-speaker, told-by-v, transient, out-of-scope, covered-by-existing-rule, row:<id>.",
+ "dispositions": [
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.ending-route",
+   "outcomeKey": "other-route",
+   "disposition": "told-by-v",
+   "why": "The rooftop choice is private; Takemura and Hanako are absent and no native record exists for them."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.orbital-visitor",
+   "outcomeKey": "hellman",
+   "disposition": "no-speaker",
+   "why": "Hellman is not a roster character and nobody else affected knows who presented the contract."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.frank-prologue",
+   "outcomeKey": "brief-or-skipped",
+   "disposition": "row:db.frank-chat-cut-short",
+   "why": "q000_corpo_02_cut_short is written only by the 'I'm in a rush' / 'I need to run' options (unverified, never set in saves)."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.war-pigs-lure",
+   "outcomeKey": "message-only",
+   "disposition": "told-by-v",
+   "why": "Only V sees the message path; Frank is not part of a message-only branch (mq041 has just four facts, none for this)."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.frank-fate",
+   "outcomeKey": "walked-away",
+   "disposition": "row:db.frank-talked-down",
+   "why": "Closest fit: mq041_var_frank_sofa marks the talk-down branch (Frank's attitude set to friendly); not a proven 'walked away'."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.frank-fate",
+   "outcomeKey": "incapacitated",
+   "disposition": "no-signal",
+   "why": "Combat outcomes are only killed|defeated|unconscious community conditions, no per-fate fact or journal line."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.frank-fate",
+   "outcomeKey": "killed",
+   "disposition": "no-signal",
+   "why": "Same combined killed/defeated/unconscious condition; nothing separates death."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.frank-fate",
+   "outcomeKey": "self-inflicted-death",
+   "disposition": "no-signal",
+   "why": "No suicide marker; the only calm-end fact (frank_sofa) could not be shown to be a suicide."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.stout-meeting",
+   "outcomeKey": "not-met",
+   "disposition": "zero-only",
+   "why": "Only the absence of q003_militech_met; the failed-meeting journal entries (02_meet_militech2, 04_remove_malware) never appear on a no-meeting path in any save."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.royce-fate",
+   "outcomeKey": "alive",
+   "disposition": "no-signal",
+   "why": "No positive alive marker: royce_dead is zero-only, and the Totentanz routing (sq011_nancy node 276) shows Royce even when he is dead, so it proves nothing."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.royce-fate",
+   "outcomeKey": "killed-by-militech",
+   "disposition": "row:db.royce-downed-by-militech",
+   "why": "militech_invades AND royce_dead isolates the Militech writer, but the flag also covers defeated/unconscious (unverified)."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.brick-fate",
+   "outcomeKey": "trap-killed",
+   "disposition": "row:db.brick-died-in-trap",
+   "why": "Fact is shared with the post-rescue write in q003_end; exclusive signal is a non-pack journal entry seen in one save (unverified draft)."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.brick-fate",
+   "outcomeKey": "left-unrescued",
+   "disposition": "no-signal",
+   "why": "Nothing is written when V leaves Brick, and 15_talk_to_brick2 absence would be zero-only."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.dumdum-fate",
+   "outcomeKey": "alive",
+   "disposition": "ambiguous",
+   "why": "No alive marker; the only objective that fits (15_talk_to_dumdum) is opened at the start of the Militech assault, before any death."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.dumdum-fate",
+   "outcomeKey": "killed",
+   "disposition": "ambiguous",
+   "why": "q003_dumdum_dead is set on killed|defeated|unconscious (nodes 180/380), zero in every save."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.dumdum-fate",
+   "outcomeKey": "incapacitated",
+   "disposition": "ambiguous",
+   "why": "The same combined condition cannot separate incapacitated from killed."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.pickup-gate-contact",
+   "outcomeKey": "no-meeting",
+   "disposition": "zero-only",
+   "why": "Only absence of the two gate-contact journal entries; also shares the topic with the mapped stout/gilchrist rules."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.stout-encounter",
+   "outcomeKey": "not-established",
+   "disposition": "zero-only",
+   "why": "Only the absence of q003_stout_sex_done."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.report-evelyn",
+   "outcomeKey": "withheld",
+   "disposition": "row:db.evelyn-off-hint",
+   "why": "q005_01_evelyn_fluff marks only the 'Something's off about her' half of withholding (unverified)."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.heist-cut",
+   "outcomeKey": "thirty",
+   "disposition": "zero-only",
+   "why": "30 percent is the default when V does not push; options 'Sounds about right' and 'Fine. Made your point.' write nothing, only dex_takes_45/60 are positive."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.jackie-body",
+   "outcomeKey": "family",
+   "disposition": "out-of-scope",
+   "why": "q005_jackie_to_mama is also written by history-init phases and is already used by the told-by-v heywood rule; Mama's receipt is covered by jt.jackie.body-disposition.family-received."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.jackie-body",
+   "outcomeKey": "wait",
+   "disposition": "out-of-scope",
+   "why": "q005_jackie_stay_notell is only the initial instruction (told-by-v heywood rule); no distinct receipt for Mama."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.dex-betrayal",
+   "outcomeKey": "shot-v",
+   "disposition": "row:db.dex-shot-v",
+   "why": "Unconditional beat of q005_15_no_tell_motel; q005_done is written only after that scene (verified, guarded by the briefing journal)."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.dex-betrayal",
+   "outcomeKey": "not-reached",
+   "disposition": "zero-only",
+   "why": "Absence only; every completed Heist includes the motel scene."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.takemura-ride",
+   "outcomeKey": "separate",
+   "disposition": "no-signal",
+   "why": "q112_wakako_drive>0 gates the 'together' path and the 'I will meet you there' line only fires at 0; q112_drive_wakako_together and the mounted flags are 1 in every save, and a separate ride has no positive writer."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.takemura-background-shared",
+   "outcomeKey": "childhood-discussed",
+   "disposition": "no-signal",
+   "why": "The Chiba-11 childhood and recruitment chain (nodes 1391 to 1428) sits behind optional choices and writes no fact; only q112_04_bakeneko exists."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.takemura-background-shared",
+   "outcomeKey": "not-established",
+   "disposition": "zero-only",
+   "why": "Absence only."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.oda-fate",
+   "outcomeKey": "spared",
+   "disposition": "row:db.oda-spared",
+   "why": "q112_08_oda_spared is written only by the 'It's your lucky day' mercy option (unverified, never set in any save)."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.netwatch-choice",
+   "outcomeKey": "rejected",
+   "disposition": "shared-writer",
+   "why": "q110_netwatch_agent_killed is written both by the 'Incapacitate agent' options (node 3156) and by '[Take chip]' after accepting (node 3163); the reject path itself writes nothing (deal stays 0, history-init also sets it to 1)."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.voodoo-runners",
+   "outcomeKey": "survived",
+   "disposition": "told-by-v",
+   "why": "Placide was not at the net encounter; no native record of the runners' fate."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.voodoo-runners",
+   "outcomeKey": "flatlined",
+   "disposition": "told-by-v",
+   "why": "Same; the deal fact only selects purge dialogue Placide never witnessed."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.crypt-exit",
+   "outcomeKey": "peaceful",
+   "disposition": "no-signal",
+   "why": "q110_15_vdb_fight has no choice or fact for who starts violence and Placide dies in every save."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.crypt-exit",
+   "outcomeKey": "v-attacked",
+   "disposition": "no-signal",
+   "why": "Not recorded; the fight is unconditional."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.crypt-exit",
+   "outcomeKey": "netwatch-hostility",
+   "disposition": "ambiguous",
+   "why": "The fight is not gated on the NetWatch deal and Placide cannot be shown to know V's deal."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.placide-fate",
+   "outcomeKey": "alive-peace",
+   "disposition": "no-signal",
+   "why": "q110_placide_killed is 1 in all six full-play saves; no alive route."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.placide-fate",
+   "outcomeKey": "incapacitated",
+   "disposition": "no-signal",
+   "why": "No incapacitated marker."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.placide-fate",
+   "outcomeKey": "killed",
+   "disposition": "no-speaker",
+   "why": "q110_placide_killed (killed only) is clean, but the only affected speaker is the dead Placide."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.jackie-construct",
+   "outcomeKey": "not-encountered",
+   "disposition": "zero-only",
+   "why": "Absence of the construct-conversation journal entry; a spawned Jackie is not this construct."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.smasher-fate",
+   "outcomeKey": "spared",
+   "disposition": "no-signal",
+   "why": "q113_13_adam_smasher has a single-option 'what do you think, Johnny' choice and writes no fate fact."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.smasher-fate",
+   "outcomeKey": "killed",
+   "disposition": "no-signal",
+   "why": "Same single-option scene; Takemura's lines depend only on q112_takemura_dead."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.takemura-assistance",
+   "outcomeKey": "accepted",
+   "disposition": "no-signal",
+   "why": "q113_06_takemura_helped is written on both the [Stand] and [Grab hand] options of the office get-up choice, so it is not an acceptance of help."
+  },
+  {
+   "lane": "arasaka-heist",
+   "decisionId": "arasaka-heist.takemura-assistance",
+   "outcomeKey": "declined",
+   "disposition": "transient",
+   "why": "q113_atrium_takemura_stealth is reset by the atrium combat phase and absent in every save; Takemura still goes with V when stealth is chosen."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.ghost.nash",
+   "outcomeKey": "declined",
+   "disposition": "row:db.nash-declined",
+   "why": "Rogue's clean-deal message is a positive signal but unverified (not in pack, never seen in saves)."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.wartime.mitch-rescue",
+   "outcomeKey": "panam-alone",
+   "disposition": "no-signal",
+   "why": "No writer or journal entry records a Panam-alone rescue; Mitch's rescue is positive in every save."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.riders.farmhouse",
+   "outcomeKey": "not-established",
+   "disposition": "no-speaker",
+   "why": "Non-outcome with empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.friends.loyalty",
+   "outcomeKey": "declined-initially",
+   "disposition": "no-signal",
+   "why": "The refusal choice has no persistent writer and V can still join at the station."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.friends.tower-talk",
+   "outcomeKey": "personal-support",
+   "disposition": "ambiguous",
+   "why": "sq027_panam_impulsive comes from two different exchanges and is never present in any save."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.queen.romance",
+   "outcomeKey": "platonic",
+   "disposition": "row:db.queen-friendship-hook",
+   "why": "Panam's friendship hook exists only on the False side of sq027_panam_lover."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.fortunate.malware",
+   "outcomeKey": "discovered",
+   "disposition": "no-speaker",
+   "why": "Empty affects; the signal mq021_happy_ending is already used by the informed rule."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.fortunate.malware",
+   "outcomeKey": "not-discovered",
+   "disposition": "no-speaker",
+   "why": "Empty affects and only provable by absence of mq021_happy_ending."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.fortunate.implant",
+   "outcomeKey": "delivered-uninformed",
+   "disposition": "zero-only",
+   "why": "Would need mq021_happy_ending absent."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.fortunate.result",
+   "outcomeKey": "died",
+   "disposition": "zero-only",
+   "why": "Would need mq021_happy_ending absent while Bob was approached."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.nocturne.partner-call",
+   "outcomeKey": "other-or-no-call",
+   "disposition": "no-speaker",
+   "why": "Empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.nocturne.help",
+   "outcomeKey": "other-route",
+   "disposition": "no-speaker",
+   "why": "Empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.together.shooting",
+   "outcomeKey": "lost",
+   "disposition": "zero-only",
+   "why": "No positive writer for a losing result; would need a score comparison below the win threshold."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.together.shooting",
+   "outcomeKey": "not-played",
+   "disposition": "no-speaker",
+   "why": "Empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.together.returning-contacts",
+   "outcomeKey": "ben-present",
+   "disposition": "row:db.ben-at-party",
+   "why": "q114_party branches on ina_09_finished before the Benedict scene entry."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.together.returning-contacts",
+   "outcomeKey": "anna-present",
+   "disposition": "no-speaker",
+   "why": "Empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.changes.body",
+   "outcomeKey": "johnny-returned",
+   "disposition": "no-speaker",
+   "why": "Empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.watchtower.partner",
+   "outcomeKey": "no-partner-scene",
+   "disposition": "no-speaker",
+   "why": "Empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.temperance.panam-message",
+   "outcomeKey": "platonic-update-observed",
+   "disposition": "no-signal",
+   "why": "Only the romance-gated Panam q204 messages exist in 2.31."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.tower.contact",
+   "outcomeKey": "unanswered",
+   "disposition": "no-speaker",
+   "why": "The call hits an outside-service message; Panam never receives it."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.tower.contact",
+   "outcomeKey": "mitch-boundary-message",
+   "disposition": "shared-writer",
+   "why": "q307_panam_called is written by both the pre-coma text and the post-coma call; board plays post-credits with no durable marker."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.blacksteel.gift",
+   "outcomeKey": "collected",
+   "disposition": "told-by-v",
+   "why": "Objective pick_carol_gift exists but Carol has no knowledge path to the pickup."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.flying.method",
+   "outcomeKey": "power-cut",
+   "disposition": "no-speaker",
+   "why": "Empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.flying.method",
+   "outcomeKey": "destroyed",
+   "disposition": "no-speaker",
+   "why": "Empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.flying.method",
+   "outcomeKey": "remote-overload",
+   "disposition": "ambiguous",
+   "why": "Dakota's shortcut debrief is selected by ina_03_proper (trigger area never entered), which does not isolate a remote hack."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.pete.resolution",
+   "outcomeKey": "killed",
+   "disposition": "row:db.pete-defeated",
+   "why": "ina_02_big_pete_dead is the fight branch; it covers killed or knocked out, stated as such."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.pete.resolution",
+   "outcomeKey": "spared-paid",
+   "disposition": "no-signal",
+   "why": "ina_02_big_pete_spared is written by all spare options; payment is only a reward node with no fact."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.pete.resolution",
+   "outcomeKey": "spared-unpaid",
+   "disposition": "no-signal",
+   "why": "Same as spared-paid: no durable marker separates paid from unpaid."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.nofixers.rescue",
+   "outcomeKey": "delivered-without-van",
+   "disposition": "row:db.iris-car-left",
+   "why": "Candidate only: failed car objective is not allowlisted or observed, and overlaps with the left-alone path."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.trevor.remains",
+   "outcomeKey": "identified",
+   "disposition": "no-speaker",
+   "why": "Empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.mia.jason",
+   "outcomeKey": "killed",
+   "disposition": "no-speaker",
+   "why": "ina_09_jason_dead exists (killed only, written in the gameplay phase) but affects names no roster speaker and nothing reads it."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.mia.jason",
+   "outcomeKey": "incapacitated",
+   "disposition": "no-speaker",
+   "why": "Empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.mia.jason",
+   "outcomeKey": "avoided",
+   "disposition": "no-speaker",
+   "why": "Empty affects and provable only by absence of ina_09_jason_dead."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.sparring.software",
+   "outcomeKey": "recovered",
+   "disposition": "no-speaker",
+   "why": "Empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.radar.prototype",
+   "outcomeKey": "acquired",
+   "disposition": "no-speaker",
+   "why": "Empty affects."
+  },
+  {
+   "lane": "aldecaldos",
+   "decisionId": "aldecaldos.reward.recognition",
+   "outcomeKey": "collected",
+   "disposition": "told-by-v",
+   "why": "Objective get_reward succeeds when V mounts the gift vehicle; Dakota has no knowledge path to the pickup."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.sun.partner",
+   "outcomeKey": "river-waits",
+   "disposition": "ambiguous",
+   "why": "River's promise is one section of several penthouse branches in q203_03_sobchak; no fact or journal write marks it."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.devil.partner-call",
+   "outcomeKey": "river-offers-help",
+   "disposition": "ambiguous",
+   "why": "04_talk_to_river succeeds after both the brush-off and the offer-help calls; no branch-exclusive write found."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.black-steel.sandra-contact",
+   "outcomeKey": "hired",
+   "disposition": "row:db.sandra-hired",
+   "why": "q305_01_netrunner_picked_Sandra plus q305_got_netrunner, both allowlisted; overlap with intel-delivered flagged."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.black-steel.sandra-favor",
+   "outcomeKey": "requested",
+   "disposition": "row:db.sandra-trojan-request",
+   "why": "q305_sandra_task_accepted is written after the request is made on every path through node 43; unverified, overlaps fulfilled-confirmed."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.information.introductions",
+   "outcomeKey": "evelyn-met",
+   "disposition": "ambiguous",
+   "why": "Both introductions are mandatory in The Information, so both outcomes of this topic would be true in every save."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.information.dex-offer",
+   "outcomeKey": "offered",
+   "disposition": "out-of-scope",
+   "why": "Semantic duplicate of the arasaka-heist lane's Evelyn offer outcome; mapping it here would hand Evelyn the same fact twice."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.information.dex-offer",
+   "outcomeKey": "disclosed-to-dex",
+   "disposition": "covered-by-existing-rule",
+   "why": "q005_01_dex_knows, written only by the two 'she wants to cut you loose' options; Dex-side copy of the existing Jackie rule."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.rescue.medical",
+   "outcomeKey": "found",
+   "disposition": "no-speaker",
+   "why": "Sandra was unconscious and jammed; she has no first-person knowledge, and the topic already has the Jackie rule on the same journal predicate."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.rescue.medical",
+   "outcomeKey": "handed-over",
+   "disposition": "no-speaker",
+   "why": "Same: Sandra has no first-person knowledge of her treatment and handover."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.spy.katya",
+   "outcomeKey": "spared",
+   "disposition": "told-by-v",
+   "why": "Katya's fate is V's private resolution; Ana is absent and learns it only if told."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.spy.katya",
+   "outcomeKey": "killed",
+   "disposition": "told-by-v",
+   "why": "Same; the Katya-killed fact is V-side and Ana is not present."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.spy.biomonitor",
+   "outcomeKey": "drop-point",
+   "disposition": "told-by-v",
+   "why": "Steven's private drop-point request; Ana does not know V used it."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.automatic.woodman",
+   "outcomeKey": "killed-confirmed",
+   "disposition": "shared-writer",
+   "why": "q105_woodman_dead is also written in q105_dollhouse and read by the Ex-Factor flow, so it is not an Automatic Love death proof; Judy was not there."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.revolution.commitment",
+   "outcomeKey": "refused",
+   "disposition": "shared-writer",
+   "why": "sq026_refused is also written in the Dollhouse phase and sq026_refused_hiromi/maiko are reset later; never nonzero in any save; pizza scenes are not exported."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.revolution.relic-disclosure",
+   "outcomeKey": "explained",
+   "disposition": "shared-writer",
+   "why": "judy_knows_johnny is written both in the Revolution plan and on the Pyramid pier, so it cannot separate an explanation from symptoms."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.revolution.relic-disclosure",
+   "outcomeKey": "symptoms-only",
+   "disposition": "zero-only",
+   "why": "Defined by the absence of the explanation; no positive writer."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.pisces.payment",
+   "outcomeKey": "refused",
+   "disposition": "zero-only",
+   "why": "Inverse of sq026_13_maiko_money (never set in any save); the refusal flags sq026_refused_maiko/hiromi are reset by later nodes."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.pisces.maiko-fate",
+   "outcomeKey": "nonlethal",
+   "disposition": "zero-only",
+   "why": "Inverse of sq026_maiko_dead; the survived-and-installed state is already mapped on its own topic."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.dream.van",
+   "outcomeKey": "lost",
+   "disposition": "told-by-v",
+   "why": "V-only pursuit; the Peralezes learn only through later reports, which are mapped separately."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.dream.van",
+   "outcomeKey": "data-seen",
+   "disposition": "told-by-v",
+   "why": "V-only event; sharing requires a later report."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.dream.later-call",
+   "outcomeKey": "suspicious-call",
+   "disposition": "no-signal",
+   "why": "The truth-route texts voice Jefferson's doubt about his own memories, not suspicion of Elizabeth."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.hunt.location",
+   "outcomeKey": "edgewood-guessed",
+   "disposition": "row:db.hunt-edgewood-two-farms",
+   "why": "Unverified: node 615 writes sq021_good_farm_chosen, which is shared with the deduced route; only the scene-local v_has_2_choose might separate it."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.hunt.harris-afterward",
+   "outcomeKey": "spared-after-success",
+   "disposition": "no-signal",
+   "why": "No message or scene flag after the vow on the success path; the forgiveness text is on the failure path."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.following.parents",
+   "outcomeKey": "heard",
+   "disposition": "row:db.river-parents-heard",
+   "why": "sq029_02_dark_story=1, written only if V asked about River's parents (node 1140); set in 683244."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.following.parents",
+   "outcomeKey": "stopped",
+   "disposition": "no-signal",
+   "why": "The 'You don't have to go on...' option is upstream of the same write, so the fact is set even when V interrupted; no flag for a stopped account."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.following.relationship",
+   "outcomeKey": "intimate",
+   "disposition": "row:db.river-intimate",
+   "why": "sq029_river_had_sex=1 written only after the [Kiss] option (node 404 to 1753); set in 5fd173; overlaps the committed rule."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.following.relationship",
+   "outcomeKey": "declined-commitment",
+   "disposition": "shared-writer",
+   "why": "The morning step-away writes only sq021_sobchak_friend, which has other writers; no positive marker."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.disclosure.reading",
+   "outcomeKey": "unread-return",
+   "disposition": "zero-only",
+   "why": "Defined by mq024_hacked_data_carrier == 0."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.disclosure.response",
+   "outcomeKey": "lied",
+   "disposition": "zero-only",
+   "why": "The denial path writes nothing; only the absence of mq024_admit_that_looked marks it."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.disclosure.response",
+   "outcomeKey": "honest-neutral",
+   "disposition": "shared-writer",
+   "why": "mq024_admit_that_looked is written for every admission (neutral, respectful, blackmail); the neutral option writes no flag of its own."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.disclosure.response",
+   "outcomeKey": "respectful",
+   "disposition": "shared-writer",
+   "why": "The congratulation option writes no flag; mq024_admit_that_looked is shared by all admissions."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.disclosure.response",
+   "outcomeKey": "runner-rapport",
+   "disposition": "no-signal",
+   "why": "The daemon/technique questions write no fact or journal state."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.disclosure.survival",
+   "outcomeKey": "alive",
+   "disposition": "zero-only",
+   "why": "Only the absence of a death marker."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.disclosure.survival",
+   "outcomeKey": "killed",
+   "disposition": "no-signal",
+   "why": "The defeat condition (killed, defeated, unconscious) does not prove death; there is no killed-only fact."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.beast.accept",
+   "outcomeKey": "refused",
+   "disposition": "row:db.claire-first-call-refused",
+   "why": "Unverified, narrow: sq024_v_said_not_interested_at_start from the first-call 'No thanks' option; never set in saves."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.the-beast-in-me-city-center.placement",
+   "outcomeKey": "won",
+   "disposition": "zero-only",
+   "why": "sq024_city_race_won is only ever written 0 (also by mq056); a win is 'no opponent finished first', a zero test."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.the-beast-in-me-city-center.placement",
+   "outcomeKey": "qualified",
+   "disposition": "shared-writer",
+   "why": "sq024_city_race_enemy_finish and sq024_city_rcr_finish_k are also written by mq056_01_citycenter and never reset; sq024_races_qualified is a shared counter across Badlands and docks scenes."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.the-beast-in-me-city-center.placement",
+   "outcomeKey": "outside-top-three",
+   "disposition": "no-signal",
+   "why": "Position counters are transient; no positive write marks a finish outside the top three."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.the-beast-in-me-badlands.placement",
+   "outcomeKey": "won",
+   "disposition": "zero-only",
+   "why": "The end scene wins on sq024_badlands_race_opponent_finish == 0; sq024_badlands_race_won is only written 0."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.the-beast-in-me-badlands.placement",
+   "outcomeKey": "qualified",
+   "disposition": "ambiguous",
+   "why": "sq024_badlands_race_opponent_finish is a single exact-1 flag ('an opponent crossed the line before V finished') in sq024_03_badlands_race; it cannot separate 2nd or 3rd from lower places and is also set if V never finishes."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.the-beast-in-me-badlands.placement",
+   "outcomeKey": "outside-top-three",
+   "disposition": "ambiguous",
+   "why": "Same flag as qualified; the end scene's 'opponent_finish <= 2' test cannot fail on an exact-1 flag, so no positive fact exists for placing outside the top three."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.santo.promise",
+   "outcomeKey": "revenge",
+   "disposition": "no-signal",
+   "why": "Section 158 writes only the shared end_stand; phone ch1 is offered on every path, so race-first players can send it too."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.big.finish",
+   "outcomeKey": "finished-other",
+   "disposition": "zero-only",
+   "why": "Inverse of the opponent_finish == 0 gate; sq024_big_race_won is the only positive write."
+  },
+  {
+   "lane": "judy-river",
+   "decisionId": "judy-river.hangout.attended",
+   "outcomeKey": "river-visited",
+   "disposition": "ambiguous",
+   "why": "mq055_02_river_first_time_done is set after the invitation text and the hang objective is true for partners never hosted, so it is not per-visit proof."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.nash-detour",
+   "outcomeKey": "declined",
+   "disposition": "no-signal",
+   "why": "Refusal only activates the roadhouse/ride objective, which the accept path also reaches."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.final-route",
+   "outcomeKey": "suicide",
+   "disposition": "no-speaker",
+   "why": "Fatal ending: nobody is left to know it."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.aldecaldo-route-smasher-fate",
+   "outcomeKey": "spared",
+   "disposition": "zero-only",
+   "why": "The walk-away branch writes no fact; killed is the only positive signal (q116_smashero_deado)."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.mikoshi-jackie",
+   "outcomeKey": "engram",
+   "disposition": "no-speaker",
+   "why": "Private to V; no roster character is affected and Jackie's knowledge ends at the Heist."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.mikoshi-jackie",
+   "outcomeKey": "pendant",
+   "disposition": "no-speaker",
+   "why": "Private to V; no roster character is affected."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.rogue-afterlife",
+   "outcomeKey": "absent-after-death",
+   "disposition": "row:db.sh-rogue-absent-afterlife",
+   "why": "Unverified row with Claire as the Afterlife witness."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.orbital-contract",
+   "outcomeKey": "signed",
+   "disposition": "told-by-v",
+   "why": "Private choice already covered by ahe-native.contract-signed (q201_ice) with told-by-v listeners; no one else is provably present."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.orbital-contract",
+   "outcomeKey": "earth",
+   "disposition": "told-by-v",
+   "why": "Private choice already covered by ahe-native.contract-refused (q201_earth) with told-by-v listeners."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.orbital-envoy",
+   "outcomeKey": "takemura",
+   "disposition": "covered-by-existing-rule",
+   "why": "Same signals as the pack's orbital-visitor rule."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.orbital-envoy",
+   "outcomeKey": "hellman",
+   "disposition": "no-speaker",
+   "why": "Hellman is not a roster key."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.temperance-memorials",
+   "outcomeKey": "v-and-rogue",
+   "disposition": "no-signal",
+   "why": "The Rogue-niche choice only removes an item and converges with the other branch; no fact or journal differs."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.voodoo-outcome",
+   "outcomeKey": "peaceful-departure",
+   "disposition": "zero-only",
+   "why": "The peaceful branch writes no positive fact."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.voodoo-outcome",
+   "outcomeKey": "v-initiated-fight",
+   "disposition": "shared-writer",
+   "why": "q110_voodoo_queen_dead is shared with the history-init and NetWatch outcomes."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.arasaka-route-smasher-fate",
+   "outcomeKey": "killed",
+   "disposition": "shared-writer",
+   "why": "Choice and the killed condition both feed journal 03b_decide_adam in q113_13_adam_smasher; no fact differs."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.arasaka-route-smasher-fate",
+   "outcomeKey": "spared",
+   "disposition": "shared-writer",
+   "why": "Same node as killed; no distinct positive signal."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.arasaka-assault-companion",
+   "outcomeKey": "present",
+   "disposition": "row:db.sh-assault-companion-present",
+   "why": "Takemura-alive variant from hideout-rescue plus confront-yorinobu journals."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.arasaka-assault-companion",
+   "outcomeKey": "absent",
+   "disposition": "row:db.sh-assault-companion-absent",
+   "why": "Unverified row from q112_takemura_dead, never observed in a save."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.surgery-departure",
+   "outcomeKey": "postponed",
+   "disposition": "transient",
+   "why": "02c_leave_rooftop can be followed by boarding, so it would co-fire with boarded."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.surgery-goodbye",
+   "outcomeKey": "hostile",
+   "disposition": "zero-only",
+   "why": "False branch of sq032_johnny_friend; nothing positive is written."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.kerry-farewell-tone",
+   "outcomeKey": "encouraging",
+   "disposition": "zero-only",
+   "why": "q101_kerry_insult is 0 on the encouraging branch; no positive fact."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.rogue-control-agreement",
+   "outcomeKey": "agreed",
+   "disposition": "no-signal",
+   "why": "sq032_07_finale choices converge at one node with no fact."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.rogue-control-agreement",
+   "outcomeKey": "declined",
+   "disposition": "no-signal",
+   "why": "Same convergence as agreed."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.oilfield-reconciliation",
+   "outcomeKey": "other-conversation",
+   "disposition": "zero-only",
+   "why": "Other branches write nothing and can still reach the friend branch."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.rogue-date-invitation",
+   "outcomeKey": "declined",
+   "disposition": "no-signal",
+   "why": "The decline option writes no fact and rejoins the main flow."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.drive-in-intimacy",
+   "outcomeKey": "not-initiated",
+   "disposition": "zero-only",
+   "why": "Absence of the kiss writes nothing."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.diner-followthrough",
+   "outcomeKey": "abandoned",
+   "disposition": "ambiguous",
+   "why": "The fail_cleanup In_highwaymen failure happens before the coffee meeting, so it does not mean the meeting was abandoned."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.terrace-kiss",
+   "outcomeKey": "not-kissed",
+   "disposition": "zero-only",
+   "why": "The decline option writes no fact."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.yacht-intimacy",
+   "outcomeKey": "occurred",
+   "disposition": "row:db.sh-yacht-intimacy-occurred",
+   "why": "Unverified row from sq028_kerry_sex."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.nancy-disclosure",
+   "outcomeKey": "withheld",
+   "disposition": "zero-only",
+   "why": "The withholding choice in mq018_03 writes no fact."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.union-collateral",
+   "outcomeKey": "others-killed",
+   "disposition": "ambiguous",
+   "why": "rcr_01_hurt_civilians is a health-threshold hurt, not a death."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.kang-tao-payment",
+   "outcomeKey": "not-accepted",
+   "disposition": "ambiguous",
+   "why": "arr_06_combat_kang_tao and the kill-wave facts are set in saves where arr_06_v_took_money never was, but combat can start independently of the offer and the chip may be looted, so no exclusive positive signal."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.rogue-route-smasher-fate",
+   "outcomeKey": "spared",
+   "disposition": "zero-only",
+   "why": "Walk-away writes nothing; killed is mapped via q116_smashero_deado."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.solo-assault-result",
+   "outcomeKey": "fatal-failure",
+   "disposition": "no-speaker",
+   "why": "Fatal ending: nobody is left to know it."
+  },
+  {
+   "lane": "silverhand",
+   "decisionId": "silverhand.solo-route-smasher-fate",
+   "outcomeKey": "spared",
+   "disposition": "zero-only",
+   "why": "Walk-away writes nothing; killed is mapped via q116_smasher_shot."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.steel.yoko-disclosure",
+   "outcomeKey": "declined",
+   "disposition": "no-signal",
+   "why": "Prior review stands: no refusal choice exists, the coordinate objective just fails when the convoy arrives."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.name.roulette",
+   "outcomeKey": "v-lost",
+   "disposition": "zero-only",
+   "why": "Only the win branch writes facts (q303_07_netrunners_lost_all_in graph[979], q303_casino_bet_won graph[122]/[150]); the loss branch (randomizers 118/147) has no positive writer."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.dazed.lina-recruitment",
+   "outcomeKey": "corpo",
+   "disposition": "no-signal",
+   "why": "Mansion choices 120 and 114 write no unique fact; the corporate approach shares its writers with the other approaches."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.dazed.lina-recruitment",
+   "outcomeKey": "celebrity-proof",
+   "disposition": "no-signal",
+   "why": "Same mansion choices, no unique fact or journal entry for the music or BD credential route."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.dazed.lina-recruitment",
+   "outcomeKey": "schedule-edited",
+   "disposition": "row:db.dazed-schedule-hacked",
+   "why": "Exclusive writer mq303_linas_pc_hacked on the [Hack schedule] option; unverified, never set in a save."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.easy.fate",
+   "outcomeKey": "murdered",
+   "disposition": "no-speaker",
+   "why": "Aaron is dead and the follow-up belongs to Coach Fred, who is out of lane."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.intro.entry",
+   "outcomeKey": "normal",
+   "disposition": "out-of-scope",
+   "why": "Entry route is save provenance metadata, no quest writer."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.intro.entry",
+   "outcomeKey": "skip",
+   "disposition": "out-of-scope",
+   "why": "Only ep1_standalone exists and it proves nothing about what V personally saw."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.lucretia.intruders",
+   "outcomeKey": "killed",
+   "disposition": "shared-writer",
+   "why": "q302_jacob_killed is written in both the squat scene (graph[108]) and the later oath scene (graph[844]) and is set in 6 saves; it cannot separate the hideout kill, and Reed and Songbird are not in the squat scene."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.lucretia.oath",
+   "outcomeKey": "sworn",
+   "disposition": "row:db.lucretia-oath-sworn",
+   "why": "q302_oath_pledged written only by the pledge lines; Reed's finale reads it."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.lucretia.oath",
+   "outcomeKey": "declined",
+   "disposition": "zero-only",
+   "why": "The decline lines write nothing; the oath fact is simply absent."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.birds.reed-disclosure",
+   "outcomeKey": "withheld",
+   "disposition": "zero-only",
+   "why": "Choice 3568 option 0 has no writer; withholding leaves no fact."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.damaged.blueprint",
+   "outcomeKey": "erebus",
+   "disposition": "no-signal",
+   "why": "Blueprint pickup is inventory only; q307_blueprint_acquired (q305_10_reed_finale) is set for any blueprint and does not name which."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.damaged.blueprint",
+   "outcomeKey": "canto",
+   "disposition": "no-signal",
+   "why": "Same: only the generic q307_blueprint_acquired flag exists, no Canto-specific fact."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.silence.medal",
+   "outcomeKey": "refused",
+   "disposition": "zero-only",
+   "why": "Choice 131 option 2 has no writer; only the accept branch writes q305_11_medal_taken (graph[182])."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.sympathy.coin",
+   "outcomeKey": "kept",
+   "disposition": "zero-only",
+   "why": "Keeping the coin writes nothing; only the gift branch is marked."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.forever.treatment",
+   "outcomeKey": "deferred",
+   "disposition": "transient",
+   "why": "q307_call_reed_refused is later superseded by the confirmed flag, so a deferral is not a lasting fact."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.symptoms.resolution",
+   "outcomeKey": "fight-alan",
+   "disposition": "shared-writer",
+   "why": "Both fight routes only write sts_ep1_12_milko_dead (killed, defeated or unconscious); Alan's fate is not recorded."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.symptoms.resolution",
+   "outcomeKey": "shoot-milko",
+   "disposition": "shared-writer",
+   "why": "Same sts_ep1_12_milko_dead writer as the fight route; no marker for who fired."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.dodger.force",
+   "outcomeKey": "none-confirmed",
+   "disposition": "zero-only",
+   "why": "A nonlethal run is the absence of the kill counter; no positive writer."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.dodger.force",
+   "outcomeKey": "killed",
+   "disposition": "no-speaker",
+   "why": "kill_count is lethal-only but mixes guards killed before Bill was rescued; Hands' debrief does not read it and Bill never saw it."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.dodger.resolution",
+   "outcomeKey": "peaceful",
+   "disposition": "no-signal",
+   "why": "No positive writer for the peaceful escape with Dodger alive."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.dodger.resolution",
+   "outcomeKey": "dodger-killed",
+   "disposition": "ambiguous",
+   "why": "sts_ep1_10_dodger_dead (graph[77] and [343] in the garage scene) covers killed, defeated and unconscious alike."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.dodger.resolution",
+   "outcomeKey": "officers-not-confirmed-safe",
+   "disposition": "no-signal",
+   "why": "An incomplete outcome has no record; it is the absence of the others."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.dodger.bill-followup",
+   "outcomeKey": "still-police",
+   "disposition": "no-signal",
+   "why": "Bill's follow-up message exists only on the left-police branch; staying a cop writes nothing."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.mistakes.payment",
+   "outcomeKey": "accepted",
+   "disposition": "no-signal",
+   "why": "Both choice-21 branches reach sts_10 hotdog_finished (graph[22]); GiveReward is not a fact."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.mistakes.payment",
+   "outcomeKey": "declined",
+   "disposition": "no-signal",
+   "why": "Same shared hotdog_finished writer."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.foreman.rinder-plan",
+   "outcomeKey": "execute",
+   "disposition": "no-speaker",
+   "why": "sts_ep1_03_wagner_death_chosen (graph[11], set in 2 saves) is a real marker but the standoff has only Rinder and V; neither Briana nor Hands is present or later reads it."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.foreman.rinder-plan",
+   "outcomeKey": "stash",
+   "disposition": "no-speaker",
+   "why": "sts_ep1_03_garage_revealed (graph[76]) is also written by the cleanup phase and has 0 readers; no audience for it."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.foreman.rinder-plan",
+   "outcomeKey": "rehabilitation",
+   "disposition": "no-speaker",
+   "why": "sts_ep1_03_wagner_called_regina (graph[17], non-exact, in no save) is a real marker, but Regina is not in the standoff and no later message from her reads it; Rinder is not a roster key."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.foreman.rinder-fate",
+   "outcomeKey": "dead",
+   "disposition": "ambiguous",
+   "why": "sts_ep1_03_wagner_dead has 5 writers and covers killed, defeated and unconscious, and is also set on the stash route (save 65224c)."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.foreman.rinder-fate",
+   "outcomeKey": "spared",
+   "disposition": "ambiguous",
+   "why": "No positive survival writer."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.foreman.rinder-fate",
+   "outcomeKey": "rehab-arranged",
+   "disposition": "ambiguous",
+   "why": "Only called_regina distinguishes it and it proves a promise, not what happened; Hands' Foreman debrief has a single variant."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.foreman.rinder-followup",
+   "outcomeKey": "message-received",
+   "disposition": "no-speaker",
+   "why": "Private Rinder-V texts; Briana is not a party and Rinder is not a roster key."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.foreman.rinder-followup",
+   "outcomeKey": "contact-encouraged",
+   "disposition": "no-speaker",
+   "why": "Same private thread."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.foreman.rinder-followup",
+   "outcomeKey": "contact-discouraged",
+   "disposition": "no-speaker",
+   "why": "Same private thread."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.roads.client",
+   "outcomeKey": "surrendered",
+   "disposition": "shared-writer",
+   "why": "sts_ep1_07 nele_captured is written in the final meeting scene (graph[97]) and also in the gameplay phase (node 36)."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.jungle.katya",
+   "outcomeKey": "spared",
+   "disposition": "no-speaker",
+   "why": "The deal marker wst_ep1_21_active (graph[115], save_katya_corpo/nomad graph[117]/[118]) and journal sts_ep1_08_loot_pickup are real, but Hands' debriefs do not read them and Steven Santos and Ana Friedman have no scene that reads them."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.jungle.katya",
+   "outcomeKey": "killed",
+   "disposition": "shared-writer",
+   "why": "sts_ep1_08_katya_killed covers killed, defeated and unconscious, and save C has it together with the deal flag."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.saints.resolution",
+   "outcomeKey": "nika-neutralized",
+   "disposition": "no-speaker",
+   "why": "kill_nika succeeded is verified (anderson_saved node 15) but Nika is not a roster key and Hands is not told."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.prototype.disposition",
+   "outcomeKey": "zetatech",
+   "disposition": "no-signal",
+   "why": "Choice 315 option 0 has no unique writer."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.prototype.disposition",
+   "outcomeKey": "alone",
+   "disposition": "no-speaker",
+   "why": "sts_ep1_04_hasan_let_go / _let_go_earlier (graph[29], [35]) are verified writers, but Hasan Demir is not a roster key and Hands' debrief does not read them."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.prototype.later-state",
+   "outcomeKey": "shop",
+   "disposition": "no-signal",
+   "why": "wst_ep1_05 shows a meeting and a gun, not a shop."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.prototype.later-state",
+   "outcomeKey": "impoverished",
+   "disposition": "no-signal",
+   "why": "Not observed: wst_ep1_06 is only a Hands SMS about an implant sale."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.hearts.testimony",
+   "outcomeKey": "anonymized",
+   "disposition": "row:db.hearts-testimony-anonymized",
+   "why": "Exclusive writer testimony_agree on the deal line; unverified, never set in a save."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.hearts.discretion",
+   "outcomeKey": "quiet",
+   "disposition": "zero-only",
+   "why": "A quiet job is the absence of the combat and alarm flags (alarm_raised, ground_floor_combat, upper_floor_combat)."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.academy.fiona",
+   "outcomeKey": "alive",
+   "disposition": "zero-only",
+   "why": "sts_ep1_13_fiona_dead_end is simply 0 on the survival path."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.academy.fiona",
+   "outcomeKey": "dead",
+   "disposition": "ambiguous",
+   "why": "fiona_dead_end is written in the fiona scene graph[19] right after the '[Steal data]' dialogue ends and by a combat phase node; it appears with fiona_deal_refuse in save 65a9d8 and does not prove a kill."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.shot.resolution",
+   "outcomeKey": "dante-alive",
+   "disposition": "row:db.shot-dante-alive-bree-shot",
+   "why": "mq305_v_killed_bree is an exclusive writer for Bree's death by V; unverified, never set in a save and Dante's survival is not provable."
+  },
+  {
+   "lane": "phantom",
+   "decisionId": "phantom.shot.resolution",
+   "outcomeKey": "both-dead",
+   "disposition": "ambiguous",
+   "why": "mq305_both_killed is a phase writer (bree_dead already set when Dante dies) that only drives Johnny's all-dead comments; no reader gives Hands a path, and it is in no save."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.lifes-work.gang-conflict",
+   "outcomeKey": "lethal-conflict",
+   "disposition": "shared-writer",
+   "why": "gle_06_kill_all is set once 4 or more of the community are killed OR defeated OR unconscious, and Padre's debrief does not read it."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.lifes-work.gang-conflict",
+   "outcomeKey": "no-lethal-conflict",
+   "disposition": "told-by-v",
+   "why": "No positive signal; absence of a fact cannot prove the other branch and Padre's debrief does not record the method."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.sinnerman.contract",
+   "outcomeKey": "joshua-killed",
+   "disposition": "row:db.sinnerman-joshua-killed",
+   "why": "Unverified row on sq023_joshua_killed (zero in all saves)."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.sinnerman.contract",
+   "outcomeKey": "continued-with-joshua",
+   "disposition": "told-by-v",
+   "why": "The choice is between V and Joshua in the after-chase scene; Wakako has no message for it."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.sinnerman.contract",
+   "outcomeKey": "pursuit-failed",
+   "disposition": "zero-only",
+   "why": "sq023_carchase_failed is never nonzero in any save and Wakako has no outcome-specific message."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.hippocratic-oath.patient",
+   "outcomeKey": "assisted",
+   "disposition": "told-by-v",
+   "why": "kab_02 blood-injection writer is in an unexported scene (shows no writer) and Regina's debrief branches only on kab_02_failed."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.hippocratic-oath.patient",
+   "outcomeKey": "left-treatment",
+   "disposition": "told-by-v",
+   "why": "Same: no fact that Regina's debrief reads separates this from the other branch."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.playing-for-keeps.recovery-method",
+   "outcomeKey": "blackmail",
+   "disposition": "zero-only",
+   "why": "lch_05_blackmaill has no visible writer and is zero in every save."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.playing-for-keeps.recovery-method",
+   "outcomeKey": "taken",
+   "disposition": "ambiguous",
+   "why": "Unverified loose row on lch_05_combat_started."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.dirty-biz.gottfrid",
+   "outcomeKey": "alive",
+   "disposition": "no-signal",
+   "why": "No per-character fate fact; the debrief reads only nid_04_failed (equal to 0), which cannot prove survival."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.dirty-biz.gottfrid",
+   "outcomeKey": "killed",
+   "disposition": "no-signal",
+   "why": "Same; nid_04_failed is never nonzero."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.dirty-biz.fredrik",
+   "outcomeKey": "alive",
+   "disposition": "no-signal",
+   "why": "Same as Gottfrid."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.dirty-biz.fredrik",
+   "outcomeKey": "killed",
+   "disposition": "no-signal",
+   "why": "Same as Gottfrid."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.backs-against-the-wall.encounter",
+   "outcomeKey": "deescalated",
+   "disposition": "zero-only",
+   "why": "kab_03_peace is never nonzero in any save; the debrief reads no outcome fact."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.backs-against-the-wall.encounter",
+   "outcomeKey": "neutralized",
+   "disposition": "told-by-v",
+   "why": "Regina's debrief for kab_03 is generic; Hare is not on the roster."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.woman-of-la-mancha.anna",
+   "outcomeKey": "nomad-exit",
+   "disposition": "told-by-v",
+   "why": "kab_08_hamill_becomes_nomad is V-side; Regina's persuaded debrief does not tell the nomad route apart."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.woman-of-la-mancha.anna",
+   "outcomeKey": "killed",
+   "disposition": "shared-writer",
+   "why": "kab_08_anna_dead is written from a Dave Hamill character condition with killed, defeated and unconscious all set, so it does not prove death."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.woman-of-la-mancha.anna",
+   "outcomeKey": "incapacitated",
+   "disposition": "shared-writer",
+   "why": "Same writer as killed."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.flight-of-the-cheetah.transport-choice",
+   "outcomeKey": "his-car",
+   "disposition": "told-by-v",
+   "why": "Optional go_to_car is V-side and the nid_03 debrief reads no outcome fact."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.flight-of-the-cheetah.transport-choice",
+   "outcomeKey": "other-transport",
+   "disposition": "no-signal",
+   "why": "Only the absence of the optional objective; no positive record."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.last-login.charles",
+   "outcomeKey": "discount-accepted",
+   "disposition": "told-by-v",
+   "why": "The bribe is a scene choice with Charles (not on the roster); the kab_05 debrief reads no outcome fact; kab_05_bribe_accepted is not in the fact table of any save."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.last-login.charles",
+   "outcomeKey": "bribe-refused",
+   "disposition": "told-by-v",
+   "why": "Same as discount-accepted."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.bloodsport.sponsor-disclosure",
+   "outcomeKey": "told",
+   "disposition": "no-speaker",
+   "why": "The disclosure is to Roh, who is not on the roster; Regina has no record of it."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.bloodsport.sponsor-disclosure",
+   "outcomeKey": "withheld",
+   "disposition": "no-speaker",
+   "why": "Same as told."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.scrolls-before-swine.aaron-resolution",
+   "outcomeKey": "delivered-unquestioned",
+   "disposition": "ambiguous",
+   "why": "Regina's 'Aaron is happy' debrief fires for every non-hostile ending, so no branch-specific signal exists."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.scrolls-before-swine.aaron-resolution",
+   "outcomeKey": "blackmailed",
+   "disposition": "told-by-v",
+   "why": "Scene choice only; Regina's debrief is the same variant."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.scrolls-before-swine.aaron-resolution",
+   "outcomeKey": "exposed-without-demand",
+   "disposition": "told-by-v",
+   "why": "Same as blackmailed."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.freedom-of-the-press.max",
+   "outcomeKey": "dead",
+   "disposition": "ambiguous",
+   "why": "The nid_12 debrief reads nid_12_max_convinced; the failure path has several causes and the fail lines do not state death; nid_12_max_unconscious is zero in all saves."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.the-heisenberg-principle.method",
+   "outcomeKey": "physical-destruction",
+   "disposition": "told-by-v",
+   "why": "No Regina debrief branch or method fact found among her debrief scenes."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.the-heisenberg-principle.method",
+   "outcomeKey": "malware",
+   "disposition": "told-by-v",
+   "why": "Same as physical-destruction."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.occupational-hazard.anna",
+   "outcomeKey": "incapacitated",
+   "disposition": "shared-writer",
+   "why": "nid_01_psycho_dead is written on killed OR defeated OR unconscious."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.occupational-hazard.anna",
+   "outcomeKey": "killed",
+   "disposition": "shared-writer",
+   "why": "Same writer as incapacitated."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.family-matters.rose",
+   "outcomeKey": "incapacitated",
+   "disposition": "no-signal",
+   "why": "Muamar's rcr_05 debrief reads no outcome fact and Rose is not on the roster."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.family-matters.rose",
+   "outcomeKey": "killed",
+   "disposition": "no-signal",
+   "why": "Same as incapacitated."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.hacking-the-hacker.lucius",
+   "outcomeKey": "not-killed",
+   "disposition": "ambiguous",
+   "why": "The arr_11 debrief branches on arr_11_perfect, which is set on a killed-or-defeated check and is nonzero in saves without arr_11_lucius_dead; arr_11__not_perfect is never nonzero."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.on-a-tight-leash.conspiracy-report",
+   "outcomeKey": "withheld",
+   "disposition": "ambiguous",
+   "why": "The 'Nope.' choice cannot be told apart from V never finding out; spr_01_silverhand has no visible writer."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.bring-me-the-head-of-gustavo-orta.gustavo",
+   "outcomeKey": "agreed-to-leave",
+   "disposition": "zero-only",
+   "why": "rey_01_persuade_gustavo is never nonzero in any save and Padre's line for it says Gustavo shot himself; rey_01_left, read by the debrief, has no writer."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.eye-for-an-eye.bribe",
+   "outcomeKey": "accepted",
+   "disposition": "told-by-v",
+   "why": "The bribe is not reported to Padre; the gle_01 debrief does not branch on it."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.eye-for-an-eye.bribe",
+   "outcomeKey": "refused",
+   "disposition": "told-by-v",
+   "why": "Same as accepted."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.sr-ladrillos-private-collection.stealth",
+   "outcomeKey": "undetected",
+   "disposition": "no-signal",
+   "why": "No stealth fact exists; Padre's rey_02 debrief reads no outcome fact."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.sr-ladrillos-private-collection.stealth",
+   "outcomeKey": "detected",
+   "disposition": "no-signal",
+   "why": "Same as undetected; rey_02_gang_retaliation is not a stealth verdict."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.going-up-or-down.method",
+   "outcomeKey": "persuaded",
+   "disposition": "told-by-v",
+   "why": "The El Gallo conversation scene writes no persuade/take fact and Padre's gle_05 debrief is generic."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.going-up-or-down.method",
+   "outcomeKey": "taken",
+   "disposition": "told-by-v",
+   "why": "Same as persuaded."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.guinea-pigs.koch",
+   "outcomeKey": "killed",
+   "disposition": "ambiguous",
+   "why": "dtn_04_joanne_koch_dead has a second input from a braindance device event besides the killed-only check, so the fact does not prove Koch died."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.guinea-pigs.computer-request",
+   "outcomeKey": "allowed",
+   "disposition": "told-by-v",
+   "why": "The optional plea is not reported to Dino."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.guinea-pigs.computer-request",
+   "outcomeKey": "refused",
+   "disposition": "told-by-v",
+   "why": "Same as allowed."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.machine-gun.custody",
+   "outcomeKey": "retained",
+   "disposition": "told-by-v",
+   "why": "The 'keeping you' choice exclusively writes mq007_skippy_goes_emo, but it is said to Skippy and Regina never receives the weapon."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.machine-gun.diagnostic",
+   "outcomeKey": "further-test",
+   "disposition": "transient",
+   "why": "mq007_skippy_aim_at_head is set to 1 and back to 0 inside the mq007_03 scene and is zero in every save."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.just-another-story.deadline",
+   "outcomeKey": "met",
+   "disposition": "out-of-scope",
+   "why": "Courier template; the timed objective is only issued by some instances and is inactive in saves."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.just-another-story.deadline",
+   "outcomeKey": "missed",
+   "disposition": "out-of-scope",
+   "why": "Same as met."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.just-another-story.condition",
+   "outcomeKey": "met",
+   "disposition": "out-of-scope",
+   "why": "Courier template; the undamaged-delivery objective is only issued by some instances."
+  },
+  {
+   "lane": "fixers",
+   "decisionId": "fixers.just-another-story.condition",
+   "outcomeKey": "missed",
+   "disposition": "out-of-scope",
+   "why": "Same as met."
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.jackie.construct-encounter",
+   "outcomeKey": "damaged-construct",
+   "disposition": "no-speaker",
+   "why": "affects only V and is a post-death event; no Jackie or Takemura speaker may know it"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.jackie.construct-encounter",
+   "outcomeKey": "necklace",
+   "disposition": "no-speaker",
+   "why": "alternate Mikoshi scene affects only V; no living roster speaker was present"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.nix.maxtac-favor",
+   "outcomeKey": "requested",
+   "disposition": "ambiguous",
+   "why": "the data-delivered path also passes the request, so no exclusive requested-only positive predicate exists"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.nix.spellbook-acquisition",
+   "outcomeKey": "purchased",
+   "disposition": "no-speaker",
+   "why": "the seller is R3n0, not Nix; Nix does not witness the purchase and the Spellbound scene writers are shared across the buy and negotiate branches"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.nix.spellbook-acquisition",
+   "outcomeKey": "corpo-discount",
+   "disposition": "no-speaker",
+   "why": "negotiation happens between V and the seller; Nix is absent and both buying branches reach the same stash message"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.nix.spellbook-acquisition",
+   "outcomeKey": "laptop",
+   "disposition": "no-speaker",
+   "why": "theft from the seller's laptop happens with only the seller present, and he is defeated first"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.nix.spellbook-payment",
+   "outcomeKey": "standard",
+   "disposition": "no-signal",
+   "why": "only mq015_tablet_sold exists and it is also set on the bonus branch"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.nix.spellbook-payment",
+   "outcomeKey": "bonus-negotiated",
+   "disposition": "no-signal",
+   "why": "no positive bonus record; rude_to_nix and mq015_tablet_sold do not separate the options"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.heroes.misty-attendance",
+   "outcomeKey": "not-invited",
+   "disposition": "zero-only",
+   "why": "only sq018_03a_misty_invited == 0 distinguishes it; absent and zero read the same"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.heroes.motorcycle",
+   "outcomeKey": "declined",
+   "disposition": "zero-only",
+   "why": "the funeral scene sets no positive decline fact"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.vik.debt-at-install",
+   "outcomeKey": "on-credit",
+   "disposition": "no-signal",
+   "why": "no positive installation-payment receipt exists"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.vik.debt-at-install",
+   "outcomeKey": "paid-upfront",
+   "disposition": "no-signal",
+   "why": "no positive installation-payment receipt exists"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.tarot.city-collection",
+   "outcomeKey": "collected",
+   "disposition": "told-by-v",
+   "why": "Misty learns of the twenty murals only at the reading, which is already the mapped reading-completed outcome"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.final-offer",
+   "outcomeKey": "rejected",
+   "disposition": "zero-only",
+   "why": "the rejection branch writes nothing"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.kabuki-result",
+   "outcomeKey": "defeat",
+   "disposition": "transient",
+   "why": "a lost fight is retried and there is no positive loss receipt"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.arroyo-wager",
+   "outcomeKey": "cash",
+   "disposition": "told-by-v",
+   "why": "the wager is private to V and Buck; Fred was not there"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.arroyo-wager",
+   "outcomeKey": "rifle",
+   "disposition": "told-by-v",
+   "why": "same as the cash wager"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.arroyo-result",
+   "outcomeKey": "defeat",
+   "disposition": "ambiguous",
+   "why": "the shared 03b message has a non-combat route; three saves have it without buck_dead"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.arroyo-aftermath",
+   "outcomeKey": "hostility",
+   "disposition": "ambiguous",
+   "why": "only distinguishable through the shared 03b message"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.arroyo-aftermath",
+   "outcomeKey": "departed",
+   "disposition": "told-by-v",
+   "why": "no positive departure record, and Fred was not there"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.glen-result",
+   "outcomeKey": "defeat",
+   "disposition": "transient",
+   "why": "a lost fight is retried and there is no positive loss receipt"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.glen-concession",
+   "outcomeKey": "kept-both",
+   "disposition": "told-by-v",
+   "why": "Fred is not present at the Glen; the concession choices happen between V and Cesar, and Fred's message covers only the money"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.glen-concession",
+   "outcomeKey": "car-only",
+   "disposition": "told-by-v",
+   "why": "same as kept-both"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.glen-concession",
+   "outcomeKey": "money-only",
+   "disposition": "told-by-v",
+   "why": "same as kept-both"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.glen-concession",
+   "outcomeKey": "left-both",
+   "disposition": "told-by-v",
+   "why": "same as kept-both"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.rancho-resolution",
+   "outcomeKey": "bout-defeat",
+   "disposition": "transient",
+   "why": "a lost bout is retried and there is no positive loss receipt"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.boxing.pacifica-result",
+   "outcomeKey": "v-lost",
+   "disposition": "transient",
+   "why": "a lost bout is retried and there is no positive loss receipt"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.pepe.bar-intervention",
+   "outcomeKey": "intimidated",
+   "disposition": "row:db.pepe-bar-talked-down",
+   "why": "mq040_gangers_scene_done is written only after the Solo or Street Kid talk-down options"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.pepe.report",
+   "outcomeKey": "advised-separation",
+   "disposition": "shared-writer",
+   "why": "the report choice shares its writer with the supportive branch"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.wilson.result",
+   "outcomeKey": "other",
+   "disposition": "zero-only",
+   "why": "the loss section has no positive writer"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.dennis.extraction",
+   "outcomeKey": "died-before-delivery",
+   "disposition": "told-by-v",
+   "why": "no positive receipt, so Dennis knows only what V reports; no mq038 fact records the death"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.nix.deck-decryption",
+   "outcomeKey": "deferred",
+   "disposition": "transient",
+   "why": "only the optional change-your-mind objective becomes active"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.nix.rescue",
+   "outcomeKey": "died",
+   "disposition": "no-speaker",
+   "why": "affects only V; Nix cannot know his own death"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.jesse.help",
+   "outcomeKey": "refused",
+   "disposition": "zero-only",
+   "why": "no positive refusal fact exists"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "heywood.jesse.transport",
+   "outcomeKey": "died",
+   "disposition": "no-speaker",
+   "why": "affects only V; Jesse cannot know his own death"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.nam.maxtac-job",
+   "outcomeKey": "engaged",
+   "disposition": "ambiguous",
+   "why": "cumulative stage of the same topic as the mapped departure-discussed outcome; both being true would suppress the topic"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.nam.maxtac-job",
+   "outcomeKey": "data-delivered-injured",
+   "disposition": "ambiguous",
+   "why": "same stage problem; handover and aphasia are already folded into cc5.nam.skip-town"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.warmer.disconnection",
+   "outcomeKey": "fatal-disconnection",
+   "disposition": "no-speaker",
+   "why": "8ug8ear is dead and rey_09_target_died fires on any kill, not only an unsafe unplug"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.nam.recovery",
+   "outcomeKey": "vendor-established",
+   "disposition": "no-signal",
+   "why": "no vendor-state fact or journal entry exists; jpn_05_nam_endings is already the recovered rule"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.jake.quadra-gift",
+   "outcomeKey": "alternate-acquisition",
+   "disposition": "told-by-v",
+   "why": "the Muamar route gives Jake no record"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.blue.stalker-identification",
+   "outcomeKey": "griselda-confirmed",
+   "disposition": "told-by-v",
+   "why": "no marker shows Blue Moon learning the legal name or the alias"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.blue.stalker-identification",
+   "outcomeKey": "wrong-person-reported",
+   "disposition": "told-by-v",
+   "why": "no playable accusation receipt exists"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.blue.protection",
+   "outcomeKey": "killed-on-route",
+   "disposition": "no-speaker",
+   "why": "Blue Moon is dead and root Failed is shared with defeated or unconscious outcomes"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.blue.protection",
+   "outcomeKey": "later-death-reported",
+   "disposition": "no-speaker",
+   "why": "Blue Moon is dead"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.blue.protection",
+   "outcomeKey": "operation-abandoned",
+   "disposition": "row:db.blue-op-aborted",
+   "why": "mq028_aborted is written only when Blue Moon quits on screen; unverified, never nonzero in a save"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.violence.evidence",
+   "outcomeKey": "copy-plot-heard",
+   "disposition": "shared-writer",
+   "why": "mq019_full_story is set both by Liam's explanation and by the camera eavesdrop"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.violence.evidence",
+   "outcomeKey": "affair-assumed",
+   "disposition": "no-signal",
+   "why": "the only marker would be an absence"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.violence.bribe",
+   "outcomeKey": "not-accepted",
+   "disposition": "no-signal",
+   "why": "the refusal line reaches only 03a_confront_liam Succeeded, which other options share"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.violence.disposal",
+   "outcomeKey": "help-refused",
+   "disposition": "row:db.lizzy-disposal-refused",
+   "why": "refusal sends the no_job phone message; unverified, journal path not in the pack and not in any save"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.lizzy.black-sapphire",
+   "outcomeKey": "cordial",
+   "disposition": "no-signal",
+   "why": "q303 holds only Lizzy concert facts; no ep1 asset reads mq019 outcomes"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.lizzy.black-sapphire",
+   "outcomeKey": "rebuffed",
+   "disposition": "no-signal",
+   "why": "same as cordial"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.lizzy.black-sapphire",
+   "outcomeKey": "headgear-gift",
+   "disposition": "no-signal",
+   "why": "same as cordial"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.reno.transaction",
+   "outcomeKey": "paid-asking",
+   "disposition": "shared-writer",
+   "why": "the pay and negotiate branches both reach node 376 and the same stash message"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.reno.transaction",
+   "outcomeKey": "negotiated-corpo",
+   "disposition": "shared-writer",
+   "why": "same as paid-asking"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.reno.transaction",
+   "outcomeKey": "coordinates-stolen",
+   "disposition": "no-speaker",
+   "why": "the 04_steal_data fact is clean but R3n0 is defeated before the computer theft, so no living witness"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.reno.fate",
+   "outcomeKey": "incapacitated",
+   "disposition": "ambiguous",
+   "why": "the defeat condition is killed or defeated or unconscious"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.reno.fate",
+   "outcomeKey": "dead",
+   "disposition": "ambiguous",
+   "why": "same as incapacitated"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.rachel.sinnerman-entry",
+   "outcomeKey": "left",
+   "disposition": "no-signal",
+   "why": "refusal lines can be re-asked; telem_hook_leave covers one line and 14_join Failed comes from the attack branch"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.rachel.joshua-influence",
+   "outcomeKey": "supported",
+   "disposition": "ambiguous",
+   "why": "cumulative doubt counters"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.rachel.joshua-influence",
+   "outcomeKey": "challenged",
+   "disposition": "ambiguous",
+   "why": "cumulative doubt counters"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.sergei.captive",
+   "outcomeKey": "delivered",
+   "disposition": "out-of-scope",
+   "why": "Wakako side is already in the pack (fo5.olive-branch.delivered via jpn_01_debrief_good); Sergei is not present at the hand-over and gets no record"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.sergei.captive",
+   "outcomeKey": "released",
+   "disposition": "out-of-scope",
+   "why": "jpn_01_alex_is_free and journal free_alex exist, but Wakako side is already in the pack (fixers.native.olive-branch.freed.confirmed-debrief); Sergei gets no record"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.sergei.aftermath",
+   "outcomeKey": "sergei-body-found",
+   "disposition": "no-speaker",
+   "why": "Sergei is dead"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.sergei.aftermath",
+   "outcomeKey": "alex-body-found",
+   "disposition": "no-speaker",
+   "why": "Sergei is not present at the discovery"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.jim.race-result",
+   "outcomeKey": "won",
+   "disposition": "ambiguous",
+   "why": "repeatable races with no run identity; finishing is not a placing"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.jim.race-result",
+   "outcomeKey": "completed-other-place",
+   "disposition": "ambiguous",
+   "why": "same as won"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.bana.katya-fate",
+   "outcomeKey": "spared",
+   "disposition": "no-speaker",
+   "why": "Bana is dead; the Judy and River version sits in another lane"
+  },
+  {
+   "lane": "heywood-city",
+   "decisionId": "city-contacts.bana.katya-fate",
+   "outcomeKey": "killed",
+   "disposition": "no-speaker",
+   "why": "same as spared"
+  }
+ ]
+}

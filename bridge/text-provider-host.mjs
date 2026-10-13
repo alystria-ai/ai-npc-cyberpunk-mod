@@ -11,7 +11,8 @@
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
-  summaryMessages, factMessages, parseFacts, systemHead, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
+  summaryMessages, factMessages, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
+import {actionMenu, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
@@ -64,12 +65,14 @@ export const isLocalUnavailable = error => LOCAL_UNAVAILABLE.test(typeof error?.
  * prefix is cached on Mistral's side (measured: 98% of the prompt cached, about 20% faster, cached tokens do not count against the
  * token budget; docs/FREE_CLOUD_OPTION_RESEARCH.md).
  */
-export function mistralRoute({provider, model = () => DEFAULT_MODELS, chat = streamChat, endpoint, gapMs = 1100, onFailure, onSuccess,
+export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionModel, chat = streamChat, endpoint, gapMs = 1100, onFailure, onSuccess,
   cacheScope = '', now = () => performance.now(), scheduler, priorities = {TEXT: 0, BACKGROUND: 2}, chatDefaults = CLOUD_CHAT_LIMITS} = {}) {
   return {name: 'mistral', provider: 'mistral', chat, endpoint, gapMs, now, blocked: new Map(), nextSlot: 0, scheduler, priorities,
     chatDefaults,
     noteHeaders: scheduler ? headers => { try { scheduler.noteHeaders(headers); } catch { /* spacing is best effort */ } } : undefined,
     models: () => [model()].flat().map(id => ({id})),
+    // The models of the companion-action decision (a one-word answer, bridge/text-actions.mjs); without it the reply's models are used.
+    decisionModels: decisionModel ? () => [decisionModel()].flat().map(id => ({id})) : undefined,
     async connect() { return {apiKey: provider.apiKey}; },
     // The cache key must not hold secrets: the install scope is a hash, the rest is the character.
     cacheBody: profileKey => profileKey ? {prompt_cache_key: `cyberpunk-convai:${cacheScope}:${profileKey}`.slice(0, 120)} : {},
@@ -146,7 +149,9 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       return {contextTokens: handle.contextSize, meter: meters.get(handle.model), count};
     },
     onFit: fit => log('The local AI: ' + describeFit(fit))});
-  return {name: 'local', provider: 'local', chat, gapMs: 0, blocked: new Map(), nextSlot: 0,
+  // parallel: false: the server answers one request at a time (one slot), so an action decision does not overlap the reply; measured
+  // 2026-10-13: the overlap gained nothing on Gemma 4 with one slot or two (docs/LOCAL_AI.md, Actions).
+  return {name: 'local', provider: 'local', chat, gapMs: 0, blocked: new Map(), nextSlot: 0, parallel: false,
     models: () => [{id: 'local'}],
     async connect(signal, {background = false} = {}) {
       if (background && server.status().state !== 'ready') throw new MistralError('network', 'is not loaded right now', {provider: 'local'});
@@ -190,11 +195,13 @@ export class TextProviderHost {
    * gate        () => boolean: may background work (summaries, facts) run now? (the bridge: no combat, nothing speaking)
    * resolveProfile   config => profile key, for warm connections that carry no `local` field
    * idleRetryMs   how often a gated background task checks the gate again
+   * deliverAction  message => Promise<boolean>: hands a companion action the reply asked for to the game (CompanionActions.deliver);
+   *                without it the turn offers no actions (bridge/text-actions.mjs)
    */
   constructor({provider, memory, personas = new PersonaBook(), routes = {}, transformReply = result => result, now = () => performance.now(),
-    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, matureContent = null, matureGuard = new MatureGuard()} = {}) {
+    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, matureContent = null, matureGuard = new MatureGuard()} = {}) {
     if (!provider) throw Error('Text provider required');
-    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, matureContent, matureGuard});
+    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, matureContent, matureGuard});
     this.summaries = new Set();
     this.holdingTurns = 0;
     this.timers = new Set();
@@ -224,11 +231,11 @@ export class TextProviderHost {
   }
 
   async #send(route, messages, signal, extra = {}) {
-    const {profileKey, background, extraBody, ...rest} = extra;
+    const {profileKey, background, extraBody, models, ...rest} = extra;
     const lease = await route.connect(signal, {background});
     try {
       // The models in order of preference. A model the account has no allowance for (limit 0) is skipped for ten minutes.
-      const wanted = route.models();
+      const wanted = models?.length ? models : route.models();
       const now = Date.now();
       const usable = wanted.filter(item => !(route.blocked.get(item.id) > now));
       let lastError;
@@ -284,6 +291,9 @@ export class TextProviderHost {
     const memoryKey = {profileKey: local.profileKey, channel: local.channel, ambientKey: local.ambientKey};
     // The stream the reply text goes through: the voice's, or one that only marks the first sentence on the turn's clock.
     const feed = stream ?? new ReplyStream({name: persona.name, isTag, speak: false});
+    // The companion actions the game offers this turn (a private conversation with a companion; never a reaction line). Which one V asked
+    // for is decided by a tiny request of its own that runs while the memory store retrieves (bridge/text-actions.mjs).
+    const menu = !reaction && typeof this.deliverAction === 'function' ? actionMenu(config.companionAction) : null;
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
     // Mature content on (the local AI only): the hard-limit guard reads V's words before any model is asked (bridge/mature-guard.mjs). A
     // refusal is the character's own short line; nothing is sent to a model and nothing is stored.
@@ -292,6 +302,12 @@ export class TextProviderHost {
       const verdict = this.matureGuard.screenInput(text, {history: recalled.turns});
       if (verdict.blocked) return this.#refuse(firstRoute, {config, local, feed, started, where: 'input'});
     }
+    // Only a line with a word a request could use is sent to the decision (bridge/text-action-words.mjs): ordinary talk pays nothing.
+    const maybe = menu?.rows.length ? menu.screen(text, recalled.turns.at(-1)) : [];
+    const deciding = maybe.length ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal}) : null;
+    // One action it could be: the reply is written at once as if V asked for it, and held back from the voice until the decision agrees
+    // (see #replyOn); with several, or on a route that serves one request at a time (`parallel: false`), the reply waits for the decision.
+    const guess = maybe.length && this.routes[this.provider.route]?.parallel !== false ? menu.guess(text, maybe) : null;
     // What the memory store remembers that bears on V's words (private and phone talk of a named character; empty otherwise and
     // whenever it cannot answer in a few hundred milliseconds).
     let remembered = [];
@@ -299,11 +315,16 @@ export class TextProviderHost {
       try { remembered = await this.memory.retrieve({...memoryKey, query: text, signal}) ?? []; } catch { remembered = []; }
       if (signal?.aborted) throw cancelled();
     }
+    const decision = deciding && !guess ? await deciding : null;
+    if (signal?.aborted) throw cancelled();
+    const chosen = decided => decided && menu.message(decided) ? decided.code : null;
+    const actionNotes = menu ? menu.notes(guess ? (guess === 'NONE' ? null : guess) : chosen(decision)) : '';
+    const speculation = guess ? {guess, deciding, confirms: decided => (chosen(decided) ?? 'NONE') === guess, notesFor: decided => menu.notes(chosen(decided))} : null;
     markStage('recalled');
     const candidates = this.#candidates();
     for (const [index, route] of candidates.entries()) {
       try {
-        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed});
+        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation});
         const elapsed = Math.round(this.now() - started);
         const {response} = outcome;
         // What was already spoken stands: a finished reply that does not begin with it is cut back to it.
@@ -315,6 +336,7 @@ export class TextProviderHost {
           this.#summarize(route, local.profileKey);
         }
         markStage('replyReturned');
+        if (deciding) { const settled = await deciding, act = settled && menu.message(settled); if (act) this.#act({code: settled.code, message: act}); }
         const result = this.transformReply({text: reply, sessionID: config.sessionId, transport: route.name,
           timing: {provider: route.name, llmMs: elapsed, model: response.model ?? route.models()[0]?.id, attempts: response.attempts,
             ...(response.failed?.length ? {llmFailed: response.failed} : {}),
@@ -375,6 +397,31 @@ export class TextProviderHost {
     return result;
   }
 
+  /** Hands the action a finished reply asked for to the game. Best effort: the spoken reply never waits for it or fails with it. */
+  #act({code, message}) {
+    try {
+      Promise.resolve(this.deliverAction(message)).then(
+        accepted => this.log(`action ${code} ${accepted ? 'handed to the game' : 'was not accepted'}`),
+        error => this.log(`action ${code} failed: ${error?.message ?? 'error'}`));
+    } catch (error) { this.log(`action ${code} failed: ${error?.message ?? 'error'}`); }
+  }
+
+  /**
+   * Which of the offered actions V's words plainly ask for: one small request, no persona, a one-word answer. Never throws; a failure,
+   * a late answer or an unclear one is "none" (the reply is then written as plain talk with what is not possible said in its notes).
+   */
+  async #decide(route, menu, {text, last, signal}) {
+    if (!route) return null;
+    try {
+      const response = await this.#request(route, menu.classifier({text, last}), signal,
+        {maxTokens: route.name === 'groq' ? 300 : 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, models: route.decisionModels?.()});
+      return menu.decide(response.text);
+    } catch (error) {
+      if (!signal?.aborted) this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
+      return null;
+    }
+  }
+
   /**
    * The Mature content level for a turn on `route` ('full' or 'suggestive'), or null: the setting is off, or the route is not one that may
    * have it (only the local AI). The model decides the level (its licence), so it is read from the loaded model; the server is started
@@ -387,17 +434,38 @@ export class TextProviderHost {
     return this.matureContent.forTurn(route.name, model)?.level ?? null;
   }
 
-  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed}) {
-    const mature = await this.#matureLevel(route, signal);
-    const build = nudge => buildMessages({persona, memory: recalled.summary, history: recalled.turns, context: config.context,
-      contextParts: config.contextParts, remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits, ...(mature ? {mature} : {})});
-    const shouldStop = soFar => capPoint(cleanReply(soFar, {name: persona.name, isTag}), this.limits) >= 0;
+  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation}) {
+    const mature = this.matureContent?.enabled ? await this.#matureLevel(route, signal) : null;
+    // This turn's action notes go last in the prompt, after everything that can be cached.
+    let notes = actionNotes;
+    const build = nudge => buildMessages({persona, memory: recalled.summary, history: recalled.turns,
+      context: notes && !config.contextParts ? joinBlocks([config.context, notes]) : config.context,
+      contextParts: notes && config.contextParts ? {...config.contextParts, volatile: joinBlocks([config.contextParts.volatile, notes])} : config.contextParts,
+      remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits, ...(mature ? {mature} : {})});
+    // A speculative request (reply()) assumes V asked for the guessed action. It shows the voice nothing until the decision agrees; if the
+    // decision says otherwise it is cancelled and the reply is written again with the right notes.
+    const spec = speculation ? {controller: new AbortController(), open: false, latest: '', missed: false, over: false} : null;
+    speculation?.deciding.then(decided => {
+      if (spec.over) return;
+      if (speculation.confirms(decided)) { spec.open = true; try { feed.update(spec.latest); } catch { /* the voice's view never breaks the reply */ } }
+      else { spec.missed = true; notes = speculation.notesFor(decided); spec.controller.abort(); }
+    });
+    // An action code ("[DRIVE]") is never part of the reply: the voice, the subtitles and the memory see the text without it.
+    const visible = soFar => splitActions(soFar, {streaming: true}).text;
+    const shouldStop = soFar => capPoint(cleanReply(visible(soFar), {name: persona.name, isTag}), this.limits) >= 0;
     const run = async nudge => {
       const messages = build(nudge);
       markStage('promptBuilt');
-      const response = await this.#request(route, messages, signal, {shouldStop, profileKey, onDelta: (_piece, soFar) => { try { feed.update(soFar); } catch { /* the voice's view of the reply never breaks the reply */ } }});
+      const sent = spec && !spec.over ? (signal ? AbortSignal.any([signal, spec.controller.signal]) : spec.controller.signal) : signal;
+      const response = await this.#request(route, messages, sent, {shouldStop, profileKey, onDelta: (_piece, soFar) => {
+        const shown = visible(soFar);
+        if (spec && !spec.over) { spec.latest = shown; if (!spec.open) return; }
+        try { feed.update(shown); } catch { /* the voice's view of the reply never breaks the reply */ }
+      }});
+      if (spec && !spec.over) { await speculation.deciding; if (spec.missed) throw new MistralError('request', 'the action decision changed the notes'); }
       markStage('fullText');
-      let cleaned = cleanReply(response.text, {name: persona.name, isTag});
+      const {text: spoken} = splitActions(response.text);
+      let cleaned = cleanReply(spoken, {name: persona.name, isTag});
       if (response.finishReason === 'length') cleaned = trimUnfinished(cleaned);
       let reply = capReply(cleaned, this.limits);
       // Mature content only: a reply that puts a minor and romance or sex together (or has the character claim to be under 18) is dropped for
@@ -421,7 +489,12 @@ export class TextProviderHost {
     const refuseHead = said.length || provoked ? head => repeatsLine(head, said) || (provoked && takesUpAiTalk(head)) : null;
     // With Mature content on, a first sentence that flags is never committed to the voice either.
     if (feed && typeof feed === 'object') feed.reject = mature ? head => (refuseHead ? refuseHead(head) : false) || this.matureGuard.flagsReply(head, {history: recalled.turns}) : refuseHead;
-    let outcome = await run('');
+    let outcome;
+    try { outcome = await run(''); } catch (error) {
+      if (!spec?.missed || signal?.aborted) throw error;
+      spec.over = true;
+      outcome = await run('');
+    }
     // A reply the guard replaced is final: no second attempt, no checks (the refusal is the character's own line).
     if (outcome.guarded) { route.success(); return outcome; }
     // A reply that steps out of character, or is a model's reasoning, gets one more try. The second answer is used unless it
@@ -533,7 +606,7 @@ export class TextProviderHost {
  * `prewarmVoice` (default true): a warm-up also opens the host's local voice renderer (the phone host has none to open).
  * `speech` is an optional hook for local speech recognition (bridge/local-stt.mjs): {available(): boolean, voiceChannel({reply})}.
  */
-export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true} = {}) {
+export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true, warmCloud} = {}) {
   const textHost = mistral;
   const original = {reply: host.reply, prepare: host.prepare, warm: host.warm, readiness: host.readiness, lateEmotion: host.lateEmotion,
     refreshIdle: host.refreshIdle, voiceChannel: host.voiceChannel};
@@ -553,6 +626,8 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
   host.warm = function warm(config, options) {
     if (!provider.active) return original.warm.call(this, withoutLocal(config), options);
     if (provider.route === 'local') void textHost.prewarm?.(config);
+    // A cloud route's connection is kept open for 60 s after its last use: opening the composer renews it (an unauthenticated request).
+    else if (warmCloud && (provider.route === 'mistral' || provider.route === 'groq')) void warmCloud({provider: provider.route});
     // The local voice's browser and renderer page open now, while V types or looks, not in front of the first reply.
     if (prewarmVoice) void this.prewarmLocal?.();
     return Promise.resolve({connectionMs: 0, provider: provider.route});

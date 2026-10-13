@@ -387,17 +387,18 @@ const pocketSettings = voices => ({version: 1, provider: 'pocket', engine: 'pock
   model: {sha256: 'a'.repeat(64), configSha256: 'b'.repeat(64), tokenizerSha256: 'c'.repeat(64), receiptSha256: 'd'.repeat(64),
     inputIdentity: 'e'.repeat(64), selectedStep: 1500}});
 
-function selection(server, {key = KEY, voxtral = {}, pocket = null} = {}) {
-  const calls = [], states = [];
+function selection(server, {key = KEY, voxtral = {}, pocket = null, retryMs = 150, extra = {}} = {}) {
+  const calls = [], states = [], workers = [];
   const voices = Object.fromEntries(LOCAL_VOICE_KEYS.map(name => [name, {reference: `runtime/voice-references/${name}.wav`,
     sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.'}]));
   const cloud = new VoxtralVoice({getKey: () => key, referenceRoot: resolve('fixture-references'), endpoint: server.endpoint,
     read: async () => REFERENCE, scheduler: fastScheduler(), ...voxtral});
   const longVoices = Object.fromEntries(LOCAL_VOICE_KEYS.map(name => [name, {reference: `runtime/voice-references/${name}.wav`,
     sha256: sha(REFERENCE), transcript: 'Ready when you are, V.'}]));
-  const voice = new VoiceSelection(pocketSettings(voices), {voxtral: cloud, onState: value => states.push(value),
+  const voice = new VoiceSelection(pocketSettings(voices), {voxtral: cloud, onState: value => states.push(value), cloudRetryAudioMs: {voxtral: retryMs}, ...extra,
     omniConfigs: {short: {}, long: {version: 2, provider: 'hybrid', engine: 'omnivoice', voices: longVoices}},
     factory: (config, {onState}) => {
+      workers.push(config);
       let loaded = false;
       return {get loaded() { return loaded; }, hasProfile: name => Object.hasOwn(config.voices, name), profileReady: name => loaded && Object.hasOwn(config.voices, name),
         async prepareProfile(name) { return {provider: 'pocket', ready: true, profile: name}; },
@@ -405,7 +406,7 @@ function selection(server, {key = KEY, voxtral = {}, pocket = null} = {}) {
         async synthesizeStream(name, text, options) { calls.push({name, text}); if (pocket) return pocket(name, text, options); await options.onPcm?.({marker: 'pocket'}); return {audio: 'pocket'}; },
         async close() { loaded = false; onState({state: 'stopped'}); }};
     }});
-  return {voice, cloud, calls, states};
+  return {voice, cloud, calls, states, workers};
 }
 
 test('the Mistral cloud voice rides on Pocket: chosen, it speaks the reply, and Pocket is not asked', async () => {
@@ -434,49 +435,99 @@ test('the Mistral cloud voice rides on Pocket: chosen, it speaks the reply, and 
   } finally { await server.close(); }
 });
 
-test('a cloud reply that is late, limited or fails speaks with Pocket instead; the report names why and clears itself', async () => {
+test('a cloud reply that is late is asked again once with a longer wait; one that still fails is a written reply, never a local voice; the report names why and clears itself', async () => {
   let mode = 'slow';
   const server = await serve(async (request, response) => {
-    if (mode === 'slow') { await wait(300); return; }
+    if (mode === 'slow') { await wait(400); return; }
+    if (mode === 'slow-once') { mode = 'ok'; await wait(400); return; }
     if (mode === 'limit') { response.writeHead(429); response.end(); return; }
     sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done);
   });
   try {
-    const h = selection(server, {voxtral: {limits: {firstAudioMs: 60}}});
+    const h = selection(server, {voxtral: {limits: {firstAudioMs: 60}}, retryMs: 120});
     h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
     const packets = [];
-    const spoken = await h.voice.synthesizeStream('judy-alvarez', 'Late reply.', {onPcm: packet => { packets.push(packet); }});
-    assert.equal(spoken.audio, 'pocket'); assert.equal(h.calls.length, 1); assert.deepEqual(packets, [{marker: 'pocket'}]);
-    assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'pocket', temporary: true, reason: 'timeout'});
+    // Both asks are late: nothing is spoken, no local voice stands in, and the caller gets the failure (a written reply).
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Late reply.', {onPcm: packet => { packets.push(packet); }}), {kind: 'timeout'});
+    assert.equal(server.requests.length, 2, 'asked, then asked once more'); assert.equal(packets.length, 0);
+    assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0, 'no local worker was ever created');
+    assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'convai', temporary: true, reason: 'timeout'});
     h.voice.publish();
-    assert.deepEqual(h.states.at(-1).fallback, {from: 'voxtral', to: 'pocket', temporary: true, reason: 'timeout'});
+    assert.deepEqual(h.states.at(-1).fallback, {from: 'voxtral', to: 'convai', temporary: true, reason: 'timeout'});
     assert.equal(h.states.at(-1).cloudVoice, 'voxtral'); assert.equal(h.states.at(-1).voxtral.degraded, 'timeout');
-    mode = 'limit';
-    await h.voice.synthesizeStream('judy-alvarez', 'Limited.', {onPcm() {}});
-    assert.equal(h.calls.length, 2); assert.equal(h.voice.cloudFallback.reason, 'limit');
-    // Inside the cool-down the cloud voice is not even asked.
-    const before = server.requests.length;
-    await h.voice.synthesizeStream('judy-alvarez', 'Still limited.', {onPcm() {}});
-    assert.equal(server.requests.length, before); assert.equal(h.calls.length, 3);
-    // States published by the voice itself (a fallback must reach Settings without waiting for the next poll).
+    // The first ask is late but the longer second one is answered: the reply is spoken, and the report clears.
+    mode = 'slow-once'; const before = server.requests.length;
+    const again = await h.voice.synthesizeStream('judy-alvarez', 'Second ask works.', {onPcm: packet => { packets.push(packet); }});
+    assert.equal(again.provider, 'voxtral'); assert.equal(server.requests.length - before, 2); assert.equal(packets.length, 1);
+    assert.equal(h.voice.cloudFallback, null);
+    // A limit is not asked again (the server said when to come back); inside the cool-down the cloud voice is not even asked.
+    mode = 'limit'; const limited = server.requests.length;
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Limited.', {onPcm() {}}), {kind: 'limit'});
+    assert.equal(server.requests.length - limited, 1); assert.equal(h.voice.cloudFallback.reason, 'limit');
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Still limited.', {onPcm() {}}), /waiting out a limit/);
+    assert.equal(server.requests.length - limited, 1);
+    assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0);
     assert.equal(h.states.some(state => state.fallback?.reason === 'limit'), true);
     await h.voice.close();
   } finally { await server.close(); }
 });
 
-test('without a Mistral key the cloud voice is unavailable and every reply is Pocket; a key added later is used at once', async () => {
+test('without a Mistral key the cloud voice is unavailable, the turn goes to the Convai voice, and nothing local is loaded; a key added later is used at once', async () => {
   const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
   try {
     let key = null;
     const h = selection(server); h.cloud.getKey = () => key;
     h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
-    assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'pocket', temporary: false, reason: 'no-key'});
-    const spoken = await h.voice.synthesizeStream('judy-alvarez', 'No key.', {onPcm() {}});
-    assert.equal(spoken.audio, 'pocket'); assert.equal(server.requests.length, 0);
+    assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'convai', temporary: false, reason: 'no-key'});
+    assert.equal(h.voice.cloudKeyless, true, 'the bridge sends this turn to the Convai cloud voice');
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'No key.', {onPcm() {}}), /no key/);
+    assert.equal(server.requests.length, 0); assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0);
     key = KEY;
-    assert.equal(h.voice.cloudFallback, null, 'the key is back, so the report is gone');
+    assert.equal(h.voice.cloudFallback, null, 'the key is back, so the report is gone'); assert.equal(h.voice.cloudKeyless, false);
     const cloud = await h.voice.synthesizeStream('judy-alvarez', 'With a key.', {onPcm() {}});
     assert.equal(cloud.provider, 'voxtral'); assert.equal(h.voice.cloudFallback, null);
+    assert.equal(h.workers.length, 0);
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
+test('a cloud voice starts no local worker: not on the choice, not when characters are prepared, not for a reply; a running one is retired', async () => {
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    const h = selection(server);
+    // Pocket is the choice first and its worker runs.
+    h.voice.update({voiceProvider: 'pocket'}, null, false); await h.voice.start();
+    assert.equal(h.workers.length, 1); assert.equal(h.voice.clientBackend, 'pocket');
+    // The cloud voice is chosen (committed at an idle moment): the worker is retired and no other one is created.
+    h.voice.update({voiceProvider: 'voxtral'}, null, false);
+    assert.equal(h.voice.cloudActive, true); assert.equal(h.voice.client, null, 'the Pocket worker is gone');
+    await h.voice.retiring;
+    assert.equal(h.voice.targetBackend, null);
+    const receipt = await h.voice.prepareProfile('judy-alvarez');
+    assert.equal(receipt.ready, true); assert.equal(receipt.cloudVoice, 'voxtral'); assert.equal(h.voice.profileReady('judy-alvarez'), true);
+    await h.voice.start();
+    const result = await h.voice.synthesizeStream('judy-alvarez', 'Hello.', {onPcm() {}});
+    assert.equal(result.provider, 'voxtral');
+    for (let poll = 0; poll < 3; poll++) h.voice.update({voiceProvider: 'voxtral'}, null, false);
+    assert.equal(h.workers.length, 1, 'only the first Pocket worker was ever created'); assert.equal(h.voice.client, null);
+    assert.equal(h.states.at(-1).state, 'remote'); assert.equal(h.states.at(-1).workerBackend, null);
+    // A failed Pocket earlier does not take the route from the cloud voice.
+    h.voice.failedBackends.add('pocket');
+    h.voice.update({voiceProvider: 'voxtral'}, null, false);
+    assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.cloudActive, true);
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
+test('switching to the cloud voice: the first audio does not wait for any local worker and no Pocket worker is created', async () => {
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    const h = selection(server);
+    h.voice.update({voiceProvider: 'voxtral'}, null, false);
+    const started = performance.now(); let first = null;
+    await h.voice.synthesizeStream('judy-alvarez', 'Right after the switch.', {onPcm: () => { first ??= performance.now() - started; }});
+    assert.ok(first !== null && first < 1000, `first audio ${first} ms`);
+    assert.equal(h.workers.length, 0);
     await h.voice.close();
   } finally { await server.close(); }
 });
@@ -505,7 +556,7 @@ test('multilingual conversations keep the cloud voice out: Pocket is skipped, so
   } finally { await server.close(); }
 });
 
-test('the routing log names the cloud voice; Pocket with a reason only when the cloud voice cannot be asked; an earlier timeout is carried as cloudLast', async () => {
+test('the routing log names the cloud voice; with a reason only when the cloud voice cannot be asked (never a local voice); an earlier timeout is carried as cloudLast', async () => {
   const server = await serve(async () => { await wait(300); });
   try {
     const h = selection(server, {voxtral: {limits: {firstAudioMs: 40}}});
@@ -515,18 +566,22 @@ test('the routing log names the cloud voice; Pocket with a reason only when the 
     let record = describe();
     assert.equal(record.requested, 'Mistral cloud voice (Voxtral)'); assert.equal(record.used, 'Mistral cloud voice (Voxtral)'); assert.equal(record.fallback, null);
     assert.ok(record.reference, 'the log names the reference the cloud voice clones from');
-    await h.voice.synthesizeStream('judy-alvarez', 'Late.', {onPcm() {}});
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Late.', {onPcm() {}}), {kind: 'timeout'});
     // The line for the NEXT reply is written before that reply is voiced: a timeout on this one must not make it claim Pocket (2026-10-13:
     // the line said used=Pocket for a reply that Voxtral then spoke from start to end).
     record = describe();
     assert.equal(record.used, 'Mistral cloud voice (Voxtral)'); assert.equal(record.fallback, null); assert.equal(record.cloudLast, 'timeout');
     const line = formatVoiceRoute(record);
     assert.ok(line.includes('used="Mistral cloud voice (Voxtral)"') && line.includes('cloudLast=timeout') && !line.includes('fallback='), line);
-    // No key: the cloud voice cannot be asked at all, so Pocket is what speaks, and the line says why.
+    // No key: the cloud voice cannot be asked at all. The turn goes to the Convai voice (engine 'convai'); a reply that still reached the
+    // cloud route is written only. No local voice is named, and the line says why.
     h.cloud.getKey = () => null;
     record = describe();
-    assert.equal(record.used, 'Pocket'); assert.equal(record.fallback, 'Mistral cloud voice has no key'); assert.equal(record.cloudLast, undefined);
+    assert.equal(record.used, 'none (written reply only)'); assert.equal(record.fallback, 'Mistral cloud voice has no key'); assert.equal(record.cloudLast, undefined);
     assert.ok(formatVoiceRoute(record).includes('fallback="Mistral cloud voice has no key"'));
+    const convai = describeVoiceRoute({voice: h.voice, input: {profileKey: 'judy-alvarez'}, profile: {key: 'judy-alvarez', name: 'Judy', voiceName: 'Anna'},
+      plan: {engine: 'convai'}, reply: {engine: 'convai'}, now: () => 0});
+    assert.equal(convai.used, 'Convai cloud (Anna)'); assert.equal(convai.fallback, 'Mistral cloud voice has no key');
     await h.voice.close();
   } finally { await server.close(); }
 });
@@ -880,7 +935,7 @@ test('head in the cloud voice, tail failing twice: the tail fails (the reply end
   } finally { await server.close(); }
 });
 
-test('head failing before any audio: Pocket speaks the whole reply, and the tail that the cloud voice already had is dropped', async () => {
+test('head failing before any audio: nothing speaks the reply (it is written), and the tail that the cloud voice already had is dropped', async () => {
   const server = await planned([
     {name: 'head', input: HEAD, then: 503},
     {name: 'tail', input: TAIL, deltas: [level(4800, 0.5)]}]);
@@ -888,11 +943,11 @@ test('head failing before any audio: Pocket speaks the whole reply, and the tail
     const h = selection(server, {pocket: pocketPackets(Math.fround(0.9))});
     h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
     const utterance = new Utterance(), head = collect(), tail = collect();
-    await Promise.all([headOf(h, head, {utterance}), tailOf(h, tail, utterance)]);
-    assert.equal(utterance.engine, 'pocket');
-    assert.deepEqual(h.calls.map(call => call.text), [HEAD, TAIL], 'Pocket spoke both pieces');
-    assert.ok(head.packets.every(packet => packet.pcm[0] === Math.fround(0.9)));
-    assert.ok(tail.packets.length > 0 && tail.packets.every(packet => packet.pcm[0] === Math.fround(0.9)), 'no cloud audio in the tail');
+    const [headResult, tailResult] = await Promise.allSettled([headOf(h, head, {utterance}), tailOf(h, tail, utterance)]);
+    assert.equal(headResult.status, 'rejected'); assert.equal(tailResult.status, 'rejected');
+    assert.equal(utterance.engine, 'pocket', 'the lock says the cloud voice did not speak');
+    assert.equal(h.calls.length, 0, 'no local voice was asked'); assert.equal(h.workers.length, 0);
+    assert.equal(head.packets.length, 0); assert.equal(tail.packets.length, 0, 'no cloud audio in the tail');
   } finally { await server.close(); }
 });
 
@@ -914,20 +969,20 @@ test('the tail\'s cloud audio is held until the head is known to be in the cloud
   } finally { await server.close(); }
 });
 
-test('a tail whose head was spoken by Pocket sends nothing to the cloud voice', async () => {
+test('a tail whose head was not spoken by the cloud voice sends nothing to it and is not spoken at all', async () => {
   const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(level(2400, 0.5)))); response.end(done); });
   try {
     const h = selection(server, {pocket: pocketPackets(Math.fround(0.9))});
     h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
     const utterance = new Utterance(); utterance.decide('pocket');
     const tail = collect();
-    await tailOf(h, tail, utterance);
-    assert.equal(server.requests.length, 0); assert.deepEqual(h.calls.map(call => call.text), [TAIL]);
+    await assert.rejects(tailOf(h, tail, utterance), /did not speak the first part/);
+    assert.equal(server.requests.length, 0); assert.equal(h.calls.length, 0); assert.equal(tail.packets.length, 0);
     // With the cloud voice not chosen at all, head and tail are Pocket's and nothing else happens.
     h.voice.update({voiceProvider: 'pocket'}, null, false);
     const other = new Utterance(), headSink = collect(), tailSink = collect();
     await headOf(h, headSink, {utterance: other}); await tailOf(h, tailSink, other);
-    assert.equal(other.engine, 'pocket'); assert.equal(server.requests.length, 0);
+    assert.equal(other.engine, 'pocket'); assert.equal(server.requests.length, 0); assert.equal(h.calls.length, 2);
   } finally { await server.close(); }
 });
 
@@ -982,5 +1037,18 @@ test('a 400 for another reason, or for an MP3 reference, does not switch the ref
       await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello there, V.', {onPcm: () => {}}), error => error.kind === 'request');
       assert.equal(voice.safeFormat, false);
     }
+  } finally { await server.close(); }
+});
+
+test('the lip-sync analysis stays wanted for the cloud voice (it analyses audio) while no local voice model is loaded', async () => {
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    const wanted = [];
+    const h = selection(server, {extra: {phoneAnalysis: {setWanted: value => wanted.push(value), retire: async () => {}, close: async () => {}}}});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false);
+    assert.equal(wanted.at(-1), true, 'lip sync is wanted'); assert.equal(h.workers.length, 0, 'but no local voice worker');
+    h.voice.update({voiceProvider: 'convai'}, null, false);
+    assert.equal(wanted.at(-1), false);
+    await h.voice.close();
   } finally { await server.close(); }
 });

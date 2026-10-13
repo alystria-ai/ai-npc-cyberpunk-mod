@@ -6,7 +6,8 @@ import {dirname} from 'node:path';
 // (provider key and character ID, so a multilingual twin is visible); the support report hashes
 // character IDs like every other ID. The line goes to the bridge log and to a
 // small rolling file (runtime/voice-routing.log, the last ROUTING_LOG_MAX_LINES lines) that the support report includes.
-// `fallback=` names why the cloud voice cannot be asked at all (no key, a limit, a refused key); an earlier timeout or network
+// `fallback=` names why the cloud voice cannot be asked at all (no key, a limit, a refused key: the Convai cloud voice or a written reply
+// speaks, never a local voice); an earlier timeout or network
 // failure is `cloudLast=` (a reply is never switched to another voice partway: see docs/CLOUD_VOICE_VOXTRAL.md).
 //
 //   2026-10-08 14:03:21 profile=resident-male name="NC Resident" requested="Pocket · Performance"
@@ -22,7 +23,8 @@ const REFERENCE_ROOT = 'runtime/voice-references/';
 const OMNI_TIERS = {'16:short': 'Balanced', '16:long': 'Quality', '32:short': 'High Quality', '32:long': 'Ultra Quality'};
 
 // Matches the Settings menu (mod/manager.lua voiceLabel).
-const CLOUD_LABEL = 'Mistral cloud voice (Voxtral)';
+const CLOUD_LABELS = {voxtral: 'Mistral cloud voice (Voxtral)', inworld: 'Inworld cloud voice'};
+const CLOUD_NAMES = {voxtral: 'Mistral cloud voice', inworld: 'Inworld cloud voice'};
 
 /** The voice choice as the player reads it in Settings: "Pocket · Performance", "OmniVoice · Quality", "Convai · Cloud voice". */
 export function requestedLabel(provider, steps, reference) {
@@ -121,24 +123,26 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
   const engine = reply?.engine ?? plan?.engine ?? 'convai';
   const key = input?.profileKey ?? profile?.key ?? '?';
   const local = engine === 'pocket' || engine === 'omni';
-  // The Mistral cloud voice (Voxtral) rides on Pocket: chosen, it is what the player asked for; it speaks unless it has no key
-  // or fell back (bridge/voxtral-voice.mjs), in which case Pocket does and the reason is logged.
+  // The cloud voice (Voxtral, Inworld) uses Pocket's route and packet format but no local model: chosen, it is what the player asked
+  // for and it speaks. With no key the turn goes to the Convai cloud voice (engine 'convai'); in a limit or refused-key cool-down the
+  // reply is written only (no local voice stands in), and the reason is logged.
   const cloud = voice.cloudActive === true && voice.requestedProvider === 'pocket';
-  // Only a state that stops the cloud voice from being asked at all (no key, a limit, a refused key) is a reason for Pocket here: the line
+  // Only a state that stops the cloud voice from being asked at all (no key, a limit, a refused key) is a reason here: the line
   // is written before the reply is voiced, so a timeout on the previous reply would be a stale claim (`cloudLast` carries it instead).
-  const cloudWhy = cloud && engine === 'pocket' ? ('cloudBlocked' in voice ? voice.cloudBlocked : voice.cloudFallback) : null;
+  const cloudWhy = cloud && (engine === 'pocket' || engine === 'convai') ? ('cloudBlocked' in voice ? voice.cloudBlocked : voice.cloudFallback) : null;
   const cloudLast = cloud && engine === 'pocket' && !cloudWhy ? voice.cloudLast ?? null : null;
+  const cloudKind = voice.cloud === 'inworld' ? 'inworld' : 'voxtral', CLOUD_LABEL = CLOUD_LABELS[cloudKind];
   const record = {time: now(), profile: key, name: profile?.name ?? input?.name ?? '?',
     requested: cloud ? CLOUD_LABEL : requestedLabel(voice.requestedProvider, voice.requestedOmniSteps, voice.requestedOmniReference),
     engine, voiceKey: local ? (voiceKey ?? key) : undefined,
-    // The Mistral cloud voice clones from its own pick of the reference sets, not from the Pocket one it rides on.
-    reference: !local ? null : cloud && engine === 'pocket' && !cloudWhy ? cloudReferenceOf(voice, voiceKey ?? key, sources)
+    // The cloud voice clones from its own pick of the reference sets, not from the Pocket one whose route it uses.
+    reference: !local ? null : cloud && engine === 'pocket' ? (cloudWhy ? null : cloudReferenceOf(voice, voiceKey ?? key, sources))
       : referenceOf(voice, engine, voiceKey ?? key, sources),
-    fallback: reason ?? (cloudWhy ? `Mistral cloud voice ${cloudWhy.reason === 'no-key' ? 'has no key' : 'fell back (' + cloudWhy.reason + ')'}` : null)
+    fallback: reason ?? (cloudWhy ? `${CLOUD_NAMES[cloudKind]} ${cloudWhy.reason === 'no-key' ? 'has no key' : 'fell back (' + cloudWhy.reason + ')'}` : null)
       ?? fallbackReason(voice, key, {plan, engine})};
   if (cloudLast) record.cloudLast = cloudLast;
   if (engine === 'omni') record.used = `OmniVoice ${voice.omniSteps} ${voice.omniReference}`;
-  else if (engine === 'pocket') record.used = cloud && !cloudWhy ? CLOUD_LABEL : 'Pocket';
+  else if (engine === 'pocket') record.used = cloud ? (cloudWhy ? 'none (written reply only)' : CLOUD_LABEL) : 'Pocket';
   else if (engine === 'none') record.used = 'none (written reply only)';
   else record.used = `Convai cloud (${profile?.voiceName ?? 'character voice'})`;
   if (voice.multilingual) record.language = reply?.language ?? plan?.language ?? undefined;

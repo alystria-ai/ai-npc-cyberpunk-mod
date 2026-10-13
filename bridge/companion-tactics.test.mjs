@@ -4,10 +4,8 @@ import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 import {companionEngine} from './companion-fixture.mjs';
 import {parseTacticOffer} from './companion-actions.mjs';
-import {parseDistraction} from './distraction-context.mjs';
 
 const tacticsSource = readFileSync(new URL('../mod/companion-tactics.lua', import.meta.url), 'utf8');
-const perceptionSource = readFileSync(new URL('../mod/tactic-perception.lua', import.meta.url), 'utf8');
 const markingSource = readFileSync(new URL('../mod/companion-marking.lua', import.meta.url), 'utf8');
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 
@@ -42,45 +40,31 @@ json={encode=function(value)
   end
   return enc(value)
 end}
-local function npc(id,x,y,name) return {id=id,pos={x=x,y=y,z=0},alive=true,combat=false,name=name,hostile=false,body='Man'} end
+local function npc(id,x,y,name) return {id=id,pos={x=x,y=y,z=0},alive=true,combat=false,name=name,hostile=false,body='Man',hand=false} end
 player={id='1ULL',pos={x=0,y=0,z=0},combat=false,mounted=false}
 companion=npc('44ULL',1,0,'Judy')
 target=npc('77ULL',20,0,'Tyger Claw'); target.hostile=true
-effects={}
+effects,logs={},{}
 local function effect(...) effects[#effects+1]=table.concat({...},' ') end
+drawError=nil
 native={key=function(o) return o.id end,position=function(o) return {x=o.pos.x,y=o.pos.y,z=o.pos.z} end,
   alive=function(o) return o.alive end,inCombat=function(o) return o.combat end,
   playerInCombat=function(p) return p.combat end,playerMounted=function(p) return p.mounted end,
   hostileToPlayer=function(o) return o.hostile end,name=function(o) return o.name end,bodyType=function(o) return o.body end,
   startFight=function(c,t) effect('fight-start',c.id,t.id); return {companionToTarget='AIA_Friendly',targetToCompanion='AIA_Hostile'} end,
   stopFight=function(r,c,t) effect('fight-stop',c.id,t.id,r.targetToCompanion) end,
-  engage=function(t,c) effect('engage',t.id,c.id); return {look=true} end,
-  release=function(h,t) effect('release',t.id) end}
-perceptionLog={}
-perception={begin=function(t,p,c) perceptionLog[#perceptionLog+1]='begin '..t.id..' '..c.id; return 1 end,
-  update=function() end,restore=function() perceptionLog[#perceptionLog+1]='restore'; return 1 end,
-  active=function() return perceptionLog[#perceptionLog] and perceptionLog[#perceptionLog]:sub(1,5)=='begin' end,
-  abandon=function() perceptionLog[#perceptionLog+1]='abandon' end,snapshot=function() return {} end}
-sent,leases,stopped,feedbacks={}, {}, {}, {}
-pending,speakingId,generation,targetVoice=nil,nil,10,'resident-male'
+  weapon=function(c) return c.hand,c.hand and 'Items.Preset_Lexington' or nil end,
+  drawWeapon=function(c) if drawError then error(drawError) end effect('draw',c.id); return {command=effect} end,
+  cancelDraw=function(h,c) effect('draw-cancel',c.id) end}
 ready=true
 env={player=function() return player end,
   actor=function(entity) if ready and entity=='44ULL' then return {serial=3,npc=companion,profileKey='judy-alvarez',name='Judy'} end end,
   marked=function() if markedTarget then return markedTarget,{id=markedTarget.id,name=markedTarget.name} end end,
-  identify=function(o) return targetVoice,o.name,'Man' end,converses=function(key) return key~=nil end,
-  nextGeneration=function() generation=generation+1; return generation end,
-  idle=function() return pending==nil and speakingId==nil end,
-  send=function(context,actor) sent[#sent+1]={context=context,actor=actor}; pending=context; return true end,
-  pendingId=function() return pending and pending.requestId end,
-  speaking=function(id) return speakingId==id end,
-  transcript=function() return nil end,
-  stopTurn=function(id) stopped[#stopped+1]=id; if pending and pending.requestId==id then pending=nil end end,
-  writeLease=function(id,valid) leases[#leases+1]={id=id,valid=valid} end,
-  now=function() return 1000000 end,feedback=function(m) feedbacks[#feedbacks+1]=m end,log=function() end}
+  feedback=function(m) effects[#effects+1]='feedback '..m end,log=function(l) logs[#logs+1]=l end}
 markedTarget=target
 dofile=function(path) error('unexpected '..path) end
 local Tactics=(function() ${tacticsSource} end)()
-T=Tactics.new({env=env,native=native,perception=perception})
+T=Tactics.new({env=env,native=native})
 motion={}
 -- One simulated game frame: decision, idealized movement, then the module update.
 function frame(dt)
@@ -88,210 +72,151 @@ function frame(dt)
   if decision then
     local op=decision.operation
     if op.kind=='move' and op.goal then companion.pos={x=op.goal.x,y=op.goal.y,z=0} end
-    if op.kind=='turn' then motion={ticket=op.ticket,complete=true} end
   end
   T.update(player,dt or 0.1,true)
   return decision
 end
--- The bridge answers the pending turn; playback then lasts two frames.
-function answer(text,fail)
-  local request=assert(pending,'no pending turn')
-  assert(T.canDeliver(request),'turn was not deliverable')
-  if fail then pending=nil; return request end
-  assert(T.received(request.requestId,{text=text}),"received refused in phase "..tostring(phase()))
-  pending=nil; speakingId=request.requestId
-  frame(); frame(); speakingId=nil; frame()
-  return request
-end
 function phase() return T.snapshot().phase end
+function logged(pattern) for _,l in ipairs(logs) do if l:find(pattern) then return l end end end
 `;
 
-test('a clear distraction offer matches the bridge contract and runs exactly five alternating lines', () => {
+test('the fight offer matches the bridge contract and is the only kind offered', () => {
   const exported = run(world + `
   local offer=T.offer('44ULL')
   export(json.encode(offer))
-  assert(T.start('distract-return',offer,'44ULL'),"start refused")
-  assert(T.owns(3) and T.busy() and phase()=='approach')
-  player.pos={x=40,y=0,z=0} -- V slips past while Judy talks
-  assert(perceptionLog[1]=='begin 77ULL 44ULL','perception must cover the target from the start')
-  local first=frame(); assert(first.operation.kind=='move' and first.operation.gait=='Walk')
-  assert(math.abs(first.operation.goal.x-(20-1.7))<0.01,'talks from just in front of the target')
-  frame(); assert(phase()=='face','expected face, got '..tostring(phase())); frame(); frame(); assert(phase()=='talk','expected talk, got '..tostring(phase()))
-  assert(effects[1]=='engage 77ULL 44ULL')
-  for turn=1,5 do
-    frame()
-    local request=answer('line '..turn)
-    export(json.encode(request.reaction))
-    assert(request.entity==(turn%2==1 and '44ULL' or '77ULL'))
-    assert(request.profileKey==(turn%2==1 and 'judy-alvarez' or 'resident-male'))
-    assert(sent[turn].actor==(turn%2==1 and companion or target))
-  end
-  assert(#sent==5,'exactly five lines')
-  assert(phase()=='returning' and perceptionLog[#perceptionLog]=='restore' and effects[2]=='release 77ULL')
-  local back=frame(); assert(back.operation.kind=='move' and back.operation.goal.x==1)
-  frame(); assert(phase()=='waiting')
-  player.pos={x=3,y=0,z=0}; frame()
-  assert(not T.owns(3) and T.snapshot().last.result=='completed' and T.snapshot().last.lines==5)
-  for _,lease in ipairs(leases) do assert(lease.id) end
-  assert(leases[#leases].valid==false,'the last lease is released')
+  assert(T.start('fight',offer,'44ULL'),"start refused")
+  assert(not T.start('distract-return',offer,'44ULL'),'there is no other tactic')
   `);
   const offer = JSON.parse(exported[0]);
   assert.deepEqual(parseTacticOffer(offer), offer, 'the Lua offer survives the strict bridge parser unchanged');
-  assert.deepEqual(offer.kinds, ['fight', 'distract-return', 'distract-fight', 'distract-rejoin']);
-  const reactions = exported.slice(1).map(raw => JSON.parse(raw));
-  reactions.forEach((reaction, index) => {
-    assert.equal(reaction.turn, index + 1);
-    assert.equal(reaction.lines?.length ?? 0, index);
-    // Lua encodes an empty lines table as an object; the game adapter's CET
-    // encoder emits [] for the empty list, so normalize like the bridge input would.
-    const parsed = parseDistraction({...reaction, lines: reaction.lines?.length ? reaction.lines : []});
-    assert.ok(parsed, 'turn ' + (index + 1) + ' must pass the bridge parser');
-  });
-  assert.equal(reactions[4].role, 'companion'); assert.equal(reactions[3].lines[2].text, 'line 3');
+  assert.deepEqual(offer.kinds, ['fight']);
 });
 
-test('fight ending attacks after the fifth line and needs no restoration once the target is down', () => run(world + `
-  assert(T.start('distract-fight',T.offer('44ULL'),'44ULL'),"start refused")
-  frame(); frame(); frame(); frame()
-  for turn=1,5 do frame(); answer('line '..turn) end
-  assert(phase()=='fight-approach' and effects[#effects]=='fight-start 44ULL 77ULL')
-  assert(not T.busy(),'automatic reactions may resume once the fight begins')
-  T.interrupt('manual-text'); assert(T.owns(3),'talking to V does not call off a fight')
-  companion.combat=true; local d=frame(); assert(d.operation.kind=='release' and phase()=='fighting')
-  target.alive=false; frame()
-  assert(not T.owns(3) and T.snapshot().last.result=='target-down')
-  for _,line in ipairs(effects) do assert(not line:find('fight%-stop'),'a dead target needs no attitude restore') end
-`));
-
-test('rejoin ending hands the companion straight back to following', () => run(world + `
-  assert(T.start('distract-rejoin',T.offer('44ULL'),'44ULL'),"start refused")
-  frame(); frame(); frame(); frame()
-  for turn=1,5 do frame(); answer('line '..turn) end
-  assert(not T.owns(3) and T.snapshot().last.result=='completed')
-`));
-
-test('vehicle, combat and V interrupting each cancel cleanly and restore what was changed', () => run(world + `
-  local function begin()
-    effects,perceptionLog,stopped,pending,speakingId={}, {}, {}, nil, nil
-    companion.pos={x=1,y=0,z=0}; companion.combat=false; target.combat=false; player.combat=false; player.mounted=false
-    assert(T.start('distract-return',T.offer('44ULL'),'44ULL'),"start refused")
-  end
-  begin(); player.mounted=true; frame()
-  assert(not T.owns(3) and T.snapshot().last.result=='vehicle' and perceptionLog[#perceptionLog]=='restore')
-  begin(); frame(); frame(); frame(); frame(); frame()
-  local request=assert(pending); target.combat=true; frame()
-  assert(not T.owns(3) and T.snapshot().last.result=='combat')
-  assert(stopped[1]==request.requestId and pending==nil,'the in-flight line is retired')
-  assert(effects[#effects]=='release 77ULL' and leases[#leases].valid==false)
-  begin(); frame(); frame(); frame(); frame(); frame(); answer('line 1')
-  T.interrupt('manual-text')
-  assert(not T.owns(3) and T.snapshot().last.result=='manual-text' and perceptionLog[#perceptionLog]=='restore')
-  begin(); ready=false; frame(); assert(T.snapshot().last.result=='companion-unavailable'); ready=true
-  begin(); target.alive=false; frame(); assert(T.snapshot().last.result=='target-lost')
-`));
-
-test('a fight-only action engages immediately, approaches until native combat, and restores a living target', () => run(world + `
+test('a fight engages immediately, approaches until native combat, and restores a living target', () => run(world + `
   assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
-  assert(effects[1]=='fight-start 44ULL 77ULL' and not T.busy())
+  assert(effects[1]=='fight-start 44ULL 77ULL' and T.owns(3))
+  assert(logged('fight accepted: Tyger Claw 77ULL'),'the start is logged with the target')
   local d=frame(); assert(d.operation.kind=='move' and d.operation.gait=='Run')
   companion.combat=true; d=frame(); assert(d.operation.kind=='release' and phase()=='fighting')
   player.mounted=true; frame()
   assert(not T.owns(3) and effects[#effects]=='fight-stop 44ULL 77ULL AIA_Hostile')
 `));
 
-test('a failed line is retried once, then the ending proceeds without inventing lines', () => run(world + `
-  assert(T.start('distract-rejoin',T.offer('44ULL'),'44ULL'),"start refused")
-  frame(); frame(); frame(); frame()
-  frame(); answer('line 1')
-  frame(); answer(nil,true); frame()
-  assert(T.snapshot().turn==1 and T.owns(3),'first failure retries the same turn')
-  frame(); answer(nil,true); frame()
-  assert(not T.owns(3) and T.snapshot().last.lines==1)
+test('a fight on a defeated target needs no attitude restore', () => run(world + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  companion.combat=true; frame(); frame()
+  target.alive=false; frame()
+  assert(not T.owns(3) and T.snapshot().last.result=='target-down')
+  for _,line in ipairs(effects) do assert(not line:find('fight%-stop'),'a dead target needs no attitude restore') end
 `));
 
-test('offers need a live marked target; distraction needs a voice and no combat; stale offers are refused', () => run(world + `
+test('the weapon is drawn when the fight starts and read back; an empty hand gets one more request', () => run(world + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  assert(effects[2]=='draw 44ULL' and logged('weapon draw requested'),'draw asked at the start')
+  for _=1,10 do frame() end
+  assert(not logged('readback'),'no readback before the command had time to run')
+  companion.hand=true
+  for _=1,7 do frame() end
+  assert(logged('weapon readback: drawn %(Items.Preset_Lexington%)') and T.snapshot().weapon=='drawn')
+  local before=#logs; for _=1,40 do frame() end; assert(#logs==before,'nothing more is logged once it is drawn')
+`));
+
+test('a hand that stays empty is asked twice, read back twice, then left to the combat AI', () => run(world + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,60 do frame() end
+  local draws=0; for _,e in ipairs(effects) do if e=='draw 44ULL' then draws=draws+1 end end
+  assert(draws==2,'one request and one more, got '..draws)
+  assert(logged('hand still empty, draw asked again') and logged('hand still empty, the combat AI decides'))
+  assert(T.snapshot().weapon=='empty' and T.owns(3),'the fight itself goes on')
+`));
+
+test('a weapon already in hand is not asked for; an unavailable draw never stops the fight', () => {
+  run(world + `
+  companion.hand=true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  assert(logged('weapon already drawn %(Items.Preset_Lexington%)'))
+  for _,e in ipairs(effects) do assert(e~='draw 44ULL','no draw request over a drawn weapon') end
+  `);
+  run(world + `
+  drawError='no such command'
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  assert(logged('weapon draw unavailable: .*no such command') and T.owns(3) and phase()=='fight-approach')
+  `);
+});
+
+test('a pending draw command is cancelled when the fight ends', () => run(world + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  T.cancel('test')
+  local seen=false; for _,e in ipairs(effects) do if e=='draw-cancel 44ULL' then seen=true end end
+  assert(seen and effects[#effects]=='fight-stop 44ULL 77ULL AIA_Hostile')
+`));
+
+test('V entering a vehicle, the companion disappearing, or the fight timing out each end it cleanly', () => run(world + `
+  local function begin()
+    effects,logs={}, {}
+    companion.pos={x=1,y=0,z=0}; companion.combat=false; target.combat=false; player.combat=false; player.mounted=false; ready=true
+    assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  end
+  begin(); player.mounted=true; frame(); assert(T.snapshot().last.result=='vehicle')
+  begin(); ready=false; frame(); assert(T.snapshot().last.result=='companion-unavailable'); ready=true
+  begin(); for _=1,260 do frame(0.1) end; assert(T.snapshot().last.result=='no-combat','no native combat in 25 s')
+  begin(); companion.combat=true; for _=1,1810 do frame(0.1) end; assert(T.snapshot().last.result=='fight-timeout')
+`));
+
+test('offers need a live marked target within 100 m; stale or changed offers are refused', () => run(world + `
   markedTarget=nil; local none=T.offer('44ULL'); assert(none.available==false and none.code=='no-target','the bridge is told no target was found'); markedTarget=target
   assert(T.offer('99ULL').available==false,'only a ready managed companion')
-  targetVoice=nil; local offer=T.offer('44ULL'); assert(#offer.kinds==1 and offer.kinds[1]=='fight')
-  assert(not T.start('distract-return',offer,'44ULL'),'an unoffered kind is refused'); targetVoice='resident-male'
-  player.combat=true; offer=T.offer('44ULL'); assert(#offer.kinds==1); player.combat=false
-  offer=T.offer('44ULL'); markedTarget=npc and nil
+  local offer=T.offer('44ULL'); markedTarget=nil
   local other={id='88ULL',pos={x=5,y=5,z=0},alive=true,name='Other',body='Man'}
   markedTarget=other; T.offer('44ULL')
   assert(not T.start('fight',offer,'44ULL'),'the captured target changed')
   markedTarget=target; offer=T.offer('44ULL'); target.alive=false
   assert(not T.start('fight',offer,'44ULL')); target.alive=true
-  target.pos={x=200,y=0,z=0}; assert(T.offer('44ULL').available==false,'too far away')
+  target.pos={x=99,y=0,z=0}; assert(T.offer('44ULL').available==true,'a tag at 99 m is in reach')
+  target.pos={x=101,y=0,z=0}; assert(T.offer('44ULL').available==false,'beyond the tag radius')
+  target.pos={x=20,y=0,z=0}; player.mounted=true; assert(T.offer('44ULL').available==false,'not from a vehicle')
+`));
+
+test('a fight that cannot start leaves nothing behind', () => run(world + `
+  native.startFight=function() error('threat refused') end
+  local ok,message=T.start('fight',T.offer('44ULL'),'44ULL')
+  assert(ok==false and message:find('could not engage') and not T.owns(3) and logged('fight start failed: .*threat refused'))
+  assert(T.snapshot().last.result=='fight-unavailable')
 `));
 
 test('world teardown forgets every handle without native calls', () => run(world + `
-  assert(T.start('distract-return',T.offer('44ULL'),'44ULL'),"start refused")
-  frame(); frame(); frame(); frame(); frame()
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  frame(); frame()
   local before=#effects
   T.abandon()
-  assert(not T.owns(3) and #effects==before and perceptionLog[#perceptionLog]=='abandon')
-`));
-
-const perceptionWorld = `
-local Perception=(function() ${perceptionSource} end)()
-calls={}
-local function call(...) calls[#calls+1]=table.concat({...},' ') end
-local function npc(id,x,meter) return {id=id,pos={x=x,y=0,z=0},valid=true,combat=false,mult=1.0,meter=meter or 0,att={}} end
-player={id='1ULL',pos={x=0,y=0,z=0}}
-companion=npc('44ULL',15)
-target=npc('77ULL',20,30); target.att['44ULL']='AIA_Hostile'
-guard=npc('78ULL',22,50); guard.mult=2.0
-fighter=npc('79ULL',23,40); fighter.combat=true
-companion.att['77ULL']='AIA_Hostile'
-nearby={target,guard,fighter,companion,player}
-native={key=function(o) return o.id end,valid=function(o) return o.valid end,
-  position=function(o) return o.pos end,inCombat=function(o) return o.combat end,
-  near=function() return nearby end,
-  getMultiplier=function(o) return o.mult end,
-  setMultiplier=function(o,_,v) o.mult=v; call('mult',o.id,tostring(v)) end,
-  detection=function(o) return o.meter end,resetDetection=function(o) o.meter=0; call('reset',o.id) end,
-  attitude=function(a,b) return a.att[b.id] or 'AIA_Neutral' end,
-  setAttitude=function(a,b,name) a.att[b.id]=name; call('att',a.id,b.id,name) end}
-P=Perception.new({native=native})
-`;
-
-test('perception: nearby NPCs barely notice V, hostility to the companion is paused, and both are restored', () => run(perceptionWorld + `
-  assert(P.begin(target,player,companion)==3,'target and two neighbours; never the companion or V')
-  assert(target.mult==0.15 and guard.mult==0.15 and fighter.mult==0.15)
-  assert(target.att['44ULL']=='AIA_Neutral' and companion.att['77ULL']=='AIA_Neutral')
-  assert(target.meter==0 and guard.meter==0,'far NPCs lose their detection buildup')
-  assert(fighter.meter==40,'an NPC already fighting keeps the game decision')
-  guard.mult=1.0; guard.meter=20; P.update(0.3)
-  assert(guard.mult==0.15 and guard.meter==0,'vanilla visibility refresh is re-asserted')
-  player.pos={x=21,y=0,z=0}; guard.meter=20; P.update(0.3)
-  assert(guard.meter==20,'up close the slowed meter is left to the game')
-  guard.meter=100; player.pos={x=0,y=0,z=0}; P.update(0.3)
-  assert(guard.meter==100,'a full detection is never undone')
-  fighter.valid=false
-  assert(P.restore()==2)
-  assert(target.mult==1.0 and guard.mult==2.0,'original multipliers come back')
-  assert(target.att['44ULL']=='AIA_Hostile' and companion.att['77ULL']=='AIA_Hostile')
-  assert(not P.active())
-  local count=#calls; P.begin(target,player,companion); P.abandon(); assert(not P.active())
-  assert(P.restore()==0)
+  assert(not T.owns(3) and #effects==before)
 `));
 
 const markingWorld = `
 local Marking=(function() ${markingSource} end)()
 local function npc(id,x,name,facts) return {id=id,pos={x=x,y=0,z=0},valid=true,name=name,tagged=false,facts=facts or {ganger=true}} end
 player={pos={x=0,y=0,z=0}}
-judy=npc('44ULL',2,'Judy'); ganger=npc('77ULL',20,'Tyger Claw'); other=npc('78ULL',25,'Valentino')
+judy=npc('44ULL',2,'Judy',{companion=true}); ganger=npc('77ULL',20,'Tyger Claw',{ganger=true,hostile=true}); other=npc('78ULL',25,'Valentino',{ganger=true})
 civilian=npc('90ULL',4,'Passerby',{civilian=true}); crowd=npc('91ULL',5,'Crowd',{crowd=true,armed=true})
 cop=npc('92ULL',30,'NCPD Officer',{police=true,friendly=true}); guard=npc('93ULL',40,'Arasaka Guard',{armed=true})
 ally=npc('94ULL',6,'Rogue',{ganger=true,friendly=true}); scripted=npc('95ULL',7,'Scene Ganger',{ganger=true,story=true})
 immortal=npc('96ULL',8,'Boss',{ganger=true,invulnerable=true}); clerk=npc('97ULL',9,'Clerk',{})
 drone=npc('98ULL',45,'Security Drone',{machine=true}); far=npc('99ULL',48,'Far Ganger')
 world,aimed,logs={judy,ganger,other,civilian,crowd,cop,guard,ally,scripted,immortal,clerk,drone,far},nil,{}
+tagReads={}
 native={aimed=function() return aimed end,key=function(o) return o.id end,valid=function(o) return o.valid end,
-  position=function(o) return o.pos end,name=function(o) return o.name end,tagged=function(o) return o.tagged end,
+  position=function(o) return o.pos end,name=function(o) return o.name end,
+  tagRead=function(o) if o.tagError then error(o.tagError) end tagReads[#tagReads+1]=o.id; return o.tagged,'IsTaggedinFocusMode' end,
+  hostile=function(o) return o.facts.hostile==true end,
   nearby=function(_,radius) local r={} for _,o in ipairs(world) do if o.pos.x<=radius then r[#r+1]=o end end return r end,
   facts=function(o) return o.facts end}
-K=Marking.new({native=native,owned=function(o) return o==judy end,log=function(l) logs[#logs+1]=l end})
+function newMarking(extra)
+  local options={native=native,owned=function(o) return o==judy end,log=function(l) logs[#logs+1]=l end}
+  for k,v in pairs(extra or {}) do options[k]=v end
+  return Marking.new(options)
+end
+K=newMarking()
+function logged(pattern) for _,l in ipairs(logs) do if l:find(pattern) then return l end end end
 `;
 
 test('target: the verdict needs positive combat evidence and rejects civilians, children, vendors, invulnerable, story, friendly non-police and companions', () => run(`
@@ -304,116 +229,159 @@ test('target: the verdict needs positive combat evidence and rejects civilians, 
   end
   assert(V({ganger=true,friendly=true})==false and select(2,V({ganger=true,friendly=true}))=='friendly')
   assert(V({police=true,friendly=true})==true,'friendly-attitude police stay targets')
-  -- a crowd flag alone only matters for the nearest-NPC guess; a tagged or aimed crowd NPC is judged on the evidence
-  local ok,reason=V({crowd=true,ganger=true}); assert(ok==false and reason=='crowd','the guess never picks crowd')
-  assert(V({crowd=true,ganger=true},true)==true,'a marked crowd gang member is a target')
+  local ok,reason=V({crowd=true,ganger=true}); assert(ok==false and reason=='crowd','a crowd NPC is refused unless explicitly aimed at')
+  assert(V({crowd=true,ganger=true},true)==true,'an aimed crowd gang member is a target')
   assert(V({crowd=true,armed=true},true)==true and V({crowd=true,hostile=true},true)==true)
   ok,reason=V({crowd=true},true); assert(ok==false and reason=='not-combat-capable','a plain crowd NPC is no target')
-  for _,kind in ipairs({'civilian','children','vendor','invulnerable','story','companion'}) do
-    local f={crowd=true,ganger=true,hostile=true} f[kind]=true; assert(V(f,true)==false,kind)
-  end
   assert(V({hostile=true})==true,'anyone already hostile to V counts as a combatant')
-  assert(V({hostile=true,civilian=true})==false,'a hostile civilian is still a civilian')
+  assert(V({hostile=true,civilian=true})==false,'a hostile civilian is still a civilian when aimed at')
 `));
 
-test('target: the closest tagged combat-capable NPC wins, even beyond the crosshair and nearer enemies', () => run(markingWorld + `
-  aimed=ganger; guard.tagged=true; other.tagged=true
-  local current,info=K.current(player); assert(current==other and info.source=='tagged' and info.id=='78ULL' and info.distance==25)
+test('target: a tagged NPC needs no combat evidence, but never a companion, child, vendor, invulnerable or friendly NPC', () => run(`
+  local Marking=(function() ${markingSource} end)()
+  local V=Marking.taggedVerdict
+  for _,f in ipairs({{},{civilian=true},{crowd=true},{civilian=true,crowd=true},{police=true,friendly=true},{vendor=false}}) do
+    local ok,reason=V(f); assert(ok==true and reason=='tagged',reason) end
+  for _,kind in ipairs({'companion','children','vendor','invulnerable'}) do
+    local f={civilian=true,hostile=true,combat=true} f[kind]=true; local ok,reason=V(f); assert(ok==false and reason==kind,kind) end
+  local ok,reason=V({friendly=true}); assert(ok==false and reason=='friendly')
+  -- named or story-controlled: only when already hostile to V and in combat
+  ok,reason=V({civilian=true},true); assert(ok==false and reason=='story-character')
+  ok,reason=V({story=true}); assert(ok==false and reason=='story-controlled')
+  ok,reason=V({story=true,hostile=true}); assert(ok==false,'hostile but not fighting')
+  ok,reason=V({story=true,combat=true}); assert(ok==false,'fighting but not hostile to V')
+  ok,reason=V({story=true,hostile=true,combat=true}); assert(ok==true and reason=='hostile-in-combat')
+  ok,reason=V({civilian=true,hostile=true,combat=true},true); assert(ok==true,'a named hostile fighter')
+  assert(V(nil)==true)
+`));
+
+test('target: the closest tagged NPC wins, even a civilian, beyond the crosshair, beyond 50 m, and over nearer enemies', () => run(markingWorld + `
+  aimed=ganger; civilian.tagged=true; guard.tagged=true; other.tagged=true
+  local current,info=K.current(player)
+  assert(current==civilian and info.source=='tagged' and info.id=='90ULL' and info.distance==4,'a tagged civilian is the target')
+  civilian.tagged=false; current,info=K.current(player); assert(current==other and info.source=='tagged' and info.distance==25)
   other.tagged=false; current,info=K.current(player); assert(current==guard and info.source=='tagged')
   guard.tagged=false; cop.tagged=true; current,info=K.current(player); assert(current==cop and info.source=='tagged','a tagged cop counts')
-  cop.tagged=false; far.tagged=true; far.pos={x=60,y=0,z=0}; current,info=K.current(player); assert(info.source~='tagged','tags beyond 50 m are ignored')
+  cop.tagged=false; clerk.tagged=true; current,info=K.current(player); assert(current==clerk and info.source=='tagged','a tagged neutral passer-by with no combat evidence')
+  clerk.tagged=false; far.tagged=true; far.pos={x=95,y=0,z=0}; current,info=K.current(player); assert(current==far and info.source=='tagged' and info.distance==95,'a tag at 95 m is seen')
+  far.pos={x=101,y=0,z=0}; current,info=K.current(player); assert(current~=far and info.source=='aimed','tags beyond 100 m are ignored')
 `));
 
-test('target: tags on civilians, companions, scripted, invulnerable, dead or out of reach NPCs are ignored', () => run(markingWorld + `
-  for _,o in ipairs({judy,civilian,ally,scripted,immortal,clerk}) do o.tagged=true end
-  aimed=nil; local current,info=K.current(player); assert(current==ganger and info.source=='nearest','nothing tagged is eligible: nearest eligible instead')
-  ganger.tagged=true; ganger.valid=false; current,info=K.current(player); assert(current~=ganger)
-  ganger.valid=true; current,info=K.current(player); assert(current==ganger and info.source=='tagged')
+test('target: a tagged crowd NPC is taken before the crosshair; companions, children, vendors, invulnerable and friendly NPCs are never taken', () => run(markingWorld + `
+  crowd.facts={crowd=true}; crowd.tagged=true; aimed=ganger
+  local current,info=K.current(player); assert(current==crowd and info.source=='tagged' and info.name=='Crowd','a plain crowd NPC V tagged')
+  crowd.tagged=false
+  local cases={{judy,'companion'},{ally,'friendly'},{immortal,'invulnerable'}}
+  for _,case in ipairs(cases) do
+    case[1].tagged=true; current,info=K.current(player)
+    assert(current~=case[1] and info.source=='aimed',case[2]); case[1].tagged=false
+  end
+  civilian.facts={civilian=true,children=true}; civilian.tagged=true; current,info=K.current(player); assert(current~=civilian,'children'); civilian.tagged=false
+  civilian.facts={civilian=true,vendor=true}; civilian.tagged=true; current,info=K.current(player); assert(current~=civilian,'vendor')
+  assert(logged('tagged Passerby rejected: vendor %[civilian%+vendor%]'),logs[#logs])
 `));
 
-test('target: untagged falls back to the look-at target within 30 m, else the closest eligible NPC within 50 m', () => run(markingWorld + `
+test('target: a named, quest-bound or scene-controlled NPC is tagged-targetable only when already hostile and in combat', () => run(markingWorld + `
+  local storyChar=civilian
+  K=newMarking({protected=function(o) return o==storyChar end})
+  storyChar.tagged=true; scripted.tagged=true; aimed=ganger
+  local current,info=K.current(player)
+  assert(current==ganger and info.source=='aimed','a protected tagged NPC is skipped: '..tostring(info and info.name))
+  assert(logged('tagged Passerby rejected: story%-character') and logged('tagged Scene Ganger rejected: story%-controlled'))
+  storyChar.facts={civilian=true,hostile=true}; current=K.current(player); assert(current~=storyChar,'hostile but not fighting')
+  storyChar.facts={civilian=true,hostile=true,combat=true}; current,info=K.current(player)
+  assert(current==storyChar and info.source=='tagged','a named NPC already fighting V')
+  -- an erroring predicate counts as not protected: targeting still works
+  K=newMarking({protected=function() error('native') end}); storyChar.facts={civilian=true}; assert(K.current(player)~=nil)
+`));
+
+test('target: an unreadable tag is logged and never stops targeting', () => run(markingWorld + `
+  civilian.tagError='no such method'; aimed=other
+  local current,info=K.current(player)
+  assert(current==other and info.source=='aimed','the aimed NPC is used when a tag cannot be read')
+  local line=logged('Tactic candidates'); assert(line,'candidates line')
+  assert(line:find('1 tag reads failed %(no such method%)') and line:find('Passerby 4m tag=err'),line)
+  civilian.tagError=nil; ganger.tagError='x'; civilian.tagged=true; current=K.current(player); assert(current==civilian,'other tags still count')
+  native.tagRead=function() error('all readers fail') end
+  current,info=K.current(player); assert(info.source=='aimed' and logged('13 tag reads failed'),'every read failing falls back to aimed')
+  native.tagRead=nil; native.tagged=function(o) return o==guard end
+  current,info=K.current(player); assert(current==guard and info.source=='tagged','a plain boolean tag reader still works')
+  native.tagged=function() return 'yes' end; current,info=K.current(player); assert(info.source=='aimed' and logged('returned string'))
+`));
+
+test('target: the candidates line lists the tagged and unreadable NPCs first, then the nearest, with each tag state', () => run(markingWorld + `
+  far.tagged=true; far.pos={x=95,y=0,z=0}; ganger.tagError='boom'
+  K.current(player)
+  local line=assert(logged('Tactic candidates'))
+  assert(line:find('^Tactic candidates: 13 NPCs within 100m, 1 tagged, 1 tag reads failed %(boom%), via IsTaggedinFocusMode; '),line)
+  assert(line:find('Far Ganger 95m tag=yes') and line:find('Tyger Claw 20m tag=err') and line:find('Judy 2m tag=no'),line)
+  local count=0; for _ in line:gmatch('tag=') do count=count+1 end
+  assert(count==6,'at most six NPCs are listed, got '..count)
+  assert(line:find('Far Ganger') < line:find('Judy'),'the tagged NPC is listed before the nearest ones')
+  local one=#logs; K.current(player); local lines=0; for _,l in ipairs(logs) do if l:find('Tactic candidates') then lines=lines+1 end end
+  assert(lines==2,'one candidates line per request')
+`));
+
+test('target: untagged falls back to an aimed NPC with combat evidence within 30 m, else the closest NPC hostile to V', () => run(markingWorld + `
   aimed=other; local current,info=K.current(player); assert(current==other and info.source=='aimed' and info.name=='Valentino')
-  aimed=guard; current,info=K.current(player); assert(current==ganger and info.source=='nearest','aimed beyond 30 m falls to the closest')
+  aimed=guard; current,info=K.current(player); assert(current==ganger and info.source=='nearest','aimed beyond 30 m falls to the closest hostile')
   aimed=civilian; current,info=K.current(player); assert(current==ganger and info.source=='nearest','an aimed civilian is skipped')
   aimed=judy; current,info=K.current(player); assert(current==ganger and info.source=='nearest','a companion is never aimed at')
-  aimed=nil; ganger.valid=false; current,info=K.current(player); assert(current==other and info.source=='nearest')
-  other.valid=false; current,info=K.current(player); assert(current==cop and info.distance==30 and info.source=='nearest','friendly police count')
-  cop.valid=false; guard.valid=false; drone.valid=false; far.pos={x=51,y=0,z=0}
-  current,info=K.current(player); assert(current==nil and info==nil,'nothing eligible within 50 m')
+  aimed=nil; guard.facts={armed=true,hostile=true}; ganger.valid=false; current,info=K.current(player)
+  assert(current==guard and info.source=='nearest' and info.distance==40,'the next hostile NPC, though not the closest NPC')
+  guard.valid=false; current,info=K.current(player); assert(current==nil and info==nil,'armed or gang NPCs that are not hostile are not guessed')
   assert(K.current(nil)==nil)
 `));
 
-test('target: the choice is logged with what was skipped, and unreadable natives never raise', () => run(markingWorld + `
-  K.current(player); assert(#logs==1 and logs[1]:find('nearest Tyger Claw 77ULL') and logs[1]:find('civilian=1') and logs[1]:find('companion=1') and not logs[1]:find('crowd'),logs[1])
-  native.facts=function() error('native') end; local current,info=K.current(player); assert(current==nil and logs[2]:find('none') and logs[2]:find('unreadable'))
-  native.nearby=function() error('native') end; assert(K.current(player)==nil)
-  K.abandon()
+test('target: the nearest-NPC step needs hostility to V, within 50 m, and skips companions and story characters', () => run(markingWorld + `
+  aimed=nil
+  ganger.facts={ganger=true}; other.facts={ganger=true}
+  local current,info=K.current(player); assert(current==nil,'armed and gang NPCs that are not hostile are not guessed')
+  far.facts={ganger=true,hostile=true}; far.pos={x=48,y=0,z=0}; current,info=K.current(player); assert(current==far and info.source=='nearest')
+  far.pos={x=51,y=0,z=0}; current,info=K.current(player); assert(current==nil,'hostile but beyond 50 m')
+  scripted.facts={ganger=true,hostile=true,story=true}; current=K.current(player); assert(current==nil,'story-controlled hostile')
+  K=newMarking({protected=function(o) return o==ganger end}); ganger.facts={ganger=true,hostile=true}
+  current=K.current(player); assert(current==nil,'a protected NPC is never the nearest guess')
+  crowd.facts={crowd=true,hostile=true}; current,info=K.current(player); assert(current==crowd and info.source=='nearest','a hostile crowd NPC is evidence enough')
+  local reads=#tagReads; K.current(player); assert(#tagReads-reads==13,'one tag read per NPC found')
 `));
 
-test('target: a tagged crowd gang member is accepted before the crosshair, a crowd civilian never, and crowd is never guessed', () => run(markingWorld + `
-  -- the live failure: the marked ganger was crowd-flagged and every crowd NPC was refused
-  crowd.facts={crowd=true,ganger=true}; crowd.tagged=true; aimed=ganger
-  local current,info=K.current(player); assert(current==crowd and info.source=='tagged' and info.name=='Crowd','marked crowd ganger')
-  crowd.facts={crowd=true,civilian=true}; current,info=K.current(player); assert(current~=crowd and info.source=='aimed','crowd civilian')
-  crowd.facts={crowd=true}; current,info=K.current(player); assert(current~=crowd,'a plain crowd NPC')
-  assert(logs[#logs]:find('tagged Crowd rejected: not%-combat%-capable %[crowd%]'),logs[#logs])
-  crowd.facts={crowd=true,ganger=true,friendly=true}; current,info=K.current(player); assert(current~=crowd,'friendly crowd')
-  crowd.facts={crowd=true,ganger=true}; crowd.tagged=false; aimed=nil
-  current,info=K.current(player); assert(current==ganger and info.source=='nearest','untagged crowd NPCs are not guessed even when closest')
-  aimed=crowd; current,info=K.current(player); assert(current==crowd and info.source=='aimed','aimed crowd gang member')
-  aimed=nil; guard.tagged=true; crowd.tagged=true
-  current=K.current(player); assert(current==crowd,'the closer tagged crowd NPC wins')
-  local protectedOne=crowd
-  K=Marking.new({native=native,owned=function(o) return o==judy end,protected=function(o) return o==protectedOne end})
-  current=K.current(player); assert(current==guard,'a protected crowd NPC is skipped')
-  K=Marking.new({native=native,owned=function(o) return o==judy or o==crowd end})
-  current=K.current(player); assert(current==guard,'a companion crowd NPC is skipped')
-  -- already hostile to V counts as evidence
-  crowd.facts={crowd=true,hostile=true}; K=Marking.new({native=native,owned=function(o) return o==judy end})
-  current=K.current(player); assert(current==crowd,'a hostile marked crowd NPC')
+test('target: the choice is logged with what was skipped, and unreadable natives never raise', () => run(markingWorld + `
+  civilian.tagged=true; civilian.facts={civilian=true,vendor=true}
+  K.current(player); local line=logs[#logs]
+  assert(line:find('Tactic target: nearest Tyger Claw 77ULL') and line:find('vendor=1') and line:find('tagged Passerby rejected: vendor'),line)
+  native.facts=function() error('native') end; local current,info=K.current(player)
+  assert(current==nil and logs[#logs]:find('none') and logs[#logs]:find('unreadable'))
+  native.nearby=function() error('native') end; assert(K.current(player)==nil)
+  K.abandon()
 `));
 
 test('target: when the look-at lands on a companion, the eligible NPC on the crosshair line is chosen', () => run(markingWorld + `
   aimed=judy
   native.crosshair=function() return {x=0,y=0,z=1.7},{x=0,y=1,z=0} end
-  K=Marking.new({native=native,owned=function(o) return o==judy end,log=function(l) logs[#logs+1]=l end})
   ganger.pos={x=3,y=20,z=0}; crowd.facts={crowd=true,ganger=true}; crowd.pos={x=0.1,y=6,z=0}
+  native.nearby=function(_,radius) local r={} for _,o in ipairs(world) do if math.abs(o.pos.x)+math.abs(o.pos.y)<=radius then r[#r+1]=o end end return r end
   local current,info=K.current(player); assert(current==crowd and info.source=='aimed','the closest to the line wins, crowd included: '..tostring(info and info.name))
-  assert(logs[#logs]:find('aimed%-companion=1'))
+  assert(logged('aimed%-companion=1'))
   crowd.facts={crowd=true,civilian=true}; current,info=K.current(player)
   assert(current==ganger and info.source=='aimed','the crowd civilian is skipped')
   ganger.pos={x=8,y=20,z=0}; current,info=K.current(player)
-  assert(info.source=='nearest','outside the cone nothing is aimed at: falls to the closest ordinary combatant')
-  native.crosshair=function() error('native') end; current,info=K.current(player); assert(info.source=='nearest')
-  native.crosshair=function() return nil end; current,info=K.current(player); assert(info.source=='nearest')
+  assert(info.source=='nearest' or current==nil,'outside the cone nothing is aimed at')
+  native.crosshair=function() error('native') end; current,info=K.current(player); assert(current==nil or info.source=='nearest')
+  native.crosshair=function() return nil end; current,info=K.current(player); assert(current==nil or info.source=='nearest')
 `));
 
-test('target: a named or quest-bound game character is never a tactic target, tagged, aimed or nearest', () => run(markingWorld + `
-  local storyChar=ganger
-  K=Marking.new({native=native,owned=function(o) return o==judy end,log=function(l) logs[#logs+1]=l end,
-    protected=function(o) return o==storyChar or o==other end})
-  storyChar.tagged=true; other.tagged=true; aimed=storyChar
-  local current,info=K.current(player)
-  assert(current~=storyChar and current~=other,'a protected NPC is skipped even when tagged and aimed at')
-  assert(current==guard and info.source=='tagged' or current==cop or current==guard, 'an ordinary combatant is still chosen')
-  aimed=other; storyChar.tagged=false; other.tagged=false; guard.tagged=false
-  current,info=K.current(player); assert(current~=storyChar and current~=other and info.source~='aimed')
-  assert(logs[#logs]:find('story%-character'),logs[#logs])
-  -- an erroring predicate never makes a protected NPC eligible by accident: it counts as not protected only when it raises
-  K=Marking.new({native=native,owned=function(o) return o==judy end,protected=function() error('native') end})
-  assert(K.current(player)~=nil,'the unreadable predicate does not break targeting')
-`));
-
-test('perception: a named or quest-bound character near the target keeps its own attitude and detection', () => run(perceptionWorld + `
-  local story=guard
-  P=Perception.new({native=native,skip=function(o) return o==story end})
-  assert(P.begin(target,player,companion)==2,'the target and one ordinary neighbour; the story character is not tracked')
-  assert(guard.mult==2.0 and guard.meter==50,'untouched')
-  for _,c in ipairs(calls) do assert(not c:find('78ULL'),'no native write for the story character: '..c) end
-  P.restore(); assert(guard.mult==2.0)
-  -- a predicate that raises fails closed: nothing is changed on that NPC
-  P=Perception.new({native=native,skip=function() error('x') end})
-  assert(P.begin(target,player,companion)==0)
+test('target: the native tag reader tries each method and reports which one answered', () => run(`
+  local Marking=(function() ${markingSource} end)()
+  local N=Marking.nativeAdapter()
+  local calls={}
+  local first={IsTaggedinFocusMode=function() calls[#calls+1]='a' return true end}
+  local value,how=N.tagRead(first); assert(value==true and how=='IsTaggedinFocusMode')
+  local second={IsTaggedInFocusMode=function() calls[#calls+1]='b' return false end}
+  value,how=N.tagRead(second); assert(value==false and how=='IsTaggedInFocusMode','the second spelling answers when the first does not exist')
+  local broken={IsTaggedinFocusMode=function() error('boom') end,IsTaggedInFocusMode=function() return 7 end}
+  local ok,err=pcall(N.tagRead,broken); assert(not ok and tostring(err):find('returned number'),tostring(err))
+  ok,err=pcall(N.tagRead,{}); assert(not ok and tostring(err):find('attempt to call'),tostring(err))
 `));
 
 test('companions hand exactly one owned copy to the tactic decision and resume following afterwards', () => run(`${companionEngine}
@@ -445,3 +413,28 @@ test('the native body type is the plain name, not the CName hash form', () => {
     assert(N.bodyType({GetBodyType=function() return nil end})=='', 'none')
   `);
 });
+
+test('the native weapon draw uses the right-hand slot and is cancelled only while it is running', () => run(`
+  local Tactics=(function() ${tacticsSource} end)()
+  local N=Tactics.nativeAdapter()
+  local sent,stateText,stopped={},'AICommandState : Executing (2)',{}
+  NewObject=function(class) assert(class=='AIEquipCommand'); return {} end
+  TweakDBID={new=function(name) return name end}
+  local ai={SendCommand=function(_,c) sent[#sent+1]=c; return true end,GetCommandState=function() return stateText end,
+    StopExecutingCommand=function() stopped[#stopped+1]='stop' end,CancelCommand=function() stopped[#stopped+1]='cancel' end}
+  local npc={GetAIControllerComponent=function() return ai end}
+  local handle=N.drawWeapon(npc)
+  assert(#sent==1 and sent[1].slotId=='AttachmentSlots.WeaponRight' and sent[1].failIfItemNotFound==false)
+  N.cancelDraw(handle,npc); assert(stopped[1]=='stop')
+  stateText='AICommandState : Enqueued (0)'; N.cancelDraw(handle,npc); assert(stopped[2]=='cancel')
+  stateText='AICommandState : Success (3)'; N.cancelDraw(handle,npc); assert(#stopped==2,'a finished command is left alone')
+  ai.SendCommand=function() return false end
+  assert(not pcall(N.drawWeapon,npc),'a refused command raises')
+  -- readback
+  ScriptedPuppet={GetWeaponRight=function(n) return n.weapon end}
+  WeaponObject={IsFists=function(id) return id=='fists' end}
+  ItemID={GetTDBID=function(id) return 'Items.'..id end}
+  local function item(id) return {GetItemID=function() return id end} end
+  assert(N.weapon({weapon=nil})==false and N.weapon({weapon=item('fists')})==false)
+  local drawn,record=N.weapon({weapon=item('Preset_Lexington')}); assert(drawn==true and record=='Items.Preset_Lexington')
+`));

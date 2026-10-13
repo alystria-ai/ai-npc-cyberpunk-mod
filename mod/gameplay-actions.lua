@@ -12,6 +12,15 @@ local MAX_PACKET, MAX_LEASE_MS = 16384, 125000
 local FOLLOW_UNAVAILABLE = {quest = true, scene = true, combat = true, police = true, hostile = true,
     working = true, vehicle = true, busy = true, ['already-here'] = true, unavailable = true}
 M.FOLLOW_UNAVAILABLE = FOLLOW_UNAVAILABLE
+-- Why the game cannot let a companion drive V now (the chauffeur offer's own code -> the few codes the bridge knows). A text-route
+-- character (Mistral, the local AI) uses it to say what V has to do first instead of promising a ride; nothing is leased for it.
+local DRIVE_UNAVAILABLE = {['player-driving'] = 'player-driving', ['player-seated'] = 'player-seated',
+    ['no-waypoint'] = 'no-waypoint', ['no-owned-car'] = 'no-car', ['ambiguous-owned-car'] = 'no-car',
+    ['car-distant'] = 'no-car', ['car-arriving'] = 'no-car', ['car-moving'] = 'car-moving', combat = 'combat',
+    ['transport-busy'] = 'busy', ['autodrive-active'] = 'busy', ['driver-occupied'] = 'busy',
+    ['no-passenger-seat'] = 'busy', ['actor-seated'] = 'busy', ['actor-unavailable'] = 'busy',
+    ['driving-unavailable'] = 'busy', ['world-unavailable'] = 'busy'}
+M.DRIVE_UNAVAILABLE = DRIVE_UNAVAILABLE
 
 local function copy(value, depth)
     if type(value) ~= 'table' then return value end
@@ -91,7 +100,7 @@ function M.new(options)
         if not normalized or not ownedOffer(captured, context) then return nil end
         return captured
     end
-    local lastAdvisory, lastTacticAdvisory
+    local lastAdvisory, lastTacticAdvisory, lastDriveAdvisory
 
     local function assign(context, from)
         context.chauffeurOffer, context.tacticOffer = copy(from.offer), copy(from.tacticOffer)
@@ -112,6 +121,7 @@ function M.new(options)
         if type(context) ~= 'table' then return false end
         context.chauffeurOffer, context.tacticOffer, context.tacticUnavailable = nil, nil, nil
         context.followOffer, context.leaveOffer, context.followUnavailable = nil, nil, nil
+        context.driveUnavailable = nil
         local private = source == 'private-text' or source == 'private-voice'
         local group = source == 'group-text' or source == 'group-voice'
         if not (private or group) or (private and context.group ~= nil) or context.reaction
@@ -127,14 +137,15 @@ function M.new(options)
             tostring(context.generation), context.entity, context.profileKey, source}, '\n')
         if admission == lastAdmission then
             context.followUnavailable, context.tacticUnavailable = lastAdvisory, lastTacticAdvisory
+            context.driveUnavailable = lastDriveAdvisory
             if lease then assign(context, lease); return true end
             return false
         end
         Q.revoke('new-conversation')
-        lastAdmission, lastAdvisory, lastTacticAdvisory = admission, nil, nil
-        local drive, tactic, follow, refusal, tacticRefusal
+        lastAdmission, lastAdvisory, lastTacticAdvisory, lastDriveAdvisory = admission, nil, nil, nil
+        local drive, tactic, follow, refusal, tacticRefusal, driveRefusal
         if private then
-            drive = capturedOffer(options.offer, context.entity, context)
+            drive, driveRefusal = capturedOffer(options.offer, context.entity, context)
             tactic, tacticRefusal = capturedOffer(options.tacticOffer, context.entity, context)
             follow, refusal = capturedOffer(options.followOffer, context.entity, context)
         end
@@ -145,6 +156,12 @@ function M.new(options)
             and FOLLOW_UNAVAILABLE[refusal.reason] then
             lastAdvisory = refusal.reason
             context.followUnavailable = refusal.reason
+        end
+        -- A ride the game cannot give: only the code of why (a standing car, a map destination, V out of the driver seat).
+        if not drive and type(driveRefusal) == 'table' and driveRefusal.available == false
+            and DRIVE_UNAVAILABLE[driveRefusal.code] then
+            lastDriveAdvisory = DRIVE_UNAVAILABLE[driveRefusal.code]
+            context.driveUnavailable = lastDriveAdvisory
         end
         -- No valid target: the bridge learns it so the character does not claim to attack anyone.
         if not tactic and type(tacticRefusal) == 'table' and tacticRefusal.available == false
@@ -244,7 +261,7 @@ function M.new(options)
             reason = result and result.reason, drive = lease ~= nil and lease.offer ~= nil,
             tactic = lease ~= nil and lease.tacticOffer ~= nil, follow = lease ~= nil and lease.followOffer ~= nil,
             leave = lease ~= nil and lease.leaveOffer ~= nil, followUnavailable = lastAdvisory,
-            tacticUnavailable = lastTacticAdvisory}
+            tacticUnavailable = lastTacticAdvisory, driveUnavailable = lastDriveAdvisory}
     end
 
     return Q

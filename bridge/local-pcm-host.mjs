@@ -98,14 +98,17 @@ export class LocalPcmHost {
 
   // liveText: optional () => ({text, complete}). A reply whose text is still being written (bridge/reply-stream.mjs) starts the voice on
   // its first sentence; the renderer holds only that text, so each clock snapshot carries the live text and whether it is final.
-  async play(config, producer, {signal, current = () => true, onFrame, getFace, liveText} = {}) {
+  // wake: optional () => Promise|undefined. A pending promise ends the wait between two clock polls early when it resolves (the game's lease
+  // file was just replaced, docs/LATENCY_2026-10-13.md 4.2), as the Convai host's liveSpeech.wake does.
+  async play(config, producer, {signal, current = () => true, onFrame, getFace, liveText, wake} = {}) {
     throwIfCancelled(signal);
     if (this.failure) throw this.failure;
     if (this.active || this.closing) throw Error('Local PCM playback is already owned');
     if (!config || typeof config.token !== 'string' || !TOKEN.test(config.token) || !textValue(config.text, 12000) || !config.text.trim()
         || (config.userText !== undefined && !textValue(config.userText, 1200))
         || typeof producer !== 'function' || typeof current !== 'function' || typeof onFrame !== 'function'
-        || (getFace !== undefined && typeof getFace !== 'function') || (liveText !== undefined && typeof liveText !== 'function')) throw Error('Invalid local PCM admission');
+        || (getFace !== undefined && typeof getFace !== 'function') || (liveText !== undefined && typeof liveText !== 'function')
+        || (wake !== undefined && typeof wake !== 'function')) throw Error('Invalid local PCM admission');
     // Take a separate immutable copy of text and provider emotion correlation.
     config = jsonCopy(config, 'local PCM admission');
     const controller = new AbortController(), epoch = this.epoch;
@@ -203,7 +206,11 @@ export class LocalPcmHost {
             if (admitted === false) continue;
             if (admitted !== true) throw Error('Invalid local PCM control acknowledgement');
           }
-          await abortable(new Promise(resolve => setTimeout(resolve, this.pollMs)), controller.signal);
+          await abortable(new Promise(resolve => {
+            const timer = setTimeout(resolve, this.pollMs);
+            // The lease file was just replaced: poll at once instead of finishing the sleep.
+            wake?.()?.then(() => { clearTimeout(timer); resolve(); }, () => {});
+          }), controller.signal);
         }
       })();
       producerTask = (async () => {

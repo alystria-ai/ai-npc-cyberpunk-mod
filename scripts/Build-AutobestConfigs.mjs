@@ -37,7 +37,7 @@ export function picksFromAutobest(data, {only = null} = {}) {
     for (const [engine, variant, output] of SOURCES) {
       const set = row[engine]?.[variant];
       if (!set?.ids?.length || set.ids.some(id => id.startsWith('live:'))) continue;   // today's reference won: nothing to propose
-      const note = `auto-best ${engine} ${variant}: ${set.seconds ?? '?'} s, ECAPA ${set.ecapa}${set.ecapa_se != null ? ` +-${set.ecapa_se}` : ''}${set.pls != null ? `, PLS ${set.pls}` : ''}`;
+      const note = set.note ?? `auto-best ${engine} ${variant}: ${set.seconds ?? '?'} s, ECAPA ${set.ecapa}${set.ecapa_se != null ? ` +-${set.ecapa_se}` : ''}${set.pls != null ? `, PLS ${set.pls}` : ''}`;
       (voices[voice] ??= {kept: {}}).kept[output] = {clips: set.ids, seconds: set.seconds ?? null, ts: data.generated ?? null, note};
       entries++;
     }

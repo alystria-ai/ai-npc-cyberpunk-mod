@@ -406,11 +406,14 @@ test('each of the four hooks writes one probe.log line the first time it fires i
   assert(#lines == 3 and lines[3] == 'Game dialogue: hook hubs fired (' .. HUBS .. ')', lines[3])
   hooks[CHOICE](nil, {isSuccess = true, visualizerType = 'Dialog', choiceIdx = 0})
   hooks[CHOICE](nil, {isSuccess = true, visualizerType = 'Dialog', choiceIdx = 0})
-  assert(#lines == 4 and lines[4] == 'Game dialogue: hook choice fired (' .. CHOICE .. ')', lines[4])
+  assert(lines[4] == 'Game dialogue: hook choice fired (' .. CHOICE .. ')', lines[4])
+  -- The choice hook adds one line per outcome (decision ledger probe): the first recorded pick and the first skip reason, no option text.
+  assert(#lines == 6 and lines[5]:find('^Game dialogue: choice recorded #1 %(index=0 hub=7 options=1') and not lines[5]:find('Okay', 1, true), lines[5])
+  assert(lines[6] == 'Game dialogue: choice not recorded (repeated)', lines[6])
   -- A fired hook stays quiet for the rest of the session, through a world reset and with the setting off.
   installed:reset('save restored'); enabled = false
   for _, name in ipairs({SHOW, EVENT, CHOICE, HUBS}) do hooks[name](nil, {line}) end
-  assert(#lines == 4, 'one line per hook per session')
+  assert(#lines == 7 and lines[7] == 'Game dialogue: choice not recorded (not-dialogue)', lines[7])
   -- Even a call the module ignores proves that the game called the hook; a failing log never breaks it.
   local quiet = api.new({native = N, now = function() return now end, log = function() error('log failed') end,
     observe = function(class, method, fn) hooks[class .. '.' .. method] = fn end})
