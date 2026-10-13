@@ -75,6 +75,8 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
       }
       facial.finish();return response;
     },{signal,current,onFrame:snapshot=>speech.frame(snapshot),
+      // The game's lease wakes the clock poll (speech.options.wake, bridge/convai-continuous-speech.mjs).
+      ...(typeof speech.options?.wake==='function'?{wake:()=>speech.options.wake()}:{}),
       ...(stream?{liveText:()=>({text:stream.text,complete:stream.complete})}:{}),
       getFace:snapshot=>{
         if(stream)facial.setText(snapshot.text,snapshot.textComplete);

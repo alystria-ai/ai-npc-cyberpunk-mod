@@ -417,3 +417,29 @@ test('RealtimeHost.prewarmLocal starts the browser and warms the local page, and
   host.start = async () => {}; host.localPcm = null;
   assert.equal(await host.prewarmLocal(), false);
 });
+
+test('wake ends the wait between two clock polls early: the first lease is read at once, not after the poll sleep', {timeout: 5000}, async t => {
+  const {host, players, track} = fixture(t);
+  host.pollMs = 600;
+  const polls = [];
+  let wakeWaiter = null, leased = false;
+  const pending = track(host.play({token: 'wake-test', text: 'One reply.'}, async emit => { await emit(packet()); return {}; },
+    {onFrame: frame => { polls.push(performance.now()); return leased ? control : undefined; },
+      wake: () => new Promise(done => { wakeWaiter = done; })}));
+  await until(() => players[0]?.sealed && polls.length >= 2);
+  const before = polls.length;
+  await sleep(50);
+  assert.equal(polls.length, before, 'the long sleep is not cut short by itself');
+  leased = true;
+  const at = performance.now();
+  wakeWaiter();
+  await until(() => players[0]?.controls.length > 0);
+  assert.ok(performance.now() - at < 300, 'the lease is applied well inside the 600 ms sleep');
+  players[0].finish();
+  await pending;
+});
+
+test('an invalid wake option is refused with the other admission checks', async t => {
+  const {host} = fixture(t);
+  await assert.rejects(host.play({token: 'bad-wake', text: 'x'}, async () => ({}), {onFrame: () => undefined, wake: 'soon'}), /Invalid local PCM admission/);
+});

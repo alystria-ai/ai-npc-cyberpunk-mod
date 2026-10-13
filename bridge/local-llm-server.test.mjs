@@ -61,8 +61,10 @@ const keyFolders = tmpDir => readdirSync(tmpDir).filter(name => name.startsWith(
 test('buildServerArgs: the model, context, device and key file are arguments, and there is no key on the command line', () => {
   const args = buildServerArgs({model: 'M.gguf', port: 5123, keyFile: 'K', device: 'Vulkan1', contextSize: 4096});
   assert.deepEqual(args, ['-m', 'M.gguf', '-ngl', '99', '-fa', 'on', '-c', '4096', '-np', '1', '--reasoning', 'off', '--cache-ram', '1024',
-    '--ctx-checkpoints', '32', '--device', 'Vulkan1', '--no-webui', '--host', '127.0.0.1', '--port', '5123', '--api-key-file', 'K']);
+    '--ctx-checkpoints', '32', '-fit', 'off', '--device', 'Vulkan1', '--no-webui', '--host', '127.0.0.1', '--port', '5123', '--api-key-file', 'K']);
   assert.ok(!args.includes('--api-key'));
+  // -fit off is only safe because every size the fit pass would choose is given: layers, context and device.
+  for (const flag of ['-ngl', '-c', '--device']) assert.ok(args.includes(flag), flag);
   assert.equal(buildServerArgs({model: 'M', port: 1, keyFile: 'K', device: 'V'})[7], '8192');
   assert.throws(() => buildServerArgs({model: 'M', port: 1, keyFile: 'K'}), TypeError);
 });

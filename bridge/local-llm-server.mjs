@@ -62,7 +62,9 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
 export function buildServerArgs({model, port, keyFile, device, contextSize = LOCAL_LLM_LIMITS.contextSize, cacheRamMiB = 1024, host = '127.0.0.1'}) {
   if (!model || !port || !keyFile || !device) throw TypeError('model, port, keyFile and device are required');
   return ['-m', model, '-ngl', '99', '-fa', 'on', '-c', String(contextSize), '-np', '1', '--reasoning', 'off',
-    '--cache-ram', String(cacheRamMiB), '--ctx-checkpoints', '32', '--device', device, '--no-webui',
+    // -fit off: the layers, context and device are all given, so llama-server's fit pass (which loads the model a second time to
+    // measure the devices) only costs start time (see bridge/local-embed.mjs).
+    '--cache-ram', String(cacheRamMiB), '--ctx-checkpoints', '32', '-fit', 'off', '--device', device, '--no-webui',
     '--host', host, '--port', String(port), '--api-key-file', keyFile];
 }
 

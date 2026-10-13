@@ -577,7 +577,7 @@ export class TextProviderHost {
  * `prewarmVoice` (default true): a warm-up also opens the host's local voice renderer (the phone host has none to open).
  * `speech` is an optional hook for local speech recognition (bridge/local-stt.mjs): {available(): boolean, voiceChannel({reply})}.
  */
-export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true} = {}) {
+export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true, warmCloud} = {}) {
   const textHost = mistral;
   const original = {reply: host.reply, prepare: host.prepare, warm: host.warm, readiness: host.readiness, lateEmotion: host.lateEmotion,
     refreshIdle: host.refreshIdle, voiceChannel: host.voiceChannel};
@@ -597,6 +597,8 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
   host.warm = function warm(config, options) {
     if (!provider.active) return original.warm.call(this, withoutLocal(config), options);
     if (provider.route === 'local') void textHost.prewarm?.(config);
+    // A cloud route's connection is kept open for 60 s after its last use: opening the composer renews it (an unauthenticated request).
+    else if (warmCloud && (provider.route === 'mistral' || provider.route === 'groq')) void warmCloud({provider: provider.route});
     // The local voice's browser and renderer page open now, while V types or looks, not in front of the first reply.
     if (prewarmVoice) void this.prewarmLocal?.();
     return Promise.resolve({connectionMs: 0, provider: provider.route});

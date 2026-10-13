@@ -9,6 +9,7 @@ import {TextProviderHost, mistralRoute} from './text-provider-host.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
+import {streamChat} from './mistral-client.mjs';
 import {PersonaBook} from './mistral-prompt.mjs';
 
 const TOKEN = 'drive-0123456789abcdefghij';
@@ -491,4 +492,32 @@ test('a route that serves one request at a time (the local server) never overlap
     await host.reply(turn('drive for me', {companionAction: ride()}));
     assert.ok(times.reply - times.decision >= 120, 'the reply came after the decision');
   } finally { await close(); }
+});
+
+test('the decision request and the reply both ride the shared keep-alive Agent of the cloud routes (no connection setup of their own)', async () => {
+  const seen = [];
+  const fetchImpl = async (url, init) => {
+    const body = JSON.parse(init.body), decision = isDecision(body);
+    seen.push({url, decision, dispatcher: init.dispatcher});
+    const text = decision ? 'DRIVE' : 'Sure, hop in and buckle up. I will take us there.';
+    const events = [{choices: [{index: 0, delta: {content: text}}]}, {choices: [{delta: {}, finish_reason: 'stop'}]}];
+    return new Response(events.map(event => `data: ${JSON.stringify(event)}\n\n`).join('') + 'data: [DONE]\n\n', {status: 200, headers: {'content-type': 'text/event-stream'}});
+  };
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}});
+  await provider.load(); provider.setPreference('mistral'); provider.apply();
+  const delivered = [];
+  // The real streamChat with only the network replaced, and the provider's own (cloud) endpoint: what the game session uses.
+  const route = mistralRoute({provider, gapMs: 0, cacheScope: 'scope1', chat: options => streamChat({...options, fetchImpl})});
+  const host = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: book, routes: {mistral: route},
+    deliverAction: async message => { delivered.push(message); return true; }});
+  try {
+    await host.reply(turn('drive for me', {companionAction: ride()}), {stream: new ReplyStream({name: 'Judy Alvarez'})});
+    await settle();
+    assert.deepEqual(seen.map(call => call.decision).sort(), [false, true], 'one decision request and one reply request');
+    assert.ok(seen.every(call => call.url.startsWith('https://api.mistral.ai/')), 'the cloud endpoint, not a loopback test server');
+    const agents = new Set(seen.map(call => call.dispatcher));
+    assert.equal(agents.size, 1, 'both requests use the same dispatcher');
+    assert.equal(typeof [...agents][0]?.dispatch, 'function', 'and it is the keep-alive Agent, not the default client');
+    assert.deepEqual(delivered, [{version: 1, token: TOKEN}]);
+  } finally { host.close(); }
 });

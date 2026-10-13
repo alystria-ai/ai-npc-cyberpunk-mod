@@ -208,3 +208,18 @@ test('browser capture: AudioWorklet chunks reach the recogniser and the clip is 
     assert.ok(partials.length >= 1, 'live words arrived while recording');
   } finally { await capture.close(); await stt.close(); await browser.close(); }
 });
+
+test('the transcript is reported through options.onTranscript before the reply starts, and a throwing listener changes nothing', async () => {
+  const order = [];
+  const f = session({stt: fakeStt({text: 'where are we going'}), capture: fakeCapture(),
+    reply: async (used, options) => { order.push('reply:' + used.text); return {text: 'To the Afterlife.'}; }});
+  await f.mic.start(input, config);
+  // MicrophoneSession hands the options of prepareReply to finishVoice; call the channel directly for the hook.
+  const channel = createLocalSttChannel({stt: fakeStt({text: 'hello'}), capture: fakeCapture(),
+    reply: async (used) => { order.push('reply:' + used.text); return {text: 'Hi.'}; }})();
+  await channel.beginVoice({requestId: 'r-1'});
+  const result = await channel.finishVoice({}, {onTranscript: text => { order.push('transcript:' + text); throw Error('listener fault'); }});
+  assert.deepEqual(order, ['transcript:hello', 'reply:hello']);
+  assert.equal(result.text, 'Hi.');
+  await f.mic.cancel();
+});

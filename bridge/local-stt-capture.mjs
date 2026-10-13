@@ -201,6 +201,8 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now}) {
         if (!text) throw Error(NO_SPEECH_ERROR);
         const base = {userText: text, local: true, timing: {sttMs: now() - started, audioSeconds: seconds}};
         if (!reply) return {...base, text: ''};
+        // A reply voiced while it is written (bridge/voice-key-stream.mjs) needs the transcript before the model's first sentence.
+        try { options.onTranscript?.(text); } catch { /* a listener never breaks the turn */ }
         const result = await reply({...config, text}, {...options, signal: controller.signal});
         return {...base, ...result, userText: result?.userText ?? text};
       },
