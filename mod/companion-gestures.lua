@@ -432,6 +432,14 @@ function M.new(options)
             -- Setting Off and nothing held: no speech lookup at all (FPS).
             if s.phase == 'off' and not self.enabled()
                 and not (s.healthFrom and self.clock - s.healthFrom <= policy.healthWindow) then s.settledSince = nil; return end
+            -- A crouching V (or a copy held crouched): the workspot would pull her out of the pose, so
+            -- none starts and a running one leaves at once (docs/COMPANION_GESTURES.md). One boolean.
+            if context.crouched then
+                if s.phase == 'off' then s.settledSince = nil; return end
+                if s.phase ~= 'exiting' then requestExit(s, 'crouching', false) end
+                advance(s, context, nil, nil)
+                return
+            end
             local mode, info = modeFor(s)
             if s.phase == 'off' then
                 health(s, context)

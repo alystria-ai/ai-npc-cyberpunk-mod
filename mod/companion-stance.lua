@@ -20,6 +20,15 @@
 -- reads Stand (never over cover, vehicle or swim), a stand only when it reads Crouch
 -- (never over cover the combat AI chose). If the AI resets the crouch the module
 -- re-issues it a few times per crouch and then gives up for that crouch.
+-- A stand is read back the same way (live 2026-10-13: a stand that was logged left her
+-- crouched), re-issued a few times while the stance still reads Crouch, and V crouching
+-- again during that window adopts the crouch that is still there instead of ignoring it.
+--
+-- A body-animation workspot (the idle and talk gestures in companion-gestures.lua) takes
+-- the pose. Gestures never start while V crouches or a companion is held crouched, and
+-- leave when V crouches, so the crouch waits for the workspot to end and is never taken
+-- apart by it (live: a gesture start forced a stand, then a crouch, then the gesture
+-- exited 'not relaxed'). A seat or scene workspot still stands her.
 -- Only the managed copies companions.lua hands in are ever touched.
 local M = {}
 
@@ -66,6 +75,13 @@ function M.nativeAdapter()
             return STANCE[npc:GetPuppetStateBlackboard():GetInt(defs.Stance)]
         end)
     end
+    -- 'Relaxed', 'Alerted', ... for the probe log only (nil when unreadable).
+    function N.highLevel(npc)
+        return try(function()
+            local state = npc:GetHighLevelStateFromBlackboard()
+            return tostring(state.value or state)
+        end)
+    end
     function N.set(npc, name)
         local ok, err = pcall(function()
             if not npc:IsA('NPCPuppet') then error('not an NPC puppet') end
@@ -91,6 +107,9 @@ function M.new(options)
     local clock, nextSync = 0, 0
     local episode = 0           -- bumped on every change of V's stance
     local records = {}          -- serial -> {at, retries, episode, gaveUp}
+    local pending = {}          -- serial -> {at, retries}: a stand issued and not yet read back
+    local pendingCount = 0
+    local waiting = {}          -- serial -> reason a wanted crouch is held back (logged once per reason)
     local lastSay = {}
 
     local function label(entry) return tostring(entry.profileKey or entry.name or entry.serial) end
@@ -105,6 +124,15 @@ function M.new(options)
         local extra = last and last.skipped > 0 and (' (+' .. last.skipped .. ' not logged)') or ''
         lastSay[entry.serial] = {at = clock, skipped = 0}
         pcall(log, 'Companion stance: ' .. text .. ' (' .. label(entry) .. ')' .. extra)
+    end
+
+    -- ' hls=Relaxed' on the lines that matter when a pose looks wrong; one blackboard read.
+    local function hls(entry)
+        local read = native.highLevel and native.highLevel(entry.npc)
+        return read and (' hls=' .. tostring(read)) or ''
+    end
+    local function clearPending(serial)
+        if pending[serial] then pending[serial] = nil; pendingCount = pendingCount - 1 end
     end
 
     -- The game's blackboard event for V's stance. No native call here.
@@ -130,12 +158,34 @@ function M.new(options)
             local ok, err = native.set(entry.npc, 'Stand')
             if ok then
                 T.stands = T.stands + 1
-                say(entry, 'stand' .. (reason and (' - ' .. reason) or ''))
+                say(entry, 'stand' .. (reason and (' - ' .. reason) or '') .. hls(entry))
+                -- Read back later: the request can be ignored without any error.
+                if not pending[entry.serial] then pendingCount = pendingCount + 1 end
+                pending[entry.serial] = {at = clock, retries = 0}
             else
                 say(entry, 'stand failed: ' .. tostring(err))
             end
         else
             say(entry, 'stand not needed, stance is ' .. tostring(now))
+        end
+    end
+
+    -- A stand we issued: read it back and re-issue it while the stance still reads Crouch.
+    local function verifyStand(entry, p)
+        if clock - p.at < cfg.verifyAfter then return end
+        if native.stance(entry.npc) ~= 'Crouch' then
+            -- Stand, or the game's own cover or seat, or unreadable: nothing left to fix.
+            clearPending(entry.serial)
+            return
+        end
+        if p.retries >= cfg.maxRetries then
+            clearPending(entry.serial)
+            say(entry, 'stand not kept by the game' .. hls(entry))
+        elseif clock - p.at >= cfg.retryGap then
+            local ok = native.set(entry.npc, 'Stand')
+            p.retries, p.at = p.retries + 1, clock
+            T.retries = T.retries + 1
+            if ok then say(entry, 'stand again') end
         end
     end
 
@@ -150,17 +200,27 @@ function M.new(options)
             end
         end
         if crouched and not reason then
+            waiting[entry.serial] = nil
             if not record then
+                local now = native.stance(entry.npc)
+                if pending[entry.serial] and now == 'Crouch' then
+                    -- V crouched again before the last stand took effect: the crouch is
+                    -- still there and is ours, so hold it and stand it with V next time.
+                    clearPending(entry.serial)
+                    records[entry.serial] = {at = clock, retries = 0, episode = episode}
+                    holding = holding + 1
+                    return
+                end
+                clearPending(entry.serial)
                 -- A companion the game's AI already has crouched or in cover, or that
                 -- sits in a vehicle, is not ours to change.
-                local now = native.stance(entry.npc)
                 if now ~= nil and now ~= 'Stand' then return end
                 local ok, err = native.set(entry.npc, 'Crouch')
                 if not ok then say(entry, 'crouch failed: ' .. tostring(err)); return end
                 records[entry.serial] = {at = clock, retries = 0, episode = episode}
                 holding = holding + 1
                 T.applied = T.applied + 1
-                say(entry, 'crouch')
+                say(entry, 'crouch' .. hls(entry))
                 return
             end
             if record.gaveUp or clock - record.at < cfg.verifyAfter then return end
@@ -178,7 +238,18 @@ function M.new(options)
             end
             return
         end
-        if record then release(entry, record, crouched and reason or nil) end
+        if record then release(entry, record, crouched and reason or nil); return end
+        if crouched then
+            -- V crouches and this copy may not yet: say why, once per reason, so a late crouch is explained.
+            if waiting[entry.serial] ~= reason then
+                waiting[entry.serial] = reason
+                say(entry, 'crouch waiting - ' .. tostring(reason))
+            end
+        else
+            waiting[entry.serial] = nil
+        end
+        local p = pending[entry.serial]
+        if p then verifyStand(entry, p) end
     end
 
     -- Called from the companion update (10 Hz) with the ready managed copies.
@@ -192,7 +263,7 @@ function M.new(options)
             crouched = native.playerCrouched(player) == true
             dirty = crouched
         end
-        if not (dirty or crouched or holding > 0) then return end
+        if not (dirty or crouched or holding > 0 or pendingCount > 0) then return end
         if not dirty and clock < nextSync then return end
         dirty, nextSync = false, clock + cfg.syncEvery
         local present = {}
@@ -205,13 +276,23 @@ function M.new(options)
         for serial in pairs(records) do
             if not present[serial] then records[serial] = nil; holding = holding - 1 end
         end
+        for serial in pairs(pending) do
+            if not present[serial] then clearPending(serial) end
+        end
+        for serial in pairs(waiting) do
+            if not present[serial] then waiting[serial] = nil end
+        end
     end
 
     function T.crouched() return crouched == true end
     function T.holding() return holding end
+    -- True while this module holds the copy crouched or is still standing her up. The gesture owner
+    -- reads it (a table lookup) so no workspot starts over the pose.
+    function T.holds(serial) return records[serial] ~= nil or pending[serial] ~= nil end
     -- A reload or world change: forget everything without a native call.
     function T.abandon()
         records, lastSay, holding, crouched, dirty = {}, {}, 0, nil, false
+        pending, pendingCount, waiting = {}, 0, {}
     end
 
     return T

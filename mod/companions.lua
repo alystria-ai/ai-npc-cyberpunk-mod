@@ -2325,8 +2325,12 @@ function M.update(player,delta,focusEntity)
             -- movement waits exactly as it does for the native holster handoff.
             local body,bodyHolds=M.bodyAnimation,false
             if body then
+                local stance=M.stance
                 local observed,holds=pcall(body.observe,entry,{idle=idle and not equipment.holdsMovement(entry.equipment),
                     phase=decision.phase,combat=context.combat,selected=context.selected,
+                    -- V crouches, or this copy is held crouched / still being stood up: no gesture workspot
+                    -- may start over the pose, and a running one leaves (companion-stance.lua).
+                    crouched=stance~=nil and (stance.crouched() or stance.holds(entry.serial)) or false,
                     -- Settled without the copy's own speed: a workspot entry
                     -- slide is not a decision to walk.
                     settled=not groupFrame.moving and (groupFrame.rawSpeed or 0)<0.28
