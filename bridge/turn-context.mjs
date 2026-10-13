@@ -10,10 +10,13 @@
 // A phone chat (V texting a contact through the in-game phone; the reply is text) gets the time, V's district and what V is doing,
 // and is told she is somewhere else with her own place and doing not given: she must neither claim to be with V nor invent where
 // she is. She is not told who stands next to V: a person on the other end of a text could not know.
+// Weather, V's health band, the police heat stage and a rough money band (added 2026-10-14; the CET calls are unconfirmed, so each is
+// optional): a companion in person gets all four, a stranger gets the weather and a visible injury (a bystander sees both; never heat
+// or money), a phone contact gets the weather where V is (like the time) and nothing else of V's body, wanted state or wallet.
 import {placeName} from './protocol.mjs';
 
 // The whole block, framing included (the phone's block is the longest: it also says what she cannot know).
-export const MAX_CHARS = 700;
+export const MAX_CHARS = 800;
 const MAX_NAME = 60, MAX_PARTY = 6;
 const PLACE = /^[A-Za-z0-9][A-Za-z0-9 _.'-]{0,63}$/;
 const LIFEPATHS = {nomad: 'Nomad', streetkid: 'Street Kid', corpo: 'Corpo'};
@@ -30,6 +33,14 @@ const PHONE_SUFFIX = " Treat this as fact: you are not with V and cannot see V's
   + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine). Do not recite it.';
 const MOTIONS = {still: 'standing still', walking: 'walking', running: 'running'};
 const GENDERS = {female: 'a woman (she/her)', male: 'a man (he/him)'};
+// Weather kinds the game side sends (mod/turn-context.lua weatherKind), V's health bands and the money bands.
+const WEATHER = {clear: 'The sky is clear.', cloudy: 'The sky is overcast.', rain: 'It is raining.', 'heavy-rain': 'It is pouring rain.',
+  'toxic-rain': 'Toxic rain is falling.', fog: 'It is foggy.', smog: 'The air is thick with smog.', sandstorm: 'A sandstorm is blowing.'};
+// A stranger can only see an injury, so the wording says "looks"; a healthy V is not mentioned at all.
+const HEALTH = {healthy: null, hurt: ['V is hurt.', 'V looks hurt.'], 'badly-hurt': ['V is badly hurt.', 'V looks badly hurt.']};
+const MONEY = {broke: 'V is nearly broke.', low: 'V is short on cash.', ok: null, comfortable: 'V has plenty of eddies.', rich: 'V is rich.'};
+const heatSentence = stage => stage >= 5 ? 'V is wanted at the highest level; MaxTac is after V.'
+  : stage >= 3 ? 'V has a serious police chase on them.' : stage >= 1 ? 'The police are after V.' : null;
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 
 function clean(value, limit) {
@@ -59,6 +70,10 @@ export function parseTurnContext(value) {
   }
   if (Object.hasOwn(GENDERS, value.gender)) result.gender = value.gender;
   if (Object.hasOwn(LIFEPATHS, value.lifepath)) result.lifepath = value.lifepath;
+  if (Object.hasOwn(WEATHER, value.weather)) result.weather = value.weather;
+  if (Object.hasOwn(HEALTH, value.health)) result.health = value.health;
+  if (Number.isInteger(value.heat) && value.heat >= 0 && value.heat <= 5) result.heat = value.heat;
+  if (Object.hasOwn(MONEY, value.money)) result.money = value.money;
   if (typeof value.vehicle === 'boolean') result.vehicle = value.vehicle;
   if (value.vehicle === true && typeof value.driving === 'boolean') result.driving = value.driving;
   if (Object.hasOwn(MOTIONS, value.motion) && value.vehicle !== true) result.motion = value.motion;
@@ -109,6 +124,8 @@ export function describeTurnContext(input, {ambient = false} = {}) {
     sentences.push(`You are messaging V by text on the phone, not talking to V in person${place ? `; V is in ${place}` : ''}. You are somewhere else; where you are and what you are doing are not given.`);
   }
   if (snapshot.hour !== undefined) sentences.push(`It is ${timeOfDay(snapshot.hour, snapshot.minute)}.`);
+  // The weather goes to all three kinds of turn: a stranger or a contact on the phone could know it as well.
+  if (snapshot.weather) sentences.push(WEATHER[snapshot.weather]);
   // An ordinary NPC is already told its own district (archetypeContext); say it only when that block had none.
   if (ambient && place && !input.archetype?.district) sentences.push(`You are in ${place}.`);
   const others = phone ? [] : (snapshot.party ?? []).filter(row => row.key !== input.profileKey);
@@ -118,12 +135,19 @@ export function describeTurnContext(input, {ambient = false} = {}) {
   }
   if (snapshot.vehicle === true) sentences.push(snapshot.driving === true ? 'V is driving.' : 'V is in a vehicle.');
   if (!ambient && snapshot.motion) sentences.push(`V is ${MOTIONS[snapshot.motion]}.`);
+  // V's condition: an injury a stranger could see, and for a companion in person also the police heat. Never on the phone.
+  const hurt = HEALTH[snapshot.health];
+  if (hurt && !phone) sentences.push(hurt[ambient ? 1 : 0]);
+  const heat = !ambient && !phone && snapshot.heat !== undefined ? heatSentence(snapshot.heat) : null;
+  if (heat) sentences.push(heat);
   const sex = GENDERS[snapshot.gender], lifepath = LIFEPATHS[snapshot.lifepath];
   if (ambient) {
     if (sex) sentences.push(`V looks like ${sex}.`);
   } else if (sex || lifepath) {
     sentences.push(`V is ${[sex, lifepath ? `lifepath ${lifepath}` : null].filter(Boolean).join(', ')}.`);
   }
+  // Money is the least urgent fact, so it goes last and is the first to go in a budget cut. A companion in person only.
+  if (!ambient && !phone && MONEY[snapshot.money]) sentences.push(MONEY[snapshot.money]);
   if (!sentences.length) return {text: '', parts: 0, reason: 'empty'};
   const prefix = 'Right now (from the game, this turn only): ';
   const suffix = ambient

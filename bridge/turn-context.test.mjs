@@ -34,7 +34,7 @@ test('the block words the clock, the place, the company, the vehicle and V for a
     + 'Also with V: Panam. V is in a vehicle. V is a woman (she/her), lifepath Street Kid. '
     + 'Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine). Do not recite it.');
   assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length} characters`);
-  assert.equal(MAX_CHARS, 700);
+  assert.equal(MAX_CHARS, 800);
 });
 
 test('the part of the day and the nearest hour', () => {
@@ -393,8 +393,10 @@ test('the module is on demand only: no frame hook, no observer, no file, no time
   assert.doesNotMatch(source, /registerForEvent|onUpdate|Observe\(|ObserveAfter|Override\(|io\.open|os\.execute|json\./);
   assert.match(source, /^local M = \{\}/m);
   assert.match(source, /pcall\(self\.read, self\)/);
-  // Weather, health and heat are not read: their CET calls are unconfirmed.
-  assert.doesNotMatch(source.split(/\r?\n/).map(row => row.replace(/--.*$/, '')).join('\n'), /Weather|StatPoolsSystem|GetStatPool|HeatStage/);
+  // Weather, health, heat and money are read only inside the adapter's four functions, each through the guarded `optional`.
+  const code = source.split(/\r?\n/).map(row => row.replace(/--.*$/, '')).join('\n');
+  assert.equal((code.match(/Game\.GetWeatherSystem|Game\.GetStatPoolsSystem|'PreventionSystem'\)|Game\.GetTransactionSystem/g) ?? []).length, 4);
+  for (const kind of ['weather', 'health', 'heat', 'money']) assert.match(code, new RegExp(`self:optional\\('${kind}'`));
 });
 
 test('every manual send path captures the block (in person, microphone and phone); reactions never do', () => {
@@ -546,4 +548,263 @@ test('Lua: the init wiring and the companions hook exist and read nothing from t
   const hook = companions.slice(companions.indexOf('function M.activityInputs'), companions.indexOf('-- The per-frame face writer'));
   assert.ok(hook.length > 200);
   assert.doesNotMatch(hook, /registerForEvent|onUpdate|GetWorldPosition|Observe\(/, 'only the modules\' own state, nothing from the game');
+});
+
+// ---------------------------------------------------------------- weather, health, heat and money (2026-10-14)
+const hasSentence = (text, sentence) => text.includes(` ${sentence} `);
+const body = extra => turn({turnContext: scene({vehicle: false, party: [{key: 'judy-alvarez', name: 'Judy', activity: 'following'}], ...extra})});
+const full = {weather: 'rain', health: 'badly-hurt', heat: 4, money: 'broke'};
+
+test('a companion in person is told the weather, V\'s condition, the police heat and a rough money band', () => {
+  const text = turnContext(body(full));
+  assert.equal(text, 'Right now (from the game, this turn only): You are with V in person, on foot, following V through Kabuki, Watson. It is late night, about 2 AM. '
+    + 'It is raining. V is badly hurt. V has a serious police chase on them. V is a woman (she/her), lifepath Street Kid. V is nearly broke. '
+    + 'Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine). Do not recite it.');
+  assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length}`);
+});
+
+test('every weather kind, health band, heat stage and money band has its own short wording; healthy, no heat and ok money say nothing', () => {
+  const say = extra => turnContext(body(extra));
+  for (const [kind, words] of Object.entries({clear: 'The sky is clear.', cloudy: 'The sky is overcast.', rain: 'It is raining.', 'heavy-rain': 'It is pouring rain.',
+    'toxic-rain': 'Toxic rain is falling.', fog: 'It is foggy.', smog: 'The air is thick with smog.', sandstorm: 'A sandstorm is blowing.'})) {
+    assert.ok(hasSentence(say({weather: kind}), words), kind);
+  }
+  assert.ok(hasSentence(say({health: 'hurt'}), 'V is hurt.') && hasSentence(say({health: 'badly-hurt'}), 'V is badly hurt.'));
+  assert.doesNotMatch(say({health: 'healthy', heat: 0, money: 'ok'}), /hurt|police|MaxTac|broke|cash|eddies|rich/);
+  assert.ok(hasSentence(say({heat: 1}), 'The police are after V.') && hasSentence(say({heat: 2}), 'The police are after V.'));
+  assert.ok(hasSentence(say({heat: 3}), 'V has a serious police chase on them.') && hasSentence(say({heat: 4}), 'V has a serious police chase on them.'));
+  assert.ok(hasSentence(say({heat: 5}), 'V is wanted at the highest level; MaxTac is after V.'));
+  assert.ok(hasSentence(say({money: 'low'}), 'V is short on cash.') && hasSentence(say({money: 'comfortable'}), 'V has plenty of eddies.'));
+  assert.ok(say({money: 'rich'}).includes('V is rich. Treat this') && say({money: 'broke'}).includes('V is nearly broke. Treat this'));
+});
+
+test('a stranger may know the weather and see an injury, never the heat or the money; a phone contact knows only the weather', () => {
+  const stranger = conversationContext(parseInput(JSON.stringify(resident({turnContext: scene({party: [], ...full})}))));
+  assert.match(stranger, /It is raining\./);
+  assert.match(stranger, /V looks badly hurt\./);
+  assert.doesNotMatch(stranger, /police|MaxTac|broke|cash|eddies|rich|V is badly hurt/);
+  assert.match(conversationContext(parseInput(JSON.stringify(resident({turnContext: scene({party: [], health: 'hurt'})})))), /V looks hurt\./);
+  const phone = turnContext(turn({channel: 'phone', turnContext: scene({party: [], vehicle: false, ...full})}));
+  assert.match(phone, /It is raining\./);
+  assert.doesNotMatch(phone, /hurt|police|MaxTac|broke|cash|eddies|rich/);
+  assert.match(phone, /^Right now \(from the game, this turn only\): You are messaging V by text on the phone/);
+  assert.ok(phone.length <= MAX_CHARS, `${phone.length}`);
+  // The same snapshot reaches the phone path of the bridge (bridge/phone-chat.mjs parses it with the same function).
+  assert.equal(parseTurnContext(scene(full)).money, 'broke');
+});
+
+test('weather, health, heat and money are validated: unknown words and out-of-range numbers are dropped one by one', () => {
+  const parsed = parseTurnContext(scene({weather: 'meteors', health: 'dead', heat: 6, money: 'a million'}));
+  assert.equal(parsed.weather, undefined); assert.equal(parsed.health, undefined); assert.equal(parsed.heat, undefined); assert.equal(parsed.money, undefined);
+  assert.equal(parseTurnContext(scene({heat: 2.5})).heat, undefined);
+  assert.equal(parseTurnContext(scene({heat: '3'})).heat, undefined);
+  assert.equal(parseTurnContext(scene({heat: 0})).heat, 0);
+  assert.equal(parseTurnContext(scene({weather: 'toxic-rain', health: 'hurt', heat: 5, money: 'rich'})).weather, 'toxic-rain');
+  // Words that are inherited object keys are not accepted.
+  for (const key of ['constructor', 'toString', '__proto__']) assert.equal(parseTurnContext(scene({weather: key, health: key, money: key})).weather, undefined);
+  // A snapshot with only the new fields still counts as ready.
+  assert.equal(parseTurnContext({version: 1, status: 'ready', weather: 'fog'}).status, 'ready');
+});
+
+test('the whole block stays inside the cap with every fact set, and money is the first to be cut', () => {
+  const crowded = scene({vehicle: true, driving: false, motion: undefined, ...full,
+    party: [{key: 'judy-alvarez', name: 'Judy', activity: 'passenger'},
+      ...Array.from({length: 5}, (_, i) => ({key: `person-${i}`, name: `Person ${i} `.padEnd(60, 'x')}))]});
+  const text = turnContext(turn({turnContext: crowded}));
+  assert.ok(text.length <= MAX_CHARS, `${text.length}`);
+  assert.ok(text.endsWith('Do not recite it.'));
+  assert.doesNotMatch(text, /nearly broke/, 'a long block drops money before anything else');
+  assert.match(text, /V is badly hurt\./);
+  const phone = turnContext(turn({channel: 'phone', turnContext: crowded}));
+  assert.ok(phone.length <= MAX_CHARS, `${phone.length}`);
+  const diagnostic = turnContextDiagnostic(turn({turnContext: scene(full)}));
+  assert.match(diagnostic, /^Turn context: \d+ facts, \d+ chars$/);
+});
+
+test('the right-now block still sits where it did: first in the Convai context and in the Mistral live context', () => {
+  const input = parseInput(JSON.stringify(turn({turnContext: scene(full)})));
+  const text = conversationContext(input);
+  assert.ok(text.startsWith('Right now (from the game, this turn only): You are with V in person'), text.slice(0, 120));
+  assert.ok(text.indexOf('It is raining.') < 600);
+});
+
+// ---- the Lua side
+const fresh = `
+state.weather = {'24h_weather_light_rain', 'LightRain', 'GetWeatherState+GetRainIntensityType'}
+state.health = {82, 'GetStatPoolValue(percent)'}
+state.heat = {2, 'GetHeatStageAsInt'}
+state.money = {12340}
+state.optionalCalls = {}
+N.weather = function() state.optionalCalls.weather = (state.optionalCalls.weather or 0) + 1; guard('weather'); return table.unpack(state.weather) end
+N.health = function(p) assert(p == player); state.optionalCalls.health = (state.optionalCalls.health or 0) + 1; guard('health'); return table.unpack(state.health) end
+N.heat = function() state.optionalCalls.heat = (state.optionalCalls.heat or 0) + 1; guard('heat'); return table.unpack(state.heat) end
+N.money = function(p) assert(p == player); state.optionalCalls.money = (state.optionalCalls.money or 0) + 1; guard('money'); return table.unpack(state.money) end
+local lines = {}
+ctx.options.log = function(line) lines[#lines + 1] = line end
+`;
+
+test('Lua: the snapshot carries the weather kind, the health band, the heat stage and the money band, and the log line shows each raw reading', () => lua$(`${fresh}
+  local snap = ctx:capture()
+  assert(snap.weather == 'rain' and snap.health == 'healthy' and snap.heat == 2 and snap.money == 'ok', snap.weather .. snap.health .. snap.heat .. snap.money)
+  assert(#lines == 1, #lines)
+  assert(lines[1] == 'Turn context: 02:10(native) Watson/Kabuki female streetkid vehicle=false party=2 '
+    .. 'weather=rain(24h_weather_light_rain|LightRain|GetWeatherState+GetRainIntensityType) health=healthy(82%|GetStatPoolValue(percent)) heat=2(GetHeatStageAsInt) money=ok(12340)', lines[1])
+  -- The exact eddies never enter the snapshot, only the band.
+  for key, value in pairs(snap) do assert(value ~= 12340 and value ~= 82, key) end
+  for i = 1, 20 do ctx:capture() end
+  assert(state.optionalCalls.weather == 1 and state.optionalCalls.health == 1 and state.optionalCalls.heat == 1 and state.optionalCalls.money == 1,
+    'a burst of turns reads each once (the 5 s window), never per call')
+  now = now + api.MAX_AGE; ctx:capture()
+  assert(state.optionalCalls.weather == 2 and state.optionalCalls.money == 2, 'refreshed after the window')
+`));
+
+test('Lua: the classifiers map the weather, the health percent, the heat stage and the money', () => runLua(`
+  local api = (function() ${source} end)()
+  local function is(a, b) assert(a == b, tostring(a) .. ' ~= ' .. tostring(b)) end
+  local w = api.weatherKind
+  is(w('24h_weather_sunny'), 'clear'); is(w('24h_weather_light_clouds'), 'cloudy'); is(w('24h_weather_heavy_clouds'), 'cloudy')
+  is(w('24h_weather_rain'), 'rain'); is(w('24h_weather_light_rain'), 'rain'); is(w('24h_weather_heavy_rain'), 'heavy-rain')
+  is(w('24h_weather_toxic_rain'), 'toxic-rain'); is(w('24h_weather_fog'), 'fog'); is(w('24h_weather_pollution'), 'smog')
+  is(w('24h_weather_sandstorm'), 'sandstorm'); is(w('24h_weather_rain', 'HeavyRain'), 'heavy-rain'); is(w('24h_weather_rain', 0.9), 'heavy-rain')
+  is(w(nil, 'HeavyRain'), 'heavy-rain'); is(w(nil, 'LightRain'), 'rain'); is(w(nil, 0.3), 'rain')
+  is(w(nil, 'NoRain'), nil); is(w(nil, 0), nil); is(w(nil, nil), nil); is(w('mystery_preset', 'NoRain'), nil); is(w(42, {}), nil)
+  local h = api.healthBand
+  is(h(100), 'healthy'); is(h(60), 'healthy'); is(h(59.9), 'hurt'); is(h(30), 'hurt'); is(h(29.9), 'badly-hurt'); is(h(0), 'badly-hurt')
+  is(h(140), 'healthy'); is(h(-1), nil); is(h(nil), nil); is(h('x'), nil); is(h(0/0), nil)
+  local s = api.heatStage
+  is(s(0), 0); is(s(5), 5); is(s(6), nil); is(s(-1), nil); is(s(2.5), nil); is(s('Heat_3'), 3); is(s('bogus'), nil); is(s(nil), nil)
+  EnumInt = function(value) if type(value) == 'table' then return value.n end error('not an enum') end
+  is(s({n = 4}), 4); is(s({n = 9}), nil)
+  local m = api.moneyBand
+  is(m(0), 'broke'); is(m(249), 'broke'); is(m(250), 'low'); is(m(2499), 'low'); is(m(2500), 'ok'); is(m(49999), 'ok')
+  is(m(50000), 'comfortable'); is(m(249999), 'comfortable'); is(m(250000), 'rich'); is(m(5e6), 'rich'); is(m(-5), nil); is(m(nil), nil)
+`));
+
+test('Lua: a failing or empty weather, health, heat or money read drops that field, logs once per failure kind, and stops after three errors', () => lua$(`${fresh}
+  state.failures = {weather = true, health = true}
+  local snap = ctx:capture()
+  assert(snap.weather == nil and snap.health == nil and snap.heat == 2 and snap.money == 'ok', 'the other fields are kept')
+  assert(snap.hour == 2 and snap.district == 'Watson', 'the rest of the block is unaffected')
+  local function count(pattern) local n = 0; for _, line in ipairs(lines) do if line:find(pattern) then n = n + 1 end end; return n end
+  assert(count('weather read failed %(.-no weather%)') == 1 and count('health read failed %(.-no health%)') == 1, table.concat(lines, ' | '))
+  for i = 1, 6 do now = now + api.MAX_AGE; ctx:capture() end
+  assert(count('weather read failed') == 1, 'the same failure kind is logged once, not on every read')
+  assert(state.optionalCalls.weather == api.MAX_FAILURES and api.MAX_FAILURES == 3, 'after three straight errors the read is skipped: ' .. state.optionalCalls.weather)
+  -- A reset gives it another chance, and it is not logged a second time.
+  state.failures = {}; ctx:reset('new save')
+  snap = ctx:capture()
+  assert(snap.weather == 'rain' and snap.health == 'healthy' and count('weather read failed') == 1)
+  -- An answer of nothing is its own kind; so is a value that cannot be used.
+  state.heat = {}; state.health = {'banana'}; state.weather = {nil, nil}; state.money = {-4}; ctx:reset('test'); now = now + api.MAX_AGE
+  snap = ctx:capture()
+  assert(snap.heat == nil and snap.health == nil and snap.weather == nil and snap.money == nil)
+  assert(count('heat read answered nothing') == 1 and count('weather read answered nothing') == 1, table.concat(lines, ' | '))
+  assert(count('health value not usable %(banana%)') == 1 and count('money value not usable') == 1)
+  state.weather = {'strange_state', 'NoRain', 'GetWeatherState'}; ctx:reset('test'); now = now + api.MAX_AGE
+  assert(ctx:capture().weather == nil and count('weather not recognised %(state=strange_state rain=NoRain%)') == 1)
+  -- The cache is not kept for a snapshot with nothing in it, as before.
+  state.failures = {clock = true, place = true, gender = true, lifepath = true, party = true, vehicle = true, weather = true, health = true, heat = true, money = true}
+  ctx:reset('test'); assert(ctx:capture() == nil)
+`));
+
+test('Lua: the new reads are optional: an adapter without them (an older one) still answers', () => lua$(`
+  local snap = ctx:capture()
+  assert(snap and snap.weather == nil and snap.health == nil and snap.heat == nil and snap.money == nil and snap.hour == 2)
+`));
+
+// The default adapter against a fake game: each unconfirmed call is tried by name, the working name is remembered, and the
+// result is plain text or a number.
+const weatherGame = `${fakeGame}
+local calls = {}
+local fake = {state = 'getWeatherState', stateValue = {name = '24h_weather_toxic_rain'}, rainType = 'HeavyRain', rain = 0.8,
+  heat = 3, heatName = 'GetHeatStageAsInt', percent = 41, eddies = 78000, noPercent = false}
+local function counted(name, fn) return function(...) calls[name] = (calls[name] or 0) + 1; return fn(...) end end
+local player = Game.GetPlayer()
+Game.GetPlayer = function() return {IsAttached = function() return true end, IsDeadNoStatPool = function() return false end,
+  IsReplacer = function() return false end, GetResolvedGenderName = function() return {cname = 'Female'} end,
+  GetMountedVehicle = function() return nil end, GetEntityID = function() return 'v-id' end} end
+Game.GetWeatherSystem = function()
+  local system = {}
+  if fake.state then system[fake.state:gsub('^%l', string.upper)] = counted('weatherState', function() return fake.stateValue end) end
+  system.GetRainIntensityType = counted('rainType', function() return fake.rainType end)
+  system.GetRainIntensity = counted('rain', function() return fake.rain end)
+  return system
+end
+Game.GetStatPoolsSystem = function() return {
+  GetStatPoolValue = counted('pool', function(self, id, kind, percent)
+    assert(id == 'v-id' and kind == 'Health')
+    if percent then if fake.noPercent then error('no percent form') end return fake.percent end
+    return fake.percent * 2
+  end),
+  GetStatPoolMaxPointValue = counted('poolMax', function() return 200 end)} end
+local container = Game.GetScriptableSystemsContainer()
+Game.GetScriptableSystemsContainer = function() return {Get = function(self, name)
+  if name == 'PreventionSystem' then
+    return {[fake.heatName] = counted('heat', function() return fake.heat end)}
+  end
+  return container:Get(name)
+end} end
+Game.GetTransactionSystem = function() return {GetItemQuantity = counted('money', function(self, who, id)
+  assert(id == 'item:Items.money', tostring(id)); return fake.eddies end)} end
+ItemID = {FromTDBID = function(id) return 'item:' .. id end}
+TweakDBID = {new = function(name) return name end}
+`;
+
+test('the default adapter reads the weather, health, heat and money from the game, remembers the getter that worked, and calls nothing without a turn', () => runLua(`${weatherGame}
+  local ctx = api.new({place = function() return {district = 'Watson'} end})
+  assert(next(calls) == nil, 'creating the module reads nothing')
+  local lines = {}
+  ctx.options.log = function(line) lines[#lines + 1] = line end
+  local snap = ctx:capture()
+  assert(snap.weather == 'toxic-rain' and snap.health == 'hurt' and snap.heat == 3 and snap.money == 'comfortable',
+    tostring(snap.weather) .. tostring(snap.health) .. tostring(snap.heat) .. tostring(snap.money))
+  assert(#lines == 1, #lines)
+  assert(lines[1]:find('health=hurt%(41%%|GetStatPoolValue%(percent%)%)') and lines[1]:find('heat=3%(GetHeatStageAsInt%)') and lines[1]:find('money=comfortable%(78000%)'), lines[1])
+  assert(lines[1]:find('weather=toxic%-rain%(') and lines[1]:find('GetWeatherState%+GetRainIntensityType'), lines[1])
+  assert(calls.pool == 1 and calls.heat == 1 and calls.money == 1 and calls.rainType == 1 and calls.weatherState == 1)
+  for i = 1, 10 do ctx:capture() end
+  assert(calls.pool == 1 and calls.money == 1, 'cached for the window')
+  -- The remembered getter is called directly on the next read; the other names are not tried again.
+  local before = calls.weatherState
+  ctx:reset('test'); ctx:capture()
+  assert(calls.weatherState == before + 1 and calls.heat == 2)
+`));
+
+test('the default adapter falls back: another state getter name, the value over the maximum, the second heat name, rain-only weather, an enum heat', () => runLua(`${weatherGame}
+  fake.state = 'GetActiveWeatherState'; fake.stateValue = '24h_weather_fog'
+  fake.noPercent = true; fake.percent = 20
+  fake.heatName = 'GetHeatStage'; fake.heat = 'Heat_5'
+  local ctx = api.new({place = function() return {district = 'Watson'} end})
+  local snap = ctx:capture()
+  assert(snap.weather == 'fog' and snap.health == 'badly-hurt' and snap.heat == 5, tostring(snap.weather) .. tostring(snap.health) .. tostring(snap.heat))
+  assert(calls.poolMax == 1, 'the percent form failed, so the value and the maximum were read')
+  -- No state getter at all: the rain intensity still gives rain.
+  fake.state = nil; ctx:reset('test'); snap = ctx:capture()
+  assert(snap.weather == 'heavy-rain', tostring(snap.weather))
+  fake.rainType = 'NoRain'; ctx:reset('test'); snap = ctx:capture()
+  assert(snap.weather == nil, 'no rain and no state says nothing')
+`));
+
+test('the default adapter survives a game with none of the calls: every field absent, the clock and place intact, one line per failure kind', () => runLua(`${weatherGame}
+  Game.GetWeatherSystem = function() return {} end
+  Game.GetStatPoolsSystem = function() error('no stat pools') end
+  Game.GetScriptableSystemsContainer = function() return {Get = function() error('no container') end} end
+  Game.GetTransactionSystem = function() error('no transactions') end
+  local ctx = api.new({place = function() return {district = 'Watson'} end})
+  local lines = {}
+  ctx.options.log = function(line) lines[#lines + 1] = line end
+  for i = 1, 8 do local snap = ctx:capture(); assert(snap.hour == 8 and snap.district == 'Watson'); ctx:reset('again') end
+  local failed = {}
+  for _, line in ipairs(lines) do
+    local kind = line:match('^Turn context: (%a+) read failed')
+    if kind then failed[kind] = (failed[kind] or 0) + 1 end
+  end
+  assert(failed.weather == 1 and failed.health == 1 and failed.heat == 1 and failed.money == 1, 'each kind once: ' .. table.concat(lines, ' | '))
+`));
+
+test('init and phone chat pass the same snapshot on, so the phone gets the weather with no change of its own', () => {
+  assert.match(initSource, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
+  assert.match(phoneSource, /capture\(M\.captureTurnContext\)/);
+  const bridgePhone = readFileSync(new URL('./phone-chat.mjs', import.meta.url), 'utf8');
+  assert.match(bridgePhone, /parseTurnContext\(state\.request\.turnContext\)/);
 });
