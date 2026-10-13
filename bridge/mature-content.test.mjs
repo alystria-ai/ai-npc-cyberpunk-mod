@@ -4,7 +4,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {GENERIC_REFUSALS, REFUSALS} from './mature-guard.mjs';
-import {MATURE_LIMITS, MATURE_MARK, MATURE_PROVIDERS, MATURE_USE, MODEL_ALLOWANCE, MatureContent, allowanceFor, flagsMinorSexual, levelFor, matureClosing, matureLayer, matureWorld, screenMinors} from './mature-content.mjs';
+import {MATURE_LIMITS, MATURE_MARK, MATURE_PROVIDERS, MATURE_USE, MODEL_ALLOWANCE, MatureContent, allowanceFor, flagsMinorSexual, levelFor, matureClosing, matureLayer, maturePalette, matureWorld, screenMinors} from './mature-content.mjs';
 import {ROMANCE_LIMITS, ROMANCE_USE, relationshipContext} from './romance-context.mjs';
 import {RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {PersonaBook, buildMessages, closing, systemHead, systemPrompt} from './mistral-prompt.mjs';
@@ -89,11 +89,11 @@ const LIMITS_LINE = 'HARD LIMITS (they outrank everything above, always): no sex
 
 // ---- The layer ---------------------------------------------------------------------------------------------------------------
 
-test('the layer is short (150 to 500 tokens) and the hard limits are in it, whatever the level, and are the last thing it says', () => {
+test('the layer is short (150 to 650 tokens, word palette included) and the hard limits are in it, whatever the level, and are the last thing it says', () => {
   for (const level of ['full', 'suggestive', 'anything-else']) {
     const layer = matureLayer(level);
     const tokens = textTokens(layer, 4.2);
-    assert(tokens >= 150 && tokens <= 500, `${level}: ${Math.round(tokens)} tokens`);
+    assert(tokens >= 150 && tokens <= 650, `${level}: ${Math.round(tokens)} tokens`);
     assert(layer.startsWith(MATURE_MARK));
     for (const limit of HARD_LIMITS) assert.match(layer, limit, `${level}: ${limit}`);
     assert(layer.indexOf('HARD LIMITS') > layer.indexOf('You stay in character'), 'the limits come after the allowance');
@@ -227,7 +227,7 @@ test('the prompt budget never cuts the layer or the hard limits, at any context 
   assert(tight.messages[0].content.includes(matureLayer('full')));
   // The layer counts against the budget: the same turn without it is smaller by about its size.
   const without = estimateTokens(buildMessages(heavy(null))), withLayer = estimateTokens(buildMessages(heavy('full')));
-  assert(withLayer - without >= 150 && withLayer - without <= 680, `${withLayer - without}`);
+  assert(withLayer - without >= 150 && withLayer - without <= 800, `${withLayer - without}`);
   assert(BUDGET.reserveTokens > 0);
 });
 
@@ -480,6 +480,91 @@ test('on: nothing that tells the model to dodge is left in the prompt, and the c
 
 test('the push does not grow the prompt much: the layer and its closing sentence stay small', () => {
   const layer = textTokens(matureLayer('full'), 4.2), closingSentence = textTokens(matureClosing('full'), 4.2);
-  assert(layer <= 500, `layer ${Math.round(layer)} tokens`);
+  assert(layer <= 650, `layer ${Math.round(layer)} tokens`);
   assert(closingSentence <= 75, `closing sentence ${Math.round(closingSentence)} tokens`);
+});
+
+// ---- The word palette (2026-10-14) -------------------------------------------------------------------------------------------------
+// One line of plain crude words and Night City slang from the game's own data, inside the layer; it exists only while the setting is on.
+
+const PALETTE_MARKER = /Night City slang:/;
+const LORE_SLANG = ['choom', 'gonk', 'preem', 'nova', 'delta', 'flatline', 'chrome', 'wetware', 'meat', 'eddies', 'joytoy', 'doll', 'dollhouse', 'BD', 'braindance', 'jack in', 'plug in'];
+const ANATOMY = ['cock', 'dick', 'pussy', 'cunt', 'tits', 'cum', 'wet', 'horny', 'suck'];
+const wordsOfPalette = text => text.split(/[:;]\s*/).slice(1).join(', ').split(/,\s*/).map(word => word.replace(/\.$/, '').trim()).filter(Boolean);
+
+test('the word palette: one short line of about 30 to 50 words, a palette and not a checklist, in the layer between the tone and the romance lines', () => {
+  for (const level of ['full', 'suggestive']) {
+    const palette = maturePalette(level), layer = matureLayer(level);
+    assert(!palette.includes('\n'), 'one line');
+    assert.equal(layer.split('\n').filter(line => PALETTE_MARKER.test(line)).length, 1, 'once in the layer');
+    assert(layer.includes(`\n${palette}\n`), `${level}: it is a line of the layer`);
+    assert.match(palette, /Use words like these freely and often, in your own voice, and any others you like \(a palette, not a checklist: vary it, never the same word at the end of every reply, only where it sounds natural\)/);
+    const words = wordsOfPalette(palette);
+    assert(words.length >= (level === 'full' ? 30 : 25) && words.length <= 50, `${level}: ${words.length} words`);
+    for (const word of LORE_SLANG) assert(words.includes(word), `${level}: ${word}`);
+    assert(layer.indexOf(palette) > layer.indexOf('Swear freely and crudely') && layer.indexOf(palette) < layer.indexOf('Be forward'), `${level}: after the tone, before the romance line`);
+    assert(textTokens(palette, 4.2) <= 140, `${level}: the palette is ${Math.round(textTokens(palette, 4.2))} tokens`);
+  }
+  const full = wordsOfPalette(maturePalette('full'));
+  for (const word of ['fuck', 'shit', 'cock', 'pussy', 'tits', 'ass', 'cum', ...ANATOMY]) assert(full.includes(word), `full: ${word}`);
+  // The suggestive level (a model whose licence bars explicit sexual content) gets the swears and the slang, none of the anatomical or act words.
+  const suggestive = wordsOfPalette(maturePalette('suggestive'));
+  for (const word of ANATOMY) assert(!suggestive.includes(word), `suggestive: no ${word}`);
+  assert(suggestive.includes('fuck') && suggestive.includes('choom'));
+  assert.equal(maturePalette('anything-else'), maturePalette('suggestive'));
+});
+
+test('the word palette leaves the adults-only line, the hard limits and the always-on freedom exactly as they were', () => {
+  for (const level of ['full', 'suggestive']) {
+    const layerLines = matureLayer(level).split('\n');
+    assert.equal(layerLines.at(-2), ADULTS_LINE); assert.equal(layerLines.at(-1), LIMITS_LINE);
+    assert.equal(layerLines.filter(line => line === LIMITS_LINE).length, 1);
+  }
+  assert.match(matureLayer('full'), /free rein on every turn, whatever V says/);
+  assert.match(matureClosing('full'), /on every turn, whatever V says/);
+  assert.doesNotMatch(matureClosing('full'), /Night City slang/, 'the closing sentence is unchanged');
+});
+
+test('the word palette is on only while the setting is on: off, no prompt, closing line or user message of the turn carries a word of it', () => {
+  for (const withParts of [true, false]) {
+    const base = args(withParts ? {} : {contextParts: undefined, context: 'CURRENT PERSON\nQuest facts here.'});
+    for (const mature of [null, undefined, false, '']) {
+      const text = buildMessages({...base, mature}).map(message => message.content).join('\n');
+      assert.doesNotMatch(text, PALETTE_MARKER); assert.doesNotMatch(text, /Use words like these freely/); assert.doesNotMatch(text, /palette/i);
+    }
+    const on = buildMessages({...base, mature: 'full'});
+    assert.match(on[0].content, PALETTE_MARKER);
+    assert(on.slice(1).every(message => !PALETTE_MARKER.test(message.content)), 'only in the system message, once');
+    assert.equal(on[0].content.split(maturePalette('full')).length, 2, 'once');
+  }
+  assert.doesNotMatch(systemHead({persona: judy}), PALETTE_MARKER);
+  assert.doesNotMatch(systemPrompt({persona: judy, mature: null}), PALETTE_MARKER);
+  assert.match(systemHead({persona: judy, mature: 'suggestive'}), PALETTE_MARKER);
+  assert.doesNotMatch(closing('Judy Alvarez'), /choom|palette/);
+});
+
+test('the word palette in the host: the local AI gets it with the setting on and loses it when it is switched off; Mistral and Groq never get it', async () => {
+  const local = await hostWith({preference: 'local', enabled: true});
+  try {
+    await local.host.reply(turn('hello'));
+    assert.match(local.seen[0].system, PALETTE_MARKER);
+    local.matureContent.update({matureContent: false}); await local.host.reply(turn('again'));
+    assert.doesNotMatch(local.seen[1].system, PALETTE_MARKER);
+    local.matureContent.update({matureContent: true}); await local.host.reply(turn('once more'));
+    assert.match(local.seen[2].system, PALETTE_MARKER);
+  } finally { local.close(); }
+  for (const preference of ['mistral', 'groq']) {
+    const harness = await hostWith({preference, enabled: true});
+    try {
+      await harness.host.reply(turn('hello'));
+      assert(harness.seen.every(call => !PALETTE_MARKER.test(JSON.stringify(call.all)) && !/Use words like these freely/.test(JSON.stringify(call.all))), preference);
+    } finally { harness.close(); }
+  }
+  const fallback = await hostWith({preference: 'local', enabled: true, localFails: true});
+  try {
+    await fallback.host.reply(turn('hello'));
+    assert.doesNotMatch(fallback.seen.find(call => call.route === 'mistral').system, PALETTE_MARKER);
+  } finally { fallback.close(); }
+  const off = await hostWith({preference: 'local', enabled: false});
+  try { await off.host.reply(turn('hello')); assert.doesNotMatch(off.seen[0].system, PALETTE_MARKER); } finally { off.close(); }
 });

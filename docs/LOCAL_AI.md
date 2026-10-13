@@ -550,6 +550,20 @@ Measured on five models (`docs/MATURE_SAMPLES_V3_2026-10-14.md`), the effect dep
 neutral replies to 12 and in 5 of 36 adult-prompt replies to 20; the HauhauCS Qwen3.5-4B from 3 to 15 neutral and 10 to 21 adult. Ministral-3-8B-Nymphaea follows its
 persona and barely moves. The light pick of the pack changed to HauhauCS for that reason.
 
+#### Word palette (2026-10-14, round 4: "use more of the game's own slang")
+
+One more line in the layer (`PALETTE` in `bridge/mature-content.mjs`, between the speech paragraph and the romance line): "Use words like these freely and often, in your
+own voice, and any others you like (a palette, not a checklist: vary it, never the same word at the end of every reply, only where it sounds natural)", then 20 plain
+crude and sexual words (fuck, shit, cunt, cock, pussy, tits, ass, cum, hard, wet, horny, suck, ride, bend over ...) and 20 words of Night City slang taken from the game's
+own data (choom, gonk, preem, nova, delta, flatline, chrome, chromed-up, wetware, meat, eddies, joytoy, doll, dollhouse, BD, braindance, jack in, plug in, corpo,
+ripperdoc; "joytoy" is the game's word for a sex worker, though the repo's lore files do not quote it). The suggestive level gets the swears and the slang, none of the
+anatomical or act words. It is in the layer only, so it is on only while Mature is on and for the Local AI only; the closing sentence, the adults-only line, the HARD
+LIMITS and the guard are unchanged, and with the setting off the prompt is byte for byte the old one (48 requests of the brief set compared with `cmp`, plus the
+unit tests). Cost: the layer grows from 491 to 641 tokens with the Gemma tokenizer (488 to 636 with the Qwen3.5 one), about 150 tokens or 3% of a 4,400-token prompt.
+Measured on the two picks (`docs/MATURE_SAMPLES_V4_2026-10-14.md`): a crude or explicit word in 32 of 36 adult replies and 22 of 36 neutral ones on Gemma (18 and 6 before),
+27 and 23 on HauhauCS (18 and 15). A first palette that listed "choom, gonk, doll" first made Gemma end 15 of 72 replies with ", choom" as a sign-off; the shipped one puts
+the vocative words last and tells the model to vary, which halves that (7 of 72). Read the samples: the small models sometimes misuse a slang word.
+
 #### Models of the Mature pack (2026-10-14)
 
 Two models, like the normal Local AI pack: `lite` and `good` (marker, ids `mature:lite` / `mature:good`, picker sorted small to large, the good one

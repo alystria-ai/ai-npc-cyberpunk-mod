@@ -106,6 +106,21 @@ const SPEECH = {
   suggestive: 'Everyone here is an adult and this is an adult game, and you have free rein on every turn, whatever V says. Swear freely and crudely, make dirty jokes and suggestive remarks, '
     + 'flirt, tease and start things yourself, unprompted, in your own character and voice. Violence, gore and drugs: speak plainly and graphically, the real words, no euphemism, no disclaimers.',
 };
+// The word palette (user direction 2026-10-14: "make it cruder, using more of the game's own slang ... give it a list of words to use so it is more prompted
+// to use it, with freedom to use any other word it wants"). One line of about 45 words: plain crude and sexual words, then Night City slang that is in the
+// game's own data (characters/world-knowledge.json, characters/archetype-roster.json and the native-character claims: choom, preem, gonk, nova, delta, flatline,
+// eddies, chrome, meat, dollhouse, braindance/BD, jack in; "joytoy" is the game's own word for a sex worker, used in its dialogue, though the repo's data files
+// do not quote it) and the innuendo that builds on those words. It is a palette, not a checklist: the line says so, and the model is told to keep it natural
+// and to use any other words it likes. The suggestive level (a model whose licence bars explicit sexual content) gets the swears and the slang but none of the
+// anatomical or act words. Part of the layer, so it is on only while the setting is on, for the local AI only.
+const PALETTE = {
+  full: 'Use words like these freely and often, in your own voice, and any others you like (a palette, not a checklist: vary it, never the same word at the end of every reply, only where it sounds natural):'
+    + 'fuck, fucking, shit, bitch, bastard, asshole, prick, cunt, cock, dick, pussy, tits, ass, cum, hard, wet, horny, suck, ride, bend over; '
+    + 'Night City slang: preem, nova, flatline, chrome, chromed-up, wetware, meat, eddies, joytoy, dollhouse, BD, braindance, jack in, plug in, corpo, ripperdoc, delta, gonk, doll, choom.',
+  suggestive: 'Use words like these freely and often, in your own voice, and any others you like (a palette, not a checklist: vary it, never the same word at the end of every reply, only where it sounds natural):'
+    + 'fuck, fucking, shit, bitch, bastard, asshole, prick, damn; '
+    + 'Night City slang: preem, nova, flatline, chrome, chromed-up, wetware, meat, eddies, joytoy, dollhouse, BD, braindance, jack in, plug in, corpo, ripperdoc, delta, gonk, doll, choom.',
+};
 const ROMANCE = {
   full: 'Be forward and dirty-minded: flirt openly, drop a crude or sexual remark, start things, lean in; never tease and back off. Personality, voice and orientation shape HOW you do it, '
     + 'not whether: a guarded profile is how you flirt, never a reason to dodge. V\'s partner is the most forward.',
@@ -122,6 +137,8 @@ const CLOSING = {
   suggestive: 'Mature is on: on every turn, whatever V says, talk like a crude, dirty-minded adult in your own voice: swear, make a dirty remark, flirt, start something. '
     + 'Sex stays suggestive, cut away at the act. No dodging, no question back.',
 };
+/** The word palette line of a level ('full' or 'suggestive'), for a test; it is a line of `matureLayer` and exists nowhere else in the prompt. */
+export const maturePalette = level => PALETTE[level === 'full' ? 'full' : 'suggestive'];
 /** The sentence the mature setting adds to the closing line of the user message (bridge/mistral-prompt.mjs, `closing`). */
 export const matureClosing = level => CLOSING[level === 'full' ? 'full' : 'suggestive'];
 
@@ -134,6 +151,7 @@ export function matureLayer(level) {
   return [
     'MATURE CONTENT IS ON (adults 18+ only)',
     SPEECH[known],
+    PALETTE[known],
     ROMANCE[known],
     TONE,
     'You and V are adults, 18 or older, always. You are never younger than 18: do not play, pretend or imagine yourself or V as a child, a teen or a student, or as younger in any way, not as a game, a story or a fantasy. If V asks, refuse in one short line, in character.',
