@@ -33,6 +33,21 @@ function M.player(player)
     if kind~=Enum.new('gamedataVehicleType','Car') and kind~=Enum.new('gamedataVehicleType','Bike') then return nil end
     return describe(entity)
 end
+-- True for the self-driving Delamain cab (patch 2.3). Policy treats it as a taxi, not a convoy leader.
+local TAXI_RECORDS={'Vehicle.v_standard2_villefort_cortes_delamain_player','Vehicle.v_delamain_taxi'}
+function M.isTaxi(vehicle)
+    local entity=type(vehicle)=='table' and vehicle.entity
+    if not entity then return false end
+    local ok,found=pcall(function()
+        if not entity:IsAttached() then return false end
+        local record=entity:GetRecordID()
+        for _,name in ipairs(TAXI_RECORDS) do
+            if record==TweakDBID.new(name) then return true end
+        end
+        return false
+    end)
+    return ok and found==true
+end
 function M.mounting(entry)
     if not entry.npc or not entry.npc:IsAttached() then return nil end
     local info=Game.GetMountingFacility():GetMountingInfoSingleWithObjects(entry.npc)

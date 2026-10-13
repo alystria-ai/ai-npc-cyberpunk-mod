@@ -617,3 +617,94 @@ test('a passenger leaving does not cancel a chauffeur trip driven by someone els
   transport.removing(fleet,1)
   assert(fleet.chauffeur and fleet.chauffeur.serial==99,'the trip was cancelled by a passenger leaving')
 `));
+
+// ---- the Delamain cab: a self-driving taxi, not a convoy leader ---------------------------------
+const taxiFixture=`${fixture}
+world.taxi={['v-car']=true}
+function api.isTaxi(car) return world.taxi[car.id]==true end
+-- V sits in the back left seat; nobody drives the cab.
+primary.info.seats[1].occupant=nil; primary.info.seats[3].occupant='player'
+`;
+
+test('a taxi seats one companion in the free back seat and never uses the driver seat',()=>run(`${taxiFixture}
+  party(1); tick(40)
+  assert(fleet.phase=='riding',fleet.phase)
+  assert(fleet.people[1].seat=='seat_back_right',fleet.people[1].seat)
+  assert(#world.spawned==0 and primary.info.seats[1].occupant==nil)
+`));
+
+test('a taxi fills back right, then front right, and leaves the driver seat empty',()=>run(`${taxiFixture}
+  party(2); tick(60)
+  assert(fleet.phase=='riding',fleet.phase)
+  assert(fleet.people[1].seat=='seat_back_right' and fleet.people[2].seat=='seat_front_right')
+  assert(primary.info.seats[1].occupant==nil,'the driver seat was used')
+  for _,command in ipairs(world.commands) do assert(command.seat~='seat_front_left') end
+  assert(#world.spawned==0)
+`));
+
+test('a taxi never spawns or follows overflow cars; the rest wait with a plain reason',()=>run(`${taxiFixture}
+  party(5); tick(200)
+  assert(#world.spawned==0,#world.spawned)
+  assert(count('follow')==0)
+  local seated,waiting=0,0
+  for _,p in pairs(fleet.people) do
+    if p.phase=='riding' then seated=seated+1
+    else
+      waiting=waiting+1
+      assert(p.error=='The Delamain cab has no free seat for this companion.',tostring(p.error))
+      assert(p.owned and not p.vehicle)
+    end
+  end
+  assert(seated==2 and waiting==3,seated..' '..waiting)
+  assert(fleet.phase=='boarding')
+`));
+
+test('the taxi arrival starts the exit while V still sits, and the fleet does not board again',()=>run(`${taxiFixture}
+  party(5); tick(100)
+  assert(fleet.people[1].phase=='riding' and fleet.people[2].phase=='riding')
+  local mounts=count('mount')
+  transport.chauffeurAutodriveToggled(fleet,false)
+  local arrived=false
+  for _,event in ipairs(fleet.events) do if event.event=='taxi-arrived' then arrived=true end end
+  assert(arrived,'no taxi-arrived event')
+  tick(100)
+  assert(count('unmount')==2,count('unmount'))
+  for i=1,5 do assert(world.resumes[i]==1,'companion '..i..' did not walk on') end
+  assert(fleet.phase=='on-foot',fleet.phase)
+  -- V is still in the cab they just left: no new journey.
+  tick(100)
+  assert(fleet.phase=='on-foot' and count('mount')==mounts and next(fleet.people)==nil,fleet.phase)
+  -- V gets out, then calls the cab again: a new journey boards normally.
+  world.primary=nil; tick(5)
+  assert(fleet.taxiExit==nil and fleet.phase=='on-foot')
+  primary.info.seats[1].occupant=nil; primary.info.seats[3].occupant='player'
+  world.primary=primary; tick(60)
+  -- Three of the five find no seat, so the fleet stays in boarding but the seated two ride.
+  assert(fleet.phase=='boarding' and fleet.people[1].phase=='riding' and fleet.people[2].phase=='riding',fleet.phase)
+  assert(fleet.people[1].seat=='seat_back_right' and fleet.people[2].seat=='seat_front_right')
+`));
+
+test('taxiArrived is ignored on foot, and teardown clears the taxi exit guard',()=>run(`${taxiFixture}
+  party(1)
+  transport.chauffeurAutodriveToggled(fleet,false)
+  assert(fleet.phase=='on-foot' and fleet.taxiExit==nil)
+  tick(40); transport.chauffeurAutodriveToggled(fleet,false)
+  assert(fleet.taxiExit=='v-car')
+  transport.abandon(fleet)
+  assert(fleet.taxiExit==nil and fleet.phase=='on-foot')
+`));
+
+test('the same autodrive call in an ordinary car changes nothing',()=>run(`${fixture}
+  party(2); tick(60)
+  assert(fleet.phase=='riding')
+  transport.chauffeurAutodriveToggled(fleet,false)
+  transport.chauffeurAutodriveToggled(fleet,true)
+  tick(60)
+  assert(fleet.phase=='riding' and fleet.taxiExit==nil and count('unmount')==0)
+  for _,event in ipairs(fleet.events) do assert(event.event~='taxi-arrived') end
+`));
+
+test('an adapter without isTaxi treats every car as an ordinary car',()=>run(`${fixture}
+  party(8); tick(100)
+  assert(#world.spawned==2 and fleet.phase=='riding')
+`));

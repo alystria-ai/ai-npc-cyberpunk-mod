@@ -51,9 +51,18 @@ local function liveCar(car)
         or (car.record and tostring(entity:GetRecordID())~=car.record) then return nil end
     return entity
 end
+-- The self-driving Delamain cab is the game's taxi, not a car V owns.
+local function delamainCab(entity)
+    local ok,found=pcall(function()
+        local record=entity:GetRecordID()
+        return record==TweakDBID.new('Vehicle.v_standard2_villefort_cortes_delamain_player')
+            or record==TweakDBID.new('Vehicle.v_delamain_taxi')
+    end)
+    return ok and found==true
+end
 local function ownedCar(entity)
     if not entity or not entity:IsAttached() or not entity:IsVehicle() or not entity:IsPlayerVehicle()
-        or entity:IsDestroyed() then return false end
+        or entity:IsDestroyed() or delamainCab(entity) then return false end
     local record=entity:GetRecord()
     return record and enum(record:Type():Type(),'gamedataVehicleType','Car')
 end
