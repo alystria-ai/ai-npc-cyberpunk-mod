@@ -41,7 +41,7 @@ To turn it off, switch the setting off. To remove the pack, delete `manifest.mat
 
 **Credits and licences**
 
-The models are community fine-tunes of Apache-2.0 base models: Qwen3.5-4B-MiniFantasy (lite; Qwen3.5, Alibaba Cloud) and Gemma-4-E4B-MiniFantasy (good; Gemma 4 E4B, Google). Licence texts are in the pack. Not made by or connected to CD Projekt Red.
+The models are community fine-tunes of Apache-2.0 base models: Qwen3.5-4B-HauhauCS-Aggressive (lite; Qwen3.5, Alibaba Cloud) and Gemma-4-E4B-MiniFantasy (good; Gemma 4 E4B, Google). Licence texts are in the pack. Not made by or connected to CD Projekt Red.
 
 **AI disclosure**
 
