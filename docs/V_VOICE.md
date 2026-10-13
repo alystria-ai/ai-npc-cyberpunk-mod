@@ -157,3 +157,5 @@ actor says "assumed" where the subtitle says "assume" (the audio is clear).
 See TODO.md, "Live checks still to run": V's gender follows the V voice, the clip sounds like V, V is heard before the
 companion on Pocket (and on a cloud voice), the companion starts right after V ends, the dropped line on a cold start, the
 volume follows the game's Dialogue volume, and the Convai-voice case (setting on, no V line, the inline note on the row, no notice).
+
+**Clip choice (2026-10-14, by ear):** the user preferred the original male clips (11.4 s, 3 lines) over the picker's male set, and the picker's female set (11.55 s, 2 clips) over the original female clips. The manifest ships that mix.
