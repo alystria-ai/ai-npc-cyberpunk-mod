@@ -296,7 +296,9 @@ function invitationVoiceFixture({reconfigure = async () => {}, retire = async ()
       return prepare ? prepare(profile, options) : local.has(profile)
         ? {provider: 'pocket', ready: true, profile} : {provider: 'convai', ready: true, reason: 'selected'};
     }};
-  const sandbox = {localVoice, abortable, throwIfCancelled, stopped: false, active: null, streaming: 0,
+  // Add-ons are not under test here: no add-on speaker exists, so the add-on voice route never claims a key or a turn.
+  const sandbox = {addonHost: {isSpeaker: () => false}, addonVoice: {voice: () => false},
+    localVoice, abortable, throwIfCancelled, stopped: false, active: null, streaming: 0,
     polling: false, micPolling: false, mic: {current: null}, phone: {active: null}, prefetchPolling: false, memoryQuiescing: 0,
     lookahead: {busy: false, cancel() {}, claim: () => null},
     relationshipRoutes: {revision: 0, consumeRouteChanges: () => relationshipChanges.splice(0)}, prewarmObserved: 'prior',
