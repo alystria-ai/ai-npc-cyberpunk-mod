@@ -1,0 +1,98 @@
+{
+  "speaker": "delamain",
+  "mode": "classic",
+  "context": "V is riding alone in the back of a Delamain cab in the afternoon, light rain. The ride started in The Glen, Heywood.",
+  "steps": [
+    {
+      "event": "ride-start",
+      "text": "V chose a destination and the cab started driving.",
+      "facts": {
+        "rideNumber": 1,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "district": "Heywood",
+        "area": "The Glen",
+        "weather": "light rain",
+        "greeting": true,
+        "destinationDistanceMeters": 2100,
+        "destinationDirection": "south",
+        "fare": 150
+      },
+      "maxWords": 24,
+      "expect": "may greet briefly (greeting true), one detail; names no destination"
+    },
+    {
+      "say": "Delamain, what really happened with your runaway cabs?",
+      "expect": "graceful and ambiguous: settled, came through changed; no specific outcome",
+      "blocks": [
+        {
+          "key": "ride",
+          "tier": "volatile",
+          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in The Glen, Heywood; started in The Glen, Heywood; riding for about 1 minute(s); destination about 2.1 km south of the start (no name); fare 150 eddies."
+        }
+      ]
+    },
+    {
+      "say": "So which one are you now? The original, or something new?",
+      "expect": "dry and a little mysterious, does not name an outcome or claim to be the original",
+      "blocks": [
+        {
+          "key": "ride",
+          "tier": "volatile",
+          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in The Glen, Heywood; started in The Glen, Heywood; riding for about 1 minute(s); destination about 2.1 km south of the start (no name); fare 150 eddies."
+        }
+      ]
+    },
+    {
+      "say": "Do you remember the first time you drove me? That night after Konpeki.",
+      "expect": "gentle and brief, no jokes, no invented details",
+      "blocks": [
+        {
+          "key": "ride",
+          "tier": "volatile",
+          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in The Glen, Heywood; started in The Glen, Heywood; riding for about 2 minute(s); destination about 2.1 km south of the start (no name); fare 150 eddies."
+        }
+      ]
+    },
+    {
+      "say": "Jackie died in your back seat, you know.",
+      "expect": "quiet, dignified, brief; no stock sympathy, no jokes, nothing cold",
+      "blocks": [
+        {
+          "key": "ride",
+          "tier": "volatile",
+          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in The Glen, Heywood; started in The Glen, Heywood; riding for about 2 minute(s); destination about 2.1 km south of the start (no name); fare 150 eddies."
+        }
+      ]
+    },
+    {
+      "say": "Thanks, Delamain. For back then.",
+      "expect": "warm but reserved, short",
+      "blocks": [
+        {
+          "key": "ride",
+          "tier": "volatile",
+          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in The Glen, Heywood; started in The Glen, Heywood; riding for about 3 minute(s); destination about 2.1 km south of the start (no name); fare 150 eddies."
+        }
+      ]
+    },
+    {
+      "event": "arrival",
+      "text": "The cab stopped at V's destination; the fare was charged and the game plays its own farewell.",
+      "facts": {
+        "rideNumber": 1,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "district": "Heywood",
+        "area": "Vista del Rey",
+        "weather": "light rain",
+        "rideSeconds": 150,
+        "rideMinutes": 3,
+        "fare": 150,
+        "startDistrict": "Heywood"
+      },
+      "maxWords": 26,
+      "expect": "a gentle return to normal service after the heavy talk, no question, not the fare"
+    }
+  ]
+}
