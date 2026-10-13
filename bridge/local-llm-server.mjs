@@ -9,7 +9,7 @@
 //   const done = server.begin();  ...stream the reply...  done();              // in-flight requests block the idle stop
 //   server.status()   -> {state: 'stopped'|'starting'|'warming'|'ready'|'failed', reason?, tier, model, firstTime?}
 //   server.on('failed', ({reason}) => ...)                                     // once per failure episode
-//   server.on('model-fallback', ({pin, reason}) => ...)                        // a pinned model was missing, did not fit or did not start, auto chose instead
+//   server.on('model-fallback', ({pin, reason, model}) => ...)                 // the chosen model was missing, did not fit or did not start; `model` (its name) was used instead
 //   await server.reselect()                                                    // the model choice changed: reload at an idle moment
 //   await server.stop(); server.killSync();                                    // bridge shutdown / process exit
 //
@@ -371,7 +371,7 @@ function abortable(promise, signal) {
 export class LocalLlmServer extends EventEmitter {
   #state = 'stopped'; #reason = null; #tier = null; #model = null; #firstTime = false;
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
-  #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #broken = new Map();
+  #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #lastFreeMiB = null; #failedPin = null; #broken = new Map();
 
   // command/argsPrefix replace pack.server when spawning (tests); processOptions go to LlamaProcess (tests).
   // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
@@ -511,9 +511,10 @@ export class LocalLlmServer extends EventEmitter {
     return {device, freeMiB};
   }
 
-  // The model to load now: the player's choice (this.selection), else the older `tier` option, else auto. A pinned model that is missing or
-  // does not fit is replaced by auto, and one 'model-fallback' event says so.
+  // The model to load now: the player's choice (this.selection), else the older `tier` option, else the default (the largest that fits).
+  // A chosen model that is missing or does not fit is replaced by the default, and one 'model-fallback' event names the model used.
   #choose(pack, freeMiB) {
+    this.#lastFreeMiB = Number.isFinite(freeMiB) ? freeMiB : null;
     const selected = this.#selected(pack);
     for (const model of selected.models) if (model.custom && this.#broken.get(model.id) === this.#sizeKey(model)) model.broken = true;
     const sizeOf = file => this.fileSizeMiB(file);
@@ -523,17 +524,17 @@ export class LocalLlmServer extends EventEmitter {
       return {model: forced, sizeMiB: Number(sizeOf(forced.file)) || 0, profile: forced.tier, pinned: true, fellBack: null};
     }
     const choice = chooseLocalModel({models: selected.models, pin: selected.pin, matureOn: selected.matureOn, freeMiB, totalMiB: this.#totalMiB, sizeOf});
-    // A model that did not start has already told the player (#modelFailed); only the other reasons are announced here.
+    // A model that did not start is announced with the retry (#startOnce, which knows the model used instead); the other reasons here.
     if (choice.fellBack && choice.fellBack !== 'start-failed') {
-      this.log('[local] the chosen model is not usable (' + choice.fellBack + '): auto chose ' + choice.model.name);
-      this.emit('model-fallback', {pin: selected.pin, reason: choice.fellBack});
+      this.log('[local] the chosen model is not usable (' + choice.fellBack + '): ' + choice.model.name + ' was chosen instead');
+      this.emit('model-fallback', {pin: selected.pin, reason: choice.fellBack, model: choice.model.name});
     }
     return choice;
   }
 
   #selected(pack) {
     let picked = null;
-    try { picked = typeof this.selection === 'function' ? this.selection() : null; } catch { /* a broken hook means auto */ }
+    try { picked = typeof this.selection === 'function' ? this.selection() : null; } catch { /* a broken hook means no choice */ }
     return {models: listLocalModels({pack, matureModels: picked?.matureModels, customModels: picked?.customModels}), pin: normalisePin(picked?.pin), matureOn: picked?.matureOn === true};
   }
 
@@ -543,17 +544,21 @@ export class LocalLlmServer extends EventEmitter {
   /** {uncensored, family} from the manifest of the loaded model when it is one the player added (bridge/custom-models.mjs), else null. */
   get modelHints() { return this.#hints; }
 
+  /** The free graphics memory (MiB) the last choice of a model saw (before that model was loaded), or null before any start. */
+  get lastFreeMiB() { return this.#lastFreeMiB; }
+
   /** The total memory (MiB) of the graphics card the last start used, or null before any start. */
   get totalVramMiB() { return this.#totalMiB; }
 
   #sizeKey(model) { return model.file + '|' + Math.round(Number(this.fileSizeMiB(model.file)) || 0); }
 
   // A model the player added did not start (or died while warming up): it is left out until its file changes or reset(), the player is told
-  // once ('model-fallback', the same notice as a missing pinned model) and the start is tried again with what Auto chooses now.
+  // once (the retry's 'model-fallback', the same notice as a missing chosen model, naming the model it then uses) and the start is tried
+  // again with what the default rule chooses now.
   #modelFailed(model, why) {
     this.#broken.set(model.id, this.#sizeKey(model));
-    this.log('[local] the custom model "' + model.name + '" did not start (' + why + '): auto chose instead');
-    this.emit('model-fallback', {pin: model.id, reason: 'start-failed'});
+    this.#failedPin = model.id;
+    this.log('[local] the custom model "' + model.name + '" did not start (' + why + '): the default model is chosen instead');
   }
 
   /**
@@ -591,7 +596,9 @@ export class LocalLlmServer extends EventEmitter {
     this.#guard(generation);
     const {device, freeMiB} = await this.#selectDevice();
     this.#guard(generation);
+    const failedPin = this.#failedPin; this.#failedPin = null;
     const choice = this.#choose(pack, freeMiB);
+    if (failedPin) this.emit('model-fallback', {pin: failedPin, reason: 'start-failed', model: choice.model.name});
     const tierKey = choice.profile, tier = choice.model;
     const contextSize = tier.contextSize ?? this.contextSize ?? chooseContext({tier: tierKey, freeMiB, sizeMiB: choice.sizeMiB});
     this.#tier = tierKey; this.#model = tier.loadedName ?? tier.name; this.#modelId = tier.id; this.#contextSize = contextSize;

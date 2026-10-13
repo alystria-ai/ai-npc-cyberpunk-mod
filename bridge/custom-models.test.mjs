@@ -55,10 +55,10 @@ const valid = (extra = {}) => ({file: 'custom/My-Model-Q4_K_M.gguf', ...extra});
 
 test('manifest entries are validated strictly: path inside the folder, .gguf only, name length, types', () => {
   const ok = validateEntry(root, valid({name: 'My Model', uncensored: true, auto: true, family: 'llama', contextSize: 8192, chatTemplate: 'chatml'}));
-  assert.deepEqual(ok.entry, {file: resolve(root, 'custom/My-Model-Q4_K_M.gguf'), name: 'My Model', uncensored: true, auto: true, family: 'llama',
-    contextSize: 8192, chatTemplate: 'chatml'});
+  assert.deepEqual(ok.entry, {file: resolve(root, 'custom/My-Model-Q4_K_M.gguf'), name: 'My Model', uncensored: true, family: 'llama',
+    contextSize: 8192, chatTemplate: 'chatml'}, 'the obsolete auto flag is accepted and dropped');
   const plain = validateEntry(root, valid()).entry;
-  assert.deepEqual([plain.name, plain.uncensored, plain.auto, plain.family, plain.contextSize, plain.chatTemplate], ['My-Model-Q4_K_M', false, false, null, null, null]);
+  assert.deepEqual([plain.name, plain.uncensored, plain.family, plain.contextSize, plain.chatTemplate], ['My-Model-Q4_K_M', false, null, null, null]);
   const bad = entry => validateEntry(root, entry).error;
   assert.match(bad(null), /not an object/);
   assert.match(bad([]), /not an object/);
@@ -76,7 +76,8 @@ test('manifest entries are validated strictly: path inside the folder, .gguf onl
   assert.match(bad(valid({name: 'two\nlines'})), /control/);
   assert.match(bad(valid({name: 5})), /name/);
   assert.match(bad(valid({uncensored: 'yes'})), /uncensored/);
-  assert.match(bad(valid({auto: 1})), /auto/);
+  for (const auto of [1, 'yes', null, false, true]) assert.equal(validateEntry(root, valid({auto})).error, undefined, 'the obsolete auto flag is accepted whatever its value: ' + auto);
+  assert.equal('auto' in validateEntry(root, valid({auto: true})).entry, false);
   assert.match(bad(valid({family: '--bad'})), /family/);
   assert.match(bad(valid({contextSize: 100})), /contextSize/);
   assert.match(bad(valid({contextSize: 8192.5})), /contextSize/);
@@ -121,8 +122,9 @@ test('the scanner lists usable models with ids, sizes and the memory they need; 
   const scanner = f.scanner();
   const result = scanner.scan({totalVramMiB: 12000});
   assert.equal(result.present, true);
-  assert.deepEqual(result.models.map(model => [model.id, model.name, model.uncensored, model.auto, model.tooLarge]), [['custom:good', 'Good One', true, true, false]]);
+  assert.deepEqual(result.models.map(model => [model.id, model.name, model.uncensored, model.tooLarge]), [['custom:good', 'Good One', true, false]]);
   const [good] = result.models;
+  assert.equal('auto' in good, false, 'the obsolete auto flag is not carried');
   assert.equal(good.sizeMiB, 4000);
   assert.equal(good.needMiB, 4000 + 1200);   // a file of 3000 MiB or more gets the standard headroom
   assert.deepEqual([good.contextSize, good.chatTemplate, good.family, good.architecture], [4096, 'chatml', 'llama', 'llama']);

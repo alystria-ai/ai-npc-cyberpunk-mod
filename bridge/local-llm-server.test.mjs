@@ -569,12 +569,21 @@ test('the model follows the choice: auto, Mature content, a pin, a missing pin a
 
   const missing = choiceHarness(t, {selected: {pin: 'mature:big-u'}, mature: false});
   await missing.server.ensure();
-  assert.deepEqual([missing.loaded(), missing.fallbacks], [['q4.gguf'], [{pin: 'mature:big-u', reason: 'missing'}]]);
+  assert.deepEqual([missing.loaded(), missing.fallbacks], [['q4.gguf'], [{pin: 'mature:big-u', reason: 'missing', model: 'Qwen3.5-4B'}]]);
 
   const tooBig = choiceHarness(t, {selected: {pin: 'standard'}, freeMiB: 3000});
   await tooBig.server.ensure();
-  assert.deepEqual([tooBig.loaded(), tooBig.fallbacks], [['q2.gguf'], [{pin: 'standard', reason: 'low-memory'}]]);
+  assert.deepEqual([tooBig.loaded(), tooBig.fallbacks], [['q2.gguf'], [{pin: 'standard', reason: 'low-memory', model: 'Qwen3.5-2B'}]], 'the notice names the model that was used');
   assert.ok(tooBig.logs.some(line => /not usable \(low-memory\)/.test(line)));
+
+  // With Mature content on and an uncensored model installed, the fallback of a missing choice is the largest uncensored one that fits.
+  const missingMature = choiceHarness(t, {selected: {pin: 'gone-model', matureOn: true}});
+  await missingMature.server.ensure();
+  assert.deepEqual([missingMature.loaded(), missingMature.fallbacks], [['big-u.gguf'], [{pin: 'gone-model', reason: 'missing', model: 'Gemma-4-E4B-uncensored'}]]);
+
+  // A legacy saved `auto` is no choice at all: the default model loads and nothing is announced.
+  assert.deepEqual(auto.fallbacks, []);
+  assert.ok(auto.server.lastFreeMiB > 0, 'the free memory the choice saw is kept for the settings page');
 });
 
 test('the older `tier` option still wins over a selection and is strict', async t => {
@@ -677,32 +686,37 @@ test('a custom model starts with its own context size and chat template, and its
   assert.ok(!ladder.calls[0].args.includes('--chat-template'));
 });
 
-test('Auto uses a custom model only with auto: true, and never one that is too large for the card', async t => {
-  const without = customHarness(t);
-  without.state.customModels = [without.entry('my', 'my-model.gguf')];
-  await without.server.ensure();
-  assert.deepEqual(without.loaded(), ['q4.gguf']);
+test('a custom model takes part in the default choice by size, and is never chosen when it is too large for the card', async t => {
+  const bigger = customHarness(t);
+  bigger.state.customModels = [bigger.entry('my', 'my-model.gguf')];
+  await bigger.server.ensure();
+  assert.deepEqual([bigger.loaded(), bigger.server.modelId], [['my-model.gguf'], 'custom:my'], 'the largest model that fits, no flag needed');
 
-  const withAuto = customHarness(t);
-  withAuto.state.customModels = [withAuto.entry('my', 'my-model.gguf', {auto: true})];
-  await withAuto.server.ensure();
-  assert.deepEqual([withAuto.loaded(), withAuto.server.modelId], [['my-model.gguf'], 'custom:my']);
+  const flagIgnored = customHarness(t);
+  flagIgnored.state.customModels = [flagIgnored.entry('my', 'my-model.gguf', {auto: false})];
+  await flagIgnored.server.ensure();
+  assert.deepEqual(flagIgnored.loaded(), ['my-model.gguf'], 'the obsolete auto flag changes nothing');
+
+  const smaller = customHarness(t, {freeMiB: 6500});
+  smaller.state.customModels = [smaller.entry('my', 'my-model.gguf')];
+  await smaller.server.ensure();
+  assert.deepEqual(smaller.loaded(), ['q4.gguf'], 'a custom model that does not fit the free memory is passed over');
 
   // The scan did not know the card; the device list did (11997 MiB): 30000 MiB of model can never fit.
   const huge = customHarness(t, {selected: {pin: 'custom:huge'}});
-  huge.state.customModels = [huge.entry('huge', 'huge-model.gguf', {auto: true})];
+  huge.state.customModels = [huge.entry('huge', 'huge-model.gguf')];
   await huge.server.ensure();
-  assert.deepEqual([huge.loaded(), huge.fallbacks], [['q4.gguf'], [{pin: 'custom:huge', reason: 'low-memory'}]]);
+  assert.deepEqual([huge.loaded(), huge.fallbacks], [['q4.gguf'], [{pin: 'custom:huge', reason: 'low-memory', model: 'Qwen3.5-4B'}]]);
   assert.equal(huge.server.totalVramMiB, 11997);
 });
 
-test('a custom model that fails to start is replaced by Auto with one notice, and is not tried again until its file changes', async t => {
+test('a custom model that fails to start is replaced by the default model with one notice naming it, and is not tried again until its file changes', async t => {
   const h = customHarness(t, {selected: {pin: 'custom:my'}, env: {FAKE_LLAMA_EXIT_FOR_MODEL: 'my-model'}});
-  h.state.customModels = [h.entry('my', 'my-model.gguf', {auto: true})];
+  h.state.customModels = [h.entry('my', 'my-model.gguf')];
   const info = await h.server.ensure();
   assert.equal(info.model, 'Qwen3.5-4B', 'the built-in model answers');
   assert.deepEqual(h.loaded(), ['my-model.gguf', 'q4.gguf']);
-  assert.deepEqual(h.fallbacks, [{pin: 'custom:my', reason: 'start-failed'}], 'one notice');
+  assert.deepEqual(h.fallbacks, [{pin: 'custom:my', reason: 'start-failed', model: 'Qwen3.5-4B'}], 'one notice, with the model used');
   assert.deepEqual(h.failures, [], 'not a failure of Local AI');
   assert.equal(h.server.modelId, 'standard');
   assert.ok(h.logs.some(line => /custom model "MY" did not start/.test(line)));
@@ -722,14 +736,14 @@ test('a custom model that fails to start is replaced by Auto with one notice, an
   assert.equal(h.fallbacks.length, 2, 'it failed again, and said so again');
 });
 
-test('an auto: true custom model that fails to start is skipped by Auto the same way; with no other model the failure is the usual one', async t => {
+test('a custom model chosen by default that fails to start is skipped the same way; with no other model the failure is the usual one', async t => {
   const h = customHarness(t, {env: {FAKE_LLAMA_EXIT_FOR_MODEL: 'my-model'}});
-  h.state.customModels = [h.entry('my', 'my-model.gguf', {auto: true})];
+  h.state.customModels = [h.entry('my', 'my-model.gguf')];
   assert.equal((await h.server.ensure()).model, 'Qwen3.5-4B');
-  assert.deepEqual(h.fallbacks, [{pin: 'custom:my', reason: 'start-failed'}]);
+  assert.deepEqual(h.fallbacks, [{pin: 'custom:my', reason: 'start-failed', model: 'Qwen3.5-4B'}]);
 
   const noOther = customHarness(t, {standard: false, lite: false, env: {FAKE_LLAMA_EXIT_FOR_MODEL: 'my-model'}});
-  noOther.state.customModels = [noOther.entry('my', 'my-model.gguf', {auto: true})];
+  noOther.state.customModels = [noOther.entry('my', 'my-model.gguf')];
   await assert.rejects(noOther.server.ensure(), error => error instanceof LocalAiUnavailable);
 });
 
