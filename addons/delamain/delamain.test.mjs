@@ -105,8 +105,8 @@ test('registers one vehicle-anchored, group-capable speaker and a setting; no ho
     for key, value in pairs(calls) do assert(before[key] == value, 'the game was read while idle: ' .. key) end
     assert(#submitted == 0, 'no remark with no cab')
     local sections = M.settingsSections()
-    assert(#sections == 1 and sections[1].title == 'Delamain Cab' and sections[1].items[1].label == 'Remarks' and sections[1].items[2].id == nil)
-    assert(sections[1].items[2].label == 'Delamain speaks on rides')
+    assert(#sections == 1 and sections[1].title == 'Delamain Cab' and sections[1].items[1].label == 'Time between remarks' and sections[1].items[2].label == 'Most remarks per fight')
+    assert(sections[1].items[3].label == 'Delamain speaks on rides' and #sections[1].items == 3, 'the add-on adds one setting of its own')
   `);
 });
 
@@ -145,15 +145,16 @@ test('a ride: boarding greets once, the destination starts the ride, a district 
     assert(doc.state.phase == 'riding' and doc.state.meters == 4243 and doc.state.direction == 'north-east' and doc.state.startedAt == now * 1000, json.encode(doc))
     assert(doc.companionContext[1].text:find('4243 metres to the north-east', 1, true), json.encode(doc))
     finish(31)
-    -- With the greeting and the ride line spent, the Low budget keeps its last remark for the arrival: a district is not remarked.
+    -- A district boundary 40 s into the ride: one remark.
     now = now + 40
     game.district = 'Westbrook'
     hooks['PreventionSystem.OnDistrictAreaEntered'](nil, {}); tick()
-    assert(#submitted == 2, 'the budget keeps the last remark for the arrival')
-    -- Arrival (priority 5 needs half the gap).
+    assert(#submitted == 3 and lastRequest().addon.event == 'district-passed', #submitted)
+    finish(31)
+    -- Arrival.
     now = now + 30
     step(5); tick()
-    assert(#submitted == 3 and lastRequest().addon.event == 'arrival' and lastRequest().reaction.priority == 5, #submitted)
+    assert(#submitted == 4 and lastRequest().addon.event == 'arrival' and lastRequest().reaction.priority == 5, #submitted)
     local a = lastRequest().addon.facts
     assert(a.rideSeconds == 70 and a.rideMinutes == 1 and a.fare == 150 and a.startDistrict == 'Watson' and a.districtsPassed[1] == 'Westbrook', json.encode(a))
     step(7)

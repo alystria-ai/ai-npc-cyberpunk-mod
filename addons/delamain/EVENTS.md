@@ -33,9 +33,14 @@ Delamain also joins a group round with the companion.
 
 ## Remarks
 
-Budget (the main mod's Remarks setting, default Low): at most 3 remarks per five minutes, 30 s apart; the last of the budget is kept
-for priority 4 or 5; priority 5 needs only half the gap. A normal ride is therefore 2 or 3 spoken remarks. A remark that was not
-heard (V started typing, a scene began, V stepped out) costs nothing.
+Pacing (the main mod's two built-in settings, **Time between remarks**, default 10 s, and **Most remarks per fight**, default 30; about
+20 s between remarks on the local AI): one remark at a time, only the strongest waits behind one in flight, and a reply that arrives
+later than its `ttl` is dropped, never played late. The add-on makes at most four remarks per ride (below), so a ride is two to four spoken
+lines. A remark that was not heard (V started typing, a scene began, V stepped out) costs nothing.
+
+The game's own cab voice and any scene hold a remark back: the main mod drops a remark that meets a scene, so the add-on asks for it
+again, with fresh facts, when the scene ends (at most three times, within 30 s of the moment, and only while the ride is still in
+the state the remark was about). That is how `boarded`, and above all `arrival`, wait for the game's greeting and farewell.
 
 | Event | Priority | maxWords | ttl (s) | Fires when |
 |---|---:|---:|---:|---|
@@ -143,7 +148,7 @@ minutes or more, rain at night, or interrupted). Example: `"Drove V and Judy Alv
 
 | Setting | Meaning |
 |---|---|
-| Remarks (built in) | Rare / Low / Normal, as above. |
+| Time between remarks, Most remarks per fight (built in) | Pacing, as above. |
 | Delamain speaks on rides | On or off (default on). Off disables remarks and talk. |
 
 Delamain always joins a group round with the companion while V is in the cab.
