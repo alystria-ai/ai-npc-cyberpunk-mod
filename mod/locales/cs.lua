@@ -526,6 +526,8 @@ return {
     ["{first}, {second} and {third}"] = "{first}, {second} a {third}",
     ["{message} The change is active, but could not be saved for next time."] = "{message} Změna je aktivní, ale nepodařilo se ji uložit pro příště.",
     ["{names} joined your group."] = "Do skupiny se připojili: {names}.",
+    ["{name} answers typed messages only for now."] = "{name} zatím odpovídá jen na psané zprávy.",
+    ["{name} answers typed messages only for now. Use {key}."] = "{name} zatím odpovídá jen na psané zprávy. Použij {key}.",
     ["{name} could not join: {reason}"] = "Připojení se nezdařilo ({name}): {reason}",
     ["{name} could not prepare: {reason}"] = "Příprava se nezdařila ({name}): {reason}",
     ["{name} dismissed."] = "Propuštěno: {name}.",

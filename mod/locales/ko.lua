@@ -501,6 +501,8 @@ return {
     ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "게임 속 대화 직후에 그 캐릭터와 이야기하면, 선택한 대답과 그 캐릭터와의 통화를 포함해 방금 오간 마지막 몇 줄을 캐릭터가 알고 있어 대답이 자연스럽게 이어집니다. 그 캐릭터가 참여한 최근 몇 분 동안의 대사만 사용되며, 캐릭터의 기억에는 추가되지 않습니다. 기본값은 켜짐입니다.",
     ["Preparing connection to {name}…"] = "{name} 연결 준비 중…",
     ["{names} joined your group."] = "{names} 그룹 합류 완료.",
+    ["{name} answers typed messages only for now."] = "{name}은(는) 지금은 입력한 메시지에만 답합니다.",
+    ["{name} answers typed messages only for now. Use {key}."] = "{name}은(는) 지금은 입력한 메시지에만 답합니다. {key}을(를) 사용하세요.",
     ["{first} and {second}"] = "{first}, {second}",
     ["{first}, {second} and {third}"] = "{first}, {second}, {third}",
     ["{first}, {second} and {count} others"] = "{first}, {second} 외 {count}명",

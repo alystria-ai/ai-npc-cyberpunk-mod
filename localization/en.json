@@ -2117,7 +2117,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur-native.lua:386"
+        "mod/companion-chauffeur-native.lua:395"
       ]
     },
     "As shipped": {
@@ -3802,8 +3802,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:572",
-        "mod/companion-vehicles.lua:699"
+        "mod/companion-vehicles.lua:598",
+        "mod/companion-vehicles.lua:726"
       ]
     },
     "Find the log files and create a report to send to the developer if something goes wrong.": {
@@ -5227,7 +5227,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur-native.lua:393"
+        "mod/companion-chauffeur-native.lua:402"
       ]
     },
     "Pending: {voice}": {
@@ -6574,10 +6574,10 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur-native.lua:124",
-        "mod/companion-chauffeur-native.lua:697",
-        "mod/companion-chauffeur-native.lua:710",
-        "mod/companion-chauffeur-native.lua:720",
+        "mod/companion-chauffeur-native.lua:133",
+        "mod/companion-chauffeur-native.lua:706",
+        "mod/companion-chauffeur-native.lua:719",
+        "mod/companion-chauffeur-native.lua:729",
         "mod/companion-chauffeur.lua:205"
       ]
     },
@@ -7017,7 +7017,7 @@
       ],
       "references": [
         "mod/companion-chauffeur.lua:240",
-        "mod/companion-vehicles.lua:691"
+        "mod/companion-vehicles.lua:718"
       ]
     },
     "The selected companion is unavailable.": {
@@ -7025,7 +7025,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:681"
+        "mod/companion-vehicles.lua:708"
       ]
     },
     "The service launcher writes launcher.log at {path}": {
@@ -7430,7 +7430,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur-native.lua:402"
+        "mod/companion-chauffeur-native.lua:411"
       ]
     },
     "Vehicle exit workspot state is unavailable.": {
@@ -7438,7 +7438,7 @@
         "party.vehicle-transition-feedback"
       ],
       "references": [
-        "mod/companion-vehicle-native.lua:195"
+        "mod/companion-vehicle-native.lua:210"
       ]
     },
     "Vehicle information became unavailable.": {
@@ -7570,7 +7570,7 @@
         "party.vehicle-transition-feedback"
       ],
       "references": [
-        "mod/companion-vehicle-native.lua:188"
+        "mod/companion-vehicle-native.lua:203"
       ]
     },
     "Waiting for the native occupant slot to release.": {
@@ -7578,7 +7578,7 @@
         "party.vehicle-transition-feedback"
       ],
       "references": [
-        "mod/companion-vehicle-native.lua:202"
+        "mod/companion-vehicle-native.lua:217"
       ]
     },
     "Waiting for the native vehicle exit animation to finish.": {
@@ -7586,7 +7586,7 @@
         "party.vehicle-transition-feedback"
       ],
       "references": [
-        "mod/companion-vehicle-native.lua:196"
+        "mod/companion-vehicle-native.lua:211"
       ]
     },
     "Waiting for the native vehicle exit to finish.": {
@@ -7594,7 +7594,7 @@
         "party.vehicle-transition-feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:234"
+        "mod/companion-vehicles.lua:260"
       ]
     },
     "Waiting for the native vehicle mount to release.": {
@@ -7602,7 +7602,7 @@
         "party.vehicle-transition-feedback"
       ],
       "references": [
-        "mod/companion-vehicle-native.lua:193"
+        "mod/companion-vehicle-native.lua:208"
       ]
     },
     "Waiting for the native vehicle transition to finish.": {
@@ -7611,7 +7611,7 @@
       ],
       "references": [
         "mod/companion-chauffeur.lua:330",
-        "mod/companion-vehicles.lua:353"
+        "mod/companion-vehicles.lua:379"
       ]
     },
     "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.": {
@@ -7640,7 +7640,7 @@
         "party.vehicle-transition-feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:240"
+        "mod/companion-vehicles.lua:266"
       ]
     },
     "Waiting for you to board": {
@@ -7664,7 +7664,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-vehicle-native.lua:182"
+        "mod/companion-vehicle-native.lua:197"
       ]
     },
     "Waiting for your passenger seat to be released.": {

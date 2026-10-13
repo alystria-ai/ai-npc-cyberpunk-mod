@@ -526,6 +526,8 @@ return {
     ["{first}, {second} and {third}"] = "{first}, {second} і {third}",
     ["{message} The change is active, but could not be saved for next time."] = "{message} Зміна діє, але її не вдалося зберегти на наступний раз.",
     ["{names} joined your group."] = "До твоєї групи додано: {names}.",
+    ["{name} answers typed messages only for now."] = "{name} поки що відповідає лише на надруковані повідомлення.",
+    ["{name} answers typed messages only for now. Use {key}."] = "{name} поки що відповідає лише на надруковані повідомлення. Використай {key}.",
     ["{name} could not join: {reason}"] = "{name}: не вдалося приєднатися — {reason}",
     ["{name} could not prepare: {reason}"] = "{name}: не вдалося підготуватися — {reason}",
     ["{name} dismissed."] = "Відпущено: {name}.",

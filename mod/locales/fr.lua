@@ -501,6 +501,8 @@ return {
     ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "Quand vous parlez à un personnage juste après un dialogue du jeu avec lui, il connaît les dernières répliques qui viennent d’être prononcées, y compris vos réponses choisies et vos appels avec lui, pour que sa réponse s’enchaîne naturellement. Seules les répliques des dernières minutes impliquant ce personnage sont utilisées, et elles ne sont pas ajoutées à sa mémoire. Activé par défaut.",
     ["Preparing connection to {name}…"] = "Préparation de la connexion avec {name}…",
     ["{names} joined your group."] = "{names} ont rejoint votre groupe.",
+    ["{name} answers typed messages only for now."] = "{name} ne répond pour l'instant qu'aux messages écrits.",
+    ["{name} answers typed messages only for now. Use {key}."] = "{name} ne répond pour l'instant qu'aux messages écrits. Utilise {key}.",
     ["{first} and {second}"] = "{first} et {second}",
     ["{first}, {second} and {third}"] = "{first}, {second} et {third}",
     ["{first}, {second} and {count} others"] = "{first}, {second} et {count} autres",

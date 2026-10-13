@@ -501,6 +501,8 @@ return {
     ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "Если вы говорите с персонажем сразу после игрового диалога с ним, он знает последние только что прозвучавшие реплики, включая выбранные вами ответы и телефонные звонки с ним, и его ответ естественно продолжает разговор. Используются только реплики за последние несколько минут с участием этого персонажа, и они не добавляются в его память. Включено по умолчанию.",
     ["Preparing connection to {name}…"] = "Подготовка подключения к {name}…",
     ["{names} joined your group."] = "{names}: теперь в вашей группе.",
+    ["{name} answers typed messages only for now."] = "{name} пока отвечает только на набранные сообщения.",
+    ["{name} answers typed messages only for now. Use {key}."] = "{name} пока отвечает только на набранные сообщения. Используй {key}.",
     ["{first} and {second}"] = "{first} и {second}",
     ["{first}, {second} and {third}"] = "{first}, {second} и {third}",
     ["{first}, {second} and {count} others"] = "{first}, {second} и другие ({count})",

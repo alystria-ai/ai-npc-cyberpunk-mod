@@ -501,6 +501,8 @@ return {
     ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "ゲーム内の会話の直後にそのキャラクターと話すと、選んだ返答や電話での会話を含め、直前に交わされた数行をキャラクターが把握しているため、自然に話が続きます。使われるのは、そのキャラクターが関わった直近数分間のセリフだけで、キャラクターの記憶には追加されません。既定ではオン。",
     ["Preparing connection to {name}…"] = "{name}への接続を準備中…",
     ["{names} joined your group."] = "{names}がグループに加わりました。",
+    ["{name} answers typed messages only for now."] = "{name}は今のところ、入力したメッセージにのみ返事をします。",
+    ["{name} answers typed messages only for now. Use {key}."] = "{name}は今のところ、入力したメッセージにのみ返事をします。{key}を使ってください。",
     ["{first} and {second}"] = "{first}と{second}",
     ["{first}, {second} and {third}"] = "{first}、{second}、{third}",
     ["{first}, {second} and {count} others"] = "{first}、{second}、ほか{count}人",

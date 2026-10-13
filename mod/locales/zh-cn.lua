@@ -501,6 +501,8 @@ return {
     ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "在与某个角色进行游戏内对话后立即和其交谈时，该角色会知道刚刚说过的最后几句台词，包括你选择的回答以及与其通话的内容，因此回复会自然地衔接下去。只会使用最近几分钟内该角色参与的台词，且不会写入该角色的记忆。默认开启。",
     ["Preparing connection to {name}…"] = "正在准备连接 {name}…",
     ["{names} joined your group."] = "{names} 已加入队伍。",
+    ["{name} answers typed messages only for now."] = "{name}目前只回复键入的消息。",
+    ["{name} answers typed messages only for now. Use {key}."] = "{name}目前只回复键入的消息。请使用{key}。",
     ["{first} and {second}"] = "{first}和{second}",
     ["{first}, {second} and {third}"] = "{first}、{second}和{third}",
     ["{first}, {second} and {count} others"] = "{first}、{second}等{count}人",

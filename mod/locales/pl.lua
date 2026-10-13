@@ -526,6 +526,8 @@ return {
     ["{first}, {second} and {third}"] = "{first}, {second} i {third}",
     ["{message} The change is active, but could not be saved for next time."] = "{message} Zmiana jest aktywna, ale nie udało się zapisać jej na następny raz.",
     ["{names} joined your group."] = "Do grupy dołączono: {names}.",
+    ["{name} answers typed messages only for now."] = "{name} na razie odpowiada tylko na wpisane wiadomości.",
+    ["{name} answers typed messages only for now. Use {key}."] = "{name} na razie odpowiada tylko na wpisane wiadomości. Użyj {key}.",
     ["{name} could not join: {reason}"] = "{name}: nie udało się dołączyć - {reason}",
     ["{name} could not prepare: {reason}"] = "{name}: nie udało się przygotować - {reason}",
     ["{name} dismissed."] = "Odesłano: {name}.",

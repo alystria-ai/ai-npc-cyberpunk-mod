@@ -526,6 +526,8 @@ return {
     ["{first}, {second} and {third}"] = "{first}, {second} ve {third}",
     ["{message} The change is active, but could not be saved for next time."] = "{message} Değişiklik etkin, ancak bir sonraki sefer için kaydedilemedi.",
     ["{names} joined your group."] = "{names} gruba katıldı.",
+    ["{name} answers typed messages only for now."] = "{name} şimdilik yalnızca yazılı mesajlara yanıt veriyor.",
+    ["{name} answers typed messages only for now. Use {key}."] = "{name} şimdilik yalnızca yazılı mesajlara yanıt veriyor. {key} tuşunu kullan.",
     ["{name} could not join: {reason}"] = "{name} katılamadı: {reason}",
     ["{name} could not prepare: {reason}"] = "{name} hazırlanamadı: {reason}",
     ["{name} dismissed."] = "{name} çıkarıldı.",

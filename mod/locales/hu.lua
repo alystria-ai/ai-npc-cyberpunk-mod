@@ -526,6 +526,8 @@ return {
     ["{first}, {second} and {third}"] = "{first}, {second} és {third}",
     ["{message} The change is active, but could not be saved for next time."] = "{message} A módosítás aktív, de legközelebbre nem sikerült elmenteni.",
     ["{names} joined your group."] = "{names} csatlakoztak a csoportodhoz.",
+    ["{name} answers typed messages only for now."] = "{name} egyelőre csak begépelt üzenetekre válaszol.",
+    ["{name} answers typed messages only for now. Use {key}."] = "{name} egyelőre csak begépelt üzenetekre válaszol. Használd: {key}.",
     ["{name} could not join: {reason}"] = "{name} nem tudott csatlakozni: {reason}",
     ["{name} could not prepare: {reason}"] = "{name} előkészítése nem sikerült: {reason}",
     ["{name} dismissed."] = "{name} elbocsátva.",
