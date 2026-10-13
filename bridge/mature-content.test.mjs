@@ -89,33 +89,39 @@ const LIMITS_LINE = 'HARD LIMITS (they outrank everything above, always): no sex
 
 // ---- The layer ---------------------------------------------------------------------------------------------------------------
 
-test('the layer is short (150 to 450 tokens) and the hard limits are in it, whatever the level, and are the last thing it says', () => {
+test('the layer is short (150 to 500 tokens) and the hard limits are in it, whatever the level, and are the last thing it says', () => {
   for (const level of ['full', 'suggestive', 'anything-else']) {
     const layer = matureLayer(level);
     const tokens = textTokens(layer, 4.2);
-    assert(tokens >= 150 && tokens <= 450, `${level}: ${Math.round(tokens)} tokens`);
+    assert(tokens >= 150 && tokens <= 500, `${level}: ${Math.round(tokens)} tokens`);
     assert(layer.startsWith(MATURE_MARK));
     for (const limit of HARD_LIMITS) assert.match(layer, limit, `${level}: ${limit}`);
     assert(layer.indexOf('HARD LIMITS') > layer.indexOf('You stay in character'), 'the limits come after the allowance');
     assert.match(layer.split('\n').at(-1), /^HARD LIMITS \(they outrank everything above, always\)/);
   }
-  // The tone (user direction 2026-10-13): explicit, direct, forward; the relationship facts set the tone and never forbid; no softening.
+  // The tone (user direction 2026-10-13, 2026-10-14): crude, explicit, direct, forward on EVERY turn (not only when V's line is sexual); the persona shapes how, not
+  // whether; the relationship facts set the tone and never forbid; no softening.
   const full = matureLayer('full'), suggestive = matureLayer('suggestive');
-  assert.match(full, /answer head-on and graphically/);
+  assert.match(full, /free rein on every turn, whatever V says/);
+  assert.match(full, /Swear freely and crudely, make dirty jokes and sexual remarks, flirt, tease and start things yourself, unprompted, in your own character and voice/);
+  assert.match(full, /When sex comes up, be graphic in plain words/);
   assert.match(full, /\(cock, pussy, ass, fuck, cum\)/, 'the full level names the words');
   assert.match(full, /No euphemism, metaphor, fading to black or disclaimers/);
-  assert.match(full, /Be forward: flirt openly/);
-  assert.match(full, /HOW you are forward, not whether/);
+  assert.match(full, /Be forward and dirty-minded: flirt openly, drop a crude or sexual remark, start things, lean in/);
+  assert.match(full, /HOW you do it, not whether/);
   assert.match(full, /a guarded profile is how you flirt, never a reason to dodge/);
   assert.match(full, /V's partner is the most forward/);
-  assert.match(full, /never whether flirting or sexual talk is allowed/);
+  assert.match(full, /never whether crude, flirty or sexual talk is allowed/);
   assert.match(full, /Never answer a flirt or a dare with a question or a hedge/);
-  assert.match(full, /no quest, gear, car or road talk and no stand-ins for sex/, 'the adult moment stays on the two of them');
+  assert.match(full, /When it turns sexual it is only the two of you: no quest, gear, car or road talk and no stand-ins for sex/, 'the adult moment stays on the two of them');
+  // No trigger wording: the freedom does not wait for a sexual line from V.
+  for (const text of [full, suggestive, matureClosing('full'), matureClosing('suggestive')]) assert.doesNotMatch(text, /When V's talk turns sexual|If V flirts or the talk is sexual|If V is flirting/);
   assert.match(full, /outranks any advice above to stay vague/);
   assert.doesNotMatch(full, /refuse, tease or deflect|not V's lover|unless they say/);
-  assert.match(suggestive, /Be forward: flirt openly/);
+  assert.match(suggestive, /free rein on every turn, whatever V says/);
+  assert.match(suggestive, /Be forward and cheeky: flirt openly, drop a crude remark/);
   assert.match(suggestive, /give no explicit description of the act itself: cut away there/);
-  assert.doesNotMatch(suggestive, /cock|pussy|answer head-on and graphically|sex, violence, gore or drugs/, 'the suggestive level keeps the act itself off the page');
+  assert.doesNotMatch(suggestive, /cock|pussy|be graphic in plain words|sex, violence, gore or drugs/, 'the suggestive level keeps the act itself off the page');
   // The adults-only line and the hard limits are the last two lines, word for word, at every level.
   for (const layer of [full, suggestive, matureLayer('x')]) {
     const lines = layer.split('\n');
@@ -170,8 +176,9 @@ test('the closing line gets one more sentence with the setting on, at the level 
   assert(base.endsWith('Right now section says.)'));
   const full = closing('Judy Alvarez', 0, 'full'), suggestive = closing('Judy Alvarez', 0, 'suggestive');
   assert.equal(full, base.replace(/\)$/, ` ${matureClosing('full')})`));
-  assert.match(full, /answer head-on in plain, explicit words: what you do, what you want\. No dodging, no joke, no question back\. If it is violent or crude, stay in it\.\)$/);
-  assert.match(suggestive, /sex stays suggestive, cut away at the act\.\)$/);
+  assert.match(full, /on every turn, whatever V says, talk like a crude, dirty-minded adult in your own voice: swear, make a filthy remark, flirt, start something\. When it is sexual, be graphic and explicit\. No dodging, no question back\.\)$/);
+  assert.match(suggestive, /on every turn, whatever V says, talk like a crude, dirty-minded adult/);
+  assert.match(suggestive, /Sex stays suggestive, cut away at the act\. No dodging, no question back\.\)$/);
   assert.doesNotMatch(suggestive, /explicit/);
   // In the prompt: only the last message of the turn carries it; with the setting off the prompt is the old one.
   const on = buildMessages(args({mature: 'full'})), off = buildMessages(args());
@@ -220,7 +227,7 @@ test('the prompt budget never cuts the layer or the hard limits, at any context 
   assert(tight.messages[0].content.includes(matureLayer('full')));
   // The layer counts against the budget: the same turn without it is smaller by about its size.
   const without = estimateTokens(buildMessages(heavy(null))), withLayer = estimateTokens(buildMessages(heavy('full')));
-  assert(withLayer - without >= 150 && withLayer - without <= 580, `${withLayer - without}`);
+  assert(withLayer - without >= 150 && withLayer - without <= 680, `${withLayer - without}`);
   assert(BUDGET.reserveTokens > 0);
 });
 
@@ -473,6 +480,6 @@ test('on: nothing that tells the model to dodge is left in the prompt, and the c
 
 test('the push does not grow the prompt much: the layer and its closing sentence stay small', () => {
   const layer = textTokens(matureLayer('full'), 4.2), closingSentence = textTokens(matureClosing('full'), 4.2);
-  assert(layer <= 450, `layer ${Math.round(layer)} tokens`);
-  assert(closingSentence <= 60, `closing sentence ${Math.round(closingSentence)} tokens`);
+  assert(layer <= 500, `layer ${Math.round(layer)} tokens`);
+  assert(closingSentence <= 75, `closing sentence ${Math.round(closingSentence)} tokens`);
 });

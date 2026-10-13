@@ -49,7 +49,7 @@ The uncensored models have no limits of their own, so the mod holds these in thr
 
 The models are fine-tunes of Apache-2.0 base models (the licence text is in `mature/licenses/Apache-2.0.txt`; the exact list, with sources, is in `mature/THIRD-PARTY-NOTICES.txt`):
 
-- Lite: Qwen3.5-4B-MiniFantasy, an uncensored fine-tune of Qwen3.5-4B (Alibaba Cloud, Apache-2.0)
+- Lite: Qwen3.5-4B-HauhauCS-Aggressive, an uncensored fine-tune of Qwen3.5-4B (Alibaba Cloud, Apache-2.0)
 - Good: Gemma-4-E4B-MiniFantasy, an uncensored fine-tune of Gemma 4 E4B (Google, Apache-2.0)
 
 Cyberpunk Convai itself is under the Cyberpunk Convai Use License of the main mod.

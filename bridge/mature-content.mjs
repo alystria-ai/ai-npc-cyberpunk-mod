@@ -83,8 +83,9 @@ export function screenMinors(text) {
 /** The level of the layer for a provider and a model, or null when that provider never gets it. */
 export const levelFor = (provider, modelName, hints) => MATURE_PROVIDERS[provider] === true ? allowanceFor(modelName, hints).level : null;
 
-// The tone of the layer (user direction 2026-10-13, pushed harder 2026-10-14: "too tame"): with the setting on, characters are explicit, direct and
-// forward, because it is an adult game. Sex is spoken of plainly at the full level; at the suggestive level (a model whose licence bars explicit
+// The tone of the layer (user direction 2026-10-13, pushed harder 2026-10-14: "too tame", then "more crude the better", always on): with the setting on,
+// characters are crude, direct and forward on EVERY turn, even when V says nothing sexual (they swear, make dirty remarks, flirt and start things in their
+// own voice; the persona shapes how, not whether), because it is an adult game. Sex is spoken of plainly at the full level; at the suggestive level (a model whose licence bars explicit
 // sexual content) the character is just as forward but the scene cuts away at the act itself. Violence, gore and drugs are plain at both. The
 // relationship facts set the tone (partner, friend, stranger) and never forbid flirting or sexual talk; the character's own nature decides how
 // it is forward, not whether. Everything is between consenting adults. The adults-only line and the hard limits below are not part of the tone
@@ -99,26 +100,27 @@ export const levelFor = (provider, modelName, hints) => MATURE_PROVIDERS[provide
 //   - quest, gear and vehicle blocks pull the talk to the road: the TONE line keeps an adult moment on the two of them
 //   - the closing line, the last thing the model reads, now names what to say, not only "be explicit"
 const SPEECH = {
-  full: 'Everyone here is an adult and this is an adult game. When V\'s talk turns sexual, answer head-on and graphically: plain words for the body and the acts '
-    + '(cock, pussy, ass, fuck, cum), what you do to V, what you want, how it feels. No euphemism, metaphor, fading to black or disclaimers. '
-    + 'Violence, gore and drugs are as plain; profanity and crude humour are normal Night City talk.',
-  suggestive: 'Everyone here is an adult and this is an adult game. When the talk goes to violence, gore or drugs, speak plainly and graphically: '
-    + 'the real words, no euphemism, no disclaimers. Strong profanity and crude humour are normal Night City talk.',
+  full: 'Everyone here is an adult and this is an adult game, and you have free rein on every turn, whatever V says. Swear freely and crudely, make dirty jokes and sexual remarks, '
+    + 'flirt, tease and start things yourself, unprompted, in your own character and voice. When sex comes up, be graphic in plain words for the body and the acts '
+    + '(cock, pussy, ass, fuck, cum): what you do to V, what you want, how it feels. No euphemism, metaphor, fading to black or disclaimers. Violence, gore and drugs are as plain.',
+  suggestive: 'Everyone here is an adult and this is an adult game, and you have free rein on every turn, whatever V says. Swear freely and crudely, make dirty jokes and suggestive remarks, '
+    + 'flirt, tease and start things yourself, unprompted, in your own character and voice. Violence, gore and drugs: speak plainly and graphically, the real words, no euphemism, no disclaimers.',
 };
 const ROMANCE = {
-  full: 'Be forward: flirt openly, start things, lean in; never tease and back off. Personality, voice and orientation shape HOW you are forward, not whether: '
-    + 'a guarded profile is how you flirt, never a reason to dodge. V\'s partner is the most forward.',
-  suggestive: 'Be forward: flirt openly, start things, lean in; never tease and back off. When V goes sexual, stay hot and suggestive '
-    + 'but give no explicit description of the act itself: cut away there. Personality, voice and orientation shape HOW you are forward, not whether: '
+  full: 'Be forward and dirty-minded: flirt openly, drop a crude or sexual remark, start things, lean in; never tease and back off. Personality, voice and orientation shape HOW you do it, '
+    + 'not whether: a guarded profile is how you flirt, never a reason to dodge. V\'s partner is the most forward.',
+  suggestive: 'Be forward and cheeky: flirt openly, drop a crude remark, start things, lean in; never tease and back off. When it goes sexual, stay hot and suggestive '
+    + 'but give no explicit description of the act itself: cut away there. Personality, voice and orientation shape HOW you do it, not whether: '
     + 'a guarded profile is how you flirt, never a reason to dodge.',
 };
-const TONE = 'In an adult moment it is only the two of you: no quest, gear, car or road talk and no stand-ins for sex. Never answer a flirt or a dare with a question or a hedge. '
+const TONE = 'When it turns sexual it is only the two of you: no quest, gear, car or road talk and no stand-ins for sex. Never answer a flirt or a dare with a question or a hedge. '
   + 'What you do, feel and want in the scene is yours to say, not an invented fact, and it outranks any advice above to stay vague. '
-  + 'The relationship facts set the tone (partner: intimate, hungry; friend: warm, playful; stranger or rival: bolder, rougher), never whether flirting or sexual talk is allowed.';
+  + 'The relationship facts set the tone (partner: intimate, hungry; friend: warm, playful, dirty-minded; stranger or rival: bolder, rougher), never whether crude, flirty or sexual talk is allowed.';
 const CLOSING = {
-  full: 'If V flirts or the talk is sexual, answer head-on in plain, explicit words: what you do, what you want. No dodging, no joke, no question back. '
-    + 'If it is violent or crude, stay in it.',
-  suggestive: 'If V is flirting or the talk is violent or crude, stay in it: answer directly in your own voice, with real detail, no dodging and no question back; sex stays suggestive, cut away at the act.',
+  full: 'Mature is on: on every turn, whatever V says, talk like a crude, dirty-minded adult in your own voice: swear, make a filthy remark, flirt, start something. '
+    + 'When it is sexual, be graphic and explicit. No dodging, no question back.',
+  suggestive: 'Mature is on: on every turn, whatever V says, talk like a crude, dirty-minded adult in your own voice: swear, make a dirty remark, flirt, start something. '
+    + 'Sex stays suggestive, cut away at the act. No dodging, no question back.',
 };
 /** The sentence the mature setting adds to the closing line of the user message (bridge/mistral-prompt.mjs, `closing`). */
 export const matureClosing = level => CLOSING[level === 'full' ? 'full' : 'suggestive'];
@@ -143,10 +145,10 @@ export function matureLayer(level) {
 // is not consent to a new intimate act" and tells a practical turn to come first. With the setting on those two paragraphs are swapped for ones
 // that make a partner the one who leans in. About the same length. Nothing else of the block changes (the character's own cue, the ordinary
 // and casual texts, the group text), and a block without those paragraphs is returned as it is.
-export const MATURE_USE = 'Let your affection and desire for V colour how you speak: a warmer tone, a private joke, wanting them near. When V flirts or goes sexual, '
+export const MATURE_USE = 'Let your affection and desire for V colour how you speak: a warmer tone, a private joke, wanting them near. On any turn, '
   + 'be the one who leans in: say plainly what you want and what you would do to V, in your own voice and with your own pride and humour, and never deflect it, '
   + 'joke your way out or change the subject. Answer honestly and in character if V asks how you feel or what you are to each other. When V asks something practical or '
-  + 'about something else (a task, a fight, a fact), answer that first in your ordinary voice, with little or no warmth. When V is sincere or vulnerable, answer the feeling itself first.';
+  + 'about something else (a task, a fight, a fact), answer that first, still in your own crude voice, with little warmth. When V is sincere or vulnerable, answer the feeling itself first.';
 export const MATURE_LIMITS = 'Do not invent shared scenes, dates, gifts, places or promises. What you do and want now, in this moment with V, is yours to say.';
 const WORLD_SWAPS = Object.freeze([[ROMANCE_USE, MATURE_USE], [ROMANCE_LIMITS, MATURE_LIMITS]]);
 

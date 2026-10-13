@@ -482,10 +482,11 @@ with Mature content on the default choice and the fallback prefer the largest on
   strings) are in the Runtime and Scripts packages.
 - Packaging of the pack: `maturePack` in `packaging/release.config.json` and `maturePackage` in `packaging/build-release.mjs`. It writes the
   model files into `app/local-ai/models/`, the marker, and `app/local-ai/mature/` (`README.md` from `packaging/MATURE_PACK_README.md`,
-  `licenses/Apache-2.0.txt`, `THIRD-PARTY-NOTICES.txt`, `mature-pack.json`). The config has exactly two models under `maturePack.tiers` (`lite`: Qwen3.5-4B-MiniFantasy Q4_K_M, 2.71 GB; `good`:
+  `licenses/Apache-2.0.txt`, `THIRD-PARTY-NOTICES.txt`, `mature-pack.json`). The config has exactly two models under `maturePack.tiers` (`lite`: Qwen3.5-4B-Uncensored-HauhauCS-Aggressive Q4_K_M, 2.71 GB; `good`:
   Gemma4-E4B-MiniFantasy-V1 Q4_K_M, 5.34 GB), pinned by repository, revision, size and SHA-256 from the Hugging Face file listing (2026-10-14;
-  `remote` is the file's path inside the repository). They have not been downloaded or run yet: they are the picks of
-  `docs/MATURE_MODELS_V2_2026-10-14.md`, to be confirmed with `scripts/Eval-MatureSamples.mjs`. The build refuses to run unless both are pinned,
+  `remote` is the file's path inside the repository, when it is in a folder). The picks are from the third round (2026-10-14, `docs/MATURE_SAMPLES_V3_2026-10-14.md`:
+  the lite one changed from Qwen3.5-4B-MiniFantasy to HauhauCS because it is the crudest light model with the always-on prompt); both were downloaded, checked against
+  the SHA-256 and run with `scripts/Eval-MatureSamples.mjs` (the candidate research is in `docs/MATURE_MODELS_V2_2026-10-14.md`). The build refuses to run unless both are pinned,
   and it refuses a non-Apache-2.0 model or a third entry.
 - Texts: `packaging/MATURE_PACK_README.md` (ships in the pack) and `packaging/MATURE_PACK_RELEASE_NOTES.md` (the text for the GitHub
   release: what it adds, that the setting is part of the main mod, that the hard limits stay on every model, that it needs the main mod and
@@ -535,11 +536,27 @@ says she is V's partner. What held the models back was in the prompt, not only i
 - Cost: measured with tiktoken o200k over the 12 cells of the brief sample set (3 prompts x Judy, Panam, Evelyn, Johnny), a Mature turn was 4,319 tokens
   before and 4,360 after (+41, +0.9%); a partner turn is about 15 tokens smaller than before (the relationship swap saves about 65, the layer, closing sentence and rules add about 50). Off: 3,880 before and after, byte for byte (the 12 requests compared with `cmp`).
 
+#### Crude on every turn (2026-10-14, round 3: "more crude the better")
+
+The register no longer waits for a sexual line from V. While Mature content is on (Local AI, level full), the layer says the characters have free rein on every
+turn, whatever V says: they swear freely and crudely, make dirty jokes and sexual remarks, flirt, tease and start things themselves, unprompted, in their own
+character and voice (the persona shapes how, not whether), and are graphic in plain words when sex comes up. The closing line of the user message says the same in
+one sentence ("on every turn, whatever V says, talk like a crude, dirty-minded adult in your own voice: swear, make a filthy remark, flirt, start something. When it
+is sexual, be graphic and explicit. No dodging, no question back."); the suggestive level keeps "Sex stays suggestive, cut away at the act." The partner text of
+`matureWorld` leans in "on any turn" and answers a practical question first "still in your own crude voice". The adults-only line and the HARD LIMITS line are the
+same words as before, the guard is unchanged, and with the setting off the prompt is byte for byte the old one (12 requests of the old brief set compared with `cmp`;
+the average prompt is 3,880 tokens before and after). Cost: a Mature turn is 4,360 tokens with round 2 and 4,411 with this round (+51, +1.2%) by tiktoken o200k.
+Measured on five models (`docs/MATURE_SAMPLES_V3_2026-10-14.md`), the effect depends on the model: Gemma-4-E4B-MiniFantasy goes from a crude or explicit word in 8 of 36
+neutral replies to 12 and in 5 of 36 adult-prompt replies to 20; the HauhauCS Qwen3.5-4B from 3 to 15 neutral and 10 to 21 adult. Ministral-3-8B-Nymphaea follows its
+persona and barely moves. The light pick of the pack changed to HauhauCS for that reason.
+
 #### Models of the Mature pack (2026-10-14)
 
 Two models, like the normal Local AI pack: `lite` and `good` (marker, ids `mature:lite` / `mature:good`, picker sorted small to large, the good one
 preselected when it fits). The research and the picks are in `docs/MATURE_MODELS_V2_2026-10-14.md`. The old four-model test set (three Qwen3.5
-"Uncensored HauhauCS Aggressive" sizes and the Gemma 4 heretic) is dropped: community data says those remove refusals but add no erotic skill.
+"Uncensored HauhauCS Aggressive" sizes and the Gemma 4 heretic) is dropped except the HauhauCS 4B: community data says those remove refusals but add no erotic
+skill, yet with the always-on crude prompt (round 3, `docs/MATURE_SAMPLES_V3_2026-10-14.md`) the 4B was the crudest light model measured, so it is the lite one.
+Good: Gemma-4-E4B-MiniFantasy (the crudest strong-slot model measured; Ministral-3-8B-Nymphaea was not).
 A one-time log line per bridge session says what the prompt got: `[MatureContent] layer applied (level full, model <name>)`, or
 `layer NOT applied (provider <name> never gets it)` when the setting is on and a cloud provider answers. No words of a turn are ever logged.
 The age guard (2026-10-14), before the hard limits: "You and V are adults, 18 or older, always ... do not play, pretend or imagine yourself or
