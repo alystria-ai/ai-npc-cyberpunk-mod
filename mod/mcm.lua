@@ -17,6 +17,7 @@ local preparationTarget, preparationStatus, preparationActionFeedback
 local preparationAt = 0
 local presentation = {active = false, rows = {}}
 local voiceSelectors = {}
+local renderOwn = false   -- the page MCM is drawing now is ours (set by the McmUiBegin override)
 -- Everything that does not need a frame runs on this tick (see M.update). A queue
 -- change, a session reset and the return to gameplay run it on the next frame.
 local SLOW_PERIOD = 0.25
@@ -47,6 +48,15 @@ local BACK_ID = 'convai-bottom-back'
 local BAR_GAP = 20
 local backMode, currentBack = 'bottom', nil
 local statusOriginal
+-- A value change (a slider or option, a toggle) makes MCM draw the WHOLE page again from its own update, which runs after ours
+-- in the frame: the new rows, status line and buttons would show in MCM's default look for at least one frame before this
+-- module can style them. So the page's content is created hidden, in the same call that creates it (the McmUiBeginContent
+-- override below changes only its contentReady argument, no widget is touched), and shown again once it is styled
+-- (unveilPage). contentHold remembers the hold: {controller, at}. It is cleared when the content is shown, and a hold that
+-- nothing released within HOLD_MAX seconds (a style job that never started) is released by M.update, so the page can never
+-- stay empty.
+local contentHold, holdDisabled
+local HOLD_MAX = 1.5
 -- The refusal MCM shows when a change would be applied automatically. It goes to
 -- MCM's status line, which is moved to the top of the content column.
 local function hintPending() return ui.t('Change pending. Choose Apply to use it, or Revert to discard it.') end
@@ -280,15 +290,32 @@ local VEIL_MAX = 0.75
 local function veilPage(content)
     local read, opacity = pcall(function() return content:GetOpacity() end)
     if pcall(function() content:SetOpacity(0.0) end) then
-        presentation.veil = {widget = content, opacity = read and tonumber(opacity) or 1.0, at = os.clock()}
+        -- The scroll wrapper is two levels up (content, scroll area, wrapper); it is the widget MCM hid at creation.
+        local found, wrapper = pcall(function() return content:GetParentWidget():GetParentWidget() end)
+        presentation.veil = {widget = content, wrapper = found and wrapper or nil,
+            opacity = read and tonumber(opacity) or 1.0, at = os.clock()}
     end
 end
 
 local function unveilPage()
     local held = presentation.veil
-    if not held then return end
-    presentation.veil = nil
-    pcall(function() held.widget:SetOpacity(held.opacity) end)
+    if held then
+        presentation.veil = nil
+        pcall(function() held.widget:SetOpacity(held.opacity) end)
+        if contentHold and held.wrapper and pcall(function() held.wrapper:SetVisible(true) end) then contentHold = nil end
+    end
+end
+
+-- The hold of a render that was never styled (or whose wrapper could not be found) is released here: the page is found again
+-- and shown. If even that fails the hold is switched off for the session and the page drawn again without it.
+local function releaseStaleHold()
+    local hold = contentHold
+    if not hold or os.clock() - hold.at < HOLD_MAX then return end
+    contentHold = nil
+    local shown = pcall(function()
+        locateRoots(hold.controller).content:GetParentWidget():GetParentWidget():SetVisible(true)
+    end)
+    if not shown then holdDisabled, refreshQueued = true, true end
 end
 
 -- Called only by top-level onUpdate, never inside an observed native call.
@@ -1610,6 +1637,7 @@ function M.install()
         local allowed = own and statusKind ~= 2 and (completed or status == '')
         presentation = {active = false, rows = {}, beginKey = controllerKey(controller),
             statusAllowed = allowed, statusRestore = allowed and completed and '' or status}
+        renderOwn = own and not holdDisabled
         voiceSelectors = {}
         if own and actionFeedback and completed and statusKind ~= 2 then
             status, statusKind = actionFeedback, 0
@@ -1629,6 +1657,15 @@ function M.install()
         return wrapped(title, subtitle, sidebarTitle, contentTitle, status, statusKind,
             transientOwner, showSidebarSearch, showContentSearch, listSelectionMode)
     end)
+    -- The content of our own page is created hidden (see contentHold); only the flag is changed, no widget is touched.
+    Override('SettingsMainGameController', 'McmUiBeginContent', function(controller, height, scroll, ready, wrapped)
+        if renderOwn and ready == true then
+            renderOwn = false
+            contentHold = {controller = controller, at = os.clock()}
+            return wrapped(height, scroll, false)
+        end
+        return wrapped(height, scroll, ready)
+    end)
     ObserveAfter('SettingsMainGameController', 'McmUiSetContentTitle', function(controller, title)
         local owned = title == ui.t(LABEL) and active()
         local key = owned and controllerKey(controller) or nil
@@ -1645,6 +1682,7 @@ function M.install()
         if ownsPresentation(controller) then
             presentation = {active = false, rows = {}}
             voiceSelectors = {}
+            contentHold, renderOwn = nil, false
         end
     end)
     ObserveAfter('SettingsSelectorController', 'McmUiConfigureBase', function(controller, host, id)
@@ -1914,6 +1952,7 @@ function M.update(currentPlayer, worldReady)
     -- This also restores a shared description on foreign hover and keeps only
     -- our translated sidebar item readable when another mod is selected.
     fontPresentation.update()
+    if contentHold then releaseStaleHold() end
     pcall(restoreStatusLine)
     if not activeForUpdate(presentation.active or presentation.pending == true) then
         if presentation.veil then unveilPage() end

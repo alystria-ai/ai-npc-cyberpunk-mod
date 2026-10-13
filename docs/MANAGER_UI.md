@@ -513,3 +513,22 @@ phone invitation controls use J/L.
 The one-shot `mcm-state:<nonce>` diagnostic writes `runtime/mcm-state.json`
 inside the installed mod. It reports the section, entry stage, party, feedback
 and API availability without opening a menu or creating a companion.
+
+## Changing a value does not flash the page (2026-10-13)
+
+Every change of a slider, option or toggle makes MCM draw the whole Settings screen again (`drafts.changed` queues a render, and
+`handleStep` / `handleNumber` in MCM's own surface queue one too; there is no in-place update). MCM draws from its own `onUpdate`, which
+runs after this mod's in the same frame, so the new rows showed in MCM's default look (cyan, unaligned) for at least one frame before
+this module could style them, then were hidden by the page veil, then shown: a flash on every tick of a slider.
+
+The content is now created hidden, in the same call that creates it. `mod/mcm.lua` overrides `McmUiBeginContent` for the manager's own page
+and passes `contentReady = false` (MCM then hides the scroll wrapper itself; no widget is touched in the hook). When the page is styled
+the veil lifts and the wrapper is shown again in the same update that places the Back button. A hold that was never released (the style job
+never started, the page stopped being ours) is released by `M.update` after 1.5 s, and if the wrapper cannot be found the hold is switched
+off for the session and the page is drawn again without it, so the page can never stay empty. Only the manager's own page is held; another
+mod's page, and a page for which MCM itself asks for hidden content, are passed through unchanged. Cost: one comparison per frame while
+nothing is held; nothing is walked in the observer.
+
+What is not changed: the status line and the bottom button row are still placed after the page is styled (the status line moves to the top of
+the column, Back is added and the other buttons shift), so on a value change they can still jump once; the page is blank for the one to three
+frames that styling takes. MCM's full redraw cannot be avoided from a provider.

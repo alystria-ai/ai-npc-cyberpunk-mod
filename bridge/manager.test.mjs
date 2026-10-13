@@ -4997,6 +4997,99 @@ test('a freshly drawn page is hidden until it is styled, shown again at its own 
   `);
 });
 
+// A value change (slider, option, toggle) makes MCM draw the whole page again from its own update, after this module's in the
+// frame. The new page's content must never show in MCM's default look: it is created hidden, in the same call, and shown when
+// it is styled.
+const valueChangeFixture = `
+  local clock = 10
+  os.clock = function() return clock end
+  ${opacityFixture}
+`;
+const drawFixture = `
+  local wrapper = {visible = true, sets = {}}
+  function wrapper:SetVisible(value) self.visible = value; self.sets[#self.sets + 1] = value end
+  local scroll = {GetParentWidget = function() return wrapper end}
+  content.GetParentWidget = function() return scroll end
+  local passed = {}
+  -- What MCM does for one draw, in its own order; wrapper starts visible like a freshly created scroll area.
+  local function draw(title, text, kind)
+    wrapper.visible = true
+    content.opacity = 1
+    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', title or 'Companion Manager', text or '', kind or 0, '', true, true, 0,
+      function(_, _, _, _, statusArg) passed.status = statusArg end)
+    handlers.McmUiBeginContent(reference(), 400, 0.25, true, function(height, scrollPosition, ready)
+      passed.ready, passed.height, passed.scroll = ready, height, scrollPosition
+      wrapper.visible = ready
+    end)
+    handlers.McmUiSetContentTitle(reference(), 'Companion Manager')
+  end
+  local function fill(count)
+    content.children = {}
+    for index = 1, count do content.children[index] = widget('r' .. index .. '_managed_label', 48) end
+  end
+`;
+
+test('a value change draws the page with its content hidden in the same call, and shows it once it is styled', () => {
+  run(`${mcmFixture}${stylingFixture}${valueChangeFixture}${drawFixture}
+    fill(500)
+    for change = 1, 4 do
+      draw('Companion Manager', 'Pending: Voice')
+      assert(passed.ready == false and wrapper.visible == false, 'the page was created visible (change ' .. change .. ')')
+      assert(passed.height == 400 and passed.scroll == 0.25, 'the other arguments were changed')
+      assert(passed.status == 'Pending: Voice', 'the status text was changed: ' .. tostring(passed.status))
+      local frames = 0
+      repeat
+        assert(wrapper.visible == false, 'the content showed while unstyled (change ' .. change .. ', frame ' .. frames .. ')')
+        mcm.update(player, false); frames = frames + 1
+      until not mcm.inspect().presentation.pending or frames > 40
+      mcm.update(player, false)
+      assert(wrapper.visible == true and content.opacity == 1, 'the styled page was not shown (change ' .. change .. ')')
+    end
+    assert(#wrapper.sets == 4 and wrapper.sets[4] == true, 'the content was shown more than once per draw')
+  `);
+});
+
+test('only the manager is held: another mod page, and a page that wants itself hidden, are left as they are', () => {
+  run(`${mcmFixture}${stylingFixture}${valueChangeFixture}${drawFixture}
+    fill(5)
+    -- Another mod's page.
+    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', 'Another Mod', 'Opened.', 0, '', true, true, 0,
+      function(_, _, _, _, statusArg) passed.status = statusArg end)
+    handlers.McmUiBeginContent(reference(), 400, 0, true, function(_, _, ready) passed.ready = ready end)
+    assert(passed.ready == true and passed.status == 'Opened.', 'a foreign page was held')
+    -- Ours, but MCM itself wants the content hidden (it does for a page that still has to be measured): unchanged.
+    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', 'Companion Manager', '', 0, '', true, true, 0, function() end)
+    handlers.McmUiBeginContent(reference(), 400, 0, false, function(_, _, ready) passed.ready = ready end)
+    assert(passed.ready == false)
+    draw('Companion Manager', '')
+    for _ = 1, 4 do mcm.update(player, false) end
+    assert(wrapper.visible == true)
+  `);
+});
+
+test('a held page that was never styled is shown after 1.5 s, and a page that cannot be released switches the hold off', () => {
+  run(`${mcmFixture}${stylingFixture}${valueChangeFixture}${drawFixture}
+    fill(5)
+    draw('Companion Manager', 'Pending: Voice')
+    assert(wrapper.visible == false)
+    -- The settings page stops being the manager's before any styling ran (another mod is selected): the content comes back.
+    activeMod = 'another-mod:page'
+    mcm.update(player, false); assert(wrapper.visible == false, 'released too early')
+    clock = clock + 2
+    mcm.update(player, false)
+    assert(wrapper.visible == true, 'a page that is no longer ours stayed hidden')
+    -- A page whose scroll wrapper cannot be found is drawn again, and from then on never held.
+    activeMod = 'cyberpunk-convai:manager'
+    content.GetParentWidget = function() error('no parent') end
+    draw('Companion Manager', '')
+    assert(passed.ready == false)
+    activeMod = 'another-mod:page'
+    clock = clock + 2; mcm.update(player, false)
+    draw('Companion Manager', 'Pending: Voice')
+    assert(passed.ready == true, 'a page was held after the hold failed')
+  `);
+});
+
 test('a page that failed to style is shown, and a page the manager leaves is not left hidden', () => {
   run(`${mcmFixture}${stylingFixture}
     local clock = 10
