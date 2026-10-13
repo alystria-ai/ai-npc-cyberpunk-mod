@@ -67,7 +67,9 @@ const fact=(value=1)=>({status:'known',value,present:true,sourceId:'native-captu
 const journal=(questKey,value='succeeded')=>({status:'known',value,revealed:true,questKey,sourceId:'native-capture',evidenceRefs:['journal-capture']});
 function selectedTopics(pack,speaker,facts,journals){const result=resolveKnowledge({pack,profileKey:speaker,maxChars:10000,snapshot:{version:1,status:'ready',gameVersion:'2.31',generation:1,
  capturedAt:'2026-10-03T06:45:00.000Z',audience:{channel:'private',profileKeys:[speaker]},facts,journal:journals,activeQuestKeys:[]}})
- ;return JSON.parse(result.context.slice(result.context.indexOf('\n')+1)).facts.map(f=>f.topic);}
+ ;const doc=JSON.parse(result.context.slice(result.context.indexOf('\n')+1));
+ // Branch decisions are told first under `choices`, the other facts under `facts`.
+ return [...(doc.choices||[]),...(doc.facts||[])].map(f=>f.topic);}
 test('actual Panam compatible facets coexist; blindly forcing catalog topic equality would suppress both',()=>{
  const ids=['aldecaldos.native.panam-motel-room-shared','aldecaldos.native.panam-motel-flirt'];
  const facts={q103_slept_with_panam:fact(),q103_15_rooms_flirt:fact()};

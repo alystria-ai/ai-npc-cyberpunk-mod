@@ -77,6 +77,28 @@ function M.readJournal(journal)
     return result
 end
 
+-- Just the tracked quest's id and title (the decision ledger stamps a pick with it). Read once per picked dialogue option, never per
+-- frame; nil when nothing active is tracked or any read fails.
+function M.trackedQuest()
+    local ok, result = pcall(function()
+        local journal = Game.GetJournalManager()
+        local tracked = journal:GetTrackedEntry()
+        if not tracked then return nil end
+        local active = Enum.new('gameJournalEntryState', 'Active')
+        local entry, quest = tracked, nil
+        for _ = 1, 12 do
+            if not entry then break end
+            if entry:IsA('gameJournalQuest') then quest = entry; break end
+            entry = journal:GetParentEntry(entry)
+        end
+        if not quest or journal:GetEntryState(quest) ~= active then return nil end
+        local title = localized(quest:GetTitle(journal), 320)
+        if title == '' then return nil end
+        return {id = tostring(journal:GetEntryHash(quest)), title = title}
+    end)
+    return ok and result or nil
+end
+
 function M.capture()
     local ok, result = pcall(function()
         local player = Game.GetPlayer()

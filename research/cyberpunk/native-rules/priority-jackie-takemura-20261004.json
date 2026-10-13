@@ -6117,7 +6117,8 @@
       ],
       "audience": {
         "speakers": [
-          "jackie-welles"
+          "jackie-welles",
+          "dexter-deshawn"
         ],
         "perspective": "participant",
         "channels": [
@@ -6126,7 +6127,8 @@
         ],
         "recipients": [
           "v",
-          "jackie-welles"
+          "jackie-welles",
+          "dexter-deshawn"
         ]
       },
       "condition": {

@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "builtAt": "2026-10-05T08:35:11.883Z",
+  "builtAt": "2026-10-13T07:43:42.483Z",
   "errors": [],
-  "enabledRules": 768,
-  "citedArtifacts": 768,
-  "verifiedEvidencePointers": 9246,
+  "enabledRules": 777,
+  "citedArtifacts": 774,
+  "verifiedEvidencePointers": 9263,
   "outcomesResearched": 1162,
-  "jsonHashBoundPointers": 9246,
+  "jsonHashBoundPointers": 9263,
   "legacyJsonPointers": 0,
-  "outcomesWithReviewedRules": 749,
-  "outcomesUnmapped": 413,
+  "outcomesWithReviewedRules": 758,
+  "outcomesUnmapped": 404,
   "verified": [
     {
       "evidenceId": "al5.ev.wartime.tracking-switch",
@@ -12770,6 +12770,193 @@
       "archive": "base",
       "archiveEntrySha1": "7f58de9e174ff4cddc589281e40b790a04934213",
       "depotPath": "base\\quest\\cyberpunk2077_metajournal.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.q005_done.5b756bb1c9b4",
+      "jsonPath": "scene-evidence/ah5-03/raw/base/base/quest/main_quests/prologue/q005/phases/q005_09_no_tell_motel.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/9/Data/type/Data",
+      "assetSha256": "57d8995d9988317c9ef619eb46b0309261410d1f2d4c2f354ae2acb18c7fff7d",
+      "jsonSha256": "90efcd1204d551934ed84674dfeb1a804b2588b37fcfb6420c74f779f53b7639",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "6346ad1c568db686484baaac66881bfc648abd3a",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q005\\phases\\q005_09_no_tell_motel.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.q005_done.f5682d1e9f67",
+      "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/ep1/ep1/quest/ep1.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/17/Data/phaseGraph/Data/nodes/4/Data/type/Data",
+      "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+      "jsonSha256": "09491792440e29d013efee266fd3ccb3c4c6f6f33fb1d502e3787499fd5da230",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "9c8dc239c0c624cadd281183b210725c9230185b",
+      "depotPath": "ep1\\quest\\ep1.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.q005_done.1d3a0a54c27a",
+      "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/ep1/ep1/quest/ep1.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/phaseGraph/Data/nodes/4/Data/type/Data",
+      "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+      "jsonSha256": "09491792440e29d013efee266fd3ccb3c4c6f6f33fb1d502e3787499fd5da230",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "9c8dc239c0c624cadd281183b210725c9230185b",
+      "depotPath": "ep1\\quest\\ep1.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.ina_02_big_pete_dead.7095410f12cf",
+      "jsonPath": "scene-evidence/al5-09/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_02/phases/sts_bls_ina_02_ow.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/phaseGraph/Data/nodes/2/Data/type/Data",
+      "assetSha256": "00bc429c3f77b397f28128e886951617f8fb0d872dcdd8d802ba96c0249d8fba",
+      "jsonSha256": "aaaa4e78aceba8fcff9b1dc4e00a15b71471447c8111aa0328bd285a967b6bb2",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "dab696322ffc6e6c2c9411be5725c6738b8a5570",
+      "depotPath": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_02\\phases\\sts_bls_ina_02_ow.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.ina_02_big_pete_dead.370dd6a59e6a",
+      "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_inland_avenue.questphase.json",
+      "jsonPointer": "/Data/EmbeddedFiles/25/Content/graph/Data/nodes/0/Data/phaseGraph/Data/nodes/2/Data/type/Data",
+      "assetSha256": "e215e4341352aa7460fdaca790e8cc2062525c48406aa29d03e794d644e2b05d",
+      "jsonSha256": "c541fd216b2f5050fae585caf3d415cf4ba26f4058511baa16439403ccfe759d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "05128ca7ad502d94228fa768a9540d1f5b1aa88b",
+      "depotPath": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_inland_avenue.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.ina_09_finished.b506d97d55ff",
+      "jsonPath": "scene-evidence/al5-10/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/34/Data/type/Data",
+      "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+      "jsonSha256": "f66d9a2531692835d00b620f5bc3278a6adaa32a6122a09c354d2d04309ee5aa",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "d06e79f9c6b7b75c75657a9d8f4928cb245583b2",
+      "depotPath": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_09\\phases\\sts_bls_ina_09_openworld.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.ina_09_finished.b9a0a50feb5b",
+      "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_inland_avenue.questphase.json",
+      "jsonPointer": "/Data/EmbeddedFiles/26/Content/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/34/Data/type/Data",
+      "assetSha256": "e215e4341352aa7460fdaca790e8cc2062525c48406aa29d03e794d644e2b05d",
+      "jsonSha256": "c541fd216b2f5050fae585caf3d415cf4ba26f4058511baa16439403ccfe759d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "05128ca7ad502d94228fa768a9540d1f5b1aa88b",
+      "depotPath": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_inland_avenue.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.sq029_river_had_sex.faa0652ae596",
+      "jsonPath": "scene-evidence/jr5-03/raw/base/base/quest/side_quests/sq029/scenes/sq029_04a_dinner.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/154/Data/questNode/Data/type/Data",
+      "assetSha256": "508b2e56398f74397197ab579f08190649dd5d8349c39585612cb41f7242cdc6",
+      "jsonSha256": "0897601f22e1b2df7e0ad97883beb813d64bf93a9da84171b2d154a03b7390d7",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "f04226f364cd8ef15b36bb73b8110050b0efab21",
+      "depotPath": "base\\quest\\side_quests\\sq029\\scenes\\sq029_04a_dinner.scene"
+    },
+    {
+      "evidenceId": "db.ev.fact.sq029_02_dark_story.db676aa0a34d",
+      "jsonPath": "scene-evidence/rel-sq029-20261005/raw/base/base/quest/side_quests/sq029/scenes/sq029_02a_arrival.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/94/Data/questNode/Data/type/Data",
+      "assetSha256": "8e73bc68a37588c055866d9149c9473ae7a3476fd108aad4cab5195b5d4da7bc",
+      "jsonSha256": "637ea9a7549f1d3c5602f43e5aeea3787591b9c100bf8856fd676e7b6b87ec5e",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "6e3c46f8d172bf1163efc1481dea98c56ceb07f6",
+      "depotPath": "base\\quest\\side_quests\\sq029\\scenes\\sq029_02a_arrival.scene"
+    },
+    {
+      "evidenceId": "db.ev.fact.q305_01_netrunner_picked_sandra.6b686361d53e",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/phaseGraph/Data/nodes/20/Data/phaseGraph/Data/nodes/20/Data/type/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.q305_01_netrunner_picked_sandra.ef683c574ff2",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/phaseGraph/Data/nodes/20/Data/phaseGraph/Data/nodes/24/Data/type/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.q305_got_netrunner.ec06086dd915",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/25/Data/type/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.q305_got_netrunner.755ff5e8bb93",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/phaseGraph/Data/nodes/8/Data/phaseGraph/Data/nodes/25/Data/type/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.q305_got_netrunner.fbe43eb16297",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/phaseGraph/Data/nodes/10/Data/phaseGraph/Data/nodes/25/Data/type/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.q305_got_netrunner.762e7328f2d1",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/phaseGraph/Data/nodes/20/Data/phaseGraph/Data/nodes/26/Data/type/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.q302_oath_pledged.fdd2da7f82d0",
+      "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q302/scenes/q302_04_squot.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/301/Data/questNode/Data/type/Data",
+      "assetSha256": "061806e4195600bc2724330b3626033870fa48fdcc173eaab9345950757fad73",
+      "jsonSha256": "6646f29dd1713972dcfadbcb790c497e245ec7327a4f11cd002d3a64870a635c",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ba5e46817ae00c61f793d58d0defbf3b36eeb2ac",
+      "depotPath": "ep1\\quest\\main_quests\\q302\\scenes\\q302_04_squot.scene"
+    },
+    {
+      "evidenceId": "db.ev.fact.mq040_gangers_scene_done.a8b417bcf86d",
+      "jsonPath": "scene-evidence/db-heywood-3/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/155/Data/questNode/Data/type/Data",
+      "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+      "jsonSha256": "994580334d97195834a9de0f5535a2a343b3f4962355d477dec77214e85de827",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "849c60ace334fa22a3f4fe4c4d22954d7d7ffa1c",
+      "depotPath": "base\\quest\\minor_quests\\mq040\\scenes\\mq040_01_bar.scene"
     },
     {
       "evidenceId": "fo5.ev.journal.82933a50cca2",
@@ -102339,7 +102526,9 @@
       "decisionId": "aldecaldos.together.returning-contacts",
       "questKey": "we-gotta-live-together",
       "outcomeKey": "ben-present",
-      "rules": []
+      "rules": [
+        "db.ben-at-party"
+      ]
     },
     {
       "decisionId": "aldecaldos.together.returning-contacts",
@@ -102945,7 +103134,9 @@
       "decisionId": "judy-river.black-steel.sandra-contact",
       "questKey": "black-steel-in-the-hour-of-chaos",
       "outcomeKey": "hired",
-      "rules": []
+      "rules": [
+        "db.sandra-hired"
+      ]
     },
     {
       "decisionId": "judy-river.black-steel.sandra-contact",
@@ -103086,7 +103277,9 @@
       "decisionId": "aldecaldos.pete.resolution",
       "questKey": "gig-big-petes-got-big-problems",
       "outcomeKey": "killed",
-      "rules": []
+      "rules": [
+        "db.pete-defeated"
+      ]
     },
     {
       "decisionId": "aldecaldos.pete.resolution",
@@ -103734,7 +103927,9 @@
       "decisionId": "arasaka-heist.dex-betrayal",
       "questKey": "the-heist",
       "outcomeKey": "shot-v",
-      "rules": []
+      "rules": [
+        "db.dex-shot-v"
+      ]
     },
     {
       "decisionId": "arasaka-heist.dex-betrayal",
@@ -104235,7 +104430,9 @@
       "decisionId": "silverhand.arasaka-assault-companion",
       "questKey": "totalimmortal",
       "outcomeKey": "present",
-      "rules": []
+      "rules": [
+        "db.sh-assault-companion-present"
+      ]
     },
     {
       "decisionId": "silverhand.arasaka-assault-companion",
@@ -107681,7 +107878,9 @@
       "decisionId": "heywood.pepe.bar-intervention",
       "questKey": "raymond-chandler-evening",
       "outcomeKey": "intimidated",
-      "rules": []
+      "rules": [
+        "db.pepe-bar-talked-down"
+      ]
     },
     {
       "decisionId": "heywood.pepe.bar-intervention",
@@ -108432,7 +108631,9 @@
       "decisionId": "judy-river.following.parents",
       "questKey": "following-the-river",
       "outcomeKey": "heard",
-      "rules": []
+      "rules": [
+        "db.river-parents-heard"
+      ]
     },
     {
       "decisionId": "judy-river.following.parents",
@@ -108452,7 +108653,9 @@
       "decisionId": "judy-river.following.relationship",
       "questKey": "following-the-river",
       "outcomeKey": "intimate",
-      "rules": []
+      "rules": [
+        "db.river-intimate"
+      ]
     },
     {
       "decisionId": "judy-river.following.relationship",
@@ -108786,7 +108989,9 @@
       "decisionId": "phantom.lucretia.oath",
       "questKey": "lucretia-my-reflection",
       "outcomeKey": "sworn",
-      "rules": []
+      "rules": [
+        "db.lucretia-oath-sworn"
+      ]
     },
     {
       "decisionId": "phantom.lucretia.oath",
@@ -110210,7 +110415,7 @@
     }
   ],
   "exportIntegrity": {
-    "policy": "require-recorded-json-hash",
+    "policy": "legacy-compatible",
     "legacyJsonPaths": [],
     "note": "All cited JSON exports matched a recorded hash."
   },
@@ -111282,6 +111487,78 @@
         "outcomeKey": "friends",
         "nativeTopic": "judy.relationship",
         "catalogTopic": "judy.relationship",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "db.ben-at-party",
+        "decisionId": "aldecaldos.together.returning-contacts",
+        "outcomeKey": "ben-present",
+        "nativeTopic": "aldecaldos.rescued-contacts",
+        "catalogTopic": "aldecaldos.rescued-contacts",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "db.dex-shot-v",
+        "decisionId": "arasaka-heist.dex-betrayal",
+        "outcomeKey": "shot-v",
+        "nativeTopic": "dex.betrayal",
+        "catalogTopic": "dex.betrayal",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "db.lucretia-oath-sworn",
+        "decisionId": "phantom.lucretia.oath",
+        "outcomeKey": "sworn",
+        "nativeTopic": "v.nusa.oath",
+        "catalogTopic": "v.nusa.oath",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "db.pepe-bar-talked-down",
+        "decisionId": "heywood.pepe.bar-intervention",
+        "outcomeKey": "intimidated",
+        "nativeTopic": "v.pepe.bar-intervention",
+        "catalogTopic": "v.pepe.bar-intervention",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "db.pete-defeated",
+        "decisionId": "aldecaldos.pete.resolution",
+        "outcomeKey": "killed",
+        "nativeTopic": "dakota.big-pete",
+        "catalogTopic": "dakota.big-pete",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "db.river-intimate",
+        "decisionId": "judy-river.following.relationship",
+        "outcomeKey": "intimate",
+        "nativeTopic": "river.relationship",
+        "catalogTopic": "river.relationship",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "db.river-parents-heard",
+        "decisionId": "judy-river.following.parents",
+        "outcomeKey": "heard",
+        "nativeTopic": "river.parents_disclosure",
+        "catalogTopic": "river.parents_disclosure",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "db.sandra-hired",
+        "decisionId": "judy-river.black-steel.sandra-contact",
+        "outcomeKey": "hired",
+        "nativeTopic": "sandra.convoy_assistance",
+        "catalogTopic": "sandra.convoy_assistance",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "db.sh-assault-companion-present",
+        "decisionId": "silverhand.arasaka-assault-companion",
+        "outcomeKey": "present",
+        "nativeTopic": "takemura.arasaka-assault",
+        "catalogTopic": "takemura.arasaka-assault",
         "qualification": "exact"
       },
       {
@@ -116494,28 +116771,28 @@
         "qualification": "exact"
       }
     ],
-    "exactMatches": 724,
+    "exactMatches": 733,
     "reviewedAliases": 44,
     "reviewDocuments": [
       {
         "reference": "native-reviews/topic-identity-audit-oct03.md",
-        "sha256": "51e19e6fd3574f8e6d20cd30e57dd8fccd9cf6f8f4980089258f90251cad75f6",
-        "bytes": 8389
+        "sha256": "ff796c45f250db2bdb9b04b3e36b8bf096e542818ace10c324098b8a6c484149",
+        "bytes": 8452
       },
       {
         "reference": "native-reviews/judy-river-oct01.md",
-        "sha256": "8fc9f472257bd40fb032a6fc20ca2ae22970b1ebb25ec55d26e2e4157c0b2fab",
-        "bytes": 16133
+        "sha256": "828030bf6a19cf7f6121a943d9f5226b26eb93ee81ed9ce8aebf4a518067fbe0",
+        "bytes": 16264
       },
       {
         "reference": "native-reviews/priority-judy-20261004.md",
-        "sha256": "e2b0c9f8f36570266f5f72fbd3f5232fa97482b97f38ba5b65bc1fe6d24c1819",
-        "bytes": 7066
+        "sha256": "c9727607b33ca7b4baf2941c189708f0601e0a99d9149289e95a123af0c42f74",
+        "bytes": 7100
       },
       {
         "reference": "native-reviews/priority-panam-20261004.md",
-        "sha256": "25359d22f1201c4e7a06c4b4da8cbdb73f9c35c67b68317dd8844a478f12dcad",
-        "bytes": 7885
+        "sha256": "768363286b53d9b77d4d0b9013fd132268452a1141b8444578c0876a9814aa48",
+        "bytes": 7928
       }
     ]
   },

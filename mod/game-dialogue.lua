@@ -5,6 +5,8 @@
 -- snapshot to the addressed character; nothing here is written to memory.
 local M = {}
 M.MAX_AGE, M.MAX_LINES, M.MAX_AMBIENT, M.MAX_TEXT = 180, 40, 10, 600
+-- Decision ledger (docs/QUEST_DECISIONS.md section 4.4): OFF unless options.ledgerEnabled() is true (settings.decisionLedger, default false).
+M.LEDGER_MAX, M.LEDGER_TEXT, M.LEDGER_LABEL, M.LEDGER_PATH = 40, 120, 80, 'runtime/decision-ledger.json'
 local DUPLICATE_WINDOW, PRESENT_RADIUS = 6, 15
 -- mod/subtitles.lua shows its own replies as CRUID(0x436F6E760000 + serial).
 local OWN_LINE_BASE = 0x436F6E760000
@@ -311,7 +313,7 @@ function Instance:dialogHubs(data)
     if #hubs > 0 then self.hubs = hubs end
 end
 
-function Instance:choice(attempted)
+function Instance:choiceRow(attempted)
     self:count('hooks', 'choice')
     if not self:enabled() then return self:skip('disabled') end
     local N, now = self.native, self:now()
@@ -342,8 +344,85 @@ function Instance:choice(attempted)
         local present = self:present(now)
         if #present > 0 then row.present = present end
     end
-    return self:push(row, now)
+    local pushed, reason = self:push(row, now)
+    self.lastChoice = {index = index, hubId = hub and hub.id or nil, options = hub and #hub.choices or nil,
+        channel = row.channel, present = row.present and #row.present or 0, chars = #text}
+    if pushed then self:ledgerRecord(row, hub, index, now) end
+    return pushed, reason
 end
+
+-- A dialogue pick, the hook fired. Wraps choiceRow so that one log line per outcome shows, from a normal play session, what the choice
+-- hook really does: the first three picks it recorded (index, hub, option count, channel, who stood by) and the first time each reason
+-- it skipped one. A pick that never produces either line did not reach this code (the 'hook choice fired' line says whether the hook
+-- itself ran). No option text is logged. Runs per pick, never per frame.
+function Instance:choice(attempted)
+    self.lastChoice = nil
+    local ok, reason = self:choiceRow(attempted)
+    self.choiceNotes = self.choiceNotes or {recorded = 0, skipped = {}}
+    local notes, log = self.choiceNotes, self.options.log
+    if type(log) == 'function' then
+        if ok then
+            if notes.recorded < 3 then
+                notes.recorded = notes.recorded + 1
+                local c = self.lastChoice or {}
+                pcall(log, string.format('Game dialogue: choice recorded #%d (index=%s hub=%s options=%s channel=%s present=%d chars=%d ledger=%s)',
+                    notes.recorded, tostring(c.index), tostring(c.hubId), tostring(c.options), tostring(c.channel), c.present or 0, c.chars or 0,
+                    self:ledgerOn() and 'on' or 'off'))
+            end
+        elseif not notes.skipped[reason or '?'] then
+            notes.skipped[reason or '?'] = true
+            pcall(log, 'Game dialogue: choice not recorded (' .. tostring(reason) .. ')')
+        end
+    end
+    return ok, reason
+end
+
+-- The decision ledger: V's picked dialogue options, kept in memory (last LEDGER_MAX, newest last) and written to runtime/decision-ledger.json
+-- once per pick. Keyed by the world token (a new world or a CET reload starts empty), and an entry stamped later than the game clock is dropped
+-- (an earlier save was loaded), so a reload can only forget, never invent. Needs the game clock; without it nothing is recorded.
+function Instance:ledgerOn()
+    local enabled = self.options.ledgerEnabled
+    if type(enabled) ~= 'function' then return false end
+    local ok, value = pcall(enabled)
+    return ok and value == true
+end
+
+function Instance:ledgerRecord(row, hub, index, now)
+    if not self:ledgerOn() then return false end
+    local token, seconds = call(self.options.worldToken), call(self.options.gameTime)
+    if type(token) ~= 'string' or token == '' or type(seconds) ~= 'number' then self:count('skipped', 'ledger-unbound'); return false end
+    local ledger = self.ledger
+    if not ledger or ledger.worldToken ~= token then ledger = {worldToken = token, entries = {}}; self.ledger = ledger end
+    local entries = {}
+    for _, other in ipairs(ledger.entries) do
+        if other.t <= seconds then entries[#entries + 1] = other end
+    end
+    local entry = {t = math.floor(seconds), text = clean(row.text, M.LEDGER_TEXT), index = index}
+    if not entry.text then return false end
+    entry.hub = hub and clean(hub.title, M.LEDGER_LABEL) or nil
+    entry.addressee = row.addressee
+    local tracked = call(self.options.tracked)
+    if type(tracked) == 'table' then
+        entry.quest = clean(tracked.title, M.LEDGER_LABEL)
+        entry.questId = type(tracked.id) == 'string' and tracked.id:match('^%-?%d+$') and #tracked.id <= 24 and tracked.id or nil
+    end
+    if row.present then
+        entry.present = {}
+        for position, key in ipairs(row.present) do entry.present[position] = key end
+    end
+    entries[#entries + 1] = entry
+    while #entries > M.LEDGER_MAX do table.remove(entries, 1) end
+    ledger.entries = entries
+    local ok, raw = pcall(json.encode, {version = 1, worldToken = token, gameTimeSeconds = math.floor(seconds), entries = entries})
+    if not ok or type(raw) ~= 'string' then return false end
+    local write = self.options.ledgerWrite
+    if type(write) == 'function' then return select(1, pcall(write, M.LEDGER_PATH, raw)) end
+    local file = io.open(M.LEDGER_PATH, 'wb')
+    if not file then return false end
+    file:write(raw); file:close()
+    return true
+end
+
 
 -- The snapshot attached to one mod turn, or nil when off or empty.
 function Instance:capture()
@@ -372,7 +451,7 @@ function Instance:status()
     for key, value in pairs(self.counts.types) do types[key] = value end
     for key, value in pairs(self.counts.skipped) do skipped[key] = value end
     for key, value in pairs(self.counts.hooks) do hooks[key] = value end
-    return {enabled = self:enabled(), installed = self.installed == true, lines = #self.lines,
+    return {enabled = self:enabled(), installed = self.installed == true, lines = #self.lines, ledger = self.ledger and #self.ledger.entries or 0,
         recorded = self.counts.recorded, hooks = hooks, types = types, skipped = skipped,
         resetReason = self.resetReason, lastError = self.lastError}
 end
