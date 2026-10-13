@@ -583,9 +583,11 @@ most). Not avoidable from a provider: MCM draws the whole screen again on every 
 The Local AI provider, the Local AI model and Mature content sit in one group on Settings > Development (provider, Mature content, model, in that
 order). Turning **Mature content on** also stages, as pending changes before Apply (`api.setDraft`, from `M.update` after a `drafts.changed`
 event, never in a hook): the provider = Local AI (only when the Local AI pack is present; without it nothing else is touched and the notice and the
-help say Local AI is needed), the model = Auto, and, when the companion voice is a cloud voice (Voxtral, Inworld or Convai), a local voice (OmniVoice
+help say Local AI is needed), the model = the largest uncensored model that fits (only when one is installed; otherwise the model is left alone), and, when the companion voice is a cloud voice (Voxtral, Inworld or Convai), a local voice (OmniVoice
 Balanced when its pack is installed, else Pocket TTS; left alone when Multilingual conversations is on and there is no OmniVoice pack, since Pocket is
 refused there). One line names what was staged and replaces MCM's "Pending: ..." status for eight seconds. Turning it **off** puts the provider,
 model and voice back, except any the player changed since. What was staged is kept in memory while the drafts are pending and, on Apply, in
 `settings.json` (`matureRestore`: `{conversationProvider = {before, set}, localModel = {before, set}, voice = {before, set}}`, validated on load and
-on Apply, dropped when Mature content is off). Revert or Apply forgets the in-memory staging.
+on Apply, dropped when Mature content is off; an older record whose model `set` is `auto` still restores). The Local AI model row has no Auto
+entry: it lists the installed models from the smallest file to the largest and shows the default (the largest that fits the free graphics memory)
+as selected until a model is chosen; Apply then saves that model's id (docs/LOCAL_AI.md, "Choosing the model"). Revert or Apply forgets the in-memory staging.

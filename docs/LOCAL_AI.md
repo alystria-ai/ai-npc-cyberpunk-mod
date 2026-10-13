@@ -40,20 +40,30 @@ If the pack is missing or the model cannot start, the same fallback applies. Cho
 
 ### Choosing the model
 
-Settings > Development has a **Local AI model** row, right under Mature content. It lists **Auto** first, then every installed chat
-model by its name (the sizes are in the help text). Only one model is ever loaded.
+Settings > Development has a **Local AI model** row, right under Mature content. It lists every installed chat model by its name,
+**sorted by file size, from the smallest to the largest** (models of the same size by name); the sizes are in the help text. There is
+no "Auto" entry: the row always shows one concrete model as selected. Only one model is ever loaded.
 
-- **Auto** (the default) loads the best installed model that fits the free graphics memory: the largest model file that fits, so the
-  standard model when it fits and the lite one otherwise. With **Mature content** on and the optional Mature pack installed, Auto
-  prefers the largest uncensored model of that pack that fits, and falls back to the ordinary models when none of them fits. With
-  Mature content off, or without the pack, Auto never picks an uncensored model.
-- Choosing a model pins it: that model loads whatever fits better, and whatever Mature content says (a pinned uncensored model with
+- **The default.** Until you choose a model (and for a value an older version saved as `auto`), the largest installed model that fits
+  the free graphics memory is used: the largest model file that fits, so the standard model when it fits and the lite one otherwise. The
+  row shows that model as selected, so you see which one is meant, and the next **Apply** stores its id (an older `auto` is replaced
+  silently; nothing changes for you). The mod reads the free memory when it starts a model, so the model shown is the one that would
+  load now. With **Mature content** on, the default is the largest uncensored model that fits (the optional Mature pack's models and
+  your own models marked `"uncensored": true`), and the ordinary models are used when none of them fits. With Mature content off, the
+  default never picks an uncensored model.
+- **Turning Mature content on** selects, in the same pending changes as Local AI itself (waiting for Apply), the largest uncensored
+  model that fits, if one is installed, and says so ("Uncensored model"). With no uncensored model installed (or none that fits) it
+  leaves the model alone. Turning Mature content off puts the earlier model back, as it does the other choices.
+- **Choosing a model** uses exactly that model, whatever fits better and whatever Mature content says (an uncensored model with
   Mature content off simply runs without the Mature rules).
-- A pinned model that is missing, does not fit the free graphics memory or did not start, falls back to Auto, with one notice ("The
-  Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so Auto was used instead."), not
-  repeated at the next start.
-- Models you add yourself (see "Add your own model" below) are listed after the built-in ones with "(custom)" and are never picked by
-  Auto unless their entry says `"auto": true`.
+- **Fallback.** A chosen model that is missing, does not fit the free graphics memory or did not start is replaced by the largest
+  model that fits (with Mature content on and an uncensored model available: the largest uncensored one that fits), with one notice
+  that names the model used: "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so
+  Gemma-4-E4B was used instead." It is not repeated at the next start.
+- Models you add yourself (see "Add your own model" below) are listed among the others, in size order, with "(custom)". They take part
+  in the default choice and the fallback like any other model, by size and fit. A custom model that is too large for the graphics card
+  stays in the row, marked "too large for this graphics card"; it is never chosen as the default or the fallback, and choosing it
+  falls back like any model that does not fit.
 - A change applies when Local AI is the chosen provider, at an idle moment: the old server is stopped (its graphics memory is freed)
   and the new model loads. It waits for a reply in flight and never restarts in the middle of one, and it does nothing when the
   loaded model already satisfies the new choice. While another provider answers nothing loads; the next start reads the choice.
@@ -84,7 +94,6 @@ called `custom` inside it. Put your model file there. The mod never copies, move
       "file": "custom/MyModel-Q4_K_M.gguf",
       "name": "My Model",
       "uncensored": false,
-      "auto": false,
       "family": "llama",
       "contextSize": 8192,
       "chatTemplate": "chatml"
@@ -98,7 +107,7 @@ called `custom` inside it. Put your model file there. The mod never copies, move
 | `file` | yes | Path of the `.gguf` file, relative to the Local AI folder, inside it (no drive letter, no `..`). |
 | `name` | no | The name shown in the row, 1 to 60 characters. Default: the file name. |
 | `uncensored` | no | `true` only if the model really has no content limits of its own. With **Mature content** on, the content rules read this flag (never the file name); the hard limits and the output screen still apply. Default `false`. |
-| `auto` | no | `true` lets **Auto** pick this model. Default `false`: the model is used only when you choose it in the row. |
+| `auto` | no | Obsolete. Older versions used it to let the "Auto" entry pick the model. It is accepted without a message and ignored: every model takes part in the default choice by its size. You can delete it. |
 | `family` | no | A short label such as `qwen` or `llama`. It is used for the Mature content rules; a model the mod does not know gets the restrained level. |
 | `contextSize` | no | The context (in tokens, 2048 to 262144) the model starts with. A bigger context uses more graphics memory. Default: the same automatic choice as the built-in models (16,384 when it fits). |
 | `chatTemplate` | no | The name of a built-in llama.cpp chat template (for example `chatml`, `llama3`, `gemma`), for a file that has no usable template of its own. Leave it out when the model has one. |
@@ -115,7 +124,7 @@ or at the next idle moment.
 - it is not an embedding model (those cannot chat). This is read from the file's architecture and pooling type;
 - its size, from which the help text of the row tells you about how much graphics memory it needs ("needs about 5.2 GB of graphics memory");
 - it can fit the card at all. A model that needs more than your graphics card's total memory is still listed, marked "too large for
-  this graphics card", and Auto never picks it.
+  this graphics card", and the default choice and the fallback never pick it.
 
 A model that fails a check is not offered. The row's help text names it ("Not usable: Embedder: an embedding model, not a chat model")
 and the log says why in one line.
@@ -141,19 +150,18 @@ conversation, which is kept in graphics memory too), on top of what the game and
 | 12B to 14B | about 7.5 to 9 GB | about 9 to 10.5 GB |
 
 The table in "Which combination to pick" below shows what the voice and the game add. If your card is smaller than the model needs, it
-is marked "too large" and you cannot use it; if there is not enough memory free at the moment, Auto uses a smaller model and a model
-you picked is replaced by Auto with one notice. A smaller `contextSize` (for example 8192) saves memory.
+is marked "too large" and cannot be used; if there is not enough memory free at the moment, the default is a smaller model and a model
+you picked is replaced by the largest model that fits, with one notice naming it. A smaller `contextSize` (for example 8192) saves memory.
 
-**Auto and your models.** Auto keeps preferring the built-in models: it never picks a custom model unless that entry says
-`"auto": true`. A model with `"auto": true` competes with the others by size: the largest model that fits the free graphics memory
-wins, and on equal sizes the built-in one wins. With **Mature content** on, Auto prefers uncensored models first; a custom model joins
-that group only with both `"uncensored": true` and `"auto": true`. A model you pick in the row is used whatever Auto would have chosen
-(as long as it fits).
+**Your models and the default choice.** Your models are treated like the built-in ones: the largest model that fits the free
+graphics memory wins, and on equal sizes the built-in one comes first. With **Mature content** on, the uncensored models come first,
+and a custom model counts as uncensored when its entry says `"uncensored": true`. A model you pick in the row is used whatever the
+default would have chosen (as long as it fits). The older `"auto"` key has no effect any more.
 
 **If a model will not start.** If the model's file is found but llama.cpp cannot load it (an unsupported architecture, a damaged file, not
 enough memory once loaded), the mod shows "The Local AI model you chose is missing, does not fit in the free graphics memory or did not
-start, so Auto was used instead." once, and Auto answers instead. The mod does not try that model again until its file changes or
-you restart the game.
+start, so Gemma-4-E4B was used instead." once (it names the model that answers instead: the largest model that fits). The mod does not
+try that model again until its file changes or you restart the game.
 
 **If it does not show up.** Open the bridge log, `bridge.stderr.log`, in the `data` folder of the mod
 (`red4ext\plugins\CyberpunkConvai\data\`), and look for lines starting with `[LocalAI] [custom models]`. Each problem is one line, for
@@ -376,7 +384,7 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
 - Custom models (`bridge/custom-models.mjs`, tests `custom-models.test.mjs`, `custom-model-choice.test.mjs` and the custom block at the end
   of `local-llm-server.test.mjs`): `CustomModelScanner.scan({totalVramMiB})` reads `manifest.custom.json` (the Local AI folder, else the
   dev folder when only that has it, like the Mature marker), validates each entry strictly (relative path inside the folder, `.gguf`, name
-  of 1 to 60 characters, boolean `uncensored`/`auto`, `family` label, integer `contextSize` 2048 to 262144, `chatTemplate` name; at most
+  of 1 to 60 characters, boolean `uncensored` (`auto` is obsolete: accepted whatever its value and dropped), `family` label, integer `contextSize` 2048 to 262144, `chatTemplate` name; at most
   16) and logs every bad entry once as `[custom models] ...` (a repeat of the same line is not logged again; nothing throws). Per file it
   stats (every look) and reads the first 2 MiB only when the size or time changed: the GGUF magic and version (2 or 3), then the
   key/value pairs up to the tokenizer for `general.architecture`, `<arch>.pooling_type` and `<arch>.context_length`. Reasons published
@@ -388,15 +396,29 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   `tooLarge` (the total comes from `llama-server --list-devices` after the first start, else from one `nvidia-smi` call at most once a
   minute while the manifest lists models); `chooseLocalModel` never picks it, and a pin on it falls back with `low-memory`. The published
   list entry of a custom model also carries `custom: true` and `needMiB`, and `mcm.lua` adds the "(custom)" label and the memory line to the
-  help. Ids are `custom:<file name>`. Auto rule: `autoEligible` (built-in always, custom only with `auto: true`); with Mature content on, the
-  uncensored eligible models are tried first. The server starts a custom model with its `contextSize` (else the ladder) and
+  help. Ids are `custom:<file name>`. A custom model takes part in the default choice and the fallback like any other model (`autoEligible`
+  and the `auto` flag are gone); with Mature content on, the uncensored models are tried first. The server starts a custom model with its `contextSize` (else the ladder) and
   `--chat-template`; the loaded server's `modelHints` (`{uncensored, family}`) reach `allowanceFor(name, hints)`, where the flag decides
   in both directions and the name is not read for it. A custom model that fails to start (or dies while warming up) is marked broken
   for that file size until `reset()` or a restart, a `model-fallback` event with reason `start-failed` is emitted once (the same
-  `local-model-fallback` notice), and the start is repeated at once with Auto's choice. The fake server fixture refuses a model with
+  `local-model-fallback` notice, which names the model used), and the start is repeated at once with the default choice. The fake server fixture refuses a model with
   `FAKE_LLAMA_EXIT_FOR_MODEL=<text in the path>`.
-- Lua: `localModel` (`auto` or an id; `manager.lua` validates ids, `mcm.lua` builds the row from `manager.localModelChoices()` and maps the
-  selected position back to an id). A saved pin that is not in the list shows as Auto and stays saved.
+- The picker (2026-10-13, "no Auto"): `describeLocalModels` publishes the installed models sorted by file size, smallest first, equal sizes
+  by name (`sortLocalModels`; `manager.lua` sorts again defensively). `defaultModelIds` (pure, no I/O) returns `{default, mature}`: the
+  model the default rule would load now (what a saved `auto`, or a model that is gone, gets) and the largest uncensored model that fits
+  (what turning Mature content on selects; null when none is installed or none fits). The bridge publishes them in `mistral-state.json`
+  as `localModelDefault` and `localModelMatureDefault`, from the free memory the last start saw before it loaded its model
+  (`LocalLlmServer.lastFreeMiB`), else the card's total (the same single `nvidia-smi` call as for custom models, at most once a minute and
+  only while more than one model is installed); they are part of the list key, so a change republishes the status. No new polling.
+  `chooseLocalModel` keeps `auto` as the internal "no choice" value (`AUTO_MODEL`, `normalisePin`): a legacy `localModel: "auto"` loads the
+  default with no notice. The `model-fallback` event carries `model` (the name used); `MistralProvider.noteLocalModelFallback(model)` keeps
+  it and the reply carries `keyNoticeModel` beside `keyNotice: 'local-model-fallback'`.
+- Lua: `localModel` (an id, or `auto` for nothing chosen; `manager.lua` validates ids and `localModelChoices()` has no Auto entry).
+  `mcm.lua` builds the row from `manager.localModelChoices()`, shows `manager.localModelDefaultId()` as selected for `auto` or a saved
+  model that is gone (the saved value stays until Apply), and maps the selected position back to an id. `applySettings` replaces a saved or
+  staged `auto` by the default model's id on any Apply (silently; with no model installed it stays `auto`). `matureTurnedOn` stages
+  `manager.localModelMatureId()` (record `{before, set = <that id>}`), or nothing; a legacy Mature record with `set = 'auto'` is matched
+  against the default model's position when turning Mature off. With no model installed the row has one placeholder, "No model installed".
 
 ### Memory
 
@@ -434,7 +456,7 @@ The setting is part of the main mod. It is visible and usable without any other 
 shows the 18+ line. With the stock Local AI models it mostly changes language, violence and tone: those models are trained to refuse most
 sexual content, so the full effect needs the uncensored models of the optional Mature pack. The pack no longer gates anything (it did until
 2026-10-14). It changes the setting's help text, and since 2026-10-13 its models are loaded: they appear in the Local AI model row, and
-with Mature content on Auto prefers the largest one that fits (see "Choosing the model"):
+with Mature content on the default choice and the fallback prefer the largest one that fits (see "Choosing the model"):
 - Detection: `bridge/mature-pack.mjs` (`detectMaturePack`) looks for the marker `manifest.mature.json` in the Local AI folder, beside
   `manifest.standard.json` and `manifest.lite.json` (same root: `<project>/local-ai`, or `CYBERPUNK_CONVAI_LOCAL_AI`, which the packaged
   service points at `app/local-ai`). The marker is `{version: 1, pack: 'mature', models: [{file, name, family}]}`; a valid marker is

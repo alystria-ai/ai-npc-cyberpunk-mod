@@ -3,14 +3,14 @@
 // There is no interface for adding: the player drops a GGUF file into the `custom/` folder of the Local AI folder and lists it in a small
 // manifest beside the other manifests (bridge/local-ai-pack.mjs, bridge/mature-pack.mjs):
 //   <local-ai root>/manifest.custom.json
-//     {version: 1, models: [{file: 'custom/MyModel-Q4_K_M.gguf', name: 'My Model', uncensored: false, auto: false,
+//     {version: 1, models: [{file: 'custom/MyModel-Q4_K_M.gguf', name: 'My Model', uncensored: false,
 //                            family: 'llama', contextSize: 8192, chatTemplate: 'chatml'}]}
 //   file         required; relative to the Local AI folder, inside it (no drive, no `..`), ends in .gguf
 //   name         optional; 1 to 60 characters, no control characters (default: the file name)
 //   uncensored   optional boolean (default false): the model has no content limits of its own. Mature content's allowance reads this
-//                flag (bridge/mature-content.mjs), never the file name, and Mature Auto prefers such a model (needs `auto: true`, below)
-//   auto         optional boolean (default false): Auto may pick this model. Built-in models stay first; without it the model is only
-//                used when it is chosen in the Local AI model row
+//                flag (bridge/mature-content.mjs), never the file name; the default and fallback choice prefer such a model while Mature content is on
+//   auto         obsolete: older manifests may still have it; it is accepted (whatever its value) and ignored. Every model takes part in the
+//                default choice and the fallback like any other (by size and fit)
 //   family       optional label (letters, digits, `. _ -` and spaces, at most 40) used for the Mature allowance table (e.g. 'qwen')
 //   contextSize  optional whole number 2048 to 262144: the context the server starts with (else the usual ladder by free memory)
 //   chatTemplate optional name of a llama.cpp built-in chat template (`--chat-template`); for a file without a usable template of its own
@@ -24,9 +24,9 @@
 //   bad-gguf     not a GGUF file (magic bytes), a version llama.cpp cannot read (only 2 and 3), or no `general.architecture`
 //   embedding    an embedding model (an encoder architecture, or a `<arch>.pooling_type` other than none): not a chat model
 //   unreadable   the file could not be read
-// A model whose file plus the server's headroom is more than the graphics card's total memory is listed but marked `tooLarge`; Auto never
-// picks it. Not checked: whether llama.cpp supports the architecture, and whether the model has a chat template. A model that then fails to
-// start is replaced by Auto with one notice (bridge/local-llm-server.mjs).
+// A model whose file plus the server's headroom is more than the graphics card's total memory is listed but marked `tooLarge`; the default and the fallback never pick it.
+// Not checked: whether llama.cpp supports the architecture, and whether the model has a chat template. A model that then fails to
+// start is replaced by the default model with one notice (bridge/local-llm-server.mjs).
 import {closeSync, openSync, readFileSync, readSync, statSync} from 'node:fs';
 import {basename, isAbsolute, resolve} from 'node:path';
 import {LOCAL_AI_ENV} from './local-ai-pack.mjs';
@@ -165,7 +165,7 @@ function insidePath(root, value) {
 const label = (entry, index) => (typeof entry?.file === 'string' ? '"' + entry.file.slice(0, 80) + '"' : 'entry ' + (index + 1));
 
 /**
- * One manifest entry, checked strictly: {entry: {file, name, uncensored, auto, family, contextSize, chatTemplate}} or {error: 'why'}.
+ * One manifest entry, checked strictly: {entry: {file, name, uncensored, family, contextSize, chatTemplate}} or {error: 'why'}.
  * `file` is absolute (inside `root`).
  */
 export function validateEntry(root, raw) {
@@ -181,9 +181,8 @@ export function validateEntry(root, raw) {
     if (/[\u0000-\u001f\u007f]/.test(name)) return {error: '"name" must not contain control characters'};
   }
   const flag = key => (raw[key] === undefined ? false : raw[key]);
-  const uncensored = flag('uncensored'), auto = flag('auto');
+  const uncensored = flag('uncensored');   // `auto` (older manifests) is obsolete: accepted whatever its value, and ignored
   if (typeof uncensored !== 'boolean') return {error: '"uncensored" must be true or false'};
-  if (typeof auto !== 'boolean') return {error: '"auto" must be true or false'};
   let family = null;
   if (raw.family !== undefined) {
     if (typeof raw.family !== 'string' || !FAMILY_NAME.test(raw.family.trim())) return {error: '"family" must be a short label (letters, digits, . _ - and spaces)'};
@@ -201,7 +200,7 @@ export function validateEntry(root, raw) {
     if (typeof raw.chatTemplate !== 'string' || !TEMPLATE_NAME.test(raw.chatTemplate)) return {error: '"chatTemplate" must be the name of a llama.cpp built-in template (letters, digits, . _ -)'};
     chatTemplate = raw.chatTemplate;
   }
-  return {entry: {file: located.path, name, uncensored, auto, family, contextSize, chatTemplate}};
+  return {entry: {file: located.path, name, uncensored, family, contextSize, chatTemplate}};
 }
 
 // A split model: model-00001-of-00003.gguf. Only the first part is named in the manifest; the others sit beside it.
@@ -224,7 +223,7 @@ function shardPaths(file) {
  * again), never thrown.
  *   const scanner = new CustomModelScanner({project, log});
  *   scanner.scan({totalVramMiB})  -> {present, root, models: [...], problems: [{name, reason, detail}]}
- * A model: {id: 'custom:<id>', name, file, sizeMiB, needMiB, tooLarge, uncensored, auto, family, contextSize, chatTemplate, architecture}.
+ * A model: {id: 'custom:<id>', name, file, sizeMiB, needMiB, tooLarge, uncensored, family, contextSize, chatTemplate, architecture}.
  */
 export class CustomModelScanner {
   #cache = new Map(); #logged = new Set();
@@ -285,7 +284,7 @@ export class CustomModelScanner {
       const model = {...entry, id, contextSize, sizeMiB: verdict.sizeMiB, architecture: verdict.header.architecture, tooLarge: false, needMiB: 0};
       model.needMiB = modelNeedMiB({tier: null}, model.sizeMiB);
       model.tooLarge = Number.isFinite(totalVramMiB) && totalVramMiB > 0 && model.needMiB > totalVramMiB;
-      if (model.tooLarge) this.#say('"' + model.name + '" is too large for this graphics card (needs about ' + model.needMiB + ' MiB, the card has ' + Math.round(totalVramMiB) + ' MiB); listed but never chosen by Auto');
+      if (model.tooLarge) this.#say('"' + model.name + '" is too large for this graphics card (needs about ' + model.needMiB + ' MiB, the card has ' + Math.round(totalVramMiB) + ' MiB); listed but never chosen as the default or the fallback');
       models.push(model);
     });
     return {present: true, root, models, problems};
