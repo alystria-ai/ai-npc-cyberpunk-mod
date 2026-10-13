@@ -83,6 +83,10 @@ Engine.STOCK = STOCK
 
 local function floor(n) return math.floor(n + 0.5) end
 
+-- Metres from which a kill counts as a long shot, and the only distance the event text and the remark prompt mention.
+local LONG_SHOT = 30
+Engine.LONG_SHOT = LONG_SHOT
+
 -- ---- Text helpers ---------------------------------------------------------------------------------------------------------
 
 local function who(v)
@@ -325,7 +329,8 @@ function Engine:onKill(v)
     local function add(name, o, pri) cands[name] = {o = o, pri = pri or EVENTS[name].pri} end
     local d = who(v)
     local how = v.headshot and ' with a headshot' or ''
-    local far = v.distance and (' from ' .. v.distance .. ' m') or ''
+    -- A distance is only worth saying for a long shot (30 m or more): a small model otherwise fixates on metres ("Fourteen meters. Perfect range.").
+    local far = (v.distance and v.distance >= LONG_SHOT) and (' from ' .. floor(v.distance) .. ' m') or ''
     if f.kills == 1 then add('first-kill', {victim = v, extra = {firstBlood = true},
         text = 'V killed the first enemy of the fight: ' .. d .. how .. far .. '.'}) end
     if v.cyberpsycho or v.rarity == 'boss' or v.rarity == 'elite' or v.rarity == 'officer' or v.rarity == 'maxtac' then
@@ -338,7 +343,7 @@ function Engine:onKill(v)
             text = 'V killed ' .. #times .. ' enemies within 8 seconds.'}, #times >= 5 and 4 or 3) end
     if f.enemies ~= nil and f.enemies <= 1 and f.peak >= 2 then
         add('last-enemy', {victim = v, extra = {peakEnemies = f.peak}, text = 'V killed the last enemy standing: ' .. d .. '.'}) end
-    if v.distance and v.distance >= 30 then
+    if v.distance and v.distance >= LONG_SHOT then
         add('long-shot', {victim = v, text = 'V killed ' .. d .. ' from far away, ' .. v.distance .. ' m.'}) end
     if v.stealth or (v.weapon == 'takedown' and not f.active) then
         add('stealth-kill', {victim = v, text = 'V killed ' .. d .. ' silently, unseen.'}) end
