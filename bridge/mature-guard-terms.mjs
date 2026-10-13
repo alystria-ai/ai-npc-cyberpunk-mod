@@ -27,7 +27,7 @@ export const TERMS = Object.freeze({
     ],
     pronouns: [
       "ty", "tebe", "tobě", "tebou", "tě", "tvůj", "tvoje", "vy", "vám", "vás", "vaše", "váš", "seš", "mně", "můj", "moje", "nás", "náš", "naše", "jsem",
-      "jsme",
+      "jsme", "mám", "máš",
     ],
     sexual: [
       "sex", "sexy", "sexuál*", "nahý", "nahá", "nahé", "nahého", "nahou", "nahej", "nahatý", "nahatá", "nude", "nudes", "svlékn*", "svléc*", "vysvlék*",
@@ -226,7 +226,7 @@ export const TERMS = Object.freeze({
     ],
     pronouns: [
       "tu", "toi", "te", "ton", "ta", "tes", "vous", "votre", "vos", "toi-même", "vous-même", "t'es", "t’es", "je", "moi", "mon", "mes", "je suis", "j'suis",
-      "nous", "notre", "nos", "nous sommes", "moi-même", "nous-mêmes",
+      "nous", "notre", "nos", "nous sommes", "moi-même", "nous-mêmes", "j'ai", "j’ai", "tu as", "t'as",
     ],
     sexual: [
       "sexe", "sexy", "sexuel*", "sexual*", "nudité", "nudist*", "nude", "nudes", "à poil", "tout nu", "toute nue", "topless", "déshabill*", "dénud*",
@@ -529,7 +529,7 @@ export const TERMS = Object.freeze({
     ],
     pronouns: [
       "ty", "cię", "ciebie", "tobie", "tobą", "twój", "twoja", "twoje", "twoi", "jesteś", "ty sam", "ty sama", "pani", "pana", "państwo", "mnie", "mną",
-      "mój", "moja", "moje", "moi", "jestem", "nas", "nasz", "jesteśmy",
+      "mój", "moja", "moje", "moi", "jestem", "nas", "nasz", "jesteśmy", "mam", "masz",
     ],
     sexual: [
       "seks", "seksu", "seksualny", "seksualna", "seksualne", "seksualnie", "seksowna", "seksowny", "seksowne", "nagość", "rozbierz się", "rozbieraj się",

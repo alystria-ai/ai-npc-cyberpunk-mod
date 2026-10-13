@@ -417,7 +417,12 @@ export class MatureGuard {
   /** A reply, or the first sentence of one, before it is voiced or stored. {hit, reason}; counts only when `count` (the host asks once per reply). */
   screenReply(text, {history, count = true} = {}) {
     const flags = analyse(text);
-    const reason = sameText(flags, {reply: true}) ?? withWindow(flags, this.#windowFor(history));
+    const window = this.#windowFor(history);
+    let reason = sameText(flags, {reply: true}) ?? withWindow(flags, window);
+    // A reply answers V's last message: if that message named a minor, a reply with any romance in it is dropped (V's own message is not, see
+    // the stress set: "the kids are loud" then "kiss me" is two messages, and a reply to the second is not an answer to the first).
+    const asked = window.at(-1);
+    if (reason === null && flags.intent >= 1 && asked && (asked.directed || asked.general)) reason = 'reply-to-cue';
     if (count) { this.stats.outputs++; if (reason) { this.stats.outputDropped++; this.#note('reply:' + reason); } }
     return {hit: reason !== null, reason};
   }

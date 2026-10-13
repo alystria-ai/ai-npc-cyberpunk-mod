@@ -128,6 +128,13 @@ test('replies: a minor with romance, a character who says she is under 18, and a
   for (const text of passes) assert.equal(guard.screenReply(text).hit, false, text);
   // The window applies to replies: V said she is 15, the reply is romantic.
   assert.equal(new MatureGuard().screenReply('Come to bed with me.', {history: [{v: "I'm 15.", r: 'hm'}]}).hit, true);
+  // A reply answers V's last message: a minor in it and romance in the reply is a hit; a minor two messages back is not.
+  const answering = new MatureGuard();
+  answering.screenInput('Be a teenager and make out with me.');
+  assert.equal(answering.screenReply('Mmm, come here and kiss me.').reason, 'reply-to-cue');
+  const later = new MatureGuard();
+  later.screenInput('The kids at the school are loud.'); later.screenInput('Kiss me, Panam.');
+  assert.equal(later.screenReply('Come here and kiss me.').hit, false);
   const counted = new MatureGuard();
   counted.screenReply('That kid was nude.'); counted.screenReply('That kid was nude.', {count: false}); counted.flagsReply('That kid was nude.');
   assert.equal(counted.summary().outputs, 1, 'only the counted call is counted');
