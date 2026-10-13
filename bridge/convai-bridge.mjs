@@ -629,7 +629,9 @@ const intrinsicConversationContext = createIntrinsicConversationContext({baseCon
 // is exactly the character's chosen voice; on (Settings keep the voice on OmniVoice or the cloud voice), a turn in
 // another language never reaches Pocket, and a cloud-voice turn never gets tag instructions.
 const turnVoices = new Map();
-const localChoice = profile => ({uses: localVoice.usesProfile(profile), provider: localVoice.provider});
+// A cloud voice with no key speaks nothing, so its turns go to the Convai cloud voice (a written reply under the Mistral provider,
+// which has no Convai audio); the cloud voices load no local model, so no local voice is ever the fallback.
+const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider});
 function turnVoice(input) {
   const id = input?.requestId || input?.id, cacheKey = id ? JSON.stringify([id, input.profileKey]) : null;
   if (cacheKey && turnVoices.has(cacheKey)) return turnVoices.get(cacheKey);
@@ -683,7 +685,7 @@ const routingLog = new VoiceRoutingLog({path: resolve(runtime, ROUTING_LOG_NAME)
 const voiceSources = {pocket: voiceConfig, omni: omniVoiceConfigs};
 // Whether the Natural speech block went into the latest context built for each turn (for the log line below).
 const naturalSpeechBlocks = new Map();
-// The engine whose sounds Natural speech offers: the Inworld cloud voice rides on Pocket but renders its own list of sounds.
+// The engine whose sounds Natural speech offers: the Inworld cloud voice uses Pocket's route but renders its own list of sounds.
 const soundEngine = engine => engine === 'pocket' && localVoice.cloud === 'inworld' ? 'inworld' : engine;
 const naturalSpeechContext = input => {
   const prepared = preparedInputs.get(input);

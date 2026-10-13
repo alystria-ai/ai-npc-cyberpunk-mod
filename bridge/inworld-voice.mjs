@@ -13,13 +13,13 @@
 //    folder) and in memory; the account itself is the source of truth (the voice is named `cp2077-companion-<character>-<hash of the
 //    clip>`, so a lost file is rebuilt from the account's voice list rather than by cloning again).
 //  - Cloning is limited to 2 requests a minute on the free plan, so clones go one at a time and never faster than that. The first
-//    reply of a character whose voice is not ready yet is spoken by Pocket (whole), and the voice is made in the background (warm-up
+//    reply of a character whose voice is not ready yet is written only (no local voice stands in), and the voice is made in the background (warm-up
 //    starts it when the character is prepared).
 //  - Streaming is newline-delimited JSON with base64 16-bit PCM; the adapter converts it to float32 and cuts it into 100 ms packets.
 //  - Emotion: the marks of Expressive emotions become steering instructions (bridge/inworld-steering.mjs).
 //  - One request per reply part, never two voices inside one reply: a failure before any audio reached the player is thrown as an
-//    InworldError and the caller (bridge/voice-selection.mjs) speaks the whole reply with Pocket; once audio is playing a later
-//    failure ends that part's audio early (the written reply is complete). It is never handed to Pocket (bridge/voice-utterance.mjs).
+//    InworldError and the caller (bridge/voice-selection.mjs) asks once more with a longer wait, then shows the written reply; once audio is playing a later
+//    failure ends that part's audio early (the written reply is complete). It is never handed to another voice (bridge/voice-utterance.mjs).
 //  - The key goes only in the Authorization header of a request to api.inworld.ai; it is never logged or written to a state file.
 //    Messages pass through `redact`.
 import {createHash, randomBytes} from 'node:crypto';
@@ -39,13 +39,13 @@ export const INWORLD_MODEL = 'inworld-tts-2';
 export const INWORLD_RATE = 24000;
 export const VOICE_NAME_PREFIX = 'cp2077-companion-';
 export const INWORLD_LIMITS = Object.freeze({
-  firstAudioMs: 5000,         // no audio this long after the request was sent: Pocket speaks this reply
+  firstAudioMs: 5000,         // no audio this long after the request was sent: asked again once with a longer wait, then the reply is written
   stallMs: 8000,              // silence this long inside a running stream ends it
-  maxChars: 4000,             // longer text goes to Pocket (Inworld's limit for one streaming request)
+  maxChars: 4000,             // longer text cannot be spoken (Inworld's limit for one streaming request): written reply
   frameSamples: 2400,         // 100 ms packets, the size Pocket's own packets are in the same range
   maxReferenceSeconds: 25,    // a longer clip is cut (Inworld takes up to 30 s)
   maxReferenceBytes: 6_000_000,
-  cloneWaitMs: 3000,          // a reply waits this long for a voice that is being made; after that Pocket speaks it
+  cloneWaitMs: 3000,          // a reply waits this long for a voice that is being made; after that it is written only
   clonesPerMinute: 2,         // the free plan's limit for cloning
   cloneTimeoutMs: 40_000,
   listTimeoutMs: 15_000,
@@ -420,7 +420,7 @@ export class InworldVoice {
     } catch { /* an old voice staying is harmless */ }
   }
 
-  /** The voice is forgotten after Inworld said it does not exist: it is made again the next time (this reply goes to Pocket). */
+  /** The voice is forgotten after Inworld said it does not exist: it is made again the next time (this reply is written only). */
   #forget(key) {
     this.entries.delete(key);
     if (this.store?.voices[key]) { delete this.store.voices[key]; void this.#saveStore(); }
@@ -432,9 +432,9 @@ export class InworldVoice {
   /**
    * Speaks `text` as the voice `key`, handing `onPcm` 24 kHz mono float32 packets of Pocket's shape. `emotion` ({marks, sounds, from}) carries
    * the Expressive emotions marks and the non-verbal sounds of the text. Resolves with the stream's summary. Throws an InworldError when nothing was delivered (the
-   * caller uses Pocket for the whole reply), `cancelled` when `signal` aborts, and the consumer's own error (marked `sink`) when `onPcm` fails.
+   * caller asks again or writes the reply), `cancelled` when `signal` aborts, and the consumer's own error (marked `sink`) when `onPcm` fails.
    */
-  async synthesizeStream(key, text, {signal, onPcm, emotion} = {}) {
+  async synthesizeStream(key, text, {signal, onPcm, emotion, firstAudioMs} = {}) {
     throwIfCancelled(signal);
     if (typeof onPcm !== 'function') throw Error('Inworld streaming requires a PCM consumer');
     const apiKey = this.#syncKey();
@@ -446,7 +446,7 @@ export class InworldVoice {
       const queued = this.now();
       const voiceId = await this.#voiceFor(key, signal);
       throwIfCancelled(signal);
-      const result = await this.#stream({key, text, apiKey, voiceId, emotion, signal, onPcm, queued});
+      const result = await this.#stream({key, text, apiKey, voiceId, emotion, signal, onPcm, queued, firstAudioMs});
       this.spoke++; this.note(null);
       return result;
     } catch (error) {
@@ -458,7 +458,7 @@ export class InworldVoice {
     }
   }
 
-  /** The ready voice, or the one being made when it arrives within the wait; else a 'voice' error (Pocket speaks this reply). */
+  /** The ready voice, or the one being made when it arrives within the wait; else a 'voice' error (this reply is written only). */
   async #voiceFor(key, signal) {
     const ready = this.readyVoice(key);
     if (ready) return ready;
@@ -486,11 +486,11 @@ export class InworldVoice {
     // A voice not made yet, a character without a clip, or text that cannot be spoken is that reply's problem, not the service's.
     if (!['text', 'no-reference', 'voice'].includes(error.kind)) this.note(error.kind);
     const detail = String(error.message ?? '').replace(/^Inworld /, '').replace(/ \[inworld:[a-z-]+\]$/, '');
-    this.log(`${scope ? scope + ' ' : ''}fell back to Pocket: ${error.kind}${error.status ? ` (HTTP ${error.status})` : ''}${detail ? ` - ${detail}` : ''}`);
+    this.log(`${scope ? scope + ' ' : ''}could not speak this reply: ${error.kind}${error.status ? ` (HTTP ${error.status})` : ''}${detail ? ` - ${detail}` : ''}`);
   }
 
   /** One request for the whole text of this part. */
-  async #stream({key, text, apiKey, voiceId, emotion, signal, onPcm, queued}) {
+  async #stream({key, text, apiKey, voiceId, emotion, signal, onPcm, queued, firstAudioMs = this.limits.firstAudioMs}) {
     const id = ++this.sequence, started = this.now();
     // The character's own marks steer the voice. A reply that carries none (the model wrote no tag, or the provider could not be asked)
     // is read by the same small lexicon the face uses: a clear feeling in the words steers it, anything else is spoken plainly.
@@ -544,14 +544,14 @@ export class InworldVoice {
     try {
       let response;
       sentAt = this.now();
-      arm(this.limits.firstAudioMs, 'timeout');
+      arm(firstAudioMs, 'timeout');
       try {
         response = await this.fetchImpl(this.endpoints.speech, {method: 'POST', signal: controller.signal,
           headers: {authorization: `Basic ${apiKey}`, 'content-type': 'application/json', accept: 'application/json'},
           body: JSON.stringify({text: steered.text, voiceId, modelId: INWORLD_MODEL, audioConfig: {audioEncoding: 'PCM', sampleRateHertz: INWORLD_RATE}})});
       } catch (error) {
         throwIfCancelled(signal);
-        throw timedOut ? this.fail('timeout', `gave no audio within ${this.limits.firstAudioMs} ms`) : this.fail('network', error?.message || 'is unreachable');
+        throw timedOut ? this.fail('timeout', `gave no audio within ${firstAudioMs} ms`) : this.fail('network', error?.message || 'is unreachable');
       }
       if (!response.ok) {
         const body = await response.text().catch(() => '');
@@ -574,7 +574,7 @@ export class InworldVoice {
       } catch (error) {
         throwIfCancelled(signal);
         if (error.sink || error instanceof InworldError && !delivered && !pending.length) throw error;
-        if (!delivered && !pending.length) throw timedOut === 'timeout' ? this.fail('timeout', `gave no audio within ${this.limits.firstAudioMs} ms`) : this.fail('network', error?.message || 'stream failed');
+        if (!delivered && !pending.length) throw timedOut === 'timeout' ? this.fail('timeout', `gave no audio within ${firstAudioMs} ms`) : this.fail('network', error?.message || 'stream failed');
         // Audio is already playing: end the audio here, after the last whole sample received. The voice is not switched.
         this.log(`stream ended early after ${(delivered / INWORLD_RATE).toFixed(1)} s: ${redact(error?.message, apiKey).slice(0, 80)}`);
         done = false;

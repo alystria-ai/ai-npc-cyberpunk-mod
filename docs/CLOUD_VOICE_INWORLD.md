@@ -3,7 +3,7 @@
 Added 2026-10-13, on branch `inworld-voice` (not merged). An optional Companion voice that speaks a reply with Inworld's
 text-to-speech (`inworld-tts-2`), cloned once per character from the character's own reference clip, on the player's own
 Inworld key. It sits beside the Mistral cloud voice (Voxtral, `docs/CLOUD_VOICE_VOXTRAL.md`) and works the same way: any
-conversation provider can write the replies, Pocket stays loaded and speaks any reply the cloud cannot deliver.
+conversation provider can write the replies. **No local voice model runs while it is chosen** (2026-10-13): no Pocket or OmniVoice worker is started, and a running one is retired when the choice is committed. A reply the cloud cannot deliver is asked once more with a longer wait (9 s to first audio), then shown as written text; a turn with no key goes to the Convai cloud voice. Only Pocket's route and audio packet format are borrowed (they drive the subtitles, lip sync and face), not its model.
 
 Code: `bridge/inworld-voice.mjs` (the adapter), `bridge/inworld-key.mjs` (the player's key), `bridge/inworld-steering.mjs`
 (emotion), `bridge/voice-utterance.mjs` (one voice per reply, shared with Voxtral), `bridge/voice-selection.mjs` (routing and fallback),
@@ -52,7 +52,7 @@ file can be written by hand. **Remove my Inworld key** deletes it. The page show
 characters (`runtime/mistral-state.json`, `inworld.saved` and `inworld.tail`). The key never goes to a log, a status file or a
 setting, and goes only to `api.inworld.ai`. Command file: `runtime/inworld-key-command.json` (ids `:ikey:`).
 
-English only (the Pocket route it rides on is English), as with Voxtral: with Multilingual conversations on, the choice is
+English only (it uses Pocket's English route), as with Voxtral: with Multilingual conversations on, the choice is
 refused ("The Inworld cloud voice speaks only English here. Turn off Multilingual conversations to choose it.").
 
 ## How it speaks
@@ -73,7 +73,7 @@ odd byte over.
    the saved ids (they belonged to the other account). An older voice of the same character (the clip changed) is deleted after
    the new one is made; no other voice of the account is ever touched.
 4. Clones go one at a time and never more than 2 a minute (the free plan). Preparing a character starts its clone in the
-   background. A reply waits at most 3 s for a voice still being made, otherwise **Pocket speaks that whole reply**, and the voice
+   background. A reply waits at most 3 s for a voice still being made, otherwise **that reply is written only** (no local voice stands in), and the voice
    is there for the next one. The voice of a new character is therefore usually ready before the first reply (about 9 s with the
    clip read, in the live test).
 
@@ -84,9 +84,10 @@ A reply may be voiced in two parts (first sentence while the model is still writ
 (`role: 'head'`), the tail waits for it and follows (`role: 'tail'`, `VoiceSelection.synthesizeRest`).
 
 - Inworld produces the first packet: the reply is Inworld's. A later part that fails then **ends the reply early** (what was spoken
-  stands); it is never handed to Pocket.
-- Inworld fails before any audio (no key, no voice yet, 4xx/5xx, no first audio in 5 s): the reply is Pocket's, **whole**, both
-  parts, and the second part does not try Inworld.
+  stands); it is never handed to another voice.
+- Inworld fails before any audio (no key, no voice yet, 4xx/5xx, no first audio in 5 s): a timeout, network error or refusal is asked once
+  more with a longer wait (9 s); a reply that still has no audio is **written only**, both parts, and the second part does not try
+  Inworld. No local voice is loaded to take it over.
 - A cancelled reply or an error from the audio consumer is not a fallback and does not count against the service.
 
 Voxtral and Inworld use the same lock (merged 2026-10-14; the former Inworld-only `ReplyVoice` is gone). The two differ only in how
@@ -97,17 +98,17 @@ the tail is asked for: Voxtral's tail request is sent at once and held until the
 
 | Cause | Kind | After it |
 | --- | --- | --- |
-| No Inworld key | `no-key` | Pocket until a key appears |
-| No clip for this character | `no-reference` | Pocket for this character |
-| Clone refused or still being made | `voice` | Pocket for this reply; the clone is retried after 10 min (30 s after a network fault, 65 s after a limit) |
-| Voice not found (404, code 5) | `voice-missing` | the voice is forgotten and made again; this reply is Pocket's |
+| No Inworld key | `no-key` | the turn goes to the Convai cloud voice until a key appears |
+| No clip for this character | `no-reference` | written reply for this character |
+| Clone refused or still being made | `voice` | written reply for this reply; the clone is retried after 10 min (30 s after a network fault, 65 s after a limit) |
+| Voice not found (404, code 5) | `voice-missing` | the voice is forgotten and made again; this reply is written only |
 | No first audio in 5 s | `timeout` | next reply tries again |
 | 429 or exhausted | `limit` | pause for `Retry-After` (20 s when none) |
 | 401 / 403 | `key` | 60 s pause |
 | Plan used up (402, or a quota message) | `quota` | 30 min pause; shown as "unavailable", not "not ready yet" |
 | Network, 5xx, stalled stream (8 s) | `network` | next reply tries again |
 | Refused request | `request` | next reply tries again |
-| Text over 4,000 characters, or nothing speakable | `text` | Pocket speaks it |
+| Text over 4,000 characters, or nothing speakable | `text` | written reply |
 
 ## Emotion
 
@@ -194,11 +195,11 @@ in `E:\CyberpunkConvai-offload\work\inworld-2026-10-13\`).
 
 ## Limits and open points
 
-- English only, like the Pocket route.
+- English only, like Pocket's route.
 - Whether the free 70 minutes is monthly or once is not in the docs; what the player sees when it is gone is the `quota` fallback
-  (Pocket speaks, one "unavailable" notice) after Inworld answers 402 or a quota message. That answer was **not** seen live; the
+  (a written reply, one "unavailable" notice) after Inworld answers 402 or a quota message. That answer was **not** seen live; the
   mapping follows the documented codes and is unit-tested only.
-- A new character's first reply may be Pocket's if its voice is not made yet (two clones a minute on the free plan; about 9 s for
+- A new character's first reply may be written only if its voice is not made yet (two clones a minute on the free plan; about 9 s for
   one). Warm-up at "prepare" makes this rare.
 - Cloning game actors' voices is the player's own risk on their own account (terms above).
 - The fallback reads a whole request text for one feeling; it cannot place a change of feeling inside a reply (only the character's own tags can).
@@ -209,10 +210,10 @@ Install the committed `mod/` files and the bridge from this branch (never `mod/d
 1. Settings > Development > Paste Inworld key (key copied from Inworld's portal first): the row reads "Added (ends in ....)".
 2. Settings > Voices > Companion voices: choose "Inworld cloud voice", Apply.
 3. Talk to a companion: the voice is hers, the lips and subtitles follow it. The first reply of a character not seen before may be
-   Pocket's while the voice is made; later replies are Inworld's.
+   written only while the voice is made; later replies are Inworld's.
 4. `runtime/bridge.stderr.log`: `[Inworld] first audio ... ms` lines and `[VoiceRouting]` lines naming "Inworld cloud voice".
 5. Remove the key: the entry reads "... · needs Inworld key" and Apply refuses it.
-6. Switch the network off mid-session: the next reply is Pocket's, whole, with one "not ready yet" notice; no reply changes voice
+6. Switch the network off mid-session: the next reply is written only (after the longer second ask), with one "not ready yet" notice; no reply changes voice
    in the middle.
 7. Emotion: a reply with a strong feeling ({anger:strong}, {sadness}) sounds different from a plain one. Turn Expressive emotions
    OFF in Settings > Voices and talk again with the Inworld voice: the replies still carry emotion (`[Inworld] first audio ... 1 emotion

@@ -429,12 +429,13 @@ const pocketSettings = voices => ({version: 1, provider: 'pocket', engine: 'pock
   model: {sha256: 'a'.repeat(64), configSha256: 'b'.repeat(64), tokenizerSha256: 'c'.repeat(64), receiptSha256: 'd'.repeat(64),
     inputIdentity: 'e'.repeat(64), selectedStep: 1500}});
 
-function selection(server, {inworld = {}, pocket = null} = {}) {
-  const calls = [], states = [];
+function selection(server, {inworld = {}, pocket = null, retryMs = 150} = {}) {
+  const calls = [], states = [], workers = [];
   const voices = Object.fromEntries(LOCAL_VOICE_KEYS.map(name => [name, {reference: `runtime/voice-references/${name}.wav`, sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.'}]));
   const {voice: cloud} = voiceFor(server, inworld);
-  const voice = new VoiceSelection(pocketSettings(voices), {inworld: cloud, onState: value => states.push(value),
+  const voice = new VoiceSelection(pocketSettings(voices), {inworld: cloud, onState: value => states.push(value), cloudRetryAudioMs: {inworld: retryMs},
     factory: (config, {onState}) => {
+      workers.push(config);
       let loaded = false;
       return {get loaded() { return loaded; }, hasProfile: name => Object.hasOwn(config.voices, name), profileReady: name => loaded && Object.hasOwn(config.voices, name),
         async prepareProfile(name) { return {provider: 'pocket', ready: true, profile: name}; },
@@ -442,11 +443,11 @@ function selection(server, {inworld = {}, pocket = null} = {}) {
         async synthesizeStream(name, text, options) { calls.push({name, text}); if (pocket) return pocket(name, text, options); await options.onPcm?.({marker: 'pocket'}); return {audio: 'pocket'}; },
         async close() { loaded = false; onState({state: 'stopped'}); }};
     }});
-  return {voice, cloud, calls, states};
+  return {voice, cloud, calls, states, workers};
 }
 const choose = async h => { h.voice.update({voiceProvider: 'inworld'}, null, false); await h.voice.start(); };
 
-test('the Inworld cloud voice is a menu choice that rides on Pocket: chosen, it speaks the reply and Pocket is not asked', async () => {
+test('the Inworld cloud voice is a menu choice that uses Pocket\'s route only: chosen, it speaks the reply and no local worker exists', async () => {
   const server = await serve();
   try {
     const h = selection(server);
@@ -461,7 +462,7 @@ test('the Inworld cloud voice is a menu choice that rides on Pocket: chosen, it 
     await h.cloud.ensureVoice('judy-alvarez');
     const packets = [];
     const result = await h.voice.synthesizeStream('judy-alvarez', 'Uh... [laughter] okay.', {onPcm: packet => { packets.push(packet); }});
-    assert.equal(result.provider, 'inworld'); assert.ok(packets.length > 0); assert.equal(h.calls.length, 0);
+    assert.equal(result.provider, 'inworld'); assert.ok(packets.length > 0); assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0);
     assert.equal(server.requests.find(item => item.path === '/speech').body.text, 'Uh... okay.', 'voice tags never reach the cloud voice');
     h.voice.update({voiceProvider: 'pocket'}, null, false);
     assert.equal(h.voice.cloudActive, false);
@@ -483,7 +484,7 @@ test('preparing a character makes its Inworld voice in the background, so the fi
   } finally { await server.close(); }
 });
 
-test('a reply Inworld cannot start is spoken whole by Pocket, and the report names why and clears itself', async () => {
+test('a reply Inworld cannot start is asked once more, then written (no local voice); the report names why and clears itself', async () => {
   let fail = true;
   const server = await serve({'POST /speech': (request, response) => {
     if (fail) { response.writeHead(503, {'content-type': 'application/json'}); return response.end('{}'); }
@@ -492,10 +493,11 @@ test('a reply Inworld cannot start is spoken whole by Pocket, and the report nam
   try {
     const h = selection(server);
     await choose(h); await h.cloud.ensureVoice('judy-alvarez');
-    const result = await h.voice.synthesizeStream('judy-alvarez', 'Hello.', {onPcm() {}});
-    assert.equal(result.audio, 'pocket'); assert.equal(h.calls.length, 1); assert.equal(h.calls[0].text, 'Hello.');
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Hello.', {onPcm() {}}), {kind: 'network'});
+    assert.equal(server.count('POST', '/speech'), 2, 'asked, then asked once more');
+    assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0);
     h.voice.publish();
-    assert.deepEqual(h.states.at(-1).fallback, {from: 'inworld', to: 'pocket', temporary: true, reason: 'network'});
+    assert.deepEqual(h.states.at(-1).fallback, {from: 'inworld', to: 'convai', temporary: true, reason: 'network'});
     fail = false;
     const again = await h.voice.synthesizeStream('judy-alvarez', 'Hello.', {onPcm() {}});
     assert.equal(again.provider, 'inworld'); h.voice.publish();
@@ -504,19 +506,59 @@ test('a reply Inworld cannot start is spoken whole by Pocket, and the report nam
   } finally { await server.close(); }
 });
 
-test('without an Inworld key the choice is unavailable and every reply is Pocket; a key added later is used at once', async () => {
+test('a first ask that fails but whose second ask is answered is spoken, with the longer wait on the second', async () => {
+  let asks = 0;
+  const server = await serve({'POST /speech': (request, response) => {
+    asks++;
+    if (asks === 1) { response.writeHead(503, {'content-type': 'application/json'}); return response.end('{}'); }
+    response.writeHead(200); response.write(line(bytesOf(ints(2400)))); response.end();
+  }});
+  try {
+    const h = selection(server);
+    await choose(h); await h.cloud.ensureVoice('judy-alvarez');
+    const packets = [];
+    const result = await h.voice.synthesizeStream('judy-alvarez', 'Hello.', {onPcm: packet => { packets.push(packet); }});
+    assert.equal(result.provider, 'inworld'); assert.equal(asks, 2); assert.ok(packets.length > 0);
+    assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0);
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
+test('without an Inworld key the choice is unavailable, the turn goes to the Convai voice and nothing local is loaded; a key added later is used at once', async () => {
   const server = await serve();
   try {
     let key = null;
     const h = selection(server, {inworld: {getKey: () => key}});
     await choose(h);
-    const result = await h.voice.synthesizeStream('judy-alvarez', 'Hello.', {onPcm() {}});
-    assert.equal(result.audio, 'pocket'); h.voice.publish();
-    assert.deepEqual(h.states.at(-1).fallback, {from: 'inworld', to: 'pocket', temporary: false, reason: 'no-key'});
-    assert.equal(server.requests.length, 0);
+    assert.equal(h.voice.cloudKeyless, true);
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Hello.', {onPcm() {}}), /no key|cannot be asked/);
+    h.voice.publish();
+    assert.deepEqual(h.states.at(-1).fallback, {from: 'inworld', to: 'convai', temporary: false, reason: 'no-key'});
+    assert.equal(server.requests.length, 0); assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0);
     key = KEY;
     await h.cloud.ensureVoice('judy-alvarez');
     assert.equal((await h.voice.synthesizeStream('judy-alvarez', 'Hello.', {onPcm() {}})).provider, 'inworld');
+    assert.equal(h.workers.length, 0);
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
+test('an Inworld choice starts no local worker: a running Pocket one is retired, preparing a character loads nothing, a failed Pocket does not matter', async () => {
+  const server = await serve();
+  try {
+    const h = selection(server);
+    h.voice.update({voiceProvider: 'pocket'}, null, false); await h.voice.start();
+    assert.equal(h.workers.length, 1);
+    h.voice.update({voiceProvider: 'inworld'}, null, false);
+    assert.equal(h.voice.cloudActive, true); assert.equal(h.voice.client, null);
+    await h.voice.retiring;
+    const receipt = await h.voice.prepareProfile('judy-alvarez');
+    assert.equal(receipt.ready, true); assert.equal(receipt.cloudVoice, 'inworld'); assert.equal(h.voice.profileReady('judy-alvarez'), true);
+    for (let poll = 0; poll < 3; poll++) h.voice.update({voiceProvider: 'inworld'}, null, false);
+    h.voice.failedBackends.add('pocket');
+    h.voice.update({voiceProvider: 'inworld'}, null, false);
+    assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.cloudActive, true);
+    assert.equal(h.workers.length, 1, 'only the first Pocket worker was ever created'); assert.equal(h.states.at(-1).state, 'remote');
     await h.voice.close();
   } finally { await server.close(); }
 });
@@ -545,7 +587,7 @@ test('one voice per reply: the first part decides, a later part follows it, and 
   } finally { await server.close(); }
 });
 
-test('one voice per reply: when the first part falls back to Pocket the later part is Pocket\'s too, without trying Inworld', async () => {
+test('one voice per reply: when the first part gets no audio the later part is not spoken either, and Inworld is not tried for it', async () => {
   const server = await serve({'POST /speech': (request, response) => { response.writeHead(503, {'content-type': 'application/json'}); response.end('{}'); }});
   try {
     const h = selection(server);
@@ -554,10 +596,11 @@ test('one voice per reply: when the first part falls back to Pocket the later pa
     // The later part is asked while the first is still deciding: it waits, then follows.
     const first = h.voice.synthesizeStream('judy-alvarez', 'First part.', {onPcm() {}, utterance, role: 'head'});
     const second = h.voice.synthesizeStream('judy-alvarez', 'Second part.', {onPcm() {}, utterance, role: 'tail'});
-    await Promise.all([first, second]);
-    assert.equal(utterance.engine, 'pocket');
-    assert.deepEqual(h.calls.map(call => call.text), ['First part.', 'Second part.']);
-    assert.equal(server.count('POST', '/speech'), 1, 'Inworld was tried once, for the first part only');
+    const [one, two] = await Promise.allSettled([first, second]);
+    assert.equal(one.status, 'rejected'); assert.equal(two.status, 'rejected');
+    assert.equal(utterance.engine, 'pocket', 'the lock says the cloud voice did not speak');
+    assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0);
+    assert.equal(server.count('POST', '/speech'), 2, 'the first part was asked twice (once more with a longer wait); the later part sent nothing');
   } finally { await server.close(); }
 });
 
@@ -602,7 +645,7 @@ test('multilingual conversations keep the Inworld voice out too: Pocket is skipp
   } finally { await server.close(); }
 });
 
-test('the routing log names the Inworld voice; Pocket with a reason only when it cannot be asked; an earlier failure is carried as cloudLast', async () => {
+test('the routing log names the Inworld voice; with a reason only when it cannot be asked (never a local voice); an earlier failure is carried as cloudLast', async () => {
   const server = await serve({'POST /speech': (request, response) => { response.writeHead(503); response.end('{}'); }});
   try {
     const h = selection(server);
@@ -611,14 +654,14 @@ test('the routing log names the Inworld voice; Pocket with a reason only when it
       plan: {engine: 'pocket'}, reply: {engine: 'pocket'}, now: () => 0});
     let record = describe();
     assert.equal(record.requested, 'Inworld cloud voice'); assert.equal(record.used, 'Inworld cloud voice'); assert.equal(record.fallback, null);
-    await h.voice.synthesizeStream('judy-alvarez', 'Late.', {onPcm() {}});
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Late.', {onPcm() {}}), {kind: 'network'});
     record = describe();
     // The line for the NEXT reply is written before it is voiced: an earlier network failure does not make it claim Pocket (the cloud voice
     // is asked again); it is carried as cloudLast. Only a state that stops the cloud voice being asked (no key) names Pocket.
     assert.equal(record.used, 'Inworld cloud voice'); assert.equal(record.fallback, null); assert.equal(record.cloudLast, 'network');
     h.cloud.getKey = () => null;
     record = describe();
-    assert.equal(record.used, 'Pocket'); assert.equal(record.fallback, 'Inworld cloud voice has no key'); assert.equal(record.cloudLast, undefined);
+    assert.equal(record.used, 'none (written reply only)'); assert.equal(record.fallback, 'Inworld cloud voice has no key'); assert.equal(record.cloudLast, undefined);
     await h.voice.close();
   } finally { await server.close(); }
 });

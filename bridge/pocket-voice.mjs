@@ -10,8 +10,25 @@ import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 
 export const POCKET_SOURCE_REVISION = '41cbc84af539ea78a804ffca5f9c6edc1a22ce44';
 export const POCKET_SOURCE_SHA256 = 'b86f98955b6c4776bb24a748b321408aba89d3b66f6b911f415ef4f4191a7666';
+// stallMs: a starting worker that reports nothing new (no phase change) this long is stuck. It is stopped and started once more; a second
+// stall gives up (the failure is the same as a startup timeout). Importing the runtime is the phase that hangs on a starved CPU (the
+// worker runs below normal priority), so it has the shortest limit; loading the student and warming voices are given longer ones.
 export const POCKET_LIMITS = Object.freeze({startupMs: 180_000, prepareMs: 60_000,
-  renderMs: 120_000, sinkMs: 10_000, cancelMs: 2000, exitMs: 5000, maxFrames: 24000 * 120});
+  renderMs: 120_000, sinkMs: 10_000, cancelMs: 2000, exitMs: 5000, maxFrames: 24000 * 120,
+  stallMs: Object.freeze({default: 45_000, 'loading-student': 90_000, 'student-loaded': 60_000, warming: 60_000}),
+  startAttempts: 2});
+// Stops a worker and everything it started. On Windows the venv's python.exe is a launcher whose child is the real interpreter, and
+// a plain kill reaches only the launcher: the real worker would go on holding the runtime lock. Only the real spawn is killed by
+// process tree (a test's stand-in child is never handed to taskkill).
+const killWorker = (child, real) => {
+  try {
+    if (real && process.platform === 'win32' && child.pid) {
+      spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {windowsHide: true, stdio: 'ignore'}).on('error', () => {});
+      return;
+    }
+  } catch {}
+  try { child.kill(); } catch {}
+};
 const hash = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
 const finite = value => typeof value === 'number' && Number.isFinite(value);
@@ -57,13 +74,16 @@ export function validatePocketConfig(config) {
 export class PocketVoice {
   constructor(config, {project, configPath, pythonExecutable, spawnImpl = spawn,
     onState = () => {}, onLog = () => {}, now = () => performance.now(),
-    setTimer = setTimeout, clearTimer = clearTimeout, keepPreparedVoices = false} = {}) {
+    setTimer = setTimeout, clearTimer = clearTimeout, keepPreparedVoices = false, stallMs} = {}) {
     this.config = validatePocketConfig(config); this.registry = this.config.registry;
     this.project = absoluteRuntimeOverride(project, 'Pocket application directory');
     this.configPath = absoluteRuntimeOverride(configPath, 'Pocket configuration path');
     this.pythonExecutable = absoluteRuntimeOverride(pythonExecutable, 'Pocket Python executable');
     if (!this.project || !this.configPath || !this.pythonExecutable) throw Error('Pocket runtime paths cannot fall back to a development environment');
     Object.assign(this, {spawnImpl, onState, onLog, now, setTimer, clearTimer});
+    // One number replaces the per-phase stall limits (tests, tuning).
+    this.stallMs = Number.isFinite(stallMs) && stallMs > 0 ? stallMs : null;
+    this.attempt = 0; this.restarting = false;
     this.owner = randomUUID().replaceAll('-', ''); this.sequence = 0;
     this.pending = new Map(); this.available = new Set(this.registry.keys); this.prepared = new Set();
     // "Keep prepared voices": the worker saves each voice's prepared state to disk and reloads it later.
@@ -90,6 +110,33 @@ export class PocketVoice {
     if (!this.child || this.child.stdin.writableEnded) throw Error('Pocket worker input is closed');
     this.child.stdin.write(JSON.stringify({owner: this.owner, ...value}) + '\n', error => { if (error) this.fail(error); });
   }
+  // Each phase of a start is logged with the seconds since the start and the attempt (a hang shows where it stopped).
+  startLog(message) {
+    try { this.onLog(`[PocketStart] +${(((this.now() - (this.startedAt ?? this.now())) / 1000)).toFixed(1)}s attempt ${this.attempt}/${POCKET_LIMITS.startAttempts}: ${message}\n`); } catch {}
+  }
+  stallLimit(phase) { return this.stallMs ?? POCKET_LIMITS.stallMs[phase] ?? POCKET_LIMITS.stallMs.default; }
+  armStall(phase) {
+    this.clearTimer(this.stallTimer);
+    this.stallTimer = this.timer(() => this.stalled(phase), this.stallLimit(phase));
+  }
+  // The worker has not moved on for too long: stop it (the whole process tree) and start it once more, then give up.
+  stalled(phase) {
+    this.stallTimer = null;
+    if (this.closing || this.failure || this.loaded || this.restarting || !this.child) return;
+    if (this.attempt >= POCKET_LIMITS.startAttempts) {
+      this.startLog(`stalled at ${phase || 'start'} again; giving up`);
+      this.fail(Error('Pocket student startup stalled')); return;
+    }
+    this.startLog(`stalled at ${phase || 'start'} for ${Math.round(this.stallLimit(phase) / 1000)}s; stopping the worker to start it once more`);
+    this.restarting = true;
+    this.clearTimer(this.startTimer); this.startTimer = null;
+    const child = this.child;
+    try { if (!child.stdin.writableEnded) child.stdin.end(); } catch {}
+    killWorker(child, this.spawnImpl === spawn);
+    // The close event starts the new attempt; a worker that cannot be stopped is a failure.
+    this.restartTimer = this.timer(() => { if (this.restarting && this.child === child) this.fail(Error('Pocket worker did not stop for its restart')); },
+      POCKET_LIMITS.exitMs);
+  }
   start() {
     if (this.closing) return Promise.reject(cancelled('Pocket speech is stopping'));
     if (this.failure) return Promise.reject(this.failure);
@@ -98,6 +145,12 @@ export class PocketVoice {
     this.publish('loading');
     this.ready = new Promise((resolveReady, rejectReady) => Object.assign(this, {resolveReady, rejectReady}));
     this.ready.catch(() => {});
+    this.startedAt = this.now();
+    this.spawnWorker();
+    return this.ready;
+  }
+  spawnWorker() {
+    this.attempt++; this.phase = undefined;
     let child;
     try {
       const env = {...process.env, PYTHONUTF8: '1', PYTHONDONTWRITEBYTECODE: '1', CUDA_VISIBLE_DEVICES: '-1',
@@ -108,9 +161,11 @@ export class PocketVoice {
       child = this.child = this.spawnImpl(this.pythonExecutable,
         ['-B', resolve(this.project, 'bridge/pocket-voice-worker.py'), '--config', this.configPath, '--owner', this.owner],
         {cwd: this.project, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env});
-    } catch (error) { this.fail(error); return this.ready; }
+    } catch (error) { this.fail(error); return; }
+    this.startLog(`worker started (pid ${child.pid ?? '?'})`);
     let buffer = '';
     child.stdout.setEncoding('utf8');
+    // Both pipes are always drained: a worker that fills an unread pipe would stop in its own write.
     child.stdout.on('data', part => {
       buffer += part;
       if (buffer.length > 2_000_000) { this.fail(Error('Pocket worker response is oversized')); return; }
@@ -124,13 +179,20 @@ export class PocketVoice {
       }
     });
     child.stderr.on('data', part => { try { this.onLog(part.toString('utf8').slice(0, 4000)); } catch {} });
-    child.stdin.on('error', error => this.fail(error)); child.on('error', error => this.fail(error));
+    child.stdin.on('error', error => { if (!this.restarting) this.fail(error); }); child.on('error', error => this.fail(error));
     this.exited = new Promise((done, reject) => {
       this.rejectExited = reject;
       child.once('close', code => {
         this.clearTimer(this.startTimer); this.clearTimer(this.exitTimer); this.clearTimer(this.confirmTimer);
-        this.startTimer = this.exitTimer = this.confirmTimer = null;
+        this.clearTimer(this.stallTimer); this.clearTimer(this.restartTimer);
+        this.startTimer = this.exitTimer = this.confirmTimer = this.stallTimer = this.restartTimer = null;
         this.child = null; this.loaded = false; this.prepared.clear();
+        // A worker stopped by the stall watchdog: the same start goes on with a new worker (`ready` stays pending).
+        if (this.restarting && !this.closing && !this.failure) {
+          this.restarting = false; done();
+          this.spawnWorker();
+          return;
+        }
         const error = this.failure || (this.closing ? cancelled('Pocket speech stopped') : Error(`Pocket worker exited (${code})`));
         this.rejectReady?.(error);
         for (const request of this.pending.values()) this.finishRequest(request, error);
@@ -140,7 +202,7 @@ export class PocketVoice {
     });
     this.exited.catch(() => {});
     this.startTimer = this.timer(() => this.fail(Error('Pocket student startup timed out')), POCKET_LIMITS.startupMs);
-    return this.ready;
+    this.armStall(undefined);
   }
   validateProfiles(frame) {
     const profiles = frame.profiles, prepared = frame.preparedProfiles;
@@ -158,7 +220,13 @@ export class PocketVoice {
         throw Error('Invalid Pocket worker state');
       if (frame.phase !== undefined && !['assets-verified','importing-dependencies','loading-student','student-loaded'].includes(frame.phase))
         throw Error('Invalid Pocket startup phase');
-      if (!this.closing) this.publish(frame.state, {profile: frame.profile, phase:frame.phase}); return;
+      if (!this.closing) {
+        this.phase = frame.phase ?? frame.state;
+        this.startLog(`phase ${frame.phase ?? frame.state}${frame.profile ? ` (${frame.profile})` : ''}`);
+        if (!this.loaded) this.armStall(this.phase);
+        this.publish(frame.state, {profile: frame.profile, phase:frame.phase});
+      }
+      return;
     }
     if (frame.op === 'ready') {
       if (this.loaded || this.pending.size || frame.protocolVersion !== 1 || frame.engine !== 'pocket-tts'
@@ -175,7 +243,9 @@ export class PocketVoice {
           || this.config.preparation.startupProfiles.some(key => this.available.has(key) && !this.prepared.has(key)))
         throw Error('Pocket worker did not confirm the configured reference identities');
       this.clearTimer(this.startTimer); this.startTimer = null;
+      this.clearTimer(this.stallTimer); this.stallTimer = null;
       if (this.closing) { this.confirmExit(); return; }
+      this.startLog('ready');
       this.loaded = true; this.publish('ready'); this.resolveReady(); return;
     }
     const request = this.pending.get(frame.id);
@@ -313,7 +383,7 @@ export class PocketVoice {
     const child = this.child;
     this.exitTimer = this.timer(() => {
       this.exitTimer = null; if (this.child !== child) return;
-      try { child.kill(); } catch {}
+      killWorker(child, this.spawnImpl === spawn);
       this.confirmTimer = this.timer(() => {
         this.confirmTimer = null; if (this.child !== child) return;
         const error = Error('Pocket worker exit could not be confirmed'); this.failure ||= error;
@@ -323,6 +393,8 @@ export class PocketVoice {
   }
   fail(error) {
     this.failure ||= error; this.clearTimer(this.startTimer); this.startTimer = null;
+    this.clearTimer(this.stallTimer); this.stallTimer = null; this.restarting = false;
+    this.startLog(`failed: ${String(error?.message ?? error).slice(0, 120)}`);
     this.rejectReady?.(this.failure);
     for (const request of this.pending.values()) this.finishRequest(request, this.failure);
     this.publish('error');
