@@ -13,7 +13,7 @@ The **Mature content** setting is part of the main mod and works without this pa
 
 Characters stay themselves. Judy, Panam, Kerry and the others keep their personalities, boundaries and orientations, and they can say no, tease or change the subject as they naturally would. Romance follows the relationship your save has with them: without it, a character is not your lover.
 
-The **Mature content** setting itself lives in Settings > Development, right under Conversation provider. It is off by default, and turning it on shows a one-line confirmation that the content is for adults (18+).
+The **Mature content** setting itself lives in Settings > Development, right under Conversation provider. It is off by default, applies to Local AI only, and its help text says the content is for adults (18+).
 
 The hard limits are always on, for every model, with or without this pack:
 

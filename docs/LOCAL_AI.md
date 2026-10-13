@@ -453,7 +453,7 @@ and a one-word answer, not yet timed on the player's hardware), so on a slow GPU
 #### Part of the main mod; the pack only adds models
 
 The setting is part of the main mod. It is visible and usable without any other download, off by default, Local AI only, and turning it on
-shows the 18+ line. With the stock Local AI models it mostly changes language, violence and tone: those models are trained to refuse most
+shows no notice (the user removed the 18+ notice on 2026-10-14; the help text says it is for adults, 18+). With the stock Local AI models it mostly changes language, violence and tone: those models are trained to refuse most
 sexual content, so the full effect needs the uncensored models of the optional Mature pack. The pack no longer gates anything (it did until
 2026-10-14). It changes the setting's help text, and since 2026-10-13 its models are loaded: they appear in the Local AI model row, and
 with Mature content on the default choice and the fallback prefer the largest one that fits (see "Choosing the model"):
@@ -494,7 +494,8 @@ bridge reads it from `runtime/settings.json` when the file changes, never per tu
 only for this provider: the layer is built in `bridge/mature-content.mjs`, and `MATURE_PROVIDERS` is `{local: true, mistral: false,
 groq: false, convai: false}`. The host asks for the layer per route (`TextProviderHost#matureLevel`), so a local turn that falls back to
 the player's cloud provider is answered without it. While another provider answers, the setting's help says it applies to Local AI only.
-Turning it on shows one line that the content is for adults (18+), in all 15 locales.
+Turning it on shows no notice, neither on Apply nor in the status line (removed 2026-10-14); the help text (all 15 locales) says it is for adults (18+),
+that it applies to Local AI only and that some things are never allowed.
 
 What it adds: one block of about 300 tokens at the END of the system head (`systemHead({mature})`), after the output rules and before
 the format notes. That is the stable early text, so llama-server's prefix cache is kept (the layer is the same every turn for a given
@@ -608,7 +609,7 @@ Nexus Mods (help.nexusmods.com, read 2026-10-13): the Adult Content Guidelines (
 Sexualised content, and say "It is the responsibility of the uploader to tag and/or classify their files appropriately." The File
 Submission Guidelines (updated September 29, 2026) say "Generative AI usage in mods or mod pages must have specific tags applied". No
 rule speaks to an optional, off-by-default setting that lets an AI write adult text. Decision (the user, 2026-10-14): the setting is part of
-the main mod, off by default, with the guard and the 18+ line; the uncensored models, the part that makes adult content likely, are
+the main mod, off by default, with the guard and the adults-only help text; the uncensored models, the part that makes adult content likely, are
 distributed only on the project's GitHub release, never on Nexus. Open for the user: whether the main Nexus page should now also be
 classified for Swearing or Profanity because the setting is in it (the guidelines leave this to the uploader).
 
@@ -617,7 +618,7 @@ stress set, normalisation, the window, replies, the refusal lines, the counters,
 `bridge/mature-content.test.mjs` (the setting, the provider gate, the pack not gating, the table, the layer's size and hard limits, off
 byte-identical, additive and prefix-stable, the budget never cutting it, which route gets it, the host refusing and storing nothing),
 `bridge/mature-pack.test.mjs` (the marker detector), `bridge/manager.test.mjs` (the Lua side: the row and setting without the pack, the help
-text for each state, the 18+ line) and `packaging/release.test.mjs` (the package definition, out of the default set, the workflow and the
+text for each state, no notice on turning it on) and `packaging/release.test.mjs` (the package definition, out of the default set, the workflow and the
 Runtime package, the builder refusing placeholders, the pack texts, GitHub-only wording). `scripts/Eval-MatureGuard.mjs` runs the fixtures
 through a real model (see "The guard against real models"). Prompts only; no model is asked for adult text by the unit tests.
 
