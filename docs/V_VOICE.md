@@ -4,7 +4,7 @@ October 14, 2026. A setting that makes a typed line sound like V said it. With *
 for typed lines** on, whatever you type to a companion is also spoken aloud, in a male or female V voice cloned from V's own
 lines in the game. Then the companion answers.
 
-**Off by default.** Typed lines only: push-to-talk is never replayed (you already spoke it). Reactions, phone Chat, add-on
+**On by default** (new installs, and saved settings that never stored it; a player who turned it off keeps it off). Typed lines only: push-to-talk is never replayed (you already spoke it). Reactions, phone Chat, add-on
 speakers and the later speakers of a group round never get a V line.
 
 ## What you hear, and in which order
@@ -36,11 +36,13 @@ The voice is the one **you already chose** for companions:
 | OmniVoice | rendered whole by the local OmniVoice worker (short or long reference, as chosen), then played |
 | Mistral (Voxtral) | cloned by the Mistral cloud voice with the player's Mistral key; **no local voice model is loaded** |
 | Inworld | cloned (once) by the Inworld cloud voice with the player's own key; **no local voice model is loaded** |
-| Convai cloud voice | **cannot clone, so the setting cannot be turned on beside it.** Turning it on while the Convai voice is saved is refused with a short message; choosing the Convai voice while it is on keeps the voice and turns V's voice off with one notice. A saved pairing of the two (an older or hand-edited file) loads as off. |
+| Convai cloud voice | **cannot clone, so the setting stays on but is inactive beside it:** no V line plays, nothing is refused, no notice is shown at load or Apply, and nothing is switched off. The setting row shows one short note ("Works with the Pocket, OmniVoice, Voxtral or Inworld voices."). Choosing a cloning voice makes it work at once. |
 
 A cloud voice with no key, or a turn in a language the chosen voice cannot speak (Pocket speaks English only), gives no V line.
-With the Mistral or local text route the Convai-voice setting maps to Pocket for the companion; the setting is still refused
-beside it because the choice shown to the player is the Convai voice.
+Inactive beside the Convai voice costs nothing: `bridge/v-voice.mjs` starts no V line, warms no renderer page, prepares no voice
+and logs no problem for it, and `mod/manager.lua` `vVoiceActive()` (setting on and a cloning voice saved) keeps the game-side
+dialogue-volume read off (`mod/init.lua` `wantVolume`). A cached turn context read before the voice was switched is read again
+once, so the first line after switching to a cloning voice already has the volume.
 
 V has no model of its own: its two entries (`v-male`, `v-female`) are merged into the voice configurations the bridge already
 loads (the same mechanism as an add-on's voice, `AddonHost.voiceConfigPaths` with `extra`). They are lazy, so merging them
@@ -113,4 +115,4 @@ subtitle, joined with 0.25 s gaps, 24 kHz mono. Male V: 11.4 s (three lines). Fe
 
 See TODO.md, "Live checks still to run": V's gender follows the V voice, the clip sounds like V, V is heard before the
 companion on Pocket (and on a cloud voice), the companion starts right after V ends, the dropped line on a cold start, the
-volume follows the game's Dialogue volume, and the Convai voice refusal message.
+volume follows the game's Dialogue volume, and the Convai-voice case (setting on, no V line, the inline note on the row, no notice).

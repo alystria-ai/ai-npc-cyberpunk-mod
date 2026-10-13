@@ -522,7 +522,7 @@ local function sharedCharacterLines(snapshot)
     if settings.naturalSpeech then speech[#speech + 1] = ui.t('Natural speech') end
     if settings.expressiveEmotions then speech[#speech + 1] = ui.t('Expressive emotions') end
     if settings.followUpInterest then speech[#speech + 1] = ui.t('Follow-up questions') end
-    if settings.vVoice then speech[#speech + 1] = ui.t('V’s voice for typed lines') end
+    if settings.vVoice and settings.voiceProvider ~= 'convai' then speech[#speech + 1] = ui.t('V’s voice for typed lines') end
     local talk = {}
     if #speech > 0 then talk[#talk + 1] = ui.t('Speech: {list}', {list = table.concat(speech, ' · ')}) end
     if settings.multilingualConversations then talk[#talk + 1] = ui.t('Multilingual: replies in your language') end
@@ -1926,8 +1926,10 @@ local function schema()
                 'Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice: choosing the Convai cloud voice keeps it and turns this off, and turning this on while the cloud voice is saved moves Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. On by default.'),
             setting('followUpInterest', 'Follow-up questions', 'bool', snapshot.settings.followUpInterest, true,
                 'Characters sometimes show interest in you and keep the conversation going: they ask about something you just said, pick up something from earlier or share a thought that invites an answer. It happens now and then, never on every reply, and never while you are leaving, giving an order or fighting. Works with any voice. On by default.'),
-            setting('vVoice', 'V’s voice for typed lines', 'bool', snapshot.settings.vVoice, false,
-                'When you type a line to a companion, V says it out loud too, in a male or female V voice that matches your V. Only typed lines: push-to-talk is never replayed. V speaks first, then the companion answers; a slow V line is skipped so the reply is never delayed. Uses the voice you chose above, so it needs Pocket TTS, OmniVoice, Mistral or Inworld, not the Convai cloud voice. Off by default.'),
+            setting('vVoice', 'V’s voice for typed lines', 'bool', snapshot.settings.vVoice, true,
+                ui.t('When you type a line to a companion, V says it out loud too, in a male or female V voice that matches your V. Only typed lines: push-to-talk is never replayed. V speaks first, then the companion answers; a slow V line is skipped so the reply is never delayed. Uses the voice you chose above. On by default.')
+                    .. (snapshot.settings.voiceProvider == 'convai' and (' ' .. ui.t('Works with the Pocket, OmniVoice, Voxtral or Inworld voices.')) or ''),
+                nil, {description = true}),
             readonly('voice-pack', 'OmniVoice pack', pack.known and (pack.installed and 'Installed' or 'Not installed') or 'Waiting for voice service',
                 'OmniVoice is an optional add-on for computers with a capable GPU. Pocket TTS needs nothing extra.'),
             readonly('voice-status', 'Voice status', voiceStatus,

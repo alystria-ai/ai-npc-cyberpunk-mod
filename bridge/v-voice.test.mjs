@@ -197,13 +197,26 @@ function feature(extra = {}) {
   return {voice, calls};
 }
 
-test('the setting is off by default and follows runtime/settings.json', () => {
+test('the setting is on unless the player turned it off, and follows runtime/settings.json', () => {
   const voice = new VVoice({voices: {male: {key: 'v-male'}}});
-  assert.equal(voice.enabled, false);
-  assert.equal(voice.update({}), false); assert.equal(voice.update({vVoice: 'yes'}), false);
-  assert.equal(voice.update({vVoice: true}), true); assert.equal(voice.enabled, true);
+  assert.equal(voice.enabled, false, 'until the settings are read');
+  assert.equal(voice.update(undefined), false); assert.equal(voice.enabled, false);
+  assert.equal(voice.update({}), true, 'a file that never stored it counts as on'); assert.equal(voice.enabled, true);
+  assert.equal(voice.update({vVoice: 'yes'}), false); assert.equal(voice.enabled, true);
   assert.equal(voice.update({vVoice: true}), false);
   assert.equal(voice.update({vVoice: false}), true); assert.equal(voice.enabled, false);
+  assert.equal(voice.update({}), true, 'no stored value is on again'); assert.equal(voice.update({vVoice: false}), true);
+  assert.equal(voice.update({vVoice: true}), true); assert.equal(voice.enabled, true);
+});
+
+test('beside a voice that cannot clone (the Convai cloud voice) the setting stays on and does nothing: no V line, no warm-up, no log', async () => {
+  const {voice, calls} = feature({planFor: () => ({engine: 'convai', language: 'en'}), ready: () => false});
+  assert.equal(voice.enabled, true);
+  // No dialogue volume is read for it either, and that is not reported as a problem.
+  assert.equal(voice.start(typed({turnContext: {version: 1, status: 'ready', gender: 'male'}})), null);
+  voice.warmUp(); await sleep(5);
+  assert.equal(calls.warm, 0); assert.deepEqual(calls.prepare, []); assert.deepEqual(calls.play, []); assert.deepEqual(calls.logs, []);
+  assert.equal(voice.enabled, true, 'still on');
 });
 
 test('only a typed line of the player gets a V line: never speech, a reaction, a phone chat, an add-on or a later group speaker', () => {

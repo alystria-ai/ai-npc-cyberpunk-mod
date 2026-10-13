@@ -198,7 +198,7 @@ Open **Companion Manager → Settings** to change options. Memory, Relationships
 | Body gestures (experimental) | On |
 | Expressive emotions | On (needs a local voice; choosing the Convai cloud voice keeps the voice and turns it Off) |
 | Follow-up questions | On |
-| V's voice for typed lines | Off (typed lines only; needs Pocket, OmniVoice, Mistral or Inworld, not the Convai cloud voice; see docs/V_VOICE.md) |
+| V's voice for typed lines | On (typed lines only; works with Pocket, OmniVoice, Mistral (Voxtral) or Inworld, stays on but does nothing beside the Convai cloud voice; see docs/V_VOICE.md) |
 | Auto-connect nearby characters | On (silent) |
 | Keep prepared voices | On |
 | Who can talk (character conversations) | Enabled |

@@ -387,7 +387,8 @@ function Instance:read()
     if tone then snapshot.voice = tone end
     -- The game's dialogue loudness, for V's voice for typed lines only (options.wantVolume). Not counted as something read: it
     -- is no part of the words the bridge writes, and a snapshot that holds only it is no snapshot.
-    if call(self.options.wantVolume) == true then
+    self.volumeWanted = call(self.options.wantVolume) == true
+    if self.volumeWanted then
         local level = self:optional('volume')
         if type(level) == 'number' and level == level and level >= 0 and level <= 1 then
             snapshot.dialogueVolume = math.floor(level * 100 + 0.5) / 100
@@ -473,7 +474,10 @@ end
 -- finish) reads the game once. A failed or empty read is not cached: the next turn tries again.
 function Instance:capture()
     local now = self:now()
-    if self.snapshot and self.at and now >= self.at and now - self.at < M.MAX_AGE then return self.snapshot end
+    -- A snapshot read while the volume was not wanted is not reused once it is (V's voice just became active), so the first line
+    -- after switching to a cloning voice already has the level.
+    if self.snapshot and self.at and now >= self.at and now - self.at < M.MAX_AGE
+        and (self.volumeWanted or call(self.options.wantVolume) ~= true) then return self.snapshot end
     local ok, snapshot, detail, clockSource, extras = pcall(self.read, self)
     -- One diagnostic line per real read (at most once per window): what the adapter built, so a live pass can compare the
     -- clock with the HUD and the place with the map.

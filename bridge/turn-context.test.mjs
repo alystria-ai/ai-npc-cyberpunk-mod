@@ -273,6 +273,20 @@ test('the adapter reads the clock, the district, V, the vehicle and the people b
   assert(snap.gender == 'male' and snap.vehicle == true)
 `));
 
+test('a snapshot cached while the volume was not wanted is read again once V’s voice becomes active, so the first line after switching voices has the level', () => lua$(`
+  local wanted, reads = false, 0
+  local ctx3 = api.new({native = setmetatable({volume = function() reads = reads + 1; return 0.6 end}, {__index = N}), now = function() return now end,
+    place = function() return state.place end, party = function() return {} end, wantVolume = function() return wanted end})
+  ctx3:reset('test')
+  assert(ctx3:capture().dialogueVolume == nil and reads == 0)
+  assert(ctx3:capture().dialogueVolume == nil and reads == 0, 'still cached while not wanted')
+  wanted = true
+  assert(ctx3:capture().dialogueVolume == 0.6 and reads == 1, 'wanted now: read again at once')
+  assert(ctx3:capture().dialogueVolume == 0.6 and reads == 1, 'then cached again')
+  wanted = false
+  assert(ctx3:capture().dialogueVolume == 0.6 and reads == 1, 'no extra read when it stops being wanted')
+`));
+
 test('the adapter reads the game’s dialogue volume only while V’s voice for typed lines asks for it, and never counts it as something read', () => lua$(`
   local wanted, level = false, 0.8123
   local ctx2 = api.new({native = setmetatable({volume = function() return level end}, {__index = N}), now = function() return now end,
