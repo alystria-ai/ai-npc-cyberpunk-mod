@@ -55,6 +55,9 @@ local CONTENT_FONT_SIZE = 22
 -- manager works without it, and a load failure only hides the Help entry.
 local support, supportSignature
 local supportLoaded, supportFactory = pcall(dofile, 'support-report.lua')
+-- Edit characters: opens the character editor page in the player's browser. Optional like Help: without it the row is not shown.
+local editor
+local editorLoaded, editorFactory = pcall(dofile, 'character-editor.lua')
 local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); file:close() end
@@ -893,6 +896,11 @@ local function ownKeyRows(snapshot)
             readonly('own-key-using', 'Conversations use', using,
                 'Which provider answers your conversations right now and, for Convai, which plan pays for them. Changes wait until no conversation is running.', {value = true}),
     }) do rows[#rows + 1] = item end
+    if editor then
+        rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
+            'Change a character’s bio, speaking style, speaking rules and memories in your browser. It works with Mistral, Groq and Local, not Convai. Changes are used from the next reply.',
+            function() return editor.request() end)
+    end
     return rows
 end
 
@@ -1342,6 +1350,11 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
         local created, instance = pcall(supportFactory.new, {ui = ui, party = function() return queue.list() end,
             developerMode = function() return developerMode() end})
         if created and type(instance) == 'table' then support = instance end
+    end
+    if editorLoaded and type(editorFactory) == 'table' and type(editorFactory.new) == 'function' then
+        local created, instance = pcall(editorFactory.new, {ui = ui,
+            serviceState = function() return support and support.serviceState() or 'unknown' end})
+        if created and type(instance) == 'table' then editor = instance end
     end
     provider = {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,

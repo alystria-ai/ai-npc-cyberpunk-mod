@@ -275,6 +275,29 @@ export class MemoryStore {
     this.#reindex(row); this.#touch(profileKey); this.#plan();
     return true;
   }
+  /**
+   * Replaces the text of a record (the editor). The record is pinned, so a later extraction never rewrites it and the record cap
+   * never drops it; its vector is cleared and the background job embeds the new text. Returns the record, or null when it is missing
+   * or the text is empty.
+   */
+  editRecord(profileKey, id, text) {
+    const row = this.rows.get(profileKey), record = row?.records.find(item => item.id === id), value = clean(text, this.limits.fact);
+    if (!record || !value) return null;
+    Object.assign(record, {text: value, vec: null, pinned: true, updated: this.now()});
+    this.#reindex(row); this.#touch(profileKey); this.#plan();
+    return {id: record.id, kind: record.kind, text: value, pinned: true, updated: record.updated};
+  }
+  /** Replaces the short summary of older talks (the editor); an empty text clears it. Returns the stored text, or null when it could not be kept. */
+  setSummary(profileKey, text) {
+    if (!KEY.test(profileKey ?? '')) return null;
+    const value = clean(text, this.limits.summary), row = value ? this.#row(profileKey) : this.rows.get(profileKey);
+    if (!row) return '';
+    row.summary = value; row.updated = this.now();
+    this.#touch(profileKey);
+    return value;
+  }
+  /** Can this store find lasting memories now (the embedding model is installed)? The editor says so next to the list. */
+  get learns() { return this.#available(); }
   pinRecord(profileKey, id, pinned = true) {
     const record = this.rows.get(profileKey)?.records.find(item => item.id === id);
     if (!record) return false;
@@ -502,6 +525,8 @@ export class MemoryStore {
         if (cosine > top) { top = cosine; match = record; }
       }
       const named = fact.replaces ? row.records.find(record => record.id === fact.replaces) : null;
+      // A memory the player wrote or edited (pinned) keeps its words: the new fact is dropped, not merged into it.
+      if ((match && top >= DUPLICATE && match.pinned) || named?.pinned) return;
       if (match && top >= DUPLICATE) {
         Object.assign(match, {text: fact.text, vec, updated: stamp, importance: Math.max(match.importance, fact.importance)});
         if (named && named !== match) row.records.splice(row.records.indexOf(named), 1);

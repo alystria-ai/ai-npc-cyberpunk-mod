@@ -394,6 +394,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/support-report.lua"
     },
     {
+      "source": "mod/character-editor.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/character-editor.lua"
+    },
+    {
       "source": "mod/movement-log.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/movement-log.lua"
     },

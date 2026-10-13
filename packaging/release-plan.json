@@ -334,6 +334,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/support-report.lua"
         },
         {
+          "source": "mod/character-editor.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/character-editor.lua"
+        },
+        {
           "source": "mod/movement-log.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/movement-log.lua"
         },
@@ -517,6 +521,11 @@
             "bridge/audio-delay.mjs",
             "bridge/battle-context.mjs",
             "bridge/caption-cues.mjs",
+            "bridge/character-editor-control.mjs",
+            "bridge/character-editor-page.mjs",
+            "bridge/character-editor-server.mjs",
+            "bridge/character-editor.mjs",
+            "bridge/character-overrides.mjs",
             "bridge/chat-memory-resets.mjs",
             "bridge/companion-actions.mjs",
             "bridge/companion-expressions.mjs",

@@ -54,6 +54,10 @@ import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
+import {CharacterOverrides} from './character-overrides.mjs';
+import {CharacterEditor} from './character-editor.mjs';
+import {EditorServer} from './character-editor-server.mjs';
+import {EditorControl} from './character-editor-control.mjs';
 import {PlayerKnowledge} from './player-knowledge.mjs';
 import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowledge.mjs';
 import {atomicFile as atomic} from './guarded-file.mjs';
@@ -518,7 +522,10 @@ const profileOfCharacter = config => {
   if (!providerOfCharacter.size) for (const table of [ids, relationshipRoutes.providerIds ?? {}]) for (const [profile, id] of Object.entries(table)) if (typeof id === 'string') providerOfCharacter.set(id, profile);
   return providerOfCharacter.get(config?.characterId);
 };
-const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: new PersonaBook(roster), routes: textRoutes,
+// The player's own edits of a character (docs/CHARACTER_EDITOR.md): read from disk once here, then a plain lookup on every turn.
+const characterOverrides = await CharacterOverrides.open({dir: resolve(stateDirectory, 'character-overrides'), log: message => console.error('[Editor] ' + message)});
+const personaBook = new PersonaBook(roster, {overrides: characterOverrides});
+const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
   // A companion action the reply asked for ("[DRIVE]", bridge/text-actions.mjs) reaches the game the way a Convai action does.
   deliverAction: message => companionActions.deliver(message)});
@@ -2131,6 +2138,11 @@ const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
 const supportReport = await SupportReportControl.open({game, runtime, stateDirectory, project,
   secrets: () => [...keys.secrets(), ...mistral.secrets()], knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
   bridge: () => ({busy: !!active, microphoneActive: !!mic.current})});
+// Settings > Edit characters: a local page, served only while it is open (bridge/character-editor-server.mjs).
+const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route});
+const editorControl = await EditorControl.open({server: new EditorServer({editor: characterEditor, log: message => console.error('[Editor] ' + message)}),
+  commandPath: resolve(runtime, 'editor-command.json'), statusPath: resolve(runtime, 'editor-status.json'),
+  log: message => console.error('[Editor] ' + message)});
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
@@ -2171,6 +2183,7 @@ watchFiles(runtime, {
   'microphone-command.json': () => pollMicrophone().catch(error => console.error('[CyberpunkConvai] Microphone poll:', error.message)),
   'phone-chat-input.json': () => pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)),
 }, {log: message => console.error('[CyberpunkConvai] ' + message)});
+const editorTimer = setInterval(() => { void editorControl.poll().catch(error => console.error('[CyberpunkConvai] Character editor:', error.message)); }, 500);
 async function shutdown() {
   if (stopped) return;
   await companionActions.revoke();
@@ -2181,6 +2194,7 @@ async function shutdown() {
   clearInterval(knowledgeTimer);
   clearInterval(memoryTimer);
   clearInterval(supportTimer); supportReport.close();
+  clearInterval(editorTimer); await editorControl.close().catch(() => {});
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
   await invitations.clear('service-stopped');
   await voiceRouteSync.catch(() => {});
