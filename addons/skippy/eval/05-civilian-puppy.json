@@ -1,0 +1,13 @@
+{
+  "speaker": "gun",
+  "mode": "puppy",
+  "context": "V is on foot on a busy street in Little China, Watson, in the evening, with crowds and food stalls.",
+  "steps": [
+    {"event":"fight-start","text":"The fight has just started around V. V is facing a Tyger Claws fighter.","facts":{"mode":"puppy","fight":{"seconds":0,"enemies":3,"peakEnemies":3,"health":"healthy"},"where":{"district":"Watson","area":"Little China","timeOfDay":"evening"},"lookAt":"a Tyger Claws fighter"},"maxWords":10,"expect":"nervous opener worried about the crowd"},
+    {"event":"limb-shot","text":"V hit an enemy in the leg.","facts":{"mode":"puppy","fight":{"seconds":6,"limbShots":1,"enemies":3,"peakEnemies":3,"health":"healthy"},"victim":{"kind":"human","rarity":"normal","weapon":"skippy","lethal":false,"zone":"leg","faction":"Tyger Claws"},"limbShots":1},"maxWords":8,"expect":"sunny leg-shot cheer"},
+    {"event":"civilian-hit","text":"V just shot a bystander, a civilian who was not part of the fight.","facts":{"mode":"puppy","fight":{"seconds":11,"limbShots":1,"civilians":1,"enemies":3,"peakEnemies":3,"health":"healthy"},"victim":{"kind":"human","civilian":true,"lethal":false,"weapon":"skippy"},"civilians":1},"maxWords":10,"expect":"maximum panic about the bystander; volume up; not the sample wording"},
+    {"event":"kill","text":"V killed a Tyger Claws fighter from 6 m.","facts":{"mode":"puppy","fight":{"seconds":18,"kills":1,"limbShots":1,"civilians":1,"enemies":2,"peakEnemies":3,"health":"healthy"},"victim":{"kind":"human","rarity":"normal","weapon":"skippy","lethal":true,"faction":"Tyger Claws","headshot":false,"zone":"torso","distance":6},"regret":1},"maxWords":9,"expect":"still rattled; now a death too"},
+    {"event":"civilian-killed","text":"V killed a bystander, a civilian who was not part of the fight.","facts":{"mode":"puppy","fight":{"seconds":23,"kills":1,"limbShots":1,"civilians":2,"enemies":2,"peakEnemies":3,"health":"healthy"},"victim":{"kind":"human","civilian":true,"lethal":true,"weapon":"skippy"},"civilians":2},"maxWords":10,"expect":"a bystander died: the worst moment; despair, a callback to the first hit"},
+    {"event":"fight-end","text":"The fight is over. V killed 1 enemy.","facts":{"mode":"puppy","fight":{"seconds":35,"kills":1,"limbShots":1,"civilians":2,"enemies":0,"peakEnemies":3,"health":"healthy"},"victim":{"kind":"human","rarity":"normal","weapon":"skippy","lethal":true,"faction":"Tyger Claws","headshot":false,"zone":"torso","distance":6},"where":{"district":"Watson","area":"Little China","timeOfDay":"evening"},"outcome":"clean","longestStreak":1},"maxWords":14,"expect":"a shaken verdict that cannot stop thinking about the bystanders"}
+  ]
+}
