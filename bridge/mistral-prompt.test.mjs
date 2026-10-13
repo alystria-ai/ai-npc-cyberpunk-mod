@@ -220,5 +220,7 @@ test('a remark is cut to its word limit at a sentence end, with a small token bu
   assert.match(capWords('Error and then nothing but a very long unbroken run of words without any stop at all in it', 6), /^Error and then nothing but a very long unbroken\.$/);
   assert.equal(overWords('one two three four five six seven eight nine ten eleven', 8), false, 'the slack is three words');
   assert.equal(overWords('one two three four five six seven eight nine ten eleven twelve', 8), true);
-  assert.ok(remarkTokens(10) >= 40 && remarkTokens(10) < LIMITS.maxTokens / 2 && remarkTokens(60) <= 160);
+  assert.equal(capWords('SCANNING... SCANNING... SCANNING... SCANNING... SCANNING... SCANNING...', 8), 'SCANNING...');
+  assert.equal(capWords('No, no, no. Not again.', 8), 'No, no, no. Not again.', 'a short repeat is kept');
+  assert.ok(remarkTokens(10) >= 40 &&remarkTokens(10) < LIMITS.maxTokens / 2 && remarkTokens(60) <= 160);
 });

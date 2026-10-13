@@ -77,12 +77,55 @@ and fewer dropped repeats.
 The two judges disagree on the level, not the order of the best lines. The built-in judge gives almost everything 8 or 9. The
 blind judge rates most lines as filler and picks out the same handful of strong ones.
 
+## The quality pass on branch `skippy-quality` (2026-10-13 and 14)
+
+What changed (all of it is committed): `cleanReply` keeps `*emphasis*` (only the asterisks go); a new remark is also checked against
+the persona's and the mode's example lines (inside the shared repeat check, with the one second try); a remark is cut at a sentence
+end near its word limit with a small token budget; the eval judge sees the example lines and the full facts; the Skippy builder
+names a rotated joke style (device kit) for live and stock lines, says distance only from 30 m, gives exact numbers in plain words
+(wanted level, "no hit rate is known"), tells the model how recent lines opened and which jokes are overused, remembers used
+jokes across fights, names a comic prop, and says "no asterisks"; the persona is in the manifest (14 rules cut to the API's 12).
+
+Same 12 test fights, Mistral, ministral-8b, one run each, no fallback to 14B:
+
+| Run | Lines | Built-in judge | Blind judge (Haiku, strict) | Dropped repeats | Broken | Wrong fact | Copied sample |
+|---|---|---|---|---|---|---|---|
+| Before (v6, writer's final) | 110 | 8.24 | 4.5 (4.47 to 4.53) | 10 | 1 | 4 | 2 |
+| Pass 1 (device bridge, stricter rubric) | 128 | 7.90 | 4.6 | 12 | 1 | 3 | 2 |
+| Pass 2 (props, rules, the shared second try) | 128 | 7.67 | 4.43, then 5.17 on the same lines | 0 | 0 | 4 | 0 |
+| Pass 3 (wanted level and hit rate in plain words) | 128 | 7.70 | 4.67 | 0 | 1 | 2 | 0 |
+
+The built-in judge now uses the stricter rubric, so its 7.7 is not comparable with the old 8.2. The blind judge scores a 30-line
+random sample. The first pass 2 score of 4.43 was wrong in one respect: the judge called seven lines "repeats" because they
+appeared as a previous line in another block; the same lines judged with that fixed gave 5.17. The spread between two judge runs
+on the same lines (4.43 and 5.17) is as big as the gain between passes, so the honest reading is a blind mean of about 5, up from
+about 4.5.
+
+**Target of 7 is not reached and, with ministral-8b, is not reachable by prompting.** 5 on this scale is "fine, forgettable"; the best
+lines get 6 or 7 (a handful in 30). The writer's own test showed ministral-14b scores the same (4.47) as 8b, so a larger Ministral
+does not help either; Mistral Small could not be tested, the free key rate-limited it again. What the pass did buy: zero dropped
+repeats (the shared second try rewrites a repeat instead of dropping it), no copied examples, fewer stray asterisks (an unpaired one still slips through now and then), no "from 9 m",
+no wrong "BE THE." cuts, fewer invented numbers (2 to 4 in 30, down from 4 to 6).
+
+Best new lines (the judge's top picks, exactly as spoken):
+
+| # | Event | Line | Blind score |
+|---|---|---|---|
+| 1 | first-kill | Five stars for this headshot. Renewing my subscription to violence. | 7 |
+| 2 | reinforcements | Provocation. Firmware update incoming. SEVEN IS THE NEW FOUR. | 6 |
+| 3 | fight-start | Seven targets. Line them up like a tax audit. | 6 |
+| 4 | near-death | Cancel my gym membership. I'm your emergency session. | 6 |
+| 5 | first-kill | Maelstroms owe taxes. This one just filed late. | 6 |
+| 6 | miss-streak | Seven shots. Seven MISSES. Warranty EXPIRES AFTER THIS. | 6 |
+
 ## What still goes wrong
 
-- **Over the word limit:** about a third of the lines.
-- **Cross-fight motifs:** these come back from fight to fight ("need a cane soon", "bum bum be-dum" in prepared lines, warranty
-  clauses). The 8-line repeat window cannot see them.
-- **Wrong numbers:** distances rounded wrongly, or "Seven more" when the count went from 4 to 7.
-- **Lost words:** words inside asterisks are deleted until `cleanReply` is fixed.
+- **Over the word limit:** a few lines by one to three words (the cut allows three words of slack); talk replies are not limited.
+- **Cross-fight motifs:** the jokes now rotate and the overused ones are named, but props and punchlines still recur across fights
+  ("lost property", "trivia", "subscription"), and "bum bum be-dum" shows up as an opener.
+- **Wrong numbers:** fewer, but a model still turns "excellent aim" into a percentage now and then.
+- **Non-sequitur jokes:** the main weakness now. The 8B model reaches for a prop and the joke does not connect to the moment.
+- **Looping:** one reply was "SCANNING... SCANNING..." six times; `capWords` now keeps a word said four times in a row once.
+- **Lost words:** fixed in this pass (asterisks around emphasised words are dropped, the word stays).
 - **Not tested:** Mistral Small (the free key was rate limited on every call) and the Local AI, because no GPU job was allowed in
   this pass.

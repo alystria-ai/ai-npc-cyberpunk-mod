@@ -345,12 +345,26 @@ const wordCount = text => (String(text ?? '').match(/\S+/g) ?? []).length;
 /** Does a remark already hold more than `maxWords` plus the slack? (The stream stops at this point; capWords cuts the finished text.) */
 export const overWords = (text, maxWords) => wordCount(text) > maxWords + REMARK_SLACK_WORDS;
 
+/** A small model sometimes loops ("SCANNING... SCANNING... SCANNING..."): a word said four or more times in a row is kept once, with its last punctuation. */
+export function collapseStutter(text) {
+  const words = String(text ?? '').match(/\S+/g) ?? [];
+  const bare = word => word.toLowerCase().replace(/[^\p{L}\p{N}']/gu, '');
+  const kept = [];
+  for (let at = 0; at < words.length;) {
+    let end = at + 1;
+    while (end < words.length && bare(words[end]) && bare(words[end]) === bare(words[at])) end++;
+    kept.push(end - at >= 4 ? words[end - 1] : words.slice(at, end).join(' '));
+    at = end;
+  }
+  return kept.join(' ');
+}
+
 /**
  * A remark cut to its word limit (plus the slack): at the last sentence end inside it, else at the last clause break or word, with a
  * full stop. A remark within the limit comes back as it was.
  */
 export function capWords(text, maxWords) {
-  const value = String(text ?? '').trim();
+  const value = collapseStutter(String(text ?? '').trim());
   if (!Number.isInteger(maxWords) || maxWords < 1 || wordCount(value) <= maxWords + REMARK_SLACK_WORDS) return value;
   const limit = maxWords + REMARK_SLACK_WORDS;
   let end = 0, seen = 0;

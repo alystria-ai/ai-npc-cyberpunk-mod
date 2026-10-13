@@ -266,7 +266,7 @@ function fightLine(fight) {
   if (fight.downed > 0) parts.push(`${fight.downed} put down alive`);
   if (fight.limbShots > 0) parts.push(plural(fight.limbShots, 'limb shot'));
   if (fight.civilians > 0) parts.push(`${plural(fight.civilians, 'bystander')} hit`);
-  if (fight.accuracy) parts.push(`V's aim is ${fight.accuracy}`);
+  if (fight.accuracy) parts.push(`V's aim is ${fight.accuracy} (no hit rate is known)`);
   if (fight.enemies !== undefined) parts.push(fight.enemies === 0 ? 'no enemy fighting now' : `${plural(fight.enemies, 'enemy')} fighting now`);
   if (fight.health) parts.push(`V is ${fight.health}`);
   if (fight.stealthOpening) parts.push('it began from stealth');
@@ -277,7 +277,7 @@ function fightLine(fight) {
 function whereLine(where) {
   if (!where) return '';
   const place = join([where.area, where.district]);
-  return `Where: ${join([place, where.timeOfDay ? `${where.timeOfDay}` : '', where.heat ? `police heat ${where.heat} of 5` : ''])}.`;
+  return `Where: ${join([place, where.timeOfDay ? `${where.timeOfDay}` : '', where.heat ? `police wanted level ${where.heat} of 5, not a number of officers` : ''])}.`;
 }
 
 const WHOLE = value => typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : null;
@@ -291,7 +291,7 @@ const EXTRAS = {
   missed: value => `${WHOLE(value)} shots in a row hit nothing`,
   healthPct: value => `V has ${WHOLE(value)} percent health`,
   lostPct: value => `V just lost ${WHOLE(value)} percent health in a couple of seconds`,
-  heat: value => `police heat is now ${WHOLE(value)} of 5`,
+  heat: value => `the police wanted level is now ${WHOLE(value)} of 5, not a number of officers`,
   bodyPart: (value, facts) => `the ${value} came off${facts.explosion === true ? ' in an explosion' : ''}`,
   enemies: value => `${plural(WHOLE(value), 'enemy')} still fighting`,
   peakEnemies: value => `up to ${plural(WHOLE(value), 'enemy')} at once so far`,
