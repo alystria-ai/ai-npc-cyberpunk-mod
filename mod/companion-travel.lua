@@ -135,7 +135,10 @@ function M.laneFrame(s,slot)
             if i==2 then position=space.offset(a,s.direction,0,-remaining) end
         end
     end
-    local lead=math.min(1.25,s.speed*0.4)
+    -- The lane point leads V a little so a follower pacing V is not left behind, but a
+    -- running stop carries her on: with a 1.25 m lead the first stop after a departure
+    -- ended 0.6 m ahead of V (live 2026-10-13). Beside or slightly behind is the place.
+    local lead=math.min(0.6,s.speed*0.25)
     return {position=space.offset(position,direction,0,lead),direction=direction}
 end
 return M

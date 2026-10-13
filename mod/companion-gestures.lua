@@ -379,7 +379,8 @@ function M.new(options)
         if s.homeAt and not s.driftNoted and s.entry.position and distance(s.homeAt, s.entry.position) > policy.driftNote then
             s.driftNoted = true
             note(s, 'drift', {metres = distance(s.homeAt, s.entry.position),
-                after = s.activeAt and self.clock - s.activeAt, component = s.component})
+                after = s.activeAt and self.clock - s.activeAt, component = s.component,
+                from = copy(s.homeAt), to = copy(s.entry.position)})
         end
         if s.flavour then
             -- Signature idle: leave when its time is up or a conversation starts

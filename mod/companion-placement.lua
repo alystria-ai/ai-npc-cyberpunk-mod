@@ -62,8 +62,12 @@ end
 -- A standing body can fit in a pocket that no walking body can leave. Sweep
 -- the native route's first metres back toward V, as walking will.
 local exitLength=1.5
-local function exitClear(points,body)
-    local remaining=exitLength
+-- Recovery placements (options.sweepRoute) sweep the whole route from V's foothold to the spot, not
+-- only its last metres: a navmesh route can cross a fence, bars or a gate her body cannot pass, and a
+-- copy put behind them is out of V's reach (live 2026-10-13, Evelyn behind bars).
+local fullRoute=8
+local function exitClear(points,body,length)
+    local remaining=length or exitLength
     for index=#points,2,-1 do
         local from,to=points[index],points[index-1]
         if not point(from) or not point(to) then return false end
@@ -123,12 +127,13 @@ function M.find(player,preferred,occupied,body,accept,options)
                         if points and #points>0 and point(points[#points])
                             and distance(points[#points],candidate)<=.65
                             and route:CalculateLength()<=distance(source.point,candidate)+3 then
-                            local sameFloor=true
+                            local sameFloor,level=true,true
                             for _,p in ipairs(points) do
                                 if not point(p) or math.abs(p.z-origin.z)>.9 then sameFloor=false; break end
+                                if math.abs(p.z-origin.z)>.3 then level=false end
                             end
                             if sameFloor then
-                                local free,exitWhy,exitPending=exitClear(points,body)
+                                local free,exitWhy,exitPending=exitClear(points,body,options.sweepRoute and level and fullRoute or nil)
                                 if exitPending then return nil,nil,true end
                                 if not free and exitWhy and exitWhy:find('could not verify',1,true) then return nil,exitWhy end
                                 if free and (not accept or accept(candidate)) then

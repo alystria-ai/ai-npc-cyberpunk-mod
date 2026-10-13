@@ -5,7 +5,7 @@ local clearance=dofile('companion-clearance.lua')
 local M={}
 local recoveryPolicy={nearObstacle=6,travelHorizon=6,headingChange=45,
     planSpan=1.8,planRise=.2,escapeCommandSpan=2.2,travelCommandSpan=4,rollingGap=.35,
-    stayNear=4.5,detourGapSlack=1.5,detourExtraLength=6}
+    stayNear=4.5,detourGapSlack=1.5,detourExtraLength=6,cautiousGap=4}
 function M.useSpatialBudget(value) clearance.useBudget(value) end
 -- Optional native command-state reads (mod/companion-tick-native.lua). Nil keeps the original chain.
 local nativeTick
@@ -413,10 +413,97 @@ local function leavingFrom(s,from,to)
         if math.abs((to.z or 0)-(from.z or 0))<=.35 then return nil end
         return from
     end
-    return space.offset(from,space.bearing(from,to),0,math.min(s.clearance and s.clearance.radius or .4,length*.5))
+    local ahead=math.min(s.clearance and s.clearance.radius or .4,length*.5)
+    local start=space.offset(from,space.bearing(from,to),0,ahead)
+    -- On the segment itself: on a climb the start point is higher than the feet, or a
+    -- stair leg would look steeper than it is and fail the step rule (live 2026-10-13).
+    start.z=(from.z or 0)+((to.z or 0)-(from.z or 0))*ahead/length
+    return start
 end
 local function atFeet(point,feet)
     return space.ground(point,feet)<=.05 and math.abs((point.z or 0)-(feet.z or 0))<=.6
+end
+
+-- Stairs and ramps (live 2026-10-13: Carol at the foot of a 33 degree flight in
+-- Heywood stopped there, was marked stranded and was teleported). Every
+-- physics box below has a flat bottom a fixed step above the route. Ground that
+-- rises under that box (the next tread, 0.3-0.4 m higher within the body radius)
+-- is itself a Static hit, so the game's own navmesh route up a flight was
+-- refused as scenery. The checks below raise the bottom of the box by what the
+-- slope rises across the body radius (and shorten it by the same amount, so the
+-- head end is unchanged). Walls, furniture and people still reach above that
+-- band. Flat ground and ordinary kerbs take the original check unchanged.
+local ramp={minSlope=.25,maxLift=.6,sample=.8,searchRadius=1.1,tread=.1,step=.35}
+local function bodyShape(s) return s.clearance or {radius=.4,height=2.1,kind='humanoid'} end
+local function raisedShape(s,lift)
+    local shape=bodyShape(s)
+    return {radius=shape.radius,height=shape.height-lift,kind=shape.kind}
+end
+-- `following` is the slope of the leg that continues this one: each end box also
+-- reaches one body radius past the leg, over the foot of the next climb.
+local function rampLift(from,to,shape,following)
+    local length=space.ground(from,to)
+    local rise=math.abs((to.z or 0)-(from.z or 0))
+    if length<.05 then return 0 end
+    local slope=math.max(rise/length,following or 0)
+    if slope<ramp.minSlope then return 0 end
+    local count=clearance.segmentBoxes(from,to)
+    -- The box bottom sits `step` above the lower end of one box; the ground
+    -- rises by the box's own rise plus the slope across the body radius.
+    local lift=rise/count+slope*shape.radius+ramp.tread-(ramp.step)
+    return math.max(0,math.min(ramp.maxLift,lift))
+end
+-- A swept body along a route that climbs or descends.
+local function sweep(s,from,to,progress,projection,following)
+    local lift=rampLift(from,to,bodyShape(s),following)
+    if lift<=0 then return clearance.segment(from,to,s.clearance,progress,projection) end
+    local raised=function(p) return {x=p.x,y=p.y,z=(p.z or 0)+lift,w=p.w or 1} end
+    local clear,reason,deferred,rejection=clearance.segment(raised(from),raised(to),raisedShape(s,lift),
+        progress,projection)
+    if rejection and rejection.from then
+        -- Receipts name the route, not the raised copy that was tested.
+        rejection.from={x=from.x,y=from.y,z=from.z}
+        rejection.to={x=to.x,y=to.y,z=to.z}
+        rejection.rampLift=lift
+    end
+    return clear,reason,deferred,rejection
+end
+-- Slope of the navmesh around a point along `direction`, from two native
+-- queries. Nil when the navmesh cannot say. Used only after a check has
+-- already failed, never per frame.
+local function groundSlope(s,point,direction)
+    if not direction then return nil end
+    local ok,slope=pcall(function()
+        local nav=Game.GetAINavigationSystem()
+        local success=Enum.new('worldNavigationRequestStatus','OK')
+        local found={}
+        for index,offset in ipairs({-ramp.sample,ramp.sample}) do
+            local result=nav:FindPointInSphereForCharacter(vector(space.offset(point,direction,0,offset)),
+                ramp.searchRadius,s.npc)
+            if not (result and result.status==success and clearance.isPoint(result.point)) then return nil end
+            found[index]=result.point
+        end
+        local run=space.ground(found[1],found[2])
+        if run<.4 then return nil end
+        return (found[2].z-found[1].z)/run
+    end)
+    return ok and slope or nil
+end
+local function scenery(rejection)
+    return rejection and not rejection.unavailable and (rejection.group=='Static' or rejection.group=='Terrain')
+end
+-- A standing body at a destination. `direction` is the way the route arrives
+-- (any horizontal direction along the ground slope will do).
+local function standing(s,point,direction)
+    local clear,reason,deferred,rejection=clearance.body(point,s.clearance)
+    if clear~=false or not scenery(rejection) then return clear,reason,deferred,rejection end
+    local slope=groundSlope(s,point,direction)
+    if not slope or math.abs(slope)<ramp.minSlope then return clear,reason,deferred,rejection end
+    local lift=math.min(ramp.maxLift,math.abs(slope)*bodyShape(s).radius+ramp.tread)
+    local raised={x=point.x,y=point.y,z=(point.z or 0)+lift,w=point.w or 1}
+    local retry,retryReason,retryDeferred,retryRejection=clearance.body(raised,raisedShape(s,lift))
+    if retry==true or retryDeferred then return retry,retryReason,retryDeferred,retryRejection end
+    return clear,reason,deferred,rejection
 end
 
 local function routeClear(s,c,target,following,options)
@@ -475,7 +562,7 @@ local function routeClear(s,c,target,following,options)
     end
     local clear,reason,deferred,rejection
     if not probe.body and not options.horizon then
-        clear,reason,deferred,rejection=clearance.body(probe.target,s.clearance)
+        clear,reason,deferred,rejection=standing(s,probe.target,space.bearing(probe.origin,probe.target))
         if deferred then return nil,nil,true end
         if not clear then return reject(reason,'destination',rejection) end
         probe.body=true
@@ -524,7 +611,8 @@ local function routeClear(s,c,target,following,options)
                 end
                 if #clipped==0 then return reject('No clear navigation route') end
                 local endpoint=clipped[#clipped]
-                local clear,reason,deferred,rejection=clearance.body(endpoint,s.clearance)
+                local clear,reason,deferred,rejection=standing(s,endpoint,
+                    space.bearing(clipped[#clipped-1] or probe.origin,endpoint))
                 if deferred then probe.horizonChoice=choice; return nil,nil,true end
                 if clear then
                     points=clipped;probe.target=space.copy(endpoint);probe.body=true
@@ -583,7 +671,7 @@ local function routeClear(s,c,target,following,options)
         end
     end
     if not probe.body then
-        clear,reason,deferred,rejection=clearance.body(probe.target,s.clearance)
+        clear,reason,deferred,rejection=standing(s,probe.target,space.bearing(probe.origin,probe.target))
         if deferred then return nil,nil,true end
         if not clear then return reject(reason,options.horizon and 'path' or 'destination',rejection) end
         probe.body=true
@@ -609,8 +697,11 @@ local function routeClear(s,c,target,following,options)
             from=leavingFrom(s,from,leg.to)
         end
         if from then
-            clear,reason,deferred,rejection=clearance.segment(from,leg.to,s.clearance,
-                leg.progress,leg.nativeOriginProjection)
+            local after=probe.legs[probe.next+1]
+            local afterRun=after and space.ground(after.from,after.to) or 0
+            local afterSlope=afterRun>.05 and math.abs((after.to.z or 0)-(after.from.z or 0))/afterRun or nil
+            clear,reason,deferred,rejection=sweep(s,from,leg.to,
+                leg.progress,leg.nativeOriginProjection,afterSlope)
             if deferred then return nil,nil,true end
             if not clear then return reject(reason,'path',rejection,probe.next) end
         end
@@ -633,7 +724,7 @@ local function routeClear(s,c,target,following,options)
             if not nativeOriginProjection and atFeet(previous,c.position) then from=leavingFrom(s,previous,point) end
             clear,reason,deferred,rejection=true,nil,nil,nil
             if from then
-                clear,reason,deferred,rejection=clearance.segment(from,point,s.clearance,
+                clear,reason,deferred,rejection=sweep(s,from,point,
                     nil,nativeOriginProjection)
             end
             if deferred then return nil,nil,true end
@@ -648,7 +739,7 @@ local function routeClear(s,c,target,following,options)
         -- The actual feet are where the body already is; only the route ahead
         -- and the standing destination are checked.
         local currentTarget=options.horizon and probe.target or target
-        clear,reason,deferred,rejection=clearance.body(currentTarget,s.clearance)
+        clear,reason,deferred,rejection=standing(s,currentTarget,space.bearing(probe.origin,currentTarget))
         if deferred then return nil,nil,true end
         if not clear then return reject(reason,options.horizon and 'path' or 'destination',rejection) end
         if not options.horizon and space.distance(probe.target,target)>.005 then
@@ -658,7 +749,7 @@ local function routeClear(s,c,target,following,options)
                     {playerPosition=space.copy(c.frame.position),from=space.copy(probe.target),to=space.copy(target),
                     distance=distance,margin=margin})
             end
-            clear,reason,deferred,rejection=clearance.segment(probe.target,target,s.clearance)
+            clear,reason,deferred,rejection=sweep(s,probe.target,target)
             if deferred then return nil,nil,true end
             if not clear then return reject(reason,'connector',rejection) end
             probe.legs[#probe.legs+1]={from=space.copy(probe.target),to=space.copy(target),progress={}}
@@ -738,7 +829,17 @@ local function retire(s)
     s.nativeRetryAt,s.nativeLegFailures=nil,0
     s.recoveryTicket,s.completedEscapeTicket=nil,nil
 end
-function M.teleport(s,destination,yaw)
+-- Every move of a companion's feet by the mod goes through here or through the lift carry and the
+-- vehicle exit placement, and each leaves one probe line naming its reason ('Companion teleport',
+-- via the convaiTeleportLog global set in init.lua). `reason` says which code path asked.
+local function teleportLog(s,reason,destination,yaw)
+    local hook=rawget(_G,'convaiTeleportLog')
+    if not hook then return end
+    local from,actor
+    pcall(function() from=space.copy(s.npc:GetWorldPosition()); actor=tostring(s.npc:GetEntityID().hash) end)
+    pcall(hook,{reason=reason or 'unspecified',from=from,to=space.copy(destination),actor=actor})
+end
+function M.teleport(s,destination,yaw,reason)
     M.resumeHold(s)
     if not cancel(s) then return nil end
     local lookReleased=clearLook(s)
@@ -749,7 +850,9 @@ function M.teleport(s,destination,yaw)
     command.rotation=yaw or 0
     command.doNavTest=false
     s.ticket,s.kind,s.stage,s.target='teleport','teleport','teleport',space.copy(destination)
-    return submit(s,command)
+    local sent=submit(s,command)
+    if sent then teleportLog(s,reason,destination,yaw) end
+    return sent
 end
 -- Lift cars (companion-passage.lua): a short straight walk onto or off a car
 -- floor the navmesh does not cover (seen working live 2026-10-08 08:51:52Z),
@@ -805,7 +908,15 @@ local function followGoal(s,c)
     -- Match the native follower's radial stop. A lane/old gathering anchor
     -- would certify a different path than the AIFollowTargetCommand executes.
     local distance=followDistance(s,c)
-    return space.offset(c.frame.position,space.bearing(c.position,c.frame.position),0,-distance)
+    local goal=space.offset(c.frame.position,space.bearing(c.position,c.frame.position),0,-distance)
+    -- Between her and V the ground may climb (stairs, a ramp). The stand-off
+    -- point lies on that climb, not at V's own height, or the bounded
+    -- projection finds no navmesh within reach of it. Take the height on the
+    -- straight line from V toward her, which is the flight's own line.
+    local run=space.ground(c.position,c.frame.position)
+    local rise=c.frame.position.z-c.position.z
+    if run>distance and math.abs(rise)>.3 then goal.z=c.frame.position.z-rise*distance/run end
+    return goal
 end
 local function followHorizon(c,target)
     -- A distant catch-up needs the same bounded admission on its first run as
@@ -1219,7 +1330,7 @@ local function waypointMotion(s,c)
             from=leavingFrom(s,from,segment.to)
         end
         if from then
-            clear,reason,deferred,rejection=clearance.segment(from,segment.to,s.clearance,
+            clear,reason,deferred,rejection=sweep(s,from,segment.to,
                 nil,segment.nativeOriginProjection)
             if not clear then return clear,reason,deferred,rejection end
         end
@@ -1249,9 +1360,58 @@ local function straightAhead(legs,at)
     end
     return ahead,direction
 end
+-- The ground under the end of a level sweep: its height and the climb per
+-- metre across the next metre, from two native queries. The navmesh points
+-- nearest a level point lie on the surface itself, so their height over their
+-- run is the slope. Nil when the navmesh has no such surface (a different
+-- floor, no route). Only asked after a level sweep already failed on scenery.
+local function groundAhead(s,from,direction,distance)
+    local ok,ground=pcall(function()
+        local nav=Game.GetAINavigationSystem()
+        local success=Enum.new('worldNavigationRequestStatus','OK')
+        local found={}
+        for index,offset in ipairs({distance,distance+1}) do
+            local at=space.offset(from,direction,0,offset)
+            -- The second query is centred at the first one's height, so a steep flight stays in reach.
+            if found[1] then at.z=found[1].z end
+            local result=nav:FindPointInSphereForCharacter(vector(at),1.5,s.npc)
+            if not (result and result.status==success and clearance.isPoint(result.point))
+                or space.ground(result.point,at)>1 then return nil end
+            found[index]=result.point
+        end
+        local run=space.ground(found[1],found[2])
+        if run<.4 then return nil end
+        return {z=found[1].z,slope=(found[2].z-found[1].z)/run}
+    end)
+    return ok and ground or nil
+end
+-- The moving-feet guard sweeps straight ahead of her at her own height. Where
+-- the ground climbs (a flight of stairs, a ramp) that level box meets the next
+-- treads within a metre, so a follower at the foot of stairs was held as
+-- blocked by the staircase she was about to climb (live 2026-10-13, rejection
+-- stage 'motion', Static, one level box 0.35-2.2 m above her feet). A level hit
+-- on scenery is therefore repeated once from her feet to the ground at the end
+-- of the sweep, with the box raised by what that slope rises across her body
+-- radius; a wall or a car still fails because it stands above the raised band.
 local function sweepAhead(s,from,direction,distance)
     local to=space.offset(from,direction,0,distance)
-    return clearance.segment(leavingFrom(s,from,to),to,s.clearance)
+    local start=leavingFrom(s,from,to)
+    local clear,reason,deferred,rejection=clearance.segment(start,to,s.clearance)
+    if clear~=false or not scenery(rejection) then return clear,reason,deferred,rejection end
+    local reach=math.min(distance,2.5)
+    local ground=groundAhead(s,from,direction,reach)
+    -- The steeper of the climb at the end and the climb over the whole sweep (the top of a flight
+    -- ends in a flat landing, the foot starts on flat ground).
+    local slope=ground and math.max(math.abs(ground.slope),math.abs(ground.z-from.z)/reach)
+    if not slope or slope<ramp.minSlope or slope>1.4 then return clear,reason,deferred,rejection end
+    local lift=math.min(ramp.maxLift,slope*bodyShape(s).radius+ramp.tread)
+    local lead=start and space.ground(from,start) or 0
+    local function raised(p,z) return {x=p.x,y=p.y,z=z+lift,w=1} end
+    local retryStart=raised(start or from,from.z+(ground.z-from.z)*math.min(1,lead/reach))
+    local retryTo=raised(space.offset(from,direction,0,reach),ground.z)
+    local retry,retryReason,retryDeferred,retryRejection=clearance.segment(retryStart,retryTo,raisedShape(s,lift))
+    if retry==true or retryDeferred then return retry,retryReason,retryDeferred,retryRejection end
+    return clear,reason,deferred,rejection
 end
 
 local function watchRoute(s,c,canPlan)
@@ -1325,6 +1485,17 @@ function M.guardMotion(s,c)
     return watchRoute(s,c,false)
 end
 
+-- Pace of one owned leg. An escape detour (a parked car, a cab at the door)
+-- is cautious only while she is close to a standing V. Live 2026-10-13, leaving
+-- a Delamain cab: the detour legs walked at 1 m/s while V was 5-9 m away and
+-- still going, because 'escape' forced Walk whatever the gap. With V far or on
+-- the move she paces by the gap like any follower (run or sprint).
+local function legGait(mode,intent,c)
+    local requested=intent.gait or 'Walk'
+    if mode~='escape' then return requested end
+    local near=(c.playerGap or 0)<=recoveryPolicy.cautiousGap and not (c.frame and c.frame.moving)
+    return near and 'Walk' or requested
+end
 local function walk(s,intent,c)
     local cmd=NewObject('AIMoveToCommand')
     local waypoint=s.execution and s.executionTarget
@@ -1334,7 +1505,7 @@ local function walk(s,intent,c)
     if not waypoint and intent.face then local facing=AIPositionSpec.new(); facing:SetEntity(c.player); cmd.facingTarget=facing end
     -- Escape stays cautious; travel retains measured intent pace. Intermediate
     -- checkpoints are not new social arrivals, stop animations or facing requests.
-    local gait=waypoint and s.execution.mode=='escape' and 'Walk' or intent.gait or 'Walk'
+    local gait=waypoint and legGait(s.execution.mode,intent,c) or intent.gait or 'Walk'
     cmd.movementType=Enum.new('moveMovementType',gait)
     cmd.desiredDistanceFromTarget=intent.face and 0.05 or 0.18
     cmd.finishWhenDestinationReached=not waypoint and intent.finish==true
@@ -1427,7 +1598,7 @@ local function continueWaypoint(s,plan,intent,c,index,route)
         or s.command.finishWhenDestinationReached or s.face or intent.face then return false end
     local final=index==#plan.points
     if final and plan.mode=='travel' and not plan.following and intent.finish then return false end
-    local gait=plan.mode=='escape' and 'Walk' or intent.gait or 'Walk'
+    local gait=legGait(plan.mode,intent,c)
     if gait~=s.gait then return false end
     local target=plan.points[index]
     local ok=pcall(function()
@@ -1461,7 +1632,7 @@ local function commitWaypoint(s,plan,intent,c,index,minimum)
             -- still needs the stricter standing-body check (the swept route
             -- allows a small kerb), but not a second full navigation/box pass.
             local rejection
-            clear,reason,deferred,rejection=clearance.body(target,s.clearance)
+            clear,reason,deferred,rejection=standing(s,target,space.bearing(c.position,target))
             if rejection then
                 rejection.stage,rejection.at,rejection.ticket='destination',s.clock,s.ticket
                 rejection.origin,rejection.target=space.copy(c.position),space.copy(target)
@@ -1548,7 +1719,8 @@ local function handoff(s,plan,intent,c,canPlan)
             if nextPlan then
                 local index=chooseWaypoint(nextPlan,c,1)
                 local prefix=routePrefix(route,nextPlan.points[index])
-                local clear,_,waiting=clearance.body(nextPlan.points[index],s.clearance)
+                local clear,_,waiting=standing(s,nextPlan.points[index],
+                    space.bearing(c.position,nextPlan.points[index]))
                 if waiting then preserveOwner(s);return true end
                 if clear and prefix and continueWaypoint(s,nextPlan,intent,c,index,prefix) then
                     s.target=space.copy(followGoal(s,c))

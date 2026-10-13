@@ -8,6 +8,16 @@ local social={attend_step=true,attend_settle=true,attend_turn=true,attend=true}
 -- side point after it) every `retry` seconds at most, then wait in place.
 local refused={accept=2,near=2.5,retry=3}
 local arrivals={approach=true,braking=true}
+-- Height between her feet and V's beyond which a lane beside V is the wrong
+-- plan: stairs or a ramp lie between them, so she follows by the navmesh
+-- (live 2026-10-13: a lane move was refused at 1.2-1.4 m of rise and the
+-- stalled alongside walk only became a follow after the gap grew past that).
+local climb=1.0
+-- A stop that leaves her this far ahead of V (along V's travel direction) is
+-- corrected once by a short step to her place. The lane target leads V while
+-- V moves and her stop animation carries her on, so the first stop after a
+-- departure usually ends ahead of V (live 2026-10-13, 0.6 m ahead and 1.5 m aside).
+local aheadLimit=.5
 
 function M.new(id)
     return {id=id or 0,phase='joining',clock=0,since=0,sequence=0,stillFor=0,
@@ -44,7 +54,14 @@ local function pace(c,catching)
     if speed>1.45 or catching then return 'Run' end
     return 'Walk'
 end
+local function aheadOfV(c)
+    local direction=c.frame and c.frame.direction
+    if not direction or not c.frame.position then return false end
+    local along=(c.position.x-c.frame.position.x)*direction.x+(c.position.y-c.frame.position.y)*direction.y
+    return along>aheadLimit
+end
 local function accept(s,c)
+    s.aheadCheck=nil
     s.parked=space.copy(c.position)
     s.arrivalGoal=nil
     s.focusFor=0
@@ -53,6 +70,7 @@ local function accept(s,c)
     return emit(s,glance(c))
 end
 local function approach(s,c,reason)
+    s.aheadCheck=nil
     s.arrivalGoal=space.copy(c.restTarget)
     s.arrivalStop=c.frame.stop
     enter(s,'approach',reason)
@@ -114,7 +132,7 @@ function M.decide(s,c,dt)
         end
         if c.frame.moving then
             local chasing=c.playerGap>5.0 or c.targetGap>6.0
-                or math.abs(c.position.z-c.frame.position.z)>1.4
+                or math.abs(c.position.z-c.frame.position.z)>climb
             -- Preserve an ongoing search only while its intended operation is
             -- still current. An arrival cannot retain finish/Walk as V departs,
             -- and a distant walking copy must be allowed to become a follower.
@@ -182,7 +200,7 @@ function M.decide(s,c,dt)
         if c.frame.rawSpeed<0.28 and (s.phase=='alongside' or s.phase=='catch_up') then
             return emit(s)
         end
-        local chasing=c.playerGap>5.0 or c.targetGap>6.0 or math.abs(c.position.z-c.frame.position.z)>1.4
+        local chasing=c.playerGap>5.0 or c.targetGap>6.0 or math.abs(c.position.z-c.frame.position.z)>climb
         if s.phase=='catch_up' and c.playerGap>3.2 then chasing=true end
         if chasing then
             enter(s,'catch_up','Catch up along the path before finding side space')
@@ -237,6 +255,7 @@ function M.decide(s,c,dt)
         if c.comfortable or s.phase=='catch_up' and ours and motion.afterEscape and c.nearGroup then
             s.arrivalGoal=nil
             s.arrivalStop=c.frame.stop
+            s.aheadCheck=true
             enter(s,'braking','Finish the current forward movement and stop naturally')
             operation(s,'hold')
             s.stillFor=0
@@ -255,7 +274,14 @@ function M.decide(s,c,dt)
         end
         if s.phase=='braking' then
             if s.stillFor>=0.65 and s.clock-s.since>=0.8 then
-                if c.nearGroup then return accept(s,c) end
+                if c.nearGroup then
+                    if s.aheadCheck and aheadOfV(c) and s.failures<2 then
+                        s.aheadCheck=nil
+                        return approach(s,c,'Stopped ahead of V: step back to the place beside V')
+                    end
+                    s.aheadCheck=nil
+                    return accept(s,c)
+                end
                 if s.failures<2 then return recover(s,c,'The final stance is outside the group') end
             end
             if failed and not c.nearGroup then return recover(s,c,'The approach could not complete') end

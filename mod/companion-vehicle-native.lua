@@ -347,9 +347,15 @@ function M.recover(entry,player,occupied)
     local behind=1+math.floor((lane-1)/2)*1.2
     local desired=vector(point.x-forward.y*side-forward.x*behind,
         point.y+forward.x*side-forward.y*behind,point.z)
-    local target,reason,deferred=placement.find(player,desired,occupied,entry.clearance)
+    local target,reason,deferred=placement.find(player,desired,occupied,entry.clearance,nil,{sweepRoute=true})
     if deferred then return nil,nil,true end
     if not target then return false,reason end
+    local hook=rawget(_G,'convaiTeleportLog')
+    if hook then
+        local from=entry.npc:GetWorldPosition()
+        pcall(hook,{reason='vehicle-exit-recover',actor=tostring(entry.npc:GetEntityID().hash),
+            from={x=from.x,y=from.y,z=from.z},to={x=target.x,y=target.y,z=target.z}})
+    end
     Game.GetTeleportationFacility():Teleport(entry.npc,target,Quaternion.ToEulerAngles(entry.npc:GetWorldOrientation()))
     occupied[#occupied+1]={position=target,clearance=entry.clearance}
     return true
