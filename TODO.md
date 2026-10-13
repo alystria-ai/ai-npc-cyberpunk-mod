@@ -169,6 +169,31 @@ Each line is one check on what is installed. Detail: the doc or log entry named.
 
 ## Captain's log
 
+**2026-10-13 (skippy-writing branch): Skippy's character writing (persona, test fights and bible written; scored offline on Mistral; NOT live; Local AI check pending, because no GPU job was allowed).**
+
+What was written:
+- `docs/addons/SKIPPY_BIBLE.md`: the character bible. It covers voice, the two modes, the comedy rules (a device kit, so 10 to 30 remarks a fight do not repeat a shape), lore, the never-do list, spoiler care, and the changes the builder and the API should make.
+- `addons/skippy/persona.json`: the persona and both modes with 12 samples each.
+- 12 test fights in `addons/skippy/eval/`, built on the EVENTS.md events. Two of them are dense: 18 remarks plus talk.
+- `docs/addons/SKIPPY_SAMPLES.md`: the best lines and all the numbers.
+
+Scores:
+- Built-in judge: 8.2 to 8.5.
+- Blind Haiku judge: about 4.5 out of 10, where 5 is filler. So most lines are filler and a few are very good.
+- Dropped repeats: 6 to 10 per pass, not zero.
+
+What limits quality:
+- **Asterisks:** `cleanReply` deletes the word inside asterisk emphasis, which hits 15 to 30 percent of replies.
+- **Builder bridge:** sample echoes, tone angles that pull off voice, metres given on every shot, and raw keys like `firstBlood` that leak into lines.
+- **No length cap:** a third of lines go over the word limit.
+
+ministral 14B: the built-in judge scores it higher and it drops fewer repeats, but the blind judge rates it the same as 8B.
+
+Open:
+- The builder adopts the device rotation from bible section 11.
+- The API fixes the asterisk deletion, checks new lines against the samples, and caps remark length.
+- Live and Local AI listening checks.
+
 **2026-10-13 (addon-api branch): add-on remarks are as frequent as the player likes, and never pile up (unit-tested; NOT live).** The user asked for more remarks, so the Rare/Low/Normal setting is replaced by two per-add-on settings: "Time between remarks" (4/6/8/10/15/20/30/60 s, default 10, counted from the end of the last remark) and "Most remarks per fight" (5/10/20/30/50/No limit, default 30; per rolling five minutes outside combat). Kept: the cap's last slot is for priority 4-5, priority 5 needs half the gap, unheard remarks are free. New: one remark at a time (while one is written or spoken at most one waits, the strongest; a weaker one gets `busy`), and a reply that arrives more than `ttl` (default now 3 s) after its moment is dropped (`stale`). FPS: the frame-time cost of a local generation burst is not measured (LOCAL_OPTION_DESIGN Risks 1; LOCAL_MODEL_CHOICE puts a warm reply at 0.45-0.89 s), so on the local AI the bridge holds the *default* gap at about 20 s between remark starts (`LOCAL_REMARK_GAP_S`, reply `addon-pace` with `retryAfter`); a gap the player picks is used as it is, and the help text says so. Mistral at a 4 s gap: the gap counts from the end of speech, so at most about one remark per 6-8 s, and remarks share the key's one-a-second scheduler with companion replies; nothing to change. Live check 6 now asks for a frame-time capture at 20 s and 10 s before shortening the local default.
 
 **2026-10-13 (addon-api branch): the add-on API for Skippy and Delamain (built and unit-tested; NOT live or installed; needs the mod files, a CET reload and a bridge restart; branch `addon-api`, not merged).** Separate CET mods register through `GetMod('CyberpunkConvai').addons` (`mod/addons.lua`) and ship a `convai-addon.json` the bridge reads (`bridge/addons.mjs`). With no add-on installed nothing runs (tested). The user's decisions are built in. Add-on speakers use Mistral or the local AI only: never Convai, never the 100 a day, one notice when neither is set up (`runAddonTurn` branches off before every Convai step). Remarks were few at first (a Rare/Low/Normal setting); replaced the same day by the gap and cap settings above. Quality: personality modes as a stable prompt prefix each, few-shot samples, recent lines in the prompt, near-repeat remarks dropped before they are spoken, memories for callbacks (`runtime/addon-journal.json`), and an offline eval with an LLM judge (`scripts/addon-eval.mjs`). The voice key is typed-only for add-on voices for now. Per-add-on zips come from `packaging/build-addon.mjs`, and the main packages never include `addons/` (tested). Live checks: `docs/ADDON_API.md`, "What the game must confirm live".

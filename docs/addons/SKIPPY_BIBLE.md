@@ -214,6 +214,10 @@ Measured in this branch's quality loop (see `docs/addons/SKIPPY_SAMPLES.md` for 
    ..." to the moment block.
 5. **Tell the model in the block itself** to use plain words with no asterisks. A rule this close to the reply is followed more
    often than one in the system prompt.
+6. **Drop the distance from the engine's event text as well** when it is under 30 m, and keep count keys such as `ways` out of
+   the extras. The model repeats whatever reaches the block.
+7. **Name a rotated device in the prompts for prepared (stock) lines.** These prompts get only the mode and the place, which is
+   right, but without a device every prepared puppy kill line comes out as the same apology.
 
 **In the API (`bridge/mistral-prompt.mjs` `cleanReply`, `bridge/addons.mjs`):**
 
@@ -225,5 +229,9 @@ Measured in this branch's quality loop (see `docs/addons/SKIPPY_SAMPLES.md` for 
    remarks. The model overshoots the word limit in a third of lines.
 4. **Show the judge the samples and the facts in full**, and have it penalise copied samples and wrong numbers. The built-in
    judge scores almost everything 8 or 9.
-5. **Consider a larger model for remarks** (ministral 14B or Mistral Small) when the key allows it. Remarks are short, so the cost
-   is small and the wit gain is large. The free key's rate limit is the constraint.
+5. **A bigger model is not the main lever.** On the same four test fights, ministral 14B scored 8.46 with the built-in judge,
+   against 8.24 for ministral 8B. It had 2 dropped repeats instead of 10, fewer wrong facts, and some sharp callbacks: "SEVENTEEN
+   PERCENT? I AM NOT A DAMNED TAXI.", then on the heal, "Fifty-five percent? Still not a taxi." But the blind Haiku judge scored
+   the two models the same (4.47 against 4.50), and 14B runs over the word limit more often (34 of 59 lines). It is worth having
+   as an option, but fixes 1 to 3 above matter more. Mistral Small could not be tested, because the free key was rate limited on
+   every call.
