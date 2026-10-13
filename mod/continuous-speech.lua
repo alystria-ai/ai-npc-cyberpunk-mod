@@ -84,7 +84,8 @@ end
 local function validActors(player, actor)
     return player and actor and tostring(player:GetEntityID().hash) == owner.player
         and player:IsAttached() and not player:IsDeadNoStatPool()
-        and tostring(actor:GetEntityID().hash) == owner.entity and actor:IsAttached() and not actor:IsDeadNoStatPool()
+        and tostring(actor:GetEntityID().hash) == owner.entity and actor:IsAttached()
+        and (owner.voiceOnly or not actor:IsDeadNoStatPool())
 end
 
 local function gameVolume()
@@ -154,7 +155,8 @@ function M.start(context, descriptor, player, actor, paused)
     end
     local ok, playerID = pcall(function() return tostring(player:GetEntityID().hash) end)
     if not ok or not bounded(playerID, 120) then return false, 'Continuous speech player unavailable' end
-    owner = {id=descriptor.id,requestId=context.requestId,generation=context.generation,entity=context.entity,player=playerID}
+    owner = {id=descriptor.id,requestId=context.requestId,generation=context.generation,entity=context.entity,player=playerID,
+        voiceOnly=context.voiceOnly==true or nil}
     poll, wait, volumePoll = 0, 0, 0
     written, faceTimeline, faceRevision, faceReadAt = nil, nil, nil, nil
     segmentCache = {}

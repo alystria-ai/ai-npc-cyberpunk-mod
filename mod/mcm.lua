@@ -1031,6 +1031,8 @@ local function pageSignature(snapshot)
             mistral.localAi or '', tostring(mistral.maturePack), tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
             tostring(groq.saved), groq.tail or '', groq.limit or '', groq.result or '',
             tostring(pack.known), tostring(pack.installed)}, '|'))
+        -- Installed add-ons' own settings (docs/ADDON_API.md); nothing without one.
+        if convaiAddons and convaiAddons.live then add('addons:' .. convaiAddons.signature()) end
     end
     return table.concat(parts, '\n')
 end
@@ -1392,6 +1394,18 @@ local function schema()
             setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, false,
                 'Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment.'),
         })
+        -- One section per installed add-on that has settings (docs/ADDON_API.md). The add-on wrote its own labels.
+        if convaiAddons and convaiAddons.live then
+            local own = {label = true, description = true, elements = true}
+            for _, section in ipairs(convaiAddons.settingsSections()) do
+                local list = {}
+                for _, item in ipairs(section.items) do
+                    list[#list + 1] = setting(item.mcmId, item.label, item.kind, item.value, item.default, item.description,
+                        item.elements, own)
+                end
+                categories[#categories + 1] = {id = section.id, name = section.title, description = section.description, settings = list}
+            end
+        end
         categories[#categories + 1] = category('development', 'Development', {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
                 'For testing and bug reports; leave it off for normal play. It shows routine companion popups (the joining step, dismissal confirmations, driving instructions such as boarding and exit, results of companion actions, and a notice when a support report is ready), writes a movement trace file in the mod’s runtime folder, logs body gesture decisions, and adds this setting to support reports. Preparation progress, joined notices, failures and replies to Stop trip remain visible when off.'),
@@ -1512,6 +1526,9 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 return {ok = false, error = hintPending()}
             end
             local values, applied = {enabledByKey = {}, relationshipModes = {}}, {}
+            -- Add-on settings (docs/ADDON_API.md) are held until the main settings save succeeds.
+            local addonChanges = 0
+            if convaiAddons and convaiAddons.live then convaiAddons.discardSettings() end
             for _, change in ipairs(changes) do
                 local key = change.id
                 if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
@@ -1579,10 +1596,19 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     values.relationshipModes[key:sub(14)] = ({'auto', 'on', 'off'})[change.value]
                 elseif key:sub(1, 8) == 'enabled:' then values.enabledByKey[key:sub(9)] = change.value
                 elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
+                elseif key:sub(1, 6) == 'addon:' and convaiAddons and convaiAddons.live then
+                    local staged, problem = convaiAddons.stageSetting(key, change.value)
+                    if not staged then convaiAddons.discardSettings(); return {ok = false, error = problem} end
+                    addonChanges = addonChanges + 1
                 else return {ok = false, error = ui.t('That setting is read-only.')} end
                 applied[#applied + 1] = key
             end
-            local ok, err, notice, reload = manager.applySettings(player(), values)
+            local ok, err, notice, reload
+            if addonChanges > 0 and addonChanges == #applied then ok = true
+            else ok, err, notice, reload = manager.applySettings(player(), values) end
+            if addonChanges > 0 then
+                if ok then convaiAddons.commitSettings() else convaiAddons.discardSettings() end
+            end
             -- A voice switched for Natural speech, or tag settings turned off for the cloud voice, is told to the player
             -- here (the status line) and, once back in gameplay, as a notice; the page reloads so the lists and toggles
             -- show what was actually saved. A quiet turn-off (only the default was on) reloads without a notice.

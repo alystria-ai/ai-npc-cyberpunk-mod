@@ -32,7 +32,7 @@ local function startRound(id, participants, text)
     local frozen = {}
     for _, person in ipairs(participants) do
         local row = {}
-        for _, key in ipairs({'entity', 'profileKey', 'name', 'bodyType', 'npc', 'archetype'}) do row[key] = person[key] end
+        for _, key in ipairs({'entity', 'profileKey', 'name', 'bodyType', 'npc', 'archetype', 'voiceOnly'}) do row[key] = person[key] end
         frozen[#frozen + 1] = row
     end
     M.round = {id = id, participants = frozen, text = text, index = 0, stage = 'next', heard = {},
@@ -50,7 +50,9 @@ local function makeInput(r, index, generation, now, live, includePlaying)
     local audience, heard, total = {}, {}, index
     for i, participant in ipairs(r.participants) do
         if live[participant.entity] then
-            audience[#audience + 1] = participant.profileKey
+            -- An add-on voice (docs/ADDON_API.md) is heard by the others but is not part of their conversation's audience: it has
+            -- no Convai character, so a companion's route and memory stay the ones it has without the add-on.
+            if not participant.voiceOnly or participant == speaker then audience[#audience + 1] = participant.profileKey end
             if i > total then total = i end
         end
     end
@@ -65,7 +67,8 @@ local function makeInput(r, index, generation, now, live, includePlaying)
     if includePlaying and r.reply then addHeard(r.reply) end
     local input = {requestId = tostring(now) .. '-' .. tostring(generation) .. '-' .. speaker.entity,
         generation = generation, entity = speaker.entity, name = speaker.name, bodyType = speaker.bodyType,
-        profileKey = speaker.profileKey, archetype = speaker.archetype, text = r.text, sentAt = now, journal = r.journal, battle = r.battle,
+        profileKey = speaker.profileKey, archetype = speaker.archetype, voiceOnly = speaker.voiceOnly,
+        text = r.text, sentAt = now, journal = r.journal, battle = r.battle,
         gameDialogue = r.gameDialogue, gear = r.gear,
         group = {id = r.id, index = index, total = total, audience = audience, heard = heard}}
     return input

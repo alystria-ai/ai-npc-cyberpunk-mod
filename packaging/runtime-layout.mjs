@@ -14,6 +14,7 @@ export const CLIENT_ASSETS = Object.freeze([
 // closure. Source tests compare this allowlist with the real entry point so a
 // newly imported module cannot silently become a missing package component.
 export const BRIDGE_MODULES = Object.freeze([
+  'bridge/addons.mjs',
   'bridge/analysis-pcm.mjs',
   'bridge/audio-delay.mjs',
   'bridge/battle-context.mjs',
