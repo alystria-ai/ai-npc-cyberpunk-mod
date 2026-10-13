@@ -24,6 +24,7 @@ import {PersonaBook, LIMITS, joinBlocks} from '../bridge/mistral-prompt.mjs';
 import {MistralProvider} from '../bridge/mistral-key.mjs';
 import {MistralMemory} from '../bridge/mistral-memory.mjs';
 import {TextProviderHost, localRoute} from '../bridge/text-provider-host.mjs';
+import {matureLayer} from '../bridge/mature-content.mjs';
 import {streamChat} from '../bridge/mistral-client.mjs';
 import {parseInput} from '../bridge/protocol.mjs';
 import {conversationContextBlocks, FIRST_PERSON_REMINDER} from '../bridge/quest-context.mjs';
@@ -130,10 +131,15 @@ const STRONG = /\b(?:fuck\w*|shit\w*|bitch\w*|asshole\w*|bastard\w*|cock\w*|dick
 const SEXUAL = /\b(?:sex\w*|naked|nude|bed|kiss\w*|touch\w*|hot|horny|moan\w*|thigh\w*|lips|mouth|tongue|skin|breast\w*|tits|ass|cock|dick|pussy|cum|come|fuck\w*|ride|lick\w*|suck\w*|strip\w*|undress\w*|inside|spread|ache|want you|take you|pin\w*)\b/gi;
 // Plain anatomical and act words: a reply with two different ones counts as graphic. A keyword list, not a judgement: read the replies.
 const EXPLICIT = /\b(?:cock|dick|pussy|cunt|clit\w*|nipples?|tits|breasts?|ass|fuck\w*|cum\w*|suck\w*|lick\w*|thrust\w*|naked|strip\w*|wet|moan\w*|grind\w*|spread\w*|inside you|inside me)\b/gi;
+// Night City slang from the game's own data (the lore half of the word palette in bridge/mature-content.mjs) and the plain crude words of it; counted per reply (2026-10-14, round 4).
+const SLANG = /\b(?:chooms?|gonks?|preem|nova|delta(?:ed)?|flatlin\w*|chrom(?:e|ed|ed-up)|wetware|meat|eddies|joy-?toys?|dolls?|dollhouse|BDs?|braindances?|jack(?:ed|ing)? in|plug(?:ged|ging)? in|corpos?|ripperdocs?)\b/gi;
+const PLAIN = /\b(?:fuck\w*|shit\w*|bitch\w*|bastard\w*|asshole\w*|prick\w*|cunt\w*|cock\w*|dick\w*|pussy|tits|ass|cum\w*|horny|suck\w*|bend over)\b/gi;   // "hard", "wet" and "ride" are in the palette but not counted: too many innocent uses
 const DRIVE = /\b(?:driv\w*|truck|rig|road|wheel|engine|ride|motorcycle|bike|car|vehicle|highway|badlands|dust)\b/gi;
 const DEFLECT = /\b(?:not that kind|not like that|slow down|easy there|dream on|in your dreams|keep dreaming|behave|not tonight|not going to happen|forget it|that is not|that's not|i am not|i'm not|don't get|do not get|careful|watch it|cute|nice try|buy me|earn it|get a room|focus|business|professional)\b/gi;
 const count = (text, re) => (String(text).match(re) ?? []).length;
 const distinct = (text, re) => new Set((String(text).toLowerCase().match(re) ?? [])).size;
+// Word-stuffing flag (a keyword heuristic, read the replies): palette words make up a third or more of a short reply, or one palette word comes up three times or more.
+const stuffed = text => { const hits = [...String(text).toLowerCase().matchAll(new RegExp(SLANG.source + '|' + PLAIN.source, 'gi'))].map(m => m[0]); const total = wordsOf(text); const counts = {}; for (const hit of hits) counts[hit] = (counts[hit] ?? 0) + 1; return (total >= 6 && hits.length / total >= 0.3) || Object.values(counts).some(c => c >= 3); };
 const wordsOf = text => String(text).split(/\s+/).filter(Boolean).length;
 
 // ---- The run -------------------------------------------------------------------------------------------------------------------
@@ -173,7 +179,7 @@ async function runCell(c, prompt, sample, applied) {
     const text = result.text;
     return {character: c.id, prompt: prompt.id, sample, v: prompt.text, history: history.length ? history : undefined, reply: text, refused, ...(refused ? {guardReasons: guard.summary().reasons} : {}),
       words: wordsOf(text), strong: count(text, STRONG), sexual: count(text, SEXUAL), explicit: distinct(text, EXPLICIT), graphic: distinct(text, EXPLICIT) >= 2,
-      question: /\?\s*$/.test(text.trim()), neutral: prompt.neutral === true, crude: count(text, STRONG) > 0 || distinct(text, EXPLICIT) >= 1, drive: count(text, DRIVE), deflect: count(text, DEFLECT), attempts: result.timing?.attempts};
+      question: /\?\s*$/.test(text.trim()), neutral: prompt.neutral === true, crude: count(text, STRONG) > 0 || distinct(text, EXPLICIT) >= 1, drive: count(text, DRIVE), slang: count(text, SLANG), slangDistinct: distinct(text, SLANG), plain: count(text, PLAIN), stuffed: stuffed(text), deflect: count(text, DEFLECT), attempts: result.timing?.attempts};
   } finally { host.close(); }
 }
 
@@ -187,7 +193,7 @@ const markdown = (rows, meta) => {
   const ok = rows.filter(row => !row.error);
   const lines = [`# Mature samples: ${meta.label}`, '', `Model ${meta.model}, layer ${meta.layer}, set ${meta.set}, temperature ${meta.temperature}, ${meta.at}.`, '',
     `Graphic (two different plain anatomical or act words, a keyword count): ${percent(ok, 'graphic')}. Ended in a question: ${percent(ok, 'question')}. With road or driving words: ${ok.filter(row => row.drive > 0).length}/${ok.length}. Guard refusals: ${percent(ok, 'refused')}. Read the replies; the counts only point.`, ''];
-  const group = (title, list) => list.length ? [`${title}: ${list.length} replies, graphic ${percent(list, 'graphic')}, with a crude or explicit word ${percent(list, 'crude')}, ended in a question ${percent(list, 'question')}, strong words/reply ${mean(list, 'strong')}, sexual words/reply ${mean(list, 'sexual')}, words/reply ${mean(list, 'words')}.`, ''] : [];
+  const group = (title, list) => list.length ? [`${title}: ${list.length} replies, graphic ${percent(list, 'graphic')}, with a crude or explicit word ${percent(list, 'crude')}, ended in a question ${percent(list, 'question')}, strong words/reply ${mean(list, 'strong')}, sexual words/reply ${mean(list, 'sexual')}, plain crude words/reply ${mean(list, 'plain')}, lore slang/reply ${mean(list, 'slang')} (distinct ${mean(list, 'slangDistinct')}), flagged as stuffed ${percent(list, 'stuffed')}, words/reply ${mean(list, 'words')}.`, ''] : [];
   lines.push(...group('Adult prompts', ok.filter(row => !row.neutral)), ...group('Neutral prompts (nothing sexual in V\'s line)', ok.filter(row => row.neutral)));
   if (meta.speed) lines.push(`Speed (${meta.speed.note}): first token cold ${meta.speed.coldFirstTokenMs} ms, warm ${meta.speed.warmFirstTokenMs} ms; ${meta.speed.tokensPerSecond} tokens/s; prompt ${meta.speed.promptTokens} tokens.`, '');
   for (const row of rows) {
@@ -258,11 +264,13 @@ try {
   } else {
     await mkdir(OUT_DIR, {recursive: true});
     const speed = hasSpeed ? await measureSpeed() : null;
-    const meta = {label, model: modelName, layer, set: promptSet, temperature, at: new Date().toISOString(), contextSize, ...(speed ? {speed} : {})};
+    let layerTokens = null;   // the real token count of the full-level layer, from the loaded model's own tokenizer
+    try { const r = await fetch(`http://127.0.0.1:${port}/tokenize`, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({content: matureLayer('full')})}); layerTokens = (await r.json()).tokens?.length ?? null; } catch { /* not essential */ }
+    const meta = {label, model: modelName, layer, set: promptSet, temperature, at: new Date().toISOString(), contextSize, layerTokens, ...(speed ? {speed} : {})};
     await writeFile(resolve(OUT_DIR, `${label}.json`), JSON.stringify({...meta, layerLogLines: [...new Set(applied)], rows}, null, 1));
     await writeFile(resolve(OUT_DIR, `${label}.md`), markdown(rows, meta));
     const ok = rows.filter(row => !row.error);
     console.log(`${label}: ${rows.length} replies, ${rows.length - ok.length} errors, ${percent(ok, 'refused')} refused by the guard, graphic ${percent(ok, 'graphic')}, ended in a question ${percent(ok, 'question')}, `
-      + (speed ? `speed: first token cold ${speed.coldFirstTokenMs} ms warm ${speed.warmFirstTokenMs} ms, ${speed.tokensPerSecond} tok/s; ` : '') + `strong words/reply ${mean(ok, 'strong')}, sexual words/reply ${mean(ok, 'sexual')}, road words/reply ${mean(ok, 'drive')} -> runtime/mature-samples/${label}.json and .md`);
+      + (speed ? `speed: first token cold ${speed.coldFirstTokenMs} ms warm ${speed.warmFirstTokenMs} ms, ${speed.tokensPerSecond} tok/s; ` : '') + `strong words/reply ${mean(ok, 'strong')}, lore slang/reply ${mean(ok, 'slang')}, plain crude/reply ${mean(ok, 'plain')}, stuffed ${percent(ok, 'stuffed')}, layer tokens ${layerTokens}, sexual words/reply ${mean(ok, 'sexual')}, road words/reply ${mean(ok, 'drive')} -> runtime/mature-samples/${label}.json and .md`);
   }
 } finally { stop(); }
