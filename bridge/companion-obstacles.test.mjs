@@ -714,3 +714,26 @@ test('a move beyond 6 m keeps its advance detour (only follow drops it)', () => 
   assert(seen['route-rejected'],'the far move was never rejected')
   assert(modes.advance,'a non-follow move lost its advance detour')
 `));
+
+// Live 2026-10-13, leaving a Delamain cab: the escape detour walked at about
+// 1 m/s while V was 5-9 m away and still moving. An escape is cautious only
+// while she is near a standing V; otherwise she paces by the gap.
+const detourGait=(gap,moving)=>walking+solids+`
+  player.pos=Vector4.new(${gap >= 8 ? '0,' + gap : gap + ',0'}); context.frame.position=player.pos
+  context.playerGap=${gap}; context.frame.moving=${moving}
+  decision.operation={ticket='exit-detour',kind='follow',gait='Run'}
+  ${gap >= 8 ? "solid('Vehicle',0,3,.9,1.3)" : `solid('Vehicle',${gap / 3},0,.3,1.3)`}
+  npc.forward=Vector4.new(1,0)
+  for i=1,20 do update(.1) if last(npc,'AIMoveToCommand') then break end end
+  local move=last(npc,'AIMoveToCommand'); assert(move and state.execution and state.execution.mode=='escape',
+    'the fixture did not produce an escape detour leg: '..tostring(state.blockedReason))
+`;
+test('an escape detour runs at the follower pace while V is far away',()=>run(detourGait(8,'false')+`
+  assert(move.movementType=='Run','far V: the detour leg walked at '..tostring(move.movementType))
+`));
+test('an escape detour runs while V is moving away even at moderate range',()=>run(detourGait(4.5,'true')+`
+  assert(move.movementType=='Run','moving V: the detour leg walked at '..tostring(move.movementType))
+`));
+test('an escape detour beside a standing V stays a cautious walk',()=>run(detourGait(3.9,'false')+`
+  assert(move.movementType=='Walk','near standing V: the detour leg ran at '..tostring(move.movementType))
+`));

@@ -57,7 +57,8 @@ test('walking beside V brakes once and accepts coasting without a new reverse de
   local route=last(npc,'AIMoveToCommand'); assert(route)
   local before=#npc.ai.commands
   for i=1,25 do
-    npc.pos.y=npc.pos.y+math.max(0,1.0-i*0.06)*0.1
+    -- A natural coast of about 0.3 m: inside the 0.5 m a stop may end ahead of V.
+    npc.pos.y=npc.pos.y+math.max(0,0.6-i*0.06)*0.1
     player.forward=Vector4.new(-1,0)
     companions.update(player,0.1,npc.id.hash)
     if i<=16 then assert(not companions.list()[1].focused) end
@@ -573,4 +574,44 @@ test('a companion with no route still rejoins, out of view, if V keeps watching'
   tick(24)
   assert(#teleports>=1,'a watched companion with no route stayed stuck forever')
   assert(teleports[1].y>player.pos.y,'the watched companion reappeared in front of the camera')
+`));
+
+// Live 2026-10-13: on the first follow after a spawn she stopped about 0.6 m
+// ahead of V, inside the comfortable window, and stayed there. A stop more than
+// 0.5 m ahead takes one corrective step back to the place beside V.
+const walkAndStop=(coast)=>`${companionEngine}
+  local npc=spawn(); tick(3)
+  for i=1,25 do
+    player.pos.y=i*0.15; npc.pos.y=player.pos.y+0.05
+    companions.update(player,0.1)
+  end
+  local route=last(npc,'AIMoveToCommand'); assert(route)
+  local before=#npc.ai.commands
+  for i=1,40 do
+    npc.pos.y=npc.pos.y+math.max(0,${coast}-i*0.06)*0.1
+    player.forward=Vector4.new(-1,0)
+    companions.update(player,0.1,npc.id.hash)
+  end
+  local steps=0
+  for i=before+1,#npc.ai.commands do
+    local command=npc.ai.commands[i]
+    if command.kind=='AIMoveToCommand' and not command.rotateEntityTowardsFacingTarget then steps=steps+1 end
+  end
+`;
+test('a stop more than half a metre ahead of V takes one corrective step back',()=>run(walkAndStop(1.0)+`
+  local ahead=npc.pos.y-player.pos.y
+  assert(ahead>.5 or steps>=1,'the fixture did not stop ahead of V: '..ahead)
+  assert(steps>=1,'a stop '..ahead..' m ahead of V was accepted without a step back')
+  assert(steps<=1,'the corrective step repeated '..steps..' times')
+`));
+
+test('a lane point leads V by no more than 0.6 m, however fast V moves',()=>run(`${companionModules}
+  local travel=dofile('companion-travel.lua')
+  local frame=travel.new({x=0,y=0,z=0},{x=0,y=1})
+  for i=1,60 do travel.update(frame,{x=0,y=i*0.8,z=0},0.1) end
+  assert(frame.moving and frame.speed>3,'the fixture did not run')
+  for _,slot in ipairs({1,2,3,5}) do
+    local lane=travel.laneFrame(frame,slot)
+    assert(lane.position.y-frame.position.y<=0.6+1e-6,'slot '..slot..' leads V by '..(lane.position.y-frame.position.y))
+  end
 `));

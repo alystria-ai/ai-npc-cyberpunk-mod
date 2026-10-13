@@ -1245,7 +1245,7 @@ local function paceTarget(entry,frame)
     local motor=entry.motor
     -- Close followers travel alongside V in their lane (a move at V's gait),
     -- not by native follow; both are pacing V while V moves.
-    local following=motor.kind=='follow' and motor.stage=='following'
+    local following=motor.kind=='follow' and (motor.stage=='following' or motor.stage=='walking-leg')
     local alongside=motor.kind=='move' and (motor.stage=='walking' or motor.stage=='walking-leg')
         and frame and frame.moving
     if not (following or alongside) or not entry.playerGap then return 1 end
