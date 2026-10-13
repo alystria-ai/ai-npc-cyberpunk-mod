@@ -32,6 +32,13 @@ export const ADDON_SETTINGS_FILE = 'addon-settings.json';
 export const ADDON_JOURNAL_FILE = 'addon-journal.json';
 /** The only text providers an add-on speaker may use (the user's decision, 2026-10-13: never Convai). */
 export const ADDON_PROVIDERS = Object.freeze(['mistral', 'local']);
+/**
+ * Seconds between two remark starts of one add-on on the local AI while the player keeps the default "Time between remarks"
+ * (10 s). Each remark is a GPU burst of about 0.3 to 0.7 s beside the game (docs/LOCAL_MODEL_CHOICE.md: 79 to 143 tokens/s,
+ * warm reply 0.45 to 0.89 s) whose frame-time cost is not measured yet (docs/LOCAL_OPTION_DESIGN.md, Risks 1), so the default
+ * keeps it to about one burst in 20 s in a fight. A gap the player picked is used as it is.
+ */
+export const LOCAL_REMARK_GAP_S = 20;
 export const ADDON_ENV = 'CYBERPUNK_CONVAI_ADDONS';
 /** The CET mods folder, relative to the game root: add-ons are CET mods, so they are found where CET finds them. */
 export const CET_MODS = 'bin/x64/plugins/cyber_engine_tweaks/mods';
@@ -400,6 +407,7 @@ export class AddonHost {
     this.journalTimer = null;
     this.warmed = new Map();         // addonId -> the last warm stamp seen in the state file
     this.onWarm = null;              // profileKey => void: the bridge warms the speaker's text route
+    this.localRemarkAt = new Map();  // addonId -> when its last remark started on the local AI
   }
 
   /** True when at least one add-on is installed and valid. Every caller can skip its add-on work when false. */
@@ -524,6 +532,23 @@ export class AddonHost {
     const allowed = owner?.speaker.providers ?? ADDON_PROVIDERS;
     const need = allowed.length === 2 ? 'a free Mistral key or the Local AI pack' : allowed[0] === 'mistral' ? 'a free Mistral key' : 'the Local AI pack';
     return `${this.addonName(profileKey)} needs ${need}. Set it up under Conversation provider in Cyberpunk Convai's settings.`;
+  }
+
+  /**
+   * Seconds before a remark of this speaker may start on the local AI (0: now). Only while the player keeps the default
+   * "Time between remarks"; the game waits that long (errorCode addon-pace, retryAfter). Mistral and a chosen gap are never held.
+   */
+  localPace(profileKey, route, now = this.now()) {
+    const owner = this.speakers.get(profileKey);
+    if (!owner || route !== 'local' || this.settings[owner.addon.id]?.remarkGapChosen === true) return 0;
+    const last = this.localRemarkAt.get(owner.addon.id);
+    return last === undefined ? 0 : Math.max(0, Math.ceil((last + LOCAL_REMARK_GAP_S * 1000 - now) / 1000));
+  }
+
+  /** A remark of this speaker starts on `route`. */
+  remarkStarted(profileKey, route, now = this.now()) {
+    const owner = this.speakers.get(profileKey);
+    if (owner && route === 'local') this.localRemarkAt.set(owner.addon.id, now);
   }
 
   /** A turn of a speaker begins: the personality mode the game sent with it takes effect before the prompt is built. */

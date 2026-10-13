@@ -31,7 +31,7 @@ registerForEvent('onInit', function()
             return player ~= nil and player:GetMountedVehicle() == nil
         end})
 
-    -- The main mod adds a "Remarks" setting (Rare / Low / Normal) above these for every add-on with a speaker.
+    -- The main mod adds "Time between remarks" and "Most remarks per fight" above these for every add-on with a speaker.
     handle:settings({title = 'Echo (example add-on)', description = 'A voice in V\'s earpiece.', items = {
         {id = 'enabled', label = 'Echo', kind = 'bool', default = true,
             description = 'Echo answers the talk key while you are on foot and no character is in front of you.'},
