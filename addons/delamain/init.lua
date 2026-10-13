@@ -8,6 +8,11 @@
 -- every handler is a few table writes, and the game reads (the quest fact, the district, the destination, the weather) happen
 -- once per ride event, never per frame.
 --
+-- The game's own cab voice (greeting, "your wish is my command", the arrival announcement and farewell) is a quest scene. A remark
+-- never starts over it: each remark asks the main mod to be patient (see WAIT below), so it waits for the scene or the game's subtitle
+-- line to end, plus a short gap, and is spoken then if the ride is still in the state it was about. A line that has started plays on
+-- through such a scene (the speaker's playThrough); a call, Johnny or a cinematic still stops it.
+--
 -- Installed as its own CET mod (CyberpunkConvaiDelamainCab). Without Cyberpunk Convai, or with one that is too old, it prints one
 -- line and does nothing. Its text comes from Mistral or the local AI only (convai-addon.json "providers").
 local Delamain = {handle = nil, speaker = nil, enabled = true, rides = 0, ride = nil, tracked = {},
@@ -227,14 +232,26 @@ local REENTER_WINDOW = 20   -- seconds after V steps out of the cab in which ste
 
 local function endRide(why)
     local handle = Delamain.handle
-    Delamain.ride, Delamain.retry = nil, nil
+    Delamain.ride = nil
     if handle then
         handle:setState(nil)
         handle:setCompanionContext('ride', nil)
     end
 end
 
---- Asks for one remark. facts = commonFacts() plus the event's own.
+-- How each remark meets the game's own cab voice. `patience` (seconds) is how long it waits for a scene or a game line to end (the main
+-- mod's handle:remark option); `states` are the cab states in which it is still worth saying when its turn comes. The arrival stays
+-- relevant while V sits in the stopped cab (Arrived, then Finished after the game's farewell), so it comes right after that farewell.
+local WAIT = {
+    boarded = {patience = 30, states = {[STATE.READY] = true}},
+    ['ride-start'] = {patience = 20, states = {[STATE.STARTED] = true}},
+    ['district-passed'] = {patience = 12, states = {[STATE.STARTED] = true}},
+    arrival = {patience = 25, states = {[STATE.ARRIVED] = true, [STATE.FINISHED] = true}},
+    ['ride-interrupted'] = {patience = 20, states = {[STATE.CANCELLED] = true}},
+}
+
+--- Asks for one remark. facts = commonFacts() plus the event's own. The remark waits for the game's own cab voice (WAIT) and is only
+--- spoken if the ride is still in a state it fits, on the same ride.
 local function say(event, text, extra, priority, ttl, maxWords)
     local handle = Delamain.handle
     if not handle or not Delamain.enabled or not rideLive() then return false, 'not riding' end
@@ -242,7 +259,12 @@ local function say(event, text, extra, priority, ttl, maxWords)
     for key, value in pairs(extra or {}) do facts[key] = value end
     if Delamain.ride then Delamain.ride.last = facts end
     publish()
-    local ok, reason = handle:remark(SPEAKER, {event = event, text = text, facts = facts, priority = priority, ttl = ttl, maxWords = maxWords})
+    local rule, ride = WAIT[event] or {patience = 0, states = {}}, Delamain.ride
+    local function relevant()
+        return rideLive() and Delamain.ride == ride and rule.states[Delamain.cab.state] == true
+    end
+    local ok, reason = handle:remark(SPEAKER, {event = event, text = text, facts = facts, priority = priority, ttl = ttl, maxWords = maxWords,
+        patience = rule.patience, relevant = rule.patience > 0 and relevant or nil})
     if not ok then handle:log('remark ' .. event .. ' not made: ' .. tostring(reason)) end
     return ok, reason
 end
@@ -255,9 +277,9 @@ local function ensureRide()
     return Delamain.ride
 end
 
-local function requestBoarded(again)
+local function requestBoarded()
     local ride = ensureRide()
-    if (ride.boardedAsked and not again) or Delamain.cab.state ~= STATE.READY then return end
+    if ride.boardedAsked or Delamain.cab.state ~= STATE.READY then return end
     ride.boardedAsked = true
     ride.boardedAt = ride.boardedAt or os.time()
     ride.startDistrict, ride.startArea = readDistrict()
@@ -266,11 +288,12 @@ local function requestBoarded(again)
         {destinationChosen = false, firstRideThisSession = ride.number == 1}, 4, 15, 22)
 end
 
-local function requestRideStart(again)
+local function requestRideStart()
     local handle, ride = Delamain.handle, ensureRide()
-    local spoke = ride.boardedSpoken or handle:state().remark == SPEAKER
-    -- A greeting still waiting to play is dropped (the ride line greets instead); one already playing is left alone.
-    if not spoke and handle:state().remark == nil then handle:cancel(SPEAKER) end
+    local spoke = ride.boardedSpoken
+    -- A greeting that has not started (waiting for the game's own greeting to end, or being written) is dropped: the ride line greets
+    -- instead. One that is already playing is left alone (remarkStarted marks it).
+    if not spoke then handle:cancel(SPEAKER) end
     ride.startedAt = ride.startedAt or os.time()
     if not ride.startDistrict then ride.startDistrict, ride.startArea = readDistrict() end
     local destination = readDestination()
@@ -285,9 +308,9 @@ local function requestRideStart(again)
             etaSeconds = ride.eta, destinationName = ride.destinationName}, 4, 12, 24)
 end
 
-local function requestArrival(again)
+local function requestArrival()
     local ride = ensureRide()
-    if ride.arrivalAsked and not again then return end
+    if ride.arrivalAsked then return end
     ride.arrivalAsked = true
     local seconds = ride.startedAt and math.max(0, os.time() - ride.startedAt) or nil
     local passed = nil
@@ -300,32 +323,11 @@ local function requestArrival(again)
             startDistrict = ride.startDistrict, districtsPassed = passed}, 5, 12, 26)
 end
 
-local function requestInterrupted(again)
+local function requestInterrupted()
     local ride = ensureRide()
     local seconds = ride.startedAt and math.max(0, os.time() - ride.startedAt) or nil
     say('ride-interrupted', 'The cab\'s autopilot stopped before reaching the destination, and V is still inside.',
         {rideSeconds = seconds, cause = 'the autopilot stopped before the destination'}, 4, 10, 22)
-end
-
--- The main mod drops a remark that meets a scene (the game's own cab greeting or farewell, a call) instead of holding it. The moments
--- that matter most (boarding, the arrival) usually fall right beside those lines, so such a remark is asked for again, with fresh
--- facts, when the scene ends: at most three times, and only while the ride is still in the state the remark was about.
-local RETRY = {boarded = {request = requestBoarded, states = {[STATE.READY] = true}},
-    ['ride-start'] = {request = requestRideStart, states = {[STATE.STARTED] = true}},
-    arrival = {request = requestArrival, states = {[STATE.ARRIVED] = true, [STATE.FINISHED] = true}},
-    ['ride-interrupted'] = {request = requestInterrupted, states = {[STATE.CANCELLED] = true}}}
-local RETRY_WINDOW = 30      -- seconds after the first request
-
-local function retryDeferred()
-    local waiting = Delamain.retry
-    if not waiting then return end
-    local entry = RETRY[waiting.event]
-    if not entry or not entry.states[Delamain.cab.state] or not rideLive() or os.time() - waiting.first > RETRY_WINDOW or waiting.tries > 3 then
-        Delamain.retry = nil
-        return
-    end
-    Delamain.retry = nil
-    entry.request(true)
 end
 
 --- A cab state change (previous -> value). `silent` for a state found when a save loads: no remark, context only.
@@ -342,8 +344,7 @@ local function transition(previous, value, silent)
     elseif value == STATE.ARRIVED then
         if Delamain.cab.mounted and not silent then requestArrival() end
     elseif value == STATE.FINISHED then
-        -- The game's farewell is over: a remark it held back may play now.
-        if Delamain.cab.mounted and not silent then retryDeferred() end
+        -- The game's farewell is over; the arrival remark (waiting for it in the main mod) is released by the scene ending.
     elseif value == STATE.CANCELLED then
         if Delamain.cab.mounted and not silent and previous == STATE.STARTED then requestInterrupted() end
     elseif value == STATE.FREEROAM or value == STATE.PARKED or value == STATE.SPAWNED or value == 0 then
@@ -448,7 +449,7 @@ registerForEvent('onInit', function()
     Delamain.handle = handle
 
     -- The voice is the cab V sits in. Cheap on purpose: it reads two cached values (the main mod calls it on its tick).
-    Delamain.speaker = handle:speaker({id = SPEAKER, name = 'Delamain', anchor = 'vehicle', group = true, minGap = 6, talkPriority = 10,
+    Delamain.speaker = handle:speaker({id = SPEAKER, name = 'Delamain', anchor = 'vehicle', group = true, minGap = 6, talkPriority = 10, playThrough = true,
         available = function() return Delamain.enabled and rideLive() end})
 
     handle:settings({title = 'Delamain Cab', description = 'The voice of the Delamain cab: it talks with you on a ride, and with your companion.',
@@ -502,17 +503,14 @@ registerForEvent('onInit', function()
     end)
     handle:on('sessionEnded', function()
         Delamain.cab = {state = 0, entityId = nil, mounted = false}
-        Delamain.ride, Delamain.rides, Delamain.pendingFare, Delamain.tracked, Delamain.retry = nil, 0, nil, {}, nil
+        Delamain.ride, Delamain.rides, Delamain.pendingFare, Delamain.tracked = nil, 0, nil, {}
     end)
-    handle:on('remarkDropped', function(payload)
-        if payload.speaker ~= SPEAKER or (payload.reason ~= 'scene' and payload.reason ~= 'scene-tier') or not RETRY[payload.event] then return end
-        local waiting = Delamain.retry
-        local first = waiting and waiting.event == payload.event and waiting.first or os.time()
-        Delamain.retry = {event = payload.event, first = first, tries = (waiting and waiting.event == payload.event and waiting.tries or 0) + 1}
-    end)
-    handle:on('sceneEnded', function() retryDeferred() end)
     handle:on('companionJoined', function(payload) Delamain.tracked[payload.profileKey] = true end)
     handle:on('companionLeft', function(payload) Delamain.tracked[payload.profileKey] = nil end)
+    handle:on('remarkStarted', function(payload)
+        local event = type(payload.event) == 'string' and payload.event or nil
+        if event == 'boarded' and Delamain.ride then Delamain.ride.boardedSpoken = true end
+    end)
     handle:on('remarkFinished', function(payload)
         if payload.event == 'boarded' and payload.spoken and Delamain.ride then Delamain.ride.boardedSpoken = true end
     end)

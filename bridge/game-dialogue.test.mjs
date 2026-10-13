@@ -285,6 +285,42 @@ test('both subtitle hooks and repeated lines record once; the mod\'s own replies
   assert(status.skipped.duplicate == 1 and status.skipped.repeated == 1 and #rows() == 2)
 `));
 
+test('game voice lines are reported to the add-on host once each, with their own duration or an estimate; the mod\'s own replies, crowd chatter and TV never are', () => lua$(`
+  local heard, wanted = {}, true
+  local second = api.new({native = N, now = function() return now end, enabled = function() return false end,
+    onGameLineWanted = function() return wanted end,
+    onGameLine = function(seconds, kind, measured) heard[#heard + 1] = {seconds = seconds, kind = kind, measured = measured} end})
+  local function say(speaker, text, kind, extra)
+    nextId = nextId + 1
+    local line = {id = nextId, type = kind or 'Regular', speaker = speaker, text = text}
+    for key, value in pairs(extra or {}) do line[key] = value end
+    second:line(line, 'show')
+    return line
+  end
+  -- The context setting is off here (enabled() is false), and the host is still told: the two are independent.
+  local line = say(JUDY, 'Welcome aboard.', 'Regular', {duration = 3.25})
+  assert(#heard == 1 and heard[1].seconds == 3.25 and heard[1].kind == 'Regular' and heard[1].measured == true)
+  second:line(line, 'event')
+  assert(#heard == 1, 'the second subtitle hook shows the same line: reported once')
+  say(JUDY, 'one two three four five six seven eight nine ten', 'Holocall')
+  assert(#heard == 2 and heard[2].measured == false and math.abs(heard[2].seconds - 4.8) < 0.01, 'estimated from the words: ' .. heard[2].seconds)
+  say(JUDY, 'Hi.', 'Regular', {duration = 99})
+  assert(heard[3].measured == false and heard[3].seconds == 1.5, 'an absurd duration is not trusted; short lines still count for a moment')
+  say(JUDY, string.rep('word ', 80), 'Radio')
+  assert(heard[4].seconds == 10 and heard[4].kind == 'Radio', 'bounded')
+  for _, kind in ipairs({'OverHead', 'OverHeadAlwaysVisible', 'GlobalTV', 'Narrator', 'Invisible', 'unknown'}) do say(CROWD, 'Chatter ' .. kind, kind) end
+  assert(#heard == 4, 'crowd chatter and broadcasts never hold a remark back')
+  subtitles.serial = 5
+  say({id = '11ULL'}, 'AI reply', 'OwnerlessRegular', {id = 0x436F6E760000 + 4})
+  assert(#heard == 4, 'the mod\\'s own replies never count as the game talking')
+  wanted = false
+  say(JUDY, 'Nobody is listening.', 'Regular', {duration = 2})
+  assert(#heard == 4, 'no add-on registered: not even read')
+  wanted = true
+  local broken = api.new({native = N, now = function() return now end, onGameLine = function() error('boom') end})
+  assert(pcall(function() broken:line({id = 9000, type = 'Regular', speaker = JUDY, text = 'x'}, 'show') end))
+`));
+
 test('TV, radio, narrator, braindance, flashbacks and combat barks are excluded', () => lua$(`
   for _, kind in ipairs({'GlobalTV', 'GlobalTVAlwaysVisible', 'Narrator', 'Invisible', 'SceneComment',
       'AlwaysCinematicNoSpeaker', 'Radio', 'unknown'}) do

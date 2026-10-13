@@ -60,11 +60,18 @@ os.time = function() return now end
 export function runLua(body) {
   const L = lauxlib.luaL_newstate(); lualib.luaL_openlibs(L);
   try {
-    const program = `${LUA_HARNESS}
+    const prefix = `${LUA_HARNESS}
 local M = (function() ${addonsSource} end)()
-${body}`;
+`;
+    const program = prefix + body;
     const status = lauxlib.luaL_dostring(L, to_luastring(program));
-    const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(L, -1));
+    let error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(L, -1));
+    // Say which line of the test body failed (the chunk line minus the harness and the module in front of it).
+    const failedAt = Number(/\]:(\d+):/.exec(error)?.[1]);
+    if (error && failedAt) {
+      const own = failedAt - prefix.split(String.fromCharCode(10)).length + 1;
+      if (own >= 1) error += ' [test line ' + own + ': ' + body.split(String.fromCharCode(10))[own - 1]?.trim() + ']';
+    }
     assert.equal(status, lua.LUA_OK, error);
     return lua.lua_gettop(L) > 0 && lua.lua_type(L, -1) === lua.LUA_TSTRING ? to_jsstring(lua.lua_tostring(L, -1)) : undefined;
   } finally { lua.lua_close(L); }

@@ -18,6 +18,12 @@ M.TYPES = {'Regular', 'Holocall', 'SceneComment', 'OverHead', 'Radio', 'GlobalTV
 local POLICY = {Regular = 'scene', OwnerlessRegular = 'scene', Holocall = 'phone',
     OverHead = 'ambient', OverHeadAlwaysVisible = 'ambient', Radio = 'call-only'}
 
+-- Lines that put a game voice on the air, for the add-on API (mod/addons.lua M.gameLine): a remark that asked to be patient does not start
+-- over them. Crowd chatter (OverHead), TV and the rest never hold a remark back. Radio is in because a vehicle's own voice (the Delamain cab)
+-- may come as one.
+local VOICE_LINES = {Regular = true, OwnerlessRegular = true, Holocall = true, SceneComment = true, Radio = true}
+local LINE_MIN, LINE_MAX, WORDS_PER_SECOND = 1.5, 10, 2.5
+
 local function clean(value, limit)
     if type(value) ~= 'string' then return nil end
     local text = value:gsub('<[^>]*>', ''):gsub('%c', ' '):gsub('%s+', ' '):match('^%s*(.-)%s*$')
@@ -168,6 +174,7 @@ end
 
 function Instance:reset(reason)
     self.lines, self.seen, self.hubs, self.serial = {}, {}, {}, self.serial or 0
+    self.noted, self.notedCount = {}, 0
     self.presentAt, self.presentKeys = nil, nil
     self.resetReason = reason
 end
@@ -228,9 +235,38 @@ function Instance:ownLine(line)
     return number ~= nil and number > OWN_LINE_BASE and number <= OWN_LINE_BASE + serial + 1
 end
 
+-- Tells the add-on host that a game voice is speaking (options.onGameLine(seconds, kind)), once per line, for the add-ons that wait for
+-- it. Independent of the "game dialogue context" setting; costs one table lookup when no add-on is registered (options.onGameLineWanted).
+-- The line's own duration is used when the game gives a sensible one, else it is estimated from the words.
+function Instance:noteLine(line)
+    local options = self.options
+    if type(options.onGameLine) ~= 'function' then return false end
+    if type(options.onGameLineWanted) == 'function' and call(options.onGameLineWanted) ~= true then return false end
+    local N, now = self.native, self:now()
+    local id = call(N.lineId, line)
+    if not id or self.noted[id] then return false end
+    if self.notedCount >= 64 then self.noted, self.notedCount = {}, 0 end
+    self.noted[id], self.notedCount = now, self.notedCount + 1
+    if self:ownLine(line) then return false end
+    local kind = call(N.lineType, line.type) or 'unknown'
+    if not VOICE_LINES[kind] then return false end
+    local seconds = nil
+    pcall(function() seconds = tonumber(line.duration) end)
+    local measured = seconds ~= nil and seconds == seconds and seconds >= 0.3 and seconds <= 30
+    if not measured then
+        local words = 0
+        for _ in tostring(call(N.text, line) or ''):gmatch('%S+') do words = words + 1 end
+        seconds = words / WORDS_PER_SECOND + 0.8
+    end
+    seconds = math.max(LINE_MIN, math.min(LINE_MAX, seconds))
+    pcall(options.onGameLine, seconds, kind, measured)
+    return true
+end
+
 -- One native scnDialogLineData (or a test table with the same fields).
 function Instance:line(line, source)
     if source then self:count('hooks', source) end
+    if type(line) == 'table' or type(line) == 'userdata' then pcall(self.noteLine, self, line) end
     if not self:enabled() then return self:skip('disabled') end
     local N, now = self.native, self:now()
     if type(line) ~= 'table' and type(line) ~= 'userdata' then return self:skip('invalid') end

@@ -36,19 +36,23 @@ Delamain also joins a group round with the companion.
 Pacing (the main mod's two built-in settings, **Time between remarks**, default 10 s, and **Most remarks per fight**, default 30; about
 20 s between remarks on the local AI): one remark at a time, only the strongest waits behind one in flight, and a reply that arrives
 later than its `ttl` is dropped, never played late. The add-on makes at most four remarks per ride (below), so a ride is two to four spoken
-lines. A remark that was not heard (V started typing, a scene began, V stepped out) costs nothing.
+lines. A remark that was not heard (V started typing, V stepped out) costs nothing.
 
-The game's own cab voice and any scene hold a remark back: the main mod drops a remark that meets a scene, so the add-on asks for it
-again, with fresh facts, when the scene ends (at most three times, within 30 s of the moment, and only while the ride is still in
-the state the remark was about). That is how `boarded`, and above all `arrival`, wait for the game's greeting and farewell.
+The game's own cab voice (a quest scene, plus the subtitle lines it shows) never gets talked over, and no remark is lost to it. Every
+remark asks the main mod to be patient (`patience`, the table below): while a game scene or a game subtitle line is on, the remark
+waits instead of being dropped; when it is over it waits 1.2 s more and is then written and spoken, if the ride is still in a state
+it fits (`relevant`). A remark already being written when the game's line begins is taken back and written again after it (twice at
+most). With no game voice playing there is no wait at all. That is how `boarded`, and above all `arrival`, follow the game's greeting
+and farewell. A line that has started plays on through such a scene (`playThrough`); a phone call, Johnny or a cinematic still stops it.
+A remark is spoken only on the ride it was asked for, and only while V sits in the cab.
 
-| Event | Priority | maxWords | ttl (s) | Fires when |
-|---|---:|---:|---:|---|
-| `boarded` | 4 | 22 | 15 | state becomes Ready and V is seated. It is cancelled if V confirms a destination before it plays; if it already played, `ride-start` knows (`greeting = false`). |
-| `ride-start` | 4 | 24 | 12 | state becomes Started (the destination is set, the cab starts moving). |
-| `district-passed` | 3 | 18 | 8 | during the ride, the cab enters a different district than it started in, at least 25 s into the ride. At most one per ride. Needs the district hook; without it the event never fires. |
-| `arrival` | 5 | 26 | 12 | state becomes Arrived and V is still seated. Dropped (unspoken) if V steps out first. |
-| `ride-interrupted` | 4 | 22 | 10 | the game cancels the autopilot while V stays seated (cab damaged, hacked, or something else stopped it). |
+| Event | Priority | maxWords | ttl (s) | patience (s) | Fires when |
+|---|---:|---:|---:|---:|---|
+| `boarded` | 4 | 22 | 15 | 30 | state becomes Ready and V is seated. It is cancelled if V confirms a destination before it plays; if it already played, `ride-start` knows (`greeting = false`). |
+| `ride-start` | 4 | 24 | 12 | 20 | state becomes Started (the destination is set, the cab starts moving). |
+| `district-passed` | 3 | 18 | 8 | 12 | during the ride, the cab enters a different district than it started in, at least 25 s into the ride. At most one per ride. Needs the district hook; without it the event never fires. |
+| `arrival` | 5 | 26 | 12 | 25 | state becomes Arrived and V is still seated. Dropped (unspoken) if V steps out first. |
+| `ride-interrupted` | 4 | 22 | 10 | 20 | the game cancels the autopilot while V stays seated (cab damaged, hacked, or something else stopped it). |
 
 Not made, on purpose: nothing is said when the cab is called (V is not in it), while the destination map is open and V has not
 decided, or after V steps out. A crash or a police chase cannot be detected from a safe game callback, so there is no event
