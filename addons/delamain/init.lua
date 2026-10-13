@@ -25,6 +25,11 @@ local STATE = {SPAWNED = 1, PARKED = 2, READY = 3, STARTED = 4, ARRIVED = 5, CAN
 local CAB_RECORDS = {'Vehicle.v_standard2_villefort_cortes_delamain_player', 'Vehicle.v_delamain_taxi'}
 local DISTRICT_AFTER = 25      -- seconds into the ride before a district may be remarked
 local PASSED_MAX = 4
+-- The cab must have driven this far (metres, since the ride began or was planned again) before an arrival counts. The game's own
+-- state machine has been seen to report Arrived seconds after Started, with the cab still standing (live 2026-10-13); the add-on then
+-- stays quiet instead of adding its own arrival line on top of the game's. A destination closer than twice this needs half its distance.
+local MOVE_MIN = 25
+local MOVE_FLOOR = 5
 
 -- ---- Small helpers (pure) ------------------------------------------------------------------------------------------------------
 
@@ -159,6 +164,13 @@ local function readFare()
     return nil
 end
 
+--- V's (and so the cab's) map position, or nil. Read at ride events only, never per frame.
+local function readPosition()
+    local ok, x, y = pcall(function() return xyz(Game.GetPlayer():GetWorldPosition()) end)
+    if ok and type(x) == 'number' then return x, y end
+    return nil
+end
+
 -- ---- The ride ------------------------------------------------------------------------------------------------------------------
 
 local function companions()
@@ -192,6 +204,8 @@ local function phaseName()
     local state = Delamain.cab.state
     if state == STATE.READY then return 'waiting' end
     if state == STATE.STARTED then return 'riding' end
+    local ride = Delamain.ride
+    if (state == STATE.ARRIVED or state == STATE.FINISHED) and ride and ride.arrivalIgnored then return 'riding' end
     if state == STATE.ARRIVED or state == STATE.FINISHED then return 'arrived' end
     if state == STATE.CANCELLED then return 'interrupted' end
     return nil
@@ -214,7 +228,7 @@ local function companionNote()
     local ride = Delamain.ride
     local text = 'You are riding in a Delamain cab with V. Delamain is the cab\'s AI: it drives, it can hear you and it may speak to you; '
         .. 'you can talk to it too.'
-    if ride and Delamain.cab.state == STATE.STARTED then
+    if ride and phaseName() == 'riding' then
         text = text .. ' The ride is under way'
         if ride.meters then text = text .. ' to a point about ' .. ride.meters .. ' metres ' .. (ride.direction and ('to the ' .. ride.direction) or 'away') end
         text = text .. '.'
@@ -277,6 +291,27 @@ local function ensureRide()
     return Delamain.ride
 end
 
+--- The start of a drive, or of a new plan for it: the point the movement check measures from, and nothing left over from before.
+local function markDriveStart(ride)
+    ride.originX, ride.originY = readPosition()
+    ride.arrivalAsked, ride.arrivalIgnored = false, nil
+end
+
+--- Metres V has moved since markDriveStart, or nil when either position is unknown.
+local function movedSinceStart(ride)
+    if not ride or not ride.originX then return nil end
+    local x, y = readPosition()
+    if not x then return nil end
+    return math.sqrt((x - ride.originX) ^ 2 + (y - ride.originY) ^ 2)
+end
+
+--- A cab that comes back to Ready (the map opened again) starts a fresh drive: nothing of the last plan or arrival is kept.
+local function clearDrive(ride)
+    ride.startedAt, ride.originX, ride.originY = nil, nil, nil
+    ride.meters, ride.direction, ride.destinationName, ride.eta = nil, nil, nil, nil
+    ride.arrivalAsked, ride.arrivalIgnored = false, nil
+end
+
 local function requestBoarded()
     local ride = ensureRide()
     if ride.boardedAsked or Delamain.cab.state ~= STATE.READY then return end
@@ -311,6 +346,14 @@ end
 local function requestArrival()
     local ride = ensureRide()
     if ride.arrivalAsked then return end
+    local moved = movedSinceStart(ride)
+    local need = MOVE_MIN
+    if ride.meters and ride.meters >= 1 and ride.meters < 2 * MOVE_MIN then need = math.max(MOVE_FLOOR, ride.meters / 2) end
+    if moved and moved < need then
+        ride.arrivalIgnored = true
+        Delamain.handle:log(string.format('arrival ignored (moved %d m since ride-start, needs %d m)', math.floor(moved), math.floor(need)))
+        return
+    end
     ride.arrivalAsked = true
     local seconds = ride.startedAt and math.max(0, os.time() - ride.startedAt) or nil
     local passed = nil
@@ -335,9 +378,11 @@ local function transition(previous, value, silent)
     if value == STATE.READY then
         -- A new ride starts when the cab becomes ready from a waiting state; never reuse an old record.
         if previous < STATE.READY then Delamain.ride, Delamain.pendingFare = nil, nil end
-        ensureRide()
+        local ride = ensureRide()
+        if previous >= STATE.READY then clearDrive(ride) end
         if Delamain.cab.mounted and not silent then requestBoarded() end
     elseif value == STATE.STARTED then
+        markDriveStart(ensureRide())
         if Delamain.cab.mounted and not silent then requestRideStart() else
             ensureRide().startedAt = ensureRide().startedAt or os.time()
         end
@@ -488,6 +533,7 @@ registerForEvent('onInit', function()
             if os.time() - ride.exitedAt > REENTER_WINDOW then Delamain.ride = nil else ride.exitedAt = nil end
         end
         sync(nil)
+        if Delamain.cab.state == STATE.STARTED and Delamain.ride and not Delamain.ride.originX then markDriveStart(Delamain.ride) end
         if rideLive() then
             publish(); syncCompanionContext()
             if Delamain.cab.state == STATE.READY then requestBoarded() end

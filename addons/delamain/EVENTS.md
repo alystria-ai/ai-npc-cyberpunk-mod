@@ -51,7 +51,7 @@ A remark is spoken only on the ride it was asked for, and only while V sits in t
 | `boarded` | 4 | 22 | 15 | 30 | state becomes Ready and V is seated. It is cancelled if V confirms a destination before it plays; if it already played, `ride-start` knows (`greeting = false`). |
 | `ride-start` | 4 | 24 | 12 | 20 | state becomes Started (the destination is set, the cab starts moving). |
 | `district-passed` | 3 | 18 | 8 | 12 | during the ride, the cab enters a different district than it started in, at least 25 s into the ride. At most one per ride. Needs the district hook; without it the event never fires. |
-| `arrival` | 5 | 26 | 12 | 25 | state becomes Arrived and V is still seated. Dropped (unspoken) if V steps out first. |
+| `arrival` | 5 | 26 | 12 | 25 | state becomes Arrived, V is still seated and the cab has driven at least 25 m since the ride started (half the start distance for a destination under 50 m). An Arrived reported while the cab stands still, or right after the destination was planned again, is ignored and logged (`arrival ignored (moved N m since ride-start, ...)`); the game's own announcement still plays. Dropped (unspoken) if V steps out first. |
 | `ride-interrupted` | 4 | 22 | 10 | 20 | the game cancels the autopilot while V stays seated (cab damaged, hacked, or something else stopped it). |
 
 Not made, on purpose: nothing is said when the cab is called (V is not in it), while the destination map is open and V has not
