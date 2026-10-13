@@ -242,6 +242,36 @@ export function buildMessages({persona, memory, history = [], context, contextPa
 const EMOJI = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}‍️]/gu;
 const THINK = /<think(?:ing)?>[\s\S]*?(?:<\/think(?:ing)?>|$)/gi;
 
+// The first word of a *stage direction*: what a character does (sighs, laughs, leans in, clears throat), not what it stresses.
+// Words that are also ordinary words ("look", "take", "hold") count only in their -s, -ed and -ing forms ("looks", "holding").
+const ACTION_STEM = /^(?:sigh|laugh|chuckl|giggl|snicker|smil|grin|smirk|wink|nod|shrug|paus|gasp|groan|cough|whisper|beep|bzz+t?|click|clap|cheer|cry|sob|snort|scoff|yawn|stretch|blush|frown|glar|stare|squint|wave|sip|sniff|hiss|mutter|shiver|tremble|flinch|wince|grimac|fidget|growl|mumbl|murmur|nudg|glanc|gestur|slump|stomp|twirl|bounc|crouch|kneel|beam|pout|sulk|tsk|ahem|exhal|inhal|swallow|lick|scratch)e?(?:s|es|ed|d|ing)?$/i;
+const ACTION_FORM = /^(?:look|turn|step|walk|sit|stand|hold|take|put|reach|lift|set|pull|push|cross|fold|lean|point|tap|pat|roll|shak|tilt|rais|lower|rub|clear|drink|bow|touch|hug|spin|jump|duck|storm|breath|bit)(?:s|es|ed|d|ing|ning|ting|ping)$/i;
+
+/**
+ * Text between single asterisks. A stage direction ("*sighs*", "*leans back, arms crossed*", a longer action at the start or the end of
+ * a reply or sentence) is removed. A word or a short phrase the model stressed ("That was *perfect*.", "I *really* mean it") keeps its
+ * words and loses only the asterisks: removing it would leave a hole in the sentence. A group is a direction when it is longer than four
+ * words; or starts with an action word (alone: at the start or end of a sentence, or in its -s/-ed/-ing form anywhere); or has three
+ * words or more at the start or end of a sentence. A group followed at once by a comma, a full stop or the like is the sentence's own
+ * stressed word, unless it is long.
+ */
+export function starred(text) {
+  return String(text ?? '').replace(/(?<![\w*])\*([^*\n]{1,220})\*(?![\w*])/g, (match, inner, at, whole) => {
+    const body = inner.trim();
+    if (!body) return ' ';
+    const words = body.split(/\s+/);
+    const first = words[0].replace(/[^\p{L}']/gu, '');
+    const before = whole.slice(0, at), after = whole.slice(at + match.length);
+    const edge = !/\S/.test(before) || /[.!?…]["”')\]]*\s*$/.test(before) || !/\S/.test(after);
+    const punctuated = /^[,.;:!?…]/.test(after);
+    const inflected = /(?:s|ed|ing)$/i.test(first);
+    const action = ACTION_STEM.test(first) || ACTION_FORM.test(first);
+    const direction = words.length > 4
+      || (words.length === 1 ? action && !punctuated && (edge || inflected) : (action && (edge || inflected)) || (edge && !punctuated && words.length >= 3));
+    return direction ? ' ' : body;
+  });
+}
+
 /**
  * A model reply as plain spoken text: reasoning blocks, speaker labels, stage directions, markdown and emoji removed. Emotion and
  * voice tags are left for the bridge's own pass (bridge/natural-speech.mjs), which removes them from the display text; braces and
@@ -253,8 +283,8 @@ export function cleanReply(raw, {name = '', isTag = () => false} = {}) {
   const label = name ? name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : null;
   if (label) text = text.replace(new RegExp(`^[\\W_]*${label}[*_]{0,2}\\s*[:\\-–—]\\s*[*_]{0,2}\\s*`, 'i'), '');
   text = text.replace(/^\W*(?:V|You)\s*:\s*/i, '');
-  // Markdown emphasis keeps its words; *actions* between single asterisks are stage directions and go.
-  text = text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/(?<![\w*])\*([^*\n]{1,220})\*(?![\w*])/g, ' ').replace(/__([^_]+)__/g, '$1');
+  // Markdown emphasis keeps its words; *actions* between single asterisks are stage directions and go (see starred).
+  text = starred(text.replace(/\*\*([^*]+)\*\*/g, '$1')).replace(/__([^_]+)__/g, '$1');
   text = text.replace(/^\s{0,3}#{1,6}\s+/gm, '').replace(/^\s*[-*•]\s+/gm, '').replace(/`+/g, '');
   // Short parenthetical stage directions: "(laughs)", "(pauses, then smiles)".
   text = text.replace(/\s*\((?:[^()\n]{1,60})\)/g, match => /\d/.test(match) ? match : ' ');
@@ -302,6 +332,38 @@ export function capReply(text, limits) {
   let kept = text.slice(0, point).trimEnd();
   if (!/[.!?…]["”')\]]*$/.test(kept)) kept = kept.replace(/[,;:\s-]+$/, '') + '.';
   return kept;
+}
+
+/** How many words a remark may run past its word limit before it is cut (a small model overshoots by a word or two). */
+export const REMARK_SLACK_WORDS = 3;
+/** A small token limit for a remark of `maxWords` words: room for the words, the capital-letter shouting that costs more tokens, and the slack. */
+export const remarkTokens = maxWords => Math.min(160, Math.max(40, Math.ceil((maxWords + REMARK_SLACK_WORDS) * 2.6) + 12));
+const wordCount = text => (String(text ?? '').match(/\S+/g) ?? []).length;
+/** Does a remark already hold more than `maxWords` plus the slack? (The stream stops at this point; capWords cuts the finished text.) */
+export const overWords = (text, maxWords) => wordCount(text) > maxWords + REMARK_SLACK_WORDS;
+
+/**
+ * A remark cut to its word limit (plus the slack): at the last sentence end inside it, else at the last clause break or word, with a
+ * full stop. A remark within the limit comes back as it was.
+ */
+export function capWords(text, maxWords) {
+  const value = String(text ?? '').trim();
+  if (!Number.isInteger(maxWords) || maxWords < 1 || wordCount(value) <= maxWords + REMARK_SLACK_WORDS) return value;
+  const limit = maxWords + REMARK_SLACK_WORDS;
+  let end = 0, seen = 0;
+  for (const match of value.matchAll(/\S+/g)) { if (++seen > limit) break; end = match.index + match[0].length; }
+  const inside = value.slice(0, end);
+  // The last sentence end inside the limit that keeps at least half of the words (a lone "Error." is not the remark).
+  let cut = -1;
+  for (const match of inside.matchAll(/[.!?…]+["”')\]]*(?=\s|$)/g)) {
+    const at = match.index + match[0].length;
+    if (match[0] === '.' && /(?:\b[A-Z][a-z]?|\bMr|\bMs|\bDr|\d)\.$/.test(inside.slice(Math.max(0, match.index - 3), at))) continue;
+    if (wordCount(inside.slice(0, at)) >= Math.ceil(maxWords / 2)) cut = at;
+  }
+  if (cut > 0) return inside.slice(0, cut).trim();
+  const clause = Math.max(inside.lastIndexOf(', '), inside.lastIndexOf('; '), inside.lastIndexOf(': '));
+  const kept = clause > inside.length * 0.4 ? inside.slice(0, clause) : inside;
+  return kept.replace(/[\s,;:–—-]+$/, '') + '.';
 }
 
 const LEAK = /\bas an? (?:ai|artificial intelligence|language model|llm|assistant)\b|\bi(?:'m| am) an? (?:ai|artificial intelligence|language model|llm|chatbot|virtual assistant)\b|\blanguage model\b|\b(?:system prompt|my (?:instructions|programming|guidelines))\b|\bi (?:can(?:'|no)t|cannot|can not) (?:roleplay|role-play|pretend)\b|\bopenai\b|\banthropic\b/i;

@@ -12,7 +12,7 @@
 //              {"say": "Skippy, how many left?"}]}
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
-import {ADDON_MANIFEST, AddonHost, fixedProvider, sharedMemory, validateManifest} from './addons.mjs';
+import {ADDON_MANIFEST, AddonHost, fixedProvider, sampleLine, sharedMemory, validateManifest} from './addons.mjs';
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {TextProviderHost, mistralRoute} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
@@ -38,23 +38,27 @@ export function parseScript(raw) {
     memories: Array.isArray(value.memories) ? value.memories.filter(item => typeof item === 'string') : [], steps};
 }
 
-const JUDGE_RUBRIC = `You judge one spoken line from a character in a Cyberpunk 2077 mod. Score it from 1 to 10 against this rubric:
+const JUDGE_RUBRIC = `You judge one spoken line from a character in a Cyberpunk 2077 mod, strictly. Score it from 1 to 10 against this rubric:
 - in character: it sounds like the persona and mode described, never like an assistant;
 - fun: it is witty, surprising or charming, something a player would want to hear again;
-- fits: it reacts to the event or V's words, and invents no facts beyond the ones given;
-- short: it is one spoken line within the word limit, no narration or stage directions;
-- fresh: it does not repeat the character's earlier lines, their jokes or their wording.
+- fits: it reacts to the event or V's words, and every number, name and fact in it comes from the facts given (a wrong or invented number is a failure);
+- short: it is one spoken line within the word limit, no narration, stage directions or asterisks;
+- fresh: it does not repeat the character's earlier lines, their jokes or their wording, and it is not one of the character's example lines or a close copy of one (a copied example scores 3 at most).
+Scale: 5 is filler, a line that is fine but forgettable; 7 is genuinely good; 9 and 10 are rare. Most lines are 4 to 6.
 Answer with JSON only: {"score": <1-10>, "inCharacter": <true|false>, "fresh": <true|false>, "notes": "<one short sentence>"}`;
 
 /**
  * An LLM judge on Mistral. `chat` is streamChat (or a stand-in), `apiKey` the key, `model` the judge model (default the largest
- * of the default models). Returns async ({speaker, mode, step, line, previous}) => {score, inCharacter, fresh, notes}.
+ * of the default models). Returns async ({speaker, mode, step, line, previous}) => {score, inCharacter, fresh, notes}. The judge
+ * sees the speaker's example lines (to catch a copy) and the facts of the event in full (to catch a wrong number).
  */
 export function llmJudge({chat, apiKey, model = DEFAULT_MODELS[1]}) {
   return async ({speaker, mode, step, line, previous}) => {
+    const examples = (mode?.samples?.length ? mode.samples : speaker.persona.samples).map(sample => sampleLine(sample, speaker.name)).filter(Boolean);
     const brief = [`Character: ${speaker.name}.`, `Persona: ${speaker.persona.backstory}`,
       mode ? `Mode "${mode.name}": ${mode.style}` : `Style: ${speaker.persona.style}`,
-      step.event ? `Game event: ${step.text ?? step.event}${step.facts ? ` Facts: ${JSON.stringify(step.facts)}` : ''}` : `V said: ${step.say}`,
+      examples.length ? `The character's example lines (already used up; a copy is a failure):\n${examples.map(item => `- ${item}`).join('\n')}` : '',
+      step.event ? `Game event: ${step.text ?? step.event}${step.facts ? `\nFacts (the only numbers and names the line may use): ${JSON.stringify(step.facts)}` : ''}` : `V said: ${step.say}`,
       `Word limit: ${step.maxWords}.`, step.expect ? `The script author hoped for: ${step.expect}` : '',
       previous.length ? `Earlier lines:\n${previous.map(item => `- ${item}`).join('\n')}` : 'No earlier lines.', `The line: ${line}`].filter(Boolean).join('\n');
     const response = await chat({apiKey, model, temperature: 0, maxTokens: 200, retries: 1,
@@ -94,7 +98,7 @@ export async function evaluateScript({addonDir, script, chat, apiKey = 'offline-
   for (const [index, step] of plan.steps.entries()) {
     const remark = step.event !== null;
     const input = {requestId: `eval-${index}`, profileKey: speaker.profileKey, name: speaker.name, text: step.say ?? step.text ?? step.event,
-      reaction: remark ? {kind: 'addon', addon: manifest.id, speaker: speaker.id, event: step.event, priority: 3, expiresAt: 0} : null,
+      reaction: remark ? {kind: 'addon', addon: manifest.id, speaker: speaker.id, event: step.event, priority: 3, expiresAt: 0, maxWords: step.maxWords} : null,
       addon: {id: manifest.id, speaker: speaker.id, ...(remark ? {event: step.event, text: step.text ?? undefined, facts: step.facts ?? undefined,
         maxWords: step.maxWords} : {}), ...(step.mode ? {mode: step.mode} : {}), blocks: step.blocks}};
     host.beginTurn(input);

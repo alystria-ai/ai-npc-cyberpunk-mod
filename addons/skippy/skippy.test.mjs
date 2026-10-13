@@ -556,6 +556,30 @@ test('a line of the game\'s own Skippy blocks remarks for its length, and the ma
   assert.equal(result.ownBusy, false);
 });
 
+test('the subtitle hooks return on one boolean check while V does not hold Skippy: no clock read, no meter entry, no line touched', () => {
+  const result = playSkippy(`
+    held.tdbid = TweakDBID.new('Items.some_other_gun')
+    swap()
+    local touched, clocks = 0, 0
+    local trap = setmetatable({}, {__index = function() touched = touched + 1 end, __len = function() touched = touched + 1 return 0 end})
+    local clock = os.clock
+    os.clock = function() clocks = clocks + 1 return clock() end
+    local until0 = Skippy.S.vanillaUntil
+    for _ = 1, 50 do
+      hooks['BaseSubtitlesGameController.ShowDialogLines'](nil, {trap, {speakerName = 'Skippy', id = {hash = '55'}, duration = 4}})
+      hooks['BaseSubtitlesGameController.OnShowDialogLine'](nil, {trap, {speakerName = 'Skippy', id = {hash = '55'}, duration = 4}})
+    end
+    os.clock = clock
+    local a, b = Skippy.S.meter['subtitles-a'], Skippy.S.meter['subtitles-b']
+    return json.encode({touched = touched, clocks = clocks, a = a ~= nil, b = b ~= nil, held = Skippy.S.holding, moved = Skippy.S.vanillaUntil ~= until0})`);
+  assert.equal(result.held, false);
+  assert.equal(result.touched, 0, 'no line is inspected');
+  assert.equal(result.clocks, 0, 'the clock is not read');
+  assert.equal(result.a, false, 'no meter entry');
+  assert.equal(result.b, false, 'no meter entry');
+  assert.equal(result.moved, false, 'nothing is tracked');
+});
+
 test('hook cost is measured and a failing hook cannot break the game', () => {
   const result = playSkippy(`
     swap()
