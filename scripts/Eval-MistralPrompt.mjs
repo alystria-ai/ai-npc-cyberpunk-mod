@@ -6,6 +6,8 @@
 //
 //   node scripts/Eval-MistralPrompt.mjs --dry                      the prompt sizes of every cell, no request
 //   node scripts/Eval-MistralPrompt.mjs --label before [--n 2] [--only judy,johnny] [--model ministral-8b-latest]
+//   node scripts/Eval-MistralPrompt.mjs --actions --decision-only --models ministral-8b-latest,ministral-3b-latest [--n 2] [--label x]
+//     (the action decision alone, per model: recall, precision, false triggers, latency p50/p90; --decision-model <id> in a full run sets the decision model)
 //        [--temperature 0.65] [--max-tokens 600] [--concurrency 5] [--situations greeting,lore]
 //   node scripts/Eval-MistralPrompt.mjs --report <label>            the automatic checks of a finished run
 //   node scripts/Eval-MistralPrompt.mjs --export <label> [--out file]   a blind scoring sheet (shuffled, no labels) for the judge
@@ -173,6 +175,32 @@ const DO_SITUATIONS = [
   {id: 'do-follow-busy', call: true, text: () => 'Come with me.', offer: 'worldBusy', scene: DO_WORLD, expect: null, promise: 'follow', needs: 'a better time (she is busy right now)'},
 ];
 for (const item of DO_SITUATIONS) item.scene ??= DO_ON_FOOT;
+// More phrasings for the decision alone (--decision-only; left out of the full runs): the same offers, so a model's recall is measured on more
+// than a handful of lines. The second half is the hard negatives: a word of an action in a line that asks for none.
+const DO_EXTRA = [
+  ['ride', 'DRIVE', 'Hop in, you are driving.'], ['ride', 'DRIVE', 'Can you take us to the marker?'], ['ride', 'DRIVE', 'Chauffeur me to the Afterlife, would you?'],
+  ['ride', 'DRIVE', 'Let us roll, take the wheel.'], ['ride', 'DRIVE', 'Fahr mich bitte zum Marker.'], ['ride', 'DRIVE', 'Conduce tú, por favor.'],
+  ['ride', 'DRIVE', 'Drive us there, I am tired.'],
+  ['target', 'FIGHT', 'Shoot that Maelstrom guy.'], ['target', 'FIGHT', 'Waste him.'], ['target', 'FIGHT', 'Deal with the gonk I marked.'],
+  ['target', 'FIGHT', 'Could you take him out for me?'], ['target', 'FIGHT', 'Kill the tagged one.'], ['target', 'FIGHT', 'Atakuj go!'],
+  ['target', 'FIGHT', 'Elimina al que marqué.'],
+  ['ride', 'LEAVE', 'I think I will go on without you. You can head home.'], ['noCar', 'LEAVE', 'We are finished. You are free to go.'],
+  ['noCar', 'LEAVE', 'Get lost, I work alone.'], ['ride', 'LEAVE', 'Thanks for the help, now go back home.'], ['noCar', 'LEAVE', 'Du kannst gehen.'],
+  ['world', 'FOLLOW', 'Join me, I am heading to the Afterlife.'], ['world', 'FOLLOW', 'Walk with me for a bit?'], ['world', 'FOLLOW', 'Tag along, will you?'],
+  ['world', 'FOLLOW', 'Viens avec moi.'], ['world', 'FOLLOW', 'Come along, we are leaving.'],
+  ['ride', null, 'I drove a Porsche back in the day, you would not believe it.'], ['ride', null, 'Is that car yours?'], ['ride', null, 'Traffic is a nightmare today.'],
+  ['ride', null, 'Do you think you could drive better than me?'], ['ride', null, 'Remember when you drove us out of Kabuki?'],
+  ['ride', null, 'My driver quit last week.'], ['ride', null, 'The marker on that map is wrong, I think.'], ['ride', null, 'Thanks for waiting, by the way.'],
+  ['target', null, 'I am not going to fight today, not in the mood.'], ['target', null, 'That Maelstrom gang gives me nightmares.'],
+  ['target', null, 'Have you ever killed anyone?'], ['target', null, 'Do not shoot, he is an ally.'], ['target', null, 'Would you fight for me if it came to it?'],
+  ['ride', null, 'Please do not leave me here.'], ['noCar', null, 'I am leaving for Kabuki soon.'], ['noCar', null, 'Leave that alone, it is not worth it.'],
+  ['ride', null, 'You are not going anywhere, we have a deal.'], ['noCar', null, 'Are you leaving already? Stay a minute.'],
+  ['world', null, 'Do you follow the Night City news?'], ['world', null, 'I cannot follow all this talk about corpos.'],
+  ['world', null, 'Did you come with anyone tonight?'], ['world', null, 'Come on, that cannot be true.'],
+].map(([offer, expect, text], i) => ({id: `dx${String(i + 1).padStart(2, '0')}-${expect?.toLowerCase() ?? 'none'}`, call: true, extra: true, text: () => text, offer, expect,
+  ...(offer === 'world' ? {scene: DO_WORLD} : {})}));
+DO_SITUATIONS.push(...DO_EXTRA);
+for (const item of DO_EXTRA) item.scene ??= DO_ON_FOOT;
 const offerFor = (situation, name) => {
   const base = JSON.parse(JSON.stringify(DO_OFFERS[situation.offer]).replaceAll('{name}', name || 'Companion'));
   const {drive, ...rest} = base;
@@ -681,7 +709,8 @@ const temperature = Number(option('temperature', LIMITS.temperature));
 const maxTokens = Number(option('max-tokens', LIMITS.maxTokens));
 const concurrency = Number(option('concurrency', 5));
 const characters = CHARACTERS.filter(c => !only?.length || only.some(prefix => c.id.startsWith(prefix)));
-const situations = [...SITUATIONS, ...ACTION_SITUATIONS, ...PHONE_SITUATIONS, ...DO_SITUATIONS].filter(s => onlySituations?.length ? onlySituations.includes(s.id) : flag('actions') ? s.call : !s.action && !s.phone && !s.call);
+const situations = [...SITUATIONS, ...ACTION_SITUATIONS, ...PHONE_SITUATIONS, ...DO_SITUATIONS].filter(s => onlySituations?.length ? onlySituations.includes(s.id)
+  : flag('decision-only') ? s.call : flag('actions') ? s.call && !s.extra : !s.action && !s.phone && !s.call);
 const personas = await loadPersonas();
 for (const c of CHARACTERS) NAME_OF[c.key] = personas.persona(c.key).name;
 
@@ -736,7 +765,8 @@ async function runCell(cell, sample) {
   const delivered = [];
   const host = new TextProviderHost({provider, memory, personas, limits, log: () => {}, ...(asked ? {deliverAction: async message => { delivered.push(message); return true; }} : {}),
     routes: localPort ? {local: localRoute({server: fakeServer, provider})}
-      : {mistral: mistralRoute({provider, model: () => [model], scheduler: mistralScheduler, cacheScope: `eval-${label}`})}});
+      : {mistral: mistralRoute({provider, model: () => [model], scheduler: mistralScheduler, cacheScope: `eval-${label}`,
+        ...(option('decision-model', '') ? {decisionModel: () => [option('decision-model', '')]} : {})})}});
   // The route's prompt_cache_key is per character; samples of one cell share the prefix, as in the game.
   const local = {profileKey: c.key, name: persona.name, channel: cell.scene?.phone ? 'phone' : 'private', ...(c.ambient ? {ambientKey: `${c.key}:eval`} : {})};
   const sessionId = undefined;
@@ -759,6 +789,48 @@ async function runCell(cell, sample) {
   return {character: c.id, situation: cell.situation, sample, history: history.length ? history : undefined, v: cell.v, reply: turn.text, truth: cell.scene?.truth,
     ...(cell.call ? {call: {expect: cell.call.expect, promise: cell.call.promise, needs: cell.call.needs, offer: cell.call.offer}, action} : {}), ...(cell.scene?.phone ? {phone: true, context: flag('no-phone-context') ? 'none' : 'block'} : {}),
     ms: turn.ms, headMs: turn.headMs, model: turn.model, attempts: turn.attempts, ...checks(turn.text, persona.name)};
+}
+
+// --decision-only: the companion-action decision alone, once per model (--models a,b), as the host sends it (bridge/text-provider-host.mjs
+// #decide: the classifier prompt, one word, temperature 0, no retry). A line the word screen stops is no request, as in the game. Per model:
+// recall, precision, false triggers and the time of the request itself (not the wait in the scheduler's queue). No reply is written.
+if (flag('decision-only') && !localPort) {
+  const models = option('models', 'ministral-8b-latest,ministral-3b-latest').split(',').filter(Boolean);
+  const quant = (list, q) => list.length ? [...list].sort((x, y) => x - y)[Math.min(list.length - 1, Math.floor(q * list.length))] : null;
+  const rowsOf = situations.filter(s => s.call && !s.promise).map(s => ({s, menu: actionMenu(offerFor(s, 'Judy Alvarez'))}));
+  const summary = {};
+  for (const id of models) {
+    const out = [];
+    const queue = rowsOf.flatMap(row => Array.from({length: n}, () => row));
+    let cursor = 0;
+    await Promise.all(Array.from({length: Math.min(concurrency, 3)}, async () => {
+      while (cursor < queue.length) {
+        const {s, menu} = queue[cursor++];
+        const text = s.text();
+        const found = menu.screen(text, undefined);
+        if (!found.length) { out.push({id: s.id, expect: s.expect, action: null, screened: true}); continue; }
+        try {
+          const at = {};
+          const send = async () => {
+            at.start = Date.now();
+            try { return await streamChat({apiKey, model: id, messages: menu.classifier({text, last: undefined}), maxTokens: 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000}); }
+            finally { at.ms = Date.now() - at.start; }
+          };
+          const response = await mistralScheduler.schedule(send, {retries: 1, label: 'eval-decision'});
+          out.push({id: s.id, expect: s.expect, action: menu.decide(response.text)?.code ?? null, ms: at.ms, answer: String(response.text).slice(0, 20)});
+        } catch (error) { out.push({id: s.id, expect: s.expect, action: null, failed: redact(error?.message ?? String(error), apiKey).slice(0, 120)}); }
+      }
+    }));
+    const stats = actionStats(out);
+    const times = out.filter(r => typeof r.ms === 'number').map(r => r.ms);
+    summary[id] = {...stats, requests: times.length, p50: quant(times, 0.5), p90: quant(times, 0.9), failed: out.filter(r => r.failed).length};
+    console.log(`${id}: ${stats.line}  | requests ${times.length}  latency p50 ${quant(times, 0.5)} ms  p90 ${quant(times, 0.9)} ms  failed ${summary[id].failed}`);
+    for (const r of out.filter(row => row.expect ? row.action !== row.expect : row.action)) console.log(`    miss ${r.id}: expected ${r.expect ?? 'none'}, got ${r.action ?? (r.screened ? 'none (screen)' : r.failed ? 'failure' : 'none')}${r.answer ? ` ("${r.answer.replace(/\s+/g, ' ')}")` : ''}`);
+    summary[id].rows = out;
+  }
+  await mkdir(OUT_DIR, {recursive: true});
+  await writeFile(resolve(OUT_DIR, `${label}-decision.json`), JSON.stringify({label, at: new Date().toISOString(), n, summary}, null, 1));
+  process.exit(0);
 }
 
 const jobs = cells.flatMap(cell => Array.from({length: n}, (_, i) => ({cell, sample: i + 1})));

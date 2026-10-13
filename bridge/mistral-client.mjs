@@ -16,6 +16,10 @@ export const GROQ_MODELS_ENDPOINT = 'https://api.groq.com/openai/v1/models';
 // in about 1 s and follows a persona well; `14b` is richer but slower (docs/FREE_CLOUD_OPTION_RESEARCH.md).
 export const DEFAULT_MODELS = Object.freeze(['ministral-8b-latest', 'ministral-14b-latest', 'ministral-3b-latest']);
 export const DEFAULT_MODEL = DEFAULT_MODELS[0];
+// The companion-action decision (bridge/text-actions.mjs) is one word read from V's message, so the smallest model answers it: measured with
+// scripts/Eval-MistralPrompt.mjs --actions --decision-only on 54 lines (14 Oct 2026), `ministral-3b` had recall 97% and no false trigger at a
+// p50/p90 of 475/760 ms against 8b's 97-100% recall, one false trigger and 510-590/940 ms. The reply keeps DEFAULT_MODELS; 8b is the fallback.
+export const DECISION_MODELS = Object.freeze(['ministral-3b-latest', 'ministral-8b-latest']);
 
 // A Mistral key has no recognisable prefix, so only the exact key is removed, plus any long unbroken run of letters and digits
 // that an error text might echo.

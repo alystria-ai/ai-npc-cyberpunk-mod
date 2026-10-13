@@ -155,6 +155,12 @@ Measured with `node scripts/Eval-MistralPrompt.mjs --actions` (6 characters, 27 
 `--no-actions` is the old behaviour): before, 0 of 196 asked-for actions fired; after, precision 100% (195/195) and recall 99% (195/197),
 no false trigger in 288 plain, impossible or look-alike turns ("do you know how to drive?", "let's leave this place", "wait here").
 
+The decision request uses `ministral-3b` (`DECISION_MODELS` in `bridge/mistral-client.mjs`, 8b as the fallback); the reply keeps 8b. Measured
+on 14 Oct 2026 with `--actions --decision-only --models ministral-8b-latest,ministral-3b-latest` (54 lines: 35 asked-for, 31 plain or look-alike
+once the word screen is applied; temperature 0, about 325 short requests in all): 3b recall 97% (34/35, "Walk with me for a bit?" is the one miss),
+precision 100%, false triggers 0/31, latency p50 475 ms, p90 760 ms; 8b recall 99-100%, one false trigger ("My driver quit last week."),
+p50 510-590 ms, p90 940 ms.
+
 ### Memory
 
 Convai keeps history and long-term memory on its servers; with Mistral the bridge keeps a small, bounded version in
