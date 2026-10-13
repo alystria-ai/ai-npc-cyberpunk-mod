@@ -644,6 +644,9 @@ local gameDialogueLoaded, gameDialogueModule = pcall(dofile, 'game-dialogue.lua'
 local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     and type(gameDialogueModule.new) == 'function' and gameDialogueModule.new({
     enabled = function() return type(manager.gameDialogueContext) ~= 'function' or manager.gameDialogueContext() == true end,
+    -- A game voice is speaking: add-on remarks that asked to be patient wait for it (mod/addons.lua gameLine). Skipped until an add-on registers.
+    onGameLineWanted = function() return convaiAddons ~= nil and convaiAddons.live == true end,
+    onGameLine = function(seconds, kind, measured) convaiAddons.gameLine(seconds, kind, measured) end,
     resolve = function(speaker)
         if not speaker:IsNPC() then return nil end
         local key, canonical = profileIdentity(speaker)

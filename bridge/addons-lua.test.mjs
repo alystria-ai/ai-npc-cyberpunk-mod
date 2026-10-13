@@ -133,6 +133,217 @@ test('arbitration: nothing is submitted while anything else talks, a manual turn
   `);
 });
 
+test('patience: a remark waits out a game scene or dialogue line and goes after a short gap if it still fits; one without patience is dropped as before', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle', minGap = 2})
+    player.vehicle = car
+    local dropReasons = {}
+    handle:on('remarkDropped', function(payload) dropReasons[#dropReasons + 1] = payload.event .. ':' .. payload.reason end)
+    -- No scene, no wait: the remark goes at once.
+    assert(handle:remark('voice', {event = 'quiet', patience = 20})); tick()
+    assert(#submitted == 1 and submitted[1].context.addon.event == 'quiet')
+    state.pendingId = nil; tick(); tick(5)
+    -- A scene is on: the patient remark is kept (its ttl does not run down meanwhile), the hasty one is dropped.
+    state.sample = {available = true, tier = 1, dialogue = true}
+    assert(handle:remark('voice', {event = 'patient', ttl = 3, patience = 20}))
+    tick(); tick(5); tick(5)
+    assert(#submitted == 1 and #M._test.queue() == 1, 'still waiting after 10 s although its ttl is 3 s')
+    assert(handle:remark('voice', {event = 'hasty', ttl = 3, priority = 5}))
+    tick()
+    assert(dropReasons[#dropReasons] == 'hasty:scene', tostring(dropReasons[#dropReasons]))
+    -- The scene ends: a gap of 1.2 s of quiet first, then it goes with a fresh clock.
+    state.sample = {available = true, tier = 1}
+    tick(0.5); tick(0.5)
+    assert(#submitted == 1)
+    tick(0.5); tick(0.5)
+    assert(#submitted == 2 and submitted[2].context.addon.event == 'patient', 'sent after the gap')
+    assert(submitted[2].context.reaction.expiresAt > os.time() * 1000, 'its ttl starts when it is sent')
+    local started
+    for _, line in ipairs(logs) do if line:find('Remark: ', 1, true) and line:find('event=patient', 1, true) then started = line end end
+    assert(started and started:find('waited=1', 1, true), tostring(started))
+    -- A scene that starts again during the gap restarts the gap.
+    state.pendingId = nil; tick(); tick(10)
+    state.sample = {available = true, tier = 3, dialogue = true}
+    assert(handle:remark('voice', {event = 'again', patience = 20})); tick()
+    state.sample = {available = true, tier = 1}; tick(1)
+    state.sample = {available = true, tier = 3, choices = true}; tick(1)
+    state.sample = {available = true, tier = 1}; tick(1); tick(0.1)
+    assert(#submitted == 2, 'the gap starts over')
+    tick(1.2)
+    assert(#submitted == 3 and submitted[3].context.addon.event == 'again')
+  `);
+});
+
+test('patience: a remark whose moment has passed (relevant says no) is dropped, and one that waited past its patience is not spoken late', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle', minGap = 2})
+    player.vehicle = car
+    local dropReasons = {}
+    handle:on('remarkDropped', function(payload) dropReasons[#dropReasons + 1] = payload.event .. ':' .. payload.reason end)
+    state.sample = {available = true, tier = 1, dialogue = true}
+    local fits = true
+    assert(handle:remark('voice', {event = 'fits', patience = 20, relevant = function() return fits end}))
+    tick()
+    fits = false
+    tick(1); assert(#M._test.queue() == 1, 'a flicker is forgiven')
+    fits = true; tick(1); fits = false
+    tick(1); tick(1); tick(1); tick(1)
+    assert(#M._test.queue() == 0 and dropReasons[#dropReasons] == 'fits:irrelevant', tostring(dropReasons[#dropReasons]))
+    state.sample = {available = true, tier = 1}; tick(5)
+    assert(#submitted == 0, 'nothing is said for a moment that has gone')
+    -- It no longer fits at the moment of sending: it keeps waiting rather than speaking.
+    state.sample = {available = true, tier = 1, dialogue = true}
+    fits = true
+    assert(handle:remark('voice', {event = 'late', patience = 6, relevant = function() return fits end})); tick()
+    state.sample = {available = true, tier = 1}; fits = false
+    tick(0.5); tick(0.5); tick(0.5); tick(0.5)
+    assert(#submitted == 0)
+    -- Past its patience (6 s) a scene is not waited for any more.
+    fits = true
+    state.sample = {available = true, tier = 1, dialogue = true}; tick(10)
+    assert(dropReasons[#dropReasons] == 'late:expired', tostring(dropReasons[#dropReasons]))
+    assert(select(2, handle:remark('voice', {event = 'x', patience = 'soon'})) == nil, 'a bad patience is just no patience')
+  `);
+});
+
+test('a patient remark in flight that meets a scene is taken back and written again after it (twice at most); nothing heard costs nothing', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle', minGap = 6})
+    player.vehicle = car
+    local finished = {}
+    handle:on('remarkFinished', function(payload) finished[#finished + 1] = payload.reason .. ':' .. tostring(payload.requeued) .. ':' .. tostring(payload.spoken) end)
+    assert(handle:remark('voice', {event = 'greet', patience = 60, ttl = 5})); tick()
+    assert(#submitted == 1)
+    for round = 1, 3 do
+      state.sample = {available = true, tier = 1, dialogue = true}; tick()
+      state.sample = {available = true, tier = 1}
+      for _ = 1, 5 do tick(0.5) end
+      if round <= 2 then assert(#submitted == round + 1, 'written again, round ' .. round) end
+    end
+    assert(#submitted == 3, 'the third scene is final: ' .. #submitted)
+    assert(finished[1] == 'scene:true:false' and finished[2] == 'scene:true:false' and finished[3] == 'scene:false:false', table.concat(finished, ' '))
+    -- A scene that waits for the speaker's gap is not charged to the remark: the speaker was not heard, so no cooldown is owed.
+    assert(M._test.speakers['addon-cab-voice'].lastAt ~= nil)
+    -- A remark without patience in flight is simply released.
+    tick(10)
+    assert(handle:remark('voice', {event = 'hasty'})); tick()
+    local count = #submitted
+    state.sample = {available = true, tier = 1, dialogue = true}; tick()
+    state.sample = {available = true, tier = 1}; tick(5)
+    assert(#submitted == count and #M._test.queue() == 0)
+  `);
+});
+
+test('a request nobody answers is withdrawn after its ttl and 2 s so it cannot block the later remarks; a patient remark is asked for again', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle', minGap = 2})
+    player.vehicle = car
+    local finished = {}
+    handle:on('remarkFinished', function(payload) finished[#finished + 1] = payload.reason .. ':' .. tostring(payload.requeued) end)
+    -- Without patience: given up, nothing asked again.
+    assert(handle:remark('voice', {event = 'hasty', ttl = 4})); tick()
+    assert(#submitted == 1)
+    tick(5); assert(handle:state().remark == 'voice', 'still within ttl + 2 s')
+    tick(2)
+    assert(handle:state().remark == nil and finished[1] == 'stale:false' and dropped[1].reason == 'stale', table.concat(finished, ' '))
+    tick(10); assert(#submitted == 1 and #M._test.queue() == 0)
+    -- With patience: asked once more, with a fresh clock, and spoken when the second request is answered.
+    assert(handle:remark('voice', {event = 'greet', ttl = 4, patience = 30})); tick()
+    assert(#submitted == 2)
+    tick(5); tick(2)
+    assert(finished[2] == 'stale:true' and #M._test.queue() == 1, table.concat(finished, ' '))
+    tick(3)
+    assert(#submitted == 3 and submitted[3].context.addon.event == 'greet', 'asked again')
+    local id = state.pendingId
+    state.pendingId, state.speechId = nil, id; tick()
+    assert(handle:state().remark == 'voice')
+  `);
+});
+
+test('game lines: only a remark with patience waits for the game subtitle line; the scene gate alone applies to the others', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle', minGap = 2})
+    player.vehicle = car
+    tick()
+    M.gameLine(4, 'Regular', true)
+    assert(handle:remark('voice', {event = 'hasty'})); tick()
+    assert(#submitted == 1, 'a remark without patience is not held by a game line')
+    state.pendingId = nil; tick(); tick(5)
+    M.gameLine(3, 'Regular', false)
+    assert(handle:remark('voice', {event = 'patient', patience = 20})); tick()
+    assert(#submitted == 1)
+    local log
+    for _, line in ipairs(logs) do if line:find('Remark held', 1, true) then log = line end end
+    assert(log and log:find('reason=game-line', 1, true) and log:find('signals=subtitle', 1, true), tostring(log))
+    tick(3); tick(0.5); tick(0.5)
+    assert(#submitted == 1)
+    tick(0.5)
+    assert(#submitted == 2 and submitted[2].context.addon.event == 'patient')
+    -- A longer line extends the wait, a shorter one does not shorten it; absurd values are bounded.
+    state.pendingId = nil; tick(); tick(10)
+    M.gameLine(8, 'Radio'); M.gameLine(1, 'Regular'); M.gameLine(1e9, 'Regular')
+    assert(handle:remark('voice', {event = 'later', patience = 60})); tick(); tick(14)
+    assert(#submitted == 2, 'bounded to fifteen seconds, not forever')
+    tick(1); tick(1.5)
+    assert(#submitted == 3)
+    -- A game line seen while the add-on is dormant or reset is forgotten.
+    M.reset('load')
+    assert(M._test.flight() == nil)
+  `);
+});
+
+test('playThrough: a speaker that plays through finishes a started line over an ordinary scene; a call, Johnny or a cinematic tier still stops it', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'through', name = 'Delamain', anchor = 'vehicle', minGap = 2, playThrough = true})
+    handle:speaker({id = 'plain', name = 'Skippy', anchor = 'player', minGap = 2})
+    player.vehicle = car
+    local function play(speaker)
+      tick(3)
+      assert(handle:remark(speaker, {event = 'line'})); tick()
+      local id = state.pendingId
+      state.pendingId, state.speechId = nil, id; tick()
+      assert(handle:state().remark == speaker)
+    end
+    play('through')
+    state.sample = {available = true, tier = 2, dialogue = true}; tick(); tick(3)
+    assert(handle:state().remark == 'through' and #dropped == 0, 'plays on')
+    state.sample = {available = true, tier = 1, choices = true}; tick()
+    assert(handle:state().remark == 'through', 'a choice menu is an ordinary scene')
+    state.sample = {available = true, tier = 5, dialogue = true}; tick()
+    assert(handle:state().remark == nil and dropped[#dropped].reason == 'scene')
+    state.sample = {available = true, tier = 1}; tick(30)
+    play('through')
+    state.sample = {available = true, tier = 1, replacer = true}; tick()
+    assert(handle:state().remark == nil, 'Johnny stops it')
+    tick(30); state.sample = {available = true, tier = 1}
+    play('through')
+    state.sample = {available = true, tier = 1, call = true}; tick()
+    assert(handle:state().remark == nil, 'a call stops it')
+    tick(30); state.sample = {available = true, tier = 1}
+    -- The default is unchanged: any scene stops a line.
+    play('plain')
+    state.sample = {available = true, tier = 1, dialogue = true}; tick()
+    assert(handle:state().remark == nil and dropped[#dropped].reason == 'scene')
+    -- A player's own turn still wins over a line that plays through.
+    tick(30); state.sample = {available = true, tier = 1}
+    play('through')
+    state.active = true; tick()
+    assert(handle:state().remark == nil and dropped[#dropped].reason == 'manual-priority')
+  `);
+});
+
 test('priority, interruption, replacement and cooldowns', () => {
   run(`${WORLD}
     M.attach(host)
@@ -482,7 +693,9 @@ test('init.lua: every call into the add-on API is skipped until an add-on is liv
   const init = code('init.lua');
   assert.match(init, /local loaded, module = pcall\(dofile, 'addons\.lua'\)\s+convaiAddons = loaded and type\(module\) == 'table' and module or nil/);
   const calls = [...init.matchAll(/convaiAddons\.(\w+)\(/g)].map(match => match[1]);
-  assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'decorate', 'isSpeaker', 'participantLive', 'replyError', 'talkCandidates']);
+  assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'decorate', 'gameLine', 'isSpeaker', 'participantLive', 'replyError', 'talkCandidates']);
+  // The game-line notice runs only for a live add-on: the dialogue module asks first (one function call per game subtitle line).
+  assert.match(init, /onGameLineWanted = function\(\) return convaiAddons ~= nil and convaiAddons\.live == true end,\s+onGameLine = function\(seconds, kind, measured\) convaiAddons\.gameLine\(seconds, kind, measured\) end/);
   assert.match(init, /if key and not participants and convaiAddons and convaiAddons\.live and convaiAddons\.isSpeaker\(key\) then key = nil end/);
   assert.match(init, /if type\(reply\.errorCode\) == 'string' and reply\.errorCode:find\('\^addon%-'\) then\s+if convaiAddons and convaiAddons\.live then convaiAddons\.replyError\(pending, reply, player\) end\s+elseif keyId == 'key-memory'/);
   // The voice key addresses an add-on voice only on a computer that can recognise speech (asked on the key press); otherwise typed

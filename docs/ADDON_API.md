@@ -180,8 +180,8 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 
 | Method | What it does |
 |---|---|
-| `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
-| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
+| `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers, playThrough}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
+| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
 | `handle:setMode(speakerId, modeId)` | Switches the speaker's personality (a mode in the manifest). It is sent with every turn and in `runtime/addon-state.json`. |
 | `handle:remember(speakerId, text)` | Keeps a memory the speaker can call back to later, for example "V spared the Tyger Claw who begged." At most 300 characters; a repeat is ignored. The bridge keeps the last 12 per speaker across game sessions. |
 | `handle:setContext(speakerId, key, text, tier)` | Adds a prompt block to every turn of this speaker until it is cleared with `text = nil`. At most 8 blocks of 1,500 characters. `tier` is `'world'` (default; changes rarely), `'volatile'` (changes every turn) or `'notes'`. |
@@ -208,6 +208,11 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 - `minGap`: the speaker's own gap after it speaks (default 8 s).
 - `talkPriority`: the order among voices.
 - `sceneTiers`: the game scene tiers in which it may make a remark (default `{1}`, free gameplay).
+- `playThrough`: a line of this speaker that has started is not cut when an ordinary game scene begins (dialogue, a choice menu, a
+  scene tier below 4); a phone call, a replacer (Johnny), a cinematic tier (4 and 5), a conversation the player starts,
+  `handle:cancel` or the add-on being switched off still stop it. Default `false`: any scene stops the line. The Delamain cab uses
+  it, because the game's own cab dialogue is a quest scene that opens and closes around its lines. A log line,
+  `Remark plays through a game scene: ... signals=dialogue+tier=2`, names the flags that were up.
 
 ### Events
 
@@ -221,8 +226,8 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 | `turnStarted` / `turnEnded` | `{requestId, profileKey, reaction, addon}` for any conversation turn |
 | `speechStarted` / `speechEnded` | `{requestId, name}` / `{requestId}` |
 | `remarkStarted` | `{speaker, event}`: the remark is heard (or its caption is shown) |
-| `remarkFinished` | `{speaker, event, reason, spoken}`. A remark that is playing finishes even when its speaker stops being `available` (V steps out of the cab while it ends); only a scene, a conversation V starts, `handle:cancel` or the add-on being switched off cut it. One still waiting to be heard is given up after 2.5 s without its speaker. `reason` is one of `finished`, `not-delivered`, `stale`, `manual-priority`, `scene`, `scene-tier`, `speaker-unavailable`, `interrupted`, `cancelled`, `add-on-disabled` or `anchor-changed` |
-| `remarkDropped` | `{speaker, event, reason}`: the remark was never sent. `reason` is one of `replaced`, `expired`, `scene`, `speaker-unavailable`, `speaker-cooldown`, `addon-gap`, `episode-budget` or `request-write-failed` |
+| `remarkFinished` | `{speaker, event, reason, spoken, requeued}` (`requeued` is true when a remark with `patience` was taken back at a scene and waits to be written again). A remark that is playing finishes even when its speaker stops being `available` (V steps out of the cab while it ends); only a scene, a conversation V starts, `handle:cancel` or the add-on being switched off cut it. One still waiting to be heard is given up after 2.5 s without its speaker. `reason` is one of `finished`, `not-delivered`, `stale`, `manual-priority`, `scene`, `scene-tier`, `game-line`, `speaker-unavailable`, `interrupted`, `cancelled`, `add-on-disabled` or `anchor-changed` |
+| `remarkDropped` | `{speaker, event, reason}`: the remark was never sent. `reason` is one of `replaced`, `expired`, `irrelevant`, `scene`, `game-line`, `speaker-unavailable`, `speaker-cooldown`, `addon-gap`, `episode-budget` or `request-write-failed` |
 | `settingChanged` | `{id, value}`, sent on the tick after Apply (never inside the menu) |
 
 A handler that throws three times is removed. The main mod has no kill, headshot or damage events. An add-on that needs them
@@ -258,6 +263,38 @@ pick. The rules:
 - `handle:remark` refuses at once (`addon-gap`, `episode-budget`, `busy`) when a remark could not be made, so the add-on does no work
   for it.
 
+### Patience: waiting for the game's own voice instead of losing the moment
+
+By default a remark that meets a game scene is dropped (`remarkDropped` with `scene`), which suits a fight remark: its moment is over.
+Moments that matter and will still be true a few seconds later (V sits in the Delamain cab, the cab arrives) should wait:
+
+```lua
+handle:remark('delamain', {event = 'arrival', priority = 5, ttl = 12,
+    patience = 25,                                   -- seconds the remark may wait for the game's voice (0 to 60; 0 = drop, the default)
+    relevant = function() return stillInTheCab() end}) -- optional, cheap: is the moment still true when its turn comes?
+```
+
+- While a game scene (dialogue, choices, a call, a scene tier above the speaker's `sceneTiers`) or a **game dialogue line** (the
+  subtitle hooks of `mod/game-dialogue.lua`, with the line's own duration when the game gives one, else an estimate from its words,
+  at most 15 s) is on, the remark is **kept**, and its `ttl` does not run down. Nothing is polled for it: it is looked at on the
+  add-on tick that already runs while any remark waits.
+- When the scene and the line are over, it waits **1.2 s more** (the game's last word, a pause, the next line) and then goes with a
+  fresh `ttl`. A scene or line that begins again in that gap restarts it. With no scene and no line playing there is **no wait at all**.
+- A remark already **in flight** (being written, not yet heard) that meets a scene is taken back (the request is withdrawn, so it cannot
+  talk over the game) and goes through the same wait, then is written again with the facts it was given. At most twice per remark;
+  `remarkFinished` carries `requeued = true` for those. A remark that has begun to play is never taken back (see `playThrough`).
+- A request that nobody has answered `ttl` + 2 s after its moment (a cold model, a busy bridge) is withdrawn for every remark, so it
+  cannot hold up the later ones (`remarkFinished` with `stale`); a remark with patience is asked for again once with a fresh clock,
+  within its patience.
+- `relevant()` is asked every tick while the remark waits and before it is sent. A remark that stays irrelevant for 2.5 s is dropped
+  (`remarkDropped` with `irrelevant`); a flicker of a moment is forgiven. One that waited past `patience` is dropped with `expired`.
+- A remark without `patience` is unchanged: the scene gate drops it, and a game dialogue line does not hold it back.
+- Log lines (all in `probe.log`): `[Addons] Remark held: <speaker> event=<e> reason=scene|scene-tier|game-line signals=dialogue+tier=2 patience=25s`,
+  `[Addons] Remark released: ... reason=scene signals=... (taken back; it is asked for again)`,
+  `[Addons] Remark: <speaker> event=<e> priority=<p> waited=3.4s`, `[Addons] Remark dropped: ... reason=expired|irrelevant|...` and
+  `[Addons] Game line: Regular for about 3.2 s (its own duration|estimated); patient remarks wait for it`. The `signals` name which
+  flags of the observer were up, so a live ride shows which of them the game's own cab dialogue raises.
+
 Choose priorities like this:
 
 | Priority | Use for | Skippy | Delamain |
@@ -284,7 +321,8 @@ The other remark fields:
 - a player turn, the microphone, a group round, phone chat or another automatic turn;
 - a pending request, voice playing, or a caption on screen;
 - the 2 s after any speech;
-- dialogue, choices, a call, or a scene tier the speaker does not allow.
+- dialogue, choices, a call, or a scene tier the speaker does not allow (a remark with `patience` also waits for a game dialogue
+  line; either way it waits instead of being lost, see Patience).
 
 It also waits while subtitles and voice are both off. The scheduler then sends the highest priority first, through the request
 file every automatic turn uses, with a lease the bridge checks. If the player starts talking, or a scene starts, the remark stops
@@ -586,6 +624,7 @@ check the list of calls.
 
 | Where | What |
 |---|---|
+| `mod/game-dialogue.lua` | `noteLine`: once per game subtitle line (both hooks, deduplicated; the mod's own replies, crowd chatter and TV are skipped), calls `convaiAddons.gameLine(seconds, kind)` through `options.onGameLine`, only while an add-on is live (`onGameLineWanted`). Independent of the "game dialogue context" setting. |
 | `mod/init.lua` | Loads `addons.lua` with `pcall`; returns `{addons = …}` for `GetMod`. Talk target: add-on voices after aimed characters (a vehicle-anchored voice outranks characters outside V's car: `companionOrPassenger`), for the voice keys too when `manager.speechRecognitionReady()` (asked on the key press, with `microphone.decorate` adding the blocks). `sendRequest`/`decorate`; `reactionCanDeliver` → `canDeliver`; `groupAudience` → `participantLive`; the reply error branch → `replyError`; `warmConversation` skips add-on voices; tick, reset and shutdown. |
 | `mod/speech.lua`, `continuous-speech.lua`, `subtitles.lua` | `voiceOnly`: no face calls, no `IsDeadNoStatPool` check, subtitles owned by the player. |
 | `mod/group-chat.lua` | `voiceOnly` rows; add-on voices are left out of the other speakers' audience. |
@@ -625,7 +664,8 @@ Build against this document and `addons/example/`.
 
 **Delamain** (`addons/delamain-cab`, Oct 25):
 - One speaker, `delamain`, anchored to `'vehicle'`, with `group = true`, available only in a Delamain cab.
-- Never active in the game's own Delamain scenes (default `sceneTiers = {1}`).
+- Never starts a line over the game's own Delamain scenes (default `sceneTiers = {1}`): every remark has `patience` and waits for the
+  scene or subtitle line to end; a line that has started plays through (`playThrough`).
 - `setCompanionContext('ride', …)` while riding, cleared on exit.
 - Remarks: boarding (4), arrival (5), a crash or chase (4), at most one landmark (3).
 - `remember` for notable rides.

@@ -1320,6 +1320,14 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       // Microphone context refresh creates a new projection at finish. Its
       // generated/delivered receipts still belong to the original submitted
       // turn, shared by every channel of this conversation.
+      // An add-on speaker (Delamain, Skippy) has no knowledge receipt: no Convai memory and no world-knowledge route belong to its
+      // turns (runAddonTurn). Throwing here for the missing receipt stopped the voice stream the moment the text was complete,
+      // which cut every add-on line off in the middle (probe.log 2026-10-14: "Conversation receipt owner changed" after each
+      // Delamain line). Such a turn only has to still be current.
+      if (!receiptPrepared && input.addon) {
+        if (!await current()) throw Error('Conversation owner changed');
+        return;
+      }
       if (!receiptPrepared || !await current()) throw Error('Conversation receipt owner changed');
       await knowledgeRouter.activity(receiptPrepared, 'generated-reply', {replyText: text});
       stagedKnowledgeTurn(receiptPrepared, {replyText: text});

@@ -232,22 +232,171 @@ test('a ride without a greeting: the district is remarked once (priority 3), the
   `);
 });
 
-test('a scene that holds a remark back (the game own farewell) does not lose the arrival: it is asked again when the scene ends', () => {
+test('the game own farewell (a scene) holds the arrival back; it plays when the scene is over plus a short gap, not before and not forgotten', () => {
   lua(`
     sit(); step(3); step(4); tick(); finish(31)
     state.sample = {available = true, combat = false, tier = 1, vehicle = true, dialogue = true}
     tick(); now = now + 40
     step(5); tick()
-    assert(#submitted == 1, 'the game is speaking its farewell: nothing is sent')
+    assert(#submitted == 2 - 1, 'the game is speaking its farewell: nothing is sent')
+    assert(#M._test.queue() == 1 and M._test.queue()[1].event.event == 'arrival', 'the arrival waits, it is not dropped: ' .. #M._test.queue() .. ' ' .. table.concat(logs, ' | '))
+    tick(10)
+    assert(#submitted == 1 and #M._test.queue() == 1, 'a long scene is waited out')
+    step(7)                                      -- the game scene writes Finished after its farewell: the arrival is still worth saying
     state.sample = {available = true, combat = false, tier = 1, vehicle = true}
+    tick(0.5); tick(0.5)
+    assert(#submitted == 1, 'a short gap after the last word of the game, not right on its heels')
+    tick(0.5); tick(0.5)
+    assert(#submitted == 2 and lastRequest().addon.event == 'arrival', 'spoken once the gap has passed')
+    local held, started
+    for _, line in ipairs(logs) do
+      if line:find('Remark held', 1, true) then held = line end
+      if line:find('Remark: ', 1, true) and line:find('event=arrival', 1, true) then started = line end
+    end
+    assert(held and held:find('reason=scene', 1, true) and held:find('signals=dialogue', 1, true), tostring(held))
+    assert(started and started:find('waited=', 1, true), tostring(started))
+  `);
+});
+
+test('a remark waits only as long as it was asked to: after its patience the game scene is not waited for any more and the line is dropped, never spoken late', () => {
+  lua(`
+    sit(); step(3); step(4); tick(); finish(31)
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true, dialogue = true}
+    tick(); now = now + 40
+    step(5); tick()
+    assert(#M._test.queue() == 1)
+    tick(10); tick(10)
+    assert(#M._test.queue() == 1, 'still within its 25 s')
+    tick(10)
+    assert(#M._test.queue() == 0, 'it waited as long as it was asked to and then gave up')
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true}; tick(2)
+    assert(#submitted == 1, 'no late arrival line')
+    local dropped
+    for _, line in ipairs(logs) do if line:find('Remark dropped', 1, true) and line:find('event=arrival', 1, true) then dropped = line end end
+    assert(dropped and dropped:find('reason=expired', 1, true), tostring(dropped))
+  `);
+});
+
+test('the welcome is not lost when the game cab line starts while it is being written: it is taken back and said again after the scene', () => {
+  lua(`
+    sit(); step(1); step(2); step(3); tick()
+    assert(#submitted == 1 and lastRequest().addon.event == 'boarded')
+    local first = lastRequest().requestId
+    -- The game's own cab dialogue begins before the reply is heard.
+    state.sample = {available = true, combat = false, tier = 2, vehicle = true, dialogue = true}
     tick()
-    assert(#submitted == 2 and lastRequest().addon.event == 'arrival', 'sent again when the scene ends')
+    assert(dropped[#dropped].requestId == first and dropped[#dropped].reason == 'scene', 'the written line is withdrawn so it cannot talk over the game')
+    assert(handle:state().remark == nil and #M._test.queue() == 1 and M._test.queue()[1].event.event == 'boarded', 'and kept for later')
+    local taken
+    for _, line in ipairs(logs) do if line:find('Remark released', 1, true) and line:find('taken back', 1, true) then taken = line end end
+    assert(taken and taken:find('reason=scene', 1, true) and taken:find('signals=dialogue+tier=2', 1, true), tostring(taken))
+    tick(5); assert(#submitted == 1)
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true}
+    tick(0.5); tick(0.5)
+    assert(#submitted == 1, 'a short gap first')
+    tick(0.5); tick(0.5)
+    assert(#submitted == 2 and lastRequest().addon.event == 'boarded' and lastRequest().requestId ~= first, 'written again for the quiet moment')
+    assert(lastRequest().reaction.expiresAt > now * 1000, 'its clock started again, it is not already stale')
     finish(31)
-    -- Not asked for forever: a remark that waited past its window is not replayed.
-    now = now + 400
-    state.sample = {available = true, combat = false, tier = 1, vehicle = true, dialogue = true}; tick()
-    state.sample = {available = true, combat = false, tier = 1, vehicle = true}; tick()
-    assert(#submitted == 2)
+    local released
+    for _, line in ipairs(logs) do if line:find('Remark released', 1, true) and line:find('reason=finished', 1, true) then released = line end end
+    assert(released, 'and it was heard')
+  `);
+});
+
+test('a game subtitle line holds a remark back even when no scene flag is up, and a non patient speaker is not held', () => {
+  lua(`
+    sit(); step(1); step(2)
+    M.gameLine(4, 'Regular', true)                -- the cab greeting is on screen for about four seconds
+    step(3); tick()
+    assert(#submitted == 0 and #M._test.queue() == 1, 'the game voice is speaking')
+    tick(2)
+    assert(#submitted == 0)
+    tick(2.1)                                      -- the line is over
+    tick(0.5); tick(0.5)
+    assert(#submitted == 0, 'a short gap after its last word')
+    tick(0.5)
+    assert(#submitted == 1 and lastRequest().addon.event == 'boarded')
+    local held
+    for _, line in ipairs(logs) do if line:find('Remark held', 1, true) then held = line end end
+    assert(held and held:find('reason=game-line', 1, true), tostring(held))
+    -- No game line playing: no wait at all.
+    finish(31)
+    now = now + 40
+    step(4); tick()
+    assert(#submitted == 2 and lastRequest().addon.event == 'ride-start', 'nothing is added when the game is quiet')
+  `);
+});
+
+test('a line that has started plays through the game cab dialogue; a call, Johnny or a cinematic still stops it', () => {
+  lua(`
+    sit(); step(3); tick()
+    local id = state.pendingId
+    state.pendingId, state.speechId = nil, id; tick()
+    assert(handle:state().remark == 'delamain')
+    state.sample = {available = true, combat = false, tier = 2, vehicle = true, dialogue = true}; tick(); tick(2)
+    assert(handle:state().remark == 'delamain', 'his own line is not cut by the cab dialogue starting')
+    assert(#dropped == 0)
+    local through
+    for _, line in ipairs(logs) do if line:find('plays through a game scene', 1, true) then through = line end end
+    assert(through and through:find('signals=dialogue+tier=2', 1, true), tostring(through))
+    state.sample = {available = true, combat = false, tier = 4, vehicle = true, dialogue = true}; tick()
+    assert(handle:state().remark == nil and dropped[#dropped].reason == 'scene', 'a cinematic stops it')
+    -- A phone call stops it too, and a line that never started is not "played through".
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true}; tick(11); tick(3)
+    step(4); tick()
+    id = state.pendingId
+    state.pendingId, state.speechId = nil, id; tick()
+    assert(handle:state().remark == 'delamain')
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true, call = true}; tick()
+    assert(handle:state().remark == nil, 'a call stops it')
+  `);
+});
+
+test('the arrival, asked for as the game farewell scene begins, is taken back and spoken after it while V still sits in the cab', () => {
+  lua(`
+    sit(); step(3); step(4); tick(); finish(31)
+    now = now + 90
+    step(5); tick()
+    assert(#submitted == 2 and lastRequest().addon.event == 'arrival')
+    local first = lastRequest().requestId
+    state.sample = {available = true, combat = false, tier = 3, vehicle = true, dialogue = true}; tick()   -- the farewell begins
+    assert(dropped[#dropped].requestId == first and #M._test.queue() == 1)
+    step(7)                                         -- the scene writes Finished when the farewell is over
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true}
+    tick(0.5); tick(0.5); tick(0.5); tick(0.5)
+    assert(#submitted == 3 and lastRequest().addon.event == 'arrival', 'still the arrival, after the farewell')
+    assert(lastRequest().addon.facts.rideSeconds >= 90, 'with the ride facts')
+  `);
+});
+
+test('an arrival waiting for the game farewell is not spoken to an empty cab', () => {
+  lua(`
+    sit(); step(3); step(4); tick(); finish(31)
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true, dialogue = true}
+    tick(); now = now + 40
+    step(5); tick()
+    assert(#M._test.queue() == 1)
+    state.sample = {available = true, combat = false, tier = 1, vehicle = false, dialogue = true}; player.vehicle = nil
+    tick(1); tick(1); tick(1); tick(1)
+    assert(#M._test.queue() == 0, 'V stepped out: the moment has passed')
+    state.sample = {available = true, combat = false, tier = 1, vehicle = false}
+    tick(3)
+    assert(#submitted == 1, 'nothing is said')
+  `);
+});
+
+test('choosing a destination while the greeting still waits for the game scene drops the greeting; the ride line greets, after the scene', () => {
+  lua(`
+    sit(); step(1); step(2)
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true, dialogue = true}
+    step(3); tick()
+    assert(#M._test.queue() == 1 and M._test.queue()[1].event.event == 'boarded')
+    step(4); tick()
+    assert(#M._test.queue() == 1 and M._test.queue()[1].event.event == 'ride-start' and M._test.queue()[1].event.facts.greeting == true, 'one line, and it greets')
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true}
+    tick(0.5); tick(0.5); tick(0.5); tick(0.5)
+    assert(#submitted == 1 and lastRequest().addon.event == 'ride-start')
   `);
 });
 
@@ -280,7 +429,7 @@ test('an interrupted autopilot is remarked only while V is still inside; the gam
     step(6)
     tick(); assert(#submitted == 2, 'the game is speaking: nothing is sent')
     state.sample = {available = true, combat = false, tier = 1, vehicle = true}
-    tick()
+    tick(); tick(2)
     assert(#submitted == 3 and lastRequest().addon.event == 'ride-interrupted' and lastRequest().reaction.priority == 4, 'sent when the scene ends')
     assert(lastRequest().addon.facts.cause ~= nil and lastRequest().addon.facts.rideSeconds ~= nil)
   `);

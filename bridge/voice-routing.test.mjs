@@ -103,6 +103,16 @@ test('continuous generation cannot report staging when its submitted receipt is 
   assert.ok(!f.calls.some(value => value[0] === 'knowledge' || value[0] === 'staged'));
 });
 
+test('an add-on speaker has no knowledge receipt: its generated text must not end the voice stream (Delamain lines were cut off)', async () => {
+  const f = fixture(), addonInput = {...f.input, profileKey: 'addon-delamain-cab-delamain', addon: {id: 'delamain-cab', speaker: 'delamain', event: 'boarded'}};
+  const speech = f.api.continuousSpeech(addonInput, {key: addonInput.profileKey, name: 'Delamain'}, async () => true);
+  await speech.callbacks.onGenerated('Welcome aboard, V.');
+  assert.ok(!f.calls.some(value => value[0] === 'knowledge' || value[0] === 'staged'), 'no knowledge receipt is reported for an add-on turn');
+  // A turn that is no longer current still stops, exactly like any other.
+  const stale = f.api.continuousSpeech(addonInput, {key: addonInput.profileKey, name: 'Delamain'}, async () => false);
+  await assert.rejects(stale.callbacks.onGenerated('Late line'), /owner changed/);
+});
+
 test('local microphone speech keeps the original submitted receipt when the text/context projection refreshes',async()=>{
   const f=fixture({local:true,continuous:true});
   const original={input:{...f.input},guard:'original'},refreshed={input:f.input,guard:'refreshed'};

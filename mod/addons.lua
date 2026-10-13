@@ -11,7 +11,8 @@
 -- How often an add-on speaks is the player's choice (the user's decision, 2026-10-13): "Time between remarks" (4 to 60 s, default 10)
 -- and "Most remarks per fight" (5 to 50 or no limit, default 30; outside combat per five minutes), with the last remark of the cap kept
 -- for a moment of priority 4 or 5. One remark at a time: nothing new starts while one is written or spoken, and a remark whose moment
--- has passed (about 3 s) is dropped. Add-on speakers' text comes only from Mistral or the local AI.
+-- has passed (about 3 s) is dropped, unless it asked for patience (2026-10-14): such a remark waits out a game scene or game dialogue line
+-- and goes a short gap after it (see "Patience" in docs/ADDON_API.md). Add-on speakers' text comes only from Mistral or the local AI.
 local M = {API_MAJOR = 1, API_MINOR = 0, live = false}
 M.API_VERSION = M.API_MAJOR .. '.' .. M.API_MINOR
 
@@ -44,6 +45,11 @@ local GAP_DEFAULT = 4                                    -- 10 s
 local CAPS = {5, 10, 20, 30, 50, math.huge}              -- "Most remarks per fight"; the last is "No limit"
 local CAP_DEFAULT = 4                                    -- 30
 local DEFAULT_TTL = 3         -- a remark that cannot be heard within about 3 s of its moment is dropped
+local SCENE_GAP = 1.2         -- seconds of quiet after a game scene or line before a remark that waited for it starts
+local HARD_TIER = 4           -- scene tiers from here on are cinematics: a speaker with playThrough is still stopped by them
+local PATIENCE_MAX = 60       -- the longest a remark may wait for a game scene (seconds)
+local STALE_GRACE = 2         -- seconds past its ttl that a request with no reply yet is given up (its reply could not be played any more)
+local REQUEUES = 2            -- how many times a remark taken back at a scene is written again
 local EPISODE_IDLE = 300      -- outside combat an episode is a rolling five minutes; a fight is one episode
 local PROVIDER_QUIET = 120    -- seconds without remarks after the bridge said no text provider is set up
 local MODE_ID = '^[a-z][a-z0-9%-]*$'
@@ -169,12 +175,44 @@ local function speakerAvailable(speaker, player)
     return ok and value == true
 end
 
-local function sceneBlocked(sample, speaker)
+-- What made the scene gate close, for the log: the flags the observer sampled ("dialogue+tier=3"). The first live ride with the Delamain
+-- cab shows which of them the game's own cab dialogue raises.
+local function sceneSignals(sample)
+    local parts = {}
+    if sample.dialogue then parts[#parts + 1] = 'dialogue' end
+    if sample.choices then parts[#parts + 1] = 'choices' end
+    if sample.call then parts[#parts + 1] = 'call' end
+    if sample.replacer then parts[#parts + 1] = 'replacer' end
+    if sample.tier ~= nil and sample.tier ~= 1 then parts[#parts + 1] = 'tier=' .. tostring(sample.tier) end
+    return table.concat(parts, '+')
+end
+
+-- blocked, why, signals. `withLine` also counts a game dialogue line being shown now (M.gameLine): it keeps a remark from starting over
+-- the game's own voice, but never cuts one that already plays (the scene flags do that, see trackFlight).
+local function sceneBlocked(sample, speaker, withLine)
     if type(sample) ~= 'table' or sample.available ~= true then return true, 'observation-unavailable' end
-    if sample.dialogue or sample.choices or sample.call or sample.replacer then return true, 'scene' end
+    if sample.dialogue or sample.choices or sample.call or sample.replacer then return true, 'scene', sceneSignals(sample) end
     local tiers = speaker and speaker.sceneTiers or {1}
-    for _, tier in ipairs(tiers) do if sample.tier == tier then return false end end
-    return true, 'scene-tier'
+    local allowed = false
+    for _, tier in ipairs(tiers) do if sample.tier == tier then allowed = true end end
+    if not allowed then return true, 'scene-tier', sceneSignals(sample) end
+    if withLine and watch.gameLineUntil and clock < watch.gameLineUntil then return true, 'game-line', 'subtitle' end
+    return false
+end
+
+-- A call, a replacer (Johnny) or a cinematic tier: stops even a line that plays through ordinary game scenes.
+local function hardScene(sample)
+    if type(sample) ~= 'table' then return true end
+    return sample.call == true or sample.replacer == true or (tonumber(sample.tier) or 1) >= HARD_TIER
+end
+
+-- The reasons a patient remark waits out (it is not dropped for them).
+local function holdable(why) return why == 'scene' or why == 'scene-tier' or why == 'game-line' end
+
+local function relevantNow(entry)
+    if type(entry.relevant) ~= 'function' then return true end
+    local ok, value = pcall(entry.relevant)
+    return ok and value == true
 end
 
 local function speakerBlocks(speaker)
@@ -206,25 +244,53 @@ end
 
 local UNAVAILABLE_GRACE = 2.5   -- seconds a remark still waiting to be heard keeps its speaker after the speaker stops being available
 
-local function release(reason, stop)
+local function release(reason, stop, detail)
     local current = flight
     if not current then return end
     pcall(lease, false)
     if stop and host and host.drop then pcall(host.drop, current.requestId, reason, current.entity) end
     flight = nil
+    local priorLast = current.speaker.lastAt
     current.speaker.lastAt = clock
     lastSpeechEndAt = clock
     local addon = current.speaker.addon
-    if current.stage == 'playing' or current.stage == 'captions' then addon.lastRemarkAt = clock
+    local heard = current.stage == 'playing' or current.stage == 'captions'
+    if heard then addon.lastRemarkAt = clock
     elseif current.episode == addon.episode and current.episodeStart == addon.episode.start and addon.episode.count > 0 then
         addon.episode.count = addon.episode.count - 1   -- nothing was heard: the budget is not spent
     end
-    log('Remark released: ' .. current.speaker.key .. ' event=' .. current.event .. ' reason=' .. tostring(reason))
+    -- A patient remark taken back at a game scene or line before a word was heard waits for it to end and is written again (its
+    -- moment has not passed): the speaker's gap does not count, nothing was heard.
+    local entry, requeued = current.entry, false
+    if not heard and entry and entry.patient and (holdable(reason) or reason == 'stale') and addon.enabled and clock <= entry.patienceEnd
+        and (entry.requeues or 0) < REQUEUES and #queue < LIMITS.queue then
+        local duplicate = false
+        for _, other in ipairs(queue) do
+            if other.speaker == entry.speaker and other.event.event == entry.event.event then duplicate = true end
+        end
+        if not duplicate then
+            entry.requeues = (entry.requeues or 0) + 1
+            if reason == 'stale' then
+                -- No scene to wait for: the reply was too slow (a cold model, a busy bridge). Ask again with a fresh clock.
+                entry.at, entry.expires, entry.sceneAt, entry.clearAt = clock, clock + entry.ttl, nil, nil
+            else
+                entry.sceneAt, entry.clearAt = clock, nil
+                entry.heldAt = entry.heldAt or clock
+                if entry.expires < entry.patienceEnd then entry.expires = entry.patienceEnd end
+            end
+            current.speaker.lastAt = priorLast
+            queue[#queue + 1] = entry
+            requeued = true
+        end
+    end
+    log('Remark released: ' .. current.speaker.key .. ' event=' .. current.event .. ' reason=' .. tostring(reason)
+        .. (detail and detail ~= '' and (' signals=' .. detail) or '') .. (requeued and ' (taken back; it is asked for again)' or ''))
     emitTo(current.speaker.addon, 'remarkFinished', {speaker = current.speaker.id, event = current.event,
-        reason = reason, spoken = current.stage == 'playing' or current.stage == 'captions'})
+        reason = reason, spoken = heard, requeued = requeued})
 end
 
 local function drop(entry, reason)
+    if entry.patient then log('Remark dropped: ' .. entry.speaker.key .. ' event=' .. entry.event.event .. ' reason=' .. tostring(reason)) end
     emitTo(entry.speaker.addon, 'remarkDropped', {speaker = entry.speaker.id, event = entry.event.event, reason = reason})
 end
 
@@ -327,7 +393,7 @@ local function speakerOf(handle, id)
     return addon.speakers[id]
 end
 
---- handle:speaker({id, name, anchor, available, talk, group, minGap, sceneTiers, talkPriority}) -> profileKey
+--- handle:speaker({id, name, anchor, available, talk, group, minGap, sceneTiers, talkPriority, playThrough}) -> profileKey
 Handle.speaker = guard('speaker', function(self, def)
     local addon = self and self.record
     if not addon or addons[addon.id] ~= addon then return nil, 'unknown add-on' end
@@ -348,7 +414,7 @@ Handle.speaker = guard('speaker', function(self, def)
     local key = 'addon-' .. addon.id .. '-' .. def.id
     local speaker = {addon = addon, id = def.id, key = key, name = name, anchor = anchor, available = def.available,
         talk = def.talk ~= false, group = def.group == true, minGap = number(def.minGap, 2, 600, 8),
-        talkPriority = number(def.talkPriority, 0, 100, 0), sceneTiers = tiers,
+        talkPriority = number(def.talkPriority, 0, 100, 0), sceneTiers = tiers, playThrough = def.playThrough == true,
         contexts = {}, contextOrder = {}, contextTiers = {}, lastAt = nil, events = {}, warmedAt = nil, mode = nil}
     addon.speakers[def.id] = speaker
     speakers[key] = speaker
@@ -356,7 +422,7 @@ Handle.speaker = guard('speaker', function(self, def)
     return key
 end)
 
---- handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown}) -> true, or false and the reason
+--- handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant}) -> true, or false and the reason
 Handle.remark = guard('remark', function(self, speakerId, event)
     local speaker = speakerOf(self, speakerId)
     if not speaker then return false, 'unknown speaker' end
@@ -381,6 +447,11 @@ Handle.remark = guard('remark', function(self, speakerId, event)
         interrupt = event.interrupt == true, cooldown = cooldown, stock = event.stock == true}}
     entry.ttl = number(event.ttl, 1, 30, DEFAULT_TTL)
     entry.expires = clock + entry.ttl
+    -- patience (seconds, 0 = none): the remark waits for a game scene or dialogue line instead of being dropped for it, then goes after
+    -- a short gap, while `relevant()` (optional, cheap) still says the moment stands. Without it a remark that meets a scene is dropped.
+    entry.patienceEnd = clock + number(event.patience, 0, PATIENCE_MAX, 0)
+    entry.patient = number(event.patience, 0, PATIENCE_MAX, 0) > 0
+    entry.relevant = type(event.relevant) == 'function' and event.relevant or nil
     -- One waiting remark per speaker and event name: the newer facts replace the older ones.
     for index = #queue, 1, -1 do
         local other = queue[index]
@@ -843,15 +914,27 @@ local function trackFlight(player, state)
         release(flight.stage == 'pending' and 'not-delivered' or 'finished', false)
         return
     end
-    -- A conversation the player starts, a scene, or the speaker going away ends the remark at once.
+    -- A request nobody has answered long after its moment (the bridge is busy or the model is cold) is withdrawn: its reply could not be
+    -- played any more (canDeliver), and it would keep every later remark of the ride waiting behind it.
+    if flight.stage == 'pending' and clock - flight.at > flight.ttl + STALE_GRACE then release('stale', true); return end
+    -- A conversation the player starts, a scene, or the speaker going away ends the remark at once. A speaker that plays through
+    -- (the Delamain cab: the game's own cab dialogue is a quest scene that begins and ends around its lines) finishes a line that has
+    -- started when an ordinary scene begins; a call, a replacer or a cinematic tier still stops it, and so does a player's own turn.
     local manual = state.active or state.microphone or state.group or state.phone
-    local blocked, why = sceneBlocked(state.sample, flight.speaker)
+    local blocked, why, detail = sceneBlocked(state.sample, flight.speaker)
+    local playing = flight.stage == 'playing' or flight.stage == 'captions'
     if manual then release('manual-priority', true); return end
-    if blocked then release(why, true); return end
+    if blocked then
+        if playing and flight.speaker.playThrough and why ~= 'observation-unavailable' and not hardScene(state.sample) then
+            if not flight.throughLogged then
+                flight.throughLogged = true
+                log('Remark plays through a game scene: ' .. flight.speaker.key .. ' event=' .. flight.event .. ' signals=' .. tostring(detail))
+            end
+        else release(why, true, detail); return end
+    end
     -- A line that has started finishes even if its speaker stops being available (V steps out of the cab as it ends, the mount
     -- flickers during a seat change): only the add-on being switched off or a scene cuts it. One still waiting to be heard needs the
     -- speaker, but gets a moment of grace before it is given up.
-    local playing = flight.stage == 'playing' or flight.stage == 'captions'
     if speakerAvailable(flight.speaker, player) then flight.lostAt = nil
     elseif not playing then
         flight.lostAt = flight.lostAt or clock
@@ -863,28 +946,64 @@ local function trackFlight(player, state)
     if not lease(true) then release('lease-write-failed', true) end
 end
 
+local function byPriority(a, b)
+    if a.event.priority ~= b.event.priority then return a.event.priority > b.event.priority end
+    return a.at < b.at
+end
+
 local function schedule(player, state, worldReady)
     if flight or #queue == 0 then return end
     for index = #queue, 1, -1 do
         local entry = queue[index]
-        if clock > entry.expires then table.remove(queue, index); drop(entry, 'expired') end
+        -- A patient remark waits out a game scene or dialogue line (it is not dropped for one): its clock stops running down until the
+        -- scene is over and a short gap has passed. Only while it waits is any of this evaluated, and only on the add-on tick.
+        if entry.patient and entry.speaker.addon.enabled then
+            local blocked, why, detail = sceneBlocked(state.sample, entry.speaker, entry.patient == true)
+            if blocked and holdable(why) and clock <= entry.patienceEnd then
+                if not entry.sceneAt then
+                    entry.heldAt = entry.heldAt or clock
+                    log('Remark held: ' .. entry.speaker.key .. ' event=' .. entry.event.event .. ' reason=' .. why .. ' signals=' .. tostring(detail)
+                        .. ' patience=' .. string.format('%.0f', entry.patienceEnd - clock) .. 's')
+                end
+                entry.sceneAt, entry.clearAt = clock, nil
+                if entry.expires < entry.patienceEnd then entry.expires = entry.patienceEnd end
+            elseif not blocked and entry.sceneAt and not entry.clearAt then entry.clearAt = clock end
+        end
+        -- A remark whose moment has gone (the add-on says so) is not spoken late; a flicker of a moment is forgiven.
+        if entry.relevant then
+            if relevantNow(entry) then entry.irrelevantAt = nil
+            else
+                entry.irrelevantAt = entry.irrelevantAt or clock
+                if clock - entry.irrelevantAt > UNAVAILABLE_GRACE then table.remove(queue, index); drop(entry, 'irrelevant'); entry = nil end
+            end
+        end
+        if entry and clock > entry.expires then table.remove(queue, index); drop(entry, 'expired') end
     end
     if #queue == 0 or not worldReady or not host or not host.submit then return end
     if state.active or state.microphone or state.group or state.phone or state.automatic
         or state.pendingId or state.speechId or state.captions then return end
     if clock - lastSpeechEndAt < GLOBAL_GAP then return end
     if not outputs(player).enabled then return end
-    table.sort(queue, function(a, b)
-        if a.event.priority ~= b.event.priority then return a.event.priority > b.event.priority end
-        return a.at < b.at
-    end)
+    table.sort(queue, byPriority)
+    local keep = {}
+    local function restore()
+        for _, waiting in ipairs(keep) do queue[#queue + 1] = waiting end
+        keep = {}
+        table.sort(queue, byPriority)
+    end
     while #queue > 0 do
         local entry = table.remove(queue, 1)
         local speaker = entry.speaker
-        local blocked, why = sceneBlocked(state.sample, speaker)
+        local blocked, why = sceneBlocked(state.sample, speaker, entry.patient == true)
         local object, entity = nil, nil
         if not blocked and speakerAvailable(speaker, player) then object, entity = resolveAnchor(speaker, player) end
-        if blocked then drop(entry, why)
+        if blocked and entry.patient and holdable(why) and clock <= entry.patienceEnd then keep[#keep + 1] = entry
+        elseif blocked then drop(entry, why)
+        elseif entry.sceneAt and (not entry.clearAt or clock - entry.clearAt < SCENE_GAP) then
+            -- The scene is over: a short gap more, so the remark does not start on the heels of the game's last word.
+            entry.clearAt = entry.clearAt or clock
+            keep[#keep + 1] = entry
+        elseif entry.relevant and not relevantNow(entry) then keep[#keep + 1] = entry
         elseif not entity then drop(entry, 'speaker-unavailable')
         elseif speaker.lastAt and clock - speaker.lastAt < speaker.minGap then drop(entry, 'speaker-cooldown')
         elseif rateBlocked(speaker.addon, entry.event.priority) then drop(entry, rateBlocked(speaker.addon, entry.event.priority))
@@ -892,6 +1011,9 @@ local function schedule(player, state, worldReady)
             local generation = host.nextGeneration()
             local now = os.time()
             local event = entry.event
+            -- A remark that waited starts its clock now: it was written for this moment, not for the one it first met.
+            local waited = entry.heldAt and clock - entry.heldAt or nil
+            if entry.sceneAt then entry.at, entry.expires = clock, clock + entry.ttl end
             local context = {generation = generation, entity = entity, name = speaker.name, bodyType = '',
                 profileKey = speaker.key, sentAt = now, voiceOnly = true,
                 text = event.text or ('[' .. speaker.addon.name .. '] ' .. event.event),
@@ -903,15 +1025,18 @@ local function schedule(player, state, worldReady)
             context.requestId = tostring(now) .. '-' .. tostring(generation) .. '-' .. entity
             local episode = episodeOf(speaker.addon)
             flight = {requestId = context.requestId, speaker = speaker, event = event.event, priority = event.priority,
-                stage = 'pending', entity = entity, episode = episode, episodeStart = episode.start, at = entry.at, ttl = entry.ttl or DEFAULT_TTL}
+                stage = 'pending', entity = entity, episode = episode, episodeStart = episode.start, at = entry.at, ttl = entry.ttl or DEFAULT_TTL,
+                entry = entry}
             local ok, sent = false, false
             if lease(true) then ok, sent = pcall(host.submit, context, object) end
+            restore()
             if ok and sent then
                 episode.count = episode.count + 1
                 -- No build-up behind the remark in flight: only the strongest waiting one is kept (the queue is sorted, best first).
                 while #queue > 1 do drop(table.remove(queue), 'replaced') end
                 if event.cooldown > 0 then speaker.events[event.event] = clock end
-                log('Remark: ' .. speaker.key .. ' event=' .. event.event .. ' priority=' .. event.priority)
+                log('Remark: ' .. speaker.key .. ' event=' .. event.event .. ' priority=' .. event.priority
+                    .. (waited and string.format(' waited=%.1fs', waited) or ''))
             else
                 pcall(lease, false)
                 flight = nil
@@ -920,6 +1045,7 @@ local function schedule(player, state, worldReady)
             return
         end
     end
+    restore()
 end
 
 -- What the bridge found when it started (bridge/addons.mjs publishStatus): an add-on folder it could not load is told to the
@@ -960,14 +1086,29 @@ function M.tick(player, elapsed, worldReady)
     writeState(false)
 end
 
+--- A game dialogue line is being shown (mod/game-dialogue.lua, from the subtitle hooks: one call per line, never per frame). Remarks do
+--- not start until it has ended plus SCENE_GAP, whether or not the scene flags caught it (remarks that asked for patience; the others
+--- keep the scene gate alone); one that already plays is not cut by it.
+--- `seconds` is the line's own duration when the game gives one, else an estimate from its text.
+function M.gameLine(seconds, kind, measured)
+    if not M.live or #order == 0 then return end
+    seconds = number(seconds, 0.5, 15, 3)
+    local untilAt = clock + seconds
+    if not watch.gameLineUntil or untilAt > watch.gameLineUntil then watch.gameLineUntil = untilAt end
+    if flight or #queue > 0 then
+        log(string.format('Game line: %s for about %.1f s (%s); patient remarks wait for it', tostring(kind or 'line'), seconds,
+            measured and 'its own duration' or 'estimated'))
+    end
+end
+
 --- The reply of an add-on remark arrived: may it play now? (init.lua reactionCanDeliver)
 function M.canDeliver(context, player)
     if not flight or type(context) ~= 'table' or flight.requestId ~= context.requestId then return false end
     -- The moment has passed (the reply took too long): a late remark is worse than none.
     if flight.at and clock - flight.at > flight.ttl then release('stale', true); return false end
     local sample = host and host.sample and host.sample(player) or watch.sample
-    local blocked, why = sceneBlocked(sample, flight.speaker)
-    if blocked then release(why, true); return false end
+    local blocked, why, detail = sceneBlocked(sample, flight.speaker, flight.entry ~= nil and flight.entry.patient == true)
+    if blocked then release(why, true, detail); return false end
     if not speakerAvailable(flight.speaker, player) then release('speaker-unavailable', true); return false end
     local _, entity = resolveAnchor(flight.speaker, player)
     if entity ~= context.entity then release('anchor-changed', true); return false end
