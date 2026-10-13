@@ -5179,6 +5179,362 @@ test('a held page that was never styled is shown after 1.5 s, and a page that ca
   `);
 });
 
+// The early style (mod/mcm.lua, "Early style"): a page MCM draws again after a value change is given its final look while it is
+// drawn and shown in the same call, so there is no frame of the default look, no blank page and no jump of the status line or the
+// bottom buttons. This fixture plays MCM's draw in its own order through the handlers the module registers.
+const earlyFixture = `
+  CName = {new = function(value) return value end}
+  NameToString = function(value) return value end
+  IsDefined = function(value) return value ~= nil end
+  textWrappingPolicy = {Default = 0}
+  textVerticalAlignment = {Top = 'top'}
+  local clock = 10
+  os.clock = function() return clock end
+  -- Every widget method the module calls is counted: work on widgets shows up as a changed count.
+  local calls = 0
+  local methods = {}
+  local meta = {__index = function(_, key)
+    local method = methods[key]
+    if method then calls = calls + 1 end
+    return method
+  end}
+  local function widget(name, left, top, width, height, children, size)
+    return setmetatable({name = name, margin = {left = left or 0, top = top or 0}, width = width or 100, height = height or 40,
+      children = children or {}, fontSize = size or 22, scale = 1, opacity = 1, sets = 0}, meta)
+  end
+  methods.GetName = function(self) return self.name end
+  methods.GetMargin = function(self) return {left = self.margin.left, top = self.margin.top, right = 0, bottom = 0} end
+  methods.SetMargin = function(self, m) self.margin = {left = m.left, top = m.top} end
+  methods.GetWidth = function(self) return self.width end
+  methods.SetWidth = function(self, v) self.width = v end
+  methods.GetHeight = function(self) return self.height end
+  methods.SetHeight = function(self, v) self.height = v end
+  methods.GetNumChildren = function(self) return #self.children end
+  methods.GetWidgetByIndex = function(self, i) return self.children[i + 1] end
+  methods.GetParentWidget = function(self) return self.parent end
+  methods.Reparent = function(self, parent)
+    local old = self.parent
+    if old then for i, child in ipairs(old.children) do if child == self then table.remove(old.children, i) break end end end
+    self.parent = parent; parent.children[#parent.children + 1] = self
+  end
+  methods.SetVerticalAlignment = function() end
+  methods.GetFontSize = function(self) return self.fontSize end
+  methods.SetFontSize = function(self, v) self.fontSize = v end
+  methods.SetWrapping = function() end
+  methods.BindProperty = function(self, _, color) self.color = color end
+  methods.GetScale = function(self) return {X = self.scale, Y = self.scale} end
+  methods.GetController = function() return nil end
+  methods.SetVisible = function(self, v) self.visible = v; self.sets = self.sets + 1 end
+  methods.GetOpacity = function(self) return self.opacity end
+  methods.SetOpacity = function(self, v) self.opacity = v end
+  -- What the game's McmUiCreateText makes.
+  local function rawText(parent, name, value, x, y, width, height, size, color)
+    local text = widget(name, x, y, width, height, nil, size)
+    text.color, text.text = color, value
+    text.parent = parent; parent.children[#parent.children + 1] = text
+    return text
+  end
+  local ref = setmetatable({nativeIdentity = 101}, {__index = controller})
+  controller.McmUiGetLayoutMetric = function(_, metric) return ({[13] = 320, [20] = 100, [23] = 800, [27] = 1000, [28] = 900})[metric] or -1 end
+  local page
+  function controller:GetRootWidget() return page.root end
+  -- One draw of the manager's page, in MCM's order. Options: rows = {managed, action, readonly}, categories, bar (labels of the
+  -- buttons on the bar line), plain (the text override does nothing: the creations bypass it), ignoresX (the game ignores the
+  -- x it is given for a managed label), noState (no managed-label state call), badCategory, finish = false (the draw never ends),
+  -- title and status.
+  local function draw(o)
+    o = o or {}
+    local p = {render = widget('MCMRenderRoot', 0, 0, 1920, 1080), list = widget('mcm_sidebar_scroll_content', 0, 0, 340, 126),
+      content = widget('mcm_content_scroll_content', 0, 0, 800, 2000), wrapper = widget('mcm_content_scroll', 100, 200, 800, 700),
+      viewport = widget('scroll_area', 0, 0, 800, 700), texts = {}, markers = {}, labels = {}, actions = {}, readonly = {},
+      values = {}, headings = {}, passed = {}}
+    p.root = widget('root', 0, 0, 1920, 1080, {p.render}); p.render.parent = p.root
+    for i = 0, 2 do
+      local entry = widget('mcm_entry_' .. i, 20, i * 42, 300, 42); entry.parent = p.list; p.list.children[i + 1] = entry
+    end
+    page = p
+    local raw = rawText
+    if o.ignoresX then
+      raw = function(parent, name, value, x, ...) return rawText(parent, name, value, name:find('_managed_label', 1, true) and 48 or x, ...) end
+    end
+    local function mk(parent, name, value, x, width, size, color)
+      if o.plain then return raw(parent, name, value, x, 0, width, 42, size or 22, color or 'native-secondary', 0) end
+      return handlers.McmUiCreateText(ref, parent, name, value, x, 0, width, 42, size or 22, color or 'native-secondary', 0, raw)
+    end
+    handlers.McmUiBegin(ref, 'MCM', '', 'Mods', o.title or 'Companion Manager', o.status or 'Pending: Voice', 0, '', true, true, 0, function()
+      for _, name in ipairs({'title', 'subtitle', 'sidebar_title', 'content_title', 'status'}) do
+        local text = mk(p.render, name, name, 10, 200, 24, 'native-blue')
+        if name == 'status' then p.status = text else p.texts[name] = text end
+      end
+    end)
+    handlers.McmUiCreateScrollArea(ref, p.render, 'mcm_sidebar_scroll', 0, 0, 340, 700, 700, function()
+      local sidebar = widget('sidebar_wrapper')
+      sidebar.children, p.list.parent, sidebar.parent = {p.list}, sidebar, p.render
+      p.render.children[#p.render.children + 1] = sidebar
+      return {content = p.list, wrapper = sidebar}
+    end)
+    handlers.McmUiBeginContent(ref, 400, 0.25, true, function(height, scroll, ready)
+      handlers.McmUiCreateScrollArea(ref, p.render, 'mcm_content_scroll', 100, 200, 800, 700, 2000, function()
+        p.wrapper.children, p.viewport.children = {p.viewport}, {p.content}
+        p.content.parent, p.viewport.parent, p.wrapper.parent = p.viewport, p.wrapper, p.render
+        p.render.children[#p.render.children + 1] = p.wrapper
+        return {content = p.content, wrapper = p.wrapper}
+      end)
+      p.wrapper.visible = ready
+    end)
+    local rows = o.rows or {}
+    for i = 1, (o.categories or 0) do
+      local label = widget('label', 20, 0, 1600, 40, nil, 30); label.color = 'native-heading'
+      if o.badCategory then label.BindProperty = function() error('native failure') end end
+      local category = widget('settingsCategory', 0, 100 * i, 1800, 80, {widget('line', 0, 0, 1800, 4), label})
+      category.scale = 0.5; category.parent = p.content; p.content.children[#p.content.children + 1] = category
+      p.headings[i] = {root = category, label = label, line = category.children[1]}
+      handlers.McmUiSetup({GetRootWidget = function() return category end})
+      handlers.McmUiAddCategory(ref, 'category' .. i, 'Heading', 'd', '')
+    end
+    for i = 1, (rows.managed or 0) do
+      local id = 'mcm_1_' .. i
+      handlers.McmUiAddManagedLabel(ref, id, 'Label', '*', false, 0, function()
+        p.markers[i] = mk(p.content, id .. '_managed_marker', '*', 100, 40, 22, 'native-purple')
+        p.labels[i] = mk(p.content, id .. '_managed_label', 'Label', 48, 300, 22, 'native-secondary')
+      end)
+      if not o.noState then handlers.McmUiSetManagedLabelState(ref, id, false, false) end
+    end
+    for i = 1, (rows.action or 0) do
+      local id = 'mcm_2_' .. i
+      handlers.McmUiAddActionSetting(ref, id, 'Label', 'd', 'Open', function()
+        p.actions[i] = mk(p.content, id .. '_label', 'Label', 20, 300, 22, 'native-secondary')
+      end)
+    end
+    for i = 1, (rows.readonly or 0) do
+      local id = 'mcm_3_' .. i
+      handlers.McmUiAddReadonly(ref, id, 'Label', 'd', 'value', function()
+        local surface = widget('mcm_action_' .. id, 20, 0, 400, 42)
+        surface.parent = p.content; p.content.children[#p.content.children + 1] = surface
+        p.readonly[i] = mk(surface, 'label', 'Label', 30, 340, 26, 'native-secondary')
+        p.values[i] = mk(p.content, id .. '_value', 'value', 500, 360, 22, 'native-muted')
+      end)
+    end
+    for index, label in ipairs(o.bar or {}) do
+      handlers.McmUiAddBottomActionAt(ref, 'bar' .. index, label, 300 + (index - 1) * 160, 1000, 140, false, function(...)
+        p.passed[#p.passed + 1] = table.pack(...)
+      end)
+    end
+    if o.finish ~= false then handlers.McmUiSetContentTitle(ref, o.title or 'Companion Manager') end
+    return p
+  end
+  -- Frames until the older pass has styled and shown a page that was held back.
+  local function settle()
+    local frames = 0
+    while frames < 40 and (page.wrapper.visible ~= true or mcm.inspect().presentation.pending) do
+      mcm.update(player, false); frames = frames + 1
+    end
+    assert(page.wrapper.visible == true and not mcm.inspect().presentation.pending, 'the older pass did not show the page')
+    return frames
+  end
+  local function backs()
+    local count = 0
+    for _, button in ipairs(bottomActions) do if button.id == 'convai-bottom-back' then count = count + 1 end end
+    return count
+  end
+`;
+
+test('a value change draws the page in its final look and shows it in the same call, with no frame of the default look', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    for _ = 1, 3 do mcm.update(player, false) end
+    local p = draw({rows = {managed = 3, action = 2, readonly = 2}, categories = 2, bar = {'Revert', 'Apply'}})
+    -- Shown at once, before any update runs.
+    assert(p.wrapper.visible == true, 'the page stayed hidden after the draw')
+    local info = mcm.inspect()
+    assert(info.early.hooks and info.early.shown == 1 and info.early.held == 0, 'the early style did not complete: ' .. info.early.reason)
+    assert(not info.presentation.pending and not info.presentation.styling and info.presentation.active)
+    -- Managed rows: label at x 20 keeping its right edge, marker 12 wide at 0 keeping its colour, the red label colour.
+    for i = 1, 3 do
+      assert(p.labels[i].margin.left == 20 and p.labels[i].width == 328 and p.labels[i].color == 'MainColors.Red', 'managed label ' .. i)
+      assert(p.markers[i].margin.left == 0 and p.markers[i].width == 12 and p.markers[i].color == 'native-purple', 'managed marker ' .. i)
+    end
+    for i = 1, 2 do
+      assert(p.actions[i].color == 'MainColors.Red' and p.actions[i].margin.left == 20 and p.actions[i].width == 300, 'action label ' .. i)
+      local text = p.readonly[i]
+      assert(text.margin.left == 0 and text.width == 370 and text.fontSize == 22 and text.color == 'MainColors.Red', 'read-only label ' .. i)
+      assert(p.values[i].margin.left == 500 and p.values[i].width == 360 and p.values[i].color == 'native-muted', 'a value text was changed')
+    end
+    -- Texts that are not rows are left as MCM made them.
+    for _, name in ipairs({'title', 'subtitle', 'sidebar_title', 'content_title'}) do
+      assert(p.texts[name].margin.left == 10 and p.texts[name].width == 200 and p.texts[name].color == 'native-blue', name .. ' was changed')
+    end
+    -- Section headings: white, at the content edge in content coordinates; the native rule is left alone.
+    for i = 1, 2 do
+      local heading = p.headings[i]
+      assert(heading.root.margin.left + heading.root.scale * heading.label.margin.left == 20 and heading.label.color == 'MainColors.White', 'heading ' .. i)
+      assert(heading.line.color == nil, 'the native rule was recoloured')
+    end
+    -- The status line is under the mod list; the bar line is complete, created in this call: held buttons shifted left by the
+    -- Back button's width and gap, Back at the right end.
+    assert(p.status.parent == p.list and p.status.margin.left == 20 and p.status.margin.top == 126 + 14 and p.status.width == 320, 'status line misplaced')
+    assert(#bottomActions == 3 and #p.passed == 0, 'the bar was not created in the draw: ' .. #bottomActions)
+    assert(bottomActions[1].id == 'bar1' and bottomActions[1].x == 140 and bottomActions[2].id == 'bar2' and bottomActions[2].x == 300, 'bar buttons were not shifted')
+    assert(bottomActions[3].id == 'convai-bottom-back' and bottomActions[3].x == 760 and bottomActions[3].y == 1000 and bottomActions[3].width == 140, 'Back misplaced')
+    -- Frames after the draw do no work on the page: no walk, no veil, no second Back.
+    mcm.update(player, false)
+    local before = calls
+    for _ = 1, 8 do mcm.update(player, false) end
+    assert(calls == before, 'idle frames made ' .. (calls - before) .. ' widget calls')
+    assert(p.content.opacity == 1 and p.wrapper.sets == 1 and #bottomActions == 3, 'idle frames touched the page')
+    -- A hover-out puts the row's label back to the red label colour (MCM tints it with the native colour on hover).
+    p.labels[2].color = 'native-cyan'
+    handlers.McmUiSetManagedLabelState(ref, 'mcm_1_2', true, false)
+    handlers.McmUiSetManagedLabelState(ref, 'mcm_1_2', false, false)
+    mcm.update(player, false)
+    assert(p.labels[2].color == 'MainColors.Red', 'the label kept the native colour after the hover')
+    assert(p.labels[1].color == 'MainColors.Red' and p.labels[3].color == 'MainColors.Red')
+  `);
+});
+
+test('every value change draws the same finished page again, each shown once in its own call', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    for change = 1, 5 do
+      local p = draw({rows = {managed = 3, action = 1, readonly = 1}, categories = 1, bar = {'Revert', 'Apply'}})
+      assert(p.wrapper.visible == true and p.wrapper.sets == 1 and p.labels[1].margin.left == 20, 'draw ' .. change)
+      mcm.update(player, false)
+      assert(p.wrapper.sets == 1 and not mcm.inspect().presentation.pending, 'update ' .. change)
+    end
+    assert(mcm.inspect().early.shown == 5 and mcm.inspect().early.held == 0 and mcm.inspect().early.failures == 0)
+    assert(#bottomActions == 15 and backs() == 5, 'every draw makes exactly one bar: ' .. #bottomActions)
+  `);
+});
+
+test('a draw the early style cannot vouch for stays hidden and is styled and shown by the older pass, with Back placed once', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    local rows = {managed = 3, action = 1, readonly = 1}
+    -- The text override does nothing on some game version: nothing is captured, the page waits for the older pass.
+    local p = draw({rows = rows, plain = true, bar = {'Revert'}})
+    assert(p.wrapper.visible == false and mcm.inspect().presentation.pending, 'an unverified page was shown')
+    assert(mcm.inspect().early.reason:find('widgets missing', 1, true), mcm.inspect().early.reason)
+    assert(backs() == 1, 'Back was not placed with the bar')
+    settle()
+    for i = 1, 3 do assert(p.labels[i].margin.left == 20 and p.labels[i].color == 'MainColors.Red', 'the older pass did not style row ' .. i) end
+    assert(p.status.parent == p.list and backs() == 1, 'status line or Back misplaced by the older pass')
+    -- The managed-row hook count disagrees with MCM's own: held.
+    p = draw({rows = rows, noState = true})
+    assert(p.wrapper.visible == false and mcm.inspect().early.reason:find('row hook count', 1, true), mcm.inspect().early.reason)
+    settle()
+    -- A draw that completes resets the count of failures in a row (three in a row switch the early style off).
+    p = draw({rows = rows})
+    assert(p.wrapper.visible == true and mcm.inspect().early.shown == 1 and mcm.inspect().early.failures == 0)
+    -- MCM ignores the x it is given for the label: the page is not what the styling gives, held.
+    p = draw({rows = rows, ignoresX = true})
+    assert(p.wrapper.visible == false and mcm.inspect().early.reason == 'label geometry', mcm.inspect().early.reason)
+    settle()
+    assert(p.labels[1].margin.left == 20, 'the older pass left the label where MCM put it')
+    -- A heading that cannot be styled: held with the reason.
+    p = draw({rows = rows, categories = 1, badCategory = true})
+    assert(p.wrapper.visible == false and mcm.inspect().early.reason:find('a step failed: category', 1, true), mcm.inspect().early.reason)
+    settle()
+    assert(mcm.inspect().early.held == 4 and mcm.inspect().early.shown == 1 and not mcm.inspect().early.off)
+  `);
+});
+
+test('a page whose language needs a font of its own keeps the font pass, and that is not counted as a failure', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    local chosen
+    for i, choice in ipairs(convaiUiLocale.choices()) do if choice.value == 'ru' then chosen = i end end
+    assert(chosen, 'no Russian choice')
+    -- Russian chosen but not applied yet: its text is shown only after the font pass.
+    nativeApi.getValue = function() return chosen end
+    for _ = 1, 4 do
+      local p = draw({rows = {managed = 2, action = 1, readonly = 1}})
+      assert(p.wrapper.visible == false and mcm.inspect().early.reason == 'fonts', mcm.inspect().early.reason)
+      settle()
+    end
+    assert(mcm.inspect().early.failures == 0 and not mcm.inspect().early.off, 'font pages switched the early style off')
+    nativeApi.getValue = nil
+    local p = draw({rows = {managed = 2}})
+    assert(p.wrapper.visible == true and mcm.inspect().early.shown == 1, 'English page was not shown again')
+  `);
+});
+
+test('three draws in a row that the early style could not complete switch it off, and then the page is drawn as before', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    local rows = {managed = 3, action = 1}
+    for _ = 1, 3 do draw({rows = rows, ignoresX = true}); settle() end
+    assert(mcm.inspect().early.off == true and mcm.inspect().early.failures == 3, 'still trying after three failures')
+    local before = #bottomActions
+    local p = draw({rows = rows, bar = {'Revert'}})
+    -- The overrides pass everything straight on now: MCM's geometry and colour, the hidden page, the held bar line as MCM made it.
+    assert(p.labels[1].margin.left == 48 and p.labels[1].width == 300 and p.labels[1].color == 'native-secondary', 'a switched-off style still changed rows')
+    assert(p.wrapper.visible == false and mcm.inspect().presentation.pending and #p.passed == 1, 'the older path was not used')
+    settle()
+    assert(p.labels[1].margin.left == 20 and p.labels[1].color == 'MainColors.Red' and backs() == 4)
+  `);
+});
+
+test('every held bottom button is created: Back that cannot be placed, and a draw that never ends', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    -- Back cannot be placed: the held buttons are created anyway, and Back becomes a row of the page.
+    local original = controller.McmUiAddBottomActionAt
+    controller.McmUiAddBottomActionAt = function(self, id, ...)
+      if id == 'convai-bottom-back' then error('no bar') end
+      return original(self, id, ...)
+    end
+    local p = draw({rows = {managed = 2}, bar = {'Revert', 'Apply'}})
+    assert(#bottomActions == 2 and bottomActions[1].id == 'bar1' and bottomActions[2].id == 'bar2', 'a button was lost')
+    assert(mcm.inspect().backMode == 'list', 'Back was not moved to a row')
+    settle()
+  `);
+});
+
+test('a draw that never reaches its end still gets its held bottom buttons, where MCM put them, and the page is shown', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    mcm.update(player, false)
+    -- The draw never reaches its end (an error in MCM): half a second later the held buttons are created where MCM put them.
+    local count = #bottomActions
+    local p = draw({rows = {managed = 2}, bar = {'Revert', 'Apply'}, finish = false})
+    assert(#bottomActions == count, 'a button was made before the draw ended')
+    mcm.update(player, false)
+    assert(#bottomActions == count, 'a button was made at once')
+    clock = clock + 1
+    mcm.update(player, false)
+    assert(#bottomActions == count + 2 and bottomActions[count + 1].id == 'bar1' and bottomActions[count + 1].x == 300
+      and bottomActions[count + 2].id == 'bar2' and bottomActions[count + 2].x == 460, 'the held buttons were not made in place')
+    -- The hidden content is shown by the stale-hold release.
+    clock = clock + 1
+    mcm.update(player, false)
+    assert(p.wrapper.visible == true, 'the page stayed hidden after a draw that never ended')
+  `);
+});
+
+test('another mod page is drawn exactly as MCM draws it, with no widget work and no held button', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    mcm.update(player, false)
+    local before = calls
+    local seen
+    local function record(...) seen = table.pack(...); return widget('x') end
+    handlers.McmUiBegin(ref, 'MCM', '', 'Mods', 'Another Mod', 'Opened.', 0, '', true, true, 0, function()
+      handlers.McmUiCreateText(ref, widget('r'), 'status', 'v', 10, 20, 200, 30, 24, 'native-blue', 0, record)
+    end)
+    assert(seen.n == 10 and seen[4] == 10 and seen[5] == 20 and seen[6] == 200 and seen[7] == 30 and seen[8] == 24 and seen[9] == 'native-blue', 'a foreign text was changed')
+    handlers.McmUiAddManagedLabel(ref, 'x', 'L', '*', false, 0, function()
+      handlers.McmUiCreateText(ref, widget('c'), 'x_managed_label', 'L', 48, 0, 300, 42, 22, 'native-secondary', 0, record)
+    end)
+    assert(seen[4] == 48 and seen[6] == 300 and seen[9] == 'native-secondary', 'a foreign managed label was changed')
+    local passed
+    handlers.McmUiAddBottomActionAt(ref, 'revert', 'Revert', 300, 1000, 140, false, function(...) passed = table.pack(...) end)
+    assert(passed and passed[1] == 'revert' and passed[3] == 300, 'a foreign button was held back')
+    handlers.McmUiSetContentTitle(ref, 'Another Mod')
+    assert(calls == before, 'widgets were touched for another mod page')
+    assert(mcm.inspect().early.shown == 0 and mcm.inspect().early.held == 0 and #bottomActions == 0)
+  `);
+});
+
 test('a page that failed to style is shown, and a page the manager leaves is not left hidden', () => {
   run(`${mcmFixture}${stylingFixture}
     local clock = 10
