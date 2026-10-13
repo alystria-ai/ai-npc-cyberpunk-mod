@@ -53,7 +53,7 @@ when the Personality setting is "From the game" (the default). Switching it mid-
 | `faction` | string | `Maelstrom` | The gang or corp, cleaned from the game's affiliation. |
 | `name` | string | `Maelstrom Gunner` | Display name, only for the first three victims of a fight. |
 | `zone` | string | `head` | `head`, `torso`, `arm`, `leg`; only when the game reported it. |
-| `distance` | int | 28 | Metres from V. |
+| `distance` | int | 28 | Metres from V. The fact is always sent, but the event text and the remark prompt name it only from 30 m (`long-shot`): nearer distances make the model fixate on metres. |
 | `weapon` | string | `skippy` | What did it: `skippy`, `other-gun`, `melee`, `takedown`, `quickhack`, `explosion`, `companion`, `other`. |
 | `lethal` | bool | true | Died (false: downed). |
 | `headshot` | bool | true | The killing hit was a headshot. |

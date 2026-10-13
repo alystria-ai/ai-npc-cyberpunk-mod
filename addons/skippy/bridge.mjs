@@ -152,10 +152,10 @@ const hash = text => { let h = 0; for (const c of String(text)) h = (h * 31 + c.
 const WINDOW = 60;          // lines whose words are counted for overused jokes
 const OPENERS_SHOWN = 6;    // openings of the last lines shown to the model
 const DEVICES_AVOIDED = 4;  // a device is not used again within this many lines
-const session = {lines: 0, built: 0, openers: [], devices: [], words: []};
+const session = {lines: 0, built: 0, openers: [], devices: [], words: [], props: []};
 
 /** Forgets the session (tests, and an evaluation that wants a fresh start). */
-export function resetSession() { Object.assign(session, {lines: 0, built: 0, openers: [], devices: [], words: []}); }
+export function resetSession() { Object.assign(session, {lines: 0, built: 0, openers: [], devices: [], words: [], props: []}); }
 
 const STOP = new Set(`about after again also and are because been before being but can could did does done each even every for from get gets
   getting give had has have her here him his how into its just keep let like make many may more most much must not now off once one only other our out over
@@ -163,9 +163,9 @@ const STOP = new Set(`about after again also and are because been before being b
   well were what when where which while who why will with would you your yours user skippy choom boss really still right going gonna got one two three four
   five six seven eight nine ten`.split(/\s+/));
 // Words that are the subject matter, the labels of the devices or the character's core vocabulary: saying them again is not a stale joke.
-const CORE = /^(?:head|heads|headshot|headshots|kill|kills|killed|shot|shots|enemy|enemies|fight|fights|target|targets|bullet|bullets|magazine|gun|trigger|aim|aimed|aiming|miss|missed|misses|knee|knees|kneecap|kneecaps|leg|legs|body|arm|arms|maelstrom|tyger|claws|valentinos|animals|scavengers?|wraiths|voodoo|barghest|arasaka|militech|ncpd|maxtac|cyberpsycho|percent|volume|increasing|error|fun|fact|provocation|achievement|unlocked|please|rate|rating|stars?|review|diagnostics?|notice|warning|detected|mode|count|counts|down|dead|death|incident|streak|reload|reloading|pacifist|killer)$/i;
+const CORE = /^(?:head|heads|headshot|headshots|kill|kills|killed|shot|shots|enemy|enemies|fight|fights|target|targets|bullet|bullets|magazine|gun|trigger|aim|aimed|aiming|miss|missed|misses|knee|knees|kneecap|kneecaps|leg|legs|body|arm|arms|maelstrom|tyger|claws|valentinos|animals|scavengers?|wraiths|voodoo|barghest|arasaka|militech|ncpd|maxtac|cyberpsycho|percent|volume|increasing|error|fun|fact|provocation|achievement|unlocked|please|diagnostics?|notice|warning|detected|mode|count|counts|down|dead|death|incident|streak|reload|reloading|pacifist|killer)$/i;
 
-const wordsOf = line => new Set((String(line).toLowerCase().match(/[a-z][a-z'-]{3,}/g) ?? []).map(word => word.replace(/'s$/, '')).filter(word => !STOP.has(word) && !CORE.test(word)));
+const wordsOf = line => new Set((String(line).toLowerCase().match(/[a-z][a-z'-]{3,}/g) ?? []).map(word => word.replace(/'s$/, '').replace(/(?<=.{4})(?:es|s)$/, '')).filter(word => !STOP.has(word) && !CORE.test(word)));
 
 function devicesOf(line) {
   const found = new Set();
@@ -206,6 +206,30 @@ export function deviceFor(mode, event) {
   const turn = session.lines + session.built++;
   const name = session.lines >= 3 && turn % 5 === 4 && !lastLines.includes('callback') ? 'callback' : options[(turn + hash(event)) % options.length];
   return {name, text: DEVICES[m][name]};
+}
+
+// A comic prop per line: a small model given only a device writes the same joke inside it every time ("X percent?! V, RUN!"). An
+// everyday corporate or domestic image to dress this moment's joke in, rotated, gives each line a different thing to be funny about.
+const PROPS = {
+  killer: ['a loyalty card with one stamp left', 'a clearance sale', 'an airline safety demonstration', 'a customer satisfaction survey', 'a software licence agreement',
+    'a gym membership', 'a dentist appointment', 'a vending machine that eats coins', 'a parking ticket', 'a motivational poster', 'a school science fair',
+    'a cooking show', 'a weather forecast', 'a tax audit', 'a subscription renewal', 'a hotel minibar', 'a football commentator', 'a nature documentary narrator',
+    'a lost property office', 'a self-checkout machine', 'a wedding toast', 'a job interview', 'a flat-pack wardrobe', 'a library fine', 'a tourist guide',
+    'a quiz night', 'a returns policy', 'a firmware changelog'],
+  puppy: ['a bake sale', 'a yoga class', 'a petting zoo', 'a lullaby', 'a crossing guard', 'a nervous kitten', 'a knitting circle', 'a spa day', 'a lifeguard',
+    'a school nurse', 'a kindly grandmother', 'a cup of hot cocoa', 'a quiet museum', 'a child\'s drawing', 'a rainy-day playlist', 'a packed lunch', 'a tooth fairy',
+    'a hospital waiting room', 'a lost umbrella', 'a birthday party', 'a garden centre', 'a bedtime story', 'a book club', 'a bus driver', 'a seaside holiday',
+    'a pharmacy queue', 'a sunday roast', 'a first-aid course'],
+};
+
+/** A comic prop for a line of `event`, not one of the last fifteen chosen. */
+export function propFor(mode, event) {
+  const list = PROPS[mode === 'killer' ? 'killer' : 'puppy'];
+  const recent = session.props.slice(-15);
+  const options = list.filter(item => !recent.includes(item));
+  const prop = options[(hash(`${event}:${session.lines}:${session.built}`) >>> 3) % options.length];
+  session.props = [...session.props, prop].slice(-30);
+  return prop;
 }
 
 // ---- Describing the moment -------------------------------------------------------------------------------------------------
@@ -349,6 +373,7 @@ export function momentBlock({event, facts, mode}) {
   if (extras.length) lines.push(`Also: ${extras.join('; ')}.`);
   const device = deviceFor(m, event);
   lines.push(`Style for this line (a different one from your last lines): ${device.text}.`);
+  lines.push(`Dress the joke in this image, as a quick comparison or a borrowed phrase: ${propFor(m, event)}. The joke is about this moment; do not just announce the numbers.`);
   const openings = recentOpenings();
   if (openings.length) lines.push(`Your last lines opened with: ${openings.join(', ')}. Open differently.`);
   const stale = overused();

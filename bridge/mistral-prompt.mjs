@@ -353,17 +353,19 @@ export function capWords(text, maxWords) {
   let end = 0, seen = 0;
   for (const match of value.matchAll(/\S+/g)) { if (++seen > limit) break; end = match.index + match[0].length; }
   const inside = value.slice(0, end);
-  // The last sentence end inside the limit that keeps at least half of the words (a lone "Error." is not the remark).
+  // The last sentence end inside the limit that keeps at least a third of the words, and three at least (a lone "Error." is not the remark).
   let cut = -1;
   for (const match of inside.matchAll(/[.!?…]+["”')\]]*(?=\s|$)/g)) {
     const at = match.index + match[0].length;
     if (match[0] === '.' && /(?:\b[A-Z][a-z]?|\bMr|\bMs|\bDr|\d)\.$/.test(inside.slice(Math.max(0, match.index - 3), at))) continue;
-    if (wordCount(inside.slice(0, at)) >= Math.ceil(maxWords / 2)) cut = at;
+    if (wordCount(inside.slice(0, at)) >= Math.max(3, Math.ceil(maxWords / 3))) cut = at;
   }
   if (cut > 0) return inside.slice(0, cut).trim();
   const clause = Math.max(inside.lastIndexOf(', '), inside.lastIndexOf('; '), inside.lastIndexOf(': '));
   const kept = clause > inside.length * 0.4 ? inside.slice(0, clause) : inside;
-  return kept.replace(/[\s,;:–—-]+$/, '') + '.';
+  // A cut in the middle of a phrase must not end on a word that wants a continuation ("will never be the").
+  const trimmed = kept.replace(/[\s,;:–—-]+$/, '').replace(/(?:\s+(?:the|a|an|of|to|and|or|but|with|for|in|on|at|by|my|your|his|her|its|our|their|is|are|was|be|that|this|than|as|if|so|not|no))+$/i, '');
+  return trimmed.replace(/[\s,;:–—-]+$/, '') + '.';
 }
 
 const LEAK = /\bas an? (?:ai|artificial intelligence|language model|llm|assistant)\b|\bi(?:'m| am) an? (?:ai|artificial intelligence|language model|llm|chatbot|virtual assistant)\b|\blanguage model\b|\b(?:system prompt|my (?:instructions|programming|guidelines))\b|\bi (?:can(?:'|no)t|cannot|can not) (?:roleplay|role-play|pretend)\b|\bopenai\b|\banthropic\b/i;

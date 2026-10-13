@@ -1,7 +1,7 @@
 # Skippy: character bible
 
 How Skippy, the talking smart pistol, sounds in the add-on, and why. The persona and samples that put this into practice are in
-`addons/skippy/persona.json`. The scripted fights that test it are in `addons/skippy/eval/`, and the best lines it has written
+`addons/skippy/convai-addon.json` (the persona and both modes). The scripted fights that test it are in `addons/skippy/eval/`, and the best lines it has written
 are in `docs/addons/SKIPPY_SAMPLES.md`. The facts Skippy gets come from `addons/skippy/EVENTS.md` (branch `addon-skippy`).
 
 Everything about the game here is paraphrased from the game's own lines for quest "Machine Gun" (`mq007`, the four Skippy
@@ -201,7 +201,10 @@ tuning:
 
 ## 11. What the builder and the API should change for quality
 
-Measured in this branch's quality loop (see `docs/addons/SKIPPY_SAMPLES.md` for the numbers).
+Measured in the writing branch's quality loop (see `docs/addons/SKIPPY_SAMPLES.md` for the numbers). **All seven builder items and
+the first four API items below are now done** (branch `skippy-quality`): the device kit lives in `addons/skippy/bridge.mjs`
+(`deviceFor`, `SUITS`), the session notebook (openers, devices, overused words) is written by the `remember` hook, and the persona
+moved into `addons/skippy/convai-addon.json`. The text below stays as the reasoning.
 
 **In `addons/skippy/bridge.mjs` (builder):**
 
