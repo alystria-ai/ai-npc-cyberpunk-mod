@@ -28,7 +28,7 @@ M.attach(host)
 local calls = {}
 local function count(name) calls[name] = (calls[name] or 0) + 1 end
 local facts = {delamain_taxi_state = 0}
-local game = {hour = 21, rain = 'ERainIntensity : HeavyRain (2)', heat = 0, district = 'LittleChina', fare = 150}
+local game = {hour = 21, rain = 'ERainIntensity : HeavyRain (2)', heat = 0, district = 'LittleChina', fare = 150, pos = {x = 0, y = 0, z = 0}}
 local hooks, missing = {}, {}
 local function observe(class, method, fn)
     if missing[class .. '.' .. method] then error('no such function ' .. method) end
@@ -59,7 +59,7 @@ Game = {
     GetTimeSystem = function() count('time') return {GetGameTime = function() return game.hour end} end,
     GetWeatherSystem = function() count('weather') return {GetRainIntensityType = function() return game.rain end} end,
     GetScriptableSystemsContainer = function() return {Get = function(_, name) return systems[name] end} end,
-    GetPlayer = function() return {GetWorldPosition = function() return {x = 0, y = 0, z = 0} end} end,
+    GetPlayer = function() return {GetWorldPosition = function() return game.pos end} end,
     GetMappinSystem = function() return {GetMappin = function() return nil end} end,
 }
 function car:GetRecordID() return 'Vehicle.v_standard2_villefort_cortes_delamain_player' end
@@ -72,6 +72,8 @@ local function sit()
     state.sample = {available = true, combat = false, tier = 1, vehicle = false}; tick()
     state.sample = {available = true, combat = false, tier = 1, vehicle = true}; player.vehicle = car; tick()
 end
+-- The cab drives: V (and so the cab) moves this many metres east.
+local function drive(metres) game.pos = {x = game.pos.x + metres, y = game.pos.y, z = 0} end
 local function step(value) facts.delamain_taxi_state = value; hooks['DelamainTaxiComponent.OnFactChanged'](component, {}) end
 local function lastRequest() return submitted[#submitted] and submitted[#submitted].context end
 -- Plays the pending request through to its end (speech, then silence), so the next remark is allowed after the gap.
@@ -194,7 +196,7 @@ test('a ride: boarding greets once, the destination starts the ride, a district 
     finish(31)
     -- Arrival.
     now = now + 30
-    step(5); tick()
+    drive(3000); step(5); tick()
     assert(#submitted == 4 and lastRequest().addon.event == 'arrival' and lastRequest().reaction.priority == 5, #submitted)
     local a = lastRequest().addon.facts
     assert(a.rideSeconds == 70 and a.rideMinutes == 1 and a.fare == 150 and a.startDistrict == 'Watson' and a.districtsPassed[1] == 'Westbrook', json.encode(a))
@@ -226,7 +228,7 @@ test('a ride without a greeting: the district is remarked once (priority 3), the
     game.district = 'Westbrook'; hooks['PreventionSystem.OnDistrictAreaEntered'](nil, {}); tick()
     assert(#submitted == 2, 'at most one district remark per ride')
     now = now + 30
-    step(5); tick()
+    drive(3000); step(5); tick()
     assert(#submitted == 3 and lastRequest().addon.event == 'arrival')
     assert(lastRequest().addon.facts.districtsPassed[1] == 'Westbrook')
   `);
@@ -237,7 +239,7 @@ test('the game own farewell (a scene) holds the arrival back; it plays when the 
     sit(); step(3); step(4); tick(); finish(31)
     state.sample = {available = true, combat = false, tier = 1, vehicle = true, dialogue = true}
     tick(); now = now + 40
-    step(5); tick()
+    drive(3000); step(5); tick()
     assert(#submitted == 2 - 1, 'the game is speaking its farewell: nothing is sent')
     assert(#M._test.queue() == 1 and M._test.queue()[1].event.event == 'arrival', 'the arrival waits, it is not dropped: ' .. #M._test.queue() .. ' ' .. table.concat(logs, ' | '))
     tick(10)
@@ -263,7 +265,7 @@ test('a remark waits only as long as it was asked to: after its patience the gam
     sit(); step(3); step(4); tick(); finish(31)
     state.sample = {available = true, combat = false, tier = 1, vehicle = true, dialogue = true}
     tick(); now = now + 40
-    step(5); tick()
+    drive(3000); step(5); tick()
     assert(#M._test.queue() == 1)
     tick(10); tick(10)
     assert(#M._test.queue() == 1, 'still within its 25 s')
@@ -357,7 +359,7 @@ test('the arrival, asked for as the game farewell scene begins, is taken back an
   lua(`
     sit(); step(3); step(4); tick(); finish(31)
     now = now + 90
-    step(5); tick()
+    drive(3000); step(5); tick()
     assert(#submitted == 2 and lastRequest().addon.event == 'arrival')
     local first = lastRequest().requestId
     state.sample = {available = true, combat = false, tier = 3, vehicle = true, dialogue = true}; tick()   -- the farewell begins
@@ -375,7 +377,7 @@ test('an arrival waiting for the game farewell is not spoken to an empty cab', (
     sit(); step(3); step(4); tick(); finish(31)
     state.sample = {available = true, combat = false, tier = 1, vehicle = true, dialogue = true}
     tick(); now = now + 40
-    step(5); tick()
+    drive(3000); step(5); tick()
     assert(#M._test.queue() == 1)
     state.sample = {available = true, combat = false, tier = 1, vehicle = false, dialogue = true}; player.vehicle = nil
     tick(1); tick(1); tick(1); tick(1)
@@ -444,13 +446,93 @@ test('a heat level is a fact, the add-on switch silences the cab, and a new ride
     handle:setEnabled(false)
     assert(#M.talkCandidates(player, false) == 0, 'disabled: never offered for talk')
     handle:setEnabled(true)
-    step(5); step(7); step(8)
+    drive(3000); step(5); step(7); step(8)
     state.sample = {available = true, combat = false, tier = 1, vehicle = false}; player.vehicle = nil; tick()
     step(1); step(2)
     state.sample = {available = true, combat = false, tier = 1, vehicle = true}; player.vehicle = car; tick()
     now = now + 400
     step(3); tick()
     assert(lastRequest().addon.event == 'boarded' and lastRequest().addon.facts.rideNumber == 2 and lastRequest().addon.facts.firstRideThisSession == false)
+  `);
+});
+
+
+test('live 2026-10-13: greeting, the map destination, then Arrived seconds later with the cab standing still: no arrival line, one log line, and the real arrival still works', () => {
+  lua(`
+    sit(); step(1); step(2); step(3); tick()
+    assert(lastRequest().addon.event == 'boarded')
+    finish(31)                                   -- the game's greeting and ours are over; V opens the map and picks a point
+    step(4); tick()
+    assert(lastRequest().addon.event == 'ride-start')
+    finish(31)
+    now = now + 3
+    step(5); tick()                              -- the game's own state machine says Arrived; the cab has not moved
+    assert(#submitted == 2, 'no arrival line for a cab that has not driven: ' .. #submitted)
+    assert(#M._test.queue() == 0, 'and none is waiting')
+    local out = {} for _, line in ipairs(logs) do if line:find('arrival ignored', 1, true) then out[#out + 1] = line end end
+    assert(#out == 1 and out[1]:find('moved 0 m since ride-start', 1, true), table.concat(out, ' | '))
+    assert(handle:state().remark == nil)
+    tick(0.6)
+    assert(addonState().state.phase == 'riding', 'talk turns do not hear that the ride is over')
+    step(7); tick(); tick(30)
+    assert(#submitted == 2, 'the farewell scene ending adds nothing')
+    -- The game then plans the drive again and the cab really goes: the arrival is spoken.
+    step(4); tick()
+    finish(31)
+    drive(3000); now = now + 120
+    step(5); tick()
+    assert(#submitted == 4 and lastRequest().addon.event == 'arrival', #submitted)
+  `);
+});
+
+test('an arrival right after a small movement is still ignored; a driven distance makes it count', () => {
+  lua(`
+    sit(); step(3); step(4); tick(); finish(31)
+    drive(10)                                    -- the cab creeps off the kerb
+    step(5); tick()
+    assert(#submitted == 1, 'ten metres is not a ride')
+    local count = 0 for _, line in ipairs(logs) do if line:find('arrival ignored (moved 10 m', 1, true) then count = count + 1 end end
+    assert(count == 1, table.concat(logs, ' | '))
+    step(4); tick(); finish(31)                  -- planned again; the origin is the cab's place now
+    drive(1000); step(5); tick()
+    assert(lastRequest().addon.event == 'arrival')
+  `);
+});
+
+test('re-planning the destination mid-ride does not arrive: the movement is counted from the new plan', () => {
+  lua(`
+    sit(); step(3); step(4); tick(); finish(31)
+    drive(2000)                                  -- a long way along
+    step(6); tick()                              -- the map is opened again and the plan is dropped
+    step(4); tick(); finish(31)                  -- a new destination
+    step(5); tick()                              -- a stale Arrived straight after re-planning
+    local ignored = 0 for _, line in ipairs(logs) do if line:find('arrival ignored', 1, true) then ignored = ignored + 1 end end
+    for _, request in ipairs(submitted) do assert(request.context == nil or request.context.addon.event ~= 'arrival', 'no arrival line') end
+    assert(ignored == 1, table.concat(logs, ' | '))
+  `);
+});
+
+test('boarding again clears what the last drive left: a new map visit cannot arrive on the old distance', () => {
+  lua(`
+    sit(); step(3); step(4); tick(); finish(31)
+    drive(3000); step(5); tick(); finish(31)    -- a real arrival
+    assert(Delamain.ride.arrivalAsked == true)
+    step(3); tick()                              -- Ready again in the same cab (the map is open for a new trip)
+    assert(Delamain.ride.arrivalAsked == false and Delamain.ride.startedAt == nil and Delamain.ride.originX == nil and Delamain.ride.meters == nil)
+    step(4); tick(); finish(31)
+    local before = #submitted
+    step(5); tick()
+    assert(#submitted == before, 'the second drive has not moved: no arrival')
+  `);
+});
+
+test('a destination that is already under the cab is treated as no movement', () => {
+  lua(`
+    systems.AutoDriveSystem.GetAutodriveDestination = function() return {x = 0, y = 0, z = 0} end
+    sit(); step(3); step(4); tick(); finish(31)
+    assert(Delamain.ride.meters == 0)
+    step(5); tick()
+    assert(#submitted == 1, 'a distance of zero is not an arrival')
   `);
 });
 
@@ -473,7 +555,7 @@ test('a game that loads in the middle of a ride resumes silently and offers talk
     M.reset('load'); tick()
     assert(#M.talkCandidates(player, false) == 1, 'V sits in a cab that was already moving')
     tick(); assert(#submitted == 0, 'a loaded game makes no remark')
-    step(5); tick()
+    drive(3000); step(5); tick()
     assert(lastRequest().addon.event == 'arrival', 'the arrival is still remarked')
   `);
 });
@@ -545,7 +627,7 @@ function playRide(final = 'ride-start') {
   return lua(`
     party = {'judy-alvarez'}
     sit(); step(3); step(4); tick()
-    ${final === 'arrival' ? 'finish(31); now = now + 100; step(5); tick()' : ''}
+    ${final === 'arrival' ? 'finish(31); now = now + 100; drive(3000); step(5); tick()' : ''}
     tick(0.6)
     return json.encode(lastRequest()) .. '\\n' .. files['runtime/addon-state.json']
   `).split('\n');
