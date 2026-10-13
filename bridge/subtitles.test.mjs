@@ -1280,3 +1280,67 @@ test('V\'s live words are one dialogue line swapped in place as they grow, owned
  for _=1,12 do m.update(1) end
  assert(not m.live and not m.ownsUtterance(),'with no update the caption expires like any other')
 `));
+
+const FONTS = `
+local calls={}
+local function walks()local r={};for _,c in ipairs(calls)do if type(c)=='table' then r[#r+1]=c end end;return r end
+convaiUiFonts={version=2,
+ replyCode=function(text)for i=1,#text do if text:byte(i)>=0xE3 then return 'ja' end end return false end,
+ new=function()
+  local count=0
+  return {begin=function()calls[#calls+1]='begin' end,
+   walk=function(root,code,budget)assert(root:GetName()~=nil and type(budget)=='table');count=count+1;calls[#calls+1]={'walk',code};return 1 end,
+   count=function()return count end,clear=function()count=0;calls[#calls+1]='clear' end}
+ end}
+`;
+
+test('a reply in Japanese styles its owned overhead caption once per render and puts the font back when it ends; a Latin reply touches nothing', () => run(setup + `${FONTS}
+assert(m.install())
+local after=afterHooks['ChatterLineLogicController.SetLineData']
+local own=surface('201ULL')
+assert(m.show('Judy','Hello, I am still here.',judy,'201ULL'))
+assert(m.fontCode==nil)
+after(wrapController(own),shown()[1])
+assert(#walks()==0,'a Latin caption costs no font work')
+m.clear()
+assert(#walks()==0 and m.fontCode==nil)
+calls={}
+assert(m.show('Judy','こんにちは、V。',judy,'201ULL'))
+assert(m.fontCode=='ja')
+local line=shown()[2]
+after(wrapController(own),line)
+assert(#walks()==1 and walks()[1][2]=='reply','the game drew the caption: each of its texts gets its own family')
+assert(m.status().rendered.text=='こんにちは、V。')
+plain(m.status())
+m.clear()
+assert(#walks()==2 and walks()[2][2]==false,'the caption widgets are restored when the reply ends')
+assert(calls[#calls]=='clear' and m.fontCode==nil and m.fontController==nil)
+-- A death or detach clears without any native call.
+calls={}
+assert(m.show('Judy','こんにちは、V。',judy,'201ULL'));after(wrapController(own),shown()[3])
+local before=nativeReads
+m.abandon()
+assert(nativeReads==before and m.fontCode==nil and m.fontController==nil and calls[#calls]=='clear')
+`));
+
+test('in the dialogue HUD only the exact line of a Japanese reply is styled, and a revision that turns Japanese is noticed once', () => run(setup + `${FONTS}
+style='dialogue'
+assert(m.install())
+local receipt=afterHooks['SubtitleLineLogicController.SetLineData']
+assert(m.show('Judy','こんにちは、V。',judy,'201ULL'))
+local mine=m.line
+local controller=wrapController(surface('201ULL'))
+receipt(controller,{id='unrelated'})
+assert(#walks()==0,'a native line is never touched')
+receipt(controller,{id=mine.id})
+assert(#walks()==1 and walks()[1][2]=='reply')
+m.clear()
+calls={}
+assert(m.beginTimed('Judy','Sure, I will drive.',5,judy,'201ULL'))
+assert(m.fontCode==nil)
+receipt(controller,{id=m.line.id})
+assert(#walks()==0)
+assert(m.reviseTimed('Sure, I will drive. 了解です。',5,1))
+assert(m.fontCode=='ja','the script is re-decided when the text of a reply grows')
+`));
+

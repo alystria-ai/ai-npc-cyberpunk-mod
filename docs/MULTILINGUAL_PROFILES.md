@@ -426,7 +426,11 @@ the chosen voice through. It still guards the edge cases:
 - **Lip sync:** the facial model is trained on English game audio but works from audio alone, so the mouth still moves
   for other languages, with English-shaped visemes.
 - **Subtitles and phone chat:** the text path is UTF-8 safe (character-based splitting, no byte truncation of reply
-  text). The mod sets no font on reply text; the game's font for the selected game language draws it, so CJK or
-  Cyrillic replies with an English game language may show missing glyphs (to check in game).
+  text). The game draws reply text in the font of the selected game language, so CJK or Cyrillic replies with an
+  English game language may show missing glyphs. Since 2026-10-14 the mod picks a `ui-fonts.lua` family from the
+  script of the reply itself (`scriptCode`/`replyCode`: kana Japanese, Hangul Korean, Han Chinese, Cyrillic Russian)
+  and gives it to the owned subtitle widgets (overhead and dialogue HUD, `mod/subtitles.lua`) and to the chat
+  messages in the phone (`mod/phone-chat-style.lua`, three timed passes after a present); a Latin reply costs
+  nothing and every font is put back when the reply ends. Unit-tested only; not yet checked in game (TODO.md).
 - **Cloud voice:** with the Convai cloud voice, a twin speaks with its Azure multilingual voice (see "Voices"),
   not the original Kokoro voice, also in English.
