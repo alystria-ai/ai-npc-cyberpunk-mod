@@ -107,8 +107,19 @@ Outcome: `narrow` when V's health fell below 25 percent, `rough` when it fell be
 - The add-on only observes while V holds Skippy (`Items.mq007_skippy` is the active weapon). `fight.kills` counts every lethal
   kill V makes in that time, whatever did it, so the fight summary is honest; `fight.skippyKills` is the share made with
   Skippy (`victim.weapon == 'skippy'`). Kills by other means also add to `ways` of `kill-other-way`.
-- Skippy stays silent (no `remark` call, and a remark in flight is cancelled) while the game's own Skippy is speaking
-  (a subtitle line from the speaker Skippy, or an `Invisible` dialogue line while Skippy is held) and for 0.4 s after.
+- **The game's own Skippy lines are replaced, not waited out.** While V holds Skippy and the player's **Replace the game's own lines**
+  is on (default), the main mod keeps the game's Skippy voice and subtitle ("new message detected", "provocation", the beeps) off:
+  the subtitle through a filter on `SubtitlesGameController.ShouldDisplayLine`, the voice by stopping Wwise event
+  `vo_3d_important` on the speaker (an unverified try: the scene system plays most dialogue without a named event; until a live test
+  shows the voice stops, a remark still waits for the line to end). The quest, the mode choice and the scenes run as always. A line
+  counts as Skippy's when its speaker is named Skippy (or still the key `LocKey#46444`), or it is an `Invisible` line with no
+  readable speaker name while he is held; no other speaker's line is touched. Log: `[Addons] muted game line: Skippy <id> (...)`.
+  With the option off the game's lines play and a remark waits for them (every event has patience, see below) instead of talking over.
+- **Patience.** Every event is patient, by priority: 5 waits up to 12 s, 4 up to 8 s, 3 up to 6 s, 2 up to 4 s (a scene, a game line or
+  a cold model that answered late; the moment must still be true: V holds Skippy). Skippy's speaker plays through ordinary scenes.
+  The first remark of a fight and the fight end are no longer lost to the pace of the local AI (priority 5 is never refused by it, and
+  a remark nobody heard is given back).
+- Our lines carry ` (AI)` after the name in the subtitles (**Mark our lines in the subtitles**, default on).
 - Every remark uses the API's default `ttl` of 3 s (a line not heard within 3 s of its moment is dropped as stale) except
   `fight-end`, which asks for 8 s. Reflex moments (kills, headshots, health, reloads...) are written ahead of time and kept ready
   by the bridge (`handle:stock`), so they land in about a second; moments with their own specifics (`first-kill`, `elite-kill`,

@@ -189,6 +189,7 @@ end
 
 function M.configure(options)
     M.styleProvider = options and options.style
+    if options and options.mark ~= nil then M.markProvider = options.mark end
 end
 function M.style()
     local ok, value = pcall(function() return M.styleProvider and M.styleProvider() end)
@@ -526,6 +527,11 @@ local function prepare(speaker, text, actor, expected)
     M.pages, M.pageRanges = M.split(text, M.paginationStyle)
     if #M.pages == 0 then M.abandon(); return false end
     M.fontCode = replyFont(text)
+    -- An add-on speaker's own line (voiceOnly, set by speech.lua for each reply) may carry a small tag after its name.
+    if M.voiceOnly == true and M.voiceProfile and M.markProvider then
+        local ok, marked = pcall(M.markProvider, M.voiceProfile, speaker)
+        if ok and type(marked) == 'string' then speaker = marked end
+    end
     M.playerID, M.speaker, M.page = identity(Game.GetPlayer()), speaker, 1
     return true
 end
@@ -545,6 +551,7 @@ function M.showLive(speaker, text)
     if text == '' or not M.enabled() then return false end
     if M.live and M.playerID and identity(Game.GetPlayer()) ~= M.playerID then M.clear() end
     if not M.live then
+        M.voiceProfile = nil   -- V's own words never carry an add-on speaker's tag
         if not prepare(speaker, text, nil, nil) then return false end
         -- Always the cinematic dialogue HUD, whatever style replies use: V has no head to hang an overhead caption on.
         M.mode, M.fallback, M.anchor, M.paginationStyle = 'dialogue', nil, nil, 'dialogue'

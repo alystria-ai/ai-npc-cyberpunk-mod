@@ -108,7 +108,30 @@ test('registers one vehicle-anchored, group-capable speaker and a setting; no ho
     assert(#submitted == 0, 'no remark with no cab')
     local sections = M.settingsSections()
     assert(#sections == 1 and sections[1].title == 'Delamain Cab' and sections[1].items[1].label == 'Time between remarks' and sections[1].items[2].label == 'Most remarks per fight')
-    assert(sections[1].items[3].label == 'Delamain speaks on rides' and #sections[1].items == 3, 'the add-on adds one setting of its own')
+    assert(sections[1].items[3].label == 'Replace the game\\'s own lines' and sections[1].items[3].default == true)
+    assert(sections[1].items[4].label == 'Mark our lines in the subtitles' and sections[1].items[4].default == true)
+    assert(sections[1].items[5].label == 'Delamain speaks on rides' and #sections[1].items == 5, 'the add-on adds one setting of its own')
+  `);
+});
+
+test('the cab\'s own subtitle lines are replaced only while V sits in the cab; nobody else\'s line and no phone call is touched', () => {
+  lua(`
+    local function claimed(name, kind)
+        local rule, replace = M.matchLine({speakerName = name, id = {hash = '77'}, type = kind or 'Regular'}, {typeName = function() return kind or 'Regular' end})
+        return rule ~= nil, replace
+    end
+    -- Not in the cab (the garage, his phone calls): nothing is claimed.
+    assert(claimed('Delamain') == false)
+    sit(); step(3)
+    assert(claimed('Delamain') == true and select(2, claimed('Delamain')) == true, 'on by default')
+    assert(claimed('Delamain Taxi') == true)
+    assert(claimed('Judy Alvarez') == false and claimed('Panam') == false and claimed('Johnny') == false and claimed('', 'Invisible') == false)
+    -- The rule declares no voice event (the scene system plays the cab voice), so the remark keeps waiting for the whole line.
+    local rule = M.matchLine({speakerName = 'Delamain', id = {hash = '77'}, type = 'Regular'}, {typeName = function() return 'Regular' end})
+    assert(#rule.audio == 0 and rule.audioVerified == false)
+    -- The player's switch.
+    assert(M.stageSetting('addon:delamain-cab:replaceGameLines', false) and M.commitSettings())
+    assert(select(2, claimed('Delamain')) == false, 'off: the rule still names the line, the main mod then leaves it on screen')
   `);
 });
 

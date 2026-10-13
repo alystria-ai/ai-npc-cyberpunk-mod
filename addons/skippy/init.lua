@@ -12,8 +12,6 @@ local Skippy = {handle = nil, engine = nil, hooks = {}, S = {}}
 
 local MODES = {'killer', 'puppy'}
 local ITEMS = {'Items.mq007_skippy', 'Items.mq007_skippy_post_quest'}   -- the quest gun; the plain gun Regina hands back
-local OWN_LINE_BASE = 0x436F6E760000                                    -- subtitle ids of the main mod's own replies
-local OWN_LINE_SPAN = 0x100000
 
 -- ---- Small native helpers (each one guarded; a missing function is a missing fact, never an error) ------------------------
 
@@ -63,8 +61,6 @@ local RARITIES = {Trash = 'trash', Weak = 'weak', Normal = 'normal', Rare = 'rar
 local S = Skippy.S
 S.holding = false          -- V holds Skippy (the active weapon), refreshed on events
 S.combat = false
-S.vanillaUntil = -10       -- the game's own Skippy is speaking until this os.clock()
-S.vanillaSeen = false
 S.hits = {}                -- entity key -> the last hit V made on it {t, weapon, head, zone, stealth}
 S.hitCount = 0
 S.stealthSeenAt = nil
@@ -291,32 +287,23 @@ local function observe(name, after, class, method, fn)
     if not ok and Skippy.handle then Skippy.handle:log('could not hook ' .. class .. '.' .. method .. ': ' .. tostring(err)) end
 end
 
--- Which signal tells the game's own Skippy is talking: a subtitle line with Skippy as the speaker (the main mod's own replies
--- carry ids in its range and are skipped), or an Invisible dialogue line while V holds Skippy.
-local function vanillaLine(line)
-    local number = safe(function()
-        local hash = line.id.hash
-        local digits = tostring(hash):match('(%d+)')
-        return digits and tonumber(digits) or nil
-    end)
-    if number and number >= OWN_LINE_BASE and number < OWN_LINE_BASE + OWN_LINE_SPAN then return end
+-- Is this subtitle line the game's own Skippy? The main mod asks this for every game line, only while V holds Skippy (the rule's
+-- active()), and mutes the voice and the subtitle of the lines that say yes (handle:replaceGameLines, "Replace the game's own lines").
+-- The game's Skippy speaks through an invisible speaker entity (Character.mq007_skippy, name key LocKey#46444), so a line is his when
+-- the speaker is named Skippy (or still the bare key), or is an Invisible line with no readable speaker name at all. Nobody else's
+-- line is claimed: a line with another speaker's name is never touched.
+local function skippyLine(line, context)
     local name = safe(function()
         if type(line.speakerName) == 'string' and line.speakerName:find('%S') then return line.speakerName end
         if line.speaker then return line.speaker:GetDisplayName() end
         return nil
     end)
-    local invisible = enumName(safe(function() return line.type end)) == 'Invisible'
-    local skippy = type(name) == 'string' and name:lower():find('skippy', 1, true) ~= nil
-    if not (skippy or (invisible and S.holding)) then return end
-    local duration = safe(function() return tonumber(line.duration) end)
-    if type(duration) ~= 'number' or duration <= 0 or duration > 20 then duration = 5 end
-    S.vanillaUntil = now() + duration + 0.4
-    if not S.vanillaSeen then
-        S.vanillaSeen = true
-        if Skippy.handle then Skippy.handle:log('the game\'s own Skippy line seen (speaker ' .. tostring(name) .. ', type ' .. tostring(invisible and 'Invisible' or '?')
-            .. ', ' .. string.format('%.1f', duration) .. ' s); remarks wait for it') end
+    if type(name) == 'string' and name:find('%S') then
+        local lower = name:lower()
+        return lower:find('skippy', 1, true) ~= nil or name:find('LocKey#46444', 1, true) ~= nil
     end
-    if Skippy.engine then Skippy.engine:vanillaSpoke() end
+    local typeName = context and context.typeName and context.typeName() or enumName(safe(function() return line.type end))
+    return typeName == 'Invisible'
 end
 
 local function installHooks()
@@ -422,19 +409,6 @@ local function installHooks()
         local stage = safe(function() return system:GetHeatStageAsInt() end)
         engine:onHeat(tonumber(stage))
     end))
-
-    -- The game's own Skippy lines (the same two subtitle hooks the main mod's dialogue reader uses).
-    -- Gated on holding like every other hook: while V does not hold Skippy the call returns at once on one boolean check (no clock read,
-    -- no meter entry, no line inspected), because the game shows many subtitle lines and Skippy says nothing then anyway.
-    observe('subtitles-a', true, 'BaseSubtitlesGameController', 'ShowDialogLines', hook('subtitles-a', 'holding', function(_, lines)
-        if type(lines) ~= 'table' then return end
-        for _, line in ipairs(lines) do vanillaLine(line) end
-    end))
-    observe('subtitles-b', true, 'BaseSubtitlesGameController', 'OnShowDialogLine', hook('subtitles-b', 'holding', function(_, value)
-        local lines = safe(function() return FromVariant(value) end)
-        if type(lines) ~= 'table' then return end
-        for _, line in ipairs(lines) do vanillaLine(line) end
-    end))
 end
 
 -- ---- Holding Skippy ------------------------------------------------------------------------------------------------------------
@@ -497,8 +471,16 @@ registerForEvent('onInit', function()
     end
 
     -- minGap 2: the main mod's Remarks setting decides how often Skippy speaks; the speaker adds no gap of its own.
-    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2,
+    -- playThrough: the game's own Skippy lines and the scenes around them are not a reason to stay silent (the main mod keeps the
+    -- game's lines off while "Replace the game's own lines" is on); a call, Johnny or a cinematic still stop him.
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2, playThrough = true,
         available = function() return S.holding == true end})
+    -- The game's own Skippy ("new message detected", "provocation", the beeps) is silenced while the add-on is on and the player's
+    -- "Replace the game's own lines" is on (default); the quest, the mode choice and every scene behind those lines run as always.
+    -- audio: the game plays his lines on the custom Wwise event vo_3d_important (SKIPPY_RESEARCH.md); the stop is not heard-tested yet
+    -- (audioVerified false), so a remark still waits for the line to end until a live test shows the voice really stops.
+    handle:replaceGameLines({name = 'Skippy', match = skippyLine, active = function() return S.holding == true end,
+        audio = {'vo_3d_important'}, audioVerified = false})
 
     handle:settings({title = 'Skippy', description = 'The talking smart pistol comments on the fight while you hold it.', items = {
         {id = 'enabled', label = 'Skippy remarks', kind = 'bool', default = true,
@@ -517,7 +499,7 @@ registerForEvent('onInit', function()
         mode = currentMode,
         where = whereNow,
         lookAt = lookAtNow,
-        vanillaBusy = function() return now() < S.vanillaUntil end,
+        relevant = function() return function() return S.holding == true end end,
         stock = type(handle.stock) == 'function' and function(event, spec) return handle:stock('gun', event, spec) end or nil,
         remember = function(text) handle:remember('gun', text) end,
         log = function(text) handle:log(text) end,

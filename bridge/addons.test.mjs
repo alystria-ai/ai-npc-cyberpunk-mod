@@ -136,10 +136,10 @@ test('the bridge only touches add-ons through the host, and every touch is a no-
   const bridge = read('./convai-bridge.mjs');
   const uses = [...bridge.matchAll(/addonHost\.(\w+)/g)].map(match => match[1]);
   assert.deepEqual([...new Set(uses)].sort(), ['active', 'afterReply', 'beginTurn', 'blocks', 'characterLookup', 'extend', 'isSpeaker', 'loadJournal',
-    'localPace', 'modeOf', 'onStock', 'onWarm', 'produce', 'providerNotice', 'publishStatus', 'remarkStarted', 'routeFor', 'speakers', 'stock',
+    'localPace', 'modeOf', 'onStock', 'onWarm', 'produce', 'providerNotice', 'publishStatus', 'remarkRefunded', 'remarkStarted', 'routeFor', 'speakers', 'stock',
     'trigger', 'voiceConfigPaths', 'watchHandlers']);
   // A remark on the local AI inside its default pace is answered at once with addon-pace, before any text request.
-  assert.match(bridge, /const pace = remark \? addonHost\.localPace\(profile\.key, route\) : 0;\n\s*if \(pace > 0\) \{[\s\S]{0,260}errorCode: 'addon-pace', retryAfter: pace\}/);
+  assert.match(bridge, /const pace = remark \? addonHost\.localPace\(profile\.key, route, undefined, input\.reaction\?\.priority\) : 0;\n\s*if \(pace > 0\) \{[\s\S]{0,400}errorCode: 'addon-pace', gap: LOCAL_REMARK_GAP_S, retryAfter: pace\}/);
   // An add-on speaker branches off before any Convai step of a turn; every other turn is unchanged.
   assert.match(bridge, /if \(profile && addonHost\.isSpeaker\(profile\.key\)\) \{ await runAddonTurn\(request, input, profile, current, clock\); return; \}\n\s*if \(!profile \|\| !ids\[profile\.key\]\)/);
   assert.match(bridge, /text: battleTrigger\(input\), reaction: input\.reaction,/, 'the Convai / text-provider config keeps the battle trigger');
@@ -239,6 +239,28 @@ test('local AI pace: with the default gap a remark on the local AI waits about 2
   host.observeSettings(JSON.stringify({version: 1, addons: {skippy: {remarkGap: 1, remarkGapChosen: true}}}));
   assert.equal(host.localPace('addon-skippy-gun', 'local'), 0);
   assert.equal(host.localPace('judy-alvarez', 'local'), 0, 'not an add-on speaker');
+});
+
+test('local AI pace: the biggest moments (priority 5) are never refused, and a remark nobody heard is given back', () => {
+  let now = 0;
+  const host = new AddonHost({addons: [skippy()], now: () => now});
+  const first = host.remarkStarted('addon-skippy-gun', 'local');
+  assert.ok(first, 'a local remark returns a token');
+  now = 3_000;
+  assert.equal(host.localPace('addon-skippy-gun', 'local', now, 4), 17, 'priority 4 waits');
+  assert.equal(host.localPace('addon-skippy-gun', 'local', now, 5), 0, 'priority 5 does not');
+  // Never published: the first remark does not count, so the next moment is not refused for it.
+  assert.equal(host.remarkRefunded(first), true);
+  assert.equal(host.localPace('addon-skippy-gun', 'local', now, 2), 0);
+  assert.equal(host.remarkRefunded(first), false, 'refunded once');
+  // A later remark that started since keeps its own time.
+  const second = host.remarkStarted('addon-skippy-gun', 'local');
+  now = 4_000;
+  const third = host.remarkStarted('addon-skippy-gun', 'local');
+  assert.equal(host.remarkRefunded(second), false);
+  assert.equal(host.remarkRefunded(third), true);
+  assert.equal(host.localPace('addon-skippy-gun', 'local', now, 2), 19, 'back to the second remark (3 s)');
+  assert.equal(host.remarkStarted('addon-skippy-gun', 'mistral'), null, 'Mistral is not paced');
 });
 
 test('modes: each personality has its own stable persona prefix, switched by the turn or the game state', () => {

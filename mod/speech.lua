@@ -193,6 +193,7 @@ function M.start(context, reply)
     M.stop()
     M.voiceOnly = context.voiceOnly == true
     captions.voiceOnly = M.voiceOnly
+    captions.voiceProfile = M.voiceOnly and context.profileKey or nil
     M.outputDelay = readOutputDelay()
     M.streamReceipt = nil
     if reply.continuous ~= nil then

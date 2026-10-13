@@ -661,17 +661,34 @@ export class AddonHost {
    * Seconds before a remark of this speaker may start on the local AI (0: now). Only while the player keeps the default
    * "Time between remarks"; the game waits that long (errorCode addon-pace, retryAfter). Mistral and a chosen gap are never held.
    */
-  localPace(profileKey, route, now = this.now()) {
+  localPace(profileKey, route, now = this.now(), priority = 0) {
     const owner = this.speakers.get(profileKey);
     if (!owner || route !== 'local' || this.settings[owner.addon.id]?.remarkGapChosen === true) return 0;
+    // The biggest moments (priority 5: a near death, the end of a fight) are rare and never lost to the pace.
+    if (priority >= 5) return 0;
     const last = this.localRemarkAt.get(owner.addon.id);
     return last === undefined ? 0 : Math.max(0, Math.ceil((last + LOCAL_REMARK_GAP_S * 1000 - now) / 1000));
   }
 
-  /** A remark of this speaker starts on `route`. */
+  /** A remark of this speaker starts on `route`. Returns a token for remarkRefunded (null when the route is not paced). */
   remarkStarted(profileKey, route, now = this.now()) {
     const owner = this.speakers.get(profileKey);
-    if (owner && route === 'local') this.localRemarkAt.set(owner.addon.id, now);
+    if (!owner || route !== 'local') return null;
+    const token = {id: owner.addon.id, at: now, before: this.localRemarkAt.get(owner.addon.id)};
+    this.localRemarkAt.set(owner.addon.id, now);
+    return token;
+  }
+
+  /**
+   * The remark that started with `token` never reached the player (the game withdrew it, or it was cancelled before its line was
+   * published): it does not count towards the pace, so the next moment is not refused for a remark nobody heard. Only while no later
+   * remark has started since.
+   */
+  remarkRefunded(token) {
+    if (!token || this.localRemarkAt.get(token.id) !== token.at) return false;
+    if (token.before === undefined) this.localRemarkAt.delete(token.id);
+    else this.localRemarkAt.set(token.id, token.before);
+    return true;
   }
 
   /** A turn of a speaker begins: the personality mode the game sent with it takes effect before the prompt is built. */

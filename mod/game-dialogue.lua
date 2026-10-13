@@ -134,6 +134,24 @@ local function nativeAdapter()
         return text
     end
     function N.subtitles() return convaiSubtitles end
+    -- Add-on lines (docs/ADDON_API.md, "Replacing the game's own lines"). Stops the named Wwise events on the line's own speaker:
+    -- the engine pairs Stop with the Play event of the same name (the game's scripts do exactly that), scoped to one entity so
+    -- other speakers using the same event are untouched. Returns what was done, for the log.
+    function N.stopAudio(line, events)
+        if type(events) ~= 'table' or #events == 0 then return 'no-event-known' end
+        local speaker = line.speaker
+        if not speaker then return 'no-speaker' end
+        local id = speaker:GetEntityID()
+        local system = Game.GetAudioSystem()
+        for _, name in ipairs(events) do system:Stop(CName.new(name), id) end
+        return 'stop-sent(' .. table.concat(events, ',') .. ')'
+    end
+    -- The fallback when the subtitle override could not be installed: hide the line the HUD has just been given.
+    function N.hideLine(line)
+        local defs = Game.GetAllBlackboardDefs()
+        Game.GetBlackboardSystem():Get(defs.UIGameData):SetVariant(defs.UIGameData.HideDialogLine, ToVariant({line.id}, 'array:CRUID'), true)
+        return true
+    end
     return N
 end
 
@@ -147,7 +165,7 @@ function M.new(options)
     options = options or {}
     local self = setmetatable({options = options, native = options.native or nativeAdapter(), fired = {}}, Instance)
     self:reset('created')
-    self.counts = {hooks = {}, types = {}, skipped = {}, recorded = 0}
+    self.counts = {hooks = {}, types = {}, skipped = {}, muted = {}, recorded = 0}
     return self
 end
 
@@ -248,8 +266,22 @@ function Instance:noteLine(line)
     if self.notedCount >= 64 then self.noted, self.notedCount = {}, 0 end
     self.noted[id], self.notedCount = now, self.notedCount + 1
     if self:ownLine(line) then return false end
+    -- A line an add-on declared as its character's (matchLine) goes to ruleLine, whatever its type.
+    local rule, muted = self:ruleFor(line)
+    if rule then
+        local seconds, measured = self:lineSeconds(line)
+        return self:ruleLine(line, rule, muted == true, seconds, measured)
+    end
     local kind = call(N.lineType, line.type) or 'unknown'
     if not VOICE_LINES[kind] then return false end
+    local seconds, measured = self:lineSeconds(line)
+    pcall(options.onGameLine, seconds, kind, measured)
+    return true
+end
+
+-- How long a game line lasts: its own duration when the game gives a sensible one, else an estimate from its words.
+function Instance:lineSeconds(line)
+    local N = self.native
     local seconds = nil
     pcall(function() seconds = tonumber(line.duration) end)
     local measured = seconds ~= nil and seconds == seconds and seconds >= 0.3 and seconds <= 30
@@ -258,8 +290,73 @@ function Instance:noteLine(line)
         for _ in tostring(call(N.text, line) or ''):gmatch('%S+') do words = words + 1 end
         seconds = words / WORDS_PER_SECOND + 0.8
     end
-    seconds = math.max(LINE_MIN, math.min(LINE_MAX, seconds))
-    pcall(options.onGameLine, seconds, kind, measured)
+    return math.max(LINE_MIN, math.min(LINE_MAX, seconds)), measured
+end
+
+-- ---- Lines an add-on replaces (options.matchWanted / matchLine / onMuted; mod/addons.lua handle:replaceGameLines) ------------------
+-- matchWanted() is one boolean read: false until an add-on has declared a rule, so nothing below runs for an ordinary game.
+-- matchLine(line, context) -> rule, muted: the add-on's own test of "is this its character's game line", and whether the player
+-- asked for it to be replaced. context.typeName() resolves the line type on demand.
+function Instance:lineContext(line)
+    local N, cache = self.native, nil
+    return {typeName = function()
+        if cache == nil then cache = call(N.lineType, line.type) or 'unknown' end
+        return cache
+    end}
+end
+
+function Instance:ruleFor(line)
+    local options = self.options
+    if type(options.matchLine) ~= 'function' then return nil end
+    if type(options.matchWanted) == 'function' and call(options.matchWanted) ~= true then return nil end
+    return call(options.matchLine, line, self:lineContext(line))
+end
+
+-- The subtitle HUD asks this before it shows a line (the override of ShouldDisplayLine: one call per line, never per frame).
+function Instance:shouldHide(line)
+    local options = self.options
+    if type(options.matchWanted) ~= 'function' or call(options.matchWanted) ~= true then return false end
+    if self:ownLine(line) then return false end
+    local rule, muted = self:ruleFor(line)
+    return rule ~= nil and muted == true
+end
+
+-- Installed on the first rule (never otherwise). True: the HUD asks us before every line. False: the fallback, the line is hidden
+-- again right after it was handed to the HUD (see ruleLine).
+function Instance:installMute()
+    if self.muteInstalled ~= nil then return self.muteInstalled end
+    local override = self.options.override or Override
+    if type(override) ~= 'function' then self.muteInstalled, self.muteError = false, 'no Override'; return false end
+    local ok, err = pcall(override, 'SubtitlesGameController', 'ShouldDisplayLine', function(_, line, wrapped)
+        local hide = false
+        pcall(function() hide = self:shouldHide(line) end)
+        if hide then return false end
+        return wrapped(line)
+    end)
+    self.muteInstalled, self.muteError = ok == true, (not ok) and tostring(err) or nil
+    if type(self.options.log) == 'function' then
+        pcall(self.options.log, ok and 'Game dialogue: subtitle filter installed (SubtitlesGameController.ShouldDisplayLine)'
+            or ('Game dialogue: subtitle filter NOT installed (' .. tostring(err) .. '); muted lines are hidden after they appear'))
+    end
+    return self.muteInstalled
+end
+
+-- The line of a rule was seen (once per line, from the subtitle hooks that already run): silence what can be silenced, tell the host.
+function Instance:ruleLine(line, rule, muted, seconds, measured)
+    local options, N = self.options, self.native
+    if not muted then
+        if type(options.onGameLine) == 'function' then pcall(options.onGameLine, seconds, rule.name, measured) end
+        return true
+    end
+    local audio = call(N.stopAudio, line, rule.audio) or 'stop-failed'
+    local subtitle = 'filtered'
+    if self.muteInstalled ~= true then subtitle = call(N.hideLine, line) and 'hidden-after' or 'hide-failed' end
+    self:count('muted', rule.name or '?')
+    if type(options.onMuted) == 'function' then
+        local number = call(N.lineNumber, line)
+        pcall(options.onMuted, rule, {seconds = seconds, measured = measured, audio = audio, subtitle = subtitle,
+            id = number and string.format('%06d', number % 1000000) or '?'})
+    end
     return true
 end
 
@@ -483,12 +580,14 @@ function Instance:capture()
 end
 
 function Instance:status()
-    local types, skipped, hooks = {}, {}, {}
+    local types, skipped, hooks, muted = {}, {}, {}, {}
     for key, value in pairs(self.counts.types) do types[key] = value end
     for key, value in pairs(self.counts.skipped) do skipped[key] = value end
     for key, value in pairs(self.counts.hooks) do hooks[key] = value end
+    for key, value in pairs(self.counts.muted) do muted[key] = value end
     return {enabled = self:enabled(), installed = self.installed == true, lines = #self.lines, ledger = self.ledger and #self.ledger.entries or 0,
-        recorded = self.counts.recorded, hooks = hooks, types = types, skipped = skipped,
+        recorded = self.counts.recorded, hooks = hooks, types = types, skipped = skipped, muted = muted,
+        subtitleFilter = self.muteInstalled,
         resetReason = self.resetReason, lastError = self.lastError}
 end
 
