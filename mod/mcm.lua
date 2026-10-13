@@ -33,6 +33,11 @@ local localeRevision = -1
 local AUTO_APPLY_WINDOW = 0.25
 local lastDraftEventAt = -1000
 local lastBackAt = -1000
+-- Mature content (see syncMature): a draft change only sets matureCheck in its callback; the work is done by M.update.
+-- matureReset: the drafts are all gone (Apply or Revert). matureSeen: the Mature content value last looked at (nil: take the saved
+-- one). matureMemory: what turning it on changed in the drafts, to put back if it is turned off before Apply. matureNotice:
+-- the one line that names the change, shown in place of MCM's "Pending: ..." status for a few seconds.
+local matureCheck, matureReset, matureSeen, matureMemory, matureNotice = false, false, nil, nil, nil
 -- The Companion voices list (menu order) lives with the draft preview: Pocket TTS, OmniVoice 16/32 steps with a
 -- short or long reference, Convai cloud voice.
 local voicePreviewModule = dofile('voice-preview.lua')
@@ -636,6 +641,127 @@ local function updateVoiceStatus(snapshot)
         presentation.voiceStatus:SetText(text)
         presentation.voiceStatusText = text
     end
+end
+
+-- Mature content only works with the Local AI provider, and its replies must not go to a cloud voice. So turning it ON in the
+-- drafts also stages (as pending changes, before Apply) the Local AI provider, the Auto model and, when the companion voice is a
+-- cloud voice, a local one (OmniVoice Balanced when its pack is installed, else Pocket TTS); without the Local AI pack nothing
+-- else is touched. Turning it OFF puts back what that changed, unless the player changed it since. What was changed is kept in
+-- matureMemory while the drafts are pending and, once applied, in the saved settings (manager: matureRestore). All of it runs
+-- from M.update after a draft event, never in a hook, and costs nothing while no draft changes.
+local PROVIDER_IDS = {'convai', 'mistral', 'local', 'groq'}
+local LOCAL_AI_PRESENT = {ready = true, warming = true, ['no-memory'] = true, failed = true}
+local CLOUD_VOICES = {voxtral = true, inworld = true, convai = true}
+
+local function draftValue(key)
+    local ok, value, err = pcall(api.getValue, MOD_KEY .. ':' .. key)
+    if ok and not err then return value end
+end
+
+local function stageDraft(key, index)
+    local ok, done = pcall(api.setDraft, MOD_KEY .. ':' .. key, index)
+    return ok and done == true
+end
+
+local function voiceRecord(index)
+    local choice = VOICE_CHOICES[index]
+    if not choice then return nil end
+    return {provider = choice.provider, steps = choice.steps, reference = choice.reference}
+end
+
+local function voiceIndexOf(record)
+    if type(record) ~= 'table' then return nil end
+    return voicePreviewModule.indexOf({voiceProvider = record.provider, omniSteps = record.steps, omniReference = record.reference})
+end
+
+local function modelIndexOf(id)
+    for index, choice in ipairs(manager.localModelChoices()) do if choice.id == id then return index end end
+end
+
+local function matureTurnedOn()
+    local snapshot = manager.snapshot(player())
+    local installed = LOCAL_AI_PRESENT[(snapshot.mistral or {}).localAi] == true
+    local providerNow = draftValue('conversationProvider')
+    local record, names = {}, {}
+    local usingLocal = providerNow == 3
+    if not usingLocal and not installed then
+        matureMemory = nil
+        return ui.t('Mature content needs the Local AI pack, which is not installed. Nothing else was changed.')
+    end
+    if not usingLocal and PROVIDER_IDS[providerNow] and stageDraft('conversationProvider', 3) then
+        record.conversationProvider = {before = PROVIDER_IDS[providerNow], set = 'local'}
+        names[#names + 1] = ui.t('Local AI')
+        usingLocal = true
+    end
+    if usingLocal then
+        local choices = manager.localModelChoices()
+        local modelNow = draftValue('localModel')
+        if type(modelNow) == 'number' and modelNow ~= 1 and choices[modelNow] and stageDraft('localModel', 1) then
+            record.localModel = {before = choices[modelNow].id, set = 'auto'}
+            names[#names + 1] = ui.t('Auto model')
+        end
+        local voiceNow = draftValue('voiceProvider')
+        local choice = VOICE_CHOICES[voiceNow]
+        if choice and CLOUD_VOICES[choice.provider] then
+            -- Multilingual conversations refuses Pocket TTS: without the OmniVoice pack there is no local voice to move to.
+            local omni = manager.omniPack().installed == true
+            if omni or draftValue('multilingualConversations') ~= true then
+                local target = omni and 2 or 1
+                if stageDraft('voiceProvider', target) then
+                    record.voice = {before = voiceRecord(voiceNow), set = voiceRecord(target)}
+                    local chosen = VOICE_CHOICES[target]
+                    names[#names + 1] = manager.voiceLabel(chosen.provider, chosen.steps, chosen.reference)
+                end
+            end
+        end
+    end
+    matureMemory = next(record) and record or nil
+    if #names == 0 then return nil end
+    return ui.t('Mature content: {changes} selected too. Choose Apply to use them.', {changes = table.concat(names, ', ')})
+end
+
+local function matureTurnedOff()
+    local record = matureMemory
+    if not record then record = manager.snapshot(player()).settings.matureRestore end
+    matureMemory = nil
+    if type(record) ~= 'table' then return nil end
+    local names = {}
+    local part = record.conversationProvider
+    if part then
+        local now, was = draftValue('conversationProvider'), nil
+        for index, id in ipairs(PROVIDER_IDS) do if id == part.set then was = index end end
+        local back
+        for index, id in ipairs(PROVIDER_IDS) do if id == part.before then back = index end end
+        if now == was and back and stageDraft('conversationProvider', back) then names[#names + 1] = ui.t('Conversation provider') end
+    end
+    part = record.localModel
+    if part then
+        local now, back = draftValue('localModel'), modelIndexOf(part.before)
+        if now == modelIndexOf(part.set) and back and stageDraft('localModel', back) then names[#names + 1] = ui.t('Local AI model') end
+    end
+    part = record.voice
+    if part then
+        local now, back = draftValue('voiceProvider'), voiceIndexOf(part.before)
+        if now == voiceIndexOf(part.set) and back and stageDraft('voiceProvider', back) then names[#names + 1] = ui.t('Companion voices') end
+    end
+    if #names == 0 then return nil end
+    return ui.t('Mature content is off: {changes} put back. Choose Apply to use them.', {changes = table.concat(names, ', ')})
+end
+
+-- Looks at the Mature content draft after a draft event; acts only on a change of it.
+local function syncMature()
+    -- All drafts are gone (Apply or Revert): what was staged is moot, and a check queued before that looked at old drafts.
+    if matureReset then matureReset, matureCheck, matureSeen, matureMemory = false, false, nil, nil end
+    if not matureCheck then return end
+    matureCheck = false
+    local mature = draftValue('matureContent')
+    if type(mature) ~= 'boolean' then return end
+    local before = matureSeen
+    if before == nil then before = manager.snapshot(player()).settings.matureContent == true end
+    matureSeen = mature
+    if mature == before then return end
+    local text = mature and matureTurnedOn() or matureTurnedOff()
+    if text then matureNotice = {text = text, at = os.clock()} end
 end
 
 local function samplePreparationFeedback()
@@ -1258,6 +1384,10 @@ local function ownKeyRows(snapshot)
         matureHelp = matureHelp .. ' ' .. (mistral.maturePack == true
             and ui.t('The Mature pack (uncensored models) is installed.')
             or ui.t('The Mature pack (uncensored models) is not installed. It is an optional download on the GitHub releases page of this mod.'))
+        matureHelp = matureHelp .. ' ' .. ui.t('Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back.')
+        if not LOCAL_AI_PRESENT[mistral.localAi] then
+            matureHelp = matureHelp .. ' ' .. ui.t('Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else.')
+        end
         if mistral.effective ~= 'local' then
             matureHelp = matureHelp .. ' ' .. ui.t('Your conversations are not using Local AI right now, so this has no effect for now.')
         end
@@ -1959,6 +2089,8 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 else return {ok = false, error = ui.t('That setting is read-only.')} end
                 applied[#applied + 1] = key
             end
+            -- Turning Mature content on in this Apply: what that staged is kept in the settings, so turning it off can undo it.
+            if values.matureContent == true and matureMemory then values.matureRestore = matureMemory end
             local ok, err, notice, reload
             if addonChanges > 0 and addonChanges == #applied then ok = true
             else ok, err, notice, reload = manager.applySettings(player(), values) end
@@ -1988,8 +2120,13 @@ local function connect()
         -- Record the moment of a draft change. This callback can run inside a
         -- native UI action, so it only stores a number.
         pcall(api.subscribe, 'drafts.changed', function(event)
-            if type(event) == 'table' and event.modKey == MOD_KEY and (tonumber(event.count) or 0) > 0 then
-                lastDraftEventAt = os.clock()
+            if type(event) == 'table' and event.modKey == MOD_KEY then
+                if (tonumber(event.count) or 0) > 0 then
+                    lastDraftEventAt = os.clock()
+                    matureCheck = true
+                else
+                    matureReset = true
+                end
             end
         end)
     end
@@ -2035,6 +2172,14 @@ function M.install()
             status, statusKind = preparationStatus.message, preparationStatus.failed and 2 or 0
             presentation.preparationApplied = true
             presentation.preparationSignature = preparationStatus.signature
+        end
+        -- The line that names what Mature content staged, for a few seconds, instead of MCM's "Pending: <setting>".
+        if own and matureNotice then
+            if os.clock() - matureNotice.at < 8 and tostring(status):sub(1, 7) == 'Pending' then
+                status, statusKind = matureNotice.text, 0
+            elseif os.clock() - matureNotice.at >= 8 then
+                matureNotice = nil
+            end
         end
         presentation.statusText = status
         -- Redrawing the page that was drawn last: its scroll position is read from the old page, which still exists here.
@@ -2375,6 +2520,10 @@ function M.update(currentPlayer, worldReady)
     fontPresentation.update()
     if contentHold then releaseStaleHold() end
     if early.on then earlyStale() end
+    if (matureCheck or matureReset) and api then
+        local synced, syncError = pcall(syncMature)
+        if not synced then lastError = 'Mature content: ' .. tostring(syncError) end
+    end
     pcall(restoreStatusLine)
     if not activeForUpdate(presentation.active or presentation.pending == true) then
         if presentation.veil then unveilPage() end
@@ -2443,6 +2592,7 @@ function M.inspect()
             restyling = restyling, styling = presentation.job ~= nil},
         early = {hooks = earlyHooks, off = earlyOff, shown = earlyReleased, held = earlyHeld, reason = earlyLastReason,
             failures = earlyFailures},
+        mature = {notice = matureNotice and matureNotice.text or nil, staged = matureMemory ~= nil},
         entryDetails = entry.inspect and entry.inspect() or nil,
         back = currentBack and {id = currentBack.id, label = currentBack.label} or nil, backMode = backMode,
         party = queue.list(), feedback = queue.message(), error = lastError,
@@ -2468,6 +2618,7 @@ function M.resetSession()
     if type(convaiNotices) == 'table' and type(convaiNotices.resetLoading) == 'function' then convaiNotices.resetLoading() end
     presentation, early = {active = false, rows = {}}, {on = false}
     lastDrawKey, scrollBefore = nil, nil
+    matureCheck, matureReset, matureSeen, matureMemory, matureNotice = false, false, nil, nil, nil
     fontPresentation.reset()
     voicePreview.reset()
     entry.reset()

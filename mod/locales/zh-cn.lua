@@ -786,4 +786,11 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "语音服务无法清除已保存的语音设置。请检查它是否正在运行，然后重试。",
     ["There was nothing to clear."] = "没有需要清除的内容。",
     ["{size} · Saved voices: {count}"] = "{size} · 已保存语音：{count}",
+    ["Auto model"] = "自动模型",
+    ["Invalid Mature content settings."] = "成人内容设置无效。",
+    ["Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else."] = "这需要本地 AI。若未安装其可选包，开启成人内容不会改变其他任何设置。",
+    ["Mature content is off: {changes} put back. Choose Apply to use them."] = "成人内容已关闭：已恢复{changes}。选择“应用”以使用它们。",
+    ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "成人内容需要未安装的本地 AI 包。未更改其他任何设置。",
+    ["Mature content: {changes} selected too. Choose Apply to use them."] = "成人内容：{changes}也已选中。选择“应用”以使用它们。",
+    ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "开启时还会选择本地 AI 作为对话提供方和自动模型，若陪伴语音为云端语音，还会选择本地语音（等待应用）。关闭时会恢复之前的选择。",
 }

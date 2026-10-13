@@ -476,6 +476,39 @@ local function validModelId(value)
     return type(value) == 'string' and #value >= 1 and #value <= 80 and value:match('^[%w%.:_%-]+$') ~= nil
 end
 
+-- What turning Mature content on changed, kept in the settings so that turning it off puts the player's own choices back:
+--   {conversationProvider = {before = 'convai', set = 'local'}, localModel = {before = <model id>, set = 'auto'},
+--    voice = {before = <voice>, set = <voice>}} where a voice is {provider = 'pocket'|'omni'|'convai'|'voxtral'|'inworld',
+--   steps = 16|32, reference = 'short'|'long'} (steps and reference for omni only). Each part is optional; anything malformed is
+-- dropped, and nil is returned when nothing is left. Returns a new table.
+local function cleanMatureVoice(value)
+    if type(value) ~= 'table' then return nil end
+    local provider = value.provider
+    if provider ~= 'pocket' and provider ~= 'omni' and provider ~= 'convai' and provider ~= 'voxtral' and provider ~= 'inworld' then return nil end
+    if provider ~= 'omni' then return {provider = provider} end
+    if (value.steps ~= 16 and value.steps ~= 32) or (value.reference ~= 'short' and value.reference ~= 'long') then return nil end
+    return {provider = provider, steps = value.steps, reference = value.reference}
+end
+
+local function cleanMatureRestore(value)
+    if type(value) ~= 'table' then return nil end
+    local result, any = {}, false
+    local part = value.conversationProvider
+    if type(part) == 'table' and providerName(part.before) == part.before and providerName(part.set) == part.set then
+        result.conversationProvider, any = {before = part.before, set = part.set}, true
+    end
+    part = value.localModel
+    if type(part) == 'table' and validModelId(part.before) and validModelId(part.set) then
+        result.localModel, any = {before = part.before, set = part.set}, true
+    end
+    part = value.voice
+    if type(part) == 'table' then
+        local before, set = cleanMatureVoice(part.before), cleanMatureVoice(part.set)
+        if before and set then result.voice, any = {before = before, set = set}, true end
+    end
+    return any and result or nil
+end
+
 -- The installed Local AI chat models the bridge reports ([{id, name, sizeMiB}], runtime/mistral-state.json); anything malformed is dropped.
 local function localModelList(value)
     local list = {}
@@ -685,6 +718,14 @@ local function loadSettings()
     -- Which installed Local AI model loads: 'auto' (the best one that fits the free graphics memory) or one model's id. The bridge reads it
     -- from settings.json and falls back to auto, with one notice, when that model is missing or does not fit.
     if not validModelId(settings.localModel) then settings.localModel, settingsNeedSave = 'auto', true end
+    -- What turning Mature content on changed (provider, model, voice), so turning it off can put them back (see cleanMatureRestore).
+    -- Only meaningful while Mature content is on.
+    do
+        local restore = cleanMatureRestore(settings.matureRestore)
+        if settings.matureContent ~= true then restore = nil end
+        if restore == nil and settings.matureRestore ~= nil then settingsNeedSave = true end
+        settings.matureRestore = restore
+    end
     -- Multilingual conversations (off by default): conversations go to each character's multilingual twin. Pocket TTS
     -- speaks only English, so a saved pairing with it cannot stand (Apply never makes one): the voice moves to the cloud
     -- voice, which every installation can run. With the cloud voice, Multilingual wins over the two tag settings.
@@ -1548,6 +1589,7 @@ function M.snapshot(player)
             followUpInterest = settings.followUpInterest,
             -- Part of the main mod: off by default, Local AI only. The optional Mature pack (uncensored models) only changes the help text.
             matureContent = settings.matureContent == true,
+            matureRestore = cleanMatureRestore(settings.matureRestore),
             localModel = validModelId(settings.localModel) and settings.localModel or 'auto',
             multilingualConversations = settings.multilingualConversations,
             archetypeConversations = settings.archetypeConversations,
@@ -1601,6 +1643,10 @@ function M.applySettings(player, values)
         elseif key == 'matureContent' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.matureContent = value
+        elseif key == 'matureRestore' then
+            -- What turning Mature content on changed (mod/mcm.lua), kept so turning it off can put it back; false clears it.
+            if value ~= false and cleanMatureRestore(value) == nil then return false, 'Invalid Mature content settings.' end
+            nextSettings.matureRestore = value and cleanMatureRestore(value) or nil
         elseif key == 'localModel' then
             if not validModelId(value) then return false, 'Choose one of the listed Local AI models.' end
             nextSettings.localModel = value
@@ -1673,6 +1719,11 @@ function M.applySettings(player, values)
         and (nextSettings.naturalSpeech == true or nextSettings.expressiveEmotions == true)
         and nextSettings.voiceProvider == 'convai'
     if switchedVoice then nextSettings.voiceProvider = 'pocket' end
+    -- The record of what Mature content changed belongs to the time it is on: turning it off drops it, and turning it on
+    -- without one (nothing was changed for it) leaves none.
+    if nextSettings.matureContent ~= true or (settings.matureContent ~= true and values.matureRestore == nil) then
+        nextSettings.matureRestore = nil
+    end
     -- Turning Mature content on says once, in one line, that the content is for adults.
     local matureNotice = nextSettings.matureContent == true and settings.matureContent ~= true
         and ui.t('Mature content is on: companions may use adult language and themes. For adults (18+) only.') or nil

@@ -786,4 +786,11 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "Ses servisi kaydedilmiş ses ayarlarını temizleyemedi. Çalıştığını kontrol edip yeniden dene.",
     ["There was nothing to clear."] = "Temizlenecek bir şey yoktu.",
     ["{size} · Saved voices: {count}"] = "{size} · Kaydedilmiş sesler: {count}",
+    ["Auto model"] = "Otomatik model",
+    ["Invalid Mature content settings."] = "Geçersiz yetişkin içeriği ayarları.",
+    ["Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else."] = "Bunun için Yerel AI gerekir. İsteğe bağlı paketi olmadan yetişkin içeriğini açmak başka hiçbir şeyi değiştirmez.",
+    ["Mature content is off: {changes} put back. Choose Apply to use them."] = "Yetişkin içeriği kapalı: {changes} geri alındı. Kullanmak için Uygula'yı seç.",
+    ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "Yetişkin içeriği, kurulu olmayan Yerel AI paketini gerektirir. Başka hiçbir şey değiştirilmedi.",
+    ["Mature content: {changes} selected too. Choose Apply to use them."] = "Yetişkin içeriği: {changes} de seçildi. Kullanmak için Uygula'yı seç.",
+    ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "Açmak ayrıca Yerel AI'yı konuşma sağlayıcısı, Otomatik modeli ve arkadaşın sesi bulut sesiyse yerel bir sesi seçer (Uygula bekleniyor). Kapatmak önceki seçimlerini geri getirir.",
 }

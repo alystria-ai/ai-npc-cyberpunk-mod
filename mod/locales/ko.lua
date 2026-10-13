@@ -786,4 +786,11 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "음성 서비스가 저장된 음성 설정을 지우지 못했습니다. 서비스가 실행 중인지 확인한 뒤 다시 시도하세요.",
     ["There was nothing to clear."] = "지울 항목이 없었습니다.",
     ["{size} · Saved voices: {count}"] = "{size} · 저장된 음성: {count}",
+    ["Auto model"] = "자동 모델",
+    ["Invalid Mature content settings."] = "성인 콘텐츠 설정이 올바르지 않습니다.",
+    ["Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else."] = "이 기능에는 로컬 AI가 필요합니다. 선택 팩이 없으면 성인 콘텐츠를 켜도 다른 설정은 바뀌지 않습니다.",
+    ["Mature content is off: {changes} put back. Choose Apply to use them."] = "성인 콘텐츠가 꺼져 있습니다: {changes} 값이 되돌려졌습니다. 사용하려면 적용을 선택하세요.",
+    ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "성인 콘텐츠에는 설치되지 않은 로컬 AI 팩이 필요합니다. 다른 설정은 변경되지 않았습니다.",
+    ["Mature content: {changes} selected too. Choose Apply to use them."] = "성인 콘텐츠: {changes} 값도 함께 선택되었습니다. 사용하려면 적용을 선택하세요.",
+    ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "켜면 대화 제공자로 로컬 AI가 선택되고, 자동 모델이 선택되며, 동반자 음성이 클라우드 음성이면 로컬 음성도 선택됩니다(적용 대기 중). 끄면 이전 선택이 복원됩니다.",
 }

@@ -786,4 +786,11 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "Голосовой сервис не смог очистить сохранённые настройки голосов. Проверьте, что он запущен, и попробуйте снова.",
     ["There was nothing to clear."] = "Нечего очищать.",
     ["{size} · Saved voices: {count}"] = "{size} · Сохранённых голосов: {count}",
+    ["Auto model"] = "Автоматическая модель",
+    ["Invalid Mature content settings."] = "Недопустимые настройки контента для взрослых.",
+    ["Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else."] = "Для этого нужен локальный ИИ. Без его дополнительного пакета включение контента для взрослых больше ничего не меняет.",
+    ["Mature content is off: {changes} put back. Choose Apply to use them."] = "Контент для взрослых выключен: возвращены {changes}. Выберите «Применить», чтобы использовать их.",
+    ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "Контент для взрослых требует пакет локального ИИ, который не установлен. Ничего другого не изменено.",
+    ["Mature content: {changes} selected too. Choose Apply to use them."] = "Контент для взрослых: также выбраны {changes}. Выберите «Применить», чтобы использовать их.",
+    ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "Включение также выбирает локальный ИИ как поставщика бесед, автоматическую модель и, если голос компаньона облачный, локальный голос (ожидает «Применить»). Выключение возвращает прежние выборы.",
 }

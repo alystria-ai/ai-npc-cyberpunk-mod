@@ -786,4 +786,11 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "A hangszolgáltatás nem tudta törölni a mentett hangbeállításokat. Ellenőrizd, hogy fut-e, majd próbáld újra.",
     ["There was nothing to clear."] = "Nem volt mit törölni.",
     ["{size} · Saved voices: {count}"] = "{size} · Mentett hangok: {count}",
+    ["Auto model"] = "Automatikus modell",
+    ["Invalid Mature content settings."] = "Érvénytelen felnőtt tartalom beállítások.",
+    ["Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else."] = "Ehhez a Helyi MI szükséges. Opcionális csomagja nélkül a felnőtt tartalom bekapcsolása mást nem változtat meg.",
+    ["Mature content is off: {changes} put back. Choose Apply to use them."] = "A felnőtt tartalom ki van kapcsolva: {changes} visszaállítva. Válaszd az Alkalmaz lehetőséget a használatukhoz.",
+    ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "A felnőtt tartalomhoz a Helyi MI csomag kell, amely nincs telepítve. Mást nem változtattunk.",
+    ["Mature content: {changes} selected too. Choose Apply to use them."] = "Felnőtt tartalom: {changes} szintén kiválasztva. Válaszd az Alkalmaz lehetőséget a használatukhoz.",
+    ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "A bekapcsolás a Helyi MI-t is beállítja beszélgetési szolgáltatónak, az automatikus modellt, és ha a társ hangja felhőalapú, egy helyi hangot is (az Alkalmaz gombra várva). A kikapcsolás visszaállítja a korábbi beállításaidat.",
 }

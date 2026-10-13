@@ -786,4 +786,11 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "Hlasová služba nemohla vymazat uložená nastavení hlasů. Zkontroluj, že běží, a zkus to znovu.",
     ["There was nothing to clear."] = "Nebylo co mazat.",
     ["{size} · Saved voices: {count}"] = "{size} · Uložené hlasy: {count}",
+    ["Auto model"] = "Automatický model",
+    ["Invalid Mature content settings."] = "Neplatné nastavení obsahu pro dospělé.",
+    ["Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else."] = "K tomu je potřeba Místní AI. Bez jejího volitelného balíčku zapnutí obsahu pro dospělé nic dalšího nezmění.",
+    ["Mature content is off: {changes} put back. Choose Apply to use them."] = "Obsah pro dospělé je vypnutý: vráceno {changes}. Pro použití zvol Použít.",
+    ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "Obsah pro dospělé vyžaduje balíček Místní AI, který není nainstalovaný. Nic jiného nebylo změněno.",
+    ["Mature content: {changes} selected too. Choose Apply to use them."] = "Obsah pro dospělé: vybráno také {changes}. Pro použití zvol Použít.",
+    ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "Zapnutím se také zvolí Místní AI jako poskytovatel konverzací, automatický model a, pokud je hlas společníka cloudový, místní hlas (čeká na Použít). Vypnutím se vrátí dřívější volby.",
 }

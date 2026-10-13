@@ -2072,6 +2072,208 @@ test('Mature content is a settings row with or without the Mature pack: the help
   `);
 });
 
+// Turning Mature content on stages the Local AI provider, the Auto model and a local voice as pending changes (mod/mcm.lua,
+// syncMature); turning it off puts back what that changed. A fake MCM keeps the drafts and emits 'drafts.changed' like the real one.
+const matureFixture = `
+  local clock = 1000
+  os.clock = function() return clock end
+  os.time = function() return clock end
+  local PREFIX = 'cyberpunk-convai:manager:'
+  local listeners, pending = {}, {}
+  nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
+  nativeApi.unsubscribe = function() return true end
+  mcm.shutdown(); mcm.install()
+  local function emit()
+    local count = 0
+    for _ in pairs(pending) do count = count + 1 end
+    for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = count}) end
+  end
+  nativeApi.getValue = function(id)
+    local key = id:sub(#PREFIX + 1)
+    if pending[key] ~= nil then return pending[key] end
+    local found = row(key)
+    return found and found.value
+  end
+  nativeApi.setDraft = function(id, value)
+    local key = id:sub(#PREFIX + 1)
+    local found = row(key)
+    if not found then return false, 'unknown setting' end
+    if found.value == value then pending[key] = nil else pending[key] = value end
+    emit()
+    return true
+  end
+  nativeApi.hasDrafts = function() return next(pending) ~= nil end
+  local function state(tag, value)
+    jsonFixtures['mature-' .. tag] = value
+    files['runtime/mistral-state.json'] = 'mature-' .. tag
+    clock = clock + 2
+    manager.snapshot(player)
+    loaded = registered.loadMod('manager')
+  end
+  local function voices(installed)
+    clock = clock + 20
+    jsonFixtures['voice-' .. tostring(installed) .. clock] = {state = 'ready', provider = 'pocket', omniPack = {installed = installed, missing = {}}, updated = clock * 1000}
+    files['runtime/local-voice-state.json'] = 'voice-' .. tostring(installed) .. clock
+    manager.snapshot(player)
+  end
+  -- The player's own change of one setting (a draft), and an Apply that commits some.
+  local function user(key, value) assert(nativeApi.setDraft(PREFIX .. key, value)); mcm.update(player, false) end
+  local function apply(changes)
+    clock = clock + 2
+    local result = registered.applyBatch('manager', changes)
+    pending = {}
+    loaded = registered.loadMod('manager')
+    emit()
+    mcm.update(player, false)
+    return result
+  end
+  local function drafts() local list = {}; for key, value in pairs(pending) do list[#list + 1] = key .. '=' .. tostring(value) end; table.sort(list); return table.concat(list, ',') end
+  -- Mistral answers with a pinned model and the Mistral cloud voice; Local AI and the OmniVoice pack are installed.
+  local function startFrom(options)
+    options = options or {}
+    local report = {provider = 'mistral', effective = 'mistral', saved = true, localAi = 'ready',
+      localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'lite', name = 'Qwen', sizeMiB = 1300}}}
+    if options.noPack then report.localAi = nil end
+    state('ready', report)
+    voices(options.omni ~= false)
+    assert(invoke('tab:settings').ok)
+    loaded = registered.loadMod('manager')
+    assert(apply({{id = 'conversationProvider', value = 2}, {id = 'localModel', value = 2}, {id = 'voiceProvider', value = options.voice or 6}}).ok)
+    assert(saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and not saved.matureContent)
+  end
+`;
+
+test('turning Mature content on stages Local AI, the Auto model and a local voice as pending changes, names them in one line, and Apply saves them with the way back', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom()
+    assert(saved.voiceProvider == 'voxtral')
+    user('matureContent', true)
+    assert(drafts() == 'conversationProvider=3,localModel=1,matureContent=true,voiceProvider=2', drafts())
+    local notice = mcm.inspect().mature.notice
+    assert(notice and notice:find('Local AI', 1, true) and notice:find('Auto model', 1, true) and notice:find('OmniVoice', 1, true) and notice:find('Apply', 1, true), notice)
+    assert(select(2, notice:gsub('\\n', '')) == 0 and #notice < 200, 'one short line')
+    -- MCM would say "Pending: Mature content"; the redraw says what was staged instead, for a few seconds only.
+    local shown
+    handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Companion Manager', 'Pending: Mature content', 0, '', true, true, 0, function(_, _, _, _, status) shown = status end)
+    assert(shown == notice, tostring(shown))
+    clock = clock + 9
+    handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Companion Manager', 'Pending: Mature content', 0, '', true, true, 0, function(_, _, _, _, status) shown = status end)
+    assert(shown == 'Pending: Mature content', 'the notice outlived its time')
+    -- Nothing is saved before Apply.
+    assert(saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral' and not saved.matureContent)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 1}, {id = 'voiceProvider', value = 2}}).ok)
+    assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.localModel == 'auto' and saved.voiceProvider == 'omni')
+    local way = saved.matureRestore
+    assert(way and way.conversationProvider.before == 'mistral' and way.conversationProvider.set == 'local'
+      and way.localModel.before == 'standard' and way.localModel.set == 'auto'
+      and way.voice.before.provider == 'voxtral' and way.voice.set.provider == 'omni' and way.voice.set.steps == 16 and way.voice.set.reference == 'short', 'the way back was not saved')
+    assert(manager.snapshot(player).settings.matureRestore.localModel.before == 'standard')
+  `);
+});
+
+test('turning Mature content off puts the provider, model and voice back, except what the player changed since', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom()
+    user('matureContent', true)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 1}, {id = 'voiceProvider', value = 2}}).ok)
+    -- Off, nothing else touched: all three come back as pending changes, in one line.
+    user('matureContent', false)
+    assert(drafts() == 'conversationProvider=2,localModel=2,matureContent=false,voiceProvider=6', drafts())
+    local notice = mcm.inspect().mature.notice
+    assert(notice and notice:find('put back', 1, true) and notice:find('Conversation provider', 1, true) and notice:find('Local AI model', 1, true), notice)
+    assert(apply({{id = 'matureContent', value = false}, {id = 'conversationProvider', value = 2}, {id = 'localModel', value = 2}, {id = 'voiceProvider', value = 6}}).ok)
+    assert(saved.matureContent == false and saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral')
+    assert(saved.matureRestore == nil, 'the way back stayed after Mature content was turned off')
+    -- On again, the player changes the provider to Groq and the model to Qwen before turning it off: those two stay.
+    user('matureContent', true)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 1}, {id = 'voiceProvider', value = 2}}).ok)
+    assert(apply({{id = 'conversationProvider', value = 4}, {id = 'localModel', value = 3}}).ok)
+    user('matureContent', false)
+    assert(drafts() == 'matureContent=false,voiceProvider=6', 'only the voice was still the one Mature content chose: ' .. drafts())
+  `);
+});
+
+test('Mature content turned on and off again before Apply leaves no pending change; Revert forgets the staging', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom()
+    user('matureContent', true)
+    assert(drafts() ~= '' and mcm.inspect().mature.staged == true)
+    user('matureContent', false)
+    assert(drafts() == '', 'drafts left behind: ' .. drafts())
+    assert(mcm.inspect().mature.staged == false)
+    -- Revert: every draft is gone; a later On starts afresh and stages again.
+    user('matureContent', true)
+    assert(drafts() ~= '')
+    pending = {}; emit(); mcm.update(player, false)
+    assert(mcm.inspect().mature.staged == false)
+    user('matureContent', true)
+    assert(drafts() == 'conversationProvider=3,localModel=1,matureContent=true,voiceProvider=2', drafts())
+    -- The player's own later change of the provider while Mature content is on is theirs: turning it off does not undo it.
+    user('conversationProvider', 4)
+    user('matureContent', false)
+    -- The model and the voice go back to what is saved (their drafts disappear); the provider stays the player's own choice.
+    assert(drafts() == 'conversationProvider=4', 'the provider the player chose was undone or others were left: ' .. drafts())
+  `);
+});
+
+test('without the Local AI pack Mature content stages nothing else and says Local AI is needed, in the notice and in the help', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom({noPack = true})
+    assert(tostring(row('matureContent').description):find('Local AI is needed', 1, true), 'the help does not say Local AI is needed')
+    user('matureContent', true)
+    assert(drafts() == 'matureContent=true', drafts())
+    local notice = mcm.inspect().mature.notice
+    assert(notice and notice:find('Local AI pack', 1, true) and notice:find('Nothing else', 1, true), notice)
+    assert(apply({{id = 'matureContent', value = true}}).ok)
+    assert(saved.matureContent == true and saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral')
+    assert(saved.matureRestore == nil, 'a way back was saved though nothing was changed')
+    user('matureContent', false)
+    assert(drafts() == 'matureContent=false', drafts())
+  `);
+});
+
+test('the voice moves to Pocket TTS without the OmniVoice pack, is left when it is already local, and stays when Multilingual conversations has no local voice to offer', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom({omni = false})
+    user('matureContent', true)
+    assert(drafts() == 'conversationProvider=3,localModel=1,matureContent=true,voiceProvider=1', drafts())
+    assert(mcm.inspect().mature.notice:find('Pocket', 1, true), mcm.inspect().mature.notice)
+    user('matureContent', false)
+    assert(drafts() == '', 'staged then unstaged: ' .. drafts())
+    -- A local voice already: the voice is not touched, and the notice names only the other two.
+    assert(apply({{id = 'voiceProvider', value = 1}}).ok)
+    user('matureContent', true)
+    assert(drafts() == 'conversationProvider=3,localModel=1,matureContent=true', drafts())
+    assert(not mcm.inspect().mature.notice:find('Pocket', 1, true))
+    user('matureContent', false)
+    -- Already Local AI with Auto and a local voice: nothing to stage and no notice.
+    assert(apply({{id = 'conversationProvider', value = 3}, {id = 'localModel', value = 1}}).ok)
+    mcm.update(player, false)
+    user('matureContent', true)
+    assert(drafts() == 'matureContent=true', drafts())
+    assert(mcm.inspect().mature.notice == nil or not mcm.inspect().mature.notice:find('selected', 1, true))
+    assert(apply({{id = 'matureContent', value = true}}).ok and saved.matureRestore == nil)
+    -- Multilingual conversations on, a cloud voice and no OmniVoice pack: there is no local voice to give, so the voice is left.
+    assert(apply({{id = 'matureContent', value = false}, {id = 'voiceProvider', value = 8}, {id = 'expressiveEmotions', value = false}}).ok)
+    assert(apply({{id = 'multilingualConversations', value = true}}).ok)
+    user('matureContent', true)
+    assert(not drafts():find('voiceProvider', 1, true), 'Pocket TTS was staged beside Multilingual conversations: ' .. drafts())
+  `);
+});
+
+test('the saved way back is checked on load and on Apply, and is dropped with Mature content', () => {
+  run(`${mcmFixture}
+    local ok = manager.applySettings(player, {matureContent = true, matureRestore = {conversationProvider = {before = 'convai', set = 'local'},
+      localModel = {before = 'bad id', set = 'auto'}, voice = {before = {provider = 'pocket'}, set = {provider = 'omni', steps = 16, reference = 'short'}}}})
+    assert(ok)
+    local way = manager.snapshot(player).settings.matureRestore
+    assert(way.conversationProvider.before == 'convai' and way.localModel == nil and way.voice.set.steps == 16, 'a malformed part was kept')
+    assert(not manager.applySettings(player, {matureRestore = {junk = true}}), 'a record with nothing valid was accepted')
+    assert(manager.applySettings(player, {matureContent = false}))
+    assert(manager.snapshot(player).settings.matureRestore == nil and saved.matureRestore == nil, 'the record outlived Mature content')
+  `);
+});
+
 test('Local AI model: a row with Auto first and each installed model by its name, sizes in the help, the pin saved by id', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end

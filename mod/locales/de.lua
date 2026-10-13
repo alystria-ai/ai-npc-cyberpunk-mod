@@ -786,4 +786,11 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "Der Sprachdienst konnte die gespeicherten Stimmeinstellungen nicht leeren. Prüfe, ob er läuft, und versuche es dann erneut.",
     ["There was nothing to clear."] = "Es gab nichts zu leeren.",
     ["{size} · Saved voices: {count}"] = "{size} · Gespeicherte Stimmen: {count}",
+    ["Auto model"] = "Automatisches Modell",
+    ["Invalid Mature content settings."] = "Ungültige Einstellungen für Inhalte für Erwachsene.",
+    ["Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else."] = "Dafür wird die lokale KI benötigt. Ohne ihr optionales Paket ändert das Einschalten der Inhalte für Erwachsene nichts anderes.",
+    ["Mature content is off: {changes} put back. Choose Apply to use them."] = "Inhalte für Erwachsene sind aus: {changes} zurückgesetzt. Wähle Übernehmen, um sie zu verwenden.",
+    ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "Inhalte für Erwachsene benötigen das Paket für die lokale KI, das nicht installiert ist. Sonst wurde nichts geändert.",
+    ["Mature content: {changes} selected too. Choose Apply to use them."] = "Inhalte für Erwachsene: {changes} ebenfalls ausgewählt. Wähle Übernehmen, um sie zu verwenden.",
+    ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "Beim Einschalten werden außerdem die lokale KI als Gesprächsanbieter und das automatische Modell gewählt sowie, falls die Begleiterstimme eine Cloud-Stimme ist, eine lokale Stimme (wartet auf Übernehmen). Beim Ausschalten werden deine früheren Einstellungen wiederhergestellt.",
 }
