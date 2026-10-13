@@ -5,7 +5,8 @@
 // mod and works with any model. The marker tells the setting's help text whether the uncensored models are installed, and lists them for the Local AI
 // model choice (bridge/local-model-choice.mjs: they appear in the Local AI model row, and Auto prefers one when Mature content is on). The marker sits in the Local AI folder, beside the manifest fragments of the two Local AI
 // packs (manifest.standard.json, manifest.lite.json; bridge/local-ai-pack.mjs), under its own name so detectLocalAiPack never reads it (the model choice joins the two lists):
-//   <local-ai root>/manifest.mature.json   {version: 1, pack: 'mature', models: [{file: 'models/x.gguf', name: 'X', family: 'qwen'}]}
+//   <local-ai root>/manifest.mature.json   {version: 1, pack: 'mature', lite: {file: 'models/x.gguf', name: 'X', family: 'qwen'}, good: {file, name, family}}
+// Exactly two models, lite and good, like the Local AI packs' lite and standard: no list, no third entry.
 // Only the marker decides ("installed" = a valid marker). The model files it lists are reported (`present`) but are not required: a split
 // model is joined by the first start after the download. Pure of any effect: one small read, never per frame; the bridge looks again at
 // most every few seconds and publishes the answer with the provider status.
@@ -14,6 +15,8 @@ import {isAbsolute, resolve} from 'node:path';
 import {LOCAL_AI_ENV} from './local-ai-pack.mjs';
 
 export const MATURE_MARKER = 'manifest.mature.json';
+/** The Mature pack's two models, smallest first (the Local AI packs have standard and lite; this pack has lite and good). */
+export const MATURE_TIERS = Object.freeze(['lite', 'good']);
 
 const fileExists = path => { try { return statSync(path).isFile(); } catch { return false; } };
 const readUtf8 = path => readFileSync(path, 'utf8');
@@ -24,7 +27,7 @@ function inside(root, value) {
   return value.split(/[\\/]+/).includes('..') ? null : resolve(root, value);
 }
 
-/** {installed, root, models: [{name, family, file, present}]}; `installed` is false for a missing, unreadable or foreign marker. */
+/** {installed, root, models: [{tier: 'lite'|'good', name, family, file, present}]} (two at most, lite first); `installed` is false for a missing, unreadable or foreign marker. */
 export function detectMaturePack({project, environment = process.env, exists = fileExists, readText = readUtf8} = {}) {
   // The real pack's folder; in a development checkout without it, the developer Local AI folder (CYBERPUNK_CONVAI_LOCAL_AI_DEV) may hold the marker.
   const primary = environment[LOCAL_AI_ENV.root] ? resolve(environment[LOCAL_AI_ENV.root]) : resolve(project ?? '.', 'local-ai');
@@ -36,9 +39,10 @@ export function detectMaturePack({project, environment = process.env, exists = f
   let marker;
   try { marker = JSON.parse(readText(path)); } catch { return none; }
   if (!marker || typeof marker !== 'object' || marker.version !== 1 || marker.pack !== 'mature') return none;
-  const models = (Array.isArray(marker.models) ? marker.models : []).flatMap(entry => {
-    const file = inside(root, entry?.file);
-    return file ? [{name: typeof entry.name === 'string' ? entry.name.slice(0, 80) : '', family: typeof entry.family === 'string' ? entry.family.slice(0, 40) : '',
+  // Two models at most, like the Local AI packs' two tiers: `lite` first, then `good` (the larger one). Anything else in the marker is ignored.
+  const models = MATURE_TIERS.flatMap(tier => {
+    const entry = marker[tier], file = inside(root, entry?.file);
+    return file ? [{tier, name: typeof entry.name === 'string' ? entry.name.slice(0, 80) : '', family: typeof entry.family === 'string' ? entry.family.slice(0, 40) : '',
       file, present: exists(file)}] : [];
   });
   return {installed: true, root, models};

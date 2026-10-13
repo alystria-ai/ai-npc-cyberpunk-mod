@@ -8,8 +8,8 @@ const sizes = {'std.gguf': 5280, 'lite.gguf': 1311, 'models/big-uncensored.gguf'
   'custom/big.gguf': 7000, 'custom/mid.gguf': 3500, 'custom/u.gguf': 2500, 'custom/huge.gguf': 40000, 'custom/off.gguf': 6000};
 const sizeOf = file => sizes[file] ?? 0;
 const pack = {tiers: {standard: {file: 'std.gguf', name: 'Gemma-4-E4B'}, lite: {file: 'lite.gguf', name: 'Qwen3.5-2B'}}};
-const matureModels = [{file: 'models/big-uncensored.gguf', name: 'Gemma-4-E4B-uncensored', family: 'gemma', present: true},
-  {file: 'models/small.gguf', name: 'Qwen3.5-2B-plain-name', family: 'qwen', present: true}];
+const matureModels = [{tier: 'lite', file: 'models/small.gguf', name: 'Qwen3.5-2B-plain-name', family: 'qwen', present: true},
+  {tier: 'good', file: 'models/big-uncensored.gguf', name: 'Gemma-4-E4B-uncensored', family: 'gemma', present: true}];
 const custom = (id, file, extra = {}) => ({id: 'custom:' + id, name: id, file, uncensored: false, auto: false, family: null, contextSize: null, chatTemplate: null, tooLarge: false, ...extra});
 const customList = [custom('big', 'custom/big.gguf', {auto: true}), custom('mid', 'custom/mid.gguf'), custom('u', 'custom/u.gguf', {uncensored: true, auto: true}),
   custom('huge', 'custom/huge.gguf', {auto: true, tooLarge: true}), custom('off', 'custom/off.gguf', {uncensored: true})];
@@ -17,7 +17,7 @@ const all = listLocalModels({pack, matureModels, customModels: customList});
 const choose = (options = {}) => chooseLocalModel({models: all, sizeOf, freeMiB: 24000, ...options});
 
 test('custom models join the list after the built-in ones, with a custom id and their manifest flags', () => {
-  assert.deepEqual(all.map(model => model.id), ['standard', 'lite', 'mature:big-uncensored', 'mature:small', 'custom:big', 'custom:mid', 'custom:u', 'custom:huge', 'custom:off']);
+  assert.deepEqual(all.map(model => model.id), ['standard', 'lite', 'mature:lite', 'mature:good', 'custom:big', 'custom:mid', 'custom:u', 'custom:huge', 'custom:off']);
   const mid = all.find(model => model.id === 'custom:mid');
   assert.deepEqual([mid.custom, mid.uncensored, mid.tier], [true, false, null]);
   assert.equal('auto' in mid, false, 'the obsolete auto flag is not carried into the model list');
@@ -64,7 +64,7 @@ test('an uncensored custom model counts as uncensored for Mature content, in the
   assert.equal(choose({pin: 'custom:gone', matureOn: false}).model.id, 'custom:big');
   // What turning Mature content on selects in the picker.
   assert.equal(defaultModelIds({models: all, sizeOf, freeMiB: 24000}).mature, 'custom:off');
-  assert.equal(defaultModelIds({models: all, sizeOf, freeMiB: 6800}).mature, 'mature:big-uncensored');
+  assert.equal(defaultModelIds({models: all, sizeOf, freeMiB: 6800}).mature, 'mature:good');
 });
 
 test('a pin works for a custom model that fits, and falls back (with a reason) when it is too large, short of memory, gone or broken', () => {
@@ -95,7 +95,7 @@ test('stillSatisfies treats every installed model alike, and the published list 
   assert.equal(stillSatisfies({loadedId: 'custom:mid', models: all, pin: 'auto', matureOn: true}), false, 'Mature on prefers the uncensored group');
   assert.equal(stillSatisfies({loadedId: 'custom:mid', models: all, pin: 'custom:mid'}), true);
   const list = describeLocalModels(all, sizeOf);
-  assert.deepEqual(list.map(entry => entry.id), ['lite', 'mature:small', 'custom:u', 'custom:mid', 'standard', 'mature:big-uncensored', 'custom:off', 'custom:big', 'custom:huge'], 'smallest first');
+  assert.deepEqual(list.map(entry => entry.id), ['lite', 'mature:lite', 'custom:u', 'custom:mid', 'standard', 'mature:good', 'custom:off', 'custom:big', 'custom:huge'], 'smallest first');
   assert.deepEqual(list.find(entry => entry.id === 'custom:mid'), {id: 'custom:mid', name: 'mid', sizeMiB: 3500, custom: true, needMiB: modelNeedMiB({tier: null}, 3500)});
   assert.deepEqual(list.find(entry => entry.id === 'custom:huge'), {id: 'custom:huge', name: 'huge', sizeMiB: 40000, custom: true, needMiB: 41200, tooLarge: true});
   assert.deepEqual(Object.keys(list[0]).sort(), ['id', 'name', 'sizeMiB']);

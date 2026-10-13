@@ -530,8 +530,8 @@ function choiceHarness(t, {selected = {}, mature = true, freeMiB = 24000, ...opt
     fileSizeMiB: file => CHOICE_SIZES[String(file).split(/[\\/]/).pop()] ?? 0, ...options});
   if (mature) {
     for (const name of ['big-u.gguf', 'small-u.gguf']) writeFileSync(join(made.directory, name), name);
-    state.matureModels = [{file: join(made.directory, 'big-u.gguf'), name: 'Gemma-4-E4B-uncensored', family: 'gemma', present: true},
-      {file: join(made.directory, 'small-u.gguf'), name: 'Qwen3.5-2B-Uncensored', family: 'qwen', present: true}];
+    state.matureModels = [{tier: 'lite', file: join(made.directory, 'small-u.gguf'), name: 'Qwen3.5-2B-Uncensored', family: 'qwen', present: true},
+      {tier: 'good', file: join(made.directory, 'big-u.gguf'), name: 'Gemma-4-E4B-uncensored', family: 'gemma', present: true}];
   }
   const fallbacks = [];
   made.server.on('model-fallback', event => fallbacks.push(event));
@@ -546,7 +546,7 @@ test('the model follows the choice: auto, Mature content, a pin, a missing pin a
 
   const mature = choiceHarness(t, {selected: {matureOn: true}});
   assert.equal((await mature.server.ensure()).model, 'Gemma-4-E4B-uncensored');
-  assert.deepEqual([mature.server.modelId, mature.loaded(), mature.server.status().tier], ['mature:big-u', ['big-u.gguf'], 'standard']);
+  assert.deepEqual([mature.server.modelId, mature.loaded(), mature.server.status().tier], ['mature:good', ['big-u.gguf'], 'standard']);
 
   const matureOff = choiceHarness(t, {selected: {matureOn: false}});
   await matureOff.server.ensure();
@@ -564,12 +564,12 @@ test('the model follows the choice: auto, Mature content, a pin, a missing pin a
   await pinned.server.ensure();
   assert.deepEqual([pinned.loaded(), pinned.fallbacks], [['q2.gguf'], []]);
 
-  const pinnedUncensored = choiceHarness(t, {selected: {pin: 'mature:small-u', matureOn: false}});
+  const pinnedUncensored = choiceHarness(t, {selected: {pin: 'mature:lite', matureOn: false}});
   assert.equal((await pinnedUncensored.server.ensure()).model, 'Qwen3.5-2B-Uncensored');
 
-  const missing = choiceHarness(t, {selected: {pin: 'mature:big-u'}, mature: false});
+  const missing = choiceHarness(t, {selected: {pin: 'mature:good'}, mature: false});
   await missing.server.ensure();
-  assert.deepEqual([missing.loaded(), missing.fallbacks], [['q4.gguf'], [{pin: 'mature:big-u', reason: 'missing', model: 'Qwen3.5-4B'}]]);
+  assert.deepEqual([missing.loaded(), missing.fallbacks], [['q4.gguf'], [{pin: 'mature:good', reason: 'missing', model: 'Qwen3.5-4B'}]]);
 
   const tooBig = choiceHarness(t, {selected: {pin: 'standard'}, freeMiB: 3000});
   await tooBig.server.ensure();
@@ -619,7 +619,7 @@ test('a changed choice reloads the model at an idle moment: the old server is st
   h.state.pin = 'auto'; h.state.matureOn = true;
   assert.equal(await h.server.reselect(), true);
   assert.equal(await until(() => h.calls.length === 3 && h.server.status().state === 'ready'), true);
-  assert.equal(h.server.modelId, 'mature:big-u');
+  assert.equal(h.server.modelId, 'mature:good');
   assert.equal(h.calls[1].child.exitCode !== null || h.calls[1].child.signalCode !== null, true);
 });
 

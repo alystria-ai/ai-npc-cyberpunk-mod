@@ -17,6 +17,7 @@
 // be loaded and when the settings poll sees the choice change (never per frame, never per turn).
 import {basename} from 'node:path';
 import {LocalAiUnavailable, tierNeedMiB} from './local-llm-server.mjs';
+import {MATURE_TIERS} from './mature-pack.mjs';
 
 export const AUTO_MODEL = 'auto';
 const UNCENSORED_NAME = /uncensored|abliterat|heretic|hauhau/i;   // the names mature-content.mjs allowanceFor() recognises
@@ -47,13 +48,16 @@ export function listLocalModels({pack, matureModels = [], customModels = []} = {
     if (entry?.file) models.push({id: tier, name: entry.name, file: entry.file, tier, uncensored: false, loadedName: entry.name});
   }
   const taken = new Set(models.map(model => model.id));
-  for (const entry of Array.isArray(matureModels) ? matureModels : []) {
+  // The Mature pack has exactly two models, `lite` and `good` (bridge/mature-pack.mjs); their ids are stable (`mature:lite`, `mature:good`), so a
+  // saved choice survives a new file name. An entry with another tier, or a second one of the same tier, is ignored.
+  for (const matureTier of MATURE_TIERS) {
+    const entry = (Array.isArray(matureModels) ? matureModels : []).find(item => item?.tier === matureTier);
     if (!entry?.file || entry.present === false) continue;
-    let id = 'mature:' + safeId(entry.file), suffix = 2;
-    while (taken.has(id)) id = 'mature:' + safeId(entry.file) + '-' + suffix++;
+    const id = 'mature:' + matureTier;
+    if (taken.has(id)) continue;
     taken.add(id);
     const name = entry.name || basename(entry.file).replace(/\.gguf$/i, '');
-    models.push({id, name, file: entry.file, tier: null, uncensored: true, loadedName: UNCENSORED_NAME.test(name) ? name : name + ' (uncensored)'});
+    models.push({id, name, file: entry.file, tier: null, matureTier, uncensored: true, loadedName: UNCENSORED_NAME.test(name) ? name : name + ' (uncensored)'});
   }
   for (const entry of Array.isArray(customModels) ? customModels : []) {
     if (!entry?.file || typeof entry.id !== 'string' || taken.has(entry.id)) continue;
@@ -65,8 +69,8 @@ export function listLocalModels({pack, matureModels = [], customModels = []} = {
   return models;
 }
 
-/** The headroom profile ('standard' or 'lite') of a model: its tier, or by size for a Mature model. */
-export const profileOf = (model, sizeMiB) => model.tier ?? (sizeMiB >= BIG_MODEL_MIB ? 'standard' : 'lite');
+/** The headroom profile ('standard' or 'lite') of a model: its tier; a Mature model's `good` is standard and its `lite` is lite; a custom model by size. */
+export const profileOf = (model, sizeMiB) => model.tier ?? (model.matureTier === 'good' ? 'standard' : model.matureTier === 'lite' ? 'lite' : sizeMiB >= BIG_MODEL_MIB ? 'standard' : 'lite');
 
 /** Free graphics memory a model needs: its file plus the profile's headroom (the fixed fallback when the size is unknown). */
 export const modelNeedMiB = (model, sizeMiB) => tierNeedMiB(profileOf(model, sizeMiB), sizeMiB);

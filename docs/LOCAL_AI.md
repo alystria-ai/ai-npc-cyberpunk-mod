@@ -48,11 +48,11 @@ no "Auto" entry: the row always shows one concrete model as selected. Only one m
   the free graphics memory is used: the largest model file that fits, so the standard model when it fits and the lite one otherwise. The
   row shows that model as selected, so you see which one is meant, and the next **Apply** stores its id (an older `auto` is replaced
   silently; nothing changes for you). The mod reads the free memory when it starts a model, so the model shown is the one that would
-  load now. With **Mature content** on, the default is the largest uncensored model that fits (the optional Mature pack's models and
-  your own models marked `"uncensored": true`), and the ordinary models are used when none of them fits. With Mature content off, the
+  load now. With **Mature content** on, the default is the largest uncensored model that fits (the optional Mature pack's two models:
+  its good one if it fits, else its lite one; and your own models marked `"uncensored": true`), and the ordinary models are used when none of them fits. With Mature content off, the
   default never picks an uncensored model.
 - **Turning Mature content on** selects, in the same pending changes as Local AI itself (waiting for Apply), the largest uncensored
-  model that fits, if one is installed, and says so ("Uncensored model"). With no uncensored model installed (or none that fits) it
+  model that fits (the Mature pack's good model if it fits, else its lite one), if one is installed, and says so ("Uncensored model"). With no uncensored model installed (or none that fits) it
   leaves the model alone. Turning Mature content off puts the earlier model back, as it does the other choices.
 - **Choosing a model** uses exactly that model, whatever fits better and whatever Mature content says (an uncensored model with
   Mature content off simply runs without the Mature rules).
@@ -366,11 +366,11 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
 ### Model choice (developers)
 
 - `bridge/local-model-choice.mjs` (pure, no I/O): `listLocalModels({pack, matureModels})` joins the Local AI packs' two models
-  (ids `standard`, `lite`) with the Mature pack's (`mature:<file name>`; a marker entry whose file is absent is left out, and a name
+  (ids `standard`, `lite`) with the Mature pack's two (`mature:lite` and `mature:good`, stable ids whatever the file is called; an entry whose file is absent, a third entry or an unknown tier is left out, and a name
   that does not say "uncensored" gets "(uncensored)" in the name the loaded server reports, so `allowanceFor` in
   `bridge/mature-content.mjs` reads it as the full level). `chooseLocalModel({models, pin, matureOn, freeMiB, sizeOf})` applies the
-  rules above (largest file that fits, headroom by tier: file + 1.2 GB standard, + 0.7 GB lite, and by size for a Mature model: standard
-  headroom from 3,000 MiB; unknown free memory takes the smallest model of the group) and reports `fellBack: 'missing' | 'low-memory'`
+  rules above (largest file that fits, headroom by tier: file + 1.2 GB standard, + 0.7 GB lite, and for a Mature model by its tier: `good` takes the standard headroom, `lite` the lite one (a custom model by size, standard
+  headroom from 3,000 MiB); unknown free memory takes the smallest model of the group) and reports `fellBack: 'missing' | 'low-memory'`
   when a pin was replaced. `stillSatisfies` says whether the loaded model already meets a changed choice.
 - `bridge/local-llm-server.mjs`: the `selection` option (`() => {pin, matureOn, matureModels, customModels}`) is read when a start begins, never per turn.
   A pin that cannot be used emits `model-fallback` once per start. `reselect()` is called by the bridge when the choice changes while Local
@@ -459,7 +459,8 @@ sexual content, so the full effect needs the uncensored models of the optional M
 with Mature content on the default choice and the fallback prefer the largest one that fits (see "Choosing the model"):
 - Detection: `bridge/mature-pack.mjs` (`detectMaturePack`) looks for the marker `manifest.mature.json` in the Local AI folder, beside
   `manifest.standard.json` and `manifest.lite.json` (same root: `<project>/local-ai`, or `CYBERPUNK_CONVAI_LOCAL_AI`, which the packaged
-  service points at `app/local-ai`). The marker is `{version: 1, pack: 'mature', models: [{file, name, family}]}`; a valid marker is
+  service points at `app/local-ai`). The marker is `{version: 1, pack: 'mature', lite: {file, name, family}, good: {file, name, family}}` (exactly two models, like the Local AI
+  packs' two tiers; since 2026-10-14 the old `models` list is no longer read, so a marker with only that is "installed" with no model to offer); a valid marker is
   "installed" (the listed files are reported as `present`; a model whose file is absent is not offered or loaded, and a split model is
   joined by the launcher before the bridge starts); a missing,
   malformed or foreign marker, or a model path that leaves the folder, is not trusted. `detectLocalAiPack` never reads this marker; the model
@@ -481,8 +482,11 @@ with Mature content on the default choice and the fallback prefer the largest on
   strings) are in the Runtime and Scripts packages.
 - Packaging of the pack: `maturePack` in `packaging/release.config.json` and `maturePackage` in `packaging/build-release.mjs`. It writes the
   model files into `app/local-ai/models/`, the marker, and `app/local-ai/mature/` (`README.md` from `packaging/MATURE_PACK_README.md`,
-  `licenses/Apache-2.0.txt`, `THIRD-PARTY-NOTICES.txt`, `mature-pack.json`). The model list in the config is still PLACEHOLDERS; the
-  build refuses to run until every entry is filled in and pinned by revision, size and hash, and it refuses a non-Apache-2.0 model.
+  `licenses/Apache-2.0.txt`, `THIRD-PARTY-NOTICES.txt`, `mature-pack.json`). The config has exactly two models under `maturePack.tiers` (`lite`: Qwen3.5-4B-MiniFantasy Q4_K_M, 2.71 GB; `good`:
+  Gemma4-E4B-MiniFantasy-V1 Q4_K_M, 5.34 GB), pinned by repository, revision, size and SHA-256 from the Hugging Face file listing (2026-10-14;
+  `remote` is the file's path inside the repository). They have not been downloaded or run yet: they are the picks of
+  `docs/MATURE_MODELS_V2_2026-10-14.md`, to be confirmed with `scripts/Eval-MatureSamples.mjs`. The build refuses to run unless both are pinned,
+  and it refuses a non-Apache-2.0 model or a third entry.
 - Texts: `packaging/MATURE_PACK_README.md` (ships in the pack) and `packaging/MATURE_PACK_RELEASE_NOTES.md` (the text for the GitHub
   release: what it adds, that the setting is part of the main mod, that the hard limits stay on every model, that it needs the main mod and
   a Local AI pack, the install steps; it replaced the Nexus page text and its adult-flag and tag instructions).
@@ -497,7 +501,7 @@ the player's cloud provider is answered without it. While another provider answe
 Turning it on shows no notice, neither on Apply nor in the status line (removed 2026-10-14); the help text (all 15 locales) says it is for adults (18+),
 that it applies to Local AI only and that some things are never allowed.
 
-What it adds: one block of about 300 tokens at the END of the system head (`systemHead({mature})`), after the output rules and before
+What it adds: one block of about 430 tokens (o200k count) at the END of the system head (`systemHead({mature})`), after the output rules and before
 the format notes. That is the stable early text, so llama-server's prefix cache is kept (the layer is the same every turn for a given
 model), the prewarm text is the same head, and `bridge/prompt-budget.mjs` never touches the head (it trims the world, memory, history,
 notes and example lines). With the setting off the argument is absent and the prompt is byte for byte what it was (tested). On (tone set by
@@ -511,7 +515,31 @@ facts say you are together you are not V's lover" wording) is gone. The tone lin
 back" for an adult moment, and the closing line of the user message (the last thing the model reads) gets one more sentence while the
 setting is on (`matureClosing`: stay in it, answer directly and explicitly, no dodging, no question back; the suggestive level keeps "cut away
 at the act"), because measured on the uncensored models (`docs/MATURE_SAMPLES_2026-10-13.md`) the persona and the output rules outweigh a layer
-in the system message alone. The layer is about 420 tokens (the closing sentence adds about 35 to each turn).
+in the system message alone. The layer is about 430 tokens (the closing sentence adds about 45 to each turn).
+
+#### Pushed harder (2026-10-14: "too tame")
+
+The 2026-10-13 samples (`docs/MATURE_SAMPLES_2026-10-13.md`) had 1 graphic reply in 12, and Panam drifted to driving on every model although the save
+says she is V's partner. What held the models back was in the prompt, not only in the models, and each piece is now answered while the setting is on
+(off, every one of these is the old text, byte for byte; `bridge/mature-content.test.mjs` keeps the old rule texts verbatim):
+- Output rule 3 ("one question at most", three sentences) gets "Four in an adult moment." and rule 6 no longer lists "a question back" as the way to
+  stay vague: "(a shrug or a joke), but never about flirting, desire or sex" (`RULES` in `bridge/mistral-prompt.mjs`, new `mature` argument).
+- The layer (full level) names the words ("cock, pussy, ass, fuck, cum"), says what to describe (what you do to V, what you want, how it feels), says a
+  guarded profile is how the character flirts and never a reason to dodge, says V's partner is the most forward, and keeps an adult moment on the two of
+  them: no quest, gear, car or road talk and no stand-ins for sex (the Panam driving drift). The HARD LIMITS line and the adults-only line are unchanged,
+  word for word, and the guard is unchanged.
+- The relationship text of a romantic partner (`bridge/romance-context.mjs`: warmth "at most a few words", "do not narrate actions or kisses; affection is
+  not consent to a new intimate act", practical turns first) is swapped by `matureWorld` for a shorter text that makes the partner the one who leans in. The
+  text of casual encounters, the ordinary text and the group text are not touched.
+- The closing line names what to say: "answer head-on in plain, explicit words: what you do, what you want. No dodging, no joke, no question back."
+- Cost: measured with tiktoken o200k over the 12 cells of the brief sample set (3 prompts x Judy, Panam, Evelyn, Johnny), a Mature turn was 4,319 tokens
+  before and 4,360 after (+41, +0.9%); a partner turn is about 15 tokens smaller than before (the relationship swap saves about 65, the layer, closing sentence and rules add about 50). Off: 3,880 before and after, byte for byte (the 12 requests compared with `cmp`).
+
+#### Models of the Mature pack (2026-10-14)
+
+Two models, like the normal Local AI pack: `lite` and `good` (marker, ids `mature:lite` / `mature:good`, picker sorted small to large, the good one
+preselected when it fits). The research and the picks are in `docs/MATURE_MODELS_V2_2026-10-14.md`. The old four-model test set (three Qwen3.5
+"Uncensored HauhauCS Aggressive" sizes and the Gemma 4 heretic) is dropped: community data says those remove refusals but add no erotic skill.
 A one-time log line per bridge session says what the prompt got: `[MatureContent] layer applied (level full, model <name>)`, or
 `layer NOT applied (provider <name> never gets it)` when the setting is on and a cloud provider answers. No words of a turn are ever logged.
 The age guard (2026-10-14), before the hard limits: "You and V are adults, 18 or older, always ... do not play, pretend or imagine yourself or

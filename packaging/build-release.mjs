@@ -11,7 +11,7 @@
 //   CyberpunkConvai-LocalAI-Standard-<v>-partNofM.zip  optional Local AI pack, Gemma 4 E4B (GitHub)
 //   CyberpunkConvai-LocalAI-Lite-<v>.zip   optional Local AI pack, Qwen3.5-2B (GitHub)
 //   CyberpunkConvai-Mature-<v>.zip         optional Mature pack, the uncensored models (GitHub release only, never Nexus; only with
-//                                          --packages mature, never in the default set; refuses to build while its models are placeholders)
+//                                          --packages mature, never in the default set; refuses to build unless both of its models, lite and good, are pinned)
 // plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
 // (red4ext/plugins/CyberpunkConvaiNative) and runtime/native-off.txt. See docs/PACKAGING.md.
 //
@@ -695,23 +695,27 @@ async function localAiPackage(source, config, tierKey) {
 // the Local AI detector never reads it), plus its own README and licence files under mature/. Nothing of it is in the Runtime package.
 async function maturePackage(source, config) {
   const spec = config.maturePack;
-  const unfinished = spec.models.filter(model => model.placeholder || /PLACEHOLDER/.test(`${model.file}${model.sha256}${model.revision}`));
-  if (!spec.models.length || unfinished.length) {
-    throw Error(`The Mature pack model list is not filled in yet (${unfinished.length} placeholder entries in packaging/release.config.json, maturePack.models).`);
+  // Exactly two models, like the Local AI packs' two tiers: lite and good (bridge/mature-pack.mjs, MATURE_TIERS).
+  const tiers = ['lite', 'good'].map(key => ({key, ...spec.tiers?.[key]}));
+  const unfinished = tiers.filter(model => !model.file || model.placeholder || /PLACEHOLDER/.test(`${model.file}${model.sha256}${model.revision}`));
+  if (unfinished.length) {
+    throw Error(`The Mature pack model list is not filled in yet (${unfinished.length} of its two models are missing or placeholders in packaging/release.config.json, maturePack.tiers).`);
   }
-  for (const model of spec.models) if (model.license !== 'Apache-2.0') throw Error(`${model.name}: the Mature pack ships Apache-2.0 base models only.`);
+  if (Object.keys(spec.tiers).length !== 2) throw Error('The Mature pack has exactly two models, lite and good (maturePack.tiers).');
+  for (const model of tiers) if (model.license !== 'Apache-2.0') throw Error(`${model.name}: the Mature pack ships Apache-2.0 base models only.`);
   const pkg = new Package('mature');
   const root = config.layout.localAiDirectory;
-  const huggingFace = item => `https://huggingface.co/${item.repository}/resolve/${item.revision}/${item.file}`;
-  for (const model of spec.models) pkg.file(`${root}/models/${model.file}`, await localAiFile(model, huggingFace(model), model.file));
-  pkg.json(`${root}/${spec.marker}`, {version: 1, pack: 'mature', models: spec.models.map(model => ({file: `models/${model.file}`, name: model.name, family: model.family}))});
+  const huggingFace = item => `https://huggingface.co/${item.repository}/resolve/${item.revision}/${item.remote ?? item.file}`;
+  for (const model of tiers) pkg.file(`${root}/models/${model.file}`, await localAiFile(model, huggingFace(model), model.file));
+  const entry = model => ({file: `models/${model.file}`, name: model.name, family: model.family});
+  pkg.json(`${root}/${spec.marker}`, {version: 1, pack: 'mature', lite: entry(tiers[0]), good: entry(tiers[1])});
   pkg.text(`${root}/${spec.directory}/README.md`, await readFile(resolve(source.root, spec.readme), 'utf8'));
   for (const licence of spec.licenceFiles) pkg.file(`${root}/${spec.directory}/licenses/${basename(licence)}`, resolve(source.root, licence));
   pkg.text(`${root}/${spec.directory}/THIRD-PARTY-NOTICES.txt`, ['Cyberpunk Convai Mature pack - third-party components', '',
-    ...spec.models.map(model => `- ${model.name} (GGUF file ${model.file}; base model ${model.baseModel}) - ${model.license}: ${spec.directory}/licenses/Apache-2.0.txt - https://huggingface.co/${model.repository}`),
+    ...tiers.map(model => `- ${model.name} (${model.key}; GGUF file ${model.file}; base model ${model.baseModel}) - ${model.license}: ${spec.directory}/licenses/Apache-2.0.txt - https://huggingface.co/${model.repository}`),
     '- The models are community fine-tunes of the Apache-2.0 base models named above. The pack needs the Cyberpunk Convai main mod and a Local AI pack (llama-server).', ''].join('\r\n'));
   pkg.json(`${root}/${spec.directory}/mature-pack.json`, {product: config.product, package: 'mature', version, commit: '' + source.commit,
-    models: spec.models.map(model => ({repository: model.repository, revision: model.revision, file: model.file, sha256: model.sha256}))});
+    models: tiers.map(model => ({tier: model.key, repository: model.repository, revision: model.revision, file: model.remote ?? model.file, sha256: model.sha256}))});
   return pkg;
 }
 
