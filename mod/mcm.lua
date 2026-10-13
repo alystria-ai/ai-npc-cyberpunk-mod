@@ -1960,6 +1960,8 @@ local function schema()
         categories[#categories + 1] = category('development', 'Development', {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
                 'For testing and bug reports; leave it off for normal play. It shows routine companion popups (the joining step, dismissal confirmations, driving instructions such as boarding and exit, results of companion actions, and a notice when a support report is ready), writes a movement trace file in the mod’s runtime folder, logs body gesture decisions, and adds this setting to support reports. Preparation progress, joined notices, failures and replies to Stop trip remain visible when off.'),
+            setting('holocallLiveImage', 'Live holocall picture (experimental)', 'bool', snapshot.settings.holocallLiveImage == true, false,
+                'In a holocall, try to show the character live instead of their portrait. Experimental: the picture can stay empty. If the character cannot be shown, the call goes on with the portrait. Off by default.'),
             table.unpack(ownKeyRows(snapshot)),
         })
         if support then
@@ -2084,7 +2086,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 local key = change.id
                 if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
                     or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
-                    or key == 'autoConnectNearby' or key == 'keepPreparedVoices' or key == 'naturalSpeech'
+                    or key == 'autoConnectNearby' or key == 'holocallLiveImage' or key == 'keepPreparedVoices' or key == 'naturalSpeech'
                     or key == 'gameDialogueContext'
                     or key == 'expressiveEmotions' or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
                     or key == 'matureContent' then values[key] = change.value

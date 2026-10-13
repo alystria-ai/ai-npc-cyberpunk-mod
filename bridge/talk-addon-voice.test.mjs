@@ -159,7 +159,7 @@ test('the add-on voice reaches the microphone only through generic seams: recogn
   const toggle = init.slice(init.indexOf('local function toggleVoice'), init.indexOf('local function sendRequest'));
   assert.match(toggle, /local addonHears = convaiAddons ~= nil and convaiAddons\.live == true and manager\.speechRecognitionReady\(\) or false/);
   assert.match(toggle, /selectConversation\(player, groupMode, 'cyberpunk_convai_voice', addonHears\)/);
-  assert.match(init, /microphone\.decorate = function\(context\)\n    if context\.voiceOnly and convaiAddons and convaiAddons\.live then convaiAddons\.decorate\(context\) end/);
+  assert.match(init, /microphone\.decorate = function\(context\)\n    if context\.voiceOnly and not context\.holocall and convaiAddons and convaiAddons\.live then convaiAddons\.decorate\(context\) end/);
   const microphone = readFileSync(new URL('../mod/microphone.lua', import.meta.url), 'utf8');
   assert.equal(microphone.match(/pcall\(M\.decorate, context\)/g).length, 2, 'begin and finish');
   const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onShutdown'"));

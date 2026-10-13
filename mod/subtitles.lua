@@ -483,6 +483,11 @@ local function showPage()
     local line = scnDialogLineData.new()
     line.id = CRUID(0x436F6E760000 + M.serial)
     line.type = M.mode == 'overhead' and scnDialogLineType.OverHead or scnDialogLineType.OwnerlessRegular
+    -- A holocall reply uses the game's call line (scnDialogLineType.Holocall: the main subtitle line with the caller's
+    -- name, which the game shows only for a line with a speaker).
+    if M.holocall == true and M.mode ~= 'overhead' and (M.actor or M.liveOwner) and scnDialogLineType.Holocall then
+        line.type = scnDialogLineType.Holocall
+    end
     -- The exact speaker owns the HUD line too. The native HUD's removal by
     -- data drops every line without an owner whenever any other line ends;
     -- with an owner it drops ours only for this speaker's own native line.
@@ -509,6 +514,12 @@ local function prepare(speaker, text, actor, expected)
     -- is no head for an overhead caption. When its anchor is not a character, V owns the line, as with V's live words.
     if M.voiceOnly == true then
         M.mode, M.fallback = 'dialogue', 'voice-only'
+        if not M.actor then M.liveOwner = Game.GetPlayer() end
+    end
+    -- A holocall (mod/holocall.lua): the speaker is on the phone, never overhead. V owns the line when the speaker has
+    -- no body here (a voice call) or the live picture's copy is far away.
+    if M.holocall == true then
+        M.mode, M.fallback = 'dialogue', 'holocall'
         if not M.actor then M.liveOwner = Game.GetPlayer() end
     end
     if M.mode == 'overhead' and vehicleConversation(Game.GetPlayer()) then

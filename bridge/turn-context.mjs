@@ -31,6 +31,10 @@ const ACTIVITIES = {
 // What a remote character is told to hold to: not with V, no view of V's surroundings, no invented place or doing of her own.
 const PHONE_SUFFIX = " Treat this as fact: you are not with V and cannot see V's surroundings, and you do not know how near or far you are, so never say you are there, close or nearby. "
   + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine). Do not recite it.';
+// A holocall (docs/HOLOCALL.md): V called her from the phone and they talk by voice, with or without the live picture. Like a phone
+// contact she is somewhere else with her own place and doing not given, and learns nothing of V's company, heat or wallet.
+const CALL_SUFFIX = " Treat this as fact: you are on a call, not with V, and you do not know how near or far you are, so never say you are there, close or nearby. "
+  + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine). Do not recite it.';
 const MOTIONS = {still: 'standing still', walking: 'walking', running: 'running'};
 const GENDERS = {female: 'a woman (she/her)', male: 'a man (he/him)'};
 // Weather kinds the game side sends (mod/turn-context.lua weatherKind), V's health bands and the money bands.
@@ -111,6 +115,9 @@ const placeOf = snapshot => snapshot.district
   ? (snapshot.area ? `${placeName(snapshot.area) ?? snapshot.area}, ${placeName(snapshot.district) ?? snapshot.district}`
     : placeName(snapshot.district) ?? snapshot.district) : null;
 
+// A holocall turn's call (bridge/protocol.mjs parseHolocall), or null.
+const holocallOf = input => plain(input.holocall) && (input.holocall.mode === 'audio' || input.holocall.mode === 'holo') ? input.holocall : null;
+
 // The block, plus what a per-turn diagnostic needs: how many facts it states, its length, or why there is none.
 export function describeTurnContext(input, {ambient = false} = {}) {
   if (!input) return {text: '', parts: 0, reason: 'no input'};
@@ -119,13 +126,20 @@ export function describeTurnContext(input, {ambient = false} = {}) {
   const snapshot = parseTurnContext(input.turnContext);
   if (!snapshot || snapshot.status !== 'ready') return {text: '', parts: 0, reason: 'unavailable or malformed'};
   const sentences = [];
-  const place = placeOf(snapshot), phone = input.channel === 'phone';
+  const call = !ambient && !input.group && input.channel !== 'phone' ? holocallOf(input) : null;
+  // Remote: a phone chat or a holocall. Neither learns who is with V, V's heat or V's money.
+  const place = placeOf(snapshot), phone = input.channel === 'phone' || call !== null;
   // The first sentence, so a budget cut never reaches it: where she is and what she is doing. She is in person with V (a face to
   // face talk, a companion, a voice chat) or on a call, and the call says nothing of her own place or doing.
   if (!ambient && !phone) {
     const mine = (snapshot.party ?? []).find(row => row.key === input.profileKey);
     const [state, via] = ACTIVITIES[mine?.activity] ?? ['', 'in'];
     sentences.push(`You are with V in person${state}${place ? ` ${via} ${place}` : ''}.`);
+  } else if (call) {
+    const where = `${place ? `; V is in ${place}` : ''}. You are somewhere else; where you are and what you are doing are not given.`;
+    sentences.push(call.mode === 'holo'
+      ? `You are on a holocall with V (a video call on the phone): you see and hear each other, but you are not with V in person${where}`
+      : `You are on a voice call with V on the phone, not talking to V in person${where}`);
   } else if (!ambient && phone) {
     sentences.push(`You are messaging V by text on the phone, not talking to V in person${place ? `; V is in ${place}` : ''}. You are somewhere else; where you are and what you are doing are not given.`);
   }
@@ -158,7 +172,7 @@ export function describeTurnContext(input, {ambient = false} = {}) {
   const prefix = 'Right now (from the game, this turn only): ';
   const suffix = ambient
     ? ' You are a stranger to V and know only what you can see and hear. Background only; bring it up only when it fits.'
-    : phone ? PHONE_SUFFIX : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine). Do not recite it.';
+    : call ? CALL_SUFFIX : phone ? PHONE_SUFFIX : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine). Do not recite it.';
   // Over budget: drop whole sentences from the end, never cut one in half.
   const budget = MAX_CHARS - prefix.length - suffix.length;
   while (sentences.length && sentences.join(' ').length > budget) sentences.pop();
@@ -171,5 +185,6 @@ export const turnContext = (input, options) => describeTurnContext(input, option
 // One line per reply for the bridge log (stderr): whether this turn's context carried the block, or why not. Counts only.
 export function turnContextDiagnostic(input, options) {
   const {text, parts, reason} = describeTurnContext(input, options);
-  return text ? `Turn context: ${parts} facts, ${text.length} chars` : `Turn context: none (${reason})`;
+  const call = input && !input.group && input.channel !== 'phone' && holocallOf(input) ? ` holocall=${input.holocall.mode}` : '';
+  return text ? `Turn context: ${parts} facts, ${text.length} chars${call}` : `Turn context: none (${reason})${call}`;
 }

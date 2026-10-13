@@ -6,7 +6,9 @@ Use the game's phone control (normally hold **T**) to open the phone. **Chat** i
 Contacts. Use the phone's left/right tab controls to select it, choose a person,
 and press the normal confirm action. The
 conversation opens directly; there is no quest-message thread selector.
-The existing secondary message action also opens the selected Chat conversation.
+On the Chat contact list, the secondary message action (hint **Holocall**) calls
+the selected person instead; inside a conversation, the game's Call button does the
+same. See [HOLOCALL.md](HOLOCALL.md).
 Pointer callbacks are provided for the tabs and contact rows where a pointer is
 available; the game's ordinary phone navigation remains the primary input.
 
