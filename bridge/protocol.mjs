@@ -67,6 +67,8 @@ function parseRequest(raw) {
   const followUnavailable = parseFollowUnavailable(value.followUnavailable);
   const tacticUnavailable = parseTacticUnavailable(value.tacticUnavailable);
   const driveUnavailable = chauffeurOffer ? null : parseDriveUnavailable(value.driveUnavailable);
+  // A holocall turn (docs/HOLOCALL.md): V and the character talk over the phone. Private turns only; a malformed value is dropped.
+  const holocall = group ? null : parseHolocall(value.holocall);
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
@@ -74,7 +76,16 @@ function parseRequest(raw) {
     ...(followUnavailable ? {followUnavailable} : {}), ...(tacticUnavailable ? {tacticUnavailable} : {}), ...(driveUnavailable ? {driveUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
     ...(gameDialogue ? {gameDialogue} : {}), ...(gear ? {gear} : {}), ...(turnContext ? {turnContext} : {}),
-    ...(addon ? {addon} : {})};
+    ...(addon ? {addon} : {}), ...(holocall ? {holocall} : {})};
+}
+
+// {version: 1, contact, mode: 'audio' | 'holo'} from mod/holocall.lua -> {contact, mode}, or null.
+const HOLOCALL_CONTACT = /^[A-Za-z0-9_]{1,64}$/;
+export function parseHolocall(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value.version !== 1) return null;
+  if (typeof value.contact !== 'string' || !HOLOCALL_CONTACT.test(value.contact)) return null;
+  if (value.mode !== 'audio' && value.mode !== 'holo') return null;
+  return {contact: value.contact, mode: value.mode};
 }
 
 // Generic NPC profiles: the two ambient residents and every archetype (npc-*). They have no individual identity:

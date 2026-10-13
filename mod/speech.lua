@@ -129,7 +129,7 @@ function M.stop(reason)
     M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState = nil, nil, nil
     M.player, M.actor, M.requestId, M.slot, M.duration = nil, nil, nil, nil, nil
     M.state, M.position, M.paused = reason or 'idle', nil, false
-    M.voiceOnly = false
+    M.voiceOnly, M.holocall = false, false
     publish()
 end
 
@@ -158,7 +158,10 @@ function M.clearEntity(entity)
 end
 
 local function beginChunk(audio, text, timeline, startSeconds)
-    local ok, started = pcall(function() return M.player:ConvaiSpeechStart(M.actor, CName.new(audio.event)) end)
+    -- A holocall reply is heard through the phone: the sound plays on V at full volume (the live picture's copy, which
+    -- still gets the face, is far away). Every other reply plays on its speaker.
+    local emitter = M.holocall and M.player or M.actor
+    local ok, started = pcall(function() return M.player:ConvaiSpeechStart(emitter, CName.new(audio.event)) end)
     if not ok or not started then
         M.error = tostring(started)
         fallback('playback-failed', M.text); return false
@@ -193,6 +196,9 @@ function M.start(context, reply)
     M.stop()
     M.voiceOnly = context.voiceOnly == true
     captions.voiceOnly = M.voiceOnly
+    -- A holocall turn (mod/holocall.lua): full volume with no distance, and the call's subtitle line.
+    M.holocall = type(context.holocall) == 'table'
+    captions.holocall = M.holocall
     M.outputDelay = readOutputDelay()
     M.streamReceipt = nil
     if reply.continuous ~= nil then
@@ -279,7 +285,7 @@ function M.abandon()
     M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
     M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState = nil, nil, nil
     M.player, M.actor, M.playerID, M.requestId = nil, nil, nil, nil
-    M.voiceOnly = false
+    M.voiceOnly, M.holocall = false, false
     M.slot, M.duration, M.position, M.paused = nil, nil, 0, false
     M.state, M.available = 'idle', false
     publish()

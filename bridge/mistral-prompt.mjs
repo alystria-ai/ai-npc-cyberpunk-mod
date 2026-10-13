@@ -199,8 +199,8 @@ export function capContext(context, limit = LIMITS.context) {
  *   reaction       true for an automatic battle / loot line: `text` is then an event, not something V said
  */
 // The first sentence of the right-now block (bridge/turn-context.mjs): "you are with V in person ..." or, in a phone chat, "you are
-// messaging V by text ... you are somewhere else ...".
-const HERE = /You are (?:with V in person[^.]*\.|messaging V by text[^.]*\.(?: You are somewhere else[^.]*\.)?)/;
+// messaging V by text ... you are somewhere else ..." or, on a holocall (docs/HOLOCALL.md), "you are on a voice call / holocall ...".
+const HERE = /You are (?:with V in person[^.]*\.|(?:messaging V by text|on a voice call with V|on a holocall)[^.]*\.(?: You are somewhere else[^.]*\.)?)/;
 export function buildMessages({persona, memory, history = [], context, contextParts, remembered = [], text, reaction = false, limits = LIMITS, mature = null}) {
   const v2 = !!contextParts && typeof contextParts === 'object';
   const messages = [{role: 'system', content: systemPrompt({persona, memory, limits, mature,
@@ -233,7 +233,9 @@ export function buildMessages({persona, memory, history = [], context, contextPa
   messages.push({role: 'user', content: [
     here ? `[YOU, RIGHT NOW: ${here} ${here.startsWith('You are messaging')
       ? 'You are not with V and cannot see V; never say you are there, close or nearby, and name no place or task of your own right now.'
-      : 'That is all you are doing; never claim to be anywhere else.'}]` : '',
+      : here.startsWith('You are on a')
+        ? 'You are not with V; never say you are there, close or nearby, and name no place or task of your own right now.'
+        : 'That is all you are doing; never claim to be anywhere else.'}]` : '',
     volatile ? `[THIS TURN: notes for you, never to be read aloud]\n${volatile}` : '',
     facts.length ? `[THINGS YOU REMEMBER ABOUT V THAT MAY MATTER NOW: true unless the world context says otherwise; mention one only if it fits]\n${facts.join('\n')}` : '',
     message].filter(Boolean).join('\n\n')});

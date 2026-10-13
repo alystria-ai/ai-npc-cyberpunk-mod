@@ -37,6 +37,11 @@ local mcm = dofile('mcm.lua')
 local phoneLayout = dofile('phone-layout.lua')
 local phoneChatStyle = dofile('phone-chat-style.lua')
 local phoneChat = dofile('phone-chat.lua')
+-- Holocalls (mod/holocall.lua, docs/HOLOCALL.md). A global, so no function here gains an upvalue; nil if it cannot load.
+do
+    local loaded, module = pcall(dofile, 'holocall.lua')
+    convaiHolocall = loaded and type(module) == 'table' and module or nil
+end
 local questContext = dofile('quest-context.lua')
 local battleObserver = dofile('battle-observer.lua')
 local battles = dofile('battle-reactions.lua').new()
@@ -1327,6 +1332,9 @@ end
 -- addonHears: this computer can recognise speech locally (manager.speechRecognitionReady), which an add-on voice needs to answer the
 -- voice keys; the caller asks it on the key press only, and only while an add-on is live.
 local function selectConversation(player, groupMode, singleAction, addonHears)
+    -- On a connected holocall the private talk keys address the caller wherever V is (mod/holocall.lua).
+    local caller = convaiHolocall and convaiHolocall.partner(player, groupMode) or nil
+    if caller then log('Holocall conversation: profile=' .. caller.profileKey .. ' mode=' .. caller.holocall.mode); return caller end
     local npc, reason, decision = targetAtCrosshair()
     logTalkTarget(decision)
     local candidates = groupMode and companions.conversationCandidates(player, 8) or {}
@@ -1437,7 +1445,7 @@ end
 
 -- An add-on speaker's context blocks go with its spoken turn, as they do with a typed one (sendRequest).
 microphone.decorate = function(context)
-    if context.voiceOnly and convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
+    if context.voiceOnly and not context.holocall and convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
 end
 
 microphone.onCancelled = function(context, reason)
@@ -1474,6 +1482,7 @@ local function acceptVoiceSubmission(context)
         microphone.cancel('stale-group'); return false
     end
     claimPrivateReply(context, 'voice')
+    if context.holocall and convaiHolocall then convaiHolocall.touch() end
     pending, pendingKnowledgeOwner = context, microphone.knowledgeOwner
     pending.sentAt, focusUntil = os.time(), os.time() + 90
     return true
@@ -1559,7 +1568,8 @@ local function beginTextNow(groupMode, waited)
             if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
                 log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(faceStatus))
             end
-            if focusEntity ~= identity then
+            -- A holocall's live-picture copy is far away and held still: it never turns to V.
+            if focusEntity ~= identity and not primary.holocall then
                 local focused, reason = beginFocus(player, npc)
                 if not focused then
                     log('NPC focus unavailable: ' .. tostring(reason))
@@ -1572,7 +1582,8 @@ local function beginTextNow(groupMode, waited)
         resetGaze()
         focusUntil = os.time() + 45
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
-            profileKey = key, participants = participants, archetype = primary.archetype, voiceOnly = primary.voiceOnly}
+            profileKey = key, participants = participants, archetype = primary.archetype, voiceOnly = primary.voiceOnly,
+            holocall = primary.holocall}
         warmConversation(participants, key, identity)
         convaiDemandKnowledge() -- fresh world and journal by the time V sends
         if connectNote then convaiNotices.send(player, 'talk-connecting', connectNote) end
@@ -1688,17 +1699,19 @@ local function toggleVoice(groupMode)
         else
             context = {generation = generation, entity = entity, name = name, bodyType = body,
                 profileKey = key, text = '[Microphone]', sentAt = os.time(), archetype = primary.archetype,
-                voiceOnly = primary.voiceOnly}
+                voiceOnly = primary.voiceOnly, holocall = primary.holocall}
             context.requestId = tostring(os.time()) .. '-' .. tostring(generation) .. '-' .. entity
         end
         active, pending, pendingKnowledgeOwner = nil, nil, nil
         convaiDemandKnowledge() -- fresh by the time the recording finishes (its second capture)
         local function targetValid()
+            -- A holocall's caller stays valid while that call is connected, wherever V is.
+            if primary.holocall then return convaiHolocall ~= nil and convaiHolocall.partnerValid(context) end
             if primary.voiceOnly then return convaiAddons ~= nil and convaiAddons.participantLive(primary, Game.GetPlayer()) end
             return voiceTargetValid(npc, context)
         end
         if microphone.begin(context, targetValid) then
-            if not primary.voiceOnly then beginFocus(player, npc) end
+            if not primary.voiceOnly and not primary.holocall then beginFocus(player, npc) end
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
             local micNote = ui.t('Connecting microphone - wait for Listening')
             convaiNotices.sendLines(player, {{id = 'talk-connecting', text = connectNote}, {id = 'mic-connecting', text = micNote}})
@@ -1725,7 +1738,9 @@ local function sendRequest(context)
     else context.battle = context.battle or battles.capture() end
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
-    if context.voiceOnly then
+    if context.holocall then
+        -- A holocall's caller is not here (mod/holocall.lua): no gameplay actions (follow, fight, drive) are offered.
+    elseif context.voiceOnly then
         -- An add-on's voice (docs/ADDON_API.md) cannot follow, fight or drive: no gameplay actions, and its context blocks.
         if convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
     elseif not context.group and not context.reaction then gameplayActions.capture(context, 'private-text')
@@ -1759,6 +1774,7 @@ do
     sendRequest = function(context)
         local sent = submit(context)
         if sent then requestFileId = context.requestId; claimPrivateReply(context, 'text') end
+        if sent and context.holocall and convaiHolocall then convaiHolocall.touch() end
         return sent
     end
 end
@@ -1791,6 +1807,35 @@ speech.devSay = function(player, npc, text)
     local sent = sendRequest(context)
     log('Native input captured (scripted): generation=' .. context.generation .. ' bytes=' .. #text .. ' sent=' .. tostring(sent))
     return sent == true, sent and context.requestId or 'the request was not sent'
+end
+
+-- Holocalls (mod/holocall.lua, docs/HOLOCALL.md). These run on the call's own 0.25 s tick or once per call event.
+if convaiHolocall then
+    convaiHolocall.configure({
+        log = log,
+        supported = function(key) return supportedProfiles[key] ~= nil end,
+        profileEnabled = function(key) return manager.profileEnabled(key) end,
+        -- The caller's connection warms while the call rings, like the text box warms it on opening.
+        warm = function(key, entity) generation = generation + 1; warmConversation(nil, key, entity) end,
+        liveImage = function() return type(manager.holocallLiveImage) == 'function' and manager.holocallLiveImage() end,
+        -- A turn with the caller is being typed, recorded, answered or spoken: the call is not idle.
+        busy = function()
+            return (active ~= nil and active.holocall ~= nil) or (pending ~= nil and pending.holocall ~= nil)
+                or (microphone.context ~= nil and microphone.context.holocall ~= nil) or speech.holocall == true
+        end,
+        -- The call ended: the caller stops talking and nothing more of that call is sent or played.
+        onEnded = function(_, reason)
+            local stop = 'holocall-' .. tostring(reason)
+            if microphone.context and microphone.context.holocall then cancelVoice(stop) end
+            if pending and pending.holocall then
+                if requestFileId == pending.requestId then requestFileId = nil; os.remove('runtime/last-input.json') end
+                pending, pendingKnowledgeOwner = nil, nil
+            end
+            if active and active.holocall then active = nil end
+            if speech.holocall then speech.stop(stop); subtitles.clear() end
+            warmConversation(nil, nil)
+        end,
+    })
 end
 
 local function retirePrivateReply(entity, reason)
@@ -2503,6 +2548,7 @@ local function abandonSession(reason,preserveTransit)
     pendingKnowledgeOwner = nil
     if convaiTalkGate then convaiTalkGate.waiting = nil end
     if convaiAddons and convaiAddons.live then pcall(convaiAddons.reset, reason) end
+    if convaiHolocall then pcall(convaiHolocall.abandon, reason) end
     focusedCrowd, releasedCrowd = nil, nil
     if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
     phoneCatalogReady = false
@@ -2765,7 +2811,11 @@ registerForEvent('onUpdate', function(delta)
     local phoneRead, phoneOpen = pcall(function() return menuPlayer:ConvaiPhoneIsOpen() end)
     phoneOpen = phoneRead and phoneOpen == true
     local phoneActionOk, phoneActionError = true, nil
-    if phoneDrainDue(phoneOpen) then phoneActionOk, phoneActionError = pcall(processPhoneAction, menuPlayer) end
+    if phoneDrainDue(phoneOpen) then
+        phoneActionOk, phoneActionError = pcall(processPhoneAction, menuPlayer)
+        -- A holocall asked for on the phone (mod/holocall.lua) is taken on the same drain.
+        if convaiHolocall then pcall(convaiHolocall.drain, menuPlayer) end
+    end
     if not phoneActionOk then log('Phone action failed: ' .. tostring(phoneActionError)) end
     local invitationOk, invitationError = pcall(invitations.update)
     if not invitationOk then log('Invitation preparation failed: ' .. tostring(invitationError)) end
@@ -2865,6 +2915,12 @@ registerForEvent('onUpdate', function(delta)
             battles.errorAt = os.time() + 30
             log('Battle observation skipped: ' .. tostring(battleError))
         end
+    end
+    -- A holocall (mod/holocall.lua): only while one is asked for or running; it ends itself on combat or a scene.
+    local holocall = convaiHolocall
+    if holocall and (holocall.call or holocall.request) then
+        local callOk, callError = pcall(holocall.update, player, elapsedPoll, worldReady, battleSample)
+        if not callOk then log('Holocall update failed: ' .. tostring(callError)); pcall(holocall.finish, player, 'error') end
     end
     -- Add-ons (docs/ADDON_API.md): only once one has registered.
     if convaiAddons and convaiAddons.live then
@@ -3104,6 +3160,9 @@ registerForEvent('onShutdown', function()
     loot.reset(); lootObserver.reset(); lastAutomatic, mergeSuppressedUntil = nil, 0
     battleSample, battlePeople = nil, {}
     phoneChat.abandon()
+    if convaiHolocall then
+        if liveWorld then pcall(convaiHolocall.finish, Game.GetPlayer(), 'shutdown') else pcall(convaiHolocall.abandon, 'shutdown') end
+    end
     mcm.shutdown(liveWorld)
     groupChat.cancel()
     warmConversation(nil, nil)

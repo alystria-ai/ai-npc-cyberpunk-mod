@@ -20,7 +20,7 @@ Talk with Night City characters, invite travelling companions, and keep in touch
 - A dedicated **Chat** tab beside the phone's Messages and Contacts tabs. Choose a contact to open their conversation directly, then type in the composer at the bottom.
 - Independent Chat histories and drafts that persist across launches. Contacts unlocked later become available when the phone catalog refreshes. Phone Chat works without summoning the character.
 
-The catalog currently contains **80 conversation profiles**: 78 named characters and two ambient resident templates. Profiles have separate background, speaking-style instructions, and original dialogue examples without speaker-name prefixes. See [character profiles](characters/README.md), [phone Chat](docs/PHONE_CHAT.md), and [group voice](docs/GROUP_VOICE.md).
+The catalog currently contains **80 conversation profiles**: 78 named characters and two ambient resident templates. Profiles have separate background, speaking-style instructions, and original dialogue examples without speaker-name prefixes. See [character profiles](characters/README.md), [phone Chat](docs/PHONE_CHAT.md), [holocalls](docs/HOLOCALL.md), and [group voice](docs/GROUP_VOICE.md).
 
 ### Your companions
 

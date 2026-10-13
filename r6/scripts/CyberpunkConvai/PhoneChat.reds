@@ -188,7 +188,9 @@ private func SetupData() -> Void {
     InkImageUtils.RequestAvatarOrUnknown(this, this.m_avatarImage, this.m_contactEntry.GetAvatarID(this.m_journalMgr));
     inkWidgetRef.SetVisible(this.m_menuBackgrouns, false);
     inkWidgetRef.SetVisible(this.m_hintTrack, false);
-    inkWidgetRef.SetVisible(this.m_hintCall, false);
+    // Call starts a holocall with this character (Holocall.reds), dimmed like the game's hint while calls are blocked.
+    inkWidgetRef.SetVisible(this.m_hintCall, true);
+    inkWidgetRef.SetOpacity(this.m_hintCall, this.m_phoneSystem.IsCallingEnabled() ? 1.0 : 0.1);
     inkWidgetRef.SetVisible(this.m_hintReply, false);
     inkWidgetRef.SetVisible(this.m_scrollReply, false);
     inkWidgetRef.SetVisible(this.m_hintMessenger, false);
@@ -362,6 +364,11 @@ protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsu
     };
     if this.m_data.convaiChat && (Equals(ListenerAction.GetName(action), n"call")
         || Equals(ListenerAction.GetName(action), n"phone_open_journal")) {
+        // The game's Call never runs for a mod character (it would send a quest call request): Call starts a holocall
+        // instead (Holocall.reds), on the press, as the game's own handler does.
+        if Equals(ListenerAction.GetName(action), n"call") && Equals(ListenerAction.GetType(action), gameinputActionType.BUTTON_PRESSED) {
+            this.ConvaiChatHolocall();
+        };
         ListenerActionConsumer.Consume(consumer);
         return false;
     };

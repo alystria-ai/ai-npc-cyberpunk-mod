@@ -103,6 +103,8 @@ local function gameVolume()
 end
 
 local function spatial(player, actor)
+    -- A holocall reply comes through the phone: full level, centred, no distance (the live picture's copy is far away).
+    if owner and owner.holocall then speakerDistance = 0; return volume or 0, 0 end
     local position = actor:GetWorldPosition()
     local origin, forward = Game.GetTargetingSystem():GetCrosshairData(player)
     local dx, dy, dz = position.x-origin.x, position.y-origin.y, position.z-origin.z
@@ -156,7 +158,7 @@ function M.start(context, descriptor, player, actor, paused)
     local ok, playerID = pcall(function() return tostring(player:GetEntityID().hash) end)
     if not ok or not bounded(playerID, 120) then return false, 'Continuous speech player unavailable' end
     owner = {id=descriptor.id,requestId=context.requestId,generation=context.generation,entity=context.entity,player=playerID,
-        voiceOnly=context.voiceOnly==true or nil}
+        voiceOnly=context.voiceOnly==true or nil,holocall=type(context.holocall)=='table' or nil}
     poll, wait, volumePoll = 0, 0, 0
     written, faceTimeline, faceRevision, faceReadAt = nil, nil, nil, nil
     segmentCache = {}
