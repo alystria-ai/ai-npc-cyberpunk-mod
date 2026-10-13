@@ -485,6 +485,16 @@ as before. The tables above describe the code before this change.
   Developer-only. Already gated and left alone: the support-report "saved" popup (Developer mode
   only), routine party and driving popups, gameplay-action acknowledgements.
 
+### Third round (2026-10-14)
+
+- **Page names (flag 7, finished):** "Character conversations" was already "Who can talk". The two remaining names that
+  sounded alike are now **Characters to invite** (the invite list, formerly "Characters"; the home button and the page
+  title) and **Whose memories** (the memory character picker, formerly "Character memories"). The Companion Manager panel
+  in the game's own UI (`Manager.reds`, the CHARACTERS tab) keeps its name. New strings are in all 15 locales.
+- **Prepared voices (flag 14, question 7):** Settings > Voices now has **Prepared voices on disk** (total size and number of
+  saved files, asked of the bridge once when Settings opens) and **Clear prepared voices** (opens its own page: Confirm or
+  Cancel). Keep prepared voices stays On. See `docs/LOCAL_VOICES.md`.
+
 ## Note, 2026-10-11: launch defaults
 
 Three settings that this review lists as Off by default are On by default for launch: **Expressive emotions**

@@ -38,7 +38,7 @@ export class Autobest {
       const found = row[engine]?.[name];
       if (!found?.ids?.length || found.ids.some(id => id.startsWith('live:'))) continue;
       try { pool.validateSet(key, set, found.ids); } catch { continue; }
-      out[set] = {ids: found.ids, seconds: found.seconds, ecapa: found.ecapa, ecapaSe: found.ecapa_se ?? null, pls: found.pls ?? null,
+      out[set] = {ids: found.ids, seconds: found.seconds, ecapa: found.ecapa ?? null, ...(found.note ? {note: found.note} : {}), ecapaSe: found.ecapa_se ?? null, pls: found.pls ?? null,
         today: row[engine]?.today?.ecapa ?? null, latencyMs: found.latency_ms ?? null,
         engine: json.engines?.[engine]?.tag ?? engine, generated: json.generated ?? null};
     }

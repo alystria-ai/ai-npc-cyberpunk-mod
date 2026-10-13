@@ -143,6 +143,10 @@ const reviewed = {
     'Choose a character before clearing their memories about you.',
     'Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.',
   ],
+  'mcm.prepared-voices': [
+    'How much disk the saved voice setups use. Pocket saves them while Keep prepared voices is on, and each one is made again in about a second the next time that voice speaks.',
+    'Delete all saved voice setups? Voice references and models are not touched. Each voice is made again, in about a second, the next time it speaks.',
+  ],
   'mcm.relationships': [
     'Auto', 'Romantic', 'Casual', 'Ordinary',
     'Auto follows the completed encounter in this save. Casual lets her speak with that familiarity; Ordinary keeps her usual manner. This does not imply an ongoing relationship.',

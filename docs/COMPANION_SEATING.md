@@ -287,7 +287,12 @@ seat and nothing else.
    above V's feet is in the seat band and within 0.12-0.15 m of V's own seat
    surface (so armrests, tables and the floor are not seats). Continuous seats
    (couch, bench) get centres at 0.66 m pitch along the surface; discrete ones
-   (stools, chairs) take the middle of each separate run. Nearest to V first.
+   (stools, chairs) take the middle of each separate run. Nearest to V first. A discrete seat is refused when its centre is under
+   0.85 x the pitch from V or from another seat (0.6 m for a chair, 0.55 m for a stool). Until 2026-10-14 a chair or stool run that
+   started within 0.5 m of V was dropped as V's own seat or one long surface, so a neighbour whose near edge was under 0.5 m away
+   (centres up to about 0.7 m apart) was never found; such a run now counts once it is 0.3 m long, which the edge of V's own seat or
+   an armrest never is (`bridge/companion-seating.test.mjs`; not yet seen on a real chair, the `Seating` lines show `seats-found`
+   with the sampled profile).
 4. **Check a seat when it is assigned** (a few rays): no wall between V and the
    seat (a ray at 0.9 m), no other NPC within 0.45 m of it (one targeting query
    per sit, our companions excluded), and floor (not a table) at a walk-up point
