@@ -384,3 +384,15 @@ values.scene=false; values.owned=false; assert(not native.brake(car))
 values.owned=true; values.missing=true; assert(not native.brake(car))
 values.missing=false; assert(native.brake(car) and values.brakes==1)
 `));
+test('the Delamain cab is never chosen as an owned car, summoned or nearby',()=>run(`
+TweakDBID={new=function(value) return value end}
+values.nearby={carEntity}
+assert(native.sample(player,entry,nil,api).car.id=='2001ULL')
+for _,record in ipairs({'Vehicle.v_standard2_villefort_cortes_delamain_player','Vehicle.v_delamain_taxi'}) do
+  values.record=record
+  local sample=native.sample(player,entry,nil,api)
+  assert(not sample.car,record)
+end
+values.record='Vehicle.test'
+assert(native.sample(player,entry,nil,api).car.id=='2001ULL')
+`));

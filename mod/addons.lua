@@ -586,6 +586,19 @@ function Handle.state(self)
         remark = flight ~= nil and flight.speaker.addon == (self and self.record) and flight.speaker.id or nil}
 end
 
+--- handle:party() -> the profile keys of the companions that follow V now. A read for the add-on's own events (a ride, a fight):
+--- it costs one party lookup, never runs on its own, and returns an empty list when the party cannot be read.
+function Handle.party(self)
+    local addon = self and self.record
+    local out = {}
+    if not addon or addons[addon.id] ~= addon or not host or type(host.partyProfiles) ~= 'function' then return out end
+    local ok, list = pcall(host.partyProfiles)
+    if ok and type(list) == 'table' then
+        for _, key in ipairs(list) do if type(key) == 'string' and #out < 16 then out[#out + 1] = key end end
+    end
+    return out
+end
+
 --- handle:native() -> read-only view of the main mod's optional native plugin (all calls guarded; works without it).
 function Handle.native(self)
     local function core() return host and host.native and host.native() or nil end

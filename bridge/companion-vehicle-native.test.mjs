@@ -530,3 +530,25 @@ test('the vehicle group registers all or nothing, by native names, and documents
     assert.ok(!/convaiNative\.(off|on)\(/.test(fixed), `${name}: the CET console cannot reach convaiNative`);
   }
 });
+
+test('isTaxi is true only for an attached Delamain cab record and never raises', () => {
+  const out = shimRun(`
+    local mod = loadModule()
+    local function car(record, attached, fail)
+      local entity = {}
+      function entity:IsAttached() return attached ~= false end
+      function entity:GetRecordID() if fail then error('no record') end return record end
+      return {entity = entity}
+    end
+    return {
+      player = mod.isTaxi(car('Vehicle.v_standard2_villefort_cortes_delamain_player')),
+      taxi = mod.isTaxi(car('Vehicle.v_delamain_taxi')),
+      other = mod.isTaxi(car('Vehicle.v_standard25_villefort_columbus_player')),
+      detached = mod.isTaxi(car('Vehicle.v_delamain_taxi', false)),
+      failing = mod.isTaxi(car('Vehicle.v_delamain_taxi', true, true)),
+      noEntity = mod.isTaxi({}),
+      noCar = mod.isTaxi(nil),
+    }`);
+  assert.deepEqual(out, {player: true, taxi: true, other: false, detached: false, failing: false,
+    noEntity: false, noCar: false});
+});
