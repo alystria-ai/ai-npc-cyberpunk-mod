@@ -463,6 +463,39 @@ test('voices: a checked reference is copied under every root and merged into cop
   } finally { await rm(work, {recursive: true, force: true}); }
 });
 
+test('voices: extra voices that belong to no add-on (V’s) are merged the same way, with no add-on installed, and a bad one is left out', async () => {
+  const work = await folder();
+  try {
+    const bytes = wav(0.5);
+    await mkdir(resolve(work, 'clips'), {recursive: true});
+    await writeFile(resolve(work, 'clips/v-male.wav'), bytes);
+    await writeFile(resolve(work, 'clips/v-female.wav'), bytes);
+    const state = resolve(work, 'state'), pocketRefs = resolve(work, 'pocket-refs'), omniRefs = resolve(work, 'omni-refs');
+    await mkdir(state, {recursive: true});
+    await writeFile(resolve(state, 'pocket.json'), JSON.stringify({engine: 'pocket-tts', runtime: {referenceDirectory: pocketRefs},
+      preparation: {mode: 'lazy', startupProfiles: []},
+      voices: {'judy-alvarez': {reference: 'runtime/voice-references/judy.wav', sha256: 'a'.repeat(64), transcript: 'hi'},
+        'v-female': {reference: 'runtime/voice-references/mine.wav', sha256: 'b'.repeat(64), transcript: 'already here'}}}));
+    const logs = [];
+    const host = new AddonHost({addons: [], log: line => logs.push(line)});
+    const paths = {pocket: resolve(state, 'pocket.json'), omni: {}, warnings: []};
+    assert.equal(await host.voiceConfigPaths(paths, {stateDirectory: state, roots: [omniRefs]}), paths, 'no extra voices: the very same object');
+    const extra = [{key: 'v-male', reference: resolve(work, 'clips/v-male.wav'), sha256: inspectReference(bytes).sha256, transcript: 'Some words.'},
+      {key: 'v-female', reference: resolve(work, 'clips/v-female.wav'), transcript: 'Other words.'},
+      {key: 'v-bad', reference: resolve(work, 'clips/v-male.wav'), sha256: 'c'.repeat(64), transcript: 'Wrong hash.'},
+      {key: 'v-gone', reference: resolve(work, 'clips/none.wav'), transcript: 'Missing.'}];
+    const merged = await host.voiceConfigPaths(paths, {stateDirectory: state, roots: [omniRefs], extra});
+    assert.equal(merged.pocket, resolve(state, 'addons.pocket.json'));
+    const pocket = JSON.parse(await readFile(merged.pocket, 'utf8'));
+    assert.deepEqual(pocket.voices['v-male'], {reference: 'runtime/voice-references/addons/v-male.wav', sha256: inspectReference(bytes).sha256, transcript: 'Some words.'});
+    assert.equal(pocket.voices['v-female'].transcript, 'already here', 'a voice already in the configuration is left alone');
+    assert.equal(pocket.voices['v-bad'], undefined); assert.equal(pocket.voices['v-gone'], undefined);
+    assert.equal(logs.length, 2); assert.match(logs.join(' '), /v-bad not used: reference does not match/);
+    for (const root of [pocketRefs, omniRefs]) assert.deepEqual(await readFile(resolve(root, 'addons/v-male.wav')), bytes);
+    assert.equal(pocket.preparation.mode, 'lazy', 'merging changes nothing about when voices are prepared');
+  } finally { await rm(work, {recursive: true, force: true}); }
+});
+
 test('state and settings files: only plain, bounded data reaches the bridge, and a settings change reaches the module', () => {
   assert.deepEqual(parseAddonState('nope'), {addons: {}});
   assert.deepEqual(parseAddonState({version: 1, updated: 5, addons: {skippy: {companionContext: [{key: 'a', text: 'x'}]}}}, {notBefore: 10}), {addons: {}});

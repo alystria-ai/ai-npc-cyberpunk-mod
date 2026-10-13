@@ -29,3 +29,8 @@ convai voice cloning devslot/
 # Add-on voice references are cut from the game audio: kept out of git, packed from the local copy by build-addon.mjs.
 /addons/*/voice/*.wav
 /addons/*/voice/*.voice.json
+
+# V's voice for typed lines (docs/V_VOICE.md): the reference clips are cut from the game audio and stay on the developer's machine; the
+# manifest assets/v-voice/v-voice.json (transcripts and hashes) is committed. packaging/build-release.mjs packs the clips from the local copy.
+/assets/v-voice/*.wav
+/assets/v-voice/v-voice-build.json

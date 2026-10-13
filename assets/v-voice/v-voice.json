@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "voices": {
+    "male": {
+      "file": "v-male.wav",
+      "transcript": "If anything's wrong, just say so. I'm sure we can figure it out. Looks like it was a campsite. Someone tried living here? Fine idea. Let's get us some power. I'll look around for access points.",
+      "sha256": "f6d277efb6d5061497080f4cbad001b031a486e9a347a809f2701a1d0a4b1906",
+      "seconds": 11.37,
+      "sampleRate": 24000,
+      "clips": [
+        {
+          "stringId": "1745927602763223040",
+          "stem": "v_q000_m_183ac7e786405000.wem",
+          "scene": "q000",
+          "seconds": 3.88
+        },
+        {
+          "stringId": "3092609873373446152",
+          "stem": "v_q301_m_2aeb284b634a4008.wem",
+          "scene": "q301",
+          "seconds": 3.29
+        },
+        {
+          "stringId": "1786411909749796864",
+          "stem": "v_q103_m_18ca9c2ac729f000.wem",
+          "scene": "q103",
+          "seconds": 3.7
+        }
+      ]
+    },
+    "female": {
+      "file": "v-female.wav",
+      "transcript": "Ready to plan, strategize? Got everything we need? You're a stranger in a strange land. Goin' with you. Honestly? Was countin' on more than hotel blueprints. God's honest truth. But nobody moves through the net quite like she does.",
+      "sha256": "3a068cb72da325221a4cb57860a70c3484bcc2cd814dcef370bd9c3b5e98f465",
+      "seconds": 14.45,
+      "sampleRate": 24000,
+      "clips": [
+        {
+          "stringId": "2936182166706151424",
+          "stem": "v_q305_f_28bf6a1fc25b6000.wem",
+          "scene": "q305",
+          "seconds": 3.0
+        },
+        {
+          "stringId": "1711585098991681536",
+          "stem": "v_q112_f_17c0c59444404000.wem",
+          "scene": "q112",
+          "seconds": 2.99
+        },
+        {
+          "stringId": "3479775964388528128",
+          "stem": "v_q303_f_304aa5cd8f521000.wem",
+          "scene": "q303",
+          "seconds": 3.15
+        },
+        {
+          "stringId": "2025727061291298816",
+          "stem": "v_q114_f_1c1cd4078c29f000.wem",
+          "scene": "q114",
+          "seconds": 4.56
+        }
+      ]
+    }
+  }
+}

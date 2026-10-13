@@ -88,7 +88,12 @@ export function parseTurnContext(value) {
     }
     if (party.length) result.party = party;
   }
-  return Object.keys(result).length > 2 ? result : {version: 1, status: 'unavailable'};
+  if (Object.keys(result).length <= 2) return {version: 1, status: 'unavailable'};
+  // The game's dialogue loudness (0 to 1), sent only while V's voice for typed lines is on (bridge/v-voice.mjs). It is no part of
+  // the words written for the model, so it never makes an otherwise empty snapshot count as something read.
+  if (typeof value.dialogueVolume === 'number' && Number.isFinite(value.dialogueVolume) && value.dialogueVolume >= 0 && value.dialogueVolume <= 1)
+    result.dialogueVolume = value.dialogueVolume;
+  return result;
 }
 
 /** "late night, about 2 AM": the part of the day, then the hour to the nearest whole hour. */

@@ -47,6 +47,7 @@ import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-rou
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
+import {VVoice, loadVVoiceReferences, extraVoices} from './v-voice.mjs';
 import {MatureContent} from './mature-content.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
@@ -134,9 +135,15 @@ const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, multilingu
 // Which voice configuration files are live is named by runtime/voice-configs.json (bridge/voice-config-paths.mjs):
 // the searched references for Pocket and for OmniVoice's short and long choices, each falling back to the base file.
 // Add-on voices are merged into copies of these files (addons.<name> in the state folder); without add-on voices the paths are unchanged.
+// V's voice for typed lines (docs/V_VOICE.md): the two reference clips cut from the game's own V lines (released with the mod under
+// voice-references/v-voice, or assets/v-voice in a source checkout) are merged here as the voices v-male and v-female, like an add-on's
+// voice. They only sit in the configurations; nothing is prepared or loaded for them until a typed line is spoken in V's voice.
+const referenceRoots = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES ? [process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES]
+  : [resolve(stateDirectory, 'voice-references'), resolve(project, 'runtime/voice-references')];
+const vVoiceReferences = await loadVVoiceReferences([...referenceRoots.map(root => resolve(root, 'v-voice')), resolve(project, 'assets/v-voice')],
+  {log: line => console.error('[VVoice] ' + line)});
 const voiceConfigPaths = await addonHost.voiceConfigPaths(resolveVoiceConfigPaths(stateDirectory), {stateDirectory,
-  roots: process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES ? [process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES]
-    : [resolve(stateDirectory, 'voice-references'), resolve(project, 'runtime/voice-references')]});
+  roots: referenceRoots, extra: extraVoices(vVoiceReferences)});
 for (const warning of voiceConfigPaths.warnings) console.error('[CyberpunkConvai] Voice configuration: ' + warning);
 const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').catch(error => {
   if (error.code === 'ENOENT') return '{}';
@@ -811,6 +818,28 @@ function logFollowUp(input, result) {
       + `reason=${followUp.reasonFor(turn) ?? 'not-spoken'} ended-with-question=${asked ? 'yes' : 'no'}`);
   } catch { /* a log line never affects a reply */ }
 }
+// V's voice for typed lines (bridge/v-voice.mjs, docs/V_VOICE.md): the player's typed line is also spoken in V's cloned voice, by the voice
+// the player chose (Pocket and OmniVoice locally, Mistral and Inworld in the cloud; never the Convai cloud voice, never a local model
+// beside a cloud voice). It runs beside the companion's reply and never delays it. The plan for V's key is made the same way as a
+// character's (localChoice), so a cloud voice with no key, or a language the voice cannot speak, simply gives no V line.
+const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line),
+  planFor: (input, key) => planTurnVoice({enabled: multilingual.enabled,
+    language: multilingual.enabled ? multilingual.expected(input.text) : 'en', local: localChoice(key)}),
+  ready: key => localVoice.usesProfile(key),
+  isLocal: () => !localVoice.cloudActive,
+  stream: (key, text, options) => localVoice.synthesizeStream(key, text, options),
+  render: (key, text, options) => localVoice.synthesize(key, text, options),
+  prepare: (key, options) => localVoice.prepareProfile(key, options),
+  play: (config, producer, options) => realtime.playVoiceLine(config, producer, options),
+  warm: options => realtime.prewarmVoiceLine(options),
+  // One log line and one record per V line: what happened and when (V's own stage clock), no dialogue.
+  report: (input, summary) => {
+    try {
+      console.error(`[VVoice] profile=${input.profileKey} voice=${summary.voice} engine=${summary.engine} result=${summary.result}`
+        + `${summary.reason ? ' reason=' + summary.reason : ''} marks=${JSON.stringify(summary.marks)}`);
+      void measure(input, {vVoice: summary}).catch(() => {});
+    } catch { /* a log line never affects a reply */ }
+  }});
 // A returning shopkeeper's memory of V (bridge/vendor-memory.mjs): only private text/voice turns of a one-shop vendor.
 const vendorMemoryContext = prepared => {
   const key = vendorMemoryKey(prepared);
@@ -1296,7 +1325,8 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     // A look-ahead turn buffers silently until the game submits it. Once its
     // complete text is known (and it is no longer held), the next group speaker
     // may be prepared from that text.
-    hold: () => ahead?.isHeld() === true,
+    // V's typed line, when it is audible, holds the reply the same way until it ends (bridge/v-voice.mjs).
+    hold: () => ahead?.isHeld() === true || current.vLine?.()?.holds() === true,
     onHeld: (bufferedSeconds, textComplete) => { if (bufferedSeconds >= 0.4 && textComplete) ahead?.markReady(); },
     onText: (text, userText) => {
       if (typeof userText === 'string') noteKnowledgeTurn(receiptPrepared, {userText});
@@ -1325,8 +1355,9 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       stagedKnowledgeTurn(receiptPrepared, {replyText: text});
     },
   });
-  // Poll the buffered turn at once when the game submits it.
+  // Poll the buffered turn at once when the game submits it, or when V's line ends.
   ahead?.claimed.then(() => speech.wakeUp(), () => {});
+  current.vLine?.()?.whenClear(() => speech.wakeUp());
   return speech;
 }
 
@@ -1429,6 +1460,9 @@ function logEmotionTimeline(input, profile, {provider, text, plan, face, signal}
 }
 
 async function publishResult(input, profile, result, current = async () => true, signal) {
+  if (!await current()) return false;
+  // A reply published as a whole (OmniVoice) is ready now: V's typed line, if it is audible, finishes first; if it is not, it is dropped.
+  await current.vLine?.()?.waitClear(signal);
   if (!await current()) return false;
   // The language of this exchange predicts the next turn without text (reactions, warm connections).
   if (!input.reaction) multilingual.observe(input.text);
@@ -2119,7 +2153,13 @@ async function runInput(request, prepared, clock) {
     clock.mark('transport');
     note(input, {transportRequestedAt: Date.now(), connectionWarm,
       submissionStages: {...stages, beforeTransportMs: performance.now() - preparationStarted}});
-    const result = await respond(input, profile, {signal: controller.signal, prepared, current});
+    // V's voice for typed lines starts only now, after the text request is under way: it runs beside the reply and never in front of it.
+    let vLine = null;
+    vVoice.noteGender(input);
+    current.vLine = () => vLine;
+    const replying = respond(input, profile, {signal: controller.signal, prepared, current});
+    if (!ahead) vLine = vVoice.start(input, {signal: controller.signal, clock});
+    const result = await replying;
     // Ready but not yet submitted by the game: hold until it is, or cancelled.
     // (Continuous speech already waited for this inside its own admission.)
     if (ahead) { ahead.markReady(); await ahead.waitClaimed(controller.signal); }
@@ -2205,6 +2245,7 @@ async function pollPrefetch() {
         if (mic.current || micPolling || stopped) { prewarmObserved = ''; return; }
         // A private hint for an ambient NPC carries its entity: open that NPC's own route now, while V types.
         const config = hint.scope === 'private' && hint.entity ? ambientWarmConfig(hint.audience[0], hint.entity) : null;
+        vVoice.warmUp();
         await connections.setComposer(config ? {...hint, config} : hint);
       }
     }
@@ -2491,6 +2532,7 @@ async function pollSettings(checkShutdown = true) {
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
+    if (vVoice.update(settings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}`);
     const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
     if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
     const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;

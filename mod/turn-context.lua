@@ -9,6 +9,8 @@
 -- confirmed in game (see TODO.md, "Live checks"): each is read through guarded, cached lookups of candidate names, logs
 -- one line per failure kind (once), and after three straight errors is skipped until the next reset. No native plugin
 -- sense exists for any of them, so they are Lua reads at turn time only (never per frame).
+-- Added 2026-10-14: the game's dialogue volume (Master x Dialogue, 0 to 1), read only while V's voice for typed lines is on
+-- (options.wantVolume, wired in init.lua); the bridge plays V's line at that level (docs/V_VOICE.md). Cached with the rest.
 local M = {}
 M.MAX_AGE, M.MAX_PARTY, M.PARTY_RADIUS, M.MAX_NAME = 5, 4, 15, 60
 
@@ -205,6 +207,15 @@ local function nativeAdapter()
         return math.floor(seconds / 3600), math.floor(seconds % 3600 / 60), 'seconds'
     end
     function N.gender(player) return player:GetResolvedGenderName() end
+    -- The game's Master volume times its Dialogue volume, 0 to 1 (the same two settings mod/continuous-speech.lua reads for a
+    -- companion's voice, verified against Audioware). Read only while V's voice for typed lines is on (options.wantVolume).
+    function N.volume()
+        local group = Game.GetSettingsSystem():GetGroup(CName.new('/audio/volume'))
+        local master = group:GetVar(CName.new('MasterVolume')):GetValue()
+        local dialogue = group:GetVar(CName.new('DialogueVolume')):GetValue()
+        if not (tonumber(master) and tonumber(dialogue)) then return nil end
+        return master * dialogue / 10000
+    end
     function N.lifepath(player)
         local system = Game.GetScriptableSystemsContainer():Get('PlayerDevelopmentSystem')
         local path = system and system:GetLifePath(player)
@@ -364,6 +375,14 @@ function Instance:read()
     end
     local sex = gender(call(N.gender, player))
     if sex then snapshot.gender = sex; count = count + 1 end
+    -- The game's dialogue loudness, for V's voice for typed lines only (options.wantVolume). Not counted as something read: it
+    -- is no part of the words the bridge writes, and a snapshot that holds only it is no snapshot.
+    if call(self.options.wantVolume) == true then
+        local level = self:optional('volume')
+        if type(level) == 'number' and level == level and level >= 0 and level <= 1 then
+            snapshot.dialogueVolume = math.floor(level * 100 + 0.5) / 100
+        end
+    end
     -- The lifepath is fixed for a save: read once, and again only while it is unknown.
     if not self.lifepath then self.lifepath = call(N.lifepath, player) end
     if type(self.lifepath) == 'string' and self.lifepath:match('^[a-z]+$') then

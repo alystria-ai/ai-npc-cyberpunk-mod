@@ -686,6 +686,8 @@ do
     convaiTurnContext = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
         place = function() return currentDistrict() end,
         party = function(player, radius) return companions.conversationCandidates(player, radius) end,
+        -- Read the game's dialogue volume only while V's voice for typed lines is on (the bridge plays V at that level).
+        wantVolume = function() return manager.vVoice() == true end,
         -- What each companion is doing and how V moves: the companion modules' own state, read once per turn window.
         activity = function()
             local seats = {}
