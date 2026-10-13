@@ -679,5 +679,10 @@ return {
     ["A safety check on your messages and on the replies refuses anything romantic or sexual involving minors, on every model."] = "메시지와 응답에 대한 안전 검사는 모든 모델에서 미성년자가 관련된 로맨틱 또는 성적인 내용을 거부합니다.",
     ["The Mature pack (uncensored models) is installed."] = "Mature pack(검열되지 않은 모델)이 설치되어 있습니다.",
     ["The Mature pack (uncensored models) is not installed. It is an optional download on the GitHub releases page of this mod."] = "Mature pack(검열되지 않은 모델)이 설치되어 있지 않습니다. 이 모드의 GitHub 릴리스 페이지에서 선택적으로 내려받을 수 있습니다.",
+    ["Local AI model"] = "로컬 AI 모델",
+    ["Which installed model Local AI uses. Auto picks the best installed model that fits the free graphics memory; with Mature content on and the Mature pack installed, it prefers the largest uncensored model that fits. Choose one to use only that model. Only one model is loaded at a time, and a change applies when the model next loads, never in the middle of a reply. If the chosen model is missing or does not fit, Auto is used instead and you are told once."] = "로컬 AI가 사용할 설치된 모델입니다. 자동은 여유 그래픽 메모리에 맞는 최고의 설치 모델을 고릅니다. 성인 콘텐츠가 켜져 있고 Mature pack이 설치되어 있으면, 맞는 가장 큰 검열되지 않은 모델을 우선합니다. 하나를 고르면 그 모델만 사용합니다. 한 번에 모델 하나만 로드되며, 변경 사항은 다음에 모델이 로드될 때 적용되고 답변 도중에는 절대 적용되지 않습니다. 선택한 모델이 없거나 맞지 않으면 대신 자동이 사용되며, 이 사실은 한 번 알려 드립니다.",
+    ["Installed models: {models}."] = "설치된 모델: {models}.",
+    ["Choose one of the listed Local AI models."] = "나열된 로컬 AI 모델 중 하나를 선택하세요.",
+    ["The Local AI model you chose is missing or does not fit in the free graphics memory, so Auto was used instead."] = "선택한 로컬 AI 모델이 없거나 여유 그래픽 메모리에 맞지 않아 대신 자동이 사용되었습니다.",
     ["Your conversations are not using Local AI right now, so this has no effect for now."] = "지금은 대화에 로컬 AI를 사용하지 않으므로, 당분간 이 설정은 효과가 없습니다.",
 }

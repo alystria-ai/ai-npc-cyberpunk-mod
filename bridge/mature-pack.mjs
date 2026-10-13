@@ -2,8 +2,9 @@
 //
 // The Mature pack is a separate, optional download (only on the project's GitHub releases) that holds the uncensored model files
 // (packaging/MATURE_PACK_README.md). It does NOT gate the "Mature content" setting (bridge/mature-content.mjs), which is part of the main
-// mod and works with any model; this marker only tells the setting's help text whether the uncensored models are installed. The marker sits in the Local AI folder, beside the manifest fragments of the two Local AI
-// packs (manifest.standard.json, manifest.lite.json; bridge/local-ai-pack.mjs), under its own name so the Local AI detector never reads it:
+// mod and works with any model. The marker tells the setting's help text whether the uncensored models are installed, and lists them for the Local AI
+// model choice (bridge/local-model-choice.mjs: they appear in the Local AI model row, and Auto prefers one when Mature content is on). The marker sits in the Local AI folder, beside the manifest fragments of the two Local AI
+// packs (manifest.standard.json, manifest.lite.json; bridge/local-ai-pack.mjs), under its own name so detectLocalAiPack never reads it (the model choice joins the two lists):
 //   <local-ai root>/manifest.mature.json   {version: 1, pack: 'mature', models: [{file: 'models/x.gguf', name: 'X', family: 'qwen'}]}
 // Only the marker decides ("installed" = a valid marker). The model files it lists are reported (`present`) but are not required: a split
 // model is joined by the first start after the download. Pure of any effect: one small read, never per frame; the bridge looks again at

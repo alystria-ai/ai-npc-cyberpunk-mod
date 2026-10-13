@@ -9,6 +9,8 @@
 //   const done = server.begin();  ...stream the reply...  done();              // in-flight requests block the idle stop
 //   server.status()   -> {state: 'stopped'|'starting'|'warming'|'ready'|'failed', reason?, tier, model, firstTime?}
 //   server.on('failed', ({reason}) => ...)                                     // once per failure episode
+//   server.on('model-fallback', ({pin, reason}) => ...)                        // a pinned model was missing or did not fit, auto chose instead
+//   await server.reselect()                                                    // the model choice changed: reload at an idle moment
 //   await server.stop(); server.killSync();                                    // bridge shutdown / process exit
 //
 // `LlamaProcess` (also used by the CPU embedder, bridge/local-embed.mjs) owns one child: the free port, the key
@@ -21,6 +23,7 @@ import {mkdtempSync, readFileSync, renameSync, rmSync, statSync, writeFileSync} 
 import {createServer} from 'node:net';
 import {tmpdir, freemem, setPriority, constants as osConstants} from 'node:os';
 import {join} from 'node:path';
+import {chooseLocalModel, listLocalModels, normalisePin, stillSatisfies} from './local-model-choice.mjs';
 
 const REASON_TEXT = Object.freeze({
   'not-installed': 'the Local AI pack is not installed',
@@ -361,18 +364,20 @@ function abortable(promise, signal) {
 export class LocalLlmServer extends EventEmitter {
   #state = 'stopped'; #reason = null; #tier = null; #model = null; #firstTime = false;
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
-  #warmed = new Set(); #contextSize = 0;
+  #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false;
 
   // command/argsPrefix replace pack.server when spawning (tests); processOptions go to LlamaProcess (tests).
   // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
-  constructor({pack, tier = 'auto', contextSize, spawnImpl = spawn, fetchImpl = fetch, listDevices,
+  // selection: () => {pin, matureOn, matureModels}, read at each start and each reselect (the player's model choice, bridge/local-model-choice.mjs).
+  // tier ('standard' | 'lite') is the older, stricter form of a pin: that tier or an error, no memory check.
+  constructor({pack, tier = 'auto', selection, contextSize, spawnImpl = spawn, fetchImpl = fetch, listDevices,
       freeVramMiB = nvidiaFreeMiB, idleMs = LOCAL_LLM_LIMITS.idleMs, startupMs = LOCAL_LLM_LIMITS.startupMs, warmup = true,
       warmupMs = LOCAL_LLM_LIMITS.warmupMs, stateFile, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
       log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
       beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, environment = process.env, command, argsPrefix = [], processOptions = {}} = {}) {
     super();
     const fixedContext = Number.parseInt(contextSize ?? environment.CYBERPUNK_CONVAI_LOCAL_CTX ?? '', 10);
-    Object.assign(this, {pack, tierSetting: tier, contextSize: Number.isFinite(fixedContext) && fixedContext >= 2048 ? fixedContext : null, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
+    Object.assign(this, {pack, tierSetting: tier, selection, contextSize: Number.isFinite(fixedContext) && fixedContext >= 2048 ? fixedContext : null, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
       warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, argsPrefix, processOptions, freeMemMiB,
       beforeStart, beforeStartMs, fileSizeMiB});
     const configured = Number.parseInt(cacheRamMiB ?? environment.CYBERPUNK_CONVAI_LOCAL_CACHE_RAM ?? '', 10);
@@ -497,6 +502,59 @@ export class LocalLlmServer extends EventEmitter {
     return {device, freeMiB};
   }
 
+  // The model to load now: the player's choice (this.selection), else the older `tier` option, else auto. A pinned model that is missing or
+  // does not fit is replaced by auto, and one 'model-fallback' event says so.
+  #choose(pack, freeMiB) {
+    const selected = this.#selected(pack);
+    const sizeOf = file => this.fileSizeMiB(file);
+    if (this.tierSetting === 'standard' || this.tierSetting === 'lite') {
+      const forced = selected.models.find(model => model.id === this.tierSetting);
+      if (!forced) throw new LocalAiUnavailable('not-installed', 'no ' + this.tierSetting + ' model');
+      return {model: forced, sizeMiB: Number(sizeOf(forced.file)) || 0, profile: forced.tier, pinned: true, fellBack: null};
+    }
+    const choice = chooseLocalModel({models: selected.models, pin: selected.pin, matureOn: selected.matureOn, freeMiB, sizeOf});
+    if (choice.fellBack) {
+      this.log('[local] the chosen model is not usable (' + choice.fellBack + '): auto chose ' + choice.model.name);
+      this.emit('model-fallback', {pin: selected.pin, reason: choice.fellBack});
+    }
+    return choice;
+  }
+
+  #selected(pack) {
+    let picked = null;
+    try { picked = typeof this.selection === 'function' ? this.selection() : null; } catch { /* a broken hook means auto */ }
+    return {models: listLocalModels({pack, matureModels: picked?.matureModels}), pin: normalisePin(picked?.pin), matureOn: picked?.matureOn === true};
+  }
+
+  /** The id of the model that is loaded or loading (null when none): 'standard', 'lite' or 'mature:...'. */
+  get modelId() { return this.#modelId; }
+
+  /**
+   * The player's model choice changed (bridge/local-model-choice.mjs). Nothing happens unless a model is loaded or loading and it does not
+   * already satisfy the new choice. Then the server is stopped (its graphics memory is freed) and started again with the new choice, at an
+   * idle moment: never while a reply is in flight (the reload waits for `end()`), and never when the server is not running (the next start
+   * reads the new choice itself). Returns whether a reload was done or queued.
+   */
+  async reselect() {
+    if (this.#state !== 'ready' && this.#state !== 'warming' && this.#state !== 'starting') return false;
+    if (this.tierSetting === 'standard' || this.tierSetting === 'lite') return false;
+    this.#reselectPending = true;
+    return this.#reloadIfIdle();
+  }
+
+  // Reloads when a reselect is pending, the loaded model no longer satisfies the choice, the server is ready and no reply is in flight. While
+  // it is starting or warming up (a turn may be waiting for it, and a stop would refuse that turn) the check is repeated once it is ready.
+  async #reloadIfIdle() {
+    if (!this.#reselectPending || this.#inflight > 0 || this.#state !== 'ready') return false;
+    const selected = this.#selected(this.pack);
+    if (stillSatisfies({loadedId: this.#modelId, models: selected.models, pin: selected.pin, matureOn: selected.matureOn})) { this.#reselectPending = false; return false; }
+    this.#reselectPending = false;
+    this.log('[local] the model choice changed: reloading');
+    await this.stop();
+    void this.ensure({background: true}).catch(() => {});
+    return true;
+  }
+
   async #startOnce() {
     const generation = this.#generation;
     const pack = this.pack;
@@ -506,12 +564,10 @@ export class LocalLlmServer extends EventEmitter {
     this.#guard(generation);
     const {device, freeMiB} = await this.#selectDevice();
     this.#guard(generation);
-    const tierKey = chooseTier({tier: this.tierSetting, standard: pack.tiers?.standard, lite: pack.tiers?.lite, freeMiB,
-      standardSizeMiB: pack.tiers?.standard ? this.fileSizeMiB(pack.tiers.standard.file) : 0,
-      liteSizeMiB: pack.tiers?.lite ? this.fileSizeMiB(pack.tiers.lite.file) : 0});
-    const tier = pack.tiers[tierKey];
-    const contextSize = this.contextSize ?? chooseContext({tier: tierKey, freeMiB, sizeMiB: this.fileSizeMiB(tier.file)});
-    this.#tier = tierKey; this.#model = tier.name; this.#contextSize = contextSize;
+    const choice = this.#choose(pack, freeMiB);
+    const tierKey = choice.profile, tier = choice.model;
+    const contextSize = this.contextSize ?? chooseContext({tier: tierKey, freeMiB, sizeMiB: choice.sizeMiB});
+    this.#tier = tierKey; this.#model = tier.loadedName ?? tier.name; this.#modelId = tier.id; this.#contextSize = contextSize;
     const cacheRamMiB = this.cacheRamMiB ?? defaultCacheRamMiB(Number(this.freeMemMiB()));
     const signature = this.#signature(tier.file);
     this.#loadWarmed();
@@ -552,6 +608,8 @@ export class LocalLlmServer extends EventEmitter {
     }
     this.#setState('ready');
     this.#arm();
+    // A choice that changed while it was loading is checked a moment later, after the turn that waited for it has marked itself in flight.
+    if (this.#reselectPending) { const timer = this.setTimer(() => { void this.#reloadIfIdle(); }, 250); timer?.unref?.(); }
     return this.#handle();
   }
 
@@ -634,7 +692,7 @@ export class LocalLlmServer extends EventEmitter {
   }
   end() {
     if (this.#inflight > 0) this.#inflight--;
-    if (this.#inflight === 0) this.touch();
+    if (this.#inflight === 0) { this.touch(); if (this.#reselectPending) void this.#reloadIfIdle(); }
   }
   get inflight() { return this.#inflight; }
 
@@ -676,6 +734,7 @@ export class LocalLlmServer extends EventEmitter {
   // Ends the child and cancels timers. Idempotent. A later ensure() starts it again.
   async stop() {
     this.#generation++;
+    this.#reselectPending = false;   // the next start reads the current choice itself
     this.#disarm();
     const proc = this.#proc; this.#proc = null; this.#info = null;
     if (this.#state !== 'failed') this.#setState('stopped');

@@ -1,4 +1,5 @@
 import {readFile, stat, mkdir} from 'node:fs/promises';
+import {statSync} from 'node:fs';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {archetypeContext, isAmbientProfile, parseInput, profileFor} from './protocol.mjs';
@@ -79,6 +80,7 @@ import {GROQ_KEY_FILE, GroqKey} from './groq-key.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack} from './local-ai-pack.mjs';
 import {LocalLlmServer} from './local-llm-server.mjs';
+import {describeLocalModels, listLocalModels, normalisePin} from './local-model-choice.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
 import {watchFiles} from './file-wake.mjs';
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
@@ -196,10 +198,21 @@ let localPack = detectLocalAiPack({project});
 // Omni (the OmniVoice pack) loads first and the model tier is chosen from the graphics memory left (docs/LOCAL_AI.md): a wait of
 // at most two minutes inside the supervisor, then the tier that fits, else the cloud provider.
 const omniSettled = () => localVoice.requestedProvider !== 'omni' || localVoice.provider === 'omni' || localVoice.omniPack?.installed === false;
-const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'),
+// Which installed model loads (docs/LOCAL_AI.md, "Choosing the model"): the localModel setting (auto or one model) and Mature content, read
+// when a start begins. A change while Local AI is the provider reloads at an idle moment (localModelChoiceChanged, on the settings poll).
+let localModelPin = 'auto';
+const localModelSelection = () => { maturePackInstalled(true); return {pin: localModelPin, matureOn: matureContent.enabled, matureModels: maturePackModels}; };
+const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection,
   beforeStart: async () => { for (let waited = 0; !omniSettled() && waited < 120000; waited += 500) await new Promise(done => setTimeout(done, 500)); },
   log: message => console.error('[LocalAI] ' + message)});
 localServer.on('failed', ({reason}) => mistral.noteLocalFailure(reason));
+// A pinned model that is missing or does not fit: auto chose, and the game says so once per choice (not at every later start).
+let localModelFallbackNoted = '';
+localServer.on('model-fallback', ({pin, reason}) => {
+  const key = pin + '|' + reason;
+  if (key === localModelFallbackNoted) return;
+  localModelFallbackNoted = key; mistral.noteLocalModelFallback();
+});
 localServer.on('state', () => { try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ } });
 const localEmbedder = new LlamaEmbedder({pack: localPack, log: message => console.error('[LocalAI] ' + message)});
 // The pack can be installed while the game runs: look again whenever Local is chosen and while the settings page asks.
@@ -524,11 +537,13 @@ const profileOfCharacter = config => {
 // pack (uncensored models) does not gate it: its marker is looked for at most every 5 s, on the settings poll, only so the setting's help text
 // can say whether the uncensored models are installed (never per turn or per frame).
 const matureContent = new MatureContent();
-let maturePackCheckedAt = 0;
+let maturePackCheckedAt = 0, maturePackModels = [];
 function maturePackInstalled(force = false) {
   if (force || Date.now() - maturePackCheckedAt >= 5000) {
     maturePackCheckedAt = Date.now();
-    matureContent.setPack(detectMaturePack({project}).installed);
+    const found = detectMaturePack({project});
+    maturePackModels = found.installed ? found.models : [];
+    matureContent.setPack(found.installed);
   }
   return matureContent.pack;
 }
@@ -2044,6 +2059,33 @@ async function applyProviderChoice() {
     await mistralControl.publishStatus().catch(() => {});
   } finally { providerSwitching = false; }
 }
+// The Local AI model choice (bridge/local-model-choice.mjs), looked at on the settings poll: the pin from settings.json, Mature content and
+// the Mature pack decide it, and the list of installed models is published for the settings page (at most every 5 s). A change while Local AI is
+// the provider reloads the model at an idle moment (never mid-reply); with another provider the next start reads it. No polling of the server.
+const localModelSizes = new Map();
+const localModelSizeMiB = file => {
+  if (!localModelSizes.has(file)) { try { localModelSizes.set(file, statSync(file).size / 1048576); } catch { return 0; } }
+  return localModelSizes.get(file);
+};
+const installedLocalModels = () => describeLocalModels(listLocalModels({pack: localPack, matureModels: maturePackModels}), localModelSizeMiB);
+let localModelChoiceKey = null, localModelListKey = '', localModelListCheckedAt = 0;
+async function syncLocalModelChoice(settings) {
+  if (!settings || typeof settings !== 'object') return;   // a partial settings write: keep what is chosen
+  const pin = normalisePin(settings.localModel);
+  if (pin !== localModelPin) { localModelPin = pin; localModelFallbackNoted = ''; console.error(`[LocalAI] model choice is now ${pin}`); }
+  const choiceKey = `${localModelPin}|${matureContent.enabled}|${matureContent.pack}`;
+  if (choiceKey !== localModelChoiceKey) {
+    const first = localModelChoiceKey === null;
+    localModelChoiceKey = choiceKey;
+    if (!first && mistral.applied === 'local') void localServer.reselect().catch(() => {});
+  }
+  if (Date.now() - localModelListCheckedAt >= 5000) {
+    localModelListCheckedAt = Date.now();
+    refreshLocalPack();
+    const listKey = JSON.stringify(installedLocalModels());
+    if (listKey !== localModelListKey) { localModelListKey = listKey; await mistralControl.publishStatus().catch(() => {}); }
+  }
+}
 let speechCheckedAt = 0;
 async function pollSettings(checkShutdown = true) {
   if (settingsPolling || stopped) return;
@@ -2103,6 +2145,7 @@ async function pollSettings(checkShutdown = true) {
     if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
     const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
     if (matureChanged) console.error(`[MatureContent] setting is now ${matureContent.enabled ? 'on' : 'off'}`);
+    await syncLocalModelChoice(settings);
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
@@ -2137,7 +2180,7 @@ const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, co
   publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
 quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  groqCommandPath: resolve(runtime, 'groq-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  groqCommandPath: resolve(runtime, 'groq-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),

@@ -2052,6 +2052,10 @@ local function keyReplyNotice(reply)
     if reply.keyNotice == 'local-turn-fallback' then
         return 'local-turn-fallback', ui.t('Local AI could not answer that one, so a cloud provider did.')
     end
+    -- The Local AI model the player chose is missing or does not fit, and Auto chose another: said once per choice.
+    if reply.keyNotice == 'local-model-fallback' then
+        return 'local-model-fallback', ui.t('The Local AI model you chose is missing or does not fit in the free graphics memory, so Auto was used instead.')
+    end
     if reply.keyNotice == 'groq-no-key' then
         return 'groq-no-key', ui.t('Groq has no key yet, so Convai is used. Add your key in Settings > Development.')
     end
@@ -2071,7 +2075,8 @@ local function sendProviderNotice(player, keyId, keyText)
     elseif keyId == 'mistral-voice' then convaiNotices.send(player, 'mistral-voice', keyText)
     elseif keyId == 'groq-no-key' then convaiNotices.send(player, 'groq-no-key', keyText)
     elseif keyId == 'local-fallback' then convaiNotices.send(player, 'local-fallback', keyText)
-    elseif keyId == 'local-turn-fallback' then convaiNotices.send(player, 'local-turn-fallback', keyText) end
+    elseif keyId == 'local-turn-fallback' then convaiNotices.send(player, 'local-turn-fallback', keyText)
+    elseif keyId == 'local-model-fallback' then convaiNotices.send(player, 'local-model-fallback', keyText) end
 end
 
 local function reactionCanDeliver(context, player)

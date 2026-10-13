@@ -880,6 +880,21 @@ local function ownKeyRows(snapshot)
         end
         matureRow = setting('matureContent', 'Mature content', 'bool', snapshot.settings.matureContent, false, matureHelp, nil, {description = true})
     end
+    -- Which installed Local AI model loads: Auto, then each installed model by its manifest name (the bridge reports the list); the sizes are in the help.
+    local modelRow
+    do
+        local choices, labels, selected, sizes = manager.localModelChoices(), {}, 1, {}
+        for index, choice in ipairs(choices) do
+            labels[index] = choice.id == 'auto' and ui.t('Auto') or choice.name
+            if choice.id == snapshot.settings.localModel then selected = index end
+            if choice.id ~= 'auto' then
+                sizes[#sizes + 1] = choice.sizeMiB > 0 and string.format('%s (%.1f GB)', choice.name, choice.sizeMiB / 1024) or choice.name
+            end
+        end
+        local modelHelp = ui.t('Which installed model Local AI uses. Auto picks the best installed model that fits the free graphics memory; with Mature content on and the Mature pack installed, it prefers the largest uncensored model that fits. Choose one to use only that model. Only one model is loaded at a time, and a change applies when the model next loads, never in the middle of a reply. If the chosen model is missing or does not fit, Auto is used instead and you are told once.')
+        if #sizes > 0 then modelHelp = modelHelp .. ' ' .. ui.t('Installed models: {models}.', {models = table.concat(sizes, ', ')}) end
+        modelRow = setting('localModel', 'Local AI model', 'select', selected, 1, modelHelp, labels, {elements = true, description = true})
+    end
     for _, item in ipairs({
             setting('conversationProvider', 'Conversation provider', 'select',
                 snapshot.settings.conversationProvider == 'groq' and 4
@@ -887,6 +902,7 @@ local function ownKeyRows(snapshot)
                     or snapshot.settings.conversationProvider == 'mistral' and 2 or 1, 1, providerHelp,
                 {'Convai free tier', 'Mistral (free plan)', 'Local (needs Local AI pack)', 'Groq (free plan)'}, {elements = true, description = true}),
             matureRow,
+            modelRow,
             readonly('mistral-key-status', 'Mistral key', mistralStatus,
                 'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
             action('mistral-key:paste', 'Paste Mistral key', 'Paste from clipboard',
@@ -960,6 +976,10 @@ local function pageSignature(snapshot)
             mistral.localAi or '', tostring(mistral.maturePack), tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
             tostring(groq.saved), groq.tail or '', groq.limit or '', groq.result or '',
             tostring(pack.known), tostring(pack.installed)}, '|'))
+        -- The Local AI model row lists what is installed.
+        local modelKey = {'models'}
+        for _, model in ipairs(mistral.localModels or {}) do modelKey[#modelKey + 1] = model.id .. ':' .. model.name .. ':' .. tostring(model.sizeMiB) end
+        add(table.concat(modelKey, '|'))
     end
     return table.concat(parts, '\n')
 end
@@ -1432,6 +1452,12 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                         return {ok = false, error = ui.t('Choose one of the listed conversation providers.')}
                     end
                     values.conversationProvider = provider
+                elseif key == 'localModel' then
+                    -- Order: 1 Auto (stored 'auto'), then each installed model in the bridge's list (stored by its id).
+                    local choices = manager.localModelChoices()
+                    local choice = type(change.value) == 'number' and choices[change.value] or nil
+                    if not choice then return {ok = false, error = ui.t('Choose one of the listed Local AI models.')} end
+                    values.localModel = choice.id
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose one of the listed subtitle displays.')} end
                     -- Order: 1 Cinematic subtitles (stored 'dialogue'), 2 Above the speaker (stored 'overhead').

@@ -38,7 +38,7 @@ The uncensored models have no limits of their own, so the mod holds these in thr
 1. Close the game.
 2. Download every part of this pack and extract each one into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge. The files go into the same Local AI folder as the Local AI packs (`red4ext/plugins/CyberpunkConvai/app/local-ai`), plus a small `mature` folder with this README and the licences.
 3. Start the game. The first start after installing takes a little longer while the voice service prepares itself.
-4. Open the Companion Manager, then Settings > Development. Choose **Local** in Conversation provider and **Apply**, then turn on **Mature content** and **Apply** again. The setting's help text says whether this pack was found.
+4. Open the Companion Manager, then Settings > Development. Choose **Local** in Conversation provider and **Apply**, then turn on **Mature content** and **Apply** again. The setting's help text says whether this pack was found. While Mature content is on, **Auto** in the **Local AI model** row (right below it) loads the largest uncensored model of this pack that fits your free graphics memory; you can also pick one of its models by name there. With Mature content off, Auto never picks them.
 
 ## Turn it off or remove it
 

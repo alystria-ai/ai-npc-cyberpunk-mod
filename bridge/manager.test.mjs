@@ -2063,6 +2063,56 @@ test('Mature content is a settings row with or without the Mature pack: the help
   `);
 });
 
+test('Local AI model: a row with Auto first and each installed model by its name, sizes in the help, the pin saved by id', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function state(tag, value)
+      jsonFixtures['models-' .. tag] = value
+      files['runtime/mistral-state.json'] = 'models-' .. tag
+      clock = clock + 2
+    end
+    assert(manager.snapshot(player).settings.localModel == 'auto' and saved.localModel == 'auto', 'Auto is the default')
+    assert(invoke('tab:settings').ok)
+    -- No Local AI pack: the row is there with Auto alone, and nothing is said about sizes.
+    state('none', {provider = 'local', effective = 'local', saved = false})
+    loaded = registered.loadMod('manager')
+    local bare = row('localModel')
+    assert(bare ~= nil and bare.label == 'Local AI model' and bare.type == 'select' and bare.value == 1)
+    assert(#bare.elements == 1 and bare.elements[1] == 'Auto')
+    assert(not tostring(bare.description):find('Installed models', 1, true))
+    assert(not tostring(bare.description):lower():find('recommended', 1, true), 'no option is ever called recommended')
+    -- Three installed models, as the bridge reports them (a malformed entry is dropped).
+    state('three', {provider = 'local', effective = 'local', saved = false, maturePack = true, localModels = {
+      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311},
+      {id = 'mature:big', name = 'Gemma-4-E4B-uncensored', sizeMiB = 5400}, {id = 'bad id', name = 'Nope', sizeMiB = 1}, {id = 'x', name = 5}}})
+    loaded = registered.loadMod('manager')
+    local pick = row('localModel')
+    assert(#pick.elements == 4 and pick.elements[1] == 'Auto' and pick.elements[2] == 'Gemma-4-E4B' and pick.elements[4] == 'Gemma-4-E4B-uncensored')
+    assert(pick.value == 1)
+    assert(tostring(pick.description):find('Gemma-4-E4B (5.2 GB), Qwen3.5-2B (1.3 GB), Gemma-4-E4B-uncensored (5.3 GB)', 1, true), pick.description)
+    -- Choosing by position saves the model's id; Auto saves 'auto'.
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 3}}).ok and saved.localModel == 'lite')
+    loaded = registered.loadMod('manager')
+    assert(row('localModel').value == 3, 'the saved model is selected again')
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 4}}).ok and saved.localModel == 'mature:big')
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 1}}).ok and saved.localModel == 'auto')
+    for _, bad in ipairs({0, 5, 1.5, 'lite', true}) do
+      local result = registered.applyBatch('manager', {{id = 'localModel', value = bad}})
+      assert(result.ok == false and saved.localModel == 'auto', tostring(bad))
+    end
+    -- A pinned model that is no longer installed stays saved (the bridge falls back to Auto with one notice); the row shows Auto.
+    assert(manager.applySettings(player, {localModel = 'gone-model'}) and saved.localModel == 'gone-model')
+    loaded = registered.loadMod('manager')
+    assert(row('localModel').value == 1)
+    assert(manager.applySettings(player, {localModel = 'auto'}) and saved.localModel == 'auto')
+    assert(manager.applySettings(player, {localModel = 'two words'}) == false and manager.applySettings(player, {localModel = 7}) == false)
+    assert(saved.localModel == 'auto')
+    -- A saved value that is not an id reads as Auto.
+    saved.localModel = '../x'
+    assert(manager.snapshot(player).settings.localModel == 'auto')
+  `);
+});
+
 test('the Mistral cloud voice speaks English only here: Multilingual conversations refuses it and moves a saved choice to the Convai cloud voice', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end
@@ -4599,6 +4649,11 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     assert(#sent == 2 and sent[1] == 'mistral-no-key=a' and sent[2] == 'mistral-voice=b', table.concat(sent, ';'))
     sendProviderNotice({}, 'local-fallback', 'd')
     assert(#sent == 3 and sent[3] == 'local-fallback=d', table.concat(sent, ';'))
+    -- The Local AI model the player chose is missing or does not fit: one line on the reply that follows, under its own id.
+    id, text = notice({keyNotice = 'local-model-fallback', text = 'Hello'})
+    assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing or does not fit in the free graphics memory, so Auto was used instead.', text)
+    sendProviderNotice({}, 'local-model-fallback', 'e')
+    assert(#sent == 4 and sent[4] == 'local-model-fallback=e', table.concat(sent, ';'))
     assert(notice({errorCode = 'quota-shared'}) == 'quota-exhausted', 'the Convai refusals keep their own notice')
     assert(notice({text = 'Hello'}) == nil and notice({keyNotice = 'other'}) == nil)
   `);

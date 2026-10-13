@@ -679,5 +679,10 @@ return {
     ["A safety check on your messages and on the replies refuses anything romantic or sexual involving minors, on every model."] = "對您的訊息與回覆進行的安全檢查，會在所有模型上拒絕任何涉及未成年人的浪漫或性相關內容。",
     ["The Mature pack (uncensored models) is installed."] = "Mature pack（無審查模型）已安裝。",
     ["The Mature pack (uncensored models) is not installed. It is an optional download on the GitHub releases page of this mod."] = "Mature pack（無審查模型）未安裝。這是一個可選的下載項目，可在本模組的 GitHub 發行頁面取得。",
+    ["Local AI model"] = "本機 AI 模型",
+    ["Which installed model Local AI uses. Auto picks the best installed model that fits the free graphics memory; with Mature content on and the Mature pack installed, it prefers the largest uncensored model that fits. Choose one to use only that model. Only one model is loaded at a time, and a change applies when the model next loads, never in the middle of a reply. If the chosen model is missing or does not fit, Auto is used instead and you are told once."] = "本機 AI 使用哪個已安裝的模型。自動會選擇能放進可用顯示記憶體的最佳已安裝模型；若已開啟成人內容且已安裝 Mature pack，則優先選擇能放下的最大無審查模型。選擇一個即可只使用該模型。同一時間只載入一個模型，變更會在該模型下次載入時生效，絕不會在回覆途中生效。如果所選模型缺失或放不下，將改用自動，並會提示你一次。",
+    ["Installed models: {models}."] = "已安裝的模型：{models}。",
+    ["Choose one of the listed Local AI models."] = "請從列出的本機 AI 模型中選擇一個。",
+    ["The Local AI model you chose is missing or does not fit in the free graphics memory, so Auto was used instead."] = "你選擇的本機 AI 模型缺失或放不進可用顯示記憶體，因此改用了自動。",
     ["Your conversations are not using Local AI right now, so this has no effect for now."] = "你的對話目前沒有使用本機 AI，因此此設定暫時不會生效。",
 }

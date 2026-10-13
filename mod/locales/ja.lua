@@ -679,5 +679,10 @@ return {
     ["A safety check on your messages and on the replies refuses anything romantic or sexual involving minors, on every model."] = "メッセージと返信の安全確認により、すべてのモデルで未成年者が関わるロマンチックまたは性的な内容は拒否されます。",
     ["The Mature pack (uncensored models) is installed."] = "Mature pack（検閲なしのモデル）はインストールされています。",
     ["The Mature pack (uncensored models) is not installed. It is an optional download on the GitHub releases page of this mod."] = "Mature pack（検閲なしのモデル）はインストールされていません。このMODのGitHubのリリースページからオプションでダウンロードできます。",
+    ["Local AI model"] = "ローカル AI モデル",
+    ["Which installed model Local AI uses. Auto picks the best installed model that fits the free graphics memory; with Mature content on and the Mature pack installed, it prefers the largest uncensored model that fits. Choose one to use only that model. Only one model is loaded at a time, and a change applies when the model next loads, never in the middle of a reply. If the chosen model is missing or does not fit, Auto is used instead and you are told once."] = "ローカル AI が使用するインストール済みモデルを選択します。自動は、空きグラフィックスメモリに収まる最適なインストール済みモデルを選びます。成人向けコンテンツがオンで Mature pack がインストールされている場合は、収まる最大の検閲なしモデルを優先します。1 つを選ぶと、そのモデルだけを使用します。同時に読み込まれるモデルは 1 つだけで、変更はモデルが次に読み込まれたときに反映され、返信の途中には反映されません。選んだモデルがない、または収まらない場合は、代わりに自動が使用され、一度お知らせします。",
+    ["Installed models: {models}."] = "インストール済みモデル: {models}。",
+    ["Choose one of the listed Local AI models."] = "ローカル AI のモデルを一覧から 1 つ選んでください。",
+    ["The Local AI model you chose is missing or does not fit in the free graphics memory, so Auto was used instead."] = "選んだローカル AI モデルがない、または空きグラフィックスメモリに収まらないため、代わりに自動が使用されました。",
     ["Your conversations are not using Local AI right now, so this has no effect for now."] = "現在、会話はローカル AI を使っていないため、今のところこの設定は効果がありません。",
 }

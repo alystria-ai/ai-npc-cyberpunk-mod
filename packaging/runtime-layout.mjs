@@ -57,6 +57,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/local-ai-pack.mjs',
   'bridge/local-embed.mjs',
   'bridge/local-llm-server.mjs',
+  'bridge/local-model-choice.mjs',
   'bridge/local-pcm-host.mjs',
   'bridge/local-stt-capture.mjs',
   'bridge/local-stt.mjs',

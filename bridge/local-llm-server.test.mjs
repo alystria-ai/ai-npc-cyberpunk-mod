@@ -518,3 +518,114 @@ test('beforeStart is awaited before free VRAM is read, and a hook that never ret
   const throwing = harness(t, {freeVramMiB: () => 9000, beforeStart: () => { throw Error('hook broke'); }});
   assert.equal((await throwing.server.ensure()).tier, 'standard');
 });
+
+// ---- The model choice (bridge/local-model-choice.mjs): which installed model loads, and a reload when the choice changes ----------
+// Sizes by file name: standard 5280 MiB (needs 6480 free), lite 1311 (2011), a big uncensored model 5400 (6600), a small one 1400 (2100).
+const CHOICE_SIZES = {'q4.gguf': 5280, 'q2.gguf': 1311, 'big-u.gguf': 5400, 'small-u.gguf': 1400};
+function choiceHarness(t, {selected = {}, mature = true, freeMiB = 24000, ...options} = {}) {
+  const state = {pin: 'auto', matureOn: false, matureModels: [], ...selected};
+  const made = harness(t, {freeVramMiB: () => freeMiB, selection: () => state,
+    fileSizeMiB: file => CHOICE_SIZES[String(file).split(/[\\/]/).pop()] ?? 0, ...options});
+  if (mature) {
+    for (const name of ['big-u.gguf', 'small-u.gguf']) writeFileSync(join(made.directory, name), name);
+    state.matureModels = [{file: join(made.directory, 'big-u.gguf'), name: 'Gemma-4-E4B-uncensored', family: 'gemma', present: true},
+      {file: join(made.directory, 'small-u.gguf'), name: 'Qwen3.5-2B-Uncensored', family: 'qwen', present: true}];
+  }
+  const fallbacks = [];
+  made.server.on('model-fallback', event => fallbacks.push(event));
+  const loaded = () => made.calls.map(call => call.args[call.args.indexOf('-m') + 1].split(/[\\/]/).pop());
+  return {...made, state, fallbacks, loaded};
+}
+
+test('the model follows the choice: auto, Mature content, a pin, a missing pin and a pin that does not fit', async t => {
+  const auto = choiceHarness(t);
+  const info = await auto.server.ensure();
+  assert.deepEqual([info.model, auto.server.modelId, auto.loaded()], ['Qwen3.5-4B', 'standard', ['q4.gguf']]);
+
+  const mature = choiceHarness(t, {selected: {matureOn: true}});
+  assert.equal((await mature.server.ensure()).model, 'Gemma-4-E4B-uncensored');
+  assert.deepEqual([mature.server.modelId, mature.loaded(), mature.server.status().tier], ['mature:big-u', ['big-u.gguf'], 'standard']);
+
+  const matureOff = choiceHarness(t, {selected: {matureOn: false}});
+  await matureOff.server.ensure();
+  assert.deepEqual(matureOff.loaded(), ['q4.gguf'], 'an uncensored model is never picked with Mature content off');
+
+  const noPack = choiceHarness(t, {selected: {matureOn: true}, mature: false});
+  await noPack.server.ensure();
+  assert.deepEqual(noPack.loaded(), ['q4.gguf'], 'Mature content on without the pack loads the ordinary model');
+
+  const smallFits = choiceHarness(t, {selected: {matureOn: true}, freeMiB: 3000});
+  await smallFits.server.ensure();
+  assert.deepEqual([smallFits.loaded(), smallFits.server.status().tier], [['small-u.gguf'], 'lite']);
+
+  const pinned = choiceHarness(t, {selected: {pin: 'lite'}});
+  await pinned.server.ensure();
+  assert.deepEqual([pinned.loaded(), pinned.fallbacks], [['q2.gguf'], []]);
+
+  const pinnedUncensored = choiceHarness(t, {selected: {pin: 'mature:small-u', matureOn: false}});
+  assert.equal((await pinnedUncensored.server.ensure()).model, 'Qwen3.5-2B-Uncensored');
+
+  const missing = choiceHarness(t, {selected: {pin: 'mature:big-u'}, mature: false});
+  await missing.server.ensure();
+  assert.deepEqual([missing.loaded(), missing.fallbacks], [['q4.gguf'], [{pin: 'mature:big-u', reason: 'missing'}]]);
+
+  const tooBig = choiceHarness(t, {selected: {pin: 'standard'}, freeMiB: 3000});
+  await tooBig.server.ensure();
+  assert.deepEqual([tooBig.loaded(), tooBig.fallbacks], [['q2.gguf'], [{pin: 'standard', reason: 'low-memory'}]]);
+  assert.ok(tooBig.logs.some(line => /not usable \(low-memory\)/.test(line)));
+});
+
+test('the older `tier` option still wins over a selection and is strict', async t => {
+  const forced = choiceHarness(t, {tier: 'lite', selected: {pin: 'standard'}, freeMiB: 300});
+  await forced.server.ensure();
+  assert.deepEqual(forced.loaded(), ['q2.gguf']);
+  const none = choiceHarness(t, {tier: 'standard', standard: false, mature: false});
+  await assert.rejects(none.server.ensure(), error => error.reason === 'not-installed');
+});
+
+test('a changed choice reloads the model at an idle moment: the old server is stopped first, and nothing restarts mid-reply', async t => {
+  const h = choiceHarness(t);
+  await h.server.ensure();
+  const first = h.calls[0].child;
+  assert.equal(await h.server.reselect(), false, 'auto still satisfied');
+  h.state.pin = 'standard';
+  assert.equal(await h.server.reselect(), false, 'the pin is the loaded model');
+  assert.equal(h.calls.length, 1);
+
+  // A reply is in flight: the reload waits for it.
+  const release = h.server.begin();
+  h.state.pin = 'lite';
+  assert.equal(await h.server.reselect(), false);
+  await sleep(100);
+  assert.equal(h.calls.length, 1); assert.equal(first.exitCode, null, 'the server stays up during a reply');
+  release();
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
+  assert.notEqual(first.exitCode ?? first.signalCode, null, 'the old server was stopped');
+  assert.deepEqual(h.loaded(), ['q4.gguf', 'q2.gguf']);
+  assert.equal(h.server.modelId, 'lite');
+
+  // Mature content turned on with the pack: the loaded ordinary model no longer satisfies auto.
+  h.state.pin = 'auto'; h.state.matureOn = true;
+  assert.equal(await h.server.reselect(), true);
+  assert.equal(await until(() => h.calls.length === 3 && h.server.status().state === 'ready'), true);
+  assert.equal(h.server.modelId, 'mature:big-u');
+  assert.equal(h.calls[1].child.exitCode !== null || h.calls[1].child.signalCode !== null, true);
+});
+
+test('reselect does nothing while the server is stopped (the next start reads the choice itself), and a stop clears a queued reload', async t => {
+  const h = choiceHarness(t);
+  h.state.pin = 'lite';
+  assert.equal(await h.server.reselect(), false);
+  assert.equal(h.calls.length, 0);
+  await h.server.ensure();
+  assert.deepEqual(h.loaded(), ['q2.gguf']);
+  const release = h.server.begin();
+  h.state.pin = 'standard';
+  await h.server.reselect();
+  await h.server.stop();
+  release();
+  await sleep(100);
+  assert.equal(h.calls.length, 1, 'a reload queued before a stop is dropped');
+  h.state.pin = 'lite';
+  assert.equal((await h.server.ensure()).model, 'Qwen3.5-2B');
+});

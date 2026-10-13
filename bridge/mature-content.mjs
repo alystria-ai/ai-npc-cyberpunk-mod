@@ -101,7 +101,8 @@ export const MATURE_MARK = 'MATURE CONTENT IS ON';
 /**
  * The setting. `requested` follows runtime/settings.json (off unless the file says `true`) and is all that decides `enabled`: the setting is
  * part of the main mod (off by default, Local AI only). `pack` is whether the optional Mature pack (the uncensored models, a separate download
- * on the project's GitHub releases; bridge/mature-pack.mjs) is installed. It changes nothing but a line of the setting's help text.
+ * on the project's GitHub releases; bridge/mature-pack.mjs) is installed. It never gates the setting; it adds a line to the setting's help text and
+ * makes Local AI's Auto model choice prefer an uncensored model while the setting is on (bridge/local-model-choice.mjs).
  */
 export class MatureContent {
   constructor() { this.requested = false; this.pack = false; }
@@ -113,7 +114,7 @@ export class MatureContent {
     this.requested = settings.matureContent === true;
     return this.enabled !== before;
   }
-  /** The Mature pack was found or lost (help text only). True when that changed. */
+  /** The Mature pack was found or lost (help text; the model choice reads the pack's models itself). True when that changed. */
   setPack(installed) {
     const before = this.pack;
     this.pack = installed === true;

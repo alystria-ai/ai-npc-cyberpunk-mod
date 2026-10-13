@@ -242,6 +242,26 @@ test('local: requested while it works; a failure sends turns to Mistral when a k
   assert.equal(other.localBroken, null);
 });
 
+test('local: a pinned model that could not be used says so once, only while Local AI answers, and the list of models is published without paths', async () => {
+  const provider = await pair({groq: null});
+  provider.noteLocalModelFallback();
+  assert.equal(provider.takeNotice(), undefined, 'another provider is chosen: nothing to say');
+  provider.setPreference('local'); provider.apply();
+  provider.noteLocalModelFallback();
+  assert.equal(provider.takeNotice(), 'local-model-fallback');
+  assert.equal(provider.takeNotice(), undefined, 'once');
+  provider.noteLocalModelFallback();
+  provider.setPreference('mistral');
+  assert.equal(provider.takeNotice(), undefined, 'changing the provider drops it');
+  const published = [];
+  provider.setPreference('local');
+  const control = new MistralControl({provider, commandPath: 'm.json', publish: value => published.push(value),
+    localModels: () => [{id: 'standard', name: 'Gemma-4-E4B', sizeMiB: 5280}]});
+  control.status();
+  assert.deepEqual(control.status().localModels, [{id: 'standard', name: 'Gemma-4-E4B', sizeMiB: 5280}]);
+  assert.equal('localModels' in new MistralControl({provider, commandPath: 'm.json', publish() {}}).status(), false);
+});
+
 test('Groq: requested with its key, left alone for a while after a limit, then tried again; Mistral or Convai answer meanwhile', async () => {
   const provider = await pair();
   provider.setPreference('groq'); provider.apply();

@@ -392,6 +392,26 @@ end
 
 -- What the settings page shows. `result` is the outcome of the player's latest Paste or Remove, and only that one.
 -- Anything missing or unexpected reads as "Convai, no key": the safe default.
+-- A model id the bridge publishes or the settings file holds: 'auto', 'standard', 'lite' or 'mature:<file>' (letters, digits and . _ : -).
+local function validModelId(value)
+    return type(value) == 'string' and #value >= 1 and #value <= 80 and value:match('^[%w%.:_%-]+$') ~= nil
+end
+
+-- The installed Local AI chat models the bridge reports ([{id, name, sizeMiB}], runtime/mistral-state.json); anything malformed is dropped.
+local function localModelList(value)
+    local list = {}
+    if type(value) ~= 'table' then return list end
+    for _, entry in ipairs(value) do
+        if #list >= 12 then break end
+        if type(entry) == 'table' and validModelId(entry.id) and entry.id ~= 'auto'
+            and type(entry.name) == 'string' and entry.name ~= '' and #entry.name <= 80 and not entry.name:find('[%c]') then
+            local size = type(entry.sizeMiB) == 'number' and entry.sizeMiB >= 0 and entry.sizeMiB < 1000000 and entry.sizeMiB or 0
+            list[#list + 1] = {id = entry.id, name = entry.name, sizeMiB = math.floor(size)}
+        end
+    end
+    return list
+end
+
 function M.mistral()
     updateMistral()
     local state = mistralState
@@ -407,6 +427,7 @@ function M.mistral()
         effective = providerName(state.effective),
         localAi = localAiStates[state.localAi] and state.localAi or nil,
         maturePack = state.maturePack == true,
+        localModels = localModelList(state.localModels),
         saved = state.saved == true, tail = tail, pending = state.pending == true,
         result = mistralResults[result] and result or nil,
         limit = mistralLimits[state.limit] and state.limit or nil, model = model, stt = state.stt == true}
@@ -576,6 +597,9 @@ local function loadSettings()
     if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = true, true end
     -- Mature content (off by default): lets the Local AI provider write adult language and themes. Read by the bridge on change only.
     if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
+    -- Which installed Local AI model loads: 'auto' (the best one that fits the free graphics memory) or one model's id. The bridge reads it
+    -- from settings.json and falls back to auto, with one notice, when that model is missing or does not fit.
+    if not validModelId(settings.localModel) then settings.localModel, settingsNeedSave = 'auto', true end
     -- Multilingual conversations (off by default): conversations go to each character's multilingual twin. Pocket TTS
     -- speaks only English, so a saved pairing with it cannot stand (Apply never makes one): the voice moves to the cloud
     -- voice, which every installation can run. With the cloud voice, Multilingual wins over the two tag settings.
@@ -868,6 +892,13 @@ function M.gazeSettings()
 end
 
 function M.audioDelayChoices() return audioDelays end
+
+-- The Local AI model row's choices: Auto first, then every installed model the bridge reported (by its manifest name). Each is {id, name?, sizeMiB?}.
+function M.localModelChoices()
+    local choices = {{id = 'auto'}}
+    for _, model in ipairs(M.mistral().localModels) do choices[#choices + 1] = model end
+    return choices
+end
 
 function M.gazeChoices()
     local heights, strengths = {}, {}
@@ -1413,6 +1444,7 @@ function M.snapshot(player)
             followUpInterest = settings.followUpInterest,
             -- Part of the main mod: off by default, Local AI only. The optional Mature pack (uncensored models) only changes the help text.
             matureContent = settings.matureContent == true,
+            localModel = validModelId(settings.localModel) and settings.localModel or 'auto',
             multilingualConversations = settings.multilingualConversations,
             archetypeConversations = settings.archetypeConversations,
             uiLanguage = settings.uiLanguage,
@@ -1464,6 +1496,9 @@ function M.applySettings(player, values)
         elseif key == 'matureContent' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.matureContent = value
+        elseif key == 'localModel' then
+            if not validModelId(value) then return false, 'Choose one of the listed Local AI models.' end
+            nextSettings.localModel = value
         elseif key == 'relationshipModes' then
             if type(value) ~= 'table' then return false, 'Choose one of the listed relationship options.' end
             for profileKey, mode in pairs(value) do

@@ -38,6 +38,24 @@ do anything:
 
 If the pack is missing or the model cannot start, the same fallback applies. Choosing Local again tries again.
 
+### Choosing the model
+
+Settings > Development has a **Local AI model** row, right under Mature content. It lists **Auto** first, then every installed chat
+model by its name (the sizes are in the help text). Only one model is ever loaded.
+
+- **Auto** (the default) loads the best installed model that fits the free graphics memory: the largest model file that fits, so the
+  standard model when it fits and the lite one otherwise. With **Mature content** on and the optional Mature pack installed, Auto
+  prefers the largest uncensored model of that pack that fits, and falls back to the ordinary models when none of them fits. With
+  Mature content off, or without the pack, Auto never picks an uncensored model.
+- Choosing a model pins it: that model loads whatever fits better, and whatever Mature content says (a pinned uncensored model with
+  Mature content off simply runs without the Mature rules).
+- A pinned model that is missing, or does not fit the free graphics memory, falls back to Auto, with one notice ("The Local AI model
+  you chose is missing or does not fit in the free graphics memory, so Auto was used instead."), not repeated at the next start.
+- A change applies when Local AI is the chosen provider, at an idle moment: the old server is stopped (its graphics memory is freed)
+  and the new model loads. It waits for a reply in flight and never restarts in the middle of one, and it does nothing when the
+  loaded model already satisfies the new choice. While another provider answers nothing loads; the next start reads the choice.
+- The small CPU embedder for memory search is not part of the choice and stays as it is.
+
 If Local AI cannot answer one particular turn (for example the model went away mid-reply), that turn is answered by your cloud provider
 (Mistral with a saved key, else Groq with a saved key) and you see "Local AI could not answer that one, so a cloud provider did." at most
 once every ten minutes. With no cloud account saved you see "Local AI could not answer that. Try again in a moment." instead of silence.
@@ -225,7 +243,29 @@ reader is to read through the native core.
 `conversationProvider` is `convai | mistral | local | groq`. `MistralProvider` (`bridge/mistral-key.mjs`) keeps `preference` (the
 setting), `requested` and `applied`; a switch happens only at an idle boundary. `local` is requested while it works; after
 `noteLocalFailure(reason)` it is Mistral when a key exists, else Convai, until the setting is chosen again. The status file
-`runtime/mistral-state.json` carries `localAi`: `ready | warming | not-installed | no-memory | failed`.
+`runtime/mistral-state.json` carries `localAi`: `ready | warming | not-installed | no-memory | failed`, and `localModels`:
+`[{id, name, sizeMiB}]`, the installed chat models for the model row (names and sizes, never paths).
+
+### Model choice (developers)
+
+- `bridge/local-model-choice.mjs` (pure, no I/O): `listLocalModels({pack, matureModels})` joins the Local AI packs' two models
+  (ids `standard`, `lite`) with the Mature pack's (`mature:<file name>`; a marker entry whose file is absent is left out, and a name
+  that does not say "uncensored" gets "(uncensored)" in the name the loaded server reports, so `allowanceFor` in
+  `bridge/mature-content.mjs` reads it as the full level). `chooseLocalModel({models, pin, matureOn, freeMiB, sizeOf})` applies the
+  rules above (largest file that fits, headroom by tier: file + 1.2 GB standard, + 0.7 GB lite, and by size for a Mature model: standard
+  headroom from 3,000 MiB; unknown free memory takes the smallest model of the group) and reports `fellBack: 'missing' | 'low-memory'`
+  when a pin was replaced. `stillSatisfies` says whether the loaded model already meets a changed choice.
+- `bridge/local-llm-server.mjs`: the `selection` option (`() => {pin, matureOn, matureModels}`) is read when a start begins, never per turn.
+  A pin that cannot be used emits `model-fallback` once per start. `reselect()` is called by the bridge when the choice changes while Local
+  AI is the provider; it reloads only when the loaded model no longer satisfies the choice, only with nothing in flight (`end()` re-checks,
+  and a choice that changed during a start is checked 250 ms after it is ready), by `stop()` followed by `ensure()`. The older `tier`
+  option still works and is strict (that tier or an error, no memory check). `server.modelId` is the loaded id; `status()` is unchanged.
+- `bridge/convai-bridge.mjs`: `syncLocalModelChoice` runs on the settings poll (it reads `localModel` from `settings.json` and compares it
+  with Mature content and the Mature pack's presence; it re-lists the installed models and republishes the status at most every 5 s). The
+  fallback becomes the `local-model-fallback` notice (`MistralProvider.noteLocalModelFallback`, sent as `keyNotice` on the next reply),
+  once per distinct pin and reason until the pin changes.
+- Lua: `localModel` (`auto` or an id; `manager.lua` validates ids, `mcm.lua` builds the row from `manager.localModelChoices()` and maps the
+  selected position back to an id). A saved pin that is not in the list shows as Auto and stays saved.
 
 ### Memory
 
@@ -261,12 +301,15 @@ yet measured on it (`scripts/Eval-MistralPrompt.mjs --actions --local <port>`).
 The setting is part of the main mod. It is visible and usable without any other download, off by default, Local AI only, and turning it on
 shows the 18+ line. With the stock Local AI models it mostly changes language, violence and tone: those models are trained to refuse most
 sexual content, so the full effect needs the uncensored models of the optional Mature pack. The pack no longer gates anything (it did until
-2026-10-14); it only changes the setting's help text:
+2026-10-14). It changes the setting's help text, and since 2026-10-13 its models are loaded: they appear in the Local AI model row, and
+with Mature content on Auto prefers the largest one that fits (see "Choosing the model"):
 - Detection: `bridge/mature-pack.mjs` (`detectMaturePack`) looks for the marker `manifest.mature.json` in the Local AI folder, beside
   `manifest.standard.json` and `manifest.lite.json` (same root: `<project>/local-ai`, or `CYBERPUNK_CONVAI_LOCAL_AI`, which the packaged
   service points at `app/local-ai`). The marker is `{version: 1, pack: 'mature', models: [{file, name, family}]}`; a valid marker is
-  "installed" (the listed files are reported as `present`, not required, because a split model is joined at the first start); a missing,
-  malformed or foreign marker, or a model path that leaves the folder, is not trusted. The Local AI detector never reads this marker.
+  "installed" (the listed files are reported as `present`; a model whose file is absent is not offered or loaded, and a split model is
+  joined by the launcher before the bridge starts); a missing,
+  malformed or foreign marker, or a model path that leaves the folder, is not trusted. `detectLocalAiPack` never reads this marker; the model
+  choice (`bridge/local-model-choice.mjs`) joins the marker's models that are present on disk with the pack's own two.
 - When: once at start and then from the settings poll at most every 5 s (one `stat` and a tiny read; never per frame, never per turn).
   `MatureContent` has two inputs, `requested` (the settings file) and `pack` (the scan); `enabled` is `requested`. Finding or losing the
   pack changes only the pack flag (`setPack` says whether it changed), never the layer, the guard or the prepared replies.
@@ -421,7 +464,9 @@ through a real model (see "The guard against real models"). Prompts only; no mod
 routes, the prompt layout and the memory store (with a fake embedder). No test starts a real model. The fake server reports `/props`, counts
 `/tokenize` and refuses an over-long prompt with the real 400 body (`FAKE_LLAMA_CTX`, `FAKE_LLAMA_CHARS_PER_TOKEN`).
 `bridge/prompt-budget.test.mjs` covers the trimming and `bridge/local-context.test.mjs` the supervisor's context, the fitted turn, the cloud
-fallback and its notice.
+fallback and its notice. `bridge/local-model-choice.test.mjs` covers the model choice (with and without the Mature pack, Mature content on
+and off, a pin, a missing pin, the low-memory fallback) and `bridge/local-llm-server.test.mjs` the loaded model, the fallback event and the
+idle reload.
 
 ### Live checks (need the game and a GPU)
 
