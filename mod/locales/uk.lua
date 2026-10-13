@@ -786,4 +786,11 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "Голосовий сервіс не зміг очистити збережені налаштування голосів. Перевір, чи він працює, і спробуй знову.",
     ["There was nothing to clear."] = "Нічого було очищати.",
     ["{size} · Saved voices: {count}"] = "{size} · Збережених голосів: {count}",
+    ["Auto model"] = "Автоматична модель",
+    ["Invalid Mature content settings."] = "Недійсні налаштування контенту для дорослих.",
+    ["Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else."] = "Для цього потрібен локальний ШІ. Без його додаткового пакета увімкнення контенту для дорослих більше нічого не змінює.",
+    ["Mature content is off: {changes} put back. Choose Apply to use them."] = "Контент для дорослих вимкнено: повернуто {changes}. Натисни «Застосувати», щоб їх використати.",
+    ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "Контент для дорослих потребує пакета локального ШІ, який не встановлено. Більше нічого не змінено.",
+    ["Mature content: {changes} selected too. Choose Apply to use them."] = "Контент для дорослих: також вибрано {changes}. Натисни «Застосувати», щоб їх використати.",
+    ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "Увімкнення також обирає локальний ШІ як постачальника розмов, автоматичну модель і, якщо голос компаньйона хмарний, локальний голос (очікує «Застосувати»). Вимкнення повертає попередні вибори.",
 }

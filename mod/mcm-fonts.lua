@@ -319,6 +319,9 @@ function M.new(options)
         if not contentNeedsFonts(ui.current()) then return false end
         return #events > 0 or (state ~= nil and (state.pending or state.work ~= nil))
     end
+    -- Whether the page's own language needs a font of its own, or a font is applied that has to be restored: a freshly drawn page
+    -- can then not be shown before the font pass has run. False for the Latin languages with nothing applied (no walk, no call).
+    function S.applied() return library.family(ui.current()) ~= nil or scope.count() > 0 end
     function S.invalidate() enqueue('refresh') end
     function S.reset()
         -- Called for world teardown: discard ownership without touching a

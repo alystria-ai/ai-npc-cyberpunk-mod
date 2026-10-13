@@ -786,4 +786,11 @@ return {
     ["The voice service could not clear the saved voice setups. Check that it is running, then try again."] = "音声サービスは保存済みの音声設定を消去できませんでした。サービスが動いているか確認してから、もう一度お試しください。",
     ["There was nothing to clear."] = "消去するものはありませんでした。",
     ["{size} · Saved voices: {count}"] = "{size} · 保存済みの音声: {count}",
+    ["Auto model"] = "自動モデル",
+    ["Invalid Mature content settings."] = "成人向けコンテンツの設定が無効です。",
+    ["Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else."] = "これにはローカル AI が必要です。オプションのパックがなければ、成人向けコンテンツをオンにしても他の設定は変わりません。",
+    ["Mature content is off: {changes} put back. Choose Apply to use them."] = "成人向けコンテンツはオフです。{changes} を元に戻しました。使うには「適用」を選んでください。",
+    ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "成人向けコンテンツには、インストールされていないローカル AI パックが必要です。他の設定は変更されていません。",
+    ["Mature content: {changes} selected too. Choose Apply to use them."] = "成人向けコンテンツ: {changes} も選択されています。使うには「適用」を選んでください。",
+    ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "オンにすると、会話プロバイダーとしてローカル AI、自動モデルが選ばれ、コンパニオンの声がクラウドの声なら、ローカルの声も選ばれます（「適用」を待ちます）。オフにすると、以前の選択に戻ります。",
 }
