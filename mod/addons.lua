@@ -204,6 +204,8 @@ local function lease(valid)
     return written
 end
 
+local UNAVAILABLE_GRACE = 2.5   -- seconds a remark still waiting to be heard keeps its speaker after the speaker stops being available
+
 local function release(reason, stop)
     local current = flight
     if not current then return end
@@ -846,7 +848,15 @@ local function trackFlight(player, state)
     local blocked, why = sceneBlocked(state.sample, flight.speaker)
     if manual then release('manual-priority', true); return end
     if blocked then release(why, true); return end
-    if not speakerAvailable(flight.speaker, player) then release('speaker-unavailable', true); return end
+    -- A line that has started finishes even if its speaker stops being available (V steps out of the cab as it ends, the mount
+    -- flickers during a seat change): only the add-on being switched off or a scene cuts it. One still waiting to be heard needs the
+    -- speaker, but gets a moment of grace before it is given up.
+    local playing = flight.stage == 'playing' or flight.stage == 'captions'
+    if speakerAvailable(flight.speaker, player) then flight.lostAt = nil
+    elseif not playing then
+        flight.lostAt = flight.lostAt or clock
+        if clock - flight.lostAt > UNAVAILABLE_GRACE then release('speaker-unavailable', true); return end
+    end
     for _, entry in ipairs(queue) do
         if entry.event.interrupt and entry.event.priority > flight.priority then release('interrupted', true); return end
     end

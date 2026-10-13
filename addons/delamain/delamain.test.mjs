@@ -110,6 +110,47 @@ test('registers one vehicle-anchored, group-capable speaker and a setting; no ho
   `);
 });
 
+test('a line in flight is never cancelled by V leaving the cab or a mount flicker; the ride survives a short gap', () => {
+  lua(`
+    sit()
+    step(1); step(2); step(3); tick()
+    assert(#submitted == 1 and lastRequest().addon.event == 'boarded')
+    local id = state.pendingId
+    -- Playing: the mount flickers off and on again, and V steps out for good while the line is still being spoken.
+    state.pendingId, state.speechId = nil, id; tick()
+    state.sample = {available = true, combat = false, tier = 1, vehicle = false}; player.vehicle = nil; tick()
+    assert(handle:state().remark == 'delamain', 'the line plays on after V left the cab')
+    tick(1); tick(1)
+    assert(handle:state().remark == 'delamain', 'still playing, even though the speaker is no longer available')
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true}; player.vehicle = car; tick()
+    state.speechId = nil; tick()
+    local released
+    for _, line in ipairs(logs) do if line:find('Remark released', 1, true) and line:find('event=boarded', 1, true) then released = line end end
+    assert(released and released:find('reason=finished', 1, true), tostring(released))
+    for _, line in ipairs(logs) do assert(not line:find('reason=cancelled', 1, true), line) end
+    -- The same ride continues after the short gap: no second greeting.
+    assert(#submitted == 1, 'no second greeting after the flicker')
+    tick(31)
+    state.sample = {available = true, combat = false, tier = 1, vehicle = false}; player.vehicle = nil; tick()
+    now = now + 60
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true}; player.vehicle = car; tick()
+    assert(Delamain.ride and Delamain.ride.number == 2, 'a long gap makes it a new ride')
+  `);
+});
+
+test('a line still waiting to be heard survives a short flicker and is given up after a longer loss', () => {
+  lua(`
+    sit()
+    step(1); step(2); step(3); tick()
+    assert(#submitted == 1 and handle:state().remark == 'delamain')
+    state.sample = {available = true, combat = false, tier = 1, vehicle = false}; player.vehicle = nil; tick(1)
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true}; player.vehicle = car; tick(1)
+    assert(handle:state().remark == 'delamain', 'a one second flicker does not drop it')
+    state.sample = {available = true, combat = false, tier = 1, vehicle = false}; player.vehicle = nil; tick(1); tick(1); tick(1); tick(1)
+    assert(handle:state().remark == nil, 'three seconds without the cab: given up')
+  `);
+});
+
 test('a ride: boarding greets once, the destination starts the ride, a district and the arrival are remarked, then the context clears', () => {
   const out = lua(`
     party = {'judy-alvarez'}
