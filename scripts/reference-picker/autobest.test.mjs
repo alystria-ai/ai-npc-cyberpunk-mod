@@ -111,3 +111,17 @@ test('sets that are too long for their budget, hold an unknown clip or are today
     long: set(['v/0', 'v/1', 'v/2', 'v/3', 'v/4', 'v/5'], 20)}}}}));                  // six clips, 20 s: over the 18 s long budget
   assert.deepEqual(await new Autobest({project: root}).forVoice('v', pool), {});
 });
+
+test('a rule-based set (no ECAPA search) keeps its own note in the built config and reaches the picker with a null score', async () => {
+  const note = 'rule-based pick (no ECAPA search)';
+  const rule = {version: 2, generated: '2026-10-14T00:00:00Z', engines: {}, voices: {v: {pocket: {best: {ids: ['v/0', 'v/1'], seconds: 6.4, ecapa: null, note}}}}};
+  assert.equal(picksFromAutobest(rule).voices.v.kept.pocket.note, note);
+  const {root, pool} = await project();
+  const report = await buildAutobest({project: root, data: rule, pool, validate: false, dryRun: true});
+  assert.equal(report.engines.pocket.config.voices.v.pick.note, note);
+  assert.equal(report.engines.pocket.config.voices.v.pick.seconds, 6.4);
+  await writeFile(join(root, 'runtime/autobest-sets.json'), JSON.stringify(rule));
+  const found = (await new Autobest({project: root}).forVoice('v', pool)).pocket;
+  assert.equal(found.ecapa, null);
+  assert.equal(found.note, note);
+});

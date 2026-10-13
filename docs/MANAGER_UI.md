@@ -9,9 +9,10 @@ no longer open it.
 
 - **Manager shortcut (currently F4 locally):** requests the real pause menu's MCM entry and selects **Companion
   Manager**. **Esc → MCM → Companion Manager** is also available.
-- **Home:** four destination actions open Characters, Current party, Model browser
+- **Home:** four destination actions open Characters to invite, Current party, Model browser
   and Settings. The destination list appears only on this home page.
-- **Characters:** searchable researched profiles, including Johnny Silverhand
+- **Characters to invite** (named "Characters" until 2026-10-14; the three pages that sounded alike are now
+  Characters to invite, Who can talk and, under Memory, Whose memories): searchable researched profiles, including Johnny Silverhand
   and Adam Smasher, with Invite / Add copy actions for available models.
   This catalogue is independent of phone contacts and quest unlocks.
 - **Current party:** one row per actual or invited copy, "Name #number" with
@@ -104,10 +105,10 @@ handlers while the page is open (at most 60 per session), and for a close with u
 Live result: with no changes Esc fires `OnButtonRelease` (`UI_Cancel`, `cancel`, `back`), then
 `SettingsMainGameController.OnBack`, then `RequestClose`; the key guard asks before that.
 
-Every inner page ends with one **Back** action. Characters, Current party,
-Model browser and Settings return to the manager home; Relationships, Memory
-and Who can talk return to Settings. The memory character picker
-returns to Memory, and the removed per-copy conversation page no longer exists. Navigation clears the previous page's search.
+Every inner page ends with one **Back** action. Characters to invite, Current party,
+Model browser and Settings return to the manager home; Relationships, Memory,
+Who can talk and Prepared voices return to Settings. The memory character picker
+(Whose memories) returns to Memory, and the removed per-copy conversation page no longer exists. Navigation clears the previous page's search.
 The parent Back action remains visible when a search has no matching results.
 **Your group** (the Back action and the companion driver's trip status) appears only
 on Current party. Invitation actions still show their immediate native action
@@ -493,7 +494,7 @@ run and the installed-API check is explicitly skipped.
 Lua and catalogues were installed and SHA-256 verified; the previous installed
 Lua is in ignored `backups/mcm-lua-20260928-163622/`. The user reloaded CET and
 confirmed the manager appears in MCM. Their screenshots show the native
-Characters, empty Current party and Settings pages, including Invite controls
+Characters (now Characters to invite), empty Current party and Settings pages, including Invite controls
 and the 32-step default. The controller-readiness and runtime CName lookup
 fixes are installed. On September 29 the user confirmed **F4 opened the menu**
 and Iris joined through Invite. Johnny's apparently absent model was traced to

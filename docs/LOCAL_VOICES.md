@@ -127,8 +127,13 @@ that cannot get a GPU fails at start and the same fallback applies.
   that voice is removed on save. A missing or damaged file is a miss. At most 160 files are kept. Measured: about 0.58 MiB per
   second of reference (7.3 MiB for Judy's 12.7 s, 11.3 MiB for Johnny's 19.6 s, 12.8 MiB for Mr. Hands' 22.1 s).
   Preparation of a voice in a fresh worker: 0.8–1.5 s computed (1.6–3.1 s on a loaded machine) against about 15–20 ms from the
-  saved file. Off: nothing is read or written (existing files stay until cleared). Clear them with
-  `node scripts/Clear-PreparedVoices.mjs` or by deleting that folder.
+  saved file. Off: nothing is read or written (existing files stay until cleared). Settings > Voices shows **Prepared voices on disk**
+  (total size and number of files) and **Clear prepared voices** (opens a page that asks for confirmation, then deletes). The bridge
+  measures once when Settings opens, over `runtime/prepared-voices-command.json` and `runtime/prepared-voices-state.json` (the same
+  command-file shape as the keys; `bridge/prepared-voices.mjs`), never on a timer or per frame. Only files named exactly
+  `<voice>-<24 hex>.safetensors` (or that plus `.tmp`) directly in `prepared-voices` are counted or deleted: never a reference, a model,
+  another file, a folder or a link (`bridge/prepared-voices.test.mjs`). `node scripts/Clear-PreparedVoices.mjs [--dry-run]` uses the same
+  code from the command line.
 - OmniVoice has no saved setup (the adapter re-reads the reference each reply). Its preparation already rendered a hidden warm-up
   phrase while a companion joins, always at 32 steps; with the setting on that render uses the selected steps (about 0.7 s
   instead of 1.0 s at 16 steps, unchanged at 32). The worker keeps one CUDA graph at a time, so a reply whose text has a new

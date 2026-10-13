@@ -413,6 +413,55 @@ function M.removeInworldKey()
     return true, 'Your key was removed.'
 end
 
+-- Prepared voices on disk (bridge/prepared-voices.mjs): the disk the saved voice setups use ("Keep prepared voices") and Clear prepared
+-- voices, in the same command file shape as the keys above. Nothing runs per frame: the bridge measures once when Settings opens (and
+-- when a clear finishes); this reads its small status file at most once every 1.5 s, and only while Settings or the clear page is open.
+local preparedState, preparedReadAt, preparedCommand, preparedSequence, preparedWatching = {}, nil, nil, 0, false
+
+local function sendPreparedVoicesCommand(action)
+    memorySession = memorySession or memorySessionUUID()
+    preparedSequence = preparedSequence + 1
+    local command = {version = 1, id = memorySession .. ':pv:' .. preparedSequence, action = action,
+        issuedAt = os.time() * 1000.0}
+    if not writeCommandFile('runtime/prepared-voices-command.json', command) then
+        return false, 'The request could not be sent. Try again.'
+    end
+    preparedCommand = command.id
+    preparedReadAt = nil
+    return true
+end
+
+-- `on`: Settings or the clear page is open (the status is read only then); `measure`: ask the bridge for a fresh total (Settings just opened).
+function M.watchPreparedVoices(on, measure)
+    preparedWatching = on == true
+    if preparedWatching and measure then sendPreparedVoicesCommand('measure') end
+end
+
+function M.clearPreparedVoices()
+    local ok, reason = sendPreparedVoicesCommand('clear')
+    if not ok then return false, reason end
+    return true, 'Clearing prepared voices…'
+end
+
+-- {known, files, bytes, busy, cleared = {bytes}, failed}: `result` is the answer to the player's latest request, and only that one.
+function M.preparedVoices()
+    if preparedWatching then
+        local clock = os.clock()
+        if not preparedReadAt or clock - preparedReadAt >= 1.5 then
+            preparedReadAt = clock
+            local value = readJSON('runtime/prepared-voices-state.json')
+            preparedState = type(value) == 'table' and value or {}
+        end
+    end
+    local state = preparedState
+    local result = type(state.result) == 'table' and preparedCommand and state.result.id == preparedCommand and state.result or nil
+    local known = state.state == 'ready' and wholeNumber(state.files) and wholeNumber(state.bytes)
+    return {known = known == true, files = known and state.files or 0, bytes = known and state.bytes or 0,
+        busy = preparedCommand ~= nil and (result == nil or result.state == 'working'),
+        cleared = result and result.state == 'cleared' and {bytes = wholeNumber(result.bytes) and result.bytes or 0} or nil,
+        failed = result ~= nil and result.state == 'failed'}
+end
+
 local mistralResults = {saved = true, cleared = true, invalid = true, unreadable = true, failed = true}
 local mistralLimits = {rate = true, daily = true, invalid = true, model = true}
 local localAiStates = {ready = true, warming = true, ['not-installed'] = true, ['no-memory'] = true, failed = true}
@@ -1457,6 +1506,7 @@ function M.snapshot(player)
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         ownKey = M.ownKey(),
+        preparedVoices = M.preparedVoices(),
         mistral = M.mistral(),
         localVoice = localVoiceState,
         memory = memorySnapshot(),

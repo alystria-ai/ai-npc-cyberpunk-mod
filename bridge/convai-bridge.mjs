@@ -38,6 +38,7 @@ import {VoiceSelection} from './voice-selection.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
 import {InworldVoice} from './inworld-voice.mjs';
 import {INWORLD_KEY_FILE, InworldKey} from './inworld-key.mjs';
+import {PreparedVoicesControl, preparedVoicesFolder} from './prepared-voices.mjs';
 import {createReferencePreparer} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
 import {variantSeed} from './voice-variants.mjs';
@@ -2252,6 +2253,9 @@ const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   chatResetPath: resolve(runtime, 'memory-chat-resets.json'),
   chatResetFamilies: relationshipRoutes.providerFamilies,
   publish: value => atomic(resolve(runtime, 'memory-status.json'), JSON.stringify(value))});
+// Settings > Voices: the disk used by the saved voice setups ("Keep prepared voices") and Clear prepared voices (bridge/prepared-voices.mjs).
+const preparedVoices = await new PreparedVoicesControl({folder: () => preparedVoicesFolder(voiceConfig),
+  commandPath: resolve(runtime, 'prepared-voices-command.json'), statePath: resolve(runtime, 'prepared-voices-state.json')}).open();
 // Help > Generate report: a redacted zip of versions, status and log tails.
 // The key and provider IDs are passed only so they can be scrubbed from it.
 const supportReport = await SupportReportControl.open({game, runtime, stateDirectory, project,
@@ -2293,12 +2297,14 @@ function logKnowledgePoll(error) {
 }
 const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(logKnowledgePoll); }, 500);
 const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error => console.error('[CyberpunkConvai] Memory control:', error.message)); }, 500);
+const preparedVoicesTimer = setInterval(() => { void preparedVoices.poll().catch(error => console.error('[CyberpunkConvai] Prepared voices:', error.message)); }, 500);
 const supportTimer = setInterval(() => { void supportReport.poll().catch(error => console.error('[CyberpunkConvai] Support report:', error.message)); }, 500);
 // The same polls run a few milliseconds after the game replaces their file (bridge/file-wake.mjs): a typed or spoken turn and a
 // phone message no longer wait half an interval (25 ms for the request, 75 ms for the microphone and the phone) to be seen.
 // The intervals above stay as the fallback. The watcher never keeps the process alive.
 watchFiles(runtime, {
   'last-input.json': tick,
+  'prepared-voices-command.json': () => preparedVoices.poll().catch(error => console.error('[CyberpunkConvai] Prepared voices:', error.message)),
   'microphone-command.json': () => pollMicrophone().catch(error => console.error('[CyberpunkConvai] Microphone poll:', error.message)),
   'phone-chat-input.json': () => pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)),
   // The game's playback lease releases the first sound: the playback pump polls the moment it is written (docs/LATENCY_2026-10-13.md, 4.2).
@@ -2313,7 +2319,7 @@ async function shutdown() {
   phone.close(); clearInterval(phoneTimer);
   phoneKnowledge.clear();
   clearInterval(knowledgeTimer);
-  clearInterval(memoryTimer);
+  clearInterval(memoryTimer); clearInterval(preparedVoicesTimer);
   clearInterval(supportTimer); supportReport.close();
   clearInterval(editorTimer); await editorControl.close().catch(() => {});
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);

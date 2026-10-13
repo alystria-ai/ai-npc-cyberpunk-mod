@@ -200,7 +200,7 @@ function autoBest(engine, v) {
   const found = state.card.autobest?.[v.set];
   if (!found) return null;
   const same = v.candidate?.ids.join('|') === found.ids.join('|'), inUse = v.current?.ids.join('|') === found.ids.join('|');
-  const score = `speaker similarity (ECAPA) ${found.ecapa.toFixed(3)}${found.ecapaSe != null ? ` ±${found.ecapaSe.toFixed(3)}` : ''}${found.today != null ? `, today's reference ${found.today.toFixed(3)}` : ''}${found.pls != null ? `, PLS ${found.pls}` : ''}`;
+  const score = found.ecapa == null ? (found.note ?? 'no ECAPA search for this set') : `speaker similarity (ECAPA) ${found.ecapa.toFixed(3)}${found.ecapaSe != null ? ` ±${found.ecapaSe.toFixed(3)}` : ''}${found.today != null ? `, today's reference ${found.today.toFixed(3)}` : ''}${found.pls != null ? `, PLS ${found.pls}` : ''}`;
   const measured = engine.id === 'omni' && found.latencyMs ? `; measured first-audio delay ${Object.entries(found.latencyMs).map(([steps, ms]) => `${(ms / 1000).toFixed(2)} s at ${steps} steps`).join(', ')}` : '';
   return h('div', {class: 'row', style: 'margin-top:8px'},
     h('button', {disabled: same || inUse, onclick: async () => {

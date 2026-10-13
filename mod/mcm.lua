@@ -407,6 +407,8 @@ end
 
 local function navigate(nextView, context)
     view = nextView
+    -- Prepared voices on disk: the bridge measures once when Settings opens; the status is read only while Settings or the clear page is up.
+    manager.watchPreparedVoices(nextView == 'settings' or nextView == 'prepared-voices', nextView == 'settings')
     clearSearch(context)
     return true
 end
@@ -787,6 +789,17 @@ local function memorySettings(snapshot)
     return rows
 end
 
+-- Settings > Voices > Prepared voices on disk: the total the bridge measured when Settings opened (bridge/prepared-voices.mjs).
+local function preparedVoicesValue(prepared)
+    if not prepared.known then return prepared.busy and ui.t('Checking…') or ui.t('Unavailable') end
+    if prepared.files == 0 then return ui.t('None') end
+    local size = prepared.bytes >= 1048576 and string.format('%.1f MB', prepared.bytes / 1048576)
+        or string.format('%d KB', math.max(1, math.ceil(prepared.bytes / 1024)))
+    return ui.t('{size} · Saved voices: {count}', {size = size, count = prepared.files})
+end
+
+local PREPARED_VOICES_ABOUT = 'How much disk the saved voice setups use. Pocket saves them while Keep prepared voices is on, and each one is made again in about a second the next time that voice speaks.'
+
 -- Development > Convai API key (docs/OWN_CONVAI_KEY.md). The text shown here is the status of the player's own key, never
 -- the key: only its last four characters, which the bridge publishes, are ever displayed.
 local function ownKeyRows(snapshot)
@@ -973,6 +986,11 @@ local function pageSignature(snapshot)
         add(tostring(snapshot.scan.finished))
     end
     if support and view == 'help' then add('help:' .. support.signature() .. '|' .. support.serviceState()) end
+    if view == 'settings' or view == 'prepared-voices' then
+        local prepared = snapshot.preparedVoices
+        add(table.concat({'prepared', tostring(prepared.known), tostring(prepared.files), tostring(prepared.bytes), tostring(prepared.busy),
+            tostring(prepared.cleared and prepared.cleared.bytes), tostring(prepared.failed)}, '|'))
+    end
     if view == 'settings' then
         -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears. The voice status line
@@ -1005,7 +1023,7 @@ local function schema()
     -- party answers an invitation with a message from the queue.
     local canInvite = owner ~= nil
     if view == 'home' then
-        for _, tab in ipairs({{'characters', 'Characters'}, {'party', 'Current party'},
+        for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Current party'},
             {'models', 'Model browser'}, {'settings', 'Settings'}}) do
             -- The Model browser lists every character model in the game, so it says that and what joining means.
             local description = tab[1] == 'models'
@@ -1027,7 +1045,7 @@ local function schema()
                 available and (count > 0 and ui.t('Add copy ({count})',{count=count}) or 'Invite') or 'Profile only',
                 profileDescription(profile, snapshot, shared, count), function() return queue.invite(key) end, canInvite and available)
         end
-        categories[#categories + 1] = category('characters', 'Characters', rows,
+        categories[#categories + 1] = category('characters', 'Characters to invite', rows,
             'Search a character by name. Each invitation reserves a place and starts preparation immediately.')
     elseif view == 'party' then
         local trip = queue.chauffeur()
@@ -1158,7 +1176,7 @@ local function schema()
                     return ok, reason
                 end)
         end
-        categories[#categories + 1] = category('memory-characters', 'Character memories', rows)
+        categories[#categories + 1] = category('memory-characters', 'Whose memories', rows)
     elseif view == 'relationships' then
         rows[#rows + 1] = action('relationships:back', 'Back to settings', 'Back',
             'Return to conversation settings.', function(context) return navigate('settings', context) end)
@@ -1175,6 +1193,27 @@ local function schema()
         end
         categories[#categories + 1] = category('relationships', 'Relationships', rows,
             'Choose ordinary or romantic conversations for supported characters.')
+    elseif view == 'prepared-voices' then
+        local prepared = snapshot.preparedVoices
+        rows[#rows + 1] = action('prepared-voices:back', 'Back to settings', 'Back',
+            'Return to conversation settings.', function(context) return navigate('settings', context) end)
+        rows[#rows + 1] = readonly('prepared-voices-total', 'Prepared voices on disk', preparedVoicesValue(prepared), PREPARED_VOICES_ABOUT)
+        if prepared.cleared then
+            local result = prepared.cleared.bytes > 0
+                and ui.t('Cleared {size} of saved voice setups.', {size = string.format('%.1f MB', prepared.cleared.bytes / 1048576)})
+                or ui.t('There was nothing to clear.')
+            rows[#rows + 1] = readonly('prepared-voices-result', 'Result', result, result)
+        elseif prepared.failed then
+            rows[#rows + 1] = readonly('prepared-voices-result', 'Result', 'The request could not be completed.',
+                'The voice service could not clear the saved voice setups. Check that it is running, then try again.')
+        end
+        local confirm = 'Delete all saved voice setups? Voice references and models are not touched. Each voice is made again, in about a second, the next time it speaks.'
+        rows[#rows + 1] = readonly('prepared-voices-confirm', 'Confirm clearing', confirm, confirm)
+        rows[#rows + 1] = action('prepared-voices:confirm', 'Clear prepared voices', 'Delete', confirm,
+            function() return manager.clearPreparedVoices() end, prepared.known and prepared.files > 0 and not prepared.busy)
+        rows[#rows + 1] = action('prepared-voices:cancel', 'Cancel', 'Keep',
+            'Go back without deleting anything.', function(context) return navigate('settings', context) end)
+        categories[#categories + 1] = category('prepared-voices', 'Prepared voices', rows)
     elseif view == 'permissions' then
         rows[#rows + 1] = action('permissions:back', 'Back to settings', 'Back',
             'Return to conversation settings.', function(context) return navigate('settings', context) end)
@@ -1298,6 +1337,11 @@ local function schema()
                 delayLabels, {elements = true}),
             setting('keepPreparedVoices', 'Keep prepared voices', 'bool', snapshot.settings.keepPreparedVoices, true,
                 'Remember each companion’s prepared voice so summoning them again is quicker. Pocket TTS saves one small file per character (about 5 to 15 MB) in the mod’s runtime folder; OmniVoice does a short hidden warm-up at your chosen quality while a companion joins. Turn this off to save nothing on disk. The change applies without a restart.'),
+            readonly('prepared-voices', 'Prepared voices on disk', preparedVoicesValue(snapshot.preparedVoices), PREPARED_VOICES_ABOUT),
+            action('prepared-voices:open', 'Clear prepared voices', 'Clear',
+                'Delete the saved voice setups to free that disk space. Voice references and models are not touched. You confirm on the next page.',
+                function(context) return navigate('prepared-voices', context) end,
+                snapshot.preparedVoices.known and snapshot.preparedVoices.files > 0),
             setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
                 'Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice: choosing the Convai cloud voice keeps it and turns this off, and turning this on while the cloud voice is saved moves Companion voices to Pocket TTS. Off by default.'),
             setting('expressiveEmotions', 'Expressive emotions', 'bool', snapshot.settings.expressiveEmotions, true,

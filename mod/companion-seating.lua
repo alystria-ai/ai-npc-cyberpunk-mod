@@ -177,8 +177,12 @@ function M.findSeats(samples, kind, h0, policy)
                     add(c, height)
                     c = c + kind.pitch
                 end
-            elseif not touching and r.b - r.a >= kind.width * 2 - 1e-6 and r.b - r.a <= .9 then
-                add((r.a + r.b) / 2, height) -- a separate stool or chair
+            elseif r.b - r.a >= (touching and .3 or kind.width * 2) - 1e-6 and r.b - r.a <= .9 then
+                -- A separate stool or chair. A run that starts within minOffset of V used to be dropped here (it was taken for
+                -- V's own seat or one long surface), so a neighbour whose near edge is under 0.5 m from V (centres up to about
+                -- 0.7 m apart) was never found; a touching run counts as a seat once it is a seat's width long (0.3 m), which V's
+                -- own seat edge or an armrest never is.
+                add((r.a + r.b) / 2, height)
             end
         end
     end

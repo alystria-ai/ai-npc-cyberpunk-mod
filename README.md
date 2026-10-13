@@ -24,7 +24,7 @@ The catalog currently contains **80 conversation profiles**: 78 named characters
 
 ### Your companions
 
-- Invite characters through **Companion Manager → Characters**, or use the selected phone contact's invite control.
+- Invite characters through **Companion Manager → Characters to invite**, or use the selected phone contact's invite control.
 - Keep several copies in your party, including invitations being prepared. **Current party** lists each copy as "Name #number" and lets you dismiss a particular one; it disappears at once.
 - Search installed character models through **Model browser**, including characters outside the phone catalog. A model can follow without an AI profile, or use a profile you assign separately.
 - Companions walk beside V, run to catch up, settle into loose positions, and respond to direct attention without reforming the whole group around camera turns. Close eye contact does not make a settled companion back away.
@@ -132,7 +132,7 @@ There is no finished one-click or two-ZIP installation yet. Use the following fl
 
    This builds and adds a small RED4ext plugin, `red4ext/plugins/CyberpunkConvaiLauncher/`. When the game starts with this mod installed, it starts `scripts/Supervise-ConversationBridge.mjs` hidden; the supervisor rebuilds the browser client, starts the bridge (or uses one that is already running), restarts it after a crash and stops it when the game exits, even after a game crash. No scheduled task, service or startup entry is created. `.\scripts\Uninstall-BridgeAutostart.ps1` removes it. Without the launcher, start the bridge by hand before playing with `.\scripts\Start-ConversationBridge.ps1`. While the service is starting, missing or failed, the talk shortcuts and Phone Chat show a short explanation instead of waiting for a reply.
 
-7. Load a save. Open CET's **Bindings**, assign shortcuts to the mod actions, and save. Open **Companion Manager**, choose **Characters**, invite someone, and return to gameplay after preparation.
+7. Load a save. Open CET's **Bindings**, assign shortcuts to the mod actions, and save. Open **Companion Manager**, choose **Characters to invite**, invite someone, and return to gameplay after preparation.
 
 The installed game adapter is at:
 

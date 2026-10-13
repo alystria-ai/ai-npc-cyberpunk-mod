@@ -2162,6 +2162,54 @@ test('the Inworld key is pasted and removed from Settings > Development through 
   `);
 });
 
+test('Settings > Voices shows the prepared voices on disk, asked once when Settings opens, and Clear prepared voices confirms on its own page before it sends the command', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function status(tag, value) jsonFixtures[tag] = value; files['runtime/prepared-voices-state.json'] = tag; clock = clock + 2 end
+    local function command() return jsonFixtures[files['runtime/prepared-voices-command.json']] end
+    assert(files['runtime/prepared-voices-command.json'] == nil, 'nothing is asked before Settings opens')
+    assert(invoke('tab:settings').ok)
+    local asked = command()
+    assert(asked.version == 1 and asked.action == 'measure' and asked.id:find(':pv:1', 1, true), 'a measure request when Settings opens')
+    assert(files['runtime/memory-command.json'] == nil and files['runtime/inworld-key-command.json'] == nil, 'other channels untouched')
+    assert(row('prepared-voices').label == 'Prepared voices on disk' and row('prepared-voices').value == 'Checking…', row('prepared-voices').value)
+    assert(row('prepared-voices:open').disabled == true, 'nothing to clear until the total is known')
+    status('pv-a', {version = 1, state = 'ready', files = 3, bytes = 4 * 1048576, result = {id = asked.id, state = 'measured'}})
+    loaded = registered.loadMod('manager')
+    assert(row('prepared-voices').value == '4.0 MB · Saved voices: 3', row('prepared-voices').value)
+    assert(row('prepared-voices:open').disabled ~= true)
+    assert(invoke('prepared-voices:open').ok)
+    assert(command().id:find(':pv:1', 1, true), 'opening the clear page asks nothing new')
+    assert(row('prepared-voices-total').value == '4.0 MB · Saved voices: 3')
+    assert(row('prepared-voices:confirm') and row('prepared-voices:cancel'), 'confirm and cancel')
+    assert(row('prepared-voices:confirm').disabled ~= true)
+    -- Cancel goes back and deletes nothing: only a measure request is sent.
+    assert(invoke('prepared-voices:cancel').ok)
+    assert(command().action == 'measure' and command().id:find(':pv:2', 1, true))
+    status('pv-b', {version = 1, state = 'ready', files = 3, bytes = 4 * 1048576, result = {id = command().id, state = 'measured'}})
+    loaded = registered.loadMod('manager')
+    assert(invoke('prepared-voices:open').ok)
+    assert(invoke('prepared-voices:confirm').ok)
+    local clear = command()
+    assert(clear.version == 1 and clear.action == 'clear' and clear.id:find(':pv:3', 1, true), 'the clear command')
+    loaded = registered.loadMod('manager')
+    assert(row('prepared-voices:confirm').disabled == true, 'no second clear while the first waits for its answer')
+    status('pv-c', {version = 1, state = 'ready', files = 0, bytes = 0, result = {id = clear.id, state = 'cleared', files = 3, bytes = 4 * 1048576}})
+    loaded = registered.loadMod('manager')
+    assert(row('prepared-voices-result').value == 'Cleared 4.0 MB of saved voice setups.', row('prepared-voices-result').value)
+    assert(row('prepared-voices-total').value == 'None' and row('prepared-voices:confirm').disabled == true)
+    -- An answer to an older request is not shown as this one's result.
+    status('pv-d', {version = 1, state = 'ready', files = 2, bytes = 2048, result = {id = 'someone:pv:9', state = 'cleared', files = 9, bytes = 9}})
+    loaded = registered.loadMod('manager')
+    assert(row('prepared-voices-result') == nil and row('prepared-voices-total').value == '2 KB · Saved voices: 2', row('prepared-voices-total').value)
+    -- A bridge that cannot reach the folder reports a failure, shown plainly.
+    status('pv-e', {version = 1, state = 'unavailable', result = {id = clear.id, state = 'failed'}})
+    loaded = registered.loadMod('manager')
+    assert(row('prepared-voices-result').value == 'The request could not be completed.' and row('prepared-voices-total').value == 'Unavailable', row('prepared-voices-total').value)
+    assert(invoke('prepared-voices:back').ok)
+  `);
+});
+
 test('the Inworld cloud voice speaks English only here: Multilingual conversations refuses it and moves a saved choice off it', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end
@@ -2295,7 +2343,10 @@ test('backing out of the memory picker or cancelling a Forget confirmation says 
     local removed, originalRemove = {}, os.remove
     os.remove = function(path) removed[#removed + 1] = path; return originalRemove(path) end
     local function nothingDeleted()
-      assert(memoryWrites() == 0 and memoryRequest() == nil and #removed == 0, 'a back-out or cancel touched stored memory')
+      -- Opening Settings sends the prepared-voices measure request (its command file swaps through os.remove); that is not stored memory.
+      local touched = 0
+      for _, path in ipairs(removed) do if not tostring(path):find('prepared-voices', 1, true) then touched = touched + 1 end end
+      assert(memoryWrites() == 0 and memoryRequest() == nil and touched == 0, 'a back-out or cancel touched stored memory')
       assert(#members == 0 and #spawned == 0)
     end
     local pickerClosed = 'Character picker closed. Your selection is unchanged. Closing it deleted nothing.'
