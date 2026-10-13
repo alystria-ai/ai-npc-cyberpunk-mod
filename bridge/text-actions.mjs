@@ -117,8 +117,14 @@ export function actionMenu(offer) {
      * reply, never a wrong action: the reply is held back until the decision agrees.
      */
     guess: (text, found) => {
-      const sentence = String(text ?? '').trim().split(/(?<=[.!?])\s+/).at(-1) ?? '';   // the question is the last sentence
-      return TALK.test(sentence) && !REQUEST_QUESTION.test(sentence) ? 'NONE' : found.length === 1 ? found[0] : null;
+      const sentences = String(text ?? '').trim().split(/(?<=[.!?])\s+/);
+      const sentence = sentences.at(-1) ?? '';   // the question is the last sentence
+      // A question about the character (typed with or without its question mark), or remarks that ask nothing of her: plain talk. A
+      // wrong "plain talk" costs the same second reply a wrong action does, and these are the lines that were guessed wrongly on
+      // 2026-10-13 ("what are some of the services you excel at specifically" was written as "V sends you away").
+      if ((TALK.test(sentence) || OPEN_QUESTION.test(sentence)) && !REQUEST_QUESTION.test(sentence)) return 'NONE';
+      if (sentences.every(part => REMARK.test(part) && !ADDRESSES_HER.test(part))) return 'NONE';
+      return found.length === 1 ? found[0] : null;
     },
     notes(code) {
       const row = rows.find(item => item.code === code);
@@ -157,6 +163,13 @@ export function actionMenu(offer) {
 // A line that asks the character something about itself or the past rather than asking it to do something (English only; another
 // language is guessed as a request, which is only a little slower when it is not).
 const TALK = /^(?:[^?!.]{0,30}[,:] )?(?:do|did|does|have|has|had|who|what|why|how|where|when|which|is|are|was|were|ever|remember|isn'?t|aren'?t)\b[^]*\?$/i;
+// An open question without its question mark ("what are some of the services you excel at"). "How about you drive", "why don't you" and
+// "what if you took the wheel" are requests and stay out.
+const OPEN_QUESTION = /^(?:[^?!.]{0,30}[,:] )?(?:what|who|why|how|where|when|which)\b(?!\s+(?:about|if|else|don'?t|do not|not|come)\b)/i;
+// A remark about oneself or something else ("I used to fight in the pits", "Your driving scared me", "I've never seen a car like that"):
+// it is not a request unless it speaks to her ("I need you to drive", "I'll go on without you"). English only, like TALK.
+const REMARK = /^(?:i|i'm|i've|i'd|i'll|my|he|she|they|there|there's)\b(?![^]*[,;]\s*(?:take|get|go|come|follow|drive|walk|hang|do|head|accompany|leave|attack|kill|shoot|fight|pick|stay|let'?s|bounce|scram|peace)\b)/i;
+const ADDRESSES_HER = /\b(?:you|u|ya|y'all|yourself)\b/i;
 const REQUEST_QUESTION = /^(?:[^?!.]{0,30}[,:] )?(?:can|could|would|will|won'?t|wanna|want to|mind|do you mind|do you want|do you wanna|do you think you could)\b/i;
 
 // A code in a reply is never spoken: the character is not told about codes, but a small model may still write one.

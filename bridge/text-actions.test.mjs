@@ -419,7 +419,7 @@ test('the decision disagrees with the guess: the early reply is dropped unheard 
     const stream = new ReplyStream({name: 'Judy Alvarez'});
     const heard = [];
     stream.onChange(() => heard.push(stream.head ?? ''));
-    const result = await host.reply(turn('I wonder who will drive us there someday.', {companionAction: ride()}), {stream});
+    const result = await host.reply(turn('Your brother could drive us there someday.', {companionAction: ride()}), {stream});
     await settle();
     assert.equal(result.text, 'I drive just fine, V. Why do you ask?');
     assert.equal(server.requests.length, 3, 'decision, the early reply, the real reply');
@@ -540,4 +540,56 @@ test('the decision asks the decision model (3b, 8b as fallback) and the reply ke
     await settle();
     assert.deepEqual(same.server.requests.map(body => body.model), [DEFAULT_MODELS[0], DEFAULT_MODELS[0]]);
   } finally { await same.close(); }
+});
+
+// ---- 2026-10-13 live turn: "what are some of the services you excel at specifically" (Evelyn Parker, Mistral) ----------------------
+
+// The leave offer every private talk with a party member carries, plus the two limits of that moment (no car near, nobody tagged).
+const evelynOffer = () => noRide({driveUnavailable: 'no-car', tacticUnavailable: 'no-target', leave: {members: [{name: 'Evelyn Parker', self: true}]}});
+const evelynTurn = (text, extra = {}) => turn(text, {local: {profileKey: 'evelyn-parker', name: 'Evelyn Parker', channel: 'private'}, companionAction: evelynOffer(), ...extra});
+const SERVICES = 'what are some of the services you excel at specifically';
+
+test('live 2026-10-13: the English word "some" is not a request to leave (the Portuguese "some" stem matched it), so no decision and no early reply are started', () => {
+  const menu = actionMenu(evelynOffer());
+  assert.deepEqual(menu.screen(SERVICES), [], 'no decision request for ordinary small talk');
+  for (const line of ['Give me some space to think about it.', 'Some of them are fine.', 'Tell me some of your stories.', 'Do some of the work for me.']) {
+    assert.deepEqual(menu.screen(line), [], line);
+  }
+  // The Portuguese request the stem was written for still goes through (a verb at the start or the end of the line, or on its own).
+  for (const line of ['some daqui', 'Some, por favor.', 'some!']) assert.ok(menu.screen(line).includes('LEAVE'), line);
+});
+
+test('live 2026-10-13: remarks and open questions without a question mark are guessed as plain talk, requests are still guessed as the action', () => {
+  const menu = actionMenu(ride({tactic: target(), follow: {name: 'Evelyn Parker'}, leave: {members: [{name: 'Evelyn Parker', self: true}]}}));
+  const guess = line => menu.guess(line, menu.screen(line));
+  for (const line of [SERVICES, 'Who drove you here', 'How did you learn to fight', 'I used to fight in the pits, back in the day.', 'I could really go for some ramen right now.',
+    'I heard driving in the rain is a nightmare out here.']) assert.equal(guess(line), 'NONE', line);
+  // Requests stay requests, whatever their shape: nothing the speculation gained is lost.
+  for (const [line, code] of [['drive for me', 'DRIVE'], ['How about you drive', 'DRIVE'], ["Why don't you take the wheel", 'DRIVE'], ['I need you to drive', 'DRIVE'],
+    ["I am wiped, get us there.", 'DRIVE'], ["I'll go on without you.", 'LEAVE'], ['Attack him', 'FIGHT'], ['Come with me', 'FOLLOW']]) {
+    assert.equal(guess(line), code, line);
+  }
+});
+
+test('live 2026-10-13: whichever way a wrong guess falls, the voice and the finished reply are written for V\'s final message (never the "you are sent away" notes)', async () => {
+  const reply = body => /V is sending you away/.test(body.messages.at(-1).content) ? 'Goodbye, V. Take care of yourself out there, alright.'
+    : 'I can be useful when the stakes are right. Ask me about the work and I will tell you.';
+  // The decision comes before the early reply has begun, while it is streaming, and after it has finished.
+  for (const wait of [0, 40, 150, 600]) {
+    const {server, host, delivered, memory, close} = await harness(body => isDecision(body) ? {text: 'NONE', wait} : {text: reply(body), wait: 60});
+    try {
+      const stream = new ReplyStream({name: 'Evelyn Parker'});
+      const heard = [];
+      stream.onChange(() => { if (stream.head) heard.push(stream.head); });
+      const result = await host.reply(evelynTurn(SERVICES), {stream});
+      await settle();
+      assert.equal(result.text, 'I can be useful when the stakes are right. Ask me about the work and I will tell you.', `decision after ${wait} ms`);
+      assert.ok(heard.every(head => !/goodbye/i.test(head)), `the voice never heard the leave reply (${wait} ms): ${heard}`);
+      assert.doesNotMatch(JSON.stringify(stream), /goodbye/i);
+      assert.deepEqual(delivered, [], 'nothing was asked of the game');
+      assert.match(server.requests.at(-1).messages.at(-1).content, /not asking you to do anything the game can carry out/, 'the last request carries the final notes');
+      assert.match(server.requests.at(-1).messages.at(-1).content, new RegExp(`V says: ${SERVICES}`));
+      assert.equal(memory.recall({profileKey: 'evelyn-parker', channel: 'private'}).turns.at(-1).r, result.text);
+    } finally { await close(); }
+  }
 });
