@@ -309,7 +309,7 @@ const boardSetup = `
       local out = {}
       for _, line in ipairs(lines) do
         local id = line.phase == 'loading' and 'load-progress' or line.phase == 'ready' and 'load-ready' or 'load-failed'
-        out[#out + 1] = {id = id, text = line.text, instant = line.instant, mask = line.mask}
+        out[#out + 1] = {id = id, text = line.text, instant = line.instant, mask = line.mask, sig = line.sig}
       end
       notices.sendLines(player, out)
     end
@@ -388,6 +388,38 @@ test('several loads are one notice that lists them; it changes in place and an o
     -- Both end together: one outcome notice with a line each.
     state.omni, state['local-ai'] = 'ready', 'no-memory'; run(1)
     assert(shown[#shown] == 'omni:ready\\nlocal-ai:no-memory', shown[#shown])
+  `);
+});
+
+test('a line whose text changes while its load goes on is posted in place when the text changes, and only then', () => {
+  run(`${boardSetup}
+    -- describe reads the live text, as a companion's wait line does (mod/mcm.lua).
+    local text = 'first'
+    local function describeText(key, value) return key == 'omni' and text or key .. ':' .. value end
+    local function textTick(seconds)
+      clock = clock + (seconds or 0.25)
+      state.revisions = {omni = text}
+      local lines = notices.loading(true, KEYS, read, describeText)
+      if lines then
+        local out = {}
+        for _, line in ipairs(lines) do out[#out + 1] = {id = 'load-progress', text = line.text, instant = line.instant, mask = line.mask, sig = line.sig} end
+        notices.sendLines(player, out)
+      end
+    end
+    state.omni = 'loading'
+    for _ = 1, 12 do textTick() end
+    assert(#posts == 1 and posts[1].text == 'first' and not posts[1].instant, 'no first post: ' .. #posts)
+    for _ = 1, 40 do textTick() end
+    assert(#posts == 1, 'an unchanged text was posted again: ' .. #posts)
+    text = 'second'; textTick()
+    assert(#posts == 2 and posts[2].text == 'second' and posts[2].instant == true, 'a changed text was not posted in place: ' .. #posts)
+    for _ = 1, 40 do textTick() end
+    assert(#posts == 2 and #shown == 0 and clears == 0, 'the changed text was posted again or something else was shown')
+    -- A second load joins the same notice with its own state; the first line keeps its text.
+    state['local-ai'] = 'loading'; for _ = 1, 8 do textTick() end
+    assert(#posts == 3 and posts[3].text == 'second\\nlocal-ai:loading', posts[#posts].text)
+    text = 'third'; textTick()
+    assert(#posts == 4 and posts[4].text == 'third\\nlocal-ai:loading', posts[#posts].text)
   `);
 });
 

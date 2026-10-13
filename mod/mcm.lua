@@ -89,8 +89,14 @@ end
 
 -- The slow components whose loading is announced (convaiNotices.loading, mod/notices.lua), in the order their lines show, and the
 -- line of each state. A state other than 'loading' and 'ready' is a failure: the line says what to do.
-local LOAD_KEYS = {'omni', 'pocket', 'local-ai'}
+-- The prep keys are the companions still being prepared (invitation board, manager-party.lua waiting()): one line each, in the
+-- same notice, with the text of what each waits for ("Preparing Evelyn: waiting for the voice model to load…"). They are
+-- loading until the companion has spawned or failed (a failure is its own notice) and have no ready line: "joined" is that.
+local PREP_KEYS = {'prep1', 'prep2', 'prep3'}
+local LOAD_KEYS = {'omni', 'pocket', 'local-ai', 'prep1', 'prep2', 'prep3'}
+local prepText, prepRevisions, loadBoard = {}, {}, nil
 local function loadingText(key, state)
+    if prepText[key] then return prepText[key] end
     if key == 'omni' then
         if state == 'loading' then return ui.t('Loading the OmniVoice voice…') end
         if state == 'ready' then return ui.t('OmniVoice voice is ready.') end
@@ -104,6 +110,21 @@ local function loadingText(key, state)
     if state == 'ready' then return ui.t('Local AI is ready.') end
     if state == 'no-memory' then return ui.t('Not enough graphics memory for Local AI. A cloud provider is used instead.') end
     return ui.t('Local AI could not start. Check Local AI in Settings > Development.')
+end
+
+-- The states the loading notice reads: the slow components (manager.loadStatus) and the companions still being prepared.
+-- Read by the notice at most once a second while nothing loads, a few times a second while something does.
+local function readLoads()
+    local states = manager.loadStatus()
+    if type(states) ~= 'table' then states = {} end
+    local waiting = loadBoard and type(loadBoard.waiting) == 'function' and loadBoard.waiting() or {}
+    for index, key in ipairs(PREP_KEYS) do
+        local line = waiting[index]
+        states[key] = line and 'loading' or nil
+        prepText[key], prepRevisions[key] = line and line.text or nil, line and line.text or nil
+    end
+    states.revisions = prepRevisions
+    return states
 end
 
 local function player()
@@ -2519,11 +2540,12 @@ function M.slowUpdate(currentPlayer, worldReady)
     -- rarely). The board reads the state at most once a second while nothing loads.
     local releaseLoading = false
     if type(convaiNotices) == 'table' and type(convaiNotices.loading) == 'function' and type(manager.loadStatus) == 'function' then
-        local lines, release = convaiNotices.loading(worldReady == true, LOAD_KEYS, manager.loadStatus, loadingText)
+        loadBoard = board
+        local lines, release = convaiNotices.loading(worldReady == true, LOAD_KEYS, readLoads, loadingText)
         releaseLoading = release == true
         if lines then
             for _, line in ipairs(lines) do
-                if line.phase == 'loading' then messages[#messages + 1] = {id = 'load-progress', text = line.text, instant = line.instant, mask = line.mask}
+                if line.phase == 'loading' then messages[#messages + 1] = {id = 'load-progress', text = line.text, instant = line.instant, mask = line.mask, sig = line.sig}
                 elseif line.phase == 'ready' then messages[#messages + 1] = {id = 'load-ready', text = line.text}
                 else messages[#messages + 1] = {id = 'load-failed', text = line.text} end
             end

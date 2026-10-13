@@ -629,29 +629,29 @@ events.onUpdate(1)
 assert((stats.loads['diagnostics.lua'] or 0) == 2 and files['runtime/diagnostic-response.txt'] == 'probe-2')
 `));
 
-test('a phone invitation shows a player the preparing line once at any wait and nothing else; the acknowledgement is gone, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
--- The first sight of the invitation posts one preparing line; no other progress shows, however long it waits.
-local prepared = 'Preparing connection to Judy…'
-assert(#feedback() == 1 and feedback()[1] == prepared, 'no single preparing line: ' .. table.concat(feedback(), ' | '))
+test('a phone invitation posts no ordinary notice while it waits, at any wait; the wait is the loading notice, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
+-- The ordinary notices carry no progress, however long it waits: what she waits for is a line of the held loading notice
+-- (mod/mcm.lua, tested in manager.test.mjs), which is not part of this harness.
+assert(#feedback() == 0, 'a notice was posted for the first sight of the invitation: ' .. table.concat(feedback(), ' | '))
 clock = clock + 7; receipt('memory'); events.onUpdate(0)
-assert(#feedback() == 1, 'the preparing line repeated after a long wait')
-events.onUpdate(0); assert(#feedback() == 1)
+assert(#feedback() == 0, 'a notice was posted after a long wait')
+events.onUpdate(0); assert(#feedback() == 0)
 clock = clock + 4; receipt('connecting'); events.onUpdate(0)
-assert(#feedback() == 1, 'Connecting showed to a player')
+assert(#feedback() == 0, 'Connecting showed to a player')
 clock = clock + 4; receipt('ready'); events.onUpdate(0)
-assert(#feedback() == 1, 'the ready line showed to a player')
+assert(#feedback() == 0, 'the ready line showed to a player')
 assert(partyQueue.list()[1].state == 'ready-to-join')
 -- Failure first seen while the phone is open: no popup, no consumed claim.
 receipt('error'); events.onUpdate(0); events.onUpdate(0); events.onUpdate(0)
-assert(partyQueue.list()[1].state == 'failed' and #feedback() == 1, 'the open phone consumed the failure notice')
+assert(partyQueue.list()[1].state == 'failed' and #feedback() == 0, 'the open phone consumed the failure notice')
 player.phoneOpen = false; events.onUpdate(0.1)
 local posted = feedback()
-assert(#posted == 2 and posted[2]:find('could not prepare', 1, true), 'gameplay did not post the single failure notice')
+assert(#posted == 1 and posted[1]:find('could not prepare', 1, true), 'gameplay did not post the single failure notice')
 for _ = 1, 3 do events.onUpdate(0.1); player.phoneOpen = true; events.onUpdate(0); player.phoneOpen = false end
-assert(#feedback() == 2 and stats.spawned == 0, 'the failed attempt notified again')
+assert(#feedback() == 1 and stats.spawned == 0, 'the failed attempt notified again')
 `));
 
-test('two phone invitations show their preparing lines once while they wait', () => run(`
+test('two phone invitations post no ordinary notice while they wait', () => run(`
 events.onInit(); events.onUpdate(0)
 local function feedback()
     local out = {}
@@ -667,7 +667,7 @@ local function receipt(state)
     files['runtime/companion-invitations-state.json'] = json.encode({version = 1,
         worldToken = request.worldToken, generation = request.generation, updated = clock * 1000, bridgePid = 99, invitations = rows})
 end
--- The bridge answers every two seconds: a receipt older than 2.5 s is ignored, and 15 s without one fails the preparation.
+-- The bridge answers every two seconds: a receipt older than 2.5 s is ignored, and a minute without one fails the preparation.
 local function answer(state, seconds)
     for _ = 1, seconds / 2 do clock = clock + 2; receipt(state); events.onUpdate(0) end
 end
@@ -677,12 +677,11 @@ answer('memory', 4)
 player.phoneRequest = '+johnny'; events.onUpdate(0)
 receipt('memory'); events.onUpdate(0)
 answer('memory', 12)
-assert(#feedback() == 2, 'unexpected notices while two invitations waited: ' .. table.concat(feedback(), ' | '))
-assert(feedback()[1] == 'Preparing connection to Judy…' and feedback()[2]:find('Judy', 1, true) and feedback()[2]:find('Johnny', 1, true), table.concat(feedback(), ' | '))
+assert(#feedback() == 0, 'unexpected notices while two invitations waited: ' .. table.concat(feedback(), ' | '))
 answer('connecting', 4)
 answer('ready', 4)
-assert(#feedback() == 2, 'the ready line showed to a player')
-events.onUpdate(0); assert(#feedback() == 2)
+assert(#feedback() == 0, 'the ready line showed to a player')
+events.onUpdate(0); assert(#feedback() == 0)
 `));
 
 const worldCharacterFixture = `
@@ -780,13 +779,13 @@ hotkeys.cyberpunk_convai_text(); assert(player.composerOpen); player.composerOpe
 assert(#feedback() == 0, 'a connected character showed a notice: ' .. table.concat(feedback(), ' | '))
 `));
 
-test('a phone invitation shows the same single preparing line with Developer mode on, and no acknowledgement or other progress', () => run(`${phoneNoticeFixture}
+test('a phone invitation posts no acknowledgement or progress with Developer mode on either', () => run(`${phoneNoticeFixture}
 `.replace('events.onInit();', 'stats.developer = true; events.onInit();') + `
-assert(early <= 1 and #feedback() == 1 and feedback()[1] == 'Preparing connection to Judy…', 'Developer mode changed the preparing line or added an acknowledgement: ' .. table.concat(feedback(), ' | '))
+assert(early == 0 and #feedback() == 0, 'Developer mode added a preparing line or an acknowledgement: ' .. table.concat(feedback(), ' | '))
 clock = clock + 4; receipt('connecting'); events.onUpdate(0)
-assert(#feedback() == 1, 'Connecting showed to a developer: ' .. table.concat(feedback(), ' | '))
+assert(#feedback() == 0, 'Connecting showed to a developer: ' .. table.concat(feedback(), ' | '))
 clock = clock + 4; receipt('ready'); events.onUpdate(0); events.onUpdate(0)
-assert(#feedback() == 1, 'the ready line showed to a developer: ' .. table.concat(feedback(), ' | '))
+assert(#feedback() == 0, 'the ready line showed to a developer: ' .. table.concat(feedback(), ' | '))
 `));
 
 test('phone cancellation and save restoration reject earlier ready invitation receipts', () => run(`

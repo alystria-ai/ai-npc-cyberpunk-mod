@@ -19,7 +19,8 @@ function run(code) {
 
 // A board with a controllable clock and a table of invitation states standing in for the
 // party queue. The board posts only "joined" and failures: no progress text (preparing,
-// connecting, ready, joining) in any mode, so the states below never reach the screen.
+// connecting, ready, joining) in any mode, so the states below never reach the screen. What a companion waits
+// for is read through waiting() by the loading notice.
 const fixture = `
   local module = (function() ${queueSource} end)()
   local clock, states = 10000, {}
@@ -63,64 +64,100 @@ test('no progress is posted for a lone invitation at any stage, and its joined l
   `);
 });
 
-test('a profile invitation posts "Preparing connection to {name}…" once, then its joined line, and nothing for the later stages', () => {
+// What a companion still waits for is not an ordinary notice. The board hands it to the loading notice (mod/mcm.lua) as
+// waiting() lines; the notice holds them on screen until she has spawned, so the board itself posts nothing for any stage.
+test('a profile invitation posts no ordinary notice while it prepares, then its joined line; its wait is a waiting() line until it joins', () => {
   run(`${fixture}
     set('a', 'Judy', 'memory', 1, 'judy-alvarez'); board.track('a', 'manager')
-    assert(post() == 'Preparing connection to Judy…', 'no preparing line')
+    assert(post() == nil, 'an ordinary preparing notice was posted')
+    assert(#board.waiting() == 1 and board.waiting()[1].text == 'Preparing Judy: waiting for the memory service…', board.waiting()[1] and board.waiting()[1].text)
     for _, state in ipairs({'memory', 'connecting', 'connecting', 'ready'}) do
       clock = clock + 5000; set('a', 'Judy', state, 1, 'judy-alvarez')
-      assert(post(state == 'ready') == nil, 'a later stage posted: ' .. state)
+      assert(post(state == 'ready') == nil, 'a stage posted: ' .. state)
     end
     clock = clock + 5000
     assert(post(true) == nil, 'the joining step posted')
     states.a = nil; joined('Judy')
     assert(post(true) == 'Judy joined your group.', 'joined did not follow')
+    assert(#board.waiting() == 0, 'a joined companion still waits')
   `);
 });
 
-test('a profile invitation whose connection is already open, or first seen ready, posts only joined', () => {
+test('each blocking step has its own line, and the line follows the step as it changes', () => {
   run(`${fixture}
-    local open = {['judy-alvarez'] = true}
-    board = module.newBoard({now = function() return clock end, feedback = function(id) return states[id] end,
-      connected = function(key) return open[key] == true end})
-    set('a', 'Judy', 'memory', 1, 'judy-alvarez'); board.track('a', 'manager')
-    assert(post() == nil, 'an open connection was announced as preparing')
-    clock = clock + 5000; set('a', 'Judy', 'connecting', 1, 'judy-alvarez'); assert(post() == nil)
-    -- A ticket first seen already ready has no preparing line either.
-    set('b', 'Johnny', 'ready', 1, 'johnny-silverhand'); board.track('b', 'phone')
-    clock = clock + 5000; assert(post() == nil)
-    states.a = nil; states.b = nil; joined('Judy'); joined('Johnny')
-    assert(post() == 'Judy and Johnny joined your group.', 'joined did not show alone')
+    set('a', 'Evelyn', 'memory', 1, 'evelyn-parker'); board.track('a', 'phone')
+    local function line(world) post(world); local waiting = board.waiting(); return waiting[1] and waiting[1].text end
+    states.a.wait = 'bridge'
+    assert(line() == 'Preparing Evelyn: waiting for the conversation service to connect…', line())
+    states.a.wait = 'memory'
+    assert(line() == 'Preparing Evelyn: waiting for the memory service…', line())
+    states.a.wait = 'queued'
+    assert(line() == 'Preparing Evelyn: waiting for the memory service…', 'a queued step is worded as the memory service')
+    states.a.wait = 'voice'
+    assert(line() == 'Preparing Evelyn: waiting for the voice model to load…', line())
+    set('a', 'Evelyn', 'connecting', 1, 'evelyn-parker'); states.a.wait = 'connection'
+    assert(line() == 'Preparing Evelyn: waiting for the conversation connection to open…', line())
+    -- Ready in a paused menu: she spawns when V returns to the game, nothing is left to wait for.
+    set('a', 'Evelyn', 'ready', 1, 'evelyn-parker')
+    assert(line(false) == nil and #board.waiting() == 0, 'a ready companion in a menu still waits')
+    -- In gameplay a ready invitation is being created: that wait is shown until she attaches.
+    assert(line(true) == 'Preparing Evelyn: waiting for the game to place the character…', line(true))
+    states.a = nil
+    assert(line(true) == nil)
   `);
 });
 
-test('the preparing line is read from the connection once per invitation, and an unreadable state means it is shown', () => {
+test('a stale receipt that reads an earlier step again does not bring the earlier wait line back', () => {
   run(`${fixture}
-    local reads = 0
-    board = module.newBoard({now = function() return clock end, feedback = function(id) return states[id] end,
-      connected = function(key) reads = reads + 1; return false end})
-    set('a', 'Judy', 'memory', 1, 'judy-alvarez'); board.track('a', 'manager')
-    for _ = 1, 6 do post(); clock = clock + 5000 end
-    assert(reads == 1, 'the connection state was read ' .. reads .. ' times')
-    board = module.newBoard({now = function() return clock end, feedback = function(id) return states[id] end,
-      connected = function() error('state file unreadable') end})
-    set('b', 'Panam', 'memory', 1, 'panam-palmer'); board.track('b', 'manager')
-    assert(post() == 'Preparing connection to Panam…')
+    set('a', 'Evelyn', 'connecting', 1, 'evelyn-parker'); board.track('a', 'phone'); states.a.wait = 'connection'
+    post()
+    assert(board.waiting()[1].text == 'Preparing Evelyn: waiting for the conversation connection to open…')
+    set('a', 'Evelyn', 'memory', 1, 'evelyn-parker'); states.a.wait = 'bridge'
+    post()
+    assert(board.waiting()[1].text == 'Preparing Evelyn: waiting for the conversation connection to open…', 'the line went back a step')
+    -- A new revision (another profile) is a new attempt and starts from its own step.
+    set('a', 'Evelyn', 'memory', 2, 'judy-alvarez'); states.a.wait = 'voice'
+    post()
+    assert(board.waiting()[1].text == 'Preparing Evelyn: waiting for the voice model to load…')
   `);
 });
 
-test('several companions preparing together share one notice with a line each, and two copies of one character share a line', () => {
+test('a failed or cancelled invitation stops waiting at once: the failure is its own notice, nothing stays on screen', () => {
+  run(`${fixture}
+    set('a', 'Evelyn', 'memory', 1, 'evelyn-parker'); board.track('a', 'phone'); states.a.wait = 'voice'
+    post(); assert(#board.waiting() == 1)
+    set('a', 'Evelyn', 'error', 1, 'evelyn-parker'); failed('Evelyn', 'The voice model did not load. Check the voice in Settings or choose another one, then invite again.')
+    assert(post(true) == 'Evelyn could not join: The voice model did not load. Check the voice in Settings or choose another one, then invite again.')
+    assert(#board.waiting() == 0, 'a failed companion still waits')
+    set('b', 'Judy', 'memory', 1, 'judy-alvarez'); board.track('b', 'manager'); post()
+    assert(#board.waiting() == 1)
+    states.b = nil
+    post(); assert(#board.waiting() == 0, 'a cancelled invitation still waits')
+  `);
+});
+
+test('several companions preparing together each have a line, two copies of one character share a line, and a long list ends in a count', () => {
   run(`${fixture}
     set('a', 'Judy', 'memory', 1, 'judy-alvarez'); board.track('a', 'manager')
-    assert(post() == 'Preparing connection to Judy…')
+    post(); assert(#board.waiting() == 1 and board.waiting()[1].name == 'Judy')
     clock = clock + 5000
-    set('b', 'Johnny', 'memory', 1, 'johnny-silverhand'); board.track('b', 'manager')
-    assert(post() == 'Preparing connection to Judy…\\nPreparing connection to Johnny…')
-    clock = clock + 5000
+    set('b', 'Johnny', 'memory', 1, 'johnny-silverhand'); board.track('b', 'manager'); states.b.wait = 'voice'
+    post()
+    local waiting = board.waiting()
+    assert(#waiting == 2 and waiting[1].text == 'Preparing Judy: waiting for the memory service…'
+        and waiting[2].text == 'Preparing Johnny: waiting for the voice model to load…', 'a second request replaced the first line')
     set('c', 'Judy', 'memory', 1, 'judy-alvarez'); board.track('c', 'manager')
-    assert(post() == 'Preparing connection to Judy…\\nPreparing connection to Johnny…', 'a second copy was not announced')
-    clock = clock + 5000
-    assert(post() == nil, 'the same preparing notice repeated')
+    post(); assert(#board.waiting() == 2, 'a second copy of one character got a second line')
+    -- Judy finishes: Johnny keeps his line, which moves up.
+    states.a, states.c = nil, nil
+    post(); waiting = board.waiting()
+    assert(#waiting == 1 and waiting[1].name == 'Johnny')
+    for index, name in ipairs({'Panam', 'River', 'Kerry'}) do set('d' .. index, name, 'memory', 1, name:lower()); board.track('d' .. index, 'manager') end
+    post(); waiting = board.waiting()
+    assert(#waiting == 3 and waiting[1].name == 'Johnny' and waiting[2].name == 'Panam'
+        and waiting[3].text == 'Preparing 2 more companions…', waiting[3].text)
+    for index = 1, 3 do states['d' .. index] = nil end
+    post(); assert(#board.waiting() == 1)
   `);
 });
 

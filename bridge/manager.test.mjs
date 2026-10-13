@@ -1519,106 +1519,85 @@ const managerPopupFixture = `
     popupClock, popupHighRes = popupClock + popupStep, popupHighRes + popupStep
     mcm.update(player, worldReady == true)
   end
-  -- The bridge's open connections (mod/auto-connect.lua connected()): an invitation whose connection is open skips the preparing line.
-  local openKeys = {}
-  convaiAutoConnect = {connected = function(key) return openKeys[key] == true end}
-  local function preparing(name) return 'Preparing connection to ' .. name .. '…' end
+  -- What a companion waits for is the loading notice's line (the real clock is not this fixture's, so the loading notice
+  -- does not show here; the 'preparing notice' tests below drive it). No ordinary popup carries a preparing line.
   local function developer(enabled)
     assert(registered.applyBatch('manager', {{id = 'developerMode', value = enabled == true}}).ok)
   end
 `;
 
-test('with Developer mode on, a manager invitation posts the preparing line once, then joined, and no joining step', () => {
+test('with Developer mode on, a manager invitation posts no ordinary notice while it prepares, then joined, and no joining step', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok)
     nativeCallback = true; assert(invoke('invite:johnny-silverhand').ok); nativeCallback = false
     assert(#popups == 0, 'invitation posted a popup inside its native action callback')
-    popupTick(false)
-    assert(#popups == 1 and popups[1] == preparing('Johnny Silverhand'), 'no preparing line: ' .. tostring(popups[1]))
-    for _ = 1, 5 do popupTick(false) end
-    assert(#popups == 1, 'the same ticket repeated its preparing line')
+    for _ = 1, 6 do popupTick(false) end
+    assert(#popups == 0, 'a preparing popup was posted: ' .. tostring(popups[1]))
     readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
-    assert(#popups == 1, 'connecting posted a popup: ' .. tostring(popups[#popups]))
+    assert(#popups == 0, 'connecting posted a popup: ' .. tostring(popups[#popups]))
     readiness.receipts['queued:1'] = {state = 'ready'}; popupTick(false)
-    assert(#popups == 1, 'the ready line posted a popup: ' .. tostring(popups[#popups]))
+    assert(#popups == 0, 'the ready line posted a popup: ' .. tostring(popups[#popups]))
     assert(#spawned == 0)
     popupTick(true)
-    assert(#popups == 1 and #spawned == 1, 'the joining step posted a popup: ' .. tostring(popups[#popups]))
-    popupTick(true); assert(#popups == 1)
+    assert(#popups == 0 and #spawned == 1, 'the joining step posted a popup: ' .. tostring(popups[#popups]))
+    popupTick(true); assert(#popups == 0)
     members[1].state = 'ready'; popupTick(true)
-    assert(#popups == 2 and popups[2] == 'Johnny Silverhand joined your group.', tostring(popups[#popups]))
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand joined your group.', tostring(popups[#popups]))
     for _ = 1, 5 do popupTick(true) end
-    assert(#popups == 2, 'the joined notice repeated')
+    assert(#popups == 1, 'the joined notice repeated')
   `);
 });
 
-test('an invitation whose connection is already open posts only joined, with no preparing line', () => {
+test('a ticket first seen ready posts only joined', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
-    openKeys['johnny-silverhand'] = true
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
+    readiness.receipts['queued:1'] = {state = 'ready'}  -- ready before the board first looks
     popupTick(false); popupTick(false)
-    assert(#popups == 0, 'an open connection was announced as preparing: ' .. tostring(popups[1]))
-    readiness.receipts['queued:1'] = {state = 'ready'}; popupTick(false); popupTick(true)
-    assert(#spawned == 1 and #popups == 0)
+    assert(#popups == 0, 'a ticket first seen ready posted a notice: ' .. tostring(popups[1]))
+    popupTick(true); assert(#spawned == 1 and #popups == 0)
     members[1].state = 'ready'; popupTick(true)
     assert(#popups == 1 and popups[1] == 'Johnny Silverhand joined your group.', tostring(popups[#popups]))
   `);
 });
 
-test('the preparing line is decided when the invitation is first seen: a ticket already ready then, or already open, has none', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
-    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
-    readiness.receipts['queued:1'] = {state = 'ready'}  -- ready before the board first looks
-    popupTick(false)
-    assert(#popups == 0, 'a ticket first seen ready posted a preparing line: ' .. tostring(popups[1]))
-    assert(invoke('invite:person-1').ok); popupTick(false)
-    assert(#popups == 1 and popups[1] == preparing('Person 01'), tostring(popups[#popups]))
-    openKeys['person-1'] = true  -- opening later changes nothing for a ticket already announced
-    readiness.receipts['queued:2'] = {state = 'connecting'}; popupTick(false); popupTick(false)
-    assert(#popups == 1)
-  `);
-});
-
-test('leaving the manager shows the preparing line once in gameplay and then only an unresolved failure, and keeps phone invitations independent', () => {
+test('leaving the manager shows only an unresolved failure in gameplay, and keeps phone invitations independent', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     popupTick(false)
-    assert(#popups == 1 and popups[1] == preparing('Johnny Silverhand'))
     readiness.receipts['queued:1'] = {state = 'connecting'}
     -- Resume inside the same clock second: do not reuse the paused memory sample.
     mcm.update(player, true)
-    -- The paused menu hides the first line, so gameplay presents it once.
-    assert(#popups == 2 and popups[2] == preparing('Johnny Silverhand'), 'gameplay did not present the preparing line: ' .. tostring(popups[#popups]))
-    popupTick(true); assert(#popups == 2)
+    assert(#popups == 0, 'gameplay presented a preparing popup: ' .. tostring(popups[#popups]))
+    popupTick(true); assert(#popups == 0)
     assert(invoke('characters:back').ok and invoke('tab:settings').ok and invoke('memory').ok)
     assert(invoke('memory:choose').ok and invoke('memory:select:johnny-silverhand').ok)
     readiness.receipts['queued:1'] = {state = 'error', error = 'Private detail'}; popupTick(false)
-    assert(#popups == 2, 'the paused menu consumed the failure notice')
+    assert(#popups == 0, 'the paused menu consumed the failure notice')
     popupTick(true)
-    assert(#popups == 3 and popups[3] == 'Johnny Silverhand could not prepare: Private detail',
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand could not prepare: Private detail',
       'an unrelated footer action disabled the in-world notification')
     assert(party.dismiss('queued:1')); popupTick(true)
-    assert(#popups == 3, 'cancelled progress replayed on returning to gameplay')
+    assert(#popups == 1, 'cancelled progress replayed on returning to gameplay')
     assert(party.invite('person-1')); popupTick(false)
     readiness.receipts['queued:2'] = {state = 'connecting'}; popupTick(false)
-    assert(#popups == 3, 'manager added popups for a phone-owned invitation')
+    assert(#popups == 1, 'manager added popups for a phone-owned invitation')
   `);
 });
 
-test('each duplicate manager copy gets its own preparing line once, and a world reset leaves nothing behind', () => {
+test('duplicate manager copies post no preparing popup, and a world reset leaves nothing behind', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
     assert(invoke('invite:johnny-silverhand').ok); popupTick(false)
-    assert(#popups == 2 and popups[1] == popups[2] and popups[2] == preparing('Johnny Silverhand'), 'the second copy was not announced')
+    assert(#popups == 0, 'a copy posted a preparing popup: ' .. tostring(popups[1]))
     assert(party.dismiss('queued:2')); popupTick(false)
     -- The older copy is still in flight: its later stages are not posted.
     readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
-    assert(#popups == 2, 'the older copy posted progress: ' .. tostring(popups[#popups]))
+    assert(#popups == 0, 'the older copy posted progress: ' .. tostring(popups[#popups]))
     mcm.resetSession(); popupTick(true)
-    assert(#popups == 2 and #spawned == 0, 'world reset retained a stale popup or invitation')
+    assert(#popups == 0 and #spawned == 0, 'world reset retained a stale popup or invitation')
   `);
 });
 
@@ -1644,24 +1623,23 @@ test('Auto-connect nearby characters is on by default, offered under Conversatio
   `);
 });
 
-test('invitations made together show their preparing lines, then one joined summary and no other progress', () => {
+test('invitations made together post no progress, then one joined summary', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     popupStep = 11
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
-    assert(#popups == 1 and popups[1] == preparing('Johnny Silverhand'))
     assert(invoke('invite:person-1').ok); popupTick(false)
-    assert(#popups == 2 and popups[2] == preparing('Johnny Silverhand') .. '\\n' .. preparing('Person 01'), tostring(popups[#popups]))
+    assert(#popups == 0, 'a preparing popup was posted: ' .. tostring(popups[1]))
     readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
     readiness.receipts['queued:2'] = {state = 'connecting'}; popupTick(false)
     readiness.receipts['queued:1'] = {state = 'ready'}; readiness.receipts['queued:2'] = {state = 'ready'}
     popupTick(false)
-    assert(#popups == 2, 'progress after the preparing lines: ' .. tostring(popups[#popups]))
+    assert(#popups == 0, 'progress was posted: ' .. tostring(popups[#popups]))
     popupTick(true)
-    assert(#spawned == 2 and #popups == 2, 'the routine joining step posted')
+    assert(#spawned == 2 and #popups == 0, 'the routine joining step posted')
     members[1].state = 'ready'; members[2].state = 'ready'; popupTick(true)
-    assert(#popups == 3 and popups[3] == 'Johnny Silverhand and Person 01 joined your group.', popups[#popups])
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand and Person 01 joined your group.', popups[#popups])
     for _ = 1, 4 do popupTick(true) end
-    assert(#popups == 3, 'the finished burst repeated')
+    assert(#popups == 1, 'the finished burst repeated')
   `);
 });
 
@@ -1680,84 +1658,80 @@ test('one companion failing to prepare is reported without hiding the other one 
   `);
 });
 
-test('a preparing line hidden by the menu gets one gameplay presentation, and a failure hidden by the menu is posted once in gameplay', () => {
+test('a failure hidden by the menu is posted once in gameplay', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
-    assert(#popups == 1 and popups[1] == preparing('Johnny Silverhand'))
     mcm.update(player, true)
-    assert(#popups == 2 and popups[2] == preparing('Johnny Silverhand'), 'gameplay did not present the preparing line')
     for _ = 1, 3 do popupTick(true); popupTick(false) end
-    popupTick(true); assert(#popups == 2, 'reopening the menu repeated the preparing line')
+    popupTick(true); assert(#popups == 0, 'reopening the menu posted a preparing popup')
     readiness.receipts['queued:1'] = {state = 'error', error = 'Bridge unavailable'}; popupTick(false)
     -- The paused menu shows the failure in its banner only and keeps the claim.
     for _ = 1, 3 do popupTick(false) end
-    assert(#popups == 2, 'the paused menu consumed the single failure notice')
+    assert(#popups == 0, 'the paused menu consumed the single failure notice')
     popupTick(true)
-    assert(#popups == 3 and popups[3] == 'Johnny Silverhand could not prepare: Bridge unavailable',
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand could not prepare: Bridge unavailable',
       'the failure was not posted when gameplay resumed')
     -- A failed attempt reports once: gameplay is the claim.
     for _ = 1, 3 do popupTick(true); popupTick(false) end
-    assert(#popups == 3, 'the existing failure notice was duplicated by a second preparation failure')
+    assert(#popups == 1, 'the existing failure notice was duplicated by a second preparation failure')
   `);
 });
 
-test('a quick manager invitation shows its preparing line, then joined once that line has been up its minimum time; a slow one shows the same single line', () => {
+test('a quick manager invitation posts only joined, however long the wait', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     popupStep = 0.2
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     popupTick(false)
-    assert(#popups == 1 and popups[1] == preparing('Johnny Silverhand'))
     readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
-    assert(#popups == 1, 'routine progress showed to a player: ' .. tostring(popups[#popups]))
+    assert(#popups == 0, 'routine progress showed to a player: ' .. tostring(popups[#popups]))
     readiness.receipts['queued:1'] = {state = 'ready'}; popupTick(false)
-    assert(#popups == 1, 'the ready line showed to a player: ' .. tostring(popups[#popups]))
-    popupTick(true); assert(#spawned == 1 and #popups == 1)
+    assert(#popups == 0, 'the ready line showed to a player: ' .. tostring(popups[#popups]))
+    popupTick(true); assert(#spawned == 1 and #popups == 0)
     members[1].state = 'ready'
     for _ = 1, 30 do popupTick(true) end
-    assert(#popups == 2 and popups[2] == 'Johnny Silverhand joined your group.', 'the joined line did not show: ' .. tostring(popups[#popups]))
-    -- A slower invitation shows the same single preparing line, however long the wait.
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand joined your group.', 'the joined line did not show: ' .. tostring(popups[#popups]))
+    -- A slower invitation posts nothing but its outcome either.
     popupStep = 11
     assert(invoke('invite:person-1').ok)
     popupTick(false); popupTick(false)
     readiness.receipts['queued:2'] = {state = 'ready'}; popupTick(false)
-    assert(#popups == 3 and popups[3] == preparing('Person 01'), 'a slow invitation did not show one preparing line: ' .. tostring(popups[#popups]))
+    assert(#popups == 1, 'a slow invitation posted progress: ' .. tostring(popups[#popups]))
   `);
 });
 
-test('a player sees the preparing line then joined, and Developer mode adds no joining step', () => {
+test('a player sees only joined, and Developer mode adds no joining step', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     assert(not manager.developerMode())
     popupStep = 11
     assert(invoke('tab:characters').ok)
     nativeCallback = true; assert(invoke('invite:johnny-silverhand').ok); nativeCallback = false
     popupTick(false)
-    assert(#popups == 1 and popups[1] == preparing('Johnny Silverhand'), 'no preparing line for a player: ' .. tostring(popups[1]))
+    assert(#popups == 0, 'a preparing popup for a player: ' .. tostring(popups[1]))
     readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
     readiness.receipts['queued:1'] = {state = 'ready'}; popupTick(false)
-    assert(#popups == 1, 'the ready line showed to a player')
+    assert(#popups == 0, 'the ready line showed to a player')
     popupTick(true)
-    assert(#popups == 1 and #spawned == 1, 'the routine joining stage posted a popup with Developer mode off')
-    popupTick(true); popupTick(true); assert(#popups == 1)
+    assert(#popups == 0 and #spawned == 1, 'the routine joining stage posted a popup with Developer mode off')
+    popupTick(true); popupTick(true); assert(#popups == 0)
     members[1].state = 'ready'; popupTick(true)
-    assert(#popups == 2 and popups[2] == 'Johnny Silverhand joined your group.')
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand joined your group.')
     for _ = 1, 3 do popupTick(true) end
-    assert(#popups == 2)
+    assert(#popups == 1)
   `);
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     popupStep = 11
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     popupTick(false)
-    assert(#popups == 1 and popups[1] == preparing('Johnny Silverhand'))
     readiness.receipts['queued:1'] = {state = 'ready'}; popupTick(false)
-    assert(#popups == 1, 'the ready line waits or shows for a player')
-    popupTick(true); assert(#popups == 1)
-    -- Turning Developer mode on adds no joining step: only the joined line follows the preparing line.
+    assert(#popups == 0, 'the ready line waits or shows for a player')
+    popupTick(true); assert(#popups == 0)
+    -- Turning Developer mode on adds no joining step: only the joined line follows.
     developer(true); popupTick(true)
-    assert(#popups == 1, 'turning Developer mode on posted the joining step: ' .. tostring(popups[#popups]))
-    popupTick(true); popupTick(true); assert(#popups == 1)
+    assert(#popups == 0, 'turning Developer mode on posted the joining step: ' .. tostring(popups[#popups]))
+    popupTick(true); popupTick(true); assert(#popups == 0)
     developer(false); members[1].state = 'ready'; popupTick(true)
-    assert(#popups == 2 and popups[2] == 'Johnny Silverhand joined your group.')
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand joined your group.')
   `);
 });
 
@@ -1766,23 +1740,22 @@ test('a preparation failure first seen in the paused menu posts exactly one game
     popupStep = 11
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     popupTick(false)
-    assert(#popups == 1 and popups[1] == preparing('Johnny Silverhand'))
     readiness.receipts['queued:1'] = {state = 'error', error = 'Bridge unavailable'}
     for _ = 1, 4 do popupTick(false) end
-    assert(#popups == 1, 'the paused menu posted the failure notice')
+    assert(#popups == 0, 'the paused menu posted the failure notice')
     assert(party.preparationFeedback().failed, 'the manager banner must still show the failure')
     popupTick(true)
-    assert(#popups == 2 and popups[2] == 'Johnny Silverhand could not prepare: Bridge unavailable')
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand could not prepare: Bridge unavailable')
     for _ = 1, 4 do popupTick(true); popupTick(false) end
-    assert(#popups == 2 and #spawned == 0, 'the failed attempt notified again or was retried')
-    -- Cancelling and inviting again is a new attempt with its own preparing line and its own notice.
+    assert(#popups == 1 and #spawned == 0, 'the failed attempt notified again or was retried')
+    -- Cancelling and inviting again is a new attempt with its own notice.
     assert(invoke('characters:back').ok and invoke('tab:party').ok and invoke('dismiss:queued:1').ok)
     assert(invoke('party:back').ok and invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
-    assert(#popups == 3 and popups[3] == preparing('Johnny Silverhand'))
+    assert(#popups == 1)
     readiness.receipts['queued:2'] = {state = 'error', error = 'Still unavailable'}
-    popupTick(false); assert(#popups == 3)
+    popupTick(false); assert(#popups == 1)
     popupTick(true)
-    assert(#popups == 4 and popups[4] == 'Johnny Silverhand could not prepare: Still unavailable')
+    assert(#popups == 2 and popups[2] == 'Johnny Silverhand could not prepare: Still unavailable')
   `);
 });
 
@@ -1790,13 +1763,12 @@ test('an already joined manager invitation cannot replay preparation when the ga
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
-    assert(#popups == 1 and popups[1] == preparing('Johnny Silverhand'))
     readiness.receipts['queued:1'] = {state = 'ready'}
     party.flush(); members[1].state = 'ready'
     mcm.update(player, true)
-    assert(#popups == 2 and popups[2] == 'Johnny Silverhand joined your group.', tostring(popups[#popups]))
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand joined your group.', tostring(popups[#popups]))
     for _ = 1, 5 do popupTick(true) end
-    assert(#popups == 2)
+    assert(#popups == 1)
   `);
 });
 
@@ -1804,7 +1776,6 @@ test('a deferred world spawn posts no joining text, and the joined line once it 
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
-    assert(#popups == 1 and popups[1] == preparing('Johnny Silverhand'))
     readiness.receipts['queued:1'] = {state = 'ready'}
     local originalSpawn, attempts = api.spawn, 0
     api.spawn = function(key)
@@ -1813,12 +1784,12 @@ test('a deferred world spawn posts no joining text, and the joined line once it 
       return originalSpawn(key)
     end
     popupTick(true)
-    assert(#spawned == 0 and #popups == 1, 'the deferred spawn posted a joining step: ' .. tostring(popups[#popups]))
+    assert(#spawned == 0 and #popups == 0, 'the deferred spawn posted a joining step: ' .. tostring(popups[#popups]))
     popupTick(true); popupTick(true)
-    assert(attempts == 3 and #spawned == 1 and #popups == 1,
+    assert(attempts == 3 and #spawned == 1 and #popups == 0,
       'admitting the deferred spawn posted a notice before the companion joined')
     members[1].state = 'ready'; popupTick(true)
-    assert(#popups == 2 and popups[2] == 'Johnny Silverhand joined your group.')
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand joined your group.')
   `);
 });
 
@@ -6185,6 +6156,84 @@ test('OmniVoice and Local AI loading together are one notice with a line each', 
     step(40); assert(#posts == count and #shown == 0, 'the notice was posted again')
     voice.state, mistral.localAi = 'ready', 'ready'; step(2)
     assert(#shown == 1 and shown[1]:find('OmniVoice voice is ready.', 1, true) and shown[1]:find('Local AI is ready.', 1, true), tostring(shown[1]))
+  `);
+});
+
+// A companion still being prepared is a line of the same held notice: "Preparing {name}: waiting for ...", naming the step that
+// blocks her, following it as it changes, listing every companion waiting, and down only once she has spawned (or failed, which
+// is a notice of its own). Nothing is posted per frame: the board is read on the manager's 0.25 s tick.
+test('a companion that is still preparing is one held notice line naming what she waits for, until she has spawned', () => {
+  run(`${mcmFixture}${invitationFixture}${loadingFixture}
+    voice.state = 'ready'
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
+    readiness.receipts['queued:1'] = {state = 'memory', wait = 'bridge'}
+    step(1); assert(#posts == 0 and #shown == 0, 'a notice before the wait had lasted 1.5 s: ' .. tostring(posts[1] and posts[1].text))
+    step(1.5)
+    assert(#posts == 1 and posts[1].text == 'Preparing Johnny Silverhand: waiting for the conversation service to connect…'
+        and not posts[1].instant, tostring(posts[1] and posts[1].text))
+    step(30); assert(#posts == 1 and #shown == 0 and clears == 0, 'the held notice was posted again or hidden: ' .. #posts)
+    -- The step changes: the same notice is updated in place, instantly.
+    readiness.receipts['queued:1'] = {state = 'memory', wait = 'voice'}; step(1)
+    assert(#posts == 2 and posts[2].instant == true and posts[2].text == 'Preparing Johnny Silverhand: waiting for the voice model to load…',
+      tostring(posts[#posts].text))
+    readiness.receipts['queued:1'] = {state = 'connecting', wait = 'connection'}; step(1)
+    assert(#posts == 3 and posts[3].text == 'Preparing Johnny Silverhand: waiting for the conversation connection to open…', posts[#posts].text)
+    -- A second request while the first is preparing: both names, the first line unchanged.
+    assert(invoke('invite:person-1').ok)
+    readiness.receipts['queued:2'] = {state = 'memory', wait = 'memory'}; step(1)
+    assert(#posts == 3, 'the second line showed before it had lasted 1.5 s')
+    step(1.5)
+    assert(#posts == 4 and posts[4].text == 'Preparing Johnny Silverhand: waiting for the conversation connection to open…\\n'
+        .. 'Preparing Person 01: waiting for the memory service…', posts[#posts].text)
+    -- The first one is ready and spawns; its line goes, hers stays. The held notice never lapses in between.
+    readiness.receipts['queued:1'] = {state = 'ready'}; step(1)
+    assert(#spawned == 1)
+    members[1].state = 'ready'; step(1)
+    assert(posts[#posts].text:find('Preparing Person 01', 1, true) and not posts[#posts].text:find('Johnny', 1, true), posts[#posts].text)
+    -- Her joined line waits up to 4 s for the other companion of the burst, then shows on its own.
+    step(5)
+    assert(shown[#shown] == 'Johnny Silverhand joined your group.', tostring(shown[#shown]))
+    -- She fails: the notice comes down and her failure is its own notice, naming what failed and what to do.
+    shown = {}
+    readiness.receipts['queued:2'] = {state = 'error', error = 'Bridge text', kind = 'voice'}; step(1)
+    -- (The board merges it with the earlier joined line of the same burst, as it always has.)
+    assert(shown[#shown]:find('Person 01 could not prepare: The voice model did not load. Check the voice in Settings or choose another one, then invite again.', 1, true),
+      tostring(shown[#shown]))
+    step(30)
+    assert(screen[1] ~= 'Preparing Person 01: waiting for the memory service…', 'the wait stayed up after the failure: ' .. tostring(screen[1]))
+  `);
+});
+
+test('a companion that is ready before the wait notice is due shows nothing, and the wait notice is never put on screen from a menu', () => {
+  run(`${mcmFixture}${invitationFixture}${loadingFixture}
+    voice.state = 'ready'
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
+    readiness.receipts['queued:1'] = {state = 'memory', wait = 'memory'}
+    step(1)
+    readiness.receipts['queued:1'] = {state = 'ready'}; step(1)
+    members[1].state = 'ready'; step(10)
+    assert(#posts == 0 and #shown == 1 and shown[1] == 'Johnny Silverhand joined your group.', 'a quick preparation announced a wait: ' .. tostring(posts[1] and posts[1].text))
+    shown = {}
+    assert(invoke('invite:person-1').ok)
+    readiness.receipts['queued:2'] = {state = 'memory', wait = 'voice'}
+    step(10, false)
+    assert(#posts == 0 and #shown == 0, 'a popup was posted from a menu')
+    step(1)
+    assert(#posts == 1 and posts[1].text == 'Preparing Person 01: waiting for the voice model to load…', tostring(posts[1] and posts[1].text))
+  `);
+});
+
+test('a slow component and a preparing companion share the one held notice', () => {
+  run(`${mcmFixture}${invitationFixture}${loadingFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
+    readiness.receipts['queued:1'] = {state = 'memory', wait = 'voice'}
+    step(3)
+    assert(#posts == 1 and posts[1].text == 'Loading the OmniVoice voice…\\nPreparing Johnny Silverhand: waiting for the voice model to load…', posts[#posts].text)
+    -- The voice finishes: its ready line is its own notice; the companion's wait goes on in the held one.
+    voice.state = 'ready'; step(1)
+    assert(shown[#shown] == 'OmniVoice voice is ready.', tostring(shown[#shown]))
+    step(6)
+    assert(posts[#posts].text == 'Preparing Johnny Silverhand: waiting for the voice model to load…', posts[#posts].text)
   `);
 });
 
