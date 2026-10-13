@@ -434,7 +434,7 @@ test('a companion is told, first and plainly, that she is with V in person and w
   const says = {standing: /standing near V in Kabuki/, combat: /in a fight alongside V in Kabuki/, 'to-seat': /walking over to sit down beside V/,
     seated: /sitting beside V in Kabuki/, 'getting-up': /getting up from your seat/, passenger: /riding along in V's vehicle through Kabuki/,
     driving: /driving V's vehicle through Kabuki/, boarding: /getting into V's vehicle/, 'leaving-car': /getting out of V's vehicle/,
-    distracting: /off distracting someone for V/, attacking: /going after a target V picked/};
+    attacking: /going after a target V picked/};
   for (const [activity, pattern] of Object.entries(says)) assert.match(doing(activity), pattern, activity);
   // No activity known: still in person, nothing else claimed.
   assert.match(doing(undefined), /^Right now \(from the game, this turn only\): You are with V in person in Kabuki, Watson\. It is/);
@@ -513,8 +513,8 @@ test('Lua: the activity of a companion comes from the states the companion modul
   is(c({transport = {owned = true, phase = 'riding', seat = 'seat_front_right', mountedSeat = 'seat_front_left'}}), 'driving')
   is(c({transport = {owned = true, phase = 'boarding'}}), 'boarding'); is(c({transport = {owned = true, phase = 'unmounting'}}), 'leaving-car')
   is(c({transport = {owned = false, phase = 'on-foot'}, behavior = 'alongside'}), 'following')
-  is(c({tactic = {kind = 'distract', phase = 'talk'}}), 'distracting'); is(c({tactic = {kind = 'fight', phase = 'fighting'}}), 'attacking')
-  is(c({tactic = {kind = 'fight', phase = 'returning'}, behavior = 'alongside'}), 'following')
+  is(c({tactic = {kind = 'fight', phase = 'fighting'}}), 'attacking')
+  is(c({tactic = {kind = 'unknown', phase = 'talk'}, behavior = 'alongside'}), 'following')
   is(c({transport = {owned = true, phase = 'riding'}, seating = 'seated', behavior = 'combat'}), 'passenger')
 `));
 

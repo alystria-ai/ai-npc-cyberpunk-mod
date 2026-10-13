@@ -936,6 +936,7 @@ function M.abandon(preserveTransit)
     -- Native components may already be torn down. Dropping references is enough:
     -- these DynamicEntitySystem copies are explicitly nonpersistent.
     if M.bodyAnimation and M.bodyAnimation.abandon then pcall(M.bodyAnimation.abandon,'companions-abandoned') end
+    if M.stance and M.stance.abandon then pcall(M.stance.abandon) end
     for _,entry in ipairs(entries) do
         if entry.motor then actuator.abandon(entry.motor) end
         if entry.equipment then equipment.abandon(entry.equipment) end
@@ -2088,6 +2089,19 @@ local function recoverDistant(entry,player)
     return moved==true
 end
 
+-- Why a managed copy must stand although V crouches (companion-stance.lua): the transport, lift,
+-- leaving and tactic owners, or a body animation, hold her body. In-memory flags only; nil = may crouch.
+local function stanceBlocker(entry)
+    if vehicles.owns(fleet,entry.serial) then return 'vehicle' end
+    local s=passageState
+    if s.riding or s.inCar or (s.lift and (s.lift.inside or s.lift.moving)) or entry.riding or entry.rideHidden
+        or entry.relocation or entry.carWalk or entry.carSearch then return 'lift' end
+    if M.departure and M.departure.owns(entry.serial) then return 'leaving' end
+    if M.tactics and M.tactics.owns(entry.serial) then return 'tactic' end
+    if M.bodyAnimation and M.bodyAnimation.owns and M.bodyAnimation.owns(entry) then return 'seated' end
+    if entry.floorTeleport then return 'placing' end
+end
+
 function M.update(player,delta,focusEntity)
     if not externalSpatialFrame then spatialFrame() end
     -- The MoveTo observer (companion-locomotion.lua) skips all work without a managed copy.
@@ -2150,6 +2164,8 @@ function M.update(player,delta,focusEntity)
     -- copy alone. Nil in the shipped mod: one nil check per tick, nothing per copy.
     local quiet=M.devQuiet
     if quiet then for i=#ready,1,-1 do if quiet[ready[i].serial] then table.remove(ready,i) end end end
+    -- Crouch with V (companion-stance.lua): a few comparisons unless V crouches or a copy is held crouched.
+    if M.stance then pcall(M.stance.tick,step,ready,player,stanceBlocker) end
     -- Service empty fleets too: the last dismissal can leave a car waiting for
     -- native cancellation/empty-seat confirmation after walking has no frame.
     vehicles.update(fleet,player,ready,step,vehicleHooks)

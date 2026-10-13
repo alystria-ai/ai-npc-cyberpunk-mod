@@ -23,7 +23,7 @@ const ACTIVITIES = {
   'to-seat': [', walking over to sit down beside V', 'in'], seated: [', sitting beside V', 'in'],
   'getting-up': [', getting up from your seat beside V', 'in'], passenger: [", riding along in V's vehicle", 'through'],
   driving: [", driving V's vehicle", 'through'], boarding: [", getting into V's vehicle", 'in'],
-  'leaving-car': [", getting out of V's vehicle", 'in'], distracting: [', off distracting someone for V', 'in'],
+  'leaving-car': [", getting out of V's vehicle", 'in'],
   attacking: [', going after a target V picked', 'in']};
 // What a remote character is told to hold to: not with V, no view of V's surroundings, no invented place or doing of her own.
 const PHONE_SUFFIX = " Treat this as fact: you are not with V and cannot see V's surroundings, and you do not know how near or far you are, so never say you are there, close or nearby. "

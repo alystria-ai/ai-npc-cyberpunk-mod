@@ -53,7 +53,7 @@ Never offered on (kept as before; the log line gives the reason):
 
 | `reason=` | Turn |
 |---|---|
-| `reaction` | An automatic reaction or bark (battle, loot, distraction). It is not a conversation turn and changes no state. |
+| `reaction` | An automatic reaction or bark (battle, loot). It is not a conversation turn and changes no state. |
 | `battle` | V's text while `input.battle.status` is `fighting`. |
 | `group` | A group round (F8/F9): several characters answer, and only one may speak for the others. |
 | `ending` | V is saying goodbye or wrapping up (English, Spanish, Portuguese, French, German, Italian, Japanese, Korean, Chinese, Russian, Ukrainian and a few more; a short list of farewells, not a language model). |

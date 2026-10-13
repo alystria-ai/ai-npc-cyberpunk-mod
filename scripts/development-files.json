@@ -282,6 +282,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-locomotion.lua"
     },
     {
+      "source": "mod/companion-stance.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-stance.lua"
+    },
+    {
       "source": "mod/companion-appearance.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-appearance.lua"
     },
@@ -448,10 +452,6 @@
     {
       "source": "mod/companion-adoption.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-adoption.lua"
-    },
-    {
-      "source": "mod/tactic-perception.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/tactic-perception.lua"
     },
     {
       "source": "mod/companion-chauffeur.lua",

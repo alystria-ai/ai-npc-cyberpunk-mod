@@ -107,7 +107,7 @@ Fix, all three text paths (Convai gets the same block; Mistral and the Local AI 
 - The mod reads, once per turn window (never per frame), what each companion is doing from state the companion modules already keep
   (`companions.activityInputs`: vehicle controller row, tactic, seating phase, follow-behaviour phase, V's speed) and whether V is
   driving. `mod/turn-context.lua` classifies it into one word per companion (following, standing, combat, to-seat, seated, getting-up,
-  passenger, driving, boarding, leaving-car, distracting, attacking) and sends it in the party row with V's motion.
+  passenger, driving, boarding, leaving-car, attacking) and sends it in the party row with V's motion.
 - `bridge/turn-context.mjs` words it as the FIRST sentence of the block, in plain words ("You are with V in person, on foot, following
   V through Glen, Heywood."), says "Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless
   this says so (what you would like to do or will do is fine). Do not recite it." and drops the old "background only" framing for a

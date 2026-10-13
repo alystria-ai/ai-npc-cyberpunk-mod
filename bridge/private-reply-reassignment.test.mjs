@@ -57,7 +57,7 @@ function run(code) {
     local cancelled={}
     local revoked={}
     local gameplayActions={capture=function() end, revoke=function(reason, id) revoked[#revoked+1]={reason=reason, id=id} end}
-    local stopped, cleared, leases, automaticCancelled = {}, {}, {}, {}
+    local stopped, cleared, automaticCancelled = {}, {}, {}
     local speech={requestId=nil}
     function speech.stop(reason) stopped[#stopped+1]={reason=reason, id=speech.requestId}; speech.requestId=nil end
     local subtitles={entity=nil, owns=false}
@@ -66,7 +66,6 @@ function run(code) {
       if entity==subtitles.entity then cleared[#cleared+1]=entity; subtitles.entity,subtitles.owns=nil,false end
     end
     local groupChat={round=nil}
-    local tacticEnv={writeLease=function(id, valid) leases[#leases+1]={id=id, valid=valid} end}
     local automatic, pending, pendingKnowledgeOwner, active = nil, nil, nil, nil
     local focusEntity, focusUntil, generation = nil, nil, 0
     local knowledgeAllowed = true
@@ -258,7 +257,7 @@ test('a voice cancel never overwrites a newer recording in the shared command fi
   assert(microphone.revoke(nil)==false)
 `));
 
-test('automatic reactions and distraction lines of the copy are invalidated through their lease', () => run(`
+test('automatic battle and loot reactions of the copy are cancelled when the profile is reassigned', () => run(`
   local reaction = request(first, 'judy-alvarez', {reaction={kind='battle', phase='start'}, text='Combat has begun.'})
   automatic = reaction
   assert(sendRequest(reaction) and pending==reaction)
@@ -267,8 +266,10 @@ test('automatic reactions and distraction lines of the copy are invalidated thro
     and automaticCancelled[1].id==reaction.requestId)
   assert(files['runtime/last-input.json']==nil)
 
-  local line = request(second, 'judy-alvarez', {reaction={kind='distraction'}, text='Distract them.'})
+  local line = request(second, 'judy-alvarez', {reaction={kind='loot'}, text='You picked up some items.'})
+  automatic = line
   assert(sendRequest(line) and pending==line)
   assert(companions.setProfile(secondSerial, 'panam-palmer', 'Panam'))
-  assert(pending==nil and #leases==1 and leases[1].id==line.requestId and leases[1].valid==false)
+  assert(automatic==nil and pending==nil and automaticCancelled[2].reason=='profile-reassigned'
+    and automaticCancelled[2].id==line.requestId)
 `));

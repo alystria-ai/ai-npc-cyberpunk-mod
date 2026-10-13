@@ -270,7 +270,7 @@ These are Developer mode only:
 - the **dismissed** result (the in-menu feedback line still reports it, and a
   failed dismissal is always shown);
 - the routine driving instructions (boarding, driving, exit);
-- companion tactic outcomes ("called off the distraction", "could not reach the target") and the
+- companion tactic outcomes ("could not engage the target") and the
   popup after a Settings Apply that switched the voice (the Settings status line says it).
 
 Turning Developer mode on changes nothing for invitations. The native phone script's own "{name}: invite

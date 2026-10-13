@@ -41,8 +41,8 @@ local questContext = dofile('quest-context.lua')
 local battleObserver = dofile('battle-observer.lua')
 local battles = dofile('battle-reactions.lua').new()
 convaiBattleReactions = battles
--- Companion tactics (Fight / Distract the marked target). The environment is
--- filled in after sendRequest exists; see tacticEnv below.
+-- Companion tactics (Fight the marked target). The environment is
+-- filled in below; see tacticEnv.
 local tacticEnv = {}
 local function tacticModule(path, options, fallback)
     local ok, module = pcall(dofile, path)
@@ -63,8 +63,7 @@ local marking = tacticModule('companion-marking.lua', {owned = function(npc)
     {current = function() return nil end, abandon = function() end})
 local tactics = tacticModule('companion-tactics.lua', {env = tacticEnv}, {
     offer = function() return {available = false} end, start = function() return false, 'Companion tactics are unavailable.' end,
-    owns = function() return false end, decide = function() return nil end, busy = function() return false end,
-    canDeliver = function() return false end, received = function() return false end, interrupt = function() end,
+    owns = function() return false end, decide = function() return nil end,
     update = function() end, abandon = function() end, cancel = function() end})
 companions.tactics = tactics
 convaiCompanionTactics, convaiTargetMarking = tactics, marking
@@ -747,6 +746,16 @@ local function log(line)
     end
     print('[CyberpunkConvai] ' .. line)
 end
+-- Managed companions crouch and stand with V (mod/companion-stance.lua). The hook is installed in onInit.
+local stanceModule, stanceBuilt = nil, nil
+do
+    local loaded, module = pcall(dofile, 'companion-stance.lua')
+    if loaded and type(module) == 'table' then
+        local built, value = pcall(module.new, {log = log})
+        if built and type(value) == 'table' then stanceModule, stanceBuilt = module, value; companions.stance = value
+        else log('Companion stance unavailable: ' .. tostring(value)) end
+    else log('Companion stance unavailable: ' .. tostring(module)) end
+end
 -- V's horizontal speed in m/s, read once when a text box takes the keyboard. If V
 -- keeps walking after typing (a key-up the game never saw), the log line shows
 -- whether V was already moving at that moment. 'n/a' when the game will not say.
@@ -1216,11 +1225,6 @@ local function updateGaze(player, elapsed)
         convaiAttentionProbe = nil
     end
     if focusMode == 'chat' then return end
-    -- A distraction target keeps facing the companion, not V's crosshair.
-    if tactics.busy() then
-        if focusMode == 'gaze' then endFocus(player); focusMode, focusEntity = nil, nil; resetGaze() end
-        return
-    end
     gazePoll = gazePoll + elapsed
     if gazePoll < 0.2 then return end
     local step = gazePoll
@@ -1437,7 +1441,6 @@ local function beginTextNow(groupMode, waited)
             return
         end
         cancelAutomatic('manual-text')
-        tactics.interrupt('manual-text')
         gameplayActions.revoke('new-conversation')
         speech.stop('new-conversation')
         microphone.cancel()
@@ -1556,7 +1559,6 @@ local function toggleVoice(groupMode)
         local connectNote = autoConnect and not participants and autoConnect.talkNotice(key, name) or nil
         generation = generation + 1
         cancelAutomatic('microphone')
-        tactics.interrupt('microphone')
         gameplayActions.revoke('new-conversation')
         microphone.cancel('new-conversation')
         groupChat.cancel()
@@ -1653,7 +1655,6 @@ speech.devSay = function(player, npc, text)
     local identity = tostring(npc:GetEntityID().hash)
     generation = generation + 1
     cancelAutomatic('manual-text')
-    tactics.interrupt('manual-text')
     gameplayActions.revoke('new-conversation')
     speech.stop('new-conversation')
     microphone.cancel()
@@ -1697,8 +1698,6 @@ local function retirePrivateReply(entity, reason)
     gameplayActions.revoke(reason, requestId)
     if automatic and automatic.requestId == requestId then
         cancelAutomatic(reason)   -- also invalidates the reaction lease the bridge reads
-    elseif owner.reaction == 'distraction' then
-        tacticEnv.writeLease(requestId, false)
     end
     if owner.source == 'voice' then microphone.revoke(owner.context) end
     if pending and pending.requestId == requestId then pending, pendingKnowledgeOwner = nil, nil end
@@ -1909,7 +1908,6 @@ local function updateBattles(player, elapsed, worldReady)
         elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
     end
     local busy = not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() or automatic ~= nil
-        or (tactics ~= nil and tactics.busy())
     local function mayFollow(event, kind)
         if not event or busy then return false end
         if not lastAutomatic then return true end
@@ -2076,7 +2074,6 @@ end
 
 local function reactionCanDeliver(context, player)
     if not context.reaction then return true end
-    if context.reaction.kind == 'distraction' then return tactics ~= nil and tactics.canDeliver(context) end
     if not automatic or automatic.requestId ~= context.requestId then return false end
     -- A reply can become ready between the half-second observer samples. Read
     -- player scene/combat state and the owned speaker before playback.
@@ -2276,36 +2273,11 @@ local function updatePhoneInvitationFeedback(player, worldReady)
     if note and convaiNotices.send(player, 'invite-board', note.message) then note.commit() end
 end
 
--- Distraction lines use the ordinary automatic-turn path: one request at a
--- time, the shared reaction lease, speech, subtitles and lip-sync.
+-- Fight tactic environment: the player, the ready companion by entity, the marked target, and developer
+-- notices. Nothing here sends a request or plays a line.
 tacticEnv.player = function() return Game.GetPlayer() end
 tacticEnv.actor = function(entity) return companions.readyActor(entity) end
 tacticEnv.marked = function(player) return marking.current(player) end
-tacticEnv.identify = function(npc) return profileIdentity(npc) end
-tacticEnv.protected = function(npc) return convaiWorldPolicy ~= nil and convaiWorldPolicy.protected(npc) == true end
-tacticEnv.converses = function(key) return supportedProfiles[key] == true and manager.profileEnabled(key) end
-tacticEnv.nextGeneration = function() generation = generation + 1; return generation end
-tacticEnv.idle = function()
-    return not pending and not speech.requestId and not subtitles.ownsUtterance() and not automatic and not active
-        and not groupChat.round and not (microphone.context and microphone.state ~= 'reply') and not phoneChat.pending
-end
-tacticEnv.send = function(context, npc) speech.target = npc; return sendRequest(context) end
-tacticEnv.pendingId = function() return pending and pending.requestId end
-tacticEnv.speaking = function(requestId) return speech.requestId == requestId or subtitles.ownsUtterance() end
-tacticEnv.transcript = function(requestId, turnGeneration, entity) return speech.transcript(requestId, turnGeneration, entity) end
-tacticEnv.stopTurn = function(requestId)
-    if pending and pending.requestId == requestId then pending, pendingKnowledgeOwner = nil, nil end
-    if speech.requestId == requestId then speech.stop('tactic-cancelled') end
-end
-tacticEnv.writeLease = function(requestId, valid, playbackAt)
-    local file = io.open('runtime/reaction-lease.json.tmp', 'wb')
-    if not file then return false end
-    file:write(json.encode({requestId = requestId, valid = valid == true, updated = os.time() * 1000,
-        playbackStartedAt = playbackAt})); file:close()
-    os.remove('runtime/reaction-lease.json')
-    return os.rename('runtime/reaction-lease.json.tmp', 'runtime/reaction-lease.json') ~= nil
-end
-tacticEnv.now = function() return os.time() * 1000 end
 tacticEnv.feedback = function(message)
     local player = Game.GetPlayer()
     if player then convaiNotices.send(player, 'tactic-outcome', ui.t(message)) end
@@ -2407,6 +2379,7 @@ registerForEvent('onInit', function()
     convaiLocomotion.install(function(npc, command)
         return companions.ownsTravelCommand(npc, command)
     end)
+    if stanceModule then stanceModule.install(stanceBuilt, log) end
     dofile('composer-input.lua').install()
     dofile('phone-input.lua').install()
     phoneLayout.install()
@@ -2742,7 +2715,7 @@ registerForEvent('onUpdate', function(delta)
     updateGaze(player, 0.1)
     if autoConnect then
         local blocked = battleSample == nil or not battleSample.available or battleSample.blocked == true
-            or battleSample.combat == true or tactics.busy()
+            or battleSample.combat == true
         local talking = (active and active.profileKey) or (pending and pending.profileKey)
             or (microphone.context and microphone.context.profileKey) or nil
         -- A scripted scene (or game dialogue) ends a conversation partnership.
@@ -2856,7 +2829,6 @@ registerForEvent('onUpdate', function(delta)
                     local utterance = reply.stream or (type(reply.continuous) == 'table'
                         and {version=2,id=reply.continuous.id} or nil)
                     groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.ownsUtterance()), listeners, utterance, reply.userText)
-                    tactics.received(pending.requestId, reply)
                     if type(microphone.received) == 'function' then microphone.received(pending.requestId) end
                     -- One line per reply: did speech start, and does the speaker's face carry
                     -- the speech layer (world NPCs get it on demand, Face.reds ConvaiFaceRequest).
