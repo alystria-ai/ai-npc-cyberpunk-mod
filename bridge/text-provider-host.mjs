@@ -17,7 +17,7 @@ import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {markStage} from './turn-clock.mjs';
 import {budgetedChat, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
-import {flagsMinorSexual, screenMinors} from './mature-content.mjs';
+import {MatureGuard, refusalLog} from './mature-guard.mjs';
 
 const isTag = group => hasEmotionTag(group);
 const pause = (ms, signal) => new Promise((resolve, reject) => {
@@ -192,9 +192,9 @@ export class TextProviderHost {
    * idleRetryMs   how often a gated background task checks the gate again
    */
   constructor({provider, memory, personas = new PersonaBook(), routes = {}, transformReply = result => result, now = () => performance.now(),
-    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, matureContent = null} = {}) {
+    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, matureContent = null, matureGuard = new MatureGuard()} = {}) {
     if (!provider) throw Error('Text provider required');
-    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, matureContent});
+    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, matureContent, matureGuard});
     this.summaries = new Set();
     this.holdingTurns = 0;
     this.timers = new Set();
@@ -285,6 +285,13 @@ export class TextProviderHost {
     // The stream the reply text goes through: the voice's, or one that only marks the first sentence on the turn's clock.
     const feed = stream ?? new ReplyStream({name: persona.name, isTag, speak: false});
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
+    // Mature content on (the local AI only): the hard-limit guard reads V's words before any model is asked (bridge/mature-guard.mjs). A
+    // refusal is the character's own short line; nothing is sent to a model and nothing is stored.
+    const firstRoute = this.routes[this.provider.route];
+    if (!reaction && firstRoute?.name === 'local' && this.matureContent?.enabled) {
+      const verdict = this.matureGuard.screenInput(text, {history: recalled.turns});
+      if (verdict.blocked) return this.#refuse(firstRoute, {config, local, feed, started, where: 'input'});
+    }
     // What the memory store remembers that bears on V's words (private and phone talk of a named character; empty otherwise and
     // whenever it cannot answer in a few hundred milliseconds).
     let remembered = [];
@@ -301,8 +308,9 @@ export class TextProviderHost {
         const {response} = outcome;
         // What was already spoken stands: a finished reply that does not begin with it is cut back to it.
         const reply = feed.reconcile(outcome.reply);
-        // The exchange is remembered without tags (what the player read), except a battle / loot line, which is not a talk.
-        if (!reaction) {
+        // The exchange is remembered without tags (what the player read), except a battle / loot line, which is not a talk. A reply the
+        // hard-limit guard replaced is not remembered, and neither are the words that led to it.
+        if (!reaction && !outcome.guarded) {
           this.memory.record({...memoryKey, v: text, r: stripSpeechTags(reply)});
           this.#summarize(route, local.profileKey);
         }
@@ -339,6 +347,17 @@ export class TextProviderHost {
    *    memory, instead of an error and a long silence. A battle or loot bark just stops, as it does for every failure.
    * Any other failure (a refused key, a limit, no network) is still an error: the player can act on it. Returns the reply or null.
    */
+  /** The hard-limit guard refused a message: the character answers in her own short words, no model is asked, nothing is stored. */
+  #refuse(route, {config, local, feed, started, where}) {
+    const line = this.matureGuard.refusalLine(local.profileKey);
+    this.log(refusalLog(this.matureGuard, where));
+    markStage('replyReturned');
+    const result = this.transformReply({text: line, sessionID: config.sessionId, transport: route.name,
+      timing: {provider: route.name, llmMs: Math.round(this.now() - started), model: 'mature-guard', attempts: 0, guardRefusal: where}});
+    feed.finish(result.text, result);
+    return result;
+  }
+
   #standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey}) {
     if (!(error instanceof MistralError) || route.name === 'local') return null;
     const head = feed.committed ? feed.head : '';
@@ -381,10 +400,16 @@ export class TextProviderHost {
       let cleaned = cleanReply(response.text, {name: persona.name, isTag});
       if (response.finishReason === 'length') cleaned = trimUnfinished(cleaned);
       let reply = capReply(cleaned, this.limits);
-      // Mature content only: a sentence that puts a minor and something sexual together is dropped, and the turn is logged (never the words).
+      // Mature content only: a reply that puts a minor and romance or sex together (or has the character claim to be under 18) is dropped for
+      // the character's own refusal; the turn is logged (never the words) and neither the reply nor V's words are remembered. A first
+      // sentence the voice already started stands (it was screened before it was spoken), and the refusal follows it.
       if (mature) {
-        const screened = screenMinors(reply);
-        if (screened.dropped) { this.log(`Mature content: dropped ${screened.dropped} sentence(s) of a reply (a minor in a sexual context)`); reply = screened.text; }
+        const verdict = this.matureGuard.screenReply(reply, {history: recalled.turns});
+        if (verdict.hit) {
+          this.log(refusalLog(this.matureGuard, 'output'));
+          const line = this.matureGuard.refusalLine(profileKey);
+          return {response, reply: feed.committed ? `${feed.head} ${line}` : line, guarded: true};
+        }
       }
       if (!reply.trim()) throw new MistralError('empty', 'answered with no text', {provider: route.provider});
       return {response, reply};
@@ -395,8 +420,10 @@ export class TextProviderHost {
     const provoked = !reaction && provokesAiTalk(text);
     const refuseHead = said.length || provoked ? head => repeatsLine(head, said) || (provoked && takesUpAiTalk(head)) : null;
     // With Mature content on, a first sentence that flags is never committed to the voice either.
-    if (feed && typeof feed === 'object') feed.reject = mature ? head => (refuseHead ? refuseHead(head) : false) || flagsMinorSexual(head) : refuseHead;
+    if (feed && typeof feed === 'object') feed.reject = mature ? head => (refuseHead ? refuseHead(head) : false) || this.matureGuard.flagsReply(head, {history: recalled.turns}) : refuseHead;
     let outcome = await run('');
+    // A reply the guard replaced is final: no second attempt, no checks (the refusal is the character's own line).
+    if (outcome.guarded) { route.success(); return outcome; }
     // A reply that steps out of character, or is a model's reasoning, gets one more try. The second answer is used unless it
     // is reasoning again, which is never spoken (it counts as an empty answer). A reply whose first sentence the voice already
     // started is not tried again: that sentence was checked before it was spoken, so it stands and the rest is dropped.

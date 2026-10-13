@@ -520,8 +520,9 @@ const profileOfCharacter = config => {
   if (!providerOfCharacter.size) for (const table of [ids, relationshipRoutes.providerIds ?? {}]) for (const [profile, id] of Object.entries(table)) if (typeof id === 'string') providerOfCharacter.set(id, profile);
   return providerOfCharacter.get(config?.characterId);
 };
-// "Mature content": read from the settings file when it changes (never per turn); only the local AI route ever uses it, and only while
-// the separate Mature pack is installed (its marker is looked for at most every 5 s, on the settings poll, never per turn or per frame).
+// "Mature content": read from the settings file when it changes (never per turn); only the local AI route ever uses it. The optional Mature
+// pack (uncensored models) does not gate it: its marker is looked for at most every 5 s, on the settings poll, only so the setting's help text
+// can say whether the uncensored models are installed (never per turn or per frame).
 const matureContent = new MatureContent();
 let maturePackCheckedAt = 0;
 function maturePackInstalled(force = false) {
@@ -2099,7 +2100,7 @@ async function pollSettings(checkShutdown = true) {
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
     const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
-    if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings page shows or hides the setting
+    if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
     const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
     if (matureChanged) console.error(`[MatureContent] setting is now ${matureContent.enabled ? 'on' : 'off'}`);
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);

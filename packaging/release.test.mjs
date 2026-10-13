@@ -358,7 +358,7 @@ test('the Mature pack is its own package: built only on request, never in the de
   assert.match(builder, /value\('--packages', DEFAULT_PACKAGE_IDS\.join\(','\)\)/, 'a plain build uses the default set');
   // The release workflow builds the Local AI tiers only; the Mature pack is never produced by it.
   assert.doesNotMatch(await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8'), /\bmature\b/i);
-  // Nothing in the release plan or the runtime layout (the Runtime package) is the pack's marker, README, Nexus text or models.
+  // Nothing in the release plan or the runtime layout (the Runtime package) is the pack's marker, README, release notes or models.
   const plan = await readFile(resolve(project, 'packaging/release-plan.json'), 'utf8');
   assert.doesNotMatch(plan, /manifest\.mature|MATURE_PACK|mature\/|uncensored|abliterat|heretic|hauhau/i);
   const {BRIDGE_MODULES} = await import('./runtime-layout.mjs');
@@ -368,18 +368,18 @@ test('the Mature pack is its own package: built only on request, never in the de
   const runtimeBuilder = builder.slice(builder.indexOf('async function runtimePackage'), builder.indexOf('async function omniPackage'));
   assert(runtimeBuilder.length > 1000);
   assert.doesNotMatch(runtimeBuilder, /maturePack|MATURE_PACK|manifest\.mature/);
-  // The main page text (the README the Runtime package carries) says nothing of it: the main page carries only the generative-AI tag.
+  // The player README (the one the Runtime package carries and the release page shows) says nothing of the pack.
   assert.doesNotMatch(await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8'), /mature|uncensored|adult|18\+/i);
 });
 
-test('the Mature pack definition: marker, README, Nexus text and Apache-2.0 licences, with the model list still placeholders and the build refusing them', async () => {
+test('the Mature pack definition: marker, README, GitHub release notes and Apache-2.0 licences, with the model list still placeholders and the build refusing them', async () => {
   const spec = config.maturePack;
   assert.equal(spec.marker, 'manifest.mature.json');
   const {MATURE_MARKER} = await import('../bridge/mature-pack.mjs');
   assert.equal(spec.marker, MATURE_MARKER, 'the build writes the file name the bridge looks for');
   assert.equal(spec.status, 'placeholder');
   assert.notEqual(spec.marker, 'manifest.standard.json'); assert.notEqual(spec.marker, 'manifest.lite.json');
-  for (const rel of [spec.readme, spec.nexusText, ...spec.licenceFiles]) assert(existsSync(resolve(project, rel)), rel);
+  for (const rel of [spec.readme, spec.releaseNotes, ...spec.licenceFiles]) assert(existsSync(resolve(project, rel)), rel);
   assert.deepEqual(spec.licenceFiles, ['packaging/licenses/Apache-2.0.txt']);
   assert(spec.models.length >= 2 && spec.models.every(model => model.placeholder === true && model.license === 'Apache-2.0'));
   assert(spec.models.every(model => /PLACEHOLDER/.test(model.file) && /PLACEHOLDER/.test(model.sha256)), 'nothing is guessed: every file, hash and revision waits for the model test');
@@ -405,8 +405,8 @@ test('the Mature pack definition: marker, README, Nexus text and Apache-2.0 lice
     'the Mature marker alone is not a Local AI pack');
 });
 
-test('the Mature pack README and Nexus text are for adults, need the main mod and Local AI, give install steps, and say nothing they must not', async () => {
-  for (const rel of ['packaging/MATURE_PACK_README.md', 'packaging/MATURE_PACK_NEXUS.md']) {
+test('the Mature pack README and release notes are for adults, need the main mod and Local AI, give install steps, and say nothing they must not', async () => {
+  for (const rel of ['packaging/MATURE_PACK_README.md', 'packaging/MATURE_PACK_RELEASE_NOTES.md']) {
     const text = await readFile(resolve(project, rel), 'utf8');
     assert.match(text, /18\+/, rel); assert.match(text, /adults? only/i, rel);
     assert.match(text, /Local AI/, rel); assert.match(text, /Cyberpunk Convai/, rel);
@@ -418,7 +418,12 @@ test('the Mature pack README and Nexus text are for adults, need the main mod an
     assert.doesNotMatch(text, /\b(?:api[- ]?key|token|secret|credential)s?\b/i, `${rel}: no keys`);
     assert.doesNotMatch(text, /convai (?:free|shared|embedded)/i, rel);
   }
-  assert.match(await readFile(resolve(project, 'packaging/MATURE_PACK_NEXUS.md'), 'utf8'), /generative-AI tag/);
+  const notes = await readFile(resolve(project, 'packaging/MATURE_PACK_RELEASE_NOTES.md'), 'utf8');
+  assert.match(notes, /only as an optional file on this project's GitHub release/);
+  assert.match(notes, /Never on Nexus Mods/);
+  assert.doesNotMatch(notes, /adult-flagged|generative-AI tag|classify it as|mark as adult/i, 'no Nexus page instructions');
+  assert.match(notes, /The main mod has a \*\*Mature content\*\* setting/, 'the setting belongs to the main mod');
+  assert.doesNotMatch(await readFile(resolve(project, 'packaging/MATURE_PACK_README.md'), 'utf8'), /nexus/i);
 });
 
 test('the release guard refuses a package that would install the development launcher', async () => {

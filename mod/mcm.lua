@@ -866,11 +866,15 @@ local function ownKeyRows(snapshot)
                 function() return manager.removeOwnKey() end, own.saved),
         }
     end
-    -- Mature content exists only with the separate, adult-flagged Mature pack (the bridge reports its marker): without it the row, its help
-    -- and the 18+ notice are not there at all. It applies to the Local AI provider only; the help says so while another provider answers.
-    local matureRow = false
-    if mistral.maturePack == true then
+    -- Mature content is part of the main mod (off by default). It applies to the Local AI provider only; the help says so while another
+    -- provider answers, and says whether the optional Mature pack (uncensored models) is installed (the bridge reports its marker).
+    local matureRow
+    do
         local matureHelp = ui.t('Lets companions answer with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content, in the tone of Night City. For adults (18+) only. It applies to Local AI only: Convai, Mistral and Groq never get it. Characters stay themselves, follow your relationship with them and may say no; some things are never allowed (sex involving minors or without consent, sex about real people, hate, or real-world instructions for weapons or drugs). The uncensored models of the Mature pack give the full effect; the standard Local AI models are trained to refuse most sexual content. Off by default.')
+        matureHelp = matureHelp .. ' ' .. ui.t('A safety check on your messages and on the replies refuses anything romantic or sexual involving minors, on every model.')
+        matureHelp = matureHelp .. ' ' .. (mistral.maturePack == true
+            and ui.t('The Mature pack (uncensored models) is installed.')
+            or ui.t('The Mature pack (uncensored models) is not installed. It is an optional download on the GitHub releases page of this mod.'))
         if mistral.effective ~= 'local' then
             matureHelp = matureHelp .. ' ' .. ui.t('Your conversations are not using Local AI right now, so this has no effect for now.')
         end

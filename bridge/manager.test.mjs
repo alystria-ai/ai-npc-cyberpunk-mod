@@ -209,7 +209,8 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
     assert(manager.snapshot(player).settings.keepPreparedVoices == true and saved.keepPreparedVoices == true)
     assert(manager.snapshot(player).settings.matureContent == false and saved.matureContent == false, 'Mature content is off by default')
     do
-      -- Mature content exists only with the optional Mature pack: the bridge reports it in runtime/mistral-state.json.
+      -- Mature content is part of the main mod and works without the optional Mature pack; the bridge reports the pack in
+      -- runtime/mistral-state.json only so the setting's help can say whether the uncensored models are installed.
       local realClock, clock = os.clock, 1000
       os.clock = function() return clock end
       local function pack(installed)
@@ -218,24 +219,22 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
         clock = clock + 2
       end
       assert(manager.mistral().maturePack == false, 'no pack until the bridge says so')
-      local refused, reason = manager.applySettings(player, {matureContent = true})
-      assert(refused == false and reason:find('Unknown setting', 1, true), 'without the pack the setting does not exist: ' .. tostring(reason))
-      assert(manager.applySettings(player, {matureContent = 'yes'}) == false)
+      assert(manager.applySettings(player, {matureContent = 'yes'}) == false, 'Mature content must be on or off')
       assert(saved.matureContent == false and manager.snapshot(player).settings.matureContent == false)
       pack(true)
       assert(manager.mistral().maturePack == true)
-      assert(manager.applySettings(player, {matureContent = 'yes'}) == false, 'Mature content must be on or off')
       local matureOk, matureProblem, matureNotice = manager.applySettings(player, {matureContent = true})
       assert(matureOk and saved.matureContent == true and manager.snapshot(player).settings.matureContent == true)
       assert(type(matureNotice) == 'string' and matureNotice:find('18+', 1, true), 'turning it on says once that it is for adults')
       local _, _, again = manager.applySettings(player, {matureContent = true})
       assert(again == nil, 'the line comes when it is turned on, not on every Apply')
-      -- The pack is deleted while the file still says on: the page and the snapshot show it off, and the bridge applies nothing.
+      -- The pack is not installed: the setting is still on and still works.
       pack(false)
-      assert(saved.matureContent == true and manager.snapshot(player).settings.matureContent == false, 'forced off without the pack')
-      pack(true)
+      assert(saved.matureContent == true and manager.snapshot(player).settings.matureContent == true, 'not forced off without the pack')
       assert(manager.applySettings(player, {matureContent = false}) and saved.matureContent == false)
-      pack(false)
+      local _, _, noticeNoPack = manager.applySettings(player, {matureContent = true})
+      assert(type(noticeNoPack) == 'string' and noticeNoPack:find('18+', 1, true), 'the 18+ line does not need the pack')
+      assert(manager.applySettings(player, {matureContent = false}) and saved.matureContent == false)
       os.clock = realClock
     end
     assert(not manager.battleReactions() and manager.snapshot(player).settings.battleReactions == false, 'battle reactions default off')
@@ -2024,7 +2023,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
   `);
 });
 
-test('Mature content is a settings row only with the Mature pack: without it the row and its help are not there, with it the help says which models give the full effect', () => {
+test('Mature content is a settings row with or without the Mature pack: the help says whether the uncensored models are installed and that the safety check runs on every model', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end
     local function state(tag, value)
@@ -2035,32 +2034,32 @@ test('Mature content is a settings row only with the Mature pack: without it the
     assert(invoke('tab:settings').ok)
     state('none', {provider = 'local', effective = 'local', saved = false})
     loaded = registered.loadMod('manager')
-    assert(row('matureContent') == nil, 'no Mature pack: no row')
+    local noPack = row('matureContent')
+    assert(noPack ~= nil and noPack.label == 'Mature content', 'no Mature pack: the row is still there')
     assert(row('conversationProvider') ~= nil)
-    for _, category in ipairs(loaded.categories) do
-      for _, setting in ipairs(category.settings) do
-        local text = tostring(setting.label) .. tostring(setting.description)
-        assert(not text:find('Mature content', 1, true) and not text:find('18+', 1, true), 'nothing about it is shown: ' .. tostring(setting.id))
-      end
-    end
-    -- The pack is applied by hand with the setting in the file: nothing is applied, the bridge is not told.
-    assert(not registered.applyBatch('manager', {{id = 'matureContent', value = true}}).ok)
-    assert(saved.matureContent == false)
+    assert(tostring(noPack.description):find('safety check', 1, true), 'the help says the minors check runs on every model')
+    assert(tostring(noPack.description):find('is not installed', 1, true), 'the help says the uncensored models are not installed')
+    assert(tostring(noPack.description):find('GitHub releases', 1, true), 'and where to get them')
+    assert(registered.applyBatch('manager', {{id = 'matureContent', value = true}}).ok and saved.matureContent == true, 'usable without the pack')
+    assert(registered.applyBatch('manager', {{id = 'matureContent', value = false}}).ok and saved.matureContent == false)
     state('pack', {provider = 'local', effective = 'local', saved = false, maturePack = true})
     loaded = registered.loadMod('manager')
     local mature = row('matureContent')
     assert(mature ~= nil and mature.label == 'Mature content', 'the Mature pack is installed: the row is there')
     assert(tostring(mature.description):find('uncensored models of the Mature pack', 1, true), 'the help names where the full effect comes from')
+    assert(tostring(mature.description):find('(uncensored models) is installed', 1, true), 'the help says the pack is installed')
+    assert(not tostring(mature.description):find('is not installed', 1, true))
     assert(not tostring(mature.description):find('not using Local AI', 1, true), 'Local AI answers, so no warning')
     assert(registered.applyBatch('manager', {{id = 'matureContent', value = true}}).ok and saved.matureContent == true)
     -- Another provider answers: the row stays and says it has no effect for now.
     state('other', {provider = 'mistral', effective = 'mistral', saved = true, maturePack = true})
     loaded = registered.loadMod('manager')
     assert(tostring(row('matureContent').description):find('not using Local AI', 1, true))
-    -- The pack goes away: the row goes with it.
+    -- The pack goes away: the row stays, the setting stays on, and the help says the pack is not installed.
     state('gone', {provider = 'local', effective = 'local', saved = false, maturePack = false})
     loaded = registered.loadMod('manager')
-    assert(row('matureContent') == nil)
+    assert(row('matureContent') ~= nil)
+    assert(tostring(row('matureContent').description):find('is not installed', 1, true))
   `);
 });
 

@@ -180,7 +180,7 @@ export class MistralControl {
       model: typeof this.model === 'function' ? this.model() : this.model, stt: p.sttAvailable === true,
       // The local AI: 'ready' | 'warming' | 'not-installed' | 'no-memory' | 'failed' (docs/LOCAL_AI.md); never a path or a key.
       ...(typeof this.localStatus === 'function' ? {localAi: this.localStatus()} : {}),
-      // Is the optional Mature pack installed (bridge/mature-pack.mjs)? The settings page shows Mature content only when it is.
+      // Is the optional Mature pack installed (bridge/mature-pack.mjs)? Only the Mature content help text reads it (it does not gate the setting).
       ...(typeof this.maturePack === 'function' ? {maturePack: this.maturePack() === true} : {}),
       // Groq (docs/MISTRAL.md): the key status and the latest limit; never the key.
       ...(this.provider.groq ? {groq: {saved: !!this.provider.groq.key, tail: this.provider.groq.tail,

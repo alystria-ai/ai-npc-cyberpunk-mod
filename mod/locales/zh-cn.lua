@@ -676,5 +676,8 @@ return {
     ["Lets companions answer with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content, in the tone of Night City. For adults (18+) only. It applies to Local AI only: Convai, Mistral and Groq never get it. Characters stay themselves, follow your relationship with them and may say no; some things are never allowed (sex involving minors or without consent, sex about real people, hate, or real-world instructions for weapons or drugs). The uncensored models of the Mature pack give the full effect; the standard Local AI models are trained to refuse most sexual content. Off by default."] = "允许伙伴使用粗俗语言、露骨暴力、毒品话题、黑暗主题、低俗幽默，并且在成年人之间双方同意的前提下，使用调情和性相关内容，语气符合 Night City。仅限成年人（18+）。仅适用于本地 AI：Convai、Mistral 和 Groq 永远不会获得此功能。角色保持本色，会记住你们的关系，也可能拒绝；有些内容始终不被允许（涉及未成年人或未经同意的性内容、关于真实人物的性内容、仇恨内容，以及现实中制造武器或毒品的指导）。完整效果由成人内容包中的无审查模型提供；本地 AI 的标准模型经过训练会拒绝大多数性内容。默认关闭。",
     ["Mature content"] = "成人内容",
     ["Mature content is on: companions may use adult language and themes. For adults (18+) only."] = "已开启成人内容：伙伴可以使用成人语言和主题。仅限成年人（18+）。",
+    ["A safety check on your messages and on the replies refuses anything romantic or sexual involving minors, on every model."] = "对您的消息和回复进行的安全检查会在所有模型上拒绝任何涉及未成年人的浪漫或性相关内容。",
+    ["The Mature pack (uncensored models) is installed."] = "Mature pack（无审查模型）已安装。",
+    ["The Mature pack (uncensored models) is not installed. It is an optional download on the GitHub releases page of this mod."] = "Mature pack（无审查模型）未安装。这是一个可选下载项，可在本模组的 GitHub 发布页面获取。",
     ["Your conversations are not using Local AI right now, so this has no effect for now."] = "你的对话目前没有使用本地 AI，因此此设置暂时不会生效。",
 }

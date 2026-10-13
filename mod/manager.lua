@@ -1411,8 +1411,8 @@ function M.snapshot(player)
             naturalSpeech = settings.naturalSpeech,
             expressiveEmotions = settings.expressiveEmotions,
             followUpInterest = settings.followUpInterest,
-            -- Only with the separate Mature pack installed (the bridge looks for its marker); without it the setting is off whatever was saved.
-            matureContent = settings.matureContent == true and M.mistral().maturePack == true,
+            -- Part of the main mod: off by default, Local AI only. The optional Mature pack (uncensored models) only changes the help text.
+            matureContent = settings.matureContent == true,
             multilingualConversations = settings.multilingualConversations,
             archetypeConversations = settings.archetypeConversations,
             uiLanguage = settings.uiLanguage,
@@ -1462,8 +1462,6 @@ function M.applySettings(player, values)
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'matureContent' then
-            -- The setting exists only with the Mature pack: without it the key is unknown, as if it had never been offered.
-            if M.mistral().maturePack ~= true then return false, ui.t('Unknown setting: {setting}', {setting = tostring(key)}) end
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.matureContent = value
         elseif key == 'relationshipModes' then

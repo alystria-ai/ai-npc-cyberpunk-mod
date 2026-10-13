@@ -10,7 +10,7 @@
 //   CyberpunkConvai-OmniPack-<v>-partNofM.zip  optional OmniVoice GPU pack (GitHub)
 //   CyberpunkConvai-LocalAI-Standard-<v>-partNofM.zip  optional Local AI pack, Gemma 4 E4B (GitHub)
 //   CyberpunkConvai-LocalAI-Lite-<v>.zip   optional Local AI pack, Qwen3.5-2B (GitHub)
-//   CyberpunkConvai-Mature-<v>.zip         optional adult-flagged Mature pack, the uncensored models (its own Nexus page; only with
+//   CyberpunkConvai-Mature-<v>.zip         optional Mature pack, the uncensored models (GitHub release only, never Nexus; only with
 //                                          --packages mature, never in the default set; refuses to build while its models are placeholders)
 // plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
 // (red4ext/plugins/CyberpunkConvaiNative) and runtime/native-off.txt. See docs/PACKAGING.md.
@@ -671,7 +671,7 @@ async function localAiPackage(source, config, tierKey) {
   return pkg;
 }
 
-// The Mature pack (docs/LOCAL_AI.md, "Mature content"): a separate download for its own adult-flagged Nexus page. It carries the uncensored
+// The Mature pack (docs/LOCAL_AI.md, "Mature content"): a separate download, distributed only as a file on the GitHub release (uploaded by hand, never by the workflow, never to Nexus). It carries the uncensored
 // model files in the Local AI folder's models/ and the marker the main mod looks for (manifest.mature.json, read by bridge/mature-pack.mjs;
 // the Local AI detector never reads it), plus its own README and licence files under mature/. Nothing of it is in the Runtime package.
 async function maturePackage(source, config) {

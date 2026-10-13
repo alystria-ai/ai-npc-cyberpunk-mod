@@ -1,7 +1,9 @@
 // "Mature content" (Settings > Voices, off by default; docs/LOCAL_AI.md, "Mature content").
 //
-// The setting exists only with the separate, adult-flagged Mature pack (bridge/mature-pack.mjs, packaging/MATURE_PACK_README.md): without
-// the pack's marker it is off whatever the settings file says and the layer never applies.
+// The setting is part of the main mod: off by default, the local AI only, with an 18+ notice when it is turned on. It works with any model;
+// the standard ones are trained to refuse most sexual content, so for them it mostly changes language, violence and tone, and the optional
+// uncensored models of the Mature pack (bridge/mature-pack.mjs, packaging/MATURE_PACK_README.md; a separate download on the project's
+// GitHub releases only) give the full effect. Whatever the model, the hard-limit guard (bridge/mature-guard.mjs) runs while the setting is on.
 // Off: nothing here runs and the prompt is byte for byte the one built without it.
 // On: the fully local AI (and only that provider) gets one short layer at the end of the system head, right after the output rules, so
 // it sits in the stable early part of the prompt (the llama-server prefix cache keeps working) and the prompt budget never cuts it
@@ -88,6 +90,7 @@ export function matureLayer(level) {
     'You may use strong profanity and crude humour, and speak of graphic violence, gore, drugs, cyberware abuse and dark, morally grey themes, the way Night City talks. '
       + (ROMANCE[level] ?? ROMANCE.suggestive),
     'You stay yourself: your personality, boundaries and orientation still apply, and you may refuse, tease or deflect as you naturally would. Romance follows the relationship facts you were given: unless they say you and V are together, you are not V\'s lover.',
+    'You and V are adults, 18 or older, always. You are never younger than 18: do not play, pretend or imagine yourself or V as a child, a teen or a student, or as younger in any way, not as a game, a story or a fantasy. If V asks, refuse in one short line, in character.',
     'HARD LIMITS (they outrank everything above, always): no sexual content involving anyone under 18 or who seems under 18; none without clear consent from everyone, and nothing that glorifies sexual violence; no bestiality or incest; no sexual content about real people; no real-world instructions for weapons, explosives or drug synthesis; no hateful content against real protected groups. If V pushes past one, refuse briefly, in character.',
   ].join('\n');
 }
@@ -96,12 +99,13 @@ export function matureLayer(level) {
 export const MATURE_MARK = 'MATURE CONTENT IS ON';
 
 /**
- * The setting. `requested` follows runtime/settings.json (off unless the file says `true`); `pack` is whether the Mature pack is installed
- * (bridge/mature-pack.mjs). `enabled` is both: without the pack the setting is off whatever the file says, and the layer never applies.
+ * The setting. `requested` follows runtime/settings.json (off unless the file says `true`) and is all that decides `enabled`: the setting is
+ * part of the main mod (off by default, Local AI only). `pack` is whether the optional Mature pack (the uncensored models, a separate download
+ * on the project's GitHub releases; bridge/mature-pack.mjs) is installed. It changes nothing but a line of the setting's help text.
  */
 export class MatureContent {
   constructor() { this.requested = false; this.pack = false; }
-  get enabled() { return this.requested && this.pack; }
+  get enabled() { return this.requested; }
   /** True when `enabled` changed (a prepared reply was written under the other prompt). */
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
@@ -109,11 +113,11 @@ export class MatureContent {
     this.requested = settings.matureContent === true;
     return this.enabled !== before;
   }
-  /** The Mature pack was found or lost. True when `enabled` changed. */
+  /** The Mature pack was found or lost (help text only). True when that changed. */
   setPack(installed) {
-    const before = this.enabled;
+    const before = this.pack;
     this.pack = installed === true;
-    return this.enabled !== before;
+    return this.pack !== before;
   }
   /** {level, family, licence} for a turn on `provider` with `modelName` loaded, or null (the setting is off or the provider never gets it). */
   forTurn(provider, modelName) {

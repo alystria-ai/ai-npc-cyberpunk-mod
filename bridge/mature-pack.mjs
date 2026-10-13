@@ -1,8 +1,8 @@
 // Is the optional Mature pack installed?
 //
-// The "Mature content" setting (bridge/mature-content.mjs) ships only with a separate, adult-flagged download, the Mature pack, which
-// holds the uncensored model files (packaging/MATURE_PACK_README.md). The main mod never offers the setting and never applies the prompt
-// layer unless this finds the pack's marker. The marker sits in the Local AI folder, beside the manifest fragments of the two Local AI
+// The Mature pack is a separate, optional download (only on the project's GitHub releases) that holds the uncensored model files
+// (packaging/MATURE_PACK_README.md). It does NOT gate the "Mature content" setting (bridge/mature-content.mjs), which is part of the main
+// mod and works with any model; this marker only tells the setting's help text whether the uncensored models are installed. The marker sits in the Local AI folder, beside the manifest fragments of the two Local AI
 // packs (manifest.standard.json, manifest.lite.json; bridge/local-ai-pack.mjs), under its own name so the Local AI detector never reads it:
 //   <local-ai root>/manifest.mature.json   {version: 1, pack: 'mature', models: [{file: 'models/x.gguf', name: 'X', family: 'qwen'}]}
 // Only the marker decides ("installed" = a valid marker). The model files it lists are reported (`present`) but are not required: a split
