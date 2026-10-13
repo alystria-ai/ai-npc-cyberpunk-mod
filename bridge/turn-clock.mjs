@@ -65,7 +65,26 @@ export class TurnClock {
     if (this.marks.has(name)) return this.marks.get(name);
     const value = Number.isFinite(at) ? at : this.now();
     this.marks.set(name, value);
+    this.notify(name, value);
     return value;
+  }
+
+  /**
+   * Calls `fn(time)` once, the first time `name` is marked (at once when it already is). A listener that throws is ignored: a
+   * mark is never allowed to fail the code that made it. Used by V's voice to stop its own synthesis when the companion's
+   * text-to-speech request goes out (bridge/v-voice.mjs).
+   */
+  on(name, fn) {
+    if (typeof fn !== 'function') return;
+    if (this.marks.has(name)) { try { fn(this.marks.get(name)); } catch { /* a listener never fails a mark */ } return; }
+    (this.listeners ??= new Map()).set(name, [...this.listeners.get(name) ?? [], fn]);
+  }
+
+  notify(name, value) {
+    const listeners = this.listeners?.get(name);
+    if (!listeners) return;
+    this.listeners.delete(name);
+    for (const fn of listeners) { try { fn(value); } catch { /* a listener never fails a mark */ } }
   }
 
   /** Marks again, replacing an earlier mark of the same name (a stage that is reached more than once: the last one counts). */

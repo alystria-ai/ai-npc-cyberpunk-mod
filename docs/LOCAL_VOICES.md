@@ -389,6 +389,13 @@ have several local voices, so two pedestrians of one kind do not sound alike. Co
 - **Limit.** A voice configuration may hold up to **1024** voices (profiles plus variants); it was 256. The same limit is
   in the Node registry (`VOICE_PROFILE_LIMITS.profiles`) and both Python workers.
 
+## V's own voice entries
+
+Two more entries sit in the same voice configurations: `v-male` and `v-female`, merged at bridge start from the reference
+clips in `assets/v-voice` (or `voice-references/v-voice` when installed) the way an add-on's voice is (copied to
+`voice-references/addons/<key>.wav`, written into the `addons.<name>` copies of the configurations, prepared lazily). They are
+not profiles and never speak for a companion: only the setting "V's voice for typed lines" uses them. See `docs/V_VOICE.md`.
+
 ## Local setup and operation
 
 ### Full-cast reference activation — October 1

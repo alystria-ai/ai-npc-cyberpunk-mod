@@ -14,8 +14,11 @@ const VARIANT = /^(.+)-v([2-4])$/;
 export const isVariantKey = key => typeof key === 'string' && VARIANT.test(key);
 // The profile a variant key belongs to; any other key is its own base.
 export const baseProfileOf = key => typeof key === 'string' ? VARIANT.exec(key)?.[1] ?? key : key;
-// Registry keys that are real profiles (variant keys removed).
-export const withoutVariants = keys => [...keys].filter(key => !isVariantKey(key));
+// Voices of the main mod that belong to no profile: V's own voice for typed lines (bridge/v-voice.mjs). Registry entries only, like a
+// variant: never a conversation profile, a route key or a name in any per-profile list.
+export const INTERNAL_VOICE_KEYS = Object.freeze(['v-male', 'v-female']);
+// Registry keys that are real profiles (variant keys and the main mod's internal voices removed).
+export const withoutVariants = keys => [...keys].filter(key => !isVariantKey(key) && !INTERNAL_VOICE_KEYS.includes(key));
 
 // The voices of one profile among `knownKeys` (a Set or array): the base key if present, then the existing
 // `-v2..-v4` keys, in that order.

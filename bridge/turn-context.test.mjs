@@ -273,6 +273,28 @@ test('the adapter reads the clock, the district, V, the vehicle and the people b
   assert(snap.gender == 'male' and snap.vehicle == true)
 `));
 
+test('the adapter reads the game’s dialogue volume only while V’s voice for typed lines asks for it, and never counts it as something read', () => lua$(`
+  local wanted, level = false, 0.8123
+  local ctx2 = api.new({native = setmetatable({volume = function() return level end}, {__index = N}), now = function() return now end,
+    place = function() return state.place end, party = function() return {} end, wantVolume = function() return wanted end})
+  assert(ctx2:capture().dialogueVolume == nil, 'not asked for: not read')
+  ctx2:reset('test'); wanted = true
+  assert(ctx2:capture().dialogueVolume == 0.81)
+  for _, bad in ipairs({-0.2, 1.4, 'loud'}) do level = bad; ctx2:reset('test'); assert(ctx2:capture().dialogueVolume == nil, tostring(bad)) end
+  -- A failing read drops only the volume, is tried a few times and then left alone until a reset.
+  local reads = 0
+  ctx2.native.volume = function() reads = reads + 1; error('no settings system') end
+  ctx2:reset('x')
+  for _ = 1, 5 do now = now + 10; local snap = ctx2:capture(); assert(snap and snap.dialogueVolume == nil and snap.hour == 2) end
+  assert(reads == 3, reads)
+  -- With nothing else readable the volume alone is no snapshot.
+  state.failures = {clock = true, place = true, gender = true, lifepath = true, party = true, vehicle = true}
+  level = 0.5; ctx2.native.volume = function() return level end; ctx2.failures = {}; ctx2:reset('test')
+  local lone = api.new({native = setmetatable({volume = function() return 0.5 end}, {__index = N}), now = function() return now end,
+    place = function() guard('place'); return state.place end, party = function() guard('party') end, wantVolume = function() return true end})
+  assert(lone:capture() == nil)
+`));
+
 test('a failing native call drops that field only; nothing readable drops the snapshot and is not cached', () => lua$(`
   state.failures = {clock = true, place = true, gender = true, lifepath = true, party = true}
   local snap = ctx:capture()

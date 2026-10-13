@@ -407,6 +407,12 @@ async function runtimePackage(source, config, models, key) {
   // Pocket reference clips: only those the live configuration uses, each checked against its hash.
   const pocketRefs = await referencesOf(pocketConfig, models);
   for (const [rel, path] of pocketRefs) pkg.file(`${plugin}/voices/${rel}`, path);
+  // V's voice for typed lines (docs/V_VOICE.md): the two clips cut from the game's own V lines, beside the other voice references. They
+  // are kept out of git (assets/v-voice/*.wav), so they are packed from the local copy, like an add-on's voice clips. A build without
+  // them still works: the setting then has no voice to use and says so in the log.
+  const vVoiceFiles = await vVoiceReferenceFiles();
+  for (const [rel, path] of vVoiceFiles) pkg.file(`${plugin}/voices/v-voice/${rel}`, path);
+  log(vVoiceFiles.size ? `V voice: ${vVoiceFiles.size - 1} reference clips in the Runtime package.` : 'V voice: assets/v-voice has no clips; this build ships none (the setting stays silent).');
   // The Mistral voice's reference clips, already cut and encoded as MP3, where the bridge's cache looks first (voices/prepared).
   const voxtral = await voxtralCache(source, models, resolve(stage, 'voxtral-prepared'), [{version: 2, provider: 'hybrid', engine: 'omnivoice', voices: pocketConfig.voices}],
     {label: 'Voxtral references (Pocket clips)'});
@@ -505,6 +511,19 @@ async function verifyPocketModel(config, files, group) {
     const actual = await sha256File(files.get(group.bucket + name));
     if (actual !== sha) throw Error(`Pocket model ${name} does not match its configuration (${actual} != ${sha}).`);
   }
+}
+
+// The manifest and the clips it lists, checked against their hashes (bridge/v-voice.mjs): Map of file name to local path, empty when
+// there are none. Only what loads is packed, so a stale or mismatched clip never ships.
+async function vVoiceReferenceFiles() {
+  const directory = resolve(project, 'assets/v-voice');
+  const {loadVVoiceReferences} = await import(pathToFileURL(resolve(project, 'bridge/v-voice.mjs')).href);
+  const found = await loadVVoiceReferences([directory], {log: message => log(`V voice: ${message}`)});
+  const files = new Map();
+  if (!Object.keys(found.voices).length) return files;
+  files.set('v-voice.json', resolve(directory, 'v-voice.json'));
+  for (const voice of Object.values(found.voices)) files.set(basename(voice.reference), voice.reference);
+  return files;
 }
 
 async function referencesOf(config, models) {

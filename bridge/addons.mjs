@@ -820,11 +820,22 @@ export class AddonHost {
    * original as addons.<name> with the extra entries. A voice that fails a check is left out; the others still load.
    *   paths   {pocket, omni: {short, long}} (bridge/voice-config-paths.mjs)
    *   roots   reference roots besides the Pocket configuration's own referenceDirectory (the OmniVoice / cloud voice folder)
+   *   extra   voices that belong to no add-on, merged the same way: [{key, reference (a .wav path), sha256?, transcript}]. The main
+   *           mod's V voices (bridge/v-voice.mjs) arrive here; a key that already names a voice in a configuration is left alone.
    */
-  async voiceConfigPaths(paths, {stateDirectory, roots = [], files = {readFile, writeFile, mkdir, copyFile}} = {}) {
+  async voiceConfigPaths(paths, {stateDirectory, roots = [], extra = [], files = {readFile, writeFile, mkdir, copyFile}} = {}) {
     const voiced = [...this.speakers.values()].filter(({speaker}) => speaker.voice);
-    if (!voiced.length || !stateDirectory) return paths;
+    if ((!voiced.length && !extra.length) || !stateDirectory) return paths;
     const entries = new Map();
+    for (const voice of extra) {
+      try {
+        const bytes = await files.readFile(voice.reference);
+        const {sha256} = inspectReference(bytes);
+        if (voice.sha256 && voice.sha256 !== sha256) throw Error('reference does not match its sha256');
+        entries.set(voice.key, {source: voice.reference, sha256, transcript: voice.transcript,
+          descriptor: {reference: `${REFERENCE_PREFIX}addons/${voice.key}.wav`, sha256, transcript: voice.transcript}});
+      } catch (error) { this.log(`Voice ${voice.key} not used: ${error.message}`); }
+    }
     for (const {speaker} of voiced) {
       try {
         const bytes = await files.readFile(speaker.voice.reference);

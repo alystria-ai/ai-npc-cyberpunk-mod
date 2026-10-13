@@ -776,6 +776,11 @@ local function loadSettings()
     if (settings.naturalSpeech or settings.expressiveEmotions) and settings.voiceProvider == 'convai' then
         settings.naturalSpeech, settings.expressiveEmotions, settingsNeedSave = false, false, true
     end
+    -- V's voice for typed lines (off by default, key vVoice): the bridge speaks what the player types in V's cloned voice. It
+    -- needs a voice that can clone (Pocket, OmniVoice, Mistral or Inworld), never the Convai cloud voice, so a saved pairing of
+    -- the two (an older or hand-edited file; Apply never writes it) is turned off.
+    if type(settings.vVoice) ~= 'boolean' then settings.vVoice, settingsNeedSave = false, true end
+    if settings.vVoice and settings.voiceProvider == 'convai' then settings.vVoice, settingsNeedSave = false, true end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -926,6 +931,13 @@ end
 function M.followUpInterest()
     loadSettings()
     return settings.followUpInterest == true
+end
+
+-- Off by default. On, what the player types is also spoken aloud in V's own voice (male or female V), cloned by the voice
+-- the player chose. Typed lines only; push-to-talk never replays V. Needs a voice that can clone (not the Convai cloud voice).
+function M.vVoice()
+    loadSettings()
+    return settings.vVoice == true
 end
 
 -- Off by default. On, conversations go to each character's multilingual twin, which answers in the player's language.
@@ -1635,6 +1647,7 @@ function M.snapshot(player)
             naturalSpeech = settings.naturalSpeech,
             expressiveEmotions = settings.expressiveEmotions,
             followUpInterest = settings.followUpInterest,
+            vVoice = settings.vVoice == true,
             -- Part of the main mod: off by default, Local AI only. The optional Mature pack (uncensored models) only changes the help text.
             matureContent = settings.matureContent == true,
             matureRestore = cleanMatureRestore(settings.matureRestore),
@@ -1685,7 +1698,7 @@ function M.applySettings(player, values)
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'gameDialogueContext' or key == 'decisionLedger'
             or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions'
-            or key == 'followUpInterest' or key == 'multilingualConversations' then
+            or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'matureContent' then
@@ -1767,6 +1780,16 @@ function M.applySettings(player, values)
         and (nextSettings.naturalSpeech == true or nextSettings.expressiveEmotions == true)
         and nextSettings.voiceProvider == 'convai'
     if switchedVoice then nextSettings.voiceProvider = 'pocket' end
+    -- V's voice needs a voice that can clone. Turning it on beside the Convai cloud voice is refused (nothing is switched for it);
+    -- choosing the Convai cloud voice while it is on keeps the voice and turns V's voice off, with one notice.
+    local vVoiceNotice
+    if nextSettings.vVoice == true and nextSettings.voiceProvider == 'convai' then
+        if values.vVoice == true or values.voiceProvider ~= 'convai' then
+            return false, ui.t('V’s voice needs the Pocket, OmniVoice, Mistral or Inworld voice. The Convai cloud voice cannot clone a voice.')
+        end
+        nextSettings.vVoice = false
+        vVoiceNotice = ui.t('The Convai cloud voice cannot clone a voice, so V’s voice was turned off.')
+    end
     -- No model chosen yet (or the value an older version saved, 'auto'): the row showed the default model as selected, so Apply saves its id.
     -- Silent. Without a default (no model installed) the value stays 'auto' and the bridge keeps loading the largest model that fits.
     if nextSettings.localModel == 'auto' then
@@ -1796,9 +1819,10 @@ function M.applySettings(player, values)
         end
     end
     if companions.onPartyChanged then pcall(companions.onPartyChanged) end
-    if switchedVoice or cloudNotice or matureNotice or #multilingual.notices > 0 then
+    if switchedVoice or cloudNotice or vVoiceNotice or matureNotice or #multilingual.notices > 0 then
         local notices = {}
         if cloudNotice then notices[#notices + 1] = cloudNotice end
+        if vVoiceNotice then notices[#notices + 1] = vVoiceNotice end
         if matureNotice then notices[#notices + 1] = matureNotice end
         if switchedVoice then
             local named = {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')}

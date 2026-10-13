@@ -177,10 +177,10 @@ export class RealtimeHost {
   }
   async initialize(epoch) {
     // A crashed browser must not leave its local server or stale leases behind.
-    const previousPool = this.pool, previousLocal = this.localPcm;
+    const previousPool = this.pool, previousLocal = this.localPcm, previousVoiceLine = this.vPcm;
     const previousBrowser = this.browser, previousServer = this.server;
-    this.pool = this.localPcm = this.browser = this.server = null;
-    await Promise.allSettled([previousPool?.close(), previousLocal?.close(), previousBrowser?.close()]);
+    this.pool = this.localPcm = this.vPcm = this.browser = this.server = null;
+    await Promise.allSettled([previousPool?.close(), previousLocal?.close(), previousVoiceLine?.close(), previousBrowser?.close()]);
     previousServer?.close();
     // One hidden browser: eight party private pages plus three optional group
     // pages. No key endpoint, microphone permission or visible user profile.
@@ -216,7 +216,7 @@ export class RealtimeHost {
           ...(this.muteBrowser ? ['--mute-audio'] : [])]});
       if (epoch !== this.epoch) throw cancelled('Conversation startup cancelled');
       this.browser = browser; this.server = server;
-      this.localPcm = new LocalPcmHost({createPage: async () => {
+      const createLocalPage = async () => {
         if (epoch !== this.epoch || this.closing) throw cancelled();
         const page = await browser.newPage(), origin = `http://127.0.0.1:${server.address().port}`;
         try {
@@ -236,7 +236,11 @@ export class RealtimeHost {
           if (epoch !== this.epoch || this.closing) throw cancelled();
           return page;
         } catch (error) { await page.close({runBeforeUnload: false}).catch(() => {}); throw error; }
-      }});
+      };
+      this.localPcm = new LocalPcmHost({createPage: createLocalPage});
+      // The player's own typed line (V's voice, bridge/v-voice.mjs) plays on a page of its own, so it never waits for, or takes
+      // the place of, the companion's utterance. Nothing is opened until a V line is played or warmed.
+      this.vPcm = new LocalPcmHost({createPage: createLocalPage});
       this.pool = new TransportPool({limit: CONNECTION_LIMIT, create: async () => {
         const page = await browser.newPage();
         try {
@@ -391,6 +395,26 @@ export class RealtimeHost {
     return local.play(config, producer, {...options,
       current: async () => epoch === this.epoch && local === this.localPcm && !this.closing && await current()});
   }
+  // V's voice for typed lines: the same renderer page and the same PCM format as a companion's local voice, on a second page. There
+  // is no game utterance behind it (no face, lip sync or subtitle): the caller answers the renderer's clock with its own control.
+  get voiceLineBusy() { return !!this.vPcm?.active; }
+  async prewarmVoiceLine({signal} = {}) {
+    try {
+      await this.start({signal});
+      return await (this.vPcm?.warm?.() ?? false);
+    } catch { return false; }
+  }
+  async playVoiceLine(config, producer, options = {}) {
+    const {signal, current = () => true} = options;
+    throwIfCancelled(signal);
+    await abortable(this.start({signal}), signal);
+    markStage('browserReady');
+    throwIfCancelled(signal);
+    const epoch = this.epoch, host = this.vPcm;
+    if (!host || this.closing) throw cancelled();
+    return host.play(config, producer, {...options,
+      current: async () => epoch === this.epoch && host === this.vPcm && !this.closing && await current()});
+  }
   prepare(config, options) {
     // A speculative session is never written back by the page or retained in
     // the pool. Only the bridge can commit its result after exact submission.
@@ -523,18 +547,18 @@ export class RealtimeHost {
     if (this.closing) return this.closing;
     this.epoch++;
     this.connectOwners = new WeakMap();
-    const pool = this.pool, local = this.localPcm, browser = this.browser, server = this.server, starting = this.starting;
+    const pool = this.pool, local = this.localPcm, voiceLine = this.vPcm, browser = this.browser, server = this.server, starting = this.starting;
     this.closing = (async () => {
       // Retire every ready page in parallel; total grace is one deadline, not
       // one deadline per companion. Closing the pool immediately fences leases.
       const grace = Promise.allSettled([...pool?.entries.values() || []]
         .map(entry => this.disconnectPage(entry.value)));
       const disposing = pool?.close();
-      const localDisposing = local?.close();
+      const localDisposing = local?.close(), voiceLineDisposing = voiceLine?.close();
       await grace;
-      await Promise.allSettled([disposing, localDisposing, browser?.close(), starting]);
+      await Promise.allSettled([disposing, localDisposing, voiceLineDisposing, browser?.close(), starting]);
       server?.close();
-      this.pool = this.localPcm = this.browser = this.server = this.voiceLease = null;
+      this.pool = this.localPcm = this.vPcm = this.browser = this.server = this.voiceLease = null;
     })().finally(() => { this.closing = null; });
     return this.closing;
   }
