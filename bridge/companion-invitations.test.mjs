@@ -236,6 +236,51 @@ test('voice failures and wrong-speaker receipts never grant spawn permission or 
   }
 });
 
+// The game tells the player what a preparing companion waits for (mod/manager-party.lua waiting()): a memory-state row
+// carries its stage, and a failure carries its kind. Both are descriptive; neither grants anything.
+test('a memory-state row says what it waits for: its queue turn, the memory service or the voice model; a failure says its kind', async t => {
+  const voice = deferred(), f = fixture(t, {prepareVoice: async (profile, options) => {
+    await abortable(voice.promise, options.signal); return {provider: 'pocket', ready: true, profile};
+  }});
+  const memory = deferred(); f.memoryGates.set('judy', memory);
+  f.ingest([ticket('queued:1', 'judy')]); await until(() => f.memoryCalls.length === 1);
+  let row = f.invitations.snapshot().invitations[0];
+  assert.equal(row.state, 'memory'); assert.equal(row.stage, 'memory');
+  memory.resolve(); await until(() => f.invitations.snapshot().invitations[0].stage === 'voice');
+  row = f.invitations.snapshot().invitations[0];
+  assert.equal(row.state, 'memory'); assert.equal(row.stage, 'voice');
+  voice.resolve(); await until(() => f.invitations.snapshot().invitations[0].state !== 'memory');
+  row = f.invitations.snapshot().invitations[0];
+  assert.ok(row.state === 'connecting' || row.state === 'ready'); assert.equal(Object.hasOwn(row, 'stage'), false, 'only a memory-state row names a stage');
+  // Model-only copies and ready rows carry no stage; the wire stays what the game validates.
+  const bare = fixture(t); bare.ingest([ticket('model-only', undefined)]);
+  assert.equal(Object.hasOwn(bare.invitations.snapshot().invitations[0], 'stage'), false);
+  // A reservation beyond the preparation bound waits its turn, and says so.
+  const names = Object.keys(ids), many = fixture(t), gates = new Map(names.map(name => [name, deferred()]));
+  for (const [name, gate] of gates) many.memoryGates.set(name, gate);
+  many.ingest(names.map((name, n) => ticket('queued:' + n, name)));
+  await until(() => many.memoryCalls.length === PREPARATION_LIMIT);
+  const stages = many.invitations.snapshot().invitations.map(item => item.stage);
+  assert.equal(stages.filter(stage => stage === 'memory').length, PREPARATION_LIMIT);
+  assert.equal(stages.filter(stage => stage === 'queued').length, names.length - PREPARATION_LIMIT);
+  for (const gate of gates.values()) gate.resolve();
+});
+
+test('a failure names its kind for the game and keeps the bridge text; a failure with no kind names none', async t => {
+  const voiceFailure = fixture(t, {prepareVoice: async () => null});
+  voiceFailure.ingest([ticket()]); await until(() => voiceFailure.invitations.snapshot().invitations[0].state === 'error');
+  let row = voiceFailure.invitations.snapshot().invitations[0];
+  assert.equal(row.errorKind, 'voice'); assert.match(row.error, /Voice preparation/);
+  const memoryFailure = fixture(t);
+  memoryFailure.memory.prepareCharacter = async () => { throw Object.assign(Error('offline'), {code: 'NETWORK_ERROR'}); };
+  memoryFailure.ingest([ticket()]); await until(() => memoryFailure.invitations.snapshot().invitations[0].state === 'error');
+  row = memoryFailure.invitations.snapshot().invitations[0];
+  assert.equal(row.errorKind, 'memory'); assert.equal(row.errorStage, 'memory'); assert.equal(row.errorCode, 'NETWORK_ERROR');
+  const unknown = fixture(t); unknown.ingest([ticket('queued:1', 'nobody')]);
+  row = unknown.invitations.snapshot().invitations[0];
+  assert.equal(row.state, 'error'); assert.equal(row.errorKind, 'profile');
+});
+
 test('cancel or world replacement during voice preparation fences late completion', async t => {
   for (const replaceWorld of [false, true]) {
     const gate = deferred(), calls = [];

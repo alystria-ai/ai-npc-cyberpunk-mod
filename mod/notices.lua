@@ -21,7 +21,7 @@ local PLAYER, DEVELOPER, REMOVED = 'player', 'developer', 'removed'
 -- repeatS: seconds in which an identical text of this id is not shown again (Developer mode off).
 M.catalog = {
     -- Invitations
-    ['invite-board'] = {class = PLAYER},               -- preparing connection (once per join), joined and failed, one merged notice; no other progress text
+    ['invite-board'] = {class = PLAYER},               -- joined and failed, one merged notice; what a companion still waits for is a load-progress line, no other progress text
     ['party-joined'] = {class = PLAYER},               -- a joined outcome, merged into the board
     ['party-failed'] = {class = PLAYER},               -- could not prepare / could not join
     ['party-dismiss-failed'] = {class = PLAYER},
@@ -74,7 +74,7 @@ M.catalog = {
     ['party-stop-trip'] = {class = PLAYER, repeatS = 15},
     ['trip-failed'] = {class = PLAYER, repeatS = 15},
     -- A slow component loading (the loading board below): one notice that stays up until the outcome replaces it, no repeat window
-    ['load-progress'] = {class = PLAYER},              -- "Loading the OmniVoice voice…", "Local AI is warming up…"
+    ['load-progress'] = {class = PLAYER},              -- "Loading the OmniVoice voice…", "Local AI is warming up…", and a companion still being prepared: "Preparing Evelyn: waiting for the voice model to load…"
     ['load-ready'] = {class = PLAYER},                 -- the matching "… is ready." (only when the loading line was shown)
     ['load-failed'] = {class = PLAYER},                -- it could not load, and what to do
 
@@ -194,16 +194,16 @@ function M.ordinary(player, text)
     return (pcall(function() player:ConvaiPhoneFeedback(text) end))
 end
 
--- The notice held on screen: {text, at, mode, mask (which loads it lists), matched, checkedAt, menu}, or nil.
+-- The notice held on screen: {text, at, mode, mask (which loads it lists), sig (the texts of the lines that change while their load goes on), matched, checkedAt, menu}, or nil.
 local held
 M.lastSentAt = -1000
 M.clock = os.clock
 
-local function hold(player, text, instant, mask)
+local function hold(player, text, instant, mask, sig)
     local ok, mode = pcall(M.screen.post, player, text, instant)
     if not ok or not mode then return false end
     local now = M.clock()
-    held = {text = text, at = now, mode = mode, mask = mask, matched = false, checkedAt = now, menu = false}
+    held = {text = text, at = now, mode = mode, mask = mask, sig = sig, matched = false, checkedAt = now, menu = false}
     M.lastSentAt = now
     return true
 end
@@ -226,12 +226,12 @@ end
 -- shown in the same call (the board offers them again).
 function M.sendLines(player, lines)
     if not player then return 0 end
-    local texts, loading, loadingCount, instant, mask = {}, nil, 0, false, nil
+    local texts, loading, loadingCount, instant, mask, sig = {}, nil, 0, false, nil, nil
     for _, line in ipairs(lines) do
         if M.permit(line.id, line.text) then
             if line.id == LOADING_ID then
                 loading, loadingCount = loading and (loading .. '\n' .. line.text) or line.text, loadingCount + 1
-                instant, mask = line.instant == true, line.mask
+                instant, mask, sig = line.instant == true, line.mask, line.sig
             else
                 texts[#texts + 1] = line.text
             end
@@ -242,7 +242,7 @@ function M.sendLines(player, lines)
         if ok then M.lastSentAt = M.clock() end
         return ok and #texts or 0
     end
-    if loading then return hold(player, loading, instant, mask) and loadingCount or 0 end
+    if loading then return hold(player, loading, instant, mask, sig) and loadingCount or 0 end
     return 0
 end
 
@@ -286,7 +286,8 @@ local function lostFromScreen(now)
 end
 
 -- worldReady: popups are visible. keys: the components, in the order their lines are shown. read(): returns a table
--- key -> state. describe(key, state) returns the text of a line. Returns lines, release. lines is an array of
+-- key -> state; it may carry a table `revisions` (key -> text) for lines whose text changes while the load goes on, which the
+-- notice then follows in place. describe(key, state) returns the text of a line. Returns lines, release. lines is an array of
 -- {phase, key, text, instant, mask}, or nil when there is nothing to show now; phase is 'loading' (the notice to post or
 -- update: all current loads, to be sent as the load-progress id), 'ready' or 'failed' (an outcome, shown once, as an
 -- ordinary notice that replaces the held one). release is true when the held notice has to come down
@@ -326,16 +327,23 @@ function M.loading(worldReady, keys, read, describe)
                 count, ended = count + 1, true
                 local line = lines[count] or {}
                 lines[count] = line
-                line.phase, line.key, line.text, line.instant, line.mask = item.ending, key, describe(key, item.state), nil, nil
+                line.phase, line.key, line.text, line.instant, line.mask, line.sig = item.ending, key, describe(key, item.state), nil, nil, nil
             end
             item.ending = nil
         end
     end
     if ended then held, lastEndAt = nil, now end   -- the outcome notice replaces the loading notice
-    local mask, active = 0, 0
+    local mask, active, sig = 0, 0, nil
+    local revisions = type(states.revisions) == 'table' and states.revisions or nil
     for index, key in ipairs(keys) do
         local item = board[key]
-        if item.phase == 'loading' and now - item.since >= LOADING_DELAY_S then mask, active = mask + 2 ^ (index - 1), active + 1 end
+        if item.phase == 'loading' and now - item.since >= LOADING_DELAY_S then
+            mask, active = mask + 2 ^ (index - 1), active + 1
+            -- A line whose text changes while its load goes on (what a companion waits for) names its text in
+            -- states.revisions[key]: a change is posted in place, like a change of the set.
+            local revision = revisions and revisions[key]
+            if revision ~= nil then sig = (sig or '') .. key .. '=' .. tostring(revision) .. '\n' end
+        end
     end
     local release = false
     if active == 0 then
@@ -347,7 +355,7 @@ function M.loading(worldReady, keys, read, describe)
             post = quiet and now - lastEndAt >= END_SHOW_S
         elseif M.lastSentAt > held.at or held.mode == 'fallback' then
             post = quiet                                      -- covered by another notice, or the ordinary notice has run its time
-        elseif held.menu or held.mask ~= mask or now - held.at >= REFRESH_S then
+        elseif held.menu or held.mask ~= mask or held.sig ~= sig or now - held.at >= REFRESH_S then
             post, instant = true, true
         elseif now - held.checkedAt >= VERIFY_S then
             post = lostFromScreen(now)
@@ -360,7 +368,7 @@ function M.loading(worldReady, keys, read, describe)
                     count = count + 1
                     local line = lines[count] or {}
                     lines[count] = line
-                    line.phase, line.key, line.text, line.instant, line.mask = 'loading', key, describe(key, 'loading'), instant, mask
+                    line.phase, line.key, line.text, line.instant, line.mask, line.sig = 'loading', key, describe(key, 'loading'), instant, mask, sig
                 end
             end
         end

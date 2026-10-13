@@ -1,7 +1,14 @@
 -- Reservations prepare in the bridge while menus are open. A fresh, exact
 -- receipt is the permission to create an actor; this module never creates one.
 local M = {}
-local RECEIPT_AGE, SERVICE_TIMEOUT = 2500, 15000
+-- SERVICE_TIMEOUT: how long the conversation service may stay silent (never heard since the request, or no fresh receipt
+-- since the last one) before preparation is a failure. A service that is still starting, or busy loading models, only
+-- makes the player wait with a notice that says so (manager-party.lua); a minute of silence is a real failure.
+local RECEIPT_AGE, SERVICE_TIMEOUT = 2500, 60000
+-- What the bridge says a memory-state invitation is waiting for (companion-invitations.mjs snapshot `stage`), and the
+-- failure kinds the game words itself (manager-party.lua). Anything else is ignored.
+local WAIT_STAGES = {queued = true, memory = true, voice = true, connection = true}
+local ERROR_KINDS = {voice = true, memory = true, connection = true, capacity = true}
 -- A receipt row is a few hundred bytes. The allowance for a receipt file grows with the reservations
 -- in flight, so a larger party is never rejected for its size.
 local RECEIPT_BYTES_BASE, RECEIPT_BYTES_PER_ROW = 64 * 1024, 1024
@@ -193,15 +200,15 @@ function M.new(options)
         local stamp, row = clock(), matching(job)
         if not row then return {state = 'error', error = 'That invitation no longer belongs to the current world.'} end
         if row.error or not known(row.profileKey) then
-            return {state = 'error', error = row.error or 'That conversation profile is unavailable.'}
+            return {state = 'error', error = row.error or 'That conversation profile is unavailable.', kind = row.errorKind}
         end
-        local function failed(reason)
+        local function failed(reason, kind)
             -- A failure belongs to this exact attempt. A missing/expired IPC
             -- receipt must not turn it back into progress or permit a late
             -- ready result to spawn it. A new revision is an explicit retry.
-            row.error = reason
+            row.error, row.errorKind = reason, kind
             if stamp then publish(boundary, stamp) end
-            return {state = 'error', error = reason}
+            return {state = 'error', error = reason, kind = kind}
         end
         if not stamp or publicationError then return failed(publicationError or 'Preparation clock unavailable.') end
         if row.profileKey == nil then return {state = 'model-only'} end
@@ -226,16 +233,25 @@ function M.new(options)
             end
             for index = 1, count do if receipt.invitations[index] == nil then valid = false; break end end
             if valid and found then
+                row.heardAt = stamp
                 if found.state == 'error' then
-                    return failed(type(found.error) == 'string' and found.error:sub(1, 300) or 'Companion preparation failed.')
+                    return failed(type(found.error) == 'string' and found.error:sub(1, 300) or 'Companion preparation failed.',
+                        ERROR_KINDS[found.errorKind] and found.errorKind or nil)
                 end
-                return {state = found.state}
+                -- What the invitation waits for, so the player is told (manager-party.lua): the stage of a memory-state
+                -- invitation, the connection once connecting. A receipt without a stage says nothing more.
+                local wait = found.state == 'connecting' and 'connection' or found.state == 'memory'
+                    and (WAIT_STAGES[found.stage] and found.stage or row.wait) or nil
+                row.wait = wait or row.wait
+                return {state = found.state, wait = wait}
             end
         end
-        if stamp - row.started >= SERVICE_TIMEOUT then
-            return failed('Companion preparation is not responding. Check the bridge or choose the profile again.')
+        if stamp - (row.heardAt or row.started) >= SERVICE_TIMEOUT then
+            return failed('Companion preparation is not responding. Check the bridge or choose the profile again.', 'service')
         end
-        return {state = 'memory'}
+        -- No fresh receipt: the service has not answered yet (just starting, or busy loading its models). Once it has
+        -- answered, the stage it last reported stands until the timeout.
+        return {state = 'memory', wait = row.heardAt and row.wait or 'bridge'}
     end
 
     local function release(job)

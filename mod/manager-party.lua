@@ -14,10 +14,11 @@ end
 -- notice that replaces the previous one: "Judy and Johnny joined your group.".
 -- A lone invitation keeps its original wording.
 -- Visibility rules (the classes live in notices.lua, docs/NOTIFICATIONS.md): a player and a developer
--- see the same three kinds of line: "Preparing connection to {name}…" while her connection is being
--- prepared (once per join, and not at all when it is already open), "joined", and failures. No other
--- progress text (connecting, ready, joining) is posted in any mode: the party list shows the stage,
--- and the mod log keeps every stage.
+-- see the same two kinds of line here: "joined" and failures. What a companion is still waiting for ("Preparing
+-- {name}: waiting for the voice model to load") is not posted by the board: waiting() hands those lines to the
+-- loading notice (mod/mcm.lua, notices.lua), which holds them on screen until she has spawned. No other progress
+-- text (connecting, ready, joining) is posted as an ordinary notice: the party list shows the stage, and the mod
+-- log keeps every stage.
 -- Calm rules, because each notice replaces the last one on screen:
 -- * A posted notice stays up for at least MIN_SHOW_MS (FINAL_SHOW_MS after a
 --   final outcome, so a "joined" is never cut short): a change arriving sooner
@@ -73,22 +74,50 @@ local function listNames(names)
     return ui.t('{first}, {second} and {count} others', {first = names[1], second = names[2], count = count - 2})
 end
 
--- True when the bridge already holds this character's private connection (mod/auto-connect.lua reads
--- runtime/party-connection-state.json). Read once per invitation, when it is first seen.
-local function openConnection(options, key)
-    if type(key) ~= 'string' then return false end
-    local reader = options.connected
-    if type(reader) ~= 'function' then
-        local ok, autoConnect = pcall(function() return convaiAutoConnect end)
-        reader = ok and type(autoConnect) == 'table' and autoConnect.connected or nil
-    end
-    if type(reader) ~= 'function' then return false end
-    local ok, value = pcall(reader, key)
-    return ok and value == true
-end
-
 local function newBurst()
     return {joined = {}, failures = {}, fresh = false}
+end
+
+-- What a companion still being prepared waits for, from the stage the queue reports: 'bridge' (the conversation service
+-- has not answered yet: still starting or loading its models), 'memory' (the memory service, or its turn in the queue),
+-- 'voice' (the voice model loading), 'connection' (her conversation connection opening), 'joining' (the game placing
+-- her; also a spawn held back by the shared frame budget or an adopted character's gate). Nil when she waits for
+-- nothing the player could be told: ready in a paused menu (she spawns when V returns to the game) or failed.
+local function waitReason(entry)
+    if entry.failed or not entry.name then return nil end
+    if entry.stage == 'joining' then return 'joining' end
+    if entry.stage == 'connecting' then return 'connection' end
+    if entry.stage ~= 'memory' then return nil end
+    return (entry.wait == 'bridge' or entry.wait == 'voice') and entry.wait or 'memory'
+end
+
+local function waitText(name, wait)
+    if wait == 'bridge' then
+        return ui.t('Preparing {name}: waiting for the conversation service to connect…', {name = name})
+    elseif wait == 'voice' then
+        return ui.t('Preparing {name}: waiting for the voice model to load…', {name = name})
+    elseif wait == 'connection' then
+        return ui.t('Preparing {name}: waiting for the conversation connection to open…', {name = name})
+    elseif wait == 'joining' then
+        return ui.t('Preparing {name}: waiting for the game to place the character…', {name = name})
+    end
+    return ui.t('Preparing {name}: waiting for the memory service…', {name = name})
+end
+
+-- A preparation failure in the game's words: what failed, and what the player can do. `kind` comes from the readiness
+-- adapter (the bridge's own kinds, or 'service' for a service that never answered); an unknown kind keeps the text the
+-- adapter gave.
+local function failureText(kind, fallback)
+    if kind == 'service' then
+        return ui.t('The conversation service did not answer. Wait a moment, then invite again.')
+    elseif kind == 'voice' then
+        return ui.t('The voice model did not load. Check the voice in Settings or choose another one, then invite again.')
+    elseif kind == 'memory' then
+        return ui.t('The memory service did not respond. Check your connection, then invite again.')
+    elseif kind == 'connection' then
+        return ui.t('The conversation connection did not open. Check your connection, then invite again.')
+    end
+    return fallback
 end
 
 function M.newBoard(options)
@@ -166,14 +195,9 @@ function M.newBoard(options)
                     end
                 else
                     entry.stage, entry.ignored = stage, nil
+                    entry.wait = current.wait
                 end
                 entry.sameRevision = entry.revision
-                -- Decided once, when the invitation is first seen: a preparing line is wanted only while a
-                -- profile's connection is still being prepared and is not open yet.
-                if entry.prepWanted == nil then
-                    entry.prepWanted = (stage == 'memory' or stage == 'connecting') and type(current.profileKey) == 'string'
-                        and not openConnection(options, current.profileKey)
-                end
             end
         end
         for _, entry in ipairs(entries) do if not entry.failed then inflight[#inflight + 1] = entry end end
@@ -185,18 +209,7 @@ function M.newBoard(options)
         return #burst.joined > 0 and #active > 0 and burst.joinedAt ~= nil and at - burst.joinedAt < JOIN_HOLD_MS
     end
 
-    -- The invitations whose connection is still being prepared and that wait for their one preparing line.
-    local function preparing(active)
-        local list = {}
-        for _, entry in ipairs(active) do
-            if entry.prepWanted and entry.name and (entry.stage == 'memory' or entry.stage == 'connecting') then
-                list[#list + 1] = entry
-            end
-        end
-        return list
-    end
-
-    local function compose(holding, waiting)
+    local function compose(holding)
         local lines = {}
         if #burst.joined > 0 and not holding then
             -- "Joined" is the one notice a normal invitation gives, so it is always shown.
@@ -217,11 +230,6 @@ function M.newBoard(options)
             end
             lines[#lines + 1] = failure.message
         end
-        -- One line per character: two copies of one character share it (each copy is still announced once).
-        for index, name in ipairs(uniqueNames(waiting)) do
-            if index > MAX_LISTED then break end
-            lines[#lines + 1] = ui.t('Preparing connection to {name}…', {name = name})
-        end
         return table.concat(lines, '\n')
     end
 
@@ -232,8 +240,7 @@ function M.newBoard(options)
         local at = now()
         local active = sample(worldReady)
         local holding = holdingJoined(active, at)
-        local waiting = preparing(active)
-        local text = compose(holding, waiting)
+        local text = compose(holding)
         if text == '' then
             if #active == 0 then burst = newBurst() end
             return nil
@@ -241,8 +248,6 @@ function M.newBoard(options)
         local core = table.concat({text, tostring(ui.revision())}, '|')
         -- A new outcome is announced even when its text equals the previous notice (two copies of one character).
         local fresh = burst.fresh and not (holding and #burst.failures == 0)
-        -- A preparing line not announced yet shows even when its text equals the previous notice (two copies of one character).
-        for index, entry in ipairs(waiting) do if index <= MAX_LISTED and not entry.prepAnnounced then fresh = true end end
         if not fresh and core == shownCore and (not worldReady or core == shownGameplayCore) then
             if #active == 0 then burst = newBurst() end
             return nil
@@ -262,18 +267,41 @@ function M.newBoard(options)
             -- A final outcome (joined or failed, nothing else going) stays up longer.
             lastHold = (#active == 0 and (#burst.joined > 0 or #burst.failures > 0)) and FINAL_SHOW_MS or MIN_SHOW_MS
             for _, failure in ipairs(burst.failures) do failure.announced = true end
-            for index, entry in ipairs(waiting) do if index <= MAX_LISTED then entry.prepAnnounced = true end end
             if worldReady then shownGameplayCore = core end
             burst.fresh = false
             if #active == 0 then burst = newBurst() end
         end}
     end
 
+    -- The lines of the companions still being prepared, as the loading notice shows them (mod/mcm.lua holds them on
+    -- screen until each has spawned or failed): {{name, text}}, in the order the invitations were made. One line per
+    -- character (two copies of one character wait together), at most MAX_LISTED lines; a longer list ends in one line
+    -- that counts the rest. Reads what the last take() sampled: no queue access, nothing per frame.
+    function B.waiting()
+        local list, seen = {}, {}
+        for _, entry in ipairs(entries) do
+            local wait = waitReason(entry)
+            if wait and not seen[entry.name] then
+                seen[entry.name] = true
+                list[#list + 1] = {name = entry.name, wait = wait}
+            end
+        end
+        local lines = {}
+        for index, item in ipairs(list) do
+            if #list > MAX_LISTED and index >= MAX_LISTED then
+                lines[#lines + 1] = {text = ui.t('Preparing {count} more companions…', {count = #list - MAX_LISTED + 1})}
+                break
+            end
+            lines[#lines + 1] = {name = item.name, text = waitText(item.name, item.wait)}
+        end
+        return lines
+    end
+
     function B.inspect()
         local result = {entries = {}, joined = #burst.joined, failures = #burst.failures}
         for _, entry in ipairs(entries) do
             result.entries[#result.entries + 1] = {id = entry.id, name = entry.name, stage = entry.stage,
-                source = entry.source, failed = entry.failed == true}
+                source = entry.source, wait = waitReason(entry), failed = entry.failed == true}
         end
         return result
     end
@@ -360,7 +388,10 @@ function M.new(companions, readiness, options)
             and state.state ~= 'model-only' and state.state ~= 'error' then
             return {state = 'error', error = ui.t('Companion preparation returned an invalid state.')}
         end
-        if state.state == 'error' then job.error = state.error or ui.t('Companion preparation failed.') end
+        if state.state == 'error' then
+            job.error = failureText(state.kind, state.error) or ui.t('Companion preparation failed.')
+            state.error = job.error
+        end
         return state
     end
 
@@ -378,7 +409,7 @@ function M.new(companions, readiness, options)
                     message = ui.t('{name}: preparation failed. Cancel and invite again.', {name = job.name})
                 end
                 return {id = job.id, revision = job.revision, name = job.name, state = status.state, profileKey = job.profileKey,
-                    message = message, failed = status.state == 'error',
+                    wait = status.wait, message = message, failed = status.state == 'error',
                     signature = table.concat({job.id, tostring(job.revision), status.state}, '|')}
             end
         end

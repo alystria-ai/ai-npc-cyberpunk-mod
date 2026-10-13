@@ -2373,7 +2373,8 @@ local function processPhoneAction(player)
             end
         end
         -- An accepted invitation is not acknowledged: the notice board posts "joined" when the companion
-        -- arrives, and no progress text is shown in any mode (manager-party.lua). A refusal is always
+        -- arrives, and what she still waits for ("Preparing Evelyn: waiting for the voice model to load…") is one
+        -- of the loading notice's lines, held until she has spawned (manager-party.lua waiting(), mcm.lua). A refusal is always
         -- shown, except a failed preparation: that is queued as the single gameplay notice for the
         -- attempt, so it is not posted again here while the phone is open.
         if accepted or invitationId then return end

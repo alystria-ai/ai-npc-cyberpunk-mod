@@ -20,6 +20,9 @@ const ERRORS = Object.freeze({
   connection: 'The companion connection could not become ready. Choose a profile or cancel the invitation.',
   capacity: 'The party has no free conversation connection.'
 });
+// The game turns a failure into its own wording from this kind (mod/manager-party.lua); the English text above stays the
+// fallback for a game that does not know a kind.
+const ERROR_KIND = new Map(Object.entries(ERRORS).map(([kind, text]) => [text, kind]));
 // Memory and voice preparations in flight at once. The party has no size limit; a larger burst of different
 // characters queues here (state stays "memory") and starts as earlier ones finish, so the memory service
 // and the voice worker never receive an unbounded stampede.
@@ -354,9 +357,14 @@ export class CompanionInvitations {
         if (lane && !this.currentGuard(lane) && state !== 'error') { state = 'error'; error = ERRORS.guard; }
         if (lane && row.phase === 'preparing' && state === 'ready'
             && (!this.voiceValid(lane) || !this.routeValid(lane))) state = 'connecting';
+        // While a profile invitation is in the memory state, `stage` says what it is waiting for: its turn in the queue,
+        // the memory service or the voice model. The game shows it in the preparing notice; it grants nothing.
+        const stage = state === 'memory' && lane ? (lane.queued ? 'queued' : lane.stage) : undefined;
         return {id: row.id, revision: row.revision, modelKey: row.modelKey,
           ...(row.profileKey !== undefined ? {profileKey: row.profileKey} : {}), state,
-          ...(state === 'error' ? {error, ...(lane?.errorCode ? {errorCode: lane.errorCode, errorStage: lane.stage} : {})} : {})};
+          ...(stage ? {stage} : {}),
+          ...(state === 'error' ? {error, ...(ERROR_KIND.has(error) ? {errorKind: ERROR_KIND.get(error)} : {}),
+            ...(lane?.errorCode ? {errorCode: lane.errorCode, errorStage: lane.stage} : {})} : {})};
       }) : []};
   }
   // The game-facing state file can be briefly locked by a reader on Windows. A failed write

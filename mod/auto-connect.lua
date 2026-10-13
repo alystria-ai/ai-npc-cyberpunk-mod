@@ -251,11 +251,6 @@ function M.new(options)
         return ui.t('Preparing connection to {name}…', {name = name})
     end
 
-    -- True when the bridge reports this character's private connection ready (read once per call, cached for a second).
-    function A.connected(key)
-        return type(key) == 'string' and ready(key) == true
-    end
-
     -- Every frame, also while a menu pauses the game: keeps the list fresh for
     -- the bridge, which drops a list that stops being refreshed.
     function A.heartbeat()

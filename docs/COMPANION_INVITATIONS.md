@@ -86,6 +86,18 @@ or actual send still disposes any connection created before memory was enabled.
 A busy route keeps that obligation pending without closing another character's
 active conversation.
 
+## What a preparing invitation waits for, and how a failure is worded
+
+The bridge's receipt rows carry, for a profile invitation in the memory state, a `stage` (`queued` for its turn when more than eight are
+preparing, `memory`, `voice`); the state `connecting` is her connection opening; an error row carries an `errorKind` (`voice`, `memory`,
+`connection`, `capacity`, ...) next to its English `error`. All of it is descriptive and grants nothing: only a fresh `ready` receipt that
+matches the exact ticket permits a spawn. `mod/invitation-readiness.lua` turns a receipt into `{state, wait}` (`wait` is `bridge` while no
+fresh receipt matches: the service is still starting or busy loading its models; the last stage it reported stands while its receipts are
+late). The service is silent for a failure only after a minute (`SERVICE_TIMEOUT`, counted from its last matching receipt, or from the
+request when it never answered); before that the invitation simply waits. `mod/manager-party.lua` words the wait ("Preparing {name}: waiting
+for the voice model to load…") and the failure by kind, and hands the wait lines to the held loading notice
+(docs/NOTIFICATIONS.md); the spawn is never delayed by showing them.
+
 ## Latency evidence and verification
 
 The earlier measured Convai reply took approximately 19.6 seconds to start:

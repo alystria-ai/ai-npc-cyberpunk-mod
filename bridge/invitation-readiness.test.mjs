@@ -215,8 +215,10 @@ assert(#spawned == 0 and queue.list()[1].state == 'failed' and queue.list()[1].e
 assert(queue.assign(queue.list()[1].id, 'judy-alvarez', 'Judy') and queue.list()[1].state == 'preparing-memory')
 files['runtime/companion-invitations-state.json'] = 'corrupt'
 readiness.update(); queue.flush(); assert(#spawned == 0)
-ms = ms + 15000; readiness.update(); queue.flush()
-assert(queue.list()[1].state == 'failed' and queue.list()[1].error:find('not responding', 1, true) and #spawned == 0)
+ms = ms + 59000; readiness.update(); queue.flush()
+assert(queue.list()[1].state == 'preparing-memory' and #spawned == 0, 'a service still starting failed before a minute of silence')
+ms = ms + 1000; readiness.update(); queue.flush()
+assert(queue.list()[1].state == 'failed' and queue.list()[1].error:find('did not answer', 1, true) and #spawned == 0)
 assert(queue.assign(queue.list()[1].id, 'judy-alvarez', 'Judy'))
 receipt('error', {error = 'Preparation timed out'}); readiness.update(); queue.flush()
 assert(queue.list()[1].state == 'failed' and queue.list()[1].error == 'Preparation timed out' and #spawned == 0)
@@ -341,4 +343,69 @@ assert(first == 1, 'first update did not read the receipt')
 for _ = 1, 10 do wall = wall + .016; throttled.update() end
 assert(reads == first, 'receipt was read again within 250 ms: ' .. reads)
 wall = wall + .1; throttled.update(); assert(reads == first + 1)
+`));
+
+// What a preparing companion waits for reaches the player as a notice line (manager-party.lua waiting(), mcm.lua): the
+// adapter names the step from the bridge's receipt, and a service that is only slow is a wait, never a failure.
+test('the wait is named from the receipt: service not answering yet, then the memory service, the voice model, the connection', () => run(`
+assert(queue.invite('judy'))
+local id = queue.list()[1].id
+local function wait() return queue.preparationFeedback(id).wait end
+assert(wait() == 'bridge' and queue.preparationFeedback(id).state == 'memory', 'no receipt yet is the service not answering')
+receipt('memory', {stage = 'memory'}); readiness.update(); assert(wait() == 'memory')
+receipt('memory', {stage = 'queued'}); readiness.update(); assert(wait() == 'queued', 'the queue wait is told to the game, which words it as memory')
+receipt('memory', {stage = 'voice'}); readiness.update(); assert(wait() == 'voice')
+receipt('memory', {stage = 'somewhere-else'}); readiness.update(); assert(wait() == 'voice', 'an unknown stage was believed')
+receipt('memory'); readiness.update(); assert(wait() == 'voice', 'a receipt without a stage forgot the last one')
+receipt('connecting'); readiness.update(); assert(wait() == 'connection' and queue.preparationFeedback(id).state == 'connecting')
+receipt('ready'); readiness.update(); assert(wait() == nil and queue.preparationFeedback(id).state == 'ready')
+`));
+
+test('a service that answered keeps its last step while receipts are late, and fails only after a minute of silence', () => run(`
+assert(queue.invite('judy'))
+local id = queue.list()[1].id
+receipt('memory', {stage = 'voice'}); readiness.update(); assert(queue.preparationFeedback(id).wait == 'voice')
+-- Its receipts stop (a busy service loading models): the step stands and nothing fails.
+ms = ms + 3000; readiness.update()
+assert(queue.preparationFeedback(id).wait == 'voice' and not queue.preparationFeedback(id).failed)
+ms = ms + 56000; readiness.update()
+assert(queue.preparationFeedback(id).wait == 'voice' and not queue.preparationFeedback(id).failed, 'failed before a minute of silence')
+-- A fresh receipt restarts the silence.
+-- (A receipt counts when the status is read, which the notice board does on every frame it has an invitation.)
+receipt('memory', {stage = 'voice'}); readiness.update(); queue.preparationFeedback(id); ms = ms + 59000; readiness.update()
+assert(not queue.preparationFeedback(id).failed, 'the silence was not restarted by a fresh receipt')
+ms = ms + 1000; readiness.update()
+local failed = queue.preparationFeedback(id)
+assert(failed.failed and queue.list()[1].error:find('did not answer', 1, true), tostring(queue.list()[1].error))
+queue.flush()
+local notices = queue.takeNotices()
+assert(#notices == 1 and notices[1].message:find('Judy could not prepare: The conversation service did not answer', 1, true), notices[1] and notices[1].message)
+-- A service that never answered waits just as long, with the same wait named.
+assert(queue.assign(id, 'judy-alvarez', 'Judy'))
+assert(queue.preparationFeedback(id).wait == 'bridge')
+ms = ms + 59000; readiness.update(); assert(not queue.preparationFeedback(id).failed)
+ms = ms + 1000; readiness.update(); assert(queue.preparationFeedback(id).failed)
+`));
+
+test('a bridge failure is worded by its kind: what failed and what to do; an unknown kind keeps the bridge text', () => run(`
+local reasons = {
+    {'voice', 'The voice model did not load. Check the voice in Settings or choose another one, then invite again.'},
+    {'memory', 'The memory service did not respond. Check your connection, then invite again.'},
+    {'connection', 'The conversation connection did not open. Check your connection, then invite again.'}}
+for _, case in ipairs(reasons) do
+    assert(queue.invite('judy'))
+    local id = queue.list()[1].id
+    receipt('error', {error = 'Bridge wording that is replaced', errorKind = case[1]}); readiness.update(); queue.flush()
+    assert(queue.list()[1].error == case[2], case[1] .. ': ' .. tostring(queue.list()[1].error))
+    local notices = queue.takeNotices()
+    assert(#notices == 1 and notices[1].message == 'Judy could not prepare: ' .. case[2], notices[1] and notices[1].message)
+    assert(queue.dismiss(id))
+end
+assert(queue.invite('judy'))
+receipt('error', {error = 'The party has no free conversation connection.', errorKind = 'capacity'}); readiness.update(); queue.flush()
+assert(queue.list()[1].error == 'The party has no free conversation connection.')
+assert(queue.dismiss(queue.list()[1].id))
+assert(queue.invite('judy'))
+receipt('error', {error = 'Made-up failure', errorKind = 'made-up'}); readiness.update(); queue.flush()
+assert(queue.list()[1].error == 'Made-up failure', 'an unknown kind replaced the bridge text')
 `));
