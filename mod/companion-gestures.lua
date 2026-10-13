@@ -331,7 +331,7 @@ function M.new(options)
                     end
                     return
                 end
-                s.phase, s.activeAt = 'active', self.clock
+                s.phase, s.activeAt, s.npcAnchor, s.drifted = 'active', self.clock, copy(s.entry.position), nil
                 note(s, 'active', {})
             elseif self.clock - s.playAt > 3 then
                 if not s.flavour and s.familyKey and s.known.fallback and s.familyKey ~= s.known.fallback then
@@ -360,6 +360,15 @@ function M.new(options)
         local allowed, reason = self.allowed(npc, self.player)
         if not allowed then requestExit(s, reason or 'guard', false); return end
         if context.settled then s.unsettledSince = nil else s.unsettledSince = s.unsettledSince or self.clock end
+        -- She is carried by the workspot, never by the mod: a displacement while it plays is the game's
+        -- (live 2026-10-13 09:59:51Z: Evelyn slid 2.6 m in 3 s during an idle, with no relocation line).
+        -- One line per gesture, with where she stood and where she ended up; no extra work per tick.
+        if s.npcAnchor and not s.drifted and s.entry.position and distance(s.npcAnchor, s.entry.position) > .6 then
+            s.drifted = true
+            note(s, 'drift', {moved = math.floor(distance(s.npcAnchor, s.entry.position) * 10 + .5) / 10,
+                from = copy(s.npcAnchor), to = copy(s.entry.position), component = s.component,
+                age = math.floor((self.clock - (s.activeAt or self.clock)) * 10 + .5) / 10})
+        end
         local moved = distance(s.playerAnchor, self.playerPosition)
         if (tonumber(s.entry.playerGap) or 0) > policy.nearKeep then requestExit(s, 'too far', false); return end
         -- A single-tick speed spike (a collision nudge) is not running.

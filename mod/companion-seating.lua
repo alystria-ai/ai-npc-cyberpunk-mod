@@ -405,10 +405,10 @@ function native.stepOut(entry, spot)
     if not entry.motor then return false end
     return actuator.board(entry.motor, spot, {gait = 'Walk'})
 end
-function native.teleport(entry, spot, yaw)
+function native.teleport(entry, spot, yaw, reason)
     actuator = actuator or dofile('companion-actuator.lua')
     if not entry.motor then return false end
-    return actuator.teleport(entry.motor, spot, yaw)
+    return actuator.teleport(entry.motor, spot, yaw, reason)
 end
 local clearanceModule
 function native.bodyClear(spot, shape)
@@ -851,7 +851,7 @@ function M.new(options)
             if not spot and waited >= policy.placeBothFor then spot = s.placeSpots[1] end
         end
         if spot then
-            local sent = nat.teleport(entry, spot, yawToward(spot, s.seat.root))
+            local sent = nat.teleport(entry, spot, yawToward(spot, s.seat.root), 'seat-place')
             s.placedAt, s.seat.approach = self.clock, {x = spot.x, y = spot.y, z = spot.z}
             note('seat-placed', {serial = s.serial, spot = spot, sent = sent == true, waited = waited, spotUnseen = unseen == true})
         end
@@ -1018,7 +1018,7 @@ function M.new(options)
         if not s.teleported and self.clock - s.standAt >= policy.standDeadline then
             -- The straight step did not get her out: put her on the checked spot.
             s.teleported, s.standAt = true, self.clock
-            local sent = nat.teleport(entry, spot, yawOf(s.forwardCopy))
+            local sent = nat.teleport(entry, spot, yawOf(s.forwardCopy), 'seat-stand')
             note('seat-stand-teleport', {serial = s.serial, spot = spot, sent = sent == true})
         elseif s.teleported and self.clock - s.standAt >= policy.standDeadline then
             if not nextStand(s) then failNote('could not leave the seat'); release(s, 'stand gave up') end

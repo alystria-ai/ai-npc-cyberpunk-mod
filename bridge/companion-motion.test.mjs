@@ -615,3 +615,14 @@ test('a lane point leads V by no more than 0.6 m, however fast V moves',()=>run(
     assert(lane.position.y-frame.position.y<=0.6+1e-6,'slot '..slot..' leads V by '..(lane.position.y-frame.position.y))
   end
 `));
+
+// Every teleport of a companion leaves one probe line with its reason.
+test('a relocation reports its reason, origin and destination through the teleport log',()=>run(strandedPocket('Vector4.new(0,1)',
+  'teleportLog={}; convaiTeleportLog=function(fields) teleportLog[#teleportLog+1]=fields end')+`
+  tick(20)
+  assert(#teleports>=1,'stranded copy was never recovered')
+  assert(#teleportLog>=1,'the relocation left no teleport line')
+  local line=teleportLog[1]
+  assert(type(line.reason)=='string' and line.reason:find('^relocate:'),'no reason: '..tostring(line.reason))
+  assert(line.from and line.to and line.to.y==teleports[1].y,'the line lacks where she was or where she went')
+`));

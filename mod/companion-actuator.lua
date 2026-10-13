@@ -830,7 +830,17 @@ local function retire(s)
     s.nativeRetryAt,s.nativeLegFailures=nil,0
     s.recoveryTicket,s.completedEscapeTicket=nil,nil
 end
-function M.teleport(s,destination,yaw)
+-- Every move of a companion's feet by the mod goes through here or through the lift carry and the
+-- vehicle exit placement, and each leaves one probe line naming its reason ('Companion teleport',
+-- via the convaiTeleportLog global set in init.lua). `reason` says which code path asked.
+local function teleportLog(s,reason,destination,yaw)
+    local hook=rawget(_G,'convaiTeleportLog')
+    if not hook then return end
+    local from,actor
+    pcall(function() from=space.copy(s.npc:GetWorldPosition()); actor=tostring(s.npc:GetEntityID().hash) end)
+    pcall(hook,{reason=reason or 'unspecified',from=from,to=space.copy(destination),actor=actor})
+end
+function M.teleport(s,destination,yaw,reason)
     M.resumeHold(s)
     if not cancel(s) then return nil end
     local lookReleased=clearLook(s)
@@ -841,7 +851,9 @@ function M.teleport(s,destination,yaw)
     command.rotation=yaw or 0
     command.doNavTest=false
     s.ticket,s.kind,s.stage,s.target='teleport','teleport','teleport',space.copy(destination)
-    return submit(s,command)
+    local sent=submit(s,command)
+    if sent then teleportLog(s,reason,destination,yaw) end
+    return sent
 end
 -- Lift cars (companion-passage.lua): a short straight walk onto or off a car
 -- floor the navmesh does not cover (seen working live 2026-10-08 08:51:52Z),

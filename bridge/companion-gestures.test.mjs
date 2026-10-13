@@ -636,3 +636,18 @@ test('a catalogued character rotates her own idle with the rig\'s clean generic 
   speaking={knownEnd=14,at=0};step(2)
   assert(last('play').component=='convai_talk_on_sides','talks from on_sides: '..tostring(last('play').component))
 `));
+
+// Live 2026-10-13 09:59:51Z: a companion slid 2.6 m while an idle played, with no log line for it.
+test('a displacement while the workspot plays is logged once with where she stood and where she went', () => run(`
+  entry.position={x=0,y=0,z=0}
+  speaking={knownEnd=20,at=0};step(.6)
+  assert(not lastLog('drift'),'a still companion was reported as drifting')
+  entry.position={x=.3,y=.2,z=0};step(.3)
+  assert(not lastLog('drift'),'a small shift was reported')
+  entry.position={x=.9,y=.6,z=0};step(.2)
+  local line=lastLog('drift'); assert(line,'a 1 m slide during the workspot left no line')
+  assert(line.fields.moved>=.9 and line.fields.from.x==0 and line.fields.to.x==.9,'the line lacks the two positions')
+  entry.position={x=2.5,y=1.5,z=0};step(.3)
+  local n=0 for _,l in ipairs(logs) do if l.kind=='drift' then n=n+1 end end
+  assert(n==1,'the drift line repeated '..n..' times')
+`));
