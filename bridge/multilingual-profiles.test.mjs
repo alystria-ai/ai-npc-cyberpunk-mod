@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createMultilingualProfiles, applyTwinVoices, buildRows, ROSTER_CHOICES, settingUpdates, voiceFor, withoutCostEstimates, twinPayload, twinMarker, originalMarker, needsLanguageBoxOff, LANGUAGE_CODES, LANGUAGE_BOX_FIELD, MULTILINGUAL_VOICES, TIER1_KEYS} from '../scripts/Create-MultilingualProfiles.mjs';
+import {createMultilingualProfiles, applyTwinVoices, buildRows, ROSTER_CHOICES, settingUpdates, voiceFor, withoutCostEstimates, twinPayload, twinMarker, originalMarker, needsLanguageBoxOff, languageCodesFor, LANGUAGE_TAGS, LANGUAGE_CODES, LANGUAGE_BOX_FIELD, MULTILINGUAL_VOICES, TIER1_KEYS} from '../scripts/Create-MultilingualProfiles.mjs';
 
 function fixture(keys = ['judy-alvarez', 'jackie-welles']) {
   const objects = new Map(), calls = [];
@@ -112,6 +112,41 @@ test('a twin whose language list drifted is put back to en-US only', async () =>
   f.objects.get(first.mapping.characters['judy-alvarez'].multilingualCharacterId).language_codes = ['en-US', 'de-DE'];
   const second = await createMultilingualProfiles({rows: f.rows, mapping: first.mapping, api: f.api});
   assert.deepEqual(second.mapping.characters['judy-alvarez'].languageCodes, ['en-US']);
+});
+
+test('the chosen languages follow en-US, once each, in order; "all" is every interface language; a bad one throws', () => {
+  assert.deepEqual(languageCodesFor(), ['en-US']);
+  assert.deepEqual(languageCodesFor([]), ['en-US']);
+  assert.deepEqual(languageCodesFor(['es', 'ja', 'es', 'en']), ['en-US', 'es-ES', 'ja-JP']);
+  assert.deepEqual(languageCodesFor('de, zh'), ['en-US', 'de-DE', 'zh-CN']);
+  assert.deepEqual(languageCodesFor(['es-mx', 'pt-br']), ['en-US', 'es-MX', 'pt-BR']);
+  assert.equal(languageCodesFor(['all']).length, Object.keys(LANGUAGE_TAGS).length, 'English is the first of them, not repeated');
+  assert.equal(languageCodesFor(['all'])[0], 'en-US');
+  assert.throws(() => languageCodesFor(['klingon']), /Unknown language/);
+  assert.throws(() => languageCodesFor(['e1']), /Unknown language/);
+  assert.deepEqual([...LANGUAGE_CODES], ['en-US'], 'the default is unchanged');
+});
+
+test('chosen languages are written to every twin, existing ones included, verified by readback, and the language box is never touched', async () => {
+  const f = fixture(['judy-alvarez']);
+  let saved;
+  const first = await createMultilingualProfiles({rows: f.rows, api: f.api, persist: value => { saved = value; }, languages: ['es', 'ja']});
+  const twin = f.objects.get(first.mapping.characters['judy-alvarez'].multilingualCharacterId);
+  assert.deepEqual(twin.language_codes, ['en-US', 'es-ES', 'ja-JP']);
+  assert.deepEqual(first.mapping.characters['judy-alvarez'].languageCodes, ['en-US', 'es-ES', 'ja-JP']);
+  assert.equal(f.calls.filter(call => call.endpoint === '/character/update' && 'languageCodes' in call.body).length, 1);
+  assert.equal(f.calls.filter(call => call.endpoint === '/character/update' && call.body.charID.startsWith('orig-')).length, 0, 'originals are never written');
+  // A re-run with the same languages writes nothing; with other languages (or none) it changes the list.
+  const before = f.calls.length;
+  await createMultilingualProfiles({rows: f.rows, mapping: saved, api: f.api, languages: ['es', 'ja']});
+  assert.equal(f.calls.slice(before).filter(call => call.endpoint === '/character/update').length, 0);
+  const later = await createMultilingualProfiles({rows: f.rows, mapping: saved, api: f.api, languages: ['de']});
+  assert.deepEqual(twin.language_codes, ['en-US', 'de-DE']);
+  assert.deepEqual(later.mapping.characters['judy-alvarez'].languageCodes, ['en-US', 'de-DE']);
+  const back = await createMultilingualProfiles({rows: f.rows, mapping: later.mapping, api: f.api});
+  assert.deepEqual(twin.language_codes, ['en-US']);
+  assert.deepEqual(back.mapping.characters['judy-alvarez'].languageCodes, ['en-US']);
+  await assert.rejects(createMultilingualProfiles({rows: f.rows, api: f.api, languages: ['nope']}), /Unknown language/);
 });
 
 test('a twin carries its own marker, a mapping entry has no relationship fields, and a re-run adopts it', async () => {

@@ -417,8 +417,12 @@ the chosen voice through. It still guards the edge cases:
 
 - **Microphone:** the player's speech is transcribed by Convai's server STT through the realtime SDK (no local
   recogniser; the PocketSphinx "US English" model is only the lip-sync phone analyser). The SDK has no STT language
-  field; recognition follows the character's languages, and the twins list only `en-US`. Speaking another language
-  into the microphone is untested and probably transcribes as English. Text chat works in any language.
+  field; recognition follows the character's languages, and the twins list only `en-US` by default. Speaking another language
+  into the microphone is untested and probably transcribes as English. To try it, list the player's languages on a twin:
+  `node scripts/Create-MultilingualProfiles.mjs --apply --languages es --only judy-alvarez` (en-US first, then each language
+  as its Convai code: `es-ES`, `ja-JP`, ...; `all` lists the 15 interface languages; the language box stays off; an existing
+  twin is updated and read back; running again without `--languages` puts it back to en-US). Not yet checked live
+  (TODO.md, "Multilingual follow-ups"). Text chat works in any language.
 - **Lip sync:** the facial model is trained on English game audio but works from audio alone, so the mouth still moves
   for other languages, with English-shaped visemes.
 - **Subtitles and phone chat:** the text path is UTF-8 safe (character-based splitting, no byte truncation of reply

@@ -15,7 +15,7 @@
 //     uses an Azure multilingual voice picked for the character in
 //     characters/multilingual-voice-map.json (gender-matched Emma/Christopher
 //     only as the fallback for a character that has no entry).
-// Languages stay en-US only. With the playground box "Only reply in the selected
+// Languages are en-US only unless --languages asks for more (below). With the playground box "Only reply in the selected
 // languages" unticked, a character replies in whatever language the player uses,
 // so the languages need not be listed. That box is the dashboard field
 // language_hardening_mode ("default" = ticked, "off" = unticked). The Core API
@@ -32,6 +32,8 @@
 // twin keeps it off (verified by readback).
 //
 // Default is a plan (no remote reads or writes). --apply performs the remote work.
+// --languages es,de,ja (or all) lists those languages after en-US on every twin it touches, an existing twin included (add --only <key> to try one);
+// without it the list is en-US only, and a twin whose list differs is put back.
 // --apply --voices-only touches nothing but the voice of already-mapped twins (see applyTwinVoices).
 // Re-runs never create duplicates: an existing mapping, or an existing twin found
 // by its exact ownership marker, is adopted and re-verified.
@@ -50,8 +52,29 @@ export const TIER1_KEYS = Object.freeze([
   'mr-hands', 'padre-ibarra', 'panam-palmer', 'pepe-najarro', 'regina-jones', 'river-ward',
   'rogue-amendiares', 'solomon-reed', 'songbird', 'takemura', 'viktor-vektor', 'wakako-okada']);
 
-// English only: with the language box off the character answers in any language.
+// English only unless languages are asked for (--languages): with the language box off the character answers in any language in text, but
+// Convai's server speech recognition follows the character's `languageCodes`, so a player who talks into the microphone in another language
+// needs that language listed (docs/MULTILINGUAL_PROFILES.md, "Known limits"). The box stays off either way.
 export const LANGUAGE_CODES = Object.freeze(['en-US']);
+// The languages the mod's interface is translated into (localization/, mod/locales), as the codes Convai lists for a character.
+export const LANGUAGE_TAGS = Object.freeze({
+  en: 'en-US', de: 'de-DE', fr: 'fr-FR', es: 'es-ES', it: 'it-IT', pt: 'pt-BR', pl: 'pl-PL', ru: 'ru-RU', uk: 'uk-UA', tr: 'tr-TR',
+  cs: 'cs-CZ', hu: 'hu-HU', ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN'});
+/**
+ * The `languageCodes` of a twin for the player's chosen languages: en-US first, then each chosen language once, in the order given.
+ * A language is a two-letter code (es), a full tag (es-MX) or "all" (every interface language). Anything else throws.
+ */
+export function languageCodesFor(languages = []) {
+  const wanted = (Array.isArray(languages) ? languages : String(languages).split(',')).map(item => String(item).trim()).filter(Boolean);
+  const codes = [...LANGUAGE_CODES];
+  for (const item of wanted.flatMap(value => value.toLowerCase() === 'all' ? Object.keys(LANGUAGE_TAGS) : [value])) {
+    const tag = /^([A-Za-z]{2})-([A-Za-z]{2,4})$/u.exec(item);
+    const code = tag ? `${tag[1].toLowerCase()}-${tag[2].length === 2 ? tag[2].toUpperCase() : tag[2][0].toUpperCase() + tag[2].slice(1).toLowerCase()}` : LANGUAGE_TAGS[item.toLowerCase()];
+    if (!code) throw Error(`Unknown language "${item}": use a two-letter code of ${Object.keys(LANGUAGE_TAGS).join(', ')}, a tag such as es-MX, or all.`);
+    if (!codes.includes(code)) codes.push(code);
+  }
+  return codes;
+}
 // Dashboard field behind "Only reply in the selected languages" ("off" = unticked).
 // Web session only; see the header. Never sent by this script.
 export const LANGUAGE_BOX_FIELD = 'language_hardening_mode';
@@ -123,9 +146,9 @@ export function settingUpdates(source, actual) {
   return updates;
 }
 
-export function languageUpdates(actual) {
+export function languageUpdates(actual, codes = LANGUAGE_CODES) {
   const updates = {};
-  if (!isDeepStrictEqual(actual.language_codes, LANGUAGE_CODES)) updates.languageCodes = [...LANGUAGE_CODES];
+  if (!isDeepStrictEqual(actual.language_codes, [...codes])) updates.languageCodes = [...codes];
   return updates;
 }
 
@@ -134,7 +157,7 @@ export function notCloned(source, actual) {
   return COMPARED_FIELDS.filter(field => !copied.has(field) && !isDeepStrictEqual(source[field], actual[field]));
 }
 
-export function verifyTwin({id, key, source, actual, payload, model}) {
+export function verifyTwin({id, key, source, actual, payload, model, codes = LANGUAGE_CODES}) {
   const problems = [];
   if (actual?.character_id !== id) problems.push('id');
   if (actual?.character_name !== payload.charName) problems.push('name');
@@ -142,7 +165,7 @@ export function verifyTwin({id, key, source, actual, payload, model}) {
   if (actual?.backstory !== payload.backstory) problems.push('backstory');
   if (actual?.speaking_style?.description !== payload.speaking_style_description) problems.push('speaking_style.description');
   if (actual?.speaking_style?.sample_dialogues !== payload.speaking_style_sample_dialogues) problems.push('speaking_style.sample_dialogues');
-  if (!isDeepStrictEqual(actual?.language_codes, LANGUAGE_CODES)) problems.push('language_codes');
+  if (!isDeepStrictEqual(actual?.language_codes, [...codes])) problems.push('language_codes');
   if ((actual?.memory_settings?.enabled === true) !== (source.memory_settings?.enabled === true)) problems.push('memory_settings.enabled');
   for (const [returned] of COPIED_SETTINGS) if (!isDeepStrictEqual(source[returned], actual?.[returned])) problems.push(returned);
   if (model !== payload.model_group_name) problems.push('model');
@@ -158,7 +181,8 @@ export function needsLanguageBoxOff(mapping) {
 
 /** Core flow, separated from I/O for tests.
  * rows: [{key, originalId, gender, voice?}] (voice defaults to the gender fallback). api(endpoint, body, {create}) returns parsed JSON. */
-export async function createMultilingualProfiles({rows, mapping = {version: 1, characters: {}}, api, persist = async () => {}, log = () => {}, continueOnError = false}) {
+export async function createMultilingualProfiles({rows, mapping = {version: 1, characters: {}}, api, persist = async () => {}, log = () => {}, continueOnError = false, languages = []}) {
+  const codes = languageCodesFor(languages);
   const next = clone(mapping);
   next.version = 1; next.characters ??= {};
   const cloud = await api('/character/list', {});
@@ -201,7 +225,7 @@ export async function createMultilingualProfiles({rows, mapping = {version: 1, c
       let actual = found ?? await api('/character/get', {charID: id});
       // Apply the language list, copied settings and memory. Voice is
       // part of create; it is re-sent here only if a re-run finds it different.
-      const updates = {...settingUpdates(source, actual), ...languageUpdates(actual)};
+      const updates = {...settingUpdates(source, actual), ...languageUpdates(actual, codes)};
       if (actual.voice_type !== payload.voiceType) updates.voiceType = payload.voiceType;
       if (actual.speaking_style?.description !== payload.speaking_style_description
           || actual.speaking_style?.sample_dialogues !== payload.speaking_style_sample_dialogues) {
@@ -216,7 +240,7 @@ export async function createMultilingualProfiles({rows, mapping = {version: 1, c
       }
       const final = await api('/character/list', {});
       const model = final.characters?.find(row => row.character_id === id)?.personalised_prompt_config?.MODEL;
-      verifyTwin({id, key, source, actual, payload, model});
+      verifyTwin({id, key, source, actual, payload, model, codes});
       Object.assign(entry, {
         phase: 'verified', verified: true, verifiedAt: new Date().toISOString(), voiceType: payload.voiceType,
         languageCodes: [...actual.language_codes], model,
@@ -324,6 +348,8 @@ async function main() {
   const args = process.argv.slice(2), apply = args.includes('--apply') && !args.includes('--dry-run'), voicesOnly = args.includes('--voices-only');
   const onlyAt = args.indexOf('--only');
   const only = onlyAt < 0 ? null : new Set(args[onlyAt + 1].split(','));
+  const languagesAt = args.indexOf('--languages');
+  const codes = languageCodesFor(languagesAt < 0 ? [] : String(args[languagesAt + 1] ?? '').split(','));
   const rosterAt = args.indexOf('--roster'), rosterChoice = rosterAt < 0 ? 'all' : args[rosterAt + 1];
   if (!Object.hasOwn(ROSTER_CHOICES, rosterChoice)) throw Error('--roster takes named, archetypes or all.');
   const read = async (path, fallback) => {
@@ -343,7 +369,7 @@ async function main() {
     console.log(JSON.stringify({mode: 'dry-run', writes: 'none', roster: rosterChoice, total: rows.length,
       toCreate: rows.filter(row => !mapping.characters[row.key]?.multilingualCharacterId).length,
       alreadyMapped: rows.filter(row => mapping.characters[row.key]?.multilingualCharacterId).length,
-      genderFromRosterFallback: genderFallbacks, voiceFromGenderFallback: voiceFallbacks, languageCodes: LANGUAGE_CODES,
+      genderFromRosterFallback: genderFallbacks, voiceFromGenderFallback: voiceFallbacks, languageCodes: codes,
       languageBox: `${LANGUAGE_BOX_FIELD} is set through the web session only; see needsLanguageBoxOff after --apply`,
       profiles: rows.map(row => ({key: row.key, original: row.originalId, twinName: apiCharacterName({name: row.name + ' Multilingual'}),
         voice: row.voice, voiceName: voiceMap.voices?.[row.voice]?.name, alreadyMapped: Boolean(mapping.characters[row.key]?.multilingualCharacterId)}))}, null, 2));
@@ -394,7 +420,7 @@ async function main() {
       if (result.failures.length) process.exitCode = 1;
       return;
     }
-    const result = await createMultilingualProfiles({rows, mapping, api, persist: value => atomic(target, value), log: console.log, continueOnError: true});
+    const result = await createMultilingualProfiles({rows, mapping, api, persist: value => atomic(target, value), log: console.log, continueOnError: true, languages: codes});
     await atomic(target, result.mapping);
     console.log(JSON.stringify({roster: rosterChoice, results: result.results, failures: result.failures, needsLanguageBoxOff: result.needsLanguageBoxOff}, null, 2));
     if (result.failures.length) process.exitCode = 1;
