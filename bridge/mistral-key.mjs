@@ -57,7 +57,7 @@ export class MistralProvider {
     groq?.onChange?.(() => { this.groqLimit = null; this.groqBlockedUntil = 0; this.#changed(); });
     this.key = null; this.preference = 'convai'; this.applied = 'convai';
     this.noKeyPending = false; this.voicePending = false; this.limit = null; this.sttAvailable = false;
-    this.localTurnNoticePending = false; this.localModelNoticePending = false;
+    this.localTurnNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.lastNoticeModel = '';
     this.localBroken = null; this.localNoticePending = false; // why the local AI cannot be used (null: it can), and the one notice for it
     this.listeners = new Set();
   }
@@ -115,8 +115,10 @@ export class MistralProvider {
    * ('local-turn-fallback', once per call; the game limits how often it shows). The local AI stays the provider.
    */
   noteLocalTurnFallback() { if (this.applied === 'local') this.localTurnNoticePending = true; }
-  /** The model the player chose for Local AI is missing or does not fit, and auto chose another: one notice ('local-model-fallback') with the next reply. */
-  noteLocalModelFallback() { if (this.preference === 'local') this.localModelNoticePending = true; }
+  /** The model the player chose for Local AI is missing, does not fit or did not start, and `model` (its name) was used instead: one notice ('local-model-fallback') with the next reply; `noticeModel` holds the name. */
+  noteLocalModelFallback(model) { if (this.preference === 'local') { this.localModelNoticePending = true; this.localModelNoticeName = typeof model === 'string' ? model.slice(0, 80) : ''; } }
+  /** The name of the model the 'local-model-fallback' notice just taken says was used, else ''. */
+  get noticeModel() { return this.lastNoticeModel || ''; }
   /** Adopts the requested provider; call only at an idle boundary. Returns whether it changed. */
   apply() {
     const changed = this.pending;
@@ -136,7 +138,7 @@ export class MistralProvider {
   /** 'mistral-no-key', 'groq-no-key', 'mistral-voice', 'local-fallback' or 'local-turn-fallback' once each (the game shows them with the next reply), else undefined. */
   takeNotice({cloudVoice = false} = {}) {
     if (this.localNoticePending && this.applied !== 'local') { this.localNoticePending = false; return 'local-fallback'; }
-    if (this.localModelNoticePending && this.applied === 'local') { this.localModelNoticePending = false; return 'local-model-fallback'; }
+    if (this.localModelNoticePending && this.applied === 'local') { this.localModelNoticePending = false; this.lastNoticeModel = this.localModelNoticeName || ''; return 'local-model-fallback'; }
     if (this.localTurnNoticePending) { this.localTurnNoticePending = false; return 'local-turn-fallback'; }
     if (this.noKeyPending && this.applied === 'convai') { this.noKeyPending = false; return 'mistral-no-key'; }
     if (this.groqNoKeyPending && this.applied === 'convai') { this.groqNoKeyPending = false; return 'groq-no-key'; }
@@ -164,9 +166,9 @@ export function parseKeyCommand(raw, now = Date.now()) {
 export class MistralControl {
   constructor({provider, commandPath, publish, model, readClipboard = readClipboardText, validate = validateKey,
     read = path => readFile(path, 'utf8'), now = Date.now, localStatus, groqCommandPath, validateGroq = key => validateKey(key, {provider: 'groq'}),
-    maturePack, localModels, inworldCommandPath, validateInworld = validateInworldKey} = {}) {
+    maturePack, localModels, localModelDefaults, localModelProblems, inworldCommandPath, validateInworld = validateInworldKey} = {}) {
     if (!provider || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid Mistral configuration');
-    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, groqCommandPath, validateGroq, maturePack, localModels, inworldCommandPath, validateInworld});
+    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, groqCommandPath, validateGroq, maturePack, localModels, localModelDefaults, localModelProblems, inworldCommandPath, validateInworld});
     this.observed = ''; this.result = null; this.busy = false; this.writing = Promise.resolve();
     this.groqObserved = ''; this.groqResult = null; this.groqBusy = false;
     this.inworldObserved = ''; this.inworldResult = null; this.inworldBusy = false;
@@ -190,6 +192,12 @@ export class MistralControl {
       ...(typeof this.maturePack === 'function' ? {maturePack: this.maturePack() === true} : {}),
       // The installed Local AI chat models, [{id, name, sizeMiB}], for the model choice row (bridge/local-model-choice.mjs); names and sizes only, no paths.
       ...(typeof this.localModels === 'function' ? {localModels: this.localModels()} : {}),
+      // Which of them the page shows as selected when no model was chosen yet (the largest that fits), and which one turning Mature content on
+      // selects (the largest uncensored one that fits): ids, each only when there is such a model.
+      ...(typeof this.localModelDefaults === 'function' ? (defaults => ({
+        ...(defaults?.default ? {localModelDefault: defaults.default} : {}), ...(defaults?.mature ? {localModelMatureDefault: defaults.mature} : {})}))(this.localModelDefaults()) : {}),
+      // Custom models that cannot be used, [{name, reason}] with reason 'missing' | 'bad-gguf' | 'embedding' | 'unreadable' (bridge/custom-models.mjs); only when there are some.
+      ...(typeof this.localModelProblems === 'function' && this.localModelProblems().length ? {localModelProblems: this.localModelProblems()} : {}),
       // Groq (docs/MISTRAL.md): the key status and the latest limit; never the key.
       ...(this.provider.groq ? {groq: {saved: !!this.provider.groq.key, tail: this.provider.groq.tail,
         limit: this.provider.groqLimit?.kind ?? null, ...(this.groqResult ? {result: this.groqResult} : {})}} : {}),

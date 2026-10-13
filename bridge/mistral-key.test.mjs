@@ -242,14 +242,21 @@ test('local: requested while it works; a failure sends turns to Mistral when a k
   assert.equal(other.localBroken, null);
 });
 
-test('local: a pinned model that could not be used says so once, only while Local AI answers, and the list of models is published without paths', async () => {
+test('local: a chosen model that could not be used says so once, naming the model used, only while Local AI answers, and the list of models is published without paths', async () => {
   const provider = await pair({groq: null});
   provider.noteLocalModelFallback();
   assert.equal(provider.takeNotice(), undefined, 'another provider is chosen: nothing to say');
   provider.setPreference('local'); provider.apply();
   provider.noteLocalModelFallback();
   assert.equal(provider.takeNotice(), 'local-model-fallback');
+  assert.equal(provider.noticeModel, '', 'no model named: the game words it generically');
   assert.equal(provider.takeNotice(), undefined, 'once');
+  provider.noteLocalModelFallback('Gemma-4-E4B');
+  assert.equal(provider.takeNotice(), 'local-model-fallback');
+  assert.equal(provider.noticeModel, 'Gemma-4-E4B', 'the notice carries the name of the model that was used');
+  provider.noteLocalModelFallback({bad: true});
+  assert.equal(provider.takeNotice(), 'local-model-fallback');
+  assert.equal(provider.noticeModel, '');
   provider.noteLocalModelFallback();
   provider.setPreference('mistral');
   assert.equal(provider.takeNotice(), undefined, 'changing the provider drops it');
@@ -260,6 +267,17 @@ test('local: a pinned model that could not be used says so once, only while Loca
   control.status();
   assert.deepEqual(control.status().localModels, [{id: 'standard', name: 'Gemma-4-E4B', sizeMiB: 5280}]);
   assert.equal('localModels' in new MistralControl({provider, commandPath: 'm.json', publish() {}}).status(), false);
+  // The model the page shows as selected, and the one turning Mature content on selects: ids, each only when there is such a model.
+  const defaults = value => new MistralControl({provider, commandPath: 'm.json', publish() {}, localModelDefaults: () => value}).status();
+  assert.deepEqual([defaults({default: 'standard', mature: 'mature:big'}).localModelDefault, defaults({default: 'standard', mature: 'mature:big'}).localModelMatureDefault], ['standard', 'mature:big']);
+  assert.equal('localModelMatureDefault' in defaults({default: 'standard', mature: null}), false);
+  assert.equal('localModelDefault' in defaults({default: null, mature: null}), false);
+  assert.equal('localModelDefault' in new MistralControl({provider, commandPath: 'm.json', publish() {}}).status(), false);
+  // Custom models that cannot be used are published as names and reason codes only, and only when there are some.
+  const problems = [{name: 'Embedder', reason: 'embedding'}];
+  assert.deepEqual(new MistralControl({provider, commandPath: 'm.json', publish() {}, localModelProblems: () => problems}).status().localModelProblems, problems);
+  assert.equal('localModelProblems' in new MistralControl({provider, commandPath: 'm.json', publish() {}, localModelProblems: () => []}).status(), false);
+  assert.equal('localModelProblems' in new MistralControl({provider, commandPath: 'm.json', publish() {}}).status(), false);
 });
 
 test('Groq: requested with its key, left alone for a while after a limit, then tried again; Mistral or Convai answer meanwhile', async () => {

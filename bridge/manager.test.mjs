@@ -2072,7 +2072,7 @@ test('Mature content is a settings row with or without the Mature pack: the help
   `);
 });
 
-// Turning Mature content on stages the Local AI provider, the Auto model and a local voice as pending changes (mod/mcm.lua,
+// Turning Mature content on stages the Local AI provider, the uncensored model and a local voice as pending changes (mod/mcm.lua,
 // syncMature); turning it off puts back what that changed. A fake MCM keeps the drafts and emits 'drafts.changed' like the real one.
 const matureFixture = `
   local clock = 1000
@@ -2132,7 +2132,9 @@ const matureFixture = `
   local function startFrom(options)
     options = options or {}
     local report = {provider = 'mistral', effective = 'mistral', saved = true, localAi = 'ready',
-      localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'lite', name = 'Qwen', sizeMiB = 1300}}}
+      localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'mature:unc', name = 'Gemma uncensored', sizeMiB = 5200}, {id = 'lite', name = 'Qwen', sizeMiB = 1300}},
+      localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'}
+    if options.noMature then report.localModelMatureDefault = nil end
     if options.noPack then report.localAi = nil end
     state('ready', report)
     voices(options.omni ~= false)
@@ -2143,14 +2145,14 @@ const matureFixture = `
   end
 `;
 
-test('turning Mature content on stages Local AI, the Auto model and a local voice as pending changes, names them in one line, and Apply saves them with the way back', () => {
+test('turning Mature content on stages Local AI, the uncensored model and a local voice as pending changes, names them in one line, and Apply saves them with the way back', () => {
   run(`${mcmFixture}${matureFixture}
     startFrom()
     assert(saved.voiceProvider == 'voxtral')
     user('matureContent', true)
-    assert(drafts() == 'conversationProvider=3,localModel=1,matureContent=true,voiceProvider=2', drafts())
+    assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=2', drafts())
     local notice = mcm.inspect().mature.notice
-    assert(notice and notice:find('Local AI', 1, true) and notice:find('Auto model', 1, true) and notice:find('OmniVoice', 1, true) and notice:find('Apply', 1, true), notice)
+    assert(notice and notice:find('Local AI', 1, true) and notice:find('Uncensored model', 1, true) and notice:find('OmniVoice', 1, true) and notice:find('Apply', 1, true), notice)
     assert(select(2, notice:gsub('\\n', '')) == 0 and #notice < 200, 'one short line')
     -- MCM would say "Pending: Mature content"; the redraw says what was staged instead, for a few seconds only.
     local shown
@@ -2161,11 +2163,11 @@ test('turning Mature content on stages Local AI, the Auto model and a local voic
     assert(shown == 'Pending: Mature content', 'the notice outlived its time')
     -- Nothing is saved before Apply.
     assert(saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral' and not saved.matureContent)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 1}, {id = 'voiceProvider', value = 2}}).ok)
-    assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.localModel == 'auto' and saved.voiceProvider == 'omni')
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
+    assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.localModel == 'mature:unc' and saved.voiceProvider == 'omni')
     local way = saved.matureRestore
     assert(way and way.conversationProvider.before == 'mistral' and way.conversationProvider.set == 'local'
-      and way.localModel.before == 'standard' and way.localModel.set == 'auto'
+      and way.localModel.before == 'standard' and way.localModel.set == 'mature:unc'
       and way.voice.before.provider == 'voxtral' and way.voice.set.provider == 'omni' and way.voice.set.steps == 16 and way.voice.set.reference == 'short', 'the way back was not saved')
     assert(manager.snapshot(player).settings.matureRestore.localModel.before == 'standard')
   `);
@@ -2175,7 +2177,7 @@ test('turning Mature content off puts the provider, model and voice back, except
   run(`${mcmFixture}${matureFixture}
     startFrom()
     user('matureContent', true)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 1}, {id = 'voiceProvider', value = 2}}).ok)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
     -- Off, nothing else touched: all three come back as pending changes, in one line.
     user('matureContent', false)
     assert(drafts() == 'conversationProvider=2,localModel=2,matureContent=false,voiceProvider=6', drafts())
@@ -2186,8 +2188,8 @@ test('turning Mature content off puts the provider, model and voice back, except
     assert(saved.matureRestore == nil, 'the way back stayed after Mature content was turned off')
     -- On again, the player changes the provider to Groq and the model to Qwen before turning it off: those two stay.
     user('matureContent', true)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 1}, {id = 'voiceProvider', value = 2}}).ok)
-    assert(apply({{id = 'conversationProvider', value = 4}, {id = 'localModel', value = 3}}).ok)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
+    assert(apply({{id = 'conversationProvider', value = 4}, {id = 'localModel', value = 1}}).ok)
     user('matureContent', false)
     assert(drafts() == 'matureContent=false,voiceProvider=6', 'only the voice was still the one Mature content chose: ' .. drafts())
   `);
@@ -2207,7 +2209,7 @@ test('Mature content turned on and off again before Apply leaves no pending chan
     pending = {}; emit(); mcm.update(player, false)
     assert(mcm.inspect().mature.staged == false)
     user('matureContent', true)
-    assert(drafts() == 'conversationProvider=3,localModel=1,matureContent=true,voiceProvider=2', drafts())
+    assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=2', drafts())
     -- The player's own later change of the provider while Mature content is on is theirs: turning it off does not undo it.
     user('conversationProvider', 4)
     user('matureContent', false)
@@ -2236,18 +2238,18 @@ test('the voice moves to Pocket TTS without the OmniVoice pack, is left when it 
   run(`${mcmFixture}${matureFixture}
     startFrom({omni = false})
     user('matureContent', true)
-    assert(drafts() == 'conversationProvider=3,localModel=1,matureContent=true,voiceProvider=1', drafts())
+    assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=1', drafts())
     assert(mcm.inspect().mature.notice:find('Pocket', 1, true), mcm.inspect().mature.notice)
     user('matureContent', false)
     assert(drafts() == '', 'staged then unstaged: ' .. drafts())
     -- A local voice already: the voice is not touched, and the notice names only the other two.
     assert(apply({{id = 'voiceProvider', value = 1}}).ok)
     user('matureContent', true)
-    assert(drafts() == 'conversationProvider=3,localModel=1,matureContent=true', drafts())
+    assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true', drafts())
     assert(not mcm.inspect().mature.notice:find('Pocket', 1, true))
     user('matureContent', false)
-    -- Already Local AI with Auto and a local voice: nothing to stage and no notice.
-    assert(apply({{id = 'conversationProvider', value = 3}, {id = 'localModel', value = 1}}).ok)
+    -- Already Local AI with the uncensored model and a local voice: nothing to stage and no notice.
+    assert(apply({{id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}}).ok)
     mcm.update(player, false)
     user('matureContent', true)
     assert(drafts() == 'matureContent=true', drafts())
@@ -2258,6 +2260,50 @@ test('the voice moves to Pocket TTS without the OmniVoice pack, is left when it 
     assert(apply({{id = 'multilingualConversations', value = true}}).ok)
     user('matureContent', true)
     assert(not drafts():find('voiceProvider', 1, true), 'Pocket TTS was staged beside Multilingual conversations: ' .. drafts())
+  `);
+});
+
+test('Mature content on with no uncensored model installed stages no model change and does not mention a model; turning it off leaves the model alone', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom({noMature = true})
+    user('matureContent', true)
+    assert(drafts() == 'conversationProvider=3,matureContent=true,voiceProvider=2', drafts())
+    local notice = mcm.inspect().mature.notice
+    assert(notice and notice:find('Local AI', 1, true) and notice:find('OmniVoice', 1, true), notice)
+    assert(not notice:lower():find('model', 1, true), 'the notice mentions a model though none was staged: ' .. notice)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
+    assert(saved.matureContent == true and saved.localModel == 'standard', tostring(saved.localModel))
+    assert(saved.matureRestore and saved.matureRestore.localModel == nil and saved.matureRestore.conversationProvider.before == 'mistral', 'a model part was recorded')
+    user('matureContent', false)
+    assert(drafts() == 'conversationProvider=2,matureContent=false,voiceProvider=6', drafts())
+    assert(not mcm.inspect().mature.notice:find('Local AI model', 1, true), mcm.inspect().mature.notice)
+    -- Only an uncensored model that is not in the list counts as none: a published id that is not listed stages nothing either.
+    state('ghost', {provider = 'mistral', effective = 'mistral', saved = true, localAi = 'ready', localModelDefault = 'standard', localModelMatureDefault = 'ghost',
+      localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'lite', name = 'Qwen', sizeMiB = 1300}}})
+    pending = {}; emit(); mcm.update(player, false)
+    user('matureContent', true)
+    assert(not drafts():find('localModel', 1, true), drafts())
+  `);
+});
+
+test('Mature content on with the model already the uncensored one stages no model change, and a legacy way back with set auto still restores the earlier model', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom()
+    assert(apply({{id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}}).ok and saved.localModel == 'mature:unc')
+    user('matureContent', true)
+    assert(not drafts():find('localModel', 1, true), 'the uncensored model was already chosen: ' .. drafts())
+    user('matureContent', false)
+    pending = {}; emit(); mcm.update(player, false)
+    -- A way back an older version saved: the model it set was 'auto', which now stands for the default model (standard, position 2).
+    assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'local', localModel = 'standard',
+      matureRestore = {localModel = {before = 'lite', set = 'auto'}}}))
+    assert(saved.matureRestore and saved.matureRestore.localModel.before == 'lite' and saved.matureRestore.localModel.set == 'auto')
+    loaded = registered.loadMod('manager'); pending = {}; emit(); mcm.update(player, false)
+    user('matureContent', false)
+    assert(drafts() == 'localModel=1,matureContent=false', drafts())
+    assert(mcm.inspect().mature.notice:find('Local AI model', 1, true), mcm.inspect().mature.notice)
+    assert(apply({{id = 'matureContent', value = false}, {id = 'localModel', value = 1}}).ok)
+    assert(saved.localModel == 'lite' and saved.matureRestore == nil, tostring(saved.localModel))
   `);
 });
 
@@ -2274,7 +2320,7 @@ test('the saved way back is checked on load and on Apply, and is dropped with Ma
   `);
 });
 
-test('Local AI model: a row with Auto first and each installed model by its name, sizes in the help, the pin saved by id', () => {
+test('Local AI model: a row with each installed model by its name from the smallest to the largest and no Auto, the default model selected until one is chosen, sizes in the help, the pin saved by id', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end
     local function state(tag, value)
@@ -2282,45 +2328,123 @@ test('Local AI model: a row with Auto first and each installed model by its name
       files['runtime/mistral-state.json'] = 'models-' .. tag
       clock = clock + 2
     end
-    assert(manager.snapshot(player).settings.localModel == 'auto' and saved.localModel == 'auto', 'Auto is the default')
+    assert(manager.snapshot(player).settings.localModel == 'auto' and saved.localModel == 'auto', 'nothing chosen is the stored default')
     assert(invoke('tab:settings').ok)
-    -- No Local AI pack: the row is there with Auto alone, and nothing is said about sizes.
+    -- No model installed: the row is there with one placeholder, and nothing is said about sizes.
     state('none', {provider = 'local', effective = 'local', saved = false})
     loaded = registered.loadMod('manager')
     local bare = row('localModel')
     assert(bare ~= nil and bare.label == 'Local AI model' and bare.type == 'select' and bare.value == 1)
-    assert(#bare.elements == 1 and bare.elements[1] == 'Auto')
+    assert(#bare.elements == 1 and bare.elements[1] == 'No model installed', table.concat(bare.elements, '|'))
     assert(not tostring(bare.description):find('Installed models', 1, true))
     assert(not tostring(bare.description):lower():find('recommended', 1, true), 'no option is ever called recommended')
-    -- Three installed models, as the bridge reports them (a malformed entry is dropped).
-    state('three', {provider = 'local', effective = 'local', saved = false, maturePack = true, localModels = {
-      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311},
-      {id = 'mature:big', name = 'Gemma-4-E4B-uncensored', sizeMiB = 5400}, {id = 'bad id', name = 'Nope', sizeMiB = 1}, {id = 'x', name = 5}}})
+    assert(#manager.localModelChoices() == 0 and manager.localModelDefaultId() == nil and manager.localModelMatureId() == nil)
+    -- With no model installed an Apply leaves 'auto' as it is (there is no default model to save).
+    assert(manager.applySettings(player, {followUpInterest = true}) and saved.localModel == 'auto', tostring(saved.localModel))
+    -- Three installed models, as the bridge reports them, NOT in size order (a malformed entry is dropped): the row sorts them small to large.
+    state('three', {provider = 'local', effective = 'local', saved = false, maturePack = true,
+      localModelDefault = 'standard', localModelMatureDefault = 'mature:big', localModels = {
+      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'mature:big', name = 'Gemma-4-E4B-uncensored', sizeMiB = 5400},
+      {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311}, {id = 'bad id', name = 'Nope', sizeMiB = 1}, {id = 'x', name = 5}}})
     loaded = registered.loadMod('manager')
     local pick = row('localModel')
-    assert(#pick.elements == 4 and pick.elements[1] == 'Auto' and pick.elements[2] == 'Gemma-4-E4B' and pick.elements[4] == 'Gemma-4-E4B-uncensored')
-    assert(pick.value == 1)
-    assert(tostring(pick.description):find('Gemma-4-E4B (5.2 GB), Qwen3.5-2B (1.3 GB), Gemma-4-E4B-uncensored (5.3 GB)', 1, true), pick.description)
-    -- Choosing by position saves the model's id; Auto saves 'auto'.
-    assert(registered.applyBatch('manager', {{id = 'localModel', value = 3}}).ok and saved.localModel == 'lite')
+    assert(#pick.elements == 3 and pick.elements[1] == 'Qwen3.5-2B' and pick.elements[2] == 'Gemma-4-E4B' and pick.elements[3] == 'Gemma-4-E4B-uncensored', table.concat(pick.elements, '|'))
+    for _, label in ipairs(pick.elements) do assert(label ~= 'Auto', 'there is no Auto entry') end
+    assert(not tostring(pick.description):find('Auto', 1, true), pick.description)
+    assert(manager.localModelDefaultId() == 'standard' and manager.localModelMatureId() == 'mature:big')
+    -- Nothing chosen (saved 'auto'): the default model is shown as selected, and 'auto' stays saved until an Apply.
+    assert(pick.value == 2, tostring(pick.value))
+    assert(manager.snapshot(player).settings.localModel == 'auto' and saved.localModel == 'auto')
+    assert(tostring(pick.description):find('Qwen3.5-2B (1.3 GB), Gemma-4-E4B (5.2 GB), Gemma-4-E4B-uncensored (5.3 GB)', 1, true), pick.description)
+    assert(tostring(pick.description):find('from the smallest to the largest', 1, true), pick.description)
+    -- Choosing by position saves the model's id.
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 1}}).ok and saved.localModel == 'lite')
     loaded = registered.loadMod('manager')
-    assert(row('localModel').value == 3, 'the saved model is selected again')
-    assert(registered.applyBatch('manager', {{id = 'localModel', value = 4}}).ok and saved.localModel == 'mature:big')
-    assert(registered.applyBatch('manager', {{id = 'localModel', value = 1}}).ok and saved.localModel == 'auto')
-    for _, bad in ipairs({0, 5, 1.5, 'lite', true}) do
+    assert(row('localModel').value == 1, 'the saved model is selected again')
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 3}}).ok and saved.localModel == 'mature:big')
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 2}}).ok and saved.localModel == 'standard')
+    for _, bad in ipairs({0, 4, 1.5, 'lite', true}) do
       local result = registered.applyBatch('manager', {{id = 'localModel', value = bad}})
-      assert(result.ok == false and saved.localModel == 'auto', tostring(bad))
+      assert(result.ok == false and saved.localModel == 'standard', tostring(bad))
     end
-    -- A pinned model that is no longer installed stays saved (the bridge falls back to Auto with one notice); the row shows Auto.
+    -- A pinned model that is no longer installed stays saved (the bridge falls back to the largest model that fits, with one notice); the row shows the default.
     assert(manager.applySettings(player, {localModel = 'gone-model'}) and saved.localModel == 'gone-model')
     loaded = registered.loadMod('manager')
-    assert(row('localModel').value == 1)
-    assert(manager.applySettings(player, {localModel = 'auto'}) and saved.localModel == 'auto')
+    assert(row('localModel').value == 2, 'the default is selected when the saved model is gone')
+    assert(manager.applySettings(player, {followUpInterest = false}) and saved.localModel == 'gone-model', 'an Apply of something else must not change a model that is only missing')
+    -- A saved 'auto' (an older version, or nothing chosen) is replaced by the default model's id on any Apply, silently.
+    saved.localModel = 'auto'
+    assert(manager.snapshot(player).settings.localModel == 'auto')
+    local ok, err, notice = manager.applySettings(player, {followUpInterest = true})
+    assert(ok and err == nil and notice == nil, 'the replacement is silent: ' .. tostring(err) .. ' ' .. tostring(notice))
+    assert(saved.localModel == 'standard', tostring(saved.localModel))
+    assert(manager.applySettings(player, {localModel = 'lite'}) and saved.localModel == 'lite')
+    ok, err, notice = manager.applySettings(player, {localModel = 'auto'})
+    assert(ok and notice == nil and saved.localModel == 'standard', 'choosing auto by hand saves the default model: ' .. tostring(saved.localModel))
     assert(manager.applySettings(player, {localModel = 'two words'}) == false and manager.applySettings(player, {localModel = 7}) == false)
-    assert(saved.localModel == 'auto')
-    -- A saved value that is not an id reads as Auto.
+    assert(saved.localModel == 'standard')
+    -- A saved value that is not an id reads as 'auto'.
     saved.localModel = '../x'
     assert(manager.snapshot(player).settings.localModel == 'auto')
+    -- No default published (or one that is not in the list): the first (smallest) model is shown as selected, and 'auto' stays on Apply.
+    for _, default in ipairs({false, 'ghost', 'bad id'}) do
+      state('nodefault-' .. tostring(default), {provider = 'local', effective = 'local', saved = false,
+        localModelDefault = default or nil, localModelMatureDefault = 'ghost', localModels = {
+        {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311}}})
+      saved.localModel = 'auto'
+      loaded = registered.loadMod('manager')
+      assert(manager.localModelDefaultId() == nil and manager.localModelMatureId() == nil, tostring(default))
+      local shown = row('localModel')
+      assert(shown.elements[1] == 'Qwen3.5-2B' and shown.value == 1, tostring(default) .. ' ' .. tostring(shown.value))
+      assert(manager.applySettings(player, {followUpInterest = false}) and saved.localModel == 'auto', tostring(default) .. ' ' .. tostring(saved.localModel))
+    end
+    -- Equal sizes sort by name.
+    state('ties', {provider = 'local', effective = 'local', saved = false, localModels = {
+      {id = 'b', name = 'Bravo', sizeMiB = 2000}, {id = 'a', name = 'alpha', sizeMiB = 2000}, {id = 'c', name = 'Charlie', sizeMiB = 1000}}})
+    loaded = registered.loadMod('manager')
+    assert(table.concat(row('localModel').elements, '|') == 'Charlie|alpha|Bravo', table.concat(row('localModel').elements, '|'))
+  `);
+});
+
+test('Local AI model: custom models are marked, show the memory they need or that the card is too small, and unusable ones are named in the help', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function state(tag, value)
+      jsonFixtures['custom-' .. tag] = value
+      files['runtime/mistral-state.json'] = 'custom-' .. tag
+      clock = clock + 2
+    end
+    assert(invoke('tab:settings').ok)
+    state('one', {provider = 'local', effective = 'local', saved = false, localModels = {
+      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280},
+      {id = 'custom:mine', name = 'My Model', sizeMiB = 4096, custom = true, needMiB = 5296},
+      {id = 'custom:huge', name = 'Huge', sizeMiB = 40960, custom = true, needMiB = 42160, tooLarge = true},
+      {id = 'custom:odd', name = 'Odd', sizeMiB = 100, custom = false, tooLarge = true}},
+      localModelProblems = {{name = 'Embedder', reason = 'embedding'}, {name = 'Gone', reason = 'missing'}, {name = 'Fake', reason = 'bad-gguf'},
+        {name = 'Locked', reason = 'unreadable'}, {name = 'Bad', reason = 'other'}, {name = 5, reason = 'missing'}}})
+    loaded = registered.loadMod('manager')
+    local pick = row('localModel')
+    assert(#pick.elements == 4 and pick.elements[1] == 'Odd' and pick.elements[3] == 'Gemma-4-E4B', table.concat(pick.elements, '|'))
+    for _, label in ipairs(pick.elements) do assert(label ~= 'Auto', 'there is no Auto entry') end
+    assert(pick.elements[2] == 'My Model (custom)' and pick.elements[4] == 'Huge (custom, too large for this graphics card)', table.concat(pick.elements, '|'))
+    assert(pick.elements[1] == 'Odd', 'only custom models are marked, whatever else the file says')
+    local help = tostring(pick.description)
+    assert(help:find('Gemma-4-E4B (5.2 GB)', 1, true), help)
+    assert(help:find('My Model (custom, 4.0 GB, needs about 5.2 GB of graphics memory)', 1, true), help)
+    assert(help:find('Huge (custom, 40.0 GB, too large for this graphics card)', 1, true), help)
+    assert(help:find('Models marked custom are ones you added yourself;', 1, true), help)
+    assert(help:find('Not usable: Embedder: an embedding model, not a chat model; Gone: file not found; Fake: not a valid GGUF file; Locked: could not be read.', 1, true), help)
+    assert(not help:find('Bad', 1, true), 'an unknown reason is dropped')
+    -- Pinning a custom model saves its id; it can be chosen even though it is too large (the bridge then falls back to the largest model that fits, with one notice).
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 2}}).ok and saved.localModel == 'custom:mine')
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 4}}).ok and saved.localModel == 'custom:huge')
+    loaded = registered.loadMod('manager')
+    assert(row('localModel').value == 4)
+    -- No custom models: the row is as before, with no note about them.
+    state('none', {provider = 'local', effective = 'local', saved = false, localModels = {{id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}}})
+    loaded = registered.loadMod('manager')
+    local plain = tostring(row('localModel').description)
+    assert(not plain:find('custom', 1, true) and not plain:find('Not usable', 1, true), plain)
   `);
 });
 
@@ -4993,7 +5117,7 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
   const start = init.indexOf('local function keyNoticeText'), end = init.indexOf('local function reactionCanDeliver');
   assert(start > 0 && end > start, 'the key notice functions moved');
   run(`
-    local ui = {t = function(text) return text end}
+    local ui = {t = function(text, params) if params then text = text:gsub('{(%w+)}', function(key) return tostring(params[key]) end) end return text end}
     local sent = {}
     convaiNotices = {send = function(_, id, text) sent[#sent + 1] = id .. '=' .. text; return true end}
     ${init.slice(start, end)}
@@ -5032,8 +5156,18 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     sendProviderNotice({}, 'local-fallback', 'd')
     assert(#sent == 3 and sent[3] == 'local-fallback=d', table.concat(sent, ';'))
     -- The Local AI model the player chose is missing or does not fit: one line on the reply that follows, under its own id.
+    -- It names the model that was used instead (the reply carries its name); a missing or odd name reads 'another model'.
+    id, text = notice({keyNotice = 'local-model-fallback', keyNoticeModel = 'Qwen3.5-2B', text = 'Hello'})
+    assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so Qwen3.5-2B was used instead.', text)
+    for _, odd in ipairs({'', string.rep('a', 81), 'bad' .. string.char(10) .. 'name', 'bad' .. string.char(0) .. 'name', 7, true, {}}) do
+      id, text = notice({keyNotice = 'local-model-fallback', keyNoticeModel = odd, text = 'Hello'})
+      assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so another model was used instead.', tostring(odd) .. ': ' .. text)
+    end
+    id, text = notice({keyNotice = 'local-model-fallback', keyNoticeModel = string.rep('a', 80), text = 'Hello'})
+    assert(text:find(string.rep('a', 80) .. ' was used instead.', 1, true), text)
     id, text = notice({keyNotice = 'local-model-fallback', text = 'Hello'})
-    assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing or does not fit in the free graphics memory, so Auto was used instead.', text)
+    assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so another model was used instead.', text)
+    assert(not text:find('Auto', 1, true))
     sendProviderNotice({}, 'local-model-fallback', 'e')
     assert(#sent == 4 and sent[4] == 'local-model-fallback=e', table.concat(sent, ';'))
     assert(notice({errorCode = 'quota-shared'}) == 'quota-exhausted', 'the Convai refusals keep their own notice')

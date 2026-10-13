@@ -180,6 +180,8 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     // The loaded model's name, for the Mature content allowance (bridge/mature-content.mjs); `loadedModel` starts the server if it is not up.
     modelName: () => server.status?.().model ?? null,
     loadedModel: async signal => (await server.ensure({signal}))?.model ?? null,
+    // What the manifest of a model added by hand says about it ({uncensored, family}); the Mature allowance reads it before the name.
+    modelHints: () => server.modelHints ?? null,
     label: 'The local AI'};
 }
 
@@ -431,7 +433,7 @@ export class TextProviderHost {
     if (!this.matureContent?.enabled || route.name !== 'local') return null;
     let model = route.modelName?.() ?? null;
     if (!model && route.loadedModel) model = await route.loadedModel(signal);
-    return this.matureContent.forTurn(route.name, model)?.level ?? null;
+    return this.matureContent.forTurn(route.name, model, route.modelHints?.())?.level ?? null;
   }
 
   async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation}) {

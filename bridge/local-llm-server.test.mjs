@@ -569,12 +569,21 @@ test('the model follows the choice: auto, Mature content, a pin, a missing pin a
 
   const missing = choiceHarness(t, {selected: {pin: 'mature:big-u'}, mature: false});
   await missing.server.ensure();
-  assert.deepEqual([missing.loaded(), missing.fallbacks], [['q4.gguf'], [{pin: 'mature:big-u', reason: 'missing'}]]);
+  assert.deepEqual([missing.loaded(), missing.fallbacks], [['q4.gguf'], [{pin: 'mature:big-u', reason: 'missing', model: 'Qwen3.5-4B'}]]);
 
   const tooBig = choiceHarness(t, {selected: {pin: 'standard'}, freeMiB: 3000});
   await tooBig.server.ensure();
-  assert.deepEqual([tooBig.loaded(), tooBig.fallbacks], [['q2.gguf'], [{pin: 'standard', reason: 'low-memory'}]]);
+  assert.deepEqual([tooBig.loaded(), tooBig.fallbacks], [['q2.gguf'], [{pin: 'standard', reason: 'low-memory', model: 'Qwen3.5-2B'}]], 'the notice names the model that was used');
   assert.ok(tooBig.logs.some(line => /not usable \(low-memory\)/.test(line)));
+
+  // With Mature content on and an uncensored model installed, the fallback of a missing choice is the largest uncensored one that fits.
+  const missingMature = choiceHarness(t, {selected: {pin: 'gone-model', matureOn: true}});
+  await missingMature.server.ensure();
+  assert.deepEqual([missingMature.loaded(), missingMature.fallbacks], [['big-u.gguf'], [{pin: 'gone-model', reason: 'missing', model: 'Gemma-4-E4B-uncensored'}]]);
+
+  // A legacy saved `auto` is no choice at all: the default model loads and nothing is announced.
+  assert.deepEqual(auto.fallbacks, []);
+  assert.ok(auto.server.lastFreeMiB > 0, 'the free memory the choice saw is kept for the settings page');
 });
 
 test('the older `tier` option still wins over a selection and is strict', async t => {
@@ -630,4 +639,117 @@ test('reselect does nothing while the server is stopped (the next start reads th
   assert.equal(h.calls.length, 1, 'a reload queued before a stop is dropped');
   h.state.pin = 'lite';
   assert.equal((await h.server.ensure()).model, 'Qwen3.5-2B');
+});
+
+// ---- Models the player added by hand (bridge/custom-models.mjs) ------------------------------------------------------------------
+// Two custom models next to the built-in ones: 'my-model' (7000 MiB, auto, with a context size and a chat template) and 'odd-model' (2500 MiB,
+// pinned only). FAKE_LLAMA_EXIT_FOR_MODEL makes the fake server refuse a file the way llama.cpp refuses an unsupported architecture.
+const CUSTOM_SIZES = {...CHOICE_SIZES, 'my-model.gguf': 7000, 'odd-model.gguf': 2500, 'huge-model.gguf': 30000};
+function customHarness(t, {selected = {}, freeMiB = 24000, env = {}, ...options} = {}) {
+  const state = {pin: 'auto', matureOn: false, matureModels: [], customModels: [], ...selected};
+  const made = harness(t, {freeVramMiB: () => freeMiB, selection: () => state, env,
+    fileSizeMiB: file => CUSTOM_SIZES[String(file).split(/[\\/]/).pop()] ?? 0, ...options});
+  const entry = (id, name, extra = {}) => {
+    writeFileSync(join(made.directory, name), name);
+    return {id: 'custom:' + id, name: id.toUpperCase(), file: join(made.directory, name), uncensored: false, auto: false, family: null,
+      contextSize: null, chatTemplate: null, tooLarge: false, ...extra};
+  };
+  const fallbacks = [];
+  made.server.on('model-fallback', event => fallbacks.push(event));
+  const loaded = () => made.calls.map(call => call.args[call.args.indexOf('-m') + 1].split(/[\\/]/).pop());
+  return {...made, state, entry, fallbacks, loaded};
+}
+
+test('a custom model starts with its own context size and chat template, and its manifest hints reach the Mature allowance', async t => {
+  const h = customHarness(t, {selected: {pin: 'custom:my'}});
+  h.state.customModels = [h.entry('my', 'my-model.gguf', {contextSize: 6144, chatTemplate: 'chatml', uncensored: true, family: 'llama'})];
+  const info = await h.server.ensure();
+  assert.deepEqual([info.model, h.server.modelId, h.loaded()], ['MY', 'custom:my', ['my-model.gguf']]);
+  const args = h.calls[0].args;
+  assert.deepEqual([args[args.indexOf('-c') + 1], args[args.indexOf('--chat-template') + 1], info.contextSize], ['6144', 'chatml', 6144]);
+  assert.deepEqual(h.server.modelHints, {uncensored: true, family: 'llama'});
+  // The same flags as the built-in models otherwise.
+  for (const flag of ['-ngl', '-fa', '-np', '--reasoning', '--cache-ram', '-fit', '--device', '--no-webui', '--api-key-file']) assert.ok(args.includes(flag), flag);
+  assert.ok(!args.join(' ').includes(info.apiKey));
+
+  // A built-in model has no hints, no template and the usual context ladder.
+  const plain = customHarness(t);
+  await plain.server.ensure();
+  assert.equal(plain.server.modelHints, null);
+  assert.ok(!plain.calls[0].args.includes('--chat-template'));
+  assert.equal(plain.calls[0].args[plain.calls[0].args.indexOf('-c') + 1], '16384');
+  // A custom model without a context size takes the ladder.
+  const ladder = customHarness(t, {selected: {pin: 'custom:odd'}});
+  ladder.state.customModels = [ladder.entry('odd', 'odd-model.gguf')];
+  await ladder.server.ensure();
+  assert.equal(ladder.calls[0].args[ladder.calls[0].args.indexOf('-c') + 1], '16384');
+  assert.ok(!ladder.calls[0].args.includes('--chat-template'));
+});
+
+test('a custom model takes part in the default choice by size, and is never chosen when it is too large for the card', async t => {
+  const bigger = customHarness(t);
+  bigger.state.customModels = [bigger.entry('my', 'my-model.gguf')];
+  await bigger.server.ensure();
+  assert.deepEqual([bigger.loaded(), bigger.server.modelId], [['my-model.gguf'], 'custom:my'], 'the largest model that fits, no flag needed');
+
+  const flagIgnored = customHarness(t);
+  flagIgnored.state.customModels = [flagIgnored.entry('my', 'my-model.gguf', {auto: false})];
+  await flagIgnored.server.ensure();
+  assert.deepEqual(flagIgnored.loaded(), ['my-model.gguf'], 'the obsolete auto flag changes nothing');
+
+  const smaller = customHarness(t, {freeMiB: 6500});
+  smaller.state.customModels = [smaller.entry('my', 'my-model.gguf')];
+  await smaller.server.ensure();
+  assert.deepEqual(smaller.loaded(), ['q4.gguf'], 'a custom model that does not fit the free memory is passed over');
+
+  // The scan did not know the card; the device list did (11997 MiB): 30000 MiB of model can never fit.
+  const huge = customHarness(t, {selected: {pin: 'custom:huge'}});
+  huge.state.customModels = [huge.entry('huge', 'huge-model.gguf')];
+  await huge.server.ensure();
+  assert.deepEqual([huge.loaded(), huge.fallbacks], [['q4.gguf'], [{pin: 'custom:huge', reason: 'low-memory', model: 'Qwen3.5-4B'}]]);
+  assert.equal(huge.server.totalVramMiB, 11997);
+});
+
+test('a custom model that fails to start is replaced by the default model with one notice naming it, and is not tried again until its file changes', async t => {
+  const h = customHarness(t, {selected: {pin: 'custom:my'}, env: {FAKE_LLAMA_EXIT_FOR_MODEL: 'my-model'}});
+  h.state.customModels = [h.entry('my', 'my-model.gguf')];
+  const info = await h.server.ensure();
+  assert.equal(info.model, 'Qwen3.5-4B', 'the built-in model answers');
+  assert.deepEqual(h.loaded(), ['my-model.gguf', 'q4.gguf']);
+  assert.deepEqual(h.fallbacks, [{pin: 'custom:my', reason: 'start-failed', model: 'Qwen3.5-4B'}], 'one notice, with the model used');
+  assert.deepEqual(h.failures, [], 'not a failure of Local AI');
+  assert.equal(h.server.modelId, 'standard');
+  assert.ok(h.logs.some(line => /custom model "MY" did not start/.test(line)));
+
+  // A later start (after the idle stop) goes straight to the fallback and says nothing more.
+  await h.server.stop();
+  await h.server.ensure();
+  assert.deepEqual(h.loaded(), ['my-model.gguf', 'q4.gguf', 'q4.gguf']);
+  assert.equal(h.fallbacks.length, 1);
+
+  // A changed file gets another try; reset() too.
+  CUSTOM_SIZES['my-model.gguf'] = 7001;
+  t.after(() => { CUSTOM_SIZES['my-model.gguf'] = 7000; });
+  await h.server.stop();
+  await h.server.ensure();
+  assert.deepEqual(h.loaded().slice(3), ['my-model.gguf', 'q4.gguf']);
+  assert.equal(h.fallbacks.length, 2, 'it failed again, and said so again');
+});
+
+test('a custom model chosen by default that fails to start is skipped the same way; with no other model the failure is the usual one', async t => {
+  const h = customHarness(t, {env: {FAKE_LLAMA_EXIT_FOR_MODEL: 'my-model'}});
+  h.state.customModels = [h.entry('my', 'my-model.gguf')];
+  assert.equal((await h.server.ensure()).model, 'Qwen3.5-4B');
+  assert.deepEqual(h.fallbacks, [{pin: 'custom:my', reason: 'start-failed', model: 'Qwen3.5-4B'}]);
+
+  const noOther = customHarness(t, {standard: false, lite: false, env: {FAKE_LLAMA_EXIT_FOR_MODEL: 'my-model'}});
+  noOther.state.customModels = [noOther.entry('my', 'my-model.gguf')];
+  await assert.rejects(noOther.server.ensure(), error => error instanceof LocalAiUnavailable);
+});
+
+test('buildServerArgs adds --chat-template only when one is named', () => {
+  const base = {model: 'm.gguf', port: 1, keyFile: 'k', device: 'Vulkan1'};
+  assert.ok(!buildServerArgs(base).includes('--chat-template'));
+  const args = buildServerArgs({...base, chatTemplate: 'llama3'});
+  assert.equal(args[args.indexOf('--chat-template') + 1], 'llama3');
 });

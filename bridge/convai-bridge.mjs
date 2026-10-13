@@ -91,8 +91,9 @@ import {MemoryStore} from './memory-store.mjs';
 import {GROQ_KEY_FILE, GroqKey} from './groq-key.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack} from './local-ai-pack.mjs';
-import {LocalLlmServer} from './local-llm-server.mjs';
-import {describeLocalModels, listLocalModels, normalisePin} from './local-model-choice.mjs';
+import {LocalLlmServer, nvidiaTotalMiB} from './local-llm-server.mjs';
+import {defaultModelIds, describeLocalModels, listLocalModels, normalisePin} from './local-model-choice.mjs';
+import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
 import {watchFiles, createWakeSignal} from './file-wake.mjs';
 const leaseWake = createWakeSignal();
@@ -250,17 +251,23 @@ const omniSettled = () => localVoice.requestedProvider !== 'omni' || localVoice.
 // Which installed model loads (docs/LOCAL_AI.md, "Choosing the model"): the localModel setting (auto or one model) and Mature content, read
 // when a start begins. A change while Local AI is the provider reloads at an idle moment (localModelChoiceChanged, on the settings poll).
 let localModelPin = 'auto';
-const localModelSelection = () => { maturePackInstalled(true); return {pin: localModelPin, matureOn: matureContent.enabled, matureModels: maturePackModels}; };
+// Models the player added by hand (manifest.custom.json, docs/LOCAL_AI.md "Add your own model"): a few stats and one small JSON read, with
+// the GGUF header read only for a file that changed. Looked at on the settings poll (at most every 5 s) and when a model is about to load.
+const customScanner = new CustomModelScanner({project, log: message => console.error('[LocalAI] ' + message)});
+let customScan = {models: [], problems: []}, cardTotalMiB = null, cardAskedAt = 0;
+const scanCustomModels = () => (customScan = customScanner.scan({totalVramMiB: localServer.totalVramMiB ?? cardTotalMiB}));
+const localModelSelection = () => { maturePackInstalled(true); return {pin: localModelPin, matureOn: matureContent.enabled, matureModels: maturePackModels, customModels: scanCustomModels().models}; };
 const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection,
   beforeStart: async () => { for (let waited = 0; !omniSettled() && waited < 120000; waited += 500) await new Promise(done => setTimeout(done, 500)); },
   log: message => console.error('[LocalAI] ' + message)});
+scanCustomModels();   // once now; then on the settings poll and when a model is about to load
 localServer.on('failed', ({reason}) => mistral.noteLocalFailure(reason));
-// A pinned model that is missing or does not fit: auto chose, and the game says so once per choice (not at every later start).
+// A chosen model that is missing, does not fit or did not start: another was used (the event names it), and the game says so once per choice (not at every later start).
 let localModelFallbackNoted = '';
-localServer.on('model-fallback', ({pin, reason}) => {
+localServer.on('model-fallback', ({pin, reason, model}) => {
   const key = pin + '|' + reason;
   if (key === localModelFallbackNoted) return;
-  localModelFallbackNoted = key; mistral.noteLocalModelFallback();
+  localModelFallbackNoted = key; mistral.noteLocalModelFallback(model);
 });
 localServer.on('state', () => { try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ } });
 const localEmbedder = new LlamaEmbedder({pack: localPack, log: message => console.error('[LocalAI] ' + message)});
@@ -318,7 +325,8 @@ const currentKey = () => keys.current();
 const singleSession = () => keys.singleSession || mistral.active;
 const keyNotice = () => {
   const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'});
-  return keyNotice ? {keyNotice} : {};
+  // The fallback notice names the model that was used instead.
+  return keyNotice ? {keyNotice, ...(keyNotice === 'local-model-fallback' && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {})} : {};
 };
 // The game's notice for a failure (docs/NOTIFICATIONS.md). An automatic reaction that hit the daily cap just stops: no notice.
 const keyFailure = (error, input) => {
@@ -2394,7 +2402,20 @@ const localModelSizeMiB = file => {
   if (!localModelSizes.has(file)) { try { localModelSizes.set(file, statSync(file).size / 1048576); } catch { return 0; } }
   return localModelSizes.get(file);
 };
-const installedLocalModels = () => describeLocalModels(listLocalModels({pack: localPack, matureModels: maturePackModels}), localModelSizeMiB);
+const installedLocalModels = () => describeLocalModels(listLocalModels({pack: localPack, matureModels: maturePackModels, customModels: customScan.models}), localModelSizeMiB);
+// The model the settings page shows as selected when none was chosen (the largest that fits) and the one turning Mature content on selects.
+// The free memory is what the last start saw before it loaded its model; until there was a start, the card's total stands in.
+const localModelDefaults = () => defaultModelIds({models: listLocalModels({pack: localPack, matureModels: maturePackModels, customModels: customScan.models}),
+  matureOn: matureContent.enabled, freeMiB: localServer.lastFreeMiB ?? localServer.totalVramMiB ?? cardTotalMiB, totalMiB: localServer.totalVramMiB ?? cardTotalMiB, sizeOf: localModelSizeMiB});
+const customModelProblems = () => customScan.problems.map(({name, reason}) => ({name: String(name).slice(0, 60), reason}));
+// The card's total memory marks a custom model that can never fit, and stands in for the free memory in the model the page shows as
+// selected. The first start reads it from llama-server; before that one nvidia-smi call (once a minute at most, and only while more than
+// one model is installed) stands in.
+async function learnCardTotal() {
+  if (localServer.totalVramMiB || cardTotalMiB || installedLocalModels().length < 2 || Date.now() - cardAskedAt < 60000) return;
+  cardAskedAt = Date.now();
+  cardTotalMiB = await nvidiaTotalMiB().catch(() => null);
+}
 let localModelChoiceKey = null, localModelListKey = '', localModelListCheckedAt = 0;
 async function syncLocalModelChoice(settings) {
   if (!settings || typeof settings !== 'object') return;   // a partial settings write: keep what is chosen
@@ -2409,7 +2430,9 @@ async function syncLocalModelChoice(settings) {
   if (Date.now() - localModelListCheckedAt >= 5000) {
     localModelListCheckedAt = Date.now();
     refreshLocalPack();
-    const listKey = JSON.stringify(installedLocalModels());
+    scanCustomModels();
+    await learnCardTotal();
+    const listKey = JSON.stringify([installedLocalModels(), localModelDefaults(), customModelProblems()]);
     if (listKey !== localModelListKey) { localModelListKey = listKey; await mistralControl.publishStatus().catch(() => {}); }
   }
 }
@@ -2507,7 +2530,7 @@ const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, co
   publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
 quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  groqCommandPath: resolve(runtime, 'groq-key-command.json'), inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  groqCommandPath: resolve(runtime, 'groq-key-command.json'), inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),

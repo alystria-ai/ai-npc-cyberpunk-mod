@@ -650,6 +650,14 @@ end
 -- matureMemory while the drafts are pending and, once applied, in the saved settings (manager: matureRestore). All of it runs
 -- from M.update after a draft event, never in a hook, and costs nothing while no draft changes.
 local PROVIDER_IDS = {'convai', 'mistral', 'local', 'groq'}
+-- Why a model the player added cannot be used (bridge/custom-models.mjs reason codes), as a short phrase for the Local AI model row's help.
+local function customProblemText(reason)
+    if reason == 'missing' then return ui.t('file not found') end
+    if reason == 'bad-gguf' then return ui.t('not a valid GGUF file') end
+    if reason == 'embedding' then return ui.t('an embedding model, not a chat model') end
+    return ui.t('could not be read')
+end
+
 local LOCAL_AI_PRESENT = {ready = true, warming = true, ['no-memory'] = true, failed = true}
 local CLOUD_VOICES = {voxtral = true, inworld = true, convai = true}
 
@@ -674,7 +682,9 @@ local function voiceIndexOf(record)
     return voicePreviewModule.indexOf({voiceProvider = record.provider, omniSteps = record.steps, omniReference = record.reference})
 end
 
+-- The position of a model in the row. 'auto' (an older version's Mature record) is the model shown as the default.
 local function modelIndexOf(id)
+    if id == 'auto' then id = manager.localModelDefaultId() end
     for index, choice in ipairs(manager.localModelChoices()) do if choice.id == id then return index end end
 end
 
@@ -694,11 +704,14 @@ local function matureTurnedOn()
         usingLocal = true
     end
     if usingLocal then
+        -- The largest uncensored model that fits, when one is installed; otherwise the model is left alone.
         local choices = manager.localModelChoices()
         local modelNow = draftValue('localModel')
-        if type(modelNow) == 'number' and modelNow ~= 1 and choices[modelNow] and stageDraft('localModel', 1) then
-            record.localModel = {before = choices[modelNow].id, set = 'auto'}
-            names[#names + 1] = ui.t('Auto model')
+        local uncensoredId = manager.localModelMatureId()
+        local target = uncensoredId and modelIndexOf(uncensoredId) or nil
+        if target and type(modelNow) == 'number' and modelNow ~= target and choices[modelNow] and stageDraft('localModel', target) then
+            record.localModel = {before = choices[modelNow].id, set = uncensoredId}
+            names[#names + 1] = ui.t('Uncensored model')
         end
         local voiceNow = draftValue('voiceProvider')
         local choice = VOICE_CHOICES[voiceNow]
@@ -1384,7 +1397,7 @@ local function ownKeyRows(snapshot)
         matureHelp = matureHelp .. ' ' .. (mistral.maturePack == true
             and ui.t('The Mature pack (uncensored models) is installed.')
             or ui.t('The Mature pack (uncensored models) is not installed. It is an optional download on the GitHub releases page of this mod.'))
-        matureHelp = matureHelp .. ' ' .. ui.t('Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back.')
+        matureHelp = matureHelp .. ' ' .. ui.t('Turning it on also chooses Local AI as the conversation provider, the largest uncensored model that fits (if one is installed) and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back.')
         if not LOCAL_AI_PRESENT[mistral.localAi] then
             matureHelp = matureHelp .. ' ' .. ui.t('Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else.')
         end
@@ -1393,19 +1406,50 @@ local function ownKeyRows(snapshot)
         end
         matureRow = setting('matureContent', 'Mature content', 'bool', snapshot.settings.matureContent, false, matureHelp, nil, {description = true})
     end
-    -- Which installed Local AI model loads: Auto, then each installed model by its manifest name (the bridge reports the list); the sizes are in the help.
+    -- Which installed Local AI model loads: each installed model by its manifest name, smallest file first (the bridge reports the list); the sizes
+    -- are in the help. No Auto entry: while nothing was chosen the model the bridge would load is shown as selected.
     local modelRow
     do
-        local choices, labels, selected, sizes = manager.localModelChoices(), {}, 1, {}
+        local choices, labels, selected, sizes, anyCustom = manager.localModelChoices(), {}, 1, {}, false
+        local found = false
         for index, choice in ipairs(choices) do
-            labels[index] = choice.id == 'auto' and ui.t('Auto') or choice.name
-            if choice.id == snapshot.settings.localModel then selected = index end
-            if choice.id ~= 'auto' then
-                sizes[#sizes + 1] = choice.sizeMiB > 0 and string.format('%s (%.1f GB)', choice.name, choice.sizeMiB / 1024) or choice.name
+            labels[index] = choice.name
+            if choice.id == snapshot.settings.localModel then selected, found = index, true end
+            do
+                local gb = string.format('%.1f', choice.sizeMiB / 1024)
+                if choice.custom then
+                    -- A model the player added by hand: marked "(custom)", with the graphics memory it needs or that the card is too small for it.
+                    anyCustom = true
+                    if choice.tooLarge then
+                        labels[index] = ui.t('{name} (custom, too large for this graphics card)', {name = choice.name})
+                        sizes[#sizes + 1] = ui.t('{name} (custom, {size} GB, too large for this graphics card)', {name = choice.name, size = gb})
+                    else
+                        labels[index] = ui.t('{name} (custom)', {name = choice.name})
+                        sizes[#sizes + 1] = choice.sizeMiB > 0
+                            and ui.t('{name} (custom, {size} GB, needs about {need} GB of graphics memory)', {name = choice.name, size = gb, need = string.format('%.1f', choice.needMiB / 1024)})
+                            or ui.t('{name} (custom)', {name = choice.name})
+                    end
+                else
+                    sizes[#sizes + 1] = choice.sizeMiB > 0 and string.format('%s (%.1f GB)', choice.name, choice.sizeMiB / 1024) or choice.name
+                end
             end
         end
-        local modelHelp = ui.t('Which installed model Local AI uses. Auto picks the best installed model that fits the free graphics memory; with Mature content on and the Mature pack installed, it prefers the largest uncensored model that fits. Choose one to use only that model. Only one model is loaded at a time, and a change applies when the model next loads, never in the middle of a reply. If the chosen model is missing or does not fit, Auto is used instead and you are told once.')
+        -- Nothing chosen yet (a saved 'auto'), or a saved model that is gone: the model the bridge loads instead is the one shown as selected.
+        if not found then
+            local default = manager.localModelDefaultId()
+            for index, choice in ipairs(choices) do if choice.id == default then selected = index end end
+        end
+        if #choices == 0 then labels[1] = ui.t('No model installed') end
+        local modelHelp = ui.t('Which installed model Local AI uses, from the smallest to the largest. Until you choose one, the largest model that fits the free graphics memory is used; with Mature content on, the largest uncensored model that fits. Only one model is loaded at a time, and a change applies when the model next loads, never in the middle of a reply. If the chosen model is missing, does not fit or does not start, the largest model that fits is used instead and you are told once.')
         if #sizes > 0 then modelHelp = modelHelp .. ' ' .. ui.t('Installed models: {models}.', {models = table.concat(sizes, ', ')}) end
+        if anyCustom then
+            modelHelp = modelHelp .. ' ' .. ui.t('Models marked custom are ones you added yourself; they take part in the default choice like any other model, by size.')
+        end
+        local problems = {}
+        for _, problem in ipairs(manager.localModelProblems()) do
+            problems[#problems + 1] = ui.t('{name}: {reason}', {name = problem.name, reason = customProblemText(problem.reason)})
+        end
+        if #problems > 0 then modelHelp = modelHelp .. ' ' .. ui.t('Not usable: {models}. See the Local AI notes, "Add your own model".', {models = table.concat(problems, '; ')}) end
         modelRow = setting('localModel', 'Local AI model', 'select', selected, 1, modelHelp, labels, {elements = true, description = true})
     end
     for _, item in ipairs({
@@ -1509,7 +1553,11 @@ local function pageSignature(snapshot)
             tostring(pack.known), tostring(pack.installed)}, '|'))
         -- The Local AI model row lists what is installed.
         local modelKey = {'models'}
-        for _, model in ipairs(mistral.localModels or {}) do modelKey[#modelKey + 1] = model.id .. ':' .. model.name .. ':' .. tostring(model.sizeMiB) end
+        modelKey[#modelKey + 1] = 'd:' .. tostring(mistral.localModelDefault) .. ':' .. tostring(mistral.localModelMatureDefault)
+        for _, model in ipairs(mistral.localModels or {}) do
+            modelKey[#modelKey + 1] = model.id .. ':' .. model.name .. ':' .. tostring(model.sizeMiB) .. ':' .. tostring(model.custom) .. ':' .. tostring(model.tooLarge) .. ':' .. tostring(model.needMiB)
+        end
+        for _, problem in ipairs(mistral.localModelProblems or {}) do modelKey[#modelKey + 1] = 'x:' .. problem.name .. ':' .. problem.reason end
         add(table.concat(modelKey, '|'))
         -- Installed add-ons' own settings (docs/ADDON_API.md); nothing without one.
         if convaiAddons and convaiAddons.live then add('addons:' .. convaiAddons.signature()) end
@@ -2032,7 +2080,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     end
                     values.conversationProvider = provider
                 elseif key == 'localModel' then
-                    -- Order: 1 Auto (stored 'auto'), then each installed model in the bridge's list (stored by its id).
+                    -- Order: each installed model in the bridge's list, smallest file first (stored by its id).
                     local choices = manager.localModelChoices()
                     local choice = type(change.value) == 'number' and choices[change.value] or nil
                     if not choice then return {ok = false, error = ui.t('Choose one of the listed Local AI models.')} end
