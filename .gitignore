@@ -22,3 +22,7 @@ __pycache__/
 convai voice cloning devslot/
 # The root TODO.md is the maintained work list and captain's log.
 !/TODO.md
+
+# Add-on voice references are cut from the game audio: kept out of git, packed from the local copy by build-addon.mjs.
+/addons/*/voice/*.wav
+/addons/*/voice/*.voice.json
