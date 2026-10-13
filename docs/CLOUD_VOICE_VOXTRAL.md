@@ -4,6 +4,7 @@ Added 2026-10-12. An optional Companion voice that speaks a reply with Mistral's
 cloned from the character's own reference clip (the OmniVoice long set first; see "Which clip is cloned"), on the player's free Mistral key. It works with any
 conversation provider (Convai free tier, Mistral, Groq or Local), because it only needs the key. Research and measurements behind the
 choice: `docs/FREE_CLOUD_OPTION_RESEARCH.md`.
+The Inworld cloud voice (`docs/CLOUD_VOICE_INWORLD.md`) is the sibling choice on the player's own Inworld key; the menu then has eight entries.
 
 Code: `bridge/voxtral-voice.mjs` (the adapter), `bridge/mistral-rate.mjs` (the shared request scheduler),
 `bridge/voice-selection.mjs` (routing and fallback), `bridge/voice-routing-log.mjs` (the log lines), `mod/voice-preview.lua`,

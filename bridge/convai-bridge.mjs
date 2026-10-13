@@ -34,6 +34,8 @@ import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
+import {InworldVoice} from './inworld-voice.mjs';
+import {INWORLD_KEY_FILE, InworldKey} from './inworld-key.mjs';
 import {createReferencePreparer} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
 import {variantSeed} from './voice-variants.mjs';
@@ -162,11 +164,17 @@ const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiK
   prepare: process.env.CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE === '1' ? undefined
     : createReferencePreparer({cacheDirectory: resolve(voxtralReferenceRoot, 'prepared'), onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
   onLog: message => process.stderr.write(message)});
+// The Inworld cloud voice (docs/CLOUD_VOICE_INWORLD.md): the same kind of choice, on the player's own Inworld key (player-inworld-key.txt in
+// the state folder, pasted in Settings). Each character is cloned once from the same reference clips; the voice ids are kept in
+// player-inworld-voices.json in the state folder. `inworldKey` is loaded below with the other keys.
+const inworldKey = await new InworldKey({keyPath: resolve(stateDirectory, INWORLD_KEY_FILE)}).load();
+const inworldVoice = new InworldVoice({getKey: () => inworldKey.key, referenceRoot: voxtralReferenceRoot,
+  storePath: resolve(stateDirectory, 'player-inworld-voices.json'), onLog: message => process.stderr.write(message)});
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
-  voxtral:voxtralVoice,
+  voxtral:voxtralVoice,inworld:inworldVoice,
   // The optional OmniVoice pack (worker Python, model weights, adapter); Settings greys Omni out without it.
   omniPack:()=>detectOmniPack({project,config:omniVoiceConfigs.long}),
   profileKeys:roster.map(profile=>profile.key),
@@ -208,7 +216,7 @@ const quota = new QuotaWatch({keys});
 // Groq (a second free cloud text provider) and the fully local AI (docs/LOCAL_AI.md) are the same kind of choice: a text provider
 // that answers through the shared host (bridge/text-provider-host.mjs). Both are off until the setting names them.
 const groqKey = await new GroqKey({keyPath: resolve(stateDirectory, GROQ_KEY_FILE)}).load();
-const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), groq: groqKey}).load();
+const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), groq: groqKey, inworld: inworldKey}).load();
 // The optional Local AI packs (standard and lite) and the supervisor of the model server. Nothing starts here: the server is
 // started when the player chooses Local, and stops by itself after ten idle minutes. A developer points CYBERPUNK_CONVAI_LOCAL_AI_DEV
 // at a folder of models (docs/LOCAL_AI.md).
@@ -322,6 +330,9 @@ const phoneKnowledge = new PlayerPhoneKnowledge({router: knowledgeRouter, getBou
 const naturalSpeech = new NaturalSpeech();
 // "Expressive emotions": the character marks its own feelings inline; the marks drive the face (bridge/expressive-emotions.mjs).
 const expressiveEmotions = new ExpressiveEmotions();
+// The Inworld cloud voice speaks every reply with emotion, so its marks are asked for and kept whatever the player's Expressive emotions
+// setting says (docs/CLOUD_VOICE_INWORLD.md). `localVoice` is created above; the function runs per turn, never per frame.
+expressiveEmotions.forcedBy = () => localVoice.cloud === 'inworld';
 // "Follow-up questions": the character sometimes shows interest in the player inside the reply it is already giving (bridge/follow-up.mjs).
 const followUp = new FollowUp();
 // Facial emotion selection (bridge/emotion-selector.mjs): player message + reply + character manner + Convai's own
@@ -661,11 +672,13 @@ const routingLog = new VoiceRoutingLog({path: resolve(runtime, ROUTING_LOG_NAME)
 const voiceSources = {pocket: voiceConfig, omni: omniVoiceConfigs};
 // Whether the Natural speech block went into the latest context built for each turn (for the log line below).
 const naturalSpeechBlocks = new Map();
+// The engine whose sounds Natural speech offers: the Inworld cloud voice rides on Pocket but renders its own list of sounds.
+const soundEngine = engine => engine === 'pocket' && localVoice.cloud === 'inworld' ? 'inworld' : engine;
 const naturalSpeechContext = input => {
   const prepared = preparedInputs.get(input);
   const phone = input.channel === 'phone' || prepared?.route?.channel === 'phone';
   const spoken = !phone && !input.reaction && localVoice.playbackEnabled !== false;
-  const engine = turnVoice(input).engine;
+  const engine = soundEngine(turnVoice(input).engine);
   const block = naturalSpeech.contextFor({engine, spoken, sessionId: realtimeSessions.get(sessionKey(input)),
     turn: input?.requestId || input?.id, trait: traitFor(input.profileKey), profile: input.profileKey,
     name: profileFor(input, roster)?.name, language: turnVoice(input).language});
@@ -990,10 +1003,11 @@ async function finishedReply(streamed, spoken) {
 }
 function mergeFinishedReply(spoken, final, streamed) {
   const text = final?.text ?? streamed.stream.text;
-  const {speechText: _speech, emotionMarks: _marks, ...rest} = spoken;
+  const {speechText: _speech, emotionMarks: _marks, voiceMarks: _sounds, ...rest} = spoken;
   return {...rest, ...(final?.sessionID !== undefined ? {sessionID: final.sessionID} : {}), text,
     ...(final?.speechText !== undefined ? {speechText: final.speechText} : {}),
     ...(final?.emotionMarks !== undefined ? {emotionMarks: final.emotionMarks} : {}),
+    ...(final?.voiceMarks !== undefined ? {voiceMarks: final.voiceMarks} : {}),
     ...(final?.naturalDevices !== undefined ? {naturalDevices: final.naturalDevices} : {}),
     timing: {...final?.timing, ...spoken.timing}};
 }
@@ -1132,7 +1146,9 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     // Synthesize now, into memory (the one renderer page may still be draining
     // the previous speaker); the whole text is still sent to Pocket once.
     // Pocket's worker is FIFO, so this runs right after the prior speaker's job.
-    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm})});
+    // The Inworld cloud voice turns the reply's emotion marks into steering (docs/CLOUD_VOICE_INWORLD.md); the other voices ignore them.
+    const replyMarks = result.emotionMarks, replySounds = result.voiceMarks;
+    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm, emotion: {marks: replyMarks, sounds: replySounds}})});
     prefetched.start().then(() => ahead.markReady(), () => {});
     try {
       await ahead.waitClaimed(signal);
@@ -1266,10 +1282,10 @@ async function respondStreamed(input, profile, {signal, current}) {
   if (voice.engine !== 'pocket' || localVoice.playbackEnabled === false || (await readSpeechState()).continuousAvailable !== true) return whole();
   throwIfCancelled(signal);
   // The tags written inside the first sentence move the face from its first frame (the finished reply re-plans with all of them).
-  const headMarks = expressiveEmotions.enabled ? stream.headMarks : [];
+  const headMarks = expressiveEmotions.active ? stream.headMarks : [];
   if (headMarks.length && !marks.length) marks.push(...headMarks);
   const partial = {text: head, transport: 'realtime', sessionID: config.sessionId, timing: {streamedHead: true},
-    ...(headMarks.length ? {emotionMarks: headMarks} : {})};
+    ...(headMarks.length ? {emotionMarks: headMarks} : {}), ...(naturalSpeech.enabled && stream.headSounds.length ? {voiceMarks: stream.headSounds} : {})};
   return synthesizeReply(input, partial, signal, current, profile, undefined, {stream, final, marks, signal});
 }
 
@@ -2170,7 +2186,7 @@ const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, co
   publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
 quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  groqCommandPath: resolve(runtime, 'groq-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  groqCommandPath: resolve(runtime, 'groq-key-command.json'), inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),

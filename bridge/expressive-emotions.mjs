@@ -50,20 +50,27 @@ export const EXPRESSIVE_TEXT = EMOTION_TAG_BLOCK;
  * `false` turns it off. (Without a local voice nothing is asked for, whatever this says.)
  */
 export class ExpressiveEmotions {
-  constructor() { this.enabled = true; }
+  constructor() {
+    this.enabled = true;
+    // The Inworld cloud voice always speaks with emotion, whatever the player's setting says: the bridge sets this to a function that
+    // answers whether that voice is the chosen one (docs/CLOUD_VOICE_INWORLD.md, "Emotion on every path").
+    this.forcedBy = () => false;
+  }
+  /** True while the marks are asked for and kept: the setting, or a voice that needs them. */
+  get active() { return this.enabled || this.forcedBy() === true; }
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
     const next = settings.expressiveEmotions !== false, changed = next !== this.enabled;
     this.enabled = next;
     return changed;
   }
-  /** The block for one turn. `engine` is the voice that will speak it; text-only turns and the cloud voice get none. */
+  /** The block for one turn. `engine` is the voice that will speak it; text-only turns and the Convai cloud voice get none. */
   contextFor({engine, spoken = true} = {}) {
-    return this.enabled && spoken && (engine === 'omni' || engine === 'pocket') ? EXPRESSIVE_TEXT : '';
+    return this.active && spoken && (engine === 'omni' || engine === 'pocket' || engine === 'inworld') ? EXPRESSIVE_TEXT : '';
   }
-  /** A finished reply (already cleaned by NaturalSpeech.process): marks are kept only while the setting is on. */
+  /** A finished reply (already cleaned by NaturalSpeech.process): marks are kept only while the marks are wanted. */
   process(result) {
-    if (!result || result.emotionMarks === undefined || this.enabled) return result;
+    if (!result || result.emotionMarks === undefined || this.active) return result;
     const {emotionMarks: _dropped, ...rest} = result;
     return rest;
   }

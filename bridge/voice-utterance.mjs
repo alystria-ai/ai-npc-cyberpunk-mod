@@ -4,27 +4,46 @@
 // has finished, the rest (the TAIL): two synthesis calls for one reply. The player must hear one voice. So the tail follows the head:
 // the head's call says which engine spoke it (`decide`), and the tail is spoken by that engine only. A cloud voice (Voxtral) that
 // fails before ANY audio was heard hands the whole reply to Pocket; one that fails after its first audio was heard never hands
-// the rest to Pocket, the reply ends there instead (docs/CLOUD_VOICE_VOXTRAL.md).
+// the rest to Pocket, the reply ends there instead (docs/CLOUD_VOICE_VOXTRAL.md). The same lock serves every cloud voice (Voxtral and
+// Inworld, docs/CLOUD_VOICE_INWORLD.md): the engine is named 'voxtral', 'inworld' or 'pocket'.
 //
 // The tail is asked for as soon as its text is known, usually before the head has produced its first audio, so the decision may not
 // exist yet: `decision` resolves with it, and the tail's audio is held until it does (bridge/voice-selection.mjs).
 
+import {cancelled} from './transport-pool.mjs';
+
+export const CLOUD_ENGINES = Object.freeze(['voxtral', 'inworld']);
+const isCloud = engine => CLOUD_ENGINES.includes(engine);
+
 export class Utterance {
   constructor() {
-    this.engine = null;                       // null until decided, then 'voxtral' or 'pocket'
+    this.engine = null;                       // null until decided, then 'voxtral', 'inworld' or 'pocket'
     this.decision = new Promise(resolve => { this.resolve = resolve; });
   }
 
-  /** The engine that speaks the head ('voxtral' once its first audio is delivered; 'pocket' when Pocket speaks it). The first decision stands. */
+  /** The engine that speaks the head (a cloud voice once its first audio is delivered; 'pocket' when Pocket speaks it). The first decision stands. */
   decide(engine) {
     if (this.engine) return this.engine;
-    this.engine = engine === 'voxtral' ? 'voxtral' : 'pocket';
+    this.engine = isCloud(engine) ? engine : 'pocket';
     this.resolve(this.engine);
     return this.engine;
   }
 
+  /** Resolves with the decided engine; rejects as a cancellation when `signal` aborts first (a part waiting for the head never outlives its reply). */
+  wait(signal) {
+    if (this.engine !== null) return Promise.resolve(this.engine);
+    if (!signal) return this.decision;
+    return new Promise((resolve, reject) => {
+      const onAbort = () => reject(cancelled());
+      if (signal.aborted) return onAbort();
+      signal.addEventListener('abort', onAbort, {once: true});
+      this.decision.then(engine => { signal.removeEventListener('abort', onAbort); resolve(engine); });
+    });
+  }
+
   /** Decides from the head's finished result when nothing decided yet (a head that came from a buffer, or from a voice that does not report). */
   settle(result) {
-    return this.decide(result?.provider === 'voxtral' || result?.engine === 'voxtral' || result?.timing?.voiceEngine === 'voxtral' ? 'voxtral' : 'pocket');
+    const named = [result?.provider, result?.engine, result?.timing?.voiceEngine].find(isCloud);
+    return this.decide(named ?? 'pocket');
   }
 }

@@ -12,8 +12,11 @@ import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 // The Mistral cloud voice (Voxtral) is a choice of the Settings menu but not a backend: it rides on Pocket TTS (which
 // stays loaded as the fallback for any reply Voxtral cannot deliver in time), so its routing is Pocket's and only the
 // synthesis of each reply differs (bridge/voxtral-voice.mjs).
-export const canonicalVoiceProvider = value => ['hybrid','omnivoice'].includes(value) ? 'omni' : value==='voxtral' ? 'pocket' : value;
-export const cloudVoiceChoice = value => value==='voxtral' ? 'voxtral' : null;
+// The Inworld cloud voice (bridge/inworld-voice.mjs) is the same kind of choice: it rides on Pocket and speaks a reply with
+// Inworld's text-to-speech in a cloned voice, on the player's own Inworld key.
+export const CLOUD_VOICES = Object.freeze(['voxtral','inworld']);
+export const canonicalVoiceProvider = value => ['hybrid','omnivoice'].includes(value) ? 'omni' : CLOUD_VOICES.includes(value) ? 'pocket' : value;
+export const cloudVoiceChoice = value => CLOUD_VOICES.includes(value) ? value : null;
 // OmniVoice reads either its short (up to 10 s) or its long (up to 18 s) searched reference per character.
 export const canonicalOmniReference = value => OMNI_REFERENCES.includes(value) ? value : null;
 // Fallback order, best first: OmniVoice (16 or 32 steps), Pocket TTS, Convai. The Settings menu lists Pocket first
@@ -54,15 +57,17 @@ export class VoiceSelection {
     // The Mistral cloud voice: `cloud` is the committed choice, `requestedCloud` the saved setting waiting for an idle boundary.
     this.cloud=this.requestedCloud=null;
     this.voxtral=options.voxtral||null;
+    this.inworld=options.inworld||null;
     this.clock = options.clock || Date.now;
     this.packCheckedAt=0;this.refreshOmniPack();
     this.omniReference=this.requestedOmniReference=DEFAULT_OMNI_REFERENCE;
     this.activateOmni();
     // Voxtral clones each character from the OmniVoice long reference; it reports when it falls back or recovers.
-    if(this.voxtral){
-      this.voxtral.setReferences?.([this.omniVariants.long.registry,this.omniVariants.short.registry,pocketRegistry]);
-      const previous=this.voxtral.onChange;
-      this.voxtral.onChange=degraded=>{try{previous?.(degraded);}finally{if(!this.closed)this.publish();}};
+    for(const cloud of [this.voxtral,this.inworld]){
+      if(!cloud)continue;
+      cloud.setReferences?.([this.omniVariants.long.registry,this.omniVariants.short.registry,pocketRegistry]);
+      const previous=cloud.onChange;
+      cloud.onChange=degraded=>{try{previous?.(degraded);}finally{if(!this.closed)this.publish();}};
     }
     this.options = options;
     // A draft must stay unchanged this long before it may prepare a model, so
@@ -147,7 +152,8 @@ export class VoiceSelection {
   }
   get resolvedProvider(){return this.resolve(this.requestedProvider);}
   // The Mistral cloud voice speaks replies: chosen, committed, with Pocket as the route it rides on.
-  get cloudActive(){return this.cloud==='voxtral'&&!!this.voxtral&&this.provider==='pocket';}
+  get cloudEngine(){return this.cloud==='inworld'?this.inworld:this.cloud==='voxtral'?this.voxtral:null;}
+  get cloudActive(){return !!this.cloudEngine&&this.provider==='pocket';}
   // Why the cloud voice is not the one speaking, for the Settings status line and the one notice: no key, or its last
   // reply fell back (nothing is reported before a first failure, and it clears by itself with the next good reply).
   // Why the cloud voice cannot even be asked right now (no key, a limit or a refused key cooling down); null when it will be tried.
@@ -156,19 +162,20 @@ export class VoiceSelection {
   // spoke in the cloud voice (2026-10-13: the line said used=Pocket for a reply that was spoken by Voxtral from start to end).
   get cloudBlocked(){
     if(!this.cloudActive)return null;
-    return !this.voxtral.hasKey||!this.voxtral.ready?this.cloudFallback:null;
+    return !this.cloudEngine.hasKey||!this.cloudEngine.ready?this.cloudFallback:null;
   }
   // How the cloud voice's last attempt ended when it did not block this one ('timeout', 'network', ...), else null.
   get cloudLast(){
-    return this.cloudActive&&!this.cloudBlocked?this.voxtral.degraded?.reason??null:null;
+    return this.cloudActive&&!this.cloudBlocked?this.cloudEngine.degraded?.reason??null:null;
   }
   get cloudFallback(){
     if(!this.cloudActive)return null;
-    const value={from:'voxtral',to:'pocket'};
-    if(!this.voxtral.hasKey)return {...value,temporary:false,reason:'no-key'};
-    const degraded=this.voxtral.degraded;
+    const value={from:this.cloud,to:'pocket'},engine=this.cloudEngine;
+    if(!engine.hasKey)return {...value,temporary:false,reason:'no-key'};
+    const degraded=engine.degraded;
     if(!degraded)return null;
-    return {...value,temporary:degraded.reason!=='key'&&degraded.reason!=='no-key',reason:degraded.reason};
+    // A key that was refused, or a plan whose free allowance is used up, is not coming back by itself.
+    return {...value,temporary:degraded.reason!=='key'&&degraded.reason!=='no-key'&&degraded.reason!=='quota',reason:degraded.reason};
   }
   // Set only once the fallback is the committed route, so the player is told
   // after the voice actually changed, never during a pending switch.
@@ -320,9 +327,11 @@ export class VoiceSelection {
     this.state = state;
     const value = {...this.details, version: 1, state, provider: this.provider,
       requestedProvider: this.requestedProvider, fallback: this.fallback??this.cloudFallback, pending: this.pending,
-      cloudVoice:this.cloudActive?'voxtral':null,
+      cloudVoice:this.cloudActive?this.cloud:null,
       voxtral:this.voxtral?{key:this.voxtral.hasKey,degraded:this.voxtral.degraded?.reason??null,spoke:this.voxtral.spoke,
         fellBack:this.voxtral.fellBack}:null,
+      inworld:this.inworld?{key:this.inworld.hasKey,degraded:this.inworld.degraded?.reason??null,spoke:this.inworld.spoke,
+        fellBack:this.inworld.fellBack,characters:this.inworld.chars}:null,
       playbackEnabled:this.playbackEnabled,
       omniSteps:this.omniSteps,requestedOmniSteps:this.requestedOmniSteps,
       omniReference:this.omniReference,requestedOmniReference:this.requestedOmniReference,
@@ -565,6 +574,7 @@ export class VoiceSelection {
     // The Mistral cloud voice, when chosen and usable. Any failure before its audio starts (no key, a limit, a network
     // error, no first audio in time) speaks this reply with Pocket, which is already loaded; the voice reports it so the
     // player is told once (cloudFallback). A failure of the consumer or a cancellation is not a fallback.
+    if (this.cloud === 'inworld' && this.cloudActive) return this.synthesizeInworld(client, profile, spoken, plain, utterance);
     if (this.cloudActive && this.voxtral.ready) {
       let cloud;
       const onPcm = utterance && plain.onPcm ? packet => { utterance.decide('voxtral'); return plain.onPcm(packet); } : plain.onPcm;
@@ -579,6 +589,37 @@ export class VoiceSelection {
     utterance?.decide('pocket');
     return client.synthesizeStream(profile, spoken, plain);
   }
+  // The Inworld cloud voice speaks the first part of a reply (bridge/inworld-voice.mjs). One voice per reply, the same lock as Voxtral
+  // (bridge/voice-utterance.mjs): this part decides (Inworld once its first packet reached the player, else Pocket for the whole reply)
+  // and the rest follows it (synthesizeInworldRest). So a failure before any audio is Pocket's turn only when Inworld has not begun.
+  async synthesizeInworld(client, profile, spoken, options, utterance) {
+    let started = false;
+    try {
+      if (!this.inworld.ready) return await client.synthesizeStream(profile, spoken, options);
+      const onPcm = options.onPcm && (packet => {
+        if (!started) { started = true; utterance?.decide('inworld'); }
+        return options.onPcm(packet);
+      });
+      try { return await this.inworld.synthesizeStream(profile, spoken, {...options, onPcm}); }
+      catch (error) {
+        throwIfCancelled(options.signal);
+        // The consumer's own failure, or audio already played: never a second voice.
+        if (error?.sink || started) throw error;
+      }
+      return await client.synthesizeStream(profile, spoken, options);
+    } finally {
+      // The head always settles the reply's voice, so the rest waiting for it never waits for ever.
+      utterance?.decide(started ? 'inworld' : 'pocket');
+    }
+  }
+  // The rest of a reply whose first part was voiced by `synthesizeInworld`: it waits for the head's decision and follows it. A rest that
+  // fails after Inworld began ends the reply early (what was spoken stands); Pocket never continues it.
+  async synthesizeInworldRest(profile, spoken, options, utterance, viaPocket) {
+    const engine = await utterance.wait(options.signal);
+    if (engine === 'pocket') return viaPocket();
+    if (engine !== 'inworld') throw Error('The cloud voice changed during the reply');
+    return this.inworld.synthesizeStream(profile, spoken, options);
+  }
   // The rest of a reply (the tail) whose first sentence was voiced by `synthesizeStream` above. It is spoken by the engine that
   // spoke the first sentence, never the other one:
   //   - Pocket spoke the head (or there is no cloud voice): Pocket speaks the rest;
@@ -589,7 +630,10 @@ export class VoiceSelection {
   // held until the head is known to have been the cloud voice, and dropped (the request cancelled) if Pocket spoke the head.
   async synthesizeRest(client, profile, spoken, options, utterance) {
     const viaPocket = () => { utterance.decide('pocket'); return client.synthesizeStream(profile, spoken, options); };
-    if (utterance.engine === 'pocket' || !this.cloudActive || !this.voxtral.hasKey) return viaPocket();
+    if (utterance.engine === 'pocket' || !this.cloudActive || !this.cloudEngine.hasKey) return viaPocket();
+    if (this.cloud === 'inworld') return this.synthesizeInworldRest(profile, spoken, options, utterance, viaPocket);
+    // A reply never changes cloud voice partway: a head Inworld spoke is not continued by Voxtral (the reply ends after the head).
+    if (utterance.engine === 'inworld') throw Error('The cloud voice changed during the reply');
     const own = new AbortController();
     const relay = () => own.abort(options.signal.reason);
     options.signal?.addEventListener('abort', relay, {once: true});
@@ -688,7 +732,9 @@ export class VoiceSelection {
       if (this.client !== client) continue;
       if (!this.hasProfile(profile)) return remote('unavailable');
       // The cloud voice's reference clip is read, cut and encoded now, so the first Voxtral request does not wait for it.
-      if (this.cloudActive && this.voxtral?.ready) void this.voxtral.reference(profile);
+      if (this.cloudActive && this.cloud === 'voxtral' && this.voxtral?.ready) void this.voxtral.reference(profile);
+      // The Inworld voice of this character is made now (found in the account, or cloned once), so the first reply is not waiting for it.
+      if (this.cloudActive && this.cloud === 'inworld') this.inworld.warm?.(profile);
       return {...receipt,provider:this.provider};
     }
   }

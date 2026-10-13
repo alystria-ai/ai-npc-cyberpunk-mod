@@ -449,7 +449,7 @@ local function profileDescription(profile, snapshot, shared, count)
     if active == 'pocket' or active == 'omni' then
         for _, key in ipairs(snapshot.localVoice.routedProfiles or {}) do
             if key == profile.key then
-                voice = snapshot.localVoice.cloudVoice == 'voxtral' and manager.voiceLabel('voxtral')
+                voice = (snapshot.localVoice.cloudVoice == 'voxtral' or snapshot.localVoice.cloudVoice == 'inworld') and manager.voiceLabel(snapshot.localVoice.cloudVoice)
                     or manager.voiceLabel(active, snapshot.localVoice.omniSteps, snapshot.localVoice.omniReference)
                 routed = true
                 break
@@ -459,6 +459,9 @@ local function profileDescription(profile, snapshot, shared, count)
     -- The Mistral cloud voice needs a Mistral key: say so instead of naming a voice that will not be heard.
     if not routed and settings.voiceProvider == 'voxtral' and not (snapshot.mistral or {}).saved then
         voice = ui.t('{voice} · needs Mistral key', {voice = manager.voiceLabel('voxtral')})
+    end
+    if not routed and settings.voiceProvider == 'inworld' and not ((snapshot.mistral or {}).inworld or {}).saved then
+        voice = ui.t('{voice} · needs Inworld key', {voice = manager.voiceLabel('inworld')})
     end
     -- An OmniVoice choice cannot run without its pack: say so instead of naming a voice that will not be heard.
     if not routed and settings.voiceProvider == 'omni' and shared.pack.known and not shared.pack.installed then
@@ -497,7 +500,7 @@ local function voiceServiceLabel(state)
         return ui.t('Changing after the current reply')
     end
     local fallback = state.fallback
-    if type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral')
+    if type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral' or fallback.from == 'inworld')
         and (fallback.to == 'pocket' or fallback.to == 'convai') then
         local values = {
             status = ui.t(labels[state.state] or 'Waiting for voice service'),
@@ -535,6 +538,8 @@ local function voiceMenuLabels(pack, mistral)
             label = ui.t('{voice} · needs Omni pack', {voice = label})
         elseif choice.provider == 'voxtral' and not (mistral or {}).saved then
             label = ui.t('{voice} · needs Mistral key', {voice = label})
+        elseif choice.provider == 'inworld' and not ((mistral or {}).inworld or {}).saved then
+            label = ui.t('{voice} · needs Inworld key', {voice = label})
         end
         elements[index] = label
     end
@@ -825,6 +830,15 @@ local function ownKeyRows(snapshot)
     elseif groq.saved and groq.tail then groqStatus = ui.t('Added (ends in {tail})', {tail = groq.tail})
     elseif groq.saved then groqStatus = ui.t('Added')
     else groqStatus = ui.t('Not added') end
+    -- Inworld (cloud voice): the same key status, from the bridge's `inworld` object.
+    local inworld = type(mistral.inworld) == 'table' and mistral.inworld or {}
+    local inworldStatus, inworldResult = nil, inworld.result
+    if inworldResult == 'invalid' then inworldStatus = ui.t('Inworld did not accept that key.')
+    elseif inworldResult == 'unreadable' then inworldStatus = ui.t('The clipboard could not be read.')
+    elseif inworldResult == 'failed' then inworldStatus = ui.t('The key could not be saved.')
+    elseif inworld.saved and inworld.tail then inworldStatus = ui.t('Added (ends in {tail})', {tail = inworld.tail})
+    elseif inworld.saved then inworldStatus = ui.t('Added')
+    else inworldStatus = ui.t('Not added') end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
         and ui.t('Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.')
@@ -902,6 +916,14 @@ local function ownKeyRows(snapshot)
             action('groq-key:remove', 'Remove my Groq key', 'Remove',
                 'Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai free tier.',
                 function() return manager.removeGroqKey() end, groq.saved == true),
+            readonly('inworld-key-status', 'Inworld key', inworldStatus,
+                'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
+            action('inworld-key:paste', 'Paste Inworld key', 'Paste from clipboard',
+                'Copy your key from Inworld first. It is read from the clipboard once, checked with Inworld and saved on this computer. You can also save it in the file player-inworld-key.txt in the conversation service folder. It is used only for the Inworld cloud voice.',
+                function() return manager.pasteInworldKey() end),
+            action('inworld-key:remove', 'Remove my Inworld key', 'Remove',
+                'Deletes the saved key. The Inworld cloud voice stops until you add a key again.',
+                function() return manager.removeInworldKey() end, inworld.saved == true),
             readonly('local-ai-status', 'Local AI', localAiStatus,
                 'Runs conversations on this computer with the optional Local AI pack. It needs free graphics memory while it works, and memory stays on this computer. Choose Local in Conversation provider, then Apply.', {value = true}),
             readonly('own-key-using', 'Conversations use', using,
@@ -1269,7 +1291,7 @@ local function schema()
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
-                'Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. The Mistral cloud voice (Voxtral) speaks in each companion’s own voice using your Mistral key, whichever provider writes the replies; it needs a key and speaks English only. Convai uses its cloud; if a choice cannot run, a simpler voice takes over and you are told once.',
+                'Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. The Mistral (Voxtral) and Inworld cloud voices speak in each companion’s own voice with your own key and any provider, in English only. Inworld also speaks with emotion. Convai uses its cloud; if a choice cannot run, a simpler voice takes over and you are told once.',
                 voiceMenuLabels(pack, snapshot.mistral), {elements = true}),
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it.',
@@ -1464,6 +1486,10 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     -- Likewise the Mistral cloud voice needs a Mistral key (it works with any conversation provider).
                     if choice.provider == 'voxtral' and not manager.mistral().saved then
                         return {ok = false, error = ui.t('Requires a Mistral key (add it in Settings > Development)')}
+                    end
+                    -- The Inworld cloud voice needs an Inworld key of its own.
+                    if choice.provider == 'inworld' and not (manager.mistral().inworld or {}).saved then
+                        return {ok = false, error = ui.t('Requires an Inworld key (add it in Settings > Development)')}
                     end
                     values.voiceProvider = choice.provider
                     if choice.provider == 'omni' then values.omniSteps, values.omniReference = choice.steps, choice.reference end
