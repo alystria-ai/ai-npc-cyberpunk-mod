@@ -793,4 +793,5 @@ return {
     ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "Контент для взрослых требует пакет локального ИИ, который не установлен. Ничего другого не изменено.",
     ["Mature content: {changes} selected too. Choose Apply to use them."] = "Контент для взрослых: также выбраны {changes}. Выберите «Применить», чтобы использовать их.",
     ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "Включение также выбирает локальный ИИ как поставщика бесед, автоматическую модель и, если голос компаньона облачный, локальный голос (ожидает «Применить»). Выключение возвращает прежние выборы.",
+    ["Your message was not sent. Open the text box again and retype it."] = "Ваше сообщение не отправлено. Откройте текстовое поле снова и введите его ещё раз.",
 }

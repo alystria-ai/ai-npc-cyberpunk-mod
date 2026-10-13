@@ -793,4 +793,5 @@ return {
     ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "Obsah pro dospělé vyžaduje balíček Místní AI, který není nainstalovaný. Nic jiného nebylo změněno.",
     ["Mature content: {changes} selected too. Choose Apply to use them."] = "Obsah pro dospělé: vybráno také {changes}. Pro použití zvol Použít.",
     ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "Zapnutím se také zvolí Místní AI jako poskytovatel konverzací, automatický model a, pokud je hlas společníka cloudový, místní hlas (čeká na Použít). Vypnutím se vrátí dřívější volby.",
+    ["Your message was not sent. Open the text box again and retype it."] = "Tvoje zpráva nebyla odeslána. Znovu otevři textové pole a napiš ji ještě jednou.",
 }

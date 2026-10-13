@@ -793,4 +793,5 @@ return {
     ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "Yetişkin içeriği, kurulu olmayan Yerel AI paketini gerektirir. Başka hiçbir şey değiştirilmedi.",
     ["Mature content: {changes} selected too. Choose Apply to use them."] = "Yetişkin içeriği: {changes} de seçildi. Kullanmak için Uygula'yı seç.",
     ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "Açmak ayrıca Yerel AI'yı konuşma sağlayıcısı, Otomatik modeli ve arkadaşın sesi bulut sesiyse yerel bir sesi seçer (Uygula bekleniyor). Kapatmak önceki seçimlerini geri getirir.",
+    ["Your message was not sent. Open the text box again and retype it."] = "Mesajın gönderilmedi. Metin kutusunu yeniden aç ve mesajı tekrar yaz.",
 }

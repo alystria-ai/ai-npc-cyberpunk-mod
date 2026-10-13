@@ -793,4 +793,5 @@ return {
     ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "I contenuti maturi richiedono il pacchetto IA locale, che non è installato. Non è stato modificato nient'altro.",
     ["Mature content: {changes} selected too. Choose Apply to use them."] = "Contenuti maturi: anche {changes} selezionato/i. Scegli Applica per usarli.",
     ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "Attivandoli si scelgono anche l'IA locale come fornitore di conversazione, il modello automatico e, se la voce del compagno è una voce cloud, una voce locale (in attesa di Applica). Disattivandoli si ripristinano le scelte precedenti.",
+    ["Your message was not sent. Open the text box again and retype it."] = "Il tuo messaggio non è stato inviato. Riapri la casella di testo e riscrivilo.",
 }

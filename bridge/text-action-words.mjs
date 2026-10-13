@@ -66,7 +66,7 @@ const STEMS = {
       + String.raw`va-?t'?en|pars(?![\p{L}])|d[eé]gage|on a fini|seul|laisse-?moi|rentre|partir|lib[eè]re|` // fr
       + String.raw`vete|l[aá]rgate|hemos terminado|solo(?![\p{L}])|d[eé]jame|a casa|adi[oó]s|despedid|irte|` // es
       + String.raw`vattene|vai(?![\p{L}])|abbiamo finito|da solo|lasciami|a casa|congeda|andare|` // it
-      + String.raw`vai embora|some(?![\p{L}])|acabou|sozinho|deixa-?me|v[aá](?![\p{L}])|para casa|dispensad|embora|` // pt
+      + String.raw`vai embora|some(?:[!.\s]*$|,? por favor| daqui| j[aá](?![\p{L}])| de aqui| da minha)|acabou|sozinho|deixa-?me|v[aá](?![\p{L}])|para casa|dispensad|embora|` // pt
       + String.raw`id[zź] sobie|spadaj|odejd[zź]|koniec|sam(?![\p{L}])|zostaw|wynoś|do domu|idź(?![\p{L}])|odej[sś]|zwalniam|zwolni|` // pl
       + String.raw`уходи|уйди|проваливай|свободн|мы закончили|закончили|один(?![\p{L}])|оставь|иди домой|ступай|пока(?![\p{L}])|прощай|свободы|вали|гуляй|можешь идти|иди(?![\p{L}])|` // ru
       + String.raw`йди|геть|ми закінчили|закінчили|сам(?![\p{L}])|залиш|іди|можеш іти|` // uk

@@ -793,4 +793,5 @@ return {
     ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "成人内容需要未安装的本地 AI 包。未更改其他任何设置。",
     ["Mature content: {changes} selected too. Choose Apply to use them."] = "成人内容：{changes}也已选中。选择“应用”以使用它们。",
     ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "开启时还会选择本地 AI 作为对话提供方和自动模型，若陪伴语音为云端语音，还会选择本地语音（等待应用）。关闭时会恢复之前的选择。",
+    ["Your message was not sent. Open the text box again and retype it."] = "你的消息没有发送。请重新打开文本框并再次输入。",
 }

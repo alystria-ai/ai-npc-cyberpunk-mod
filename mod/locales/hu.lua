@@ -793,4 +793,5 @@ return {
     ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "A felnőtt tartalomhoz a Helyi MI csomag kell, amely nincs telepítve. Mást nem változtattunk.",
     ["Mature content: {changes} selected too. Choose Apply to use them."] = "Felnőtt tartalom: {changes} szintén kiválasztva. Válaszd az Alkalmaz lehetőséget a használatukhoz.",
     ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "A bekapcsolás a Helyi MI-t is beállítja beszélgetési szolgáltatónak, az automatikus modellt, és ha a társ hangja felhőalapú, egy helyi hangot is (az Alkalmaz gombra várva). A kikapcsolás visszaállítja a korábbi beállításaidat.",
+    ["Your message was not sent. Open the text box again and retype it."] = "Az üzeneted nem lett elküldve. Nyisd meg újra a szövegmezőt, és írd be még egyszer.",
 }

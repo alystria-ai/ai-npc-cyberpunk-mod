@@ -1489,6 +1489,33 @@ local function conversationServiceBlocked(player)
     return true
 end
 
+-- The text box is where a typed message can vanish without a trace: the box closes (Esc, Enter on an empty box, the game closing it),
+-- its words arrive after their owner is gone, or the request cannot be written. Every such end is one probe.log line, and the ones
+-- where V has probably lost words also get one notice ('message-lost'). A global table, so onUpdate reaches it without a new upvalue.
+-- It runs when a box opens or closes and when a message is dropped, never per frame.
+convaiComposerWatch = {}
+function convaiComposerWatch.opened(generation)
+    convaiComposerWatch.generation, convaiComposerWatch.openedAt = generation, os.time()
+end
+function convaiComposerWatch.notify(player)
+    convaiNotices.send(player, 'message-lost', ui.t('Your message was not sent. Open the text box again and retype it.'))
+end
+-- The box closed and nothing was taken from it. `result` is how the game says it closed (Composer.reds ConvaiComposerClosedInfo):
+-- an Enter on an empty box and a close without a result are the cases where V believes a message was sent.
+function convaiComposerWatch.closed(player, context)
+    local ok, info = pcall(function() return player:ConvaiComposerClosedInfo() end)
+    local result = ok and type(info) == 'string' and info ~= '' and info or 'unknown'
+    local opened = convaiComposerWatch.generation == context.generation and convaiComposerWatch.openedAt or nil
+    log('Composer closed without a message: generation=' .. tostring(context.generation) .. ' result=' .. result
+        .. (opened and (' open=' .. math.floor(os.time() - opened) .. 's') or ''))
+    if result == 'empty' or result == 'nodata' then convaiComposerWatch.notify(player) end
+end
+-- A message that was typed and then dropped on this side (`why` names the cause).
+function convaiComposerWatch.lost(player, why, context)
+    log('Message lost: ' .. why .. (context and (' generation=' .. tostring(context.generation)) or ''))
+    convaiComposerWatch.notify(player)
+end
+
 -- Talk box start gate. The game's popup takes the keyboard, so a movement key
 -- released while it is open is never seen by gameplay and V keeps walking after it
 -- closes (a Codeware popup cannot hand the key-up back). Composer.reds tracks the
@@ -1550,6 +1577,7 @@ local function beginTextNow(groupMode, waited)
         convaiDemandKnowledge() -- fresh world and journal by the time V sends
         if connectNote then convaiNotices.send(player, 'talk-connecting', connectNote) end
         pending = nil
+        convaiComposerWatch.opened(generation)
         log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name
             .. ' speed=' .. speedAtOpen .. ' moveAxis=' .. moveAtOpen
             .. (waited and string.format(' waited=%.2f', waited) or ''))
@@ -3025,6 +3053,7 @@ registerForEvent('onUpdate', function(delta)
         if active then
             local openOk, composerOpen = pcall(function() return player:ConvaiComposerOpen() end)
             if openOk and not composerOpen then
+                pcall(convaiComposerWatch.closed, player, active)
                 active = nil
                 warmConversation(nil, nil)
                 focusUntil = os.time() + 1
@@ -3036,18 +3065,25 @@ registerForEvent('onUpdate', function(delta)
     if taken and type(message) == 'string' and #message > 0 then
         local context = active
         if context then
+            local sent = true
             if context.participants then
                 groupChat.start('group-' .. tostring(os.time()) .. '-' .. tostring(context.generation), context.participants, message)
             else
                 context.requestId = tostring(os.time()) .. '-' .. tostring(context.generation) .. '-' .. context.entity
                 context.text = message
                 context.sentAt = os.time()
-                sendRequest(context)
+                sent = sendRequest(context)
             end
             log('Native input captured: generation=' .. context.generation .. ' bytes=' .. #message)
+            -- The request could not be written (the world changed, a save is running, the request file is locked): V must know.
+            if sent == false then pcall(convaiComposerWatch.lost, player, 'request not sent', context) end
         else
             log('Late native input discarded after target loss')
+            pcall(convaiComposerWatch.lost, player, 'target lost before the text arrived')
         end
+    elseif not taken then
+        -- The game said a message was ready and reading it failed (an empty or non-text result is just "nothing taken").
+        pcall(convaiComposerWatch.lost, player, 'submission unreadable (' .. tostring(message) .. ')', active)
     end
     active = nil
 end)

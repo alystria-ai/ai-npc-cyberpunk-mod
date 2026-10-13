@@ -793,4 +793,5 @@ return {
     ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "成人內容需要未安裝的本機 AI 套件。其他任何內容皆未變更。",
     ["Mature content: {changes} selected too. Choose Apply to use them."] = "成人內容：{changes}也已選取。選擇「套用」以使用它們。",
     ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "開啟時也會選擇本機 AI 作為對話提供者和自動模型，若陪伴語音是雲端語音，還會選擇本機語音（等待套用）。關閉時會還原先前的選擇。",
+    ["Your message was not sent. Open the text box again and retype it."] = "你的訊息沒有送出。請重新開啟文字方塊並再次輸入。",
 }

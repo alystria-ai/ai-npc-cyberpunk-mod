@@ -793,4 +793,5 @@ return {
     ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "성인 콘텐츠에는 설치되지 않은 로컬 AI 팩이 필요합니다. 다른 설정은 변경되지 않았습니다.",
     ["Mature content: {changes} selected too. Choose Apply to use them."] = "성인 콘텐츠: {changes} 값도 함께 선택되었습니다. 사용하려면 적용을 선택하세요.",
     ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "켜면 대화 제공자로 로컬 AI가 선택되고, 자동 모델이 선택되며, 동반자 음성이 클라우드 음성이면 로컬 음성도 선택됩니다(적용 대기 중). 끄면 이전 선택이 복원됩니다.",
+    ["Your message was not sent. Open the text box again and retype it."] = "메시지가 전송되지 않았습니다. 텍스트 상자를 다시 열고 메시지를 다시 입력하세요.",
 }

@@ -793,4 +793,5 @@ return {
     ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "Treści dla dorosłych wymagają pakietu lokalnego AI, którego nie zainstalowano. Nic innego nie zostało zmienione.",
     ["Mature content: {changes} selected too. Choose Apply to use them."] = "Treści dla dorosłych: wybrano też {changes}. Wybierz Zastosuj, aby ich użyć.",
     ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "Włączenie wybiera też lokalne AI jako dostawcę rozmów, model automatyczny oraz, jeśli głos towarzysza jest głosem z chmury, lokalny głos (czekając na Zastosuj). Wyłączenie przywraca wcześniejsze wybory.",
+    ["Your message was not sent. Open the text box again and retype it."] = "Twoja wiadomość nie została wysłana. Otwórz pole tekstowe ponownie i wpisz ją jeszcze raz.",
 }

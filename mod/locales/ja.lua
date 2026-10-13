@@ -793,4 +793,5 @@ return {
     ["Mature content needs the Local AI pack, which is not installed. Nothing else was changed."] = "成人向けコンテンツには、インストールされていないローカル AI パックが必要です。他の設定は変更されていません。",
     ["Mature content: {changes} selected too. Choose Apply to use them."] = "成人向けコンテンツ: {changes} も選択されています。使うには「適用」を選んでください。",
     ["Turning it on also chooses Local AI as the conversation provider, the Auto model and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back."] = "オンにすると、会話プロバイダーとしてローカル AI、自動モデルが選ばれ、コンパニオンの声がクラウドの声なら、ローカルの声も選ばれます（「適用」を待ちます）。オフにすると、以前の選択に戻ります。",
+    ["Your message was not sent. Open the text box again and retype it."] = "メッセージは送信されませんでした。テキストボックスをもう一度開いて、入力し直してください。",
 }
