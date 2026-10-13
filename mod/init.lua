@@ -422,7 +422,11 @@ if type(manager.configureArchetypes) == 'function' then
         type(characterCatalog.archetypeLabel) == 'function'
             and function(key) return characterCatalog.archetypeLabel(archetypes, key) end or nil)
 end
-subtitles.configure({style = manager.subtitleStyle})
+-- mark: an add-on speaker's own caption carries a small tag when its "Mark our lines" is on (mod/addons.lua captionName).
+subtitles.configure({style = manager.subtitleStyle, mark = function(profileKey, name)
+    if convaiAddons and convaiAddons.live then return convaiAddons.captionName(profileKey, name) end
+    return name
+end})
 companions.onBeforeRemove = speech.clearEntity
 phoneChat.configure(profiles, manager, {
     captureBinding = capturePhoneBinding,
@@ -652,6 +656,11 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     -- A game voice is speaking: add-on remarks that asked to be patient wait for it (mod/addons.lua gameLine). Skipped until an add-on registers.
     onGameLineWanted = function() return convaiAddons ~= nil and convaiAddons.live == true end,
     onGameLine = function(seconds, kind, measured) convaiAddons.gameLine(seconds, kind, measured) end,
+    -- Game lines an add-on replaces (docs/ADDON_API.md, "Replacing the game's own lines"): asked for every subtitle line, one boolean
+    -- read until an add-on has declared a rule.
+    matchWanted = function() return convaiAddons ~= nil and convaiAddons.live == true and convaiAddons.lineRulesWanted() end,
+    matchLine = function(line, context) return convaiAddons.matchLine(line, context) end,
+    onMuted = function(rule, info) convaiAddons.mutedLine(rule, info) end,
     resolve = function(speaker)
         if not speaker:IsNPC() then return nil end
         local key, canonical = profileIdentity(speaker)
@@ -2477,6 +2486,8 @@ if convaiAddons then
         sample = function(player) return battleObserver.sample(player) end,
         nextGeneration = function() generation = generation + 1; return generation end,
         registerProfile = function(key) supportedProfiles[key] = true end,
+        -- The first replaceGameLines rule installs the subtitle filter; without one nothing is hooked for it.
+        installLineRules = function() if gameDialogue then gameDialogue:installMute() end end,
         partyProfiles = function() return companions.connectionProfiles() end,
         notify = function(player, text) convaiNotices.send(player, 'addon-notice', text) end}
     -- What is going on now, read once per add-on tick.

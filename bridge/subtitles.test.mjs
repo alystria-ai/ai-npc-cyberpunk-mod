@@ -172,6 +172,29 @@ m.clear();judy.vehicle=nil
 assert(m.show('Judy','Back on foot.',judy,'201ULL') and m.status().mode=='overhead')
 `));
 
+test('an add-on speaker\'s own caption carries the mark of the main mod, and V\'s live words and every other speaker never do', () => run(setup + `
+m.configure({mark=function(profile,name) if profile=='addon-cab-voice' then return name..' (AI)' end return name end})
+m.voiceOnly=true;m.voiceProfile='addon-cab-voice'
+assert(m.show('Delamain','Welcome aboard.',nil,nil))
+assert(shown()[#shown()].speakerName=='Delamain (AI)',tostring(shown()[#shown()].speakerName))
+m.clear()
+m.voiceProfile='judy-alvarez'
+assert(m.show('Judy','Plain.',nil,nil))
+assert(shown()[#shown()].speakerName=='Judy')
+m.clear()
+m.voiceProfile='addon-cab-voice'
+assert(m.showLive('V','Hello there.'))
+assert(shown()[#shown()].speakerName=='V',tostring(shown()[#shown()].speakerName))
+m.clear()
+m.voiceOnly=false
+assert(m.show('Judy','Not voice only.',judy,'201ULL'))
+assert(shown()[#shown()].speakerName=='Judy')
+m.configure({mark=function() error('boom') end})
+m.voiceOnly=true;m.voiceProfile='addon-cab-voice';m.clear()
+assert(m.show('Delamain','A failing mark keeps the name.',nil,nil))
+assert(shown()[#shown()].speakerName=='Delamain')
+`));
+
 test('boarding during timed speech retires the displayed page and preserves the remaining caption cursor', () => run(setup + `
 parents['car']={IsAttached=function()return true end,IsVehicle=function()return true end}
 local text=string.rep('A',120)..string.rep('B',120)..string.rep('C',100)

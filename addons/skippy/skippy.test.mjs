@@ -23,7 +23,7 @@ const voiceSkip = existsSync(new URL('./voice/skippy.wav', import.meta.url)) ? f
 
 const ENGINE = `${WORLD}
 local Engine = (function() ${engineLua} end)()
-local clock, calls, refuse, mode, vanilla, stocked = 0, {}, nil, 'puppy', false, {}
+local clock, calls, refuse, mode, stocked = 0, {}, nil, 'puppy', {}
 local cancelled = 0
 local function make()
     return Engine.new({now = function() return clock end,
@@ -36,7 +36,7 @@ local function make()
         mode = function() return mode end,
         where = function() return {district = 'Watson', area = 'Little China', timeOfDay = 'night'} end,
         lookAt = function() return {name = 'Maelstrom Gunner', kind = 'human'} end,
-        vanillaBusy = function() return vanilla end,
+        relevant = function() return function() return true end end,
         stock = function(event, spec) stocked[event] = spec or false end,
         remember = function(text) calls[#calls + 1] = {name = 'remember', text = text} end})
 end
@@ -246,22 +246,20 @@ test('shots, misses, reloads, health, heals, reinforcements and heat make their 
   assert.equal(result.heatStage, 2);
 });
 
-test('the game\'s own Skippy is never talked over: no remark is made while it speaks, and a remark waiting is cancelled', () => {
+test('every remark is patient: it waits for a scene or a game line instead of being dropped, and only while V still holds Skippy', () => {
   const result = lua(`
     local e = make()
     e:start({})
-    local before = #calls
-    vanilla = true
-    clock = 5; e:onKill(victim())
-    local while_ = #calls - before
-    e:vanillaSpoke()
-    vanilla = false
-    clock = 20; e:onKill(victim())
-    local result = {while_ = while_, cancelled = cancelled, after = #calls - before}
+    clock = 9; e:onKill(victim())
+    local kill = last().spec
+    clock = 20; e:stop()
+    local over = last().spec
+    local result = {kill = kill.patience, over = over.patience, killRelevant = kill.relevant ~= nil and kill.relevant(), fightEnd = over.priority}
   ${dump}`);
-  assert.equal(result.while_, 0);
-  assert.equal(result.cancelled, 1);
-  assert.equal(result.after, 1, 'the next kill after it stopped speaking is remarked');
+  assert.equal(result.kill, 8, 'the first kill (priority 4) waits 8 s');
+  assert.equal(result.over, 12, 'the fight end (priority 5) waits the longest');
+  assert.equal(result.killRelevant, true);
+  assert.equal(result.fightEnd, 5);
 });
 
 test('a moment held back only by the gap is offered again at the next game event, and dropped after five seconds', () => {
@@ -469,7 +467,7 @@ test('Skippy registers, installs only event hooks, and stays silent until V hold
   assert.equal(result.available, true);
   assert.equal(result.submitted, 0, 'no remark while the gun is not held');
   for (const hook of ['NPCPuppet.OnDeath', 'NPCPuppet.OnHit', 'PlayerPuppet.OnHealthUpdateEvent', 'ShootEvents.OnEnter',
-    'ReloadEvents.OnEnter', 'PlayerPuppet.OnNumberOfCombatantsChanged', 'BaseSubtitlesGameController.ShowDialogLines',
+    'ReloadEvents.OnEnter', 'PlayerPuppet.OnNumberOfCombatantsChanged', 
     'gameuiCrosshairContainerController.OnWeaponSwap']) assert.ok(result.names.includes(hook), hook);
   assert.ok(!result.names.some(name => /onUpdate|OnTick|Update$/.test(name)), 'nothing per frame');
 });
@@ -580,48 +578,52 @@ test('hooks do nothing while V does not hold Skippy, and Skippy stops when V put
   assert.equal(result.after, false);
 });
 
-test('a line of the game\'s own Skippy blocks remarks for its length, and the main mod\'s own lines do not', () => {
+test('the game\'s own Skippy lines are declared to the main mod (silenced, not watched): only his lines, only while V holds him', () => {
+  const result = playSkippy(`
+    local function rule(line)
+        local r, replace = M.matchLine(line, {typeName = function() return line.type end})
+        return r ~= nil and r.name or false, replace
+    end
+    -- Not holding: the add-on's rule is inactive, nothing is looked at.
+    held.tdbid = TweakDBID.new('Items.some_other_gun')
+    swap()
+    local idle = rule({speakerName = 'Skippy', id = {hash = '55'}, type = 'Regular'})
+    held.tdbid = TweakDBID.new('Items.mq007_skippy')
+    swap()
+    local named = rule({speakerName = 'Skippy', id = {hash = '55'}, type = 'Regular'})
+    local key = rule({speakerName = 'LocKey#46444', id = {hash = '56'}, type = 'Regular'})
+    local bark = rule({speakerName = '', id = {hash = '57'}, type = 'Invisible'})
+    local other = rule({speakerName = 'Judy Alvarez', id = {hash = '58'}, type = 'Regular'})
+    local otherInvisible = rule({speakerName = 'Panam', id = {hash = '59'}, type = 'Invisible'})
+    local _, replace = rule({speakerName = 'Skippy', id = {hash = '55'}, type = 'Regular'})
+    local rules = Skippy.handle.record and #Skippy.handle.record.lineRules or -1
+    return json.encode({idle = idle, named = named, key = key, bark = bark, other = other, otherInvisible = otherInvisible,
+      replace = replace, rules = rules, audio = Skippy.handle.record.lineRules[1].audio[1]})`);
+  assert.equal(result.idle, false);
+  assert.equal(result.named, 'Skippy');
+  assert.equal(result.key, 'Skippy');
+  assert.equal(result.bark, 'Skippy', 'an Invisible line with no speaker name while he is held is his bark scene');
+  assert.equal(result.other, false);
+  assert.equal(result.otherInvisible, false, 'another speaker\'s line is never claimed, even an invisible one');
+  assert.equal(result.replace, true, 'on by default');
+  assert.equal(result.rules, 1);
+  assert.equal(result.audio, 'vo_3d_important');
+});
+
+test('Skippy has no subtitle hooks of its own any more, and a muted line does not stop the remark that waits for it', () => {
   const result = playSkippy(`
     swap()
     fight(true); tick(0.1)
     finish()
+    local names = {}
+    for name in pairs(hooks) do names[#names + 1] = name end
     local before = #submitted
-    hooks['BaseSubtitlesGameController.ShowDialogLines'](nil, {{speakerName = 'Skippy', id = {hash = '55'}, duration = 4}})
+    local rule = M.matchLine({speakerName = 'Skippy', id = {hash = '55'}, type = 'Regular'}, {typeName = function() return 'Regular' end})
+    M.mutedLine(rule, {seconds = 3, measured = true, id = '000055', subtitle = true, audio = 'no-event-known'})
     hooks['NPCPuppet.OnDeath'](npc(), {instigator = player})
     tick(0.1)
-    local during = #submitted - before
-    local busy = Skippy.S.vanillaUntil > os.clock()
-    Skippy.S.vanillaUntil = -10
-    hooks['BaseSubtitlesGameController.ShowDialogLines'](nil, {{speakerName = 'Skippy', id = {hash = tostring(0x436F6E760000 + 5)}, duration = 4}})
-    local ownBusy = Skippy.S.vanillaUntil > os.clock()
-    return json.encode({during = during, busy = busy, ownBusy = ownBusy})`);
-  assert.equal(result.during, 0);
-  assert.equal(result.busy, true);
-  assert.equal(result.ownBusy, false);
-});
-
-test('the subtitle hooks return on one boolean check while V does not hold Skippy: no clock read, no meter entry, no line touched', () => {
-  const result = playSkippy(`
-    held.tdbid = TweakDBID.new('Items.some_other_gun')
-    swap()
-    local touched, clocks = 0, 0
-    local trap = setmetatable({}, {__index = function() touched = touched + 1 end, __len = function() touched = touched + 1 return 0 end})
-    local clock = os.clock
-    os.clock = function() clocks = clocks + 1 return clock() end
-    local until0 = Skippy.S.vanillaUntil
-    for _ = 1, 50 do
-      hooks['BaseSubtitlesGameController.ShowDialogLines'](nil, {trap, {speakerName = 'Skippy', id = {hash = '55'}, duration = 4}})
-      hooks['BaseSubtitlesGameController.OnShowDialogLine'](nil, {trap, {speakerName = 'Skippy', id = {hash = '55'}, duration = 4}})
-    end
-    os.clock = clock
-    local a, b = Skippy.S.meter['subtitles-a'], Skippy.S.meter['subtitles-b']
-    return json.encode({touched = touched, clocks = clocks, a = a ~= nil, b = b ~= nil, held = Skippy.S.holding, moved = Skippy.S.vanillaUntil ~= until0})`);
-  assert.equal(result.held, false);
-  assert.equal(result.touched, 0, 'no line is inspected');
-  assert.equal(result.clocks, 0, 'the clock is not read');
-  assert.equal(result.a, false, 'no meter entry');
-  assert.equal(result.b, false, 'no meter entry');
-  assert.equal(result.moved, false, 'nothing is tracked');
+    return json.encode({names = names, queuedOrSent = #submitted - before})`);
+  assert.ok(!result.names.some(name => name.includes('Subtitles')), 'no subtitle hook');
 });
 
 test('hook cost is measured and a failing hook cannot break the game', () => {

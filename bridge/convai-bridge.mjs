@@ -103,7 +103,7 @@ import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
-import {AddonHost, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
+import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -2034,13 +2034,17 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
   if (!route) { await fail(addonHost.providerNotice(profile.key), 'addon-provider'); return; }
   const remark = input.reaction?.kind === 'addon';
   // The local AI keeps the default remark gap at about 20 s, so its GPU bursts stay rare beside the game (LOCAL_REMARK_GAP_S).
-  const pace = remark ? addonHost.localPace(profile.key, route) : 0;
+  const pace = remark ? addonHost.localPace(profile.key, route, undefined, input.reaction?.priority) : 0;
   if (pace > 0) {
+    // gap is the spacing itself, so the game waits that long before it asks again instead of asking and being refused.
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
-      error: '', errorCode: 'addon-pace', retryAfter: pace}), {signal, isCurrent: current, isCurrentSync: current.sync});
+      error: '', errorCode: 'addon-pace', gap: LOCAL_REMARK_GAP_S, retryAfter: pace}), {signal, isCurrent: current, isCurrentSync: current.sync});
     return;
   }
-  if (remark) addonHost.remarkStarted(profile.key, route);
+  // A remark that never reaches the player (withdrawn by the game, cancelled while being written) is given back to the pace.
+  const paceToken = remark ? addonHost.remarkStarted(profile.key, route) : null;
+  let published = false;
+  try {
   note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : 'none'}, reaction: input.reaction?.phase, addonRoute: route});
   if (!ahead) void status('thinking', profile.name).catch(() => {});
   clock.mark('admitted');
@@ -2082,7 +2086,12 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
   // A spoken turn carries the recognised words: a group round hands them to the next speakers (mod/group-chat.lua received).
   if (userText) result = {...result, userText};
   await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
-  if (await publishResult(input, profile, result, current, signal)) addonHost.afterReply(input, result.text);
+  if (await publishResult(input, profile, result, current, signal)) { published = true; addonHost.afterReply(input, result.text); }
+  } finally {
+    if (paceToken && !published && addonHost.remarkRefunded(paceToken)) {
+      console.error(`[Addons] ${profile.key}: remark ${input.addon?.event ?? '?'} did not reach the player; it does not count towards the local pace`);
+    }
+  }
 }
 
 async function runInput(request, prepared, clock) {

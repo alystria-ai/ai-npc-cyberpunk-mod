@@ -6,7 +6,7 @@
 --   now() -> seconds (os.clock)                      remark(name, spec) -> ok, reason   (handle:remark for the gun)
 --   cancel()                                         drops the remark waiting or playing (handle:cancel)
 --   mode() -> 'killer'|'puppy'                       where() -> {district, area, timeOfDay, heat}|nil
---   lookAt() -> {name, kind}|nil                     vanillaBusy() -> bool (the game's own Skippy is speaking)
+--   lookAt() -> {name, kind}|nil                     relevant(name) -> function|nil (still true while the moment stands)
 --   stock(event, spec|nil)                           declares a line to prepare ahead (handle:stock); absent: no stock
 --   remember(text)                                   a memory for later fights        log(text)
 local Engine = {}
@@ -16,6 +16,12 @@ Engine.__index = Engine
 -- 3 notable; 1-2 filler. `stock` marks the reflex moments whose line may be written ahead (the bridge's stock); the rest are
 -- written fresh with the moment's own facts. ttl: the API drops a remark whose line is not heard within this many seconds of the
 -- moment (default 3 s; only the fight end, which feels natural late, asks for more).
+-- Patience (seconds a remark waits for a game scene or one of the game's own lines instead of being dropped for it, and how long a
+-- cold or busy model may take before it is asked again): by priority, so the big moments wait the longest. The game's own Skippy
+-- lines (a bark scene, "new message detected") are silenced while the player's "Replace the game's own lines" is on; when it is off
+-- they play, and a patient remark starts after them instead of over them.
+local PATIENCE = {[5] = 12, [4] = 8, [3] = 6, [2] = 4}
+
 -- Refusals that only mean "not yet": the moment is kept for a few seconds and offered again.
 local HOLD = {['addon-gap'] = true, ['speaker-cooldown'] = true, ['queue-full'] = true, busy = true}
 
@@ -199,7 +205,6 @@ function Engine:offer(name, o)
     local last = self.tries[name]
     if last and now - last < (def.pri >= 5 and 0.3 or 1) then return false, 'throttled' end
     self.tries[name] = now
-    if deps.vanillaBusy and deps.vanillaBusy() then return false, 'vanilla-bark' end
     local facts = {mode = self:mode(), fight = self:fightFacts()}
     if o.victim then facts.victim = victimFacts(o.victim) end
     if o.where then facts.where = self:whereFacts() end
@@ -207,7 +212,8 @@ function Engine:offer(name, o)
     local text = o.text
     if not text then text = 'Game event: ' .. name:gsub('%-', ' ') .. '.' end
     local spec = {event = name, text = text, facts = facts, priority = o.priority or def.pri, ttl = def.ttl,
-        maxWords = def.words, cooldown = def.cooldown, stock = def.stock == true and self.deps.stock ~= nil or nil}
+        maxWords = def.words, cooldown = def.cooldown, stock = def.stock == true and self.deps.stock ~= nil or nil,
+        patience = PATIENCE[o.priority or def.pri] or 4, relevant = deps.relevant and deps.relevant(name) or nil}
     local ok, reason = deps.remark(name, spec)
     if ok then
         if self.cand and self.cand.name == name then self.cand = nil end
@@ -231,16 +237,9 @@ function Engine:poll()
     if now - self.lastPoll < 0.5 or now - cand.at < 0.3 then return end
     self.lastPoll = now
     if now > cand.expires then self.cand = nil; return end
-    if self.deps.vanillaBusy and self.deps.vanillaBusy() then return end
     cand.spec.facts.fight = self:fightFacts()
     local ok, reason = self.deps.remark(cand.name, cand.spec)
     if ok or not (HOLD[reason]) then self.cand = nil end
-end
-
--- The game's own Skippy started speaking: nothing of ours may be waiting or playing.
-function Engine:vanillaSpoke()
-    self.cand = nil
-    if self.deps.cancel then self.deps.cancel() end
 end
 
 -- ---- Fight life cycle ----------------------------------------------------------------------------------------------------

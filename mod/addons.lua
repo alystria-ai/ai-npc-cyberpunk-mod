@@ -13,6 +13,11 @@
 -- for a moment of priority 4 or 5. One remark at a time: nothing new starts while one is written or spoken, and a remark whose moment
 -- has passed (about 3 s) is dropped, unless it asked for patience (2026-10-14): such a remark waits out a game scene or game dialogue line
 -- and goes a short gap after it (see "Patience" in docs/ADDON_API.md). Add-on speakers' text comes only from Mistral or the local AI.
+--
+-- An add-on may also replace the game's own lines of its character (2026-10-14, "Replacing the game's own lines" in docs/ADDON_API.md):
+-- handle:replaceGameLines declares which subtitle lines are its character's; while the player's "Replace the game's own lines" is on,
+-- mod/game-dialogue.lua (from the subtitle hooks it already has, never per frame) keeps those lines off the screen and stops their voice
+-- where a Wwise event is known. The scene itself is never touched. "Mark our lines" tags the add-on speaker's own subtitles instead.
 local M = {API_MAJOR = 1, API_MINOR = 0, live = false}
 M.API_VERSION = M.API_MAJOR .. '.' .. M.API_MINOR
 
@@ -33,6 +38,8 @@ local outputsCache, outputsAt = nil, -10
 local lastSpeechEndAt, sessionOpen = -10, false
 local bridgeStatusRead = false       -- runtime/addons-status.json is read once, at the first gameplay tick with an add-on
 local settingEvents = {}             -- settingChanged events, sent on the next tick (never inside the menu's Apply)
+local lineRulesDeclared = false      -- some add-on declared a replaceGameLines rule (mod/game-dialogue.lua asks, once per game line)
+local CAPTION_TAG = ' (AI)'          -- what "Mark our lines" adds after the speaker's name in its subtitles
 
 -- Limits shared with the bridge (bridge/addons.mjs ADDON_LIMITS).
 local LIMITS = {blocks = 8, blockText = 1500, eventText = 600, companionBlocks = 4, companionText = 600, queue = 6,
@@ -44,6 +51,7 @@ local GAPS = {4, 6, 8, 10, 15, 20, 30, 60}             -- "Time between remarks"
 local GAP_DEFAULT = 4                                    -- 10 s
 local CAPS = {5, 10, 20, 30, 50, math.huge}              -- "Most remarks per fight"; the last is "No limit"
 local CAP_DEFAULT = 4                                    -- 30
+local MUTED_HOLD = 0.6        -- seconds a patient remark still waits for a game line whose voice is known to be stopped
 local DEFAULT_TTL = 3         -- a remark that cannot be heard within about 3 s of its moment is dropped
 local SCENE_GAP = 1.2         -- seconds of quiet after a game scene or line before a remark that waited for it starts
 local HARD_TIER = 4           -- scene tiers from here on are cinematics: a speaker with playThrough is still stopped by them
@@ -189,13 +197,26 @@ end
 
 -- blocked, why, signals. `withLine` also counts a game dialogue line being shown now (M.gameLine): it keeps a remark from starting over
 -- the game's own voice, but never cuts one that already plays (the scene flags do that, see trackFlight).
+-- True while a game scene whose lines this speaker's add-on has just silenced is the only reason the scene gate is closed: the scene
+-- keeps running without a voice, so its dialogue flag and its (non-cinematic) tier are no reason to stay quiet. Choices, a call, a
+-- replacer and the cinematic tiers still close the gate.
+local function silencedScene(sample, speaker)
+    local addon = speaker and speaker.addon
+    if not addon or not addon.mutedUntil or clock >= addon.mutedUntil then return false end
+    if sample.choices or sample.call or sample.replacer then return false end
+    return (tonumber(sample.tier) or 1) < HARD_TIER
+end
+
 local function sceneBlocked(sample, speaker, withLine)
     if type(sample) ~= 'table' or sample.available ~= true then return true, 'observation-unavailable' end
-    if sample.dialogue or sample.choices or sample.call or sample.replacer then return true, 'scene', sceneSignals(sample) end
+    local silenced = silencedScene(sample, speaker)
+    if sample.choices or sample.call or sample.replacer or (sample.dialogue and not silenced) then
+        return true, 'scene', sceneSignals(sample)
+    end
     local tiers = speaker and speaker.sceneTiers or {1}
     local allowed = false
     for _, tier in ipairs(tiers) do if sample.tier == tier then allowed = true end end
-    if not allowed then return true, 'scene-tier', sceneSignals(sample) end
+    if not allowed and not silenced then return true, 'scene-tier', sceneSignals(sample) end
     if withLine and watch.gameLineUntil and clock < watch.gameLineUntil then return true, 'game-line', 'subtitle' end
     return false
 end
@@ -284,13 +305,15 @@ local function release(reason, stop, detail)
         end
     end
     log('Remark released: ' .. current.speaker.key .. ' event=' .. current.event .. ' reason=' .. tostring(reason)
-        .. (detail and detail ~= '' and (' signals=' .. detail) or '') .. (requeued and ' (taken back; it is asked for again)' or ''))
+        .. (current.refused and (' refused=' .. current.refused) or '')
+        .. (detail and detail ~= '' and (' signals=' .. detail) or '') .. ' spoken=' .. tostring(heard)
+        .. (requeued and ' (taken back; it is asked for again)' or ''))
     emitTo(current.speaker.addon, 'remarkFinished', {speaker = current.speaker.id, event = current.event,
         reason = reason, spoken = heard, requeued = requeued})
 end
 
 local function drop(entry, reason)
-    if entry.patient then log('Remark dropped: ' .. entry.speaker.key .. ' event=' .. entry.event.event .. ' reason=' .. tostring(reason)) end
+    log('Remark dropped: ' .. entry.speaker.key .. ' event=' .. entry.event.event .. ' reason=' .. tostring(reason))
     emitTo(entry.speaker.addon, 'remarkDropped', {speaker = entry.speaker.id, event = entry.event.event, reason = reason})
 end
 
@@ -316,6 +339,9 @@ local function rateBlocked(addon, priority)
     if episode.count >= cap then return 'episode-budget' end
     if episode.count == cap - 1 and priority < 4 then return 'episode-budget' end
     local gap = priority >= 5 and gapOf(addon) / 2 or gapOf(addon)
+    -- The bridge spaces remarks written by the Local AI (LOCAL_REMARK_GAP_S) unless the player chose a gap; once it has said so, wait that
+    -- long here instead of asking and being refused (a refused moment is lost). Priority 5 is never held by it.
+    if addon.localGap and priority < 5 and not addon.values.remarkGapChosen and addon.localGap > gap then gap = addon.localGap end
     if addon.lastRemarkAt and clock - addon.lastRemarkAt < gap then return 'addon-gap' end
     return nil
 end
@@ -375,9 +401,11 @@ api.register = guard('register', function(def)
     local addon = {id = id, name = name, version = type(def.version) == 'string' and def.version:sub(1, 32) or '?',
         enabled = true, handlers = {}, speakers = {}, companion = {}, companionOrder = {}, state = nil,
         settingsDef = nil, values = settingsValues[id] or {}, events = {}, episode = {start = clock, count = 0},
-        lastRemarkAt = nil, quietUntil = nil, memories = {}, warm = nil}
+        lastRemarkAt = nil, quietUntil = nil, memories = {}, warm = nil, lineRules = {}}
     if not GAPS[addon.values.remarkGap] then addon.values.remarkGap = GAP_DEFAULT end
     if not CAPS[addon.values.remarkCap] then addon.values.remarkCap = CAP_DEFAULT end
+    if type(addon.values.replaceGameLines) ~= 'boolean' then addon.values.replaceGameLines = true end
+    if type(addon.values.markLines) ~= 'boolean' then addon.values.markLines = true end
     addons[id] = addon
     M.live = true
     if host and host.watchParty then pcall(host.watchParty, function() partyDirty = true end) end
@@ -553,7 +581,8 @@ Handle.settings = guard('settings', function(self, section)
     for _, item in ipairs(section.items) do
         if #items >= LIMITS.settings then break end
         if type(item) ~= 'table' or type(item.id) ~= 'string' or #item.id > 32 or not item.id:match('^[%w_]+$') then return false, 'invalid setting id' end
-        if item.id == 'remarkGap' or item.id == 'remarkCap' or item.id == 'remarkGapChosen' or item.id == 'remarkRate' then
+        if item.id == 'remarkGap' or item.id == 'remarkCap' or item.id == 'remarkGapChosen' or item.id == 'remarkRate'
+            or item.id == 'replaceGameLines' or item.id == 'markLines' then
             return false, item.id .. ' is a built-in setting'
         end
         local label = trim(item.label, 80)
@@ -580,6 +609,36 @@ Handle.settings = guard('settings', function(self, section)
             or (item.kind == 'select' and type(value) == 'number' and value >= 1 and value <= #item.elements and value % 1 == 0)
         if not valid then addon.values[item.id] = item.default end
     end
+    return true
+end)
+
+--- handle:replaceGameLines({name, match, active, audio, audioVerified}) -> true, or false and the reason.
+--- Declares which game subtitle lines are this add-on's character's (docs/ADDON_API.md, "Replacing the game's own lines"). While the
+--- player's built-in "Replace the game's own lines" is on (default), the main mod keeps those lines off the screen and stops their voice.
+---   match(line, context) -> bool   the add-on's own test of a game line (line.speakerName, line.speaker, line.type; context.typeName());
+---                                  runs once per game line while active() is true, so keep it to a few string reads
+---   active() -> bool               optional: only while this is true (V holds the gun, V sits in the cab)
+---   audio = {'event', ...}         optional: Wwise events stopped on the line's speaker (the voice; at most 4, each a plain name)
+---   audioVerified                  true once it is known (heard in the game) that the voice really stops: a patient remark then
+---                                  barely waits for the line; otherwise it waits for the whole line, as the voice may still play
+Handle.replaceGameLines = guard('replaceGameLines', function(self, def)
+    local addon = self and self.record
+    if not addon or addons[addon.id] ~= addon then return false, 'unknown add-on' end
+    if type(def) ~= 'table' or type(def.match) ~= 'function' then return false, 'match must be a function' end
+    if def.active ~= nil and type(def.active) ~= 'function' then return false, 'active must be a function' end
+    local audio = {}
+    if def.audio ~= nil then
+        if type(def.audio) ~= 'table' or #def.audio > 4 then return false, 'audio must be a list of at most 4 event names' end
+        for _, name in ipairs(def.audio) do
+            if type(name) ~= 'string' or #name > 64 or not name:match('^[%w_]+$') then return false, 'invalid audio event name' end
+            audio[#audio + 1] = name
+        end
+    end
+    if #addon.lineRules >= 4 then return false, 'too many line rules' end
+    addon.lineRules[#addon.lineRules + 1] = {addon = addon, name = trim(def.name, 40) or addon.name, match = def.match,
+        active = def.active, audio = audio, audioVerified = def.audioVerified == true}
+    lineRulesDeclared = true
+    if host and host.installLineRules then pcall(host.installLineRules) end
     return true
 end)
 
@@ -910,11 +969,13 @@ local function trackFlight(player, state)
     elseif state.speechId == id then
         if flight.stage ~= 'playing' then
             flight.stage, flight.playbackAt, flight.leaseAt = 'playing', os.time(), nil
+            log('Remark played: ' .. flight.speaker.key .. ' event=' .. flight.event .. string.format(' after %.1fs', clock - flight.at))
             emitTo(flight.speaker.addon, 'remarkStarted', {speaker = flight.speaker.id, event = flight.event})
         end
     elseif flight.stage == 'pending' and state.captions and not state.speechId then
         -- Subtitles only (voice off): the caption this reply showed owns the turn until it ends.
         flight.stage, flight.playbackAt, flight.leaseAt = 'captions', os.time(), nil
+        log('Remark played (captions only): ' .. flight.speaker.key .. ' event=' .. flight.event .. string.format(' after %.1fs', clock - flight.at))
         emitTo(flight.speaker.addon, 'remarkStarted', {speaker = flight.speaker.id, event = flight.event})
     elseif flight.stage == 'captions' and state.captions then
         -- still on screen
@@ -1109,6 +1170,51 @@ function M.gameLine(seconds, kind, measured)
     end
 end
 
+--- True from the first handle:replaceGameLines on. One boolean read (mod/game-dialogue.lua asks it for every subtitle line).
+function M.lineRulesWanted() return lineRulesDeclared end
+
+--- mod/game-dialogue.lua, for a game subtitle line: which add-on rule claims it (nil: none), and whether the player's "Replace the
+--- game's own lines" is on for it. Runs the add-on's own cheap test, only for an enabled add-on whose active() holds.
+function M.matchLine(line, context)
+    if not lineRulesDeclared then return nil end
+    for _, id in ipairs(order) do
+        local addon = addons[id]
+        if addon and addon.enabled then
+            for _, rule in ipairs(addon.lineRules) do
+                local active = true
+                if rule.active then
+                    local ok, value = pcall(rule.active)
+                    active = ok and value == true
+                end
+                if active then
+                    local ok, hit = pcall(rule.match, line, context)
+                    if ok and hit == true then return rule, addon.values.replaceGameLines ~= false end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+--- A game line of a rule was silenced (info: seconds, measured, id, subtitle, audio). One log line each, and the line counts as a
+--- game line for the remarks that wait: for its whole length unless the rule's voice stop is verified. The scene it belongs to keeps
+--- running without a voice, so for that long its dialogue flag does not close the scene gate for this add-on (silencedScene).
+function M.mutedLine(rule, info)
+    if type(rule) ~= 'table' or type(info) ~= 'table' then return end
+    local seconds = number(info.seconds, 0.5, 15, 3)
+    log(string.format('muted game line: %s %s (subtitle=%s audio=%s %.1fs)', tostring(rule.name), tostring(info.id),
+        tostring(info.subtitle), tostring(info.audio), seconds))
+    rule.addon.mutedUntil = clock + seconds + 0.4
+    M.gameLine(rule.audioVerified and math.min(seconds, MUTED_HOLD) or seconds, rule.name, info.measured)
+end
+
+--- The speaker name for a subtitle: with "Mark our lines" on, an add-on speaker's own line carries a small tag (speech.lua, subtitles.lua).
+function M.captionName(profileKey, name)
+    local speaker = speakers[profileKey]
+    if not speaker or type(name) ~= 'string' or speaker.addon.values.markLines == false then return name end
+    return name .. CAPTION_TAG
+end
+
 --- The reply of an add-on remark arrived: may it play now? (init.lua reactionCanDeliver)
 function M.canDeliver(context, player)
     if not flight or type(context) ~= 'table' or flight.requestId ~= context.requestId then return false end
@@ -1172,6 +1278,8 @@ function M.isSpeaker(profileKey) return speakers[profileKey] ~= nil end
 function M.replyError(context, reply)
     local speaker = type(context) == 'table' and speakers[context.profileKey]
     if not speaker or type(reply) ~= 'table' then return end
+    -- The refusal is named in the log line that releases the remark (trackFlight sees only "not delivered").
+    if flight and flight.requestId == context.requestId then flight.refused = tostring(reply.errorCode) end
     if reply.errorCode == 'addon-provider' then
         local addon = speaker.addon
         addon.quietUntil = clock + PROVIDER_QUIET
@@ -1183,6 +1291,9 @@ function M.replyError(context, reply)
     elseif reply.errorCode == 'addon-pace' then
         -- The local AI is spacing this add-on's remarks to keep the GPU free for the game: wait before the next one.
         speaker.addon.paceUntil = clock + number(reply.retryAfter, 1, 60, 10)
+        -- The bridge also says how long it spaces remarks (rateBlocked then waits that long instead of asking and being refused).
+        local gap = tonumber(reply.gap)
+        if gap and gap >= 5 and gap <= 120 then speaker.addon.localGap = gap end
     end
 end
 
@@ -1208,6 +1319,18 @@ function M.settingsSections()
                 value = addon.values.remarkCap, default = CAP_DEFAULT,
                 description = 'How many remarks ' .. addon.name .. ' may make in one fight (outside combat: in five minutes). '
                     .. 'The last one is kept for a big moment.'}
+            if #addon.lineRules > 0 then
+                items[#items + 1] = {mcmId = 'addon:' .. id .. ':replaceGameLines', label = 'Replace the game\'s own lines', kind = 'bool',
+                    value = addon.values.replaceGameLines, default = true,
+                    description = 'Silences the game\'s own voice and subtitle lines of ' .. addon.name .. ' (the ones the game plays by itself) so '
+                        .. 'that only ' .. addon.name .. '\'s own AI lines are heard. Only the voice and the subtitle are silenced: the scene, the '
+                        .. 'quest, the map and the payment behind them run as always. Where the game\'s voice cannot be stopped, ' .. addon.name
+                        .. ' waits for it to end.'}
+            end
+            items[#items + 1] = {mcmId = 'addon:' .. id .. ':markLines', label = 'Mark our lines in the subtitles', kind = 'bool',
+                value = addon.values.markLines, default = true,
+                description = 'Adds (AI) after ' .. addon.name .. '\'s name in the subtitles of its own lines, so you can tell them from the '
+                    .. 'game\'s own lines. Turn it off once the game\'s own lines are replaced.'}
         end
         if #items > 0 or (def and #def.items > 0) then
             for _, item in ipairs(def and def.items or {}) do
@@ -1227,6 +1350,8 @@ local function settingFor(mcmId)
     if not addon then return nil end
     if key == 'remarkGap' and next(addon.speakers) ~= nil then return addon, {id = 'remarkGap', kind = 'select', elements = GAPS} end
     if key == 'remarkCap' and next(addon.speakers) ~= nil then return addon, {id = 'remarkCap', kind = 'select', elements = CAPS} end
+    if key == 'markLines' and next(addon.speakers) ~= nil then return addon, {id = 'markLines', kind = 'bool'} end
+    if key == 'replaceGameLines' and #addon.lineRules > 0 then return addon, {id = 'replaceGameLines', kind = 'bool'} end
     if not addon.settingsDef then return nil end
     for _, item in ipairs(addon.settingsDef.items) do if item.id == key then return addon, item end end
     return nil
@@ -1292,6 +1417,7 @@ function M.reset(reason)
         if #addon.companionOrder > 0 or addon.state ~= nil or hadStock then had = true end
         addon.companion, addon.companionOrder, addon.state = {}, {}, nil
         addon.episode, addon.lastRemarkAt, addon.quietUntil, addon.paceUntil = {start = clock, count = 0}, nil, nil, nil
+        addon.mutedUntil = nil
     end
     if had then writeState(true) end
     if sessionOpen then sessionOpen = false; emit('sessionEnded', {reason = reason}) end

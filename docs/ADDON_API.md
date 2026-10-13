@@ -215,6 +215,40 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
   it, because the game's own cab dialogue is a quest scene that opens and closes around its lines. A log line,
   `Remark plays through a game scene: ... signals=dialogue+tier=2`, names the flags that were up.
 
+### Replacing the game's own lines
+
+An add-on whose character also speaks in the game (Skippy's "new message detected", the Delamain cab's greeting and farewell) can
+have the game's own voice and subtitle for those lines silenced, so that only its AI lines are heard:
+
+```lua
+handle:replaceGameLines({name = 'Skippy',
+    match = function(line, context) return isSkippy(line) end,   -- cheap: a few string reads; context.typeName() resolves the line type
+    active = function() return S.holding end,                     -- optional: only while this is true (V holds the gun, V sits in the cab)
+    audio = {'vo_3d_important'},                                  -- optional: Wwise events stopped on the line's speaker (at most 4)
+    audioVerified = false})                                       -- true once it is heard in the game that the voice really stops
+```
+
+- **Per add-on option, on by default:** the add-on's settings section gets **Replace the game's own lines** (only when a rule is
+  declared) and **Mark our lines in the subtitles**. At most 4 rules per add-on; `replaceGameLines` and `markLines` are reserved ids.
+- **What is silenced is only the voice and the subtitle of the lines `match` claims, only while `active()` holds and the add-on is
+  enabled.** The scene, the quest, the map, the payment and every other character's line run as always (a line is never skipped
+  or blocked). The main mod never decides who the character is: the add-on's own `match` does, and a line of the mod's own replies is
+  never hidden.
+- **Subtitle:** the first rule installs one `Override` of `SubtitlesGameController.ShouldDisplayLine` (the game asks it once per
+  line, never per frame); a claimed line answers "do not display". If the override cannot be installed, the line is hidden right after
+  it was handed to the HUD (`UIGameData.HideDialogLine`), and the log says so. Without a rule nothing is hooked and a game line
+  costs one boolean read.
+- **Voice:** `AudioSystem.Stop(event, speakerEntity)` for each event in `audio`, once per line, from the subtitle hook that already
+  runs. The scene system plays most dialogue without a named event, so a stop is a try: the log line says whether a stop was sent,
+  and `audioVerified` tells the scheduler whether to believe it. While it is `false` a patient remark waits for the whole line
+  (the voice may still play); when `true` it waits only ~0.6 s. A rule with no `audio` mutes the subtitle only.
+- **The scene behind a muted line** keeps running without a voice: for the length of that line its `dialogue` flag and (non-cinematic)
+  tier do not close the scene gate for this add-on. Choices, a call, a replacer and the cinematic tiers still do.
+- **Marker:** with **Mark our lines in the subtitles** on (default), the add-on speaker's own subtitle carries ` (AI)` after its name
+  (`Skippy (AI)`), so it can be told from the game's own lines. V's live words never carry it.
+- Log (probe.log): `[Addons] muted game line: <speaker> <6 digit id> (subtitle=filtered|hidden-after audio=stop-sent(...)|no-event-known|... <s>s)`
+  for each muted line; `Game dialogue: subtitle filter installed` or `NOT installed (<why>)` once.
+
 ### Events
 
 | Event | Payload |
@@ -258,9 +292,12 @@ pick. The rules:
 - **A late remark is dropped.** If the reply arrives more than `ttl` seconds (3 s by default) after the moment, it is dropped
   (`remarkFinished` with `stale`) instead of playing late. A waiting remark that cannot start within `ttl` expires.
 - **On the local AI** the bridge keeps the default gap at about 20 seconds between remark starts
-  (`LOCAL_REMARK_GAP_S`; the reply is `errorCode: 'addon-pace'` with `retryAfter`, and the game waits that long). Each remark is a
+  (`LOCAL_REMARK_GAP_S`; the reply is `errorCode: 'addon-pace'` with `gap` (the spacing) and `retryAfter`, and the game waits that
+  long, and from then on waits the whole gap before it asks again instead of asking and being refused). Each remark is a
   GPU burst of about half a second beside the game, and its frame-time cost is not measured yet, so the default keeps it rare. A
-  gap the player picks is used as it is.
+  gap the player picks is used as it is. **Priority 5 is never refused by the pace**, and a remark that never reached the player
+  (withdrawn by the game, cancelled while being written, dropped as a repeat) is given back to it, so a moment is not lost for a
+  remark nobody heard (live 2026-10-14: every Skippy remark was refused within a second of the one before).
 - `handle:remark` refuses at once (`addon-gap`, `episode-budget`, `busy`) when a remark could not be made, so the add-on does no work
   for it.
 
@@ -540,8 +577,9 @@ handle:settings({title = 'Skippy', description = 'The talking smart pistol.', it
 
 - The section appears on the main settings page after Reactions, with the built-in **Time between remarks** and **Most remarks per
   fight** settings first.
-- `id` uses letters, digits and `_`. `remarkGap`, `remarkCap`, `remarkGapChosen` and `remarkRate` are reserved for the built-in
-  settings. At most 24 items; `kind` is `bool` or
+- `id` uses letters, digits and `_`. `remarkGap`, `remarkCap`, `remarkGapChosen`, `remarkRate`, `replaceGameLines` and `markLines` are
+  reserved for the built-in settings (the last two: **Replace the game's own lines**, only with a rule, and **Mark our lines in the
+  subtitles**, for every add-on with a speaker). At most 24 items; `kind` is `bool` or
   `select` (2–12 elements, and `default` is the 1-based index).
 - Changes are checked when the player applies them, saved only if the main Apply succeeds, written to
   `runtime/addon-settings.json`, and announced by `settingChanged` on the next tick.
@@ -625,9 +663,9 @@ check the list of calls.
 
 | Where | What |
 |---|---|
-| `mod/game-dialogue.lua` | `noteLine`: once per game subtitle line (both hooks, deduplicated; the mod's own replies, crowd chatter and TV are skipped), calls `convaiAddons.gameLine(seconds, kind)` through `options.onGameLine`, only while an add-on is live (`onGameLineWanted`). Independent of the "game dialogue context" setting. |
+| `mod/game-dialogue.lua` | `noteLine`: once per game subtitle line (both hooks, deduplicated; the mod's own replies, crowd chatter and TV are skipped), calls `convaiAddons.gameLine(seconds, kind)` through `options.onGameLine`, only while an add-on is live (`onGameLineWanted`). Independent of the "game dialogue context" setting. Lines an add-on declared with `replaceGameLines` (`matchWanted` / `matchLine` / `onMuted`): `installMute` overrides `SubtitlesGameController.ShouldDisplayLine` on the first rule, `ruleLine` stops the voice events and reports the muted line. |
 | `mod/init.lua` | Loads `addons.lua` with `pcall`; returns `{addons = …}` for `GetMod`. Talk target: add-on voices after aimed characters (a vehicle-anchored voice outranks characters outside V's car: `companionOrPassenger`), for the voice keys too when `manager.speechRecognitionReady()` (asked on the key press, with `microphone.decorate` adding the blocks). `sendRequest`/`decorate`; `reactionCanDeliver` → `canDeliver`; `groupAudience` → `participantLive`; the reply error branch → `replyError`; `warmConversation` skips add-on voices; tick, reset and shutdown. |
-| `mod/speech.lua`, `continuous-speech.lua`, `subtitles.lua` | `voiceOnly`: no face calls, no `IsDeadNoStatPool` check, subtitles owned by the player. |
+| `mod/speech.lua`, `continuous-speech.lua`, `subtitles.lua` | `voiceOnly`: no face calls, no `IsDeadNoStatPool` check, subtitles owned by the player. `speech.lua` also sets `voiceProfile`; `subtitles.configure({mark})` adds the ` (AI)` marker to an add-on speaker's name (`captionName`). |
 | `mod/group-chat.lua` | `voiceOnly` rows; add-on voices are left out of the other speakers' audience. |
 | `mod/microphone.lua`, `mod/manager.lua` | `microphone.decorate` (add-on blocks at start and finish); `manager.speechRecognitionReady()` (the bridge's `stt` flag). |
 | `mod/mcm.lua`, `mod/notices.lua` | Add-on settings sections; the `addon-notice` notice. |
@@ -648,6 +686,9 @@ check the list of calls.
    remark at the local AI's default (about 20 s) and at a 10 s gap; shorten `LOCAL_REMARK_GAP_S` only if both are clean.
 7. The provider notice appears once with no Mistral key and no Local AI pack.
 8. Remarks feel right at the defaults (10 s, 30 a fight): frequent but never piled up, and none plays after its moment.
+9. Replacing the game's own lines: the log shows `muted game line: Skippy ...` for "new message detected" / "provocation" and the beeps
+   are not heard (`audio=stop-sent(vo_3d_important)` and then silence); if the voice still plays, the stop does not work for scene
+   dialogue and `audioVerified` stays `false`. For the cab, the subtitle goes and the voice (no known event) still plays.
 
 ## Building Skippy and Delamain
 
@@ -666,7 +707,8 @@ Build against this document and `addons/example/`.
 **Delamain** (`addons/delamain-cab`, Oct 25):
 - One speaker, `delamain`, anchored to `'vehicle'`, with `group = true`, available only in a Delamain cab.
 - Never starts a line over the game's own Delamain scenes (default `sceneTiers = {1}`): every remark has `patience` and waits for the
-  scene or subtitle line to end; a line that has started plays through (`playThrough`).
+  scene or subtitle line to end; a line that has started plays through (`playThrough`). Its own greeting and farewell subtitles are
+  hidden while it sits in the cab (`replaceGameLines`); the cab voice has no known event to stop.
 - `setCompanionContext('ride', …)` while riding, cleared on exit.
 - Remarks: boarding (4), arrival (5), a crash or chase (4), at most one landmark (3).
 - `remember` for notable rides.

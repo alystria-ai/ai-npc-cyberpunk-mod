@@ -38,6 +38,14 @@ Pacing (the main mod's two built-in settings, **Time between remarks**, default 
 later than its `ttl` is dropped, never played late. The add-on makes at most four remarks per ride (below), so a ride is two to four spoken
 lines. A remark that was not heard (V started typing, V stepped out) costs nothing.
 
+With **Replace the game's own lines** on (default), the subtitle lines of the cab's own voice (greeting, "your wish is my command", the
+arrival announcement, the farewell) are hidden while V sits in the cab; the scene, the map for the destination and the fare, and the
+payment are untouched (only the subtitle is filtered, never the scene node). The cab voice is played by the scene system and no Wwise
+event is known for it, so its audio is **not** muted: the voice still plays, the add-on's remark still waits for it as before, and the
+earlier "our welcome right when the game's would have come" is not done (it needs a verified voice stop). His phone calls and
+everything outside the cab are never touched. Our lines carry ` (AI)` after the name (**Mark our lines in the subtitles**, on by
+default). Log: `[Addons] muted game line: Delamain <id> (...)`.
+
 The game's own cab voice (a quest scene, plus the subtitle lines it shows) never gets talked over, and no remark is lost to it. Every
 remark asks the main mod to be patient (`patience`, the table below): while a game scene or a game subtitle line is on, the remark
 waits instead of being dropped; when it is over it waits 1.2 s more and is then written and spoken, if the ride is still in a state

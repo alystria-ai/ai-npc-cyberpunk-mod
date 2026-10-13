@@ -199,6 +199,7 @@ function M.start(context, reply)
     -- A holocall turn (mod/holocall.lua): full volume with no distance, and the call's subtitle line.
     M.holocall = type(context.holocall) == 'table'
     captions.holocall = M.holocall
+    captions.voiceProfile = M.voiceOnly and context.profileKey or nil
     M.outputDelay = readOutputDelay()
     M.streamReceipt = nil
     if reply.continuous ~= nil then

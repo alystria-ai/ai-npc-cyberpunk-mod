@@ -321,6 +321,60 @@ test('game voice lines are reported to the add-on host once each, with their own
   assert(pcall(function() broken:line({id = 9000, type = 'Regular', speaker = JUDY, text = 'x'}, 'show') end))
 `));
 
+test('lines an add-on replaces: the subtitle filter hides only its character\'s lines, the voice stop and the log are sent once, and nothing runs without a rule', () => lua$(`
+  local muted, heard, stopped, hidden, active = {}, {}, {}, {}, true
+  local rule = {name = 'Skippy', audio = {'vo_3d_important'}}
+  local native = setmetatable({
+    stopAudio = function(line, events) stopped[#stopped + 1] = events[1]; return 'stop-sent(' .. events[1] .. ')' end,
+    hideLine = function(line) hidden[#hidden + 1] = line.id; return true end,
+  }, {__index = N})
+  local installed
+  local function make(withOverride, replace)
+    return api.new({native = native, now = function() return now end, enabled = function() return false end,
+      onGameLineWanted = function() return true end,
+      onGameLine = function(seconds, kind, measured) heard[#heard + 1] = {seconds = seconds, kind = kind, measured = measured} end,
+      matchWanted = function() return active end,
+      matchLine = function(line, context) if line.speakerName == 'Skippy' then return rule, replace end return nil end,
+      onMuted = function(r, info) muted[#muted + 1] = info end,
+      override = withOverride and function(class, method, fn) installed = {class = class, method = method, fn = fn} end or function() error('no such method') end,
+      log = function() end})
+  end
+  local dialogue2 = make(true, true)
+  assert(dialogue2:installMute() == true and installed.class == 'SubtitlesGameController' and installed.method == 'ShouldDisplayLine')
+  assert(dialogue2:status().subtitleFilter == true)
+  local function ask(line) return installed.fn(nil, line, function() return 'shown' end) end
+  assert(ask({id = 500, speakerName = 'Skippy', type = 'Invisible'}) == false, 'his line is not displayed')
+  assert(ask({id = 501, speakerName = 'Judy'}) == 'shown', 'anyone else is left alone')
+  subtitles.serial = 5
+  assert(ask({id = 0x436F6E760000 + 4, speakerName = 'Skippy', type = 'OwnerlessRegular'}) == 'shown', 'our own caption is never hidden')
+  active = false
+  assert(ask({id = 502, speakerName = 'Skippy'}) == 'shown', 'no rule wanted: nothing is looked at')
+  active = true
+  -- The line then reaches the subtitle hooks: stop the voice, tell the host, once.
+  local line = {id = 503, speakerName = 'Skippy', type = 'Invisible', duration = 2.5}
+  dialogue2:line(line, 'show')
+  dialogue2:line(line, 'event')
+  assert(#stopped == 1 and stopped[1] == 'vo_3d_important' and #muted == 1 and #hidden == 0)
+  assert(muted[1].seconds == 2.5 and muted[1].measured == true and muted[1].audio == 'stop-sent(vo_3d_important)' and muted[1].subtitle == 'filtered' and muted[1].id == '000503')
+  assert(#heard == 0 and dialogue2:status().muted.Skippy == 1)
+  -- Switched off by the player (matchLine says replace = false): the game talks, the host is told it is talking.
+  local off = make(true, false)
+  off:line({id = 504, speakerName = 'Skippy', type = 'Invisible', duration = 2}, 'show')
+  assert(#stopped == 1 and #muted == 1 and #heard == 1 and heard[1].kind == 'Skippy' and heard[1].seconds == 2)
+  -- The override could not be installed: the line is hidden right after it was handed to the HUD.
+  local fallback = make(false, true)
+  assert(fallback:installMute() == false and fallback:status().subtitleFilter == false)
+  fallback:line({id = 505, speakerName = 'Skippy', type = 'Regular', duration = 2}, 'show')
+  assert(#hidden == 1 and hidden[1] == 505 and muted[2].subtitle == 'hidden-after')
+  -- No rule declared: not even matchLine is called.
+  active = false
+  local calls = 0
+  local plain = api.new({native = native, now = function() return now end, onGameLineWanted = function() return true end,
+    onGameLine = function() end, matchWanted = function() return false end, matchLine = function() calls = calls + 1 end})
+  plain:line({id = 506, speakerName = 'Skippy', type = 'Regular', duration = 2}, 'show')
+  assert(calls == 0 and plain:shouldHide({id = 507, speakerName = 'Skippy'}) == false)
+`));
+
 test('TV, radio, narrator, braindance, flashbacks and combat barks are excluded', () => lua$(`
   for _, kind in ipairs({'GlobalTV', 'GlobalTVAlwaysVisible', 'Narrator', 'Invisible', 'SceneComment',
       'AlwaysCinematicNoSpeaker', 'Radio', 'unknown'}) do

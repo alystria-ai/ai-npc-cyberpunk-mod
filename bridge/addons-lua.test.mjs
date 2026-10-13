@@ -302,6 +302,64 @@ test('game lines: only a remark with patience waits for the game subtitle line; 
   `);
 });
 
+test('replacing the game\'s own lines: validated rules, the per-add-on switch, one log line per muted line, and the scene it belongs to does not close the gate', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local installs = 0
+    host.installLineRules = function() installs = installs + 1 end
+    local handle = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle', minGap = 2, playThrough = true})
+    assert(M.lineRulesWanted() == false and M.matchLine({}, {}) == nil, 'nothing is asked until a rule exists')
+    -- A rule must be a plain, bounded declaration.
+    assert(select(2, handle:replaceGameLines({})) == 'match must be a function')
+    assert(select(2, handle:replaceGameLines({match = function() end, active = 3})) == 'active must be a function')
+    assert(select(2, handle:replaceGameLines({match = function() end, audio = {'a', 'b', 'c', 'd', 'e'}})) == 'audio must be a list of at most 4 event names')
+    assert(select(2, handle:replaceGameLines({match = function() end, audio = {'bad name!'}})) == 'invalid audio event name')
+    assert(installs == 0 and M.lineRulesWanted() == false)
+    local here = true
+    assert(handle:replaceGameLines({name = 'Delamain', match = function(line) return line.speakerName == 'Delamain' end,
+        active = function() return here end, audio = {'vo_cab'}, audioVerified = true}))
+    assert(installs == 1 and M.lineRulesWanted() == true)
+    local rule, replace = M.matchLine({speakerName = 'Delamain'}, {})
+    assert(rule and rule.name == 'Delamain' and replace == true, 'on by default')
+    assert(M.matchLine({speakerName = 'Judy'}, {}) == nil, 'only the own test of the add-on decides')
+    here = false
+    assert(M.matchLine({speakerName = 'Delamain'}, {}) == nil, 'inactive: not even matched')
+    here = true
+    -- The player\'s switch is a saved setting of the add-on.
+    local sections = M.settingsSections()
+    local labels = {}
+    for _, item in ipairs(sections[1].items) do labels[#labels + 1] = item.label end
+    assert(table.concat(labels, '|') == 'Time between remarks|Most remarks per fight|Replace the game' .. string.char(39) .. 's own lines|Mark our lines in the subtitles', table.concat(labels, '|'))
+    assert(M.stageSetting('addon:cab:replaceGameLines', false) and M.commitSettings())
+    assert(select(2, M.matchLine({speakerName = 'Delamain'}, {})) == false)
+    assert(M.stageSetting('addon:cab:replaceGameLines', true) and M.commitSettings())
+    -- The marker on the add-on speaker\'s own captions.
+    assert(M.captionName('addon-cab-voice', 'Delamain') == 'Delamain (AI)')
+    assert(M.stageSetting('addon:cab:markLines', false) and M.commitSettings())
+    assert(M.captionName('addon-cab-voice', 'Delamain') == 'Delamain' and M.captionName('judy-alvarez', 'Judy') == 'Judy')
+    assert(M.stageSetting('addon:cab:markLines', true) and M.commitSettings())
+    -- A muted line: one log line, and a patient remark still waits for it (the voice stop is verified here, so only briefly).
+    player.vehicle = car
+    tick()
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true, dialogue = true}
+    M.mutedLine(rule, {seconds = 6, measured = true, id = '000042', subtitle = 'filtered', audio = 'stop-sent(vo_cab)'})
+    local muted
+    for _, line in ipairs(logs) do if line:find('muted game line', 1, true) then muted = line end end
+    assert(muted and muted:find('muted game line: Delamain 000042 (subtitle=filtered audio=stop-sent(vo_cab) 6.0s)', 1, true), tostring(muted))
+    assert(handle:remark('voice', {event = 'after', patience = 20})); tick()
+    assert(#submitted == 0, 'held for the muted line itself')
+    tick(1); tick(1.5)
+    assert(#submitted == 1 and submitted[1].context.addon.event == 'after', 'the dialogue flag of the silenced scene did not keep it waiting')
+    -- A call still closes the gate for a silenced scene.
+    state.pendingId = nil; tick(); tick(5)
+    M.mutedLine(rule, {seconds = 6, measured = true, id = '000043', subtitle = 'filtered', audio = 'stop-sent(vo_cab)'})
+    state.sample = {available = true, combat = false, tier = 1, vehicle = true, dialogue = true, call = true}
+    assert(handle:remark('voice', {event = 'call'})); tick()
+    assert(#submitted == 1, 'a call is never talked over')
+  `);
+});
+
 test('playThrough: a speaker that plays through finishes a started line over an ordinary scene; a call, Johnny or a cinematic tier still stops it', () => {
   run(`${WORLD}
     M.attach(host)
@@ -488,7 +546,7 @@ test('settings: one section per add-on, checked changes held until Apply, saved 
     assert(select(2, handle:settings({items = {{id = 'x', label = 'X', kind = 'slider'}}})) == 'setting kind must be bool or select')
     return files['runtime/addon-settings.json']
   `);
-  assert.deepEqual(JSON.parse(saved), {version: 1, addons: {skippy: {personality: 2, remarks: true, remarkGap: 4, remarkCap: 4}}});
+  assert.deepEqual(JSON.parse(saved), {version: 1, addons: {skippy: {personality: 2, remarks: true, remarkGap: 4, remarkCap: 4, replaceGameLines: true, markLines: true}}});
 });
 
 test('remark pacing: the two settings, half the gap for priority 5, the cap with its reserved slot, and unheard remarks are free', () => {
@@ -499,11 +557,11 @@ test('remark pacing: the two settings, half the gap for priority 5, the cap with
     -- Every add-on with a speaker gets "Time between remarks" (default 10 s) and "Most remarks per fight" (default 30).
     local sections = M.settingsSections()
     local gap, cap = sections[1].items[1], sections[1].items[2]
-    assert(#sections == 1 and sections[1].title == 'Skippy' and gap.mcmId == 'addon:skippy:remarkGap' and cap.mcmId == 'addon:skippy:remarkCap')
+    assert(#sections == 1 and sections[1].title == 'Skippy' and gap.mcmId == 'addon:skippy:remarkGap' and cap.mcmId == 'addon:skippy:remarkCap' and sections[1].items[3].mcmId == 'addon:skippy:markLines')
     assert(table.concat(gap.elements, ',') == '4 s,6 s,8 s,10 s,15 s,20 s,30 s,60 s' and gap.default == 4 and gap.value == 4)
     assert(table.concat(cap.elements, ',') == '5,10,20,30,50,No limit' and cap.default == 4 and cap.value == 4)
     assert(gap.description:find('about 20 seconds', 1, true), 'the help text names the Local AI default')
-    for _, reserved in ipairs({'remarkGap', 'remarkCap', 'remarkRate'}) do
+    for _, reserved in ipairs({'remarkGap', 'remarkCap', 'remarkRate', 'markLines', 'replaceGameLines'}) do
         assert(select(2, handle:settings({items = {{id = reserved, label = 'X', kind = 'bool'}}})) ~= nil, reserved .. ' is reserved')
     end
     local function hear()
@@ -693,7 +751,7 @@ test('init.lua: every call into the add-on API is skipped until an add-on is liv
   const init = code('init.lua');
   assert.match(init, /local loaded, module = pcall\(dofile, 'addons\.lua'\)\s+convaiAddons = loaded and type\(module\) == 'table' and module or nil/);
   const calls = [...init.matchAll(/convaiAddons\.(\w+)\(/g)].map(match => match[1]);
-  assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'decorate', 'gameLine', 'isSpeaker', 'participantLive', 'replyError', 'talkCandidates']);
+  assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'captionName', 'decorate', 'gameLine', 'isSpeaker', 'lineRulesWanted', 'matchLine', 'mutedLine', 'participantLive', 'replyError', 'talkCandidates']);
   // The game-line notice runs only for a live add-on: the dialogue module asks first (one function call per game subtitle line).
   assert.match(init, /onGameLineWanted = function\(\) return convaiAddons ~= nil and convaiAddons\.live == true end,\s+onGameLine = function\(seconds, kind, measured\) convaiAddons\.gameLine\(seconds, kind, measured\) end/);
   assert.match(init, /if key and not participants and convaiAddons and convaiAddons\.live and convaiAddons\.isSpeaker\(key\) then key = nil end/);

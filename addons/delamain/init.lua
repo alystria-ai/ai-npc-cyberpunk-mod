@@ -508,6 +508,21 @@ registerForEvent('onInit', function()
     Delamain.speaker = handle:speaker({id = SPEAKER, name = 'Delamain', anchor = 'vehicle', group = true, minGap = 6, talkPriority = 10, playThrough = true,
         available = function() return Delamain.enabled and rideLive() end})
 
+    -- The cab's own greeting, "your wish is my command", the arrival announcement and the farewell (the game's subtitle lines of
+    -- Delamain) are hidden while V sits in his cab and "Replace the game's own lines" is on (default). Only the subtitle goes: the scene
+    -- node, the map for the destination and the fare, and the payment run as always. The cab's voice has no known Wwise event (the
+    -- scene system plays it, DELAMAIN_RESEARCH.md), so there is none to stop and the voice still plays; the remark therefore keeps
+    -- waiting for the line to end (audioVerified false, WAIT above). Outside the cab (his phone calls, the garage) nothing is touched.
+    handle:replaceGameLines({name = 'Delamain', active = rideLive, audio = {}, audioVerified = false,
+        match = function(line)
+            local name = line.speakerName
+            if type(name) ~= 'string' or not name:find('%S') then
+                local ok, display = pcall(function() return line.speaker:GetDisplayName() end)
+                name = ok and display or nil
+            end
+            return type(name) == 'string' and name:lower():find('delamain', 1, true) ~= nil
+        end})
+
     handle:settings({title = 'Delamain Cab', description = 'The voice of the Delamain cab: it talks with you on a ride, and with your companion.',
         items = {{id = 'enabled', label = 'Delamain speaks on rides', kind = 'bool', default = true,
             description = 'Delamain comments on the ride and answers the talk key while you sit in his cab. Off keeps the cab silent.'}}})
