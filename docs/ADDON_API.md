@@ -220,7 +220,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 | `turnStarted` / `turnEnded` | `{requestId, profileKey, reaction, addon}` for any conversation turn |
 | `speechStarted` / `speechEnded` | `{requestId, name}` / `{requestId}` |
 | `remarkStarted` | `{speaker, event}`: the remark is heard (or its caption is shown) |
-| `remarkFinished` | `{speaker, event, reason, spoken}`. `reason` is one of `finished`, `not-delivered`, `stale`, `manual-priority`, `scene`, `scene-tier`, `speaker-unavailable`, `interrupted`, `cancelled`, `add-on-disabled` or `anchor-changed` |
+| `remarkFinished` | `{speaker, event, reason, spoken}`. A remark that is playing finishes even when its speaker stops being `available` (V steps out of the cab while it ends); only a scene, a conversation V starts, `handle:cancel` or the add-on being switched off cut it. One still waiting to be heard is given up after 2.5 s without its speaker. `reason` is one of `finished`, `not-delivered`, `stale`, `manual-priority`, `scene`, `scene-tier`, `speaker-unavailable`, `interrupted`, `cancelled`, `add-on-disabled` or `anchor-changed` |
 | `remarkDropped` | `{speaker, event, reason}`: the remark was never sent. `reason` is one of `replaced`, `expired`, `scene`, `speaker-unavailable`, `speaker-cooldown`, `addon-gap`, `episode-budget` or `request-write-failed` |
 | `settingChanged` | `{id, value}`, sent on the tick after Apply (never inside the menu) |
 

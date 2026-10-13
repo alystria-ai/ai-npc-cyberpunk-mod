@@ -284,7 +284,8 @@ generic and needs no add-on for any of this.
 - `companion-vehicle-native.lua` `M.isTaxi(vehicle)` is true when the attached entity's record is one of the two
   records above. `M.inspect` is unchanged (the native plugin parity fixtures mirror it).
 - The controller caches `car.taxi` once per car (a missing `api.isTaxi` means false). A taxi seats guests back left,
-  back right, front right and never the driver seat (AutoDrive drives it).
+  front right, then back right (last: the game's own Johnny can be seated there beside V, on top of a companion), and never
+  the driver seat (AutoDrive drives it).
 - With a taxi as the primary car `allocate` never spawns or follows overflow cars. A companion with no free seat
   stays owned with the error "The Delamain cab has no free seat for this companion." and walks on after the exit.
 - `M.taxiArrived` starts the exit with reason `taxi-arrived` while V is still seated. It runs from

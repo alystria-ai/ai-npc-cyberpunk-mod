@@ -359,17 +359,17 @@ function M.applyLook(s,style,player,settings,seated)
 end
 
 -- How much of a look a passenger gets while the car moves, by the car's speed in m/s. The full look
--- (eyes and a head turn) below about 8, the narrow one (eyes and a small head turn) up to about 20, none
--- faster. Each limit has a margin, so a speed that hovers at one never flips the request (each change
--- retires one event and adds another). An unreadable speed gets the narrow look only.
-local SEATED_FULL,SEATED_NARROW,SEATED_MARGIN=8,20,2
+-- (eyes and a head turn) below about 8, the narrow one (eyes and a small head turn) at any higher speed:
+-- V looking at her always gets an answer (live 2026-10-13: at 22 m/s in the Delamain cab the look was off
+-- and she stared ahead), and the narrow look is the subtle one. The limit has a margin, so a speed that
+-- hovers at it never flips the request (each change retires one event and adds another). An unreadable
+-- speed gets the narrow look only.
+local SEATED_FULL,SEATED_MARGIN=8,2
 local function seatedStyle(previous,speed)
     if not speed then return 'side' end
     local full=previous=='full' and SEATED_FULL+SEATED_MARGIN or SEATED_FULL-SEATED_MARGIN
     if speed<=full then return 'full' end
-    local narrow=(previous=='full' or previous=='side') and SEATED_NARROW+SEATED_MARGIN or SEATED_NARROW-SEATED_MARGIN
-    if speed<=narrow then return 'side' end
-    return 'none'
+    return 'side'
 end
 
 function M.applySeatedLook(s,c,dt)
@@ -397,7 +397,6 @@ function M.applySeatedLook(s,c,dt)
     attention.phase=style~='none' and 'seated-attend' or 'seated-idle'
     if style=='full' then attention.reason='Attend with eyes and head while seated'
     elseif style=='side' then attention.reason='Attend with the eyes and a small head turn while the car moves'
-    elseif attending then attention.reason='The car is too fast for a seated look'
     else attention.reason=ready and attention.stableFor>=0.5 and 'No selected seated attention' or reason end
     attention.speed=c.speed
     return M.applyLook(s,style,c.player,c.gazeSettings,true)

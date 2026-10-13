@@ -88,8 +88,9 @@ local function seats(vehicle,taxi)
     local list={}
     for _,seat in ipairs(vehicle.info and vehicle.info.seats or {}) do list[#list+1]=seat end
     local rank={seat_front_left=0,seat_front_right=1,seat_back_left=2,seat_back_right=3}
-    -- A taxi seats guests in the back first; its driver seat is never offered.
-    if taxi then rank={seat_back_left=0,seat_back_right=1,seat_front_right=2,seat_front_left=3} end
+    -- A taxi seats guests away from the back right seat: the game's own Johnny can appear there (a scene seats him beside V, on top of
+    -- a companion already seated, and no cheap check says when), so it is the last choice. The driver seat is never offered.
+    if taxi then rank={seat_back_left=0,seat_front_right=1,seat_back_right=2,seat_front_left=3} end
     table.sort(list,function(a,b)
         local ar,br=rank[a.name] or 10,rank[b.name] or 10
         return ar==br and a.name<b.name or ar<br
