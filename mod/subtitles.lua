@@ -10,6 +10,48 @@ local M = convaiSubtitles or {serial = math.floor(os.time() % 1000000000) * 100}
 local EMOTION_TAGS = {'joy', 'warm', 'interest', 'surprise', 'sadness', 'fear', 'anger', 'disgust', 'calm'}
 local UTF8 = '[%z\1-\127\194-\244][\128-\191]*'
 
+-- Caption fonts (mod/ui-fonts.lua). The game draws a caption in the font of its own language, which has no glyphs for a reply in
+-- Japanese, Korean, Chinese or Russian when the game is set to another language. The script of a reply is decided once, when the
+-- reply (or a revision of it) arrives: M.fontCode. Only a caption of such a reply is touched: its owned widgets get the family of
+-- their own text when the game has drawn them, and are put back when the reply ends. A Latin reply costs one nil check.
+local function fontScope()
+    if M.fontScope == nil then
+        local library = type(convaiUiFonts) == 'table' and convaiUiFonts.version == 2 and convaiUiFonts
+        if not library then
+            local ok, loaded = pcall(dofile, 'ui-fonts.lua')
+            library = ok and type(loaded) == 'table' and type(loaded.replyCode) == 'function' and loaded
+        end
+        M.fontLibrary = library or false
+        M.fontScope = library and library.new() or false
+    end
+    return M.fontScope or nil
+end
+local function replyFont(text)
+    return fontScope() and M.fontLibrary.replyCode(text) or nil
+end
+local function styleFont(controller)
+    if not controller then return end
+    local scope = fontScope()
+    if not scope or (not M.fontCode and scope.count() == 0) then return end
+    local ok = pcall(function()
+        scope.begin()
+        scope.walk(controller:GetRootWidget(), 'reply', {left = 64})
+    end)
+    if ok then M.fontController = controller end
+end
+local function restoreFont()
+    local scope, controller = M.fontScope, M.fontController
+    M.fontController = nil
+    if not scope then return end
+    if controller and scope.count() > 0 then
+        pcall(function()
+            scope.begin()
+            scope.walk(controller:GetRootWidget(), false, {left = 64})
+        end)
+    end
+    scope.clear()
+end
+
 local function finite(value)
     return type(value) == 'number' and value == value and math.abs(value) < math.huge
 end
@@ -169,6 +211,9 @@ function M.abandon()
     M.revealAfterFrame = nil
     M.lingering, M.lineLost, M.restores, M.retiring = nil, nil, nil, nil
     M.live, M.liveOwner = nil, nil
+    -- Pure Lua: no native call (the font records hold plain values, never a widget).
+    M.fontCode, M.fontController = nil, nil
+    if M.fontScope then M.fontScope.clear() end
 end
 
 local function headAnchor(actor)
@@ -188,6 +233,7 @@ end
 function M.clear()
     retire()
     hideLine()
+    restoreFont()
     M.abandon()
 end
 function M.clearEntity(entity)
@@ -392,6 +438,7 @@ local function updateOwnedText(controller, text)
         inkWidgetRef.SetVisible(wideContainer, isWide)
     end)
     if not ok then M.renderUpdateError = tostring(problem); return false end
+    styleFont(controller)
     if M.rendered then M.rendered.text = text end
     M.textUpdates = (M.textUpdates or 0) + 1
     return true
@@ -472,6 +519,7 @@ local function prepare(speaker, text, actor, expected)
     M.paginationStyle = M.mode
     M.pages, M.pageRanges = M.split(text, M.paginationStyle)
     if #M.pages == 0 then M.abandon(); return false end
+    M.fontCode = replyFont(text)
     M.playerID, M.speaker, M.page = identity(Game.GetPlayer()), speaker, 1
     return true
 end
@@ -502,6 +550,7 @@ function M.showLive(speaker, text)
         local pages, ranges = M.split(text, M.paginationStyle or 'dialogue')
         if #pages == 0 then return false end
         M.pages, M.pageRanges = pages, ranges
+        M.fontCode = replyFont(text)
     end
     M.page = #M.pages
     local shown = showPage()
@@ -528,6 +577,7 @@ function M.reviseTimed(text, duration, position, captions)
     -- change page boundaries on the next streamed transcript revision.
     local pages, ranges, timed = layout(text, duration, M.cues(captions), M.paginationStyle or M.mode)
     if #pages == 0 then return false end
+    M.fontCode = replyFont(text)
     local oldText, oldPage = M.pages[M.page], M.page
     local target = targetPage(timed, position, #pages)
     -- A duration estimate becoming more accurate is not a reason to replay a
@@ -621,6 +671,7 @@ function M.install()
                 -- It does not own a new projection or need a new root token.
                 M.controller = controller
                 if line.text ~= M.line.text then updateOwnedText(controller, M.line.text) end
+                styleFont(controller)
                 return
             end
             restorePlacement()
@@ -705,6 +756,7 @@ function M.install()
             M.rendered.worldOffsetZ = adjusted and offset or nil
             M.rendered.placementError = not adjusted and tostring(offset) or nil
             if line.text ~= M.line.text then updateOwnedText(controller, M.line.text) end
+            styleFont(controller)
         end
     end)
     -- Native removal by data clears every ownerless HUD line, and a stale
@@ -723,7 +775,12 @@ function M.install()
     pcall(ObserveAfter, 'SubtitlesGameController', 'OnHideLineByData', removal('removedByData'))
     pcall(ObserveAfter, 'SubtitlesGameController', 'OnHideLine', removal('removedOnHide'))
     -- The new dialogue page has its text: now hide the page it replaces.
-    pcall(ObserveAfter, 'SubtitleLineLogicController', 'SetLineData', function(_, line)
+    pcall(ObserveAfter, 'SubtitleLineLogicController', 'SetLineData', function(controller, line)
+        -- A reply in a script the game's font lacks: the dialogue line the game just drew gets the family of its text.
+        if M.fontCode and M.line and M.mode ~= 'overhead' then
+            local same, id = pcall(function() return tostring(line.id) end)
+            if same and id == tostring(M.line.id) then styleFont(controller) end
+        end
         if not M.retiring or not M.line then return end
         local ok, id = pcall(function() return tostring(line.id) end)
         if ok and id == tostring(M.line.id) then retire() end

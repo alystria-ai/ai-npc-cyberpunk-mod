@@ -1103,3 +1103,17 @@ test('phone Lua has a reader slot that init wires to the one shared snapshot rea
   assert.equal(read.length, 1, 'read in exactly one place: the send path');
   assert.ok(adapter.indexOf('capture(M.captureTurnContext)') > adapter.indexOf('ConvaiPhoneChatTakeSubmission'), 'after the submission is taken, not on the tick');
 });
+
+test('every present tells the phone style which messages it showed, once per present', () => runLua(setup + `
+local seen={}
+convaiPhoneChatStyle={linesPresented=function(rows)seen[#seen+1]=rows end}
+update()
+m.history.judy={{text='了解です。',sent=false}};m.dirty=true
+local painted=#paints;update()
+assert(#paints>painted and #seen>=1 and seen[#seen][1].text=='了解です。')
+local count=#seen;update();assert(#seen==count,'nothing is announced while nothing is presented')
+convaiPhoneChatStyle={linesPresented=function()error('a failing style never breaks the chat')end}
+m.dirty=true;local before=#paints;update();assert(#paints>before)
+convaiPhoneChatStyle=nil
+m.dirty=true;before=#paints;update();assert(#paints>before)
+`));

@@ -65,12 +65,14 @@ export const isLocalUnavailable = error => LOCAL_UNAVAILABLE.test(typeof error?.
  * prefix is cached on Mistral's side (measured: 98% of the prompt cached, about 20% faster, cached tokens do not count against the
  * token budget; docs/FREE_CLOUD_OPTION_RESEARCH.md).
  */
-export function mistralRoute({provider, model = () => DEFAULT_MODELS, chat = streamChat, endpoint, gapMs = 1100, onFailure, onSuccess,
+export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionModel, chat = streamChat, endpoint, gapMs = 1100, onFailure, onSuccess,
   cacheScope = '', now = () => performance.now(), scheduler, priorities = {TEXT: 0, BACKGROUND: 2}, chatDefaults = CLOUD_CHAT_LIMITS} = {}) {
   return {name: 'mistral', provider: 'mistral', chat, endpoint, gapMs, now, blocked: new Map(), nextSlot: 0, scheduler, priorities,
     chatDefaults,
     noteHeaders: scheduler ? headers => { try { scheduler.noteHeaders(headers); } catch { /* spacing is best effort */ } } : undefined,
     models: () => [model()].flat().map(id => ({id})),
+    // The models of the companion-action decision (a one-word answer, bridge/text-actions.mjs); without it the reply's models are used.
+    decisionModels: decisionModel ? () => [decisionModel()].flat().map(id => ({id})) : undefined,
     async connect() { return {apiKey: provider.apiKey}; },
     // The cache key must not hold secrets: the install scope is a hash, the rest is the character.
     cacheBody: profileKey => profileKey ? {prompt_cache_key: `cyberpunk-convai:${cacheScope}:${profileKey}`.slice(0, 120)} : {},
@@ -229,11 +231,11 @@ export class TextProviderHost {
   }
 
   async #send(route, messages, signal, extra = {}) {
-    const {profileKey, background, extraBody, ...rest} = extra;
+    const {profileKey, background, extraBody, models, ...rest} = extra;
     const lease = await route.connect(signal, {background});
     try {
       // The models in order of preference. A model the account has no allowance for (limit 0) is skipped for ten minutes.
-      const wanted = route.models();
+      const wanted = models?.length ? models : route.models();
       const now = Date.now();
       const usable = wanted.filter(item => !(route.blocked.get(item.id) > now));
       let lastError;
@@ -393,7 +395,7 @@ export class TextProviderHost {
     if (!route) return null;
     try {
       const response = await this.#request(route, menu.classifier({text, last}), signal,
-        {maxTokens: route.name === 'groq' ? 300 : 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000});
+        {maxTokens: route.name === 'groq' ? 300 : 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, models: route.decisionModels?.()});
       return menu.decide(response.text);
     } catch (error) {
       if (!signal?.aborted) this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));

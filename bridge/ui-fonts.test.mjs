@@ -90,3 +90,36 @@ test('unresolvable original resources fail closed and non-Latin rich text inheri
  local rich=widget('rich');rich.IsA=function(_,name)return name=='inkTextWidget' or name=='inkRichTextBoxWidget'end
  assert(scope.apply(rich,'zh-cn') and rich.lock)
 `));
+test('a reply script picks the family: kana Japanese, Hangul Korean, Han Chinese, Cyrillic Russian, everything else the game font',()=>run(`
+ local cases={['こんにちは、V。']='ja',['ひらがなと漢字']='ja',['Hello, ジュディ here']='ja',['안녕하세요, V']='ko',['你好，世界']='zh-cn',['Hello, 世界']='zh-cn',
+  ['Привет, V']='ru',['Привіт, ї є ґ']='ru',['Привет 你好']='zh-cn',['𠀀 extension']='zh-cn'}
+ for text,code in pairs(cases)do assert(fonts.scriptCode(text)==code,text..' -> '..tostring(fonts.scriptCode(text)))end
+ for _,text in ipairs({'','hello there','Zażółć gęślą jaźń ő ű ğ ş ı İ ř ů','Γειά σου','Բարեւ','emoji '..string.char(240,159,152,128)..' only',string.char(255,254)..' broken'})do
+  assert(fonts.scriptCode(text)==nil,text)
+ end
+ assert(fonts.scriptCode(nil)==nil and fonts.scriptCode(42)==nil)
+ assert(fonts.replyCode('Hello V')==false and fonts.replyCode('こんにちは')=='ja' and fonts.replyCode(nil)==false)
+ assert(fonts.replyCode('你好')=='zh-cn')
+ convaiUiLocale={current=function()return 'zh-tw'end}
+ assert(fonts.replyCode('你好，世界')=='zh-tw','a Traditional Chinese interface keeps Traditional glyphs')
+ assert(fonts.replyCode('こんにちは')=='ja' and fonts.replyCode('Привет')=='ru')
+ for i=1,200 do assert(fonts.replyCode('line '..i..' 日本です')=='ja')end
+ assert(fonts.replyCode('line 1 日本です')=='ja')
+`));
+test('a widget walk with the reply code gives each text its own family, leaves Latin ones alone and restores one that turned Latin',()=>run(`
+ local scope=fonts.new()
+ local root=widget('root');root.IsA=function()return false end
+ local name,body,mixed=widget('Judy Alvarez','Semi-Bold'),widget('こんにちは、V。','Medium'),widget('Привет, V','Medium')
+ root.children={name,body,mixed}
+ assert(scope.walk(root,'reply')==2)
+ assert(name.sets==0 and name.fontFamily.path=='base/fonts/original.inkfontfamily' and not name.lock)
+ assert(body.fontFamily.path==fonts.family('ja') and body.style=='Medium' and body.lock)
+ assert(mixed.fontFamily.path==fonts.family('ru') and mixed.style=='Medium' and mixed.lock)
+ assert(scope.walk(root,'reply')==0 and body.sets==1 and mixed.sets==1,'a second walk of the same texts changes nothing')
+ -- A recycled widget that now holds Latin text goes back to the font it had.
+ body.text='See you soon';assert(scope.walk(root,'reply')==1,'the restore counts as a change')
+ assert(body.fontFamily.path=='base/fonts/original.inkfontfamily' and not body.lock and scope.count()==1)
+ assert(scope.canApply(widget('안녕'),'reply') and scope.canApply(widget('plain'),'reply'))
+ -- A non-reply code is unchanged: the interface language still decides.
+ local label=widget('Settings');scope.apply(label,'ko');assert(label.fontFamily.path==fonts.family('ko'))
+`));

@@ -9,7 +9,7 @@ import {TextProviderHost, mistralRoute} from './text-provider-host.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
-import {streamChat} from './mistral-client.mjs';
+import {streamChat, DEFAULT_MODELS, DECISION_MODELS} from './mistral-client.mjs';
 import {PersonaBook} from './mistral-prompt.mjs';
 
 const TOKEN = 'drive-0123456789abcdefghij';
@@ -212,14 +212,14 @@ async function fakeServer(script) {
   return {requests, endpoint: `http://127.0.0.1:${server.address().port}/v1/chat/completions`,
     close: () => new Promise(done => { server.closeAllConnections?.(); server.close(done); })};
 }
-async function harness(script, {actions = true} = {}) {
+async function harness(script, {actions = true, decisionModel} = {}) {
   const server = await fakeServer(script);
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}});
   await provider.load(); provider.setPreference('mistral'); provider.apply();
   const memory = await MistralMemory.open({path: null});
   const delivered = [], logs = [];
   const host = new TextProviderHost({provider, memory, personas: book, log: line => logs.push(line),
-    routes: {mistral: mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, cacheScope: 'scope1'})},
+    routes: {mistral: mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, cacheScope: 'scope1', ...(decisionModel ? {decisionModel} : {})})},
     ...(actions ? {deliverAction: async message => { delivered.push(message); return true; }} : {})});
   return {server, host, memory, delivered, logs, close: async () => { host.close(); await server.close(); }};
 }
@@ -520,4 +520,24 @@ test('the decision request and the reply both ride the shared keep-alive Agent o
     assert.equal(typeof [...agents][0]?.dispatch, 'function', 'and it is the keep-alive Agent, not the default client');
     assert.deepEqual(delivered, [{version: 1, token: TOKEN}]);
   } finally { host.close(); }
+});
+
+test('the decision asks the decision model (3b, 8b as fallback) and the reply keeps the reply model; without one both use the same', async () => {
+  assert.deepEqual([...DECISION_MODELS], ['ministral-3b-latest', 'ministral-8b-latest']);
+  assert.equal(DEFAULT_MODELS[0], 'ministral-8b-latest', 'the reply model is unchanged');
+  const split = await harness(script(() => 'DRIVE', 'Sure, hop in.'), {decisionModel: () => DECISION_MODELS});
+  try {
+    await split.host.reply(turn('drive for me', {companionAction: ride()}));
+    await settle();
+    const decision = split.server.requests.find(body => isDecision(body)), replyBody = split.server.requests.find(body => !isDecision(body));
+    assert.equal(decision.model, 'ministral-3b-latest');
+    assert.equal(replyBody.model, DEFAULT_MODELS[0]);
+    assert.deepEqual(split.delivered, [{version: 1, token: TOKEN}]);
+  } finally { await split.close(); }
+  const same = await harness(script(() => 'DRIVE', 'Sure, hop in.'));
+  try {
+    await same.host.reply(turn('drive for me', {companionAction: ride()}));
+    await settle();
+    assert.deepEqual(same.server.requests.map(body => body.model), [DEFAULT_MODELS[0], DEFAULT_MODELS[0]]);
+  } finally { await same.close(); }
 });

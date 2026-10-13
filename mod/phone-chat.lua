@@ -609,6 +609,9 @@ function M.update(player, delta)
         if not historyReady then status = 'Saved Chat cleanup could not be verified. Please wait for the memory service.' end
         local reset = M.lastPaint ~= contact or M.clearDraft == contact or M.resetDrafts[contact] == true
         player:ConvaiPhoneChatPresent(contact, lines, status, historyReady and (M.drafts[contact] or '') or '', enabled, M.pending ~= nil, reset)
+        -- Messages in a script the game's font lacks (CJK, Cyrillic) are given their own font by the phone style, decided once per list.
+        local style = convaiPhoneChatStyle
+        if style and type(style.linesPresented) == 'function' then pcall(style.linesPresented, historyReady and M.history[contact] or {}) end
         if historyReady then M.captureDrafts = true end
         if historyReady then M.resetDrafts[contact] = nil end
         M.lastPaint, M.dirty, M.clearDraft = contact, false, nil

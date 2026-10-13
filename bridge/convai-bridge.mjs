@@ -94,7 +94,7 @@ const leaseWake = createWakeSignal();
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
-import {DEFAULT_MODELS as MISTRAL_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, warmConnection} from './mistral-client.mjs';
+import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -559,7 +559,7 @@ const realtime = new RealtimeHost({onCompanionAction: packet => companionActions
 // One host serves Mistral, Groq and the local AI (bridge/text-provider-host.mjs); `mistral.route` says which answers a turn. The cache
 // scope is a hash of the state folder, so the Mistral cache key never carries a secret or a name.
 const textRoutes = {
-  mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12)}),
+  mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, decisionModel: () => MISTRAL_DECISION_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12)}),
   groq: groqRoute({provider: mistral, log: message => console.error('[TextProvider] ' + message)}),
   local: localRoute({server: localServer, provider: mistral, log: message => console.error('[TextProvider] ' + message)}),
 };

@@ -1,7 +1,7 @@
 -- Font selection for mod-owned ink text. Native access belongs in top-level
 -- presentation updates. Scopes retain plain values, never widget handles.
-if type(convaiUiFonts)=='table' and convaiUiFonts.version==1 then return convaiUiFonts end
-local M={version=1}
+if type(convaiUiFonts)=='table' and convaiUiFonts.version==2 then return convaiUiFonts end
+local M={version=2}
 local base='base\\gameplay\\gui\\fonts\\foreign\\'
 local families={
     ['zh-cn']={path=base..'chinese\\jing_xi_heig\\jing_xi_heig.inkfontfamily',styles={'Regular','Semi-Bold'}},
@@ -20,8 +20,53 @@ local autonyms={['English']='en',['简体中文']='zh-cn',['繁體中文']='zh-t
     ['Deutsch']='de',['Italiano']='it',['Polski']='pl',['Čeština']='cs',['Magyar']='hu',
     ['Türkçe']='tr',['Русский']='ru',['Українська']='uk',['日本語']='ja',['한국어']='ko'}
 function M.family(code) return families[code] and families[code].path or nil end
+-- The script of a piece of text, from its own letters (the same test as bridge/reply-language.mjs, in UTF-8 bytes because the game's Lua
+-- has no utf8 library): kana is Japanese, Hangul is Korean, Han without kana is Chinese, Cyrillic is Russian (Ukrainian shares its family);
+-- anything else (Latin, Greek, ...) is nil, the game's own font. One pass over at most 4000 bytes; call it once per reply, not per frame.
+function M.scriptCode(text)
+    if type(text)~='string' then return nil end
+    local kana,hangul,han,cyrillic=false,false,false,false
+    local i,n=1,math.min(#text,4000)
+    while i<=n do
+        local b=text:byte(i)
+        if b<0xC2 then i=i+1
+        elseif b<0xE0 then
+            local b2=text:byte(i+1) or 0
+            -- U+0400..U+04FF is D0..D3, U+0500..U+052F is D4 80..AF.
+            if (b>=0xD0 and b<=0xD3) or (b==0xD4 and b2<0xB0) then cyrillic=true end
+            i=i+2
+        elseif b<0xF0 then
+            local cp=((b%16)*64+((text:byte(i+1) or 0)%64))*64+((text:byte(i+2) or 0)%64)
+            if (cp>=0x3040 and cp<=0x30FF) or (cp>=0x31F0 and cp<=0x31FF) or (cp>=0xFF66 and cp<=0xFF9F) then kana=true
+            elseif (cp>=0xAC00 and cp<=0xD7FF) or (cp>=0x1100 and cp<=0x11FF) or (cp>=0x3130 and cp<=0x318F) or (cp>=0xA960 and cp<=0xA97F) then hangul=true
+            elseif (cp>=0x3400 and cp<=0x4DBF) or (cp>=0x4E00 and cp<=0x9FFF) or (cp>=0xF900 and cp<=0xFAFF) then han=true end
+            i=i+3
+        else
+            if b==0xF0 and (text:byte(i+1) or 0)>=0xA0 then han=true end   -- CJK extensions, U+20000 and up
+            i=i+4
+        end
+    end
+    if kana then return 'ja' elseif hangul then return 'ko' elseif han then return 'zh-cn' elseif cyrillic then return 'ru' end
+    return nil
+end
+-- The family code for a reply (or message) text, or false when the game's own font is right. Decided once per text (a small memo), so
+-- a text that is drawn again, or a widget walked again, costs a table lookup. Traditional Chinese follows an interface set to it.
+local memo,memoCount={},0
+function M.replyCode(text)
+    if type(text)~='string' then return false end
+    local code=memo[text]
+    if code==nil then
+        code=M.scriptCode(text) or false
+        if memoCount>=64 then memo,memoCount={},0 end
+        memo[text],memoCount=code,memoCount+1
+    end
+    if code=='zh-cn' and convaiUiLocale and convaiUiLocale.current()=='zh-tw' then return 'zh-tw' end
+    return code
+end
 function M.codeForText(text,code)
     if code==false then return false end
+    -- 'reply': each widget gets the family of its own text (Latin widgets next to it, a speaker name for one, keep their font).
+    if code=='reply' then return M.replyCode(text) end
     return autonyms[text] or code or (convaiUiLocale and convaiUiLocale.current()) or 'en'
 end
 function M.key(widget)

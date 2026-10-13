@@ -681,3 +681,46 @@ assert(queue({},'judy',false,function()
 end)==true)
 assert(received==nil and m.feedbackQueueDepth==0, 'the native queue acknowledgement was shown')
 `));
+
+test('chat messages in a script the game font lacks get their family in three timed passes after a present, and a recycled Latin row is restored', () => runLua(setup + `
+enableNativeFonts();language='en'
+local m=(function()${phone}end)()
+local n,c,hint,label=popup('judy');c.draft=''
+local path=n.m_messagesPath
+local area=widget('MessagesScrollArea');area:Reparent(path)
+local function row(text)local w=widget('text');w.text=text;w:Reparent(area);return w end
+local jp,latin,ru=row('了解です。'),row('Fine by me.'),row('Привет, V')
+local original=jp.fontFamily.path
+local clock,scans,open=0,0,true
+os.clock=function()return clock end
+Game={GetPlayer=function()return{ConvaiPhoneIsOpen=function()return open end}end,
+  GetInkSystem=function()scans=scans+1;return{GetLayers=function()return{{GetGameControllers=function()return{n}end}}end}end}
+m.refresh()
+local base=scans
+-- A list with Latin text only, and nothing styled before: no pass is scheduled and no row is touched.
+m.linesPresented({{text='Fine by me.'}})
+assert(m.replyFontAt==nil)
+clock=5;m.refresh();assert(scans==base and jp.fontWrites==0,'idle refreshes stay idle')
+-- A list with a Japanese message schedules three passes; nothing happens before the first is due.
+m.linesPresented({{text='Fine by me.'},{text='了解です。'}})
+assert(#m.replyFontAt==3)
+m.refresh();assert(scans==base and jp.fontWrites==0)
+clock=5.2;m.refresh()
+assert(scans==base+1 and #m.replyFontAt==2)
+assert(jp.fontFamily.path==convaiUiFonts.family('ja') and jp.fontLock and ru.fontFamily.path==convaiUiFonts.family('ru'))
+assert(latin.fontWrites==0 and latin.fontFamily.path==original,'a Latin message keeps the game font')
+local writes=jp.fontWrites
+clock=5.8;m.refresh();assert(scans==base+2 and jp.fontWrites==writes and #m.replyFontAt==1,'the second pass finds nothing to change')
+clock=7;m.refresh();assert(scans==base+3 and #m.replyFontAt==0)
+clock=9;m.refresh();assert(scans==base+3,'no pass without a present: nothing per frame')
+-- The list controller recycles a row for new Latin text: the next present restores the font it had.
+jp.text='Sure, see you there.'
+m.linesPresented({{text='Sure, see you there.'}})
+assert(#m.replyFontAt==3,'a font was changed earlier, so this list is checked too')
+clock=9.2;m.refresh()
+assert(jp.fontFamily.path==original and not jp.fontLock and ru.fontFamily.path==convaiUiFonts.family('ru'))
+-- Closing the phone forgets the rows (plain Lua) and schedules nothing.
+open=false;m.refresh()
+assert(m.messageScope.count()==0 and m.replyFontAt==nil)
+assert(m.lastError==nil,m.lastError)
+`));
