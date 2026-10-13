@@ -226,7 +226,8 @@ export class GroupScenario {
     if (this.folder) {
       const resolved = await realpath(this.folder);
       if (dirname(resolved).toLowerCase() === (await realpath(tmpdir())).toLowerCase() && basename(resolved).startsWith(prefix)) {
-        await rm(resolved, {recursive: true, force: true});
+        // Windows can hold the folder for a moment after the bridge exits (EBUSY under load): retry before giving up.
+        await rm(resolved, {recursive: true, force: true, maxRetries: 30, retryDelay: 100});
       }
     }
   }

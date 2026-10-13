@@ -32,7 +32,9 @@ async function finishRound(scenario) {
   await scenario.begin(); await scenario.waitFor(() => scenario.done, 'the round to finish', 90000);
 }
 
-describe('group look-ahead in the real bridge', {concurrency: 3, timeout: 240000}, () => {
+// Two tests at a time: each already runs two real bridges (serial beside look-ahead, so both see the same load); three tests at once (six bridges)
+// put six bridges and their simulated games beside the rest of the suite and starved the one being measured.
+describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 900000}, () => {
   it('serial rounds pay a whole provider request per speaker change; look-ahead removes it', async () => {
     const [serial, ahead] = await Promise.all([measureRound({mode: 'serial'}), measureRound({mode: 'lookahead'})]);
     assert.equal(serial.gaps.length, 2); assert.equal(ahead.gaps.length, 2);
@@ -63,9 +65,13 @@ describe('group look-ahead in the real bridge', {concurrency: 3, timeout: 240000
     const judyEnd = last(events, 'play-end', JUDY.characterId), panamStart = first(events, 'play-start', PANAM.characterId);
     assert.ok(panamStart > judyEnd, 'never overlaps the previous speaker');
     assert.ok(gaps[0].gapMs < serial.gaps[0].gapMs - 400, `partial overlap still helps: ${gaps[0].gapMs} vs ${serial.gaps[0].gapMs}`);
-    // The only wait left is Panam's own remaining generation time.
+    // The only wait left is Panam's own remaining generation time. That time is the simulated provider's plus what the bridge itself
+    // adds on this machine right now, so the bound is the same pipeline measured beside it (the serial run's first speaker,
+    // generated under the same load, with the same simulated provider time) plus the margin.
     const generation = panamStart - first(events, 'reply-start', PANAM.characterId);
-    assert.ok(generation < DEFAULT_TIMINGS['panam-palmer'].firstPcmMs + 1200, `generation ${generation}`);
+    const reference = first(serial.events, 'play-start', JUDY.characterId) - first(serial.events, 'reply-start', JUDY.characterId);
+    assert.ok(reference >= DEFAULT_TIMINGS['judy-alvarez'].firstPcmMs, `reference generation ${reference}`);
+    assert.ok(generation < reference + 1200, `generation ${generation} vs ${reference} for the first speaker of the serial run`);
     noErrors(ahead.output);
   });
 

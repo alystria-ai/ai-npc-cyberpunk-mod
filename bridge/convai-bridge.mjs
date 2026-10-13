@@ -2568,7 +2568,8 @@ const lookaheadTimer = setInterval(() => { void pollLookahead().catch(error => c
 // Add-ons only: the state and settings files are also read once a second, in case the directory watcher missed a change.
 const addonTimer = addonHost.active ? setInterval(() => { for (const read of Object.values(addonHost.watchHandlers(runtime))) void read(); }, 1000) : null;
 addonTimer?.unref?.();
-const settingsTimer = setInterval(() => { void pollSettings().catch(error => console.error('[CyberpunkConvai] Settings poll:', error.message)); }, 500);
+// A poll that is still running when the service closes is rejected with 'Voice service is closed': expected at shutdown, not a fault.
+const settingsTimer = setInterval(() => { void pollSettings().catch(error => { if (!stopped) console.error('[CyberpunkConvai] Settings poll:', error.message); }); }, 500);
 const phoneTimer = setInterval(() => { void pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)); }, 150);
 // The status file the game reads can be held open by the game for a moment (Windows refuses the rename: EPERM/EBUSY); the next poll
 // writes it again, so the same message is logged at most once a minute, with how many were left out.

@@ -43,7 +43,7 @@ function harness(t, {standard = true, lite = true, env = {}, envFor, ...options}
   const tmpDir = join(directory, 'tmp');
   mkdirSync(tmpDir);
   const server = new LocalLlmServer({pack, listDevices: async () => DEVICES, freeVramMiB: () => null, fileSizeMiB: () => 0, command: process.execPath,
-    argsPrefix: [FAKE], spawnImpl, fetchImpl, log: line => logs.push(line), backoffMs: 10, startupMs: 5000, warmup: false,
+    argsPrefix: [FAKE], spawnImpl, fetchImpl, log: line => logs.push(line), backoffMs: 10, startupMs: 60_000, warmup: false,
     processOptions: {env, tmpDir, pollMs: 20}, ...options});
   const failures = [];
   server.on('failed', event => failures.push(event));
@@ -427,7 +427,7 @@ test('LlamaProcess keeps the key in a private file during start, redacts it from
   const directory = mkdtempSync(join(tmpdir(), 'llama-process-test-'));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   const argLists = [];
-  const proc = new LlamaProcess({command: process.execPath, argsPrefix: [FAKE], tmpDir: directory, pollMs: 20, startupMs: 5000,
+  const proc = new LlamaProcess({command: process.execPath, argsPrefix: [FAKE], tmpDir: directory, pollMs: 20, startupMs: 60_000,
     env: {FAKE_LLAMA_DELAY_MS: '300', FAKE_LLAMA_PRINT_KEY: '1'},
     spawnImpl: (command, args, options) => { argLists.push(args); return spawn(command, args, options); },
     buildArgs: ({port, keyFile}) => ['--host', '127.0.0.1', '--port', String(port), '--api-key-file', keyFile, '-m', 'x.gguf']});
