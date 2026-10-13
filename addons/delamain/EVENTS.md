@@ -145,7 +145,8 @@ minutes or more, rain at night, or interrupted). Example: `"Drove V and Judy Alv
 |---|---|
 | Remarks (built in) | Rare / Low / Normal, as above. |
 | Delamain speaks on rides | On or off (default on). Off disables remarks and talk. |
-| Delamain talks to my companion | On or off (default on). Off keeps him out of group rounds. |
+
+Delamain always joins a group round with the companion while V is in the cab.
 
 ## Ideas for eval rides
 
