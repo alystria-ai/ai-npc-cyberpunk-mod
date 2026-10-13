@@ -26,7 +26,10 @@ function inside(root, value) {
 
 /** {installed, root, models: [{name, family, file, present}]}; `installed` is false for a missing, unreadable or foreign marker. */
 export function detectMaturePack({project, environment = process.env, exists = fileExists, readText = readUtf8} = {}) {
-  const root = environment[LOCAL_AI_ENV.root] ? resolve(environment[LOCAL_AI_ENV.root]) : resolve(project ?? '.', 'local-ai');
+  // The real pack's folder; in a development checkout without it, the developer Local AI folder (CYBERPUNK_CONVAI_LOCAL_AI_DEV) may hold the marker.
+  const primary = environment[LOCAL_AI_ENV.root] ? resolve(environment[LOCAL_AI_ENV.root]) : resolve(project ?? '.', 'local-ai');
+  const dev = !environment[LOCAL_AI_ENV.root] && environment[LOCAL_AI_ENV.dev] ? resolve(environment[LOCAL_AI_ENV.dev]) : null;
+  const root = !exists(resolve(primary, MATURE_MARKER)) && dev && exists(resolve(dev, MATURE_MARKER)) ? dev : primary;
   const none = {installed: false, root, models: []};
   const path = resolve(root, MATURE_MARKER);
   if (!exists(path)) return none;

@@ -72,3 +72,17 @@ test('the real filesystem: a marker in a folder is found, deleting it loses the 
     assert.equal(detectMaturePack({project, environment: {}}).installed, false);
   } finally { await rm(project, {recursive: true, force: true}); }
 });
+
+test('a development checkout finds the marker in the developer Local AI folder when the real pack folder has none', () => {
+  const dev = resolve('E:/dev/local-llm');
+  const text = JSON.stringify(marker({models: [{file: 'mature/a.gguf', name: 'A-Uncensored', family: 'qwen'}]}));
+  const files = {[resolve(dev, MATURE_MARKER)]: text, [resolve(dev, 'mature/a.gguf')]: ''};
+  const found = detectMaturePack({project: 'C:/game', environment: {CYBERPUNK_CONVAI_LOCAL_AI_DEV: dev}, ...memory(files)});
+  assert.equal(found.installed, true);
+  assert.equal(found.root, dev);
+  assert.deepEqual(found.models.map(model => [model.name, model.present]), [['A-Uncensored', true]]);
+  // The real pack wins when both have a marker, and an explicit pack folder never falls back to the developer one.
+  const both = {...files, [markerPath]: JSON.stringify(marker({models: []}))};
+  assert.equal(detectMaturePack({project: 'C:/game', environment: {CYBERPUNK_CONVAI_LOCAL_AI_DEV: dev}, ...memory(both)}).root, root);
+  assert.equal(detectMaturePack({project: 'C:/game', environment: {CYBERPUNK_CONVAI_LOCAL_AI: 'C:/game/local-ai', CYBERPUNK_CONVAI_LOCAL_AI_DEV: dev}, ...memory(files)}).installed, false);
+});
