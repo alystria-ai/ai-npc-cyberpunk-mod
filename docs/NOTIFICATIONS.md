@@ -95,7 +95,7 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `action-queued` | Developer | {name} is going after {target}. | A companion action was accepted | none |
 | `party-stop-trip` | Player | Stopping the trip. Wait for the car to stop before stepping out. | Stop trip pressed in the Manager | 15 |
 | `trip-failed` | Player | The trip's error or failure reason | A driving trip failed | 15 |
-| `load-progress` | Player | Loading the OmniVoice voice… / Loading the Pocket voice… / Local AI is warming up… | A slow component is loading (the OmniVoice or Pocket voice engine the player chose, Local AI while its model server warms up), once the load has lasted 1.5 s. Shown again every 3 s (never on top of another notice that is younger than 3 s) until the ready line replaces it | none |
+| `load-progress` | Player | Loading the OmniVoice voice… / Loading the Pocket voice… / Local AI is warming up… | A slow component is loading (the OmniVoice or Pocket voice engine the player chose, Local AI while its model server warms up), once the load has lasted 1.5 s. ONE notice that stays on screen (see Loading notices) until the ready or failure line replaces it; several loads list one line each | none |
 | `load-ready` | Player | OmniVoice voice is ready. / Pocket voice is ready. / Local AI is ready. | The component finished loading, only when its loading line was shown. Once; waits for gameplay if it finished in a menu | none |
 | `load-failed` | Player | OmniVoice could not load. See Help in Settings. / Pocket could not load. See Help in Settings. / Local AI could not start. Check Local AI in Settings > Development. / Not enough graphics memory for Local AI. A cloud provider is used instead. | The component failed while its loading line was up (a voice failure that has a fallback is left to `voice-fallback`). Once | none |
 | `trip-guidance` | Developer | Your companion is driving to the selected waypoint. / Your companion is ready. Get in the passenger seat to start the trip. / The car has stopped. Step out so your companion can leave the driver seat. | Driving steps | none |
@@ -105,10 +105,31 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 ## Loading notices
 
 A switch that takes time (an OmniVoice voice after a voice change or at start, Local AI warming up for about a minute the first time) says so
-instead of leaving the player wondering. The loading board in `mod/notices.lua` (`convaiNotices.loading`) keeps one entry per component:
-the loading line appears when the load has lasted 1.5 s and is shown again every 3 s, because a notice is gone after a few seconds and the
-next one replaces it, until the "ready" line (or a failure line that says what to do) replaces it. A load that finishes quickly shows nothing.
-Popups only show in gameplay, so an outcome reached in a menu is shown on the first gameplay tick.
+instead of leaving the player wondering. The loading board in `mod/notices.lua` (`convaiNotices.loading`) keeps one entry per component.
+The loading line appears when the load has lasted 1.5 s and then stays on screen as ONE notice, without blinking or repeating, until the
+"ready" line (or a failure line that says what to do) replaces it. A load that finishes quickly shows nothing. Several loads at once are
+one notice with a line each; when the set changes (a second load starts) the text is updated in place. Popups only show in gameplay, so an
+outcome reached in a menu is shown on the first gameplay tick.
+
+How it stays up. The game's warning line (`WarningMessageGameController`) plays an intro and a jingle for every message and hides it after the
+message's own `duration`; `PlayerPuppet:SetWarningMessage` (which every other notice uses) always asks for 5 s, so a notice built on it can
+only be repeated, and each repeat blinks and chimes. The loading notice is instead written once to the same blackboard line
+(`UI_Notifications.WarningMessage`, a `SimpleScreenMessage` with `duration = 90`) by `M.screen.post` in `mod/notices.lua`, from CET Lua with no
+redscript change, and taken down by a message with `isShown = false` (`M.screen.clear`, the game's own outro). The 90 s is a safety net: if
+the mod is reloaded or stops while the notice is up it still goes away by itself. While it is held:
+- it is posted again instantly (`isInstant`, no intro) every 80 s, before the game would hide it, and when a second load joins or one ends
+  without an outcome line;
+- a menu opening mid-load posts nothing there; when gameplay returns the notice is posted again once, instantly;
+- another notice from the mod replaces it; it comes back, with its intro, 3 s later (never on a notice younger than 3 s), or 5.5 s after an
+  outcome line when other loads are still going;
+- a game notice (loot, encumbrance) that replaces it is waited out: the line is read once a second (`M.screen.read`) and ours is posted
+  again when nothing is on screen. If that read cannot be trusted (it never shows our own text) the check is given up on for the session;
+- when the load ends without an outcome line (cancelled, switched away, an outcome too old), `M.release` hides it, but only when it is still
+  the notice on screen; it never hides a newer notice;
+- if the blackboard line cannot be written at all, the notice falls back to the ordinary five-second notice shown again every 3 s (the
+  behaviour before 2026-10-13), so it never disappears.
+Cost: nothing per frame. The caller is the existing 0.25 s slow update; with nothing loading it is one comparison, and the state is read at most
+once a second. While a notice is held the screen is touched only to post, change or hide it, plus one blackboard read a second.
 
 Status signals read, all of them already published by the bridge and read on a slow tick (never per frame; nothing is read while nothing loads
 except the once-a-second check):
@@ -156,3 +177,5 @@ no "bridge", no "eight metres"). Earlier: 248c14c, a20c7a1, e7e9760 (calmer invi
 2026-10-10 (preparing line back, once per join): a companion whose connection is being prepared on spawn or join gets "Preparing connection to {name}…" (the existing wait notice string, so no new translation), then "{name} joined your group." once she has joined. It is decided when the board first sees the invitation (`mod/manager-party.lua`, `openConnection`, one read of `runtime/party-connection-state.json` through `autoConnect.connected`): connection open or invitation already ready means no preparing line. The line is posted once per invitation (a paused menu that hides it gets one gameplay presentation, like every board notice); several companions share one notice with a line each, and two copies of one character share a line. The old "joining" progress line, the ready line and "Connecting" stay removed. Event-driven: the board is sampled by the existing update that already runs it; nothing new per frame.
 
 2026-10-13: loading notices (`load-progress`, `load-ready`, `load-failed`): a slow OmniVoice, Pocket or Local AI load is announced until it is ready.
+
+2026-10-13 (one notice): the first version re-posted the loading line every 3 s, which popped up, chimed and blinked each time. It is now one held notice (see Loading notices): written once to the game's warning line with a 90 s duration, refreshed without an intro every 80 s, hidden on demand, and replaced by the ready or failure line. Not yet seen in the game; the CET calls (`SimpleScreenMessage.new`, `ToVariant`, `Enum.new`) fall back to the old repeated notice if they fail.

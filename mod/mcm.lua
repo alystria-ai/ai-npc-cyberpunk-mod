@@ -1862,13 +1862,16 @@ function M.slowUpdate(currentPlayer, worldReady)
     end
     local progress = board and board.take(worldReady == true)
     if progress then messages[#messages + 1] = {id = 'invite-board', text = progress.message} end
-    -- A slow component loading (the OmniVoice voice after a switch or at start, Local AI warming up): its line is shown again
-    -- every few seconds until the "ready" line replaces it. The board reads the state at most once a second while nothing loads.
+    -- A slow component loading (the OmniVoice voice after a switch or at start, Local AI warming up): one notice that stays up
+    -- until the "ready" or failure line replaces it (convaiNotices.loading holds it on the game's warning line and refreshes it
+    -- rarely). The board reads the state at most once a second while nothing loads.
+    local releaseLoading = false
     if type(convaiNotices) == 'table' and type(convaiNotices.loading) == 'function' and type(manager.loadStatus) == 'function' then
-        local lines = convaiNotices.loading(worldReady == true, LOAD_KEYS, manager.loadStatus, loadingText)
+        local lines, release = convaiNotices.loading(worldReady == true, LOAD_KEYS, manager.loadStatus, loadingText)
+        releaseLoading = release == true
         if lines then
             for _, line in ipairs(lines) do
-                if line.phase == 'loading' then messages[#messages + 1] = {id = 'load-progress', text = line.text}
+                if line.phase == 'loading' then messages[#messages + 1] = {id = 'load-progress', text = line.text, instant = line.instant, mask = line.mask}
                 elseif line.phase == 'ready' then messages[#messages + 1] = {id = 'load-ready', text = line.text}
                 else messages[#messages + 1] = {id = 'load-failed', text = line.text} end
             end
@@ -1881,6 +1884,9 @@ function M.slowUpdate(currentPlayer, worldReady)
         local sent = convaiNotices.sendLines(currentPlayer, messages) > 0
         if sent and progress then progress.commit() end
     end
+    -- The loads ended without an outcome line (cancelled, or an outcome too old): take the held notice down, unless a newer
+    -- notice has already replaced it.
+    if releaseLoading and type(convaiNotices.release) == 'function' then convaiNotices.release(currentPlayer) end
     -- Read MCM's supported effective draft values from top-level update. The
     -- drafts.changed listener only marks this work pending in its callback.
     -- A staged voice never prepares a model, so no preview lease is ever offered.

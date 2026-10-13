@@ -5110,16 +5110,22 @@ test('the models page follows the scan by the number of models found, not by the
   `);
 });
 
-// Loading notices: a slow OmniVoice or Local AI load is announced until it is ready (mod/notices.lua loading board,
-// manager.loadStatus, mod/mcm.lua). Gameplay frames of 0.25 s; the manager reads the bridge's files as it does in the game.
+// Loading notices: a slow OmniVoice or Local AI load is one notice held on screen until its outcome replaces it (mod/notices.lua
+// loading board, manager.loadStatus, mod/mcm.lua). Gameplay frames of 0.25 s; the manager reads the bridge's files as it does in
+// the game. The game's warning line is a mock: `posts` is what the HUD was given as the held notice, `clears` what hid it, `shown`
+// the ordinary five-second notices (the outcome lines).
 const loadingFixture = `
   local clock = 1000
   os.time = function() return clock end
   os.clock = function() return clock end
-  local shown = {}
-  function player:ConvaiPhoneFeedback(text) shown[#shown + 1] = text end
+  local shown, posts, clears, screen = {}, {}, 0, {'', false}
+  function player:ConvaiPhoneFeedback(text) shown[#shown + 1] = text; screen = {text, true} end
   convaiNotices = (function() ${noticesSource} end)()
   convaiNotices.configure(function() return false end)
+  convaiNotices.screen = {
+    post = function(_, text, instant) posts[#posts + 1] = {text = text, instant = instant}; screen = {text, true}; return 'native' end,
+    clear = function() clears = clears + 1; screen = {'', false} end,
+    read = function() return screen[1], screen[2] end}
   local voice = {state = 'loading', provider = 'pocket', workerBackend = 'omni', requestedProvider = 'omni',
     omniPack = {installed = true, missing = {}}, updated = clock * 1000}
   jsonFixtures['voice-loading'] = voice
@@ -5134,53 +5140,59 @@ const loadingFixture = `
   mcm.update(player, true)
 `;
 
-test('OmniVoice loading is announced after 1.5 s, repeated every 3 s, and replaced by one ready line; a quick load says nothing', () => {
+test('OmniVoice loading is one notice after 1.5 s that stays until one ready line replaces it; a quick load says nothing', () => {
   run(`${mcmFixture}${loadingFixture}
-    step(1); assert(#shown == 0, 'a notice before the load had lasted 1.5 s: ' .. tostring(shown[1]))
+    step(1); assert(#posts == 0 and #shown == 0, 'a notice before the load had lasted 1.5 s: ' .. tostring(shown[1]))
     step(1.5)
-    assert(#shown == 1 and shown[1] == 'Loading the OmniVoice voice…', tostring(shown[1]))
-    step(20)
-    assert(#shown >= 7 and #shown <= 9, 'every 3 s for 22 s: ' .. #shown)
-    for _, text in ipairs(shown) do assert(text == 'Loading the OmniVoice voice…', text) end
-    local before = #shown
+    assert(#posts == 1 and posts[1].text == 'Loading the OmniVoice voice…' and not posts[1].instant, tostring(posts[1] and posts[1].text))
+    step(60)
+    assert(#posts == 1 and #shown == 0 and clears == 0, 'the notice was posted again or something else was shown: ' .. #posts)
     -- warming and speaking are per-character work, not a load
     voice.state = 'ready'; step(1)
-    assert(#shown == before + 1 and shown[#shown] == 'OmniVoice voice is ready.', tostring(shown[#shown]))
+    assert(#shown == 1 and shown[1] == 'OmniVoice voice is ready.', tostring(shown[1]))
+    assert(#posts == 1 and clears == 0, 'the ready line replaces the notice')
     voice.state = 'warming'; step(10); voice.state = 'speaking'; step(10); voice.state = 'ready'; step(10)
-    assert(#shown == before + 1, 'a per-character preparation was announced: ' .. tostring(shown[#shown]))
+    assert(#shown == 1 and #posts == 1, 'a per-character preparation was announced')
     -- A load that ends before the loading line is due is silent.
-    shown = {}
+    shown, posts = {}, {}
     voice.state = 'loading'; step(1); voice.state = 'ready'; step(10)
-    assert(#shown == 0, 'a one-second load was announced')
+    assert(#shown == 0 and #posts == 0, 'a one-second load was announced')
   `);
 });
 
 test('a voice load that fails says what to do once, unless a fallback voice has its own notice', () => {
   run(`${mcmFixture}${loadingFixture}
-    step(4); assert(#shown >= 1)
+    step(4); assert(#posts == 1)
     voice.state = 'error'; step(2)
     assert(shown[#shown] == 'OmniVoice could not load. See Help in Settings.', tostring(shown[#shown]))
     local count = #shown
-    step(30); assert(#shown == count, 'the failure repeated')
-    -- With a fallback the bridge's own fallback notice speaks; the loading line just ends.
+    step(30); assert(#shown == count and #posts == 1, 'the failure repeated')
+    -- With a fallback the bridge's own fallback notice speaks; the loading notice just comes down.
     voice.state = 'loading'; step(4)
-    local before = #shown
+    local before, hidden = #shown, clears
     voice.state = 'error'; voice.fallback = {from = 'omni', to = 'pocket'}; step(20)
     for index = before + 1, #shown do assert(shown[index] ~= 'OmniVoice could not load. See Help in Settings.', 'doubled the fallback notice') end
-    -- Switching to another voice mid-load cancels it silently.
+    assert(screen[1] ~= 'Loading the OmniVoice voice…', 'the loading notice stayed up after the load ended')
+    -- Switching to another voice mid-load cancels it silently and takes the notice down.
     voice.fallback = nil; voice.state = 'loading'; voice.requestedProvider = 'omni'; step(4)
-    local seen = #shown
+    local seen, posted = #shown, #posts
+    hidden = clears
     voice.requestedProvider = 'pocket'; voice.workerBackend = 'omni'; step(20)
-    assert(#shown == seen, 'a load nobody wants anymore was announced')
+    assert(#shown == seen and #posts == posted, 'a load nobody wants anymore was announced')
+    assert(clears == hidden + 1, 'a cancelled load left its notice up')
   `);
 });
 
 test('the Pocket voice load is announced the same way and a load in a menu is announced when gameplay returns', () => {
   run(`${mcmFixture}${loadingFixture}
     voice.workerBackend, voice.requestedProvider = 'pocket', 'pocket'
-    step(4); assert(shown[#shown] == 'Loading the Pocket voice…', tostring(shown[#shown]))
-    local before = #shown
+    step(4); assert(posts[#posts].text == 'Loading the Pocket voice…', tostring(posts[#posts] and posts[#posts].text))
+    -- A menu opens mid-load: nothing is posted there, and the notice is posted again, instantly, when gameplay is back.
+    local held = #posts
+    step(10, false); assert(#posts == held and #shown == 0, 'a popup was posted from a menu')
+    step(1); assert(#posts == held + 1 and posts[#posts].instant == true, 'the notice did not return after the menu')
     -- The load ends while a menu is open: no popup there, one line when gameplay is back.
+    local before = #shown
     voice.state = 'ready'; step(10, false)
     assert(#shown == before, 'a popup was posted from a menu')
     step(1)
@@ -5188,7 +5200,7 @@ test('the Pocket voice load is announced the same way and a load in a menu is an
   `);
 });
 
-test('Local AI warming up is announced while Local is the provider, with a ready line, and its state is not read otherwise', () => {
+test('Local AI warming up is one held notice while Local is the provider, with a ready line, and its state is not read otherwise', () => {
   run(`${mcmFixture}${loadingFixture}
     voice.state = 'ready'
     activeMod = nil   -- the settings page is not open: only the loading board reads anything
@@ -5204,19 +5216,36 @@ test('Local AI warming up is announced while Local is the provider, with a ready
     local applied, why = manager.applySettings(player, {conversationProvider = 'local'}); assert(applied, tostring(why))
     -- Idle, the state is looked at once a second; then the load must last 1.5 s.
     step(3)
-    assert(shown[#shown] == 'Local AI is warming up…', tostring(shown[#shown]))
-    local count = #shown
-    step(12); assert(#shown >= count + 3, 'the line was not shown again')
+    assert(#posts == 1 and posts[1].text == 'Local AI is warming up…', tostring(posts[#posts] and posts[#posts].text))
+    step(30); assert(#posts == 1 and #shown == 0, 'the notice was posted again')
     mistral.localAi = 'ready'; step(2)
     assert(shown[#shown] == 'Local AI is ready.', tostring(shown[#shown]))
-    count = #shown
-    step(20); assert(#shown == count)
+    local count = #shown
+    step(20); assert(#shown == count and #posts == 1)
     -- A server that was unloaded after idle time warms up again when it is needed.
-    mistral.localAi = 'warming'; step(3); assert(shown[#shown] == 'Local AI is warming up…')
+    mistral.localAi = 'warming'; step(3); assert(posts[#posts].text == 'Local AI is warming up…' and #posts == 2)
     mistral.localAi = 'no-memory'; step(2)
     assert(shown[#shown] == 'Not enough graphics memory for Local AI. A cloud provider is used instead.', tostring(shown[#shown]))
     mistral.localAi = 'warming'; step(3); mistral.localAi = 'failed'; step(2)
     assert(shown[#shown] == 'Local AI could not start. Check Local AI in Settings > Development.', tostring(shown[#shown]))
+  `);
+});
+
+test('OmniVoice and Local AI loading together are one notice with a line each', () => {
+  run(`${mcmFixture}${loadingFixture}
+    activeMod = nil
+    local mistral = {provider = 'local', effective = 'local', localAi = 'warming'}
+    jsonFixtures['mistral-loading'] = mistral
+    files['runtime/mistral-state.json'] = 'mistral-loading'
+    local applied, why = manager.applySettings(player, {conversationProvider = 'local'}); assert(applied, tostring(why))
+    step(6)
+    local last = posts[#posts]
+    assert(last.text:find('Loading the OmniVoice voice…', 1, true) and last.text:find('Local AI is warming up…', 1, true),
+      'both loads were not listed: ' .. last.text)
+    local count = #posts
+    step(40); assert(#posts == count and #shown == 0, 'the notice was posted again')
+    voice.state, mistral.localAi = 'ready', 'ready'; step(2)
+    assert(#shown == 1 and shown[1]:find('OmniVoice voice is ready.', 1, true) and shown[1]:find('Local AI is ready.', 1, true), tostring(shown[1]))
   `);
 });
 
@@ -5228,9 +5257,9 @@ test('with nothing loading the loading status is read about once a second and co
     manager.loadStatus = function() calls = calls + 1; return status() end
     step(20)
     assert(calls >= 18 and calls <= 22, 'read ' .. calls .. ' times in 20 s')
-    assert(#shown == 0)
+    assert(#shown == 0 and #posts == 0)
     voice.state = 'loading'; step(4)
-    assert(#shown >= 1)
+    assert(#posts >= 1)
     mcm.resetSession()
     voice.state = 'ready'; shown = {}
     step(10); assert(#shown == 0, 'an old session announced its outcome: ' .. tostring(shown[1]))
