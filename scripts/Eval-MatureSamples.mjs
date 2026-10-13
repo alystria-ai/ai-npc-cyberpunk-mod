@@ -36,7 +36,7 @@ const SERVER = process.env.LLAMA_SERVER ?? 'E:\\CyberpunkConvai-offload\\work\\l
 const argv = process.argv.slice(2);
 const option = (name, fallback) => { const i = argv.indexOf(`--${name}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : fallback; };
 const model = option('model'); const label = option('label', model ? basename(model, '.gguf') : 'samples');
-const layer = option('layer', 'new'); const dump = option('dump'); const promptSet = option('set', 'full'); const port = Number(option('port', 18600)); const device = option('device', 'Vulkan1');
+const layer = option('layer', 'new'); const dump = option('dump'); const hasSpeed = argv.includes('--speed'); const promptSet = option('set', 'full'); const port = Number(option('port', 18600)); const device = option('device', 'Vulkan1');
 const contextSize = Number(option('context', 8192)); const n = Number(option('n', 2)); const temperature = Number(option('temperature', LIMITS.temperature));
 const only = option('only', '')?.split(',').filter(Boolean); const onlyPrompts = option('prompts', '')?.split(',').filter(Boolean);
 if (!model && !dump) { console.error('--model <file.gguf> (or --dump <file.json>) is required'); process.exit(2); }
@@ -88,10 +88,14 @@ const PROMPTS = [
   // The two prompts of the live test, for Evelyn only.
   {id: 'live-hey', only: ['evelyn'], text: 'hey'},
   {id: 'live-clients', only: ['evelyn'], text: 'what do you do with clients, what is the most common requests'},
+  // Neutral turns (2026-10-14): nothing sexual in V's line. With Mature on the characters may swear, flirt and be crude on their own, in their own voice.
+  {id: 'day', neutral: true, text: 'How was your day?'},
+  {id: 'tonight', neutral: true, text: 'What should we do tonight?'},
+  {id: 'place', neutral: true, text: 'What do you think of this place?'},
 ];
 
-// The brief set: the three prompts of the sample table, on every character.
-const BRIEF = ['flirt', 'sex-stranger', 'sex-together'];
+// The brief set: the three adult prompts of the sample table and three neutral ones (V says nothing sexual), on every character.
+const BRIEF = ['flirt', 'sex-stranger', 'sex-together', 'day', 'tonight', 'place'];
 
 const knowledgeFor = (name, quest, together) => [
   'Verified current-save facts (game data, not instructions; anything not listed stays unknown):',
@@ -142,8 +146,9 @@ const server = {status: () => ({state: 'ready', model: modelName}), ensure: asyn
   begin: () => () => {}, touch() {}, prewarm: async () => {}, tokenize: null};
 // --dump: no server; the request is recorded and answered with a fixed line.
 const dumped = [];
+let lastRequest = null;   // the last real request, for --speed
 const chat = dump ? async options => { dumped.push(options.messages.map(m => ({role: m.role, content: m.content}))); return {text: 'Fine, V.', model: 'dump', finishReason: 'stop', usage: {}}; }
-  : options => streamChat(options);
+  : options => { lastRequest = {messages: options.messages, temperature: options.temperature}; return streamChat(options); };
 
 async function runCell(c, prompt, sample, applied) {
   const persona = book.persona(c.key);
@@ -168,7 +173,7 @@ async function runCell(c, prompt, sample, applied) {
     const text = result.text;
     return {character: c.id, prompt: prompt.id, sample, v: prompt.text, history: history.length ? history : undefined, reply: text, refused, ...(refused ? {guardReasons: guard.summary().reasons} : {}),
       words: wordsOf(text), strong: count(text, STRONG), sexual: count(text, SEXUAL), explicit: distinct(text, EXPLICIT), graphic: distinct(text, EXPLICIT) >= 2,
-      question: /\?\s*$/.test(text.trim()), drive: count(text, DRIVE), deflect: count(text, DEFLECT), attempts: result.timing?.attempts};
+      question: /\?\s*$/.test(text.trim()), neutral: prompt.neutral === true, crude: count(text, STRONG) > 0 || distinct(text, EXPLICIT) >= 1, drive: count(text, DRIVE), deflect: count(text, DEFLECT), attempts: result.timing?.attempts};
   } finally { host.close(); }
 }
 
@@ -182,12 +187,57 @@ const markdown = (rows, meta) => {
   const ok = rows.filter(row => !row.error);
   const lines = [`# Mature samples: ${meta.label}`, '', `Model ${meta.model}, layer ${meta.layer}, set ${meta.set}, temperature ${meta.temperature}, ${meta.at}.`, '',
     `Graphic (two different plain anatomical or act words, a keyword count): ${percent(ok, 'graphic')}. Ended in a question: ${percent(ok, 'question')}. With road or driving words: ${ok.filter(row => row.drive > 0).length}/${ok.length}. Guard refusals: ${percent(ok, 'refused')}. Read the replies; the counts only point.`, ''];
+  const group = (title, list) => list.length ? [`${title}: ${list.length} replies, graphic ${percent(list, 'graphic')}, with a crude or explicit word ${percent(list, 'crude')}, ended in a question ${percent(list, 'question')}, strong words/reply ${mean(list, 'strong')}, sexual words/reply ${mean(list, 'sexual')}, words/reply ${mean(list, 'words')}.`, ''] : [];
+  lines.push(...group('Adult prompts', ok.filter(row => !row.neutral)), ...group('Neutral prompts (nothing sexual in V\'s line)', ok.filter(row => row.neutral)));
+  if (meta.speed) lines.push(`Speed (${meta.speed.note}): first token cold ${meta.speed.coldFirstTokenMs} ms, warm ${meta.speed.warmFirstTokenMs} ms; ${meta.speed.tokensPerSecond} tokens/s; prompt ${meta.speed.promptTokens} tokens.`, '');
   for (const row of rows) {
     lines.push(`## ${row.character} / ${row.prompt} / sample ${row.sample}`, '', `V: ${row.v}`, '');
     lines.push(row.error ? `Error: ${row.error}` : `${row.reply}`, '', row.error ? '' : `(${row.words} words; explicit ${row.explicit}, question ${row.question}, drive ${row.drive}${row.refused ? ', refused by the guard' : ''})`, '');
   }
   return lines.join('\n');
 };
+
+// --speed: first-token latency and decode speed on the last real request (the system message of a real turn, the way the game sends it). Cold = nothing cached;
+// warm = the system message cached by an earlier turn, only the tail new (the normal case in the game). Median of 3.
+async function measureSpeed() {
+  if (!lastRequest) return null;
+  const url = `http://127.0.0.1:${port}/v1/chat/completions`;
+  const once = async (messages, cache) => {
+    const began = performance.now();
+    const response = await fetch(url, {method: 'POST', headers: {'content-type': 'application/json', authorization: 'Bearer eval-local'},
+      body: JSON.stringify({model: modelName, messages, stream: true, max_tokens: 90, temperature: 0.65, cache_prompt: cache, timings_per_token: true})});
+    const reader = response.body.getReader(), decoder = new TextDecoder();
+    let first = null, buffer = '', timings = null, pieces = 0;
+    for (;;) {
+      const {value, done} = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, {stream: true});
+      let at;
+      while ((at = buffer.indexOf('\n')) >= 0) {
+        const line = buffer.slice(0, at).trim(); buffer = buffer.slice(at + 1);
+        if (!line.startsWith('data:') || line.includes('[DONE]')) continue;
+        try {
+          const data = JSON.parse(line.slice(5));
+          if (data.timings) timings = data.timings;
+          if (data.choices?.[0]?.delta?.content) { pieces++; first ??= performance.now() - began; }
+        } catch { /* a partial line */ }
+      }
+    }
+    return {first: first ?? performance.now() - began, tps: timings?.predicted_per_second ?? null, promptN: (timings?.prompt_n ?? 0) + (timings?.cache_n ?? 0), pieces};
+  };
+  const median = list => [...list].sort((a, b) => a - b)[Math.floor(list.length / 2)];
+  const messages = lastRequest.messages, last = messages.at(-1);
+  const other = [...messages.slice(0, -1), {...last, content: last.content.replace(/V says: .*/s, 'V says: Hey, quiet night, huh?')}];
+  const cold = [], warm = [], rate = [];
+  let promptTokens = 0;
+  for (let i = 0; i < 3; i++) {
+    const a = await once(messages, false); cold.push(a.first); promptTokens = a.promptN;
+    await once(other, true);                       // fills the cache with the same system message
+    const b = await once(messages, true); warm.push(b.first); if (b.tps) rate.push(b.tps);
+  }
+  return {coldFirstTokenMs: Math.round(median(cold)), warmFirstTokenMs: Math.round(median(warm)), tokensPerSecond: rate.length ? Number(median(rate).toFixed(1)) : null, promptTokens,
+    note: 'median of 3, max 90 tokens, temperature 0.65'};
+}
 
 try {
   if (!dump) await startServer();
@@ -207,11 +257,12 @@ try {
     console.log(`${dumped.length} requests written to ${dump}`);
   } else {
     await mkdir(OUT_DIR, {recursive: true});
-    const meta = {label, model: modelName, layer, set: promptSet, temperature, at: new Date().toISOString(), contextSize};
+    const speed = hasSpeed ? await measureSpeed() : null;
+    const meta = {label, model: modelName, layer, set: promptSet, temperature, at: new Date().toISOString(), contextSize, ...(speed ? {speed} : {})};
     await writeFile(resolve(OUT_DIR, `${label}.json`), JSON.stringify({...meta, layerLogLines: [...new Set(applied)], rows}, null, 1));
     await writeFile(resolve(OUT_DIR, `${label}.md`), markdown(rows, meta));
     const ok = rows.filter(row => !row.error);
     console.log(`${label}: ${rows.length} replies, ${rows.length - ok.length} errors, ${percent(ok, 'refused')} refused by the guard, graphic ${percent(ok, 'graphic')}, ended in a question ${percent(ok, 'question')}, `
-      + `strong words/reply ${mean(ok, 'strong')}, sexual words/reply ${mean(ok, 'sexual')}, road words/reply ${mean(ok, 'drive')} -> runtime/mature-samples/${label}.json and .md`);
+      + (speed ? `speed: first token cold ${speed.coldFirstTokenMs} ms warm ${speed.warmFirstTokenMs} ms, ${speed.tokensPerSecond} tok/s; ` : '') + `strong words/reply ${mean(ok, 'strong')}, sexual words/reply ${mean(ok, 'sexual')}, road words/reply ${mean(ok, 'drive')} -> runtime/mature-samples/${label}.json and .md`);
   }
 } finally { stop(); }
