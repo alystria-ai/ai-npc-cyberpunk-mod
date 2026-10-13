@@ -289,6 +289,53 @@ It also waits while subtitles and voice are both off. The scheduler then sends t
 file every automatic turn uses, with a lease the bridge checks. If the player starts talking, or a scene starts, the remark stops
 at once.
 
+## Stock: lines written ahead of the moment
+
+A fresh remark costs a model call and then the voice (about 1.6 to 2.5 s). To land within about a second, an add-on can ask the
+bridge to **write lines ahead of time** with the model, from the facts of the current fight, and use one the moment the event
+happens. Every line is still written by the model; nothing is a fixed list. This is an addition to API 1.0 (the version number is
+unchanged; an add-on that never calls it is not affected).
+
+```lua
+handle:stock('gun', 'first-kill', {
+    text = 'V is about to kill another enemy',
+    facts = {enemies = 4},
+    maxWords = 8, want = 2, ttl = 90,
+    slots = {'fight.kills'},        -- the line may say "{fight.kills} down"
+})
+handle:remark('gun', {event = 'first-kill', text = 'V killed an enemy.', facts = {fight = {kills = 3}}, priority = 4, stock = true})
+handle:stock('gun', 'first-kill', nil)   -- clears it
+```
+
+`handle:stock(speakerId, key, spec | nil)` returns `true`, or `false, reason`, and never throws. `key` is an event name (letters,
+digits, `_ . : -`, at most 48). `spec`:
+
+| Field | Default | Meaning |
+|---|---|---|
+| `text` | required | What the line is for, at most 600 characters. It becomes the start of the trigger, like a remark's `text`. |
+| `facts` | none | Plain data, at most 4,000 bytes as JSON, like a remark's. The line may use only these facts. |
+| `maxWords` | 10 (3-60) | The line's length. |
+| `want` | 2 (1-4) | Unused lines the bridge keeps ready for this key. |
+| `ttl` | 90 (10-300) | Seconds a prepared line stays usable. |
+| `slots` | none | Up to 8 names (`A-Za-z0-9_.`) the line may contain in curly braces, like `{fight.kills}`. |
+
+- At most 12 keys per speaker. Calling `stock` again with an equal spec changes nothing. A different `text`, `facts`, `maxWords`,
+  `want`, `ttl` or `slots` is a new **revision**, and the bridge throws away every line it wrote for the old one. Keep `facts`
+  steady for a fight and put numbers that change in slots.
+- The bridge writes lines one at a time, only while the player is not talking and no turn is running, at most 20 a minute, with a
+  pause of 1.2 s between lines and 20 s after a failure. It writes them only on Mistral (never on the local AI, so a fight does not
+  pay for them on the GPU). A line that is empty, uses a slot that is not in `slots`, or nearly repeats one of the speaker's last 8
+  lines or any other prepared line is thrown away. Lines are written for the speaker's current personality mode; a mode change
+  discards them.
+- `handle:remark(..., {stock = true})` asks for a prepared line. The bridge takes the oldest usable one for the remark's `event`,
+  fills each `{slot}` from the remark's `facts` by path (`fight.kills` reads `facts.fight.kills`; numbers and strings only), and
+  speaks it with no model call. The usual repeat check and the voice still run, and the spoken line joins the speaker's recent lines.
+- **Fallback to a fresh line.** With nothing ready (stale, another mode, a slot the facts cannot fill, the local AI, nothing written
+  yet) the remark is written fresh exactly as without `stock`, so `stock = true` never makes a remark fail.
+- The state file carries `stock = [{speaker, key, text, facts, maxWords, want, ttl, slots, rev, blocks}]` per add-on, where `blocks`
+  is a copy of the speaker's context blocks (at most 4, 3,000 characters) so the lines are written in its voice. A save load, death
+  or shutdown clears the stock: ask again from `combatStarted`.
+
 ## Text providers: Mistral or the local AI only
 
 The bridge chooses the route for each add-on turn (`AddonHost.routeFor`), from what the speaker allows:
@@ -397,11 +444,18 @@ export function onSettings(values) {}
 
 ## Talk and group conversation
 
-- **Talk key (typed).** An available speaker answers the talk key when no character with a profile is under the crosshair. A
-  character V aims at always wins. Replies use the same route, persona, voice and subtitles as remarks, and stream their first
-  sentence to the voice.
-- **Voice key.** Not supported for add-on speakers yet. Pressing it with only an add-on voice in reach shows: "Skippy answers
-  typed messages only for now. Use {key}." In a group, voice rounds leave add-on voices out.
+- **Talk key (typed, F6).** An available speaker answers the talk key when no character with a profile is under the crosshair. A
+  character V aims at wins. One exception for a speaker with `anchor = 'vehicle'` while V sits in that vehicle (a cab's AI):
+  only a character in the car with V, or one of V's companions, takes the key from it; a pedestrian drifting through the
+  windscreen's aiming cone does not (the cab's interior, the windscreen or nothing under the crosshair all mean the speaker).
+  The choice is made on the key press only, from the speakers' `available` and anchor; nothing runs per frame, and the main mod
+  names no add-on. Replies use the same route, persona, voice and subtitles as remarks, and stream their first sentence to the voice.
+- **Voice key (F7, F10).** Not supported for add-on speakers yet. Pressing F7 with only an add-on voice in reach shows: "Skippy
+  answers typed messages only for now. Use {key}." In a group, voice rounds leave add-on voices out. A speaker's voice turn would
+  need: speech recognition of V's recording handed to the add-on turn route (`runAddonTurn` takes `input.text`; the microphone
+  path today binds a recording to a Convai or character route through `profileFor` and the knowledge router), microphone lease and
+  cancel handling for a profile key that is not in the character roster, and group voice rounds that put an add-on voice among
+  the spoken participants. That reaches into the microphone session, so it was left out.
 - **Group conversation** (`group = true`). The speaker joins the nearby companions in a group round and hears their lines, and they
   hear its lines. An add-on voice is never part of a companion's routing audience, so a companion's route and memory stay the same
   as without the add-on. Use `setCompanionContext` to tell companions where they are (Delamain: "You are riding in a Delamain cab
@@ -500,7 +554,7 @@ check the list of calls.
 
 | Where | What |
 |---|---|
-| `mod/init.lua` | Loads `addons.lua` with `pcall`; returns `{addons = …}` for `GetMod`. Talk target: add-on voices after aimed characters, and never for the voice key. `sendRequest`/`decorate`; `reactionCanDeliver` → `canDeliver`; `groupAudience` → `participantLive`; the reply error branch → `replyError`; `warmConversation` skips add-on voices; tick, reset and shutdown. |
+| `mod/init.lua` | Loads `addons.lua` with `pcall`; returns `{addons = …}` for `GetMod`. Talk target: add-on voices after aimed characters (a vehicle-anchored voice outranks characters outside V's car: `companionOrPassenger`), never for the voice key. `sendRequest`/`decorate`; `reactionCanDeliver` → `canDeliver`; `groupAudience` → `participantLive`; the reply error branch → `replyError`; `warmConversation` skips add-on voices; tick, reset and shutdown. |
 | `mod/speech.lua`, `continuous-speech.lua`, `subtitles.lua` | `voiceOnly`: no face calls, no `IsDeadNoStatPool` check, subtitles owned by the player. |
 | `mod/group-chat.lua` | `voiceOnly` rows; add-on voices are left out of the other speakers' audience. |
 | `mod/mcm.lua`, `mod/notices.lua` | Add-on settings sections; the `addon-notice` notice. |
