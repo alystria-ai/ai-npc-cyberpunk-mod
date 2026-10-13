@@ -104,7 +104,10 @@ export class RealtimeHost {
   // guard: {check(), consume()} (bridge/shared-key-guard.mjs), the one place a turn is admitted before it reaches Convai: a
   // turn that may not run makes check() throw (the daily cap or the rate limit of the shared key). Opening or warming a
   // connection is not a turn. A microphone turn is checked when it begins and counted when it is finished.
-  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard,
+  // credential(config): optional, may be async. Returns the config as it must be sent to Convai (an `authToken` from the
+  // sign-in backend, or the `key`). Asked at the moment a page is called; the token is already in memory (bridge/convai-credential.mjs),
+  // so a turn never waits on a network call for it. Absent: the config is sent as it is.
+  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard, credential,
     browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
     clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
     // The hidden browser outputs real audio in the game. Under the Node test runner (NODE_TEST_CONTEXT is set in every
@@ -120,6 +123,7 @@ export class RealtimeHost {
     this.transformReply = typeof transformReply === 'function' ? transformReply : result => result;
     this.exclusive = exclusive; this.onFailure = onFailure; this.onSuccess = onSuccess; this.recover = recover;
     this.guard = guard;
+    this.credential = typeof credential === 'function' ? credential : null;
   }
   // Single-session plans: close the idle connections of this host (except `key`) and of its peers.
   async yieldOtherSessions(key) {
@@ -248,6 +252,7 @@ export class RealtimeHost {
     } catch (error) { await browser?.close(); server.close(); throw error; }
   }
   async evaluateSpeech(page, method, config, {signal, liveSpeech, current = () => true} = {}) {
+    if (this.credential) config = await abortable(Promise.resolve(this.credential(config)), signal);
     if (!liveSpeech || config?.ttsEnabled === false)
       return abortable(page.evaluate(({config, method}) => window.convaiRealtime[method](config), {config, method}), signal);
     const {token, onFrame} = liveSpeech;
@@ -463,7 +468,9 @@ export class RealtimeHost {
       // This is the only code path that grants microphone permission.
       await lease.value.context().grantPermissions(['microphone'], {origin: new URL(lease.value.url()).origin});
       throwIfCancelled(signal);
-      const result = await lease.value.evaluate(config => window.convaiRealtime.beginVoice(config), config);
+      const credentialed = this.credential ? await abortable(Promise.resolve(this.credential(config)), signal) : config;
+      throwIfCancelled(signal);
+      const result = await lease.value.evaluate(config => window.convaiRealtime.beginVoice(config), credentialed);
       throwIfCancelled(signal);
       if (epoch !== this.epoch || this.voiceLease !== lease) throw cancelled();
       this.sessions.accept(config);

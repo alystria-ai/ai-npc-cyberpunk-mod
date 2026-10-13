@@ -74,12 +74,12 @@ async function boundedJson(response, maxBytes, signal) {
 }
 
 export class PlayerMemoryApi {
-  #key; #own = false; #ids; #fetch; #timeout; #maxBytes; #polls; #interval; #historicalPairAllowed; #markers;
+  #key; #own = false; #ids; #fetch; #timeout; #maxBytes; #polls; #interval; #historicalPairAllowed; #markers; #credential; #backend = false;
   // markerKeys: provider key -> the key written in its ownership marker, for the
   // provider keys whose marker differs (a multilingual twin "<key>-multilingual"
   // carries "[CyberpunkConvai profile v2:<key>:multilingual]"). Exact match only.
   constructor({key, characterIds = {}, fetchImpl = globalThis.fetch, timeoutMs = 15000,
-    maxResponseBytes = 4 * 1024 * 1024, maxClearPolls = 5, pollIntervalMs = 250, historicalPairAllowed, markerKeys = {}} = {}) {
+    maxResponseBytes = 4 * 1024 * 1024, maxClearPolls = 5, pollIntervalMs = 250, historicalPairAllowed, markerKeys = {}, credential} = {}) {
     if ((key !== undefined && typeof key !== 'string') || typeof fetchImpl !== 'function'
         || !Number.isInteger(timeoutMs) || timeoutMs < 10 || timeoutMs > 60000
         || !Number.isInteger(maxResponseBytes) || maxResponseBytes < 128 || maxResponseBytes > 8 * 1024 * 1024
@@ -87,6 +87,7 @@ export class PlayerMemoryApi {
         || !Number.isInteger(pollIntervalMs) || pollIntervalMs < 0 || pollIntervalMs > 2000
         || !(characterIds instanceof Map || object(characterIds))
         || (historicalPairAllowed !== undefined && typeof historicalPairAllowed !== 'function')
+        || (credential !== undefined && typeof credential !== 'function')
         || !(markerKeys instanceof Map || object(markerKeys))) fail('INVALID_CONFIGURATION');
     this.#markers = new Map(markerKeys instanceof Map ? markerKeys : Object.entries(markerKeys));
     if (this.#markers.size > 1024 || [...this.#markers].some(([profileKey, marker]) => !token(profileKey) || !token(marker))) fail('INVALID_CONFIGURATION');
@@ -94,15 +95,20 @@ export class PlayerMemoryApi {
     if (this.#ids.size > 1024 || [...this.#ids].some(([profileKey, id]) => !token(profileKey) || !token(id))) fail('INVALID_CONFIGURATION');
     this.#key = key?.trim(); this.#fetch = fetchImpl; this.#timeout = timeoutMs; this.#maxBytes = maxResponseBytes;
     this.#polls = maxClearPolls; this.#interval = pollIntervalMs;
-    this.#historicalPairAllowed = historicalPairAllowed;
+    this.#historicalPairAllowed = historicalPairAllowed; this.#credential = credential;
   }
   // Switches the key used for provider calls. With a player's own Convai key the characters belong to the developer's
   // account, so ownership and marker checks cannot pass and nothing here may edit them: enabling memory is skipped
   // (these characters are shipped with long-term memory on) and clearing or inspecting is unavailable.
-  use({key, own = false} = {}) {
+  // `backend: true` (the shared account reached through the sign-in backend, bridge/convai-credential.mjs): the calls that need
+  // the permanent key leave the runtime. Ownership is the shipped character id list (the pair check in #pair), and memory is
+  // switched on for every mod character by the provisioning step (scripts/Enable-CharacterMemory.mjs), not here. What remains
+  // (/memory/list, /memory/delete-all) authenticates with the `credential()` the bridge supplies: an API-AUTH-TOKEN header.
+  use({key, own = false, backend = false} = {}) {
     if (typeof key !== 'string' || !key.trim()) fail('INVALID_CONFIGURATION');
-    this.#key = key.trim(); this.#own = own === true;
+    this.#key = key.trim(); this.#own = own === true; this.#backend = backend === true && own !== true;
   }
+  get backend() { return this.#backend; }
   get ownKey() { return this.#own; }
   #marker(profileKey) { return `[CyberpunkConvai profile v2:${this.#markers.get(profileKey) ?? profileKey}]`; }
   #pair({profileKey, characterId, endUserId} = {}, {historical = false} = {}) {
@@ -135,9 +141,11 @@ export class PlayerMemoryApi {
     const timer = setTimeout(() => timeout.abort(), this.#timeout);
     let dispatched = false;
     try {
+      const credential = this.#credential ? await abortable(Promise.resolve(this.#credential()), combined) : {apiKey: this.#key};
       dispatched = true;
       const fetching = Promise.resolve(this.#fetch(API + endpoint, {method: 'POST',
-        headers: {'Content-Type': 'application/json', 'CONVAI-API-KEY': this.#key},
+        headers: {'Content-Type': 'application/json', ...(credential?.authToken
+          ? {'API-AUTH-TOKEN': credential.authToken} : {'CONVAI-API-KEY': credential?.apiKey ?? this.#key})},
         body: JSON.stringify(body), signal: combined}));
       fetching.then(response => { if (combined.aborted) cancelBody(response.body); }, () => {});
       const response = await abortable(fetching, combined, write);
@@ -172,6 +180,9 @@ export class PlayerMemoryApi {
     } finally { clearTimeout(timer); }
   }
   async #owned(profileKey, characterId, signal) {
+    // Backend mode: no character list or character read (both need the key). The pair check already proved the id is one of the
+    // mod's own shipped ids for this profile.
+    if (this.#backend) return null;
     const roster = await this.#request('/character/list', {}, {signal});
     if (!Array.isArray(roster.characters) || roster.characters.length > 4096) fail('INVALID_RESPONSE');
     if (roster.characters.filter(row => object(row) && row.character_id === characterId).length !== 1) fail('NOT_MOD_OWNED');
@@ -184,7 +195,7 @@ export class PlayerMemoryApi {
   }
   enableMemory(options = {}) {
     this.#pair(options);
-    if (this.#own) return Promise.resolve({enabled: true, changed: false});
+    if (this.#own || this.#backend) return Promise.resolve({enabled: true, changed: false});
     const {profileKey, characterId, signal} = options;
     return this.#run(async (combined, writeState) => {
       const before = await this.#owned(profileKey, characterId, combined);
