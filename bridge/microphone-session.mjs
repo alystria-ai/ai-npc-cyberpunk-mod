@@ -25,7 +25,7 @@ export class MicrophoneSession {
     await this.release();
     if (revision !== this.revision) return;
     const session = this.current = {input, requestId: input.requestId, identity, route,
-      host: this.hostFactory(), intent: 'record', opened: 0, controller: new AbortController()};
+      host: this.hostFactory(input, config), intent: 'record', opened: 0, controller: new AbortController()};
     await this.onState('starting', input);
     if (this.current !== session || session.intent === 'cancel') return;
     session.opening = session.host.beginVoice(config);

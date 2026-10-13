@@ -231,3 +231,20 @@ test('a stale voice client bundle is reported once with the fix, and the first h
   assert.match(host, /run npm run build:voice and restart the bridge/);
   assert.match(bridge, /reading heard words for/); assert.match(bridge, /first heard words/);
 });
+
+test('an add-on speaker\'s context blocks are added at begin and again at finish, through the generic decorate seam only', () => check(`
+ local decorated={}
+ mic.decorate=function(context)decorated[#decorated+1]=context.requestId;context.addon={blocks={n=#decorated}}end
+ local context=input(false);context.profileKey='addon-cab-delamain';context.voiceOnly=true
+ assert(mic.begin(context)and commands[1].input.addon.blocks.n==1,'the start command carries the blocks')
+ state('recording');mic.update(player)
+ now=104;assert(mic.finish('private')==context)
+ assert(commands[2].action=='finish'and commands[2].input.addon.blocks.n==2,'refreshed at finish')
+ assert(#decorated==2)
+ -- A decorator that fails never stops the recording; without one nothing changes.
+ mic.decorate=function()error('boom')end
+ context=input(false);context.requestId='voice-2'
+ assert(mic.begin(context)and commands[#commands].action=='start')
+ mic.decorate=nil;state('recording','voice-2');mic.update(player);now=110
+ assert(mic.finish('private')==context and commands[#commands].action=='finish'and commands[#commands].input.addon==nil)
+`));

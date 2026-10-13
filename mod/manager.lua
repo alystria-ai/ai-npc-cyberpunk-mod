@@ -797,6 +797,13 @@ function M.voiceNeedsConvai()
     return state.effective == chosen and state.stt ~= true
 end
 
+-- True when this computer can recognise speech locally (the bridge's recogniser, bridge/local-stt.mjs), whatever the conversation
+-- provider is. An add-on speaker (docs/ADDON_API.md) hears V through it, since Convai's own recognition lives in a Convai session.
+-- Asked only when a voice key is pressed.
+function M.speechRecognitionReady()
+    return M.mistral().stt == true
+end
+
 -- Off by default: companions speak as before. On, the conversation service tells each character which pauses and
 -- sounds its voice engine can render and lets it decide, from its personality, when one fits.
 function M.naturalSpeech()

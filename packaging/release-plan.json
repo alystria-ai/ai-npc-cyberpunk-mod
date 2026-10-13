@@ -522,6 +522,7 @@
           "status": "source-import-closure-reviewed-not-packaged",
           "sourceFiles": [
             "bridge/addon-stock.mjs",
+            "bridge/addon-voice.mjs",
             "bridge/addons.mjs",
             "bridge/analysis-pcm.mjs",
             "bridge/audio-delay.mjs",

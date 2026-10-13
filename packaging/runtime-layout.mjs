@@ -15,6 +15,7 @@ export const CLIENT_ASSETS = Object.freeze([
 // newly imported module cannot silently become a missing package component.
 export const BRIDGE_MODULES = Object.freeze([
   'bridge/addon-stock.mjs',
+  'bridge/addon-voice.mjs',
   'bridge/addons.mjs',
   'bridge/analysis-pcm.mjs',
   'bridge/audio-delay.mjs',

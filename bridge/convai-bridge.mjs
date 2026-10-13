@@ -23,6 +23,7 @@ import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
+import {createAddonVoice} from './addon-voice.mjs';
 import {startVoiceKeyStream} from './voice-key-stream.mjs';
 import {createHash, randomUUID} from 'node:crypto';
 import {homedir} from 'node:os';
@@ -1508,10 +1509,33 @@ async function publishHeard(recording) {
   heardSent = {id: recording.requestId, text};
   await atomic(resolve(runtime, 'microphone-heard.json'), JSON.stringify({requestId: recording.requestId, text, updated: Date.now()}));
 }
-const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
+// V speaking to an add-on speaker (F7, F10): recognised locally, answered by the add-on turn route (bridge/addon-voice.mjs).
+const addonVoice = createAddonVoice({isSpeaker: key => addonHost.isSpeaker(key), speech: mistralSpeech,
+  currentFor: (requestId, signal) => {
+    const current = async () => {
+      if (stopped || signal?.aborted || mic.current?.requestId !== requestId) return false;
+      let latest; try { latest = JSON.parse(await readFile(micPath, 'utf8')); } catch { return false; }
+      return latest.input?.requestId === requestId && latest.action === 'finish';
+    };
+    current.sync = () => !stopped && !signal?.aborted && mic.current?.requestId === requestId;
+    return current;
+  },
+  runTurn: ({input, signal, current, userText}) => {
+    const request = {input, controller: {signal}, receivedAt: Date.now()};
+    return withTurnClock(request, clock => runAddonTurn(request, input, profileFor(input, roster), current, clock, {userText}));
+  },
+  answerError: async ({input, signal, current, error}) => {
+    // The same answer a typed add-on turn gets from runInput: a message about the service, not about the microphone.
+    console.error('[Addons] Voice turn failed:', error.message);
+    await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
+      error: 'The conversation service could not reply. Please try again.', ...keyFailure(error, input)}),
+      {signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
+  }});
+
+const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => realtime.voiceChannel()),
   onState: (state, input) => atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state, requestId: input.requestId, updated: Date.now()})),
   prepareReply: async (input, signal) => {
-    if (localVoice.playbackEnabled === false) return;
+    if (addonVoice.voice(input) || localVoice.playbackEnabled === false) return;
     const prepared = microphoneKnowledge.get(input.requestId);
     const current = async () => {
       if (stopped || signal.aborted || mic.current?.requestId !== input.requestId || !prepared) return false;
@@ -1538,6 +1562,7 @@ const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
     return {liveSpeech: speech.options};
   },
   onReply: async (input, result, signal) => {
+    if (addonVoice.voice(input)) return;   // the add-on turn published itself (bridge/addon-voice.mjs)
     // A voice-key turn on a text route has been voiced since its first sentence (prepareReply): it only needs the finished reply.
     const streamed = microphoneStreams.get(input.requestId);
     microphoneStreams.delete(input.requestId);
@@ -1703,6 +1728,11 @@ async function pollMicrophone() {
       if (command.action === 'cancel') {
         if (mic.current?.requestId === input.requestId) await cancelMicrophone();
       }
+      else if (command.action === 'finish' && addonVoice.voice(input)) {
+        // The recording belongs to the speaker it started with; the finish only refreshes the game's context for the turn.
+        if (mic.current?.requestId !== input.requestId) { await cancelMicrophone(); return; }
+        void mic.finish(input.requestId, {input, config: addonVoice.config(input)}).catch(error => console.error(error.message));
+      }
       else if (command.action === 'finish') {
         const prior = microphoneKnowledge.get(input.requestId);
         if (!prior || !await knowledgeRouter.current(prior)) { await cancelMicrophone(); return; }
@@ -1721,6 +1751,16 @@ async function pollMicrophone() {
           isCurrentSync: () => !stopped && !signal?.aborted && knowledgeRouter.currentSync(refreshed)});
         void mic.finish(input.requestId, {input: refreshed.input, config: realtimeConfig(refreshed.input)})
           .catch(error => console.error(error.message));
+      }
+      else if (addonVoice.voice(input)) {
+        // An add-on speaker has no Convai character, knowledge route or memory to prepare, and its subtitles need no game audio.
+        if (!profileFor(input, roster)) { await mic.onError(input, Error('Voice service or character is unavailable')); return; }
+        void companionActions.revoke();
+        active?.controller.abort(); dropPrefetch();
+        await cancelMicrophone();
+        const latest = JSON.parse(await readFile(micPath, 'utf8').catch(() => '{}'));
+        if (latest.input?.requestId !== input.requestId || latest.action === 'cancel') return;
+        void mic.start(input, addonVoice.config(input)).catch(error => console.error(error.message));
       }
       else {
         const profile = profileFor(input, roster);
@@ -1750,7 +1790,12 @@ async function pollMicrophone() {
     const recording = mic.current;
     if (recording) {
       const owner = microphoneKnowledge.get(recording.requestId);
-      if (!owner || !await knowledgeRouter.current(owner) || !await audioReady(runtime)) await cancelMicrophone();
+      if (addonVoice.voice(recording.input)) {
+        // No Convai owner to check; the rest (the 30 s limit, the live words) is the same as for any recording.
+        if (recording.opened && Date.now() - recording.opened >= 32000 && recording.intent !== 'finish') await cancelMicrophone();
+        else await publishHeard(recording);
+      }
+      else if (!owner || !await knowledgeRouter.current(owner) || !await audioReady(runtime)) await cancelMicrophone();
       // Lua's 30-second finish captures fresh native context. Never let the
       // bridge timeout submit the old start snapshot first. Allow its command
       // two seconds to arrive; a missing command cancels the recording.
@@ -1846,13 +1891,16 @@ function startAhead(entry) {
 // and the continuous speech) lands in this turn's record (bridge/turn-clock.mjs). The clock watches the event loop until the
 // turn is published.
 async function processInput(request, prepared) {
+  return withTurnClock(request, clock => runInput(request, prepared, clock));
+}
+async function withTurnClock(request, run) {
   stockCancel?.();   // a turn needs the text route now: a line being written ahead of time gives way
   const clock = new TurnClock({origin: request.receivedAt});
   if (Number.isFinite(request.writtenAt) && request.writtenAt <= request.receivedAt + 5) clock.mark('inputWritten', request.writtenAt);
   clock.mark('received', request.receivedAt);
   if (request.input?.requestId) turnClocks.set(request.input.requestId, clock);
   clock.watch({maxMs: 20_000});
-  return withClock(clock, () => runInput(request, prepared, clock));
+  return withClock(clock, () => run(clock));
 }
 
 // An add-on speaker's turn (docs/ADDON_API.md): a remark the add-on asked for, or V talking to it. Text comes from Mistral or the local
@@ -1911,7 +1959,7 @@ function stockWake() {
   stockTick();
 }
 if (addonStock) addonHost.onStock = stockWake;
-async function runAddonTurn(request, input, profile, current, clock) {
+async function runAddonTurn(request, input, profile, current, clock, {userText = ''} = {}) {
   const {controller} = request, ahead = request.lookahead, signal = controller.signal;
   const fail = (error, errorCode) => atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
     error, errorCode}), {signal, isCurrent: current, isCurrentSync: current.sync});
@@ -1946,7 +1994,7 @@ async function runAddonTurn(request, input, profile, current, clock) {
     const stream = newReplyStream(config, profile);
     const final = Promise.resolve(host.reply(config, {signal, stream})).then(reply => ({...reply, transport: 'realtime'}));
     final.catch(() => {});
-    result = await voiceStreamedReply(input, profile, {signal, current, stream, final, config});
+    result = await voiceStreamedReply(input, profile, {signal, current, stream, final, config, userText: () => userText});
   } else {
     const reply = stocked ? {text: stocked, model: 'stock', finishReason: 'stop', transport: 'realtime'}
       : {...await host.reply(config, {signal}), transport: 'realtime'};
@@ -1960,6 +2008,8 @@ async function runAddonTurn(request, input, profile, current, clock) {
   }
   if (ahead) { ahead.markReady(); await ahead.waitClaimed(signal); }
   if (!await current()) return;
+  // A spoken turn carries the recognised words: a group round hands them to the next speakers (mod/group-chat.lua received).
+  if (userText) result = {...result, userText};
   await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
   if (await publishResult(input, profile, result, current, signal)) addonHost.afterReply(input, result.text);
 }

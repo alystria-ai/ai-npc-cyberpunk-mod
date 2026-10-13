@@ -2,7 +2,9 @@
 
 Voice input when the player is on the Mistral text route (`docs/MISTRAL.md`). Convai recognises speech on its own servers; Mistral
 has no speech recognition, so on that route the bridge records the microphone itself and recognises the speech on this computer. The Convai
-route is untouched: it never starts the worker, the capture page or any of this code.
+route is untouched: it never starts the worker, the capture page or any of this code. One exception: the voice keys with an add-on
+speaker (docs/ADDON_API.md) use this recogniser whatever the player's provider is, because the add-on's answer comes from Mistral or
+the local AI and never from a Convai session (`bridge/addon-voice.mjs`).
 
 Files: `bridge/local-stt.mjs` (recogniser API and worker process), `bridge/local-stt-worker.py` (the Python worker),
 `bridge/local-stt-capture.mjs` (microphone capture and the voice channel), `scripts/Bench-LocalStt.mjs` (benchmark),
