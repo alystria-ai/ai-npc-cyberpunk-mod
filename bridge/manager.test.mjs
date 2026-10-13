@@ -818,11 +818,20 @@ test('Back joins the bottom button row, the status line moves to the top left, a
     handlers.McmUiSetContentTitle(controller, 'Companion Manager')
     mcm.update(player, false)
     assert(#bottomActions == 2 and bottomActions[2].x == 760)
-    -- The click returns to the parent page; pending changes block it like every MCM action.
+    -- The click returns to the parent page. With pending changes it does what Esc does: MCM's own "Unsaved changes" dialog is
+    -- asked for (McmUiEmitClosing, the call Esc ends in), the page stays, and a click while that dialog is open or within 2 s asks nothing more.
+    local clock, asked = 700, 0
+    os.clock = function() return clock end
+    controller.McmUiEmitClosing = function() asked = asked + 1 end
     drafts = true; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
-    assert(mcm.inspect().view == 'settings', 'Back ignored pending changes')
+    assert(mcm.inspect().view == 'settings' and asked == 1, 'Back with pending changes did not open the confirmation')
+    clock = clock + 0.5; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
+    assert(mcm.inspect().view == 'settings' and asked == 1, 'a second click asked again within the window')
+    clock = clock + 5; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
+    assert(mcm.inspect().view == 'settings' and asked == 2, 'Cancel then Back did not ask again')
+    -- Apply or Discard clears the changes: Back goes back as usual.
     drafts = false; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
-    assert(mcm.inspect().view == 'home')
+    assert(mcm.inspect().view == 'home' and asked == 2, 'Back with nothing pending did not go back')
     loaded = registered.loadMod('manager')
     handlers.McmUiEmitAction(controller, 'something-else'); assert(mcm.inspect().view == 'home')
     -- Leaving our page restores a status widget that survives.
@@ -2063,7 +2072,255 @@ test('Mature content is a settings row with or without the Mature pack: the help
   `);
 });
 
-test('Local AI model: a row with Auto first and each installed model by its name, sizes in the help, the pin saved by id', () => {
+// Turning Mature content on stages the Local AI provider, the uncensored model and a local voice as pending changes (mod/mcm.lua,
+// syncMature); turning it off puts back what that changed. A fake MCM keeps the drafts and emits 'drafts.changed' like the real one.
+const matureFixture = `
+  local clock = 1000
+  os.clock = function() return clock end
+  os.time = function() return clock end
+  local PREFIX = 'cyberpunk-convai:manager:'
+  local listeners, pending = {}, {}
+  nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
+  nativeApi.unsubscribe = function() return true end
+  mcm.shutdown(); mcm.install()
+  local function emit()
+    local count = 0
+    for _ in pairs(pending) do count = count + 1 end
+    for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = count}) end
+  end
+  nativeApi.getValue = function(id)
+    local key = id:sub(#PREFIX + 1)
+    if pending[key] ~= nil then return pending[key] end
+    local found = row(key)
+    return found and found.value
+  end
+  nativeApi.setDraft = function(id, value)
+    local key = id:sub(#PREFIX + 1)
+    local found = row(key)
+    if not found then return false, 'unknown setting' end
+    if found.value == value then pending[key] = nil else pending[key] = value end
+    emit()
+    return true
+  end
+  nativeApi.hasDrafts = function() return next(pending) ~= nil end
+  local function state(tag, value)
+    jsonFixtures['mature-' .. tag] = value
+    files['runtime/mistral-state.json'] = 'mature-' .. tag
+    clock = clock + 2
+    manager.snapshot(player)
+    loaded = registered.loadMod('manager')
+  end
+  local function voices(installed)
+    clock = clock + 20
+    jsonFixtures['voice-' .. tostring(installed) .. clock] = {state = 'ready', provider = 'pocket', omniPack = {installed = installed, missing = {}}, updated = clock * 1000}
+    files['runtime/local-voice-state.json'] = 'voice-' .. tostring(installed) .. clock
+    manager.snapshot(player)
+  end
+  -- The player's own change of one setting (a draft), and an Apply that commits some.
+  local function user(key, value) assert(nativeApi.setDraft(PREFIX .. key, value)); mcm.update(player, false) end
+  local function apply(changes)
+    clock = clock + 2
+    local result = registered.applyBatch('manager', changes)
+    pending = {}
+    loaded = registered.loadMod('manager')
+    emit()
+    mcm.update(player, false)
+    return result
+  end
+  local function drafts() local list = {}; for key, value in pairs(pending) do list[#list + 1] = key .. '=' .. tostring(value) end; table.sort(list); return table.concat(list, ',') end
+  -- Mistral answers with a pinned model and the Mistral cloud voice; Local AI and the OmniVoice pack are installed.
+  local function startFrom(options)
+    options = options or {}
+    local report = {provider = 'mistral', effective = 'mistral', saved = true, localAi = 'ready',
+      localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'mature:unc', name = 'Gemma uncensored', sizeMiB = 5200}, {id = 'lite', name = 'Qwen', sizeMiB = 1300}},
+      localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'}
+    if options.noMature then report.localModelMatureDefault = nil end
+    if options.noPack then report.localAi = nil end
+    state('ready', report)
+    voices(options.omni ~= false)
+    assert(invoke('tab:settings').ok)
+    loaded = registered.loadMod('manager')
+    assert(apply({{id = 'conversationProvider', value = 2}, {id = 'localModel', value = 2}, {id = 'voiceProvider', value = options.voice or 6}}).ok)
+    assert(saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and not saved.matureContent)
+  end
+`;
+
+test('turning Mature content on stages Local AI, the uncensored model and a local voice as pending changes, names them in one line, and Apply saves them with the way back', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom()
+    assert(saved.voiceProvider == 'voxtral')
+    user('matureContent', true)
+    assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=2', drafts())
+    local notice = mcm.inspect().mature.notice
+    assert(notice and notice:find('Local AI', 1, true) and notice:find('Uncensored model', 1, true) and notice:find('OmniVoice', 1, true) and notice:find('Apply', 1, true), notice)
+    assert(select(2, notice:gsub('\\n', '')) == 0 and #notice < 200, 'one short line')
+    -- MCM would say "Pending: Mature content"; the redraw says what was staged instead, for a few seconds only.
+    local shown
+    handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Companion Manager', 'Pending: Mature content', 0, '', true, true, 0, function(_, _, _, _, status) shown = status end)
+    assert(shown == notice, tostring(shown))
+    clock = clock + 9
+    handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Companion Manager', 'Pending: Mature content', 0, '', true, true, 0, function(_, _, _, _, status) shown = status end)
+    assert(shown == 'Pending: Mature content', 'the notice outlived its time')
+    -- Nothing is saved before Apply.
+    assert(saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral' and not saved.matureContent)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
+    assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.localModel == 'mature:unc' and saved.voiceProvider == 'omni')
+    local way = saved.matureRestore
+    assert(way and way.conversationProvider.before == 'mistral' and way.conversationProvider.set == 'local'
+      and way.localModel.before == 'standard' and way.localModel.set == 'mature:unc'
+      and way.voice.before.provider == 'voxtral' and way.voice.set.provider == 'omni' and way.voice.set.steps == 16 and way.voice.set.reference == 'short', 'the way back was not saved')
+    assert(manager.snapshot(player).settings.matureRestore.localModel.before == 'standard')
+  `);
+});
+
+test('turning Mature content off puts the provider, model and voice back, except what the player changed since', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom()
+    user('matureContent', true)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
+    -- Off, nothing else touched: all three come back as pending changes, in one line.
+    user('matureContent', false)
+    assert(drafts() == 'conversationProvider=2,localModel=2,matureContent=false,voiceProvider=6', drafts())
+    local notice = mcm.inspect().mature.notice
+    assert(notice and notice:find('put back', 1, true) and notice:find('Conversation provider', 1, true) and notice:find('Local AI model', 1, true), notice)
+    assert(apply({{id = 'matureContent', value = false}, {id = 'conversationProvider', value = 2}, {id = 'localModel', value = 2}, {id = 'voiceProvider', value = 6}}).ok)
+    assert(saved.matureContent == false and saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral')
+    assert(saved.matureRestore == nil, 'the way back stayed after Mature content was turned off')
+    -- On again, the player changes the provider to Groq and the model to Qwen before turning it off: those two stay.
+    user('matureContent', true)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
+    assert(apply({{id = 'conversationProvider', value = 4}, {id = 'localModel', value = 1}}).ok)
+    user('matureContent', false)
+    assert(drafts() == 'matureContent=false,voiceProvider=6', 'only the voice was still the one Mature content chose: ' .. drafts())
+  `);
+});
+
+test('Mature content turned on and off again before Apply leaves no pending change; Revert forgets the staging', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom()
+    user('matureContent', true)
+    assert(drafts() ~= '' and mcm.inspect().mature.staged == true)
+    user('matureContent', false)
+    assert(drafts() == '', 'drafts left behind: ' .. drafts())
+    assert(mcm.inspect().mature.staged == false)
+    -- Revert: every draft is gone; a later On starts afresh and stages again.
+    user('matureContent', true)
+    assert(drafts() ~= '')
+    pending = {}; emit(); mcm.update(player, false)
+    assert(mcm.inspect().mature.staged == false)
+    user('matureContent', true)
+    assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=2', drafts())
+    -- The player's own later change of the provider while Mature content is on is theirs: turning it off does not undo it.
+    user('conversationProvider', 4)
+    user('matureContent', false)
+    -- The model and the voice go back to what is saved (their drafts disappear); the provider stays the player's own choice.
+    assert(drafts() == 'conversationProvider=4', 'the provider the player chose was undone or others were left: ' .. drafts())
+  `);
+});
+
+test('without the Local AI pack Mature content stages nothing else and says Local AI is needed, in the notice and in the help', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom({noPack = true})
+    assert(tostring(row('matureContent').description):find('Local AI is needed', 1, true), 'the help does not say Local AI is needed')
+    user('matureContent', true)
+    assert(drafts() == 'matureContent=true', drafts())
+    local notice = mcm.inspect().mature.notice
+    assert(notice and notice:find('Local AI pack', 1, true) and notice:find('Nothing else', 1, true), notice)
+    assert(apply({{id = 'matureContent', value = true}}).ok)
+    assert(saved.matureContent == true and saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral')
+    assert(saved.matureRestore == nil, 'a way back was saved though nothing was changed')
+    user('matureContent', false)
+    assert(drafts() == 'matureContent=false', drafts())
+  `);
+});
+
+test('the voice moves to Pocket TTS without the OmniVoice pack, is left when it is already local, and stays when Multilingual conversations has no local voice to offer', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom({omni = false})
+    user('matureContent', true)
+    assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=1', drafts())
+    assert(mcm.inspect().mature.notice:find('Pocket', 1, true), mcm.inspect().mature.notice)
+    user('matureContent', false)
+    assert(drafts() == '', 'staged then unstaged: ' .. drafts())
+    -- A local voice already: the voice is not touched, and the notice names only the other two.
+    assert(apply({{id = 'voiceProvider', value = 1}}).ok)
+    user('matureContent', true)
+    assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true', drafts())
+    assert(not mcm.inspect().mature.notice:find('Pocket', 1, true))
+    user('matureContent', false)
+    -- Already Local AI with the uncensored model and a local voice: nothing to stage and no notice.
+    assert(apply({{id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}}).ok)
+    mcm.update(player, false)
+    user('matureContent', true)
+    assert(drafts() == 'matureContent=true', drafts())
+    assert(mcm.inspect().mature.notice == nil or not mcm.inspect().mature.notice:find('selected', 1, true))
+    assert(apply({{id = 'matureContent', value = true}}).ok and saved.matureRestore == nil)
+    -- Multilingual conversations on, a cloud voice and no OmniVoice pack: there is no local voice to give, so the voice is left.
+    assert(apply({{id = 'matureContent', value = false}, {id = 'voiceProvider', value = 8}, {id = 'expressiveEmotions', value = false}}).ok)
+    assert(apply({{id = 'multilingualConversations', value = true}}).ok)
+    user('matureContent', true)
+    assert(not drafts():find('voiceProvider', 1, true), 'Pocket TTS was staged beside Multilingual conversations: ' .. drafts())
+  `);
+});
+
+test('Mature content on with no uncensored model installed stages no model change and does not mention a model; turning it off leaves the model alone', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom({noMature = true})
+    user('matureContent', true)
+    assert(drafts() == 'conversationProvider=3,matureContent=true,voiceProvider=2', drafts())
+    local notice = mcm.inspect().mature.notice
+    assert(notice and notice:find('Local AI', 1, true) and notice:find('OmniVoice', 1, true), notice)
+    assert(not notice:lower():find('model', 1, true), 'the notice mentions a model though none was staged: ' .. notice)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
+    assert(saved.matureContent == true and saved.localModel == 'standard', tostring(saved.localModel))
+    assert(saved.matureRestore and saved.matureRestore.localModel == nil and saved.matureRestore.conversationProvider.before == 'mistral', 'a model part was recorded')
+    user('matureContent', false)
+    assert(drafts() == 'conversationProvider=2,matureContent=false,voiceProvider=6', drafts())
+    assert(not mcm.inspect().mature.notice:find('Local AI model', 1, true), mcm.inspect().mature.notice)
+    -- Only an uncensored model that is not in the list counts as none: a published id that is not listed stages nothing either.
+    state('ghost', {provider = 'mistral', effective = 'mistral', saved = true, localAi = 'ready', localModelDefault = 'standard', localModelMatureDefault = 'ghost',
+      localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'lite', name = 'Qwen', sizeMiB = 1300}}})
+    pending = {}; emit(); mcm.update(player, false)
+    user('matureContent', true)
+    assert(not drafts():find('localModel', 1, true), drafts())
+  `);
+});
+
+test('Mature content on with the model already the uncensored one stages no model change, and a legacy way back with set auto still restores the earlier model', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom()
+    assert(apply({{id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}}).ok and saved.localModel == 'mature:unc')
+    user('matureContent', true)
+    assert(not drafts():find('localModel', 1, true), 'the uncensored model was already chosen: ' .. drafts())
+    user('matureContent', false)
+    pending = {}; emit(); mcm.update(player, false)
+    -- A way back an older version saved: the model it set was 'auto', which now stands for the default model (standard, position 2).
+    assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'local', localModel = 'standard',
+      matureRestore = {localModel = {before = 'lite', set = 'auto'}}}))
+    assert(saved.matureRestore and saved.matureRestore.localModel.before == 'lite' and saved.matureRestore.localModel.set == 'auto')
+    loaded = registered.loadMod('manager'); pending = {}; emit(); mcm.update(player, false)
+    user('matureContent', false)
+    assert(drafts() == 'localModel=1,matureContent=false', drafts())
+    assert(mcm.inspect().mature.notice:find('Local AI model', 1, true), mcm.inspect().mature.notice)
+    assert(apply({{id = 'matureContent', value = false}, {id = 'localModel', value = 1}}).ok)
+    assert(saved.localModel == 'lite' and saved.matureRestore == nil, tostring(saved.localModel))
+  `);
+});
+
+test('the saved way back is checked on load and on Apply, and is dropped with Mature content', () => {
+  run(`${mcmFixture}
+    local ok = manager.applySettings(player, {matureContent = true, matureRestore = {conversationProvider = {before = 'convai', set = 'local'},
+      localModel = {before = 'bad id', set = 'auto'}, voice = {before = {provider = 'pocket'}, set = {provider = 'omni', steps = 16, reference = 'short'}}}})
+    assert(ok)
+    local way = manager.snapshot(player).settings.matureRestore
+    assert(way.conversationProvider.before == 'convai' and way.localModel == nil and way.voice.set.steps == 16, 'a malformed part was kept')
+    assert(not manager.applySettings(player, {matureRestore = {junk = true}}), 'a record with nothing valid was accepted')
+    assert(manager.applySettings(player, {matureContent = false}))
+    assert(manager.snapshot(player).settings.matureRestore == nil and saved.matureRestore == nil, 'the record outlived Mature content')
+  `);
+});
+
+test('Local AI model: a row with each installed model by its name from the smallest to the largest and no Auto, the default model selected until one is chosen, sizes in the help, the pin saved by id', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end
     local function state(tag, value)
@@ -2071,45 +2328,123 @@ test('Local AI model: a row with Auto first and each installed model by its name
       files['runtime/mistral-state.json'] = 'models-' .. tag
       clock = clock + 2
     end
-    assert(manager.snapshot(player).settings.localModel == 'auto' and saved.localModel == 'auto', 'Auto is the default')
+    assert(manager.snapshot(player).settings.localModel == 'auto' and saved.localModel == 'auto', 'nothing chosen is the stored default')
     assert(invoke('tab:settings').ok)
-    -- No Local AI pack: the row is there with Auto alone, and nothing is said about sizes.
+    -- No model installed: the row is there with one placeholder, and nothing is said about sizes.
     state('none', {provider = 'local', effective = 'local', saved = false})
     loaded = registered.loadMod('manager')
     local bare = row('localModel')
     assert(bare ~= nil and bare.label == 'Local AI model' and bare.type == 'select' and bare.value == 1)
-    assert(#bare.elements == 1 and bare.elements[1] == 'Auto')
+    assert(#bare.elements == 1 and bare.elements[1] == 'No model installed', table.concat(bare.elements, '|'))
     assert(not tostring(bare.description):find('Installed models', 1, true))
     assert(not tostring(bare.description):lower():find('recommended', 1, true), 'no option is ever called recommended')
-    -- Three installed models, as the bridge reports them (a malformed entry is dropped).
-    state('three', {provider = 'local', effective = 'local', saved = false, maturePack = true, localModels = {
-      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311},
-      {id = 'mature:big', name = 'Gemma-4-E4B-uncensored', sizeMiB = 5400}, {id = 'bad id', name = 'Nope', sizeMiB = 1}, {id = 'x', name = 5}}})
+    assert(#manager.localModelChoices() == 0 and manager.localModelDefaultId() == nil and manager.localModelMatureId() == nil)
+    -- With no model installed an Apply leaves 'auto' as it is (there is no default model to save).
+    assert(manager.applySettings(player, {followUpInterest = true}) and saved.localModel == 'auto', tostring(saved.localModel))
+    -- Three installed models, as the bridge reports them, NOT in size order (a malformed entry is dropped): the row sorts them small to large.
+    state('three', {provider = 'local', effective = 'local', saved = false, maturePack = true,
+      localModelDefault = 'standard', localModelMatureDefault = 'mature:big', localModels = {
+      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'mature:big', name = 'Gemma-4-E4B-uncensored', sizeMiB = 5400},
+      {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311}, {id = 'bad id', name = 'Nope', sizeMiB = 1}, {id = 'x', name = 5}}})
     loaded = registered.loadMod('manager')
     local pick = row('localModel')
-    assert(#pick.elements == 4 and pick.elements[1] == 'Auto' and pick.elements[2] == 'Gemma-4-E4B' and pick.elements[4] == 'Gemma-4-E4B-uncensored')
-    assert(pick.value == 1)
-    assert(tostring(pick.description):find('Gemma-4-E4B (5.2 GB), Qwen3.5-2B (1.3 GB), Gemma-4-E4B-uncensored (5.3 GB)', 1, true), pick.description)
-    -- Choosing by position saves the model's id; Auto saves 'auto'.
-    assert(registered.applyBatch('manager', {{id = 'localModel', value = 3}}).ok and saved.localModel == 'lite')
+    assert(#pick.elements == 3 and pick.elements[1] == 'Qwen3.5-2B' and pick.elements[2] == 'Gemma-4-E4B' and pick.elements[3] == 'Gemma-4-E4B-uncensored', table.concat(pick.elements, '|'))
+    for _, label in ipairs(pick.elements) do assert(label ~= 'Auto', 'there is no Auto entry') end
+    assert(not tostring(pick.description):find('Auto', 1, true), pick.description)
+    assert(manager.localModelDefaultId() == 'standard' and manager.localModelMatureId() == 'mature:big')
+    -- Nothing chosen (saved 'auto'): the default model is shown as selected, and 'auto' stays saved until an Apply.
+    assert(pick.value == 2, tostring(pick.value))
+    assert(manager.snapshot(player).settings.localModel == 'auto' and saved.localModel == 'auto')
+    assert(tostring(pick.description):find('Qwen3.5-2B (1.3 GB), Gemma-4-E4B (5.2 GB), Gemma-4-E4B-uncensored (5.3 GB)', 1, true), pick.description)
+    assert(tostring(pick.description):find('from the smallest to the largest', 1, true), pick.description)
+    -- Choosing by position saves the model's id.
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 1}}).ok and saved.localModel == 'lite')
     loaded = registered.loadMod('manager')
-    assert(row('localModel').value == 3, 'the saved model is selected again')
-    assert(registered.applyBatch('manager', {{id = 'localModel', value = 4}}).ok and saved.localModel == 'mature:big')
-    assert(registered.applyBatch('manager', {{id = 'localModel', value = 1}}).ok and saved.localModel == 'auto')
-    for _, bad in ipairs({0, 5, 1.5, 'lite', true}) do
+    assert(row('localModel').value == 1, 'the saved model is selected again')
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 3}}).ok and saved.localModel == 'mature:big')
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 2}}).ok and saved.localModel == 'standard')
+    for _, bad in ipairs({0, 4, 1.5, 'lite', true}) do
       local result = registered.applyBatch('manager', {{id = 'localModel', value = bad}})
-      assert(result.ok == false and saved.localModel == 'auto', tostring(bad))
+      assert(result.ok == false and saved.localModel == 'standard', tostring(bad))
     end
-    -- A pinned model that is no longer installed stays saved (the bridge falls back to Auto with one notice); the row shows Auto.
+    -- A pinned model that is no longer installed stays saved (the bridge falls back to the largest model that fits, with one notice); the row shows the default.
     assert(manager.applySettings(player, {localModel = 'gone-model'}) and saved.localModel == 'gone-model')
     loaded = registered.loadMod('manager')
-    assert(row('localModel').value == 1)
-    assert(manager.applySettings(player, {localModel = 'auto'}) and saved.localModel == 'auto')
+    assert(row('localModel').value == 2, 'the default is selected when the saved model is gone')
+    assert(manager.applySettings(player, {followUpInterest = false}) and saved.localModel == 'gone-model', 'an Apply of something else must not change a model that is only missing')
+    -- A saved 'auto' (an older version, or nothing chosen) is replaced by the default model's id on any Apply, silently.
+    saved.localModel = 'auto'
+    assert(manager.snapshot(player).settings.localModel == 'auto')
+    local ok, err, notice = manager.applySettings(player, {followUpInterest = true})
+    assert(ok and err == nil and notice == nil, 'the replacement is silent: ' .. tostring(err) .. ' ' .. tostring(notice))
+    assert(saved.localModel == 'standard', tostring(saved.localModel))
+    assert(manager.applySettings(player, {localModel = 'lite'}) and saved.localModel == 'lite')
+    ok, err, notice = manager.applySettings(player, {localModel = 'auto'})
+    assert(ok and notice == nil and saved.localModel == 'standard', 'choosing auto by hand saves the default model: ' .. tostring(saved.localModel))
     assert(manager.applySettings(player, {localModel = 'two words'}) == false and manager.applySettings(player, {localModel = 7}) == false)
-    assert(saved.localModel == 'auto')
-    -- A saved value that is not an id reads as Auto.
+    assert(saved.localModel == 'standard')
+    -- A saved value that is not an id reads as 'auto'.
     saved.localModel = '../x'
     assert(manager.snapshot(player).settings.localModel == 'auto')
+    -- No default published (or one that is not in the list): the first (smallest) model is shown as selected, and 'auto' stays on Apply.
+    for _, default in ipairs({false, 'ghost', 'bad id'}) do
+      state('nodefault-' .. tostring(default), {provider = 'local', effective = 'local', saved = false,
+        localModelDefault = default or nil, localModelMatureDefault = 'ghost', localModels = {
+        {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311}}})
+      saved.localModel = 'auto'
+      loaded = registered.loadMod('manager')
+      assert(manager.localModelDefaultId() == nil and manager.localModelMatureId() == nil, tostring(default))
+      local shown = row('localModel')
+      assert(shown.elements[1] == 'Qwen3.5-2B' and shown.value == 1, tostring(default) .. ' ' .. tostring(shown.value))
+      assert(manager.applySettings(player, {followUpInterest = false}) and saved.localModel == 'auto', tostring(default) .. ' ' .. tostring(saved.localModel))
+    end
+    -- Equal sizes sort by name.
+    state('ties', {provider = 'local', effective = 'local', saved = false, localModels = {
+      {id = 'b', name = 'Bravo', sizeMiB = 2000}, {id = 'a', name = 'alpha', sizeMiB = 2000}, {id = 'c', name = 'Charlie', sizeMiB = 1000}}})
+    loaded = registered.loadMod('manager')
+    assert(table.concat(row('localModel').elements, '|') == 'Charlie|alpha|Bravo', table.concat(row('localModel').elements, '|'))
+  `);
+});
+
+test('Local AI model: custom models are marked, show the memory they need or that the card is too small, and unusable ones are named in the help', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function state(tag, value)
+      jsonFixtures['custom-' .. tag] = value
+      files['runtime/mistral-state.json'] = 'custom-' .. tag
+      clock = clock + 2
+    end
+    assert(invoke('tab:settings').ok)
+    state('one', {provider = 'local', effective = 'local', saved = false, localModels = {
+      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280},
+      {id = 'custom:mine', name = 'My Model', sizeMiB = 4096, custom = true, needMiB = 5296},
+      {id = 'custom:huge', name = 'Huge', sizeMiB = 40960, custom = true, needMiB = 42160, tooLarge = true},
+      {id = 'custom:odd', name = 'Odd', sizeMiB = 100, custom = false, tooLarge = true}},
+      localModelProblems = {{name = 'Embedder', reason = 'embedding'}, {name = 'Gone', reason = 'missing'}, {name = 'Fake', reason = 'bad-gguf'},
+        {name = 'Locked', reason = 'unreadable'}, {name = 'Bad', reason = 'other'}, {name = 5, reason = 'missing'}}})
+    loaded = registered.loadMod('manager')
+    local pick = row('localModel')
+    assert(#pick.elements == 4 and pick.elements[1] == 'Odd' and pick.elements[3] == 'Gemma-4-E4B', table.concat(pick.elements, '|'))
+    for _, label in ipairs(pick.elements) do assert(label ~= 'Auto', 'there is no Auto entry') end
+    assert(pick.elements[2] == 'My Model (custom)' and pick.elements[4] == 'Huge (custom, too large for this graphics card)', table.concat(pick.elements, '|'))
+    assert(pick.elements[1] == 'Odd', 'only custom models are marked, whatever else the file says')
+    local help = tostring(pick.description)
+    assert(help:find('Gemma-4-E4B (5.2 GB)', 1, true), help)
+    assert(help:find('My Model (custom, 4.0 GB, needs about 5.2 GB of graphics memory)', 1, true), help)
+    assert(help:find('Huge (custom, 40.0 GB, too large for this graphics card)', 1, true), help)
+    assert(help:find('Models marked custom are ones you added yourself;', 1, true), help)
+    assert(help:find('Not usable: Embedder: an embedding model, not a chat model; Gone: file not found; Fake: not a valid GGUF file; Locked: could not be read.', 1, true), help)
+    assert(not help:find('Bad', 1, true), 'an unknown reason is dropped')
+    -- Pinning a custom model saves its id; it can be chosen even though it is too large (the bridge then falls back to the largest model that fits, with one notice).
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 2}}).ok and saved.localModel == 'custom:mine')
+    assert(registered.applyBatch('manager', {{id = 'localModel', value = 4}}).ok and saved.localModel == 'custom:huge')
+    loaded = registered.loadMod('manager')
+    assert(row('localModel').value == 4)
+    -- No custom models: the row is as before, with no note about them.
+    state('none', {provider = 'local', effective = 'local', saved = false, localModels = {{id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}}})
+    loaded = registered.loadMod('manager')
+    local plain = tostring(row('localModel').description)
+    assert(not plain:find('custom', 1, true) and not plain:find('Not usable', 1, true), plain)
   `);
 });
 
@@ -4782,7 +5117,7 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
   const start = init.indexOf('local function keyNoticeText'), end = init.indexOf('local function reactionCanDeliver');
   assert(start > 0 && end > start, 'the key notice functions moved');
   run(`
-    local ui = {t = function(text) return text end}
+    local ui = {t = function(text, params) if params then text = text:gsub('{(%w+)}', function(key) return tostring(params[key]) end) end return text end}
     local sent = {}
     convaiNotices = {send = function(_, id, text) sent[#sent + 1] = id .. '=' .. text; return true end}
     ${init.slice(start, end)}
@@ -4821,8 +5156,18 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     sendProviderNotice({}, 'local-fallback', 'd')
     assert(#sent == 3 and sent[3] == 'local-fallback=d', table.concat(sent, ';'))
     -- The Local AI model the player chose is missing or does not fit: one line on the reply that follows, under its own id.
+    -- It names the model that was used instead (the reply carries its name); a missing or odd name reads 'another model'.
+    id, text = notice({keyNotice = 'local-model-fallback', keyNoticeModel = 'Qwen3.5-2B', text = 'Hello'})
+    assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so Qwen3.5-2B was used instead.', text)
+    for _, odd in ipairs({'', string.rep('a', 81), 'bad' .. string.char(10) .. 'name', 'bad' .. string.char(0) .. 'name', 7, true, {}}) do
+      id, text = notice({keyNotice = 'local-model-fallback', keyNoticeModel = odd, text = 'Hello'})
+      assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so another model was used instead.', tostring(odd) .. ': ' .. text)
+    end
+    id, text = notice({keyNotice = 'local-model-fallback', keyNoticeModel = string.rep('a', 80), text = 'Hello'})
+    assert(text:find(string.rep('a', 80) .. ' was used instead.', 1, true), text)
     id, text = notice({keyNotice = 'local-model-fallback', text = 'Hello'})
-    assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing or does not fit in the free graphics memory, so Auto was used instead.', text)
+    assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so another model was used instead.', text)
+    assert(not text:find('Auto', 1, true))
     sendProviderNotice({}, 'local-model-fallback', 'e')
     assert(#sent == 4 and sent[4] == 'local-model-fallback=e', table.concat(sent, ';'))
     assert(notice({errorCode = 'quota-shared'}) == 'quota-exhausted', 'the Convai refusals keep their own notice')
@@ -5167,6 +5512,427 @@ test('a held page that was never styled is shown after 1.5 s, and a page that ca
     clock = clock + 2; mcm.update(player, false)
     draw('Companion Manager', 'Pending: Voice')
     assert(passed.ready == true, 'a page was held after the hold failed')
+  `);
+});
+
+// The early style (mod/mcm.lua, "Early style"): a page MCM draws again after a value change is given its final look while it is
+// drawn and shown in the same call, so there is no frame of the default look, no blank page and no jump of the status line or the
+// bottom buttons. This fixture plays MCM's draw in its own order through the handlers the module registers.
+const earlyFixture = `
+  CName = {new = function(value) return value end}
+  NameToString = function(value) return value end
+  IsDefined = function(value) return value ~= nil end
+  textWrappingPolicy = {Default = 0}
+  textVerticalAlignment = {Top = 'top'}
+  local clock = 10
+  os.clock = function() return clock end
+  -- Every widget method the module calls is counted: work on widgets shows up as a changed count.
+  local calls = 0
+  local methods = {}
+  local meta = {__index = function(_, key)
+    local method = methods[key]
+    if method then calls = calls + 1 end
+    return method
+  end}
+  local function widget(name, left, top, width, height, children, size)
+    return setmetatable({name = name, margin = {left = left or 0, top = top or 0}, width = width or 100, height = height or 40,
+      children = children or {}, fontSize = size or 22, scale = 1, opacity = 1, sets = 0}, meta)
+  end
+  methods.GetName = function(self) return self.name end
+  methods.GetMargin = function(self) return {left = self.margin.left, top = self.margin.top, right = 0, bottom = 0} end
+  methods.SetMargin = function(self, m) self.margin = {left = m.left, top = m.top} end
+  methods.GetWidth = function(self) return self.width end
+  methods.SetWidth = function(self, v) self.width = v end
+  methods.GetHeight = function(self) return self.height end
+  methods.SetHeight = function(self, v) self.height = v end
+  methods.GetNumChildren = function(self) return #self.children end
+  methods.GetWidgetByIndex = function(self, i) return self.children[i + 1] end
+  methods.GetParentWidget = function(self) return self.parent end
+  methods.Reparent = function(self, parent)
+    local old = self.parent
+    if old then for i, child in ipairs(old.children) do if child == self then table.remove(old.children, i) break end end end
+    self.parent = parent; parent.children[#parent.children + 1] = self
+  end
+  methods.SetVerticalAlignment = function() end
+  methods.GetFontSize = function(self) return self.fontSize end
+  methods.SetFontSize = function(self, v) self.fontSize = v end
+  methods.SetWrapping = function() end
+  methods.BindProperty = function(self, _, color) self.color = color end
+  methods.GetScale = function(self) return {X = self.scale, Y = self.scale} end
+  methods.GetController = function() return nil end
+  methods.SetVisible = function(self, v) self.visible = v; self.sets = self.sets + 1 end
+  methods.GetOpacity = function(self) return self.opacity end
+  methods.SetOpacity = function(self, v) self.opacity = v end
+  -- What the game's McmUiCreateText makes.
+  local function rawText(parent, name, value, x, y, width, height, size, color)
+    local text = widget(name, x, y, width, height, nil, size)
+    text.color, text.text = color, value
+    text.parent = parent; parent.children[#parent.children + 1] = text
+    return text
+  end
+  local ref = setmetatable({nativeIdentity = 101}, {__index = controller})
+  controller.McmUiGetLayoutMetric = function(_, metric) return ({[13] = 320, [20] = 100, [23] = 800, [27] = 1000, [28] = 900})[metric] or -1 end
+  local page
+  function controller:GetRootWidget() return page.root end
+  -- The content scroll position: what the page being replaced reports, and what is set on the new scroll controller.
+  local scrollNow, scrolls = 0, 0
+  controller.McmUiGetContentScrollPosition = function() return scrollNow end
+  -- One draw of the manager's page, in MCM's order. Options: rows = {managed, action, readonly}, categories, bar (labels of the
+  -- buttons on the bar line), plain (the text override does nothing: the creations bypass it), ignoresX (the game ignores the
+  -- x it is given for a managed label), noState (no managed-label state call), badCategory, finish = false (the draw never ends),
+  -- title and status.
+  local function draw(o)
+    o = o or {}
+    local p = {render = widget('MCMRenderRoot', 0, 0, 1920, 1080), list = widget('mcm_sidebar_scroll_content', 0, 0, 340, 126),
+      content = widget('mcm_content_scroll_content', 0, 0, 800, 2000), wrapper = widget('mcm_content_scroll', 100, 200, 800, 700),
+      viewport = widget('scroll_area', 0, 0, 800, 700), texts = {}, markers = {}, labels = {}, actions = {}, readonly = {},
+      values = {}, headings = {}, passed = {}}
+    p.root = widget('root', 0, 0, 1920, 1080, {p.render}); p.render.parent = p.root
+    p.scroll = 0
+    p.wrapper.GetController = function()
+      return {GetScrollPosition = function() return p.scroll end,
+        SetScrollPosition = function(_, value) p.scroll = value; scrolls = scrolls + 1 end}
+    end
+    if o.badScroller then p.wrapper.GetController = function() error('no controller') end end
+    for i = 0, 2 do
+      local entry = widget('mcm_entry_' .. i, 20, i * 42, 300, 42); entry.parent = p.list; p.list.children[i + 1] = entry
+    end
+    page = p
+    local raw = rawText
+    if o.ignoresX then
+      raw = function(parent, name, value, x, ...) return rawText(parent, name, value, name:find('_managed_label', 1, true) and 48 or x, ...) end
+    end
+    local function mk(parent, name, value, x, width, size, color)
+      if o.plain then return raw(parent, name, value, x, 0, width, 42, size or 22, color or 'native-secondary', 0) end
+      return handlers.McmUiCreateText(ref, parent, name, value, x, 0, width, 42, size or 22, color or 'native-secondary', 0, raw)
+    end
+    handlers.McmUiBegin(ref, 'MCM', '', 'Mods', o.title or 'Companion Manager', o.status or 'Pending: Voice', 0, '', true, true, 0, function()
+      for _, name in ipairs({'title', 'subtitle', 'sidebar_title', 'content_title', 'status'}) do
+        local text = mk(p.render, name, name, 10, 200, 24, 'native-blue')
+        if name == 'status' then p.status = text else p.texts[name] = text end
+      end
+    end)
+    handlers.McmUiCreateScrollArea(ref, p.render, 'mcm_sidebar_scroll', 0, 0, 340, 700, 700, function()
+      local sidebar = widget('sidebar_wrapper')
+      sidebar.children, p.list.parent, sidebar.parent = {p.list}, sidebar, p.render
+      p.render.children[#p.render.children + 1] = sidebar
+      return {content = p.list, wrapper = sidebar}
+    end)
+    handlers.McmUiBeginContent(ref, 400, o.scroll or 0, true, function(height, scroll, ready)
+      p.beginScroll = scroll
+      p.scroll = o.sticks and scroll or 0
+      handlers.McmUiCreateScrollArea(ref, p.render, 'mcm_content_scroll', 100, 200, 800, 700, 2000, function()
+        p.wrapper.children, p.viewport.children = {p.viewport}, {p.content}
+        p.content.parent, p.viewport.parent, p.wrapper.parent = p.viewport, p.wrapper, p.render
+        p.render.children[#p.render.children + 1] = p.wrapper
+        return {content = p.content, wrapper = p.wrapper}
+      end)
+      p.wrapper.visible = ready
+    end)
+    local rows = o.rows or {}
+    for i = 1, (o.categories or 0) do
+      local label = widget('label', 20, 0, 1600, 40, nil, 30); label.color = 'native-heading'
+      if o.badCategory then label.BindProperty = function() error('native failure') end end
+      local category = widget('settingsCategory', 0, 100 * i, 1800, 80, {widget('line', 0, 0, 1800, 4), label})
+      category.scale = 0.5; category.parent = p.content; p.content.children[#p.content.children + 1] = category
+      p.headings[i] = {root = category, label = label, line = category.children[1]}
+      handlers.McmUiSetup({GetRootWidget = function() return category end})
+      handlers.McmUiAddCategory(ref, 'category' .. i, 'Heading', 'd', '')
+    end
+    for i = 1, (rows.managed or 0) do
+      local id = 'mcm_1_' .. i
+      handlers.McmUiAddManagedLabel(ref, id, 'Label', '*', false, 0, function()
+        p.markers[i] = mk(p.content, id .. '_managed_marker', '*', 100, 40, 22, 'native-purple')
+        p.labels[i] = mk(p.content, id .. '_managed_label', 'Label', 48, 300, 22, 'native-secondary')
+      end)
+      if not o.noState then handlers.McmUiSetManagedLabelState(ref, id, false, false) end
+    end
+    for i = 1, (rows.action or 0) do
+      local id = 'mcm_2_' .. i
+      handlers.McmUiAddActionSetting(ref, id, 'Label', 'd', 'Open', function()
+        p.actions[i] = mk(p.content, id .. '_label', 'Label', 20, 300, 22, 'native-secondary')
+      end)
+    end
+    for i = 1, (rows.readonly or 0) do
+      local id = 'mcm_3_' .. i
+      handlers.McmUiAddReadonly(ref, id, 'Label', 'd', 'value', function()
+        local surface = widget('mcm_action_' .. id, 20, 0, 400, 42)
+        surface.parent = p.content; p.content.children[#p.content.children + 1] = surface
+        p.readonly[i] = mk(surface, 'label', 'Label', 30, 340, 26, 'native-secondary')
+        p.values[i] = mk(p.content, id .. '_value', 'value', 500, 360, 22, 'native-muted')
+      end)
+    end
+    for index, label in ipairs(o.bar or {}) do
+      handlers.McmUiAddBottomActionAt(ref, 'bar' .. index, label, 300 + (index - 1) * 160, 1000, 140, false, function(...)
+        p.passed[#p.passed + 1] = table.pack(...)
+      end)
+    end
+    if o.finish ~= false then handlers.McmUiSetContentTitle(ref, o.title or 'Companion Manager') end
+    return p
+  end
+  -- Frames until the older pass has styled and shown a page that was held back.
+  local function settle()
+    local frames = 0
+    while frames < 40 and (page.wrapper.visible ~= true or mcm.inspect().presentation.pending) do
+      mcm.update(player, false); frames = frames + 1
+    end
+    assert(page.wrapper.visible == true and not mcm.inspect().presentation.pending, 'the older pass did not show the page')
+    return frames
+  end
+  local function backs()
+    local count = 0
+    for _, button in ipairs(bottomActions) do if button.id == 'convai-bottom-back' then count = count + 1 end end
+    return count
+  end
+`;
+
+test('a value change draws the page in its final look and shows it in the same call, with no frame of the default look', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    for _ = 1, 3 do mcm.update(player, false) end
+    local p = draw({rows = {managed = 3, action = 2, readonly = 2}, categories = 2, bar = {'Revert', 'Apply'}})
+    -- Shown at once, before any update runs.
+    assert(p.wrapper.visible == true, 'the page stayed hidden after the draw')
+    local info = mcm.inspect()
+    assert(info.early.hooks and info.early.shown == 1 and info.early.held == 0, 'the early style did not complete: ' .. info.early.reason)
+    assert(not info.presentation.pending and not info.presentation.styling and info.presentation.active)
+    -- Managed rows: label at x 20 keeping its right edge, marker 12 wide at 0 keeping its colour, the red label colour.
+    for i = 1, 3 do
+      assert(p.labels[i].margin.left == 20 and p.labels[i].width == 328 and p.labels[i].color == 'MainColors.Red', 'managed label ' .. i)
+      assert(p.markers[i].margin.left == 0 and p.markers[i].width == 12 and p.markers[i].color == 'native-purple', 'managed marker ' .. i)
+    end
+    for i = 1, 2 do
+      assert(p.actions[i].color == 'MainColors.Red' and p.actions[i].margin.left == 20 and p.actions[i].width == 300, 'action label ' .. i)
+      local text = p.readonly[i]
+      assert(text.margin.left == 0 and text.width == 370 and text.fontSize == 22 and text.color == 'MainColors.Red', 'read-only label ' .. i)
+      assert(p.values[i].margin.left == 500 and p.values[i].width == 360 and p.values[i].color == 'native-muted', 'a value text was changed')
+    end
+    -- Texts that are not rows are left as MCM made them.
+    for _, name in ipairs({'title', 'subtitle', 'sidebar_title', 'content_title'}) do
+      assert(p.texts[name].margin.left == 10 and p.texts[name].width == 200 and p.texts[name].color == 'native-blue', name .. ' was changed')
+    end
+    -- Section headings: white, at the content edge in content coordinates; the native rule is left alone.
+    for i = 1, 2 do
+      local heading = p.headings[i]
+      assert(heading.root.margin.left + heading.root.scale * heading.label.margin.left == 20 and heading.label.color == 'MainColors.White', 'heading ' .. i)
+      assert(heading.line.color == nil, 'the native rule was recoloured')
+    end
+    -- The status line is under the mod list; the bar line is complete, created in this call: held buttons shifted left by the
+    -- Back button's width and gap, Back at the right end.
+    assert(p.status.parent == p.list and p.status.margin.left == 20 and p.status.margin.top == 126 + 14 and p.status.width == 320, 'status line misplaced')
+    assert(#bottomActions == 3 and #p.passed == 0, 'the bar was not created in the draw: ' .. #bottomActions)
+    assert(bottomActions[1].id == 'bar1' and bottomActions[1].x == 140 and bottomActions[2].id == 'bar2' and bottomActions[2].x == 300, 'bar buttons were not shifted')
+    assert(bottomActions[3].id == 'convai-bottom-back' and bottomActions[3].x == 760 and bottomActions[3].y == 1000 and bottomActions[3].width == 140, 'Back misplaced')
+    -- Frames after the draw do no work on the page: no walk, no veil, no second Back.
+    mcm.update(player, false)
+    local before = calls
+    for _ = 1, 8 do mcm.update(player, false) end
+    assert(calls == before, 'idle frames made ' .. (calls - before) .. ' widget calls')
+    assert(p.content.opacity == 1 and p.wrapper.sets == 1 and #bottomActions == 3, 'idle frames touched the page')
+    -- A hover-out puts the row's label back to the red label colour (MCM tints it with the native colour on hover).
+    p.labels[2].color = 'native-cyan'
+    handlers.McmUiSetManagedLabelState(ref, 'mcm_1_2', true, false)
+    handlers.McmUiSetManagedLabelState(ref, 'mcm_1_2', false, false)
+    mcm.update(player, false)
+    assert(p.labels[2].color == 'MainColors.Red', 'the label kept the native colour after the hover')
+    assert(p.labels[1].color == 'MainColors.Red' and p.labels[3].color == 'MainColors.Red')
+  `);
+});
+
+test('every value change draws the same finished page again, each shown once in its own call', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    for change = 1, 5 do
+      local p = draw({rows = {managed = 3, action = 1, readonly = 1}, categories = 1, bar = {'Revert', 'Apply'}})
+      assert(p.wrapper.visible == true and p.wrapper.sets == 1 and p.labels[1].margin.left == 20, 'draw ' .. change)
+      mcm.update(player, false)
+      assert(p.wrapper.sets == 1 and not mcm.inspect().presentation.pending, 'update ' .. change)
+    end
+    assert(mcm.inspect().early.shown == 5 and mcm.inspect().early.held == 0 and mcm.inspect().early.failures == 0)
+    assert(#bottomActions == 15 and backs() == 5, 'every draw makes exactly one bar: ' .. #bottomActions)
+  `);
+});
+
+test('a draw the early style cannot vouch for stays hidden and is styled and shown by the older pass, with Back placed once', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    local rows = {managed = 3, action = 1, readonly = 1}
+    -- The text override does nothing on some game version: nothing is captured, the page waits for the older pass.
+    local p = draw({rows = rows, plain = true, bar = {'Revert'}})
+    assert(p.wrapper.visible == false and mcm.inspect().presentation.pending, 'an unverified page was shown')
+    assert(mcm.inspect().early.reason:find('widgets missing', 1, true), mcm.inspect().early.reason)
+    assert(backs() == 1, 'Back was not placed with the bar')
+    settle()
+    for i = 1, 3 do assert(p.labels[i].margin.left == 20 and p.labels[i].color == 'MainColors.Red', 'the older pass did not style row ' .. i) end
+    assert(p.status.parent == p.list and backs() == 1, 'status line or Back misplaced by the older pass')
+    -- The managed-row hook count disagrees with MCM's own: held.
+    p = draw({rows = rows, noState = true})
+    assert(p.wrapper.visible == false and mcm.inspect().early.reason:find('row hook count', 1, true), mcm.inspect().early.reason)
+    settle()
+    -- A draw that completes resets the count of failures in a row (three in a row switch the early style off).
+    p = draw({rows = rows})
+    assert(p.wrapper.visible == true and mcm.inspect().early.shown == 1 and mcm.inspect().early.failures == 0)
+    -- MCM ignores the x it is given for the label: the page is not what the styling gives, held.
+    p = draw({rows = rows, ignoresX = true})
+    assert(p.wrapper.visible == false and mcm.inspect().early.reason == 'label geometry', mcm.inspect().early.reason)
+    settle()
+    assert(p.labels[1].margin.left == 20, 'the older pass left the label where MCM put it')
+    -- A heading that cannot be styled: held with the reason.
+    p = draw({rows = rows, categories = 1, badCategory = true})
+    assert(p.wrapper.visible == false and mcm.inspect().early.reason:find('a step failed: category', 1, true), mcm.inspect().early.reason)
+    settle()
+    assert(mcm.inspect().early.held == 4 and mcm.inspect().early.shown == 1 and not mcm.inspect().early.off)
+  `);
+});
+
+test('a page whose language needs a font of its own keeps the font pass, and that is not counted as a failure', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    local chosen
+    for i, choice in ipairs(convaiUiLocale.choices()) do if choice.value == 'ru' then chosen = i end end
+    assert(chosen, 'no Russian choice')
+    -- Russian chosen but not applied yet: its text is shown only after the font pass.
+    nativeApi.getValue = function() return chosen end
+    for _ = 1, 4 do
+      local p = draw({rows = {managed = 2, action = 1, readonly = 1}})
+      assert(p.wrapper.visible == false and mcm.inspect().early.reason == 'fonts', mcm.inspect().early.reason)
+      settle()
+    end
+    assert(mcm.inspect().early.failures == 0 and not mcm.inspect().early.off, 'font pages switched the early style off')
+    nativeApi.getValue = nil
+    local p = draw({rows = {managed = 2}})
+    assert(p.wrapper.visible == true and mcm.inspect().early.shown == 1, 'English page was not shown again')
+  `);
+});
+
+test('three draws in a row that the early style could not complete switch it off, and then the page is drawn as before', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    local rows = {managed = 3, action = 1}
+    for _ = 1, 3 do draw({rows = rows, ignoresX = true}); settle() end
+    assert(mcm.inspect().early.off == true and mcm.inspect().early.failures == 3, 'still trying after three failures')
+    local before = #bottomActions
+    local p = draw({rows = rows, bar = {'Revert'}})
+    -- The overrides pass everything straight on now: MCM's geometry and colour, the hidden page, the held bar line as MCM made it.
+    assert(p.labels[1].margin.left == 48 and p.labels[1].width == 300 and p.labels[1].color == 'native-secondary', 'a switched-off style still changed rows')
+    assert(p.wrapper.visible == false and mcm.inspect().presentation.pending and #p.passed == 1, 'the older path was not used')
+    settle()
+    assert(p.labels[1].margin.left == 20 and p.labels[1].color == 'MainColors.Red' and backs() == 4)
+  `);
+});
+
+test('every held bottom button is created: Back that cannot be placed, and a draw that never ends', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    -- Back cannot be placed: the held buttons are created anyway, and Back becomes a row of the page.
+    local original = controller.McmUiAddBottomActionAt
+    controller.McmUiAddBottomActionAt = function(self, id, ...)
+      if id == 'convai-bottom-back' then error('no bar') end
+      return original(self, id, ...)
+    end
+    local p = draw({rows = {managed = 2}, bar = {'Revert', 'Apply'}})
+    assert(#bottomActions == 2 and bottomActions[1].id == 'bar1' and bottomActions[2].id == 'bar2', 'a button was lost')
+    assert(mcm.inspect().backMode == 'list', 'Back was not moved to a row')
+    settle()
+  `);
+});
+
+test('a draw that never reaches its end still gets its held bottom buttons, where MCM put them, and the page is shown', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    mcm.update(player, false)
+    -- The draw never reaches its end (an error in MCM): half a second later the held buttons are created where MCM put them.
+    local count = #bottomActions
+    local p = draw({rows = {managed = 2}, bar = {'Revert', 'Apply'}, finish = false})
+    assert(#bottomActions == count, 'a button was made before the draw ended')
+    mcm.update(player, false)
+    assert(#bottomActions == count, 'a button was made at once')
+    clock = clock + 1
+    mcm.update(player, false)
+    assert(#bottomActions == count + 2 and bottomActions[count + 1].id == 'bar1' and bottomActions[count + 1].x == 300
+      and bottomActions[count + 2].id == 'bar2' and bottomActions[count + 2].x == 460, 'the held buttons were not made in place')
+    -- The hidden content is shown by the stale-hold release.
+    clock = clock + 1
+    mcm.update(player, false)
+    assert(p.wrapper.visible == true, 'the page stayed hidden after a draw that never ended')
+  `);
+});
+
+test('a redrawn page keeps its scroll position, whether MCM lost it or never set it, and a page that was left starts at the top', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    local rows = {managed = 3, action = 1}
+    -- MCM hands over its captured position but it does not hold on the hidden, still empty page: set again with the show.
+    local p = draw({rows = rows, scroll = 0.4})
+    assert(p.beginScroll == 0.4 and p.wrapper.visible == true and p.scroll == 0.4 and scrolls == 1, 'position lost: ' .. tostring(p.scroll))
+    -- It holds: nothing is set again.
+    p = draw({rows = rows, scroll = 0.4, sticks = true})
+    assert(p.scroll == 0.4 and scrolls == 1, 'a position that held was set again')
+    -- MCM skipped its capture (it passes 0) but the page being replaced is at 0.6: the same page, so 0.6 is kept and MCM is told.
+    scrollNow = 0.6
+    p = draw({rows = rows, scroll = 0})
+    assert(p.beginScroll == 0.6 and p.scroll == 0.6 and scrolls == 2, 'the old position was not carried over: ' .. tostring(p.scroll))
+    -- At the top both ways: nothing to restore.
+    scrollNow = 0
+    p = draw({rows = rows, scroll = 0})
+    assert(p.beginScroll == 0 and p.scroll == 0 and scrolls == 2)
+    -- Idle frames never touch the scroll.
+    mcm.update(player, false); local before = calls
+    for _ = 1, 6 do mcm.update(player, false) end
+    assert(calls == before and scrolls == 2)
+    -- Another page of the manager: the old position is not carried over (the first draw of a page has no 'same page').
+    scrollNow = 0.7
+    assert(invoke('settings:back').ok)
+    p = draw({rows = rows, scroll = 0})
+    assert(p.beginScroll == 0 and p.scroll == 0 and scrolls == 2, 'a new page inherited the old scroll position')
+    -- The page after that is the same page again.
+    p = draw({rows = rows, scroll = 0})
+    assert(p.scroll == 0.7 and scrolls == 3)
+  `);
+});
+
+test('a page held for the older pass gets its scroll position back when it is shown', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    local rows = {managed = 3}
+    draw({rows = rows})
+    scrollNow = 0.5
+    local p = draw({rows = rows, scroll = 0.5, ignoresX = true})
+    assert(p.wrapper.visible == false and p.scroll == 0, 'the held page was shown or scrolled early')
+    settle()
+    assert(p.wrapper.visible == true and p.scroll == 0.5, 'the older pass did not restore the scroll position: ' .. tostring(p.scroll))
+    -- A draw that never ends: the stale-hold release restores it as well.
+    local q = draw({rows = rows, scroll = 0.3, finish = false})
+    clock = clock + 2
+    mcm.update(player, false)
+    assert(q.wrapper.visible == true and q.scroll == 0.3, 'the stale hold did not restore the scroll position')
+    -- A scroll controller that fails never stops the page from being shown.
+    local r = draw({rows = rows, scroll = 0.2, badScroller = true})
+    assert(r.wrapper.visible == true and mcm.inspect().early.shown >= 1, 'a failing scroll controller stopped the page from being shown')
+  `);
+});
+
+test('another mod page is drawn exactly as MCM draws it, with no widget work and no held button', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    mcm.update(player, false)
+    local before = calls
+    local seen
+    local function record(...) seen = table.pack(...); return widget('x') end
+    handlers.McmUiBegin(ref, 'MCM', '', 'Mods', 'Another Mod', 'Opened.', 0, '', true, true, 0, function()
+      handlers.McmUiCreateText(ref, widget('r'), 'status', 'v', 10, 20, 200, 30, 24, 'native-blue', 0, record)
+    end)
+    assert(seen.n == 10 and seen[4] == 10 and seen[5] == 20 and seen[6] == 200 and seen[7] == 30 and seen[8] == 24 and seen[9] == 'native-blue', 'a foreign text was changed')
+    handlers.McmUiAddManagedLabel(ref, 'x', 'L', '*', false, 0, function()
+      handlers.McmUiCreateText(ref, widget('c'), 'x_managed_label', 'L', 48, 0, 300, 42, 22, 'native-secondary', 0, record)
+    end)
+    assert(seen[4] == 48 and seen[6] == 300 and seen[9] == 'native-secondary', 'a foreign managed label was changed')
+    local passed
+    handlers.McmUiAddBottomActionAt(ref, 'revert', 'Revert', 300, 1000, 140, false, function(...) passed = table.pack(...) end)
+    assert(passed and passed[1] == 'revert' and passed[3] == 300, 'a foreign button was held back')
+    handlers.McmUiSetContentTitle(ref, 'Another Mod')
+    assert(calls == before, 'widgets were touched for another mod page')
+    assert(mcm.inspect().early.shown == 0 and mcm.inspect().early.held == 0 and #bottomActions == 0)
   `);
 });
 

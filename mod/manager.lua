@@ -471,21 +471,86 @@ end
 
 -- What the settings page shows. `result` is the outcome of the player's latest Paste or Remove, and only that one.
 -- Anything missing or unexpected reads as "Convai, no key": the safe default.
--- A model id the bridge publishes or the settings file holds: 'auto', 'standard', 'lite' or 'mature:<file>' (letters, digits and . _ : -).
+-- A model id the bridge publishes or the settings file holds: 'standard', 'lite', 'mature:<file>' or 'custom:<name>' (letters, digits and . _ : -),
+-- or 'auto' (nothing chosen yet, or a value an older version saved: the settings page shows the default model instead).
 local function validModelId(value)
     return type(value) == 'string' and #value >= 1 and #value <= 80 and value:match('^[%w%.:_%-]+$') ~= nil
 end
 
--- The installed Local AI chat models the bridge reports ([{id, name, sizeMiB}], runtime/mistral-state.json); anything malformed is dropped.
+-- What turning Mature content on changed, kept in the settings so that turning it off puts the player's own choices back:
+--   {conversationProvider = {before = 'convai', set = 'local'}, localModel = {before = <model id>, set = <the uncensored model id>},
+--    voice = {before = <voice>, set = <voice>}} where a voice is {provider = 'pocket'|'omni'|'convai'|'voxtral'|'inworld',
+--   steps = 16|32, reference = 'short'|'long'} (steps and reference for omni only). Each part is optional; anything malformed is
+-- dropped, and nil is returned when nothing is left. Returns a new table.
+local function cleanMatureVoice(value)
+    if type(value) ~= 'table' then return nil end
+    local provider = value.provider
+    if provider ~= 'pocket' and provider ~= 'omni' and provider ~= 'convai' and provider ~= 'voxtral' and provider ~= 'inworld' then return nil end
+    if provider ~= 'omni' then return {provider = provider} end
+    if (value.steps ~= 16 and value.steps ~= 32) or (value.reference ~= 'short' and value.reference ~= 'long') then return nil end
+    return {provider = provider, steps = value.steps, reference = value.reference}
+end
+
+local function cleanMatureRestore(value)
+    if type(value) ~= 'table' then return nil end
+    local result, any = {}, false
+    local part = value.conversationProvider
+    if type(part) == 'table' and providerName(part.before) == part.before and providerName(part.set) == part.set then
+        result.conversationProvider, any = {before = part.before, set = part.set}, true
+    end
+    part = value.localModel
+    if type(part) == 'table' and validModelId(part.before) and validModelId(part.set) then
+        result.localModel, any = {before = part.before, set = part.set}, true
+    end
+    part = value.voice
+    if type(part) == 'table' then
+        local before, set = cleanMatureVoice(part.before), cleanMatureVoice(part.set)
+        if before and set then result.voice, any = {before = before, set = set}, true end
+    end
+    return any and result or nil
+end
+
+-- The installed Local AI chat models the bridge reports ([{id, name, sizeMiB, custom?, needMiB?, tooLarge?}], runtime/mistral-state.json), sorted
+-- by file size, smallest first (an equal size by name); anything malformed is dropped. `custom` marks a model the player added by hand (bridge/custom-models.mjs); `needMiB` is the graphics memory it needs.
 local function localModelList(value)
     local list = {}
     if type(value) ~= 'table' then return list end
     for _, entry in ipairs(value) do
-        if #list >= 12 then break end
+        if #list >= 24 then break end
         if type(entry) == 'table' and validModelId(entry.id) and entry.id ~= 'auto'
             and type(entry.name) == 'string' and entry.name ~= '' and #entry.name <= 80 and not entry.name:find('[%c]') then
             local size = type(entry.sizeMiB) == 'number' and entry.sizeMiB >= 0 and entry.sizeMiB < 1000000 and entry.sizeMiB or 0
-            list[#list + 1] = {id = entry.id, name = entry.name, sizeMiB = math.floor(size)}
+            local need = type(entry.needMiB) == 'number' and entry.needMiB >= 0 and entry.needMiB < 1000000 and entry.needMiB or 0
+            list[#list + 1] = {id = entry.id, name = entry.name, sizeMiB = math.floor(size), custom = entry.custom == true,
+                needMiB = math.floor(need), tooLarge = entry.custom == true and entry.tooLarge == true}
+        end
+    end
+    table.sort(list, function(a, b)
+        if a.sizeMiB ~= b.sizeMiB then return a.sizeMiB < b.sizeMiB end
+        local x, y = a.name:lower(), b.name:lower()
+        if x ~= y then return x < y end
+        return a.id < b.id
+    end)
+    return list
+end
+
+-- An id the bridge names as a model to select (localModelDefault, localModelMatureDefault) when that model is in the published list; else nil.
+local function listedModelId(value, list)
+    if not validModelId(value) then return nil end
+    for _, model in ipairs(list) do if model.id == value then return value end end
+    return nil
+end
+
+-- The custom models that cannot be used ([{name, reason}], reason one of the codes below); anything else is dropped.
+local customProblemReasons = {missing = true, ['bad-gguf'] = true, embedding = true, unreadable = true}
+local function localModelProblemList(value)
+    local list = {}
+    if type(value) ~= 'table' then return list end
+    for _, entry in ipairs(value) do
+        if #list >= 8 then break end
+        if type(entry) == 'table' and customProblemReasons[entry.reason] and type(entry.name) == 'string' and entry.name ~= ''
+            and #entry.name <= 80 and not entry.name:find('[%c]') then
+            list[#list + 1] = {name = entry.name, reason = entry.reason}
         end
     end
     return list
@@ -503,6 +568,7 @@ function M.mistral()
     local inworld = type(state.inworld) == 'table' and state.inworld or {}
     local inworldResult = type(inworld.result) == 'table' and inworld.result.id == inworldCommand and inworld.result.state or nil
     local inworldTail = type(inworld.tail) == 'string' and #inworld.tail <= 8 and inworld.tail or nil
+    local localModels = localModelList(state.localModels)
     return {provider = providerName(state.provider),
         inworld = {saved = inworld.saved == true, tail = inworldTail, result = mistralResults[inworldResult] and inworldResult or nil},
         groq = {saved = groq.saved == true, tail = groqTail, limit = mistralLimits[groq.limit] and groq.limit or nil,
@@ -510,7 +576,11 @@ function M.mistral()
         effective = providerName(state.effective),
         localAi = localAiStates[state.localAi] and state.localAi or nil,
         maturePack = state.maturePack == true,
-        localModels = localModelList(state.localModels),
+        localModels = localModels,
+        -- The model shown as selected when none was chosen (the largest that fits), and the one turning Mature content on selects.
+        localModelDefault = listedModelId(state.localModelDefault, localModels),
+        localModelMatureDefault = listedModelId(state.localModelMatureDefault, localModels),
+        localModelProblems = localModelProblemList(state.localModelProblems),
         saved = state.saved == true, tail = tail, pending = state.pending == true,
         result = mistralResults[result] and result or nil,
         limit = mistralLimits[state.limit] and state.limit or nil, model = model, stt = state.stt == true}
@@ -682,9 +752,18 @@ local function loadSettings()
     if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = true, true end
     -- Mature content (off by default): lets the Local AI provider write adult language and themes. Read by the bridge on change only.
     if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
-    -- Which installed Local AI model loads: 'auto' (the best one that fits the free graphics memory) or one model's id. The bridge reads it
-    -- from settings.json and falls back to auto, with one notice, when that model is missing or does not fit.
+    -- Which installed Local AI model loads: one model's id. 'auto' means none chosen yet (or a value an older version saved): the bridge then
+    -- loads the largest model that fits the free graphics memory, the settings page shows that model as selected, and the next Apply saves its
+    -- id. The bridge falls back to the same model, with one notice, when the chosen one is missing, does not fit or does not start.
     if not validModelId(settings.localModel) then settings.localModel, settingsNeedSave = 'auto', true end
+    -- What turning Mature content on changed (provider, model, voice), so turning it off can put them back (see cleanMatureRestore).
+    -- Only meaningful while Mature content is on.
+    do
+        local restore = cleanMatureRestore(settings.matureRestore)
+        if settings.matureContent ~= true then restore = nil end
+        if restore == nil and settings.matureRestore ~= nil then settingsNeedSave = true end
+        settings.matureRestore = restore
+    end
     -- Multilingual conversations (off by default): conversations go to each character's multilingual twin. Pocket TTS
     -- speaks only English, so a saved pairing with it cannot stand (Apply never makes one): the voice moves to the cloud
     -- voice, which every installation can run. With the cloud voice, Multilingual wins over the two tag settings.
@@ -996,12 +1075,22 @@ end
 
 function M.audioDelayChoices() return audioDelays end
 
--- The Local AI model row's choices: Auto first, then every installed model the bridge reported (by its manifest name). Each is {id, name?, sizeMiB?}.
+-- The Local AI model row's choices: every installed model the bridge reported (by its manifest name), smallest file first. No Auto entry. Each is
+-- {id, name, sizeMiB, custom, needMiB, tooLarge}; empty while no model is installed.
 function M.localModelChoices()
-    local choices = {{id = 'auto'}}
+    local choices = {}
     for _, model in ipairs(M.mistral().localModels) do choices[#choices + 1] = model end
     return choices
 end
+
+-- The id of the model the row shows as selected while none was chosen (the largest that fits the free graphics memory), or nil.
+function M.localModelDefaultId() return M.mistral().localModelDefault end
+
+-- The id of the model turning Mature content on selects (the largest uncensored one that fits), or nil when there is none.
+function M.localModelMatureId() return M.mistral().localModelMatureDefault end
+
+-- The custom models the bridge could not use: [{name, reason}] (docs/LOCAL_AI.md, "Add your own model"); shown in the Local AI model row's help.
+function M.localModelProblems() return M.mistral().localModelProblems end
 
 function M.gazeChoices()
     local heights, strengths = {}, {}
@@ -1548,6 +1637,7 @@ function M.snapshot(player)
             followUpInterest = settings.followUpInterest,
             -- Part of the main mod: off by default, Local AI only. The optional Mature pack (uncensored models) only changes the help text.
             matureContent = settings.matureContent == true,
+            matureRestore = cleanMatureRestore(settings.matureRestore),
             localModel = validModelId(settings.localModel) and settings.localModel or 'auto',
             multilingualConversations = settings.multilingualConversations,
             archetypeConversations = settings.archetypeConversations,
@@ -1601,6 +1691,10 @@ function M.applySettings(player, values)
         elseif key == 'matureContent' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.matureContent = value
+        elseif key == 'matureRestore' then
+            -- What turning Mature content on changed (mod/mcm.lua), kept so turning it off can put it back; false clears it.
+            if value ~= false and cleanMatureRestore(value) == nil then return false, 'Invalid Mature content settings.' end
+            nextSettings.matureRestore = value and cleanMatureRestore(value) or nil
         elseif key == 'localModel' then
             if not validModelId(value) then return false, 'Choose one of the listed Local AI models.' end
             nextSettings.localModel = value
@@ -1673,6 +1767,17 @@ function M.applySettings(player, values)
         and (nextSettings.naturalSpeech == true or nextSettings.expressiveEmotions == true)
         and nextSettings.voiceProvider == 'convai'
     if switchedVoice then nextSettings.voiceProvider = 'pocket' end
+    -- No model chosen yet (or the value an older version saved, 'auto'): the row showed the default model as selected, so Apply saves its id.
+    -- Silent. Without a default (no model installed) the value stays 'auto' and the bridge keeps loading the largest model that fits.
+    if nextSettings.localModel == 'auto' then
+        local default = M.localModelDefaultId()
+        if default then nextSettings.localModel = default end
+    end
+    -- The record of what Mature content changed belongs to the time it is on: turning it off drops it, and turning it on
+    -- without one (nothing was changed for it) leaves none.
+    if nextSettings.matureContent ~= true or (settings.matureContent ~= true and values.matureRestore == nil) then
+        nextSettings.matureRestore = nil
+    end
     -- Turning Mature content on says once, in one line, that the content is for adults.
     local matureNotice = nextSettings.matureContent == true and settings.matureContent ~= true
         and ui.t('Mature content is on: companions may use adult language and themes. For adults (18+) only.') or nil

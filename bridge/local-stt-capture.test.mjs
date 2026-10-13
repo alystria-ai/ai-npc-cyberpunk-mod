@@ -189,7 +189,7 @@ const stt = new LocalStt({project: here, pythonExecutable: resolve(here, 'vendor
 const browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER
   || ['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(path => existsSync(path));
 const skip = (!stt.available() && 'local speech recognition is not installed here') || (!browserExecutable && 'no Chromium browser found') || (!existsSync(sample) && 'sample missing');
-test('browser capture: AudioWorklet chunks reach the recogniser and the clip is transcribed', {skip, timeout: 60000}, async () => {
+test('browser capture: AudioWorklet chunks reach the recogniser and the clip is transcribed', {skip, timeout: 90000}, async () => {
   const browser = await chromium.launch({executablePath: browserExecutable, headless: true,
     args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${sample}%noloop`,
       '--autoplay-policy=no-user-gesture-required', '--mute-audio']});
@@ -198,9 +198,17 @@ test('browser capture: AudioWorklet chunks reach the recogniser and the clip is 
   try {
     const partials = [];
     stt.on('partial', event => partials.push(event.text));
+    // Count what reaches the recogniser. The clip is 4.8 s (153,600 bytes of 16 kHz Int16); wait until all of it has arrived plus
+    // a little more, and for the first live words, however slowly the browser and the recogniser start on a loaded computer
+    // (a fixed 6.5 s sleep cut the clip short or beat the first live decode when the whole suite ran at once).
+    const wrapped = stt.pushAudio.bind(stt);
+    let received = 0;
+    stt.pushAudio = chunk => { received += chunk.byteLength; return wrapped(chunk); };
     await f.mic.start(input, config);
     assert.equal(f.states.at(-1), 'recording');
-    await tick(6500);   // the clip is 4.8 s long
+    const deadline = Date.now() + 40_000;
+    while ((received < 153_600 + 16_000 || !partials.length) && Date.now() < deadline) await tick(100);
+    assert.ok(received >= 153_600, `the whole clip reached the recogniser (${received} bytes)`);
     assert.ok(stt.heard() === '' || /\w/.test(stt.heard()));
     await f.mic.finish(input.requestId);
     assert.equal(f.errors.length, 0, f.errors.map(error => error.message).join());

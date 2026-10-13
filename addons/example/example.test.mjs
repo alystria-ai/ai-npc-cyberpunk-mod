@@ -93,7 +93,9 @@ test('the example evaluation script runs offline with a judge, and a repeated li
   assert.equal(parseScript(script).steps.length, 5);
   assert.throws(() => parseScript({speaker: 'voice', steps: [{event: 'x', say: 'y'}]}), /either "event" or "say"/);
   const lines = ['Oh good. Gunfire. My favourite genre.', 'Ninety-five seconds. Practically a nap.', 'Adequately. Do not let it go to your head.',
-    'Oh good. Gunfire. My favourite genre.', 'Forty seconds! A new record, V!'];
+    'Oh good. Gunfire. My favourite genre.', 'Oh good. Gunfire. My favourite genre.', 'Forty seconds! A new record, V!'];
+  // The fourth step repeats the first line, so the host asks once more (host.produce); the model repeats it again (the second entry),
+  // so the remark is still dropped.
   let index = 0;
   const chat = async ({messages}) => {
     if (messages[0].content.startsWith('You judge one spoken line')) return {text: '{"score": 7, "inCharacter": true, "fresh": true, "notes": "Dry and short."}'};
@@ -102,7 +104,9 @@ test('the example evaluation script runs offline with a judge, and a repeated li
   const result = await evaluateScript({addonDir: dir, script, chat, judge: llmJudge({chat, apiKey: 'stand-in-key'})});
   assert.equal(result.steps.length, 5);
   assert.deepEqual(result.steps.map(step => step.mode), ['dry', 'dry', 'dry', 'cheerful', 'cheerful']);
-  assert.equal(result.steps[3].duplicate, true, 'the fourth line repeats the first and is dropped');
+  assert.equal(result.steps[3].retried, true, 'a repeated remark gets one more try');
+  assert.equal(result.steps[3].duplicate, true, 'the fourth line repeats the first, even on the second try, and is dropped');
+  assert.equal(result.steps[4].line, 'Forty seconds! A new record, V!');
   assert.equal(result.duplicates, 1);
   assert.equal(result.steps[0].verdict.score, 7);
   assert.equal(result.average, 7);

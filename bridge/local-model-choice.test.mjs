@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {AUTO_MODEL, chooseLocalModel, describeLocalModels, listLocalModels, modelNeedMiB, normalisePin, stillSatisfies} from './local-model-choice.mjs';
+import {AUTO_MODEL, chooseLocalModel, defaultModelIds, describeLocalModels, listLocalModels, modelNeedMiB, normalisePin, sortLocalModels, stillSatisfies} from './local-model-choice.mjs';
 import {allowanceFor} from './mature-content.mjs';
 
 const MiB = {std: 5280, lite: 1311, bigMature: 5400, smallMature: 1400};
@@ -32,7 +32,7 @@ test('the list: standard, lite, then the Mature pack models; absent files are le
   assert.deepEqual(twins.map(model => model.id), ['mature:x', 'mature:x-2']);
 });
 
-test('auto without the Mature pack: the best installed model that fits, whatever the Mature setting says', () => {
+test('no choice (the default) without the Mature pack: the best installed model that fits, whatever the Mature setting says', () => {
   for (const matureOn of [false, true]) {
     assert.equal(pick(stock, {matureOn}).model.id, 'standard');
     assert.equal(pick(stock, {matureOn, freeMiB: needOf('standard') - 1}).model.id, 'lite');
@@ -41,12 +41,12 @@ test('auto without the Mature pack: the best installed model that fits, whatever
   assert.equal(result.pinned, false); assert.equal(result.fellBack, null); assert.equal(result.profile, 'standard');
 });
 
-test('auto with the Mature pack and Mature content off never picks an uncensored model', () => {
+test('no choice (the default) with the Mature pack and Mature content off never picks an uncensored model', () => {
   assert.equal(pick(withMature, {matureOn: false}).model.id, 'standard');
   assert.equal(pick(withMature, {matureOn: false, freeMiB: 2100}).model.id, 'lite');
 });
 
-test('auto with the Mature pack and Mature content on prefers the largest uncensored model that fits', () => {
+test('no choice (the default) with the Mature pack and Mature content on prefers the largest uncensored model that fits', () => {
   assert.equal(pick(withMature, {matureOn: true}).model.id, 'mature:big-uncensored');
   assert.equal(pick(withMature, {matureOn: true, freeMiB: needOf('mature:big-uncensored') - 1}).model.id, 'mature:small');
   // The big one's profile is by size (standard headroom), the small one's lite.
@@ -67,7 +67,7 @@ test('a pinned model is used whatever fits better, and whatever Mature content s
   assert.equal(pick(withMature, {pin: AUTO_MODEL, matureOn: true}).model.id, 'mature:big-uncensored');
 });
 
-test('a pinned model that is missing falls back to auto, and says why', () => {
+test('a chosen model that is missing falls back to the default, and says why', () => {
   const missing = pick(stock, {pin: 'mature:big-uncensored'});
   assert.equal(missing.model.id, 'standard'); assert.equal(missing.fellBack, 'missing'); assert.equal(missing.pinned, false);
   // With Mature content on and the pack gone, the fallback is still never an uncensored model.
@@ -75,7 +75,7 @@ test('a pinned model that is missing falls back to auto, and says why', () => {
   assert.equal(pick(withMature, {pin: 'nonsense', matureOn: true}).fellBack, 'missing');
 });
 
-test('a pinned model that does not fit falls back to auto, and says why (the low-memory fallback)', () => {
+test('a chosen model that does not fit falls back to the default, and says why (the low-memory fallback)', () => {
   const free = needOf('standard') - 1;
   const result = pick(stock, {pin: 'standard', freeMiB: free});
   assert.equal(result.model.id, 'lite'); assert.equal(result.fellBack, 'low-memory');
@@ -112,7 +112,7 @@ test('pins are read defensively', () => {
   for (const bad of [undefined, null, 5, '', 'a b', '../x', 'x'.repeat(81), {}]) assert.equal(normalisePin(bad), 'auto');
 });
 
-test('stillSatisfies: a pin needs that model, auto any model of the group it would pick from', () => {
+test('stillSatisfies: a chosen model needs that model, no choice any model of the group the default would pick from', () => {
   assert.equal(stillSatisfies({loadedId: 'standard', models: withMature, pin: 'standard'}), true);
   assert.equal(stillSatisfies({loadedId: 'standard', models: withMature, pin: 'lite'}), false);
   assert.equal(stillSatisfies({loadedId: 'lite', models: withMature, pin: 'auto', matureOn: false}), true);
@@ -124,9 +124,59 @@ test('stillSatisfies: a pin needs that model, auto any model of the group it wou
   assert.equal(stillSatisfies({loadedId: null, models: stock}), false);
 });
 
-test('the published list has names and sizes only', () => {
+test('the published list is sorted by file size, smallest first, equal sizes by name, and has names and sizes only', () => {
   const list = describeLocalModels(withMature, sizeOf);
-  assert.deepEqual(list[0], {id: 'standard', name: 'Gemma-4-E4B', sizeMiB: 5280});
+  assert.deepEqual(list.map(entry => entry.id), ['lite', 'mature:small', 'standard', 'mature:big-uncensored'], 'smallest to largest, no Auto entry');
+  assert.deepEqual(list[2], {id: 'standard', name: 'Gemma-4-E4B', sizeMiB: 5280});
   assert.equal(list.length, 4);
   for (const entry of list) assert.deepEqual(Object.keys(entry).sort(), ['id', 'name', 'sizeMiB']);
+  assert.equal(list.some(entry => entry.id === AUTO_MODEL), false);
+  // Equal sizes: by name (case-insensitive), then id; the input is not reordered.
+  const same = [{id: 'b', name: 'Zeta', file: 'a'}, {id: 'c', name: 'alpha', file: 'b'}, {id: 'a', name: 'Alpha', file: 'c'}, {id: 'd', name: 'tiny', file: 'd'}];
+  const bySame = file => (file === 'd' ? 100 : 500);
+  assert.deepEqual(sortLocalModels(same, bySame).map(model => model.id), ['d', 'a', 'c', 'b']);
+  assert.deepEqual(same.map(model => model.id), ['b', 'c', 'a', 'd']);
+  assert.deepEqual(describeLocalModels(same, bySame).map(entry => entry.id), ['d', 'a', 'c', 'b']);
+});
+
+test('the default model: the largest that fits the free memory, shown as selected; a legacy saved `auto` means the same', () => {
+  assert.equal(normalisePin('auto'), AUTO_MODEL, 'a value an older version saved still reads');
+  const ids = options => defaultModelIds({models: withMature, sizeOf, freeMiB: 24000, ...options});
+  assert.equal(ids().default, 'standard');
+  assert.equal(ids({freeMiB: needOf('standard') - 1}).default, 'lite');
+  assert.equal(ids({freeMiB: null}).default, 'lite', 'unknown free memory: the smallest, as when loading');
+  assert.equal(defaultModelIds({models: [], sizeOf}).default, null);
+  assert.deepEqual(defaultModelIds({models: [], sizeOf}), {default: null, mature: null});
+  // It is what loading chooses for `auto` (or for no choice at all), so the row never shows a model that is not the one loaded.
+  for (const freeMiB of [24000, needOf('standard') - 1, 2100]) {
+    assert.equal(ids({freeMiB}).default, pick(withMature, {pin: AUTO_MODEL, freeMiB}).model.id);
+    assert.equal(ids({freeMiB, matureOn: true}).default, pick(withMature, {pin: AUTO_MODEL, matureOn: true, freeMiB}).model.id);
+  }
+  assert.equal(ids({matureOn: true}).default, 'mature:big-uncensored', 'Mature content on: the default is the uncensored model');
+  // A migrated legacy value becomes the concrete id the settings page saves; loading it is a plain choice, not a fallback.
+  const migrated = pick(withMature, {pin: ids().default});
+  assert.deepEqual([migrated.model.id, migrated.pinned, migrated.fellBack], ['standard', true, null]);
+  // Nothing fits: no default to show (and loading says low-memory).
+  assert.equal(ids({freeMiB: 1000}).default, null);
+});
+
+test('turning Mature content on selects the largest uncensored model that fits, or nothing when none is installed', () => {
+  const ids = options => defaultModelIds({models: withMature, sizeOf, freeMiB: 24000, ...options});
+  assert.equal(ids().mature, 'mature:big-uncensored');
+  assert.equal(ids({freeMiB: needOf('mature:big-uncensored') - 1}).mature, 'mature:small');
+  assert.equal(ids({freeMiB: needOf('mature:small') - 1}).mature, null, 'installed but none fits: nothing is selected');
+  assert.equal(defaultModelIds({models: stock, sizeOf, freeMiB: 24000}).mature, null, 'no uncensored model installed');
+  assert.equal(ids({matureOn: false}).mature, 'mature:big-uncensored', 'the answer does not depend on the setting being on yet');
+});
+
+test('the fallback names the model it used: the largest that fits, an uncensored one first while Mature content is on', () => {
+  const missing = pick(withMature, {pin: 'gone', matureOn: false});
+  assert.deepEqual([missing.fellBack, missing.model.id, missing.model.name], ['missing', 'standard', 'Gemma-4-E4B']);
+  const matureMissing = pick(withMature, {pin: 'gone', matureOn: true});
+  assert.deepEqual([matureMissing.fellBack, matureMissing.model.name], ['missing', 'Gemma-4-E4B-uncensored']);
+  const tight = pick(withMature, {pin: 'standard', matureOn: true, freeMiB: needOf('standard') - 1});
+  assert.deepEqual([tight.fellBack, tight.model.id], ['low-memory', 'mature:small'], 'the largest uncensored model that fits');
+  const failed = withMature.map(model => (model.id === 'standard' ? {...model, broken: true} : model));
+  const afterFailure = chooseLocalModel({models: failed, pin: 'standard', sizeOf, freeMiB: 24000});
+  assert.deepEqual([afterFailure.fellBack, afterFailure.model.id], ['start-failed', 'lite']);
 });

@@ -88,7 +88,10 @@ and shifts the other 46-unit-high buttons left by its width plus the 20-unit gap
 buttons, Back takes the place where the last button would be. It is added again after every
 render, so it follows drafts appearing or clearing and page changes, and it exists on every
 non-root page, including the one MCM restores on reopen. Its click arrives through
-`McmUiEmitAction`; it returns to the parent page and is ignored while changes are pending. If the
+`McmUiEmitAction`; it returns to the parent page. **With pending changes it behaves exactly like Esc:** it
+opens the same "Unsaved changes" dialog through `McmUiEmitClosing` (the shared `holdForDrafts` in
+`mod/mcm.lua`: at most once in 2 s, never while the dialog is open, never more than five times in a row so
+the player is not trapped) instead of doing nothing. If the
 button cannot be added, Back is the last row of the page (`inspect().backMode == 'list'`).
 Settings, Relationships and Who can talk start with a status line, the row
 "Changes wait until you choose Apply.", which changes in place to "Change pending. Choose Apply to
@@ -461,7 +464,10 @@ does not check for failed allocation. The
 [allocator implementation](https://raw.githubusercontent.com/tiltedphoques/TiltedCore/v0.2.7/Code/core/src/ScratchAllocator.cpp)
 returns null when full and frees its space only at Reset. Repeated per-row tree
 walks inside the final-title observer fit that failure mechanism. The corrected
-version (`2e2a07a`) defers all widget operations and removes the repeated walks.
+version (`2e2a07a`) defers widget operations and removes the repeated walks. (2026-10-13: the draw hooks
+described under "Changing a value does not flash the page" do a small, bounded amount of widget work, about
+50 native calls per hook at most, never a walk; a hook that would exceed it fails and the page falls back to
+the deferred pass.)
 The dump's sole used matching scratch allocator has 12 bytes remaining out of
 1,048,576; the faulting reflected type requires 16 bytes aligned to 8. This
 confirms exhaustion rather than an ordinary Lua exception.
@@ -529,6 +535,59 @@ off for the session and the page is drawn again without it, so the page can neve
 mod's page, and a page for which MCM itself asks for hidden content, are passed through unchanged. Cost: one comparison per frame while
 nothing is held; nothing is walked in the observer.
 
-What is not changed: the status line and the bottom button row are still placed after the page is styled (the status line moves to the top of
-the column, Back is added and the other buttons shift), so on a value change they can still jump once; the page is blank for the one to three
-frames that styling takes. MCM's full redraw cannot be avoided from a provider.
+That first fix (`81ecce03`) still showed a blank page for one to three frames, and the status line and the bottom buttons, placed after the
+styling, jumped into place.
+
+### The page is given its final look while MCM draws it (early style)
+
+Root cause: MCM draws from its own update, after this module's in the frame, so anything done from `M.update` is at least one frame late.
+The fix moves the styling into the draw itself, with no per-row walk (`mod/mcm.lua`, block "Early style"):
+
+- `McmUiCreateText` is overridden (arguments only) while one of the three row builders (`McmUiAddManagedLabel`, `McmUiAddActionSetting`,
+  `McmUiAddReadonly`, also overridden to say which row is being built) runs: the label, marker and read-only label are created with the geometry,
+  font size and red label colour the styling pass would give them (`earlyRowText` is the same rule as `styleRow`).
+- The section headings are styled right after they are created (`SettingsCategoryController.McmUiSetup` + `McmUiAddCategory`, observers; a few
+  native calls each, a budget error otherwise).
+- `McmUiAddBottomActionAt` is overridden: the buttons on the bar line are held back and created together at the end of the draw, shifted left,
+  with Back at the right end, so the bar never jumps. Whatever happens every held button is created (the end of the draw, a failure, or
+  `M.update` half a second after a draw that never ended).
+- At the end of the draw (`McmUiSetContentTitle`) the status line is moved under the mod list (about 15 native calls), and the content, created
+  hidden by the first fix, is shown in that same call.
+
+The content is shown there only if every step is known to have worked in this very draw: the hooks fired and agree with MCM's own count (one
+`McmUiSetManagedLabelState` per managed row), nothing failed, the first label has margin 20, the status line, the scroll wrapper, the render root and
+the mod list were seen, and no font has to be applied (a Russian, Ukrainian, Chinese, Japanese or Korean interface, or a language chosen but not yet
+applied, keeps the font pass). Otherwise the page stays hidden and the older pass (`veilPage` / `styleCompletedPage`, idempotent over what the early
+style left) styles and shows it exactly as before. So a hook that is missing or does nothing on some game version costs only the old behaviour;
+three draws in a row that could not complete switch the early style off for the session. While idle there is no cost: the overrides act only
+between `McmUiBegin` and `McmUiSetContentTitle` of the manager's own page, and `M.update` adds a nil check.
+
+`runtime/mcm.log`: `Probe: early style shown: rows=N categories=N bar=N back=true` per draw (twelve at most) or `Probe: early style held: <reason>`;
+`Early style hook not installed: <method>` if an override could not be registered (then the early style is off).
+
+Other mods' pages are not touched: the overrides check that the page being drawn is the manager's.
+
+### The scroll position survives a redraw
+
+MCM captures the content scroll position before it draws and passes it to `McmUiBeginContent`, which sets it on a scroll area that is still empty
+(and, with the hold, hidden). A redraw nevertheless came back at the top. The provider now (a) reads the old page's position once in `McmUiBegin`
+(`McmUiGetContentScrollPosition`, only when the page being drawn is the one drawn last: same view, search and model page), (b) uses it when MCM's
+own argument is zero, and (c) sets the position again on the scroll wrapper's controller (`GetScrollPosition`, then `SetScrollPosition` only when it
+differs) in the call that shows the content: at the end of the early draw, or when the older pass or the stale-hold release shows the page. A page
+that was left (another view) starts at the top. `Probe: scroll position restored A -> B` in `runtime/mcm.log` says when it was needed (twelve at
+most). Not avoidable from a provider: MCM draws the whole screen again on every change (`drafts.changed` queues a render, and
+`handleStep` / `handleNumber` queue one too).
+
+### Mature content stages its companions as pending changes
+
+The Local AI provider, the Local AI model and Mature content sit in one group on Settings > Development (provider, Mature content, model, in that
+order). Turning **Mature content on** also stages, as pending changes before Apply (`api.setDraft`, from `M.update` after a `drafts.changed`
+event, never in a hook): the provider = Local AI (only when the Local AI pack is present; without it nothing else is touched and the notice and the
+help say Local AI is needed), the model = the largest uncensored model that fits (only when one is installed; otherwise the model is left alone), and, when the companion voice is a cloud voice (Voxtral, Inworld or Convai), a local voice (OmniVoice
+Balanced when its pack is installed, else Pocket TTS; left alone when Multilingual conversations is on and there is no OmniVoice pack, since Pocket is
+refused there). One line names what was staged and replaces MCM's "Pending: ..." status for eight seconds. Turning it **off** puts the provider,
+model and voice back, except any the player changed since. What was staged is kept in memory while the drafts are pending and, on Apply, in
+`settings.json` (`matureRestore`: `{conversationProvider = {before, set}, localModel = {before, set}, voice = {before, set}}`, validated on load and
+on Apply, dropped when Mature content is off; an older record whose model `set` is `auto` still restores). The Local AI model row has no Auto
+entry: it lists the installed models from the smallest file to the largest and shows the default (the largest that fits the free graphics memory)
+as selected until a model is chosen; Apply then saves that model's id (docs/LOCAL_AI.md, "Choosing the model"). Revert or Apply forgets the in-memory staging.

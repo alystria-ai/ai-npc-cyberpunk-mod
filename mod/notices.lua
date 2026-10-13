@@ -53,12 +53,13 @@ M.catalog = {
     ['local-fallback'] = {class = PLAYER, repeatS = 86400}, -- Local AI is chosen but could not start, so Convai is used: once per game session
     ['local-failed'] = {class = PLAYER, repeatS = 30},      -- a local turn could not be answered and no cloud provider took it over: say so on every attempt, not more than twice a minute
     ['local-turn-fallback'] = {class = PLAYER, repeatS = 600}, -- a local turn was answered by the cloud provider instead: about once per ten minutes
-    ['local-model-fallback'] = {class = PLAYER, repeatS = 60},    -- the Local AI model the player chose is missing or does not fit, so Auto chose (the bridge sends it once per choice)
+    ['local-model-fallback'] = {class = PLAYER, repeatS = 60},    -- the Local AI model the player chose is missing, does not fit or did not start, so the largest model that fits was used (the bridge sends it once per choice)
     -- Starting a conversation
     ['talk-no-target'] = {class = PLAYER, repeatS = 20},
     ['talk-no-profile'] = {class = PLAYER, repeatS = 20},
     ['group-needs-two'] = {class = PLAYER, repeatS = 20},
     ['talk-connecting'] = {class = PLAYER, repeatS = 10},
+    ['message-lost'] = {class = PLAYER, repeatS = 5},         -- a typed message was dropped (empty text box confirmed, box closed without a result, request not written)
     ['voice-needs-convai'] = {class = PLAYER, repeatS = 15},   -- the voice key is pressed while Mistral is in use and this computer cannot recognise speech
     ['mic-connecting'] = {class = PLAYER},
     ['mic-listening'] = {class = PLAYER},
