@@ -12,7 +12,8 @@ import {PersonaBook, systemHead} from './mistral-prompt.mjs';
 import {TextProviderHost, mistralRoute} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 
-const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
+// Line endings normalised: a Windows checkout (core.autocrlf) has CRLF, and the source checks below match on \n.
+const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
 function manifest(overrides = {}) {
   return {schema: 1, id: 'skippy', name: 'Skippy', version: '1.0.0', requires: {api: '1.0'},
