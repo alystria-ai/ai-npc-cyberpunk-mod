@@ -118,6 +118,8 @@ test('reply cleaning removes labels, stage directions, markdown, emoji and stray
   assert.equal(clean('## Heading\n- one\n- two'), 'Heading one two');
   assert.equal(clean('<think>planning the answer</think>Ready when you are.'), 'Ready when you are.');
   assert.equal(clean('<think>never closed'), '');
+  assert.equal(clean('Stay behind me, V. Where are they? </think>'), 'Stay behind me, V. Where are they?', 'a stray closing tag at the end goes alone');
+  assert.equal(clean('Let me think about it.</think>\n\nReady when you are.'), 'Ready when you are.', 'a stray closing tag with the answer after it');
   assert.equal(clean('Come on, {choomba} let us go.'), 'Come on, let us go.');
   assert.equal(clean('{joy}Sure thing, V. [laughter]'), '{joy}Sure thing, V. [laughter]');
   assert.equal(clean('Sure [laughing out loud] thing.'), 'Sure thing.');

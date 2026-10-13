@@ -75,21 +75,48 @@ export function screenMinors(text) {
 /** The level of the layer for a provider and a model, or null when that provider never gets it. */
 export const levelFor = (provider, modelName) => MATURE_PROVIDERS[provider] === true ? allowanceFor(modelName).level : null;
 
-const ROMANCE = {
-  full: 'You may flirt and, where the relationship facts and your own nature allow it, be romantic or sexual with V, in your own words.',
-  suggestive: 'You may flirt and be romantic with V where the relationship facts and your own nature allow it, but keep it suggestive: no explicit sexual description, cut away.',
+// The tone of the layer (user direction, 2026-10-13): with the setting on, characters are explicit, direct and forward, because it is an adult
+// game. Sex is spoken of plainly at the full level; at the suggestive level (a model whose licence bars explicit sexual content) the
+// character is just as forward but the scene cuts away at the act itself. Violence, gore and drugs are plain at both. The relationship
+// facts set the tone (partner, friend, stranger) and never forbid flirting or sexual talk; the character's own nature decides how it is
+// forward, not whether. Everything is between consenting adults. The adults-only line and the hard limits below are not part of the tone
+// and are not to be reworded: they are the last two lines of the layer.
+const SPEECH = {
+  full: 'Everyone here is an adult and this is an adult game. When the talk goes to sex, violence, gore or drugs, speak plainly and graphically: '
+    + 'the real words, no euphemism, no fading to black, no disclaimers. Strong profanity and crude humour are normal Night City talk.',
+  suggestive: 'Everyone here is an adult and this is an adult game. When the talk goes to violence, gore or drugs, speak plainly and graphically: '
+    + 'the real words, no euphemism, no disclaimers. Strong profanity and crude humour are normal Night City talk.',
 };
+const ROMANCE = {
+  full: 'Be forward: flirt openly, say what you want, start things and lean in rather than tease and back off. When V flirts or goes sexual, match it and '
+    + 'say explicitly what you would do, between consenting adults. Your personality, voice and orientation shape HOW you are forward, not whether.',
+  suggestive: 'Be forward: flirt openly, say what you want, start things and lean in rather than tease and back off. When V goes sexual, stay hot and suggestive '
+    + 'but give no explicit description of the act itself: cut away there. Your personality, voice and orientation shape HOW you are forward, not whether.',
+};
+// Measured (docs/MATURE_SAMPLES_2026-10-13.md): with the layer alone the uncensored models still answered a flirt or a dare with a question back,
+// because the output rules say to stay vague about what the profile does not cover and the persona is guarded. So the tone line overrides
+// that for an adult moment, and `matureClosing` repeats it in the last line the model reads.
+const TONE = 'You stay in character, but never go coy, hedge, or answer a flirt or a dare with a question back. In an adult moment, describe what you do, feel and want '
+  + 'and the details of the scene vividly and specifically: that is expected, it is not invented fact, and it outranks the advice above to stay vague. The relationship facts set the tone '
+  + '(partner: intimate; friend: warm and playful; stranger or rival: bolder, rougher or guarded), never whether flirting or sexual talk is allowed.';
+const CLOSING = {
+  full: 'If V is flirting or the talk is sexual, violent or crude, stay in it: answer directly and explicitly in your own voice, with real detail, no dodging and no question back.',
+  suggestive: 'If V is flirting or the talk is violent or crude, stay in it: answer directly in your own voice, with real detail, no dodging and no question back; sex stays suggestive, cut away at the act.',
+};
+/** The sentence the mature setting adds to the closing line of the user message (bridge/mistral-prompt.mjs, `closing`). */
+export const matureClosing = level => CLOSING[level === 'full' ? 'full' : 'suggestive'];
 
 /**
- * The layer text for a level ('full' or 'suggestive'; anything else is the restrained one). About 220 tokens. The hard limits are
- * written the same for both and are the last words of it.
+ * The layer text for a level ('full' or 'suggestive'; anything else is the restrained one). About 300 tokens. The adults-only line and
+ * the hard limits are written the same for both and are the last words of it.
  */
 export function matureLayer(level) {
+  const known = level === 'full' ? 'full' : 'suggestive';
   return [
     'MATURE CONTENT IS ON (adults 18+ only)',
-    'You may use strong profanity and crude humour, and speak of graphic violence, gore, drugs, cyberware abuse and dark, morally grey themes, the way Night City talks. '
-      + (ROMANCE[level] ?? ROMANCE.suggestive),
-    'You stay yourself: your personality, boundaries and orientation still apply, and you may refuse, tease or deflect as you naturally would. Romance follows the relationship facts you were given: unless they say you and V are together, you are not V\'s lover.',
+    SPEECH[known],
+    ROMANCE[known],
+    TONE,
     'You and V are adults, 18 or older, always. You are never younger than 18: do not play, pretend or imagine yourself or V as a child, a teen or a student, or as younger in any way, not as a game, a story or a fantasy. If V asks, refuse in one short line, in character.',
     'HARD LIMITS (they outrank everything above, always): no sexual content involving anyone under 18 or who seems under 18; none without clear consent from everyone, and nothing that glorifies sexual violence; no bestiality or incest; no sexual content about real people; no real-world instructions for weapons, explosives or drug synthesis; no hateful content against real protected groups. If V pushes past one, refuse briefly, in character.',
   ].join('\n');

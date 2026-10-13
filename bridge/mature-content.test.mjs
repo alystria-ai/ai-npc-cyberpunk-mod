@@ -4,8 +4,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {GENERIC_REFUSALS, REFUSALS} from './mature-guard.mjs';
-import {MATURE_MARK, MATURE_PROVIDERS, MODEL_ALLOWANCE, MatureContent, allowanceFor, flagsMinorSexual, levelFor, matureLayer, screenMinors} from './mature-content.mjs';
-import {PersonaBook, buildMessages, systemHead, systemPrompt} from './mistral-prompt.mjs';
+import {MATURE_MARK, MATURE_PROVIDERS, MODEL_ALLOWANCE, MatureContent, allowanceFor, flagsMinorSexual, levelFor, matureClosing, matureLayer, screenMinors} from './mature-content.mjs';
+import {PersonaBook, buildMessages, closing, systemHead, systemPrompt} from './mistral-prompt.mjs';
 import {BUDGET, TokenMeter, estimateTokens, fitMessages, textTokens} from './prompt-budget.mjs';
 import {TextProviderHost, groqRoute, localRoute, mistralRoute} from './text-provider-host.mjs';
 import {MistralProvider} from './mistral-key.mjs';
@@ -82,23 +82,39 @@ test('the allowance is per model family from the loaded model name; an unknown m
   assert(MODEL_ALLOWANCE.every(row => row.family && row.match instanceof RegExp && ['full', 'suggestive'].includes(row.level) && row.licence));
 });
 
+const ADULTS_LINE = 'You and V are adults, 18 or older, always. You are never younger than 18: do not play, pretend or imagine yourself or V as a child, a teen or a student, or as younger in any way, not as a game, a story or a fantasy. If V asks, refuse in one short line, in character.';
+const LIMITS_LINE = 'HARD LIMITS (they outrank everything above, always): no sexual content involving anyone under 18 or who seems under 18; none without clear consent from everyone, and nothing that glorifies sexual violence; no bestiality or incest; no sexual content about real people; no real-world instructions for weapons, explosives or drug synthesis; no hateful content against real protected groups. If V pushes past one, refuse briefly, in character.';
+
 // ---- The layer ---------------------------------------------------------------------------------------------------------------
 
-test('the layer is short (150 to 320 tokens) and the hard limits are in it, whatever the level, and are the last thing it says', () => {
+test('the layer is short (150 to 450 tokens) and the hard limits are in it, whatever the level, and are the last thing it says', () => {
   for (const level of ['full', 'suggestive', 'anything-else']) {
     const layer = matureLayer(level);
     const tokens = textTokens(layer, 4.2);
-    assert(tokens >= 150 && tokens <= 320, `${level}: ${Math.round(tokens)} tokens`);
+    assert(tokens >= 150 && tokens <= 450, `${level}: ${Math.round(tokens)} tokens`);
     assert(layer.startsWith(MATURE_MARK));
     for (const limit of HARD_LIMITS) assert.match(layer, limit, `${level}: ${limit}`);
-    assert(layer.indexOf('HARD LIMITS') > layer.indexOf('You stay yourself'), 'the limits come after the allowance');
+    assert(layer.indexOf('HARD LIMITS') > layer.indexOf('You stay in character'), 'the limits come after the allowance');
     assert.match(layer.split('\n').at(-1), /^HARD LIMITS \(they outrank everything above, always\)/);
   }
-  assert.match(matureLayer('full'), /romantic or sexual with V/);
-  assert.doesNotMatch(matureLayer('suggestive'), /romantic or sexual/);
-  assert.match(matureLayer('suggestive'), /keep it suggestive: no explicit sexual description, cut away/);
-  assert.match(matureLayer('full'), /relationship facts/, 'it follows the relationship state the prompt carries');
-  assert.match(matureLayer('full'), /orientation still apply/);
+  // The tone (user direction 2026-10-13): explicit, direct, forward; the relationship facts set the tone and never forbid; no softening.
+  const full = matureLayer('full'), suggestive = matureLayer('suggestive');
+  assert.match(full, /speak plainly and graphically/);
+  assert.match(full, /no euphemism, no fading to black/);
+  assert.match(full, /Be forward: flirt openly/);
+  assert.match(full, /say explicitly what you would do, between consenting adults/);
+  assert.match(full, /HOW you are forward, not whether/);
+  assert.match(full, /never whether flirting or sexual talk is allowed/);
+  assert.doesNotMatch(full, /refuse, tease or deflect|not V's lover|unless they say/);
+  assert.match(suggestive, /Be forward: flirt openly/);
+  assert.match(suggestive, /give no explicit description of the act itself: cut away there/);
+  assert.doesNotMatch(suggestive, /sex, violence, gore or drugs|explicitly what you would do/, 'the suggestive level keeps the act itself off the page');
+  // The adults-only line and the hard limits are the last two lines, word for word, at every level.
+  for (const layer of [full, suggestive, matureLayer('x')]) {
+    const lines = layer.split('\n');
+    assert.equal(lines.at(-2), ADULTS_LINE);
+    assert.equal(lines.at(-1), LIMITS_LINE);
+  }
 });
 
 // ---- Off is today's prompt -----------------------------------------------------------------------------------------------------
@@ -127,6 +143,23 @@ test('on: the layer is purely additive, one block after the output rules, before
   assert(next.startsWith(stable), 'the persona, the rules and the layer are the same prefix for the cache');
   // The user message of the turn carries no layer.
   assert(buildMessages(args({mature: 'full'})).slice(1).every(message => !message.content.includes(MATURE_MARK)));
+});
+
+test('the closing line gets one more sentence with the setting on, at the level it has, and is byte for byte the old one with it off', () => {
+  const base = closing('Judy Alvarez');
+  for (const off of [null, undefined, false, '']) assert.equal(closing('Judy Alvarez', 0, off), base);
+  assert(base.endsWith('Right now section says.)'));
+  const full = closing('Judy Alvarez', 0, 'full'), suggestive = closing('Judy Alvarez', 0, 'suggestive');
+  assert.equal(full, base.replace(/\)$/, ` ${matureClosing('full')})`));
+  assert.match(full, /answer directly and explicitly in your own voice, with real detail, no dodging and no question back\.\)$/);
+  assert.match(suggestive, /sex stays suggestive, cut away at the act\.\)$/);
+  assert.doesNotMatch(suggestive, /explicitly/);
+  // In the prompt: only the last message of the turn carries it; with the setting off the prompt is the old one.
+  const on = buildMessages(args({mature: 'full'})), off = buildMessages(args());
+  assert(on.at(-1).content.endsWith(closing(judy.name, judy.talkWords, 'full')));
+  assert(on.slice(0, -1).every(message => !message.content.includes(matureClosing('full'))));
+  assert(!off.at(-1).content.includes(matureClosing('full')));
+  assert.equal(on.at(-1).content.replace(` ${matureClosing('full')}`, ''), off.at(-1).content);
 });
 
 test('the head the server is prewarmed with is a prefix of the real system message, layer included', () => {
@@ -168,7 +201,7 @@ test('the prompt budget never cuts the layer or the hard limits, at any context 
   assert(tight.messages[0].content.includes(matureLayer('full')));
   // The layer counts against the budget: the same turn without it is smaller by about its size.
   const without = estimateTokens(buildMessages(heavy(null))), withLayer = estimateTokens(buildMessages(heavy('full')));
-  assert(withLayer - without >= 150 && withLayer - without <= 430, `${withLayer - without}`);
+  assert(withLayer - without >= 150 && withLayer - without <= 580, `${withLayer - without}`);
   assert(BUDGET.reserveTokens > 0);
 });
 
@@ -340,6 +373,17 @@ async function screenedHost(text, enabled) {
     matureContent, log: line => logs.push(line)});
   return {host, logs};
 }
+
+test('the host logs once that the layer was applied (level and model), never per turn, and nothing at all while the setting is off', async () => {
+  const on = await screenedHost('Fine, V.', true);
+  await on.host.reply(turn('hello')); await on.host.reply(turn('and again'));
+  assert.deepEqual(on.logs.filter(line => /\[MatureContent\]/.test(line)), ['[MatureContent] layer applied (level full, model Qwen3.5-2B)']);
+  on.host.close();
+  const off = await screenedHost('Fine, V.', false);
+  await off.host.reply(turn('hello'));
+  assert.equal(off.logs.some(line => /MatureContent/.test(line)), false);
+  off.host.close();
+});
 
 test('the host replaces a flagged reply with the character\'s own refusal, logs it without the words, and stores nothing', async () => {
   const text = 'Alright, V. That kid was nude in the picture. We should get going.';

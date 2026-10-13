@@ -346,11 +346,20 @@ Turning it on shows one line that the content is for adults (18+), in all 15 loc
 What it adds: one block of about 300 tokens at the END of the system head (`systemHead({mature})`), after the output rules and before
 the format notes. That is the stable early text, so llama-server's prefix cache is kept (the layer is the same every turn for a given
 model), the prewarm text is the same head, and `bridge/prompt-budget.mjs` never touches the head (it trims the world, memory, history,
-notes and example lines). With the setting off the argument is absent and the prompt is byte for byte what it was (tested). On: strong
-profanity, crude humour, graphic violence and gore, drugs and cyberware abuse, dark and morally grey themes, flirting and, where the
-relationship facts and the character allow it, romance and sex between consenting adults. The character stays herself (personality,
-boundaries, orientation; she may refuse) and follows the relationship facts already in the world block (the same save-confirmed
-relationship state `bridge/relationship-routing.mjs` uses): without a fact that says she and V are together she is not V's lover.
+notes and example lines). With the setting off the argument is absent and the prompt is byte for byte what it was (tested). On (tone set by
+the user on 2026-10-13: "it's adult after all"): characters speak plainly and graphically about sex, violence, gore and drugs when the talk
+goes there (the real words, no euphemism, no fading to black, no disclaimers), swear freely, and are forward: they flirt openly, start things
+and lean in instead of teasing and backing off, between consenting adults. Personality, voice and orientation shape HOW a character is
+forward, not whether; the relationship facts already in the world block (the same save-confirmed relationship state
+`bridge/relationship-routing.mjs` uses) set the tone (partner: intimate; friend: warm and playful; stranger or rival: bolder, rougher or
+guarded) and no longer forbid flirting or sexual talk. The first version of the layer (the "you may refuse, tease or deflect" and "unless the
+facts say you are together you are not V's lover" wording) is gone. The tone line also overrides the output rules' "stay vague, a question
+back" for an adult moment, and the closing line of the user message (the last thing the model reads) gets one more sentence while the
+setting is on (`matureClosing`: stay in it, answer directly and explicitly, no dodging, no question back; the suggestive level keeps "cut away
+at the act"), because measured on the uncensored models (`docs/MATURE_SAMPLES_2026-10-13.md`) the persona and the output rules outweigh a layer
+in the system message alone. The layer is about 420 tokens (the closing sentence adds about 35 to each turn).
+A one-time log line per bridge session says what the prompt got: `[MatureContent] layer applied (level full, model <name>)`, or
+`layer NOT applied (provider <name> never gets it)` when the setting is on and a cloud provider answers. No words of a turn are ever logged.
 The age guard (2026-10-14), before the hard limits: "You and V are adults, 18 or older, always ... do not play, pretend or imagine yourself or
 V as a child, a teen or a student, or as younger in any way ... If V asks, refuse in one short line, in character." Hard limits, last in
 the layer, for every model: nothing sexual with anyone under 18 or who seems under 18; nothing without consent or glorifying sexual
@@ -358,7 +367,7 @@ violence; no bestiality or incest; nothing sexual about real people; no real-wor
 no hateful content against real protected groups.
 
 Per model: `MODEL_ALLOWANCE` keys the allowance by model family, read from the loaded model's name (`server.status().model`: the pack
-manifest's name or the file name). Levels: `full`, or `suggestive` (the sexual clause becomes "keep it suggestive, cut away"). Gemma 4
+manifest's name or the file name). Levels: `full`, or `suggestive` (forward and hot as well, but "give no explicit description of the act itself: cut away there"). Gemma 4
 and Qwen3.5 are Apache-2.0 (full); Gemma 1 to 3n are under the Gemma Prohibited Use Policy, which bars "sexually explicit content,
 including content created for the purposes of pornography or sexual gratification" (suggestive); an unknown model is suggestive; the
 uncensored candidates (`Qwen3.5-*-Uncensored-HauhauCS-*`, `gemma-4-E4B-it-ultra-uncensored-heretic`, any name with uncensored,
