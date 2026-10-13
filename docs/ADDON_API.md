@@ -121,6 +121,7 @@ Installed path: `bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai<Name>/
 | `persona.backstory` | Required. At most 12,000 characters. Who the speaker is. |
 | `persona.intro` / `identityRule` | Optional. Replace the opening line ("You are X, a real person…") and the "you are a real person" rule. A voice that is not a person should set both. |
 | `persona.style` / `samples` / `rules` | Speaking style; at most 12 example exchanges (each at most 600 characters); at most 12 rules. |
+| `persona.talkWords` | Optional whole number, 8–60. The longest answer, in words, the speaker gives V when V talks to it. It replaces the main mod's own length rule ("one to three short sentences, about 15 to 40 words, longer when asked") in the output rules and in the reminder after V's words with "one or two short sentences and at most N words", even when V asks for a long answer. Without it the main mod's rule applies, as for every character. A mode may set its own `talkWords`. Remarks are not affected: they follow their own `maxWords`. |
 | `modes` / `defaultMode` | Optional personalities, at most 4 (see Personas and modes). `defaultMode` defaults to the first mode. |
 | `voice` | Optional. `reference`: a PCM `.wav` inside the folder, at most 8 MB and 0.1–20 s long. `transcript`: the exact words in it. `sha256`: optional checksum. Without a voice the speaker is shown as subtitles only. |
 
@@ -374,6 +375,7 @@ A mode switch starts a new prefix. A mode combines with the base persona like th
 | `samples` | the mode's `samples`, or the base samples |
 | `rules` | base rules, then the mode's rules |
 | `intro`, `identityRule` | the mode's, or the base ones |
+| `talkWords` | the mode's, or the base one |
 
 **Few-shot samples are the strongest lever.** A small model copies their length, rhythm and attitude.
 - Write 3–6 samples per mode, each as one exchange: `"V: <words>\nSkippy: <line>"` for talk, and
@@ -384,10 +386,17 @@ A mode switch starts a new prefix. A mode combines with the base persona like th
 
 **Anti-repetition.** The bridge keeps each speaker's last 12 spoken lines (`runtime/addon-journal.json`, across game sessions):
 - The last 6 go into every prompt as "Your most recent lines (never repeat one, its joke or its wording; find a new angle)".
-- A remark that nearly repeats one of the last 8 is **dropped before it is spoken** (`errorCode: 'addon-duplicate'`, silent), and
-  the next event gets a fresh chance.
-- "Nearly repeats" (`isNearDuplicate`) means the same words, a word overlap of 0.6 or more, or the same run of four words.
-- A reply to something V typed is never dropped.
+- A remark that nearly repeats one of the last 8 is **written once more** before anything is dropped: the second try gets a block
+  that names the repeated line and the line it resembled ("Do not reuse any phrasing from these"). Only if that is a repeat too is
+  the remark **dropped before it is spoken** (`errorCode: 'addon-duplicate'`, silent), and the next event gets a fresh chance.
+- **The second try respects the staleness rule.** It starts only if the time the first try took, times 1.25, plus 250 ms, still ends
+  before the remark's `ttl` runs out (`reaction.expiresAt`); otherwise the remark is dropped at once. A line from stock that
+  repeats counts the first try as 900 ms. At most two model requests per remark; nothing is generated when the first line is fresh.
+- "Nearly repeats" (`isNearDuplicate`) means the same words, a word overlap of 0.6 or more, or the same run of four words that holds
+  at least two words that are not common. Function words, number words and units (`the`, `shall`, `hundred`, `metres`, `eddies`,
+  `V`, ...) are common, so "I shall continue to" and "three hundred and fifty eddies" are not a repeat, while "do try not to sign
+  anything" is. Curly apostrophes and quotation marks are read as straight ones (`you’re` is one word).
+- A reply to something V typed is never checked, dropped or written again.
 
 **Memories for callbacks.** `handle:remember(speakerId, text)`, or the bridge module's `remember` hook, adds a memory. The last 6
 go into the speaker's prompt as "Earlier moments you shared with V", to call back to now and then. Keep each memory one concrete
@@ -418,7 +427,11 @@ that throws, returns a promise or fails three times is switched off, and the add
 export const apiVersion = '1.0';
 
 let log = () => {};
-/** Once at bridge start. api = {version, addon: {id, name, version, speakers}, log, settings(), state()} (frozen). */
+/**
+ * Once at bridge start. api = {version, addon: {id, name, version, speakers}, log, settings(), state(), character(keyOrName)} (frozen).
+ * character("Panam Palmer") -> {key, name, gender: 'female' | 'male' | null}, or null for someone the main mod does not know (call
+ * it from a hook, not from activate: the roster is attached after the modules load). Use it to give a companion's pronoun.
+ */
 export function activate(api) { log = api.log; }
 
 /** Extra blocks for the speaker's own turns: [{key, text, tier}]. event/facts are null for a conversation turn. */
@@ -433,8 +446,12 @@ export function trigger({speaker, event, text, facts, maxWords, mode, settings})
 /** Blocks for every companion's turns (profileKey is the companion). */
 export function companionBlocks({profileKey, group, state, settings}) { return []; }
 
-/** A line the speaker just said: return a memory string to keep, or nothing. */
-export function remember({speaker, event, facts, mode, line, reaction, settings}) {
+/**
+ * A line the speaker just said: return a memory string to keep, or nothing. `heard` is the text the line answered (the event's
+ * sentence, or what V or the previous speaker said; at most 240 characters), `group` is true in a group round. A module may keep
+ * its own short, in-memory log of the current ride or fight from these calls (nothing else here may have side effects).
+ */
+export function remember({speaker, event, facts, mode, line, heard, group, reaction, settings}) {
   return event === 'fight-end' && facts?.kills >= 5 ? `A ${facts.kills}-kill fight; Skippy said: "${line}"` : null;
 }
 
@@ -523,7 +540,12 @@ node scripts/addon-eval.mjs --addon addons/skippy --script addons/skippy/eval/fi
    ]}
   ```
 
-- Each step goes through the same persona and mode, blocks, trigger, recent lines, duplicate drop and text host as in the game.
+- A script or a step may carry `state`: the add-on state the game would have written (what a bridge module's hooks receive as
+  `state`). A step's state stays until another step sets one. A field named `...At` holding a number of zero or less means that many
+  seconds from now (`"startedAt": -180` is three minutes ago). A bridge module is loaded and its hooks run, so what the module builds
+  from state and facts (ride blocks, logs) is evaluated, not hand-written into `blocks`.
+- `--gap-ms N` (default 1500) spaces every model request, so a shared free key is not hit in bursts.
+- Each step goes through the same persona and mode, blocks, trigger, recent lines, second try and duplicate drop (`AddonHost.produce`) and text host as in the game.
   Nothing touches the game, Convai or the player's memories.
 - The key comes from `MISTRAL_API_KEY`, or from the key saved in the state folder, and is never printed.
 - `--judge` scores each line from 1 to 10 with a second model, against this rubric: in character, fun, fits the moment, short and
@@ -569,7 +591,7 @@ check the list of calls.
 | `mod/microphone.lua`, `mod/manager.lua` | `microphone.decorate` (add-on blocks at start and finish); `manager.speechRecognitionReady()` (the bridge's `stt` flag). |
 | `mod/mcm.lua`, `mod/notices.lua` | Add-on settings sections; the `addon-notice` notice. |
 | `bridge/convai-bridge.mjs` | `AddonHost.load`, `extend` (roster rows; add-on Convai IDs removed), voice config merge, status, state/settings watchers, journal; `runAddonTurn` before every Convai step of `runInput`; one `TextProviderHost` per add-on route (`fixedProvider`, `sharedMemory`, never Groq); `onWarm`. The microphone poll's add-on branches (start, finish, watch) and `bridge/addon-voice.mjs` (the channel on the Mistral route's recogniser; `MicrophoneSession` passes its `hostFactory` the recording). |
-| `bridge/protocol.mjs`, `bridge/mistral-prompt.mjs` | The `addon` request field and reaction; persona rows with `intro`, `identityRule` and `rules`. |
+| `bridge/protocol.mjs`, `bridge/mistral-prompt.mjs` | The `addon` request field and reaction; persona rows with `intro`, `identityRule`, `rules` and `talkWords` (an add-on row only; the main mod's length rule is unchanged for every other row). |
 
 ## What the game must confirm live
 

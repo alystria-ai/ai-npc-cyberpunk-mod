@@ -138,6 +138,24 @@ destination, the weather, the time, who is aboard, and the fare. The persona mus
 now?", "how much is this costing me?" from that block, and say plainly what he does not know. Companions get a short note that
 they are riding in a Delamain cab with V and that Delamain can hear them.
 
+## What the bridge module sends (response quality)
+
+- **Weather** goes only with the first two events of a ride (`boarded`, `ride-start`; a ride with no `boarded` sends it with
+  `ride-start` and `district-passed`). Later remarks are told not to mention it; talk answers get it as "mention it only if V asks".
+  The companion note drops it after the first two events too. The 8b model repeats every fact it is given.
+- **Fare** goes with the ride start and talk, never with `arrival` (the persona says it once, at the start; repeating it at arrival
+  was the main cause of dropped repeats). The `arrival` guidance does not ask for it.
+- **Companion pronoun.** The bridge asks the main mod (`api.character(name)`) who the companion is and writes "Panam Palmer
+  (she/her) rides with V". An unknown companion is sent with the name alone.
+- **Ride log.** The module keeps up to six notes for the current ride in memory (what happened or what V said, and what Delamain
+  answered, each at most 90 characters of speech) and sends the newest ones that fit 1,100 characters as "Earlier on this ride", so
+  he can call back within the ride. It restarts when the ride number changes or after 30 minutes of silence. Never written to disk.
+- **Talk length.** `persona.talkWords` is 25 (32 in the fragmented mode): answers to V are one or two short sentences, at most 25
+  words, whatever the main mod's own limit says.
+- **Quest ending.** The game stores which ending of *Don't Lose Your Mind* the player got (`sq025_delamain_fate`, values 1 to 3),
+  but the repository's research does not say which value is which ending, so no fact or mode is sent and Delamain stays ambiguous
+  (see the bible, section 4).
+
 ## Memories (the `remember` hook)
 
 After an `arrival` or `ride-interrupted` line, the bridge keeps one sentence when the ride was notable (a companion aboard, three

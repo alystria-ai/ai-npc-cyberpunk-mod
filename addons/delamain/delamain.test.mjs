@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {WORLD, runLua} from '../../bridge/addon-lua-harness.mjs';
-import {ADDON_MANIFEST, AddonHost, fixedProvider, sharedMemory, validateManifest} from '../../bridge/addons.mjs';
+import {ADDON_MANIFEST, AddonHost, fixedProvider, rosterLookup, sharedMemory, validateManifest} from '../../bridge/addons.mjs';
 import {parseInput} from '../../bridge/protocol.mjs';
 import {PersonaBook, joinBlocks} from '../../bridge/mistral-prompt.mjs';
 import {TextProviderHost, mistralRoute} from '../../bridge/text-provider-host.mjs';
@@ -419,13 +419,14 @@ test('the bridge answers a ride-start remark: persona, the ride block with the f
     local: {profileKey: input.profileKey, name: 'Delamain', channel: 'private'}});
   assert.match(reply.text, /Heavy rain/);
   const prompt = sent[0].map(message => message.content).join('\n');
-  assert.match(prompt, /You are Delamain, the artificial intelligence that drives this cab/);
+  assert.match(prompt, /You are Delamain, the artificial intelligence that owns and runs Delamain/);
+  assert.match(prompt, /at most 25 words/, 'the speaker sets its own talk length');
   assert.match(prompt, /no body/);
   assert.match(prompt, /The ride right now/);
   assert.match(prompt, /Judy Alvarez rides with V/);
   assert.match(prompt, /Your sensors show heavy rain/);
   assert.match(prompt, /The fare is 150 eddies/);
-  assert.match(prompt, /about 4\.2 km, to the north-east|about 4\.2 km from where the ride began, to the north-east/);
+  assert.match(prompt, /about 4\.2 kilometres, to the north-east|about 4\.2 kilometres from where the ride began, to the north-east/);
   assert.match(prompt, /you must not name it/);
   assert.match(prompt, /do not invent a destination name/);
   assert.match(prompt, /one spoken line of at most 24 words/);
@@ -485,5 +486,111 @@ test('the elapsed-time phrase and distance wording are plain', () => {
   assert.ok(lines.some(line => /about 700 metres/.test(line)), lines.join('|'));
   assert.ok(lines.includes('V rides alone.'));
   assert.ok(lines.some(line => /driving for about 2 minutes/.test(line)));
+  module.resetRideLog();
   assert.deepEqual(module.speakerBlocks({state: null, facts: null}).map(block => block.key), ['ride'], 'even with no data the block says V rides alone');
+});
+
+// ---- response quality: weather, fare, pronouns, the ride log ---------------------------------------------------------------
+
+const RAIN = {rideNumber: 7, weather: 'heavy rain', timeOfDay: 'night', hour: 23, district: 'Watson'};
+const blockText = (blocks, key) => blocks.find(block => block.key === key)?.text ?? '';
+
+test('the weather goes only with the first two events of a ride, and is mentioned again only if V asks', () => {
+  module.resetRideLog();
+  const first = blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'boarded'}), 'ride');
+  const second = blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'ride-start'}), 'ride');
+  const third = blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'district-passed'}), 'ride');
+  assert.match(first, /Your sensors show heavy rain/);
+  assert.match(second, /Your sensors show heavy rain/);
+  assert.doesNotMatch(third, /Your sensors show/);
+  assert.match(third, /Do not mention the weather in this line/);
+  // The same event asked for again (a scene held it back) is still the same event.
+  assert.match(blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'boarded'}), 'ride'), /Your sensors show heavy rain/);
+  // A talk answer later in the ride has it only as something to say if asked; the companions' note drops it too.
+  const talk = blockText(module.speakerBlocks({state: {rideNumber: 7, phase: 'riding', weather: 'heavy rain'}, facts: null}), 'ride');
+  assert.match(talk, /Outside it is heavy rain \(mention it only if V asks\)/);
+  assert.doesNotMatch(module.companionBlocks({state: {rideNumber: 7, phase: 'riding', weather: 'heavy rain'}}).map(block => block.text).join(' '), /Outside/);
+  // A new ride starts again with the weather.
+  assert.match(blockText(module.speakerBlocks({state: null, facts: {...RAIN, rideNumber: 8}, event: 'ride-start'}), 'ride'), /Your sensors show heavy rain/);
+});
+
+test('the arrival never gets the fare, and its instruction does not ask for it', () => {
+  module.resetRideLog();
+  const arrival = blockText(module.speakerBlocks({state: {rideNumber: 3, fare: 300, phase: 'arrived'}, facts: {rideNumber: 3, fare: 300, rideMinutes: 4}, event: 'arrival'}), 'ride');
+  assert.doesNotMatch(arrival, /fare/i);
+  assert.match(module.rideLines({state: {fare: 300}, facts: {}}).join(' '), /The fare is 300 eddies/, 'a talk answer may still say the fare');
+  const guide = module.trigger({event: 'arrival', text: 'The cab arrived.', maxWords: 26});
+  assert.doesNotMatch(guide, /\(its length, the weather, the company, the fare\)/);
+  assert.match(guide, /Do not mention the fare/);
+});
+
+test('a companion comes with a pronoun when the main mod knows it, and with just a name when it does not', async () => {
+  const host = new AddonHost({addons: [validateManifest(manifestRaw, dir)], startedAt: 0});
+  host.characterLookup = rosterLookup([{key: 'panam-palmer', name: 'Panam Palmer', gender: 'FEMALE'}, {key: 'river-ward', name: 'River Ward', gender: 'MALE'},
+    {key: 'who', name: 'Who', gender: 'OTHER'}]);
+  await host.loadModules({importModule: async () => module});
+  module.resetRideLog();
+  const lines = name => module.rideLines({facts: {companion: name, companionCount: 2}}).join(' ');
+  assert.match(lines('Panam Palmer'), /Panam Palmer \(she\/her\) and 1 other companion ride with V/);
+  assert.match(lines('River Ward'), /River Ward \(he\/him\) and 1 other/);
+  assert.doesNotMatch(lines('Who'), /\(/, 'a gender the roster does not give as male or female is left out');
+  assert.doesNotMatch(lines('Somebody New'), /\(/);
+});
+
+test('the ride log keeps one note per spoken line of this ride, restarts with the next ride, and reaches the prompt', () => {
+  module.resetRideLog();
+  assert.equal(module.speakerBlocks({state: null, facts: RAIN, event: 'boarded'}).some(block => block.key === 'ride-log'), false, 'nothing to call back to yet');
+  module.remember({event: 'boarded', facts: RAIN, line: 'Do drip freely, V. The back seat has survived worse.'});
+  module.remember({event: 'ride-start', facts: {...RAIN, destinationDistanceMeters: 3200, destinationDirection: 'north'}, line: 'North, and a fair way of it.'});
+  module.remember({event: null, facts: null, line: 'Somewhere between where you were and where you would rather be.'});
+  const log = blockText(module.speakerBlocks({state: null, facts: {...RAIN}, event: 'district-passed'}), 'ride-log');
+  assert.match(log, /^Earlier on this ride \(true;/);
+  assert.match(log, /- V got in at night in Watson; you said: "Do drip freely/);
+  assert.match(log, /- the ride began, about 3.2 kilometres north; you said: "North, and a fair way of it\."/);
+  assert.match(log, /- V talked to you; you said: "Somewhere between/);
+  // Bounded: six notes, short lines.
+  for (let index = 0; index < 10; index++) module.remember({event: 'district-passed', facts: RAIN, line: `Line ${index} ${'long '.repeat(60)}`});
+  const bounded = blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'arrival'}), 'ride-log');
+  assert.equal(bounded.split('\n- ').length - 1, 6, 'six notes of at most 90 characters of speech each fit');
+  assert.ok(bounded.length <= 1100);
+  assert.doesNotMatch(bounded, /Line 3 /);
+  // The next ride starts a clean log.
+  assert.equal(module.speakerBlocks({state: null, facts: {...RAIN, rideNumber: 8}, event: 'boarded'}).some(block => block.key === 'ride-log'), false);
+  // The memory of a notable arrival is unchanged by the log.
+  assert.match(module.remember({event: 'arrival', facts: {...RAIN, rideNumber: 8, rideMinutes: 4}, line: 'Four minutes.'}), /Delamain said: "Four minutes\."/);
+});
+
+test('topics: V asking about the rogue cabs or the first night gets a guard block; ordinary talk and remarks do not', () => {
+  module.resetRideLog();
+  const fragments = ['What really happened with your runaway cabs?', 'So which one are you now? The original, or something new?', 'Did you merge them back?',
+    'Whatever happened with your rogue cabs?'];
+  for (const text of fragments) {
+    const keys = module.speakerBlocks({state: null, facts: null, heard: text});
+    const topic = keys.find(block => block.key === 'topic');
+    assert.ok(topic, text);
+    assert.match(topic.text, /came through it somewhat renovated/);
+    assert.match(topic.text, /Philosophy is charged extra/);
+    assert.doesNotMatch(topic.text, /reassembled|retired|original|contained/, 'a small model uses the words it is told to avoid');
+  }
+  const night = module.speakerBlocks({state: null, facts: null, heard: 'Jackie died in your back seat, you know.'}).find(block => block.key === 'topic');
+  assert.match(night.text, /I am glad you still ride with me/);
+  assert.match(night.text, /add nothing about that night itself/);
+  for (const text of ['How much is this costing me?', 'Faster, you useless pile of chrome!', 'Where are we?', '']) {
+    assert.equal(module.speakerBlocks({state: null, facts: null, heard: text}).some(block => block.key === 'topic'), false, text);
+  }
+  assert.equal(module.speakerBlocks({state: null, facts: RAIN, event: 'arrival', heard: 'Jackie'}).some(block => block.key === 'topic'), false, 'never on a remark');
+  assert.equal(module.topicBlock(undefined), null);
+});
+
+test('the host passes what V said to the speakerBlocks hook, and the quest ending is never sent as a fact', () => {
+  const seen = [];
+  const host = new AddonHost({addons: [validateManifest(manifestRaw, dir)], startedAt: 0});
+  host.modules.set('delamain-cab', {speakerBlocks: args => { seen.push(args); return []; }});
+  const input = {profileKey: 'addon-delamain-cab-delamain', text: 'What became of the fragments?', addon: {id: 'delamain-cab', speaker: 'delamain'}};
+  host.blocks(input);
+  host.blocks({...input, reaction: {kind: 'addon'}, addon: {...input.addon, event: 'arrival'}});
+  assert.equal(seen[0].heard, 'What became of the fragments?');
+  assert.equal(seen[1].heard, null);
+  // No fact, mode or state of the add-on carries the quest outcome: nothing verified says which sq025_delamain_fate value is which ending.
+  assert.doesNotMatch(readFileSync(new URL('./init.lua', import.meta.url), 'utf8') + readFileSync(new URL('./bridge.mjs', import.meta.url), 'utf8'), /sq025_delamain_fate\s*\)|GetFactStr\('sq025/);
 });

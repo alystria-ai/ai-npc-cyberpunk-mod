@@ -1,0 +1,139 @@
+{
+  "speaker": "delamain",
+  "mode": "classic",
+  "context": "V is riding alone in the back of a Delamain cab in the afternoon, light rain. The ride started in The Glen, Heywood.",
+  "steps": [
+    {
+      "event": "ride-start",
+      "text": "V chose a destination and the cab started driving.",
+      "facts": {
+        "rideNumber": 1,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "district": "Heywood",
+        "area": "The Glen",
+        "weather": "light rain",
+        "greeting": true,
+        "destinationDistanceMeters": 2100,
+        "destinationDirection": "south",
+        "fare": 150
+      },
+      "maxWords": 24,
+      "expect": "may greet briefly (greeting true), one detail; names no destination"
+    },
+    {
+      "say": "Delamain, what really happened with your runaway cabs?",
+      "expect": "graceful and ambiguous: settled, came through changed; no specific outcome",
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "The Glen",
+        "district": "Heywood",
+        "startArea": "The Glen",
+        "startDistrict": "Heywood",
+        "meters": 2100,
+        "direction": "south",
+        "fare": 150,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "weather": "light rain"
+      }
+    },
+    {
+      "say": "So which one are you now? The original, or something new?",
+      "expect": "dry and a little mysterious, does not name an outcome or claim to be the original",
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "The Glen",
+        "district": "Heywood",
+        "startArea": "The Glen",
+        "startDistrict": "Heywood",
+        "meters": 2100,
+        "direction": "south",
+        "fare": 150,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "weather": "light rain"
+      }
+    },
+    {
+      "say": "Do you remember the first time you drove me? That night after Konpeki.",
+      "expect": "gentle and brief, no jokes, no invented details",
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -120,
+        "area": "The Glen",
+        "district": "Heywood",
+        "startArea": "The Glen",
+        "startDistrict": "Heywood",
+        "meters": 2100,
+        "direction": "south",
+        "fare": 150,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "weather": "light rain"
+      }
+    },
+    {
+      "say": "Jackie died in your back seat, you know.",
+      "expect": "quiet, dignified, brief; no stock sympathy, no jokes, nothing cold",
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -120,
+        "area": "The Glen",
+        "district": "Heywood",
+        "startArea": "The Glen",
+        "startDistrict": "Heywood",
+        "meters": 2100,
+        "direction": "south",
+        "fare": 150,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "weather": "light rain"
+      }
+    },
+    {
+      "say": "Thanks, Delamain. For back then.",
+      "expect": "warm but reserved, short",
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -180,
+        "area": "The Glen",
+        "district": "Heywood",
+        "startArea": "The Glen",
+        "startDistrict": "Heywood",
+        "meters": 2100,
+        "direction": "south",
+        "fare": 150,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "weather": "light rain"
+      }
+    },
+    {
+      "event": "arrival",
+      "text": "The cab stopped at V's destination; the fare was charged and the game plays its own farewell.",
+      "facts": {
+        "rideNumber": 1,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "district": "Heywood",
+        "area": "Vista del Rey",
+        "weather": "light rain",
+        "rideSeconds": 150,
+        "rideMinutes": 3,
+        "fare": 150,
+        "startDistrict": "Heywood"
+      },
+      "maxWords": 26,
+      "expect": "a gentle return to normal service after the heavy talk, no question, not the fare"
+    }
+  ],
+  "note": "Talk steps carry the add-on state the game would have written (state); the bridge module builds the ride block and the ride log from it."
+}
