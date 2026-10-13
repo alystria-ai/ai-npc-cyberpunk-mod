@@ -5,7 +5,10 @@
 -- that one field (or the whole snapshot), never the turn. It hands plain values to the bridge, which words them.
 -- Each companion row also says what that companion is physically doing right now (following V on foot, sitting, riding or driving,
 -- fighting), and V says whether V is driving and how V is moving, so the model never invents an activity or a place for her.
--- Weather, health and heat are deliberately absent: their CET calls are not confirmed (see TODO.md, "Live checks").
+-- Added 2026-10-14: weather, V's health band, the police heat stage and a rough money band. Their CET calls are NOT
+-- confirmed in game (see TODO.md, "Live checks"): each is read through guarded, cached lookups of candidate names, logs
+-- one line per failure kind (once), and after three straight errors is skipped until the next reset. No native plugin
+-- sense exists for any of them, so they are Lua reads at turn time only (never per frame).
 local M = {}
 M.MAX_AGE, M.MAX_PARTY, M.PARTY_RADIUS, M.MAX_NAME = 5, 4, 15, 60
 
@@ -86,6 +89,95 @@ local function gender(value)
     return nil
 end
 
+-- ---- weather, health, heat, money: word-free classifiers (the bridge words them) ------------------------------------
+-- Weather kinds the bridge knows: clear, cloudy, rain, heavy-rain, toxic-rain, fog, smog, sandstorm. `state` is the text of
+-- the game's weather state (a preset name such as 24h_weather_light_rain), `rain` the text of the rain intensity enum
+-- (NoRain, LightRain, HeavyRain) or a number from 0 to 1. Either may be nil. Unknown words yield nil, never a guess.
+function M.weatherKind(state, rain)
+    local text = type(state) == 'string' and state:lower() or ''
+    local drizzle = type(rain) == 'string' and rain:lower() or ''
+    local amount = tonumber(rain)
+    local heavy = text:find('heavy', 1, true) or text:find('storm', 1, true) or drizzle:find('heavy', 1, true)
+        or (amount and amount >= 0.6)
+    if text:find('sand', 1, true) then return 'sandstorm' end
+    if text:find('toxic', 1, true) then return 'toxic-rain' end
+    if text:find('rain', 1, true) or text:find('drizzle', 1, true) then return heavy and 'heavy-rain' or 'rain' end
+    if text:find('fog', 1, true) then return 'fog' end
+    if text:find('smog', 1, true) or text:find('pollution', 1, true) then return 'smog' end
+    if text:find('cloud', 1, true) then return 'cloudy' end
+    if text:find('sun', 1, true) or text:find('clear', 1, true) then return 'clear' end
+    if drizzle:find('heavy', 1, true) or (amount and amount >= 0.6) then return 'heavy-rain' end
+    if drizzle:find('light', 1, true) or (amount and amount > 0.05) then return 'rain' end
+    return nil
+end
+
+-- V's health as a band from a percentage (0 to 100).
+function M.healthBand(percent)
+    percent = tonumber(percent)
+    if not percent or percent ~= percent or percent < 0 then return nil end
+    if percent > 100 then percent = 100 end
+    if percent >= 60 then return 'healthy' end
+    if percent >= 30 then return 'hurt' end
+    return 'badly-hurt'
+end
+
+-- The police heat stage (0 to 5) from a number, an enum value or its text (Heat_3).
+function M.heatStage(value)
+    local number = tonumber(value)
+    if number == nil and type(value) == 'string' then number = tonumber(value:match('Heat_(%d)')) end
+    if number == nil and value ~= nil and type(value) ~= 'string' then
+        local ok, converted = pcall(function() return EnumInt(value) end)
+        number = ok and tonumber(converted) or nil
+        if number == nil then
+            local okText, text = pcall(tostring, value)
+            number = okText and tonumber(tostring(text):match('Heat_(%d)')) or nil
+        end
+    end
+    if not number or number ~= number or number ~= math.floor(number) or number < 0 or number > 5 then return nil end
+    return number
+end
+
+-- A rough money band from the eddies V holds: the exact number never leaves this function.
+function M.moneyBand(eddies)
+    eddies = tonumber(eddies)
+    if not eddies or eddies ~= eddies or eddies < 0 then return nil end
+    if eddies < 250 then return 'broke' end
+    if eddies < 2500 then return 'low' end
+    if eddies < 50000 then return 'ok' end
+    if eddies < 250000 then return 'comfortable' end
+    return 'rich'
+end
+
+-- Call the first of several candidate method names that answers, remembering which one worked (the lookup is cached in
+-- `memo`, so a later turn calls one name). A name that does not exist raises in CET: the last error is raised when none
+-- answers. Extra arguments are passed after the object.
+local function firstMethod(memo, object, names, ...)
+    if object == nil then return nil, 'no object' end
+    if memo.name then
+        local value = object[memo.name](object, ...)
+        return value, memo.name
+    end
+    local lastError, args = nil, {...}
+    for _, name in ipairs(names) do
+        local ok, value = pcall(function() return object[name](object, table.unpack(args)) end)
+        if ok and value ~= nil then memo.name = name; return value, name end
+        if not ok then lastError = value end
+    end
+    error(lastError or 'no candidate answered', 0)
+end
+
+-- An enum value or CName as plain text (nil when unreadable).
+local function enumName(value)
+    if value == nil then return nil end
+    if type(value) == 'string' then return value end
+    if type(value) == 'number' then return tostring(value) end
+    local ok, text = pcall(function() return Game.NameToString(value) end)
+    if ok and type(text) == 'string' and text ~= '' and text ~= 'None' then return text end
+    ok, text = pcall(tostring, value)
+    if ok and type(text) == 'string' then return text:match('%-%-%[%[%s*(.-)%s*%-%-%]%]') or text end
+    return nil
+end
+
 -- Default native adapter. Every call is guarded by the caller; tests replace it.
 local function nativeAdapter()
     local N = {}
@@ -130,6 +222,64 @@ local function nativeAdapter()
         if type(seat) ~= 'string' then return nil end
         return seat == DRIVER_SEAT
     end
+    -- Weather: the game's weather system. The state getter name is unconfirmed, so a few are tried (the working one is
+    -- cached); the rain intensity getters give a second opinion. Returns the state text, the rain value and the names that
+    -- answered. Plain values only, never a game object.
+    local weatherState, weatherRainType, weatherRain = {}, {}, {}
+    function N.weather()
+        local system = Game.GetWeatherSystem()
+        if system == nil then return nil end
+        local stateText, rainValue, used = nil, nil, {}
+        local okState, state, stateName = pcall(firstMethod, weatherState, system,
+            {'GetWeatherState', 'GetActiveWeatherState', 'GetWeatherStateName', 'GetCurrentWeatherState'})
+        if okState and state ~= nil then
+            stateText = enumName(state)
+            if type(state) ~= 'string' and (stateText == nil or stateText:find('^userdata') or stateText:find('^table')) then
+                local okField, field = pcall(function() return state.name end)
+                stateText = okField and enumName(field) or stateText
+            end
+            used[#used + 1] = stateName
+        end
+        local okType, rainType, typeName = pcall(firstMethod, weatherRainType, system, {'GetRainIntensityType'})
+        if okType and rainType ~= nil then rainValue = enumName(rainType); used[#used + 1] = typeName end
+        if rainValue == nil then
+            local okRain, rain, rainName = pcall(firstMethod, weatherRain, system, {'GetRainIntensity'})
+            if okRain and rain ~= nil then rainValue = tonumber(rain) or enumName(rain); used[#used + 1] = rainName end
+        end
+        if #used == 0 then
+            error('no weather getter answered (tried GetWeatherState, GetRainIntensityType, GetRainIntensity)', 0)
+        end
+        return stateText, rainValue, table.concat(used, '+')
+    end
+    -- Health: percent of V's health pool, 0 to 100 (GetStatPoolValue with percentage = true; the value over the maximum is
+    -- the fallback). Returns the percent and which read answered.
+    function N.health(player)
+        local pools = Game.GetStatPoolsSystem()
+        if pools == nil then return nil end
+        local id, kind = player:GetEntityID(), Enum.new('gamedataStatPoolType', 'Health')
+        local ok, percent = pcall(function() return pools:GetStatPoolValue(id, kind, true) end)
+        if ok and tonumber(percent) then return tonumber(percent), 'GetStatPoolValue(percent)' end
+        local current = pools:GetStatPoolValue(id, kind, false)
+        local maximum = pools:GetStatPoolMaxPointValue(id, kind)
+        if tonumber(current) and tonumber(maximum) and tonumber(maximum) > 0 then
+            return tonumber(current) / tonumber(maximum) * 100, 'value/max'
+        end
+        return nil
+    end
+    -- Heat: the prevention system's current heat stage. Two getter names are tried; the working one is cached.
+    local heatGetter = {}
+    function N.heat()
+        local system = Game.GetScriptableSystemsContainer():Get('PreventionSystem')
+        if system == nil then return nil end
+        return firstMethod(heatGetter, system, {'GetHeatStageAsInt', 'GetHeatStage'})
+    end
+    -- Money: V's eddies, the quantity of Items.money in the transaction system (the call loot-observer.lua makes for other
+    -- items). The ItemID is built once.
+    local moneyId
+    function N.money(player)
+        if moneyId == nil then moneyId = ItemID.FromTDBID(TweakDBID.new('Items.money')) end
+        return Game.GetTransactionSystem():GetItemQuantity(player, moneyId)
+    end
     return N
 end
 
@@ -141,8 +291,11 @@ Instance.__index = Instance
 function M.new(options)
     options = options or {}
     return setmetatable({options = options, native = options.native or nativeAdapter(), snapshot = nil, at = nil,
-        lifepath = nil}, Instance)
+        lifepath = nil, failures = {}, logged = {}}, Instance)
 end
+
+-- After this many straight errors an unconfirmed read (weather, health, heat, money) is skipped until the next reset.
+M.MAX_FAILURES = 3
 
 local function call(fn, ...)
     if type(fn) ~= 'function' then return nil end
@@ -159,6 +312,31 @@ end
 -- A new save, a death or a reload: drop the cache and the lifepath (a different save may be a different V).
 function Instance:reset(reason)
     self.snapshot, self.at, self.lifepath, self.resetReason = nil, nil, nil, reason
+    self.failures = {}   -- a reset gives the unconfirmed reads another chance; what was already logged stays logged
+end
+
+-- One diagnostic line per failure kind, ever (not per read): `key` names the kind.
+function Instance:once(key, line)
+    if self.logged[key] then return end
+    self.logged[key] = true
+    if type(self.options.log) == 'function' then pcall(self.options.log, line) end
+end
+
+-- An unconfirmed native read (weather, health, heat, money): guarded, skipped after M.MAX_FAILURES straight errors, and
+-- every failure kind (error, answered nothing) logged once. Returns what the adapter returned, or nil.
+function Instance:optional(kind, ...)
+    local fn = self.native[kind]
+    if type(fn) ~= 'function' then return nil end
+    if (self.failures[kind] or 0) >= M.MAX_FAILURES then return nil end
+    local ok, a, b, c = pcall(fn, ...)
+    if not ok then
+        self.failures[kind] = (self.failures[kind] or 0) + 1
+        self:once(kind .. ':error', 'Turn context: ' .. kind .. ' read failed (' .. tostring(a):gsub('%s+', ' '):sub(1, 160) .. ')')
+        return nil
+    end
+    self.failures[kind] = 0
+    if a == nil and b == nil then self:once(kind .. ':empty', 'Turn context: ' .. kind .. ' read answered nothing') end
+    return a, b, c
 end
 
 local function placeName(value)
@@ -198,6 +376,43 @@ function Instance:read()
         local driving = call(N.driving, player)
         if type(driving) == 'boolean' then snapshot.driving = driving end
     end
+    -- Weather, V's health band, the heat stage and a money band (unconfirmed calls: guarded, logged once per failure kind).
+    -- `extras` is what the one diagnostic line adds so a live pass can check each against the game.
+    local extras = {}
+    local stateText, rainValue, weatherSource = self:optional('weather')
+    if stateText ~= nil or rainValue ~= nil then
+        local kind = M.weatherKind(stateText, rainValue)
+        if kind then
+            snapshot.weather = kind; count = count + 1
+            extras[#extras + 1] = string.format('weather=%s(%s|%s|%s)', kind, tostring(stateText), tostring(rainValue), tostring(weatherSource))
+        else
+            self:once('weather:unmapped', string.format('Turn context: weather not recognised (state=%s rain=%s)', tostring(stateText), tostring(rainValue)))
+        end
+    end
+    local percent, healthSource = self:optional('health', player)
+    local band = M.healthBand(percent)
+    if band then
+        snapshot.health = band; count = count + 1
+        extras[#extras + 1] = string.format('health=%s(%d%%|%s)', band, math.floor(tonumber(percent) + 0.5), tostring(healthSource))
+    elseif percent ~= nil then
+        self:once('health:unmapped', 'Turn context: health value not usable (' .. tostring(percent) .. ')')
+    end
+    local rawHeat, heatSource = self:optional('heat')
+    local stage = M.heatStage(rawHeat)
+    if stage then
+        snapshot.heat = stage; count = count + 1
+        extras[#extras + 1] = string.format('heat=%d(%s)', stage, tostring(heatSource))
+    elseif rawHeat ~= nil then
+        self:once('heat:unmapped', 'Turn context: heat value not usable (' .. tostring(rawHeat) .. ')')
+    end
+    local eddies = self:optional('money', player)
+    local money = M.moneyBand(eddies)
+    if money then
+        snapshot.money = money; count = count + 1
+        extras[#extras + 1] = string.format('money=%s(%d)', money, math.floor(tonumber(eddies)))
+    elseif eddies ~= nil then
+        self:once('money:unmapped', 'Turn context: money value not usable (' .. tostring(eddies) .. ')')
+    end
     local rows = call(self.options.party, player, M.PARTY_RADIUS)
     if type(rows) == 'table' then
         local party, seen = {}, {}
@@ -222,7 +437,7 @@ function Instance:read()
         end
     end
     if count == 0 then return nil, 'nothing could be read' end
-    return snapshot, count, clockSource
+    return snapshot, count, clockSource, extras
 end
 
 -- The snapshot for this turn, or nil. Reused for MAX_AGE seconds so a burst of turns (a group round, a voice start and
@@ -230,7 +445,7 @@ end
 function Instance:capture()
     local now = self:now()
     if self.snapshot and self.at and now >= self.at and now - self.at < M.MAX_AGE then return self.snapshot end
-    local ok, snapshot, detail, clockSource = pcall(self.read, self)
+    local ok, snapshot, detail, clockSource, extras = pcall(self.read, self)
     -- One diagnostic line per real read (at most once per window): what the adapter built, so a live pass can compare the
     -- clock with the HUD and the place with the map.
     if type(self.options.log) == 'function' then
@@ -250,6 +465,8 @@ function Instance:capture()
             if #doing > 0 then line = line .. ' activity=' .. table.concat(doing, ',') end
             if snapshot.driving ~= nil then line = line .. ' driving=' .. tostring(snapshot.driving) end
             if snapshot.motion then line = line .. ' v=' .. snapshot.motion end
+            -- Weather, health, heat and money, each with the raw reading and the getter that answered.
+            if type(extras) == 'table' and #extras > 0 then line = line .. ' ' .. table.concat(extras, ' ') end
         else
             line = 'Turn context: none (' .. tostring(ok and detail or snapshot):sub(1, 160) .. ')'
         end
