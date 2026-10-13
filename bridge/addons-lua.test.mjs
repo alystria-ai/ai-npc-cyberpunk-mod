@@ -199,6 +199,21 @@ test('events: combat, vehicle, scene, turns, speech and companions joining or le
   `);
 });
 
+test('handle:party() reads the companions following V on demand and never throws', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'delamain-cab', name = 'Delamain Cab', version = '1.0.0', requires = '1.0'}))
+    assert(#handle:party() == 0, 'no party yet')
+    party = {'judy-alvarez', 'panam-palmer', 42}
+    local list = handle:party()
+    assert(#list == 2 and list[1] == 'judy-alvarez' and list[2] == 'panam-palmer', 'only profile keys')
+    host.partyProfiles = function() error('party unavailable') end
+    assert(#handle:party() == 0, 'a failing read gives an empty list')
+    host.partyProfiles = nil
+    assert(#handle:party() == 0)
+  `);
+});
+
 test('a handler that keeps failing is removed after three failures; the others keep running', () => {
   run(`${WORLD}
     M.attach(host)

@@ -273,6 +273,31 @@ The companion fixture loads the vehicle modules. The parent task owns the
 development manifest and package test-script registration for both vehicle test
 files.
 
+## Delamain cab
+
+Since patch 2.3 V can call the self-driving Delamain cab (`Vehicle.v_standard2_villefort_cortes_delamain_player`,
+possibly also `Vehicle.v_delamain_taxi`). The controller used to treat it like any car V sits in: it filled the
+seats and then spawned overflow cars behind a taxi that drives itself, and it only began the exit when V's vehicle
+changed, which is about 5 s after the cab has already driven away with the companions inside. The main mod stays
+generic and needs no add-on for any of this.
+
+- `companion-vehicle-native.lua` `M.isTaxi(vehicle)` is true when the attached entity's record is one of the two
+  records above. `M.inspect` is unchanged (the native plugin parity fixtures mirror it).
+- The controller caches `car.taxi` once per car (a missing `api.isTaxi` means false). A taxi seats guests back left,
+  back right, front right and never the driver seat (AutoDrive drives it).
+- With a taxi as the primary car `allocate` never spawns or follows overflow cars. A companion with no free seat
+  stays owned with the error "The Delamain cab has no free seat for this companion." and walks on after the exit.
+- `M.taxiArrived` starts the exit with reason `taxi-arrived` while V is still seated. It runs from
+  `M.chauffeurAutodriveToggled(s,false)` when no chauffeur trip is active (a chauffeur trip keeps its own handling).
+  `s.taxiExit` holds the cab id so the fleet does not begin a new journey while V still sits in the cab it just left;
+  it clears when V's primary car is gone or different, and in `M.abandon`.
+- `companion-chauffeur-native.lua` `ownedCar` refuses the two cab records, so the chauffeur never leases the cab.
+
+Live checks still needed: the record id of the cab V actually receives (and whether `v_delamain_taxi` is ever used);
+whether a back door is still open for the companion between V's mount and the ride start; whether `OnAutodriveToggled(false)`
+fires at arrival (otherwise the exit starts too late); whether a scene flag on the cab blocks the exit (`leave` waits
+while `car.info.scene` is set).
+
 ## Verification status
 
 On October 1, 2026, the isolated vehicle suite passes 23 tests and the companion

@@ -38,7 +38,8 @@ function M.chauffeurSnapshot(s)
     return s.chauffeurModule and s.chauffeurModule.snapshot(s) or {active=false,phase='idle'}
 end
 function M.chauffeurAutodriveToggled(s,enabled)
-    if s.chauffeur then chauffeur(s).autodriveToggled(s,enabled) end
+    if s.chauffeur then chauffeur(s).autodriveToggled(s,enabled)
+    elseif enabled==false then M.taxiArrived(s) end
 end
 function M.chauffeurArrived(s,vehicleId)
     if s.chauffeur then chauffeur(s).arrived(s,vehicleId) end
@@ -75,10 +76,20 @@ local function ordered(s)
     table.sort(list,function(a,b) return a.entry.serial<b.entry.serial end)
     return list
 end
-local function seats(vehicle)
+-- The Delamain cab drives itself: cached once per car, only when the adapter can tell.
+local function isTaxi(s,car)
+    if car.taxi==nil and car.info and car.info.ready then
+        local taxi=s.api.isTaxi and safe(s.api.isTaxi,car)
+        car.taxi=taxi==true
+    end
+    return car.taxi==true
+end
+local function seats(vehicle,taxi)
     local list={}
     for _,seat in ipairs(vehicle.info and vehicle.info.seats or {}) do list[#list+1]=seat end
     local rank={seat_front_left=0,seat_front_right=1,seat_back_left=2,seat_back_right=3}
+    -- A taxi seats guests in the back first; its driver seat is never offered.
+    if taxi then rank={seat_back_left=0,seat_back_right=1,seat_front_right=2,seat_front_left=3} end
     table.sort(list,function(a,b)
         local ar,br=rank[a.name] or 10,rank[b.name] or 10
         return ar==br and a.name<b.name or ar<br
@@ -113,7 +124,7 @@ local function pending(s)
 end
 local function fill(s,vehicle)
     if not vehicle.info or not vehicle.info.ready then return end
-    for _,seat in ipairs(seats(vehicle)) do
+    for _,seat in ipairs(seats(vehicle,isTaxi(s,vehicle))) do
         if seat.name~='seat_front_left' then
             local queue=pending(s)
             if queue[1] and available(s,vehicle,seat,queue[1]) then assign(s,queue[1],vehicle,seat.name) end
@@ -151,6 +162,14 @@ local function startExit(s,reason)
     end
     emit(s,reason)
 end
+-- The Delamain cab leaves about 5 s after V is out, so companions start leaving
+-- at arrival while V still sits. taxiExit keeps the fleet from boarding again.
+function M.taxiArrived(s)
+    if s.chauffeur or (s.phase~='boarding' and s.phase~='riding') then return end
+    if not s.primary or not isTaxi(s,s.primary) then return end
+    s.taxiExit=s.primary.id
+    startExit(s,'taxi-arrived')
+end
 local function begin(s,primary,entries)
     s.generation=s.generation+1
     s.primary=primary
@@ -176,6 +195,13 @@ local function allocate(s,player)
         end
     end
     fill(s,s.primary)
+    if isTaxi(s,s.primary) then
+        -- A self-driving cab has no convoy: whoever finds no seat waits and walks on after the exit.
+        for _,person in ipairs(pending(s)) do
+            person.error='The Delamain cab has no free seat for this companion.'
+        end
+        return
+    end
     for _,car in ipairs(s.cars) do
         if car~=s.primary and not car.retired then
             if car.info and car.info.ready then
@@ -618,9 +644,10 @@ function M.update(s,player,entries,dt,hooks)
     end
     local primary,err=safe(s.api.player,player)
     if err then s.error=err; return end
+    if s.taxiExit and (not primary or primary.id~=s.taxiExit) then s.taxiExit=nil end
     if s.fastTravelPending then
         acquired(s,entries); startExit(s,'fast-travel'); s.fastTravelPending=nil
-    elseif s.phase=='on-foot' and primary and #entries>0 then begin(s,primary,entries)
+    elseif s.phase=='on-foot' and primary and #entries>0 and not s.taxiExit then begin(s,primary,entries)
     elseif s.phase=='boarding' or s.phase=='riding' then
         acquired(s,entries)
         if s.replan or not primary or primary.id~=s.primary.id then startExit(s,'vehicle-change'); s.replan=nil end
@@ -741,7 +768,7 @@ end
 function M.abandon(s)
     -- Session teardown cannot query already destroyed native components.
     s.generation=s.generation+1; s.people={}; s.cars={}; s.primary=nil
-    s.phase='on-foot'; s.fastTravelPending=nil; s.replan=nil; s.error=nil
+    s.phase='on-foot'; s.fastTravelPending=nil; s.replan=nil; s.error=nil; s.taxiExit=nil
     s.chauffeur=nil; s.lastChauffeur=nil
     s.events={}; s.clock=0
 end
