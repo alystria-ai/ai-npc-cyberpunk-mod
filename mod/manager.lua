@@ -509,16 +509,34 @@ local function cleanMatureRestore(value)
     return any and result or nil
 end
 
--- The installed Local AI chat models the bridge reports ([{id, name, sizeMiB}], runtime/mistral-state.json); anything malformed is dropped.
+-- The installed Local AI chat models the bridge reports ([{id, name, sizeMiB, custom?, needMiB?, tooLarge?}], runtime/mistral-state.json); anything
+-- malformed is dropped. `custom` marks a model the player added by hand (bridge/custom-models.mjs); `needMiB` is the graphics memory it needs.
 local function localModelList(value)
     local list = {}
     if type(value) ~= 'table' then return list end
     for _, entry in ipairs(value) do
-        if #list >= 12 then break end
+        if #list >= 24 then break end
         if type(entry) == 'table' and validModelId(entry.id) and entry.id ~= 'auto'
             and type(entry.name) == 'string' and entry.name ~= '' and #entry.name <= 80 and not entry.name:find('[%c]') then
             local size = type(entry.sizeMiB) == 'number' and entry.sizeMiB >= 0 and entry.sizeMiB < 1000000 and entry.sizeMiB or 0
-            list[#list + 1] = {id = entry.id, name = entry.name, sizeMiB = math.floor(size)}
+            local need = type(entry.needMiB) == 'number' and entry.needMiB >= 0 and entry.needMiB < 1000000 and entry.needMiB or 0
+            list[#list + 1] = {id = entry.id, name = entry.name, sizeMiB = math.floor(size), custom = entry.custom == true,
+                needMiB = math.floor(need), tooLarge = entry.custom == true and entry.tooLarge == true}
+        end
+    end
+    return list
+end
+
+-- The custom models that cannot be used ([{name, reason}], reason one of the codes below); anything else is dropped.
+local customProblemReasons = {missing = true, ['bad-gguf'] = true, embedding = true, unreadable = true}
+local function localModelProblemList(value)
+    local list = {}
+    if type(value) ~= 'table' then return list end
+    for _, entry in ipairs(value) do
+        if #list >= 8 then break end
+        if type(entry) == 'table' and customProblemReasons[entry.reason] and type(entry.name) == 'string' and entry.name ~= ''
+            and #entry.name <= 80 and not entry.name:find('[%c]') then
+            list[#list + 1] = {name = entry.name, reason = entry.reason}
         end
     end
     return list
@@ -544,6 +562,7 @@ function M.mistral()
         localAi = localAiStates[state.localAi] and state.localAi or nil,
         maturePack = state.maturePack == true,
         localModels = localModelList(state.localModels),
+        localModelProblems = localModelProblemList(state.localModelProblems),
         saved = state.saved == true, tail = tail, pending = state.pending == true,
         result = mistralResults[result] and result or nil,
         limit = mistralLimits[state.limit] and state.limit or nil, model = model, stt = state.stt == true}
@@ -1043,6 +1062,9 @@ function M.localModelChoices()
     for _, model in ipairs(M.mistral().localModels) do choices[#choices + 1] = model end
     return choices
 end
+
+-- The custom models the bridge could not use: [{name, reason}] (docs/LOCAL_AI.md, "Add your own model"); shown in the Local AI model row's help.
+function M.localModelProblems() return M.mistral().localModelProblems end
 
 function M.gazeChoices()
     local heights, strengths = {}, {}

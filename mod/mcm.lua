@@ -650,6 +650,14 @@ end
 -- matureMemory while the drafts are pending and, once applied, in the saved settings (manager: matureRestore). All of it runs
 -- from M.update after a draft event, never in a hook, and costs nothing while no draft changes.
 local PROVIDER_IDS = {'convai', 'mistral', 'local', 'groq'}
+-- Why a model the player added cannot be used (bridge/custom-models.mjs reason codes), as a short phrase for the Local AI model row's help.
+local function customProblemText(reason)
+    if reason == 'missing' then return ui.t('file not found') end
+    if reason == 'bad-gguf' then return ui.t('not a valid GGUF file') end
+    if reason == 'embedding' then return ui.t('an embedding model, not a chat model') end
+    return ui.t('could not be read')
+end
+
 local LOCAL_AI_PRESENT = {ready = true, warming = true, ['no-memory'] = true, failed = true}
 local CLOUD_VOICES = {voxtral = true, inworld = true, convai = true}
 
@@ -1396,16 +1404,39 @@ local function ownKeyRows(snapshot)
     -- Which installed Local AI model loads: Auto, then each installed model by its manifest name (the bridge reports the list); the sizes are in the help.
     local modelRow
     do
-        local choices, labels, selected, sizes = manager.localModelChoices(), {}, 1, {}
+        local choices, labels, selected, sizes, anyCustom = manager.localModelChoices(), {}, 1, {}, false
         for index, choice in ipairs(choices) do
             labels[index] = choice.id == 'auto' and ui.t('Auto') or choice.name
             if choice.id == snapshot.settings.localModel then selected = index end
             if choice.id ~= 'auto' then
-                sizes[#sizes + 1] = choice.sizeMiB > 0 and string.format('%s (%.1f GB)', choice.name, choice.sizeMiB / 1024) or choice.name
+                local gb = string.format('%.1f', choice.sizeMiB / 1024)
+                if choice.custom then
+                    -- A model the player added by hand: marked "(custom)", with the graphics memory it needs or that the card is too small for it.
+                    anyCustom = true
+                    if choice.tooLarge then
+                        labels[index] = ui.t('{name} (custom, too large for this graphics card)', {name = choice.name})
+                        sizes[#sizes + 1] = ui.t('{name} (custom, {size} GB, too large for this graphics card)', {name = choice.name, size = gb})
+                    else
+                        labels[index] = ui.t('{name} (custom)', {name = choice.name})
+                        sizes[#sizes + 1] = choice.sizeMiB > 0
+                            and ui.t('{name} (custom, {size} GB, needs about {need} GB of graphics memory)', {name = choice.name, size = gb, need = string.format('%.1f', choice.needMiB / 1024)})
+                            or ui.t('{name} (custom)', {name = choice.name})
+                    end
+                else
+                    sizes[#sizes + 1] = choice.sizeMiB > 0 and string.format('%s (%.1f GB)', choice.name, choice.sizeMiB / 1024) or choice.name
+                end
             end
         end
         local modelHelp = ui.t('Which installed model Local AI uses. Auto picks the best installed model that fits the free graphics memory; with Mature content on and the Mature pack installed, it prefers the largest uncensored model that fits. Choose one to use only that model. Only one model is loaded at a time, and a change applies when the model next loads, never in the middle of a reply. If the chosen model is missing or does not fit, Auto is used instead and you are told once.')
         if #sizes > 0 then modelHelp = modelHelp .. ' ' .. ui.t('Installed models: {models}.', {models = table.concat(sizes, ', ')}) end
+        if anyCustom then
+            modelHelp = modelHelp .. ' ' .. ui.t('Models marked custom are ones you added yourself. Auto uses them only if their manifest says so; you can always choose one here.')
+        end
+        local problems = {}
+        for _, problem in ipairs(manager.localModelProblems()) do
+            problems[#problems + 1] = ui.t('{name}: {reason}', {name = problem.name, reason = customProblemText(problem.reason)})
+        end
+        if #problems > 0 then modelHelp = modelHelp .. ' ' .. ui.t('Not usable: {models}. See the Local AI notes, "Add your own model".', {models = table.concat(problems, '; ')}) end
         modelRow = setting('localModel', 'Local AI model', 'select', selected, 1, modelHelp, labels, {elements = true, description = true})
     end
     for _, item in ipairs({
@@ -1509,7 +1540,10 @@ local function pageSignature(snapshot)
             tostring(pack.known), tostring(pack.installed)}, '|'))
         -- The Local AI model row lists what is installed.
         local modelKey = {'models'}
-        for _, model in ipairs(mistral.localModels or {}) do modelKey[#modelKey + 1] = model.id .. ':' .. model.name .. ':' .. tostring(model.sizeMiB) end
+        for _, model in ipairs(mistral.localModels or {}) do
+            modelKey[#modelKey + 1] = model.id .. ':' .. model.name .. ':' .. tostring(model.sizeMiB) .. ':' .. tostring(model.custom) .. ':' .. tostring(model.tooLarge) .. ':' .. tostring(model.needMiB)
+        end
+        for _, problem in ipairs(mistral.localModelProblems or {}) do modelKey[#modelKey + 1] = 'x:' .. problem.name .. ':' .. problem.reason end
         add(table.concat(modelKey, '|'))
         -- Installed add-ons' own settings (docs/ADDON_API.md); nothing without one.
         if convaiAddons and convaiAddons.live then add('addons:' .. convaiAddons.signature()) end

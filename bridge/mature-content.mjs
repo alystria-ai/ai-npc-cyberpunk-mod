@@ -41,10 +41,17 @@ export const MODEL_ALLOWANCE = Object.freeze([
 /** A model that is not in the table (its licence is unknown). */
 export const UNKNOWN_LEVEL = 'suggestive';
 
-/** The allowance for a loaded model: {level, family, licence, uncensored}. */
-export function allowanceFor(modelName) {
+/**
+ * The allowance for a loaded model: {level, family, licence, uncensored}. `hints` come from a model the player added by hand (the manifest
+ * of bridge/custom-models.mjs): {uncensored: true|false} decides whether the uncensored row applies, in either direction (the flag is
+ * authoritative, the file name is not read for it), and {family} is matched like a name when the name itself is in no row.
+ */
+export function allowanceFor(modelName, hints = {}) {
   const name = String(modelName ?? '');
-  const row = MODEL_ALLOWANCE.find(item => item.match.test(name));
+  const flagged = typeof hints?.uncensored === 'boolean';
+  const rows = flagged && !hints.uncensored ? MODEL_ALLOWANCE.filter(item => item.uncensored !== true) : MODEL_ALLOWANCE;
+  let row = flagged && hints.uncensored ? MODEL_ALLOWANCE.find(item => item.uncensored === true) : rows.find(item => item.match.test(name));
+  if (!row && typeof hints?.family === 'string' && hints.family) row = rows.find(item => item.uncensored !== true && item.match.test(hints.family));
   return row ? {level: row.level, family: row.family, licence: row.licence, uncensored: row.uncensored === true}
     : {level: UNKNOWN_LEVEL, family: null, licence: 'unknown model', uncensored: false};
 }
@@ -73,7 +80,7 @@ export function screenMinors(text) {
 }
 
 /** The level of the layer for a provider and a model, or null when that provider never gets it. */
-export const levelFor = (provider, modelName) => MATURE_PROVIDERS[provider] === true ? allowanceFor(modelName).level : null;
+export const levelFor = (provider, modelName, hints) => MATURE_PROVIDERS[provider] === true ? allowanceFor(modelName, hints).level : null;
 
 const ROMANCE = {
   full: 'You may flirt and, where the relationship facts and your own nature allow it, be romantic or sexual with V, in your own words.',
@@ -120,9 +127,9 @@ export class MatureContent {
     this.pack = installed === true;
     return this.pack !== before;
   }
-  /** {level, family, licence} for a turn on `provider` with `modelName` loaded, or null (the setting is off or the provider never gets it). */
-  forTurn(provider, modelName) {
+  /** {level, family, licence} for a turn on `provider` with `modelName` loaded (`hints`: see allowanceFor), or null (the setting is off or the provider never gets it). */
+  forTurn(provider, modelName, hints) {
     if (!this.enabled || MATURE_PROVIDERS[provider] !== true) return null;
-    return allowanceFor(modelName);
+    return allowanceFor(modelName, hints);
   }
 }
