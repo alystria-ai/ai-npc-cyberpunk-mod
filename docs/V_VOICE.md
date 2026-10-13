@@ -23,10 +23,10 @@ never touches the conversation.
 
 ## Which voice speaks
 
-V's gender comes from the turn context the game sends with a typed line (`gender`, read by `mod/turn-context.lua` from the
-player puppet's resolved gender name). `v-male` or `v-female` is chosen from it. **Check in game that this follows V's voice
-and not only V's body** (a V whose body and voice differ is the case that could pick the wrong clip; the save metadata has
-`bodyGender` and `brainGender` separately, and the live check below covers it).
+V's voice follows **V's voice tone** from the character creator (the "brain gender"), not V's body: a V built with a male voice
+speaks with `v-male` whatever the body, as the game's own V lines do. `mod/turn-context.lua` reads it from the character
+customization state (`IsBrainGenderMale`) and sends it as `voice`; only when that read fails does it fall back to the resolved
+gender (`gender`). `voice` is never written into the model's context.
 
 The voice is the one **you already chose** for companions:
 
