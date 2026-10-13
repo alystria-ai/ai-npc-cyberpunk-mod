@@ -420,11 +420,13 @@ local function installHooks()
     end))
 
     -- The game's own Skippy lines (the same two subtitle hooks the main mod's dialogue reader uses).
-    observe('subtitles-a', true, 'BaseSubtitlesGameController', 'ShowDialogLines', hook('subtitles-a', nil, function(_, lines)
+    -- Gated on holding like every other hook: while V does not hold Skippy the call returns at once on one boolean check (no clock read,
+    -- no meter entry, no line inspected), because the game shows many subtitle lines and Skippy says nothing then anyway.
+    observe('subtitles-a', true, 'BaseSubtitlesGameController', 'ShowDialogLines', hook('subtitles-a', 'holding', function(_, lines)
         if type(lines) ~= 'table' then return end
         for _, line in ipairs(lines) do vanillaLine(line) end
     end))
-    observe('subtitles-b', true, 'BaseSubtitlesGameController', 'OnShowDialogLine', hook('subtitles-b', nil, function(_, value)
+    observe('subtitles-b', true, 'BaseSubtitlesGameController', 'OnShowDialogLine', hook('subtitles-b', 'holding', function(_, value)
         local lines = safe(function() return FromVariant(value) end)
         if type(lines) ~= 'table' then return end
         for _, line in ipairs(lines) do vanillaLine(line) end

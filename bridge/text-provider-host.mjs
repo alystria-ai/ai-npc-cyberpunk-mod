@@ -11,7 +11,7 @@
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
-  summaryMessages, factMessages, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
+  summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
 import {actionMenu, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
@@ -454,12 +454,18 @@ export class TextProviderHost {
     });
     // An action code ("[DRIVE]") is never part of the reply: the voice, the subtitles and the memory see the text without it.
     const visible = soFar => splitActions(soFar, {streaming: true}).text;
-    const shouldStop = soFar => capPoint(cleanReply(visible(soFar), {name: persona.name, isTag}), this.limits) >= 0;
+    // A remark with a word limit (reaction.maxWords, an add-on's) also stops the stream at that limit plus a little, is asked for few
+    // tokens, and is cut at its last sentence end. Ordinary replies and battle barks carry no such limit and are unchanged.
+    const wordLimit = reaction && Number.isInteger(config.reaction?.maxWords) && config.reaction.maxWords > 0 ? config.reaction.maxWords : 0;
+    const shouldStop = soFar => {
+      const clean = cleanReply(visible(soFar), {name: persona.name, isTag});
+      return capPoint(clean, this.limits) >= 0 || (wordLimit > 0 && overWords(clean, wordLimit));
+    };
     const run = async nudge => {
       const messages = build(nudge);
       markStage('promptBuilt');
       const sent = spec && !spec.over ? (signal ? AbortSignal.any([signal, spec.controller.signal]) : spec.controller.signal) : signal;
-      const response = await this.#request(route, messages, sent, {shouldStop, profileKey, onDelta: (_piece, soFar) => {
+      const response = await this.#request(route, messages, sent, {shouldStop, profileKey, ...(wordLimit ? {maxTokens: remarkTokens(wordLimit)} : {}), onDelta: (_piece, soFar) => {
         const shown = visible(soFar);
         if (spec && !spec.over) { spec.latest = shown; if (!spec.open) return; }
         try { feed.update(shown); } catch { /* the voice's view of the reply never breaks the reply */ }
@@ -470,6 +476,7 @@ export class TextProviderHost {
       let cleaned = cleanReply(spoken, {name: persona.name, isTag});
       if (response.finishReason === 'length') cleaned = trimUnfinished(cleaned);
       let reply = capReply(cleaned, this.limits);
+      if (wordLimit) reply = capWords(reply, wordLimit);
       // Mature content only: a reply that puts a minor and romance or sex together (or has the character claim to be under 18) is dropped for
       // the character's own refusal; the turn is logged (never the words) and neither the reply nor V's words are remembered. A first
       // sentence the voice already started stands (it was screened before it was spoken), and the refusal follows it.

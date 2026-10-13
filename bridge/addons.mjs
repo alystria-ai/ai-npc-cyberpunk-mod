@@ -317,7 +317,9 @@ export function parseAddonReaction(value, addon) {
   // The remark's event data must name the same speaker.
   if (!addon || addon.id !== value.addon || addon.speaker !== value.speaker) return null;
   return {kind: 'addon', addon: value.addon, speaker: value.speaker, event: value.event, expiresAt: value.expiresAt,
-    ...(Number.isInteger(value.priority) && value.priority >= 1 && value.priority <= 5 ? {priority: value.priority} : {})};
+    ...(Number.isInteger(value.priority) && value.priority >= 1 && value.priority <= 5 ? {priority: value.priority} : {}),
+    // The word limit of the remark, so the text host can stop, cap and size the request to it (bridge/text-provider-host.mjs).
+    ...(Number.isInteger(addon.maxWords) ? {maxWords: addon.maxWords} : {})};
 }
 
 /** The state file the game writes (companion context and per-add-on state), or an empty state. */
@@ -413,6 +415,15 @@ export function isNearDuplicate(a, b) {
   for (let index = 0; index + 4 <= left.length; index++) { const run = left.slice(index, index + 4); if (distinct(run)) runs.add(run.join(' ')); }
   for (let index = 0; index + 4 <= right.length; index++) if (runs.has(right.slice(index, index + 4).join(' '))) return true;
   return false;
+}
+
+/** The line a speaker says in an example ("Game event: ...\nSkippy: One down." -> "One down."); '' for an example that has none. */
+export function sampleLine(sample, name = '') {
+  const rows = String(sample ?? '').split(/\n+/).map(row => row.trim()).filter(Boolean);
+  const last = rows.at(-1) ?? '';
+  const match = /^([^:]{1,40}):\s*(.+)$/.exec(last);
+  if (!match) return rows.length > 1 ? '' : last;
+  return !name || match[1].trim().toLowerCase() === name.toLowerCase() ? match[2].trim() : '';
 }
 
 // ---- Voice references ----------------------------------------------------------------------------------------------------
@@ -745,8 +756,21 @@ export class AddonHost {
    */
   review(input, line) {
     const recent = this.recentLines(input?.profileKey).slice(-ADDON_LIMITS.recentChecked);
-    const similar = recent.find(previous => isNearDuplicate(previous, line)) ?? null;
+    const similar = recent.find(previous => isNearDuplicate(previous, line)) ?? this.#echoedSample(input?.profileKey, line);
     return {duplicate: !!similar && input?.reaction?.kind === 'addon', similar};
+  }
+
+  // The speaker's own example lines (the active mode's and the persona's) are used up: a remark that says one again is a repeat even
+  // when the journal has never seen it. Only the spoken part of a sample counts ("Game event: ...\nSkippy: line" is the line).
+  #echoedSample(profileKey, line) {
+    const owner = this.speakers.get(profileKey);
+    if (!owner) return null;
+    const mode = this.modeOf(profileKey);
+    for (const sample of [...(mode?.samples ?? []), ...owner.speaker.persona.samples]) {
+      const spoken = sampleLine(sample, owner.speaker.name);
+      if (spoken && isNearDuplicate(spoken, line)) return spoken;
+    }
+    return null;
   }
 
   /**

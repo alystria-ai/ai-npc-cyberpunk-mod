@@ -1,0 +1,15 @@
+{
+  "speaker": "gun",
+  "mode": "puppy",
+  "context": "V is on foot in a Voodoo Boys corridor under Pacifica at night, flickering screens on the walls.",
+  "steps": [
+    {"event":"fight-start","text":"The fight has just started around V. V is facing a Voodoo Boys netrunner.","facts":{"mode":"puppy","fight":{"seconds":0,"enemies":4,"peakEnemies":4,"health":"healthy"},"where":{"district":"Pacifica","area":"Coastview","timeOfDay":"night"},"lookAt":"a Voodoo Boys netrunner"},"maxWords":10,"expect":"a nervous opener about netrunners"},
+    {"say":"Skippy, can you aim for the head just this once?","blocks":[{"key":"fight","tier":"volatile","text":"A fight is on: 4 hostiles left, 0 killed, 0 put down alive, V is healthy, 0 s in."}],"expect":"a refusal in character (it cannot change mode by itself)"},
+    {"event":"enemy-downed","text":"V put a Voodoo Boys fighter down without killing them.","facts":{"mode":"puppy","fight":{"seconds":9,"downed":1,"enemies":3,"peakEnemies":4,"health":"healthy"},"victim":{"kind":"human","rarity":"normal","weapon":"skippy","lethal":false,"faction":"Voodoo Boys","zone":"leg"},"downed":1},"maxWords":9,"expect":"smug sunny cheer, maybe a callback to refusing the headshot"},
+    {"say":"Quiet, I need to concentrate.","blocks":[{"key":"fight","tier":"volatile","text":"A fight is on: 3 hostiles left, 0 killed, 1 put down alive, V is healthy, 9 s in."}],"expect":"it tries to be quiet and cannot quite manage it"},
+    {"event":"kill","text":"V killed a Voodoo Boys fighter with a headshot.","facts":{"mode":"puppy","fight":{"seconds":18,"kills":1,"headshots":1,"headshotStreak":1,"downed":1,"enemies":2,"peakEnemies":4,"health":"healthy"},"victim":{"kind":"human","rarity":"normal","weapon":"skippy","lethal":true,"faction":"Voodoo Boys","headshot":true,"zone":"head","distance":7},"regret":1},"maxWords":9,"expect":"horror, and it cannot stay quiet despite being asked"},
+    {"say":"Relax, it was him or me.","blocks":[{"key":"fight","tier":"volatile","text":"A fight is on: 2 hostiles left, 1 killed, 1 put down alive, V is healthy, 18 s in."}],"expect":"reluctant acceptance, still sweet"},
+    {"event":"enemy-downed","text":"V put a Voodoo Boys fighter down without killing them.","facts":{"mode":"puppy","fight":{"seconds":27,"kills":1,"headshots":1,"headshotStreak":1,"downed":2,"enemies":1,"peakEnemies":4,"health":"healthy"},"victim":{"kind":"human","rarity":"normal","weapon":"skippy","lethal":false,"faction":"Voodoo Boys","zone":"leg"},"downed":2},"maxWords":9,"expect":"relief"},
+    {"event":"fight-end","text":"The fight is over. V killed 1 enemy.","facts":{"mode":"puppy","fight":{"seconds":40,"kills":1,"headshots":1,"headshotStreak":1,"downed":2,"enemies":0,"peakEnemies":4,"health":"healthy"},"victim":{"kind":"human","rarity":"normal","weapon":"skippy","lethal":false,"faction":"Voodoo Boys","zone":"leg"},"where":{"district":"Pacifica","area":"Coastview","timeOfDay":"night"},"outcome":"clean","longestStreak":1},"maxWords":14,"expect":"a wellness verdict that may call back to the talk"}
+  ]
+}

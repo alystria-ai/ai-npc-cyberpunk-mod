@@ -275,7 +275,7 @@ The other remark fields:
 | `text` | `[<add-on>] <event>` | What happened, in one plain sentence. It becomes the start of the trigger. |
 | `facts` | none | Plain data, at most 4,000 bytes as JSON (`{streak = 3, weapon = 'Skippy'}`). The speaker may use only these facts. |
 | `ttl` | 3 s (1–30) | A remark that cannot start, or whose reply does not arrive, within this time of its moment is dropped, never played late. Give a slow moment, such as a fight end, a longer one. |
-| `maxWords` | 14 (3–60) | The trigger asks for one line of at most this many words. Use 6–12 for barks. |
+| `maxWords` | 14 (3–60) | The trigger asks for one line of at most this many words. Use 6–12 for barks. It is also enforced: the reply is asked for few tokens, stops streaming at the limit plus 3 words, and a longer line is cut at its last sentence end (or clause) within the limit plus 3 words. |
 | `interrupt` | false | Stops a remark of a *lower* priority that is playing. |
 | `cooldown` | 0 | Seconds before the same event may be remarked again. |
 
@@ -396,6 +396,7 @@ A mode switch starts a new prefix. A mode combines with the base persona like th
   at least two words that are not common. Function words, number words and units (`the`, `shall`, `hundred`, `metres`, `eddies`,
   `V`, ...) are common, so "I shall continue to" and "three hundred and fifty eddies" are not a repeat, while "do try not to sign
   anything" is. Curly apostrophes and quotation marks are read as straight ones (`you’re` is one word).
+- A remark is also checked against the speaker's example lines (the active mode's and the persona's; only the spoken part), which count as already used, by the same check and with the same second try.
 - A reply to something V typed is never checked, dropped or written again.
 
 **Memories for callbacks.** `handle:remember(speakerId, text)`, or the bridge module's `remember` hook, adds a memory. The last 6
@@ -548,7 +549,7 @@ node scripts/addon-eval.mjs --addon addons/skippy --script addons/skippy/eval/fi
 - Each step goes through the same persona and mode, blocks, trigger, recent lines, second try and duplicate drop (`AddonHost.produce`) and text host as in the game.
   Nothing touches the game, Convai or the player's memories.
 - The key comes from `MISTRAL_API_KEY`, or from the key saved in the state folder, and is never printed.
-- `--judge` scores each line from 1 to 10 with a second model, against this rubric: in character, fun, fits the moment, short and
+- `--judge` scores each line from 1 to 10 with a second model, strictly (5 is filler, 7 is genuinely good). It sees the speaker's example lines and the facts of the event, and penalises a copied example or a number that is not in the facts. Rubric: in character, fun, fits the moment, short and
   fresh.
 - A speaker is ready when it averages **7 or more** over three runs, with **no dropped repeats**, and no line breaks character.
 - `--json` prints the results for comparison between persona versions.

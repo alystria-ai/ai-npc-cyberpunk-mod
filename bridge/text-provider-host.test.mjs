@@ -167,6 +167,21 @@ test('with contextParts the request uses layout v2 and the memory store\'s retri
   } finally { await close(); }
 });
 
+test('a remark with a word limit asks for few tokens and is cut at a sentence end; a reaction or reply without one is untouched', async () => {
+  const long = 'Nine misses. Recalibrating the user, not the gun. Also my feelings are hurt badly today, choom.';
+  const {server, host, close} = await harness(() => long);
+  try {
+    const limited = await host.reply(turn('Game event: nine misses.', {contextParts: parts(), reaction: {kind: 'addon', maxWords: 8}}));
+    assert.equal(limited.text, 'Nine misses. Recalibrating the user, not the gun.');
+    assert.ok(server.requests[0].body.max_tokens <= 70, 'a small token limit for a remark');
+    const bark = await host.reply(turn('The player entered combat.', {contextParts: parts(), reaction: {phase: 'start'}}));
+    assert.equal(bark.text, long, 'a reaction without a word limit is not cut');
+    assert.equal(server.requests[1].body.max_tokens, LIMITS.maxTokens);
+    const talk = await host.reply(turn('hello'));
+    assert.equal(talk.text, long);
+  } finally { await close(); }
+});
+
 // ---- Groq ------------------------------------------------------------------------------------------------------------------
 
 test('Groq: qwen first with reasoning off, no prompt_cache_key, and the Groq key goes only to the Groq route', async () => {

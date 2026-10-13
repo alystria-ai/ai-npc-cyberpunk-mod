@@ -92,8 +92,8 @@ test('the example evaluation script runs offline with a judge, and a repeated li
   const script = await readFile(new URL('./eval/combat.json', import.meta.url), 'utf8');
   assert.equal(parseScript(script).steps.length, 5);
   assert.throws(() => parseScript({speaker: 'voice', steps: [{event: 'x', say: 'y'}]}), /either "event" or "say"/);
-  const lines = ['Oh good. Gunfire. My favourite genre.', 'Ninety-five seconds. Practically a nap.', 'Adequately. Do not let it go to your head.',
-    'Oh good. Gunfire. My favourite genre.', 'Oh good. Gunfire. My favourite genre.', 'Forty seconds! A new record, V!'];
+  const lines = ['Gunfire again. Lovely weather for it.', 'Ninety-five seconds. Practically a nap.', 'Adequately. Do not let it go to your head.',
+    'Gunfire again. Lovely weather for it.', 'Gunfire again. Lovely weather for it.', 'Forty seconds! A new record, V!'];
   // The fourth step repeats the first line, so the host asks once more (host.produce); the model repeats it again (the second entry),
   // so the remark is still dropped.
   let index = 0;

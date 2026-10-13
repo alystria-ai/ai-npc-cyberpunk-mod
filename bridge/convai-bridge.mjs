@@ -1947,7 +1947,7 @@ async function stockGenerate({profileKey, entry, mode, avoid, route}) {
   if (!owner || !profile) throw Error('unknown add-on speaker');
   const prepared = avoid.length ? [{key: 'prepared', tier: 'volatile',
     text: `Lines already prepared for later (never repeat their jokes or wording):\n${avoid.map(line => `- ${line}`).join('\n')}`}] : [];
-  const input = {profileKey, text: entry.text, reaction: {kind: 'addon', addon: owner.addon.id, speaker: owner.speaker.id, event: entry.key, expiresAt: Date.now() + 60_000},
+  const input = {profileKey, text: entry.text, reaction: {kind: 'addon', addon: owner.addon.id, speaker: owner.speaker.id, event: entry.key, expiresAt: Date.now() + 60_000, maxWords: entry.maxWords},
     addon: {id: owner.addon.id, speaker: owner.speaker.id, event: entry.key, text: entry.text, facts: entry.facts, maxWords: entry.maxWords,
       ...(mode ? {mode} : {}), blocks: [...entry.blocks, ...prepared], stock: true}};
   // A reaction is never recorded in the speaker's conversation memory (TextProviderHost.reply), so these lines leave no trace there.

@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {closing, PersonaBook, systemPrompt, buildMessages, capContext, cleanReply, capReply, capPoint, breaksCharacter, repeatsLine, provokesAiTalk, takesUpAiTalk, summaryMessages, LIMITS,
-  CONTEXT_PREFIX} from './mistral-prompt.mjs';
+  CONTEXT_PREFIX, capWords, overWords, remarkTokens} from './mistral-prompt.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 
 const named = JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8'));
@@ -111,6 +111,18 @@ test('reply cleaning removes labels, stage directions, markdown, emoji and stray
   assert.equal(clean('Judy Alvarez: Sure thing, V.'), 'Sure thing, V.');
   assert.equal(clean('**Judy:** Sure thing.', 'Judy'), 'Sure thing.');
   assert.equal(clean('*smiles* Sure thing, V. (laughs)'), 'Sure thing, V.');
+  // Stressed words keep their words and lose only the asterisks (a hole in the sentence is worse than the markdown).
+  assert.equal(clean('That was *perfect*.'), 'That was perfect.');
+  assert.equal(clean('I *really* mean it, V.'), 'I really mean it, V.');
+  assert.equal(clean('*Seriously*, V? Nine *kills*.'), 'Seriously, V? Nine kills.');
+  assert.equal(clean('Three *in a row*!'), 'Three in a row!');
+  assert.equal(clean('I said *look*, V.'), 'I said look, V.');
+  // Real stage directions still go: a lone action word, a clause at the start or end, a long action anywhere.
+  assert.equal(clean('Fine. *sighs*'), 'Fine.');
+  assert.equal(clean('*clears throat* Listen, V.'), 'Listen, V.');
+  assert.equal(clean('Well *shrugs* whatever.'), 'Well whatever.');
+  assert.equal(clean('THREE in a row. *pause* Wow.'), 'THREE in a row. Wow.');
+  assert.equal(clean('Come on *she rolls her eyes and turns away from you slowly* then.'), 'Come on then.');
   assert.equal(clean('*leans back against the railing, arms crossed, a smirk fading into something sharper than she meant* Oh, come on, V.'), 'Oh, come on, V.');
   assert.equal(clean('"Sure thing, V."'), 'Sure thing, V.');
   assert.equal(clean('She said "no" and he said "yes".'), 'She said "no" and he said "yes".');
@@ -197,4 +209,18 @@ test('repeatsLine finds a reply that says an example line or its own last reply 
   assert(!repeatsLine('Making somebody feel something is easy. Earning it takes a lot more work than that.', lines));
   assert(!repeatsLine('Yes. Hold on, that was a different deal.', lines), 'a line under six words is never counted');
   assert(!repeatsLine('', lines) && !repeatsLine('anything at all here', []) && !repeatsLine('anything at all here', undefined));
+});
+
+test('a remark is cut to its word limit at a sentence end, with a small token budget, and a short one is left alone', () => {
+  assert.equal(capWords('Error. Nine misses. User needs a new hobby.', 9), 'Error. Nine misses. User needs a new hobby.');
+  assert.equal(capWords('Nine misses. Recalibrating the user, not the gun. Also my feelings are hurt badly today.', 8),
+    'Nine misses. Recalibrating the user, not the gun.');
+  assert.equal(capWords('Nine misses, and the user keeps firing anyway, which is brave, loud and very expensive today.', 8),
+    'Nine misses, and the user keeps firing anyway.');
+  assert.match(capWords('Error and then nothing but a very long unbroken run of words without any stop at all in it', 6), /^Error and then nothing but a very long unbroken\.$/);
+  assert.equal(overWords('one two three four five six seven eight nine ten eleven', 8), false, 'the slack is three words');
+  assert.equal(overWords('one two three four five six seven eight nine ten eleven twelve', 8), true);
+  assert.equal(capWords('SCANNING... SCANNING... SCANNING... SCANNING... SCANNING... SCANNING...', 8), 'SCANNING...');
+  assert.equal(capWords('No, no, no. Not again.', 8), 'No, no, no. Not again.', 'a short repeat is kept');
+  assert.ok(remarkTokens(10) >= 40 &&remarkTokens(10) < LIMITS.maxTokens / 2 && remarkTokens(60) <= 160);
 });

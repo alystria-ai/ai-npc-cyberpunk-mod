@@ -9,7 +9,7 @@ import {WORLD, runLua} from '../../bridge/addon-lua-harness.mjs';
 import {ADDON_MANIFEST, AddonHost, inspectReference, validateManifest} from '../../bridge/addons.mjs';
 import {parseInput} from '../../bridge/protocol.mjs';
 import {buildAddon} from '../../packaging/build-addon.mjs';
-import {describeVictim, momentBlock, remember, speakerBlocks} from './bridge.mjs';
+import {describeVictim, momentBlock, overused, recentOpenings, remember, resetSession, speakerBlocks} from './bridge.mjs';
 
 // Skippy end to end with no game, no network and no sound: the fight engine on its own (plain Lua in fengari), the game hooks
 // against the real mod/addons.lua with a fake world, the manifest and the voice reference, the bridge hooks, and the package.
@@ -101,6 +101,25 @@ test('every fact is plain data inside the bridge limits, unknown facts are left 
   assert.equal(facts.victim.weapon, 'skippy');
   assert.equal(facts.victim.cyberpsycho, undefined, 'flags that are false are left out');
   for (const [key, value] of Object.entries(facts.fight)) assert.ok(value === true || typeof value === 'number' || typeof value === 'string', key);
+});
+
+test('the event text gives a distance only for a long shot (30 m or more), as a whole number of metres', () => {
+  const result = lua(`
+    local e = make()
+    e:start({})
+    clock = 5; e:onKill(victim({distance = 14, headshot = true}))
+    local near = last().spec.text
+    clock = 20; e:onKill(victim({distance = 29, headshot = true}))
+    local edge = last().spec.text
+    clock = 40; e:onKill(victim({distance = 41, headshot = true}))
+    local far = last().spec
+    local result = {near = near, edge = edge, far = far.text, event = far.event, metres = far.facts.victim.distance, limit = Engine.LONG_SHOT}
+  ${dump}`);
+  assert.doesNotMatch(result.near, /\bm\b/);
+  assert.doesNotMatch(result.edge, /\bm\b/);
+  assert.match(result.far, /41 m/);
+  assert.equal(result.limit, 30);
+  assert.equal(result.metres, 41);
 });
 
 test('one kill makes one remark: the best candidate wins, ties follow the order, puppy lethal kills are priority 3', () => {
@@ -556,6 +575,30 @@ test('a line of the game\'s own Skippy blocks remarks for its length, and the ma
   assert.equal(result.ownBusy, false);
 });
 
+test('the subtitle hooks return on one boolean check while V does not hold Skippy: no clock read, no meter entry, no line touched', () => {
+  const result = playSkippy(`
+    held.tdbid = TweakDBID.new('Items.some_other_gun')
+    swap()
+    local touched, clocks = 0, 0
+    local trap = setmetatable({}, {__index = function() touched = touched + 1 end, __len = function() touched = touched + 1 return 0 end})
+    local clock = os.clock
+    os.clock = function() clocks = clocks + 1 return clock() end
+    local until0 = Skippy.S.vanillaUntil
+    for _ = 1, 50 do
+      hooks['BaseSubtitlesGameController.ShowDialogLines'](nil, {trap, {speakerName = 'Skippy', id = {hash = '55'}, duration = 4}})
+      hooks['BaseSubtitlesGameController.OnShowDialogLine'](nil, {trap, {speakerName = 'Skippy', id = {hash = '55'}, duration = 4}})
+    end
+    os.clock = clock
+    local a, b = Skippy.S.meter['subtitles-a'], Skippy.S.meter['subtitles-b']
+    return json.encode({touched = touched, clocks = clocks, a = a ~= nil, b = b ~= nil, held = Skippy.S.holding, moved = Skippy.S.vanillaUntil ~= until0})`);
+  assert.equal(result.held, false);
+  assert.equal(result.touched, 0, 'no line is inspected');
+  assert.equal(result.clocks, 0, 'the clock is not read');
+  assert.equal(result.a, false, 'no meter entry');
+  assert.equal(result.b, false, 'no meter entry');
+  assert.equal(result.moved, false, 'nothing is tracked');
+});
+
 test('hook cost is measured and a failing hook cannot break the game', () => {
   const result = playSkippy(`
     swap()
@@ -589,20 +632,53 @@ test('every fact the engine can send is documented in EVENTS.md, with its event 
     'regret', 'ways', 'lostPct', 'healthPct', 'missed', 'firstBlood', 'longestStreak', 'outcome']) assert.ok(doc.includes(`\`${key}\``), `${key} is documented`);
 });
 
-test('the bridge hooks describe the moment in prose, vary the angle and keep memories short', () => {
+test('the bridge hooks describe the moment in plain words, rotate the device, track openings and keep memories short', () => {
+  resetSession();
   const facts = {mode: 'killer', fight: {seconds: 20, kills: 3, skippyKills: 3, headshots: 2, headshotStreak: 2, enemies: 1, health: 'hurt'},
     victim: {kind: 'human', rarity: 'elite', faction: 'Maelstrom', distance: 28, zone: 'head', headshot: true, weapon: 'skippy', name: 'Maelstrom Gunner'},
-    where: {district: 'Watson', area: 'Little China', timeOfDay: 'night'}, streak: 3};
-  assert.equal(describeVictim(facts.victim), 'an elite Maelstrom fighter (listed as "Maelstrom Gunner", hit in the head, a headshot, 28 m away)');
+    where: {district: 'Watson', area: 'Little China', timeOfDay: 'night'}, streak: 3, firstBlood: true, ways: 2};
+  assert.equal(describeVictim(facts.victim), 'an elite Maelstrom fighter (listed as "Maelstrom Gunner", hit in the head, a headshot)', 'under 30 m no distance');
+  assert.match(describeVictim({...facts.victim, distance: 41}), /41 m away/);
   const [block] = speakerBlocks({event: 'headshot-streak', facts, mode: 'killer'});
   assert.equal(block.tier, 'volatile');
   assert.match(block.text, /Stone Cold Killer mode/);
   assert.match(block.text, /3 kills so far/);
   assert.match(block.text, /Where: Little China, Watson, night/);
-  assert.match(block.text, /Angle for this line:/);
-  assert.match(block.text, /streak: 3/);
-  const other = momentBlock({event: 'headshot-streak', facts: {...facts, fight: {...facts.fight, kills: 4, shots: 9}}, mode: 'killer'});
-  assert.notEqual(other.match(/Angle for this line: ([^.]+)\./)[1], block.text.match(/Angle for this line: ([^.]+)\./)[1], 'the angle moves with the fight');
+  assert.match(block.text, /Style for this line[^:]*: /);
+  assert.match(block.text, /3 headshot kills in a row/, 'a fact in plain words');
+  assert.match(block.text, /exactly as written/);
+  assert.match(block.text, /no asterisks/);
+  assert.doesNotMatch(block.text, /firstBlood|ways|streak:|\bnull\b/, 'no raw key reaches the model');
+  assert.doesNotMatch(block.text, /\b28\b/, 'a 28 m shot has no distance');
+  // The device moves on, and never repeats one of the last four lines.
+  const styles = [];
+  for (let index = 0; index < 8; index++) {
+    const text = momentBlock({event: 'kill', facts: {...facts, streak: undefined}, mode: 'killer'});
+    const style = /Style for this line[^:]*: ([^:]+):/.exec(text)[1];
+    styles.push(style);
+    remember({event: 'kill', facts, line: style === 'Fun fact' ? 'Fun fact. Skulls are hollow.' : style === 'Error' ? 'Error. Wrong target.' : `${style}. Something else entirely, number ${index}.`});
+  }
+  for (let index = 4; index < styles.length; index++) assert.ok(!styles.slice(index - 4, index).includes(styles[index]) || styles[index] === 'Outburst', `${styles[index]} not repeated within four lines: ${styles}`);
+  assert.ok(new Set(styles).size >= 4, `several devices: ${styles}`);
+  // Openings of recent lines are named, and a joke used twice is marked overused.
+  resetSession();
+  remember({event: 'kill', facts, line: 'Three in a row. Cane shopping time.'});
+  remember({event: 'kill', facts, line: 'Error. Somebody needs a cane soon.'});
+  assert.deepEqual(recentOpenings(), ['Three', 'Error']);
+  assert.deepEqual(overused(), ['cane']);
+  const later = momentBlock({event: 'kill', facts, mode: 'killer'});
+  assert.match(later, /opened with: Three, Error\. Open differently/);
+  assert.match(later, /overused: cane\./);
+  // A line prepared ahead (no fight facts) gets a style too, and no numbers.
+  const prepared = momentBlock({event: 'near-death', facts: {mode: 'puppy', where: {district: 'Watson'}}, mode: 'puppy'});
+  assert.match(prepared, /Style for this line/);
+  assert.match(prepared, /written ahead of the moment: use no numbers/);
+  // Counts and percentages are exact words.
+  const hurt = momentBlock({event: 'big-hit-taken', facts: {...facts, lostPct: 37, healthPct: 41}, mode: 'killer'});
+  assert.match(hurt, /lost 37 percent health/);
+  assert.match(hurt, /41 percent health/);
+  assert.match(momentBlock({event: 'reinforcements', facts: {...facts, from: 3, to: 7}, mode: 'killer'}), /4 more enemies arrived: 7 are fighting now, there were 3/);
+  resetSession();
   assert.deepEqual(speakerBlocks({event: null, facts: null}), []);
   assert.match(remember({event: 'near-death', facts: {}, line: 'Stay with me, boss.'}), /almost died.*Stay with me/);
   assert.equal(remember({event: 'kill', facts: {}, line: 'x'}), null);

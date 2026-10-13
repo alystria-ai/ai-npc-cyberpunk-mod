@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {resolve} from 'node:path';
 import {ADDON_API_VERSION, ADDON_ENV, ADDON_PROVIDERS, AddonHost, CET_MODS, LOCAL_REMARK_GAP_S, addonRoots, apiCompatible, discoverAddons, fixedProvider,
   inspectReference, isAddonProfile, isNearDuplicate, lineSimilarity, parseAddonInput, parseAddonReaction, parseAddonSettings,
-  parseAddonState, parseApiVersion, sharedMemory, speakerProfileKey, validateManifest} from './addons.mjs';
+  parseAddonState, parseApiVersion, sampleLine, sharedMemory, speakerProfileKey, validateManifest} from './addons.mjs';
 import {parseInput} from './protocol.mjs';
 import {PersonaBook, systemHead} from './mistral-prompt.mjs';
 import {TextProviderHost, mistralRoute} from './text-provider-host.mjs';
@@ -285,6 +285,11 @@ test('repetition: near repeats are found cheaply, a repeated remark is dropped, 
   host.afterReply(remark, 'Leg shot. He will live, I promise.');
   assert.deepEqual(host.review(remark, 'two down boss'), {duplicate: true, similar: 'Two down, boss!'});
   assert.equal(host.review({...remark, reaction: null}, 'two down boss').duplicate, false, 'a conversation reply is never dropped');
+  // The persona's example lines are used up: saying one again is a repeat though the journal never saw it (only the spoken part counts).
+  assert.equal(sampleLine('Game event: V killed one.\nSkippy: Hiya, boss!', 'Skippy'), 'Hiya, boss!');
+  assert.equal(sampleLine('Game event: V killed one.', 'Skippy'), '');
+  assert.deepEqual(host.review(remark, 'Hiya boss, hiya!'), {duplicate: true, similar: 'Hiya, boss!'});
+  assert.equal(host.review({...remark, reaction: null}, 'Hiya boss, hiya!').duplicate, false);
   assert.deepEqual(host.recentLines('addon-skippy-gun'), ['Two down, boss!', 'Leg shot. He will live, I promise.']);
   const recent = host.blocks(remark).find(block => block.key === 'addon:skippy:recent');
   assert.equal(recent.tier, 'volatile');
@@ -365,7 +370,7 @@ test('request data: the addon field and the addon reaction pass the protocol; or
     addon: {id: 'skippy', speaker: 'gun', event: 'combat-start', text: 'A fight started.', maxWords: 10,
       facts: {enemies: 3, weapon: {name: 'Skippy', mode: 'puppy'}, bad: () => 1},
       blocks: [{key: 'mode', text: 'Puppy-Loving Pacifist mode: aim for limbs.', tier: 'world'}, {key: 'x y', text: 'bad key'}]}}));
-  assert.deepEqual(remark.reaction, {kind: 'addon', addon: 'skippy', speaker: 'gun', event: 'combat-start', expiresAt: now + 4000, priority: 3});
+  assert.deepEqual(remark.reaction, {kind: 'addon', addon: 'skippy', speaker: 'gun', event: 'combat-start', expiresAt: now + 4000, priority: 3, maxWords: 10});
   assert.equal(remark.addon.maxWords, 10);
   assert.deepEqual(remark.addon.facts, {enemies: 3, weapon: {name: 'Skippy', mode: 'puppy'}});
   assert.deepEqual(remark.addon.blocks, [{key: 'mode', text: 'Puppy-Loving Pacifist mode: aim for limbs.', tier: 'world'}]);
@@ -378,6 +383,10 @@ test('request data: the addon field and the addon reaction pass the protocol; or
   assert.equal(Object.hasOwn(plain, 'addon'), false);
   assert.equal(parseAddonInput({id: 'Bad', speaker: 'gun'}), undefined);
   assert.equal(parseAddonReaction({kind: 'addon', addon: 'skippy', speaker: 'gun', event: 'e', expiresAt: 0}, {id: 'skippy', speaker: 'gun'}), null);
+  // The reaction carries the remark's word limit (the text host stops, sizes and cuts the line by it); without one it carries none.
+  const reaction = {kind: 'addon', addon: 'skippy', speaker: 'gun', event: 'e', expiresAt: now};
+  assert.equal(parseAddonReaction(reaction, {id: 'skippy', speaker: 'gun', maxWords: 9}).maxWords, 9);
+  assert.equal(Object.hasOwn(parseAddonReaction(reaction, {id: 'skippy', speaker: 'gun'}), 'maxWords'), false);
 });
 
 test('blocks: a speaker gets the no-body note, its game blocks, hook blocks or plain facts; companions get what add-ons tell them', () => {
