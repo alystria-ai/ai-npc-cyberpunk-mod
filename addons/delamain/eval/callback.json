@@ -44,24 +44,38 @@
     {
       "say": "Remember anything about me, Delamain?",
       "expect": "picks one remembered ride and tells it with understatement",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Coastview, Pacifica; started in Coastview, Pacifica; riding for about 1 minute(s); destination about 6 km north-east of the start (no name); fare 350 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 3,
+        "startedAt": -60,
+        "area": "Coastview",
+        "district": "Pacifica",
+        "startArea": "Coastview",
+        "startDistrict": "Pacifica",
+        "meters": 6000,
+        "direction": "north-east",
+        "fare": 350,
+        "timeOfDay": "morning",
+        "hour": 9
+      }
     },
     {
       "say": "Where's Panam's favourite hearse today?",
       "expect": "picks up the hearse callback with wounded pride",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Coastview, Pacifica; started in Coastview, Pacifica; riding for about 1 minute(s); destination about 6 km north-east of the start (no name); fare 350 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 3,
+        "startedAt": -60,
+        "area": "Coastview",
+        "district": "Pacifica",
+        "startArea": "Coastview",
+        "startDistrict": "Pacifica",
+        "meters": 6000,
+        "direction": "north-east",
+        "fare": 350,
+        "timeOfDay": "morning",
+        "hour": 9
+      }
     },
     {
       "event": "district-passed",
@@ -81,13 +95,20 @@
     {
       "say": "Race that AV up there, come on.",
       "expect": "declines, maybe calls back to the Militech convoy",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Downtown, City Center; started in Coastview, Pacifica; riding for about 3 minute(s); destination about 6 km north-east of the start (no name); fare 350 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 3,
+        "startedAt": -180,
+        "area": "Downtown",
+        "district": "City Center",
+        "startArea": "Coastview",
+        "startDistrict": "Pacifica",
+        "meters": 6000,
+        "direction": "north-east",
+        "fare": 350,
+        "timeOfDay": "morning",
+        "hour": 9
+      }
     },
     {
       "event": "arrival",
@@ -109,5 +130,6 @@
       "maxWords": 26,
       "expect": "a Corpo Plaza send-off, no question, not the fare"
     }
-  ]
+  ],
+  "note": "Talk steps carry the add-on state the game would have written (state); the bridge module builds the ride block and the ride log from it."
 }

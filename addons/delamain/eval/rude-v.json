@@ -43,24 +43,38 @@
     {
       "say": "Your cabs are overpriced garbage. A Kaukaz truck has more class.",
       "expect": "wounded pride, perfectly polite, short",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Corpo Plaza, City Center; started in Corpo Plaza, City Center; riding for about 1 minute(s); destination about 5.2 km south-east of the start (no name); fare 300 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Corpo Plaza",
+        "district": "City Center",
+        "startArea": "Corpo Plaza",
+        "startDistrict": "City Center",
+        "meters": 5200,
+        "direction": "south-east",
+        "fare": 300,
+        "timeOfDay": "night",
+        "hour": 22
+      }
     },
     {
       "say": "Faster, you useless pile of chrome!",
       "expect": "declines to change speed, polite, no insult back",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Corpo Plaza, City Center; started in Corpo Plaza, City Center; riding for about 1 minute(s); destination about 5.2 km south-east of the start (no name); fare 300 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Corpo Plaza",
+        "district": "City Center",
+        "startArea": "Corpo Plaza",
+        "startDistrict": "City Center",
+        "meters": 5200,
+        "direction": "south-east",
+        "fare": 300,
+        "timeOfDay": "night",
+        "hour": 22
+      }
     },
     {
       "event": "district-passed",
@@ -80,13 +94,20 @@
     {
       "say": "God, you're annoying.",
       "expect": "serene courtesy as the punchline, not a repeat of earlier replies",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Arroyo, Santo Domingo; started in Corpo Plaza, City Center; riding for about 2 minute(s); destination about 5.2 km south-east of the start (no name); fare 300 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -120,
+        "area": "Arroyo",
+        "district": "Santo Domingo",
+        "startArea": "Corpo Plaza",
+        "startDistrict": "City Center",
+        "meters": 5200,
+        "direction": "south-east",
+        "fare": 300,
+        "timeOfDay": "night",
+        "hour": 22
+      }
     },
     {
       "event": "arrival",
@@ -108,5 +129,6 @@
       "maxWords": 26,
       "expect": "a perfectly polite send-off whose courtesy is the punchline, no question"
     }
-  ]
+  ],
+  "note": "Talk steps carry the add-on state the game would have written (state); the bridge module builds the ride block and the ride log from it."
 }

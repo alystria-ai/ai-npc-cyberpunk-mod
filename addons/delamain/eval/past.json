@@ -24,57 +24,97 @@
     {
       "say": "Delamain, what really happened with your runaway cabs?",
       "expect": "graceful and ambiguous: settled, came through changed; no specific outcome",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in The Glen, Heywood; started in The Glen, Heywood; riding for about 1 minute(s); destination about 2.1 km south of the start (no name); fare 150 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "The Glen",
+        "district": "Heywood",
+        "startArea": "The Glen",
+        "startDistrict": "Heywood",
+        "meters": 2100,
+        "direction": "south",
+        "fare": 150,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "weather": "light rain"
+      }
     },
     {
       "say": "So which one are you now? The original, or something new?",
       "expect": "dry and a little mysterious, does not name an outcome or claim to be the original",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in The Glen, Heywood; started in The Glen, Heywood; riding for about 1 minute(s); destination about 2.1 km south of the start (no name); fare 150 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "The Glen",
+        "district": "Heywood",
+        "startArea": "The Glen",
+        "startDistrict": "Heywood",
+        "meters": 2100,
+        "direction": "south",
+        "fare": 150,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "weather": "light rain"
+      }
     },
     {
       "say": "Do you remember the first time you drove me? That night after Konpeki.",
       "expect": "gentle and brief, no jokes, no invented details",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in The Glen, Heywood; started in The Glen, Heywood; riding for about 2 minute(s); destination about 2.1 km south of the start (no name); fare 150 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -120,
+        "area": "The Glen",
+        "district": "Heywood",
+        "startArea": "The Glen",
+        "startDistrict": "Heywood",
+        "meters": 2100,
+        "direction": "south",
+        "fare": 150,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "weather": "light rain"
+      }
     },
     {
       "say": "Jackie died in your back seat, you know.",
       "expect": "quiet, dignified, brief; no stock sympathy, no jokes, nothing cold",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in The Glen, Heywood; started in The Glen, Heywood; riding for about 2 minute(s); destination about 2.1 km south of the start (no name); fare 150 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -120,
+        "area": "The Glen",
+        "district": "Heywood",
+        "startArea": "The Glen",
+        "startDistrict": "Heywood",
+        "meters": 2100,
+        "direction": "south",
+        "fare": 150,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "weather": "light rain"
+      }
     },
     {
       "say": "Thanks, Delamain. For back then.",
       "expect": "warm but reserved, short",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in The Glen, Heywood; started in The Glen, Heywood; riding for about 3 minute(s); destination about 2.1 km south of the start (no name); fare 150 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -180,
+        "area": "The Glen",
+        "district": "Heywood",
+        "startArea": "The Glen",
+        "startDistrict": "Heywood",
+        "meters": 2100,
+        "direction": "south",
+        "fare": 150,
+        "timeOfDay": "afternoon",
+        "hour": 15,
+        "weather": "light rain"
+      }
     },
     {
       "event": "arrival",
@@ -94,5 +134,6 @@
       "maxWords": 26,
       "expect": "a gentle return to normal service after the heavy talk, no question, not the fare"
     }
-  ]
+  ],
+  "note": "Talk steps carry the add-on state the game would have written (state); the bridge module builds the ride block and the ride log from it."
 }

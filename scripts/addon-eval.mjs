@@ -3,6 +3,8 @@
 //
 //   node scripts/addon-eval.mjs --addon addons/example --script addons/example/eval/combat.json [--judge] [--runs 3] [--model id] [--json]
 //   node scripts/addon-eval.mjs --addon addons/example --script addons/example/eval/combat.json --dry
+//   --gap-ms N  waits at least N ms between two requests (the speaker's and the judge's; default 1500 on a real run, so a shared free key
+//               is not hit in bursts)
 //
 // The speaker answers through Mistral with the key in MISTRAL_API_KEY, or the key saved in the state folder (runtime/ or
 // CYBERPUNK_CONVAI_STATE). The key is never printed. --dry sends nothing: each step's prompt is printed with a placeholder reply.
@@ -20,7 +22,8 @@ const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 function options(argv) {
   const value = name => { const at = argv.indexOf(name); return at >= 0 ? argv[at + 1] : undefined; };
   return {addon: value('--addon'), script: value('--script'), model: value('--model'), runs: Math.max(1, Math.min(10, Number(value('--runs')) || 1)),
-    dry: argv.includes('--dry'), judge: argv.includes('--judge'), json: argv.includes('--json')};
+    dry: argv.includes('--dry'), judge: argv.includes('--judge'), json: argv.includes('--json'),
+    gapMs: Number.isFinite(Number(value('--gap-ms'))) && value('--gap-ms') !== undefined ? Math.max(0, Number(value('--gap-ms'))) : 1500};
 }
 
 async function mistralKey() {
@@ -28,6 +31,17 @@ async function mistralKey() {
   const state = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
   const provider = await new MistralProvider({keyPath: resolve(state, MISTRAL_KEY_FILE)}).load().catch(() => null);
   return provider?.apiKey ?? null;
+}
+
+// One shared clock for every model request of the run: each starts at least `ms` after the one before.
+function paced(chat, ms) {
+  let next = 0;
+  return async options => {
+    const start = Math.max(Date.now(), next);
+    next = start + ms;
+    if (start > Date.now()) await new Promise(done => setTimeout(done, start - Date.now()));
+    return chat(options);
+  };
 }
 
 async function main() {
@@ -45,8 +59,8 @@ async function main() {
   } else {
     apiKey = await mistralKey();
     if (!apiKey) { console.error('No Mistral key: set MISTRAL_API_KEY or save one in Cyberpunk Convai\'s settings.'); return 1; }
-    chat = streamChat;
-    if (args.judge) judge = llmJudge({chat: streamChat, apiKey});
+    chat = paced(streamChat, args.gapMs);
+    if (args.judge) judge = llmJudge({chat, apiKey});
   }
   const models = args.model ? [args.model] : DEFAULT_MODELS;
   const runs = [];

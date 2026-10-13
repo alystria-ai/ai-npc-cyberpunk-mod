@@ -24,13 +24,20 @@
     {
       "say": "What? My feet hurt.",
       "expect": "short, courteous, dry",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Japantown, Westbrook; started in Japantown, Westbrook; riding for about 1 minute(s); destination about 0.4 km east of the start (no name); fare 50 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Japantown",
+        "district": "Westbrook",
+        "startArea": "Japantown",
+        "startDistrict": "Westbrook",
+        "meters": 400,
+        "direction": "east",
+        "fare": 50,
+        "timeOfDay": "midday",
+        "hour": 12
+      }
     },
     {
       "event": "arrival",
@@ -99,5 +106,6 @@
       "maxWords": 26,
       "expect": "a send-off different in wording and joke from the first arrival"
     }
-  ]
+  ],
+  "note": "Talk steps carry the add-on state the game would have written (state); the bridge module builds the ride block and the ride log from it."
 }

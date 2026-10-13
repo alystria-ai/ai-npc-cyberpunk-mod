@@ -39,24 +39,38 @@
     {
       "say": "Nice ride. Smells like a hospital in here.",
       "expect": "proud of the clean car, short, no invented features",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Little China, Watson; started in Little China, Watson; riding for about 1 minute(s); destination about 3.1 km north of the start (no name); fare 200 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Little China",
+        "district": "Watson",
+        "startArea": "Little China",
+        "startDistrict": "Watson",
+        "meters": 3100,
+        "direction": "north",
+        "fare": 200,
+        "timeOfDay": "midday",
+        "hour": 12
+      }
     },
     {
       "say": "Can you take the highway? I'm in a hurry.",
       "expect": "declines to change the route or speed with courteous pride",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Little China, Watson; started in Little China, Watson; riding for about 1 minute(s); destination about 3.1 km north of the start (no name); fare 200 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Little China",
+        "district": "Watson",
+        "startArea": "Little China",
+        "startDistrict": "Watson",
+        "meters": 3100,
+        "direction": "north",
+        "fare": 200,
+        "timeOfDay": "midday",
+        "hour": 12
+      }
     },
     {
       "event": "district-passed",
@@ -75,24 +89,38 @@
     },
     {
       "say": "How's business, Delamain?",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Japantown, Westbrook; started in Little China, Watson; riding for about 1 minute(s); destination about 3.1 km north of the start (no name); fare 200 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Japantown",
+        "district": "Westbrook",
+        "startArea": "Little China",
+        "startDistrict": "Watson",
+        "meters": 3100,
+        "direction": "north",
+        "fare": 200,
+        "timeOfDay": "midday",
+        "hour": 12
+      }
     },
     {
       "say": "Where are we, anyway?",
       "expect": "answers plainly (Japantown, Westbrook) with a dry touch",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Japantown, Westbrook; started in Little China, Watson; riding for about 2 minute(s); destination about 3.1 km north of the start (no name); fare 200 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -120,
+        "area": "Japantown",
+        "district": "Westbrook",
+        "startArea": "Little China",
+        "startDistrict": "Watson",
+        "meters": 3100,
+        "direction": "north",
+        "fare": 200,
+        "timeOfDay": "midday",
+        "hour": 12
+      }
     },
     {
       "event": "arrival",
@@ -114,5 +142,6 @@
       "maxWords": 26,
       "expect": "a graceful closing aside about the place or ride, not the fare again, no question, no 'we have arrived'"
     }
-  ]
+  ],
+  "note": "Talk steps carry the add-on state the game would have written (state); the bridge module builds the ride block and the ride log from it."
 }

@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {WORLD, runLua} from '../../bridge/addon-lua-harness.mjs';
-import {ADDON_MANIFEST, AddonHost, fixedProvider, sharedMemory, validateManifest} from '../../bridge/addons.mjs';
+import {ADDON_MANIFEST, AddonHost, fixedProvider, rosterLookup, sharedMemory, validateManifest} from '../../bridge/addons.mjs';
 import {parseInput} from '../../bridge/protocol.mjs';
 import {PersonaBook, joinBlocks} from '../../bridge/mistral-prompt.mjs';
 import {TextProviderHost, mistralRoute} from '../../bridge/text-provider-host.mjs';
@@ -378,7 +378,8 @@ test('the bridge answers a ride-start remark: persona, the ride block with the f
     local: {profileKey: input.profileKey, name: 'Delamain', channel: 'private'}});
   assert.match(reply.text, /Heavy rain/);
   const prompt = sent[0].map(message => message.content).join('\n');
-  assert.match(prompt, /You are Delamain, the artificial intelligence that drives this cab/);
+  assert.match(prompt, /You are Delamain, the artificial intelligence that owns and runs Delamain/);
+  assert.match(prompt, /at most 25 words/, 'the speaker sets its own talk length');
   assert.match(prompt, /no body/);
   assert.match(prompt, /The ride right now/);
   assert.match(prompt, /Judy Alvarez rides with V/);
@@ -444,5 +445,76 @@ test('the elapsed-time phrase and distance wording are plain', () => {
   assert.ok(lines.some(line => /about 700 metres/.test(line)), lines.join('|'));
   assert.ok(lines.includes('V rides alone.'));
   assert.ok(lines.some(line => /driving for about 2 minutes/.test(line)));
+  module.resetRideLog();
   assert.deepEqual(module.speakerBlocks({state: null, facts: null}).map(block => block.key), ['ride'], 'even with no data the block says V rides alone');
+});
+
+// ---- response quality: weather, fare, pronouns, the ride log ---------------------------------------------------------------
+
+const RAIN = {rideNumber: 7, weather: 'heavy rain', timeOfDay: 'night', hour: 23, district: 'Watson'};
+const blockText = (blocks, key) => blocks.find(block => block.key === key)?.text ?? '';
+
+test('the weather goes only with the first two events of a ride, and is mentioned again only if V asks', () => {
+  module.resetRideLog();
+  const first = blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'boarded'}), 'ride');
+  const second = blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'ride-start'}), 'ride');
+  const third = blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'district-passed'}), 'ride');
+  assert.match(first, /Your sensors show heavy rain/);
+  assert.match(second, /Your sensors show heavy rain/);
+  assert.doesNotMatch(third, /Your sensors show/);
+  assert.match(third, /Do not mention the weather in this line/);
+  // The same event asked for again (a scene held it back) is still the same event.
+  assert.match(blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'boarded'}), 'ride'), /Your sensors show heavy rain/);
+  // A talk answer later in the ride has it only as something to say if asked; the companions' note drops it too.
+  const talk = blockText(module.speakerBlocks({state: {rideNumber: 7, phase: 'riding', weather: 'heavy rain'}, facts: null}), 'ride');
+  assert.match(talk, /Outside it is heavy rain \(mention it only if V asks\)/);
+  assert.doesNotMatch(module.companionBlocks({state: {rideNumber: 7, phase: 'riding', weather: 'heavy rain'}}).map(block => block.text).join(' '), /Outside/);
+  // A new ride starts again with the weather.
+  assert.match(blockText(module.speakerBlocks({state: null, facts: {...RAIN, rideNumber: 8}, event: 'ride-start'}), 'ride'), /Your sensors show heavy rain/);
+});
+
+test('the arrival never gets the fare, and its instruction does not ask for it', () => {
+  module.resetRideLog();
+  const arrival = blockText(module.speakerBlocks({state: {rideNumber: 3, fare: 300, phase: 'arrived'}, facts: {rideNumber: 3, fare: 300, rideMinutes: 4}, event: 'arrival'}), 'ride');
+  assert.doesNotMatch(arrival, /fare/i);
+  assert.match(module.rideLines({state: {fare: 300}, facts: {}}).join(' '), /The fare is 300 eddies/, 'a talk answer may still say the fare');
+  const guide = module.trigger({event: 'arrival', text: 'The cab arrived.', maxWords: 26});
+  assert.doesNotMatch(guide, /\(its length, the weather, the company, the fare\)/);
+  assert.match(guide, /Do not mention the fare/);
+});
+
+test('a companion comes with a pronoun when the main mod knows it, and with just a name when it does not', async () => {
+  const host = new AddonHost({addons: [validateManifest(manifestRaw, dir)], startedAt: 0});
+  host.characterLookup = rosterLookup([{key: 'panam-palmer', name: 'Panam Palmer', gender: 'FEMALE'}, {key: 'river-ward', name: 'River Ward', gender: 'MALE'},
+    {key: 'who', name: 'Who', gender: 'OTHER'}]);
+  await host.loadModules({importModule: async () => module});
+  module.resetRideLog();
+  const lines = name => module.rideLines({facts: {companion: name, companionCount: 2}}).join(' ');
+  assert.match(lines('Panam Palmer'), /Panam Palmer \(she\/her\) and 1 other companion ride with V/);
+  assert.match(lines('River Ward'), /River Ward \(he\/him\) and 1 other/);
+  assert.doesNotMatch(lines('Who'), /\(/, 'a gender the roster does not give as male or female is left out');
+  assert.doesNotMatch(lines('Somebody New'), /\(/);
+});
+
+test('the ride log keeps one note per spoken line of this ride, restarts with the next ride, and reaches the prompt', () => {
+  module.resetRideLog();
+  assert.equal(module.speakerBlocks({state: null, facts: RAIN, event: 'boarded'}).some(block => block.key === 'ride-log'), false, 'nothing to call back to yet');
+  module.remember({event: 'boarded', facts: RAIN, line: 'Do drip freely, V. The back seat has survived worse.'});
+  module.remember({event: 'ride-start', facts: {...RAIN, destinationDistanceMeters: 3200, destinationDirection: 'north'}, line: 'North, and a fair way of it.'});
+  module.remember({event: null, facts: null, line: 'Somewhere between where you were and where you would rather be.'});
+  const log = blockText(module.speakerBlocks({state: null, facts: {...RAIN}, event: 'district-passed'}), 'ride-log');
+  assert.match(log, /^Earlier on this ride \(true;/);
+  assert.match(log, /- V got in at night in Watson; you said: "Do drip freely/);
+  assert.match(log, /- the ride began, about 3\.2 km north; you said: "North, and a fair way of it\."/);
+  assert.match(log, /- V talked to you; you said: "Somewhere between/);
+  // Bounded: six notes, short lines.
+  for (let index = 0; index < 10; index++) module.remember({event: 'district-passed', facts: RAIN, line: `Line ${index} ${'long '.repeat(60)}`});
+  const bounded = blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'arrival'}), 'ride-log');
+  assert.equal(bounded.split('\n- ').length - 1, 6, 'six notes of at most 90 characters of speech each fit');
+  assert.ok(bounded.length <= 1100);
+  assert.doesNotMatch(bounded, /Line 3 /);
+  // The next ride starts a clean log.
+  assert.equal(module.speakerBlocks({state: null, facts: {...RAIN, rideNumber: 8}, event: 'boarded'}).some(block => block.key === 'ride-log'), false);
+  // The memory of a notable arrival is unchanged by the log.
+  assert.match(module.remember({event: 'arrival', facts: {...RAIN, rideNumber: 8, rideMinutes: 4}, line: 'Four minutes.'}), /Delamain said: "Four minutes\."/);
 });

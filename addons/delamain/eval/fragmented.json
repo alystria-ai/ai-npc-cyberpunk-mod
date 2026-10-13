@@ -38,13 +38,20 @@
     {
       "say": "Delamain, you sound... off tonight.",
       "expect": "composed denial undercut by a slip, funny",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Rancho Coronado, Santo Domingo; started in Rancho Coronado, Santo Domingo; riding for about 1 minute(s); destination about 5 km west of the start (no name); fare 300 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Rancho Coronado",
+        "district": "Santo Domingo",
+        "startArea": "Rancho Coronado",
+        "startDistrict": "Santo Domingo",
+        "meters": 5000,
+        "direction": "west",
+        "fare": 300,
+        "timeOfDay": "dead of night",
+        "hour": 3
+      }
     },
     {
       "event": "district-passed",
@@ -64,13 +71,20 @@
     {
       "say": "Which one of you am I talking to right now?",
       "expect": "witty, ambiguous, no ending named",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in West Wind Estate, Pacifica; started in Rancho Coronado, Santo Domingo; riding for about 2 minute(s); destination about 5 km west of the start (no name); fare 300 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -120,
+        "area": "West Wind Estate",
+        "district": "Pacifica",
+        "startArea": "Rancho Coronado",
+        "startDistrict": "Santo Domingo",
+        "meters": 5000,
+        "direction": "west",
+        "fare": 300,
+        "timeOfDay": "dead of night",
+        "hour": 3
+      }
     },
     {
       "event": "arrival",
@@ -92,5 +106,6 @@
       "maxWords": 26,
       "expect": "composed send-off; any slip no longer than half a sentence"
     }
-  ]
+  ],
+  "note": "Talk steps carry the add-on state the game would have written (state); the bridge module builds the ride block and the ride log from it."
 }

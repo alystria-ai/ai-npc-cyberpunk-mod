@@ -40,35 +40,59 @@
     },
     {
       "say": "Why's it always raining when I call you?",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Northside, Watson; started in Northside, Watson; riding for about 1 minute(s); destination about 1.4 km south of the start (no name); fare 100 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Northside",
+        "district": "Watson",
+        "startArea": "Northside",
+        "startDistrict": "Watson",
+        "meters": 1400,
+        "direction": "south",
+        "fare": 100,
+        "timeOfDay": "dead of night",
+        "hour": 1,
+        "weather": "heavy rain"
+      }
     },
     {
       "say": "Ever get lonely, driving around all night?",
       "expect": "reserved, witty, a glimpse of feeling without melodrama",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Northside, Watson; started in Northside, Watson; riding for about 1 minute(s); destination about 1.4 km south of the start (no name); fare 100 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Northside",
+        "district": "Watson",
+        "startArea": "Northside",
+        "startDistrict": "Watson",
+        "meters": 1400,
+        "direction": "south",
+        "fare": 100,
+        "timeOfDay": "dead of night",
+        "hour": 1,
+        "weather": "heavy rain"
+      }
     },
     {
       "say": "Wake me when we're there.",
       "expect": "very short, courteous, dry",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Northside, Watson; started in Northside, Watson; riding for about 2 minute(s); destination about 1.4 km south of the start (no name); fare 100 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -120,
+        "area": "Northside",
+        "district": "Watson",
+        "startArea": "Northside",
+        "startDistrict": "Watson",
+        "meters": 1400,
+        "direction": "south",
+        "fare": 100,
+        "timeOfDay": "dead of night",
+        "hour": 1,
+        "weather": "heavy rain"
+      }
     },
     {
       "event": "arrival",
@@ -88,5 +112,6 @@
       "maxWords": 26,
       "expect": "a Kabuki-at-night-in-the-rain send-off (neon, the market, pedestrians), no question, not the fare"
     }
-  ]
+  ],
+  "note": "Talk steps carry the add-on state the game would have written (state); the bridge module builds the ride block and the ride log from it."
 }

@@ -46,7 +46,7 @@ export const CET_MODS = 'bin/x64/plugins/cyber_engine_tweaks/mods';
 export const ADDON_LIMITS = Object.freeze({addons: 8, speakers: 4, persona: 12000, samples: 12, rules: 12, line: 600,
   blocks: 8, blockText: 1500, blocksTotal: 4000, facts: 4000, eventText: 600, companionBlocks: 4, companionText: 600,
   referenceBytes: 8 * 1024 * 1024, referenceSeconds: 20, transcript: 2000, hookMs: 5, modes: 4, recentLines: 12, recentShown: 6,
-  recentChecked: 8, memories: 12, memoriesShown: 6, memoryText: 300,
+  recentChecked: 8, heard: 240, talkWordsMin: 8, talkWordsMax: 60, retryMs: 250, retryShare: 1.25, retryGuessMs: 900, memories: 12, memoriesShown: 6, memoryText: 300,
   // Stock (bridge/addon-stock.mjs); the game side keeps the same numbers in mod/addons.lua STOCK.
   stockKeys: 12, stockText: 600, stockSlots: 8, stockSlotName: 48, stockBlocks: 4, stockBlocksText: 3000});
 
@@ -88,11 +88,21 @@ function inside(root, value) {
 
 const lines = (list, limit) => (Array.isArray(list) ? list : []).map(line => text(line, ADDON_LIMITS.line)).filter(Boolean).slice(0, limit);
 
+// persona.talkWords: the longest answer, in words, the speaker gives V when V talks to it (the main mod's own limit is about 15 to 40).
+function talkWords(value, where) {
+  if (value === undefined) return {};
+  if (!Number.isInteger(value) || value < ADDON_LIMITS.talkWordsMin || value > ADDON_LIMITS.talkWordsMax) {
+    throw Error(`${where}: talkWords must be a whole number from ${ADDON_LIMITS.talkWordsMin} to ${ADDON_LIMITS.talkWordsMax}`);
+  }
+  return {talkWords: value};
+}
+
 function persona(value, name) {
   const source = object(value) ? value : {};
   const result = {intro: text(source.intro, 1200), identityRule: text(source.identityRule, 1200),
     backstory: text(source.backstory, ADDON_LIMITS.persona), style: text(source.style, 3000),
-    samples: lines(source.samples, ADDON_LIMITS.samples), rules: lines(source.rules, ADDON_LIMITS.rules)};
+    samples: lines(source.samples, ADDON_LIMITS.samples), rules: lines(source.rules, ADDON_LIMITS.rules),
+    ...talkWords(source.talkWords, `speaker ${name}: persona`)};
   if (!result.backstory) throw Error(`speaker ${name}: persona.backstory is required`);
   return result;
 }
@@ -104,7 +114,8 @@ function mode(value, id, speaker) {
   const name = text(value.name, 60);
   if (!name) throw Error(`speaker ${speaker}: mode ${id} needs a name`);
   return {id, name, intro: text(value.intro, 1200), identityRule: text(value.identityRule, 1200), backstory: text(value.backstory, 4000),
-    style: text(value.style, 3000), samples: lines(value.samples, ADDON_LIMITS.samples), rules: lines(value.rules, ADDON_LIMITS.rules)};
+    style: text(value.style, 3000), samples: lines(value.samples, ADDON_LIMITS.samples), rules: lines(value.rules, ADDON_LIMITS.rules),
+    ...talkWords(value.talkWords, `speaker ${speaker}: mode ${id}`)};
 }
 
 function providers(value, where) {
@@ -362,7 +373,22 @@ export function parseAddonSettings(raw) {
 
 // ---- Repetition ----------------------------------------------------------------------------------------------------------
 
-const words = line => String(line ?? '').toLowerCase().replace(/[^\p{L}\p{N}' ]+/gu, ' ').split(/\s+/).filter(Boolean);
+// Curly apostrophes and quotation marks are the same characters as the straight ones for this purpose: "you\u2019re" and "you're" are
+// one word (a model writes either), never "you" and "re".
+const words = line => String(line ?? '').replace(/[\u2018\u2019\u201b\u02bc\u0060\u00b4]/g, "'").toLowerCase()
+  .replace(/[^\p{L}\p{N}' ]+/gu, ' ').split(/\s+/).map(word => word.replace(/^'+|'+$/g, '')).filter(Boolean);
+
+// Words that carry no joke on their own: function words, auxiliaries, number words and units (a fare or a distance is a fact value).
+// A run of four words made of these and at most one other word is a stock phrase ("I shall continue to", "hundred metres to the",
+// "three hundred and fifty eddies"), not a reused line.
+const COMMON = new Set(`a an the and or but nor so yet if then than that this these those there here it its i me my mine we us our ours you your
+  yours he she him her his they them their theirs is am are was were be been being do does did done have has had will would shall should can could may
+  might must not no to of in on at by for from with as into onto over under up out off about just very quite rather also too still now only more most
+  much many some any all each every one two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty sixty hundred thousand
+  eddies eddy metres metre meters meter kilometres kilometre kilometers kilometer km minutes minute seconds second hours hour let who whom which what
+  when where why how i'm i've i'll i'd you're you've you'll you'd we're we've we'll we'd he's she's it's that's there's what's let's they're they've
+  don't doesn't didn't isn't aren't wasn't weren't won't wouldn't can't couldn't shouldn't haven't hasn't v`.split(/\s+/));
+const common = word => COMMON.has(word) || /^\d/.test(word);
 
 /** 0..1: how much two lines share (word sets, Jaccard). Cheap: a few dozen words, no model. */
 export function lineSimilarity(a, b) {
@@ -373,14 +399,18 @@ export function lineSimilarity(a, b) {
   return shared / (left.size + right.size - shared);
 }
 
-/** A near repeat: the same words, mostly the same words (similarity >= 0.6), or the same run of four words (a reused joke). */
+/**
+ * A near repeat: the same words, mostly the same words (similarity >= 0.6), or the same run of four words (a reused joke) that holds
+ * at least two words that are not common (function words, number words and units do not make a joke).
+ */
 export function isNearDuplicate(a, b) {
   const left = words(a), right = words(b);
   if (!left.length || !right.length) return false;
   if (left.join(' ') === right.join(' ') || lineSimilarity(a, b) >= 0.6) return true;
   if (left.length < 4 || right.length < 4) return false;
   const runs = new Set();
-  for (let index = 0; index + 4 <= left.length; index++) runs.add(left.slice(index, index + 4).join(' '));
+  const distinct = run => run.filter(word => !common(word)).length >= 2;
+  for (let index = 0; index + 4 <= left.length; index++) { const run = left.slice(index, index + 4); if (distinct(run)) runs.add(run.join(' ')); }
   for (let index = 0; index + 4 <= right.length; index++) if (runs.has(right.slice(index, index + 4).join(' '))) return true;
   return false;
 }
@@ -420,6 +450,26 @@ export function sharedMemory(memory) {
   return view;
 }
 
+/**
+ * A lookup over the main mod's roster rows ({key, name, aliases, gender}) for AddonHost.characterInfo: by profile key, name or alias,
+ * ignoring case. Built on first use. Add-on speakers and unnamed archetypes are not in it.
+ */
+export function rosterLookup(rows) {
+  let index = null;
+  return value => {
+    if (!index) {
+      index = new Map();
+      for (const row of Array.isArray(rows) ? rows : []) {
+        if (!object(row) || typeof row.key !== 'string' || isAddonProfile(row.key) || row.kind === 'ambient' || row.kind === 'archetype') continue;
+        for (const name of [row.key, row.name, ...(Array.isArray(row.aliases) ? row.aliases : [])]) {
+          if (typeof name === 'string' && name.trim() && !index.has(name.trim().toLowerCase())) index.set(name.trim().toLowerCase(), row);
+        }
+      }
+    }
+    return index.get(String(value ?? '').trim().toLowerCase()) ?? null;
+  };
+}
+
 // ---- The host --------------------------------------------------------------------------------------------------------------
 
 const noop = () => {};
@@ -451,6 +501,7 @@ export class AddonHost {
     this.journalTimer = null;
     this.warmed = new Map();         // addonId -> the last warm stamp seen in the state file
     this.onWarm = null;              // profileKey => void: the bridge warms the speaker's text route
+    this.characterLookup = null;     // keyOrName => {key, name, gender} | null: the bridge's roster, for bridge modules (characterInfo)
     // Lines written ahead of time (bridge/addon-stock.mjs). Holds nothing, and starts nothing, until an add-on asks for stock.
     this.stock = this.active ? new AddonStock({now: () => this.now(), recent: key => this.recentLines(key)}) : null;
     this.onStock = null;             // () => void: the stock changed or may need lines; the bridge starts or stops its pump
@@ -488,7 +539,8 @@ export class AddonHost {
             speakers: addon.speakers.map(speaker => Object.freeze({id: speaker.id, name: speaker.name, profileKey: speaker.profileKey}))}),
           log: message => this.log(`[${addon.id}] ${String(message).slice(0, 400)}`),
           settings: () => ({...(this.settings[addon.id] ?? {})}),
-          state: () => this.state.addons[addon.id]?.state ?? null}));
+          state: () => this.state.addons[addon.id]?.state ?? null,
+          character: value => this.characterInfo(value)}));
         }
       } catch (error) {
         this.modules.delete(addon.id);
@@ -550,6 +602,7 @@ export class AddonHost {
         speakingStyleSampleDialogues: {enumerable: true, get: () => (current()?.samples.length ? current().samples : base.samples).join('\n\n')},
         intro: {enumerable: true, get: () => current()?.intro || base.intro || undefined},
         identityRule: {enumerable: true, get: () => current()?.identityRule || base.identityRule || undefined},
+        talkWords: {enumerable: true, get: () => current()?.talkWords || base.talkWords || undefined},
         rules: {enumerable: true, get: () => { const list = [...base.rules, ...(current()?.rules ?? [])]; return list.length ? list : undefined; }},
       });
       return row;
@@ -569,6 +622,18 @@ export class AddonHost {
   }
 
   isSpeaker(profileKey) { return this.speakers.has(profileKey); }
+
+  /**
+   * Who a character of the main mod is, for a bridge module: {key, name, gender: 'female' | 'male' | null} for a profile key or a name
+   * ("Panam Palmer"), or null when it is unknown. The bridge sets the lookup (setCharacterLookup); without one nothing is known.
+   */
+  characterInfo(value) {
+    const wanted = typeof value === 'string' ? value.trim().slice(0, 80) : '';
+    const found = wanted && typeof this.characterLookup === 'function' ? this.characterLookup(wanted) : null;
+    if (!object(found)) return null;
+    const gender = String(found.gender ?? '').toUpperCase();
+    return {key: text(found.key, 80), name: text(found.name, 80), gender: gender === 'FEMALE' ? 'female' : gender === 'MALE' ? 'male' : null};
+  }
 
   /** The display name of the add-on a speaker belongs to. */
   addonName(profileKey) { return this.speakers.get(profileKey)?.addon.name ?? 'This add-on'; }
@@ -684,6 +749,30 @@ export class AddonHost {
     return {duplicate: !!similar && input?.reaction?.kind === 'addon', similar};
   }
 
+  /**
+   * Writes a remark and checks it against the speaker's recent lines. A remark that nearly repeats one is written once more with
+   * a hint that names the lines to avoid, instead of being dropped, unless the second try could not arrive before the remark goes
+   * stale (reaction.expiresAt, epoch ms): the time the first try took, plus a margin, must still fit. Never more than two tries.
+   *   generate   async (input) => reply {text, ...}: one try; `input.addon.avoid` lists the lines the try must not resemble
+   *   first      a reply that already exists (a line written ahead of time); the first try is then not generated
+   *   firstMs    how long that first try took (a guess when `first` is given and this is not)
+   * Returns {reply, duplicate, similar, retried}: `duplicate` is true when the remark is to be dropped.
+   */
+  async produce(input, generate, {first = null, firstMs} = {}) {
+    const started = this.now();
+    let reply = first ?? await generate(input);
+    const tookMs = Number.isFinite(firstMs) ? firstMs : first ? ADDON_LIMITS.retryGuessMs : this.now() - started;
+    let check = this.review(input, reply.text);
+    if (!check.duplicate) return {reply, duplicate: false, similar: null, retried: false};
+    const limit = input.reaction?.expiresAt;
+    const late = Number.isFinite(limit) && limit > 0 && this.now() + tookMs * ADDON_LIMITS.retryShare + ADDON_LIMITS.retryMs > limit;
+    if (late) return {reply, duplicate: true, similar: check.similar, retried: false};
+    const again = {...input, addon: {...input.addon, avoid: [...new Set([check.similar, reply.text].filter(Boolean))]}};
+    reply = await generate(again);
+    check = this.review(input, reply.text);
+    return {reply, duplicate: check.duplicate, similar: check.similar, retried: true};
+  }
+
   /** A line was spoken: keep it for the repetition check and the prompt, and let the add-on's module turn it into a memory. */
   afterReply(input, line) {
     const owner = this.speakers.get(input?.profileKey);
@@ -694,7 +783,8 @@ export class AddonHost {
     entry.lines = entry.lines.slice(-ADDON_LIMITS.recentLines);
     const memory = this.#hook(owner.addon.id, 'remember', {speaker: owner.speaker.id, profileKey: owner.speaker.profileKey,
       event: input.addon?.event ?? null, facts: input.addon?.facts ?? null, mode: this.modeOf(owner.speaker.profileKey)?.id ?? null,
-      line: body, reaction: input.reaction?.kind === 'addon', settings: {...(this.settings[owner.addon.id] ?? {})}});
+      line: body, heard: text(input.text, ADDON_LIMITS.heard), group: !!input.group, reaction: input.reaction?.kind === 'addon',
+      settings: {...(this.settings[owner.addon.id] ?? {})}});
     if (typeof memory === 'string') this.remember(owner.speaker.profileKey, memory);
     this.#saveJournal();
   }
@@ -865,6 +955,10 @@ export class AddonHost {
     const recent = this.recentLines(speaker.profileKey).slice(-ADDON_LIMITS.recentShown);
     if (recent.length) out.push({tier: 'volatile', key: `addon:${addon.id}:recent`,
       text: `Your most recent lines (never repeat one, its joke or its wording; find a new angle):\n${recent.map(item => `- ${item}`).join('\n')}`});
+    // A second try after a near repeat (produce): name what was too close, so the new line shares no phrasing with it.
+    const avoid = Array.isArray(data?.avoid) ? data.avoid.filter(item => typeof item === 'string' && item.trim()).slice(0, 3) : [];
+    if (avoid.length) out.push({tier: 'volatile', key: `addon:${addon.id}:avoid`,
+      text: `Your first attempt repeated an earlier line and was thrown away. Write a completely different line now: another angle, another opening, other words. Do not reuse any phrasing from these:\n${avoid.map(item => `- ${item}`).join('\n')}`});
     return out;
   }
 

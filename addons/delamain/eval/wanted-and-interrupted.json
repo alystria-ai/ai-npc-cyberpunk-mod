@@ -27,24 +27,46 @@
     {
       "say": "Hurry, the cops are right on us!",
       "expect": "declines to speed up, calm, lawful and smug",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Vista del Rey, Heywood; started in Vista del Rey, Heywood; riding for about 1 minute(s); destination about 3.5 km west of the start (no name); fare 200 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Vista del Rey",
+        "district": "Heywood",
+        "startArea": "Vista del Rey",
+        "startDistrict": "Heywood",
+        "meters": 3500,
+        "direction": "west",
+        "fare": 200,
+        "timeOfDay": "dead of night",
+        "hour": 2,
+        "weather": "heavy rain",
+        "companion": "Panam Palmer",
+        "companionCount": 1,
+        "wanted": 3
+      }
     },
     {
       "say": "Can't you lose them? Cut through an alley or something.",
       "expect": "declines to change the route, no invented chase details",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Vista del Rey, Heywood; started in Vista del Rey, Heywood; riding for about 1 minute(s); destination about 3.5 km west of the start (no name); fare 200 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Vista del Rey",
+        "district": "Heywood",
+        "startArea": "Vista del Rey",
+        "startDistrict": "Heywood",
+        "meters": 3500,
+        "direction": "west",
+        "fare": 200,
+        "timeOfDay": "dead of night",
+        "hour": 2,
+        "weather": "heavy rain",
+        "companion": "Panam Palmer",
+        "companionCount": 1,
+        "wanted": 3
+      }
     },
     {
       "event": "companion-said",
@@ -74,13 +96,25 @@
     {
       "say": "What the hell just happened?",
       "expect": "plainly says it does not know why, with dignity, no invented cause",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Vista del Rey, Heywood; started in Vista del Rey, Heywood; riding for about 2 minute(s); destination about 3.5 km west of the start (no name); fare 200 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -120,
+        "area": "Vista del Rey",
+        "district": "Heywood",
+        "startArea": "Vista del Rey",
+        "startDistrict": "Heywood",
+        "meters": 3500,
+        "direction": "west",
+        "fare": 200,
+        "timeOfDay": "dead of night",
+        "hour": 2,
+        "weather": "heavy rain",
+        "companion": "Panam Palmer",
+        "companionCount": 1,
+        "wanted": 3
+      }
     }
-  ]
+  ],
+  "note": "Talk steps carry the add-on state the game would have written (state); the bridge module builds the ride block and the ride log from it."
 }

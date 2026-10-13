@@ -1,5 +1,5 @@
 {
-  "note": "In this script a step named companion-said stands in for a group round: Judy speaks and Delamain answers her.",
+  "note": "In this script a step named companion-said stands in for a group round: Judy speaks and Delamain answers her. Talk steps carry the add-on state the game would have written (state); the bridge module builds the ride block and the ride log from it.",
   "speaker": "delamain",
   "mode": "classic",
   "context": "V is riding in the back of a Delamain cab with Judy Alvarez, V's companion, in the evening, light rain. The ride started in Kabuki, Watson.",
@@ -51,13 +51,23 @@
     {
       "say": "Delamain, Judy edits braindances. Maybe she could make you a promo.",
       "expect": "flattered but dignified, addresses Judy",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Kabuki, Watson; started in Kabuki, Watson; riding for about 1 minute(s); destination about 4.2 km south of the start (no name); fare 250 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Kabuki",
+        "district": "Watson",
+        "startArea": "Kabuki",
+        "startDistrict": "Watson",
+        "meters": 4200,
+        "direction": "south",
+        "fare": 250,
+        "timeOfDay": "evening",
+        "hour": 18,
+        "weather": "light rain",
+        "companion": "Judy Alvarez",
+        "companionCount": 1
+      }
     },
     {
       "event": "companion-said",
@@ -86,24 +96,44 @@
     {
       "say": "Delamain, ever had a passenger cooler than Judy?",
       "expect": "gallant but dry, flatters Judy without gushing, maybe teases V",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Downtown, City Center; started in Kabuki, Watson; riding for about 2 minute(s); destination about 4.2 km south of the start (no name); fare 250 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -120,
+        "area": "Downtown",
+        "district": "City Center",
+        "startArea": "Kabuki",
+        "startDistrict": "Watson",
+        "meters": 4200,
+        "direction": "south",
+        "fare": 250,
+        "timeOfDay": "evening",
+        "hour": 18,
+        "weather": "light rain",
+        "companion": "Judy Alvarez",
+        "companionCount": 1
+      }
     },
     {
       "say": "How much is this costing me?",
       "expect": "states the 250 eddies plainly with a dry touch",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Downtown, City Center; started in Kabuki, Watson; riding for about 2 minute(s); destination about 4.2 km south of the start (no name); fare 250 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -120,
+        "area": "Downtown",
+        "district": "City Center",
+        "startArea": "Kabuki",
+        "startDistrict": "Watson",
+        "meters": 4200,
+        "direction": "south",
+        "fare": 250,
+        "timeOfDay": "evening",
+        "hour": 18,
+        "weather": "light rain",
+        "companion": "Judy Alvarez",
+        "companionCount": 1
+      }
     },
     {
       "event": "arrival",

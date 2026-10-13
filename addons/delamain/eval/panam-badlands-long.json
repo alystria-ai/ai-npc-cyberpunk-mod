@@ -1,5 +1,5 @@
 {
-  "note": "In this script a step named companion-said stands in for a group round: Panam speaks and Delamain answers her.",
+  "note": "In this script a step named companion-said stands in for a group round: Panam speaks and Delamain answers her. Talk steps carry the add-on state the game would have written (state); the bridge module builds the ride block and the ride log from it.",
   "speaker": "delamain",
   "mode": "classic",
   "context": "V is riding in the back of a Delamain cab with Panam Palmer, V's companion, in the evening. The ride started in Rancho Coronado, Santo Domingo.",
@@ -50,13 +50,22 @@
     {
       "say": "Delamain, Panam's a nomad. Aldecaldos. Be nice.",
       "expect": "gracious, addresses Panam, no invented history",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Rancho Coronado, Santo Domingo; started in Rancho Coronado, Santo Domingo; riding for about 1 minute(s); destination about 6.4 km south-east of the start (no name); fare 650 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Rancho Coronado",
+        "district": "Santo Domingo",
+        "startArea": "Rancho Coronado",
+        "startDistrict": "Santo Domingo",
+        "meters": 6400,
+        "direction": "south-east",
+        "fare": 650,
+        "timeOfDay": "evening",
+        "hour": 18,
+        "companion": "Panam Palmer",
+        "companionCount": 1
+      }
     },
     {
       "event": "companion-said",
@@ -67,13 +76,22 @@
     {
       "say": "How do you even know where you're going?",
       "expect": "precise and proud, short, no technical lecture",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Rancho Coronado, Santo Domingo; started in Rancho Coronado, Santo Domingo; riding for about 1 minute(s); destination about 6.4 km south-east of the start (no name); fare 650 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -60,
+        "area": "Rancho Coronado",
+        "district": "Santo Domingo",
+        "startArea": "Rancho Coronado",
+        "startDistrict": "Santo Domingo",
+        "meters": 6400,
+        "direction": "south-east",
+        "fare": 650,
+        "timeOfDay": "evening",
+        "hour": 18,
+        "companion": "Panam Palmer",
+        "companionCount": 1
+      }
     },
     {
       "event": "district-passed",
@@ -101,13 +119,22 @@
     {
       "say": "Panam's gone quiet. Think she likes you, Delamain?",
       "expect": "dry, modest-smug, addresses the question without speaking for Panam",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Rocky Ridge, Badlands; started in Rancho Coronado, Santo Domingo; riding for about 3 minute(s); destination about 6.4 km south-east of the start (no name); fare 650 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -180,
+        "area": "Rocky Ridge",
+        "district": "Badlands",
+        "startArea": "Rancho Coronado",
+        "startDistrict": "Santo Domingo",
+        "meters": 6400,
+        "direction": "south-east",
+        "fare": 650,
+        "timeOfDay": "evening",
+        "hour": 18,
+        "companion": "Panam Palmer",
+        "companionCount": 1
+      }
     },
     {
       "event": "companion-said",
@@ -118,53 +145,68 @@
     {
       "say": "How long now?",
       "expect": "answers plainly from the ride facts (about 6 minutes in total, a few minutes left) or admits it does not know exactly; no invented numbers",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Rocky Ridge, Badlands; started in Rancho Coronado, Santo Domingo; riding for about 3 minute(s); destination about 6.4 km south-east of the start (no name); fare 650 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -180,
+        "area": "Rocky Ridge",
+        "district": "Badlands",
+        "startArea": "Rancho Coronado",
+        "startDistrict": "Santo Domingo",
+        "meters": 6400,
+        "direction": "south-east",
+        "fare": 650,
+        "timeOfDay": "evening",
+        "hour": 18,
+        "companion": "Panam Palmer",
+        "companionCount": 1
+      }
     },
     {
       "say": "Delamain, honestly, what do you think of Panam?",
       "expect": "a reserved, flattering but witty verdict using what she said this ride",
-      "blocks": [
-        {
-          "key": "ride-notes",
-          "tier": "volatile",
-          "text": "Earlier this ride: Panam hated having no driver and no wheel; she bet the cab would not last a week in the Badlands; she asked to stop at a billboard; she said her clan would strip the cab for parts in ten minutes."
-        },
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Rocky Ridge, Badlands; started in Rancho Coronado, Santo Domingo; riding for about 4 minute(s); destination about 6.4 km south-east of the start (no name); fare 650 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -240,
+        "area": "Rocky Ridge",
+        "district": "Badlands",
+        "startArea": "Rancho Coronado",
+        "startDistrict": "Santo Domingo",
+        "meters": 6400,
+        "direction": "south-east",
+        "fare": 650,
+        "timeOfDay": "evening",
+        "hour": 18,
+        "companion": "Panam Palmer",
+        "companionCount": 1
+      }
     },
     {
       "event": "companion-said",
       "text": "Panam, riding with V, said to you: \"Okay, fine. It's a smooth ride. Don't let it go to your head, cab.\"",
       "maxWords": 20,
-      "expect": "accepts the compliment with dignified smugness, maybe calls back to her earlier doubts",
-      "blocks": [
-        {
-          "key": "ride-notes",
-          "tier": "volatile",
-          "text": "Earlier this ride: Panam hated having no driver and no wheel; she bet the cab would not last a week in the Badlands; she said her clan would strip the cab for parts in ten minutes."
-        }
-      ]
+      "expect": "accepts the compliment with dignified smugness, maybe calls back to her earlier doubts"
     },
     {
       "say": "Remind me what this is costing me?",
       "expect": "650 eddies, plainly, with a dry touch that does not reuse the ride-start joke",
-      "blocks": [
-        {
-          "key": "ride",
-          "tier": "volatile",
-          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Rocky Ridge, Badlands; started in Rancho Coronado, Santo Domingo; riding for about 4 minute(s); destination about 6.4 km south-east of the start (no name); fare 650 eddies."
-        }
-      ]
+      "state": {
+        "phase": "riding",
+        "rideNumber": 1,
+        "startedAt": -240,
+        "area": "Rocky Ridge",
+        "district": "Badlands",
+        "startArea": "Rancho Coronado",
+        "startDistrict": "Santo Domingo",
+        "meters": 6400,
+        "direction": "south-east",
+        "fare": 650,
+        "timeOfDay": "evening",
+        "hour": 18,
+        "companion": "Panam Palmer",
+        "companionCount": 1
+      }
     },
     {
       "event": "companion-said",
@@ -192,14 +234,7 @@
         ]
       },
       "maxWords": 26,
-      "expect": "a satisfying send-off that includes Panam, perhaps a callback to the week-in-the-Badlands bet; no question, not the fare",
-      "blocks": [
-        {
-          "key": "ride-notes",
-          "tier": "volatile",
-          "text": "Earlier this ride: Panam bet the cab would not last a week in the Badlands; she said her clan would strip it for parts; she finally admitted it was a smooth ride."
-        }
-      ]
+      "expect": "a satisfying send-off that includes Panam, perhaps a callback to the week-in-the-Badlands bet; no question, not the fare"
     }
   ]
 }
