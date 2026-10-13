@@ -1,0 +1,96 @@
+{
+  "speaker": "delamain",
+  "mode": "fragmented",
+  "context": "V is riding alone in the back of a Delamain cab in the dead of night (03:00). The ride started in Rancho Coronado, Santo Domingo.",
+  "steps": [
+    {
+      "event": "boarded",
+      "text": "V sat down in the back of the cab; the game has played its own greeting and the destination map is open.",
+      "facts": {
+        "rideNumber": 1,
+        "timeOfDay": "dead of night",
+        "hour": 3,
+        "district": "Santo Domingo",
+        "area": "Rancho Coronado",
+        "destinationChosen": false,
+        "firstRideThisSession": true
+      },
+      "maxWords": 22,
+      "expect": "a courteous aside with one short fragment slip and a calm recovery"
+    },
+    {
+      "event": "ride-start",
+      "text": "V chose a destination and the cab started driving.",
+      "facts": {
+        "rideNumber": 1,
+        "timeOfDay": "dead of night",
+        "hour": 3,
+        "district": "Santo Domingo",
+        "area": "Rancho Coronado",
+        "greeting": false,
+        "destinationDistanceMeters": 5000,
+        "destinationDirection": "west",
+        "fare": 300
+      },
+      "maxWords": 24,
+      "expect": "distance or fare; if a slip happens, a different fragment from before"
+    },
+    {
+      "say": "Delamain, you sound... off tonight.",
+      "expect": "composed denial undercut by a slip, funny",
+      "blocks": [
+        {
+          "key": "ride",
+          "tier": "volatile",
+          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in Rancho Coronado, Santo Domingo; started in Rancho Coronado, Santo Domingo; riding for about 1 minute(s); destination about 5 km west of the start (no name); fare 300 eddies."
+        }
+      ]
+    },
+    {
+      "event": "district-passed",
+      "text": "The cab entered a different district.",
+      "facts": {
+        "rideNumber": 1,
+        "timeOfDay": "dead of night",
+        "hour": 3,
+        "district": "Pacifica",
+        "area": "West Wind Estate",
+        "previousDistrict": "Santo Domingo",
+        "rideSeconds": 110
+      },
+      "maxWords": 18,
+      "expect": "a Pacifica remark; slip optional"
+    },
+    {
+      "say": "Which one of you am I talking to right now?",
+      "expect": "witty, ambiguous, no ending named",
+      "blocks": [
+        {
+          "key": "ride",
+          "tier": "volatile",
+          "text": "The ride right now (use only to answer where, how long or how much; otherwise leave it unsaid): the cab is now in West Wind Estate, Pacifica; started in Rancho Coronado, Santo Domingo; riding for about 2 minute(s); destination about 5 km west of the start (no name); fare 300 eddies."
+        }
+      ]
+    },
+    {
+      "event": "arrival",
+      "text": "The cab stopped at V's destination; the fare was charged and the game plays its own farewell.",
+      "facts": {
+        "rideNumber": 1,
+        "timeOfDay": "dead of night",
+        "hour": 3,
+        "district": "Pacifica",
+        "area": "Coastview",
+        "rideSeconds": 260,
+        "rideMinutes": 4,
+        "fare": 300,
+        "startDistrict": "Santo Domingo",
+        "districtsPassed": [
+          "Pacifica"
+        ]
+      },
+      "maxWords": 26,
+      "expect": "composed send-off; any slip no longer than half a sentence"
+    }
+  ]
+}
