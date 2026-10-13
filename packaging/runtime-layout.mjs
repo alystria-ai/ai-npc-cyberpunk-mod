@@ -66,6 +66,8 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/local-stt-capture.mjs',
   'bridge/local-stt.mjs',
   'bridge/loot-context.mjs',
+  'bridge/mature-content.mjs',
+  'bridge/mature-pack.mjs',
   'bridge/memory-store.mjs',
   'bridge/microphone-session.mjs',
   'bridge/mistral-client.mjs',

@@ -744,4 +744,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "저장되지 않은 변경 사항이 있습니다. 저장하지 않고 나갈까요?",
     ["Your changes work with Mistral, Groq and Local. They do not apply to Convai."] = "변경 사항은 Mistral, Groq, Local에서 적용됩니다. Convai에는 적용되지 않습니다.",
     ["{count} of {max}"] = "{count} / {max}",
+    ["Lets companions answer with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content, in the tone of Night City. For adults (18+) only. It applies to Local AI only: Convai, Mistral and Groq never get it. Characters stay themselves, follow your relationship with them and may say no; some things are never allowed (sex involving minors or without consent, sex about real people, hate, or real-world instructions for weapons or drugs). The uncensored models of the Mature pack give the full effect; the standard Local AI models are trained to refuse most sexual content. Off by default."] = "동료가 Night City의 분위기에 맞춰 거친 말, 노골적인 폭력, 약물 이야기, 어두운 주제, 저속한 농담을 쓸 수 있게 합니다. 합의한 성인 사이에서는 추파와 성적인 내용도 포함됩니다. 성인(18+)만 해당됩니다. 로컬 AI에만 적용되며 Convai, Mistral, Groq에는 절대 적용되지 않습니다. 캐릭터는 자기 성격을 유지하고, 당신과의 관계를 따르며, 거절할 수도 있습니다. 일부는 절대 허용되지 않습니다(미성년자나 동의 없는 성행위, 실존 인물에 관한 성적 내용, 증오, 무기나 약물의 실제 제조 방법 등). 성인 콘텐츠 팩의 검열되지 않은 모델이 온전한 효과를 냅니다. 로컬 AI의 표준 모델은 대부분의 성적 내용을 거부하도록 학습되어 있습니다. 기본적으로 꺼져 있습니다.",
+    ["Mature content"] = "성인 콘텐츠",
+    ["Mature content is on: companions may use adult language and themes. For adults (18+) only."] = "성인 콘텐츠가 켜져 있습니다. 동료는 성인용 언어와 주제를 사용할 수 있습니다. 성인(18+)만 해당됩니다.",
+    ["Your conversations are not using Local AI right now, so this has no effect for now."] = "지금은 대화에 로컬 AI를 사용하지 않으므로, 당분간 이 설정은 효과가 없습니다.",
 }

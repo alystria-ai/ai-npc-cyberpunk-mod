@@ -350,6 +350,77 @@ test('the build writes the manifest fragments the detector reads, and ships both
   assert.match(workflow, /SHA256SUMS-localai-/);
 });
 
+// ---------------------------------------------------------------- the Mature pack (docs/LOCAL_AI.md, "Mature content")
+test('the Mature pack is its own package: built only on request, never in the default set, and nothing of it in the Runtime package or the main page text', async () => {
+  const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
+  assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'localai-lite', 'mature'\]/, 'it is a package id beside the Local AI packs');
+  assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => id !== 'mature'\)/, 'the default set leaves it out');
+  assert.match(builder, /value\('--packages', DEFAULT_PACKAGE_IDS\.join\(','\)\)/, 'a plain build uses the default set');
+  // The release workflow builds the Local AI tiers only; the Mature pack is never produced by it.
+  assert.doesNotMatch(await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8'), /\bmature\b/i);
+  // Nothing in the release plan or the runtime layout (the Runtime package) is the pack's marker, README, Nexus text or models.
+  const plan = await readFile(resolve(project, 'packaging/release-plan.json'), 'utf8');
+  assert.doesNotMatch(plan, /manifest\.mature|MATURE_PACK|mature\/|uncensored|abliterat|heretic|hauhau/i);
+  const {BRIDGE_MODULES} = await import('./runtime-layout.mjs');
+  assert.doesNotMatch(JSON.stringify(BRIDGE_MODULES), /manifest\.mature|MATURE_PACK|\.gguf/i);
+  assert(BRIDGE_MODULES.includes('bridge/mature-pack.mjs') && BRIDGE_MODULES.includes('bridge/mature-content.mjs'), 'the code that looks for the pack ships; the pack does not');
+  // The runtime builder never reads the pack's config section, README or models.
+  const runtimeBuilder = builder.slice(builder.indexOf('async function runtimePackage'), builder.indexOf('async function omniPackage'));
+  assert(runtimeBuilder.length > 1000);
+  assert.doesNotMatch(runtimeBuilder, /maturePack|MATURE_PACK|manifest\.mature/);
+  // The main page text (the README the Runtime package carries) says nothing of it: the main page carries only the generative-AI tag.
+  assert.doesNotMatch(await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8'), /mature|uncensored|adult|18\+/i);
+});
+
+test('the Mature pack definition: marker, README, Nexus text and Apache-2.0 licences, with the model list still placeholders and the build refusing them', async () => {
+  const spec = config.maturePack;
+  assert.equal(spec.marker, 'manifest.mature.json');
+  const {MATURE_MARKER} = await import('../bridge/mature-pack.mjs');
+  assert.equal(spec.marker, MATURE_MARKER, 'the build writes the file name the bridge looks for');
+  assert.equal(spec.status, 'placeholder');
+  assert.notEqual(spec.marker, 'manifest.standard.json'); assert.notEqual(spec.marker, 'manifest.lite.json');
+  for (const rel of [spec.readme, spec.nexusText, ...spec.licenceFiles]) assert(existsSync(resolve(project, rel)), rel);
+  assert.deepEqual(spec.licenceFiles, ['packaging/licenses/Apache-2.0.txt']);
+  assert(spec.models.length >= 2 && spec.models.every(model => model.placeholder === true && model.license === 'Apache-2.0'));
+  assert(spec.models.every(model => /PLACEHOLDER/.test(model.file) && /PLACEHOLDER/.test(model.sha256)), 'nothing is guessed: every file, hash and revision waits for the model test');
+  assert.deepEqual(new Set(spec.models.map(model => model.family)), new Set(['qwen', 'gemma-4']));
+  // The pack lives in the Local AI folder, so the marker is found next to the Local AI manifests.
+  assert.equal(config.layout.localAiDirectory, 'red4ext/plugins/CyberpunkConvai/app/local-ai');
+  assert.equal(spec.directory, 'mature');
+  // The builder refuses an unfinished or non-Apache list, and writes the marker in the shape the bridge reads.
+  const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
+  assert.match(builder, /model\.placeholder \|\| \/PLACEHOLDER\//);
+  assert.match(builder, /the Mature pack ships Apache-2\.0 base models only/);
+  assert.match(builder, /\$\{root\}\/\$\{spec\.marker\}`, \{version: 1, pack: 'mature', models: spec\.models\.map\(model => \(\{file: `models\/\$\{model\.file\}`, name: model\.name, family: model\.family\}\)\)\}/);
+  // A marker of that shape, for the pinned list, is what the detector accepts, and it is not the Local AI pack.
+  const {detectMaturePack} = await import('../bridge/mature-pack.mjs');
+  const {detectLocalAiPack} = await import('../bridge/local-ai-pack.mjs');
+  const root = join('C:', 'game', 'app', 'local-ai');
+  const text = JSON.stringify({version: 1, pack: 'mature', models: spec.models.map(model => ({file: `models/${model.file}`, name: model.name, family: model.family}))});
+  const files = new Map([[resolve(root, spec.marker), text]]);
+  const found = detectMaturePack({project: 'x', environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => files.has(path), readText: path => files.get(path)});
+  assert.equal(found.installed, true);
+  assert.equal(found.models.length, spec.models.length);
+  assert.equal(detectLocalAiPack({project: 'x', environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => files.has(path), readText: path => files.get(path)}).installed, false,
+    'the Mature marker alone is not a Local AI pack');
+});
+
+test('the Mature pack README and Nexus text are for adults, need the main mod and Local AI, give install steps, and say nothing they must not', async () => {
+  for (const rel of ['packaging/MATURE_PACK_README.md', 'packaging/MATURE_PACK_NEXUS.md']) {
+    const text = await readFile(resolve(project, rel), 'utf8');
+    assert.match(text, /18\+/, rel); assert.match(text, /adults? only/i, rel);
+    assert.match(text, /Local AI/, rel); assert.match(text, /Cyberpunk Convai/, rel);
+    assert.match(text, /^\s*1\. Close the game\./m, `${rel}: install steps`);
+    assert.match(text, /hard limits/i, rel);
+    assert.match(text, /Apache-2\.0/, rel);
+    assert.doesNotMatch(text, /\brecommended?\b/i, rel);
+    assert.doesNotMatch(text, /\bamm\b|reference-amm/i, rel);
+    assert.doesNotMatch(text, /\b(?:api[- ]?key|token|secret|credential)s?\b/i, `${rel}: no keys`);
+    assert.doesNotMatch(text, /convai (?:free|shared|embedded)/i, rel);
+  }
+  assert.match(await readFile(resolve(project, 'packaging/MATURE_PACK_NEXUS.md'), 'utf8'), /generative-AI tag/);
+});
+
 test('the release guard refuses a package that would install the development launcher', async () => {
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
   assert.match(builder, /CyberpunkConvaiLauncher/);

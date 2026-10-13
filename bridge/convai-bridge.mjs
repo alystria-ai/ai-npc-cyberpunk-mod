@@ -39,6 +39,8 @@ import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-rou
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
+import {MatureContent} from './mature-content.mjs';
+import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
 import {turnContextDiagnostic} from './turn-context.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
@@ -550,7 +552,19 @@ const profileOfCharacter = config => {
 // The player's own edits of a character (docs/CHARACTER_EDITOR.md): read from disk once here, then a plain lookup on every turn.
 const characterOverrides = await CharacterOverrides.open({dir: resolve(stateDirectory, 'character-overrides'), log: message => console.error('[Editor] ' + message)});
 const personaBook = new PersonaBook(roster, {overrides: characterOverrides});
-const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes,
+// "Mature content": read from the settings file when it changes (never per turn); only the local AI route ever uses it, and only while
+// the separate Mature pack is installed (its marker is looked for at most every 5 s, on the settings poll, never per turn or per frame).
+const matureContent = new MatureContent();
+let maturePackCheckedAt = 0;
+function maturePackInstalled(force = false) {
+  if (force || Date.now() - maturePackCheckedAt >= 5000) {
+    maturePackCheckedAt = Date.now();
+    matureContent.setPack(detectMaturePack({project}).installed);
+  }
+  return matureContent.pack;
+}
+maturePackInstalled(true);
+const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
   // A companion action the reply asked for ("[DRIVE]", bridge/text-actions.mjs) reaches the game the way a Convai action does.
   deliverAction: message => companionActions.deliver(message)});
@@ -2118,6 +2132,10 @@ async function pollSettings(checkShutdown = true) {
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
+    const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
+    if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings page shows or hides the setting
+    const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
+    if (matureChanged) console.error(`[MatureContent] setting is now ${matureContent.enabled ? 'on' : 'off'}`);
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
@@ -2125,6 +2143,7 @@ async function pollSettings(checkShutdown = true) {
     // (The voice selection reads the same setting: while it is on, a fallback never lands on Pocket.)
     const multilingualChanged = multilingual.update(settings);
     if (speechChanged || emotionsChanged || multilingualChanged || followUpChanged) { dropPrefetch(); prefetchObserved = ''; }
+    if (matureChanged) { dropPrefetch(); prefetchObserved = ''; }
     refreshWarmVoices();
     await syncRelationshipRoutes(); await syncVoiceRoutes();
     publishRelationshipRoutes();
@@ -2151,7 +2170,7 @@ const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, co
   publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
 quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  groqCommandPath: resolve(runtime, 'groq-key-command.json'), localStatus: localAiStatus, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  groqCommandPath: resolve(runtime, 'groq-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),

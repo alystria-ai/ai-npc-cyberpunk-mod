@@ -406,6 +406,7 @@ function M.mistral()
             result = mistralResults[groqResult] and groqResult or nil},
         effective = providerName(state.effective),
         localAi = localAiStates[state.localAi] and state.localAi or nil,
+        maturePack = state.maturePack == true,
         saved = state.saved == true, tail = tail, pending = state.pending == true,
         result = mistralResults[result] and result or nil,
         limit = mistralLimits[state.limit] and state.limit or nil, model = model, stt = state.stt == true}
@@ -573,6 +574,8 @@ local function loadSettings()
     -- Follow-up questions (on by default, key followUpInterest: the retired followUpQuestions key above is a different, dropped
     -- setting): characters sometimes show interest in the player. Works with any voice.
     if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = true, true end
+    -- Mature content (off by default): lets the Local AI provider write adult language and themes. Read by the bridge on change only.
+    if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
     -- Multilingual conversations (off by default): conversations go to each character's multilingual twin. Pocket TTS
     -- speaks only English, so a saved pairing with it cannot stand (Apply never makes one): the voice moves to the cloud
     -- voice, which every installation can run. With the cloud voice, Multilingual wins over the two tag settings.
@@ -1408,6 +1411,8 @@ function M.snapshot(player)
             naturalSpeech = settings.naturalSpeech,
             expressiveEmotions = settings.expressiveEmotions,
             followUpInterest = settings.followUpInterest,
+            -- Only with the separate Mature pack installed (the bridge looks for its marker); without it the setting is off whatever was saved.
+            matureContent = settings.matureContent == true and M.mistral().maturePack == true,
             multilingualConversations = settings.multilingualConversations,
             archetypeConversations = settings.archetypeConversations,
             uiLanguage = settings.uiLanguage,
@@ -1456,6 +1461,11 @@ function M.applySettings(player, values)
             or key == 'followUpInterest' or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
+        elseif key == 'matureContent' then
+            -- The setting exists only with the Mature pack: without it the key is unknown, as if it had never been offered.
+            if M.mistral().maturePack ~= true then return false, ui.t('Unknown setting: {setting}', {setting = tostring(key)}) end
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.matureContent = value
         elseif key == 'relationshipModes' then
             if type(value) ~= 'table' then return false, 'Choose one of the listed relationship options.' end
             for profileKey, mode in pairs(value) do
@@ -1523,6 +1533,9 @@ function M.applySettings(player, values)
         and (nextSettings.naturalSpeech == true or nextSettings.expressiveEmotions == true)
         and nextSettings.voiceProvider == 'convai'
     if switchedVoice then nextSettings.voiceProvider = 'pocket' end
+    -- Turning Mature content on says once, in one line, that the content is for adults.
+    local matureNotice = nextSettings.matureContent == true and settings.matureContent ~= true
+        and ui.t('Mature content is on: companions may use adult language and themes. For adults (18+) only.') or nil
     local previous = settings
     settings = nextSettings
     if not saveSettings() then
@@ -1538,9 +1551,10 @@ function M.applySettings(player, values)
         end
     end
     if companions.onPartyChanged then pcall(companions.onPartyChanged) end
-    if switchedVoice or cloudNotice or #multilingual.notices > 0 then
+    if switchedVoice or cloudNotice or matureNotice or #multilingual.notices > 0 then
         local notices = {}
         if cloudNotice then notices[#notices + 1] = cloudNotice end
+        if matureNotice then notices[#notices + 1] = matureNotice end
         if switchedVoice then
             local named = {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')}
             notices[#notices + 1] = nextSettings.naturalSpeech == true
