@@ -385,7 +385,7 @@ test('the bridge answers a ride-start remark: persona, the ride block with the f
   assert.match(prompt, /Judy Alvarez rides with V/);
   assert.match(prompt, /Your sensors show heavy rain/);
   assert.match(prompt, /The fare is 150 eddies/);
-  assert.match(prompt, /about 4\.2 km, to the north-east|about 4\.2 km from where the ride began, to the north-east/);
+  assert.match(prompt, /about 4\.2 kilometres, to the north-east|about 4\.2 kilometres from where the ride began, to the north-east/);
   assert.match(prompt, /you must not name it/);
   assert.match(prompt, /do not invent a destination name/);
   assert.match(prompt, /one spoken line of at most 24 words/);
@@ -505,7 +505,7 @@ test('the ride log keeps one note per spoken line of this ride, restarts with th
   const log = blockText(module.speakerBlocks({state: null, facts: {...RAIN}, event: 'district-passed'}), 'ride-log');
   assert.match(log, /^Earlier on this ride \(true;/);
   assert.match(log, /- V got in at night in Watson; you said: "Do drip freely/);
-  assert.match(log, /- the ride began, about 3\.2 km north; you said: "North, and a fair way of it\."/);
+  assert.match(log, /- the ride began, about 3.2 kilometres north; you said: "North, and a fair way of it\."/);
   assert.match(log, /- V talked to you; you said: "Somewhere between/);
   // Bounded: six notes, short lines.
   for (let index = 0; index < 10; index++) module.remember({event: 'district-passed', facts: RAIN, line: `Line ${index} ${'long '.repeat(60)}`});
@@ -517,4 +517,39 @@ test('the ride log keeps one note per spoken line of this ride, restarts with th
   assert.equal(module.speakerBlocks({state: null, facts: {...RAIN, rideNumber: 8}, event: 'boarded'}).some(block => block.key === 'ride-log'), false);
   // The memory of a notable arrival is unchanged by the log.
   assert.match(module.remember({event: 'arrival', facts: {...RAIN, rideNumber: 8, rideMinutes: 4}, line: 'Four minutes.'}), /Delamain said: "Four minutes\."/);
+});
+
+test('topics: V asking about the rogue cabs or the first night gets a guard block; ordinary talk and remarks do not', () => {
+  module.resetRideLog();
+  const fragments = ['What really happened with your runaway cabs?', 'So which one are you now? The original, or something new?', 'Did you merge them back?',
+    'Whatever happened with your rogue cabs?'];
+  for (const text of fragments) {
+    const keys = module.speakerBlocks({state: null, facts: null, heard: text});
+    const topic = keys.find(block => block.key === 'topic');
+    assert.ok(topic, text);
+    assert.match(topic.text, /came through it somewhat renovated/);
+    assert.match(topic.text, /Philosophy is charged extra/);
+    assert.doesNotMatch(topic.text, /reassembled|retired|original|contained/, 'a small model uses the words it is told to avoid');
+  }
+  const night = module.speakerBlocks({state: null, facts: null, heard: 'Jackie died in your back seat, you know.'}).find(block => block.key === 'topic');
+  assert.match(night.text, /I am glad you still ride with me/);
+  assert.match(night.text, /add nothing about that night itself/);
+  for (const text of ['How much is this costing me?', 'Faster, you useless pile of chrome!', 'Where are we?', '']) {
+    assert.equal(module.speakerBlocks({state: null, facts: null, heard: text}).some(block => block.key === 'topic'), false, text);
+  }
+  assert.equal(module.speakerBlocks({state: null, facts: RAIN, event: 'arrival', heard: 'Jackie'}).some(block => block.key === 'topic'), false, 'never on a remark');
+  assert.equal(module.topicBlock(undefined), null);
+});
+
+test('the host passes what V said to the speakerBlocks hook, and the quest ending is never sent as a fact', () => {
+  const seen = [];
+  const host = new AddonHost({addons: [validateManifest(manifestRaw, dir)], startedAt: 0});
+  host.modules.set('delamain-cab', {speakerBlocks: args => { seen.push(args); return []; }});
+  const input = {profileKey: 'addon-delamain-cab-delamain', text: 'What became of the fragments?', addon: {id: 'delamain-cab', speaker: 'delamain'}};
+  host.blocks(input);
+  host.blocks({...input, reaction: {kind: 'addon'}, addon: {...input.addon, event: 'arrival'}});
+  assert.equal(seen[0].heard, 'What became of the fragments?');
+  assert.equal(seen[1].heard, null);
+  // No fact, mode or state of the add-on carries the quest outcome: nothing verified says which sq025_delamain_fate value is which ending.
+  assert.doesNotMatch(readFileSync(new URL('./init.lua', import.meta.url), 'utf8') + readFileSync(new URL('./bridge.mjs', import.meta.url), 'utf8'), /sq025_delamain_fate\s*\)|GetFactStr\('sq025/);
 });

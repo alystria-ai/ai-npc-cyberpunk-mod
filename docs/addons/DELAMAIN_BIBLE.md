@@ -1,14 +1,14 @@
 # Delamain: character bible (cab add-on)
 
 Who Delamain is in the cab add-on, how he talks, what he knows, and what he must never do. The persona that ships is
-`addons/delamain/persona.json`; the eval rides are `addons/delamain/eval/*.json`; the event and fact contract is the builder's
+the `delamain` speaker of `addons/delamain/convai-addon.json` (2026-10-13: the former `persona.json` was moved into the manifest, with
+`talkWords`, and removed); the eval rides are `addons/delamain/eval/*.json`; the event and fact contract is the builder's
 `addons/delamain/EVENTS.md`. Sample output with context is in `docs/addons/DELAMAIN_SAMPLES.md`.
 
-`persona.json` holds the speaker's `persona`, `defaultMode` and `modes` in the manifest's shape; the builder copies them into the
-`delamain` speaker of `addons/delamain/convai-addon.json`. Then run, for each ride:
+The manifest holds the speaker's `persona`, `defaultMode` and `modes`. Run, for each ride:
 `node scripts/addon-eval.mjs --addon addons/delamain --script addons/delamain/eval/<ride>.json --judge --runs 3`.
-In the rides, an event named `companion-said` stands in for a group round (the eval has no group step), and blocks keyed `ride`
-stand in for the bridge's "ride right now" block on talk turns.
+In the rides, an event named `companion-said` stands in for a group round (the eval has no group step), and the `state` of the
+talk steps stands in for the add-on state the game writes (the bridge module builds the "ride right now" block and the ride log from it).
 
 Response quality is the selling point of this add-on. Every rule below exists because a small model (Mistral's
 `ministral-8b`, or the local AI) will otherwise do the wrong thing.

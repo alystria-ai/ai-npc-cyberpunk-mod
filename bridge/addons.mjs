@@ -940,6 +940,7 @@ export class AddonHost {
     for (const block of data?.blocks ?? []) out.push({tier: block.tier, key: `addon:${addon.id}:${block.key}`, text: block.text});
     const hooked = this.#hook(addon.id, 'speakerBlocks', {speaker: speaker.id, profileKey: speaker.profileKey, event: data?.event ?? null,
       text: data?.text ?? null, facts: data?.facts ?? null, reaction: input.reaction?.kind === 'addon', group: !!input.group, mode: this.modeOf(speaker.profileKey)?.id ?? null,
+      heard: input.reaction?.kind === 'addon' ? null : text(input.text, ADDON_LIMITS.heard) || null,
       state: this.state.addons[addon.id]?.state ?? null, settings: {...(this.settings[addon.id] ?? {})}});
     const own = this.#blockList(addon.id, hooked, 'volatile');
     out.push(...own);

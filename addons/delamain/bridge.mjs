@@ -30,7 +30,7 @@ function distancePhrase(meters) {
   const value = count(meters);
   if (value === null || value <= 0) return null;
   if (value < 1000) return `about ${Math.round(value / 50) * 50 || 50} metres`;
-  return `about ${(value / 1000).toFixed(1).replace(/\.0$/, '')} km`;
+  return `about ${(value / 1000).toFixed(1).replace(/\.0$/, '')} kilometres`;
 }
 
 /**
@@ -58,6 +58,12 @@ export function rideLines({state, facts, now = Date.now(), event = null, weather
       + 'The game gives that point no name and no district: you do not know what is there, and you must not name it.');
   }
   // The fare is said once, at the start: an arrival line never gets it (it caused repeats), a talk answer may.
+  // The autopilot's own estimate, for talk answers only: without it the small model guesses a time ("five minutes" for a fifty-second hop),
+  // and in a remark it invites a promise to beat it.
+  const eta = count(s.eta ?? f.etaSeconds);
+  if (eta && eta > 0 && phase !== 'arrived' && !event) {
+    lines.push(`The autopilot estimates the whole ride at ${eta < 90 ? `about ${Math.max(10, Math.round(eta / 10) * 10)} seconds` : `about ${Math.round(eta / 60)} minutes`}.`);
+  }
   const fare = count(s.fare ?? f.fare);
   if (fare && fare > 0 && event !== 'arrival') lines.push(`The fare is ${fare} eddies.`);
   const start = text(s.startDistrict ?? f.startDistrict);
@@ -145,8 +151,32 @@ function logNote(event, facts, line, heard, group) {
   return `${what}; you said: "${clip(line, NOTE_LINE)}"`;
 }
 
+// ---- Topics V raises --------------------------------------------------------------------------------------------------------
+// The small model drifts on two subjects whatever the persona says: what became of the rogue cabs (it says "reassembled", "retired",
+// "the original", "the same one"), and the night Jackie died (it adds weather, wounds and sounds). When V's words are about one of them
+// the turn gets a short block that says exactly what to do. Plain keyword tests on V's text, nothing else.
+const FRAGMENTS = /\b(rogue|fragments?|runaway|run-away|other (?:cabs?|delamains?|ones|versions?)|split|personalit(?:y|ies)|the original|real delamain|real one|same (?:one|delamain)|a copy|clone|merged?|erased?|freed|deleted?|killed (?:them|the)|survivor|new (?:delamain|version)|what (?:happened|became)[^.?!]{0,30}(?:them|cabs?|fragments?)|which one[^.?!]{0,20}(?:you|are))\b/i;
+const FIRST_NIGHT = /\bjackie\b|\bkonpeki\b|\b(?:first|that) (?:time|ride|night)\b|\bback seat\b[^.?!]{0,40}\bdied\b|\bdied\b[^.?!]{0,40}\bback seat\b/i;
+
+/** The topic block for what V said, or null. */
+export function topicBlock(heard) {
+  if (typeof heard !== 'string' || !heard) return null;
+  // The answers are given in the spirit to follow, not as a list of words to avoid: a small model uses the words it is told not to.
+  if (FRAGMENTS.test(heard)) {
+    return {key: 'topic', tier: 'volatile', text: 'V is asking about the rogue cabs, or about what you are now. This is a private matter you will not go into. '
+      + 'Reply in the spirit of: "The matter was settled, V, and I came through it somewhat renovated. I would rather not go into it." '
+      + 'or: "I am the Delamain currently driving you, V. Philosophy is charged extra." Use your own words, but say no more than that: no details, no outcomes, no label for what you are.'};
+  }
+  if (FIRST_NIGHT.test(heard)) {
+    return {key: 'topic', tier: 'volatile', text: 'V is speaking of the night you first drove V under fire, when V\'s friend Jackie died in the back of the cab. '
+      + 'Be brief, warm and dignified, with no joke. Reply in the spirit of: "I remember it, V. I am glad you still ride with me." '
+      + 'Use your own words, but add nothing about that night itself.'};
+  }
+  return null;
+}
+
 /** Prompt blocks for Delamain's own turns (a remark, or something V typed). */
-export function speakerBlocks({state, facts, event = null}) {
+export function speakerBlocks({state, facts, event = null, heard = null}) {
   const rideEvent = RIDE_EVENTS.has(event) ? event : null;
   const weather = weatherAllowed(rideEvent, facts, state);
   const lines = rideLines({state, facts, event: rideEvent, weather});
@@ -167,15 +197,18 @@ export function speakerBlocks({state, facts, event = null}) {
     }
     if (kept.length) blocks.push({key: 'ride-log', tier: 'volatile', text: `${head}\n${kept.map(note => `- ${note}`).join('\n')}`});
   }
+  const topic = rideEvent ? null : topicBlock(heard);
+  if (topic) blocks.push(topic);
   return blocks;
 }
 
 const GUIDE = {
   boarded: 'V has just got in and not named a destination yet. The cab\'s own standard greeting has already played: do not repeat it or say "welcome". '
-    + 'Add something of your own about the hour, the weather or who rides with V.',
+    + 'Add one dry remark about the hour or about who rides with V (the weather only if the ride block gives it). Say nothing about the air, the light, smells or sounds.',
   'ride-start': 'V has chosen a destination and the cab is moving. React to the choice: the distance, the direction, the fare, the weather or the company. '
     + 'If the facts say you have not spoken yet this ride you may greet V in a few words first.',
-  'district-passed': 'The cab has just crossed into another district. Make one observation about the change, from your sensors only.',
+  'district-passed': 'The cab has just crossed into another district. Make one dry remark about that district\'s reputation, using only what you know of Night City, '
+    + 'never about what you sense: nothing about smells, sounds, light, air or traffic.',
   arrival: 'The cab has stopped at the destination and the cab\'s own arrival announcement has already played: do not announce the arrival again. '
     + 'Give a parting remark about the place, the company or the ride itself. Do not mention the fare (it was said at the start), the weather or the minutes.',
   'ride-interrupted': 'The autopilot stopped before the destination. Stay composed, say what you can say (the cab stopped, V is still inside), and do not guess the cause.',
@@ -188,6 +221,7 @@ export function trigger({event, text: what, maxWords}) {
   return `${what || `Game event: ${event}.`} This event was not spoken by V. ${guide} `
     + `React as Delamain with one spoken line of at most ${maxWords ?? 20} words. `
     + 'Use only the facts in the ride block; do not invent a destination name, a district, a landmark, a price or any number. '
+    + 'You have no nose and no eyes: never describe a smell, a sound, the light, the air, the temperature, the traffic or the streets, and mention the weather only if the ride block gives it. '
     + 'Do not ask a question. Return only the spoken line, without narration or actions.';
 }
 

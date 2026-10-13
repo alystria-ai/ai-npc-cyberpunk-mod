@@ -446,8 +446,12 @@ export function trigger({speaker, event, text, facts, maxWords, mode, settings})
 /** Blocks for every companion's turns (profileKey is the companion). */
 export function companionBlocks({profileKey, group, state, settings}) { return []; }
 
-/** A line the speaker just said: return a memory string to keep, or nothing. */
-export function remember({speaker, event, facts, mode, line, reaction, settings}) {
+/**
+ * A line the speaker just said: return a memory string to keep, or nothing. `heard` is the text the line answered (the event's
+ * sentence, or what V or the previous speaker said; at most 240 characters), `group` is true in a group round. A module may keep
+ * its own short, in-memory log of the current ride or fight from these calls (nothing else here may have side effects).
+ */
+export function remember({speaker, event, facts, mode, line, heard, group, reaction, settings}) {
   return event === 'fight-end' && facts?.kills >= 5 ? `A ${facts.kills}-kill fight; Skippy said: "${line}"` : null;
 }
 
@@ -536,6 +540,11 @@ node scripts/addon-eval.mjs --addon addons/skippy --script addons/skippy/eval/fi
    ]}
   ```
 
+- A script or a step may carry `state`: the add-on state the game would have written (what a bridge module's hooks receive as
+  `state`). A step's state stays until another step sets one. A field named `...At` holding a number of zero or less means that many
+  seconds from now (`"startedAt": -180` is three minutes ago). A bridge module is loaded and its hooks run, so what the module builds
+  from state and facts (ride blocks, logs) is evaluated, not hand-written into `blocks`.
+- `--gap-ms N` (default 1500) spaces every model request, so a shared free key is not hit in bursts.
 - Each step goes through the same persona and mode, blocks, trigger, recent lines, second try and duplicate drop (`AddonHost.produce`) and text host as in the game.
   Nothing touches the game, Convai or the player's memories.
 - The key comes from `MISTRAL_API_KEY`, or from the key saved in the state folder, and is never printed.
