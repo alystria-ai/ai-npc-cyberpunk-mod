@@ -165,7 +165,7 @@ primary.speed=15; update(20,npc.id.hash)
 local narrow=next(npc.looks)
 assert(narrow and narrow~=look and not npc.looks[look] and narrow.parts[1].weight==0.05 and #narrow.parts==1)
 assert(#npc.ai.commands==commands and not row(serial).error)
-primary.speed=25; update(3,npc.id.hash); assert(not next(npc.looks),'a car at 25 m/s kept the seated look')
+primary.speed=25; update(3,npc.id.hash); assert(next(npc.looks)==narrow,'a car at 25 m/s must keep the same subtle seated look')
 primary.speed=0; update(20,npc.id.hash)
 look=next(npc.looks)
 assert(look and look.parts[1].weight==0.18 and #look.parts==1 and look.request.calculatePositionInParentSpace==true)
@@ -448,5 +448,5 @@ assert(last and last.selected==true and last.phase=='seated-attend' and last.sty
   'selected attention was not logged: '..tostring(last and last.reason))
 primary.speed=25; update(3,npc.id.hash)
 rows=seated(); last=rows[#rows]
-assert(last.style=='none' and last.reason=='The car is too fast for a seated look' and last.speed>=24,'speed gate not named: '..tostring(last.reason))
+assert(last.style=='side' and last.phase=='seated-attend' and last.speed>=24,'a fast car must keep the subtle look: '..tostring(last.reason)..' '..tostring(last.style))
 `));

@@ -177,7 +177,7 @@ test('seated attention changes only the owned look after a stable mount and yiel
   assert(first.request.limits.softLimitDegrees==60 and first.request.limits.hardLimitDegrees==120
     and first.request.limits.backLimitDegrees==150 and first.request.calculatePositionInParentSpace==true)
   seatTick(20); assert(motor.look==first and #npc.ai.commands==0)
-  -- Speed bands with a margin: full up to 8 m/s (kept to 10, regained below 6), narrow up to 20 (kept to 22), none above.
+  -- Speed bands with a margin: full up to 8 m/s (kept to 10, regained below 6), the narrow look at any higher speed.
   seated.speed=4; seatTick(); local near=motor.look
   assert(near~=first and near.parts[1].weight==0.18 and #near.parts==1 and countLooks()==1)
   assert(near.request.limits.softLimitDegrees==100 and near.request.limits.hardLimitDegrees==150
@@ -188,8 +188,8 @@ test('seated attention changes only the owned look after a stable mount and yiel
   seated.speed=5; seatTick(); assert(motor.look.parts[1].weight==0.18)
   seated.speed=21; seatTick(5); assert(motor.look.parts[1].weight==0.05)
   seated.speed=23; seatTick()
-  assert(not motor.look and motor.seatedAttention.reason=='The car is too fast for a seated look' and countLooks()==0)
-  seated.speed=21; seatTick(5); assert(not motor.look,'the narrow look came back inside the margin')
+  assert(motor.look and motor.look.parts[1].weight==0.05 and motor.seatedAttention.style=='side' and countLooks()==1,'a fast car must still get the subtle look')
+  seated.speed=40; seatTick(5); assert(motor.look and motor.look.parts[1].weight==0.05 and countLooks()==1,'a very fast car changed the request')
   seated.speed=17; seatTick(); assert(motor.look and motor.look.parts[1].weight==0.05)
   seated.speed=nil; seatTick(3); assert(motor.look and motor.look.parts[1].weight==0.05,'an unknown speed gets the narrow look')
   seated.speed=12; seatTick(); assert(motor.look and countLooks()==1)
