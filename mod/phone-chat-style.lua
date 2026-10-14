@@ -53,6 +53,11 @@ local statusSources = {
     ['Mistral did not accept your key. Check it in Settings > Development.'] = true,
     ['Mistral’s free limit is reached for now. Try again in a moment.'] = true,
     ['The Mistral model is unavailable right now. Try again in a minute.'] = true,
+    ['Groq did not accept your key. Check it in Settings > Development.'] = true,
+    ['Groq’s free limit is reached for now. Try again in a moment.'] = true,
+    ['The Groq model is unavailable right now. Try again in a minute.'] = true,
+    ['Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development.'] = true,
+    ['Local AI could not answer that. Try again in a moment.'] = true,
 }
 local feedbackSources = {
     ['INVITE QUEUED - CLOSE PHONE'] = true,

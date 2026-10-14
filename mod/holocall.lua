@@ -330,6 +330,12 @@ function M.start(player, contact, sample)
         return refuse(player, contact, blocked, blocked == 'combat' and ui.t('Calls are not available during combat.')
             or blocked == 'quest-call' and ui.t('You are already on a call.') or ui.t('Calls are not available right now.'))
     end
+    -- Events queue on the player whenever the phone HUD is torn down or the game takes a call, with or without a call of ours; the queue
+    -- is only read while one runs. Left in place, an old "hud-lost" or "quest-call" would hang up this call on its first step.
+    for _ = 1, 8 do
+        local ok, event = pcall(function() return player:ConvaiHolocallTakeEvent() end)
+        if not ok or type(event) ~= 'string' or event == '' then break end
+    end
     local began, result = pcall(function() return player:ConvaiHolocallBegin(contact) end)
     result = began and type(result) == 'string' and result or 'no-hud'
     if result ~= 'ok' then

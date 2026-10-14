@@ -178,7 +178,9 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     },
     prewarm: messages => server.prewarm(messages),
     // The loaded model's name, for the Mature content allowance (bridge/mature-content.mjs); `loadedModel` starts the server if it is not up.
-    modelName: () => server.status?.().model ?? null,
+    // Only while a model is up: after an idle stop (or during a reload) the status still names the previous model, and the next start may
+    // load another one, so the level would be read for the wrong model; with null `loadedModel` starts the server and names the real one.
+    modelName: () => { const status = server.status?.(); return ['stopped', 'failed', 'starting'].includes(status?.state) ? null : status?.model ?? null; },
     loadedModel: async signal => (await server.ensure({signal}))?.model ?? null,
     // What the manifest of a model added by hand says about it ({uncensored, family}); the Mature allowance reads it before the name.
     modelHints: () => server.modelHints ?? null,

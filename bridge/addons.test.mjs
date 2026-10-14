@@ -444,6 +444,35 @@ test('a hook that throws, returns a promise or keeps failing never breaks a turn
   assert.match(host.trigger(input), /This event was not spoken by V/, 'a promise from a hook falls back to the default trigger');
 });
 
+test('the file watchers keep what they last saw when a read finds nothing (the game replaces a file by remove then rename)', async () => {
+  const host = new AddonHost({addons: [validateManifest(manifest(), tmpdir())]});
+  host.observeSettings(JSON.stringify({version: 1, addons: {skippy: {remarkGap: 1, remarkGapChosen: true}}}));
+  const before = JSON.stringify(host.settings);
+  assert.notEqual(before, '{}');
+  const handlers = host.watchHandlers('runtime', {read: async () => { throw Object.assign(Error('gone'), {code: 'ENOENT'}); }});
+  for (const handler of Object.values(handlers)) await handler();
+  assert.equal(JSON.stringify(host.settings), before);
+  // A real (even if empty) document still applies.
+  const empty = host.watchHandlers('runtime', {read: async () => JSON.stringify({version: 1, addons: {}})});
+  for (const handler of Object.values(empty)) await handler();
+  assert.notEqual(JSON.stringify(host.settings), before);
+});
+
+test('an async hook that rejects is a logged failure, never an unhandled rejection', async () => {
+  const logs = [], unhandled = [];
+  const seen = reason => unhandled.push(reason);
+  process.on('unhandledRejection', seen);
+  try {
+    const host = new AddonHost({addons: [validateManifest(manifest(), tmpdir())], log: line => logs.push(line)});
+    host.modules.set('skippy', {speakerBlocks: async () => { throw Error('async boom'); }});
+    const input = {profileKey: 'addon-skippy-gun', addon: {id: 'skippy', speaker: 'gun', event: 'e'}, reaction: {kind: 'addon'}};
+    assert.match(host.blocks(input)[0].text, /voice with no body/);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.deepEqual(unhandled, []);
+    assert(logs.some(line => /must return a value, not a promise/.test(line)));
+  } finally { process.off('unhandledRejection', seen); }
+});
+
 test('trigger: the hook text, or a short default line within the word limit', () => {
   const host = new AddonHost({addons: [validateManifest(manifest(), tmpdir())]});
   const input = {profileKey: 'addon-skippy-gun', text: 'x', addon: {id: 'skippy', speaker: 'gun', event: 'kill', text: 'V took down an enemy.', maxWords: 8}};

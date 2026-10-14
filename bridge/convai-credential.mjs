@@ -174,7 +174,8 @@ export class TokenSource {
     this.#timer?.unref?.();
   }
   async #run() {
-    const sent = this.pending;
+    // The backend refuses a report above 1000 turns (400), which would repeat for ever; the rest follows in the next answer.
+    const sent = Math.min(this.pending, 1000);
     let outcome;
     try { outcome = await this.#post(sent); } catch { outcome = {kind: 'unreachable'}; }
     this.#apply(outcome, sent);
@@ -246,12 +247,16 @@ export class TokenSource {
       this.#announce(kind, 'Sign-in backend: this installation has used today\'s allowance; no new conversation token until it resets');
       this.#schedule(resets - now + Math.round(this.random() * MINUTE));
     } else if (kind === 'rate') {
+      // After failed attempts the install's own retries (4 an hour are allowed) can be what the backend is limiting: that is an outage,
+      // not a refusal, so the embedded key may stand in as it does for any other failure.
+      if (this.#failures > 0) this.lastKind = 'server';
       this.#announce(kind, 'Sign-in backend: too many token requests from this installation or address; waiting');
       this.#schedule(limitedBy(data?.retryAfterSeconds));
     } else if (kind === 'paused') {
       this.#announce(kind, 'Sign-in backend is paused by its owner');
       this.#schedule(5 * MINUTE);
     } else if (kind === 'busy') {
+      this.pending = Math.max(0, this.pending - sent); // counted before the mint budget was checked: asking again must not add them twice
       this.#announce(kind, 'Sign-in backend is busy for today');
       this.#schedule(limitedBy(data?.retryAfterSeconds ?? 900));
     } else if (kind === 'outdated') {

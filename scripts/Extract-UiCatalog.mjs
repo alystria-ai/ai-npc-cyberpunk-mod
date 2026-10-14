@@ -501,7 +501,7 @@ const output = `${JSON.stringify(catalogue, null, 2)}\n`;
 const target = path.join(root, 'localization/en.json');
 if (process.argv.includes('--check')) {
   const current = await readFile(target, 'utf8');
-  if (current !== output) throw new Error('localization/en.json is stale. Run node scripts/Extract-UiCatalog.mjs.');
+  if (current.replace(/\r\n/g, '\n') !== output) throw new Error('localization/en.json is stale. Run node scripts/Extract-UiCatalog.mjs.');
 } else {
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, output, 'utf8');

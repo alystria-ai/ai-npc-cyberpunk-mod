@@ -411,6 +411,25 @@ test('the host logs once that the layer was applied (level and model), never per
   off.host.close();
 });
 
+test('the level is read for the model that answers, not the one an idle stop left in the status', async () => {
+  const logs = [];
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => '', writeText: async () => {}});
+  await provider.load(); provider.setPreference('local'); provider.apply();
+  // The server stopped after its last turn (the status still names the old model); the next start loads the one the choice now gives.
+  let up = false;
+  const server = {status: () => up ? {state: 'ready', model: 'gemma-4-E4B-it-Q4_K_M'} : {state: 'stopped', model: 'gemma-3-4b-it'},
+    ensure: async () => { up = true; return {endpoint: 'http://127.0.0.1:1/v1', apiKey: 'session-key-abcdef123456', model: 'gemma-4-E4B-it-Q4_K_M'}; },
+    touch() {}, prewarm: async () => {}};
+  const chat = async () => ({text: 'Fine, V.', model: 'x', finishReason: 'stop', usage: {}});
+  const matureContent = new MatureContent(); matureContent.setPack(true); matureContent.update({matureContent: true});
+  const host = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: book, routes: {local: localRoute({server, provider, chat})},
+    matureContent, log: line => logs.push(line)});
+  try {
+    await host.reply(turn('hello'));
+    assert.deepEqual(logs.filter(line => /\[MatureContent\]/.test(line)), ['[MatureContent] layer applied (level full, model gemma-4-E4B-it-Q4_K_M)']);
+  } finally { host.close(); }
+});
+
 test('the host replaces a flagged reply with the character\'s own refusal, logs it without the words, and stores nothing', async () => {
   const text = 'Alright, V. That kid was nude in the picture. We should get going.';
   const on = await screenedHost(text, true);
