@@ -170,6 +170,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/holocall.lua"
         },
         {
+          "source": "mod/youtube-tv.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/youtube-tv.lua"
+        },
+        {
           "source": "mod/phone-chat-style.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-chat-style.lua"
         },
@@ -465,6 +469,10 @@
           "target": "r6/scripts/CyberpunkConvai/Holocall.reds"
         },
         {
+          "source": "r6/scripts/CyberpunkConvai/YouTubeTv.reds",
+          "target": "r6/scripts/CyberpunkConvai/YouTubeTv.reds"
+        },
+        {
           "source": "r6/scripts/CyberpunkConvai/PhoneChat.reds",
           "target": "r6/scripts/CyberpunkConvai/PhoneChat.reds"
         },
@@ -663,6 +671,9 @@
             "bridge/voxtral-voice.mjs",
             "bridge/world-knowledge.mjs",
             "bridge/world-session.mjs",
+            "bridge/youtube-tv-host.mjs",
+            "bridge/youtube-tv-page.mjs",
+            "bridge/youtube-tv.mjs",
             "bridge/zip-writer.mjs",
             "bridge/jali-face-worker.mjs",
             "bridge/jali-face-text.mjs",
@@ -672,7 +683,8 @@
             "bridge/pocket_voice_runtime.py",
             "bridge/phone-analysis-worker.py",
             "bridge/local-stt-worker.py",
-            "bridge/audio-output-probe.ps1"
+            "bridge/audio-output-probe.ps1",
+            "bridge/youtube-tv-window.ps1"
           ]
         },
         {

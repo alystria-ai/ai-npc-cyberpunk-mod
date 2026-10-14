@@ -59,6 +59,8 @@ M.catalog = {
     ['holocall-refused'] = {class = PLAYER, repeatS = 10},      -- a holocall could not start (a game call, combat, a scene, calls blocked)
     ['holocall-connected'] = {class = PLAYER},                  -- the call connected: how to hang up
     ['holocall-ended'] = {class = PLAYER},                      -- the call ended for a reason other than V hanging up
+    -- YouTube on V's TV (mod/youtube-tv.lua, docs/YOUTUBE_TV.md): the TV window could not open, or the key was used outside V's home
+    ['youtube-tv'] = {class = PLAYER, repeatS = 10},
     ['holocall-live-fallback'] = {class = PLAYER, repeatS = 60}, -- the experimental live picture could not be shown: the portrait is used
     ['message-lost'] = {class = PLAYER, repeatS = 5},         -- a typed message was dropped (empty text box confirmed, box closed without a result, request not written)
     ['voice-needs-convai'] = {class = PLAYER, repeatS = 15},   -- the voice key is pressed while Mistral is in use and this computer cannot recognise speech
