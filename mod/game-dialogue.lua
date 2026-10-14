@@ -136,15 +136,22 @@ local function nativeAdapter()
     function N.subtitles() return convaiSubtitles end
     -- Add-on lines (docs/ADDON_API.md, "Replacing the game's own lines"). Stops the named Wwise events on the line's own speaker:
     -- the engine pairs Stop with the Play event of the same name (the game's scripts do exactly that), scoped to one entity so
-    -- other speakers using the same event are untouched. Returns what was done, for the log.
+    -- other speakers using the same event are untouched. Returns what was done, for the log, and a function that sends the same
+    -- stops again (it holds the entity id value and the event names, never the entity: a scene voice can start a moment after its
+    -- subtitle line, and a Stop that came first finds nothing to stop; the add-on host repeats it a few times, see addons.lua).
     function N.stopAudio(line, events)
         if type(events) ~= 'table' or #events == 0 then return 'no-event-known' end
         local speaker = line.speaker
         if not speaker then return 'no-speaker' end
         local id = speaker:GetEntityID()
-        local system = Game.GetAudioSystem()
-        for _, name in ipairs(events) do system:Stop(CName.new(name), id) end
-        return 'stop-sent(' .. table.concat(events, ',') .. ')'
+        local names = {}
+        for index, name in ipairs(events) do names[index] = name end
+        local function send()
+            local system = Game.GetAudioSystem()
+            for _, name in ipairs(names) do system:Stop(CName.new(name), id) end
+        end
+        send()
+        return 'stop-sent(' .. table.concat(names, ',') .. ')', send
     end
     -- The fallback when the subtitle override could not be installed: hide the line the HUD has just been given.
     function N.hideLine(line)
@@ -348,13 +355,15 @@ function Instance:ruleLine(line, rule, muted, seconds, measured)
         if type(options.onGameLine) == 'function' then pcall(options.onGameLine, seconds, rule.name, measured) end
         return true
     end
-    local audio = call(N.stopAudio, line, rule.audio) or 'stop-failed'
+    local audio, again = call(N.stopAudio, line, rule.audio)
+    audio = audio or 'stop-failed'
     local subtitle = 'filtered'
     if self.muteInstalled ~= true then subtitle = call(N.hideLine, line) and 'hidden-after' or 'hide-failed' end
     self:count('muted', rule.name or '?')
     if type(options.onMuted) == 'function' then
         local number = call(N.lineNumber, line)
         pcall(options.onMuted, rule, {seconds = seconds, measured = measured, audio = audio, subtitle = subtitle,
+            repeatStop = type(again) == 'function' and again or nil,
             id = number and string.format('%06d', number % 1000000) or '?'})
     end
     return true

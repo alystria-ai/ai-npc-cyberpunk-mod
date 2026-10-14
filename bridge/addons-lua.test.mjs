@@ -437,6 +437,43 @@ test('replacing the game\'s own lines: validated rules, the per-add-on switch, o
   `);
 });
 
+test('a muted line\'s voice stop is sent again on the add-on tick at 0.3, 0.8 and 1.6 seconds, only for a rule with a voice event, and never after a reset', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle', minGap = 2, playThrough = true})
+    assert(handle:replaceGameLines({name = 'Delamain', match = function(line) return line.speakerName == 'Delamain' end, audio = {'vo_3d', 'vo_2d'}}))
+    local silent = assert(handle:replaceGameLines({name = 'Quiet', match = function(line) return line.speakerName == 'Quiet' end}))
+    player.vehicle = car
+    tick()
+    local rule = M.matchLine({speakerName = 'Delamain'}, {})
+    local quiet = M.matchLine({speakerName = 'Quiet'}, {})
+    local sent = 0
+    M.mutedLine(rule, {seconds = 6, measured = true, id = '000001', subtitle = 'filtered', audio = 'stop-sent(vo_3d,vo_2d)', repeatStop = function() sent = sent + 1 end})
+    assert(sent == 0, 'the first stop is sent by the muting itself; the repeats come later')
+    tick(0.1); tick(0.1)
+    assert(sent == 0, 'not yet')
+    tick(0.1); assert(sent == 1, 'at 0.3 s: ' .. sent)
+    for _ = 1, 6 do tick(0.1) end; assert(sent == 2, 'at 0.8 s: ' .. sent)
+    for _ = 1, 8 do tick(0.1) end
+    assert(sent == 3, 'at 1.6 s: ' .. sent)
+    for _ = 1, 30 do tick(0.1) end
+    assert(sent == 3, 'three repeats in all')
+    -- A rule with no voice event repeats nothing; a failing stop is contained.
+    local silentSent = 0
+    M.mutedLine(quiet, {seconds = 3, measured = true, id = '000002', subtitle = 'filtered', audio = 'no-event-known', repeatStop = function() silentSent = silentSent + 1 end})
+    M.mutedLine(rule, {seconds = 3, measured = true, id = '000003', subtitle = 'filtered', audio = 'x', repeatStop = function() error('boom') end})
+    for _ = 1, 20 do tick(0.1) end
+    assert(silentSent == 0)
+    -- Never more than a handful tracked at once, and a reset (a load, a death) forgets them all.
+    local late = 0
+    for index = 1, 10 do M.mutedLine(rule, {seconds = 3, measured = true, id = '1' .. index, subtitle = 'filtered', audio = 'x', repeatStop = function() late = late + 1 end}) end
+    M.reset('load')
+    for _ = 1, 30 do tick(0.1) end
+    assert(late == 0, 'nothing is sent into a world that is gone')
+  `);
+});
+
 test('playThrough: a speaker that plays through finishes a started line over an ordinary scene; a call, Johnny or a cinematic tier still stops it', () => {
   run(`${WORLD}
     M.attach(host)

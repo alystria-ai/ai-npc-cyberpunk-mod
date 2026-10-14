@@ -51,7 +51,22 @@ local GAPS = {4, 6, 8, 10, 15, 20, 30, 60}             -- "Time between remarks"
 local GAP_DEFAULT = 4                                    -- 10 s
 local CAPS = {5, 10, 20, 30, 50, math.huge}              -- "Most remarks per fight"; the last is "No limit"
 local CAP_DEFAULT = 4                                    -- 30
-local MUTED_HOLD = 0.6        -- seconds a patient remark still waits for a game line whose voice is known to be stopped
+-- The voice stop of a muted game line is sent again at these seconds after the line was seen (M.mutedLine): a scene voice can start a
+-- moment after its subtitle line, and a Stop that came first finds nothing to stop. At most `max` lines are tracked at once.
+local STOP_REPEAT = {at = {0.3, 0.8, 1.6}, max = 6, pending = {}}
+function STOP_REPEAT.run()
+    local pending, index = STOP_REPEAT.pending, 1
+    while index <= #pending do
+        local entry = pending[index]
+        local due = STOP_REPEAT.at[entry.done + 1]
+        if due and clock - entry.at >= due then
+            entry.done = entry.done + 1
+            pcall(entry.send)
+        end
+        if entry.done >= #STOP_REPEAT.at then table.remove(pending, index) else index = index + 1 end
+    end
+end
+local MUTED_HOLD = 0.6       -- seconds a patient remark still waits for a game line whose voice is known to be stopped
 local DEFAULT_TTL = 3         -- a remark that cannot be heard within about 3 s of its moment is dropped
 local SCENE_GAP = 1.2         -- seconds of quiet after a game scene or line before a remark that waited for it starts
 local HARD_TIER = 4           -- scene tiers from here on are cinematics: a speaker with playThrough is still stopped by them
@@ -1153,6 +1168,7 @@ end
 function M.tick(player, elapsed, worldReady)
     clock = clock + (tonumber(elapsed) or 0)
     if not host then return end
+    if #STOP_REPEAT.pending > 0 then STOP_REPEAT.run() end
     if worldReady and not bridgeStatusRead then pcall(readBridgeStatus) end
     if worldReady and player and #pendingNotices > 0 and host.notify then
         for _, text in ipairs(pendingNotices) do pcall(host.notify, player, text) end
@@ -1221,6 +1237,13 @@ function M.mutedLine(rule, info)
     log(string.format('muted game line: %s %s (subtitle=%s audio=%s %.1fs)', tostring(rule.name), tostring(info.id),
         tostring(info.subtitle), tostring(info.audio), seconds))
     rule.addon.mutedUntil = clock + seconds + 0.4
+    -- A scene voice can start a moment after its subtitle line, and a Stop that came first finds nothing to stop: the same stop is sent
+    -- again at STOP_REPEAT_AT seconds, on the 0.1 s tick that already runs (a few table reads, no scan, nothing per frame).
+    if type(info.repeatStop) == 'function' and #rule.audio > 0 then
+        local pending = STOP_REPEAT.pending
+        if #pending >= STOP_REPEAT.max then table.remove(pending, 1) end
+        pending[#pending + 1] = {send = info.repeatStop, at = clock, done = 0}
+    end
     M.gameLine(rule.audioVerified and math.min(seconds, MUTED_HOLD) or seconds, rule.name, info.measured)
 end
 
@@ -1444,6 +1467,7 @@ function M.reset(reason)
     flight, queue = nil, {}
     watch, partyKnown, partyDirty = {}, nil, true
     outputsCache = nil
+    STOP_REPEAT.pending = {}           -- repeated voice stops hold entity ids of a world that is going away
     local had = false
     for _, id in ipairs(order) do
         local addon = addons[id]
