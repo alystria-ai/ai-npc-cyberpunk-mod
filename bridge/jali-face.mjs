@@ -83,7 +83,24 @@ export class JaliFace {
   }
   failAll() { for (const session of [...this.sessions.values()]) session.fail(Error('Facial model worker stopped')); }
   // Active analysis keeps the worker referenced; an idle model never keeps the process alive.
-  release(id) { this.sessions.delete(id); if (!this.sessions.size) this.worker.unref?.(); }
+  release(id) { this.sessions.delete(id); if (!this.sessions.size) this.worker?.unref?.(); }
+  // While nothing is spoken (voice playback Off for a while) the worker thread, its weights and its text model are released.
+  // Resolves true once the thread is gone; false when it was not released (closed, already suspended, or an analysis is running).
+  // begin() reports the model unavailable until resume() has loaded it again (a fraction of a second).
+  async suspend() {
+    if (this.closed || this.suspended || this.sessions.size) return false;
+    this.suspended = true; this.info = undefined;
+    const worker = this.worker; this.worker = null;
+    try { await worker?.terminate(); } catch { /* already gone */ }
+    return true;
+  }
+  // Loads the worker again after suspend(). Resolves true when it is ready.
+  resume() {
+    if (this.closed || !this.suspended) return Promise.resolve(!this.closed && !!this.info);
+    this.suspended = false; this.spawn();
+    return this.ready.then(() => true, () => false);
+  }
+  get active() { return !this.closed && !this.suspended; }
   // True when the worker loaded a text model that matches the audio model.
   get textReady() { return this.info?.text === 'ready'; }
   // text: the words this audio speaks (voice and emotion tags allowed). textComplete: false while it still grows
@@ -129,7 +146,7 @@ export class JaliFace {
     return {jaliFrames: result, timing: {lipAnalysisMs: performance.now() - started, lipEngine: JALI_ARTICULATION,
       ...(result.text ? {lipText: result.text} : {})}};
   }
-  close() { this.closed = true; this.failAll(); this.sessions.clear(); return this.worker.terminate(); }
+  close() { this.closed = true; this.failAll(); this.sessions.clear(); return this.worker?.terminate(); }
 }
 
 export class JaliFaceSession {

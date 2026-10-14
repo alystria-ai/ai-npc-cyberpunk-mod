@@ -37,6 +37,10 @@ const RETRY_KINDS = new Set(['timeout', 'network', 'request']);
 // a fourth failure ends the retries until the player chooses Omni again. Nothing here runs per frame: the retry is
 // due-checked from the 500 ms settings poll, and a due retry waits for a moment with no reply in flight.
 export const OMNI_RETRY_DELAYS_MS = Object.freeze([45_000, 180_000, 600_000]);
+// Voice playback Off: nothing is spoken, so a local voice worker holds memory (OmniVoice: VRAM) for no one. It is released this long after the
+// player turned playback off, not at the click: playback is switched off and on again for a call or a recording, and OmniVoice takes about
+// 45 s to load. Loading again begins on the poll after playback is turned back on. docs/RESOURCE_LIFECYCLE.md.
+export const MUTED_RELEASE_MS = 120_000;
 const local = value => value === 'pocket' || value === 'omni';
 const equalSet = (a,b) => a.size===b.size&&[...a].every(key=>b.has(key));
 export class VoiceSelection {
@@ -103,6 +107,8 @@ export class VoiceSelection {
     // 16 steps is the default; the saved setting replaces it on the first poll.
     this.omniSteps=this.requestedOmniSteps=16;
     this.playbackEnabled=true;
+    // When playback was turned Off (null while it is on): the local worker is released MUTED_RELEASE_MS later (see `mutedIdle`).
+    this.mutedSince=null;this.mutedReleaseMs=Number.isFinite(options.mutedReleaseMs)?Math.max(0,options.mutedReleaseMs):MUTED_RELEASE_MS;
     // Voice variants ("<profile>-v2") are registry entries, not profiles: never a route key.
     this.routeKeys=withoutVariants(new Set([...Object.keys(this.configs.pocket.voices),
       ...OMNI_REFERENCES.flatMap(reference=>Object.keys(this.omniVariants[reference].snapshot.voices)),
@@ -233,9 +239,12 @@ export class VoiceSelection {
     &&!this.client?.failure&&!this.client?.closing&&this.client?.profileReady(key)===true)); }
   request(settings) {
     if(typeof settings?.voice==='boolean'&&settings.voice!==this.playbackEnabled){
+      // A game that starts with playback Off never loads a worker (the first reading counts as long ago); a click does not release at once.
+      this.mutedSince=settings.voice?null:this.playbackKnown?this.clock():this.clock()-this.mutedReleaseMs;
       this.playbackEnabled=settings.voice;this.routeRevision++;
       for(const key of this.routeKeys)this.routeChanges.add(key);
     }
+    if(typeof settings?.voice==='boolean')this.playbackKnown=true;
     const chosen=canonicalVoiceProvider(settings?.voiceProvider);
     if(typeof settings?.voiceProvider==='string')this.requestedCloud=cloudVoiceChoice(settings.voiceProvider);
     if (['pocket','omni','convai'].includes(chosen)){
@@ -291,11 +300,15 @@ export class VoiceSelection {
     // Apply still changes routing normally and lets unsupported profiles use
     // Convai; a configured draft retains its existing warm-up/retirement path.
     // A cloud voice loads no local model: only a settings draft that previews a local voice can ask for one.
+    // Voice playback has been Off for the grace period: nothing is spoken, so the committed voice's worker is released (a settings draft
+    // that previews a local voice still warms it: the player is choosing a voice).
     const candidates=[this.previewSettled&&this.preview&&this.resolve(this.preview.provider),
-      ...(this.cloudWanted?[]:[this.resolvedProvider,this.provider])];
+      ...(this.cloudWanted||this.mutedIdle?[]:[this.resolvedProvider,this.provider])];
     return candidates.find(candidate=>local(candidate)&&this.configuredByBackend[candidate]
       &&this.availabilities[candidate].size>0&&!this.failedBackends.has(candidate))||null;
   }
+  // Playback Off for longer than the grace period: the committed local voice has no use for a loaded worker.
+  get mutedIdle(){return this.playbackEnabled===false&&this.mutedSince!==null&&this.clock()-this.mutedSince>=this.mutedReleaseMs;}
   get previewSettled(){return !!this.preview&&this.clock()-this.previewSince>=this.previewSettleMs;}
   get warmSteps(){return this.previewSettled&&this.preview.provider==='omni'?this.preview.omniSteps:this.requestedOmniSteps;}
   setPreview(preview) {
@@ -416,7 +429,7 @@ export class VoiceSelection {
     if (this.closed) return Promise.reject(Error('Voice service is closed'));
     this.phoneAnalysis?.setWanted(this.phoneWanted);
     if (!this.wantsLocal) {
-      this.publish(this.releasing ? 'releasing' : (this.provider === 'convai'||this.cloudWanted ? 'remote' : 'disabled'));
+      this.publish(this.releasing ? 'releasing' : (this.provider === 'convai'||this.cloudWanted ? 'remote' : this.mutedIdle ? 'stopped' : 'disabled'));
       return Promise.resolve();
     }
     const backend=this.targetBackend;
@@ -483,7 +496,7 @@ export class VoiceSelection {
     if(this.closed)return;
     // A background worker for a reference the player no longer wants (loading, or loaded and waiting for its idle
     // commit) is released; the normal start path loads the wanted one after its confirmed exit.
-    if(this.candidate&&(this.requestedProvider!=='omni'||this.candidate.reference!==this.requestedOmniReference))void this.dropCandidate();
+    if(this.candidate&&(this.requestedProvider!=='omni'||this.candidate.reference!==this.requestedOmniReference||this.mutedIdle))void this.dropCandidate();
     if(!this.omniRetry)return;
     if(this.requestedProvider!=='omni'||this.omniPack.installed===false){this.endOmniRetry();return;}
     if(this.candidate)return;
@@ -567,7 +580,7 @@ export class VoiceSelection {
     const backend=this.clientBackend;
     this.client = this.starting = this.clientBackend = this.clientReference = null;
     this.tickVHelper();
-    if (!client) { this.publish(this.releasing ? 'releasing' : (this.closed ? 'stopped' : 'remote')); return this.retiring; }
+    if (!client) { this.publish(this.releasing ? 'releasing' : (this.closed||this.mutedIdle ? 'stopped' : 'remote')); return this.retiring; }
     this.releasing = true;
     this.publish('releasing');
     // Signal EOF even during warmup. The worker owns its bounded physical
@@ -580,7 +593,7 @@ export class VoiceSelection {
       this.releasing = false;
       if (!this.client) {
         this.details = {resident:false,gpuVramBytes:0,cudaAllocatedMiB:0,cudaReservedMiB:0};
-        this.publish(this.closed ? 'stopped' : 'remote');
+        this.publish(this.closed||this.mutedIdle ? 'stopped' : 'remote');
       }
     });
     const completed = this.retiring;
@@ -729,6 +742,9 @@ export class VoiceSelection {
       if (this.closed) throw Error('Voice service is closed');
       if (this.provider === 'convai') return remote(this.convaiReason(profile));
       if (!this.configured || !this.registry.has(profile)) return remote(this.registry.status(profile));
+      // Playback Off past its grace period: no worker is kept, and nobody is waited on for one. The character is ready to join; loading
+      // begins when playback is turned on (the poll after it). `muted` lets the caller accept a receipt that has no loaded worker behind it.
+      if (this.mutedIdle && this.usesProfile(profile)) return {provider: this.provider, ready: true, profile, muted: true};
       // A cloud voice has no local model to prepare: the character is ready when it is routed. Its reference clip is read, cut and
       // encoded now (the Inworld voice is found or cloned now), so the first reply is not waiting for it.
       if (this.cloudActive) {
