@@ -14,20 +14,21 @@ const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
 const codes = ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko'];
 
-const GLYPHS = "0123456789 !\"%&'(),-./:;>?ABCDEFGHIJKLMNOPQRSTUVWXYZÁÇÈÉÍÕÜÝČ–—’";
+const GLYPHS = "0123456789 !\"%&'(),-./:;>?ABCDEFGHIJKLMNOPQRSTUVWXYZ~ÁÉÍÓÖÜČŚŠŮŻ–—’";
 const ADVANCES = [
   18, 11, 17, 18, 19, 17, 18, 14, 19, 18, 8, 8, 12, 26, 21, 7, 10, 10, 7, 11, 7, 14, 7, 7, 19, 16, 19, 19, 19, 19, 17,
-  16, 19, 20, 9, 18, 19, 16, 25, 20, 19, 18, 20, 19, 19, 15, 20, 18, 28, 18, 18, 18, 19, 19, 17, 17, 9, 19, 20, 18, 19,
-  14, 21, 6
+  16, 19, 20, 9, 18, 19, 16, 25, 20, 19, 18, 20, 19, 19, 15, 20, 18, 28, 18, 18, 18, 19, 19, 17, 9, 19, 19, 20, 19, 19,
+  19, 20, 18, 14, 21, 6
 ];
 const CAPITAL = 18.7;      // the average capital, for a letter not in the table
 const CYRILLIC = 20, FULL_WIDTH = 35;
 const WRAP = 800;          // wrappingAtPosition of the text box
 const LINES = 2;
-const TOTAL_ENGLISH = 1400, TOTAL_TRANSLATION = 1560;   // px of upper-case text in all; English keeps a wider margin (translations run longer)
+const TOTAL_ENGLISH = 1460, TOTAL_TRANSLATION = 1560;   // px of upper-case text in all; English keeps a wider margin (translations run longer)
 
 function advance(char) {
   const code = char.codePointAt(0);
+  if (code === 0xa0 || code === 0x202f) return 8;      // a no-break space (thousands separator) is as wide as a space
   if (code >= 0x0400 && code <= 0x04ff) return CYRILLIC;
   if (code >= 0x2e80) return FULL_WIDTH;
   const at = GLYPHS.indexOf(char);
@@ -37,11 +38,11 @@ const widthOf = text => [...text].reduce((sum, char) => sum + advance(char), 0);
 
 /** Width of each line the text takes in the frame: words wrap at spaces, a full-width character can end a line anywhere. */
 function linesOf(text) {
-  const tokens = text.toUpperCase().match(/[⺀-￿]|[^\s⺀-￿]+|\s+/gu) ?? [];
+  const tokens = text.toUpperCase().match(/[⺀-￿]|[^ \t⺀-￿]+|[ \t]+/gu) ?? [];
   const widths = [];
   let used = 0;
   for (const token of tokens) {
-    if (/^\s+$/u.test(token)) { if (used > 0) used += widthOf(' '); continue; }
+    if (/^[ \t]+$/u.test(token)) { if (used > 0) used += widthOf(' '); continue; }
     const width = widthOf(token);
     if (used > 0 && used + width > WRAP) { widths.push(used); used = 0; }
     used += width;
@@ -66,25 +67,36 @@ function localeTable(code) {
 }
 
 const init = read('../mod/init.lua');
-const source = /local function dailyLimitText\(\)\s*return ui\.t\('([^'\n]*)'\)\s*end/.exec(init);
-assert(source, 'dailyLimitText moved or no longer wraps one ui.t string');
-const english = source[1];
+// The notice has the limit the backend set in it ({limit}, filled in from the settings state) and a line for when that is not known.
+const source = /local function dailyLimitText\(\)[\s\S]*?ui\.t\('([^'\n]*)', \{limit = limit\}\)[\s\S]*?return ui\.t\('([^'\n]*)'\)\s*end/.exec(init);
+assert(source, 'dailyLimitText moved or no longer wraps these two ui.t strings');
+const [, withLimit, withoutLimit] = source;
+// Sample limits: the real one is 100 now; a four-digit one must still fit.
+const filled = (text, limit) => text.replace('{limit}', String(limit));
+const english = filled(withLimit, 100);
+const THOUSANDS = /5[\s\u00a0\u202f.,]?000/;
 const catalog = JSON.parse(read('../localization/en.json'));
 const notices = read('../mod/notices.lua');
 const showTable = /M\.showS = \{([^}]*)\}/.exec(notices);
 const showS = Number(/\['daily-limit'\] = (\d+)/.exec(showTable?.[1] ?? '')?.[1]);
 
-test('the English daily-limit notice is two lines in the warning frame and says the four things', () => {
-  const lines = linesOf(english);
-  assert(lines.length <= LINES, `${lines.length} lines: ${lines.map(Math.round)}`);
-  assert(widthOf(english.toUpperCase()) <= TOTAL_ENGLISH, `${Math.round(widthOf(english.toUpperCase()))} px of upper-case text`);
-  assert(english.length <= 95, `${english.length} letters`);
-  assert(/free tier limit/.test(english) && /Today/.test(english), english);
-  assert(/Settings/.test(english) && /Mistral is free/.test(english) && /Local AI has no limit/.test(english), english);
-  for (const word of ['recommend', 'embedded', 'shared', 'antivirus', 'defender', 'paid', 'subscription', 'key', 'token']) {
+test('the English daily-limit notice is two lines in the warning frame and tells the player what to do', () => {
+  for (const limit of [100, 1500]) {
+    const text = filled(withLimit, limit);
+    const lines = linesOf(text);
+    assert(lines.length <= LINES, `limit ${limit}: ${lines.length} lines: ${lines.map(Math.round)}`);
+    assert(widthOf(text.toUpperCase()) <= TOTAL_ENGLISH + (limit > 999 ? 20 : 0), `${Math.round(widthOf(text.toUpperCase()))} px of upper-case text`);
+  }
+  assert(english.length <= 100, `${english.length} letters`);
+  assert.equal(withLimit.split('{limit}').length, 2, 'the limit appears once, as {limit}');
+  assert(!/\d/.test(withLimit.replace('{limit}', '')) || /^[^\d]*5,000[^\d]*$/.test(withLimit.replace('{limit}', '')), 'only the 5,000 may be a number');
+  assert(/Today’s \{limit\} Convai turns are used\./.test(withLimit), withLimit);
+  assert(/Try Mistral \(free key, ~5,000 a day\) or Local AI \(unlimited\)\./.test(withLimit), withLimit);
+  assert(!withoutLimit.includes('{') && withoutLimit.startsWith('Today’s Convai turns are used.') && withoutLimit.endsWith(withLimit.split('. ').slice(1).join('. ')), withoutLimit);
+  assert(widthOf(withoutLimit.toUpperCase()) <= TOTAL_ENGLISH && linesOf(withoutLimit).length <= LINES, 'the line without a limit fits too');
+  for (const word of ['recommend', 'embedded', 'shared', 'antivirus', 'defender', 'paid', 'subscription', 'token']) {
     assert(!english.toLowerCase().includes(word), `${word} in: ${english}`);
   }
-  assert(!/[{}]|\d/.test(english), 'no placeholder or number in the English text');
 });
 
 test('the notice stays long enough to read at 15 letters a second, and only the daily limit stays longer', () => {
@@ -96,19 +108,31 @@ test('the notice stays long enough to read at 15 letters a second, and only the 
 });
 
 test('every language has the notice, and it fits two lines like the English one', () => {
-  assert(catalog.strings[english], 'the notice is missing from localization/en.json');
+  assert(catalog.strings[withLimit] && catalog.strings[withoutLimit], 'the notice is missing from localization/en.json');
+  const tooLong = [];
   for (const code of codes) {
-    const text = localeTable(code)[english];
-    assert(typeof text === 'string' && text.length > 0, `${code}: no translation`);
-    assert.notEqual(text, english, `${code}: still English`);
-    assert(text.includes('Convai') && text.includes('Mistral'), `${code}: product names missing: ${text}`);
-    assert(!/[{}]|\d/.test(text), `${code}: a placeholder or number crept in: ${text}`);
-    assert.equal(text, text.trim(), `${code}: stray space`);
-    const lines = linesOf(text);
-    const total = widthOf(text.toUpperCase());
-    assert(lines.length <= LINES, `${code}: ${lines.length} lines (${lines.map(Math.round)}): ${text}`);
-    assert(total <= TOTAL_TRANSLATION, `${code}: ${Math.round(total)} px of upper-case text: ${text}`);
+    const table = localeTable(code);
+    for (const [source, hasLimit] of [[withLimit, true], [withoutLimit, false]]) {
+      const text = table[source];
+      assert(typeof text === 'string' && text.length > 0, `${code}: no translation of ${source.slice(0, 30)}`);
+      assert.notEqual(text, source, `${code}: still English`);
+      assert(text.includes('Convai') && text.includes('Mistral'), `${code}: product names missing: ${text}`);
+      // {limit} survives exactly once (and not at all in the line for an unknown limit); the 5,000 is there, in the language's own format
+      assert.equal(text.split('{limit}').length - 1, hasLimit ? 1 : 0, `${code}: {limit} count: ${text}`);
+      const rest = text.replace('{limit}', '');
+      assert(THOUSANDS.test(rest), `${code}: the 5,000 a day is missing or not a number: ${text}`);
+      assert(!/[{}]/.test(rest) && !/\d/.test(rest.replace(THOUSANDS, '')), `${code}: a stray placeholder or number: ${text}`);
+      assert.equal(text, text.trim(), `${code}: stray space`);
+      for (const limit of hasLimit ? [100, 1500] : [0]) {
+        const shown = hasLimit ? filled(text, limit) : text;
+        const lines = linesOf(shown);
+        const total = widthOf(shown.toUpperCase());
+        if (lines.length > LINES) tooLong.push(`${code}: ${lines.length} lines (${lines.map(Math.round)}): ${shown}`);
+        if (total > TOTAL_TRANSLATION + (limit > 999 ? 20 : 0)) tooLong.push(`${code}: ${Math.round(total)} px of upper-case text: ${shown}`);
+      }
+    }
   }
+  assert.deepEqual(tooLong, [], 'texts that do not fit two lines');
 });
 
 test('Phone Chat keeps the long version, which has room, and both are in the catalogue', () => {

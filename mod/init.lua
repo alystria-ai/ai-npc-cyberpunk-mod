@@ -2213,11 +2213,19 @@ end
 -- keyNotice to the first reply that ran without long-term memory on a limited plan (bridge/convai-key.mjs). The text says
 -- what to do; it never names where the shared key comes from.
 -- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). The game's warning line shows this in upper case
--- at 35 pt, wraps it at 800 px and draws a frame sized for one or two lines, so the notice is two short lines (about 90
--- letters, at most 1,400 px of upper-case Rajdhani Semi-Bold; bridge/daily-notice-fit.test.mjs) and stays 9 s (notices.showS).
+-- at 35 pt, wraps it at 800 px and draws a frame sized for one or two lines, so the notice is two short lines (about 95
+-- letters, at most 1,460 px of upper-case Rajdhani Semi-Bold; bridge/daily-notice-fit.test.mjs) and stays 9 s (notices.showS).
 -- Phone Chat has room for the long version and keeps it (phone-chat.lua), which says where the details are.
+-- The turns used are the limit the backend set, read the way the settings page reads it (manager.ownKey().daily.limit), never a number
+-- written here; without it the line says "Today’s Convai turns". Mistral's about 5,000 a day is the conservative bound of its free
+-- plan (an estimated 1B tokens a month over about 6,650 tokens for a full turn, about 150,000 turns a month).
 local function dailyLimitText()
-    return ui.t('Today’s Convai free tier limit is reached. Settings: Mistral is free, Local AI has no limit.')
+    local ok, own = pcall(manager.ownKey)
+    local limit = ok and type(own) == 'table' and type(own.daily) == 'table' and own.daily.limit or nil
+    if type(limit) == 'number' then
+        return ui.t('Today’s {limit} Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {limit = limit})
+    end
+    return ui.t('Today’s Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).')
 end
 
 local function keyNoticeText(code)

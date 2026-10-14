@@ -5556,8 +5556,8 @@ test('The provider row says when the player key runs without memory or cannot ho
     -- every language): the limit (from the server), the reset, Mistral's rounded estimate, Local AI without a limit.
     assert(note() == 'Convai free tier: daily limit reached', tostring(note()))
     local mistralHelp = row('mistral-key').description
-    assert(mistralHelp:find('You have used today’s 100 turns. They come back tomorrow.', 1, true) and mistralHelp:find('Mistral (an estimated 3,000 turns a day)', 1, true)
-      and mistralHelp:find('Local AI (no limit), then Apply', 1, true), mistralHelp)
+    assert(mistralHelp:find('You have used today’s 100 turns, which come back tomorrow.', 1, true) and mistralHelp:find('Mistral (with your free key, about 5,000 turns a day)', 1, true)
+      and mistralHelp:find('Local AI (unlimited), then Apply', 1, true) and mistralHelp:find('It sets its own monthly cap, estimated at about 150,000 turns.', 1, true), mistralHelp)
     assert(lastParagraph(mistralHelp):find('You have used today’s', 1, true) == 1, 'it is the last paragraph of the Mistral key help')
     local limitText = lastParagraph(mistralHelp)
     assert(not limitText:lower():find('recommend', 1, true) and not limitText:lower():find('embedded', 1, true) and not limitText:lower():find('paid', 1, true), limitText)
@@ -5582,7 +5582,9 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
   const start = init.indexOf('local function dailyLimitText'), end = init.indexOf('local function reactionCanDeliver');
   assert(start > 0 && end > start, 'the key notice functions moved');
   run(`
-    local ui = {t = function(text) return text end}
+    local ui = {t = function(text, args) return (text:gsub('{(%w+)}', function(key) return args and args[key] ~= nil and tostring(args[key]) or '{' .. key .. '}' end)) end}
+    local ownKey = {daily = {limit = 100, left = 0, blocked = true}}
+    local manager = {ownKey = function() if ownKey == 'error' then error('no state') end return ownKey end}
     ${init.slice(start, end)}
     local function notice(reply) local id, text = keyReplyNotice(reply); return id, text end
     local id, text = notice({errorCode = 'quota-shared'})
@@ -5593,11 +5595,19 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     id, text = notice({errorCode = 'key-rejected'}); assert(id == 'quota-exhausted' and text:find('did not accept', 1, true))
     id, text = notice({errorCode = 'key-memory-needed'}); assert(id == 'quota-exhausted' and text:find('memory', 1, true))
     id, text = notice({errorCode = 'daily-limit', error = 'x'})
-    -- The notice names the free tier and today, where to go (Settings) and the two ways on: Mistral (free) and Local AI (no limit).
-    -- It is two short lines in the game's warning frame (about 90 letters; the width itself is checked in bridge/daily-notice-fit.test.mjs).
-    assert(id == 'daily-limit' and text:find('Convai free tier limit', 1, true) and text:find('Today', 1, true)
-      and text:find('Mistral is free', 1, true) and text:find('Local AI has no limit', 1, true) and text:find('Settings', 1, true), text)
-    assert(not text:lower():find('recommend', 1, true) and #text <= 95, 'short enough for two lines of the warning frame: ' .. #text)
+    -- The notice names today's turns (the limit the backend set, never a number written in the code) and the two ways on: Mistral with a
+    -- free key (about 5,000 a day) and Local AI (unlimited). It is two short lines in the game's warning frame (about 95 letters; the
+    -- width itself is checked in bridge/daily-notice-fit.test.mjs).
+    assert(id == 'daily-limit' and text == 'Today’s 100 Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).', text)
+    ownKey = {daily = {limit = 150, left = 0, blocked = true}}
+    id, text = notice({errorCode = 'daily-limit', error = 'x'}); assert(text:find('Today’s 150 Convai turns', 1, true), 'the limit the status reports: ' .. text)
+    ownKey = {}; id, text = notice({errorCode = 'daily-limit', error = 'x'})
+    assert(text:find('Today’s Convai turns are used. Try Mistral', 1, true) and not text:find('{', 1, true), 'no limit known: ' .. text)
+    ownKey = 'error'; id, text = notice({errorCode = 'daily-limit', error = 'x'})
+    assert(text:find('Today’s Convai turns are used.', 1, true), 'the status could not be read: ' .. text)
+    ownKey = {daily = {limit = 100, left = 0, blocked = true}}
+    id, text = notice({errorCode = 'daily-limit', error = 'x'})
+    assert(not text:lower():find('recommend', 1, true) and utf8.len(text) <= 100, 'short enough for two lines of the warning frame: ' .. utf8.len(text))
     assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shared', 1, true) and not text:lower():find('project', 1, true))
     -- No own-key offer, no paid tier, no "includes voice", no "text only", no credentials wording.
     assert(not text:find('Convai API key', 1, true) and not text:find('convai.com', 1, true) and not text:find('phone verification', 1, true), text)
@@ -5637,7 +5647,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(provider.description:find('not available yet', 1, true), 'without local speech recognition the help says so')
     local mistral = row('mistral-key')
     assert(mistral and mistral.type == 'action' and mistral.label == 'Mistral API key' and mistral.value == 'Paste', mistral.label)
-    assert(mistral.description:find('phone verification', 1, true) and mistral.description:find('player-mistral-key.txt', 1, true) and mistral.description:find('monthly allowance', 1, true))
+    assert(mistral.description:find('phone verification', 1, true) and mistral.description:find('player-mistral-key.txt', 1, true) and mistral.description:find('monthly cap', 1, true) and mistral.description:find('about 5,000 turns a day', 1, true))
     assert(row('local-ai-status') == nil and row('own-key-using') == nil and row('mistral-key-status') == nil, 'the status rows are gone')
     assert(lastParagraph(provider.description) == lastParagraph(row('conversationProvider').description))
     assert(not provider.description:find('Your own key', 1, true) and not provider.description:find('Convai free tier:', 1, true), 'no note while nothing needs one')

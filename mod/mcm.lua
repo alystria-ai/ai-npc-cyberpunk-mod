@@ -1513,7 +1513,7 @@ local function ownKeyRows(snapshot)
         -- several languages) and what to do goes into the Mistral key row's help (the real limit comes from the sign-in backend,
         -- bridge/shared-key-guard.mjs).
         note = ui.t('Convai free tier: daily limit reached')
-        limitHelp = ui.t('You have used today’s {limit} turns. They come back tomorrow. To keep talking now, choose Mistral (an estimated 3,000 turns a day) or Local AI (no limit), then Apply.', {limit = own.daily.limit})
+        limitHelp = ui.t('You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited), then Apply.', {limit = own.daily.limit})
     elseif own.daily then note = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit}) end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
@@ -1602,7 +1602,7 @@ local function ownKeyRows(snapshot)
             'own-key', {saved = own.saved, tail = own.tail, checking = result == 'checking', message = ownMessage},
             function() return manager.pasteOwnKey() end, function() return manager.removeOwnKey() end),
         keyRow('Mistral API key',
-            'Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and a monthly allowance.',
+            'Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day. It sets its own monthly cap, estimated at about 150,000 turns.',
             'Deletes the saved key. Conversations go back to Convai free tier.',
             'mistral-key', {saved = mistral.saved == true, tail = mistral.tail, message = mistralMessage},
             function() return manager.pasteMistralKey() end, function() return manager.removeMistralKey() end, limitHelp),

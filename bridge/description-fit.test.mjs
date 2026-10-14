@@ -98,7 +98,7 @@ const composites = {
   'Mistral API key (failed paste, daily limit reached)': [
     'Mistral did not accept that key.',
     byStart('Copy your free key from Mistral first'),
-    'You have used today’s {limit} turns. They come back tomorrow. To keep talking now, choose Mistral (an estimated 3,000 turns a day) or Local AI (no limit), then Apply.',
+    'You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited), then Apply.',
   ],
   'Inworld API key (failed paste)': ['The clipboard could not be read.', byStart('Copy your key from Inworld first.')],
   'Inworld API key (saved)': ['Mistral did not accept that key.', 'Deletes the saved key. The Inworld cloud voice stops until you add a key again.', 'Saved on this computer only. Only the last four characters are ever shown.'],
