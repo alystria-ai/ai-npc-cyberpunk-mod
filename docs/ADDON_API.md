@@ -183,7 +183,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 | Method | What it does |
 |---|---|
 | `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers, playThrough, voiceFrom, showsReply, approach, face}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
-| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, menus})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
+| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
 | `handle:setMode(speakerId, modeId)` | Switches the speaker's personality (a mode in the manifest). It is sent with every turn and in `runtime/addon-state.json`. |
 | `handle:remember(speakerId, text)` | Keeps a memory the speaker can call back to later, for example "V spared the Tyger Claw who begged." At most 300 characters; a repeat is ignored. The bridge keeps the last 12 per speaker across game sessions. |
 | `handle:setContext(speakerId, key, text, tier)` | Adds a prompt block to every turn of this speaker until it is cleared with `text = nil`. At most 8 blocks of 1,500 characters. `tier` is `'world'` (default; changes rarely), `'volatile'` (changes every turn) or `'notes'`. |
@@ -194,7 +194,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 | `handle:setEnabled(bool)` | A disabled add-on is never offered for talk and makes no remarks. Its waiting remarks are dropped. |
 | `handle:prepare(speakerId)` | Warms the speaker's text route (opens the Mistral connection, or loads its prompt into the local AI). Call it when the speaker becomes available, for example when a fight starts or V gets into the cab. At most once every 20 s. |
 | `handle:cancel(speakerId)` | Drops the speaker's waiting remarks and stops its remark that is playing. |
-| `handle:releaseHold(speakerId)` | The speaker's held remark (`hold`) plays now, without waiting for the next tick. `true` when one was held. See "Held remarks and menus". |
+| `handle:releaseHold(speakerId)` | The speaker's held remark (`hold`) plays now, without waiting for the next tick (with `faceWait`, as soon as the speaker's screen face is ready). `true` when one was held. See "Held remarks and menus". |
 | `handle:watchFace(speakerId, on)` | Starts or ends the watch of the speaker's screen face (`face`). See "A face on a screen". |
 | `handle:notify(text)` | One on-screen notice (at most 200 characters; a repeat within 10 s is dropped). |
 | `handle:state()` | `{worldReady, combat, vehicle, scene, speaking, conversation, remark}`, read from the last tick. It costs nothing. |
@@ -223,7 +223,8 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
   changes the pan and distance of the browser voice (continuous Pocket playback); an object that is detached, unreadable or more than
   3 m from the camera is dropped for the rest of that reply and the anchor is used. The native Omni phrases play **on that object** (it is
   their emitter): Audioware refuses V as an emitter ("entity_id cannot be undefined or V" in its log), so a speaker anchored to V with no
-  `voiceFrom` object could not be heard with the native voice. Without an object for a V-anchored speaker the voice does not start, the
+  `voiceFrom` object could not be heard with the native voice. Without one, the main mod plays on the weapon in V's hands, else the
+  chest item V wears (the same goes for a holocall reply, which is heard through the phone); with neither the voice does not start, the
   CET log line `Conversation result` says `speech=playback-failed why=Audioware cannot play on V ...`, and the text is shown as a
   subtitle. A speaker anchored to something else (the cab) is unchanged.
 - `showsReply(text, event) -> boolean` (optional): the add-on shows its remarks itself, so they need no subtitle. Asked **once per
@@ -247,6 +248,7 @@ Two remark options for a line that must start the instant something happens, and
 handle:remark('delamain', {event = 'boarded', priority = 4, ttl = 20, maxWords = 22,
     hold = function() return not S.seated end,           -- written and voiced now, silent until V sits
     holdMax = 25,                                         -- given up unheard after this (1 to 30 s, default 20)
+    faceWait = 1.5,                                       -- then waits up to this for the speaker's screen face (0 to 5 s)
     menus = function() return S.state <= READY end})      -- the destination map does not pause it
 ```
 
@@ -259,11 +261,17 @@ handle:remark('delamain', {event = 'boarded', priority = 4, ttl = 20, maxWords =
   costs no remark budget and its voice is stopped. While it is held it is the one remark in flight and its request owns the speech
   (no other automatic line starts); a conversation V starts still cuts it. With voice playback off its subtitle shows when the
   reply arrives.
+- **`faceWait` (seconds, 0 to 5, default 0)**: for a held remark of a speaker with a screen face (`face`, below). When the moment comes
+  (`hold()` turns false or `releaseHold`) and that face is not ready yet, the remark stays silent until it is, checked on the 0.1 s tick,
+  at most `faceWait` seconds; then it plays anyway and the face joins when it appears. The Delamain cab's screen NPC is spawned by the
+  game's scene as V sits, after the welcome was voiced (live test 2026-10-15: the welcome's face stayed still, the later lines moved it),
+  so the welcome waits up to 1.5 s for it.
 - **`menus = true | function() -> bool`**: while the remark plays (or is held), an open game menu does not pause it: speech.lua
   compares the request id once per frame, as it already reads the menu flag. The function form runs on the 0.1 s tick. Without it a
   menu pauses the line and it resumes afterwards, as always.
 - Log: `[Addons] Remark: ... (held until its moment)`, `Remark ready, held: <speaker> event=<e> after 3.1s`,
-  `Remark hold released: <speaker> event=<e> after 4.2s`.
+  `Remark hold released: <speaker> event=<e> after 4.2s`, with `faceWait` also `Remark moment came, waiting for the screen face: ...`
+  and `(face ready after 0.4s)` or `(face not ready after 1.5s; it joins when it appears)` on the release line.
 
 ### A face on a screen
 
@@ -282,9 +290,12 @@ handle:watchFace('delamain', true)    -- while the moment lasts (a cab exists); 
 - Watch it before the NPC spawns: the graph is chosen at spawn or never. `watchFace` is one call into the face service per change; a
   save load or death releases the watch on the next gameplay tick unless the add-on watches again (in `sessionStarted`). Disabling the
   add-on ends it. At most 4 rigs.
-- For each of the speaker's replies (once, when it starts) the main mod looks up the NPC the watch prepared (`ScreenFace`), and when it
+- For each of the speaker's replies (when it starts) the main mod looks up the NPC the watch prepared (`ScreenFace`), and when it
   is attached and still runs the gated graph (`ConvaiFaceReady`), the reply's mouth timeline drives that NPC's face, in time with the
-  heard voice like every face in the mod. The scene and autonomy guards of the expression layer do not apply to that one NPC (it is a
+  heard voice like every face in the mod. When the face is watched but not there yet (`addons.faceActor` answers `nil, true`), the
+  reply asks again every 0.25 s of heard playback (never while it is paused or held), at most 40 times, and the face joins at the
+  heard position (log `Screen face joined: <speaker> 0.8s into the line`, or `Screen face not found for this line`). Every other
+  reply never retries. The scene and autonomy guards of the expression layer do not apply to that one NPC (it is a
   scene actor by nature). Nothing else of the speaker changes: the voice is still heard from the anchor.
 - Nothing runs per frame beyond the face write every speaking face already has; without a watch the spawn callback costs one array
   size read more.

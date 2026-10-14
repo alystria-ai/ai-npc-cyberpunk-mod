@@ -533,3 +533,48 @@ test('an add-on voice anchored to V is heard from its own object (Audioware refu
  assert(asked == 0, 'only a voice without a body asks')
  speech.stop('cancelled')
 `));
+
+test('a holocall reply (and a V-anchored voice with no object of its own) plays on something of V\'s, never on V; with nothing to play on it fails with the reason', () => run(speechSetup, `
+ local emitters, shown = {}, 0
+ player.ConvaiSpeechStart = function(_, object, event) native(); emitters[#emitters + 1] = tostring(object:GetEntityID().hash); cursor = 0; return true end
+ captions.show = function() shown = shown + 1 end
+ local function thing(hash, attachedNow) return {GetEntityID = function() native(); return {hash = hash} end, IsAttached = function() return attachedNow end} end
+ local weapon, chest = thing('WEAPON', true), thing('CHEST', true)
+ local held = weapon
+ ScriptedPuppet = {GetActiveWeapon = function(p) assert(p == player); return held end}
+ TweakDBID = {new = function(name) return name end}
+ local worn = chest
+ Game.GetTransactionSystem = function() return {GetItemInSlot = function(_, p, slot) assert(p == player and slot == 'AttachmentSlots.Chest'); return worn end} end
+ speech.target = player
+ local call = {entity = 'V', requestId = 'req-h', generation = 4, name = 'Judy', holocall = {contact = 'judy'}}
+ local reply = {text = 'Hello V', audio = chunk(1).audio}
+ -- A holocall: through the phone, from the weapon in V's hands (not from V, which Audioware refuses).
+ assert(speech.start(call, reply))
+ assert(#emitters == 1 and emitters[1] == 'WEAPON', table.concat(emitters, ','))
+ speech.stop('cancelled')
+ -- No weapon in hand: the chest item V wears.
+ held = nil
+ emitters = {}
+ assert(speech.start(call, reply))
+ assert(#emitters == 1 and emitters[1] == 'CHEST', table.concat(emitters, ','))
+ speech.stop('cancelled')
+ -- A weapon that is not attached is no emitter either.
+ held = thing('WEAPON', false)
+ emitters = {}
+ assert(speech.start(call, reply))
+ assert(emitters[1] == 'CHEST')
+ speech.stop('cancelled')
+ -- Nothing of V's to play on: no call with V, the reason is kept, and the call's text is shown.
+ held, worn = nil, nil
+ emitters, shown = {}, 0
+ assert(not speech.start(call, reply))
+ assert(#emitters == 0 and shown == 1)
+ assert(speech.state == 'playback-failed' and tostring(speech.error):find('nothing of V'), tostring(speech.error))
+ -- The object is found once for the reply: the next phrase of a long reply plays from the same one.
+ held = weapon
+ emitters = {}
+ assert(speech.start(call, reply))
+ assert(emitters[1] == 'WEAPON' and speech.emitter == weapon)
+ speech.stop('cancelled')
+ assert(speech.emitter == nil)
+`));

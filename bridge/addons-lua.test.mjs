@@ -1321,12 +1321,163 @@ test('speech.lua: a screen face gets the voice\'s face calls under its own entit
   assert.match(speechSource, /paused = pausedFor\(context\.requestId, paused\)/);
   assert.match(speechSource, /if started and M\.requestId and pausedFor\(M\.requestId, false\) then/);
   const init = read('../mod/init.lua');
-  assert.match(init, /speech\.faceSource = function\(profileKey, player\) return convaiAddons\.live and convaiAddons\.faceActor\(profileKey, player\) or nil end/);
+  // Both answers of faceActor reach speech.lua (an `a and b or nil` would drop the second, "not ready yet").
+  assert.match(init, /speech\.faceSource = function\(profileKey, player\)\s+if not convaiAddons\.live then return nil end\s+return convaiAddons\.faceActor\(profileKey, player\)\s+end/);
+  assert.match(init, /speech\.log = log/);
   assert.match(init, /seams\.hold = function\(requestId\) speech\.holdRequest = requestId end/);
   assert.match(init, /seams\.menus = function\(requestId\) speech\.menuRequest = requestId end/);
   const facialSource = read('../mod/facial-playback.lua');
   assert.match(facialSource, /local function safeExpressionActor\(actor,entity\)\s+if entity~=nil and entity==M\.screenEntity then return true end/);
   assert.match(facialSource, /not safeExpressionActor\(actor,entity\)/);
+});
+
+// ---- 2026-10-15: the welcome's screen face (live test: the face moved for later lines, not for the held welcome) ----
+
+const FACE_CAB = `
+    local npc = {hash = '55ULL', ready = false}
+    function npc:IsAttached() return true end
+    function npc:GetEntityID() return {hash = self.hash} end
+    function npc:ConvaiFaceReady() return self.ready end
+    local spawned = false
+    local service = {}
+    function service:WatchScreenFace() end
+    function service:ScreenFace() return {hash = spawned and '55ULL' or '0ULL'} end
+    host.faceService = function() return service end
+    Game = {FindEntityByID = function(id) return id.hash == '55ULL' and npc or nil end}
+    local RIG = 'base\\\\characters\\\\main_npc\\\\delamain\\\\h0_001_ma_c__delamain\\\\h0_001_ma_c__delamain_skeleton.rig'
+    local faced = handle:speaker({id = 'face', name = 'Delamain', anchor = 'vehicle', minGap = 2, playThrough = true,
+        approach = function() return cab end, face = {rig = RIG}})
+    assert(handle:watchFace('face', true))
+`;
+
+test('faceActor says when a watched screen face is only not ready yet; an unwatched or faceless speaker gets a plain nil', () => {
+  run(`${WORLD}${CAB}${FACE_CAB}
+    local npcOut, pending = M.faceActor(faced, player)
+    assert(npcOut == nil and pending == true, 'not spawned yet: pending')
+    spawned = true
+    npcOut, pending = M.faceActor(faced, player)
+    assert(npcOut == nil and pending == true, 'spawned, its face graph not ready: pending')
+    npc.ready = true
+    assert(M.faceActor(faced, player) == npc)
+    npcOut, pending = M.faceActor(key, player)
+    assert(npcOut == nil and pending == nil, 'a speaker without a face is never pending')
+    handle:watchFace('face', false)
+    npcOut, pending = M.faceActor(faced, player)
+    assert(npcOut == nil and pending == nil, 'not watched: never pending')
+  `);
+});
+
+test('faceWait: a held remark whose moment came stays silent until its screen face is ready, at most faceWait seconds', () => {
+  run(`${WORLD}${CAB}${FACE_CAB}
+    assert(handle:remark('face', {event = 'boarded', priority = 4, ttl = 15, hold = function() return not seated end, faceWait = 1.5}))
+    assert(M._test.queue()[1].faceWait == 1.5)
+    tick()
+    local context = submitted[1].context
+    assert(M.canDeliver(context, player))
+    state.pendingId, state.speechId = nil, context.requestId
+    tick()
+    -- V sits; the game's scene has not spawned the screen NPC yet.
+    seated, player.vehicle = true, cab
+    assert(handle:releaseHold('face') == true)
+    assert(holds[#holds] == context.requestId and M._test.flight().holding, 'still held: the face is not there')
+    tick(.1); tick(.1)
+    assert(M._test.flight().holding and #events == 0)
+    spawned, npc.ready = true, true
+    tick(.1)
+    assert(holds[#holds] == 'nil' and not M._test.flight().holding, 'released the tick the face is ready')
+    tick()
+    assert(events[1] == 'remarkStarted:boarded')
+    state.speechId = nil; tick()
+    -- The face never comes: played after faceWait, the face joins later (speech.lua).
+    now = now + 30; tick(30)
+    spawned, npc.ready = false, false
+    seated = false
+    assert(handle:remark('face', {event = 'boarded2', priority = 4, ttl = 15, hold = function() return not seated end, faceWait = 1.5}))
+    tick()
+    local second = submitted[2].context
+    assert(M.canDeliver(second, player))
+    state.pendingId, state.speechId = nil, second.requestId
+    tick()
+    seated = true
+    tick(.1)
+    assert(M._test.flight().holding, 'hold() turned false: the face wait starts')
+    tick(1); assert(M._test.flight().holding)
+    tick(.6)
+    assert(not M._test.flight().holding and holds[#holds] == 'nil', 'faceWait is a ceiling')
+    -- Bounds: faceWait is 0 to 5 s; without it nothing waits.
+    state.speechId = nil; tick(); now = now + 30; tick(30)
+    assert(handle:remark('face', {event = 'boarded3', priority = 4, hold = function() return true end, faceWait = 60}))
+    assert(M._test.queue()[1].faceWait == 5)
+  `);
+});
+
+test('speech.lua: a screen face that is not there when the line starts is asked again while the line plays, and joins at the heard position', () => {
+  const speechSource = read('../mod/speech.lua');
+  const head = speechSource.slice(0, speechSource.indexOf('local continuous'));
+  const finite = speechSource.slice(speechSource.indexOf('local function finite'), speechSource.indexOf('local function null'));
+  const retry = speechSource.slice(speechSource.indexOf('local function retryFace'), speechSource.indexOf('local function updateSpeech'));
+  run(`
+    local calls = {}
+    local facial = setmetatable({}, {__index = function(_, key) return function(...) calls[#calls + 1] = {key, ...} end end})
+    dofile = function(name) if name == 'facial-playback.lua' then return facial end; return {} end
+    convaiSpeech = {heartbeat = 0}
+    local npc = {hash = '55ULL'}
+    function npc:GetEntityID() return {hash = self.hash} end
+    local ready, asked = false, 0
+    Game = {GetPlayer = function() return {} end}
+    ${head}
+    ${finite}
+    ${retry}
+    local logs = {}
+    M.log = function(line) logs[#logs + 1] = line end
+    M.faceSource = function(profileKey) asked = asked + 1; if ready then return npc end; return nil, profileKey == 'addon-cab-face' end
+    -- Not there at the start: armed (M.start does exactly this).
+    local context = {requestId = 'r1', generation = 3, name = 'Delamain', entity = '88ULL'}
+    local found, pending = findScreenFace('addon-cab-face', context)
+    assert(found == false and pending == true and M.faceActor == nil)
+    local plainFound, plainPending = findScreenFace('addon-cab-gun', context)
+    assert(plainFound == false and plainPending == false, 'a speaker without a screen face is never retried')
+    M.voiceOnly, M.context, M.actor, M.state = true, context, 'cab', 'playing'
+    M.faceRetry = {profileKey = 'addon-cab-face', wait = 0, tries = 0, elapsed = 0, context = context}
+    local timeline = {version = 1, requestId = 'r1', entity = '88ULL', frames = {{0, 0}, {1, 0}}}
+    M.faceChunk = {timeline = timeline, duration = 1, expected = nil}
+    retryFace(1 / 60)
+    assert(asked == 3 and M.faceRetry.tries == 1 and #calls == 0, 'asked at once, nothing started')
+    for _ = 1, 10 do retryFace(1 / 60) end
+    assert(asked == 3, 'not every frame: every 0.25 s')
+    retryFace(.1)
+    assert(asked == 4)
+    ready = true
+    retryFace(.25)
+    assert(M.faceRetry == nil and M.faceChunk == nil and M.faceActor == npc and M.faceEntity == '55ULL' and facial.screenEntity == '55ULL')
+    local start = calls[1]
+    assert(start[1] == 'start' and start[2] == M.faceContext and start[3].entity == '55ULL' and start[4] == npc and start[5] == 1,
+        'the playing phrase starts on the screen face')
+    assert(logs[1]:find('Screen face joined: addon-cab-face', 1, true), logs[1])
+    -- Never found: given up after the last try, with one log line.
+    M.faceActor, M.faceEntity, M.faceContext = nil, nil, nil
+    ready = false
+    M.faceRetry = {profileKey = 'addon-cab-face', wait = 0, tries = 0, elapsed = 0, context = context}
+    local tries = 0
+    while M.faceRetry and tries < 100 do retryFace(.25); tries = tries + 1 end
+    assert(tries == 40, tostring(tries))
+    assert(M.faceRetry == nil and logs[2]:find('Screen face not found', 1, true))
+    -- Between native phrases (buffering) or on the browser voice the face is not started here: the next phrase or update does it.
+    ready = true
+    calls = {}
+    M.state = 'buffering'
+    M.faceRetry = {profileKey = 'addon-cab-face', wait = 0, tries = 0, elapsed = 0, context = context}
+    M.faceChunk = {timeline = timeline, duration = 1}
+    retryFace(.25)
+    assert(M.faceActor == npc and #calls == 0)
+  `);
+  // The wiring: armed at the start only when the face is pending, retried only while not paused, the phrase kept while waiting,
+  // and cleared with the reply.
+  assert.match(speechSource, /local found, pending = findScreenFace\(context\.profileKey, context\)\s+if not found and pending then\s+M\.faceRetry = /);
+  assert.match(speechSource, /if M\.faceRetry and not paused then retryFace\(delta\) end\s+if M\.continuous then updateContinuous/);
+  assert.match(speechSource, /if M\.faceRetry then M\.faceChunk = \{timeline = timeline, duration = audio\.duration, expected = expected\} end/);
+  assert.match(speechSource, /M\.faceActor, M\.faceEntity, M\.faceContext, M\.faceRetry, M\.faceChunk = nil, nil, nil, nil, nil/);
+  assert.match(speechSource, /M\.faceRetry, M\.faceChunk = nil, nil\s+M\.captionHidden = nil/);
 });
 
 test('Face.reds: the screen-face watch is checked only while a rig is watched, before the crowd mode, and keeps the gate', () => {

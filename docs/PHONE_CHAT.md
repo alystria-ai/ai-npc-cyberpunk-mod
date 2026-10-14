@@ -6,10 +6,10 @@ Use the game's phone control (normally hold **T**) to open the phone. **Chat** i
 Contacts. Use the phone's left/right tab controls to select it, choose a person,
 and press the normal confirm action. The
 conversation opens directly; there is no quest-message thread selector.
-On the Chat list the secondary action (hint **Call**, R on a keyboard) starts a holocall
-with the selected person, and inside a conversation the Call hint (V on a keyboard) does the
-same (see [HOLOCALL.md](HOLOCALL.md)); the confirm key (F, Enter) only opens the chat. The
-game's own Contacts Call is unchanged.
+On the Chat list the confirm key (F, Enter) and the secondary action (R, the envelope on the row) open the
+chat; the Call key (V, Triangle; a phone icon beside the envelope and a Call hint in the bottom bar) starts a
+holocall with the selected person, and inside a conversation the Call hint under the message box (V, or a click)
+does the same (see [HOLOCALL.md](HOLOCALL.md)). The game's own Contacts Call is unchanged.
 Pointer callbacks are provided for the tabs and contact rows where a pointer is
 available; the game's ordinary phone navigation remains the primary input.
 
@@ -151,8 +151,9 @@ coverage is recorded in [CHAT_MEMORY_RESET.md](CHAT_MEMORY_RESET.md).
   No game input was injected and no restart was required for the correction.
 - Follow-up: inherited Codeware focus callbacks also reached F6/F8 inputs.
   Placeholder and text-style changes now require a `convaiPhoneComposer` ancestor.
-  The world composer keeps “Type your message to the character.” and mixed-case
-  typing; changing the hint never changes a draft. The regression reproduced
+  The world composer keeps mixed-case typing (its box has had no placeholder
+  text, and its message line “Type your message to the character.” is hidden
+  and takes no layout room, since 2026-10-15; only the title stays); changing the hint never changes a draft. The regression reproduced
   the leaked hint before the fix and passes afterward, including detached inputs
   and manager search. All 20 focused phone checks pass. Applied live without a
   reload; the user confirmed the original in-world prompt is restored.

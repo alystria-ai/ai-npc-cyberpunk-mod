@@ -511,11 +511,14 @@ Handle.speaker = guard('speaker', function(self, def)
     return key
 end)
 
---- handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, menus})
+--- handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus})
 --- -> true, or false and the reason.
 --- hold() -> bool (optional): the remark is written and voiced as soon as it can be, but kept silent while hold() is true (checked on
 --- the 0.1 s tick; handle:releaseHold plays it at once). For a line that must start the instant something happens (Delamain's welcome
 --- the moment V sits) without waiting for the text and voice then. Given up, unheard, after holdMax seconds (1 to 30, default 20).
+--- faceWait (seconds, 0 to 5, default 0; a held remark of a speaker with a screen face): when the moment comes and that face is not
+--- ready yet (the cab's seat-back NPC is spawned by the game as V sits), the remark stays silent until it is, at most this long, so its
+--- first words move the face. Past it the remark plays and the face joins when it appears (speech.lua).
 --- menus = true | function() -> bool (optional): while the remark plays (or is held), an open game menu (the cab's destination map)
 --- does not pause it. The function form is checked on the 0.1 s tick.
 Handle.remark = guard('remark', function(self, speakerId, event)
@@ -553,6 +556,7 @@ Handle.remark = guard('remark', function(self, speakerId, event)
     end
     entry.hold = event.hold
     entry.holdMax = number(event.holdMax, 1, 30, 20)
+    entry.faceWait = number(event.faceWait, 0, 5, 0)
     entry.menus = (event.menus == true or type(event.menus) == 'function') and event.menus or nil
     -- One waiting remark per speaker and event name: the newer facts replace the older ones.
     for index = #queue, 1, -1 do
@@ -775,14 +779,37 @@ Handle.cancel = guard('cancel', function(self, speakerId)
     return true
 end)
 
---- handle:releaseHold(speakerId) : the speaker's held remark (`hold`) plays now, without waiting for the next tick. true when one was held.
+-- The moment of the held remark in flight came (hold() turned false, or handle:releaseHold). With faceWait, while the speaker's screen
+-- face is not ready the remark stays held (checked again on the 0.1 s tick), at most faceWait seconds. true when it plays now.
+local function momentCame()
+    local entry, speaker = flight.entry, flight.speaker
+    flight.momentAt = flight.momentAt or clock
+    local waited, faced = clock - flight.momentAt, nil
+    if entry and (entry.faceWait or 0) > 0 and speaker.faceRig and speaker.faceWatched then
+        faced = M.faceActor(speaker.key, host and host.player and host.player()) ~= nil
+        if not faced and waited < entry.faceWait then
+            if not flight.faceWaiting then
+                flight.faceWaiting = true
+                log('Remark moment came, waiting for the screen face: ' .. speaker.key .. ' event=' .. flight.event)
+            end
+            return false
+        end
+    end
+    flight.holding = false
+    setHold(nil)
+    local note = faced == nil and '' or faced and string.format(' (face ready after %.1fs)', waited)
+        or string.format(' (face not ready after %.1fs; it joins when it appears)', waited)
+    log(string.format('Remark hold released: %s event=%s after %.1fs%s', speaker.key, flight.event, clock - (flight.holdSince or clock), note))
+    return true
+end
+
+--- handle:releaseHold(speakerId) : the speaker's held remark (`hold`) plays now, without waiting for the next tick (with `faceWait`, as soon
+--- as the speaker's screen face is ready). true when one was held.
 Handle.releaseHold = guard('releaseHold', function(self, speakerId)
     local speaker = speakerOf(self, speakerId)
     if not speaker then return false, 'unknown speaker' end
     if not flight or flight.speaker ~= speaker or not flight.holding then return false end
-    flight.holding = false
-    setHold(nil)
-    log(string.format('Remark hold released: %s event=%s after %.1fs', speaker.key, flight.event, clock - (flight.holdSince or clock)))
+    momentCame()
     return true
 end)
 
@@ -1132,11 +1159,9 @@ local function trackFlight(player, state)
     -- A held remark (hold): released when hold() turns false, given up unheard after holdMax. A menus remark keeps playing in menus.
     local entry = flight.entry
     if flight.holding then
-        local ok, wait = pcall(entry.hold)
-        if ok and wait ~= true then
-            flight.holding = false
-            setHold(nil)
-            log(string.format('Remark hold released: %s event=%s after %.1fs', flight.speaker.key, flight.event, clock - flight.holdSince))
+        local come = flight.momentAt ~= nil
+        if not come then local ok, wait = pcall(entry.hold); come = ok and wait ~= true end
+        if come then momentCame()
         elseif clock - flight.holdSince > entry.holdMax then release('hold-expired', true); return end
     end
     if entry and entry.menus then
@@ -1415,6 +1440,7 @@ end
 function M.faceActor(profileKey, player)
     local speaker = type(profileKey) == 'string' and speakers[profileKey] or nil
     if not speaker or not speaker.faceRig or not speaker.faceWatched or not player or not host or not host.faceService then return nil end
+    -- Second answer when there is no NPC: true, the face is watched but not ready yet (speech.lua asks again while the line plays).
     local ok, object = pcall(function()
         local service = host.faceService()
         local id = service and service:ScreenFace(speaker.faceRig)
@@ -1423,7 +1449,8 @@ function M.faceActor(profileKey, player)
         if not npc or not npc:IsAttached() or not npc:ConvaiFaceReady() then return nil end
         return npc
     end)
-    return ok and object or nil
+    if ok and object then return object end
+    return nil, true
 end
 
 --- The reply of an add-on remark arrived: may it play now? (init.lua reactionCanDeliver)
