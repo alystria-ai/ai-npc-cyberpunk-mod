@@ -252,6 +252,24 @@ local stallSeconds,releaseSeconds=.20,.12
 -- q and floor are constants per head type (the facial graph name, read once per reply, never per frame), or a
 -- per-character override (traitTable[profile].jawLift = {q=,floor=}, false = none). Judy's graph
 -- (player_woman_photomode) has no entry: unchanged.
+-- October 15 (user: "not much variety in lipsync shapes ... just simple up and down"): the lift above is applied only
+-- when the face graph has no speech_owner input (an archive older than October 10). Every sweep that measured the parting
+-- points (October 9) predates speech_owner: the idle clip's own lips_together (.7-1.0) was still added under the speech
+-- deltas, so the sealed lips the lift was fitted to were the idle's, not the head's. With the idle mouth handed over
+-- (speech_owner 1) Alex's woman_average lips part at a jaw of .06 and show teeth at .12, like Judy's (captured
+-- 2026-10-15, docs/LIPSYNC_APPLICATION_2026-10-15.md). The lift then doubled every low jaw (median .17 -> .30, 90 % of
+-- speaking frames held at .21 or more), so the mouth never closed between syllables, rounded and spread vowels opened into
+-- the same "ah", and the game's own curves (Rogue, same head type) looked as flat as the model's. The head's lift entry is
+-- still read (M.jawLift): it marks the head types whose chin raise and corner depressors give way while speaking.
+-- Same day: the game-trained model reaches only part of the game's own peaks on the shape controls (held-out corpus,
+-- docs/LIPSYNC_V2_RESEARCH_2026-10-14.md: spread family 66-70 %, purse 75 %, jaw 85 %; upper-lip raise about 40 % on the
+-- Rogue line), so rounded and spread vowels read as small variations of one opening. A model (local-jali) timeline is
+-- scaled per control towards the game's reach, then clamped to the validation bounds; contacts, rolls, funnel (which
+-- overshoots), puffs and tongue are left as they are. One multiply per written track, inside the existing loop.
+local modelReach={jaw_mid_open=1.15,lips_l_purse=1.35,lips_r_purse=1.35,lips_l_corner_stretch=1.45,
+    lips_r_corner_stretch=1.45,lips_l_stretch=1.45,lips_r_stretch=1.45,lips_l_lower_raise=1.3,lips_r_lower_raise=1.3,
+    lips_l_upper_raise=1.4,lips_r_upper_raise=1.4}
+M.modelReach=modelReach
 local jawLimit=.7
 local jawLiftByGraph={woman_average={q=2,floor=.21},man_average={q=1.5,floor=.17},man_big={q=1.5,floor=.17},
     man_fat={q=1.5,floor=.17}}
@@ -1009,7 +1027,7 @@ local function applyNative(actor,feature,entity,phase,provider,upper,mix,boundar
         turn.emotion,turn.family,turn.scale,turn.blocked=slot.emotion,slot.family,slot.scale,blocked
         turn.frames=turn.frames+1
         if owned>=.99 then turn.ownedFrames=(turn.ownedFrames or 0)+1 end
-        turn.jawLift=M.jawLift and M.jawLift.q or false
+        turn.jawLift=ownerFace==false and M.jawLift and M.jawLift.q or false
         if mix then
             turn.mix,turn.mixPeak=turn.mix or {},turn.mixPeak or {}
             for index,family in ipairs(mixFamilies) do
@@ -1093,7 +1111,7 @@ local function applyFeature(actor,feature,entity,phase,provider,upper,mix,bounda
             if jaw>(turn.jawPeak or 0) then turn.jawPeak=math.floor(jaw*1000)/1000 end
             if jaw>=.16 then turn.openFrames=(turn.openFrames or 0)+1 end
         end
-        turn.jawLift=M.jawLift and M.jawLift.q or false
+        turn.jawLift=ownerFace==false and M.jawLift and M.jawLift.q or false
         if mix then
             turn.mix,turn.mixPeak=turn.mix or {},turn.mixPeak or {}
             for index,family in ipairs(mixFamilies) do
@@ -1593,11 +1611,17 @@ function M.sync(actor, position, requestId)
         local alpha = math.max(0, math.min(1, (position - left[1]) / (right[1] - left[1])))
         local motionPosition = heardPosition + (M.segment and M.segment.startSeconds or 0)
         local motionElapsed = M.localPosePosition and math.max(0, motionPosition - M.localPosePosition) or 1 / 60
-        local lift = M.jawLift
+        -- Only a graph without speech_owner gets the jaw curve (see jawLimit above).
+        -- Known before the first frame of a reply (the idle writer probes it), but a reply can come first.
+        if ownerFace == nil and M.feature then detectOwner(M.feature) end
+        local lift = ownerFace == false and M.jawLift or nil
+        local reach = M.source == 'local-jali' and modelReach or nil
         local vec = native and (M.speechVec or newSpeechVec()) or nil
         M.speechVec = vec or M.speechVec
         for i, track in ipairs(tracks) do
             local value = left[i + 1] + (right[i + 1] - left[i + 1]) * alpha
+            local gain = reach and reach[track]
+            if gain then value = math.min(value * gain, trackLimit(track)) end
             if lift and track == 'jaw_mid_open' then value = liftJaw(value, lift) end
             if M.localMotion then
                 -- Local acoustic shapes (Pocket and Omni) share this easing.

@@ -183,7 +183,8 @@ test('native controls admit the game lipsync ranges (incl. model puff/cheek/tong
   doc.face.frames[2][23]=.300001; assert(not start() and status()=='fixture-face')
   doc.face.frames[2][23]=.29; doc.face.frames[2][28]=.500001; assert(not start() and status()=='fixture-face')
   doc.face.frames[2][28]=.1; doc.face.frames[2][24]=.45; assert(start()); cursor=.5;speech.update(.5)
-  assert(face.active and frames[1].lips_suck_up==.29 and frames[1].jaw_mid_open==.1 and frames[1].lips_puff_up==.45)
+  -- A model timeline's jaw is written at its reach (modelReach, October 15); the bounds themselves are unchanged.
+  assert(face.active and frames[1].lips_suck_up==.29 and frames[1].jaw_mid_open==.1*face.modelReach.jaw_mid_open and frames[1].lips_puff_up==.45)
 `));
 
 test('busy speech, silent face probe, group round, phone and native UI all block without interrupting an owner', () => run(`

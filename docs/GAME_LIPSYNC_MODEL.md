@@ -226,6 +226,17 @@ cd scripts\lipsync; & ..\..\$py export_face_model.py ..\..\runtime\lipsync-model
 node --test bridge/jali-face.test.mjs bridge/convai-jali-face.test.mjs
 ```
 
+## October 15: the jaw lift applies only without speech_owner, and the model's shapes are scaled to the game's reach
+
+User: "not much variety in lipsync shapes ... just simple up and down opening". Every parting point the lift above was
+fitted to was measured before `speech_owner` (October 10) handed the idle mouth over, so the sealed lips were the idle
+clip's `lips_together`, not the head's. With the owner at 1, Alex (woman_average) parts at jaw .06 and Jefferson Peralez
+(man_average) at .06 too; the lift wrote 1.5x the model's jaw at p95 and opened rounded and spread vowels into one "ah".
+The lift now applies only on a graph without `speech_owner`; the head entry still marks the ducks. A model (`local-jali`)
+timeline is also scaled per control towards the game's reach (jaw 1.15, purse 1.35, corner stretch / stretch 1.45,
+lower raise 1.3, upper raise 1.4; clamped to the validation bounds). Numbers, captures and tests:
+docs/LIPSYNC_APPLICATION_2026-10-15.md.
+
 ## October 9: wide-lipped heads did not open on low and mid words (jaw lift per head type)
 
 Report: on Evelyn and Johnny (wider, thinner lips than Judy) "some words don't open the mouth", while Judy, on whom the

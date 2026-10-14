@@ -149,9 +149,87 @@ commands['say'] = function(rest, context)
     return sent == true, {requestId = sent and detail or nil, problem = (not sent) and detail or nil, entity = row.entity}
 end
 
+-- face-play <who> <name> [rate]: plays the mapped mouth timeline in runtime/<name>.json ({tracks, frames, duration}, the
+-- shape of a reply's face in continuous-face.json, flattened) silently on a present character through the real writer
+-- (facial-playback start, sync on the probe's own clock, stop and endExpression, exactly as speech.lua drives it), so one
+-- line can be replayed and captured again after a writer change. No audio, no provider, no history. `face-play off` stops.
+-- A replay never runs against a real reply: a speech start takes the writer and the replay ends at its next frame.
+-- face-reload: re-runs facial-playback.lua (which re-runs this file) onto the same tables, so a changed writer is live
+-- without a CET reload. Both are dev-only (this file is not in a player package).
+local PLAY_LEAD = .4
+local function playStop(play, npc, reason)
+    local face = convaiFacialPlayback
+    if face and npc and face.requestId == play.requestId then
+        pcall(face.stop, npc, reason)
+        if face.endExpression then pcall(face.endExpression, play.context, reason == 'finished') end
+    end
+    M.play = nil
+    log('play-' .. reason, {name = play.name, frames = play.frames, position = play.position})
+end
+commands['face-play'] = function(rest, context)
+    local who, name, rate = rest:match('^(%S+)%s*(%S*)%s*(%S*)$')
+    if who == 'off' then
+        local play = M.play
+        if not play then return true, 'no replay' end
+        local row
+        for _, actor in ipairs(context.actors or {}) do if actor.entity == play.entity then row = actor end end
+        playStop(play, row and row.npc, 'stopped')
+        return true, 'stopped'
+    end
+    if not who or not name or not name:match('^[%w_%-]+$') then return false, 'usage: face-play <who> <name> [rate] | off' end
+    local face = convaiFacialPlayback
+    if not face or type(face.start) ~= 'function' then return false, 'facial playback unavailable' end
+    if face.active and (not M.play or face.requestId ~= M.play.requestId) then return false, 'a reply owns the face' end
+    local row = rowFor(context, who)
+    if not row then return false, 'no owned companion matching ' .. who .. ' in range' end
+    local file = io.open('runtime/' .. name .. '.json', 'rb')
+    if not file then return false, 'no runtime/' .. name .. '.json' end
+    local raw = file:read('*a'); file:close()
+    local ok, doc = pcall(json.decode, raw)
+    if not ok or type(doc) ~= 'table' or type(doc.tracks) ~= 'table' or type(doc.frames) ~= 'table' then return false, 'bad timeline file' end
+    if M.play then playStop(M.play, row.npc, 'replaced') end
+    local requestId = 'face-play-' .. tostring(math.floor(M.clock * 1000))
+    local play = {name = name, entity = row.entity, requestId = requestId, duration = doc.duration, position = -PLAY_LEAD,
+        rate = math.max(.1, math.min(2, tonumber(rate) or 1)), frames = 0,
+        context = {requestId = requestId, entity = row.entity, generation = 0}}
+    local timeline = {version = 1, requestId = requestId, entity = row.entity, source = 'local-jali', articulation = 'jali-audio-v1',
+        tracks = doc.tracks, frames = doc.frames, duration = doc.duration}
+    local started, accepted = pcall(face.start, play.context, timeline, row.npc, doc.duration)
+    if not started or not accepted then return false, 'writer refused: ' .. tostring(started and face.error or accepted) end
+    M.play = play
+    log('play', {name = name, entity = row.entity, duration = doc.duration, rate = play.rate})
+    return true, {playing = name, seconds = doc.duration, lead = PLAY_LEAD, rate = play.rate, companion = row.name or row.profileKey}
+end
+local function playTick(delta, context)
+    local play = M.play
+    local face = convaiFacialPlayback
+    local row
+    for _, actor in ipairs(context and context.actors or {}) do if actor.entity == play.entity then row = actor end end
+    if not row or not face or face.requestId ~= play.requestId then
+        M.play = nil
+        log('play-lost', {name = play.name, frames = play.frames})
+        return
+    end
+    play.position = play.position + delta * play.rate
+    if play.position >= play.duration then playStop(play, row.npc, 'finished')
+    elseif play.position >= 0 then
+        face.sync(row.npc, play.position, play.requestId)
+        play.frames = play.frames + 1
+    end
+end
+commands['face-reload'] = function()
+    local ok, result = pcall(dofile, 'facial-playback.lua')
+    if not ok then return false, tostring(result) end
+    return true, {reloaded = result == convaiFacialPlayback}
+end
+
 local TRACE_SIZE = 3600
+-- Every mouth control the speech timelines write (one side of each symmetric pair), the expression controls that act on
+-- the mouth, and the speech owner.
 local TRACE_FIELDS = {'jaw_mid_open', 'lips_together_up', 'lips_together_dn', 'lips_l_funnel', 'lips_l_purse',
-    'lips_l_stretch', 'lips_l_corner_up'}
+    'lips_l_stretch', 'lips_l_corner_stretch', 'lips_l_lower_raise', 'lips_l_upper_raise', 'lips_suck_up', 'lips_suck_dn',
+    'lips_puff_up', 'cheek_l_puff', 'tongue_mid_tip_up', 'tongue_mid_fwd', 'lips_l_corner_up', 'lips_l_corner_dn',
+    'lips_chin_raise', 'speech_owner'}
 local function traceReset(entity)
     local ring = {entity = entity, n = 0, clock = {}, phase = {}, pos = {}, seg = {}, req = {}, state = {}}
     for _, name in ipairs(TRACE_FIELDS) do ring[name] = {} end
@@ -594,6 +672,7 @@ function M.poll(delta, context)
     delta = (type(delta) == 'number' and delta == delta and delta > 0 and delta < .5) and delta or 0
     M.clock = M.clock + delta
     if M.stage then local ok, err = pcall(stageTick, context); if not ok then M.stage.state, M.stage.error = 'failed', tostring(err) end end
+    if M.play then local ok, err = pcall(playTick, delta, context); if not ok then log('play-error', {error = tostring(err)}); M.play = nil end end
     local run = M.run
     if run then
         run.elapsed = run.elapsed + delta
