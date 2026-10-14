@@ -244,8 +244,10 @@ handle:replaceGameLines({name = 'Skippy',
   line, never per frame); a claimed line answers "do not display". If the override cannot be installed, the line is hidden right after
   it was handed to the HUD (`UIGameData.HideDialogLine`), and the log says so. Without a rule nothing is hooked and a game line
   costs one boolean read.
-- **Voice:** `AudioSystem.Stop(event, speakerEntity)` for each event in `audio`, once per line, from the subtitle hook that already
-  runs. The scene system plays most dialogue without a named event, so a stop is a try: the log line says whether a stop was sent,
+- **Voice:** `AudioSystem.Stop(event, speakerEntity)` for each event in `audio`, sent when the line is seen (from the subtitle hook that
+  already runs) and sent again 0.3, 0.8 and 1.6 s later on the add-on tick that already runs (a scene voice can start a moment after
+  its subtitle line, and a Stop that came first finds nothing to stop; the repeat holds the entity id value and the event names, never
+  the entity, and is dropped on a session reset). The scene system plays most dialogue without a named event, so a stop is a try: the log line says whether a stop was sent,
   and `audioVerified` tells the scheduler whether to believe it. While it is `false` a patient remark waits for the whole line
   (the voice may still play); when `true` it waits only ~0.6 s. A rule with no `audio` mutes the subtitle only.
 - **The scene behind a muted line** keeps running without a voice: for the length of that line its `dialogue` flag and (non-cinematic)
@@ -712,7 +714,14 @@ check the list of calls.
 8. Remarks feel right at the defaults (10 s, 30 a fight): frequent but never piled up, and none plays after its moment.
 9. Replacing the game's own lines: the log shows `muted game line: Skippy ...` for "new message detected" / "provocation" and the beeps
    are not heard (`audio=stop-sent(vo_3d_important)` and then silence); if the voice still plays, the stop does not work for scene
-   dialogue and `audioVerified` stays `false`. For the cab, the subtitle goes and the voice (no known event) still plays.
+   dialogue and `audioVerified` stays `false`. For the cab, see item 10.
+10. The Delamain cab's own welcome and goodbye (add-on `cyberpunk-convai-delamain`, "The cab's own voice" in its
+    `docs/DELAMAIN_RESEARCH.md`): ride a cab with "Replace the game's own lines" on. (a) The cab's greeting is silent and has no
+    subtitle, the destination map opens a few seconds after you sit down, the fare and the ride work as always, and our welcome
+    plays around the time the map opens (the log shows `the cab's own welcome is switched off for this boarding`). (b) At the end
+    the log shows `muted game line: Delamain ... audio=stop-sent(vo_3d,vo_2d,vo_3d_important)`: if the cab's goodbye voice still
+    plays, note the line id and the time; the next candidates are other Wwise events and the dialogue volume. (c) With the option
+    off the game's own welcome and goodbye play as before and nothing is written.
 
 ## The two add-ons
 
@@ -742,8 +751,11 @@ develop one with the main mod, point the bridge at its folder with `CYBERPUNK_CO
 **Delamain** (`cyberpunk-convai-delamain`, id `delamain-cab`, Oct 25):
 - One speaker, `delamain`, anchored to `'vehicle'`, with `group = true`, available only in a Delamain cab.
 - Never starts a line over the game's own Delamain scenes (default `sceneTiers = {1}`): every remark has `patience` and waits for the
-  scene or subtitle line to end; a line that has started plays through (`playThrough`). Its own greeting and farewell subtitles are
-  hidden while it sits in the cab (`replaceGameLines`); the cab voice has no known event to stop.
+  scene or subtitle line to end; a line that has started plays through (`playThrough`). The cab's own welcome, "your wish is my
+  command", arrival announcement and goodbyes (12 lines of `delamain_taxi.scene`) are replaced while it sits in the cab
+  (`replaceGameLines`, the window starts when V climbs in): the welcome through the game's own skip switch (the quest fact
+  `delamain_skip_dialog`, set before the scene's node 730, which cleans it up itself; the map, the fare and the ride are not touched),
+  the arrival and goodbyes by a voice stop (`audio = {'vo_3d','vo_2d','vo_3d_important'}`, not yet heard-tested) and a hidden subtitle.
 - `setCompanionContext('ride', …)` while riding, cleared on exit.
 - Remarks: boarding (4), arrival (5), a crash or chase (4), at most one landmark (3).
 - `remember` for notable rides.

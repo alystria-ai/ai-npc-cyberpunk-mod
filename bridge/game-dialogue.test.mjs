@@ -322,10 +322,10 @@ test('game voice lines are reported to the add-on host once each, with their own
 `));
 
 test('lines an add-on replaces: the subtitle filter hides only its character\'s lines, the voice stop and the log are sent once, and nothing runs without a rule', () => lua$(`
-  local muted, heard, stopped, hidden, active = {}, {}, {}, {}, true
+  local muted, heard, stopped, hidden, active, again = {}, {}, {}, {}, true, 0
   local rule = {name = 'Skippy', audio = {'vo_3d_important'}}
   local native = setmetatable({
-    stopAudio = function(line, events) stopped[#stopped + 1] = events[1]; return 'stop-sent(' .. events[1] .. ')' end,
+    stopAudio = function(line, events) stopped[#stopped + 1] = events[1]; return 'stop-sent(' .. events[1] .. ')', function() again = again + 1 end end,
     hideLine = function(line) hidden[#hidden + 1] = line.id; return true end,
   }, {__index = N})
   local installed
@@ -356,6 +356,10 @@ test('lines an add-on replaces: the subtitle filter hides only its character\'s 
   dialogue2:line(line, 'event')
   assert(#stopped == 1 and stopped[1] == 'vo_3d_important' and #muted == 1 and #hidden == 0)
   assert(muted[1].seconds == 2.5 and muted[1].measured == true and muted[1].audio == 'stop-sent(vo_3d_important)' and muted[1].subtitle == 'filtered' and muted[1].id == '000503')
+  -- The same stop can be sent again later (it holds the line's own speaker and events, and is handed to the host with the muted line).
+  assert(type(muted[1].repeatStop) == 'function' and again == 0)
+  muted[1].repeatStop()
+  assert(again == 1)
   assert(#heard == 0 and dialogue2:status().muted.Skippy == 1)
   -- Switched off by the player (matchLine says replace = false): the game talks, the host is told it is talking.
   local off = make(true, false)
@@ -553,3 +557,22 @@ test('every manual send path captures the snapshot; automatic reactions never do
   assert.match(phoneSource, /local gameDialogue = capture\(M\.captureGameDialogue\)/);
   assert.match(phoneSource, /battle = battle, gameDialogue = gameDialogue\}/);
 });
+
+test('the voice stop of a muted line is sent on the line speaker and can be sent again with the same entity id and events', () => lua$(`
+  local calls = {}
+  Game = Game or {}
+  Game.GetAudioSystem = function() return {Stop = function(_, name, id) calls[#calls + 1] = name .. '@' .. id end} end
+  CName = CName or {}
+  CName.new = function(name) return name end
+  local native = api.new({}).native
+  local events = {'vo_3d', 'vo_2d'}
+  local speaker = {GetEntityID = function() return 'E1' end}
+  local text, again = native.stopAudio({speaker = speaker}, events)
+  assert(text == 'stop-sent(vo_3d,vo_2d)' and type(again) == 'function' and #calls == 2 and calls[1] == 'vo_3d@E1' and calls[2] == 'vo_2d@E1')
+  events[1] = 'changed'                                -- the list the rule owns is copied, not held
+  again()
+  assert(#calls == 4 and calls[3] == 'vo_3d@E1' and calls[4] == 'vo_2d@E1')
+  assert(native.stopAudio({speaker = speaker}, {}) == 'no-event-known')
+  assert(native.stopAudio({}, {'vo_3d'}) == 'no-speaker')
+  assert(#calls == 4, 'nothing sent without a speaker or an event')
+`));
