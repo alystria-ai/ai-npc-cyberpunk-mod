@@ -1624,6 +1624,33 @@ test('Auto-connect nearby characters is on by default, offered under Conversatio
   `);
 });
 
+test('the live holocall picture is on by default, offered under Conversations, and an explicit Off is kept', () => {
+  run(`${mcmFixture}
+    assert(manager.holocallLiveImage() == true and manager.snapshot(player).settings.holocallLiveImage == true)
+    assert(invoke('tab:settings').ok)
+    local live = assert(row('holocallLiveImage'), 'the setting is not offered')
+    assert(live.type == 'bool' and live.value == true and live.defaultValue == true)
+    assert(registered.applyBatch('manager', {{id = 'holocallLiveImage', value = false}}).ok)
+    assert(manager.holocallLiveImage() == false and saved.holocallLiveImage == false and saved.holocallLiveImageChosen == true)
+    manager.reset(); manager.configure(api, profiles)
+    assert(manager.holocallLiveImage() == false, 'a chosen Off survives a reload')
+    assert(registered.applyBatch('manager', {{id = 'holocallLiveImage', value = true}}).ok and manager.holocallLiveImage())
+  `);
+});
+
+test('a saved live-picture false that the player never chose (the first version\'s default) becomes the new default, true', () => {
+  run(`${managerFixture}
+    for _, case in ipairs({{false, nil, true}, {false, false, true}, {false, true, false}, {true, true, true}, {nil, nil, true}}) do
+      seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'convai', omniSteps = 16, enabledByKey = {},
+        holocallLiveImage = case[1], holocallLiveImageChosen = case[2]}
+      for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.reset(); manager.configure(api, profiles)
+      assert(manager.holocallLiveImage() == case[3], 'live=' .. tostring(case[1]) .. ' chosen=' .. tostring(case[2]))
+    end
+  `);
+});
+
 test('invitations made together post no progress, then one joined summary', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     popupStep = 11

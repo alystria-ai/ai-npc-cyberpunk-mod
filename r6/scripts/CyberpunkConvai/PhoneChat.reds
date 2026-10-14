@@ -188,7 +188,11 @@ private func SetupData() -> Void {
     InkImageUtils.RequestAvatarOrUnknown(this, this.m_avatarImage, this.m_contactEntry.GetAvatarID(this.m_journalMgr));
     inkWidgetRef.SetVisible(this.m_menuBackgrouns, false);
     inkWidgetRef.SetVisible(this.m_hintTrack, false);
-    inkWidgetRef.SetVisible(this.m_hintCall, false);
+    // The game's own Call hint (its glyph is the real `call` key), shown for a Chat contact and dimmed like the game's
+    // while calls are blocked. It starts the mod's holocall (Holocall.reds), never the game's call.
+    inkWidgetRef.SetVisible(this.m_hintCall, true);
+    inkWidgetRef.SetOpacity(this.m_hintCall, this.m_phoneSystem.IsCallingEnabled() ? 1.0 : 0.1);
+    this.ConvaiChatHookCall();
     inkWidgetRef.SetVisible(this.m_hintReply, false);
     inkWidgetRef.SetVisible(this.m_scrollReply, false);
     inkWidgetRef.SetVisible(this.m_hintMessenger, false);
@@ -362,12 +366,41 @@ protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsu
     };
     if this.m_data.convaiChat && (Equals(ListenerAction.GetName(action), n"call")
         || Equals(ListenerAction.GetName(action), n"phone_open_journal")) {
-        // Inside an AI chat the Call key does nothing (the hint is hidden): calls start from the Contacts list.
+        // The game's Call never runs for a mod character (it would send a quest call request): the Call key starts a
+        // holocall instead (Holocall.reds), on the press as the game's own handler does, and only while this
+        // conversation has the focus (the game leaves its `call` listener registered after the focus moves back to the
+        // list). F is not the Call key: it is the game's confirm (`click`), the Call hint shows the real key.
+        if Equals(ListenerAction.GetName(action), n"call") && this.m_isFocused
+            && Equals(ListenerAction.GetType(action), gameinputActionType.BUTTON_PRESSED) {
+            this.ConvaiChatHolocall();
+        };
         ListenerActionConsumer.Consume(consumer);
         return false;
     };
     return wrappedMethod(action, consumer);
 }
+// A click on the Call hint does the same as its key. Registered once per popup; the hint is the game's own widget.
+@addField(PhoneMessagePopupGameController)
+private let m_convaiChatCallHooked: Bool;
+@addMethod(PhoneMessagePopupGameController)
+private final func ConvaiChatHookCall() -> Void {
+    if this.m_convaiChatCallHooked { return; };
+    let hint = inkWidgetRef.Get(this.m_hintCall);
+    if !IsDefined(hint) { return; };
+    hint.SetInteractive(true);
+    hint.RegisterToCallback(n"OnRelease", this, n"OnConvaiChatCallClick");
+    this.m_convaiChatCallHooked = true;
+}
+@addMethod(PhoneMessagePopupGameController)
+private cb func OnConvaiChatCallClick(evt: ref<inkPointerEvent>) -> Bool {
+    if evt.IsAction(n"click") && this.m_data.convaiChat && this.m_isFocused && !this.ConvaiChatTyping() {
+        this.ConvaiChatHolocall();
+        evt.Handle();
+        return true;
+    };
+    return false;
+}
+
 @wrapMethod(PhoneMessagePopupGameController)
 protected cb func OnHandleMenuInput(evt: ref<inkPointerEvent>) -> Bool {
     if this.ConvaiChatTyping() {
