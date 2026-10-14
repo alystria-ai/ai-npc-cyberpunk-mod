@@ -1,8 +1,8 @@
 # YouTube on V's TV
 
-Status (2026-10-14): first working version on branch `youtube-tv`. It is unit-tested, the redscript compiles, and a headless smoke test played a real video through the official player. It is behind a setting that is off by default. It has not been seen in the game yet; the live checks are at the end.
+Status (2026-10-15): the first version is on main (branch `youtube-tv`). The second pass, on branch `youtube-tv-2`, adds captions read from the player's page and removes the optional key box, following the user's decisions of 2026-10-15. Both are unit-tested, and headless smoke tests played a real video through the official player; the second one also read its captions. It is behind a setting that is off by default until the FPS check passes. It has not been seen in the game yet; the live checks are at the end.
 
-In V's apartments the TV offers **YouTube** next to its own On/Off and channel choices. The player picks a video, it plays in the official YouTube player over the game, and the companion in the room knows what is on: the title, channel, playback position, current chapter and description. The companion can talk about it when the player speaks or types. The video ducks while anyone talks.
+In V's apartments the TV offers **YouTube** next to its own On/Off and channel choices. The player picks a video, it plays in the official YouTube player over the game, and the companion in the room knows what is on: the title, channel, playback position, current chapter, description, and what was said in the last half minute (from the video's captions, when it has any). The companion can talk about it when the player speaks or types. The video ducks while anyone talks.
 
 ## Player flow
 
@@ -68,25 +68,32 @@ Sources:
   - Ducking uses the player's own `setVolume`.
 - **Referrer.** The page is served from `http://127.0.0.1:<port>` with `Referrer-Policy: strict-origin-when-cross-origin` and a matching `<meta name="referrer">`. Without a referrer, embeds fail with error 153 (client identity).
 - **Search.** Search uses YouTube's own results page in the same window, with no API. A picked result's watch URL is caught and played in the embedded player on the TV page. The old `listType=search` embed is gone.
-- **Data API.** `search.list` costs 100 units of the default 10,000 a day, and a key shipped inside an open-source mod would be a shared key. Neither is used.
-- **Optional own key for descriptions and chapters.** The picker accepts the player's own YouTube Data API key (`AIza…`, checked by pattern), saved in `runtime/youtube-data-api.json` and never logged. With it, one `videos.list` call (`part=snippet,contentDetails`, 1 unit) per video adds the description, the chapters from it, and the duration. Data is kept in memory for the session; the history keeps only id, title, channel and time, for 30 days at most and 8 videos.
-- **Without a key.** oEmbed (`https://www.youtube.com/oembed?format=json&url=…`, no key) gives the title and channel. It is a public endpoint YouTube documents for embedding; its terms beyond the general Terms of Service are not spelled out (noted for the user).
-- **Captions: none for now.**
-  - `captions.download` needs OAuth and edit rights on the video, so it only works for the uploader's own videos.
-  - Reading `timedtext` or `ytInitialPlayerResponse` is scraping, which the Terms of Service forbid.
-  - Reading the caption text the player shows in its own page (the DOM) is a grey zone: no rule names it, but it reads player internals. It is not built; it is a user decision below.
-- **Frames for companion vision.** Capturing what the player shows (`captureFrame`, a 640-px JPEG through the browser's screenshot call) is also a grey zone, because it copies a picture of the content. It is built on demand only and not wired anywhere. It waits for the companion-vision branch (`docs/COMPANION_VISION.md` there) and for the user's decision.
+- **Data API: not used.** `search.list` costs 100 units of the default 10,000 a day, and a key shipped inside an open-source mod would be a shared key. The first version had an optional box for the player's own key. The user removed it on 2026-10-15: the box, its 8 sentences in all 15 languages and the code are gone, and a key a player saved with the first version (`runtime/youtube-data-api.json`) is deleted when the bridge starts.
+- **Title and channel.** oEmbed (`https://www.youtube.com/oembed?format=json&url=…`, no key) gives them. It is a public endpoint YouTube documents for embedding; its terms beyond the general Terms of Service are not spelled out.
+- **Captions, description and chapters: read from the player's page (grey zone, accepted by the user on 2026-10-15).**
+  - The official ways do not work here. `captions.download` needs OAuth and edit rights on the video, so it only works for the uploader's own videos. Fetching `timedtext` or the watch page ourselves would be scraping.
+  - **What is built instead: no fetch of our own.** Measured with headless Edge on 2026-10-15, the embedded player itself fetches two things for the video on the TV page:
+    - its player answer (`youtubei/v1/player`, about 45 KB), which carries the description and the list of caption tracks;
+    - often, without being asked, the caption track itself (`api/timedtext`, json3 format; 66 KB, 466 cues for a 22-minute talk).
+  - The bridge reads those two responses from the TV window's own traffic (Playwright's response event). It does this once per video and track, at most 4 MB each.
+  - If the player fetched no track by itself 4 s after the video starts, the page asks it to load one through the player's own captions module (`loadModule('captions')`, `setOption('captions', 'track', …)`). Once the track has been read, the captions are hidden again so the picture stays clean.
+  - Everything stays in memory for the playing video only and is never written to disk or memory. The history still keeps only id, title, channel and time, for 30 days at most and 8 videos.
+  - **Rules this touches:** nothing is downloaded beyond what the player loads anyway, and nothing is drawn over the player. Reading the player's own responses is not named in any rule, which makes it a grey zone, but it is closer to "reading player internals" than to a documented API, so it may break when YouTube changes its player. Without captions the companion falls back to the title, channel, chapter and description.
+- **Frames for companion vision.** Capturing what the player shows (`captureFrame`, a 640-px JPEG through the browser's screenshot call) is also a grey zone, because it copies a picture of the content. It is built on demand only and not wired anywhere. Not chosen on 2026-10-15; the stub stays.
 - **Autoplay.** Autoplay with sound uses the browser flag `--autoplay-policy=no-user-gesture-required` in this private window. If the player still blocks it, YouTube's own play button shows (one click in the window starts it), and the bridge logs `autoplay blocked`.
 
 ### Context for the companion
 
-The companion gets a block in its turn context, built by `watchingContext` in `bridge/youtube-tv.mjs` and capped at 900 characters (sentences drop from the end). Here is an example:
+The companion gets a block in its turn context, built by `watchingContext` in `bridge/youtube-tv.mjs` and capped at 1300 characters. Over the cap, sentences drop from the end: the description first, then the captions, never the first sentence. Here is a real example from the headless smoke test (seeked to 1:15):
 
-> Watching together (from the game, right now): You and V are watching a YouTube video together on the TV in V's apartment in the Glen: "Building a cyberdeck" from the channel Deck Lab. It is playing at 1:40 of 16:00. The part on screen now is the chapter "Soldering". Its description says: … You only know what is written here and what V says; never invent what is on screen or what someone in it said. React in your own way when it fits, keep it short so V can keep watching, and do not recite this.
+> Watching together (from the game, right now): You and V are watching a YouTube video together on the TV in V's apartment in Megabuilding H10: "YouTube Developers Live: Embedded Web Player Customization" from the channel Google for Developers. It is playing at 1:18 of 22:24. The part on screen now is the chapter "Intro". Just before this moment the video said (from its captions): "…about do have some effect with mobile browser playback, but not all of them do. And we're going to just focus today on how these options affect desktop playback. Another thing … it's just a little bit outside the scope of what we wanted to talk about." Its description says: On this episode of YouTube Developer Live, Jeff Posnick covers what you need to know about using player parameters to customize the YouTube iframe-embedded player. You only know what is written here and what V says; never invent what is on screen or anything said in it beyond this. React in your own way when it fits, keep it short so V can keep watching, and do not recite this.
 
 - **Position.** The page reports it every 2 s while playing and with every state change. The bridge extrapolates from the last report, so the time is right at the moment of the turn.
+- **Captions.** The block takes the cues overlapping the last 30 s up to the position (1.5 s of slack, never further ahead), drops repeated lines (automatic captions roll), and keeps at most 420 characters, newest words first. A binary search finds the window, so turn cost does not grow with video length.
+  - **Track choice:** written captions over automatic ones, the video's own over a machine translation, then the game's interface language, then English.
+  - **Automatic captions** are labelled as such ("which can mishear words").
 - **Chapters** follow YouTube's own rule: the first is at 0:00, there are at least three, and they ascend.
-- **Description excerpt.** At most 360 characters, without links, timestamps or hashtags.
+- **Description excerpt.** At most 360 characters (200 when captions are present), without links, timestamps or hashtags.
 - **Who gets it.** Ordinary companion turns only. Not ambient chatter, battle or other reactions, phone chat, holocalls, or add-on voice turns.
 - **No chatter of its own.** The companion speaks when the player does; the mod adds no timed remarks. That would be a later choice, because each turn costs Convai interactions and latency.
 
@@ -116,11 +123,11 @@ The companion gets a block in its turn context, built by `watchingContext` in `b
   - with a video open, a menu check runs four times a second and the state file and V's place are read once a second.
 - **The key binding** `cyberpunk_convai_youtube_tv` (init.lua) calls `M.hotkey()`.
 - **Notices.** One catalogued id, `youtube-tv` (Player class, `docs/NOTIFICATIONS.md`): could not open (with the hint about the display mode), turned off in the settings, and works only in V's apartments.
-- **Translation.** Every text goes through `ui.t('…')`; the page's 19 sentences are sent with the open command in the player's language.
+- **Translation.** Every text goes through `ui.t('…')`; the page's 11 sentences are sent with the open command in the player's language.
 
 ### Bridge (`bridge/youtube-tv*.mjs`, `bridge/youtube-tv-window.ps1`, bridge restart)
 
-- **`youtube-tv.mjs`** holds the pure parts: link parsing (`watch?v=`, `youtu.be`, shorts, live, embed, the nocookie, music and mobile hosts, `t=` and `start=`), chapters, the command check (30 s maximum age, known actions only), the context block, oEmbed and the Data API.
+- **`youtube-tv.mjs`** holds the pure parts: link parsing (`watch?v=`, `youtu.be`, shorts, live, embed, the nocookie, music and mobile hosts, `t=` and `start=`), chapters, the command check (30 s maximum age, known actions only), the context block, oEmbed, the player answer (`parsePlayerResponse`), caption tracks in json3, XML and WebVTT (`parseTimedText`, `timedTextTrack`, `trackRank`) and the caption window (`captionWindow`).
 - **`youtube-tv-host.mjs` (`YouTubeTv`)** runs one session at a time.
   - **Open.** A per-session http server on `127.0.0.1:0` serves the page under `/tv/<nonce>`, with a Host check. Edge (dev install) or the packaged Chrome for Testing (`CYBERPUNK_CONVAI_BROWSER`) starts through Playwright in app mode, off-screen, with its own profile in `runtime/youtube-tv-browser`.
   - **The page binding** `__convaiTv` accepts calls only from the session's own origin.
@@ -128,6 +135,7 @@ The companion gets a block in its turn context, built by `watchingContext` in `b
   - **States** go to `runtime/youtube-tv-state.json`: picking, playing, paused, closed or error.
   - **Ducking** checks every 200 ms whether a reply is playing, the microphone is held, or speech is active, sets the volume to 30%, and restores it 1.2 s after it goes quiet.
   - **Unplayable videos** (errors 2, 5, 100, 101, 150, 152, 153) return to the picker with a message.
+  - **Captions** (`fromNetwork`, `requestCaptions`). Every response of the TV window costs one URL prefix comparison. Only the player answer and caption tracks for the playing video, while the TV page is shown, have their body read. Log lines: `player answer video=… description=… chapters=… tracks=…`, `captions video=… lang=… cues=…`, `no captions video=…`.
 - **`youtube-tv-window.ps1`** is a Win32 helper in its own process. It finds the window by its unique title and makes it topmost and toolwindow; in player mode it is also non-activating, so it never takes the keyboard from the game.
   - It cuts Chromium's frame away with a window region measured from the page's render widget, so only the page shows, and hands focus back to the game.
   - It is DPI aware.
@@ -139,40 +147,40 @@ The companion gets a block in its turn context, built by `watchingContext` in `b
 
 - **Open: about 1.1 s** from the command to the picker in the headless smoke test (Edge start plus page load), with the helper's 1.2 s compile running in parallel. Visible-window timing is a live check.
 - **Pick to play.** The player API is already loaded on the page, so play starts as soon as YouTube buffers.
-- **Context.** The block is built from memory at turn time and adds nothing measurable. The oEmbed or Data API lookup runs once per video, in the background, after play has started.
+- **Context.** The block is built from memory at turn time and adds nothing measurable; the caption window is a binary search. The oEmbed lookup and the reading of the player's answer and caption track happen once per video, in the background, after play has started. In the smoke test both had arrived by the time the video was 2 s in.
 
 ## What works now and what is stubbed
 
 **Works (unit-tested, headless smoke-tested):**
 - the setting;
 - the TV choices and the key;
-- the picker: paste, YouTube search, recent list, own-key save and forget;
+- the picker: paste, YouTube search, recent list;
 - the official player with origin and referrer;
 - unplayable videos returning to the picker;
 - pause, play and stop from the TV choices and the key;
 - hide under menus and alt-tab;
 - stop when V leaves home, on a load, or when the setting is turned off;
 - ducking during conversation;
-- the companion's context block with title, channel, position, chapter and description;
+- the companion's context block with title, channel, position, chapter, description and the last half minute of captions;
+- description, chapters and captions read from the player's own requests, with no key and no fetch of our own;
 - 30-day, 8-entry history;
 - translations in all 15 languages.
 
 **Stubbed or not built:**
-- vision frames (`captureFrame` exists, not wired);
-- captions (none);
+- vision frames (`captureFrame` exists, not wired; not chosen);
 - companion remarks without the player speaking (not built);
 - a couch scene choice (the key instead);
 - a volume control in the game (YouTube's own control in the window works);
 - exclusive full-screen mode (unsupported; the notice says so).
 
-## Decisions for the user
+## Decisions (user, 2026-10-15)
 
-1. **Own Data API key** for descriptions and chapters: built as an optional field in the picker; no shared key ships. Keep or remove?
-2. **Captions from the player's page** (grey zone, see Terms): build or leave out?
-3. **Frames to companion vision** (grey zone): wire `captureFrame` to the vision branch, off by default, on demand only?
-4. **The couch:** keep the key binding, or research a scene hub choice later (scene file edits)?
-5. **The setting stays off by default** until the FPS A/B passes.
-6. **Downloads:** none were needed. The dev install uses the installed Microsoft Edge, and packages use the Chrome for Testing they already bundle.
+1. **Captions from the player's page: yes** (grey zone accepted). Built as above, as cheaply as possible: no per-frame work and no fetch of our own. Falls back to title, channel, chapter and description.
+2. **Own Data API key box: removed**, with its strings in all locales. The description and chapters now come from the player's own answer instead, so they did not disappear with the key.
+3. **The couch key binding: fine as built.**
+4. **The setting stays off by default** until the FPS check passes.
+5. **Frames to companion vision: not chosen for now**; the `captureFrame` stub stays.
+6. **Downloads:** none. The dev install uses the installed Microsoft Edge, and packages use the Chrome for Testing they already bundle.
 
 ## Live checks
 
@@ -184,6 +192,7 @@ Install: the Lua (`mod/youtube-tv.lua`, `init.lua`, `manager.lua`, `mcm.lua`, `n
 4. **Controls.** At the TV, YouTube: pause or play, then YouTube: stop. On the couch, the key binding opens, then pauses or plays. Away from home the key says "works in V's apartments".
 5. **Hiding.** Esc menu, map, inventory, alt-tab, minimise: the window hides each time and comes back after. Leaving the apartment stops it. Loading a save stops it.
 6. **Companion.** With a companion in the room, type or say "what do you think of this?". The answer knows the title, channel and roughly where in the video it is, and the video ducks while either of you speaks. `probe.log` `Turn context:` shows the "Watching together" block.
+6b. **Captions.** Play a talk or tutorial with captions. Within a few seconds the bridge log shows `[YouTubeTv] player answer ...` and `[YouTubeTv] captions ... cues=N`. Ask "what did they just say?": the answer matches the last half minute. Check whether captions flash on the video for a moment; that happens when the player had to be asked for a track, which the smoke test video did not need. That request path has not been seen live yet. A music video without captions gives `no captions` or no `captions` line, and the companion still knows the title, chapter and description.
 7. **FPS A/B (pass or fail).** Same save, V seated, 120 s of `perf-probe.json` with no video, then 120 s with a 1080p video playing, twice each. Pass: within 2 FPS and no more frames over 25 ms. If it fails, keep the setting off and try the smaller area.
 8. **Other homes.** Northside, Japantown, the Glen and Corpo Plaza: the choice appears on each apartment's TV. A TV outside V's homes, such as a bar, never shows it.
 9. **Exclusive full screen.** The open fails with the notice about Windowed Borderless, and the game is not minimised.
@@ -194,5 +203,5 @@ Install: the Lua (`mod/youtube-tv.lua`, `init.lua`, `manager.lua`, `mcm.lua`, `n
 - `r6/scripts/CyberpunkConvai/YouTubeTv.reds`
 - `mod/youtube-tv.lua`; edits in `mod/init.lua`, `mod/manager.lua`, `mod/mcm.lua`, `mod/notices.lua`, `mod/locales/*.lua`
 - `bridge/youtube-tv.mjs`, `bridge/youtube-tv-page.mjs`, `bridge/youtube-tv-host.mjs`, `bridge/youtube-tv-window.ps1`; edits in `bridge/convai-bridge.mjs`
-- `bridge/youtube-tv.test.mjs` (20 tests: pure parts, a session with a fake browser and helper, the Lua under fengari, and source contracts)
+- `bridge/youtube-tv.test.mjs` (25 tests: pure parts including caption parsing and the caption window, sessions with a fake browser, helper and player traffic, the Lua under fengari, and source contracts)
 - Manifests: `scripts/development-files.json`, `packaging/release-plan.json`, `packaging/runtime-layout.mjs`, `scripts/Extract-UiCatalog.mjs`, `localization/en.json`, `docs/NOTIFICATIONS.md`
