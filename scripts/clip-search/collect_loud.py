@@ -4,7 +4,7 @@
 
 Reads   runs3/<tag>/<voice>/result.json of the loud runs (the earlier likeness-only picks are re-scored inside the same final under
         picks/compare, so old and new are compared on identical lines and seeds).
-Writes  scripts/clip-search/loud43/autobest-sets.loud43.json   schema v2 (omni short/long/best, pocket best) for the 43 voices, clip ids only
+Writes  E:/.../clip-search/loud43/omni-loud-sets.json          the Omni picks of the loud run, clip ids only (the applied sets file is made by loud43/apply_loud43.py)
         E:/.../clip-search/loud43/report.json                  every number the report needs
         E:/.../clip-search/loud43/refs/<omni-short|omni-long|pocket>/<voice>.wav   the references built the clip-search way (--build)
 Never touches runtime/ or the live configs; the 29 report voices and the hand-extracted sets are not read.
@@ -101,7 +101,7 @@ def main(argv=None) -> int:
     sets["generated"] = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
     report["skipped"] = skipped
     OUT.mkdir(parents=True, exist_ok=True)
-    dest = Path(__file__).resolve().parent / "loud43" / "autobest-sets.loud43.json"
+    dest = OUT / "omni-loud-sets.json"
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(json.dumps(sets, indent=1), encoding="utf-8")
     if args.build:
@@ -113,17 +113,6 @@ def main(argv=None) -> int:
                 out = OUT / "refs" / folder / f"{voice}.wav"
                 seconds = common.build_reference(paths, out)
                 hashes[f"{folder}/{voice}"] = {"sha256": hashlib.sha256(out.read_bytes()).hexdigest(), "seconds": round(seconds, 3)}
-                # Optional extra, not scored: the same reference with one linear gain towards -20 LUFS, never past a -3 dBFS true peak (no limiter or compressor).
-                import numpy as np
-                import soundfile as sf
-                x, rate = sf.read(str(out), dtype="float64")
-                g = gain_to(loudband.L.lufs(x, rate), loudband.L.true_peak_db(x))["gain_db"]
-                y = np.clip(x * 10 ** (g / 20), -1, 1)
-                gout = OUT / "refs-gain20" / folder / f"{voice}.wav"
-                gout.parent.mkdir(parents=True, exist_ok=True)
-                sf.write(str(gout), y.astype(np.float32), rate, format="WAV", subtype="PCM_16")
-                after = loudband.measure_signal(y)
-                entry["gain20"] = {"gain_db": g, "lufs": after["lufs"], "tp": after["tp"], "sha256": hashlib.sha256(gout.read_bytes()).hexdigest()}
         (OUT / "refs" / "hashes.json").write_text(json.dumps(hashes, indent=1), encoding="utf-8")
         print(f"built {len(hashes)} references under {OUT / 'refs'}")
     (OUT / "report.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
