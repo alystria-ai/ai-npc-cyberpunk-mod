@@ -144,6 +144,21 @@ test('re-issues a crouch the AI reset at most three times, then leaves her alone
   assert.equal(result, '4,Stand,1');
 });
 
+test('a stance call that raises an error is not repeated every sync: one try per crouch of V\'s, a fresh one for the next', () => {
+  const [result] = run(`${harness}
+    local origSet = native.set
+    native.set = function(n, name) if n.fail then calls[#calls + 1] = name; return false, 'boom' end return origSet(n, name) end
+    local s = newStance(); local n = npc('Stand'); n.fail = true
+    s.playerState(1); step(s, {entry(1, n)}, nil, 60)   -- six seconds of crouching
+    local during = #calls
+    local failures = 0; for _, line in ipairs(logs) do if line:find('crouch failed', 1, true) then failures = failures + 1 end end
+    s.playerState(0); step(s, {entry(1, n)}, nil, 5)
+    n.fail = false
+    s.playerState(1); step(s, {entry(1, n)}, nil, 5)   -- the next crouch gets its own attempt, which now works
+    export(during .. ',' .. failures .. ',' .. n.stance .. ',' .. s.holding())`);
+  assert.equal(result, '1,1,Crouch,1');
+});
+
 test('a dismissed companion is dropped without a native call', () => {
   const [result] = run(`${harness}
     local s = newStance(); local n = npc('Stand')

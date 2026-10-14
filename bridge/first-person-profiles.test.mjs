@@ -100,19 +100,19 @@ test('the rewrite checker accepts a faithful first-person copy and flags the usu
   flagged(o => { o.style[0].text = 'My vocabulary.'; }, /length ratio/);
 });
 
-test('every checked-in profile is first person or addressed to you, never a third-person narrative opening', async () => {
+test('every checked-in profile opens in the first person, none in the second or third', async () => {
   const roster = await json('../characters/roster.json');
   assert.equal(roster.length, 80);
   for (const row of roster) {
-    assert.match(row.backstory, /^(You\b|I(?:'|’)m\b|I\b)/u, row.key);
-    assert(!isThirdPerson(row) || /^I(?:'|’)m\b|^I\b/u.test(row.backstory), row.key);
+    assert.match(row.backstory, /^I(?:'|’)m\b/u, row.key);
+    assert(!isThirdPerson(row), row.key);
   }
 });
 
 test('the checked-in first-person copies are what the roster and the profile text files hold', async () => {
   const roster = await json('../characters/roster.json'), store = await json('../characters/first-person-profiles.json');
   const keys = Object.keys(store.characters);
-  assert.equal(keys.length, 71);
+  assert.equal(keys.length, 80);
   for (const key of keys) {
     const row = roster.find(item => item.key === key), copy = store.characters[key];
     assert(row, key);
@@ -125,8 +125,6 @@ test('the checked-in first-person copies are what the roster and the profile tex
     assert(text.includes(row.backstory) && text.includes(row.speakingStyleDescription), key + ' profile-text');
     assert(row.backstory.endsWith(`[CyberpunkConvai profile v2:${key}]`), key);
   }
-  const arthur = roster.find(row => row.key === 'arthur-jenkins');
-  assert(!store.characters['arthur-jenkins'] && /^You are/.test(arthur.backstory), 'second-person profiles are left alone');
   assert.equal(roster.filter(isThirdPerson).length, 0, 'nothing is left to extract');
-  assert.equal(roster.filter(row => /^You\b/u.test(row.backstory)).length, 9);
+  assert.deepEqual(keys.sort(), roster.map(row => row.key).sort(), 'every profile has a stored first-person copy');
 });

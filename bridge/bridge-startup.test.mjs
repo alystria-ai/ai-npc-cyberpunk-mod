@@ -166,3 +166,59 @@ test('real bridge retains one player ID across world changes without provider, b
       await rm(resolved, {recursive: true, force: true});
     }
   });
+
+// The settings file is absent on a first run, and for an instant while the game replaces it (remove, then rename): a poll that reads
+// nothing must keep every setting as it was, never throw (the startup poll is a top-level await: a throw ends the process).
+test('real bridge starts, polls and stops with no settings file',
+  {timeout: 60000}, async () => {
+    const folder = await mkdtemp(join(tmpdir(), prefix));
+    const state = join(folder, 'state'), game = join(folder, 'game');
+    const runtime = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'CyberpunkConvai', 'runtime');
+    const control = join(state, 'bridge-control.json');
+    const sideEffects = join(folder, 'forbidden-side-effects.log'), guardFile = join(folder, 'guard.mjs');
+    let child, closed = null, output = '', errors = '';
+    const log = () => `exit=${JSON.stringify(closed)}\nstdout=${output}\nstderr=${errors}`;
+    try {
+      await mkdir(state, {recursive: true}); await mkdir(runtime, {recursive: true});
+      await Promise.all([
+        writeFile(join(state, 'convai-key.txt'), 'api-key=isolated-test-key-not-a-real-credential\n'),
+        writeFile(join(state, 'characters.json'), '{}'),
+        writeFile(join(state, 'local-voices.json'), '{}'),
+        writeFile(guardFile, sideEffectGuard),
+      ]);
+      const env = {...process.env, CYBERPUNK_CONVAI_STATE: state, CYBERPUNK_CONVAI_GAME: game,
+        CYBERPUNK_CONVAI_KEY_FILE: join(state, 'convai-key.txt'), CYBERPUNK_TEST_SIDE_EFFECTS: sideEffects};
+      delete env.NODE_OPTIONS; delete env.NODE_PATH;
+      child = spawn(process.execPath, ['--import', pathToFileURL(guardFile).href, bridge], {
+        cwd: folder, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      child.stdout.on('data', data => { output = (output + data).slice(-12000); });
+      child.stderr.on('data', data => { errors = (errors + data).slice(-12000); });
+      child.on('error', error => { errors += error.message; });
+      child.once('close', (code, signal) => { closed = {code, signal}; });
+      await until(() => {
+        assert.equal(closed, null, `bridge exited during startup\n${log()}`);
+        return output;
+      }, value => /Convai conversation bridge ready/.test(value), 'bridge did not become ready', log, 30000);
+      await sleep(1200);   // a few settings polls, still no file
+      assert.equal(closed, null, log());
+      await atomicJson(control, {action: 'shutdown', pid: child.pid});
+      await until(async () => closed, value => value !== null, 'shutdown control did not end the bridge', log, 10000);
+      assert.deepEqual(closed, {code: 0, signal: null}, log());
+      assert.doesNotMatch(errors, /TypeError|ReferenceError|Unhandled|uncaught/, log());
+    } finally {
+      if (child && closed === null) {
+        await atomicJson(control, {action: 'shutdown', pid: child.pid}).catch(() => {});
+        const deadline = Date.now() + 3000;
+        while (closed === null && Date.now() < deadline) await sleep(50);
+        if (closed === null) {
+          child.kill();
+          await until(async () => closed, value => value !== null, 'owned test child did not exit', log, 3000);
+        }
+      }
+      const resolved = await realpath(folder);
+      assert.equal(dirname(resolved).toLowerCase(), (await realpath(tmpdir())).toLowerCase());
+      assert.ok(basename(resolved).startsWith(prefix));
+      await rm(resolved, {recursive: true, force: true});
+    }
+  });

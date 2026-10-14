@@ -379,7 +379,9 @@ test('phone-chat.lua checks phone-chat-output.json through revision() every 30 m
   const update = phone.slice(phone.indexOf('function M.update(player, delta)'));
   const probe = update.indexOf("convaiNative.revision('phone-chat-output.json')");
   const tick = update.indexOf('if M.tick < 0.10 then return end');
+  const early = update.indexOf('if M.tick < 0.10 and M.world then return end');
   assert.ok(probe > 0 && tick > probe, 'the probe sits before the tick');
+  assert.ok(early > probe, 'and before the early return of the 10 Hz binding check, which would otherwise end every frame first');
   const block = update.slice(update.lastIndexOf('if M.pending', probe), tick);
   assert.match(block, /M\.replyProbe >= 0\.03/);
   assert.match(block, /M\.tick = 0\.10/);

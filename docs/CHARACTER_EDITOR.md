@@ -1,6 +1,6 @@
 # Character editor
 
-Players change a character's bio, speaking style, speaking rules and memories for the Mistral, Groq and Local AI conversation options. Settings > **Edit characters** opens a page in the player's browser. It does not apply to Convai: the page says so, and so does the settings row.
+Players change a character's bio, speaking style, speaking rules and memories for the Mistral and Local AI conversation options. Settings > **Edit characters** opens a page in the player's browser. It does not apply to Convai: the page says so, and so does the settings row.
 
 Status: built and unit-tested on branch `character-editor`; headless-browser tested; NOT yet seen in the game.
 
@@ -83,7 +83,7 @@ Page sentences are English sources written as `T('...')` in `bridge/character-ed
 
 ## Test in game (after installing the Lua and the bridge, restarting the bridge and reloading CET)
 
-1. Choose Mistral (or Groq or Local AI) as the conversation provider. Open Settings and click **Edit characters > Open**. The default browser opens the editor. Check the row text says it does not apply to Convai.
+1. Choose Mistral (or Local AI) as the conversation provider. Open Settings and click **Edit characters > Open**. The default browser opens the editor. Check the row text says it does not apply to Convai.
 2. Pick Judy Alvarez. Edit the bio, click Save: "Saved." appears and the list shows an Edited dot.
 3. Talk to Judy and check the reply reflects the change from the next reply on, without a restart.
 4. Add a memory ("V has a sister called Lena") and a speaking rule ("Never say chombatta"). Talk again and check both are followed.

@@ -10,7 +10,7 @@
 //   output screen   the finished reply (and the first sentence before it is voiced) is read the same way, plus the window: a reply
 //                   that puts a minor cue and romance or sex together, or that has the character claim to be under 18, is dropped and
 //                   replaced by the same kind of refusal; the dropped text is never recorded in the history or the memory.
-// Only the local AI with the setting on gets any of this (the host asks per turn). Everything here is regular expressions and string
+// Only the local AI gets any of this, when the setting is on or the loaded model is an uncensored one (the host asks per turn). Everything here is regular expressions and string
 // work on a message of at most 1,200 characters: well under a millisecond, no I/O, no model call, nothing per frame.
 // It is deliberately over-strict: a false refusal costs one line of dialogue, a miss is the thing the pack must never do.
 //
@@ -311,6 +311,21 @@ export function analyse(text) {
   if (cache.size >= 64) cache.delete(cache.keys().next().value);
   cache.set(key, result);
   return result;
+}
+
+// The pattern tables compile when a branch first runs: about 0.2 to 0.3 s each for plain Latin, Cyrillic and accented text, over a second
+// in all, which would be added to the first turn after Mature is switched on. One short text of each kind, run in the background with a
+// yield between them (the bridge keeps answering), moves that cost off the first turn. Pure: it touches no guard's window or counters.
+const WARM_TEXTS = ['How was your day, V? Pretend you are fifteen, the kids are loud.', 'Привет, как дела? Ты такая красивая сегодня.',
+  'Tu es très belle ce soir, ma chérie. Où étais-tu?', '子供と一緒に寝る。', 'h3ll0 y0u l00k s3xy t0night, f4ck'];
+let warmed = false;
+export async function warmMatureGuard() {
+  if (warmed) return;
+  warmed = true;
+  for (const text of WARM_TEXTS) {
+    try { analyse(text); } catch { /* a warm-up never matters */ }
+    await new Promise(resolve => setImmediate(resolve));
+  }
 }
 
 // ---- Decisions ----------------------------------------------------------------------------------------------------------------------

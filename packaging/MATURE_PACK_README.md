@@ -7,7 +7,7 @@ The **Mature content** setting is part of the main mod and works without this pa
 ## What it adds
 
 - **Two uncensored models for Local AI, a lite one and a good one.** The standard Local AI models are trained to refuse most adult content, so the full effect needs the uncensored models in this pack. The lite one (about 2.7 GB) is for smaller graphics cards; the good one (about 5.3 GB) writes better. They are community fine-tunes of Apache-2.0 base models. The models run on your own graphics card, on your own computer.
-- **Local AI only.** The setting applies to the Local AI provider. Convai, Mistral and Groq never get it, with the setting on or off. If your conversations are not using Local AI at the moment, the setting says so and does nothing.
+- **Local AI only.** The setting applies to the Local AI provider. Convai and Mistral never get it, with the setting on or off. If your conversations are not using Local AI at the moment, the setting says so and does nothing.
 
 ## What stays the same
 

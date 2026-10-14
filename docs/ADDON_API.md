@@ -1,8 +1,9 @@
 # Add-on API
 
 Add-ons are separate CET mods that give Cyberpunk Convai new voices. The first two are Skippy, a talking smart pistol that
-comments on fights (Oct 20), and the Delamain cab's voice (Oct 25). Each add-on has its own Nexus page and its own zip. An
-add-on depends on the main mod, but the main mod never depends on an add-on.
+comments on fights (Oct 20), and the Delamain cab's voice (Oct 25). Each add-on has its own Nexus page, its own zip and its own
+repository: `alystria-ai/cyberpunk-convai-skippy` and `alystria-ai/cyberpunk-convai-delamain` (private until their launch dates;
+see "The two add-ons" below). An add-on depends on the main mod, but the main mod never depends on an add-on.
 
 API version: **1.0** (`mod/addons.lua` `M.API_VERSION`, `bridge/addons.mjs` `ADDON_API_VERSION`). An add-on asks for a
 version, for example `requires = '1.0'`. A main mod with the same major version and an equal or higher minor version serves it.
@@ -41,11 +42,11 @@ book, the voices, the recent-lines journal and the game all use that key.
 ## The add-on folder
 
 ```
-addons/skippy/                       (in this repository; the zip puts it in the CET mods folder)
+my-addon/                            (addons/example/ here; Skippy and Delamain are repositories of their own; the zip puts it in the CET mods folder)
   init.lua                           CET entry point: registers, makes remarks, settings, events
   convai-addon.json                  the manifest the bridge reads: persona, modes, providers, voice
   bridge.mjs                         optional: prompt hooks that run in the bridge
-  voice/skippy.wav                   optional: the voice reference (with its transcript in the manifest)
+  voice/my-addon.wav                 optional: the voice reference (with its transcript in the manifest)
   eval/*.json                        evaluation scripts (never shipped)
   *.test.mjs                         tests (run by scripts/run-tests.mjs; never shipped)
 ```
@@ -618,8 +619,8 @@ handle:settings({title = 'Skippy', description = 'The talking smart pistol.', it
 Test the prompt offline before shipping, and again after every persona change.
 
 ```
-node scripts/addon-eval.mjs --addon addons/skippy --script addons/skippy/eval/fight.json --dry          # prints every prompt, sends nothing
-node scripts/addon-eval.mjs --addon addons/skippy --script addons/skippy/eval/fight.json --judge --runs 3
+node scripts/addon-eval.mjs --addon addons/example --script addons/example/eval/combat.json --dry          # prints every prompt, sends nothing
+node scripts/addon-eval.mjs --addon addons/example --script addons/example/eval/combat.json --judge --runs 3
 ```
 
 - The script (`bridge/addon-eval.mjs` `parseScript`) is a sequence of game events and things V says. See
@@ -653,10 +654,13 @@ node scripts/addon-eval.mjs --addon addons/skippy --script addons/skippy/eval/fi
 ## Packaging
 
 ```
-node packaging/build-addon.mjs addons/skippy --out dist/addons
-→ dist/addons/CyberpunkConvai-Skippy-1.0.0.zip
-    bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvaiSkippy/{init.lua, convai-addon.json, bridge.mjs, voice/skippy.wav}
+node packaging/build-addon.mjs addons/example --out dist/addons       # any add-on folder, in this repository or outside it
+→ dist/addons/CyberpunkConvai-Example-1.0.0.zip
+    bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvaiExample/{init.lua, convai-addon.json, bridge.mjs}
 ```
+
+The two shipping add-ons build their own zips with a self-contained copy of this builder (`tools/build.mjs` in each repository; same
+files, same bytes, no main checkout needed). If the rules below change here, change them there too.
 
 - The zip ships `.lua`, `.json`, `.mjs`, `.js`, `.wav`, `.txt` and `.md` files. It never ships tests, `eval/`, dotfiles or
   `node_modules`, and any other kind of file stops the build.
@@ -687,7 +691,7 @@ check the list of calls.
 | `mod/group-chat.lua` | `voiceOnly` rows; add-on voices are left out of the other speakers' audience. |
 | `mod/microphone.lua`, `mod/manager.lua` | `microphone.decorate` (add-on blocks at start and finish); `manager.speechRecognitionReady()` (the bridge's `stt` flag). |
 | `mod/mcm.lua`, `mod/notices.lua` | Add-on settings sections; the `addon-notice` notice. |
-| `bridge/convai-bridge.mjs` | `AddonHost.load`, `extend` (roster rows; add-on Convai IDs removed), voice config merge, status, state/settings watchers, journal; `runAddonTurn` before every Convai step of `runInput`; one `TextProviderHost` per add-on route (`fixedProvider`, `sharedMemory`, never Groq); `onWarm`. The microphone poll's add-on branches (start, finish, watch) and `bridge/addon-voice.mjs` (the channel on the Mistral route's recogniser; `MicrophoneSession` passes its `hostFactory` the recording). |
+| `bridge/convai-bridge.mjs` | `AddonHost.load`, `extend` (roster rows; add-on Convai IDs removed), voice config merge, status, state/settings watchers, journal; `runAddonTurn` before every Convai step of `runInput`; one `TextProviderHost` per add-on route (`fixedProvider`, `sharedMemory`); `onWarm`. The microphone poll's add-on branches (start, finish, watch) and `bridge/addon-voice.mjs` (the channel on the Mistral route's recogniser; `MicrophoneSession` passes its `hostFactory` the recording). |
 | `bridge/protocol.mjs`, `bridge/mistral-prompt.mjs` | The `addon` request field and reaction; persona rows with `intro`, `identityRule`, `rules` and `talkWords` (an add-on row only; the main mod's length rule is unchanged for every other row). |
 
 ## What the game must confirm live
@@ -708,11 +712,22 @@ check the list of calls.
    are not heard (`audio=stop-sent(vo_3d_important)` and then silence); if the voice still plays, the stop does not work for scene
    dialogue and `audioVerified` stays `false`. For the cab, the subtitle goes and the voice (no known event) still plays.
 
-## Building Skippy and Delamain
+## The two add-ons
 
-Build against this document and `addons/example/`.
+Skippy and Delamain are not in this repository. Each is its own repository (private until launch) with its own releases, README,
+tests, character docs and a self-contained zip builder, built against this document and `addons/example/`:
 
-**Skippy** (`addons/skippy`, Oct 20):
+| Add-on | Repository | Local clone (sibling of this checkout) | Release |
+|---|---|---|---|
+| Skippy (`skippy`) | `alystria-ai/cyberpunk-convai-skippy` | `..\cyberpunk-convai-skippy` | Oct 20 |
+| Delamain Cab (`delamain-cab`) | `alystria-ai/cyberpunk-convai-delamain` | `..\cyberpunk-convai-delamain` | Oct 25 |
+
+Their tests run against this repository's add-on host, Lua harness and `mod/addons.lua` (found through `CYBERPUNK_CONVAI_MAIN` or a
+sibling folder), so a change to the add-on API here should be checked by running both add-on test files there. To evaluate or
+develop one with the main mod, point the bridge at its folder with `CYBERPUNK_CONVAI_ADDONS`, and run
+`node scripts/addon-eval.mjs --addon <that folder> --script <that folder>/eval/<script>.json`. The goals each was built to follow:
+
+**Skippy** (`cyberpunk-convai-skippy`, Oct 20):
 - One speaker, `gun`, anchored to `'player'` and available while V holds Skippy.
 - Two modes in the manifest, `killer` and `puppy`, chosen by a Personality setting through `setMode`.
 - Kill, headshot, damage and civilian-hit detection in Skippy's own `init.lua`, through `Observe` hooks with O(1) handlers.
@@ -722,7 +737,7 @@ Build against this document and `addons/example/`.
 - `remember` for memorable fights.
 - An eval script with at least one full fight per mode.
 
-**Delamain** (`addons/delamain-cab`, Oct 25):
+**Delamain** (`cyberpunk-convai-delamain`, id `delamain-cab`, Oct 25):
 - One speaker, `delamain`, anchored to `'vehicle'`, with `group = true`, available only in a Delamain cab.
 - Never starts a line over the game's own Delamain scenes (default `sceneTiers = {1}`): every remark has `patience` and waits for the
   scene or subtitle line to end; a line that has started plays through (`playThrough`). Its own greeting and farewell subtitles are
@@ -733,4 +748,4 @@ Build against this document and `addons/example/`.
 - An eval script covering a ride with a companion.
 
 Both: `providers` `["mistral", "local"]`; samples for every moment you remark on; average 7 or more in the eval with no repeats;
-`packaging/build-addon.mjs` for the zip.
+the zip from the add-on's own `tools/build.mjs`.

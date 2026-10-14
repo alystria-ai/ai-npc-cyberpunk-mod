@@ -1,4 +1,4 @@
-// The text routes (docs/MISTRAL.md, docs/LOCAL_AI.md): Mistral, Groq and the fully local AI (llama.cpp's llama-server) all speak the
+// The text routes (docs/MISTRAL.md, docs/LOCAL_AI.md): Mistral and the fully local AI (llama.cpp's llama-server) both speak the
 // OpenAI chat-completions protocol, so one host serves them. `TextProviderHost.reply(config)` takes the same configuration the bridge
 // hands the Convai realtime host for a turn and returns the same kind of result ({text, sessionID, timing, ...}, cleaned by the same
 // transformReply), so subtitles, Phone Chat, the local voices, the face, the emotion selector and group rounds see no difference.
@@ -7,7 +7,7 @@
 //
 // A route describes what differs: where the request goes and with which key, the models in order of preference (and their own
 // request fields), whether requests are paced (Mistral's free plan), how a failure is recorded on the provider, and whether a
-// failure may fall through to the next route (Groq -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
+// failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
@@ -18,8 +18,8 @@ import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {markStage} from './turn-clock.mjs';
 import {budgetedChat, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
-import {compactForGroq, groqCompactEnabled, GROQ_SOFT_TOKENS} from './groq-prompt.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
+import {allowanceFor} from './mature-content.mjs';
 
 const isTag = group => hasEmotionTag(group);
 const pause = (ms, signal) => new Promise((resolve, reject) => {
@@ -89,53 +89,6 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
     label: 'Mistral'};
 }
 
-// Groq's free plan is small (8,000 tokens a minute, 200,000 a day per model; docs/FREE_CLOUD_OPTION_RESEARCH.md): a limit is not
-// an error to the player when a Mistral key exists, the turn simply goes there.
-const GROQ_DAILY = /per day|\bTPD\b|\bRPD\b|daily/i;
-/**
- * Groq: the player's own key; `qwen/qwen3.8-27b` with reasoning off first, then `openai/gpt-oss-20b` with low effort. Caching is
- * automatic on gpt-oss, so the stable prefix order of the prompt is all it needs. A key, limit or model failure is remembered on the
- * provider (Groq is left alone for a while) and the turn falls through to the next route (Mistral) when there is one.
- */
-export function groqRoute({provider, chat = streamChat, endpoint, onFailure, onSuccess,
-  models = () => GROQ_MODELS, log = () => {}, compact: compact_} = {}) {
-  // A request above the plan's 8,000 tokens a minute (reply included) is refused for good, so the prompt is cut to fit
-  // (bridge/prompt-budget.mjs). Groq reports no token count the host reads, so this is an estimate with the default ratio.
-  const meter = new TokenMeter();
-  // A smaller prompt first (bridge/groq-prompt.mjs): the persona without its Scope lines, six example lines, four exchanges. Only this route does it;
-  // the other providers' prompts are untouched. A player with no Mistral key has nowhere to go when Groq refuses a second turn within the minute
-  // (the turn falls to Convai), so the budget also cuts optional context, in its usual priority order, down to a soft target of two turns a minute.
-  // With a Mistral key the second turn simply goes there with its whole context, so nothing optional is cut for the target.
-  const compact = compact_ ?? groqCompactEnabled();
-  const soft = () => compact && !provider?.apiKey ? {soft: {contextTokens: GROQ_SOFT_TOKENS, reserveTokens: 256}} : {};
-  chat = budgetedChat(chat, {budget: () => ({contextTokens: GROQ_REQUEST_TOKENS, reserveTokens: 256, meter, ...soft()}),
-    shape: compact ? args => compactForGroq(args) : undefined, onFit: fit => log('Groq: ' + describeFit(fit))});
-  return {name: 'groq', provider: 'groq', chat, endpoint, gapMs: 0, blocked: new Map(), nextSlot: 0, models, chatDefaults: CLOUD_CHAT_LIMITS,
-    async connect() { return {apiKey: provider.groqApiKey}; },
-    cacheBody: () => ({}),
-    jsonBody: () => ({response_format: {type: 'json_object'}}),
-    summarizeAllowed: () => !provider.groqLimit,
-    fallsBack: error => ['limit', 'key', 'model'].includes(failureKind(error)),
-    success() { provider.noteGroqSuccess(); try { onSuccess?.(); } catch { /* an observer never fails a reply */ } },
-    failure(error) {
-      const kind = failureKind(error);
-      if (kind === 'limit') provider.noteGroqLimit(error?.daily || GROQ_DAILY.test(error?.message ?? '') ? 'daily' : 'rate');
-      else if (kind === 'key') provider.noteGroqLimit('invalid');
-      else if (kind === 'model') provider.noteGroqLimit('model');
-      try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
-    },
-    label: 'Groq'};
-}
-// The most tokens one Groq request may carry on the free plan (tokens per minute).
-export const GROQ_REQUEST_TOKENS = 8000;
-// Request fields per model. Reasoning must stay off or low and must not use up the reply's token budget.
-export const GROQ_MODELS = Object.freeze([
-  {id: 'qwen/qwen3.8-27b', body: {reasoning_effort: 'none'}, maxTokens: 200},
-  // Hidden reasoning counts against max_tokens (a limit of 20 left an empty reply), so this one gets headroom; the reasoning text
-  // itself is not requested. Groq rejects unknown fields (prompt_cache_key is a 400), so nothing else is added.
-  {id: 'openai/gpt-oss-20b', body: {reasoning_effort: 'low', include_reasoning: false}, maxTokens: 256},
-]);
-
 /**
  * The fully local AI: the supervised llama-server (bridge/local-llm-server.mjs). No pacing, no key of the player's: the
  * supervisor's per-session key on a loopback port. Starting the server is part of `connect` (it waits for the model to load on the
@@ -186,7 +139,9 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     },
     prewarm: messages => server.prewarm(messages),
     // The loaded model's name, for the Mature content allowance (bridge/mature-content.mjs); `loadedModel` starts the server if it is not up.
-    modelName: () => server.status?.().model ?? null,
+    // Only while a model is up: after an idle stop (or during a reload) the status still names the previous model, and the next start may
+    // load another one, so the level would be read for the wrong model; with null `loadedModel` starts the server and names the real one.
+    modelName: () => { const status = server.status?.(); return ['stopped', 'failed', 'starting'].includes(status?.state) ? null : status?.model ?? null; },
     loadedModel: async signal => (await server.ensure({signal}))?.model ?? null,
     // What the manifest of a model added by hand says about it ({uncensored, family}); the Mature allowance reads it before the name.
     modelHints: () => server.modelHints ?? null,
@@ -198,7 +153,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
 export class TextProviderHost {
   /**
    * provider    the provider state (bridge/mistral-key.mjs): `route` names the route in use, `active` whether one is
-   * routes      {mistral, groq, local}: route objects as above
+   * routes      {mistral, local}: route objects as above
    * memory      MistralMemory or MemoryStore (bridge/memory-store.mjs; adds retrieval and fact extraction)
    * personas    PersonaBook
    * transformReply   the bridge's cleanReply (Natural speech, Expressive emotions)
@@ -207,11 +162,14 @@ export class TextProviderHost {
    * idleRetryMs   how often a gated background task checks the gate again
    * deliverAction  message => Promise<boolean>: hands a companion action the reply asked for to the game (CompanionActions.deliver);
    *                without it the turn offers no actions (bridge/text-actions.mjs)
+   * matureContent  the Mature setting (bridge/mature-content.mjs); the hard-limit guard runs for a turn on the local AI when it is on or when the loaded
+   *                model is an uncensored one (the guard follows the model that answers, not only the setting)
+   * guardOnly      true for an add-on's host: the guard (input screen, output screen, adults-only and hard-limit lines) but never the crude Mature persona layer
    */
   constructor({provider, memory, personas = new PersonaBook(), routes = {}, transformReply = result => result, now = () => performance.now(),
-    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, matureContent = null, matureGuard = new MatureGuard()} = {}) {
+    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, matureContent = null, matureGuard = new MatureGuard(), guardOnly = false} = {}) {
     if (!provider) throw Error('Text provider required');
-    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, matureContent, matureGuard});
+    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, matureContent, matureGuard, guardOnly});
     this.summaries = new Set();
     this.matureLogged = new Set();
     this.holdingTurns = 0;
@@ -268,18 +226,13 @@ export class TextProviderHost {
     } finally { try { lease.release?.(); } catch { /* best effort */ } }
   }
 
-  /** The routes a turn may use, in order: the provider's own, then (Groq only) Mistral when the player has a Mistral key. */
+  /** The routes a turn may use, in order: the provider's own, then (the local AI only) Mistral when the player has a Mistral key. */
   #candidates() {
     const first = this.routes[this.provider.route];
     if (!first) throw new MistralError('request', 'has no route for this provider');
     const list = [first];
-    if (first.name === 'groq' && this.routes.mistral && this.provider.apiKey) list.push(this.routes.mistral);
-    // The local AI: the player's own cloud provider answers a turn it could not (Mistral when a key is saved, else Groq).
-    if (first.name === 'local') {
-      const groqReady = this.routes.groq && this.provider.groqApiKey && Date.now() >= (this.provider.groqBlockedUntil ?? 0);
-      const cloud = this.routes.mistral && this.provider.apiKey ? this.routes.mistral : groqReady ? this.routes.groq : null;
-      if (cloud) list.push(cloud);
-    }
+    // The local AI: Mistral answers a turn it could not when the player has a Mistral key saved.
+    if (first.name === 'local' && this.routes.mistral && this.provider.apiKey) list.push(this.routes.mistral);
     return list;
   }
 
@@ -306,10 +259,10 @@ export class TextProviderHost {
     // for is decided by a tiny request of its own that runs while the memory store retrieves (bridge/text-actions.mjs).
     const menu = !reaction && typeof this.deliverAction === 'function' ? actionMenu(config.companionAction) : null;
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
-    // Mature content on (the local AI only): the hard-limit guard reads V's words before any model is asked (bridge/mature-guard.mjs). A
+    // The guard is on (Mature content on, or an uncensored model loaded; the local AI only): it reads V's words before any model is asked (bridge/mature-guard.mjs). A
     // refusal is the character's own short line; nothing is sent to a model and nothing is stored.
     const firstRoute = this.routes[this.provider.route];
-    if (!reaction && firstRoute?.name === 'local' && this.matureContent?.enabled) {
+    if (!reaction && firstRoute?.name === 'local' && await this.#guardOn(firstRoute, signal)) {
       const verdict = this.matureGuard.screenInput(text, {history: recalled.turns});
       if (verdict.blocked) return this.#refuse(firstRoute, {config, local, feed, started, where: 'input'});
     }
@@ -425,7 +378,7 @@ export class TextProviderHost {
     if (!route) return null;
     try {
       const response = await this.#request(route, menu.classifier({text, last}), signal,
-        {maxTokens: route.name === 'groq' ? 300 : 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, models: route.decisionModels?.()});
+        {maxTokens: 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, models: route.decisionModels?.()});
       return menu.decide(response.text);
     } catch (error) {
       if (!signal?.aborted) this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
@@ -448,6 +401,23 @@ export class TextProviderHost {
     return level;
   }
 
+  /**
+   * Does the hard-limit guard run for a turn on `route`? Only the local AI can be uncensored, and only a host that has the Mature setting
+   * (the main hosts and the add-on hosts) has a guard. It runs when the setting is on, or when the loaded model is an uncensored one even with
+   * the setting off. Off with a normal model nothing here is awaited beyond a model-name lookup and the prompt is untouched.
+   */
+  async #guardOn(route, signal) {
+    if (!this.matureContent || route?.name !== 'local') return false;
+    if (this.matureContent.enabled) return true;
+    let model = route.modelName?.() ?? null;
+    if (!model && route.loadedModel) {
+      try { model = await route.loadedModel(signal); } catch { return false; }   // the request fails (or falls back) on its own terms
+    }
+    const uncensored = allowanceFor(model, route.modelHints?.()).uncensored;
+    if (uncensored) this.#noteMature(`guard applied (the loaded model is uncensored, setting off, model ${model ?? 'unknown'})`);
+    return uncensored;
+  }
+
   /** One log line per distinct fact for the life of this host (the bridge session): the setting is on, so say what the prompt got. Never the words of a turn. */
   #noteMature(fact) {
     if (this.matureLogged.has(fact)) return;
@@ -456,13 +426,15 @@ export class TextProviderHost {
   }
 
   async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation}) {
-    const mature = this.matureContent?.enabled ? await this.#matureLevel(route, signal) : null;
+    // The crude persona layer: the Mature setting only, never an add-on's host. The guard alone: also an uncensored model with the setting off, and add-ons.
+    const mature = this.matureContent?.enabled && !this.guardOnly ? await this.#matureLevel(route, signal) : null;
+    const guard = mature ? true : await this.#guardOn(route, signal);
     // This turn's action notes go last in the prompt, after everything that can be cached.
     let notes = actionNotes;
     const build = nudge => buildMessages({persona, memory: recalled.summary, history: recalled.turns,
       context: notes && !config.contextParts ? joinBlocks([config.context, notes]) : config.context,
       contextParts: notes && config.contextParts ? {...config.contextParts, volatile: joinBlocks([config.contextParts.volatile, notes])} : config.contextParts,
-      remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits, ...(mature ? {mature} : {})});
+      remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})});
     // A speculative request (reply()) assumes V asked for the guessed action. It shows the voice nothing until the decision agrees; if the
     // decision says otherwise it is cancelled and the reply is written again with the right notes.
     const spec = speculation ? {controller: new AbortController(), open: false, latest: '', missed: false, over: false} : null;
@@ -499,7 +471,7 @@ export class TextProviderHost {
       // Mature content only: a reply that puts a minor and romance or sex together (or has the character claim to be under 18) is dropped for
       // the character's own refusal; the turn is logged (never the words) and neither the reply nor V's words are remembered. A first
       // sentence the voice already started stands (it was screened before it was spoken), and the refusal follows it.
-      if (mature) {
+      if (guard) {
         const verdict = this.matureGuard.screenReply(reply, {history: recalled.turns});
         if (verdict.hit) {
           this.log(refusalLog(this.matureGuard, 'output'));
@@ -515,8 +487,8 @@ export class TextProviderHost {
     // V trying to make the character say it is an AI or a script: the reply must not take those words up, even to deny them.
     const provoked = !reaction && provokesAiTalk(text);
     const refuseHead = said.length || provoked ? head => repeatsLine(head, said) || (provoked && takesUpAiTalk(head)) : null;
-    // With Mature content on, a first sentence that flags is never committed to the voice either.
-    if (feed && typeof feed === 'object') feed.reject = mature ? head => (refuseHead ? refuseHead(head) : false) || this.matureGuard.flagsReply(head, {history: recalled.turns}) : refuseHead;
+    // With the guard on, a first sentence that flags is never committed to the voice either.
+    if (feed && typeof feed === 'object') feed.reject = guard ? head => (refuseHead ? refuseHead(head) : false) || this.matureGuard.flagsReply(head, {history: recalled.turns}) : refuseHead;
     let outcome;
     try { outcome = await run(''); } catch (error) {
       if (!spec?.missed || signal?.aborted) throw error;
@@ -608,8 +580,9 @@ export class TextProviderHost {
       if (typeof key !== 'string') { await route.connect(undefined, {}).then(lease => lease.release?.()); return; }
       const persona = this.personas.persona(key, config?.local?.name);
       // With Mature content on, the layer is part of the head, so the warmed prefix is the one the first reply will use.
-      const mature = await this.#matureLevel(route);
-      await route.prewarm([{role: 'system', content: systemHead({persona, limits: this.limits, ...(mature ? {mature} : {})})}, {role: 'user', content: '.'}]);
+      const mature = this.guardOnly ? null : await this.#matureLevel(route);
+      const guard = mature ? true : await this.#guardOn(route);
+      await route.prewarm([{role: 'system', content: systemHead({persona, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})})}, {role: 'user', content: '.'}]);
     } catch (error) {
       route.failure?.(error);
       this.log('prewarm failed: ' + (failureKind(error) ?? 'error'));
@@ -643,7 +616,7 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     const {local: _local, contextParts: _parts, ...rest} = config;
     return rest;
   };
-  const label = () => ({mistral: 'Mistral', groq: 'Groq', local: 'the local AI'})[provider.route] ?? 'Mistral';
+  const label = () => ({mistral: 'Mistral', local: 'the local AI'})[provider.route] ?? 'Mistral';
   host.reply = function reply(config, options) {
     return provider.active ? textHost.reply(config, options) : original.reply.call(this, withoutLocal(config), options);
   };
@@ -655,7 +628,7 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     if (!provider.active) return original.warm.call(this, withoutLocal(config), options);
     if (provider.route === 'local') void textHost.prewarm?.(config);
     // A cloud route's connection is kept open for 60 s after its last use: opening the composer renews it (an unauthenticated request).
-    else if (warmCloud && (provider.route === 'mistral' || provider.route === 'groq')) void warmCloud({provider: provider.route});
+    else if (warmCloud && provider.route === 'mistral') void warmCloud({provider: provider.route});
     // The local voice's browser and renderer page open now, while V types or looks, not in front of the first reply.
     if (prewarmVoice) void this.prewarmLocal?.();
     return Promise.resolve({connectionMs: 0, provider: provider.route});

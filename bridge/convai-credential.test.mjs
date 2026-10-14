@@ -301,6 +301,34 @@ test('paused, outdated, refused, busy and rate answers are obeyed too; none lets
   assert.equal(timers.live[0].delay, 120_000, 'the backend says when to ask again');
 });
 
+test('reported turns are counted once: a busy answer does not repeat them, a report is at most 1000, and self-inflicted rate limits fall back', async () => {
+  const bodies = [];
+  const answers = [[503, {error: 'busy', retryAfterSeconds: 900}], [503, {error: 'busy', retryAfterSeconds: 900}]];
+  const timers = fakeTimers();
+  const tokens = new TokenSource({url: 'https://auth.example.invalid/t', secret: SIGNING_SECRET, installId: INSTALL, fallback: true,
+    fetchImpl: async (url, init) => { bodies.push(JSON.parse(init.body)); const [status, body] = answers.shift() ?? [503, {error: 'busy'}]; return Response.json(body, {status}); },
+    now: () => 0, setTimer: timers.setTimer, clearTimer: timers.clearTimer});
+  for (let turn = 0; turn < 40; turn++) tokens.noteTurn();
+  tokens.start(); await flush();
+  await timers.fire();
+  assert.deepEqual(bodies.map(body => body.turnsSinceLast), [40, 0], 'the backend counted the 40 before it said busy');
+  // A long outage: the pending count is sent in reports the backend accepts.
+  const more = new TokenSource({url: 'https://auth.example.invalid/t', secret: SIGNING_SECRET, installId: INSTALL,
+    fetchImpl: async (url, init) => { bodies.push(JSON.parse(init.body)); return Response.json({error: 'bad_request'}, {status: 400}); },
+    now: () => 0, setTimer: fakeTimers().setTimer, clearTimer: () => {}});
+  for (let turn = 0; turn < 5000; turn++) more.noteTurn();
+  bodies.length = 0; more.start(); await flush();
+  assert.equal(bodies[0].turnsSinceLast, 1000);
+  // Failed attempts, then the backend's per-install hourly limit that those attempts used up: the embedded key stands in.
+  const fails = new TokenSource({url: 'https://auth.example.invalid/t', secret: SIGNING_SECRET, installId: INSTALL, fallback: true,
+    fetchImpl: async () => calls++ < 2 ? Response.json({error: 'convai_unavailable'}, {status: 502}) : Response.json({error: 'rate', retryAfterSeconds: 3000}, {status: 429}),
+    now: () => 0, setTimer: timers.setTimer, clearTimer: timers.clearTimer});
+  let calls = 0;
+  fails.start(); await flush(); await timers.fire(); await timers.fire();
+  assert.equal(fails.fallbackAllowed(), true);
+  // A first answer of "rate" with nothing failed before is still obeyed (covered above).
+});
+
 test('a clock that is off is corrected from the backend\'s server time and the request is repeated at once', async () => {
   const world = createWorld();
   const {tokens, timers, backend} = source(world, {now: () => world.clock.now - 10 * MINUTE});

@@ -31,7 +31,7 @@ test('the Inworld voice asks for the emotion block and keeps the marks even when
   assert.equal(on.active, true); assert.equal(on.contextFor({engine: 'pocket'}), EXPRESSIVE_TEXT);
 });
 
-test('every conversation provider gets the block through the same context: Convai as one text, Mistral, Groq and Local in the notes layer', () => {
+test('every conversation provider gets the block through the same context: Convai as one text, Mistral and Local in the notes layer', () => {
   const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(source, /expressiveEmotions\.forcedBy = \(\) => localVoice\.cloud === 'inworld';/);
   assert.match(source, /block\('notes', expressiveEmotionsContext\(input\)\)/);
@@ -39,7 +39,7 @@ test('every conversation provider gets the block through the same context: Conva
   assert.match(source, /\.map\(tier => \[tier, joinBlocks\(blocks\.filter\(item => item\.tier === tier\)/);
   assert.match(source, /expressiveEmotions\.contextFor\(\{engine, spoken: !phone && localVoice\.playbackEnabled !== false\}\)/);
   assert.match(source, /const headMarks = expressiveEmotions\.active \? stream\.headMarks : \[\];/);
-  // The text providers lay the notes layer into the system message (Mistral, Groq and Local share this builder).
+  // The text providers lay the notes layer into the system message (Mistral and Local share this builder).
   const messages = buildMessages({persona: {name: 'Judy', backstory: 'A braindance editor.', samples: []}, text: 'Hi', contextParts: {now: '', notes: EXPRESSIVE_TEXT, world: '', volatile: ''}});
   assert.ok(messages[0].content.includes(EXPRESSIVE_TEXT.slice(0, 60)), 'the block reaches the system message');
 });

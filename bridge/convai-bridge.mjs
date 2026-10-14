@@ -48,6 +48,7 @@ import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-sp
 import {FollowUp} from './follow-up.mjs';
 import {VVoice, loadVVoiceReferences, extraVoices} from './v-voice.mjs';
 import {MatureContent} from './mature-content.mjs';
+import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
 import {turnContextDiagnostic} from './turn-context.mjs';
@@ -85,10 +86,9 @@ import {readKeyFileText} from './key-codec.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
 import {DAILY_LIMIT, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
 import {MISTRAL_KEY_FILE, MistralControl, MistralProvider} from './mistral-key.mjs';
-import {TextProviderHost, attachTextProvider, groqRoute, isLocalUnavailable, localRoute, mistralRoute} from './text-provider-host.mjs';
+import {TextProviderHost, attachTextProvider, isLocalUnavailable, localRoute, mistralRoute} from './text-provider-host.mjs';
 import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
 import {MemoryStore} from './memory-store.mjs';
-import {GROQ_KEY_FILE, GroqKey} from './groq-key.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack} from './local-ai-pack.mjs';
 import {LocalLlmServer, nvidiaTotalMiB} from './local-llm-server.mjs';
@@ -243,10 +243,10 @@ const quota = new QuotaWatch({keys});
 // The conversation provider (docs/MISTRAL.md): Convai, or the player's own free Mistral key for the text of a reply. The key
 // is stored in this state folder only and is used for requests to api.mistral.ai and nothing else. The provider in use changes at
 // an idle boundary (applyProviderChoice), like the Convai key.
-// Groq (a second free cloud text provider) and the fully local AI (docs/LOCAL_AI.md) are the same kind of choice: a text provider
-// that answers through the shared host (bridge/text-provider-host.mjs). Both are off until the setting names them.
-const groqKey = await new GroqKey({keyPath: resolve(stateDirectory, GROQ_KEY_FILE)}).load();
-const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), groq: groqKey, inworld: inworldKey}).load();
+// The fully local AI (docs/LOCAL_AI.md) is the same kind of choice: a text provider that answers through the shared host
+// (bridge/text-provider-host.mjs). It is off until the setting names it. A saved setting of 'groq' (a provider removed on 2026-10-14)
+// names no provider, so it is the default, Convai (MistralProvider.setPreference); player-groq-key.txt is never read.
+const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), inworld: inworldKey}).load();
 // The optional Local AI packs (standard and lite) and the supervisor of the model server. Nothing starts here: the server is
 // started when the player chooses Local, and stops by itself after ten idle minutes. A developer points CYBERPUNK_CONVAI_LOCAL_AI_DEV
 // at a folder of models (docs/LOCAL_AI.md).
@@ -479,7 +479,7 @@ const phoneSessionPath = resolve(stateDirectory, 'phone-sessions.json');
 let phoneSessions = {};
 try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
 const phone = new PhoneChat({
-  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return code === 'daily-limit' || /^(mistral|groq|local)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined; },
+  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return code === 'daily-limit' || /^(mistral|local)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined; },
   contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
@@ -603,11 +603,10 @@ const realtime = new RealtimeHost({onCompanionAction: packet => companionActions
 // local memory. attachMistral makes both hosts answer text turns through it while the provider is Mistral. `localTurn` names
 // the character, the channel and (for an ordinary NPC) its conversation, so the host can recall the right history; the Convai path
 // never sees it.
-// One host serves Mistral, Groq and the local AI (bridge/text-provider-host.mjs); `mistral.route` says which answers a turn. The cache
+// One host serves Mistral and the local AI (bridge/text-provider-host.mjs); `mistral.route` says which answers a turn. The cache
 // scope is a hash of the state folder, so the Mistral cache key never carries a secret or a name.
 const textRoutes = {
   mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, decisionModel: () => MISTRAL_DECISION_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12)}),
-  groq: groqRoute({provider: mistral, log: message => console.error('[TextProvider] ' + message)}),
   local: localRoute({server: localServer, provider: mistral, log: message => console.error('[TextProvider] ' + message)}),
 };
 const providerOfCharacter = new Map();
@@ -659,6 +658,8 @@ function addonTextHost(route, profileKey) {
   if (!host) {
     host = new TextProviderHost({provider: fixedProvider(mistral, route), memory: sharedMemory(mistralMemory), personas: personaBook,
       routes: {[route]: textRoutes[route], ...(allowsMistral ? {mistral: textRoutes.mistral} : {})}, transformReply: cleanReply, gate: memoryQuiet,
+      // The hard-limit guard (never the crude Mature persona layer) for an add-on speaker too: with the Mature setting on or an uncensored model loaded.
+      matureContent, guardOnly: true,
       log: message => console.error('[Addons] ' + message)});
     addonTextHosts.set(cacheKey, host);
   }
@@ -1326,6 +1327,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     // may be prepared from that text.
     // V's typed line, when it is audible, holds the reply the same way until it ends (bridge/v-voice.mjs).
     hold: () => ahead?.isHeld() === true || current.vLine?.()?.holds() === true,
+    holdPeek: () => ahead?.isHeld() === true || current.vLine?.()?.blocking === true,
     onHeld: (bufferedSeconds, textComplete) => { if (bufferedSeconds >= 0.4 && textComplete) ahead?.markReady(); },
     onText: (text, userText) => {
       if (typeof userText === 'string') noteKnowledgeTurn(receiptPrepared, {userText});
@@ -1386,7 +1388,7 @@ async function convaiReply(input, profile, current, signal) {
   } catch (error) { await speech.fail().catch(() => {}); throw error; }
 }
 
-// A text-route reply (Mistral, Groq, the local AI) is voiced while it is still being written (bridge/reply-stream.mjs): the first
+// A text-route reply (Mistral, the local AI) is voiced while it is still being written (bridge/reply-stream.mjs): the first
 // complete sentence goes to the voice as soon as the model has written it, the rest follows when the reply is finished. Only the
 // Pocket-engine voices (Pocket and Voxtral) take part; a reply with no safe first sentence, another voice, or no continuous
 // playback is built and voiced as a whole, exactly as before. "replyStreaming": false in settings.json (or
@@ -1612,7 +1614,7 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
     };
     current.sync = () => !stopped && !signal.aborted && mic.current?.requestId === input.requestId
       && prepared && knowledgeRouter.currentSync(prepared);
-    // A local voice on a text route (Mistral, Groq, the local AI): the reply is voiced while it is still being written, as a typed turn's
+    // A local voice on a text route (Mistral, the local AI): the reply is voiced while it is still being written, as a typed turn's
     // is (bridge/voice-key-stream.mjs). Without a safe first sentence, another voice or no continuous playback it is voiced whole, as before.
     if (turnUsesLocal(input)) {
       if (!mistral.active || !replyStreaming || input.reaction || !prepared) return;
@@ -2462,7 +2464,7 @@ async function applyProviderChoice() {
   try {
     mistral.apply();
     // The cloud provider's connection (DNS, TCP, TLS) opens now, not in front of the first turn (docs/LATENCY_2026-10-13.md, 4.5/4.7).
-    if (mistral.active && (mistral.route === 'mistral' || mistral.route === 'groq')) void warmTurnConnections({provider: mistral.route});
+    if (mistral.active && mistral.route === 'mistral') void warmTurnConnections({provider: mistral.route});
     dropPrefetch(); prefetchObserved = '';
     await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
     sessions.clear(); realtimeSessions.clear();
@@ -2580,10 +2582,12 @@ async function pollSettings(checkShutdown = true) {
     if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
     const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
     if (matureChanged) console.error(`[MatureContent] setting is now ${matureContent.enabled ? 'on' : 'off'}`);
+    // The guard's patterns compile on first use (about a second); do that now, in the background, not inside the first Mature turn.
+    if (matureChanged && matureContent.enabled) void warmMatureGuard();
     await syncLocalModelChoice(settings);
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
-    replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
+    if (settings && typeof settings === 'object') replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
     // Multilingual conversations changes which voice a turn uses (and so its instructions).
     // (The voice selection reads the same setting: while it is on, a fallback never lands on Pocket.)
     const multilingualChanged = multilingual.update(settings);
@@ -2615,7 +2619,7 @@ const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, co
   publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
 quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  groqCommandPath: resolve(runtime, 'groq-key-command.json'), inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),
@@ -2637,7 +2641,7 @@ await status('waiting');
 await pollSettings(false);
 await pollKnowledge();
 void localVoice.start().catch(error => console.error('[CyberpunkConvai] Local voice startup:', error.message));
-// A text route (Mistral, Groq, the local AI) opens no Convai connection, so nothing else starts the hidden browser that renders the
+// A text route (Mistral, the local AI) opens no Convai connection, so nothing else starts the hidden browser that renders the
 // local voice; the first reply would wait for it (about a second and a half under a running game). Start it now.
 if (mistral.active && localVoice.playbackEnabled !== false) void realtime.prewarmLocal();
 console.log('[CyberpunkConvai] Convai conversation bridge ready');

@@ -33,7 +33,7 @@ Read from the Terms of Service (2025-06-11), the Acceptable Use Policy, the Serv
 
 - The licence is "non-sublicensable ... solely for your internal business purposes". A mod that ships one developer key, or
   sends every player's text through the developer's account, is not that. **So each player uses their own Inworld key and
-  account**, exactly as for Mistral and Groq. Nothing here puts a key into the release.
+  account**, exactly as for the Mistral key. Nothing here puts a key into the release.
 - The Terms have no end-user rules for apps built on the API and no voice-cloning consent text. The model cards and the safety
   page forbid impersonating a real person without consent. The reference clips are the game's own voice actors, so cloning them is
   a risk **the player takes on their own account** and the project owner should weigh before offering it; this is the one point
@@ -46,7 +46,7 @@ Settings > Voices > Companion voices has eight entries: Pocket · Performance, f
 **Inworld · Cloud voice**, Convai · Cloud voice. Without a key the entry reads "Inworld · needs key" and Apply
 refuses it ("Requires an Inworld key (add it in Settings > Development)").
 
-The key is entered like the Mistral and Groq keys: in Settings > Development, **Paste Inworld key** reads the clipboard once, checks
+The key is entered like the Mistral key: in Settings > Development, **Paste Inworld key** reads the clipboard once, checks
 it with Inworld (a free request, the voice list) and saves it in the bridge's state folder as `player-inworld-key.txt`; the same
 file can be written by hand. **Remove my Inworld key** deletes it. The page shows only whether a key is saved and its last four
 characters (`runtime/mistral-state.json`, `inworld.saved` and `inworld.tail`). The key never goes to a log, a status file or a
@@ -142,7 +142,7 @@ provider writes the replies.
 | Provider | How the marks get into the reply |
 | --- | --- |
 | Convai (free tier or the player's own Convai key) | The turn's dynamic context carries the emotion block (`EXPRESSIVE_TEXT`, `docs/EMOTION_TAGS.md`); Convai writes `{tags}` inline. Measured on real Convai characters: 100 % valid, every reply opens with a tag, about 2 tags a reply. |
-| Mistral, Groq, Local AI | The same block, in the notes layer of the system message (`bridge/mistral-prompt.mjs`, one builder for all three). |
+| Mistral, Local AI | The same block, in the notes layer of the system message (`bridge/mistral-prompt.mjs`, one builder for both). |
 | Any provider, a reply with no tag (the model forgot, a bark, a short line) | A fallback reads the words with the face's small lexicon (`bridge/text-emotion.mjs`): a clear feeling becomes one mark at the start of that request's text; a weak or unclear text is spoken plainly. No request, no model, well under a millisecond, once per reply part. |
 
 How it is forced: `ExpressiveEmotions.active` is the player's setting **or** `forcedBy()`, which the bridge sets to "the chosen voice is
@@ -217,5 +217,5 @@ Install the committed `mod/` files and the bridge from this branch (never `mod/d
    in the middle.
 7. Emotion: a reply with a strong feeling ({anger:strong}, {sadness}) sounds different from a plain one. Turn Expressive emotions
    OFF in Settings > Voices and talk again with the Inworld voice: the replies still carry emotion (`[Inworld] first audio ... 1 emotion
-   tag` in the log), on Convai, Mistral, Groq and Local alike.
+   tag` in the log), on Convai, Mistral and Local alike.
 8. With Natural speech on: now and then a real laugh, sigh or breath (not the word) at a natural spot; none of it in the subtitles.

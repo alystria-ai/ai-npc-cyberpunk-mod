@@ -19,7 +19,7 @@ export only the original character response and preserve third-party names.
 
 ## First-person texts
 
-71 profiles are written in the first person ("I'm Judy Alvarez, ..."). The research dossiers and native claim packs stay third person (they are evidence-bound); `first-person-profiles.json` holds a first-person copy of each composed backstory and speaking style, keyed by the SHA-256 of the third-person text it was written from, and `buildProfiles` applies it. If a dossier or claim pack changes, the build stops with "the third-person source changed"; remove that key from `first-person-profiles.json`, rebuild, then redo that character: `node scripts/Rewrite-FirstPersonProfiles.mjs extract <workdir>` writes the profiles that are third person again, rewrite their lines, then `check` and `apply`. `report` writes a before/after list to `runtime/first-person-report.md`.
+All 80 profiles are written in the first person ("I'm Judy Alvarez, ..."). The research dossiers and native claim packs stay third person (they are evidence-bound); `first-person-profiles.json` holds a first-person copy of each composed backstory and speaking style, keyed by the SHA-256 of the third-person text it was written from, and `buildProfiles` applies it. If a dossier or claim pack changes, the build stops with "the third-person source changed"; remove that key from `first-person-profiles.json`, rebuild, then redo that character: `node scripts/Rewrite-FirstPersonProfiles.mjs extract <workdir>` writes the profiles that are third person again, rewrite their lines, then `check` and `apply`. `report` writes a before/after list to `runtime/first-person-report.md`.
 
 ## Build and apply
 

@@ -1588,7 +1588,7 @@ local function pageSignature(snapshot)
         local voice, pack = snapshot.localVoice, manager.omniPack()
         add(table.concat({voice.provider or '', tostring(voice.cloudVoice), tostring(voice.omniSteps), tostring(voice.omniReference),
             table.concat(voice.routedProfiles or {}, ','), tostring(pack.known), tostring(pack.installed),
-            tostring((snapshot.mistral or {}).saved)}, '|'))
+            tostring((snapshot.mistral or {}).saved), tostring(((snapshot.mistral or {}).inworld or {}).saved)}, '|'))
     end
     if view == 'models' then
         add(tostring(#snapshot.models))
@@ -1600,11 +1600,13 @@ local function pageSignature(snapshot)
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears. The voice status line
         -- is not here: it is updated in place.
         local own, pack, mistral = snapshot.ownKey, manager.omniPack(), snapshot.mistral or {}
+        local inworld = type(mistral.inworld) == 'table' and mistral.inworld or {}
         add(table.concat({'key', tostring(own.saved), own.tail or '', own.active, tostring(own.pending),
             own.result or '', own.limit or '', tostring(own.limitOwn), tostring(own.memoryOff),
             own.daily and (tostring(own.daily.left) .. '/' .. tostring(own.daily.blocked)) or ''}, '|'))
         add(table.concat({'provider', tostring(mistral.saved), mistral.tail or '', mistral.provider or '', mistral.effective or '',
             mistral.localAi or '', tostring(mistral.maturePack), tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
+            tostring(inworld.saved), inworld.tail or '', inworld.result or '',
             tostring(pack.known), tostring(pack.installed)}, '|'))
         -- The Local AI model row lists what is installed.
         local modelKey = {'models'}
@@ -2656,7 +2658,9 @@ function M.update(currentPlayer, worldReady)
     if (refreshQueued or lastSignature ~= renderedSignature) and searchFrames == 0 and not api.hasDrafts(MOD_KEY) then
         refreshQueued = false
         local _, err = api.reloadMod(MOD_KEY)
-        if err then lastError = tostring(err) end
+        -- A reload that failed before the page was built never reaches schema(), which is what makes the two signatures equal: without
+        -- this the same failing reload would run again on every frame.
+        if err then lastError = tostring(err); renderedSignature = lastSignature end
         -- The page is new now: hide its rows in this frame, before it is shown, and style them over the next ones.
         if presentation.pending then
             local begun, beginError = pcall(M.styleBegin)

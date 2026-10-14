@@ -17,7 +17,7 @@ export class CharacterEditor {
    *   personas   PersonaBook (the shipped rows and the overrides it merges)
    *   overrides  CharacterOverrides
    *   memory     MemoryStore (optional: without it the memory part is empty)
-   *   route      () => 'convai' | 'mistral' | 'groq' | 'local': who answers conversations now
+   *   route      () => 'convai' | 'mistral' | 'local': who answers conversations now
    */
   constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS} = {}) {
     Object.assign(this, {personas, overrides, memory, route, limits});

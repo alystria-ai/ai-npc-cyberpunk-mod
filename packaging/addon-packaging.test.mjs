@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, readFile, rm} from 'node:fs/promises';
+import {cp, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -37,4 +37,20 @@ test('the main runtime never includes an add-on, and the add-on tools stay out o
   for (const tool of ['bridge/addon-eval.mjs', 'bridge/addon-lua-harness.mjs']) assert(!BRIDGE_MODULES.includes(tool), `${tool} is a development tool`);
   // A folder that is not a valid add-on is refused rather than zipped.
   await assert.rejects(addonEntries(resolve(project, 'mod')), /convai-addon\.json|ENOENT/);
+});
+
+test('an add-on folder outside this repository builds the same way (Skippy and Delamain live in repositories of their own)', async () => {
+  const work = await mkdtemp(resolve(tmpdir(), 'convai-addon-external-'));
+  try {
+    const copy = resolve(work, 'cyberpunk-convai-example');
+    await cp(resolve(project, 'addons/example'), copy, {recursive: true});
+    await mkdir(resolve(copy, 'voice'), {recursive: true});
+    await writeFile(resolve(copy, 'notes.txt'), 'shipped\n');
+    await writeFile(resolve(copy, 'extra.bin'), 'x');
+    await assert.rejects(buildAddon({dir: copy, out: resolve(work, 'dist')}), /extra\.bin/, 'any other kind of file stops the build');
+    await rm(resolve(copy, 'extra.bin'));
+    const {names} = await buildAddon({dir: copy, out: resolve(work, 'dist')});
+    const folder = `${CET_MODS}/CyberpunkConvaiExample/`;
+    assert.deepEqual(names.sort(), ['bridge.mjs', 'convai-addon.json', 'init.lua', 'notes.txt'].map(name => folder + name));
+  } finally { await rm(work, {recursive: true, force: true}); }
 });

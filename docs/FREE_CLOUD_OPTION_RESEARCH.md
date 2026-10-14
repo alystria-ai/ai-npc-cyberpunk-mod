@@ -1,5 +1,7 @@
 # Fully free cloud option: measurements and research
 
+> Groq was removed as a conversation provider by the user on 2026-10-14 (route, key handling, prompt shaping, scripts). The Groq parts below are history and describe code that no longer exists.
+
 Measured and researched on 2026-10-12 for the "fully free cloud" player option (TODO.md, "Requested 2026-10-12", option 3).
 Nothing in the mod was changed. Throwaway probe scripts lived in the session scratchpad; no key was printed, logged or stored.
 Limits quoted from provider documentation are marked (docs); limits read from response headers on the developer's own free keys are
