@@ -1,0 +1,2760 @@
+{
+ "version": 2,
+ "generated": "2026-10-14T09:21:44+00:00",
+ "note": "43 non-report voices: OmniVoice = loudness-aware picks (omni16-loud), Pocket = current picks; references are gain-matched to -20 LUFS (apply_loud43.py). Rebuilding with Build-AutobestConfigs.mjs would NOT apply the gain.",
+ "voices": {
+  "aaron": {
+   "omni": {
+    "short": {
+     "ids": [
+      "aaron/3253598041815732224",
+      "aaron/3263621273834835968"
+     ],
+     "seconds": 9.89,
+     "ecapa": 0.7072,
+     "ecapa_se": 0.012,
+     "ecapa_tgt": 0.5557,
+     "pls": 106.04,
+     "latency_ms": {
+      "16": 415,
+      "32": 940
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.30 dB to -20.4 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "aaron/3253598041815732224",
+      "aaron/3226196428569051136"
+     ],
+     "seconds": 11.381,
+     "ecapa": 0.7778,
+     "ecapa_se": 0.0139,
+     "ecapa_tgt": 0.6048,
+     "pls": 92.2,
+     "latency_ms": {
+      "16": 478,
+      "32": 1081
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.48 dB to -20.1 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "aaron/3253598041815732224",
+      "aaron/3226196428569051136"
+     ],
+     "seconds": 11.381,
+     "ecapa": 0.7778,
+     "ecapa_se": 0.0139,
+     "ecapa_tgt": 0.6048,
+     "pls": 92.2,
+     "latency_ms": {
+      "16": 478,
+      "32": 1081
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.48 dB to -20.1 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "aaron/3263555025491021824",
+      "aaron/3255195171642757120",
+      "aaron/3282634479655800832"
+     ],
+     "seconds": 16.5,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "alan-noel": {
+   "omni": {
+    "short": {
+     "ids": [
+      "alan-noel/3211644635745677312",
+      "alan-noel/3326234142966194176"
+     ],
+     "seconds": 9.792,
+     "ecapa": 0.6563,
+     "ecapa_se": 0.0103,
+     "ecapa_tgt": 0.5894,
+     "pls": 105.47,
+     "latency_ms": {
+      "16": 411,
+      "32": 930
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +4.04 dB to -20.0 LUFS (true peak -2.1 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "alan-noel/3284182955706458112",
+      "alan-noel/3275378356736401408"
+     ],
+     "seconds": 15.38,
+     "ecapa": 0.6941,
+     "ecapa_se": 0.0243,
+     "ecapa_tgt": 0.6309,
+     "pls": 101.39,
+     "latency_ms": {
+      "16": 646,
+      "32": 1461
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.41 dB to -20.0 LUFS (true peak -2.1 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "alan-noel/3284182955706458112",
+      "alan-noel/3275378356736401408"
+     ],
+     "seconds": 15.38,
+     "ecapa": 0.6941,
+     "ecapa_se": 0.0243,
+     "ecapa_tgt": 0.6309,
+     "pls": 101.39,
+     "latency_ms": {
+      "16": 646,
+      "32": 1461
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.41 dB to -20.0 LUFS (true peak -2.1 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "alan-noel/3282809297893236776",
+      "alan-noel/3282623933060653056"
+     ],
+     "seconds": 14.56,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "ana-friedman": {
+   "omni": {
+    "short": {
+     "ids": [
+      "ana-friedman/2931760787769090048",
+      "ana-friedman/3317464898859274240",
+      "ana-friedman/3239333850640650240"
+     ],
+     "seconds": 9.604,
+     "ecapa": 0.7189,
+     "ecapa_se": 0.0145,
+     "ecapa_tgt": 0.6082,
+     "pls": 74.11,
+     "latency_ms": {
+      "16": 403,
+      "32": 912
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.62 dB to -20.0 LUFS (true peak -3.8 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "ana-friedman/3195727643712139264",
+      "ana-friedman/3295454560353882112"
+     ],
+     "seconds": 17.293,
+     "ecapa": 0.7148,
+     "ecapa_se": 0.0189,
+     "ecapa_tgt": 0.6237,
+     "pls": 81.0,
+     "latency_ms": {
+      "16": 726,
+      "32": 1643
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.80 dB to -20.0 LUFS (true peak -2.4 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "ana-friedman/3195727643712139264",
+      "ana-friedman/3295454560353882112"
+     ],
+     "seconds": 17.293,
+     "ecapa": 0.7148,
+     "ecapa_se": 0.0189,
+     "ecapa_tgt": 0.6237,
+     "pls": 81.0,
+     "latency_ms": {
+      "16": 726,
+      "32": 1643
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.80 dB to -20.0 LUFS (true peak -2.4 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "ana-friedman/3195727643712139264",
+      "ana-friedman/3294271395513864192",
+      "ana-friedman/3268073379270995968"
+     ],
+     "seconds": 22.49,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "arthur-jenkins": {
+   "omni": {
+    "short": {
+     "ids": [
+      "arthur-jenkins/1664894783925952512",
+      "arthur-jenkins/1715757552277319680"
+     ],
+     "seconds": 9.871,
+     "ecapa": 0.6264,
+     "ecapa_se": 0.0368,
+     "ecapa_tgt": 0.5611,
+     "pls": 71.46,
+     "latency_ms": {
+      "16": 415,
+      "32": 938
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.15 dB to -20.4 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "arthur-jenkins/1714155331623342080",
+      "arthur-jenkins/1660596010013859840",
+      "arthur-jenkins/1664894783925952512",
+      "arthur-jenkins/1795375389979111424"
+     ],
+     "seconds": 17.81,
+     "ecapa": 0.7179,
+     "ecapa_se": 0.0333,
+     "ecapa_tgt": 0.6021,
+     "pls": 96.73,
+     "latency_ms": {
+      "16": 748,
+      "32": 1692
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.67 dB to -20.9 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "arthur-jenkins/1714155331623342080",
+      "arthur-jenkins/1660596010013859840",
+      "arthur-jenkins/1664894783925952512",
+      "arthur-jenkins/1795375389979111424"
+     ],
+     "seconds": 17.81,
+     "ecapa": 0.7179,
+     "ecapa_se": 0.0333,
+     "ecapa_tgt": 0.6021,
+     "pls": 96.73,
+     "latency_ms": {
+      "16": 748,
+      "32": 1692
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.67 dB to -20.9 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "arthur-jenkins/1721268274339966976",
+      "arthur-jenkins/1720189214138494976",
+      "arthur-jenkins/1795375389979111424"
+     ],
+     "seconds": 16.4,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "babs-okoye": {
+   "omni": {
+    "short": {
+     "ids": [
+      "babs-okoye/3446847270925275136/female",
+      "babs-okoye/3359417004376535040"
+     ],
+     "seconds": 9.027,
+     "ecapa": 0.771,
+     "ecapa_se": 0.0136,
+     "ecapa_tgt": 0.6125,
+     "pls": 88.28,
+     "latency_ms": {
+      "16": 379,
+      "32": 858
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.03 dB to -22.6 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "babs-okoye/3446847270925275136/female",
+      "babs-okoye/3359417004376535040"
+     ],
+     "seconds": 9.027,
+     "ecapa": 0.771,
+     "ecapa_se": 0.0136,
+     "ecapa_tgt": 0.6125,
+     "pls": 88.28,
+     "latency_ms": {
+      "16": 379,
+      "32": 858
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.03 dB to -22.6 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "babs-okoye/3446847270925275136/female",
+      "babs-okoye/3359417004376535040"
+     ],
+     "seconds": 9.027,
+     "ecapa": 0.771,
+     "ecapa_se": 0.0136,
+     "ecapa_tgt": 0.6125,
+     "pls": 88.28,
+     "latency_ms": {
+      "16": 379,
+      "32": 858
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.03 dB to -22.6 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "babs-okoye/3043159677384077312",
+      "babs-okoye/3446847270925275136/female",
+      "babs-okoye/3385493587114643464",
+      "babs-okoye/3283992433087819776"
+     ],
+     "seconds": 19.92,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "bill-mitchell": {
+   "omni": {
+    "short": {
+     "ids": [
+      "bill-mitchell/3302806320082624512",
+      "bill-mitchell/3315770798082723848"
+     ],
+     "seconds": 9.964,
+     "ecapa": 0.6088,
+     "ecapa_se": 0.026,
+     "ecapa_tgt": 0.5067,
+     "pls": 87.32,
+     "latency_ms": {
+      "16": 418,
+      "32": 947
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.63 dB to -20.0 LUFS (true peak -1.9 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "bill-mitchell/3302806320082624512",
+      "bill-mitchell/3314408881149808640",
+      "bill-mitchell/3316057669417406464"
+     ],
+     "seconds": 16.895,
+     "ecapa": 0.7041,
+     "ecapa_se": 0.0273,
+     "ecapa_tgt": 0.6031,
+     "pls": 79.46,
+     "latency_ms": {
+      "16": 710,
+      "32": 1605
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.07 dB to -21.6 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "bill-mitchell/3302806320082624512",
+      "bill-mitchell/3314408881149808640",
+      "bill-mitchell/3316057669417406464"
+     ],
+     "seconds": 16.895,
+     "ecapa": 0.7041,
+     "ecapa_se": 0.0273,
+     "ecapa_tgt": 0.6031,
+     "pls": 79.46,
+     "latency_ms": {
+      "16": 710,
+      "32": 1605
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.07 dB to -21.6 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "bill-mitchell/3369517845717553152",
+      "bill-mitchell/3282544425482686464",
+      "bill-mitchell/3315959996643381248"
+     ],
+     "seconds": 9.24,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "blue-moon": {
+   "omni": {
+    "short": {
+     "ids": [
+      "blue-moon/1703931303829004320",
+      "blue-moon/2233178427651506176"
+     ],
+     "seconds": 8.184,
+     "ecapa": 0.6856,
+     "ecapa_se": 0.0265,
+     "ecapa_tgt": 0.5798,
+     "pls": 63.14,
+     "latency_ms": {
+      "16": 344,
+      "32": 777
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.82 dB to -22.8 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "blue-moon/1703931303829004320",
+      "blue-moon/1974823601985200128",
+      "blue-moon/2233178427651506176"
+     ],
+     "seconds": 14.242,
+     "ecapa": 0.709,
+     "ecapa_se": 0.0257,
+     "ecapa_tgt": 0.605,
+     "pls": 82.98,
+     "latency_ms": {
+      "16": 598,
+      "32": 1353
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.82 dB to -22.9 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "blue-moon/1703931303829004320",
+      "blue-moon/1974823601985200128",
+      "blue-moon/2233178427651506176"
+     ],
+     "seconds": 14.242,
+     "ecapa": 0.709,
+     "ecapa_se": 0.0257,
+     "ecapa_tgt": 0.605,
+     "pls": 82.98,
+     "latency_ms": {
+      "16": 598,
+      "32": 1353
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.82 dB to -22.9 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "blue-moon/1703931303829004320",
+      "blue-moon/1815595293155172352"
+     ],
+     "seconds": 14.15,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "bob-sagan": {
+   "omni": {
+    "short": {
+     "ids": [
+      "bob-sagan/1802595960567959552",
+      "bob-sagan/1886371976929996800"
+     ],
+     "seconds": 8.916,
+     "ecapa": 0.7365,
+     "ecapa_se": 0.0357,
+     "ecapa_tgt": 0.6063,
+     "pls": 96.24,
+     "latency_ms": {
+      "16": 374,
+      "32": 847
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.39 dB to -20.0 LUFS (true peak -1.1 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "bob-sagan/1802595960567959552",
+      "bob-sagan/1886371976929996800"
+     ],
+     "seconds": 8.916,
+     "ecapa": 0.7365,
+     "ecapa_se": 0.0357,
+     "ecapa_tgt": 0.6063,
+     "pls": 96.24,
+     "latency_ms": {
+      "16": 374,
+      "32": 847
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.39 dB to -20.0 LUFS (true peak -1.1 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "bob-sagan/1802595960567959552",
+      "bob-sagan/1886371976929996800"
+     ],
+     "seconds": 8.916,
+     "ecapa": 0.7365,
+     "ecapa_se": 0.0357,
+     "ecapa_tgt": 0.6063,
+     "pls": 96.24,
+     "latency_ms": {
+      "16": 374,
+      "32": 847
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.39 dB to -20.0 LUFS (true peak -1.1 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "bob-sagan/1782256869032382464",
+      "bob-sagan/1886353049445330944",
+      "bob-sagan/1785579829227966500",
+      "bob-sagan/1886451660166393856"
+     ],
+     "seconds": 19.56,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "briana-dolson": {
+   "omni": {
+    "short": {
+     "ids": [
+      "briana-dolson/3397142633839431700",
+      "briana-dolson/3397142599244812300"
+     ],
+     "seconds": 9.876,
+     "ecapa": 0.7707,
+     "ecapa_se": 0.0209,
+     "ecapa_tgt": 0.7114,
+     "pls": 107.51,
+     "latency_ms": {
+      "16": 415,
+      "32": 938
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.67 dB to -20.0 LUFS (true peak -4.2 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "briana-dolson/3407481313590349824",
+      "briana-dolson/3323037368343031816",
+      "briana-dolson/3397142652864794648"
+     ],
+     "seconds": 15.578,
+     "ecapa": 0.8111,
+     "ecapa_se": 0.032,
+     "ecapa_tgt": 0.7385,
+     "pls": 111.42,
+     "latency_ms": {
+      "16": 654,
+      "32": 1480
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.04 dB to -20.0 LUFS (true peak -2.2 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "briana-dolson/3407481313590349824",
+      "briana-dolson/3323037368343031816",
+      "briana-dolson/3397142652864794648"
+     ],
+     "seconds": 15.578,
+     "ecapa": 0.8111,
+     "ecapa_se": 0.032,
+     "ecapa_tgt": 0.7385,
+     "pls": 111.42,
+     "latency_ms": {
+      "16": 654,
+      "32": 1480
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.04 dB to -20.0 LUFS (true peak -2.2 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "briana-dolson/3397142585755930624",
+      "briana-dolson/3406004572904591360"
+     ],
+     "seconds": 16.17,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "cassidy-righter": {
+   "omni": {
+    "short": {
+     "ids": [
+      "cassidy-righter/1851929963902427136",
+      "cassidy-righter/1826901574122336256"
+     ],
+     "seconds": 8.068,
+     "ecapa": 0.7956,
+     "ecapa_se": 0.0231,
+     "ecapa_tgt": 0.6833,
+     "pls": 106.67,
+     "latency_ms": {
+      "16": 339,
+      "32": 766
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.44 dB to -20.0 LUFS (true peak -2.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "cassidy-righter/1874979166444343296",
+      "cassidy-righter/1825926629833699328",
+      "cassidy-righter/1851929963902427136"
+     ],
+     "seconds": 15.291,
+     "ecapa": 0.8111,
+     "ecapa_se": 0.0242,
+     "ecapa_tgt": 0.7262,
+     "pls": 104.96,
+     "latency_ms": {
+      "16": 642,
+      "32": 1453
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.66 dB to -20.0 LUFS (true peak -1.7 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "cassidy-righter/1874979166444343296",
+      "cassidy-righter/1825926629833699328",
+      "cassidy-righter/1851929963902427136"
+     ],
+     "seconds": 15.291,
+     "ecapa": 0.8111,
+     "ecapa_se": 0.0242,
+     "ecapa_tgt": 0.7262,
+     "pls": 104.96,
+     "latency_ms": {
+      "16": 642,
+      "32": 1453
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.66 dB to -20.0 LUFS (true peak -1.7 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "cassidy-righter/1874979166444343296",
+      "cassidy-righter/1851929963902427136",
+      "cassidy-righter/1796858956592693252"
+     ],
+     "seconds": 11.88,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "chang-hoon-nam": {
+   "omni": {
+    "short": {
+     "ids": [
+      "chang-hoon-nam/3101251502866305048",
+      "chang-hoon-nam/3357994889168949248"
+     ],
+     "seconds": 9.167,
+     "ecapa": 0.6416,
+     "ecapa_se": 0.0307,
+     "ecapa_tgt": 0.5595,
+     "pls": 47.13,
+     "latency_ms": {
+      "16": 385,
+      "32": 871
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.74 dB to -21.6 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "chang-hoon-nam/3101251493689167944.holocall",
+      "chang-hoon-nam/3103035234658390016.holocall"
+     ],
+     "seconds": 10.827,
+     "ecapa": 0.6481,
+     "ecapa_se": 0.0388,
+     "ecapa_tgt": 0.5886,
+     "pls": 48.9,
+     "latency_ms": {
+      "16": 455,
+      "32": 1029
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.74 dB to -20.0 LUFS (true peak -2.4 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "chang-hoon-nam/3101251502866305048",
+      "chang-hoon-nam/3357994889168949248"
+     ],
+     "seconds": 9.167,
+     "ecapa": 0.6416,
+     "ecapa_se": 0.0307,
+     "ecapa_tgt": 0.5595,
+     "pls": 47.13,
+     "latency_ms": {
+      "16": 385,
+      "32": 871
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.74 dB to -21.6 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "chang-hoon-nam/3287136792825688064",
+      "chang-hoon-nam/3103035234658390016.holocall"
+     ],
+     "seconds": 10.24,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "cynthia-najarro": {
+   "omni": {
+    "short": {
+     "ids": [
+      "cynthia-najarro/1805711322950807552",
+      "cynthia-najarro/1914161084697464832"
+     ],
+     "seconds": 8.253,
+     "ecapa": 0.5759,
+     "ecapa_se": 0.0305,
+     "ecapa_tgt": 0.4366,
+     "pls": 88.73,
+     "latency_ms": {
+      "16": 347,
+      "32": 784
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.53 dB to -20.0 LUFS (true peak -2.3 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "cynthia-najarro/1914215951612825600",
+      "cynthia-najarro/1914161084697464832"
+     ],
+     "seconds": 12.397,
+     "ecapa": 0.6591,
+     "ecapa_se": 0.0331,
+     "ecapa_tgt": 0.5337,
+     "pls": 83.34,
+     "latency_ms": {
+      "16": 521,
+      "32": 1178
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.83 dB to -20.3 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "cynthia-najarro/1914215951612825600",
+      "cynthia-najarro/1914161084697464832"
+     ],
+     "seconds": 12.397,
+     "ecapa": 0.6591,
+     "ecapa_se": 0.0331,
+     "ecapa_tgt": 0.5337,
+     "pls": 83.34,
+     "latency_ms": {
+      "16": 521,
+      "32": 1178
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.83 dB to -20.3 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "cynthia-najarro/1914161084697464832",
+      "cynthia-najarro/1914164961727533056",
+      "cynthia-najarro/1914215951612825600",
+      "cynthia-najarro/1914215357867151360.holocall"
+     ],
+     "seconds": 25.16,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "dakota-smith": {
+   "omni": {
+    "short": {
+     "ids": [
+      "dakota-smith/2328813252985712640"
+     ],
+     "seconds": 7.811,
+     "ecapa": 0.6845,
+     "ecapa_se": 0.0131,
+     "ecapa_tgt": 0.5555,
+     "pls": 64.82,
+     "latency_ms": {
+      "16": 328,
+      "32": 742
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.43 dB to -20.0 LUFS (true peak -3.1 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "dakota-smith/2328813252985712640",
+      "dakota-smith/2332964669972267008"
+     ],
+     "seconds": 14.543,
+     "ecapa": 0.6917,
+     "ecapa_se": 0.0175,
+     "ecapa_tgt": 0.5686,
+     "pls": 57.03,
+     "latency_ms": {
+      "16": 611,
+      "32": 1382
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.96 dB to -20.6 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "dakota-smith/2328813252985712640"
+     ],
+     "seconds": 7.811,
+     "ecapa": 0.6845,
+     "ecapa_se": 0.0131,
+     "ecapa_tgt": 0.5555,
+     "pls": 64.82,
+     "latency_ms": {
+      "16": 328,
+      "32": 742
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.43 dB to -20.0 LUFS (true peak -3.1 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "dakota-smith/2333026362395967488",
+      "dakota-smith/2333035267540893696"
+     ],
+     "seconds": 15.53,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "dennis-cranmer": {
+   "omni": {
+    "short": {
+     "ids": [
+      "dennis-cranmer/1805463163514019840",
+      "dennis-cranmer/1804131062663503884"
+     ],
+     "seconds": 8.8,
+     "ecapa": 0.794,
+     "ecapa_se": 0.0313,
+     "ecapa_tgt": 0.7574,
+     "pls": 92.43,
+     "latency_ms": {
+      "16": 370,
+      "32": 836
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.56 dB to -20.0 LUFS (true peak -1.3 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "dennis-cranmer/1805463163514019840",
+      "dennis-cranmer/1883501110195703808"
+     ],
+     "seconds": 9.986,
+     "ecapa": 0.7874,
+     "ecapa_se": 0.0405,
+     "ecapa_tgt": 0.7328,
+     "pls": 94.78,
+     "latency_ms": {
+      "16": 419,
+      "32": 949
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.28 dB to -20.3 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "dennis-cranmer/1805463163514019840",
+      "dennis-cranmer/1804131062663503884"
+     ],
+     "seconds": 8.8,
+     "ecapa": 0.794,
+     "ecapa_se": 0.0313,
+     "ecapa_tgt": 0.7574,
+     "pls": 92.43,
+     "latency_ms": {
+      "16": 370,
+      "32": 836
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.56 dB to -20.0 LUFS (true peak -1.3 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "dennis-cranmer/1883435804748206080",
+      "dennis-cranmer/1804122388591173632"
+     ],
+     "seconds": 9.13,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "dino-dinovic": {
+   "omni": {
+    "short": {
+     "ids": [
+      "dino-dinovic/1948673213218091008.holocall",
+      "dino-dinovic/2328494797583015936.holocall"
+     ],
+     "seconds": 9.753,
+     "ecapa": 0.7263,
+     "ecapa_se": 0.0132,
+     "ecapa_tgt": 0.6286,
+     "pls": 84.46,
+     "latency_ms": {
+      "16": 410,
+      "32": 927
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +4.92 dB to -20.0 LUFS (true peak -3.5 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "dino-dinovic/1948673213218091008.holocall",
+      "dino-dinovic/2328494797583015936.holocall"
+     ],
+     "seconds": 9.753,
+     "ecapa": 0.7263,
+     "ecapa_se": 0.0132,
+     "ecapa_tgt": 0.6286,
+     "pls": 84.46,
+     "latency_ms": {
+      "16": 410,
+      "32": 927
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +4.92 dB to -20.0 LUFS (true peak -3.5 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "dino-dinovic/1948673213218091008.holocall",
+      "dino-dinovic/2328494797583015936.holocall"
+     ],
+     "seconds": 9.753,
+     "ecapa": 0.7263,
+     "ecapa_se": 0.0132,
+     "ecapa_tgt": 0.6286,
+     "pls": 84.46,
+     "latency_ms": {
+      "16": 410,
+      "32": 927
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +4.92 dB to -20.0 LUFS (true peak -3.5 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "dino-dinovic/2333128612648828928.holocall",
+      "dino-dinovic/2333218875731853312.holocall",
+      "dino-dinovic/1888175383099449344.holocall.m"
+     ],
+     "seconds": 16.67,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "frank-nostra": {
+   "omni": {
+    "short": {
+     "ids": [
+      "frank-nostra/1767768038568816640",
+      "frank-nostra/1660664089221701632"
+     ],
+     "seconds": 8.705,
+     "ecapa": 0.6494,
+     "ecapa_se": 0.0321,
+     "ecapa_tgt": 0.5011,
+     "pls": 107.22,
+     "latency_ms": {
+      "16": 366,
+      "32": 827
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +2.99 dB to -20.6 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "frank-nostra/1660664089221701632",
+      "frank-nostra/1685321949215911936",
+      "frank-nostra/1767768038568816640"
+     ],
+     "seconds": 14.12,
+     "ecapa": 0.7093,
+     "ecapa_se": 0.028,
+     "ecapa_tgt": 0.5366,
+     "pls": 85.89,
+     "latency_ms": {
+      "16": 593,
+      "32": 1341
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.99 dB to -20.6 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "frank-nostra/1660664089221701632",
+      "frank-nostra/1685321949215911936",
+      "frank-nostra/1767768038568816640"
+     ],
+     "seconds": 14.12,
+     "ecapa": 0.7093,
+     "ecapa_se": 0.028,
+     "ecapa_tgt": 0.5366,
+     "pls": 85.89,
+     "latency_ms": {
+      "16": 593,
+      "32": 1341
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.99 dB to -20.6 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "frank-nostra/1660662015574581248",
+      "frank-nostra/1685218361902821376",
+      "frank-nostra/1660650623962357760",
+      "frank-nostra/1685321949215911936"
+     ],
+     "seconds": 19.56,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "iris-tanner": {
+   "omni": {
+    "short": {
+     "ids": [
+      "iris-tanner/1933110864402731008",
+      "iris-tanner/1932990681939988480"
+     ],
+     "seconds": 7.738,
+     "ecapa": 0.7483,
+     "ecapa_se": 0.0203,
+     "ecapa_tgt": 0.6076,
+     "pls": 86.18,
+     "latency_ms": {
+      "16": 325,
+      "32": 735
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.86 dB to -23.3 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "iris-tanner/1933110864402731008",
+      "iris-tanner/1932990681939988480"
+     ],
+     "seconds": 7.738,
+     "ecapa": 0.7483,
+     "ecapa_se": 0.0203,
+     "ecapa_tgt": 0.6076,
+     "pls": 86.18,
+     "latency_ms": {
+      "16": 325,
+      "32": 735
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.86 dB to -23.3 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "iris-tanner/1933110864402731008",
+      "iris-tanner/1932990681939988480"
+     ],
+     "seconds": 7.738,
+     "ecapa": 0.7483,
+     "ecapa_se": 0.0203,
+     "ecapa_tgt": 0.6076,
+     "pls": 86.18,
+     "latency_ms": {
+      "16": 325,
+      "32": 735
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.86 dB to -23.3 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "iris-tanner/1933133010042638336",
+      "iris-tanner/1934516211843616768",
+      "iris-tanner/1933110864402731008",
+      "iris-tanner/1935991038332915712/female",
+      "iris-tanner/1933111576561995776"
+     ],
+     "seconds": 25.84,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "jefferson-peralez": {
+   "omni": {
+    "short": {
+     "ids": [
+      "jefferson-peralez/1941811789573087232"
+     ],
+     "seconds": 7.775,
+     "ecapa": 0.7032,
+     "ecapa_se": 0.0249,
+     "ecapa_tgt": 0.6148,
+     "pls": 104.55,
+     "latency_ms": {
+      "16": 327,
+      "32": 739
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.82 dB to -22.6 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "jefferson-peralez/1692596960932515840",
+      "jefferson-peralez/1812553849272868864"
+     ],
+     "seconds": 10.756,
+     "ecapa": 0.7412,
+     "ecapa_se": 0.0256,
+     "ecapa_tgt": 0.5891,
+     "pls": 105.96,
+     "latency_ms": {
+      "16": 452,
+      "32": 1022
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.65 dB to -21.9 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "jefferson-peralez/1692596960932515840",
+      "jefferson-peralez/1812553849272868864"
+     ],
+     "seconds": 10.756,
+     "ecapa": 0.7412,
+     "ecapa_se": 0.0256,
+     "ecapa_tgt": 0.5891,
+     "pls": 105.96,
+     "latency_ms": {
+      "16": 452,
+      "32": 1022
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.65 dB to -21.9 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "jefferson-peralez/1928830981551906816",
+      "jefferson-peralez/1812553849272868864",
+      "jefferson-peralez/1825414978955513856",
+      "jefferson-peralez/1692618948061286400"
+     ],
+     "seconds": 22.61,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "jesse": {
+   "omni": {
+    "short": {
+     "ids": [
+      "jesse/1812458150592258048",
+      "jesse/1812780967481319424"
+     ],
+     "seconds": 9.505,
+     "ecapa": 0.6586,
+     "ecapa_se": 0.0086,
+     "ecapa_tgt": 0.5788,
+     "pls": 56.1,
+     "latency_ms": {
+      "16": 399,
+      "32": 903
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -4.15 dB to -20.0 LUFS (true peak -6.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "jesse/1812458150592258048",
+      "jesse/1812780967481319424"
+     ],
+     "seconds": 9.505,
+     "ecapa": 0.6586,
+     "ecapa_se": 0.0086,
+     "ecapa_tgt": 0.5788,
+     "pls": 56.1,
+     "latency_ms": {
+      "16": 399,
+      "32": 903
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -4.15 dB to -20.0 LUFS (true peak -6.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "jesse/1812458150592258048",
+      "jesse/1812780967481319424"
+     ],
+     "seconds": 9.505,
+     "ecapa": 0.6586,
+     "ecapa_se": 0.0086,
+     "ecapa_tgt": 0.5788,
+     "pls": 56.1,
+     "latency_ms": {
+      "16": 399,
+      "32": 903
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -4.15 dB to -20.0 LUFS (true peak -6.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "jesse/1812776187451154432",
+      "jesse/1844248075355607040",
+      "jesse/1844273661499199488",
+      "jesse/1812458150592258048"
+     ],
+     "seconds": 21.05,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "joss-kutcher": {
+   "omni": {
+    "short": {
+     "ids": [
+      "joss-kutcher/1921436089619288100.holocall",
+      "joss-kutcher/1937559117121064960"
+     ],
+     "seconds": 9.026,
+     "ecapa": 0.7489,
+     "ecapa_se": 0.0199,
+     "ecapa_tgt": 0.604,
+     "pls": 101.14,
+     "latency_ms": {
+      "16": 379,
+      "32": 857
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +2.52 dB to -20.0 LUFS (true peak -2.4 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "joss-kutcher/1921436089619288100.holocall",
+      "joss-kutcher/1937559117121064960"
+     ],
+     "seconds": 9.026,
+     "ecapa": 0.7489,
+     "ecapa_se": 0.0199,
+     "ecapa_tgt": 0.604,
+     "pls": 101.14,
+     "latency_ms": {
+      "16": 379,
+      "32": 857
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.52 dB to -20.0 LUFS (true peak -2.4 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "joss-kutcher/1921436089619288100.holocall",
+      "joss-kutcher/1937559117121064960"
+     ],
+     "seconds": 9.026,
+     "ecapa": 0.7489,
+     "ecapa_se": 0.0199,
+     "ecapa_tgt": 0.604,
+     "pls": 101.14,
+     "latency_ms": {
+      "16": 379,
+      "32": 857
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.52 dB to -20.0 LUFS (true peak -2.4 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "joss-kutcher/1937489534070689792",
+      "joss-kutcher/1498083931053481984",
+      "joss-kutcher/1921436089619288084"
+     ],
+     "seconds": 13.13,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "liam-northom": {
+   "omni": {
+    "short": {
+     "ids": [
+      "liam-northom/1945930212072280064",
+      "liam-northom/1945987248248115200"
+     ],
+     "seconds": 7.212,
+     "ecapa": 0.6898,
+     "ecapa_se": 0.0307,
+     "ecapa_tgt": 0.5234,
+     "pls": 97.28,
+     "latency_ms": {
+      "16": 303,
+      "32": 685
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.00 dB to -19.4 LUFS (true peak -2.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "liam-northom/1945930212072280064",
+      "liam-northom/1945987248248115200"
+     ],
+     "seconds": 7.212,
+     "ecapa": 0.6898,
+     "ecapa_se": 0.0307,
+     "ecapa_tgt": 0.5234,
+     "pls": 97.28,
+     "latency_ms": {
+      "16": 303,
+      "32": 685
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.00 dB to -19.4 LUFS (true peak -2.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "liam-northom/1945930212072280064",
+      "liam-northom/1945987248248115200"
+     ],
+     "seconds": 7.212,
+     "ecapa": 0.6898,
+     "ecapa_se": 0.0307,
+     "ecapa_tgt": 0.5234,
+     "pls": 97.28,
+     "latency_ms": {
+      "16": 303,
+      "32": 685
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.00 dB to -19.4 LUFS (true peak -2.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "liam-northom/1946028906058665984",
+      "liam-northom/1944428403206561792"
+     ],
+     "seconds": 15.05,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "mark-bana": {
+   "omni": {
+    "short": {
+     "ids": [
+      "mark-bana/2951922005749510144.holocall"
+     ],
+     "seconds": 6.551,
+     "ecapa": 0.7095,
+     "ecapa_se": 0.0354,
+     "ecapa_tgt": 0.5955,
+     "pls": 41.95,
+     "latency_ms": {
+      "16": 275,
+      "32": 622
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.77 dB to -20.0 LUFS (true peak -3.5 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "mark-bana/2951922005749510144.holocall",
+      "mark-bana/2860517329309773824",
+      "mark-bana/2939077048165294080"
+     ],
+     "seconds": 17.306,
+     "ecapa": 0.7168,
+     "ecapa_se": 0.024,
+     "ecapa_tgt": 0.5885,
+     "pls": 68.08,
+     "latency_ms": {
+      "16": 727,
+      "32": 1644
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.98 dB to -20.0 LUFS (true peak -1.2 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "mark-bana/2951922005749510144.holocall"
+     ],
+     "seconds": 6.551,
+     "ecapa": 0.7095,
+     "ecapa_se": 0.0354,
+     "ecapa_tgt": 0.5955,
+     "pls": 41.95,
+     "latency_ms": {
+      "16": 275,
+      "32": 622
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.77 dB to -20.0 LUFS (true peak -3.5 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "mark-bana/3256574309549453312.holocall",
+      "mark-bana/2939077048165294080",
+      "mark-bana/2860517329309773824.holocall"
+     ],
+     "seconds": 19.01,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "misty-olszewski": {
+   "omni": {
+    "short": {
+     "ids": [
+      "misty-olszewski/1856371134500249600.m",
+      "misty-olszewski/1928736007493971968/female"
+     ],
+     "seconds": 8.986,
+     "ecapa": 0.8315,
+     "ecapa_se": 0.0167,
+     "ecapa_tgt": 0.7113,
+     "pls": 101.99,
+     "latency_ms": {
+      "16": 377,
+      "32": 854
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.98 dB to -22.8 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "misty-olszewski/1856371134500249600.m",
+      "misty-olszewski/1928736007493971968/female"
+     ],
+     "seconds": 8.986,
+     "ecapa": 0.8315,
+     "ecapa_se": 0.0167,
+     "ecapa_tgt": 0.7113,
+     "pls": 101.99,
+     "latency_ms": {
+      "16": 377,
+      "32": 854
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.98 dB to -22.8 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "misty-olszewski/1856371134500249600.m",
+      "misty-olszewski/1928736007493971968/female"
+     ],
+     "seconds": 8.986,
+     "ecapa": 0.8315,
+     "ecapa_se": 0.0167,
+     "ecapa_tgt": 0.7113,
+     "pls": 101.99,
+     "latency_ms": {
+      "16": 377,
+      "32": 854
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.98 dB to -22.8 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "misty-olszewski/1852996823039135744/female",
+      "misty-olszewski/1801308235892482048/female",
+      "misty-olszewski/1756117114744217612/female"
+     ],
+     "seconds": 15.96,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "muamar-reyes": {
+   "omni": {
+    "short": {
+     "ids": [
+      "muamar-reyes/3546572767910584320"
+     ],
+     "seconds": 8.532,
+     "ecapa": 0.7199,
+     "ecapa_se": 0.0254,
+     "ecapa_tgt": 0.5613,
+     "pls": 47.81,
+     "latency_ms": {
+      "16": 358,
+      "32": 811
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.40 dB to -20.0 LUFS (true peak -4.8 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "muamar-reyes/3546572767910584320",
+      "muamar-reyes/3546568923075993600"
+     ],
+     "seconds": 16.472,
+     "ecapa": 0.7365,
+     "ecapa_se": 0.0114,
+     "ecapa_tgt": 0.5404,
+     "pls": 24.07,
+     "latency_ms": {
+      "16": 692,
+      "32": 1565
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.49 dB to -20.0 LUFS (true peak -3.3 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "muamar-reyes/3546572767910584320"
+     ],
+     "seconds": 8.532,
+     "ecapa": 0.7199,
+     "ecapa_se": 0.0254,
+     "ecapa_tgt": 0.5613,
+     "pls": 47.81,
+     "latency_ms": {
+      "16": 358,
+      "32": 811
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.40 dB to -20.0 LUFS (true peak -4.8 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "muamar-reyes/3546572767910584320",
+      "muamar-reyes/3546568923075993600",
+      "muamar-reyes/1954798371959926784/female"
+     ],
+     "seconds": 25.51,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "nancy-hartley": {
+   "omni": {
+    "short": {
+     "ids": [
+      "nancy-hartley/1915414117867638784/female",
+      "nancy-hartley/1382722385996374016/female",
+      "nancy-hartley/1834628472449552384/female"
+     ],
+     "seconds": 9.967,
+     "ecapa": 0.7011,
+     "ecapa_se": 0.0067,
+     "ecapa_tgt": 0.5134,
+     "pls": 48.99,
+     "latency_ms": {
+      "16": 419,
+      "32": 947
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.99 dB to -20.7 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "nancy-hartley/1915414117867638784/female",
+      "nancy-hartley/1382722385996374016/female",
+      "nancy-hartley/1834628472449552384/female"
+     ],
+     "seconds": 9.967,
+     "ecapa": 0.7011,
+     "ecapa_se": 0.0067,
+     "ecapa_tgt": 0.5134,
+     "pls": 48.99,
+     "latency_ms": {
+      "16": 419,
+      "32": 947
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.99 dB to -20.7 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "nancy-hartley/1915414117867638784/female",
+      "nancy-hartley/1382722385996374016/female",
+      "nancy-hartley/1834628472449552384/female"
+     ],
+     "seconds": 9.967,
+     "ecapa": 0.7011,
+     "ecapa_se": 0.0067,
+     "ecapa_tgt": 0.5134,
+     "pls": 48.99,
+     "latency_ms": {
+      "16": 419,
+      "32": 947
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.99 dB to -20.7 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "nancy-hartley/1847214128161902592",
+      "nancy-hartley/1847343775239393280/female"
+     ],
+     "seconds": 9.53,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "nele-springer": {
+   "omni": {
+    "short": {
+     "ids": [
+      "nele-springer/3240733557026889728",
+      "nele-springer/3236455967772549152"
+     ],
+     "seconds": 8.92,
+     "ecapa": 0.7395,
+     "ecapa_se": 0.0129,
+     "ecapa_tgt": 0.6567,
+     "pls": 122.32,
+     "latency_ms": {
+      "16": 375,
+      "32": 847
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.55 dB to -20.0 LUFS (true peak -2.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "nele-springer/3240733557026889728",
+      "nele-springer/3236455967772549152"
+     ],
+     "seconds": 8.92,
+     "ecapa": 0.7395,
+     "ecapa_se": 0.0129,
+     "ecapa_tgt": 0.6567,
+     "pls": 122.32,
+     "latency_ms": {
+      "16": 375,
+      "32": 847
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.55 dB to -20.0 LUFS (true peak -2.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "nele-springer/3240733557026889728",
+      "nele-springer/3236455967772549152"
+     ],
+     "seconds": 8.92,
+     "ecapa": 0.7395,
+     "ecapa_se": 0.0129,
+     "ecapa_tgt": 0.6567,
+     "pls": 122.32,
+     "latency_ms": {
+      "16": 375,
+      "32": 847
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.55 dB to -20.0 LUFS (true peak -2.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "nele-springer/3256386136511520768",
+      "nele-springer/3246386111123464192"
+     ],
+     "seconds": 8.2,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "nix": {
+   "omni": {
+    "short": {
+     "ids": [
+      "nix/1843132173142773760",
+      "nix/1892529284325888000"
+     ],
+     "seconds": 8.153,
+     "ecapa": 0.7009,
+     "ecapa_se": 0.0356,
+     "ecapa_tgt": 0.581,
+     "pls": 89.84,
+     "latency_ms": {
+      "16": 342,
+      "32": 775
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.39 dB to -20.1 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "nix/1843087726371721216",
+      "nix/1843132173142773760"
+     ],
+     "seconds": 8.946,
+     "ecapa": 0.7162,
+     "ecapa_se": 0.019,
+     "ecapa_tgt": 0.5903,
+     "pls": 102.74,
+     "latency_ms": {
+      "16": 376,
+      "32": 850
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.45 dB to -21.0 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "nix/1843132173142773760",
+      "nix/1892529284325888000"
+     ],
+     "seconds": 8.153,
+     "ecapa": 0.7009,
+     "ecapa_se": 0.0356,
+     "ecapa_tgt": 0.581,
+     "pls": 89.84,
+     "latency_ms": {
+      "16": 342,
+      "32": 775
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.39 dB to -20.1 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "nix/3121663143040475136.m",
+      "nix/1843087726371721216",
+      "nix/1941431684312985600",
+      "nix/1776552096943742976"
+     ],
+     "seconds": 25.58,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "paco-torres": {
+   "omni": {
+    "short": {
+     "ids": [
+      "paco-torres/3043156959827406848",
+      "paco-torres/2960069708734697472/female"
+     ],
+     "seconds": 9.888,
+     "ecapa": 0.6832,
+     "ecapa_se": 0.0346,
+     "ecapa_tgt": 0.5307,
+     "pls": 49.52,
+     "latency_ms": {
+      "16": 415,
+      "32": 939
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.72 dB to -20.0 LUFS (true peak -2.1 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "paco-torres/3043156959827406848",
+      "paco-torres/3359417271587254272",
+      "paco-torres/2960069708734697472/female"
+     ],
+     "seconds": 14.535,
+     "ecapa": 0.6984,
+     "ecapa_se": 0.031,
+     "ecapa_tgt": 0.52,
+     "pls": 34.21,
+     "latency_ms": {
+      "16": 610,
+      "32": 1381
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.50 dB to -20.0 LUFS (true peak -1.3 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "paco-torres/3043156959827406848",
+      "paco-torres/3359417271587254272",
+      "paco-torres/2960069708734697472/female"
+     ],
+     "seconds": 14.535,
+     "ecapa": 0.6984,
+     "ecapa_se": 0.031,
+     "ecapa_tgt": 0.52,
+     "pls": 34.21,
+     "latency_ms": {
+      "16": 610,
+      "32": 1381
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.50 dB to -20.0 LUFS (true peak -1.3 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "paco-torres/3276781688445022208.m",
+      "paco-torres/3262521063049080832"
+     ],
+     "seconds": 16.43,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "r3n0": {
+   "omni": {
+    "short": {
+     "ids": [
+      "r3n0/1842997392102969344",
+      "r3n0/1842973922103185408"
+     ],
+     "seconds": 7.532,
+     "ecapa": 0.6054,
+     "ecapa_se": 0.0124,
+     "ecapa_tgt": 0.5393,
+     "pls": 89.57,
+     "latency_ms": {
+      "16": 316,
+      "32": 716
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.81 dB to -20.0 LUFS (true peak -2.4 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "r3n0/1815763652801634304",
+      "r3n0/1842997392102969344",
+      "r3n0/1843011425505955840"
+     ],
+     "seconds": 12.29,
+     "ecapa": 0.6572,
+     "ecapa_se": 0.018,
+     "ecapa_tgt": 0.5488,
+     "pls": 101.18,
+     "latency_ms": {
+      "16": 516,
+      "32": 1168
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.77 dB to -20.0 LUFS (true peak -1.2 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "r3n0/1815763652801634304",
+      "r3n0/1842997392102969344",
+      "r3n0/1843011425505955840"
+     ],
+     "seconds": 12.29,
+     "ecapa": 0.6572,
+     "ecapa_se": 0.018,
+     "ecapa_tgt": 0.5488,
+     "pls": 101.18,
+     "latency_ms": {
+      "16": 516,
+      "32": 1168
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.77 dB to -20.0 LUFS (true peak -1.2 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "r3n0/1815763652801634304",
+      "r3n0/1842973922103185408"
+     ],
+     "seconds": 6.93,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "rachel-casich": {
+   "omni": {
+    "short": {
+     "ids": [
+      "rachel-casich/1805685483300741120",
+      "rachel-casich/1814471652348026880"
+     ],
+     "seconds": 9.485,
+     "ecapa": 0.7651,
+     "ecapa_se": 0.0169,
+     "ecapa_tgt": 0.6487,
+     "pls": 69.12,
+     "latency_ms": {
+      "16": 398,
+      "32": 901
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.64 dB to -22.0 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "rachel-casich/1831968994743574528",
+      "rachel-casich/1814469931894857728",
+      "rachel-casich/1814471652348026880"
+     ],
+     "seconds": 17.97,
+     "ecapa": 0.7797,
+     "ecapa_se": 0.0112,
+     "ecapa_tgt": 0.6783,
+     "pls": 74.01,
+     "latency_ms": {
+      "16": 755,
+      "32": 1707
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.08 dB to -20.9 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "rachel-casich/1831968994743574528",
+      "rachel-casich/1814469931894857728",
+      "rachel-casich/1814471652348026880"
+     ],
+     "seconds": 17.97,
+     "ecapa": 0.7797,
+     "ecapa_se": 0.0112,
+     "ecapa_tgt": 0.6783,
+     "pls": 74.01,
+     "latency_ms": {
+      "16": 755,
+      "32": 1707
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.08 dB to -20.9 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "rachel-casich/1814569469322223616",
+      "rachel-casich/1814469931894857728",
+      "rachel-casich/1831970791147200512",
+      "rachel-casich/1814570085666807808"
+     ],
+     "seconds": 22.15,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "regina-jones": {
+   "omni": {
+    "short": {
+     "ids": [
+      "regina-jones/2334801610977677312/female",
+      "regina-jones/2353303712956588032/female"
+     ],
+     "seconds": 8.669,
+     "ecapa": 0.768,
+     "ecapa_se": 0.0277,
+     "ecapa_tgt": 0.6688,
+     "pls": 89.74,
+     "latency_ms": {
+      "16": 364,
+      "32": 824
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.59 dB to -20.0 LUFS (true peak -1.3 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "regina-jones/2334801610977677312/female",
+      "regina-jones/2353303712956588032/female"
+     ],
+     "seconds": 8.669,
+     "ecapa": 0.768,
+     "ecapa_se": 0.0277,
+     "ecapa_tgt": 0.6688,
+     "pls": 89.74,
+     "latency_ms": {
+      "16": 364,
+      "32": 824
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.59 dB to -20.0 LUFS (true peak -1.3 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "regina-jones/2334801610977677312/female",
+      "regina-jones/2353303712956588032/female"
+     ],
+     "seconds": 8.669,
+     "ecapa": 0.768,
+     "ecapa_se": 0.0277,
+     "ecapa_tgt": 0.6688,
+     "pls": 89.74,
+     "latency_ms": {
+      "16": 364,
+      "32": 824
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.59 dB to -20.0 LUFS (true peak -1.3 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "regina-jones/2330377776878948352/female",
+      "regina-jones/2329270770769895424.holocall",
+      "regina-jones/2344884876975902720.holocall"
+     ],
+     "seconds": 22.59,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "robert-wilson": {
+   "omni": {
+    "short": {
+     "ids": [
+      "robert-wilson/1905234222101352448",
+      "robert-wilson/1861803088693698564/female"
+     ],
+     "seconds": 6.041,
+     "ecapa": 0.5723,
+     "ecapa_se": 0.0228,
+     "ecapa_tgt": 0.4986,
+     "pls": 74.56,
+     "latency_ms": {
+      "16": 254,
+      "32": 574
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.00 dB to -18.1 LUFS (true peak -1.9 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "robert-wilson/1729877965365473280",
+      "robert-wilson/1764877314085642240"
+     ],
+     "seconds": 12.853,
+     "ecapa": 0.641,
+     "ecapa_se": 0.0172,
+     "ecapa_tgt": 0.5673,
+     "pls": 79.79,
+     "latency_ms": {
+      "16": 540,
+      "32": 1221
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.29 dB to -20.3 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "robert-wilson/1729877965365473280",
+      "robert-wilson/1764877314085642240"
+     ],
+     "seconds": 12.853,
+     "ecapa": 0.641,
+     "ecapa_se": 0.0172,
+     "ecapa_tgt": 0.5673,
+     "pls": 79.79,
+     "latency_ms": {
+      "16": 540,
+      "32": 1221
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.29 dB to -20.3 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "robert-wilson/1729878573371781120",
+      "robert-wilson/1905248961959350272",
+      "robert-wilson/1764877314085642240"
+     ],
+     "seconds": 16.9,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "sandra-dorsett": {
+   "omni": {
+    "short": {
+     "ids": [
+      "sandra-dorsett/1831671809967898624",
+      "sandra-dorsett/1790909271813287936"
+     ],
+     "seconds": 7.694,
+     "ecapa": 0.7257,
+     "ecapa_se": 0.0235,
+     "ecapa_tgt": 0.5996,
+     "pls": 112.76,
+     "latency_ms": {
+      "16": 323,
+      "32": 731
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.61 dB to -20.0 LUFS (true peak -2.9 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "sandra-dorsett/1831671809967898624",
+      "sandra-dorsett/1837344449881686016"
+     ],
+     "seconds": 12.112,
+     "ecapa": 0.7488,
+     "ecapa_se": 0.0185,
+     "ecapa_tgt": 0.6337,
+     "pls": 107.79,
+     "latency_ms": {
+      "16": 509,
+      "32": 1151
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.60 dB to -20.0 LUFS (true peak -1.7 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "sandra-dorsett/1831671809967898624",
+      "sandra-dorsett/1837344449881686016"
+     ],
+     "seconds": 12.112,
+     "ecapa": 0.7488,
+     "ecapa_se": 0.0185,
+     "ecapa_tgt": 0.6337,
+     "pls": 107.79,
+     "latency_ms": {
+      "16": 509,
+      "32": 1151
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.60 dB to -20.0 LUFS (true peak -1.7 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "sandra-dorsett/1831728989656039424",
+      "sandra-dorsett/1790899634141556736",
+      "sandra-dorsett/1790972797835702272"
+     ],
+     "seconds": 19.87,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "santiago": {
+   "omni": {
+    "short": {
+     "ids": [
+      "santiago/1796870623720357892",
+      "santiago/1499524941370167320"
+     ],
+     "seconds": 6.625,
+     "ecapa": 0.7248,
+     "ecapa_se": 0.0251,
+     "ecapa_tgt": 0.6801,
+     "pls": 100.62,
+     "latency_ms": {
+      "16": 278,
+      "32": 629
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.38 dB to -21.1 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "santiago/1256069014777827328",
+      "santiago/1499492157163376640",
+      "santiago/1796870623720357892",
+      "santiago/1796870623686803460",
+      "santiago/1499491803164119040"
+     ],
+     "seconds": 17.63,
+     "ecapa": 0.7832,
+     "ecapa_se": 0.0104,
+     "ecapa_tgt": 0.7154,
+     "pls": 108.2,
+     "latency_ms": {
+      "16": 740,
+      "32": 1675
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.38 dB to -21.2 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "santiago/1256069014777827328",
+      "santiago/1499492157163376640",
+      "santiago/1796870623720357892",
+      "santiago/1796870623686803460",
+      "santiago/1499491803164119040"
+     ],
+     "seconds": 17.63,
+     "ecapa": 0.7832,
+     "ecapa_se": 0.0104,
+     "ecapa_tgt": 0.7154,
+     "pls": 108.2,
+     "latency_ms": {
+      "16": 740,
+      "32": 1675
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.38 dB to -21.2 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "santiago/1499491803164119040",
+      "santiago/1796870623720357892",
+      "santiago/1256065633212502016",
+      "santiago/1256069014777827328",
+      "santiago/1796870623502254084",
+      "santiago/1499524941370167320",
+      "santiago/1796870623686803460"
+     ],
+     "seconds": 24.53,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "saul-bright": {
+   "omni": {
+    "short": {
+     "ids": [
+      "saul-bright/1886527567287676928",
+      "saul-bright/1883923832283877376"
+     ],
+     "seconds": 9.821,
+     "ecapa": 0.7453,
+     "ecapa_se": 0.0143,
+     "ecapa_tgt": 0.6314,
+     "pls": 117.79,
+     "latency_ms": {
+      "16": 412,
+      "32": 933
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.61 dB to -22.0 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "saul-bright/1886527567287676928",
+      "saul-bright/1551820624429596696",
+      "saul-bright/1896559852866646028"
+     ],
+     "seconds": 15.535,
+     "ecapa": 0.7862,
+     "ecapa_se": 0.0137,
+     "ecapa_tgt": 0.6768,
+     "pls": 119.37,
+     "latency_ms": {
+      "16": 652,
+      "32": 1476
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.61 dB to -22.0 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "saul-bright/1886527567287676928",
+      "saul-bright/1551820624429596696",
+      "saul-bright/1896559852866646028"
+     ],
+     "seconds": 15.535,
+     "ecapa": 0.7862,
+     "ecapa_se": 0.0137,
+     "ecapa_tgt": 0.6768,
+     "pls": 119.37,
+     "latency_ms": {
+      "16": 652,
+      "32": 1476
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.61 dB to -22.0 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "saul-bright/1888111599880368128",
+      "saul-bright/1896559852833091608",
+      "saul-bright/1937301141720944648"
+     ],
+     "seconds": 15.19,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "sergei-karasinsky": {
+   "omni": {
+    "short": {
+     "ids": [
+      "sergei-karasinsky/1656034606114447360",
+      "sergei-karasinsky/1925773168663613440"
+     ],
+     "seconds": 7.446,
+     "ecapa": 0.6746,
+     "ecapa_se": 0.0182,
+     "ecapa_tgt": 0.6093,
+     "pls": 108.95,
+     "latency_ms": {
+      "16": 313,
+      "32": 707
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.02 dB to -20.3 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "sergei-karasinsky/1656034606114447360",
+      "sergei-karasinsky/1925785769913110528",
+      "sergei-karasinsky/1925773168663613440"
+     ],
+     "seconds": 15.391,
+     "ecapa": 0.7168,
+     "ecapa_se": 0.0054,
+     "ecapa_tgt": 0.6228,
+     "pls": 101.96,
+     "latency_ms": {
+      "16": 646,
+      "32": 1462
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.92 dB to -21.5 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "sergei-karasinsky/1656034606114447360",
+      "sergei-karasinsky/1925785769913110528",
+      "sergei-karasinsky/1925773168663613440"
+     ],
+     "seconds": 15.391,
+     "ecapa": 0.7168,
+     "ecapa_se": 0.0054,
+     "ecapa_tgt": 0.6228,
+     "pls": 101.96,
+     "latency_ms": {
+      "16": 646,
+      "32": 1462
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.92 dB to -21.5 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "sergei-karasinsky/1925785769913110528",
+      "sergei-karasinsky/1656034606114447360",
+      "sergei-karasinsky/1925773168663613440"
+     ],
+     "seconds": 15.39,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "shank": {
+   "omni": {
+    "short": {
+     "ids": [
+      "shank/3294834521542512640",
+      "shank/3294847507527127040"
+     ],
+     "seconds": 8.452,
+     "ecapa": 0.7298,
+     "ecapa_se": 0.0181,
+     "ecapa_tgt": 0.5988,
+     "pls": 104.59,
+     "latency_ms": {
+      "16": 355,
+      "32": 803
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.59 dB to -20.0 LUFS (true peak -6.3 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "shank/3294834521542512640",
+      "shank/3294847507527127040"
+     ],
+     "seconds": 8.452,
+     "ecapa": 0.7298,
+     "ecapa_se": 0.0181,
+     "ecapa_tgt": 0.5988,
+     "pls": 104.59,
+     "latency_ms": {
+      "16": 355,
+      "32": 803
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.59 dB to -20.0 LUFS (true peak -6.3 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "shank/3294834521542512640",
+      "shank/3294847507527127040"
+     ],
+     "seconds": 8.452,
+     "ecapa": 0.7298,
+     "ecapa_se": 0.0181,
+     "ecapa_tgt": 0.5988,
+     "pls": 104.59,
+     "latency_ms": {
+      "16": 355,
+      "32": 803
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.59 dB to -20.0 LUFS (true peak -6.3 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "shank/3293467777536118784",
+      "shank/3295685324551720960",
+      "shank/3302189547894099968",
+      "shank/3304388218360664064"
+     ],
+     "seconds": 23.03,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "spider-murphy": {
+   "omni": {
+    "short": {
+     "ids": [
+      "spider-murphy/1994149901557587968.holocall",
+      "spider-murphy/1770754317166862336.holocall"
+     ],
+     "seconds": 6.961,
+     "ecapa": 0.6246,
+     "ecapa_se": 0.0165,
+     "ecapa_tgt": 0.5296,
+     "pls": 88.27,
+     "latency_ms": {
+      "16": 292,
+      "32": 661
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +4.65 dB to -20.0 LUFS (true peak -5.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "spider-murphy/1693744703517913088",
+      "spider-murphy/1786609673804345344",
+      "spider-murphy/1770754317166862336.holocall",
+      "spider-murphy/1770789571952926720.holocall"
+     ],
+     "seconds": 16.883,
+     "ecapa": 0.6785,
+     "ecapa_se": 0.0143,
+     "ecapa_tgt": 0.5158,
+     "pls": 74.57,
+     "latency_ms": {
+      "16": 709,
+      "32": 1604
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.70 dB to -22.6 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "spider-murphy/1693744703517913088",
+      "spider-murphy/1786609673804345344",
+      "spider-murphy/1770754317166862336.holocall",
+      "spider-murphy/1770789571952926720.holocall"
+     ],
+     "seconds": 16.883,
+     "ecapa": 0.6785,
+     "ecapa_se": 0.0143,
+     "ecapa_tgt": 0.5158,
+     "pls": 74.57,
+     "latency_ms": {
+      "16": 709,
+      "32": 1604
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.70 dB to -22.6 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "spider-murphy/1764951325196967936",
+      "spider-murphy/1994149901557587968.holocall",
+      "spider-murphy/1770754317166862336.holocall"
+     ],
+     "seconds": 12.21,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "steven-santos": {
+   "omni": {
+    "short": {
+     "ids": [
+      "steven-santos/3363676278180122652",
+      "steven-santos/3363664477539373092"
+     ],
+     "seconds": 9.786,
+     "ecapa": 0.6638,
+     "ecapa_se": 0.0509,
+     "ecapa_tgt": 0.4561,
+     "pls": 102.84,
+     "latency_ms": {
+      "16": 411,
+      "32": 930
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.53 dB to -20.0 LUFS (true peak -3.9 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "steven-santos/3363676278180122652",
+      "steven-santos/3363664471096922148",
+      "steven-santos/3294056814736674816"
+     ],
+     "seconds": 16.349,
+     "ecapa": 0.7129,
+     "ecapa_se": 0.0531,
+     "ecapa_tgt": 0.5319,
+     "pls": 93.88,
+     "latency_ms": {
+      "16": 687,
+      "32": 1553
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.11 dB to -20.0 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "steven-santos/3363676278180122652",
+      "steven-santos/3363664471096922148",
+      "steven-santos/3294056814736674816"
+     ],
+     "seconds": 16.349,
+     "ecapa": 0.7129,
+     "ecapa_se": 0.0531,
+     "ecapa_tgt": 0.5319,
+     "pls": 93.88,
+     "latency_ms": {
+      "16": 687,
+      "32": 1553
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.11 dB to -20.0 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "steven-santos/3295455393007112192",
+      "steven-santos/3363664471113699340",
+      "steven-santos/3294056814736674816",
+      "steven-santos/3363664477539373116"
+     ],
+     "seconds": 20.84,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "t-bug": {
+   "omni": {
+    "short": {
+     "ids": [
+      "t-bug/1885234857545445376",
+      "t-bug/1989698661187919876"
+     ],
+     "seconds": 9.77,
+     "ecapa": 0.749,
+     "ecapa_se": 0.0113,
+     "ecapa_tgt": 0.6171,
+     "pls": 103.58,
+     "latency_ms": {
+      "16": 410,
+      "32": 928
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.26 dB to -21.4 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "t-bug/1885234857545445376",
+      "t-bug/1989698661187919876"
+     ],
+     "seconds": 9.77,
+     "ecapa": 0.749,
+     "ecapa_se": 0.0113,
+     "ecapa_tgt": 0.6171,
+     "pls": 103.58,
+     "latency_ms": {
+      "16": 410,
+      "32": 928
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.26 dB to -21.4 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "t-bug/1885234857545445376",
+      "t-bug/1989698661187919876"
+     ],
+     "seconds": 9.77,
+     "ecapa": 0.749,
+     "ecapa_se": 0.0113,
+     "ecapa_tgt": 0.6171,
+     "pls": 103.58,
+     "latency_ms": {
+      "16": 410,
+      "32": 928
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.26 dB to -21.4 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "t-bug/1991020021633851392",
+      "t-bug/2211489674823286784/female",
+      "t-bug/1763171188322652160"
+     ],
+     "seconds": 11.02,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "thompson": {
+   "omni": {
+    "short": {
+     "ids": [
+      "thompson/1727274195179601928",
+      "thompson/1622651868972126208"
+     ],
+     "seconds": 8.627,
+     "ecapa": 0.7285,
+     "ecapa_se": 0.0187,
+     "ecapa_tgt": 0.6625,
+     "pls": 125.12,
+     "latency_ms": {
+      "16": 362,
+      "32": 820
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +2.94 dB to -20.6 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "thompson/1621359986178592768",
+      "thompson/2003892249796874264",
+      "thompson/1722643074617769984"
+     ],
+     "seconds": 16.81,
+     "ecapa": 0.7781,
+     "ecapa_se": 0.0168,
+     "ecapa_tgt": 0.6514,
+     "pls": 118.93,
+     "latency_ms": {
+      "16": 706,
+      "32": 1597
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.61 dB to -22.1 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "thompson/1621359986178592768",
+      "thompson/2003892249796874264",
+      "thompson/1722643074617769984"
+     ],
+     "seconds": 16.81,
+     "ecapa": 0.7781,
+     "ecapa_se": 0.0168,
+     "ecapa_tgt": 0.6514,
+     "pls": 118.93,
+     "latency_ms": {
+      "16": 706,
+      "32": 1597
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.61 dB to -22.1 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "thompson/1795187591058100224",
+      "thompson/1621359885397856256"
+     ],
+     "seconds": 11.3,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "wakako-okada": {
+   "omni": {
+    "short": {
+     "ids": [
+      "wakako-okada/1933096531512557572",
+      "wakako-okada/2342946507266035712"
+     ],
+     "seconds": 9.925,
+     "ecapa": 0.7654,
+     "ecapa_se": 0.0162,
+     "ecapa_tgt": 0.7156,
+     "pls": 95.79,
+     "latency_ms": {
+      "16": 417,
+      "32": 943
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.76 dB to -22.8 LUFS (true peak -1.0 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "wakako-okada/1933096531512557572",
+      "wakako-okada/2342946507266035712"
+     ],
+     "seconds": 9.925,
+     "ecapa": 0.7654,
+     "ecapa_se": 0.0162,
+     "ecapa_tgt": 0.7156,
+     "pls": 95.79,
+     "latency_ms": {
+      "16": 417,
+      "32": 943
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.76 dB to -22.8 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "wakako-okada/1933096531512557572",
+      "wakako-okada/2342946507266035712"
+     ],
+     "seconds": 9.925,
+     "ecapa": 0.7654,
+     "ecapa_se": 0.0162,
+     "ecapa_tgt": 0.7156,
+     "pls": 95.79,
+     "latency_ms": {
+      "16": 417,
+      "32": 943
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.76 dB to -22.8 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "wakako-okada/1937457934520782884",
+      "wakako-okada/1937457935644856340",
+      "wakako-okada/2019852482132242432"
+     ],
+     "seconds": 24.02,
+     "note": "current pick, unchanged"
+    }
+   }
+  },
+  "yorinobu-arasaka": {
+   "omni": {
+    "short": {
+     "ids": [
+      "yorinobu-arasaka/1815773885844029440",
+      "yorinobu-arasaka/1814178425433882624",
+      "yorinobu-arasaka/1812773702457753600"
+     ],
+     "seconds": 9.701,
+     "ecapa": 0.6476,
+     "ecapa_se": 0.0101,
+     "ecapa_tgt": 0.4976,
+     "pls": 70.23,
+     "latency_ms": {
+      "16": 407,
+      "32": 922
+     },
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.88 dB to -20.0 LUFS (true peak -1.4 dBFS)"
+    },
+    "long": {
+     "ids": [
+      "yorinobu-arasaka/1814188731157577728",
+      "yorinobu-arasaka/1812537057108164608",
+      "yorinobu-arasaka/1812756784984227840"
+     ],
+     "seconds": 12.958,
+     "ecapa": 0.7132,
+     "ecapa_se": 0.0201,
+     "ecapa_tgt": 0.4778,
+     "pls": 82.17,
+     "latency_ms": {
+      "16": 544,
+      "32": 1231
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.20 dB to -22.8 LUFS (true peak -1.0 dBFS)"
+    },
+    "best": {
+     "ids": [
+      "yorinobu-arasaka/1814188731157577728",
+      "yorinobu-arasaka/1812537057108164608",
+      "yorinobu-arasaka/1812756784984227840"
+     ],
+     "seconds": 12.958,
+     "ecapa": 0.7132,
+     "ecapa_se": 0.0201,
+     "ecapa_tgt": 0.4778,
+     "pls": 82.17,
+     "latency_ms": {
+      "16": 544,
+      "32": 1231
+     },
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.20 dB to -22.8 LUFS (true peak -1.0 dBFS)"
+    }
+   },
+   "pocket": {
+    "best": {
+     "ids": [
+      "yorinobu-arasaka/1815779097468076032",
+      "yorinobu-arasaka/1812760281825804288",
+      "yorinobu-arasaka/1812537057108164608",
+      "yorinobu-arasaka/1812787177565323264"
+     ],
+     "seconds": 19.19,
+     "note": "current pick, unchanged"
+    }
+   }
+  }
+ }
+}
