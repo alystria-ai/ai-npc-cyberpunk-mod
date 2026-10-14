@@ -502,3 +502,34 @@ test('an add-on remark whose speaker shows the text itself plays without a subti
  assert(speech.start(context, reply))
  assert(calls.asked == 0 and speech.captionHidden == nil)
 `));
+
+test('an add-on voice anchored to V is heard from its own object (Audioware refuses V as an emitter); without one it fails with a reason and shows the text', () => run(speechSetup, `
+ local emitters, shown = {}, 0
+ player.ConvaiSpeechStart = function(_, object, event) native(); emitters[#emitters + 1] = tostring(object:GetEntityID().hash); cursor = 0; return true end
+ captions.show = function() shown = shown + 1 end
+ local gun = {GetEntityID = function() native(); return {hash = 'GUN'} end}
+ local source, asked = gun, 0
+ speech.voiceSource = function(key, p) asked = asked + 1; assert(key == 'addon-x-gun' and p == player); return source end
+ speech.target = player
+ local addon = {entity = 'V', requestId = 'req-v', generation = 3, name = 'Gun', voiceOnly = true, profileKey = 'addon-x-gun'}
+ local reply = {text = 'A reply', audio = chunk(1).audio}
+ -- The gun in V's hand is the emitter, not V.
+ assert(speech.start(addon, reply))
+ assert(#emitters == 1 and emitters[1] == 'GUN' and asked == 1, 'the voice comes from the gun: ' .. table.concat(emitters, ','))
+ assert(speech.state == 'starting' or speech.state == 'playing')
+ speech.stop('cancelled')
+ assert(speech.emitter == nil)
+ -- No object to come from: V would be the emitter, which Audioware refuses, so the call is not made and the text is shown.
+ source = nil
+ emitters, shown = {}, 0
+ assert(not speech.start(addon, reply))
+ assert(#emitters == 0, 'V is never registered as an emitter')
+ assert(speech.state == 'playback-failed' and tostring(speech.error):find('Audioware cannot play on V'), tostring(speech.error))
+ assert(shown == 1, 'the subtitle shows the text of a voice that cannot play')
+ -- An ordinary speaker (and an add-on with a body) plays on itself and never asks for a source.
+ asked = 0
+ speech.target = actor
+ assert(speech.start(context, reply))
+ assert(asked == 0, 'only a voice without a body asks')
+ speech.stop('cancelled')
+`));

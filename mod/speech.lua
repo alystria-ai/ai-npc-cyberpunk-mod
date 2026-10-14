@@ -158,7 +158,7 @@ function M.stop(reason)
         else captions.clear() end
     end
     M.streamReceipt = receipt()
-    M.captionHidden = nil
+    M.captionHidden, M.emitter = nil, nil
     M.stream, M.context, M.nativeCompleted = nil, nil, nil
     M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
     M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState, M.continuousHeardAll = nil, nil, nil, nil
@@ -198,8 +198,18 @@ end
 
 local function beginChunk(audio, text, timeline, startSeconds)
     -- A holocall reply is heard through the phone: the sound plays on V at full volume (the live picture's copy, which
-    -- still gets the face, is far away). Every other reply plays on its speaker.
-    local emitter = M.holocall and M.player or M.actor
+    -- still gets the face, is far away). An add-on voice with its own object (voiceFrom: Skippy's gun) is heard from that object. Every
+    -- other reply plays on its speaker.
+    local emitter = M.holocall and M.player or M.emitter or M.actor
+    -- Audioware refuses V as an emitter ("entity_id cannot be undefined or V" in its log): a voice that belongs to V and has no object of
+    -- its own to come from cannot play, so say that, not a bare refusal, and show the text.
+    if not M.holocall and M.playerID then
+        local known, id = pcall(function() return tostring(emitter:GetEntityID().hash) end)
+        if known and id == M.playerID then
+            M.error = 'Audioware cannot play on V and this voice has no object of its own to be heard from'
+            fallback('playback-failed', M.text); return false
+        end
+    end
     local ok, started = pcall(function() return M.player:ConvaiSpeechStart(emitter, CName.new(audio.event)) end)
     if not ok or not started then
         M.error = tostring(started)
@@ -320,6 +330,13 @@ function M.start(context, reply)
     end
     M.player, M.actor = player, actor
     M.playerID = tostring(player:GetEntityID().hash)
+    -- An add-on voice may be heard from its own object (addons.lua voiceFrom: Skippy's gun in V's hand), asked once for this reply. It is
+    -- also the emitter: a speaker anchored to V (Skippy) has no other body to play from (see beginChunk).
+    M.emitter = nil
+    if M.voiceOnly and not M.holocall and type(M.voiceSource) == 'function' then
+        local sourced, object = pcall(M.voiceSource, context.profileKey, player)
+        M.emitter = sourced and object or nil
+    end
     M.requestId, M.context = context.requestId, {requestId = context.requestId, generation = context.generation,
         entity = context.entity, name = context.name}
     if face.beginExpression then face.beginExpression(M.context,reply.expression) end
@@ -355,7 +372,7 @@ function M.abandon()
     if continuous then continuous.stop() end
     face.abandon()
     M.faceActor, M.faceEntity, M.faceContext, facial.screenEntity = nil, nil, nil, nil
-    M.captionHidden = nil
+    M.captionHidden, M.emitter = nil, nil
     M.streamReceipt = receipt()
     M.stream, M.context, M.target, M.nativeCompleted = nil, nil, nil, nil
     M.utterance = nil
