@@ -35140,14 +35140,14 @@ local catalog = {
         ["Character.Judy"] = {
             key = "judy",
             rig = "woman_base",
-            talk = "judy_own",
+            talk = "arms_crossed",
             idle = "judy",
             idles = {
                 "judy_coffee",
             },
             flavour = true,
             fallback = "on_sides",
-            note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+            note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Talk stance (Round 13): arms_crossed, not judy_own. judy_own loops Judy's ambient idle_stand while every clip it plays starts and ends in the stand__arms_crossed_front__01 base pose; measured on the exports (hips frame) the loop sits 20 cm from the base at the head (15 cm further forward, 6 cm lower), 13 cm at the left hand and 7.6 cm at the chest, so each gesture popped her from the slouch to upright and back (the user's ping-pong).",
             idleSource = "character",
         },
         ["Character.Panam"] = {
@@ -35186,11 +35186,11 @@ local catalog = {
         ["Character.alex"] = {
             key = "alex",
             rig = "woman_base",
-            talk = "judy_own",
+            talk = "arms_crossed",
             idle = "alex",
             flavour = true,
             fallback = "on_sides",
-            note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+            note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Talk stance (Round 13): arms_crossed, not judy_own. judy_own loops Judy's ambient idle_stand while every clip it plays starts and ends in the stand__arms_crossed_front__01 base pose; measured on the exports (hips frame) the loop sits 20 cm from the base at the head (15 cm further forward, 6 cm lower), 13 cm at the left hand and 7.6 cm at the chest, so each gesture popped her from the slouch to upright and back (the user's ping-pong).",
             idleSource = "character workspot",
         },
         ["Character.Claire"] = {

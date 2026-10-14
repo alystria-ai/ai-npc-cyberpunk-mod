@@ -9,13 +9,17 @@ local workspot = dofile('gesture-workspot.lua')
 local selection = dofile('gesture-selection.lua')
 local M = {}
 local HOLDING = {spawning = true, starting = true, active = true, exiting = true, recovering = true}
-M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourAfterTalk = 5, linger = 2.5, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
+M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourAfterTalk = 5, linger = 2.5, conversationHold = 20, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
     nearStart = 4.0, nearKeep = 4.5, socialPhases = {settled = true, attend = true}, faceWithin = 35, deviceSettle = 1.5, deviceRetry = .4,
     wedgeAfter = 1.5, healthWindow = 10, recoveryHold = .9, recoveryLimit = 2, failureCooldown = 30, minimumSpeech = 5,
     -- Idle flavour (characters marked flavour in the catalog, and the generic fallback): she goes into an idle as
     -- soon as she has been settled for a moment (a copy that never talked included), for 45-90 s, then again after a
     -- gap of 20-45 s measured from the end of the last one; five seconds after a reply ends (flavourAfterTalk).
     groupStagger = 2, exitSettle = .4, driftNote = .15, flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {20, 45}, flavourLength = {45, 90},
+    -- A conversation is one stance, not one stance per reply. The talk stance is kept for conversationHold s after the last
+    -- speech, listening or thinking (V reads and answers within that), and a signature, flavour or prop idle may start
+    -- only conversationHold + flavourAfterTalk s after the last conversation activity, so between turns she neither
+    -- drops to her vanilla idle nor goes into a folded-arms or prop idle and pops back up for the next reply.
     -- Prop idles (catalog.propIdles): one look at the hand slot propLook s after the idle began, a key whose prop did not
     -- show up propMisses times is dropped for the session, and the declared item is taken out of the slot at each
     -- propCleanup time (s) after the idle ends. propIdles = false switches every prop idle off.
@@ -510,7 +514,8 @@ function M.new(options)
             elseif self.clock >= s.flavourUntil then requestExit(s, 'flavour ended', false) end
             return
         end
-        if mode == 'speaking' or mode == 'listening' or mode == 'thinking' then s.lingerUntil = self.clock + policy.linger
+        -- Any conversation activity (a short reply included) holds the stance for the whole conversation.
+        if mode ~= nil then s.lingerUntil = self.clock + policy.conversationHold
         elseif self.clock >= (s.lingerUntil or 0) and not s.clip then requestExit(s, 'reply ended', false); return end
         if s.clip and self.clock >= s.clip.ends - .2 then
             native.jump(npc, s.family.idle.name, false)
@@ -579,6 +584,7 @@ function M.new(options)
                 return
             end
             local mode, info = modeFor(s)
+            if mode ~= nil then s.talkedAt = self.clock end -- one number; gates the idles below
             if s.phase == 'off' then
                 health(s, context)
                 if s.phase ~= 'off' then return end
@@ -595,6 +601,8 @@ function M.new(options)
                     local known = characterOf(entry)
                     if mode ~= nil or not known or not known.flavour or not s.settledSince
                         or #flavourPool(known) == 0 then return end
+                    -- Not in the middle of a conversation: only after it has been quiet for the hold plus a short grace.
+                    if s.talkedAt and self.clock - s.talkedAt < policy.conversationHold + policy.flavourAfterTalk then return end
                     s.nextFlavourAt = s.nextFlavourAt or self.clock + between(policy.flavourFirst)
                     if self.clock - s.settledSince < policy.flavourSettled or self.clock < s.nextFlavourAt then return end
                     flavour = true
