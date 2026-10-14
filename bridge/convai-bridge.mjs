@@ -661,6 +661,8 @@ function addonTextHost(route, profileKey) {
   if (!host) {
     host = new TextProviderHost({provider: fixedProvider(mistral, route), memory: sharedMemory(mistralMemory), personas: personaBook,
       routes: {[route]: textRoutes[route], ...(allowsMistral ? {mistral: textRoutes.mistral} : {})}, transformReply: cleanReply, gate: memoryQuiet,
+      // The hard-limit guard (never the crude Mature persona layer) for an add-on speaker too: with the Mature setting on or an uncensored model loaded.
+      matureContent, guardOnly: true,
       log: message => console.error('[Addons] ' + message)});
     addonTextHosts.set(cacheKey, host);
   }
