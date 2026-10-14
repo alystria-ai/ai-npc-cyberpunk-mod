@@ -705,6 +705,7 @@
     "Use profile": "Use profile",
     "Use this conversation profile": "Use this conversation profile",
     "Use {key} to finish this recording.": "Use {key} to finish this recording.",
+    "V  Call": "V  Call",
     "V changed seats or vehicles.": "V changed seats or vehicles.",
     "V left the passenger seat.": "V left the passenger seat.",
     "V or a scene has taken vehicle control.": "V or a scene has taken vehicle control.",
@@ -753,7 +754,6 @@
     "With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only.": "With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only.",
     "Works with the Pocket, OmniVoice or Voxtral voices.": "Works with the Pocket, OmniVoice or Voxtral voices.",
     "Works with the Pocket, OmniVoice, Voxtral or Inworld voices.": "Works with the Pocket, OmniVoice, Voxtral or Inworld voices.",
-    "Write a message...": "Write a message...",
     "Write a message...  /  Enter to send  /  Esc to stop typing": "Write a message...  /  Enter to send  /  Esc to stop typing",
     "YOUR PARTY": "YOUR PARTY",
     "You are already on a call.": "You are already on a call.",
@@ -1439,7 +1439,7 @@
       "Microphone unavailable. Check your Windows input device.",
       "No speech was heard. Wait for Listening, then speak before you finish.",
       "This contact has no companion mapping yet.",
-      "Write a message...",
+      "V  Call",
       "You: {text}"
     ],
     "phone.native-feedback": [
@@ -2322,8 +2322,8 @@
       "references": [
         "mod/phone-chat-style.lua:178",
         "mod/phone-chat-style.lua:239",
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:473",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:311"
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:502",
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:378"
       ]
     },
     "CLOSE PHONE TO CONTINUE": {
@@ -2357,7 +2357,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:528"
+        "mod/holocall.lua:558"
       ]
     },
     "Calls are not available right now.": {
@@ -2365,8 +2365,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:529",
-        "mod/holocall.lua:542"
+        "mod/holocall.lua:559",
+        "mod/holocall.lua:572"
       ]
     },
     "Cancel": {
@@ -2514,7 +2514,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:222",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:276"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:332"
       ]
     },
     "Chat history stays available across game launches.\n\nForgetting a character also clears their saved Chat messages and drafts. Forgetting all memories clears all saved chats.": {
@@ -3284,7 +3284,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:524",
+        "mod/holocall.lua:554",
         "mod/phone-chat-style.lua:43",
         "mod/phone-chat.lua:507"
       ]
@@ -3645,7 +3645,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:337"
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:374"
       ]
     },
     "ENTER  Write message   /   ESC  Stop typing": {
@@ -3653,7 +3653,7 @@
         "phone.native"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:256"
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:255"
       ]
     },
     "Each character marks its own feelings as it speaks, so the face changes at that word instead of being guessed from the text. Subtle, set by personality, only where a feeling really shifts.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.": {
@@ -4000,7 +4000,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:478"
+        "mod/holocall.lua:508"
       ]
     },
     "Holocall with {name} ended.": {
@@ -4008,7 +4008,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:479"
+        "mod/holocall.lua:509"
       ]
     },
     "Holocall with {name}. Tap the phone button to hang up.": {
@@ -4017,7 +4017,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/holocall.lua:571"
+        "mod/holocall.lua:601"
       ]
     },
     "How they sound: pace, attitude, favourite habits of speech.": {
@@ -4323,8 +4323,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/holocall.lua:563",
-        "mod/holocall.lua:602"
+        "mod/holocall.lua:593",
+        "mod/holocall.lua:632"
       ]
     },
     "Load a save before inviting a companion.": {
@@ -7042,9 +7042,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:519",
-        "mod/holocall.lua:521",
-        "mod/holocall.lua:541"
+        "mod/holocall.lua:549",
+        "mod/holocall.lua:551",
+        "mod/holocall.lua:571"
       ]
     },
     "This contact has no companion mapping yet.": {
@@ -7368,6 +7368,14 @@
       ],
       "references": [
         "mod/init.lua:1693"
+      ]
+    },
+    "V  Call": {
+      "contexts": [
+        "phone.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:287"
       ]
     },
     "V changed seats or vehicles.": {
@@ -7767,14 +7775,6 @@
         "mod/mcm.lua:2020"
       ]
     },
-    "Write a message...": {
-      "contexts": [
-        "phone.native"
-      ],
-      "references": [
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:28"
-      ]
-    },
     "Write a message...  /  Enter to send  /  Esc to stop typing": {
       "contexts": [
         "phone.chat"
@@ -7797,8 +7797,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:529",
-        "mod/holocall.lua:540"
+        "mod/holocall.lua:559",
+        "mod/holocall.lua:570"
       ]
     },
     "You are driving. The companion trip was cancelled.": {

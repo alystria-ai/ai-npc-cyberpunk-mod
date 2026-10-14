@@ -97,17 +97,35 @@ test('the game\'s own phone is untouched; a holocall starts only from the mod\'s
   // The Chat-tab wraps of the shared phone functions act only while the Chat tab is showing (state not Off) or the open
   // popup is a mod chat, and otherwise reach the game's function.
   const tabs = read('../r6/scripts/CyberpunkConvai/PhoneChatTabs.reds');
-  assert.match(tabs, /public func AlternativeAcceptAction\(\) -> Void \{\s*if Equals\(this\.m_convaiChatState, ConvaiPhoneChatState\.List\) \{\s*this\.ConvaiChatListHolocall\([^;]*\);\s*return;\s*\};\s*if NotEquals\(this\.m_convaiChatState, ConvaiPhoneChatState\.Off\) \{\s*this\.ConvaiOpenChat[^]*?wrappedMethod\(\);\s*\}/);
-  // The list: the secondary action calls, its hint is the game's own with the game's translated Call label.
+  // R (the secondary action) opens the chat on the list, as it always did; it never calls.
+  assert.match(tabs, /public func AlternativeAcceptAction\(\) -> Void \{\s*if NotEquals\(this\.m_convaiChatState, ConvaiPhoneChatState\.Off\) \{\s*this\.ConvaiOpenChat[^]*?wrappedMethod\(\);\s*\}/);
+  // The call has its own key on the list: the game's `call` action (V, Triangle), listened for with the list's inputs
+  // and acted on only on the Chat list; Triangle's showAll means nothing there and is swallowed.
+  assert.match(tabs, /public func EnableContactsInput\(\) -> Void \{\s*wrappedMethod\(\);\s*if IsDefined\(this\.m_player\) \{ this\.m_player\.RegisterInputListener\(this, n"call"\); \};/);
+  assert.match(tabs, /public func DisableContactsInput\(\) -> Void \{\s*if IsDefined\(this\.m_player\) \{ this\.m_player\.UnregisterInputListener\(this, n"call"\); \};\s*wrappedMethod\(\);/);
+  assert.match(tabs, /if Equals\(this\.m_convaiChatState, ConvaiPhoneChatState\.List\) \{[^]*?Equals\(name, n"call"\)[^]*?ConvaiChatListHolocall\([^;]*\);[^]*?Equals\(name, n"showAll"\)/);
+  // The game's own hints are rebound to `call` on Chat rows and bottom bar only, and put back from what they showed.
+  assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_action2ButtonWidget\), n"call"\)/);
+  assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_action2ButtonWidget\), this\.m_convaiCallHintAction\)/);
+  assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_callInputHint\), n"call"\)/);
+  assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_callInputHint\), this\.m_convaiCallHintAction\)/);
   assert.match(tabs, /SetLocalizedTextScript\(this\.m_action2ButtonLabel, "LocKey#22196"\);\s*inkWidgetRef\.SetVisible\(this\.m_action2ButtonWidget, true\);/);
-  assert.match(tabs, /SetVisible\(this\.m_callInputHint, false\);[^]*SetVisible\(this\.m_separtor, false\);/);
-  // The conversation: the game's own Call hint shows, and the Call key starts the call only while the chat has focus.
+  // The row shows both icons: call and chat (R and the envelope), with the separator.
+  assert.match(tabs, /SetVisible\(this\.m_callInputHint, true\);\s*inkWidgetRef\.SetVisible\(this\.m_chatInputHint, true\);\s*inkWidgetRef\.SetVisible\(this\.m_separtor, true\);/);
+  // The conversation: the mod's own Call hint (the game's key hint for `call`) sits in the composer panel, clickable;
+  // the Call key starts the call only while the chat has focus.
   const chat = read('../r6/scripts/CyberpunkConvai/PhoneChat.reds');
-  assert.match(chat, /inkWidgetRef\.SetVisible\(this\.m_hintCall, true\);/);
+  assert.match(chat, /inkWidgetRef\.SetVisible\(this\.m_hintCall, false\);/);
+  assert.match(chat, /SpawnFromExternal\(row, r"base[^"]*base_buttons\.inkwidget", n"inputDisplayLabelFlex"\)/);
+  assert.match(chat, /label\.SetInputActionLabel\(n"call", GetLocalizedText\("LocKey#22196"\)\)/);
+  assert.match(chat, /widget\.RegisterToCallback\(n"OnRelease", this, n"OnConvaiChatCallClick"\)/);
   assert.match(chat, /Equals\(ListenerAction\.GetName\(action\), n"call"\) && this\.m_isFocused\s*&& Equals\(ListenerAction\.GetType\(action\), gameinputActionType\.BUTTON_PRESSED\) \{\s*this\.ConvaiChatHolocall\(\);\s*\};\s*ListenerActionConsumer\.Consume\(consumer\);\s*return false;/);
   assert.match(chat, /OnConvaiChatCallClick[^]*?evt\.IsAction\(n"click"\)[^]*?this\.m_isFocused[^]*?ConvaiChatHolocall\(\)/);
   // Typing swallows the key first: a V typed into the message never calls.
   assert.match(chat, /if this\.ConvaiChatTyping\(\) \{\s*if this\.ConvaiChatSwallowsAction\(action\)/);
+  // The message box has no placeholder text.
+  assert.match(chat, /input\.SetDefaultText\(""\);/);
+  assert.doesNotMatch(chat, /Write a message/);
   // Both entry points end in the one request, which refuses anything that is not a Chat contact.
   const code = read('../r6/scripts/CyberpunkConvai/Holocall.reds');
   assert.match(code, /public final func ConvaiChatHolocall\(\) -> Void \{[^]*?player\.ConvaiHolocallRequest\(this\.m_contactEntry\.GetId\(\)\);/);
@@ -260,10 +278,11 @@ test('calling the same character again hangs up; a load forgets the call without
 `));
 
 // A world for the live picture: V at (10, 20, 30) under a roof slab at z = 50 (x 0..20, y 10..30) when `roof` is set;
-// raycasts hit the slab's plane inside its bounds (Static only). Entities spawn at once; every native call is recorded.
+// raycasts hit the slab's plane inside its bounds (Static only). `ground` (a z) adds an unbounded floor plane and `wall`
+// (an x) a wall plane that blocks any segment crossing it. Entities spawn at once; every native call is recorded.
 const world = `
   local created, deleted, toggles, played, forced, looks, removed = {}, {}, {}, {}, {}, {}, {}
-  local entities, roof, records = {}, true, {['Character.Judy'] = true, ['Character.wat_lch_melee_01'] = true}
+  local entities, roof, ground, wall, records = {}, true, nil, nil, {['Character.Judy'] = true, ['Character.wat_lch_melee_01'] = true}
   local function entity(id, name, spec)
     local p = spec.position
     local e = {id = id, name = name, attached = true, position = {x = p.x, y = p.y, z = p.z}}
@@ -287,11 +306,24 @@ const world = `
   local spatial = {rays = 0}
   function spatial:SyncRaycastByCollisionGroup(a, b, group)
     self.rays = self.rays + 1
-    if group ~= 'Static' or not roof or (a.z - 50) * (b.z - 50) > 0 or a.z == b.z then return false, {} end
-    local t = (a.z - 50) / (a.z - b.z)
-    local x, y = a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t
-    if x < 0 or x > 20 or y < 10 or y > 30 then return false, {} end
-    return true, {position = {x = x, y = y, z = 50}}
+    if group ~= 'Static' then return false, {} end
+    local best
+    local function consider(t, p) if t >= 0 and t <= 1 and (not best or t < best.t) then best = {t = t, position = p} end end
+    local function horizontal(z, bounded)
+      if (a.z - z) * (b.z - z) > 0 or a.z == b.z then return end
+      local t = (a.z - z) / (a.z - b.z)
+      local x, y = a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t
+      if bounded and (x < 0 or x > 20 or y < 10 or y > 30) then return end
+      consider(t, {x = x, y = y, z = z})
+    end
+    if roof then horizontal(50, true) end
+    if ground then horizontal(ground, false) end
+    if wall and (a.x - wall) * (b.x - wall) < 0 then
+      local t = (a.x - wall) / (a.x - b.x)
+      consider(t, {x = wall, y = a.y + (b.y - a.y) * t, z = a.z + (b.z - a.z) * t})
+    end
+    if not best then return false, {} end
+    return true, {position = best.position}
   end
   local animation = {}
   function animation:SetForcedVisible(id, on) forced[#forced + 1] = id.id .. ':' .. tostring(on) end
@@ -383,12 +415,13 @@ test('the live picture falls back to the portrait when the copy moves, when ther
   assert(holocall.partner(player, false).entity == '7ULL')
   tick(2); assert(deleted[2] == '9001ULL', 'the camera is deleted after its delay, the call still on')
   holocall.finish(player, 'hangup')
-  -- Open sky above and around V: nothing to stand on, so the portrait, after one candidate per tick.
+  -- Open sky above, around and below V: nothing to stand on, so the portrait, after three candidates per tick (33
+  -- columns), with the count of reasons in the log.
   roof = false; created = {}
   game.requests = {'judy'}; holocall.drain(player); tick(2.4)
-  assert(#created == 0 and holocall.call.state == 'dialing', 'nine candidates, one per tick')
+  assert(#created == 0 and holocall.call.state == 'dialing', 'thirty-three candidates, three per tick')
   tick(1.2)
-  assert(logged('reason=no%-studio%-spot %(no%-floor%)') and holocall.connected() and holocall.call.mode == 'audio')
+  assert(logged('reason=no%-studio%-spot %(no%-floor=33%)') and holocall.connected() and holocall.call.mode == 'audio')
   holocall.finish(player, 'hangup'); roof = true
   -- A record the game does not have: never spawned (it would crash), the portrait instead.
   records['Character.Judy'] = nil
@@ -400,6 +433,25 @@ test('the live picture falls back to the portrait when the copy moves, when ther
   holocall.workspot, holocall.gestures = nil, nil
   game.requests = {'judy'}; holocall.drain(player); tick(2)
   assert(holocall.connected() and holocall.call.mode == 'audio' and logged('reason=no%-talk%-pose'))
+`));
+
+test('with nothing above V (a high apartment) the copy is placed on the ground below, behind a wall out of V\'s sight', () => run(world + `
+  game.window = 'holocall'
+  -- No roof above; ground 10 m below V's feet level; a wall at x = 11 between V (x = 10) and everything east of it.
+  roof = false; ground = 20; wall = 11
+  game.requests = {'judy'}; holocall.drain(player); tick(0.3)
+  assert(#created == 0, 'the nine columns above find nothing; three candidates per tick')
+  tick(0.8)
+  assert(#created == 2, 'the first hidden ring column behind the wall gets the copy and the camera')
+  local copy = created[1]
+  assert(copy.recordID == 'Character.Judy' and near(copy.position.x, 22) and near(copy.position.y, 20) and near(copy.position.z, 20), copy.position.x .. ' ' .. copy.position.z)
+  assert(logged('holo spawn contact=judy record=Character.Judy floor=%-10.0m'))
+  tick(2)
+  assert(holocall.connected() and holocall.call.mode == 'holo' and game.connects[#game.connects] == true)
+  -- A ring column in plain view of V is never used: without the wall every spot is seen.
+  holocall.finish(player, 'hangup'); wall = nil; created = {}
+  game.requests = {'judy'}; holocall.drain(player); tick(4)
+  assert(#created == 0 and logged('no%-studio%-spot %(in%-view=24, no%-floor=9%)') and holocall.call.mode == 'audio')
 `));
 
 test('a character the game has no holocall setup for gets the portrait voice call, as in the game, with nothing spawned', () => run(world + `

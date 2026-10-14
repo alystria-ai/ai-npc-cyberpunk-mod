@@ -14,20 +14,25 @@ has not yet been tested in game.
   video holocall for call as they always did, through the game's quest call. (A first build replaced the game's
   call for those contacts; the live test showed only a portrait where the game would have opened its own call, so
   that wrap, `CallSelectedContact`, is gone.)
-- **Phone > Chat tab (the mod's own tab), two places to call:**
-  - **Inside an open conversation:** the game's own Call hint (a phone glyph with the real key, **V** on a keyboard,
-    Triangle on a pad) shows beside the other hints. Press that key, or click the hint, and the call starts. The key
-    is only live while that conversation has the focus, and not while a message is being typed (V is then an
-    ordinary letter).
-  - **On the Chat list:** the bottom hints read **Chat** (the accept key) and **Call** (the secondary action, **R** on a
-    keyboard, Square on a pad), both the game's own input hints, so their glyphs show the keys the game really
-    binds. R starts a call with the selected character.
-  - **F is not the Call key.** F is the game's confirm (`click`, with Enter and the left mouse button), so on the Chat list it opens the
-    text chat, and inside a chat it does nothing. That is what the earlier test showed ("F just opened inside
-    chat"): the Contacts tab's Call is its accept key (F), but on our tab accept opens the chat. The Call hint now
-    names the real key, and the row's own call glyph (tied to the Contacts tab's F) is hidden on a Chat row.
+- **Phone > Chat tab (the mod's own tab), two places to call, one key: V (Triangle on a pad), the game's own `call`
+  action, the key the game's message window uses for Call:**
+  - **On the Chat list,** the selected row shows two icons: the chat one (**R** and the envelope, as always: R opens the
+    chat) and, beside it, a call one (a key box with the call key and a phone). The bottom bar reads **Call** (V),
+    **Chat** (F) and Close. These are the game's own key hints, the row's call hint and the bottom bar's second hint
+    rebound to the `call` action while a Chat row is shown and put back, from the action they held, for any other
+    row or tab, so the glyphs always show the real key. V starts a call with the selected character. (On a pad
+    Triangle is also `showAll`, which means nothing on this tab and is swallowed there.)
+  - **Inside an open conversation,** a Call hint (the game's key hint for `call`, with the game's own translated Call
+    label) sits under the message box, beside the Enter/Esc line. V or a click on it starts the call. The key is only
+    live while that conversation has the focus, and not while a message is being typed (V is then an ordinary
+    letter). The game's own Call hint in that window stays hidden: the first test showed no call button there, most
+    likely covered by the composer panel, so the hint now lives in that panel.
+  - **F is not the Call key.** F is the game's confirm (`click`, with Enter and the left mouse button), so on the Chat
+    list it opens the text chat, and inside a chat it does nothing. R (`secondaryAction`) opens the chat too, as it
+    did before holocalls; a first build had turned R into Call and lost that shortcut.
+  - The message box has no placeholder text.
   - Calling is refused (the game's own blocked-action notice) while the game has turned calls off.
-- The call starts once the phone has closed. The window rings for 1.5 to 5 s, then connects. A notice
+- The call starts once the phone has closed. The window rings for 1.5 to 7 s, then connects. A notice
   says "Holocall with {name}. Tap the phone button to hang up."
 - Talk with the normal push-to-talk or typed-text keys. No one has to be nearby, because the call is the
   conversation partner.
@@ -94,8 +99,8 @@ and story characters are not touched.
   `bridge/holocall.test.mjs` asserts that no game call function is wrapped or redefined.
 - **Two entry points, both in the Chat tab,** both event-driven (a key press or a click), no per-frame work:
   `PhoneMessagePopupGameController.ConvaiChatHolocall` (the Call key `call` while the conversation has the focus, or
-  a click on the Call hint; `PhoneChat.reds`) and `NewHudPhoneGameController.ConvaiChatListHolocall` (the secondary
-  action on a Chat row; `PhoneChatTabs.reds`). Each checks that calling is enabled (else the game's blocked
+  a click on the Call hint; `PhoneChat.reds`) and `NewHudPhoneGameController.ConvaiChatListHolocall` (the `call` key on a Chat row, listened for with the list's own
+  inputs, `PhoneChatTabs.reds`). Each checks that calling is enabled (else the game's blocked
   notice) and ends in `ConvaiHolocallRequest(contact)`, which accepts only a contact registered for AI chat
   (`ConvaiPhoneChatHasContact`).
 - The request is one contact id, stored by `ConvaiHolocallRequest`, which closes the contact list (the phone closes).
@@ -173,11 +178,13 @@ and no notice. The probe line says `cast=video` or `cast=voice`.
 
 With the setting on, dialing a staged character does the following (one step per 0.25 s call tick):
 
-1. **Finds a studio** out of V's sight: the first floor 10 to 90 m above V, straight up or at one of eight
-   points 30 m away, that is level, has 2.3 m of headroom, is hidden from V's eyes by something solid, and
-   has open space for the camera on one side. One candidate per tick (about 22 raycasts each), so the search
-   costs at most nine ticks once per call and nothing afterwards. No floor: `holo failed ... reason=no-studio-spot
-   (<last reason>)` and the portrait. The vanilla studio has a floor too: a copy in mid-air falls.
+1. **Finds a studio** out of V's sight: a level floor with 2.3 m of headroom, hidden from V's eyes by something
+   solid, with open space for the camera on one side. Candidates in order: the first floor 10 to 90 m above V,
+   straight up and at eight points 30 m away; then, when nothing stands above V (a high apartment, open ground),
+   floors from 10 m above to 80 m below V's feet on rings of 12, 24 and 40 m round V (24 columns). Three candidates
+   per tick (about 22 raycasts each), so the whole search is at most 11 ticks (2.75 s), once per call and nothing
+   afterwards. No floor: `holo failed ... reason=no-studio-spot (<reason>=<count>, ...)` and the portrait. The
+   vanilla studio has a floor too: a copy in mid-air falls.
 2. **Spawns the copy** there with the character's own record (checked to be a real character record first: a
    record that does not resolve would crash), tagged `CyberpunkConvaiCompanion` (speech face layer) and
    `CyberpunkConvaiHolocall`, transient, `alwaysSpawned`.
@@ -197,6 +204,11 @@ fallback=audio` and shows the notice "Live picture unavailable. The call continu
 the look is retired, the forced animation cleared, the pose left, the copy deleted, and the camera switched off at
 once but deleted 1.5 s later: freeing a render-to-texture camera in the frame it is switched off can crash the
 render thread. A sweep also clears tagged leftovers after a reload; a load forgets everything without native calls.
+
+**Why the first live test showed no face (2026-10-14/15, CET log `scripting.log`):** the search only looked 10 to
+90 m above V, and every call logged `holo failed ... reason=no-studio-spot (no-floor) fallback=audio` (Alex, Judy,
+Mama Welles; all nine columns found nothing above V), so the call went on with the portrait. The call start, the ring
+and the window were fine. The search now also looks level with and below V (above).
 
 **Why the first version stayed empty (never seen in game; from the code and the research):** the copy was
 placed 40 m straight up in mid-air, so it fell out of frame while its talk pose was still being set up (and inside
@@ -240,10 +252,15 @@ The bridge turn-context diagnostic ends with `holocall=audio` or `holocall=holo`
 
 - The window in game: the ring, the portrait, the connect, and the end animation drawn by
   `ShowEndCallContact`. The redscript compiles in the isolated check (2026-10-14).
-- That the Call hint inside a chat shows with the right key glyph (V) and that V and a click on it start the call
-  (and that V typed into a message does not); that the Chat list's bottom hints read Chat and Call with the real
-  keys and R starts the call; that the vanilla Contacts Call (F) for Judy, Panam and others opens the game's own
-  call again, untouched.
+- That the Chat list's selected row shows the chat icon (R, envelope) and the call icon (a key box with V, a phone)
+  with the separator, that the bottom bar reads Call (V), Chat (F), Close, and that V starts the call there while R
+  and F open the chat; that the rebinding of the game's key hints leaves the Contacts and Messages tabs showing their
+  own keys (F and R, Z) afterwards; that the Call hint under the message box in an open chat shows (the spawned
+  `inputDisplayLabelFlex` item, or the plain "V  Call" text if the game's item could not be built), and that V and
+  a click on it start the call (and that V typed into a message does not); that the vanilla Contacts Call (F) for
+  Judy, Panam and others opens the game's own call again, untouched.
+- That the live picture now finds a place: `holo spawn ... floor=...m` (negative when below V), then `holo ready`,
+  and everything after it (the copy, the camera, the pose, the look), none of which has run in the game yet.
 - That a tap of the phone button reaches the HUD controller as PRESSED then RELEASED on keyboard and
   pad, and does not also open the phone.
 - The Holocall subtitle type showing a bottom line for the player as speaker.

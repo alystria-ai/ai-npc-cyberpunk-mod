@@ -51,6 +51,34 @@ public class ConvaiChatTabArtwork {
     }
 }
 
+// The game's own key hints (a key box with the real key for an action) are rebound to the mod's Call action on the Chat
+// tab only, and put back, read from the hint itself, as soon as anything else is shown there. Bounded, named-free
+// lookup: the display controller is the widget's own, or one of its first descendants'.
+public class ConvaiHintBinding {
+    public static func Display(root: ref<inkWidget>, depth: Int32) -> ref<inkInputDisplayController> {
+        if !IsDefined(root) { return null; };
+        let display = root.GetController() as inkInputDisplayController;
+        if IsDefined(display) { return display; };
+        let parent = root as inkCompoundWidget;
+        if depth <= 0 || !IsDefined(parent) { return null; };
+        let i = 0;
+        while i < parent.GetNumChildren() {
+            let found = ConvaiHintBinding.Display(parent.GetWidgetByIndex(i), depth - 1);
+            if IsDefined(found) { return found; };
+            i += 1;
+        };
+        return null;
+    }
+    // The action the hint showed before, or an empty name when there is no display controller (nothing was changed).
+    public static func Rebind(root: ref<inkWidget>, action: CName) -> CName {
+        let display = ConvaiHintBinding.Display(root, 3);
+        if !IsDefined(display) { return n""; };
+        let previous = display.GetInputAction();
+        if NotEquals(previous, action) { display.SetInputAction(action); };
+        return previous;
+    }
+}
+
 @addField(NewHudPhoneGameController)
 private let m_convaiChatState: ConvaiPhoneChatState;
 @addField(NewHudPhoneGameController)
@@ -133,8 +161,35 @@ protected cb func OnContactListAction(action: ListenerAction, consumer: Listener
             ListenerActionConsumer.Consume(consumer);
             return true;
         };
+        if Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) {
+            // The Call key of a Chat row (the game's `call` action, V on a keyboard, Triangle on a pad, the key the Call
+            // hint shows). On a pad Triangle is also showAll, which means nothing on this tab.
+            if Equals(name, n"call") {
+                this.ConvaiChatListHolocall(this.m_contactListLogicController.GetSelectedContactData());
+                ListenerActionConsumer.Consume(consumer);
+                return true;
+            };
+            if Equals(name, n"showAll") {
+                ListenerActionConsumer.Consume(consumer);
+                return true;
+            };
+        };
     };
     return wrappedMethod(action, consumer);
+}
+
+// The Contacts list does not listen for `call` by itself. Registered with the list's other inputs, so it is on exactly
+// while the list has the input; it is acted on only on the Chat tab (OnContactListAction) and ignored by the game's
+// handler everywhere else.
+@wrapMethod(NewHudPhoneGameController)
+public func EnableContactsInput() -> Void {
+    wrappedMethod();
+    if IsDefined(this.m_player) { this.m_player.RegisterInputListener(this, n"call"); };
+}
+@wrapMethod(NewHudPhoneGameController)
+public func DisableContactsInput() -> Void {
+    if IsDefined(this.m_player) { this.m_player.UnregisterInputListener(this, n"call"); };
+    wrappedMethod();
 }
 
 @wrapMethod(NewHudPhoneGameController)
@@ -157,14 +212,10 @@ public func AcceptAction() -> Void {
     };
     wrappedMethod();
 }
-// On the Chat list the secondary action (the game's Messages key, R) starts a holocall with that character (Holocall.reds,
-// docs/HOLOCALL.md); the accept action (F, Enter, click) opens the text chat.
+// On the Chat list both the accept action (F, Enter, click) and the secondary action (the game's Messages key, R, the
+// envelope on the row) open the text chat. The call has its own key, `call` (V, Triangle), handled in OnContactListAction.
 @wrapMethod(NewHudPhoneGameController)
 public func AlternativeAcceptAction() -> Void {
-    if Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) {
-        this.ConvaiChatListHolocall(this.m_contactListLogicController.GetSelectedContactData());
-        return;
-    };
     if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.Off) {
         this.ConvaiOpenChat(this.m_contactListLogicController.GetSelectedContactData());
         return;
@@ -269,17 +320,33 @@ public final func ConvaiShowChatTab(empty: Bool) -> Void {
     inkWidgetRef.SetVisible(this.m_nothingToReadMessageWidget, empty);
 }
 
+@addField(PhoneDialerLogicController)
+private let m_convaiCallHintBound: Bool;
+@addField(PhoneDialerLogicController)
+private let m_convaiCallHintAction: CName;
+
 @wrapMethod(PhoneDialerLogicController)
 private func RefreshInputHints(contactData: wref<ContactData>) -> Void {
     wrappedMethod(contactData);
     if IsDefined(contactData) && contactData.convaiChat {
         inkTextRef.SetText(this.m_acceptButtonLabel, "Chat");
         inkWidgetRef.SetVisible(this.m_acceptButtonWidget, true);
-        // The secondary action calls (Holocall.reds). The hint is the game's own, so its glyph is the real key; its
-        // text is the game's own translated Call label (the one the Contacts tab shows on the accept hint).
+        // The second bottom hint (the game's Messages hint, R) is the Call hint here: the game's own key hint rebound to
+        // the `call` action, so it shows the real key (V, Triangle), with the game's own translated Call label. R itself
+        // still opens the chat; its envelope is on the row.
+        if !this.m_convaiCallHintBound {
+            let previous = ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_action2ButtonWidget), n"call");
+            if NotEquals(previous, n"") { this.m_convaiCallHintAction = previous; this.m_convaiCallHintBound = true; };
+        };
         inkTextRef.SetLocalizedTextScript(this.m_action2ButtonLabel, "LocKey#22196");
         inkWidgetRef.SetVisible(this.m_action2ButtonWidget, true);
         inkWidgetRef.SetVisible(this.m_showAllButtonWidget, false);
+    } else {
+        // Anything else on this list: the hint is the game's again, bound to what it was bound to.
+        if this.m_convaiCallHintBound {
+            ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_action2ButtonWidget), this.m_convaiCallHintAction);
+            this.m_convaiCallHintBound = false;
+        };
     };
 }
 
@@ -387,16 +454,30 @@ public final func ConvaiShowChatLabel(visible: Bool) -> Void {
     if IsDefined(this.m_convaiChatTab) { this.m_convaiChatTab.SetVisible(visible); };
 }
 
+@addField(PhoneContactItemVirtualController)
+private let m_convaiCallHintBound: Bool;
+@addField(PhoneContactItemVirtualController)
+private let m_convaiCallHintAction: CName;
+
 @wrapMethod(PhoneContactItemVirtualController)
 protected cb func OnDataChanged(value: Variant) -> Bool {
     let result = wrappedMethod(value);
     if IsDefined(this.m_contactData) && this.m_contactData.convaiChat {
-        // A Chat row has both actions: Chat (accept) and Call (the secondary action). The row's own call glyph belongs to
-        // the Contacts tab, where Call is the accept key (F); here F opens the chat, so that glyph stays hidden and the
-        // bottom hints, the game's own input hints, name the real keys.
-        inkWidgetRef.SetVisible(this.m_callInputHint, false);
+        // A Chat row has two icons on the selected row: the game's own chat hint (R and the envelope: opens the chat) and
+        // the game's own call hint (a key box and the phone) rebound to `call`, so it shows the real call key (V, Triangle).
+        if !this.m_convaiCallHintBound {
+            let previous = ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_callInputHint), n"call");
+            if NotEquals(previous, n"") { this.m_convaiCallHintAction = previous; this.m_convaiCallHintBound = true; };
+        };
+        inkWidgetRef.SetVisible(this.m_callInputHint, true);
         inkWidgetRef.SetVisible(this.m_chatInputHint, true);
-        inkWidgetRef.SetVisible(this.m_separtor, false);
+        inkWidgetRef.SetVisible(this.m_separtor, true);
+    } else {
+        // This row view is recycled by the game's own lists: any other contact gets the game's hint back as it was.
+        if this.m_convaiCallHintBound {
+            ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_callInputHint), this.m_convaiCallHintAction);
+            this.m_convaiCallHintBound = false;
+        };
     };
     return result;
 }

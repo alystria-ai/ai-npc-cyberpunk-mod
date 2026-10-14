@@ -1,8 +1,8 @@
 -- Holocalls with the mod's characters (docs/HOLOCALL.md).
 --
--- V calls one of the mod's characters from the phone's ordinary Contacts list, with the game's own Call action
--- (Holocall.reds replaces the game's call request for those contacts only; this file registers which ones). The game's
--- call window opens at the top left with that character's portrait and name (Holocall.reds drives it; the game's own
+-- V calls one of the mod's characters from the mod's own Chat tab: the Call key (V on a keyboard, Triangle on a pad) on a
+-- Chat list row or inside an open conversation, or a click on the Call hint there. The game's own phone, its Contacts
+-- list and its Call action are never changed. The game's call window opens at the top left with that character's portrait and name (Holocall.reds drives it; the game's own
 -- call path, its quest facts and its call blackboard are never used). While the call is connected, the talk keys (typed
 -- and voice) address that character wherever V is, through the same request path as a face to face talk; the reply is
 -- spoken in the mod voice at full volume (no distance) with call subtitles, and the turn says V is on a call
@@ -31,7 +31,7 @@ M.CAMERA_COMPONENT = 'RenderToTextureCamera'
 M.TICK = 0.25
 -- The call rings at least RING_MIN seconds (the character's connection warms meanwhile), and waits for the live
 -- picture at most RING_MAX seconds (the game's own call failsafe is 8 s).
-M.RING_MIN, M.RING_MAX = 1.5, 6
+M.RING_MIN, M.RING_MAX = 1.5, 7
 -- No turn and no speech for this long hangs up; no call is longer than MAX_LENGTH (seconds of play, pauses excluded).
 M.IDLE_LIMIT, M.MAX_LENGTH = 180, 1800
 -- The shot. The game's own rig (the holocall studio's camera node against its actor spot): 0.675 m in front, the lens
@@ -40,6 +40,11 @@ M.IDLE_LIMIT, M.MAX_LENGTH = 180, 1800
 M.SHOT = {frameH = 0.5, aimZ = 1.6, orbit = 20.4, fov = 35}
 -- The studio: a floor 10 to 90 m above V, straight up or within 30 m, out of V's sight.
 M.STUDIO_MIN, M.STUDIO_TOP, M.STUDIO_RADIUS = 10, 90, 30
+-- When nothing stands above V (a high apartment, open ground, the Badlands: the first live test found no floor in any
+-- of the nine columns above), the search goes level with and below V: floors from 10 m above to 80 m below V's feet,
+-- on rings round V, still out of V's sight. A candidate costs about 22 raycasts, so the search takes a few per tick.
+M.LOW_TOP, M.LOW_BOTTOM, M.LOW_RADII = 10, -80, {12, 24, 40}
+M.SEARCH_PER_TICK = 3
 -- The copy may drift this far from its place before the picture is given up.
 M.HOLO_DRIFT = 1.5
 -- The camera is switched off at once and deleted this many seconds later: the render thread may still hold its
@@ -223,10 +228,12 @@ end
 
 local function clear(a, b) return trace(a, b) == false end
 
--- Is the column (x, y) a studio: a level floor between STUDIO_MIN and STUDIO_TOP above V with headroom, out of V's
--- sight, with room for the camera on one side? The spot {x, y, z, yaw}, or nil and why not.
-function M.studioAt(origin, x, y)
-    local top, bottom = origin.z + M.STUDIO_TOP, origin.z + M.STUDIO_MIN
+-- Is the column (x, y) a studio: a level floor between `range.bottom` and `range.top` (offsets from V's z; STUDIO_MIN to
+-- STUDIO_TOP above V when absent) with headroom, out of V's sight, with room for the camera on one side? The spot
+-- {x, y, z, yaw}, or nil and why not.
+function M.studioAt(origin, x, y, range)
+    local top = origin.z + (range and range.top or M.STUDIO_TOP)
+    local bottom = origin.z + (range and range.bottom or M.STUDIO_MIN)
     local floor = trace({x = x, y = y, z = top}, {x = x, y = y, z = bottom})
     if floor == nil then return nil, 'no-answer' end
     if not floor then return nil, 'no-floor' end
@@ -254,14 +261,32 @@ function M.studioAt(origin, x, y)
     return nil, 'no-lens-room'
 end
 
--- The columns searched, in order: straight above V, then eight around at STUDIO_RADIUS.
+-- The columns searched, in order: straight above V, eight around at STUDIO_RADIUS (both with a floor above V), then
+-- rings round V at LOW_RADII with a floor level with or below V. Each: {x, y, range}.
 local function columns(origin)
-    local list = {{x = origin.x, y = origin.y}}
+    local above = {top = M.STUDIO_TOP, bottom = M.STUDIO_MIN}
+    local low = {top = M.LOW_TOP, bottom = M.LOW_BOTTOM}
+    local list = {{x = origin.x, y = origin.y, range = above}}
     for i = 0, 7 do
         local a = math.rad(i * 45)
-        list[#list + 1] = {x = origin.x + math.cos(a) * M.STUDIO_RADIUS, y = origin.y + math.sin(a) * M.STUDIO_RADIUS}
+        list[#list + 1] = {x = origin.x + math.cos(a) * M.STUDIO_RADIUS, y = origin.y + math.sin(a) * M.STUDIO_RADIUS, range = above}
+    end
+    for ring, radius in ipairs(M.LOW_RADII) do
+        for i = 0, 7 do
+            local a = math.rad(i * 45 + (ring % 2 == 0 and 22.5 or 0))
+            list[#list + 1] = {x = origin.x + math.cos(a) * radius, y = origin.y + math.sin(a) * radius, range = low}
+        end
     end
     return list
+end
+
+-- "no-floor=24, in-view=6": why the columns failed, most common first.
+local function reasonSummary(counts)
+    local names = {}
+    for name in pairs(counts) do names[#names + 1] = name end
+    table.sort(names, function(x, y) if counts[x] ~= counts[y] then return counts[x] > counts[y] end return x < y end)
+    for i, name in ipairs(names) do names[i] = name .. '=' .. counts[name] end
+    return table.concat(names, ', ')
 end
 
 local function holoFail(call, reason)
@@ -282,7 +307,7 @@ local function characterRecord(name)
 end
 
 local function holoBegin(call, player)
-    local holo = {wait = 0, stage = 'search', column = 1}
+    local holo = {wait = 0, stage = 'search', column = 1, reasons = {}}
     call.holo = holo
     if not call.record then holoFail(call, 'no-record'); return end
     if not characterRecord(call.record) then holoFail(call, 'record-unavailable'); return end
@@ -384,13 +409,18 @@ local function holoStep(call, dt)
     if not holo or holo.failed or holo.ready then return end
     holo.wait = holo.wait + dt
     if holo.stage == 'search' then
-        local column = holo.columns[holo.column]
-        if not column then holoFail(call, 'no-studio-spot (' .. tostring(holo.lastReason) .. ')'); return end
-        holo.column = holo.column + 1
-        local spot, reason = M.studioAt(holo.origin, column.x, column.y)
-        if not spot then holo.lastReason = reason; return end
-        holo.spot = spot
-        holoSpawn(call, holo)
+        for _ = 1, M.SEARCH_PER_TICK do
+            local column = holo.columns[holo.column]
+            if not column then holoFail(call, 'no-studio-spot (' .. reasonSummary(holo.reasons) .. ')'); return end
+            holo.column = holo.column + 1
+            local spot, reason = M.studioAt(holo.origin, column.x, column.y, column.range)
+            if spot then
+                holo.spot = spot
+                holoSpawn(call, holo)
+                return
+            end
+            holo.reasons[reason] = (holo.reasons[reason] or 0) + 1
+        end
         return
     end
     if holo.wait > M.RING_MAX then holoFail(call, 'placement-timeout'); return end
