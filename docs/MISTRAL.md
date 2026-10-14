@@ -8,14 +8,14 @@ text is the same code. Local speech-to-text for the voice key is documented in `
 ## What the player does
 
 1. Get a free key from Mistral (the free plan, "Experiment", needs phone verification at signup).
-2. Settings > Conversation provider > **Paste Mistral key** (copies it from the clipboard, checks it with Mistral, saves it on this computer).
+2. Settings > Conversation provider > the Mistral key row, button **Paste** (copies the key from the clipboard, checks it with Mistral, saves it on this computer; once a key is saved the button reads **Remove**).
    Or save the key by hand in `player-mistral-key.txt` in the conversation service's state folder (`api-key=<key>` or just the key).
-   The page shows only the last four characters.
+   The row name shows the status in brackets: the last four characters, "(Added)", "(Checking...)" or "(Not added)"; only the last four characters are ever shown.
 3. **Conversation provider** > Mistral (free plan), then Apply. The switch waits until no conversation is running, so a conversation
    never mixes two providers.
 
 This is the free route the daily-limit notice points to (a fully local option is planned). A player's own Convai key (docs/OWN_CONVAI_KEY.md)
-is no longer offered to players: the notice, the settings text and the player documents do not mention it.
+is the provider entry "Convai API key" in the same selector; the daily-limit notice and the player documents do not promote it.
 
 ## Settings and files
 
@@ -24,7 +24,7 @@ is no longer offered to players: the notice, the settings text and the player do
 | Provider setting | `conversationProvider` in `settings.json` (`convai` default, `mistral`, `local` for the optional Local AI pack; anything else reads as `convai`, including the `groq` of an old settings file: Groq was removed as a provider by the user on 2026-10-14, and a saved `player-groq-key.txt` is left alone and never read) |
 | Key | `<state folder>/player-mistral-key.txt`, written with mode 0600 through a temporary file |
 | Paste / Remove commands | `runtime/mistral-key-command.json` (the game writes, the bridge reads; ids `<session>:mkey:<n>`; the same protocol as the Convai key) |
-| Status for the settings page | `runtime/mistral-state.json`: `{version, updated, provider, effective, saved, tail, pending, result, limit, model, stt, localAi}` (`provider` and `effective` are `convai`, `mistral` or `local`; `localAi` is `ready`, `warming`, `not-installed`, `no-memory` or `failed`, shown as the Local AI row) |
+| Status for the settings page | `runtime/mistral-state.json`: `{version, updated, provider, effective, saved, tail, pending, result, limit, model, stt, localAi}` (`provider` and `effective` are `convai`, `mistral` or `local`; `localAi` is `ready`, `warming`, `not-installed`, `no-memory` or `failed`, shown as a bracket in the Local AI model row's name when not ready) |
 | Local memory | `<state folder>/mistral-memory.json` (bounded, see Memory) |
 
 The key is never printed, logged, written to a status file or sent anywhere except `api.mistral.ai`. It is scrubbed from the support
@@ -211,5 +211,5 @@ detail about the character (the prompt forbids it and the temperature is low, wh
   against the real service and saves the transcripts in `runtime/mistral-prompt-tests/` (git-ignored). It reads the key from the
   developer's `Commonly used Keys.txt` (the line labelled mistral) or `MISTRAL_API_KEY`, in memory only. `--dry` shows prompt sizes
   without any request; `--only judy,panam` limits it; `--model <id>` pins one model. It sends about 24 requests.
-- In game: save the key (Paste Mistral key), set Conversation provider to Mistral (free plan), choose Apply, then talk by text and Phone
+- In game: save the key (Paste on the Mistral key row), set Conversation provider to Mistral (free plan), choose Apply, then talk by text and Phone
   Chat. Try the Memory page's Forget afterwards.

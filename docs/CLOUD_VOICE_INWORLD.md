@@ -42,14 +42,18 @@ Read from the Terms of Service (2025-06-11), the Acceptable Use Policy, the Serv
 
 ## What the player sees
 
-Settings > Voices > Companion voices has eight entries: Pocket · Performance, four OmniVoice tiers, Voxtral · Mistral cloud,
-**Inworld · Cloud voice**, Convai · Cloud voice. Without a key the entry reads "Inworld · needs key" and Apply
-refuses it ("Requires an Inworld key (add it in Settings > Voices)").
+The Inworld voice is a developer-mode voice (2026-10-14). Settings > Voices > Companion voices lists it only while Developer mode is on, as the
+last of eight entries: Pocket · Performance, four OmniVoice tiers, Voxtral · Mistral cloud, Convai · Cloud voice, **Inworld · Cloud voice**
+(seven entries with Developer mode off). Without a key the entry reads "Inworld · needs key" and Apply
+refuses it ("Requires an Inworld key (add it in Settings > Development)"). A saved Inworld voice reads as Pocket while Developer mode is off.
+The Inworld sentences in the helps of Companion voices, Natural speech, Expressive emotions and Multilingual conversations show only in Developer mode.
 
-The key is entered like the Mistral key: in Settings > Voices, **Paste Inworld key** reads the clipboard once, checks
+The key has one row in Settings > Development, right after Developer mode, and the row is listed only in Developer mode. Its button reads
+**Paste** while no key is saved and **Remove** once one is. **Paste** reads the clipboard once, checks
 it with Inworld (a free request, the voice list) and saves it in the bridge's state folder as `player-inworld-key.txt`; the same
-file can be written by hand. **Remove my Inworld key** deletes it. The page shows only whether a key is saved and its last four
-characters (`runtime/mistral-state.json`, `inworld.saved` and `inworld.tail`). The key never goes to a log, a status file or a
+file can be written by hand. **Remove** deletes it. The status is in brackets in the row name: `Inworld key (...` plus the last four characters`)`,
+`(Added)`, `(Checking...)` or `(Not added)`; a failed paste puts its message first in the row's help. Only the last four
+characters are shown (`runtime/mistral-state.json`, `inworld.saved` and `inworld.tail`). The key never goes to a log, a status file or a
 setting, and goes only to `api.inworld.ai`. Command file: `runtime/inworld-key-command.json` (ids `:ikey:`).
 
 English only (it uses Pocket's English route), as with Voxtral: with Multilingual conversations on, the choice is
@@ -207,12 +211,12 @@ in `E:\CyberpunkConvai-offload\work\inworld-2026-10-13\`).
 ## Live checks in game (user)
 
 Install the committed `mod/` files and the bridge from this branch (never `mod/diagnostics.lua`), restart the bridge, reload CET.
-1. Settings > Voices > Paste Inworld key (key copied from Inworld's portal first): the row reads "Added (ends in ....)".
-2. Settings > Voices > Companion voices: choose "Inworld · Cloud voice", Apply.
+1. Turn on Developer mode and Apply. In Settings > Development press **Paste** on the Inworld key row (key copied from Inworld's portal first): the row name reads "Inworld key (..." with the last four characters, and the button reads **Remove**.
+2. Settings > Voices > Companion voices: the last entry is "Inworld · Cloud voice" (with Developer mode off it is not listed). Choose it, Apply.
 3. Talk to a companion: the voice is hers, the lips and subtitles follow it. The first reply of a character not seen before may be
    written only while the voice is made; later replies are Inworld's.
 4. `runtime/bridge.stderr.log`: `[Inworld] first audio ... ms` lines and `[VoiceRouting]` lines naming "Inworld cloud voice".
-5. Remove the key: the entry reads "Inworld · needs key" and Apply refuses it.
+5. Press **Remove** on the key row: the entry reads "Inworld · needs key" and Apply refuses it. Turn Developer mode off and Apply: the entry is gone and a saved Inworld voice reads as Pocket.
 6. Switch the network off mid-session: the next reply is written only (after the longer second ask), with one "not ready yet" notice; no reply changes voice
    in the middle.
 7. Emotion: a reply with a strong feeling ({anger:strong}, {sadness}) sounds different from a plain one. Turn Expressive emotions

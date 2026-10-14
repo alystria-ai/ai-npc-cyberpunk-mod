@@ -15,7 +15,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Aware of your gear**: companions know what V is wearing and carrying, and mention it only when it matters or you ask.
 - **Phone chat**: the first reply arrives in a second or two when you wait a moment after opening a chat.
 - **Fewer notices**: you only see when a companion has joined or when something fails.
-- **Free option when the daily conversation limit is reached**: choose Mistral as the Conversation provider in Settings > Development (it needs a free Mistral account). Voices keep working through the local voices. The optional Local AI packs (see Local AI below) work without any account.
+- **Free option when the daily conversation limit is reached**: choose Mistral as the Conversation provider in Settings > Conversation provider (it needs a free Mistral account). Voices keep working through the local voices. The optional Local AI packs (see Local AI below) work without any account.
 - **Local AI**: two optional downloads let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection.
 - **Smoother game**: the Runtime download includes a small RED4ext plugin that takes some of the mod's work off the game's script thread. If it cannot load, the mod runs from its scripts as before.
 
@@ -41,7 +41,7 @@ Close the game, then extract each download into your Cyberpunk 2077 folder (the 
 
 4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB, in several parts) for the best replies, and **Local AI lite** (Qwen3.5-2B, about 1.5 GB) for smaller graphics cards. Download every part from the same release page and extract them all. Then choose Local as the Conversation provider in Settings > Development. See "Local AI" below to pick a combination.
 
-Start the game. The first start after installing takes a little longer while the voice service prepares itself. After the standard Local AI pack, the first start also joins the downloaded parts into one file, which takes about a minute; Settings > Development shows "Not installed" until that is done.
+Start the game. The first start after installing takes a little longer while the voice service prepares itself. After the standard Local AI pack, the first start also joins the downloaded parts into one file, which takes about a minute; the Local AI model row reads "No model installed" until that is done.
 
 If Windows reports an error while extracting, use 7-Zip (https://www.7-zip.org) instead of the built-in extractor.
 

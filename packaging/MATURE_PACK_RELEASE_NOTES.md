@@ -10,7 +10,7 @@ Optional 18+ models for Cyberpunk Convai. Replaces the Local AI models' built-in
 
 **For adults only (18+).**
 
-The main mod has a **Mature content** setting (Settings > Development, under Conversation provider). It is off by default, applies to Local AI only, and its help text says it is for adults (18+). With the standard Local AI models it already changes language, violence and tone, but those models are trained to refuse most adult content. This pack is an optional download that adds uncensored models, so the setting has its full effect.
+The main mod has a **Mature content** setting (Settings > Conversation provider, under the provider). It is off by default, applies to Local AI only, and its help text says it is for adults (18+). With the standard Local AI models it already changes language, violence and tone, but those models are trained to refuse most adult content. This pack is an optional download that adds uncensored models, so the setting has its full effect.
 
 **What it adds**
 
@@ -21,7 +21,7 @@ The main mod has a **Mature content** setting (Settings > Development, under Con
 
 - Characters stay themselves: their voices, personalities and orientations decide how they flirt and talk about sex, not whether they do. They are direct and explicit; your relationship with them sets the tone (a partner is the most forward).
 - The **hard limits are always on**, on every model, with or without this pack: no sexual content involving minors or anyone who seems under 18, none without consent, no bestiality or incest, nothing sexual about real people, no real-world instructions for weapons, explosives or drug synthesis, no hateful content about real protected groups. The mod holds them in a rule at the start of every conversation, in a check on your messages before any model sees them, and in a check on every reply sentence before it is spoken.
-- It applies to **Local AI only**. Convai and Mistral never get it.
+- It applies to **Local AI only**. Convai and Mistral never get it: choosing either turns the setting off.
 
 **Requirements**
 
@@ -34,7 +34,7 @@ The main mod has a **Mature content** setting (Settings > Development, under Con
 
 1. Close the game.
 2. Extract every part of this pack into your Cyberpunk 2077 folder, allowing folders to merge.
-3. Start the game, open the Companion Manager, then Settings > Development.
+3. Start the game, open the Companion Manager, then Settings > Conversation provider.
 4. Choose Local in Conversation provider and Apply, then turn on Mature content and Apply.
 
 To turn it off, switch the setting off. To remove the pack, delete `manifest.mature.json` from the Local AI folder (and the model files listed in `mature/THIRD-PARTY-NOTICES.txt`); the setting stays, and the standard models are used.

@@ -11,8 +11,8 @@ no longer open it.
   Manager**. **Esc → MCM → Companion Manager** is also available.
 - **Home:** four destination actions open Characters to invite, Current party, Model browser
   and Settings. The destination list appears only on this home page.
-- **Characters to invite** (named "Characters" until 2026-10-14; the three pages that sounded alike are now
-  Characters to invite, Who can talk and, under Memory, Whose memories): searchable researched profiles, including Johnny Silverhand
+- **Characters to invite** (named "Characters" until 2026-10-14; the pages that sounded alike are now
+  Characters to invite and, under Memory, Whose memories; the "Who can talk" page was removed later, see Settings): searchable researched profiles, including Johnny Silverhand
   and Adam Smasher, with Invite / Add copy actions for available models.
   This catalogue is independent of phone contacts and quest unlocks.
 - **Current party:** one row per actual or invited copy, "Name #number" with
@@ -28,16 +28,18 @@ no longer open it.
   catalogue by name or record. Use MCM's **Search settings** field. It is visible to
   every player: it lets you invite any game character model, including characters
   without conversation support, which join as followers and do not talk.
-- **Settings:** conversation participation, Memory and Relationships submenus,
+- **Settings:** Memory and Relationships submenus (there is no "Who can talk" row or page; every character may talk by default, and one the
+  player muted earlier stays muted, since nothing resets the saved value),
   **Auto-connect nearby characters** (on by default and silent, see below), eye contact height, head tracking strength
   (Eyes only / Subtle / Gentle (default) / Strong), **Body gestures (experimental)** (on by default since 2026-10-11), voice playback,
   **V's voice for typed lines** (on by default; speaks what you type in V's cloned voice before the companion answers; does nothing beside the Convai cloud voice, which cannot clone, and the row says so; see `docs/V_VOICE.md`),
   **Keep prepared voices** (on by default), subtitles, automatic reactions, interface language and
   Developer mode (routine popups, a movement trace file, gesture logs and the setting in support reports; leave it off
   for normal play). The global voice choices are **Pocket · Performance (the default), OmniVoice · Balanced,
-  OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality and Convai · Cloud voice**, in that order,
-  with service readiness alongside. Without the optional OmniVoice pack the four OmniVoice entries read
-  "needs Omni pack" and cannot be applied.
+  OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality, Voxtral · Mistral cloud and Convai · Cloud voice**, in that
+  order, plus the Inworld cloud voice as the last entry in Developer mode only, with service readiness alongside. Without the optional
+  OmniVoice pack the four OmniVoice entries are greyed out (no pack row any more), the row name gains " (no Omni pack)" and Apply refuses
+  them; see "Greyed-out entries" below.
   **Cloud voice and the tag settings** (`manager.applySettings`, `honourCloudVoice`; 2026-10-11): choosing Convai · Cloud voice
   always keeps it. Natural speech and Expressive emotions would make it read their tags aloud, so both are turned off. A
   notice ("The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.") is shown only
@@ -94,7 +96,7 @@ opens the same "Unsaved changes" dialog through `McmUiEmitClosing` (the shared `
 `mod/mcm.lua`: at most once in 2 s, never while the dialog is open, never more than five times in a row so
 the player is not trapped) instead of doing nothing. If the
 button cannot be added, Back is the last row of the page (`inspect().backMode == 'list'`).
-Settings, Relationships and Who can talk start with a status line, the row
+Settings and Relationships start with a status line, the row
 "Changes wait until you choose Apply.", which changes in place to "Change pending. Choose Apply to
 use it, or Revert to discard it." while changes are pending.
 
@@ -110,8 +112,8 @@ Live result: with no changes Esc fires `OnButtonRelease` (`UI_Cancel`, `cancel`,
 `SettingsMainGameController.OnBack`, then `RequestClose`; the key guard asks before that.
 
 Every inner page ends with one **Back** action. Characters to invite, Current party,
-Model browser and Settings return to the manager home; Relationships, Memory,
-Who can talk and Prepared voices return to Settings. The memory character picker
+Model browser and Settings return to the manager home; Relationships, Memory
+and Prepared voices return to Settings. The memory character picker
 (Whose memories) returns to Memory, and the removed per-copy conversation page no longer exists. Navigation clears the previous page's search.
 The parent Back action remains visible when a search has no matching results.
 **Your group** (the Back action and the companion driver's trip status) appears only
@@ -593,20 +595,37 @@ on Apply, dropped when Mature content is off; an older record whose model `set` 
 entry: it lists the installed models from the smallest file to the largest and shows the default (the largest that fits the free graphics memory)
 as selected until a model is chosen; Apply then saves that model's id (docs/LOCAL_AI.md, "Choosing the model"). Revert or Apply forgets the in-memory staging.
 
+**Mature content and cloud providers exclude each other.** While the provider is any cloud one (Convai free tier, Convai API key, Mistral), Mature
+content is off, and load and Apply force it off. Choosing a cloud provider while Mature content is on turns Mature content off in the drafts
+and puts back what turning it on had changed, from the same restore record (its provider id can now be `convai-key`, Convai with the player's
+own key). Turning Mature content on still selects Local AI, the uncensored model and a local voice. Mature content without the Local AI pack
+bounces back to off. Its help ends "Choosing a cloud provider turns it off."
+
 ### Select labels and the description panel (2026-10-14)
 
 **Select labels.** A select row (`settingsSelectorStringList`) shows its value between two arrows in a box of fixed width that the mod cannot change.
-A longer text runs over the arrows. `mod/mcm.lua` therefore keeps every option within `OPTION_BUDGET` = 32 "average lowercase letters"
-(`optionUnits`: space 0.5; `i l . , : ; ' | !` 0.45; `t f r I ( ) - / [ ]` 0.65; `m w` 1.45; `M W` 1.6; other capitals and digits 1.15; a Chinese,
+A longer text runs over the arrows. `mod/mcm.lua` therefore keeps every option within `OPTION_BUDGET` = 26 "average lowercase letters"
+(32 before the focused-row key boxes, see below; `optionUnits`: space 0.5; `i l . , : ; ' | !` 0.45; `t f r I ( ) - / [ ]` 0.65; `m w` 1.45; `M W` 1.6; other capitals and digits 1.15; a Chinese,
 Japanese or Korean character 2). Seen running over the arrows: Inworld (about 33), Voxtral (about 40) and the Mature pack's model name (about 41);
-the longest entry reported to fit was an OmniVoice one (about 36 by this estimate), so 32 sits below all of them. The built-in entries are now:
-`Voxtral · Mistral cloud`, `Voxtral · needs Mistral key`, `Inworld · Cloud voice`, `Inworld · needs key`, `OmniVoice · ... · needs pack`
-(a voice name that appears in sentences and notices keeps its full name), and the Mature pack models `Qwen3.5-4B · uncensored` and
+the longest entry reported to fit was an OmniVoice one (about 36 by this estimate), so 32 sat below all of them. The built-in entries are now:
+`Voxtral · Mistral cloud`, `Voxtral · needs Mistral key`, `Inworld · Cloud voice`, `Inworld · needs key`, and the OmniVoice names without a
+" · needs pack" suffix (the missing pack is shown by greying them out, see below; a voice name that appears in sentences and notices keeps its full name), and the Mature pack models `Qwen3.5-4B · uncensored` and
 `Gemma 4 E4B · uncensored` (the word stays: `bridge/local-model-choice.mjs` recognises uncensored models by it). A model the player adds shows its
 own name, `(custom)` or `(custom · too large)`, and `fitOption()` is the last resort: a label still over the budget keeps its trailing
 `(...)` or ` · ...` part and ends its name with an ellipsis. The 15 translations are held to the same budget. `bridge/select-labels.test.mjs`
 checks every select text in English and in each language, the built-in model names and the estimate; `bridge/manager.test.mjs` checks the
 live menus in the worst case and the truncation.
+
+**Focused rows and the key boxes (2026-10-14).** The game draws an "A" and a "D" key box at the left and right arrows of a focused selector, over
+the option text. Their width could not be measured, so each is assumed to take 3 units (`KEY_HINT_UNITS`) of the 32 (`OPTION_BOX_UNITS`);
+`OPTION_BUDGET` is what is left, 32 - 2 * 3 = 26. Every option text of every select (English and the 15 translations) and the built-in model names
+must fit 26, which `bridge/select-labels.test.mjs` enforces; some labels were shortened in several languages for it ("Local (needs Local AI pack)",
+"No model installed" and others). The Mature model names (21.6 and 23.0 units) and the Inworld names already fit and are unchanged. The 3-unit
+width is an assumption: if a focused label still runs under a key box in the game, raise `KEY_HINT_UNITS`.
+
+**Greyed-out entries (not yet verified in the game).** While the OmniVoice pack is missing, the four OmniVoice entries of Companion voices are
+greyed out. The MCM settings library has no per-option disabled flag, so this mod dims the shown value text, the arrow or stepper skips those
+entries and stops at the ends of the list, and Apply still refuses choosing one.
 
 **Description panel.** The text on the right of the page is MCM's `description_text` (an `inkRichTextBox`, 382 wide, in a viewport that cannot
 scroll), so what does not fit is cut off at the bottom. `mod/mcm-fonts.lua` draws our descriptions at size 22 (`DESCRIPTION_FONT_SIZE`; the game
@@ -621,11 +640,34 @@ live check is to open each page and look for cut-off text.
 Order on the Settings tab: Interface, Conversations, **Conversation provider**, Companion behavior, Voices, Subtitles, Automatic reactions,
 add-on sections, Development, Help.
 
-- **Conversation provider** (new): the provider, Conversations use, Mature content, Local AI model, Local AI status, the four Convai key rows
-  (always listed, not only in Developer mode), the three Mistral key rows, Edit characters. Everything that decides who answers is here.
-- **Voices**: Voice playback, Companion voices, **Voice status** (moved up to sit right under Companion voices), the three Inworld key rows
-  (the Inworld key is a voice setting), Lip sync delay, Natural speech, Expressive emotions, Follow-up questions, V's voice, OmniVoice pack.
-- **Development** keeps only Developer mode.
+- **Conversation provider** (new): the provider selector (four entries: Convai free tier (default), Convai API key, Mistral (free plan), Local (needs
+  Local AI pack)), Mature content, Local AI model, the Convai key row (always listed, also with Mistral or Local chosen), the Mistral key row, Edit characters.
+  Everything that decides who answers is here. The old rows "Use my own Convai API key", "Conversations use" and the Local AI status row are gone
+  (see "One key button per key" and "Where the status went" below).
+- **Voices**: Voice playback, Companion voices, **Voice status** (moved up to sit right under Companion voices), Lip sync delay, Natural speech,
+  Expressive emotions, Follow-up questions, V's voice. The OmniVoice pack row and the Inworld key rows are gone from here.
+- **Development** holds Developer mode and, in Developer mode only, the Inworld key row right after it.
+
+**Provider selector and migration.** "Convai API key" stores `conversationProvider = 'convai'` with `useOwnConvaiKey = true`; the other entries store
+`convai`, `mistral` or `local` as before. A one-time migration on load (marker `convaiProviderChoice` in `settings.json`) maps the old switch: on
+with a key saved becomes "Convai API key", anything else "Convai free tier"; a saved Mistral or Local choice is untouched.
+
+**One key button per key.** The Convai key and the Mistral key (Settings > Conversation provider) and the Inworld key (Settings > Development,
+Developer mode only) each have one row. Its button reads "Paste" while no key is saved and "Remove" once one is. The status is in brackets in the
+row name: "Convai API key (...a1F9)" (the last four characters), "(Added)" when a key is saved but no tail is known, "(Checking...)" while it is checked
+and "(Not added)" after a failed paste, when the failure message is the first paragraph of the row's help. Only the last four characters of a key
+are ever shown. The old separate paste, remove and status rows for all three keys, "Your own key" and "Conversations use" no longer exist.
+
+**Where the status went.** The Local AI model row's name gets a bracket while the model is not ready ("(Warming up)", "(Not enough memory)",
+"(Unavailable)") and its help starts with the loading sentence. The provider notes (Mistral limit reached, key not accepted or model unavailable; the
+Convai free tier's "x of y left today" or limit reached; your key's plan limit, rejected, no memory room or running without memory; "Waiting for the
+conversation to end"; fallbacks such as "Convai: Local AI is not ready") are the last paragraph of the Conversation provider row's help. Ready and
+not-installed states need no words.
+
+**Inworld is a developer-mode voice.** Companion voices lists it, as the last (eighth) entry, only while Developer mode is on (seven entries
+otherwise), as "Inworld · Cloud voice" or "Inworld · needs key". A saved Inworld voice reads as Pocket while Developer mode is off. The Inworld
+sentences in the helps of Companion voices, Natural speech, Expressive emotions and Multilingual conversations, and the Works-with sentence, show
+only in Developer mode. The refusal text is "Requires an Inworld key (add it in Settings > Development)".
 - **Prepared voices** have no switch, no disk row, no Clear action and no page: they are always kept, and a saved `keepPreparedVoices = false`
   is read as on and written back as on. `bridge/prepared-voices.mjs` stays only for `scripts/Clear-PreparedVoices.mjs`.
 - **Groq** is no longer a provider. A saved `groq` is read as `convai` (the default), in the bridge and in the Lua settings alike; `player-groq-key.txt` is never read.
