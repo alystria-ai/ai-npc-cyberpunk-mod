@@ -32,9 +32,10 @@ test('the block words the clock, the place, the company, the vehicle and V for a
   const text = turnContext(parseInput(JSON.stringify(turn({profileKey: 'judy-alvarez', turnContext: scene()}))));
   assert.equal(text, 'Right now (from the game, this turn only): You are with V in person in Kabuki, Watson. It is late night, about 2 AM. '
     + 'Also with V: Panam. V is in a vehicle. V is a woman (she/her), lifepath Street Kid. '
-    + 'Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine). Do not recite it.');
+    + 'Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
+    + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them. Do not recite it.');
   assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length} characters`);
-  assert.equal(MAX_CHARS, 800);
+  assert.equal(MAX_CHARS, 900);
 });
 
 test('the part of the day and the nearest hour', () => {
@@ -53,7 +54,7 @@ test('the part of the day and the nearest hour', () => {
 
 test('every field is optional: a missing or unreadable one is simply absent', () => {
   const only = fields => turnContext(turn({turnContext: {version: 1, status: 'ready', ...fields}}));
-  assert.match(only({district: 'SantoDomingo'}), /^Right now \(from the game, this turn only\): You are with V in person in Santo Domingo\. Treat this as fact/);
+  assert.match(only({district: 'SantoDomingo'}), /^Right now \(from the game, this turn only\): You are with V in person in Santo Domingo. Which street or building you are at is not given. Treat this as fact/);
   assert.match(only({hour: 14, minute: 0}), /It is afternoon, about 2 PM\. Treat this as fact/);
   assert.match(only({vehicle: false}), /^Right now \(from the game, this turn only\): You are with V in person\. Treat this/, 'not in a vehicle adds nothing but the in-person line');
   assert.match(only({gender: 'male'}), /V is a man \(he\/him\)\./);
@@ -468,14 +469,14 @@ const doing = (activity, extra = {}, input = {}) => turnContext(turn({turnContex
   party: [{key: 'judy-alvarez', name: 'Judy', activity}], ...extra}), ...input}));
 
 test('a companion is told, first and plainly, that she is with V in person and what she is doing', () => {
-  assert.match(doing('following', {motion: 'walking'}), /^Right now \(from the game, this turn only\): You are with V in person, on foot, following V through Kabuki, Watson\. It is late night, about 2 AM\. V is walking\. Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so \(what you would like to do or will do is fine\)\. Do not recite it\.$/);
+  assert.match(doing('following', {motion: 'walking'}), /^Right now \(from the game, this turn only\): You are with V in person, on foot, following V through Kabuki, Watson\. Which street or building you are at is not given\. It is late night, about 2 AM\. V is walking\. Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so \(what you would like to do or will do is fine\)\. Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them\. Do not recite it\.$/);
   const says = {standing: /standing near V in Kabuki/, combat: /in a fight alongside V in Kabuki/, 'to-seat': /walking over to sit down beside V/,
     seated: /sitting beside V in Kabuki/, 'getting-up': /getting up from your seat/, passenger: /riding along in V's vehicle through Kabuki/,
     driving: /driving V's vehicle through Kabuki/, boarding: /getting into V's vehicle/, 'leaving-car': /getting out of V's vehicle/,
     attacking: /going after a target V picked/};
   for (const [activity, pattern] of Object.entries(says)) assert.match(doing(activity), pattern, activity);
   // No activity known: still in person, nothing else claimed.
-  assert.match(doing(undefined), /^Right now \(from the game, this turn only\): You are with V in person in Kabuki, Watson\. It is/);
+  assert.match(doing(undefined), /^Right now \(from the game, this turn only\): You are with V in person in Kabuki, Watson. Which street or building you are at is not given. It is/);
   // Another character's row is not hers.
   assert.match(doing('seated', {}, {profileKey: 'panam-palmer'}), /^Right now \(from the game, this turn only\): You are with V in person in Kabuki, Watson\. /);
   // Unknown words from the game are dropped, never worded.
@@ -593,9 +594,10 @@ const full = {weather: 'rain', health: 'badly-hurt', heat: 4, money: 'broke'};
 
 test('a companion in person is told the weather, V\'s condition, the police heat and a rough money band', () => {
   const text = turnContext(body(full));
-  assert.equal(text, 'Right now (from the game, this turn only): You are with V in person, on foot, following V through Kabuki, Watson. It is late night, about 2 AM. '
+  assert.equal(text, 'Right now (from the game, this turn only): You are with V in person, on foot, following V through Kabuki, Watson. Which street or building you are at is not given. It is late night, about 2 AM. '
     + 'It is raining. V is badly hurt. V has a serious police chase on them. V is a woman (she/her), lifepath Street Kid. V is nearly broke. '
-    + 'Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine). Do not recite it.');
+    + 'Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
+    + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them. Do not recite it.');
   assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length}`);
 });
 
@@ -753,7 +755,7 @@ test('Lua: the new reads are optional: an adapter without them (an older one) st
 const weatherGame = `${fakeGame}
 local calls = {}
 local fake = {state = 'getWeatherState', stateValue = {name = '24h_weather_toxic_rain'}, rainType = 'HeavyRain', rain = 0.8,
-  heat = 3, heatName = 'GetHeatStageAsInt', percent = 41, eddies = 78000, noPercent = false}
+  heat = 3, heatName = 'GetHeatStageAsInt', percent = 41, eddies = 78000, noPercent = false, interior = true, interiorForm = 'id'}
 local function counted(name, fn) return function(...) calls[name] = (calls[name] or 0) + 1; return fn(...) end end
 local player = Game.GetPlayer()
 Game.GetPlayer = function() return {IsAttached = function() return true end, IsDeadNoStatPool = function() return false end,
@@ -782,6 +784,10 @@ Game.GetScriptableSystemsContainer = function() return {Get = function(self, nam
 end} end
 Game.GetTransactionSystem = function() return {GetItemQuantity = counted('money', function(self, who, id)
   assert(id == 'item:Items.money', tostring(id)); return fake.eddies end)} end
+Game.GetSceneSystem = function() return {GetScriptInterface = function() return {
+  IsEntityInInteriorArea = counted('interior', function(self, who)
+    if fake.interiorForm == 'id' and who ~= 'v-id' then error('this build takes an entity id') end
+    return fake.interior end)} end} end
 ItemID = {FromTDBID = function(id) return 'item:' .. id end}
 TweakDBID = {new = function(name) return name end}
 `;
@@ -798,12 +804,15 @@ test('the default adapter reads the weather, health, heat and money from the gam
   assert(lines[1]:find('health=hurt%(41%%|GetStatPoolValue%(percent%)%)') and lines[1]:find('heat=3%(GetHeatStageAsInt%)') and lines[1]:find('money=comfortable%(78000%)'), lines[1])
   assert(lines[1]:find('weather=toxic%-rain%(') and lines[1]:find('GetWeatherState%+GetRainIntensityType'), lines[1])
   assert(calls.pool == 1 and calls.heat == 1 and calls.money == 1 and calls.rainType == 1 and calls.weatherState == 1)
+  -- The indoor flag: the entity form raised, the id form answered, and the log says which.
+  assert(snap.indoors == true and calls.interior == 2 and lines[1]:find('indoors=true%(IsEntityInInteriorArea%(id%)%)'), tostring(snap.indoors) .. tostring(calls.interior))
   for i = 1, 10 do ctx:capture() end
   assert(calls.pool == 1 and calls.money == 1, 'cached for the window')
   -- The remembered getter is called directly on the next read; the other names are not tried again.
   local before = calls.weatherState
   ctx:reset('test'); ctx:capture()
   assert(calls.weatherState == before + 1 and calls.heat == 2)
+  assert(calls.interior == 3, 'the form that worked is called directly: ' .. calls.interior)
 `));
 
 test('the default adapter falls back: another state getter name, the value over the maximum, the second heat name, rain-only weather, an enum heat', () => runLua(`${weatherGame}
@@ -883,4 +892,89 @@ test('the voice form of the context carries no journal, no gear and none of the 
   assert.deepEqual(blocks.map(block => block.tier), ['now', 'world', 'volatile', 'volatile']);
   // The ordinary form for the same input still has all of it.
   assert.match(conversationContext(cabTurn()), /Samurai Jacket/);
+});
+
+// ---------------------------------------------------------------- where V is (2026-10-15)
+// Live 2026-10-15: Alex stood next to V in the street in Arroyo, and answered "Either you're here to buy a drink or you're here to leave". The
+// block said only "standing near V in Arroyo, Santo Domingo": no street, no building, nothing that said her bar (the Moth, in her profile) was
+// elsewhere, so the model filled the gap with her bar. The block now says whether V is indoors or out when the game can say, that the exact
+// spot is not given when it cannot, a named place only from the game's own record, and that her usual haunts are not here.
+const street = (extra = {}, input = {}) => turn({profileKey: 'alex', name: 'Alex', text: 'Hey', turnContext: scene({district: 'SantoDomingo', area: 'Arroyo',
+  vehicle: false, motion: 'still', gender: undefined, lifepath: undefined, party: [{key: 'alex', name: 'Alex', activity: 'standing'}], ...extra}), ...input});
+
+test('Alex in Arroyo: the block names the neighbourhood, does not claim a street or a building when the game cannot say, and says her haunts are not here', () => {
+  const text = turnContext(street());
+  assert.match(text, /You are with V in person, standing near V in Arroyo, Santo Domingo\. Which street or building you are at is not given\./);
+  assert.match(text, /Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them\./);
+  assert.doesNotMatch(text, /indoors|outdoors|\bbar\b|Moth/);
+  assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length}`);
+});
+
+test('the game\'s indoor reading says "outdoors, not inside a building" or "indoors"; an interior record says indoors with the named place', () => {
+  assert.match(turnContext(street({indoors: false})), /Arroyo, Santo Domingo\. You are outdoors, out in the open air, not inside a building\. It is late night/);
+  assert.doesNotMatch(turnContext(street({indoors: false})), /not given/);
+  assert.match(turnContext(street({indoors: true})), /Arroyo, Santo Domingo\. You are indoors\. It is late night/);
+  const bar = turnContext(street({district: 'Watson', area: 'Kabuki_LizziesBar'}));
+  assert.match(bar, /standing near V in Lizzie's Bar, Watson\. You are indoors\./);
+  assert.match(turnContext(street({district: 'Watson', area: 'LittleChina_VApartment'})), /in V's apartment in Megabuilding H10\. You are indoors\./);
+  assert.match(turnContext(street({district: 'Badlands', area: 'Badlands_RockyRidge'})), /in Rocky Ridge, Badlands\. You are outdoors, out in open country\./);
+});
+
+test('a named place is never invented: no record, no name; a bad indoor value is dropped; a vehicle never gets the "not given" line', () => {
+  assert.doesNotMatch(turnContext(street({district: 'Watson', area: 'Kabuki'})), /Lizzie|Afterlife|Moth/);
+  assert.equal(parseTurnContext(scene({indoors: 'maybe'})).indoors, undefined);
+  assert.equal(parseTurnContext(scene({indoors: false})).indoors, false);
+  assert.equal(parseTurnContext({version: 1, status: 'ready', hour: 3, minute: 5, indoors: true}).indoors, undefined, 'nothing to be indoors in without a district');
+  assert.doesNotMatch(turnContext(street({vehicle: true, motion: undefined})), /not given/);
+  // Never for a phone chat or a holocall: those keep their own wording about where she is.
+  for (const input of [{channel: 'phone'}, {holocall: {mode: 'audio'}}]) {
+    const text = turnContext(street({indoors: false}, input));
+    assert.doesNotMatch(text, /outdoors|indoors|usual workplace/, JSON.stringify(input));
+  }
+  assert.doesNotMatch(turnContext(street({indoors: false}), {ambient: true}), /outdoors|usual workplace/);
+});
+
+test('with everything set the block still holds its cap, keeps the place and haunts lines', () => {
+  const crowded = street({indoors: false, vehicle: false, gender: 'female', lifepath: 'streetkid', weather: 'rain', health: 'badly-hurt', heat: 4, money: 'broke',
+    party: [{key: 'alex', name: 'Alex', activity: 'following'}, ...Array.from({length: 4}, (_, i) => ({key: `person-${i}`, name: `Person ${i} `.padEnd(40, 'x')}))]});
+  const text = turnContext(crowded);
+  assert.ok(text.length <= MAX_CHARS, `${text.length}`);
+  assert.match(text, /not inside a building\./);
+  assert.match(text, /usual workplace, home and hangouts are not here/);
+});
+
+test('the diagnostic and the prompt carry the new sentences like the old ones', () => {
+  const input = parseInput(JSON.stringify(street({indoors: false})));
+  assert.match(conversationContext(input), /^Right now \(from the game, this turn only\): You are with V in person, standing near V in Arroyo, Santo Domingo\. You are outdoors/);
+  assert.match(turnContextDiagnostic(input), /^Turn context: \d+ facts, \d+ chars$/);
+});
+
+test('Lua: the indoor reading is optional, guarded, logged with its source and never counted as something read', () => lua$(`${fresh}
+  state.interior = {false, 'IsEntityInInteriorArea(entity)'}
+  N.interior = function(p) assert(p == player); state.optionalCalls.interior = (state.optionalCalls.interior or 0) + 1; guard('interior'); return table.unpack(state.interior) end
+  local snap = ctx:capture()
+  assert(snap.indoors == false, tostring(snap.indoors))
+  assert(lines[1]:find(' indoors=false%(IsEntityInInteriorArea%(entity%)%)'), lines[1])
+  state.interior = {true, 'IsEntityInInteriorArea(id)'}; now = now + api.MAX_AGE
+  assert(ctx:capture().indoors == true)
+  -- A failing read drops only that field and is logged once.
+  state.failures = {interior = true}; now = now + api.MAX_AGE
+  local failed = ctx:capture()
+  assert(failed.indoors == nil and failed.weather == 'rain' and failed.district == 'Watson', 'the rest of the block is kept')
+  local logged = 0; for _, line in ipairs(lines) do if line:find('interior read failed') then logged = logged + 1 end end
+  assert(logged == 1, logged)
+  for i = 1, 5 do now = now + api.MAX_AGE; ctx:capture() end
+  assert(state.optionalCalls.interior == 2 + api.MAX_FAILURES, 'skipped after three straight errors: ' .. state.optionalCalls.interior)
+  state.failures = {}; ctx:reset('new save'); state.interior = {'yes'}; now = now + api.MAX_AGE
+  assert(ctx:capture().indoors == nil, 'only a boolean counts')
+  -- No district, no indoor reading.
+  state.place = nil; state.interior = {true, 'x'}; now = now + api.MAX_AGE
+  assert(ctx:capture().indoors == nil)
+`));
+
+test('Lua: the native adapter reads the indoor flag only through the scene system, in two argument forms, on demand', () => {
+  const code = source.split(/\r?\n/).map(row => row.replace(/--.*$/, '')).join('\n');
+  assert.equal((code.match(/IsEntityInInteriorArea/g) ?? []).length, 4, 'one method, two argument forms, one source label, one error text');
+  assert.match(code, /self:optional\('interior', player\)/);
+  assert.doesNotMatch(code, /registerForEvent|onUpdate|Observe\(/);
 });

@@ -5,6 +5,9 @@
 // For a character with V it also states the plain truth about where she is and what she is doing (in person with V, on foot, sitting,
 // riding, driving, fighting; what the companion modules know), and says that anything else is not true: a small model otherwise
 // invents a place or a task for her ("I was just finishing some checks in the basement"), and a later turn builds on it.
+// Where she is is worded by bridge/place-names.mjs (a named place only from the game's own record; indoors or outdoors when the game says,
+// else "which street or building is not given"), and a companion in person is told her usual workplace, home and hangouts are not here:
+// a model with a bar in its profile otherwise puts V in the bar (live 2026-10-15, docs/DYNAMIC_CONTEXT_AUDIT.md, "where V is").
 // A stranger (an ordinary NPC or archetype) gets only what a bystander could see or know: the time, where it is, whether V is in
 // a vehicle, whether V has company and V's apparent gender. Never the lifepath, the quest journal or the party's names.
 // A phone chat (V texting a contact through the in-game phone; the reply is text) gets the time, V's district and what V is doing,
@@ -13,10 +16,10 @@
 // Weather, V's health band, the police heat stage and a rough money band (added 2026-10-14; the CET calls are unconfirmed, so each is
 // optional): a companion in person gets all four, a stranger gets the weather and a visible injury (a bystander sees both; never heat
 // or money), a phone contact gets the weather where V is (like the time) and nothing else of V's body, wanted state or wallet.
-import {placeName} from './protocol.mjs';
+import {describePlace} from './place-names.mjs';
 
 // The whole block, framing included (the phone's block is the longest: it also says what she cannot know).
-export const MAX_CHARS = 800;
+export const MAX_CHARS = 900;
 const MAX_NAME = 60, MAX_PARTY = 6;
 const PLACE = /^[A-Za-z0-9][A-Za-z0-9 _.'-]{0,63}$/;
 const LIFEPATHS = {nomad: 'Nomad', streetkid: 'Street Kid', corpo: 'Corpo'};
@@ -72,6 +75,8 @@ export function parseTurnContext(value) {
     result.district = value.district;
     if (typeof value.area === 'string' && PLACE.test(value.area) && value.area !== value.district) result.area = value.area;
   }
+  // Whether V is inside a building (an unconfirmed native read, so it is absent when the game could not say). It only sharpens the place.
+  if (typeof value.indoors === 'boolean' && result.district) result.indoors = value.indoors;
   if (Object.hasOwn(GENDERS, value.gender)) result.gender = value.gender;
   if (Object.hasOwn(GENDERS, value.voice)) result.voice = value.voice;
   if (Object.hasOwn(LIFEPATHS, value.lifepath)) result.lifepath = value.lifepath;
@@ -111,9 +116,17 @@ export function timeOfDay(hour, minute) {
 }
 
 const listOf = names => names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-const placeOf = snapshot => snapshot.district
-  ? (snapshot.area ? `${placeName(snapshot.area) ?? snapshot.area}, ${placeName(snapshot.district) ?? snapshot.district}`
-    : placeName(snapshot.district) ?? snapshot.district) : null;
+// Where V is: {text, inside, kind} (bridge/place-names.mjs), or null. A named place only when the game's own record says V is there.
+const placeOf = snapshot => describePlace({district: snapshot.district, area: snapshot.area, indoors: snapshot.indoors});
+
+// The second sentence for a companion in person: inside or outside, or that the exact spot is not given. Without it a model with a
+// workplace in its profile fills the gap with that workplace (live 2026-10-15: Alex, in Arroyo, "Either you're here to buy a drink").
+function surroundings(place, vehicle) {
+  if (!place || (vehicle === true && place.inside === null)) return null;
+  if (place.inside === true) return 'You are indoors.';
+  if (place.inside === false) return place.kind === 'wild' ? 'You are outdoors, out in open country.' : 'You are outdoors, out in the open air, not inside a building.';
+  return place.kind === 'home' || place.kind === 'venue' ? null : 'Which street or building you are at is not given.';
+}
 
 // A holocall turn's call (bridge/protocol.mjs parseHolocall), or null.
 const holocallOf = input => plain(input.holocall) && (input.holocall.mode === 'audio' || input.holocall.mode === 'holo') ? input.holocall : null;
@@ -144,13 +157,15 @@ export function describeTurnContext(input, {ambient = false, voice = false} = {}
   const sentences = [];
   const call = !ambient && !input.group && input.channel !== 'phone' ? holocallOf(input) : null;
   // Remote: a phone chat or a holocall. Neither learns who is with V, V's heat or V's money.
-  const place = placeOf(snapshot), phone = input.channel === 'phone' || call !== null;
+  const spot = placeOf(snapshot), place = spot?.text ?? null, phone = input.channel === 'phone' || call !== null;
   // The first sentence, so a budget cut never reaches it: where she is and what she is doing. She is in person with V (a face to
   // face talk, a companion, a voice chat) or on a call, and the call says nothing of her own place or doing.
   if (!ambient && !phone) {
     const mine = (snapshot.party ?? []).find(row => row.key === input.profileKey);
     const [state, via] = ACTIVITIES[mine?.activity] ?? ['', 'in'];
     sentences.push(`You are with V in person${state}${place ? ` ${via} ${place}` : ''}.`);
+    const around = surroundings(spot, snapshot.vehicle);
+    if (around) sentences.push(around);
   } else if (call) {
     const where = `${place ? `; V is in ${place}` : ''}. You are somewhere else; where you are and what you are doing are not given.`;
     sentences.push(call.mode === 'holo'
@@ -188,7 +203,8 @@ export function describeTurnContext(input, {ambient = false, voice = false} = {}
   const prefix = 'Right now (from the game, this turn only): ';
   const suffix = ambient
     ? ' You are a stranger to V and know only what you can see and hear. Background only; bring it up only when it fits.'
-    : call ? CALL_SUFFIX : phone ? PHONE_SUFFIX : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine). Do not recite it.';
+    : call ? CALL_SUFFIX : phone ? PHONE_SUFFIX : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
+      + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them. Do not recite it.';
   // Over budget: drop whole sentences from the end, never cut one in half.
   const budget = MAX_CHARS - prefix.length - suffix.length;
   while (sentences.length && sentences.join(' ').length > budget) sentences.pop();

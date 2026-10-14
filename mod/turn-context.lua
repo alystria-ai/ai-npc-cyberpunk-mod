@@ -298,6 +298,23 @@ local function nativeAdapter()
         if moneyId == nil then moneyId = ItemID.FromTDBID(TweakDBID.new('Items.money')) end
         return Game.GetTransactionSystem():GetItemQuantity(player, moneyId)
     end
+    -- Whether V stands inside a building: the scene system's IsEntityInInteriorArea (the method exists in final.redscripts next to
+    -- IsEntityInScene; its argument type, an entity or an entity id, and what the game counts as an interior area are NOT confirmed in
+    -- game, see TODO.md "Live checks"). Both argument forms are tried and the working one is remembered. Plain boolean only.
+    local interiorForm
+    function N.interior(player)
+        local scene = Game.GetSceneSystem():GetScriptInterface()
+        if scene == nil then return nil end
+        local forms = {entity = function() return scene:IsEntityInInteriorArea(player) end,
+            id = function() return scene:IsEntityInInteriorArea(player:GetEntityID()) end}
+        local lastError
+        for _, form in ipairs(interiorForm and {interiorForm} or {'entity', 'id'}) do
+            local ok, value = pcall(forms[form])
+            if ok and type(value) == 'boolean' then interiorForm = form; return value, 'IsEntityInInteriorArea(' .. form .. ')' end
+            if not ok then lastError = value end
+        end
+        error(lastError or 'IsEntityInInteriorArea answered no boolean', 0)
+    end
     return N
 end
 
@@ -434,6 +451,14 @@ function Instance:read()
         extras[#extras + 1] = string.format('heat=%d(%s)', stage, tostring(heatSource))
     elseif rawHeat ~= nil then
         self:once('heat:unmapped', 'Turn context: heat value not usable (' .. tostring(rawHeat) .. ')')
+    end
+    -- Inside a building or not (unconfirmed, optional; it only sharpens the place wording, so it is not counted as something read).
+    if snapshot.district then
+        local inside, insideSource = self:optional('interior', player)
+        if type(inside) == 'boolean' then
+            snapshot.indoors = inside
+            extras[#extras + 1] = string.format('indoors=%s(%s)', tostring(inside), tostring(insideSource))
+        end
     end
     local eddies = self:optional('money', player)
     local money = M.moneyBand(eddies)
