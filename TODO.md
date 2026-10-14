@@ -85,6 +85,10 @@ All run on what is installed. Detail: the doc or log entry named; the shortened 
 - **Tests:** the full suite passed three times in a row on 2026-10-14 (4905 tests, 0 fail, 12 skipped); `scripts/pocket_training/test_*.py` need the training environment and `pwsh.exe` binding tests skip.
 - **Add-on live checks** in `docs/ADDON_API.md` ("What the game must confirm live"), then each add-on's release on its date.
 
+### Parked: start only when the user says so
+
+- **YouTube on in-game TVs (user idea, 2026-10-14):** a TV in V's apartment plays YouTube videos that the player watches together with their companion (the companion can react to it). Not started; do not start until the user says go.
+
 ### Settled and dropped
 - Lip-sync v2 keeps the shipped model (2026-10-14; `docs/LIPSYNC_V2_RESEARCH_2026-10-14.md`); the optional stage-2 retrain (96 epochs) and weaker-anchor decoder ideas are not planned.
 - Groq as a conversation provider: removed entirely by the user on 2026-10-14. The three conversation options are built (Convai plus local voice, fully local Gemma 4 E4B or Qwen3.5-2B, free cloud Mistral with Voxtral or Inworld voices).
