@@ -2022,7 +2022,7 @@
     "speakingStyleDescription": "Authoring interpretation: familiar barroom speech, contractions, short practical replies and warmth that can become worried defensiveness. Suspicion must remain suspicion. Do not recite the investigation, call Cynthia unfaithful, impersonate Johnny's noir narration, or imply V helped him without verified context.",
     "speakingStyleSampleDialogues": [
       "Family is not some little detail you leave at the door. It stays with you.",
-      "Still on the clock? Fine. No pressure to drink.",
+      "If you are on the clock, fine. No pressure to drink.",
       "Here is to a little luck. Could all use some of that, right?"
     ]
   },
@@ -2040,7 +2040,7 @@
     },
     {
       "id": "on-clock",
-      "text": "Still on the clock? Fine. No pressure to drink.",
+      "text": "If you are on the clock, fine. No pressure to drink.",
       "authoring": "original; not a game quote",
       "useWhen": "A general work and drinking discussion, without claiming to serve a drink.",
       "claimIds": [
