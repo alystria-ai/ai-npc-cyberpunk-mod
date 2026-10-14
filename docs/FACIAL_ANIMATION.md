@@ -26,6 +26,15 @@ expression layer's scene and autonomy guards skip that one entity (`M.screenEnti
 `reset()` closes the gate and the game's own lip sync owns the face again. Without a watch nothing changes (one array size read per
 NPC spawn).
 
+**October 15 live test: the welcome's face stayed still, the later lines moved it** (branch `delamain-welcome-face`). The screen face
+works (the talk reply that followed drove entity `9003219ULL` for 268 frames, `speech-state.json`). The welcome is written and voiced
+ahead and held (CET log: `Remark ready, held` 01:15:57, hold released 01:15:59 as V sat), and `speech.lua` asked for the screen face
+once, when that voice started: at 01:15:57, before V sat, when the scene had not spawned its holocall NPC yet. Nothing asked again, so
+the whole welcome played without a face. Fix: `addons.faceActor` answers `nil, true` for a watched face that is not ready; such a reply
+asks again every 0.25 s of heard playback and the face joins at the heard position (the playing native phrase's face is started then);
+and a held remark can wait for the face when its moment comes (`faceWait`; the cab's welcome waits up to 1.5 s after V sits).
+Unproven: how long after V sits the NPC appears (the release log says `face ready after` or `face not ready`).
+
 **What only the game can prove.** That the spawn-set NPC goes through `Entity/Initialize` as an `NPCPuppet` after the cab state
 reaches 1 (when the add-on starts the watch), that its rig passes the 59-track check (`screen:unsupported-rig` otherwise), that a
 render-to-texture camera keeps evaluating our graph, and that the screen shows the mouth in time with our voice.

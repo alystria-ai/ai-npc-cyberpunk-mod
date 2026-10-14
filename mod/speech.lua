@@ -33,6 +33,22 @@ local screenFace = {
     stop = function(_, reason) return facial.stop(M.faceActor, reason) end,
     hold = function(_, requestId) return facial.hold(M.faceActor, requestId) end,
 }
+-- The screen face may not exist yet when the reply starts: the Delamain cab's seat-back NPC is spawned by the game's scene as V sits,
+-- after the held welcome was already written and voiced (live test 2026-10-15: the welcome's face was asked for 2 s before V sat and
+-- never again, so only the later lines moved the face). M.faceSource then answers nil plus `pending` (the speaker has a watched screen
+-- face that is not ready). Such a reply asks again every FACE_RETRY seconds while its voice plays (never while it is paused or held),
+-- at most FACE_RETRIES times, and the face joins at the heard position. Every other reply never retries.
+local FACE_RETRY, FACE_RETRIES = .25, 40
+local function findScreenFace(profileKey, context)
+    local ok, npc, pending = pcall(M.faceSource, profileKey, Game.GetPlayer())
+    local known, entity = false, nil
+    if ok and npc then known, entity = pcall(function() return tostring(npc:GetEntityID().hash) end) end
+    if not (known and type(entity) == 'string' and entity:match('^%d+ULL$')) then return false, ok and pending == true end
+    M.faceActor, M.faceEntity = npc, entity
+    M.faceContext = {requestId = context.requestId, generation = context.generation, entity = entity, name = context.name}
+    facial.screenEntity = entity
+    return true
+end
 local face = setmetatable({}, {__index = function(_, key)
     if M.voiceOnly and NO_FACE[key] then return M.faceActor and screenFace[key] or noFace end
     return facial[key]
@@ -149,7 +165,7 @@ function M.stop(reason)
     if face.endExpression then face.endExpression(M.context,reason=='finished') end
     face.stop(M.actor, reason)
     if M.faceEntity then facial.clearExpression(M.faceEntity); facial.screenEntity = nil end
-    M.faceActor, M.faceEntity, M.faceContext = nil, nil, nil
+    M.faceActor, M.faceEntity, M.faceContext, M.faceRetry, M.faceChunk = nil, nil, nil, nil, nil
     if M.player and not M.continuous then pcall(function() M.player:ConvaiSpeechStop() end) end
     if M.requestId then
         -- Heard to the end: hold the last page briefly (it owns nothing, so the
@@ -211,6 +227,8 @@ local function beginChunk(audio, text, timeline, startSeconds)
     local expected = M.stream and M.stream.version == 2
         and {index = M.stream.index, startSeconds = M.stream.chunkStart} or nil
     face.start(M.context, timeline, M.actor, audio.duration, expected)
+    -- Still waiting for the screen face: this phrase's face is kept so the face can start it when it appears (retryFace).
+    if M.faceRetry then M.faceChunk = {timeline = timeline, duration = audio.duration, expected = expected} end
     publish()
     return true
 end
@@ -247,15 +265,13 @@ function M.start(context, reply)
         local ok, hidden = pcall(M.hideCaption, context.profileKey, context.requestId)
         if ok and hidden == true then M.captionHidden = true; captions.clear() end
     end
-    -- An add-on speaker's face on a screen (see screenFace above), asked once for this reply.
+    -- An add-on speaker's face on a screen (see screenFace above), asked once for this reply; asked again while it plays when the
+    -- face is not there yet (findScreenFace above).
     if M.voiceOnly and not M.holocall and type(M.faceSource) == 'function' then
-        local ok, npc = pcall(M.faceSource, context.profileKey, Game.GetPlayer())
-        local known, entity = false, nil
-        if ok and npc then known, entity = pcall(function() return tostring(npc:GetEntityID().hash) end) end
-        if known and type(entity) == 'string' and entity:match('^%d+ULL$') then
-            M.faceActor, M.faceEntity = npc, entity
-            M.faceContext = {requestId = context.requestId, generation = context.generation, entity = entity, name = context.name}
-            facial.screenEntity = entity
+        local found, pending = findScreenFace(context.profileKey, context)
+        if not found and pending then
+            M.faceRetry = {profileKey = context.profileKey, wait = 0, tries = 0, elapsed = 0,
+                context = {requestId = context.requestId, generation = context.generation, name = context.name}}
         end
     end
     M.outputDelay = readOutputDelay()
@@ -355,6 +371,7 @@ function M.abandon()
     if continuous then continuous.stop() end
     face.abandon()
     M.faceActor, M.faceEntity, M.faceContext, facial.screenEntity = nil, nil, nil, nil
+    M.faceRetry, M.faceChunk = nil, nil
     M.captionHidden = nil
     M.streamReceipt = receipt()
     M.stream, M.context, M.target, M.nativeCompleted = nil, nil, nil, nil
@@ -519,6 +536,33 @@ local function updateContinuous(delta, player, paused)
     face.sync(M.actor, cursor, M.requestId)
 end
 
+-- A screen face that was not there when the reply started (findScreenFace above): asked again every FACE_RETRY seconds of heard
+-- playback. Found while a native phrase plays: that phrase's face starts now and follows the heard cursor from the next frame; between
+-- native phrases the next phrase starts it, and a continuous reply's face starts with its next timeline update.
+local function retryFace(delta)
+    local retry = M.faceRetry
+    local step = finite(delta) and math.max(0, delta) or 0
+    retry.wait, retry.elapsed = retry.wait - step, retry.elapsed + step
+    if retry.wait > 0 then return end
+    retry.wait, retry.tries = FACE_RETRY, retry.tries + 1
+    local found, pending = findScreenFace(retry.profileKey, retry.context)
+    if found then
+        local chunk = M.faceChunk
+        M.faceRetry, M.faceChunk = nil, nil
+        if chunk and not M.continuous and M.state ~= 'buffering' then
+            face.start(M.context, chunk.timeline, M.actor, chunk.duration, chunk.expected)
+        end
+        if type(M.log) == 'function' then
+            pcall(M.log, string.format('Screen face joined: %s %.1fs into the line', tostring(retry.profileKey), retry.elapsed))
+        end
+        return
+    end
+    if not pending or retry.tries >= FACE_RETRIES then
+        M.faceRetry, M.faceChunk = nil, nil
+        if type(M.log) == 'function' then pcall(M.log, 'Screen face not found for this line: ' .. tostring(retry.profileKey)) end
+    end
+end
+
 local function updateSpeech(delta)
     local player = Game.GetPlayer()
     M.heartbeat = M.heartbeat + delta
@@ -542,6 +586,7 @@ local function updateSpeech(delta)
         if not M.continuous then M.player:ConvaiSpeechPause(paused) end
         M.paused = paused; publish()
     end
+    if M.faceRetry and not paused then retryFace(delta) end
     if M.continuous then updateContinuous(delta, player, paused);return end
     if paused then face.pause(M.actor); return end
     local s = M.stream

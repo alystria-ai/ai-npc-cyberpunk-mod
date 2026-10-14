@@ -2552,7 +2552,12 @@ if convaiAddons then
     -- Where an add-on voice is heard from (addons.lua voiceFrom), asked by speech.lua once per add-on reply.
     speech.voiceSource = function(profileKey, player) return convaiAddons.live and convaiAddons.voiceSource(profileKey, player) or nil end
     -- An add-on speaker's face on a screen (addons.lua faceActor: an NPC filmed for a screen), asked once per add-on reply.
-    speech.faceSource = function(profileKey, player) return convaiAddons.live and convaiAddons.faceActor(profileKey, player) or nil end
+    -- Two answers: the face NPC, or nil and whether the speaker's screen face is only not ready yet (speech.lua asks again).
+    speech.faceSource = function(profileKey, player)
+        if not convaiAddons.live then return nil end
+        return convaiAddons.faceActor(profileKey, player)
+    end
+    speech.log = log
     -- A remark held silent until its moment, and one that plays on while a game menu is open (addons.lua hold / menus): the request id
     -- speech.lua compares when it decides whether the voice is paused. Plain fields, set on the add-on tick.
     seams.hold = function(requestId) speech.holdRequest = requestId end
