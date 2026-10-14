@@ -5,6 +5,10 @@
 // ADVANCES below are the upper-case advances of that font at 35 px for the letters the notice texts use. The font has no Cyrillic or
 // CJK glyphs (the game falls back to another font there), so those are estimated: 20 px for a Cyrillic capital, 35 px for a full-width
 // character. This is an estimate and cannot see the game; it keeps every language to two lines with room for a word that wraps early.
+// The notice is two lines on purpose: the text carries a forced break ("\n"), the first sentence ("Today's {limit} Convai turns are
+// used.") above the choice (Mistral, free, about 5,000 a day, or Local AI, unlimited). The warning text is an ordinary ink text
+// and breaks at "\n" (the mod's loading notice already joins its lines with it); each line must fit the 800 px wrap on its own,
+// so the break is the only break.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -24,7 +28,9 @@ const CAPITAL = 18.7;      // the average capital, for a letter not in the table
 const CYRILLIC = 20, FULL_WIDTH = 35;
 const WRAP = 800;          // wrappingAtPosition of the text box
 const LINES = 2;
-const TOTAL_ENGLISH = 1460, TOTAL_TRANSLATION = 1560;   // px of upper-case text in all; English keeps a wider margin (translations run longer)
+// px of upper-case text on ONE line (the forced break puts one sentence on each); English keeps a wider margin (translations run longer).
+// A four-digit {limit} adds about 17 px to line 1, which is far shorter than the line 2 that sets the limit.
+const LINE_ENGLISH = 770, LINE_TRANSLATION = 785;
 
 function advance(char) {
   const code = char.codePointAt(0);
@@ -51,6 +57,11 @@ function linesOf(text) {
   return widths;
 }
 
+/** The text's forced lines (split at "\n"), each with its width and the number of lines it takes in the frame on its own. */
+function forcedLines(text) {
+  return text.split('\n').map(line => ({line, px: widthOf(line.toUpperCase()), wrapped: linesOf(line).length}));
+}
+
 function localeTable(code) {
   const vm = lauxlib.luaL_newstate();
   lualib.luaL_openlibs(vm);
@@ -70,7 +81,8 @@ const init = read('../mod/init.lua');
 // The notice has the limit the backend set in it ({limit}, filled in from the settings state) and a line for when that is not known.
 const source = /local function dailyLimitText\(\)[\s\S]*?ui\.t\('([^'\n]*)', \{limit = limit\}\)[\s\S]*?return ui\.t\('([^'\n]*)'\)\s*end/.exec(init);
 assert(source, 'dailyLimitText moved or no longer wraps these two ui.t strings');
-const [, withLimit, withoutLimit] = source;
+// The source text is Lua: the "\n" in it is the two characters backslash and n, which Lua turns into a line break.
+const [withLimit, withoutLimit] = [source[1], source[2]].map(text => text.replaceAll('\\n', '\n'));
 // Sample limits: the real one is 100 now; a four-digit one must still fit.
 const filled = (text, limit) => text.replace('{limit}', String(limit));
 const english = filled(withLimit, 100);
@@ -80,20 +92,25 @@ const notices = read('../mod/notices.lua');
 const showTable = /M\.showS = \{([^}]*)\}/.exec(notices);
 const showS = Number(/\['daily-limit'\] = (\d+)/.exec(showTable?.[1] ?? '')?.[1]);
 
-test('the English daily-limit notice is two lines in the warning frame and tells the player what to do', () => {
+test('the English daily-limit notice is two forced lines, each one line in the warning frame, and tells the player what to do', () => {
+  assert.equal(withLimit.split('\n').length, LINES, 'the break is the only break');
+  assert.equal(withoutLimit.split('\n').length, LINES, 'the break is the only break');
   for (const limit of [100, 1500]) {
-    const text = filled(withLimit, limit);
-    const lines = linesOf(text);
-    assert(lines.length <= LINES, `limit ${limit}: ${lines.length} lines: ${lines.map(Math.round)}`);
-    assert(widthOf(text.toUpperCase()) <= TOTAL_ENGLISH + (limit > 999 ? 20 : 0), `${Math.round(widthOf(text.toUpperCase()))} px of upper-case text`);
+    const shown = forcedLines(filled(withLimit, limit));
+    assert.equal(shown.length, LINES);
+    assert.equal(shown[0].line, `Today’s ${limit} Convai turns are used.`);
+    assert.equal(shown[1].line, 'Mistral (free, ~5,000/day) or Local AI (unlimited).');
+    for (const {line, px, wrapped} of shown) {
+      assert.equal(wrapped, 1, `limit ${limit}: "${line}" wraps (${Math.round(px)} px)`);
+      assert(px <= LINE_ENGLISH, `limit ${limit}: "${line}" is ${Math.round(px)} px of upper-case text, more than ${LINE_ENGLISH}`);
+    }
   }
   assert(english.length <= 100, `${english.length} letters`);
   assert.equal(withLimit.split('{limit}').length, 2, 'the limit appears once, as {limit}');
   assert(!/\d/.test(withLimit.replace('{limit}', '')) || /^[^\d]*5,000[^\d]*$/.test(withLimit.replace('{limit}', '')), 'only the 5,000 may be a number');
-  assert(/Today’s \{limit\} Convai turns are used\./.test(withLimit), withLimit);
-  assert(/Try Mistral \(free key, ~5,000 a day\) or Local AI \(unlimited\)\./.test(withLimit), withLimit);
-  assert(!withoutLimit.includes('{') && withoutLimit.startsWith('Today’s Convai turns are used.') && withoutLimit.endsWith(withLimit.split('. ').slice(1).join('. ')), withoutLimit);
-  assert(widthOf(withoutLimit.toUpperCase()) <= TOTAL_ENGLISH && linesOf(withoutLimit).length <= LINES, 'the line without a limit fits too');
+  assert(/^Today’s \{limit\} Convai turns are used\.\nMistral \(free, ~5,000\/day\) or Local AI \(unlimited\)\.$/.test(withLimit), withLimit);
+  assert(!withoutLimit.includes('{') && withoutLimit.startsWith('Today’s Convai turns are used.\n') && withoutLimit.endsWith(withLimit.split('\n')[1]), withoutLimit);
+  for (const {line, px, wrapped} of forcedLines(withoutLimit)) assert(px <= LINE_ENGLISH && wrapped === 1, `the line without a limit fits too: "${line}"`);
   for (const word of ['recommend', 'embedded', 'shared', 'antivirus', 'defender', 'paid', 'subscription', 'token']) {
     assert(!english.toLowerCase().includes(word), `${word} in: ${english}`);
   }
@@ -107,7 +124,7 @@ test('the notice stays long enough to read at 15 letters a second, and only the 
   assert.deepEqual([...showTable[1].matchAll(/\['([a-z-]+)'\]/g)].map(match => match[1]), ['daily-limit'], 'another notice got a longer duration');
 });
 
-test('every language has the notice, and it fits two lines like the English one', () => {
+test('every language has the notice with the same forced break, and each line fits one line like the English one', () => {
   assert(catalog.strings[withLimit] && catalog.strings[withoutLimit], 'the notice is missing from localization/en.json');
   const tooLong = [];
   for (const code of codes) {
@@ -123,16 +140,19 @@ test('every language has the notice, and it fits two lines like the English one'
       assert(THOUSANDS.test(rest), `${code}: the 5,000 a day is missing or not a number: ${text}`);
       assert(!/[{}]/.test(rest) && !/\d/.test(rest.replace(THOUSANDS, '')), `${code}: a stray placeholder or number: ${text}`);
       assert.equal(text, text.trim(), `${code}: stray space`);
+      // the same forced break as the English: two lines, the Mistral / Local AI choice on the second, each one line in the frame
+      assert.equal(text.split('\n').length, LINES, `${code}: needs exactly one line break: ${JSON.stringify(text)}`);
+      assert(text.split('\n')[1].includes('Mistral') && !text.split('\n')[0].includes('Mistral'), `${code}: the choice belongs on line 2: ${JSON.stringify(text)}`);
       for (const limit of hasLimit ? [100, 1500] : [0]) {
         const shown = hasLimit ? filled(text, limit) : text;
-        const lines = linesOf(shown);
-        const total = widthOf(shown.toUpperCase());
-        if (lines.length > LINES) tooLong.push(`${code}: ${lines.length} lines (${lines.map(Math.round)}): ${shown}`);
-        if (total > TOTAL_TRANSLATION + (limit > 999 ? 20 : 0)) tooLong.push(`${code}: ${Math.round(total)} px of upper-case text: ${shown}`);
+        for (const {line, px, wrapped} of forcedLines(shown)) {
+          if (wrapped > 1) tooLong.push(`${code}: wraps (${Math.round(px)} px): ${line}`);
+          else if (px > LINE_TRANSLATION) tooLong.push(`${code}: ${Math.round(px)} px of upper-case text: ${line}`);
+        }
       }
     }
   }
-  assert.deepEqual(tooLong, [], 'texts that do not fit two lines');
+  assert.deepEqual(tooLong, [], 'lines that do not fit on one line');
 });
 
 test('Phone Chat keeps the long version, which has room, and both are in the catalogue', () => {

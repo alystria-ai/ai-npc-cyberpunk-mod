@@ -5596,18 +5596,18 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     id, text = notice({errorCode = 'key-memory-needed'}); assert(id == 'quota-exhausted' and text:find('memory', 1, true))
     id, text = notice({errorCode = 'daily-limit', error = 'x'})
     -- The notice names today's turns (the limit the backend set, never a number written in the code) and the two ways on: Mistral with a
-    -- free key (about 5,000 a day) and Local AI (unlimited). It is two short lines in the game's warning frame (about 95 letters; the
-    -- width itself is checked in bridge/daily-notice-fit.test.mjs).
-    assert(id == 'daily-limit' and text == 'Today’s 100 Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).', text)
+    -- free key (about 5,000 a day) and Local AI (unlimited). It is two lines with a forced break in the game's warning frame, the first
+    -- sentence on line 1 and the choice on line 2 (the width itself is checked in bridge/daily-notice-fit.test.mjs).
+    assert(id == 'daily-limit' and text == 'Today’s 100 Convai turns are used.\\nMistral (free, ~5,000/day) or Local AI (unlimited).', text)
     ownKey = {daily = {limit = 150, left = 0, blocked = true}}
     id, text = notice({errorCode = 'daily-limit', error = 'x'}); assert(text:find('Today’s 150 Convai turns', 1, true), 'the limit the status reports: ' .. text)
     ownKey = {}; id, text = notice({errorCode = 'daily-limit', error = 'x'})
-    assert(text:find('Today’s Convai turns are used. Try Mistral', 1, true) and not text:find('{', 1, true), 'no limit known: ' .. text)
+    assert(text == 'Today’s Convai turns are used.\\nMistral (free, ~5,000/day) or Local AI (unlimited).' and not text:find('{', 1, true), 'no limit known: ' .. text)
     ownKey = 'error'; id, text = notice({errorCode = 'daily-limit', error = 'x'})
     assert(text:find('Today’s Convai turns are used.', 1, true), 'the status could not be read: ' .. text)
     ownKey = {daily = {limit = 100, left = 0, blocked = true}}
     id, text = notice({errorCode = 'daily-limit', error = 'x'})
-    assert(not text:lower():find('recommend', 1, true) and utf8.len(text) <= 100, 'short enough for two lines of the warning frame: ' .. utf8.len(text))
+    assert(not text:lower():find('recommend', 1, true) and utf8.len(text) <= 100 and select(2, text:gsub('\\n', '')) == 1, 'short enough for two lines of the warning frame: ' .. utf8.len(text))
     assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shared', 1, true) and not text:lower():find('project', 1, true))
     -- No own-key offer, no paid tier, no "includes voice", no "text only", no credentials wording.
     assert(not text:find('Convai API key', 1, true) and not text:find('convai.com', 1, true) and not text:find('phone verification', 1, true), text)
