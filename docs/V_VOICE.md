@@ -86,6 +86,8 @@ One reference per gender, cut from V's own lines in the game archives (`v_*_m_*.
 lines). Female V: 11.55 s (two lines).** 24 kHz mono, whole trimmed clips joined with 0.4 s gaps (the project's reference recipe),
 best clip first (one cloud voice cuts its reference to about the first 8.5 s).
 
+**Louder clips (2026-10-14, branch `v-voice-louder`, by measurement only, not yet heard):** the game mixes nearly every V line to about -23 LUFS, so the references were swapped for the few clean, conversational, non-clipping lines the mix leaves hotter (the pool's `scripts/clip-search/v-voice/build_v_pool.py` rules; no hum, noise floor under -65 dBFS, no combat or shouted delivery, peak under -3 dBFS). Male: 3 lines, 11.42 s, -22.4 LUFS (was -23.6); female: 3 lines, 13.25 s, -20.6 LUFS (was -23.5); the three-line set is the loudest clean group that passes the 8-20 s and 2 dB spread rules. `loudness.py` measures LUFS / gated RMS; ECAPA likeness of the new clips has not been scored.
+
 ### How they were chosen (2026-10-14, second pass)
 
 The first clips (2026-10-14 morning: male 11.4 s from 3 lines, female 14.5 s from 4 lines) were picked by a script that only checked

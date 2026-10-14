@@ -3,49 +3,55 @@
   "voices": {
     "male": {
       "file": "v-male.wav",
-      "transcript": "If anything's wrong, just say so. I'm sure we can figure it out. Looks like it was a campsite. Someone tried living here? Fine idea. Let's get us some power. I'll look around for access points.",
-      "sha256": "f6d277efb6d5061497080f4cbad001b031a486e9a347a809f2701a1d0a4b1906",
-      "seconds": 11.37,
+      "transcript": "Sheesh, in what world did that seem like a good idea? Nope, don't like the split. Two thirds for me, one for you. OK. In I go. Head on a swivel, right?",
+      "sha256": "ff32dad8df9ccbecf0d5670e5179923cae87ebfc51cd204586f9407166545e4b",
+      "seconds": 11.42,
       "sampleRate": 24000,
       "clips": [
         {
-          "stringId": "1745927602763223040",
-          "stem": "v_q000_m_183ac7e786405000.wem",
-          "scene": "q000",
-          "seconds": 3.88
+          "stringId": "3070859352337625088",
+          "stem": "v_mq301_m_2a9de24f93453000.wem",
+          "scene": "mq301",
+          "seconds": 3.55
         },
         {
-          "stringId": "3092609873373446152",
-          "stem": "v_q301_m_2aeb284b634a4008.wem",
-          "scene": "q301",
-          "seconds": 3.29
+          "stringId": "1922657443008270336",
+          "stem": "v_mq017_m_1aaea6c1fb44d000.wem",
+          "scene": "mq017",
+          "seconds": 3.44
         },
         {
-          "stringId": "1786411909749796864",
-          "stem": "v_q103_m_18ca9c2ac729f000.wem",
-          "scene": "q103",
-          "seconds": 3.7
+          "stringId": "1922641916013629440",
+          "stem": "v_mq017_m_1aae98a2d244d000.wem",
+          "scene": "mq017",
+          "seconds": 3.63
         }
       ]
     },
     "female": {
       "file": "v-female.wav",
-      "transcript": "Know how you feel. Also left the corp behind, wasn't easy. But it gets better, I promise. Care to be a bit more specific? Wouldn't mind knowing what to expect.",
-      "sha256": "7c56592e4194f765ddf1630cfab7bd6a0a3770f9a51165e3d1a6ba00e66007b8",
-      "seconds": 11.55,
+      "transcript": "Assumin' you guys do save her life, what then? What'll happen to 'er? Would you mind checkin' those flights? Meanin', departure ports? Nah, no ticket here. Meant to find a cozy nook in the luggage hold.",
+      "sha256": "9d2be53479be549e7f0500c67e0cb1b54b5a6a91345b433f6bb03b9f93396e55",
+      "seconds": 13.25,
       "sampleRate": 24000,
       "clips": [
         {
-          "stringId": "3337851633124098048",
-          "stem": "v_mq305_f_2e526e602951c000.wem",
-          "scene": "mq305",
-          "seconds": 6.87
+          "stringId": "3334353669688737804",
+          "stem": "v_q306_f_2e4600ff1551400c.wem",
+          "scene": "q306",
+          "seconds": 4.56
         },
         {
-          "stringId": "1906901358081982468",
-          "stem": "v_sq026_f_1a76acae962fc004.wem",
-          "scene": "sq026",
-          "seconds": 4.28
+          "stringId": "3205723461507260416",
+          "stem": "v_q306_f_2c7d0480eb46a000.wem",
+          "scene": "q306",
+          "seconds": 3.71
+        },
+        {
+          "stringId": "3232241756264300556",
+          "stem": "v_q306_f_2cdb3ac08e51800c.wem",
+          "scene": "q306",
+          "seconds": 4.18
         }
       ]
     }
