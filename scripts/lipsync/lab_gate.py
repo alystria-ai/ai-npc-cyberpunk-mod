@@ -352,9 +352,47 @@ def main():
             entry['modes'][mode] = me
         report['sets'][s] = entry
     report['verdict'] = {name: dict(passed=not v, failures=v) for name, v in verdict.items()}
+    report['classified'] = classify(report)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=1, default=float), encoding='utf8')
     print_report(report)
+
+
+MARGIN = {'r': .002, 'rate': .01, 'mae': .01}  # run-to-run seed noise measured on 2026-10-07 (same recipe, 2nd seed)
+
+
+def classify(report):
+    """Re-derive the verdict from a report: every paired comparison is
+    'loss' (whole interval below 0), 'possible-loss' (mean below 0, interval crosses 0), 'uncertain' (mean >= 0,
+    interval crosses 0) or fine. STRICT pass = no loss, no possible-loss and no uncertain; NON-INFERIOR pass = no loss
+    and no mean loss larger than the seed-noise margin. Lower-is-better checks (aperture_mae, over-opening) are flipped."""
+    stacks = list(report['stacks'])
+    out = {}
+    for name in stacks[1:]:
+        rows = []
+        for s, entry in report['sets'].items():
+            for mode, me in entry['modes'].items():
+                for group in ('metrics', 'downstream'):
+                    for check, d in me[group][name].items():
+                        if 'diff' not in d:
+                            continue
+                        lower = check == 'aperture_mae' or check.startswith(LOWER_BETTER_DOWN)
+                        m, lo, hi = d['diff']['mean'], d['diff']['ci'][0], d['diff']['ci'][1]
+                        if lower:
+                            m, lo, hi = -m, -hi, -lo
+                        if lo >= 0:
+                            continue
+                        kind = 'loss' if hi < 0 else ('possible-loss' if m < 0 else 'uncertain')
+                        margin = MARGIN['mae'] if check == 'aperture_mae' else (MARGIN['r'] if check.endswith('_r') else MARGIN['rate'])
+                        rows.append(dict(set=s, mode=mode, check=check, kind=kind, diff=round(m, 4), ci=[round(lo, 4), round(hi, 4)],
+                                         beyondMargin=bool(m < -margin)))
+        for f in report.get('verdict', {}).get(name, {}).get('failures', []):
+            if f['check'].startswith('max:') or f['check'] == 'lag_ms':
+                rows.append(dict(f, kind='loss', beyondMargin=True))
+        strict = not rows
+        noninf = not any(r['kind'] == 'loss' or r['beyondMargin'] for r in rows)
+        out[name] = dict(strict=strict, nonInferior=noninf, findings=rows)
+    return out
 
 
 def print_report(report, focus=None):
@@ -388,10 +426,12 @@ def print_report(report, focus=None):
                 print(f'  {ctl:20s}' + ''.join(f'{c:>34s}' for c in cells))
             print('  codebook perplexity (game {:.1f}): '.format(me['variety'][ref]['codebook']['gtPerplexity'])
                   + ', '.join(f"{n} {me['variety'][n]['codebook']['predPerplexity']:.1f} agree {me['variety'][n]['codebook']['agreement']:.3f}" for n in stacks))
-    for name, v in report.get('verdict', {}).items():
-        print(f"\nVERDICT {name}: {'PASS' if v['passed'] else 'FAIL'} ({len(v['failures'])} failing checks)")
-        for f in v['failures'][:40]:
-            print('   ', f)
+    for name, v in classify(report).items():
+        print(f"\nVERDICT {name}: strict {'PASS' if v['strict'] else 'FAIL'}, non-inferior {'PASS' if v['nonInferior'] else 'FAIL'}")
+        for f in sorted(v['findings'], key=lambda f: ['loss', 'possible-loss', 'uncertain'].index(f['kind'])):
+            if f['kind'] != 'uncertain':
+                print('   ', f)
+        print(f"    + {sum(f['kind'] == 'uncertain' for f in v['findings'])} checks with a gain or tie whose interval still touches below 0")
 
 
 if __name__ == '__main__':

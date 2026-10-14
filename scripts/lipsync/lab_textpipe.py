@@ -315,7 +315,10 @@ class TextPipeline:
         covered = np.ones(N, bool)
         for i in range(N):
             j = i - shift
-            label, cov = al.decided[j] if 0 <= j < N else (0, True)
+            # Before the first / after the last decided row: silence, covered unless the alignment was given up
+            # (bridge/jali-face-text.mjs blendRows does the same; (0, True) here re-blended stage 2 into the last
+            # `-shift` rows of a phrase whose alignment had been lost, a 2.9e-3 JS/Python mismatch).
+            label, cov = al.decided[j] if 0 <= j < N else (0, j < 0 or not al.lost)
             rows[r2 - 1 + i, :h1.shape[1]] = h1[i]
             rows[r2 - 1 + i, h1.shape[1] + label] = 1
             covered[i] = cov
