@@ -10,13 +10,20 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes} from 'node:crypto';
 import {atomicFile} from './guarded-file.mjs';
-import {parseTvCommand, parseVideoInput, watchingContext, lookupVideo, validDataApiKey, VIDEO_ID, cleanLine} from './youtube-tv.mjs';
+import {parseTvCommand, parseVideoInput, watchingContext, lookupVideo, VIDEO_ID, cleanLine, parsePlayerResponse, parseTimedText,
+  timedTextTrack, trackRank} from './youtube-tv.mjs';
 import {tvPage} from './youtube-tv-page.mjs';
 
 const HELPER = fileURLToPath(new URL('./youtube-tv-window.ps1', import.meta.url));
 const HISTORY_MAX = 8, HISTORY_MAX_AGE_MS = 30 * 24 * 3600 * 1000;   // YouTube API data is kept 30 days at most
 const DUCK_POLL_MS = 200, DUCK_RELEASE_MS = 1200;
 const UNPLAYABLE = new Set([2, 5, 100, 101, 150, 152, 153]);
+// What the embedded player fetches for the video on the TV page and this module reads (docs/YOUTUBE_TV.md, "Captions"): its player
+// answer (description, chapters, caption list) and its caption track. Only these two kinds of response are read, at most 4 MB each.
+const PLAYER_ANSWER = 'https://www.youtube.com/youtubei/v1/player', CAPTION_TRACK = 'https://www.youtube.com/api/timedtext';
+const MAX_NETWORK_BYTES = 4 * 1024 * 1024;
+// If the player has not fetched a caption track by itself this long after a video starts, it is asked to load one.
+const CAPTION_WAIT_MS = 4000;
 
 /** Starts the window helper. Returns {send(command), onEvent(fn), stop()}; the helper exits with this process. */
 export function spawnWindowHelper({parentId = process.pid, log = () => {}} = {}) {
@@ -61,25 +68,28 @@ export async function launchTvBrowser({userDataDir, executablePath} = {}) {
 
 export class YouTubeTv {
   /**
-   *   runtime, stateDirectory   the game's runtime folder (command and state files) and the project's state folder (profile, history, key)
+   *   runtime, stateDirectory   the game's runtime folder (command and state files) and the project's state folder (profile, history)
    *   launch({userDataDir})     -> Playwright BrowserContext; spawnHelper() -> helper (tests inject fakes)
    *   audible()                 -> true while a conversation is being spoken or recorded: the video's volume ducks
-   *   fetch, now, log
+   *   fetch, now, log, captionWaitMs
    */
   constructor({runtime, stateDirectory, launch = launchTvBrowser, spawnHelper = spawnWindowHelper, audible = () => false,
-    fetch = globalThis.fetch, now = Date.now, log = () => {}, browserExecutable} = {}) {
-    Object.assign(this, {runtime, stateDirectory, launch, spawnHelper, audible, fetch, now, log, browserExecutable});
+    fetch = globalThis.fetch, now = Date.now, log = () => {}, browserExecutable, captionWaitMs = CAPTION_WAIT_MS} = {}) {
+    Object.assign(this, {runtime, stateDirectory, launch, spawnHelper, audible, fetch, now, log, browserExecutable, captionWaitMs});
     this.commandPath = resolve(runtime, 'youtube-tv-command.json');
     this.statePath = resolve(runtime, 'youtube-tv-state.json');
     this.historyPath = resolve(stateDirectory, 'youtube-tv-history.json');
-    this.keyPath = resolve(stateDirectory, 'youtube-data-api.json');
+    // The first version had an optional key box for YouTube's data service (removed 2026-10-15); a key saved there is deleted at start.
+    this.legacyKeyPath = resolve(stateDirectory, 'youtube-data-api.json');
     this.profilePath = resolve(stateDirectory, 'youtube-tv-browser');
+    this.language = 'en';
     this.enabled = false; this.observed = null; this.handled = new Set(); this.polling = false; this.closed = false;
     this.session = null; this.video = null; this.queue = Promise.resolve();
   }
   /** The first read only records a command left by an earlier session, so it is never replayed. */
   async start() {
     this.observed = await readFile(this.commandPath, 'utf8').catch(() => '');
+    await rm(this.legacyKeyPath, {force: true}).catch(() => {});
     await this.publish('closed');
     return this;
   }
@@ -111,7 +121,7 @@ export class YouTubeTv {
   async handle(command) {
     if (command.action === 'open') {
       if (!this.enabled) { await this.publish('error', {reason: 'disabled'}); return; }
-      this.strings = command.strings; this.place = command.place;
+      this.strings = command.strings; this.place = command.place; this.language = command.language ?? 'en';
       if (this.session) { await this.showPicker(); return; }
       await this.open();
       return;
@@ -134,7 +144,6 @@ export class YouTubeTv {
       pendingVideo: null, duckTimer: null, ducked: false, quietSince: 0, closing: false};
     await this.publish('opening');
     try {
-      const hasKey = !!await this.dataApiKey();
       session.server = createServer((req, res) => {
         res.setHeader('Cache-Control', 'no-store');
         // The embedded player needs the page's origin as referrer (YouTube error 153 without it).
@@ -142,7 +151,7 @@ export class YouTubeTv {
         if (req.headers.host !== `127.0.0.1:${session.server.address()?.port}`) { res.writeHead(403).end(); return; }
         if (req.method === 'GET' && req.url === `/tv/${nonce}`) {
           res.setHeader('Content-Type', 'text/html; charset=utf-8');
-          res.end(tvPage({title, origin: session.origin, strings: this.strings, hasKey}));
+          res.end(tvPage({title, origin: session.origin, strings: this.strings}));
         } else res.writeHead(404).end();
       });
       await new Promise((done, fail) => { session.server.once('error', fail); session.server.listen(0, '127.0.0.1', done); });
@@ -177,6 +186,8 @@ export class YouTubeTv {
         const video = parseVideoInput(url);
         if (video) void this.enqueue(async () => { session.pendingVideo = video; await session.page.goto(session.url).catch(() => {}); });
       });
+      // The player's own answer and caption track for the playing video (a URL prefix check per response; the rest is ignored).
+      session.page.on('response', response => { void this.fromNetwork(session, response); });
       await session.page.goto(session.url);
       session.helper.send({op: 'attach', title});
       if (!await attached) throw Error('the TV window could not be placed');
@@ -208,16 +219,8 @@ export class YouTubeTv {
         if (query) await session.page.goto(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`).catch(() => {});
         break;
       }
-      case 'key': {
-        const key = typeof message.key === 'string' ? message.key.trim() : '';
-        if (!validDataApiKey(key)) { await this.evaluate({op: 'message', text: this.t('That does not look like a YouTube Data API key.')}); break; }
-        await atomicFile(this.keyPath, JSON.stringify({version: 1, key})).catch(() => false);
-        await this.evaluate({op: 'message', text: this.t('Key saved.'), ok: true});
-        break;
-      }
-      case 'forget-key':
-        await rm(this.keyPath, {force: true}).catch(() => {});
-        await this.evaluate({op: 'message', text: this.t('Key forgotten.'), ok: true});
+      case 'captions':
+        if (this.video && message.available === false) { this.video.captionsMissing = true; this.log(`no captions video=${this.video.videoId}`); }
         break;
       case 'close': await this.stop('closed-by-player'); break;
       case 'ready': break;
@@ -261,7 +264,9 @@ export class YouTubeTv {
     if (!session || !VIDEO_ID.test(video?.videoId ?? '')) return;
     const known = (await this.history()).find(row => row.videoId === video.videoId);
     this.video = {videoId: video.videoId, state: 'buffering', position: video.start || 0, reportedAt: this.now(), duration: null,
-      title: known?.title ?? '', channel: known?.channel ?? '', description: '', chapters: [], place: this.place};
+      title: known?.title ?? '', channel: known?.channel ?? '', description: '', chapters: [], place: this.place,
+      tracks: null, captions: null, captionKeys: new Set(), captionsRequested: false, captionsMissing: false};
+    clearTimeout(session.captionTimer);
     // Back on the TV page first if the player was browsing YouTube's own site.
     if (!session.page.url().startsWith(session.origin)) { session.pendingVideo = video; await session.page.goto(session.url).catch(() => {}); return; }
     await this.evaluate({op: 'play', video});
@@ -270,11 +275,66 @@ export class YouTubeTv {
     await this.publish('playing');
     this.log(`playing video=${video.videoId}`);
     const current = this.video;
-    void lookupVideo(video.videoId, {fetch: this.fetch, dataApiKey: await this.dataApiKey()}).then(async info => {
+    session.captionTimer = setTimeout(() => { void this.enqueue(() => this.requestCaptions(session, current)); }, this.captionWaitMs);
+    session.captionTimer.unref?.();
+    void lookupVideo(video.videoId, {fetch: this.fetch}).then(async info => {
       if (this.video !== current) return;
-      Object.assign(current, Object.fromEntries(Object.entries(info).filter(([, value]) => value !== undefined && value !== '')));
+      for (const [key, value] of Object.entries(info)) if (value && !current[key]) current[key] = value;
       await this.remember(current);
     });
+  }
+  /**
+   * One network response of the TV window. Only the embedded player's answer for the playing video and its caption tracks are read;
+   * everything else returns at the first URL comparison. Nothing is fetched here: these are the player's own requests.
+   */
+  async fromNetwork(session, response) {
+    let url = '';
+    try { url = response.url(); } catch { return; }
+    const answer = url.startsWith(PLAYER_ANSWER), track = !answer && url.startsWith(CAPTION_TRACK) ? timedTextTrack(url) : null;
+    if (!answer && !track) return;
+    const video = this.video;
+    if (this.session !== session || !video || !session.page.url().startsWith(session.origin)) return;
+    if (track && (track.videoId !== video.videoId || video.captionKeys.has(`${track.languageCode}|${track.auto}|${track.translated}`))) return;
+    let text = '';
+    try {
+      if (response.status() !== 200) return;
+      const length = Number(response.headers()?.['content-length']);
+      if (Number.isFinite(length) && length > MAX_NETWORK_BYTES) return;
+      const body = await response.body();
+      if (!body || body.length > MAX_NETWORK_BYTES) return;
+      text = body.toString('utf8');
+    } catch { return; }
+    if (this.video !== video) return;
+    if (answer) {
+      let value; try { value = JSON.parse(text); } catch { return; }
+      const info = parsePlayerResponse(value, video.videoId);
+      if (!info) return;
+      if (info.description) { video.description = info.description; video.chapters = info.chapters; }
+      if (info.duration && !video.duration) video.duration = info.duration;
+      if (info.title && !video.title) video.title = info.title;
+      if (info.channel && !video.channel) video.channel = info.channel;
+      video.tracks = info.tracks;
+      this.log(`player answer video=${video.videoId} description=${info.description.length} chapters=${info.chapters.length} tracks=${info.tracks.length}`);
+      return;
+    }
+    video.captionKeys.add(`${track.languageCode}|${track.auto}|${track.translated}`);
+    const cues = parseTimedText(text);
+    if (!cues.length) return;
+    const candidate = {...track, cues};
+    if (video.captions && trackRank(video.captions, this.language) >= trackRank(candidate, this.language)) return;
+    video.captions = candidate;
+    this.log(`captions video=${video.videoId} lang=${track.languageCode || '-'}${track.auto ? ' auto' : ''}${track.translated ? ' translated' : ''} cues=${cues.length}`);
+    // The player showed them only because it was asked to: hide them again (the video stays clean for watching).
+    if (video.captionsRequested && !video.captionsHidden) { video.captionsHidden = true; await this.evaluate({op: 'captions-off'}); }
+  }
+  /** The player fetched no caption track by itself: ask it to load the best one it lists (once per video). */
+  async requestCaptions(session, video) {
+    if (this.session !== session || this.video !== video || video.captions || video.captionsRequested) return;
+    if (Array.isArray(video.tracks) && !video.tracks.length) { video.captionsMissing = true; return; }   // the video has none
+    const best = (video.tracks ?? []).slice().sort((a, b) => trackRank(b, this.language) - trackRank(a, this.language))[0];
+    const languages = [...new Set([best?.languageCode, this.language, this.language.split('-')[0], 'en'].filter(Boolean))];
+    video.captionsRequested = true;
+    await this.evaluate({op: 'captions', languages});
   }
   async control(op) {
     if (!this.video) return;
@@ -283,7 +343,7 @@ export class YouTubeTv {
   async showPicker(message = '') {
     const session = this.session;
     if (!session) return;
-    this.video = null; this.stopDucking(session);
+    this.video = null; this.stopDucking(session); clearTimeout(session.captionTimer);
     if (!session.page.url().startsWith(session.origin)) await session.page.goto(session.url).catch(() => {});
     await this.evaluate({op: 'picker', message});
     await this.evaluate({op: 'recent', rows: await this.history()});
@@ -324,7 +384,7 @@ export class YouTubeTv {
   async teardown(session) {
     session.closing = true;
     if (this.session === session) { this.session = null; this.video = null; }
-    this.stopDucking(session);
+    this.stopDucking(session); clearTimeout(session.captionTimer);
     session.helper?.stop();
     await session.context?.close().catch(() => {});
     session.server?.close();
@@ -344,11 +404,13 @@ export class YouTubeTv {
       ? video.position + (playing ? Math.max(0, this.now() - video.reportedAt) / 1000 : 0) : null;
     return watchingContext(input, {...video, position: video.duration ? Math.min(position, video.duration) : position}, options);
   }
-  /** A snapshot of the playing video for diagnostics and tests (no description). */
+  /** A snapshot of the playing video for diagnostics and tests (no description or caption text). */
   snapshot() {
     if (!this.video) return null;
-    const {videoId, state, title, channel, duration} = this.video;
-    return {videoId, state, title, channel, duration};
+    const {videoId, state, title, channel, duration, chapters, captions, captionsMissing} = this.video;
+    return {videoId, state, title, channel, duration, chapters: chapters.length,
+      captions: captions ? {languageCode: captions.languageCode, auto: captions.auto, cues: captions.cues.length} : null,
+      captionsMissing: !!captionsMissing};
   }
   /**
    * One still of the player for a companion who can see (docs/COMPANION_VISION.md, once it lands), or null. Only on demand (a turn
@@ -369,10 +431,6 @@ export class YouTubeTv {
     } catch { return null; }
   }
   t(text) { return this.strings?.[text] ?? text; }
-  async dataApiKey() {
-    try { const value = JSON.parse(await readFile(this.keyPath, 'utf8')); return validDataApiKey(value?.key) ? value.key.trim() : ''; }
-    catch { return ''; }
-  }
   async history() {
     try {
       const rows = JSON.parse(await readFile(this.historyPath, 'utf8'));

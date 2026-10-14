@@ -2,9 +2,10 @@
 // command file the game writes, and the "watching together" block a companion's turn carries while a video plays.
 //
 // Terms (docs/YOUTUBE_TV.md, "YouTube's terms"): the video only ever plays in YouTube's own embedded player (IFrame Player API),
-// fully visible, with nothing drawn over it. Nothing here downloads, caches or rips a video or its captions. The title and channel come
-// from YouTube's public oEmbed endpoint; the description and chapters only from the YouTube Data API with the player's own key.
-// What a companion learns is said for this turn only and is never written to memory.
+// fully visible, with nothing drawn over it. Nothing here downloads, caches or rips a video. The title and channel come from YouTube's
+// public oEmbed endpoint. The description, chapters and captions are read from what the embedded player itself fetched for the video
+// on the TV page (its player answer and its caption track; the user accepted this grey zone on 2026-10-15): nothing is fetched for
+// them, they stay in memory for the playing video only, and what a companion learns is said for this turn only, never stored.
 
 export const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 const HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtube-nocookie.com',
@@ -13,8 +14,11 @@ const COMMANDS = new Set(['open', 'toggle', 'pause', 'resume', 'stop', 'hide', '
 const COMMAND_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$/;
 const COMMAND_MAX_BYTES = 64 * 1024, COMMAND_MAX_AGE_MS = 30_000;
 // The whole watching block, framing included.
-export const MAX_CONTEXT_CHARS = 900;
+export const MAX_CONTEXT_CHARS = 1300;
 const MAX_TITLE = 160, MAX_CHANNEL = 80, MAX_CHAPTER = 80, MAX_DESCRIPTION = 360, MAX_CHAPTERS = 100;
+// Captions: what was said in the last half minute, at most this many characters (the newest kept).
+export const CAPTION_BEFORE_S = 30, CAPTION_AFTER_S = 1.5, MAX_CAPTION_CHARS = 420;
+const MAX_CUES = 20_000, MAX_CUE_TEXT = 400;
 
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 /** One line of untrusted text (a title, a channel, a chapter): no markup, no control characters, bounded. */
@@ -165,8 +169,10 @@ export const HOME_PLACES = Object.freeze({
 
 /**
  * The block for one turn, or ''. Only a companion talking with V in person gets it (not a stranger, a phone chat, a holocall, an
- * add-on voice or an automatic reaction), and only while a video is open. `video` is the session's snapshot (YouTubeTv.snapshot()):
- * {videoId, title, channel, state: 'playing'|'paused'|'buffering'|'ended', position, duration, chapters, description, place}.
+ * add-on voice or an automatic reaction), and only while a video is open. `video` is the session's snapshot (YouTubeTv.contextFor):
+ * {videoId, title, channel, state: 'playing'|'paused'|'buffering'|'ended', position, duration, chapters, description, place,
+ * captions: {cues, auto}}. With captions the companion hears what was just said; without them it gets title, channel, chapter and
+ * description only.
  */
 export function watchingContext(input, video, {ambient = false, voice = false} = {}) {
   if (!plain(input) || !plain(video) || ambient || voice || input.reaction || input.channel === 'phone' || input.holocall) return '';
@@ -183,17 +189,152 @@ export function watchingContext(input, video, {ambient = false, voice = false} =
   else if (position !== null) sentences.push(`It is ${state} at ${formatClock(position)}${duration ? ` of ${formatClock(duration)}` : ''}.`);
   const chapter = position !== null ? chapterAt(video.chapters, position) : null;
   if (chapter) sentences.push(`The part on screen now is the chapter "${chapter.title}".`);
-  const about = descriptionExcerpt(video.description);
+  const cues = plain(video.captions) && Array.isArray(video.captions.cues) ? video.captions.cues : null;
+  const said = cues && position !== null ? captionWindow(cues, state === 'over' && duration ? duration : position) : '';
+  if (said) {
+    const source = video.captions.auto ? 'its automatic captions, which can mishear words' : 'its captions';
+    sentences.push(`Just before this moment the video said (from ${source}): "${said}"`);
+  }
+  // With captions the description matters less, so it gets less room.
+  const about = descriptionExcerpt(video.description, said ? 200 : MAX_DESCRIPTION);
   if (about) sentences.push(`Its description says: ${about}`);
   const prefix = 'Watching together (from the game, right now): ';
-  const suffix = ' You only know what is written here and what V says; never invent what is on screen or what someone in it said. '
+  const suffix = ' You only know what is written here and what V says; never invent what is on screen or anything said in it beyond this. '
     + 'React in your own way when it fits, keep it short so V can keep watching, and do not recite this.';
   const budget = MAX_CONTEXT_CHARS - prefix.length - suffix.length;
-  // Over budget: drop whole sentences from the end (the description first), never the first one.
+  // Over budget: drop whole sentences from the end (the description first, then the captions), never the first one.
   while (sentences.length > 1 && sentences.join(' ').length > budget) sentences.pop();
   let body = sentences.join(' ');
   if (body.length > budget) body = body.slice(0, budget - 1) + '…';
   return prefix + body + suffix;
+}
+
+/**
+ * The caption text around `position`: cues that overlap the last CAPTION_BEFORE_S seconds (up to CAPTION_AFTER_S ahead), in order,
+ * repeated lines dropped (automatic captions roll), at most `maxChars` with the newest words kept. '' when nothing was said.
+ * `cues` is sorted by start (parseTimedText); a binary search finds the window, so a long video costs the same as a short one.
+ */
+export function captionWindow(cues, position, {before = CAPTION_BEFORE_S, after = CAPTION_AFTER_S, maxChars = MAX_CAPTION_CHARS} = {}) {
+  if (!Array.isArray(cues) || !cues.length || !Number.isFinite(position)) return '';
+  const from = position - before, to = position + after;
+  // The first cue that starts after `to`; walk back from there while cues still reach into the window.
+  let low = 0, high = cues.length;
+  while (low < high) { const middle = (low + high) >> 1; if (cues[middle].start <= to) low = middle + 1; else high = middle; }
+  const picked = [];
+  for (let index = low - 1; index >= 0 && picked.length < 200; index--) {
+    const cue = cues[index];
+    if (cue.end < from) { if (cue.start < from - 60) break; continue; }   // long overlapping cues are rare; stop a minute back
+    picked.push(cue.text);
+  }
+  picked.reverse();
+  const lines = [];
+  for (const text of picked) if (text !== lines.at(-1)) lines.push(text);
+  let result = lines.join(' ').replace(/\s+/g, ' ').trim();
+  if (result.length > maxChars) {
+    result = result.slice(result.length - maxChars);
+    const space = result.indexOf(' ');
+    result = '…' + (space >= 0 && space < 40 ? result.slice(space + 1) : result);
+  }
+  return result;
+}
+
+const decodeEntities = text => text.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos|#39);/gi, (all, code) => {
+  const lower = code.toLowerCase();
+  if (lower === 'amp') return '&'; if (lower === 'lt') return '<'; if (lower === 'gt') return '>';
+  if (lower === 'quot') return '"'; if (lower === 'apos' || lower === '#39') return "'";
+  const value = lower.startsWith('#x') ? parseInt(lower.slice(2), 16) : parseInt(lower.slice(1), 10);
+  return Number.isFinite(value) && value > 0 && value < 0x110000 ? String.fromCodePoint(value) : '';
+});
+const cueText = value => {
+  const text = decodeEntities(String(value ?? '').replace(/<[^>]*>/g, '')).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+  return text.length > MAX_CUE_TEXT ? text.slice(0, MAX_CUE_TEXT) : text;
+};
+const vttClock = value => {
+  const match = /^(?:(\d+):)?(\d{1,2}):(\d{2})[.,](\d{1,3})$/.exec(value.trim());
+  return match ? Number(match[1] ?? 0) * 3600 + Number(match[2]) * 60 + Number(match[3]) + Number(match[4].padEnd(3, '0')) / 1000 : null;
+};
+
+/**
+ * A caption track as the player fetched it -> cues [{start, end, text}] in seconds, sorted, empty lines dropped. Reads YouTube's
+ * json3 (what the embedded player asks for), its XML formats (srv3 <p t= d=>, srv1 <text start= dur=>) and WebVTT. Anything else -> [].
+ */
+export function parseTimedText(body) {
+  if (typeof body !== 'string' || !body.trim()) return [];
+  const cues = [];
+  const push = (start, end, text) => {
+    if (!Number.isFinite(start) || start < 0 || cues.length >= MAX_CUES) return;
+    const clean = cueText(text);
+    if (clean) cues.push({start, end: Number.isFinite(end) && end > start ? end : start + 2, text: clean});
+  };
+  const head = body.trimStart();
+  if (head.startsWith('{')) {
+    let value; try { value = JSON.parse(body); } catch { return []; }
+    for (const event of Array.isArray(value?.events) ? value.events : []) {
+      if (!plain(event) || !Array.isArray(event.segs) || !Number.isFinite(event.tStartMs)) continue;
+      const text = event.segs.map(seg => (plain(seg) && typeof seg.utf8 === 'string' ? seg.utf8 : '')).join('');
+      push(event.tStartMs / 1000, (event.tStartMs + (Number(event.dDurationMs) || 0)) / 1000, text);
+    }
+  } else if (head.startsWith('WEBVTT')) {
+    for (const block of body.replace(/\r/g, '').split(/\n{2,}/)) {
+      const lines = block.split('\n');
+      const at = lines.findIndex(line => line.includes('-->'));
+      if (at < 0) continue;
+      const [startText, rest = ''] = lines[at].split('-->');
+      push(vttClock(startText), vttClock(rest.trim().split(/\s+/)[0] ?? ''), lines.slice(at + 1).join(' '));
+    }
+  } else if (head.startsWith('<')) {
+    for (const match of body.matchAll(/<p\b([^>]*)>([\s\S]*?)<\/p>/g)) {
+      const t = /\bt="(\d+)"/.exec(match[1]), d = /\bd="(\d+)"/.exec(match[1]);
+      if (t) push(Number(t[1]) / 1000, (Number(t[1]) + Number(d?.[1] ?? 0)) / 1000, match[2]);
+    }
+    if (!cues.length) for (const match of body.matchAll(/<text\b([^>]*)>([\s\S]*?)<\/text>/g)) {
+      const start = /\bstart="([\d.]+)"/.exec(match[1]), dur = /\bdur="([\d.]+)"/.exec(match[1]);
+      if (start) push(Number(start[1]), Number(start[1]) + Number(dur?.[1] ?? 0), match[2]);
+    }
+  }
+  return cues.sort((a, b) => a.start - b.start);
+}
+
+/** A caption request the player made (https://www.youtube.com/api/timedtext?v=..&lang=..&kind=asr&tlang=..) -> its track, or null. */
+export function timedTextTrack(url) {
+  let value; try { value = new URL(url); } catch { return null; }
+  if (value.protocol !== 'https:' || value.hostname !== 'www.youtube.com' || value.pathname !== '/api/timedtext') return null;
+  const videoId = value.searchParams.get('v') ?? '';
+  if (!VIDEO_ID.test(videoId)) return null;
+  const languageCode = (value.searchParams.get('lang') ?? '').slice(0, 20);
+  return {videoId, languageCode, auto: value.searchParams.get('kind') === 'asr', translated: !!value.searchParams.get('tlang')};
+}
+
+/**
+ * How good a caption track is for the companion: written captions over automatic ones, the video's own over a machine translation,
+ * then the game's interface language, then English. Higher is better.
+ */
+export function trackRank(track, language = 'en') {
+  if (!plain(track)) return -1;
+  const code = String(track.languageCode ?? '').toLowerCase(), wanted = String(language ?? 'en').toLowerCase();
+  let rank = track.auto ? 0 : 100;
+  if (track.translated) rank -= 60;
+  if (code && (code === wanted || code.split('-')[0] === wanted.split('-')[0])) rank += 20;
+  else if (code === 'en' || code.startsWith('en-')) rank += 10;
+  return rank;
+}
+
+/**
+ * The embedded player's own answer for the video (its youtubei/v1/player request) -> {title, channel, description, chapters,
+ * duration, tracks: [{languageCode, auto, name}]} or null when it is about another video.
+ */
+export function parsePlayerResponse(value, videoId) {
+  const details = plain(value) && plain(value.videoDetails) ? value.videoDetails : null;
+  if (!details || details.videoId !== videoId || !VIDEO_ID.test(videoId ?? '')) return null;
+  const description = typeof details.shortDescription === 'string' ? details.shortDescription.slice(0, 5000) : '';
+  const title = cleanLine(details.title, MAX_TITLE), channel = cleanLine(details.author, MAX_CHANNEL);
+  const seconds = Number(details.lengthSeconds);
+  const list = value.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+  const tracks = (Array.isArray(list) ? list : []).slice(0, 60).filter(plain).map(track => ({
+    languageCode: String(track.languageCode ?? '').slice(0, 20), auto: track.kind === 'asr',
+    name: cleanLine(track.name?.simpleText ?? track.name?.runs?.[0]?.text ?? '', 60) ?? ''})).filter(track => track.languageCode);
+  return {...(title ? {title} : {}), ...(channel ? {channel} : {}), description, chapters: parseChapters(description),
+    ...(Number.isFinite(seconds) && seconds > 0 ? {duration: seconds} : {}), tracks};
 }
 
 /** oEmbed answer -> {title, channel} or null (public endpoint, no key; https://www.youtube.com/oembed). */
@@ -202,46 +343,18 @@ export function parseOembed(value) {
   const title = cleanLine(value.title, MAX_TITLE), channel = cleanLine(value.author_name, MAX_CHANNEL);
   return title ? {title, ...(channel ? {channel} : {})} : null;
 }
-/** ISO 8601 duration ("PT1H2M3S") -> seconds, or null. */
-export function parseIsoDuration(value) {
-  const match = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/.exec(typeof value === 'string' ? value : '');
-  if (!match || value === 'P' || value === 'PT') return null;
-  return Number(match[1] ?? 0) * 86400 + Number(match[2] ?? 0) * 3600 + Number(match[3] ?? 0) * 60 + Number(match[4] ?? 0);
-}
-/** YouTube Data API v3 videos.list answer -> {title, channel, description, chapters, duration} or null. */
-export function parseDataApiVideo(value, videoId) {
-  const item = plain(value) && Array.isArray(value.items) ? value.items.find(row => row?.id === videoId) : null;
-  if (!plain(item) || !plain(item.snippet)) return null;
-  const description = typeof item.snippet.description === 'string' ? item.snippet.description.slice(0, 5000) : '';
-  const title = cleanLine(item.snippet.title, MAX_TITLE), channel = cleanLine(item.snippet.channelTitle, MAX_CHANNEL);
-  const duration = parseIsoDuration(item.contentDetails?.duration);
-  return {...(title ? {title} : {}), ...(channel ? {channel} : {}), description, chapters: parseChapters(description),
-    ...(duration !== null ? {duration} : {})};
-}
-/** A Data API key as the player pasted it: Google API keys are 39 characters starting "AIza". */
-export const validDataApiKey = key => typeof key === 'string' && /^AIza[0-9A-Za-z_-]{35}$/.test(key.trim());
 
-/**
- * Title and channel (oEmbed), and with the player's key also the description and chapters (Data API videos.list, 1 quota unit).
- * fetch is injectable for tests. Never throws: a failed lookup gives what it could, or {}.
- */
-export async function lookupVideo(videoId, {fetch = globalThis.fetch, dataApiKey = '', timeoutMs = 4000, signal} = {}) {
+/** Title and channel from oEmbed (no key). fetch is injectable for tests. Never throws: a failed lookup gives {}. */
+export async function lookupVideo(videoId, {fetch = globalThis.fetch, timeoutMs = 4000, signal} = {}) {
   if (!VIDEO_ID.test(videoId ?? '') || typeof fetch !== 'function') return {};
-  const get = async url => {
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
-    const abort = () => controller.abort();
-    signal?.addEventListener('abort', abort, {once: true});
-    try {
-      const response = await fetch(url, {signal: controller.signal, headers: {accept: 'application/json'}});
-      if (!response.ok) return null;
-      return await response.json();
-    } catch { return null; } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
-  };
-  const watch = `https://www.youtube.com/watch?v=${videoId}`;
-  const [oembed, data] = await Promise.all([
-    get(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(watch)}`),
-    validDataApiKey(dataApiKey)
-      ? get(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${encodeURIComponent(dataApiKey.trim())}`)
-      : Promise.resolve(null)]);
-  return {...(parseOembed(oembed) ?? {}), ...(parseDataApiVideo(data, videoId) ?? {})};
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
+  const abort = () => controller.abort();
+  signal?.addEventListener('abort', abort, {once: true});
+  try {
+    const watch = `https://www.youtube.com/watch?v=${videoId}`;
+    const response = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(watch)}`,
+      {signal: controller.signal, headers: {accept: 'application/json'}});
+    if (!response.ok) return {};
+    return parseOembed(await response.json()) ?? {};
+  } catch { return {}; } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
 }

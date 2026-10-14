@@ -9,17 +9,14 @@ export const PAGE_STRINGS = [
   'YouTube on the TV', 'Paste a YouTube link or video id', 'Play', 'Search YouTube', 'Search', 'Recently watched', 'Close',
   'That is not a YouTube link or video id.', 'This video cannot be played here. Choose another one.', 'Loading…',
   'Pick a video, then click back into the game. Use the TV to pause or stop it.',
-  'Descriptions and chapters (optional)',
-  'With your own YouTube Data API key your companion also knows the video’s description and chapters. Without one, only the title and channel.',
-  'YouTube Data API key', 'Save key', 'Forget key', 'Key saved.', 'Key forgotten.', 'That does not look like a YouTube Data API key.',
 ];
 
 const escapeHtml = value => String(value).replace(/[&<>"']/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[ch]));
 
 /** The page. `title` is the window title the window helper finds the window by; `strings` the translations (English keys). */
-export function tvPage({title, origin, strings = {}, hasKey = false}) {
+export function tvPage({title, origin, strings = {}}) {
   const t = text => escapeHtml(strings[text] ?? text);
-  const json = JSON.stringify({origin, hasKey, strings: Object.fromEntries(PAGE_STRINGS.map(text => [text, strings[text] ?? text]))})
+  const json = JSON.stringify({origin, strings: Object.fromEntries(PAGE_STRINGS.map(text => [text, strings[text] ?? text]))})
     .replace(/</g, '\\u003c');
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="referrer" content="strict-origin-when-cross-origin">
@@ -44,9 +41,6 @@ h2 { font-size: 14px; color: var(--muted); font-weight: 600; margin: 18px 0 8px;
 #recent { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 #recent button { width: 100%; text-align: left; background: transparent; }
 #recent button:hover { background: var(--panel); }
-details { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
-summary { cursor: pointer; color: var(--muted); }
-details p { color: var(--muted); font-size: 13px; }
 #close { position: fixed; top: 14px; right: 18px; }
 #stage { position: fixed; inset: 0; background: #000; }
 #player, #stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
@@ -61,10 +55,6 @@ details p { color: var(--muted); font-size: 13px; }
   <div id="message" role="status"></div>
   <h2 id="recent-title" hidden>${t('Recently watched')}</h2>
   <ul id="recent"></ul>
-  <details><summary>${t('Descriptions and chapters (optional)')}</summary>
-    <p>${t('With your own YouTube Data API key your companion also knows the video’s description and chapters. Without one, only the title and channel.')}</p>
-    <form id="key" class="row"><input id="key-value" type="password" autocomplete="off" spellcheck="false" placeholder="${t('YouTube Data API key')}" aria-label="${t('YouTube Data API key')}"><button type="submit">${t('Save key')}</button><button id="forget" type="button">${t('Forget key')}</button></form>
-  </details>
 </section>
 <section id="stage" hidden><div id="player"></div></section>
 <script>
@@ -125,6 +115,21 @@ details p { color: var(--muted); font-size: 13px; }
       item.append(button); list.append(item);
     }
   }
+  // The player's own captions module (IFrame API loadModule/setOption): load the first listed track in the preferred languages.
+  function loadCaptions(languages) {
+    try { player?.loadModule?.('captions'); } catch { send({type: 'captions', available: false}); return; }
+    setTimeout(() => {
+      let list = [];
+      try { list = player?.getOption?.('captions', 'tracklist') ?? []; } catch {}
+      if (!Array.isArray(list) || !list.length) { try { player?.unloadModule?.('captions'); } catch {} send({type: 'captions', available: false}); return; }
+      const wanted = (languages ?? []).map(code => String(code).toLowerCase());
+      const pick = wanted.map(code => list.find(track => String(track.languageCode).toLowerCase() === code)
+        ?? list.find(track => String(track.languageCode).toLowerCase().split('-')[0] === code.split('-')[0])).find(Boolean) ?? list[0];
+      try { player.setOption('captions', 'track', {languageCode: pick.languageCode}); } catch {}
+      send({type: 'captions', available: true, languageCode: String(pick.languageCode)});
+    }, 1500);
+  }
+  function hideCaptions() { try { player?.setOption?.('captions', 'track', {}); } catch {} try { player?.unloadModule?.('captions'); } catch {} }
   window.convaiTvControl = command => {
     switch (command?.op) {
       case 'play': play(command.video); return true;
@@ -136,13 +141,13 @@ details p { color: var(--muted); font-size: 13px; }
       case 'duck': ducked = !!command.on; applyVolume(); return true;
       case 'message': say(command.text ?? '', !!command.ok); return true;
       case 'snapshot': report(); return true;
+      case 'captions': loadCaptions(command.languages); return true;
+      case 'captions-off': hideCaptions(); return true;
       default: return false;
     }
   };
   $('paste').addEventListener('submit', event => { event.preventDefault(); send({type: 'pick', text: $('link').value}); });
   $('search').addEventListener('submit', event => { event.preventDefault(); const q = $('query').value.trim(); if (q) send({type: 'search', query: q}); });
-  $('key').addEventListener('submit', event => { event.preventDefault(); send({type: 'key', key: $('key-value').value}); $('key-value').value = ''; });
-  $('forget').addEventListener('click', () => send({type: 'forget-key'}));
   $('close').addEventListener('click', () => send({type: 'close'}));
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('picker').hidden) send({type: 'close'}); });
   setTimeout(() => $('link').focus(), 50);

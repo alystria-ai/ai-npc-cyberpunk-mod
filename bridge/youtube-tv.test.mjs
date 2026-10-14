@@ -8,7 +8,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import fengari from 'fengari';
 import {parseVideoInput, parseClock, formatClock, parseChapters, chapterAt, descriptionExcerpt, parseTvCommand, watchingContext,
-  parseOembed, parseIsoDuration, parseDataApiVideo, validDataApiKey, lookupVideo, HOME_PLACES, MAX_CONTEXT_CHARS, cleanStrings} from './youtube-tv.mjs';
+  parseOembed, lookupVideo, HOME_PLACES, MAX_CONTEXT_CHARS, MAX_CAPTION_CHARS, cleanStrings, captionWindow, parseTimedText, timedTextTrack,
+  trackRank, parsePlayerResponse} from './youtube-tv.mjs';
 import {YouTubeTv} from './youtube-tv-host.mjs';
 import {tvPage, PAGE_STRINGS} from './youtube-tv-page.mjs';
 
@@ -88,26 +89,94 @@ test('the watching block: who gets it and what it says', () => {
   assert(huge.length <= MAX_CONTEXT_CHARS, `${huge.length}`);
 });
 
-test('metadata: oEmbed, Data API, keys', async () => {
+// The embedded player's own answer for the video, as headless Edge captured it on 2026-10-15 (trimmed to the fields read).
+const playerAnswer = (videoId = ID) => ({videoDetails: {videoId, title: 'YouTube Developers Live: Embedded Web Player Customization',
+  author: 'Google for Developers', lengthSeconds: '1344', shortDescription: 'On this week\'s show, Jeff Posnick covers the player.\n0:00 Intro\n2:10 Parameters\n9:45 Questions\nhttps://developers.google.com/youtube'},
+  captions: {playerCaptionsTracklistRenderer: {captionTracks: [
+    {baseUrl: 'https://www.youtube.com/api/timedtext?v=' + videoId + '&lang=en', name: {simpleText: 'English'}, languageCode: 'en'},
+    {baseUrl: 'https://www.youtube.com/api/timedtext?v=' + videoId + '&lang=en&kind=asr', name: {simpleText: 'English (auto-generated)'}, languageCode: 'en', kind: 'asr'}]}}});
+const json3 = JSON.stringify({wireMagic: 'pb3', events: [
+  {tStartMs: 10349, dDurationMs: 1000, segs: [{utf8: 'JEFF POSNICK: Hey, everybody.'}]},
+  {tStartMs: 11349, dDurationMs: 2681, segs: [{utf8: 'Welcome to this week\'s show.'}]},
+  {tStartMs: 14030, dDurationMs: 10, aAppend: 1, segs: [{utf8: '\n'}]},
+  {tStartMs: 14040, dDurationMs: 3000, segs: [{utf8: 'Today we '}, {utf8: 'customize the '}, {utf8: '<b>player</b> &amp; more.'}]},
+  {tStartMs: 60000, dDurationMs: 4000, segs: [{utf8: 'A minute in.'}]}]});
+
+test('metadata: oEmbed only, no key; the player\'s own answer gives description, chapters and caption tracks', async () => {
   assert.deepEqual(parseOembed({title: 'A', author_name: 'B'}), {title: 'A', channel: 'B'});
   assert.equal(parseOembed({}), null);
-  assert.equal(parseIsoDuration('PT1H2M3S'), 3723); assert.equal(parseIsoDuration('PT45S'), 45); assert.equal(parseIsoDuration('P'), null);
-  const api = {items: [{id: ID, snippet: {title: 'T', channelTitle: 'C', description: '0:00 a\n1:00 b\n2:00 c'}, contentDetails: {duration: 'PT3M'}}]};
-  assert.deepEqual(parseDataApiVideo(api, ID), {title: 'T', channel: 'C', description: '0:00 a\n1:00 b\n2:00 c',
-    chapters: [{start: 0, title: 'a'}, {start: 60, title: 'b'}, {start: 120, title: 'c'}], duration: 180});
-  assert.equal(parseDataApiVideo(api, 'AAAAAAAAAAA'), null);
-  const key = 'AIza' + 'x'.repeat(35);
-  assert(validDataApiKey(key)); assert(!validDataApiKey('AIza123')); assert(!validDataApiKey(undefined));
   const asked = [];
-  const fetch = async url => { asked.push(url); return {ok: true, json: async () => url.includes('oembed') ? {title: 'O', author_name: 'A'} : api}; };
+  const fetch = async url => { asked.push(url); return {ok: true, json: async () => ({title: 'O', author_name: 'A'})}; };
   assert.deepEqual(await lookupVideo(ID, {fetch}), {title: 'O', channel: 'A'});
-  assert.equal(asked.length, 1, 'no Data API call without a key');
+  assert.equal(asked.length, 1);
   assert.match(asked[0], /^https:\/\/www\.youtube\.com\/oembed\?format=json&url=/);
-  const both = await lookupVideo(ID, {fetch, dataApiKey: key});
-  assert.equal(both.title, 'T'); assert.equal(both.chapters.length, 3);
-  assert.match(asked[2] ?? asked[1], /googleapis\.com\/youtube\/v3\/videos\?part=snippet,contentDetails&id=M7lc1UVf-VE&key=AIza/);
   assert.deepEqual(await lookupVideo(ID, {fetch: async () => { throw Error('offline'); }}), {});
   assert.deepEqual(await lookupVideo('bad', {fetch}), {});
+  const info = parsePlayerResponse(playerAnswer(), ID);
+  assert.equal(info.title, 'YouTube Developers Live: Embedded Web Player Customization');
+  assert.equal(info.channel, 'Google for Developers'); assert.equal(info.duration, 1344);
+  assert.deepEqual(info.chapters.map(chapter => chapter.title), ['Intro', 'Parameters', 'Questions']);
+  assert.deepEqual(info.tracks, [{languageCode: 'en', auto: false, name: 'English'}, {languageCode: 'en', auto: true, name: 'English (auto-generated)'}]);
+  assert.equal(parsePlayerResponse(playerAnswer('AAAAAAAAAAA'), ID), null, 'another video\'s answer is ignored');
+  assert.equal(parsePlayerResponse({}, ID), null);
+  // No Data API, no key anywhere.
+  for (const name of ['./youtube-tv.mjs', './youtube-tv-host.mjs', './youtube-tv-page.mjs'])
+    assert(!/googleapis\.com\/youtube|Data API key|dataApiKey|AIza/.test(read(name)), name);
+});
+
+test('captions: json3, XML and WebVTT tracks parse to sorted cues; the track and its rank come from the request', () => {
+  const cues = parseTimedText(json3);
+  assert.deepEqual(cues.map(cue => cue.text), ['JEFF POSNICK: Hey, everybody.', 'Welcome to this week\'s show.', 'Today we customize the player & more.', 'A minute in.']);
+  assert.deepEqual([cues[0].start, cues[0].end], [10.349, 11.349]);
+  assert.deepEqual(parseTimedText('<?xml version="1.0"?><timedtext format="3"><body><p t="2000" d="1500">Hi &amp; <s>there</s></p><p t="500" d="400">first</p></body></timedtext>')
+    .map(cue => [cue.start, cue.text]), [[0.5, 'first'], [2, 'Hi & there']]);
+  assert.deepEqual(parseTimedText('<transcript><text start="1.5" dur="2">It&#39;s on</text></transcript>').map(cue => [cue.start, cue.end, cue.text]), [[1.5, 3.5, "It's on"]]);
+  assert.deepEqual(parseTimedText('WEBVTT\n\n00:00:01.000 --> 00:00:03.500 align:start\n<c>Hello</c> there\n\n1:02.250 --> 1:04.000\nLater').map(cue => [cue.start, cue.end, cue.text]),
+    [[1, 3.5, 'Hello there'], [62.25, 64, 'Later']]);
+  for (const bad of ['', '{bad', 'plain text', null, '{"events": 5}']) assert.deepEqual(parseTimedText(bad), [], String(bad));
+  assert.deepEqual(timedTextTrack(`https://www.youtube.com/api/timedtext?v=${ID}&ei=x&caps=asr&lang=en&fmt=json3`), {videoId: ID, languageCode: 'en', auto: false, translated: false});
+  assert.deepEqual(timedTextTrack(`https://www.youtube.com/api/timedtext?v=${ID}&lang=de&kind=asr&tlang=fr`), {videoId: ID, languageCode: 'de', auto: true, translated: true});
+  assert.equal(timedTextTrack(`https://evil.example/api/timedtext?v=${ID}`), null);
+  assert.equal(timedTextTrack('https://www.youtube.com/api/timedtext?v=nope'), null);
+  // Written over automatic, own over translated, the game's language, then English.
+  const rank = track => trackRank(track, 'de');
+  assert(rank({languageCode: 'en', auto: false}) > rank({languageCode: 'de', auto: true}));
+  assert(rank({languageCode: 'de', auto: false}) > rank({languageCode: 'en', auto: false}));
+  assert(rank({languageCode: 'en', auto: false}) > rank({languageCode: 'fr', auto: false}));
+  assert(rank({languageCode: 'fr', auto: false}) > rank({languageCode: 'de', auto: false, translated: true}));
+});
+
+test('captions: the window is the last half minute up to the position, deduplicated, newest words kept', () => {
+  const cues = parseTimedText(json3);
+  assert.equal(captionWindow(cues, 18), 'JEFF POSNICK: Hey, everybody. Welcome to this week\'s show. Today we customize the player & more.');
+  assert.equal(captionWindow(cues, 12), 'JEFF POSNICK: Hey, everybody. Welcome to this week\'s show.', 'nothing from the future');
+  assert.equal(captionWindow(cues, 61), 'A minute in.', 'older than 30 s is gone');
+  assert.equal(captionWindow(cues, 5), '');
+  assert.equal(captionWindow([], 5), ''); assert.equal(captionWindow(cues, NaN), '');
+  const rolling = [{start: 0, end: 2, text: 'same line'}, {start: 1, end: 3, text: 'same line'}, {start: 2, end: 4, text: 'next'}];
+  assert.equal(captionWindow(rolling, 4), 'same line next');
+  const long = Array.from({length: 300}, (_, i) => ({start: i * 0.1, end: i * 0.1 + 0.5, text: `word${i}`}));
+  const text = captionWindow(long, 30);
+  assert(text.length <= MAX_CAPTION_CHARS + 1 && text.startsWith('…') && text.endsWith('word299'), text.slice(0, 40));
+});
+
+test('the watching block carries what was just said, and falls back to title, channel, chapter and description without captions', () => {
+  const input = {profileKey: 'judy'};
+  const captions = {cues: parseTimedText(json3), auto: false};
+  const withCaptions = watchingContext(input, {...video, position: 18, captions});
+  assert.match(withCaptions, /Just before this moment the video said \(from its captions\): "JEFF POSNICK: Hey, everybody\. .*customize the player & more\."/);
+  assert.match(withCaptions, /"Building a cyberdeck" from the channel Deck Lab/);
+  assert(withCaptions.length <= MAX_CONTEXT_CHARS);
+  assert.match(watchingContext(input, {...video, position: 18, captions: {...captions, auto: true}}), /from its automatic captions, which can mishear words/);
+  const without = watchingContext(input, {...video, position: 18});
+  assert(!/video said/.test(without));
+  assert.match(without, /chapter "Intro"/); assert.match(without, /Its description says: A full cyberdeck build from scrap\./);
+  assert(!/video said/.test(watchingContext(input, {...video, position: 5, captions})), 'nothing said yet, no caption sentence');
+  // Over budget the description goes first, then the captions; the first sentence always stays.
+  const crowded = watchingContext(input, {...video, title: 'T'.repeat(150), position: 30, description: 'Words here. '.repeat(400),
+    captions: {cues: Array.from({length: 300}, (_, i) => ({start: i * 0.1, end: i * 0.1 + 0.5, text: `word${i}`})), auto: false}});
+  assert(crowded.length <= MAX_CONTEXT_CHARS, `${crowded.length}`);
+  assert.match(crowded, /video said/);
 });
 
 test('the page: official player only, referrer kept, nothing drawn over the player, strings translated and escaped', () => {
@@ -121,16 +190,21 @@ test('the page: official player only, referrer kept, nothing drawn over the play
   assert.match(html, /<section id="stage" hidden><div id="player"><\/div><\/section>/);
   assert(!/googlevideo|videoplayback|\.mp4|download/i.test(html), 'never a direct media URL');
   assert.deepEqual(PAGE_STRINGS, [...new Set(PAGE_STRINGS)]);
+  // The key box is gone; captions go through the player's own module.
+  assert(!/id="key"|forget-key|Data API|<details/.test(html));
+  assert.equal(PAGE_STRINGS.length, 11);
+  assert.match(html, /player\?\.loadModule\?\.\('captions'\)/);
+  assert.match(html, /case 'captions-off': hideCaptions\(\); return true;/);
 });
 
 // A fake Playwright persistent context: one page that "loads" the TV page by calling the binding from the page's origin.
 function fakeBrowser() {
   const log = {evaluated: [], gotos: [], closed: false};
-  let binding = null, url = 'about:blank', closeHandlers = [], navHandlers = [];
+  let binding = null, url = 'about:blank', closeHandlers = [], navHandlers = [], responseHandlers = [];
   const frame = {url: () => url};
   const page = {
     url: () => url, isClosed: () => log.closed, mainFrame: () => frame,
-    on: (name, fn) => { if (name === 'framenavigated') navHandlers.push(fn); },
+    on: (name, fn) => { if (name === 'framenavigated') navHandlers.push(fn); if (name === 'response') responseHandlers.push(fn); },
     goto: async target => {
       log.gotos.push(target); url = target;
       for (const fn of navHandlers) fn(frame);
@@ -146,7 +220,12 @@ function fakeBrowser() {
     close: async () => { log.closed = true; },
   };
   return {log, context, page, send: message => binding({frame}, message), sendFrom: (from, message) => binding({frame: {url: () => from}}, message),
-    navigate: target => { url = target; for (const fn of navHandlers) fn(frame); }};
+    navigate: target => { url = target; for (const fn of navHandlers) fn(frame); },
+    // A response the player in the page received: {url(), status(), headers(), body()} like Playwright's.
+    respond: (from, body, {status = 200, headers = {}} = {}) => {
+      const response = {url: () => from, status: () => status, headers: () => headers, body: async () => { log.bodies = (log.bodies ?? 0) + 1; return Buffer.from(body); }};
+      for (const fn of responseHandlers) fn(response);
+    }};
 }
 function fakeHelper() {
   const sent = [], listeners = new Set();
@@ -158,13 +237,13 @@ function fakeHelper() {
 }
 const tick = (ms = 5) => new Promise(done => setTimeout(done, ms));
 
-async function session({audible = () => false, now} = {}) {
+async function session({audible = () => false, now, captionWaitMs = 60_000} = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'youtube-tv-'));
   const browser = fakeBrowser(), helper = fakeHelper();
   let clock = now ?? 1_800_000_000_000;
   const asked = [];
   const tv = new YouTubeTv({runtime: dir, stateDirectory: dir, launch: async () => browser.context, spawnHelper: () => helper.make(),
-    audible, now: () => clock, log: () => {}, fetch: async url => { asked.push(url); return {ok: true, json: async () => ({title: 'Deck build', author_name: 'Deck Lab'})}; }});
+    audible, now: () => clock, log: () => {}, captionWaitMs, fetch: async url => { asked.push(url); return {ok: true, json: async () => ({title: 'Deck build', author_name: 'Deck Lab'})}; }});
   const command = async (action, extra = {}) => {
     await writeFile(join(dir, 'youtube-tv-command.json'), JSON.stringify({version: 1, id: `${action}-${Math.random()}`, action, issuedAt: clock, ...extra}));
     await tv.poll();
@@ -270,23 +349,91 @@ test('the video ducks while the conversation is audible and comes back after a q
 test('the Data API key: validated, saved, forgotten; history keeps 8 videos for 30 days at most', async () => {
   const s = await session();
   try {
+    await writeFile(join(s.dir, 'youtube-data-api.json'), JSON.stringify({version: 1, key: 'AIza' + 'k'.repeat(35)}));
     await s.tv.start(); s.tv.setEnabled(true);
+    await assert.rejects(readFile(join(s.dir, 'youtube-data-api.json')), 'a key saved by the first version is deleted');
     await s.command('open'); await tick();
-    s.browser.send({type: 'key', key: 'nope'}); await tick(); await s.tv.queue;
-    assert.equal(s.browser.log.evaluated.at(-1).text, 'That does not look like a YouTube Data API key.');
-    const key = 'AIza' + 'k'.repeat(35);
-    s.browser.send({type: 'key', key}); await tick(); await s.tv.queue;
-    assert.equal(await s.tv.dataApiKey(), key);
+    // The old key messages do nothing now.
+    const before = s.browser.log.evaluated.length;
+    s.browser.send({type: 'key', key: 'AIza' + 'k'.repeat(35)}); s.browser.send({type: 'forget-key'}); await tick(); await s.tv.queue;
+    assert.equal(s.browser.log.evaluated.length, before);
     s.browser.send({type: 'pick', text: ID}); await tick(); await s.tv.queue; await tick();
-    assert(s.asked.some(url => url.includes('googleapis.com') && url.includes('key=AIza')), 'with a key the Data API is asked');
-    s.browser.send({type: 'forget-key'}); await tick(); await s.tv.queue;
-    assert.equal(await s.tv.dataApiKey(), '');
+    assert(s.asked.every(url => url.startsWith('https://www.youtube.com/oembed')), 'only oEmbed is asked');
     const now = s.tv.now();
     const rows = Array.from({length: 12}, (_, i) => ({videoId: `abcdefghij${String.fromCharCode(65 + i)}`, title: `v${i}`, at: now - i * 1000}));
     rows.push({videoId: 'zzzzzzzzzzz', title: 'old', at: now - 31 * 24 * 3600 * 1000});
     await writeFile(join(s.dir, 'youtube-tv-history.json'), JSON.stringify([rows.at(-1), ...rows.slice(0, 12)]));
     const history = await s.tv.history();
     assert.equal(history.length, 8); assert(!history.some(row => row.title === 'old'));
+  } finally { await s.tv.close(); await s.cleanup(); }
+});
+
+test('captions: the player\'s own answer and caption track for the playing video are read once; others are ignored', async () => {
+  const s = await session();
+  try {
+    await s.tv.start(); s.tv.setEnabled(true);
+    await s.command('open', {language: 'en'}); await tick();
+    // Before a video plays nothing is read.
+    s.browser.respond(`https://www.youtube.com/api/timedtext?v=${ID}&lang=en`, json3); await tick();
+    assert.equal(s.browser.log.bodies ?? 0, 0);
+    s.browser.send({type: 'pick', text: ID}); await tick(); await s.tv.queue;
+    // Unrelated responses never have their body read.
+    s.browser.respond('https://rr1---sn.googlevideo.com/videoplayback?id=1', 'x');
+    s.browser.respond('https://www.youtube.com/youtubei/v1/next?prettyPrint=false', '{}');
+    s.browser.respond(`https://www.youtube.com/api/timedtext?v=AAAAAAAAAAA&lang=en`, json3);   // another video
+    await tick();
+    assert.equal(s.browser.log.bodies ?? 0, 0);
+    s.browser.respond('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', JSON.stringify(playerAnswer())); await tick(10);
+    let snap = s.tv.snapshot();
+    assert.equal(snap.chapters, 3); assert.equal(snap.duration, 1344); assert.equal(snap.captions, null);
+    s.browser.respond(`https://www.youtube.com/api/timedtext?v=${ID}&lang=en&kind=asr`, json3); await tick(10);
+    assert.deepEqual(s.tv.snapshot().captions, {languageCode: 'en', auto: true, cues: 4});
+    // A written track replaces the automatic one; a repeat of a track already read is not read again.
+    s.browser.respond(`https://www.youtube.com/api/timedtext?v=${ID}&lang=en&fmt=json3`, json3); await tick(10);
+    assert.deepEqual(s.tv.snapshot().captions, {languageCode: 'en', auto: false, cues: 4});
+    const bodies = s.browser.log.bodies;
+    s.browser.respond(`https://www.youtube.com/api/timedtext?v=${ID}&lang=en&fmt=json3`, json3); await tick(10);
+    assert.equal(s.browser.log.bodies, bodies);
+    s.browser.send({type: 'time', position: 16, duration: 1344}); await tick(); await s.tv.queue;
+    assert.match(s.tv.contextFor({profileKey: 'judy'}), /video said \(from its captions\): "JEFF POSNICK: Hey, everybody\. Welcome to this week's show\. Today we customize the player & more\."/);
+    assert.match(s.tv.contextFor({profileKey: 'judy'}), /chapter "Intro"/);
+    // Too large, or not a 200, is skipped.
+    s.browser.respond(`https://www.youtube.com/api/timedtext?v=${ID}&lang=de`, json3, {headers: {'content-length': String(5 * 1024 * 1024)}});
+    s.browser.respond(`https://www.youtube.com/api/timedtext?v=${ID}&lang=fr`, json3, {status: 403});
+    await tick(10);
+    assert.equal(s.browser.log.bodies, bodies);
+    // A new video starts clean.
+    s.browser.send({type: 'pick', text: 'abcdefghijk'}); await tick(); await s.tv.queue;
+    snap = s.tv.snapshot();
+    assert.equal(snap.captions, null); assert.equal(snap.chapters, 0);
+  } finally { await s.tv.close(); await s.cleanup(); }
+});
+
+test('captions: with none fetched by the player it is asked to load one, then to hide them once read; a video without any stays without', async () => {
+  const s = await session({captionWaitMs: 20});
+  try {
+    await s.tv.start(); s.tv.setEnabled(true);
+    await s.command('open', {language: 'de'}); await tick();
+    s.browser.send({type: 'pick', text: ID}); await tick(); await s.tv.queue;
+    const answer = playerAnswer();
+    answer.captions.playerCaptionsTracklistRenderer.captionTracks.push({languageCode: 'de', name: {simpleText: 'Deutsch'}});
+    s.browser.respond('https://www.youtube.com/youtubei/v1/player', JSON.stringify(answer)); await tick(60); await s.tv.queue;
+    assert.deepEqual(s.browser.log.evaluated.find(c => c.op === 'captions'), {op: 'captions', languages: ['de', 'en']});
+    s.browser.respond(`https://www.youtube.com/api/timedtext?v=${ID}&lang=de`, json3); await tick(10); await s.tv.queue;
+    assert.equal(s.browser.log.evaluated.at(-1).op, 'captions-off');
+    assert.equal(s.browser.log.evaluated.filter(c => c.op === 'captions').length, 1, 'asked once');
+    // A video whose player answer lists no tracks: never asked; the block falls back to title, chapter and description.
+    s.browser.send({type: 'pick', text: 'abcdefghijk'}); await tick(); await s.tv.queue;
+    const none = playerAnswer('abcdefghijk'); delete none.captions;
+    s.browser.respond('https://www.youtube.com/youtubei/v1/player', JSON.stringify(none)); await tick(60); await s.tv.queue;
+    assert.equal(s.browser.log.evaluated.filter(c => c.op === 'captions').length, 1);
+    assert.equal(s.tv.snapshot().captionsMissing, true);
+    const block = s.tv.contextFor({profileKey: 'judy'});
+    assert(!/video said/.test(block)); assert.match(block, /Its description says: On this week's show, Jeff Posnick covers the player\./);
+    // The page answers that the player lists none: noted.
+    s.browser.send({type: 'pick', text: 'bcdefghijkl'}); await tick(60); await s.tv.queue;
+    s.browser.send({type: 'captions', available: false}); await tick(); await s.tv.queue;
+    assert.equal(s.tv.snapshot().captionsMissing, true);
   } finally { await s.tv.close(); await s.cleanup(); }
 });
 
