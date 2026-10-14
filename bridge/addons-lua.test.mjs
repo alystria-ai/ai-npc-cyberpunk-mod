@@ -79,6 +79,83 @@ test('a proactive remark: queued, written as an automatic request with a lease, 
   `);
 });
 
+test('a reply the game accepts says "playing" in the lease at once, and the deadline allows for whole-second os.time()', () => {
+  // probe.log 2026-10-14: companion-kill was played and released in the same second; the bridge cut it ("Continuous speech owner
+  // changed") because its lease still had no playback time when the request's deadline passed.
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2})
+    -- A remark that waited most of its ttl: 0.3 s left when it is sent.
+    assert(handle:remark('gun', {event = 'companion-kill', priority = 2, ttl = 3}))
+    M.tick(player, 2.7, true)
+    assert(#submitted == 1)
+    local context = submitted[1].context
+    assert(context.reaction.expiresAt == (now + 1 + 1) * 1000,
+        'the 1 s floor plus a second for the whole-second clock: ' .. tostring(context.reaction.expiresAt))
+    -- The reply arrives and the game takes it: the lease says playing before any tick.
+    now = now + 1
+    assert(M.canDeliver(context, player) == true)
+    local accepted = lease()
+    assert(accepted.valid == true and accepted.requestId == context.requestId and accepted.playbackStartedAt == now * 1000)
+    assert(accepted.playbackStartedAt <= context.reaction.expiresAt, 'the bridge reads it as playing')
+    -- The voice starts on the next tick: no second write of the same playback time.
+    local writes = 0
+    for _, entry in ipairs(opened) do if entry == 'wb runtime/reaction-lease.json.tmp' then writes = writes + 1 end end
+    state.pendingId, state.speechId = nil, context.requestId
+    now = now + 1
+    tick()
+    local after = 0
+    for _, entry in ipairs(opened) do if entry == 'wb runtime/reaction-lease.json.tmp' then after = after + 1 end end
+    assert(lease().playbackStartedAt == (now - 1) * 1000, 'the playback time is the moment it was accepted')
+    assert(after - writes <= 1, 'at most the regular refresh')
+  `);
+});
+
+test('a remark whose voice stopped early says why in its release line; one heard to its end does not', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 0})
+    local function play(stop, err)
+        tick(20)
+        assert(handle:remark('gun', {event = 'kill', priority = 3}))
+        tick(3)
+        local context = submitted[#submitted].context
+        assert(M.canDeliver(context, player))
+        state.pendingId, state.speechId = nil, context.requestId
+        tick()
+        state.speechId, state.speechStop, state.speechError = nil, stop, err
+        tick()
+        state.speechStop, state.speechError = nil, nil
+        return logs[#logs]
+    end
+    local cut = play('playback-failed', 'Continuous playback cancelled')
+    assert(cut:find('reason=finished spoken=true voice%-stopped=playback%-failed %(Continuous playback cancelled%)'), cut)
+    local heard = play('finished', nil)
+    assert(heard:find('reason=finished spoken=true$'), heard)
+  `);
+});
+
+test('voiceFrom: a speaker can be heard from its own object; only an attached one counts, and a bad definition is refused', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    assert(select(2, handle:speaker({id = 'bad', name = 'Bad', voiceFrom = 'gun'})) == 'voiceFrom must be a function')
+    local gun = {attached = true}
+    function gun:IsAttached() return self.attached end
+    local asked = nil
+    local key = handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', voiceFrom = function(p) asked = p; return gun end})
+    local plain = handle:speaker({id = 'plain', name = 'Plain', anchor = 'player'})
+    assert(M.voiceSource(key, player) == gun and asked == player)
+    gun.attached = false
+    assert(M.voiceSource(key, player) == nil)
+    assert(M.voiceSource(plain, player) == nil and M.voiceSource('addon-x-y', player) == nil and M.voiceSource(key, nil) == nil)
+    handle:speaker({id = 'boom', name = 'Boom', voiceFrom = function() error('no weapon') end})
+    assert(M.voiceSource('addon-skippy-boom', player) == nil)
+  `);
+});
+
 test('arbitration: nothing is submitted while anything else talks, a manual turn wins, and a scene or a lost anchor stops a remark', () => {
   run(`${WORLD}
     M.attach(host)
@@ -751,7 +828,9 @@ test('init.lua: every call into the add-on API is skipped until an add-on is liv
   const init = code('init.lua');
   assert.match(init, /local loaded, module = pcall\(dofile, 'addons\.lua'\)\s+convaiAddons = loaded and type\(module\) == 'table' and module or nil/);
   const calls = [...init.matchAll(/convaiAddons\.(\w+)\(/g)].map(match => match[1]);
-  assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'captionName', 'decorate', 'gameLine', 'isSpeaker', 'lineRulesWanted', 'matchLine', 'mutedLine', 'participantLive', 'replyError', 'talkCandidates']);
+  assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'captionName', 'decorate', 'gameLine', 'isSpeaker', 'lineRulesWanted', 'matchLine', 'mutedLine', 'participantLive', 'replyError', 'talkCandidates', 'voiceSource']);
+  // Where an add-on voice is heard from: asked by speech.lua once per voice-only reply, and only while an add-on is live.
+  assert.match(init, /speech\.voiceSource = function\(profileKey, player\) return convaiAddons\.live and convaiAddons\.voiceSource\(profileKey, player\) or nil end/);
   // The game-line notice runs only for a live add-on: the dialogue module asks first (one function call per game subtitle line).
   assert.match(init, /onGameLineWanted = function\(\) return convaiAddons ~= nil and convaiAddons\.live == true end,\s+onGameLine = function\(seconds, kind, measured\) convaiAddons\.gameLine\(seconds, kind, measured\) end/);
   assert.match(init, /if key and not participants and convaiAddons and convaiAddons\.live and convaiAddons\.isSpeaker\(key\) then key = nil end/);

@@ -181,7 +181,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 
 | Method | What it does |
 |---|---|
-| `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers, playThrough}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
+| `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers, playThrough, voiceFrom}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
 | `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
 | `handle:setMode(speakerId, modeId)` | Switches the speaker's personality (a mode in the manifest). It is sent with every turn and in `runtime/addon-state.json`. |
 | `handle:remember(speakerId, text)` | Keeps a memory the speaker can call back to later, for example "V spared the Tyger Claw who begged." At most 300 characters; a repeat is ignored. The bridge keeps the last 12 per speaker across game sessions. |
@@ -215,6 +215,10 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
   `handle:cancel` or the add-on being switched off still stop it. Default `false`: any scene stops the line. The Delamain cab uses
   it, because the game's own cab dialogue is a quest scene that opens and closes around its lines. A log line,
   `Remark plays through a game scene: ... signals=dialogue+tier=2`, names the flags that were up.
+- `voiceFrom(player) -> GameObject` (optional): where the voice is heard from when that is not the anchor. Skippy's anchor stays V
+  (subtitles, availability, the talk key), but his voice comes from the gun in V's hand. It is asked once when a reply starts and
+  only changes the pan and distance of the browser voice (continuous Pocket playback). An object that is detached, unreadable or more
+  than 3 m from the camera is dropped for the rest of that reply and the anchor is used. The native Omni phrases still play on the anchor.
 
 ### Replacing the game's own lines
 

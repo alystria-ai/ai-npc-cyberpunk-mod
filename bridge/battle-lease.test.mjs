@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {parseInput} from './protocol.mjs';
 import {inputIdentity, parsedInputIdentity} from './group-prefetch.mjs';
 import {fileIdentity, RequestFileOwner} from './request-ownership.mjs';
-import {reactionLeaseValid} from './battle-context.mjs';
+import {reactionLeaseProblem} from './battle-context.mjs';
 
 // Execute the bridge's real read and polling functions without starting its
 // services, reading credentials, or touching the running game's files.
@@ -20,9 +20,12 @@ const input = {requestId: '1000-1-1ULL', generation: 1, entity: '1ULL', name: 'J
 const missing = () => Object.assign(Error('Heartbeat rename gap'), {code: 'ENOENT'});
 
 function fixture() {
-  const state = {queue: [], reads: 0, delays: [], accepted: [], errors: [], actionRevocations: 0,
+  const state = {queue: [], reads: 0, delays: [], accepted: [], errors: [], actionRevocations: 0, now: Date.now(),
     lease: {requestId: input.requestId, valid: true, updated: Date.now()}};
-  const context = vm.createContext({parseInput, inputIdentity, parsedInputIdentity, fileIdentity, RequestFileOwner, reactionLeaseValid, AbortController,
+  // The bridge's clock (Date.now) is this fixture's own, so a test can let time pass.
+  const clock = {now: () => state.now};
+  const context = vm.createContext({parseInput, inputIdentity, parsedInputIdentity, fileIdentity, RequestFileOwner,
+    reactionLeaseProblem: (value, lease) => reactionLeaseProblem(value, lease, state.now), Date: clock, AbortController,
     companionActions: {revoke: async () => { state.actionRevocations++; }},
     readLease: async () => {
       state.reads++;
@@ -42,7 +45,7 @@ function fixture() {
     const prefetch={invalidate(){},claim(){return null;}}, lookahead={claim(){return null;}}, completeContext=()=>'', status=async()=>{};
     const processInput=request=>record(request);
     ${adapter}
-    globalThis.api={tick,reactionCurrent,state:()=>({active,observed,lastAcceptedIdentity}),
+    globalThis.api={tick,reactionCurrent,refusal:reactionLeaseRefusal,state:()=>({active,observed,lastAcceptedIdentity}),
       setActive:value=>{active=value;},setRelationshipReservation:value=>{relationshipRouteReservation=value;}};
   `, context);
   return {state, api: context.api};
@@ -81,13 +84,23 @@ test('explicit cancellation, stale leases and real IO failures are not retried',
   for (const value of [
     JSON.stringify({requestId: input.requestId, valid: false, updated: Date.now()}),
     JSON.stringify({requestId: input.requestId, valid: true, updated: Date.now() - 6000}),
-    Object.assign(Error('Access denied'), {code: 'EACCES'}),
+    Object.assign(Error('Is a directory'), {code: 'EISDIR'}),
   ]) {
     const {state, api} = fixture();
     state.queue.push(value);
     assert.equal(await api.reactionCurrent(input), false);
     assert.equal(state.reads, 1);
     assert.deepEqual(state.delays, []);
+  }
+});
+
+test('a Windows sharing refusal while the game replaces the lease is retried like a rename gap', async () => {
+  for (const code of ['EPERM', 'EBUSY', 'EACCES']) {
+    const {state, api} = fixture();
+    state.queue.push(Object.assign(Error('Sharing violation'), {code}));
+    assert.equal(await api.reactionCurrent(input), true, code);
+    assert.equal(state.reads, 2);
+    assert.deepEqual(state.delays, [15]);
   }
 });
 
@@ -128,10 +141,31 @@ test('active reactions survive a short rename gap but fail closed after bounded 
   state.queue.push(missing(), '{');
   await api.tick();
   assert.equal(request.controller.signal.aborted, false);
+  // Unreadable three times in a row, a moment after a good read: the remark the game is playing goes on.
+  state.now += 400;
+  state.queue.push(missing(), missing(), missing());
+  await api.tick();
+  assert.equal(request.controller.signal.aborted, false, 'one refused read must not cut a playing reaction');
+  // Still unreadable well after the last good read: it fails closed.
+  state.now += 1500;
   state.queue.push(missing(), missing(), missing());
   await api.tick();
   assert.equal(request.controller.signal.aborted, true);
-  assert.deepEqual(state.delays, [15, 15, 15, 15]);
+  assert.deepEqual(state.delays, [15, 15, 15, 15, 15, 15]);
+});
+
+test('a lease that names why it refused is kept for the log of a remark nobody heard', async () => {
+  const {state, api} = fixture();
+  const late = {...input, requestId: '1002-3-1ULL', reaction: {...input.reaction, expiresAt: state.now - 250}};
+  state.queue.push(JSON.stringify({requestId: late.requestId, valid: true, updated: state.now}));
+  assert.equal(await api.reactionCurrent(late), false);
+  assert.match(api.refusal(late.requestId), /past its deadline by 250 ms with no playback confirmed/);
+  state.queue.push(JSON.stringify({requestId: late.requestId, valid: true, updated: state.now, playbackStartedAt: state.now - 500}));
+  assert.equal(await api.reactionCurrent(late), true, 'playback that began before the deadline carries the request past it');
+  assert.equal(api.refusal(late.requestId), null);
+  state.queue.push(JSON.stringify({requestId: late.requestId, valid: false, updated: state.now}));
+  assert.equal(await api.reactionCurrent(late), false);
+  assert.equal(api.refusal(late.requestId), 'withdrawn by the game');
 });
 
 test('an invalid lease cannot abort a newer owner while its read was pending', async () => {

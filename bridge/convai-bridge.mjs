@@ -30,7 +30,7 @@ import {homedir} from 'node:os';
 import {conversationScope} from './group-context.mjs';
 import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
-import {battleTrigger, reactionLeaseValid} from './battle-context.mjs';
+import {battleTrigger, reactionLeaseProblem} from './battle-context.mjs';
 import {GroupPrefetch, parsedInputIdentity, parsePrewarm} from './group-prefetch.mjs';
 import {GroupLookahead, validateLookahead, waitUntil, BufferedPcm} from './group-lookahead.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
@@ -1877,20 +1877,38 @@ async function pollMicrophone() {
 
 async function reactionCurrent(input) {
   if (!input.reaction) return true;
-  // CET replaces the heartbeat by removing then renaming its file. Retry
-  // that brief gap, but never retry an explicit cancellation or stale lease.
+  // CET replaces the heartbeat by removing then renaming its file, and Windows can refuse a read for a moment while the file is being
+  // replaced or scanned (EPERM, EBUSY, EACCES). Retry those briefly, but never retry an explicit cancellation or stale lease.
   for (let attempt = 0; attempt < 3; attempt++) {
     let lease;
     try { lease = JSON.parse(await readFile(resolve(runtime, 'reaction-lease.json'), 'utf8')); }
     catch (error) {
-      if (error.code !== 'ENOENT' && !(error instanceof SyntaxError)) return false;
-      if (attempt === 2) return null; // Unreadable, rather than a cancelled request.
+      if (!LEASE_SHARING.has(error.code) && !(error instanceof SyntaxError)) return false;
+      if (attempt === 2) {
+        // Unreadable, rather than a cancelled request. A request whose lease was good a moment ago keeps going for a short grace: one
+        // refused read must not cut a remark the game is playing (an add-on lease is rewritten every second while it plays).
+        const seen = reactionLeaseSeen.get(input.requestId);
+        return seen?.goodAt !== undefined && Date.now() - seen.goodAt <= LEASE_UNREADABLE_GRACE_MS ? true : null;
+      }
       await new Promise(done => setTimeout(done, 15));
       continue;
     }
-    return reactionLeaseValid(input, lease);
+    const problem = reactionLeaseProblem(input, lease);
+    noteReactionLease(input.requestId, problem ? {problem} : {goodAt: Date.now(), problem: undefined});
+    return problem === null;
   }
 }
+// The last good verdict and the last refusal of each reaction request (a few kept), for reactionCurrent's grace and for the log.
+const reactionLeaseSeen = new Map();
+const LEASE_SHARING = new Set(['ENOENT', 'EPERM', 'EBUSY', 'EACCES']);
+const LEASE_UNREADABLE_GRACE_MS = 1000;
+function noteReactionLease(requestId, update) {
+  const entry = {...reactionLeaseSeen.get(requestId), ...update};
+  reactionLeaseSeen.delete(requestId); reactionLeaseSeen.set(requestId, entry);
+  while (reactionLeaseSeen.size > 8) reactionLeaseSeen.delete(reactionLeaseSeen.keys().next().value);
+}
+// Why a reaction request stopped being current, when its lease said so (the add-on log line of a remark nobody heard).
+const reactionLeaseRefusal = requestId => reactionLeaseSeen.get(requestId)?.problem ?? null;
 
 async function tick() {
   if (polling || stopped || voiceRouteReservation || relationshipRouteReservation) return;
@@ -2094,7 +2112,8 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
   if (await publishResult(input, profile, result, current, signal)) { published = true; addonHost.afterReply(input, result.text); }
   } finally {
     if (paceToken && !published && addonHost.remarkRefunded(paceToken)) {
-      console.error(`[Addons] ${profile.key}: remark ${input.addon?.event ?? '?'} did not reach the player; it does not count towards the local pace`);
+      const refusal = reactionLeaseRefusal(input.requestId);
+      console.error(`[Addons] ${profile.key}: remark ${input.addon?.event ?? '?'} did not reach the player${refusal ? ` (lease: ${refusal})` : ''}; it does not count towards the local pace`);
     }
   }
 }
