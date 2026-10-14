@@ -14,22 +14,22 @@ const judyArgs = (text = USER_LINES.a) => ({persona: prompt.persona, memory: MEM
 // ---- Other providers are untouched -----------------------------------------------------------------------------------------
 
 test('the prompt Mistral and the local AI build is byte for byte what it was before the Groq shaping existed (hashes taken from the commit before)', () => {
-  // Computed with `buildMessages` as of 1e207eec (no `compact` anywhere): Judy's seven fixture lines, a reaction, layout v1 and the Mature layer.
+  // Computed with `buildMessages` as of 1e207eec (no `compact` anywhere), re-taken on 2026-10-14 for the first-person profiles (old code and new code agree on them): Judy's seven fixture lines, a reaction, layout v1 and the Mature layer.
   const expected = {
-    a: 'dfcfeab1fec464b5316f6efb316946a027c039fd2e6ec4bcf4d33638d42ce2d0',
-    b: 'a912695e138ff5fabe8e639bfe3825be8889156a30ab8b81288a9292e4768991',
-    c: 'bc1098dd6c8044754fd2f9d726e33f2c1d8b14436fe77663c7717d5ba3e7b76f',
-    d: 'c1801a86fec1f712f12a70f4098a54a40c86819f9dca1043596368165b452a09',
-    e: '03a2bc9ef545f2ef8c79a658db7eeb05d655e531f5140a9107811f130f8cfa55',
-    f: '28f1c5aa27e01a607399dcb41800e12aa5d99f52f1e78f5098e8a9be60693e24',
-    g: '56a4ceeed5e1b9b8b0c1f08afa882a35815926c830b1612a0c739f9eb874773b',
+    a: 'ae8a6fffb6f922d93bb416e8d627ef343186919882492f16c72fc2fc9228f46c',
+    b: 'aba701550f54008968cc126037b70f6332bb8d21ac4e9cb69c15a74f9e2a261c',
+    c: 'cda16fc022b756d6cba05aad69294496d504cbef00474934bc8436a4897d0269',
+    d: 'f8a1b96429d38f1987716ed3fb2e665be76967ccf9082aa2d74a45e418ca468c',
+    e: '594e5e21aca63fd87a9f6b0269c949089af68732cb75f8a6b80bce5754c6b09c',
+    f: 'f4be131b139ddb1ae70f6357eff6801bc559f635bc3daf19da1d6d49621ba45c',
+    g: '07ed46ea92c027070c47600d6a00df85380d5c71ae77089dfc8a0e7bc13638de',
   };
   for (const [key, hash] of Object.entries(expected)) assert.equal(sha(messagesFor(prompt, key)), hash, `line ${key}`);
-  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), '0274b2509da908de11ef1dedcd18619945318e1909b5563dc6cbe5137408a1db');
+  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), '96e252514435def1161f836c3ea45d800c4889d3236c2a2dd664247dcfe97fd9');
   assert.equal(sha(buildMessages({persona: prompt.persona, memory: MEMORY, history: HISTORY, context: 'ctx', text: 'hi', limits: LIMITS})),
-    '8b2cb8a311679107cb24f0bfd5d7720d921f0bf68bde35fc8518c24f7b43f25c');
-  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '16d4857675c9704e66af56f87aaa6fd40d1be73f1906ea73bbe84eff6df01ea6');
-  assert.equal(sha(systemHead({persona: prompt.persona})), 'ef55ba10f2f959c81b1bfd4a665108e60787c0ffb0f2a92835a84263fd4e99c6');
+    '71afe8b30cf3be13bf64bdd54f4a34283b875d3679159a9affe2944f5f9bbaa1');
+  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), 'b1f4804f3f5a659273f0ff46ceb79bd2eb9362d65c81527dd4c32ce79a7e92c9');
+  assert.equal(sha(systemHead({persona: prompt.persona})), 'dc55ee3f93c420f63746cbbed90314261e4d78c936f5e034614424f98cbd39e0');
 });
 
 test('shaping never changes its input: the persona, the history and the limits of the caller stay as they were', () => {
@@ -53,7 +53,7 @@ test('compactBackstory: Scope lines go, the topic material is cut to its first p
   for (const section of ['ESTABLISHED BACKGROUND', 'ESTABLISHED RELATIONSHIPS', 'PUBLIC INTRINSIC TOPIC MATERIAL', 'KNOWLEDGE AND CURRENT SAVE', 'KNOWLEDGE LIMITS', 'Your appearance:'])
     assert(compact.includes(section), section);
   // The first paragraph of the topic material (its disclaimer and the first item) is always kept; the last items of the full text are not.
-  assert(compact.includes('Judy is an exceptionally gifted braindance editor'));
+  assert(compact.includes("I'm an exceptionally gifted braindance editor"));
   assert(!compact.includes('sneaked into the empty church'));
   const topic = /PUBLIC INTRINSIC TOPIC MATERIAL[\s\S]*?(?=\nKNOWLEDGE AND CURRENT SAVE)/.exec(compact)[0];
   assert(topic.length <= GROQ_COMPACT.topicChars + 100, `topic ${topic.length}`);
