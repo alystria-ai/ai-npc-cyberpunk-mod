@@ -250,7 +250,7 @@ const reviewed = {
     'Message sent. Waiting for reply.', 'Waiting for your previous message to finish.',
     'Conversations are disabled in Companion Manager.', 'Conversation is unavailable for this contact.',
     'Opening chat. Waiting for the conversation service.',
-    'You’ve reached today’s free conversation limit. Convai (better quality responses) is back tomorrow. To keep talking now, add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider. A fully local option is coming.',
+    'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows thousands of turns a day. Local AI has no limit: it runs on your PC.',
     'Mistral did not accept your key. Check it in Settings > Conversation provider.',
     'Mistral’s free limit is reached for now. Try again in a moment.',
     'The Mistral model is unavailable right now. Try again in a minute.',

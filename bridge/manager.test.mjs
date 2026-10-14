@@ -5020,6 +5020,15 @@ test('Development says when the player key runs without memory or cannot hold th
     assert(row('own-key-using').value == 'Convai free tier: 63 of 100 left today')
     state({saved = false, active = 'shared', daily = {limit = 100, left = 0, blocked = true}}, 'blocked')
     assert(row('own-key-using').value == 'Convai free tier: daily limit reached')
+    -- The sidebar text of that row says what to do: the limit (from the server), the reset, Mistral's rounded estimate, Local AI without a limit.
+    local help = row('own-key-using').description
+    assert(help:find('used today’s 100 turns', 1, true) and help:find('back tomorrow', 1, true) and help:find('about 100,000 turns a month, roughly 3,000 a day', 1, true)
+      and help:find('Local AI: no limit', 1, true) and help:find('until no conversation is running', 1, true), help)
+    assert(not help:lower():find('recommend', 1, true) and not help:lower():find('embedded', 1, true) and not help:lower():find('paid', 1, true), help)
+    state({saved = false, active = 'shared', daily = {limit = 150, left = 0, blocked = true}}, 'blocked150')
+    assert(row('own-key-using').description:find('today’s 150 turns', 1, true), 'the number is the one the bridge reports')
+    state({saved = false, active = 'shared', daily = {limit = 100, left = 63, blocked = false}}, 'daily-again')
+    assert(not row('own-key-using').description:find('back tomorrow', 1, true), 'the extra text appears only while the limit is reached')
     state({saved = true, tail = 'wxyz', active = 'player', daily = {limit = 100, left = 0, blocked = true}}, 'own')
     assert(row('own-key-using').value == 'Your own key', 'an own key is never shown as limited')
     state({saved = false, active = 'shared', daily = {limit = 'x', left = -4}}, 'garbled')
@@ -5043,12 +5052,15 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     id, text = notice({errorCode = 'key-rejected'}); assert(id == 'quota-exhausted' and text:find('did not accept', 1, true))
     id, text = notice({errorCode = 'key-memory-needed'}); assert(id == 'quota-exhausted' and text:find('memory', 1, true))
     id, text = notice({errorCode = 'daily-limit', error = 'x'})
-    assert(id == 'daily-limit' and text:find('Convai (better quality responses)', 1, true) and text:find('free Mistral key', 1, true)
-      and text:find('Conversation provider', 1, true) and text:find('Settings > Conversation provider', 1, true) and text:find('fully local option is coming', 1, true), text)
+    -- The notice names the free tier, when it resets, and the two ways on: Mistral (a rounded estimate) and Local AI (no limit).
+    assert(id == 'daily-limit' and text:find('Convai free tier limit', 1, true) and text:find('resets tomorrow', 1, true)
+      and text:find('Mistral (free, with your own free key) allows thousands of turns a day', 1, true)
+      and text:find('Local AI has no limit', 1, true) and text:find('Settings > Conversation provider', 1, true), text)
+    assert(not text:lower():find('recommend', 1, true) and #text <= 270, 'short enough for the notice line: ' .. #text)
     assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shared', 1, true) and not text:lower():find('project', 1, true))
     -- No own-key offer, no paid tier, no "includes voice", no "text only", no credentials wording.
     assert(not text:find('Convai API key', 1, true) and not text:find('convai.com', 1, true) and not text:find('phone verification', 1, true), text)
-    for _, word in ipairs({'paid', 'plan', 'tier', 'subscription', 'voice', 'text only', 'token', 'secret', 'credential', 'antivirus', 'Defender'}) do
+    for _, word in ipairs({'paid', 'plan', 'subscription', 'voice', 'text only', 'token', 'secret', 'credential', 'antivirus', 'Defender'}) do
       assert(not text:lower():find(word:lower(), 1, true), word .. ' in: ' .. text)
     end
     id, text = notice({errorCode = 'key-memory', error = 'x'}); assert(id == 'key-memory' and text:find('will not remember', 1, true))
@@ -6434,5 +6446,34 @@ test('with nothing loading the loading status is read about once a second and co
     mcm.resetSession()
     voice.state = 'ready'; shown = {}
     step(10); assert(#shown == 0, 'an old session announced its outcome: ' .. tostring(shown[1]))
+  `);
+});
+
+test('the developer notice trigger shows the daily-limit notice only with Developer mode on, only for a notice request, and never per frame', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  const textStart = init.indexOf('local function dailyLimitText'), textEnd = init.indexOf('local function keyNoticeText');
+  const start = init.indexOf('speech.devNotice = function'), end = init.indexOf('local function groupAudience');
+  assert(textStart > 0 && textEnd > textStart && start > 0 && end > start, 'the developer notice code moved');
+  // The poll in onUpdate hands "notice:" requests to speech.devNotice and everything else to the diagnostic capture, once per new request.
+  assert(init.includes("if nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end"));
+  const devNoticeBody = init.slice(start, end);
+  assert(!/onUpdate|registerForEvent/.test(devNoticeBody), 'no event hook of its own: it adds no per-frame work');
+  run(`
+    local ui = {t = function(text) return text end}
+    local sent, logged, developer, player = {}, {}, false, {}
+    local manager = {developerMode = function() return developer end}
+    local convaiNotices = {send = function(who, id, text) sent[#sent + 1] = {id = id, text = text}; return true end}
+    local Game = {GetPlayer = function() return player end}
+    local function log(message) logged[#logged + 1] = message end
+    local speech = {}
+    ${init.slice(textStart, textEnd)}
+    ${devNoticeBody}
+    assert(speech.devNotice('notice:daily-limit:123') == false and #sent == 0, 'inert while Developer mode is off')
+    developer = true
+    assert(select(1, speech.devNotice('notice:daily-limit:123')) == true and #sent == 1)
+    assert(sent[1].id == 'daily-limit' and sent[1].text == dailyLimitText(), 'the same text a failed reply shows')
+    assert(speech.devNotice('notice:unknown:1') == false and speech.devNotice('daily-limit') == false and speech.devNotice(nil) == false and #sent == 1)
+    player = nil
+    assert(speech.devNotice('notice:daily-limit:2') == false and #sent == 1, 'no player yet: nothing is shown')
   `);
 });

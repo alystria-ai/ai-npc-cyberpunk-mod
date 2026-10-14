@@ -1387,14 +1387,14 @@ local function ownKeyRows(snapshot)
     elseif own.saved and own.tail then status = ui.t('Added (ends in {tail})', {tail = own.tail})
     elseif own.saved then status = ui.t('Added')
     else status = ui.t('Not added') end
-    local using
+    local using, dailyBlocked
     if own.limit == 'used-up' and own.limitOwn then using = ui.t('Your key: plan limit reached')
     elseif own.limit == 'used-up' then using = ui.t('Convai free tier: limit used up')
     elseif own.limit == 'rejected' then using = ui.t('Your key: not accepted')
     elseif own.limit == 'memory-needed' then using = ui.t('Your key: no room for memory')
     elseif own.active == 'player' and own.memoryOff then using = ui.t('Your own key, without memory')
     elseif own.active == 'player' then using = ui.t('Your own key')
-    elseif own.daily and own.daily.blocked then using = ui.t('Convai free tier: daily limit reached')
+    elseif own.daily and own.daily.blocked then using = ui.t('Convai free tier: daily limit reached'); dailyBlocked = true
     elseif own.daily then using = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit})
     else using = ui.t('Convai free tier') end
     -- Mistral: the key status, and which provider answers right now. A player's own Convai key or a Mistral key is
@@ -1513,6 +1513,11 @@ local function ownKeyRows(snapshot)
         if #problems > 0 then modelHelp = modelHelp .. '\n\n' .. ui.t('Not usable: {models}. See the Local AI notes, "Add your own model".', {models = table.concat(problems, '; ')}) end
         modelRow = setting('localModel', 'Local AI model', 'select', selected, 1, modelHelp, labels, {elements = true, description = true})
     end
+    -- The daily limit of Convai free tier is reached and Convai is still the provider: the row says what to do about it.
+    local usingHelp = ui.t('Who answers your conversations right now.\n\nA change of provider waits until no conversation is running.')
+    if dailyBlocked and mistral.effective ~= 'mistral' and mistral.effective ~= 'local' then
+        usingHelp = usingHelp .. '\n\n' .. ui.t('Convai free tier: you have used today’s {limit} turns. They come back tomorrow.\n\nTo keep talking now, choose another Conversation provider, then Apply.\n\nMistral (free, with your own free key): Mistral sets its free limits and can change them. Estimated at about 100,000 turns a month, roughly 3,000 a day.\n\nLocal AI: no limit. It runs on your PC and needs the Local AI pack.', {limit = own.daily.limit})
+    end
     local rows = {}
     -- The section's order: who answers and how, the Mature and Local AI rows, then one group of key rows per provider.
     for _, group in ipairs({
@@ -1521,8 +1526,7 @@ local function ownKeyRows(snapshot)
                 snapshot.settings.conversationProvider == 'local' and 3
                     or snapshot.settings.conversationProvider == 'mistral' and 2 or 1, 1, providerHelp,
                 {'Convai free tier', 'Mistral (free plan)', 'Local (needs Local AI pack)'}, {elements = true, description = true}),
-            readonly('own-key-using', 'Conversations use', using,
-                'Who answers your conversations right now.\n\nA change of provider waits until no conversation is running.', {value = true}),
+            readonly('own-key-using', 'Conversations use', using, usingHelp, {value = true, description = true}),
             matureRow,
             modelRow,
             readonly('local-ai-status', 'Local AI', localAiStatus,
