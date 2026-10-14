@@ -21,6 +21,7 @@ import {createHash, randomBytes} from 'node:crypto';
 import {readFile as readFileDefault} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {inspectReference} from './addons.mjs';
+import {PcmEdges} from './pcm-edges.mjs';
 import {readPcmWav} from './speech-audio.mjs';
 import {TurnClock, withClock} from './turn-clock.mjs';
 
@@ -150,9 +151,9 @@ export function wavToPackets(bytes, {profile, owner = randomBytes(16).toString('
  */
 export class VLine {
   constructor({input, key, text, plan, volume, play, stream, render, local = true, clock = new TurnClock(), signal, log = () => {},
-    after, token = 'v-' + randomBytes(8).toString('hex'), onSettled = () => {}, onAudible = () => {}}) {
+    after, edges, token = 'v-' + randomBytes(8).toString('hex'), onSettled = () => {}, onAudible = () => {}}) {
     Object.assign(this, {input, key, text, plan, volume, playHost: play, streamVoice: stream, renderVoice: render, local, clock, log,
-      after, token, onSettled, onAudible});
+      after, edges, token, onSettled, onAudible});
     this.state = 'synth';
     this.reason = null;
     this.controller = new AbortController();
@@ -261,10 +262,13 @@ export class VLine {
     return async (emit, {signal}) => {
       this.clock.mark('ttsSent');
       let first = true;
+      // Air at both ends: a short lead-in and fade, a faded end and a silent tail (bridge/pcm-edges.mjs).
+      const edges = new PcmEdges(emit, this.edges);
       const response = await this.streamVoice(this.key, this.text, {signal, onPcm: packet => {
         if (first) { first = false; this.clock.mark('firstPcm'); }
-        return emit(packet);
+        return edges.push(packet);
       }});
+      await edges.finish();
       this.clock.mark('synthDone');
       return response ?? {};
     };
@@ -277,7 +281,9 @@ export class VLine {
       const generated = await this.renderVoice(this.key, this.text, {signal, ...(language ? {language} : {})});
       this.clock.mark('firstPcm');
       const {packets} = wavToPackets(Buffer.from(generated.audio, 'base64'), {profile: this.key});
-      for (const packet of packets) await emit(packet);
+      const edges = new PcmEdges(emit, this.edges);
+      for (const packet of packets) await edges.push(packet);
+      await edges.finish();
       this.clock.mark('synthDone');
       return {};
     };

@@ -526,3 +526,30 @@ assert(face.timeline.frames[20][2]==.25,'the edited row was not read')
 speech.stop('cancelled')
 `);
 });
+
+test('a reply heard to its end whose state then goes stale is not re-shown as a written caption; a half-heard one still is',()=>run(`
+-- Heard to the end (the last state said complete, text complete, position at the end), then the state file stops updating.
+assert(begin());snapshot({complete=true,textComplete=true,position=2,bufferedDuration=2,text='Hello V, all of it.'});tick()
+assert(captions.timed and speech.requestId)
+local clears=captions.clears
+for _=1,6 do tick(.5) end
+assert(not speech.requestId,'the stale state ended the utterance')
+assert(captions.line==nil and captions.timed==nil,'the finished reply leaves no caption behind')
+assert(captions.clears>clears)
+-- Half heard: the written reply is still shown so nothing is lost.
+captions.line=nil
+assert(begin());snapshot({complete=true,textComplete=true,position=.8,bufferedDuration=2,text='Hello V, half of it.'});tick()
+for _=1,6 do tick(.5) end
+assert(not speech.requestId and captions.line=='Hello V, half of it.','a half-heard reply keeps its written fallback')
+`));
+
+test('abandoning the speech hands the page it was showing to the subtitle timer instead of leaving it forever',()=>run(`
+local lingered
+function captions.linger(seconds)lingered=seconds;captions.timed=nil;return true end
+assert(begin());snapshot({position=.5,bufferedDuration=2});tick()
+assert(captions.timed and speech.requestId)
+speech.abandon()
+assert(lingered and lingered>0 and captions.timed==nil,'the page is held briefly, then removed by the subtitle timer')
+-- Nothing playing: abandon touches no caption.
+lingered=nil;speech.abandon();assert(lingered==nil)
+`));

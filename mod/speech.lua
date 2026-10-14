@@ -126,7 +126,7 @@ function M.stop(reason)
     M.streamReceipt = receipt()
     M.stream, M.context, M.nativeCompleted = nil, nil, nil
     M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
-    M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState = nil, nil, nil
+    M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState, M.continuousHeardAll = nil, nil, nil, nil
     M.player, M.actor, M.requestId, M.slot, M.duration = nil, nil, nil, nil, nil
     M.state, M.position, M.paused = reason or 'idle', nil, false
     M.voiceOnly, M.holocall = false, false
@@ -143,7 +143,11 @@ end
 
 local function fallback(reason, text)
     local name, actor, entity = M.speaker, M.actor, M.context and M.context.entity
+    local heard = M.continuousHeardAll == true
     M.stop(reason)
+    -- A reply that was already heard to its end (its last state said so) has nothing left to show: re-showing the whole written text
+    -- after the voice is done would leave the subtitle on screen for its reading time.
+    if heard then return end
     captions.show(name, text, actor, entity)
 end
 
@@ -278,13 +282,16 @@ end
 
 function M.abandon()
     -- Unload callback: release Lua references without calling native emitters.
+    -- The page of an utterance that was being heard must not wait for the driver that is going away: hold it briefly (pure Lua state,
+    -- no native call) and let the subtitle timer remove it.
+    if M.requestId and type(captions.linger) == 'function' and captions.timed then captions.linger(CAPTION_HOLD) end
     if continuous then continuous.stop() end
     face.abandon()
     M.streamReceipt = receipt()
     M.stream, M.context, M.target, M.nativeCompleted = nil, nil, nil, nil
     M.utterance = nil
     M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
-    M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState = nil, nil, nil
+    M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState, M.continuousHeardAll = nil, nil, nil, nil
     M.player, M.actor, M.playerID, M.requestId = nil, nil, nil, nil
     M.voiceOnly, M.holocall = false, false
     M.slot, M.duration, M.position, M.paused = nil, nil, 0, false
@@ -416,6 +423,8 @@ local function updateContinuous(delta, player, paused)
         end
         M.continuousFaceTarget = math.max(M.continuousFaceTarget or 0, state.position)
         M.continuousFaceState = state.state
+        M.continuousHeardAll = state.complete == true and state.textComplete == true and state.bufferedDuration > 0
+            and state.position >= state.bufferedDuration - .3
         if state.position > 0 then syncUtterance(state.position) end
         if state.ended then
             -- EOF alone cannot confirm delivery: the renderer must have drained

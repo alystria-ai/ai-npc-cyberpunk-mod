@@ -8,6 +8,7 @@ import {runInNewContext} from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {V_VOICE_KEYS, V_MAX_CHARS, VVoice, VLine, loadVVoiceReferences, extraVoices, vGenderOf, vLineText, wavToPackets} from './v-voice.mjs';
 import {TurnClock, withClock} from './turn-clock.mjs';
+import {PcmEdges, fadeGain} from './pcm-edges.mjs';
 import {LocalPcmClient} from './local-pcm-client.mjs';
 import {LocalPcmHost, ownedLocalPcmPacket} from './local-pcm-host.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
@@ -385,7 +386,10 @@ test('an OmniVoice line is rendered whole, converted to packets and played; anot
     render: async (key, text, options) => { rendered.push([key, text, options.language]); return {audio: wav({seconds: 2.2, rate: 24000}).toString('base64')}; }});
   await made.line.clear; await made.line.finished;
   assert.deepEqual(rendered, [['v-male', 'Hello Judy.', 'es']]);
-  assert.deepEqual(emitted.map(item => item.frames), [48000, 4800]);
+  // 2.2 s of speech (52800 frames) with a 160 ms lead-in and a 320 ms silent tail: 3840 + 52800 + 7680 frames, in order.
+  assert.equal(emitted.reduce((sum, item) => sum + item.frames, 0), 3840 + 52800 + 7680);
+  emitted.forEach((item, at) => { assert.equal(item.index, at + 1); assert.equal(item.offsetFrames, emitted.slice(0, at).reduce((sum, other) => sum + other.frames, 0)); assert.ok(item.frames <= 48000); });
+  assert.ok(emitted.at(-1).pcm.slice(-7680).every(value => value === 0), 'the last 320 ms are silence');
   assert.equal(made.line.state, 'done');
   const english = [];
   const again = line({plan: {engine: 'omni', language: 'en'}, play: host, render: async (key, text, options) => { english.push(Object.hasOwn(options, 'language')); return {audio: wav().toString('base64')}; }});
@@ -511,7 +515,7 @@ test('end to end with an OmniVoice WAV on the real local renderer host', async t
     play: (config, producer, options) => host.play(config, producer, options),
     render: async () => ({audio: wav({seconds: 1.5, rate: 22050}).toString('base64')})});
   await until(() => players[0]?.sealed, 'the renderer to be sealed');
-  assert.equal(players[0].frames, 36000, '1.5 s at 24 kHz after resampling from 22.05 kHz');
+  assert.equal(players[0].frames, 36000 + 3840 + 7680, '1.5 s at 24 kHz after resampling from 22.05 kHz, plus the 160 ms lead-in and the 320 ms tail');
   players[0].finish();
   await made.finished;
   assert.equal(made.state, 'done');
@@ -563,4 +567,77 @@ test('V\'s line is never given a local model of its own: it goes through the cho
   assert.match(block, /localVoice\.synthesize\(/);
   assert.match(block, /localVoice\.prepareProfile\(/);
   assert.doesNotMatch(block, /new (Pocket|Resident|Omni)/, 'no voice engine is constructed for V');
+});
+
+// ---- air at both ends (bridge/pcm-edges.mjs) ----------------------------------------------------------------------------------
+
+const speech = (frames, level = 0.5) => Float32Array.from({length: frames}, (_, at) => level * Math.sin(at / 9));
+const speechPacket = (pcm, index, offsetFrames) => ({version: 1, engine: 'pocket-tts', owner: 'a'.repeat(32), id: 1, profile: 'v-male', modelSha256: 'b'.repeat(64),
+  sampleRate: 24000, channels: 1, format: 'f32le', index, offsetFrames, frames: pcm.length, pcm});
+
+async function padded(sizes, options, make = speech) {
+  const out = [], source = [];
+  const edges = new PcmEdges(async item => { out.push(item); return {}; }, options);
+  let offset = 0;
+  for (const [at, size] of sizes.entries()) { const pcm = make(size); source.push(pcm); await edges.push(speechPacket(pcm, at + 1, offset)); offset += size; }
+  await edges.finish();
+  const pcm = new Float32Array(out.reduce((sum, item) => sum + item.frames, 0));
+  let at = 0; for (const item of out) { pcm.set(item.pcm, at); at += item.frames; }
+  return {out, pcm, voiced: offset, original: Float32Array.from(source.flatMap(part => [...part]))};
+}
+
+test('a line gets a 160 ms lead-in, a faded end and a 320 ms silent tail; the voiced samples in between are untouched', async () => {
+  const {out, pcm, voiced, original} = await padded([1920, 1920, 1920, 1000]);
+  assert.equal(pcm.length, 3840 + voiced + 7680);
+  assert.ok(pcm.slice(0, 3840).every(value => value === 0), 'silent lead-in');
+  assert.ok(pcm.slice(-7680).every(value => value === 0), 'silent tail');
+  // Past the fade-in and before the fade-out the samples are exactly the engine's.
+  for (let at = 400; at < voiced - 1000; at += 97) assert.equal(pcm[3840 + at], original[at]);
+  // The first sample after the lead-in starts near zero and rises; the last voiced sample is near zero.
+  assert.ok(Math.abs(pcm[3840]) < 0.01 && Math.abs(pcm[3840 + voiced - 1]) < 0.01);
+  out.forEach((item, at) => { assert.equal(item.index, at + 1); assert.equal(item.frames, item.pcm.length); });
+  assert.deepEqual(out.map(item => item.offsetFrames), out.map((_, at) => out.slice(0, at).reduce((sum, item) => sum + item.frames, 0)));
+  assert.ok(out.every(item => item.owner === out[0].owner && item.modelSha256 === out[0].modelSha256 && item.format === 'f32le'));
+});
+
+test('no packet is held back for the end of the line: the first sound leaves with the first packet, minus only the last 40 ms', async () => {
+  const out = [];
+  const edges = new PcmEdges(async item => { out.push(item); });
+  await edges.push(speechPacket(speech(1920), 1, 0));
+  assert.equal(out.length, 1, 'the first packet is emitted at once');
+  assert.equal(out[0].frames, 3840 + 1920 - 960, 'lead-in plus the packet, less the held 40 ms');
+  await edges.push(speechPacket(speech(1920), 2, 1920));
+  assert.equal(out.at(-1).frames, 1920, 'each later packet releases as many frames as it brought');
+});
+
+test('fades are smooth: no step larger than the fade slope at either edge, and a very short line stays finite and padded', async () => {
+  const {pcm, voiced} = await padded([5000], undefined, size => new Float32Array(size).fill(0.5));
+  for (let at = 3840 + 1; at < 3840 + 400; at++) assert.ok(Math.abs(pcm[at] - pcm[at - 1]) < 0.01, 'fade-in step ' + at);
+  for (let at = 3840 + voiced - 960; at < 3840 + voiced + 5; at++) assert.ok(Math.abs(pcm[at] - pcm[at - 1]) < 0.01, 'fade-out step ' + at);
+  const tiny = await padded([100]);
+  assert.equal(tiny.pcm.length, 3840 + 100 + 7680);
+  assert.ok(tiny.pcm.every(Number.isFinite));
+  assert.equal(fadeGain(0, 0), 1);
+  assert.ok(fadeGain(0, 360) < 0.01 && fadeGain(359, 360) > 0.99);
+});
+
+test('a packet larger than the renderer accepts is split; nothing is emitted when the engine gave no audio', async () => {
+  const big = await padded([90000]);
+  assert.ok(big.out.every(item => item.frames <= 48000));
+  assert.equal(big.pcm.length, 3840 + 90000 + 7680);
+  const none = await padded([]);
+  assert.equal(none.out.length, 0);
+});
+
+test('a Pocket line is padded end to end: the renderer host receives lead-in, line and tail, and V is not cleared before the tail has played', async () => {
+  const emitted = [];
+  const host = async (config, producer, options) => {
+    await producer(async item => { emitted.push(item); }, {signal: options.signal});
+    options.onFrame({receivedFrames: 1, ended: false}); options.onFrame({receivedFrames: 1, ended: true});
+  };
+  const made = line({play: host, stream: async (key, text, options) => { await options.onPcm(speechPacket(speech(4800), 1, 0)); await options.onPcm(speechPacket(speech(4800), 2, 4800)); return {}; }});
+  await made.line.clear; await made.line.finished;
+  assert.equal(emitted.reduce((sum, item) => sum + item.frames, 0), 3840 + 9600 + 7680);
+  assert.equal(made.line.state, 'done');
+  for (const item of emitted) ownedLocalPcmPacket(item, {token: 'v-x', frames: item.offsetFrames, index: item.index - 1});
 });

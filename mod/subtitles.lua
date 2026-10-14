@@ -8,6 +8,11 @@
 -- (100 IDs per second of wall time) is past every earlier load's IDs.
 local M = convaiSubtitles or {serial = math.floor(os.time() % 1000000000) * 100}
 local EMOTION_TAGS = {'joy', 'warm', 'interest', 'surprise', 'sadness', 'fear', 'anger', 'disgust', 'calm'}
+-- A timed utterance (audio-aligned pages) is advanced, held and ended by the code that plays the audio (mod/speech.lua), which calls
+-- beginTimed/reviseTimed/syncTimed several times a second while it lives. If that stops (the speech was abandoned, its state file went
+-- stale, an update error) nothing else would ever remove the page, so it is cleared after this many seconds without a call. Menus report
+-- a zero delta and a menu is asked about only when the limit is reached; slow replies keep calling syncTimed while they wait, so they are not cut.
+local TIMED_STALL = 8
 local UTF8 = '[%z\1-\127\194-\244][\128-\191]*'
 
 -- Caption fonts (mod/ui-fonts.lua). The game draws a caption in the font of its own language, which has no glyphs for a reply in
@@ -205,6 +210,7 @@ function M.abandon()
     -- Death/detach destroys the HUD. Release references without native calls.
     M.line, M.controller, M.widgetToken, M.actor, M.entity, M.playerID = nil, nil, nil, nil, nil, nil
     M.pages, M.timed, M.speaker, M.page, M.remaining, M.mode = nil, nil, nil, nil, nil, nil
+    M.timedIdle = nil
     M.paginationStyle = nil
     M.pageRanges, M.vehicleReadThrough = nil, nil
     M.placement = nil
@@ -588,6 +594,7 @@ function M.beginTimed(speaker, text, duration, actor, expected, captions)
     -- stream holds the current page. Cue pages change where the audio does;
     -- otherwise boundaries are estimated within this audio's duration.
     M.pages, M.pageRanges, M.timed = layout(text, duration, M.cues(captions), M.paginationStyle)
+    M.timedIdle = 0
     return showPage()
 end
 function M.reviseTimed(text, duration, position, captions)
@@ -609,6 +616,7 @@ function M.reviseTimed(text, duration, position, captions)
     M.page = math.max(math.min(oldPage, #pages), target)
     timed.position, timed.pageFloor = math.min(position, duration), M.page
     M.pages, M.pageRanges, M.timed = pages, ranges, timed
+    M.timedIdle = 0
     if not M.line or pages[M.page] ~= oldText or M.page ~= oldPage then return showPage() end
     -- A PCM duration estimate is not a new caption. Its local timing changes,
     -- but its text/widget/anchor remain untouched while the voice continues.
@@ -618,6 +626,7 @@ end
 function M.syncTimed(position)
     if not M.timed or not finite(position) or position < 0 then return end
     if M.actor and not validActor(M.actor, M.entity) then M.clear(); return end
+    M.timedIdle = 0
     M.timed.position = math.min(position, M.timed.duration)
     local target = targetPage(M.timed, position, #M.pages)
     if M.timed.pageFloor then target = math.max(target, M.timed.pageFloor); M.timed.pageFloor = target end
@@ -668,7 +677,19 @@ function M.update(delta)
             M.remaining = remaining
         end
     end
-    if M.timed then return end
+    if M.timed then
+        -- The driver's page changes and end are event-driven (syncTimed, linger, clear); this is only the safety net for a driver that
+        -- went away. One addition per frame, no native read.
+        -- One frame counts at most a quarter second, so a single long hitch (a load, an autosave) is never mistaken for a dead driver.
+        M.timedIdle = (M.timedIdle or 0) + (finite(delta) and math.min(.25, math.max(0, delta)) or 0)
+        if M.timedIdle >= TIMED_STALL then
+            -- A menu pauses the driver too (it syncs nothing while paused): ask the game only now, never per frame.
+            local defs = Game.GetAllBlackboardDefs()
+            if Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu) then M.timedIdle = 0
+            else M.stalledClears = (M.stalledClears or 0) + 1; M.clear() end
+        end
+        return
+    end
     local defs = Game.GetAllBlackboardDefs()
     if Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu) then return end
     M.remaining = M.remaining - (finite(delta) and math.max(0, delta) or 0)
