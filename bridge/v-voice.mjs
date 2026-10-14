@@ -9,8 +9,9 @@
 //
 // Latency comes first. The typed text goes to the companion's text model at once, exactly as without this feature; V's line is
 // synthesized beside it and never in front of it:
-//   - V plays on a renderer page of its own (RealtimeHost.playVoiceLine); there is no game utterance behind it, so no face, lip sync
-//     or subtitle, and nothing in the game's single pending-request machinery changes.
+//   - V plays on a renderer page of its own (RealtimeHost.playVoiceLine); there is no game utterance behind it, so no face or lip sync
+//     (V's subtitle is the game side's: mod/subtitles.lua showTyped shows the typed line as V's cinematic subtitle when it is sent)
+//     and nothing in the game's single pending-request machinery changes.
 //   - The companion's reply is ready when its first audio exists. If V's line is audible by then, the companion's audio waits (it
 //     is buffered, silent and unpublished: ConvaiContinuousSpeech `hold`) until V has finished, so the two never overlap. If V's
 //     line is not yet audible, it is dropped; the reply never waits for synthesis.
@@ -314,13 +315,14 @@ export class VVoice {
   }
 
   /**
-   * The setting (runtime/settings.json "vVoice"). On unless the player turned it off: a file that never stored it counts as on.
+   * The setting (runtime/settings.json "vVoice"). On unless the player turned it off: a file that never stored it, or a saved false the player never chose, counts as on.
    * With a voice that cannot clone (the Convai cloud voice) it stays on and simply does nothing (the plan below is not a
    * cloning engine). Returns whether it changed.
    */
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
-    const next = settings.vVoice !== false;
+    // A saved false counts only when the player set it (vVoiceChosen, mod/manager.lua): the first version saved false as its default.
+    const next = settings.vVoice !== false || settings.vVoiceChosen !== true;
     if (next === this.enabled) return false;
     this.enabled = next;
     return true;

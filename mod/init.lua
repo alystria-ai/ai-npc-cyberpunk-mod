@@ -3256,6 +3256,9 @@ registerForEvent('onUpdate', function(delta)
                 sent = sendRequest(context)
             end
             log('Native input captured: generation=' .. context.generation .. ' bytes=' .. #message)
+            -- What V types is V's line: shown in the cinematic subtitles as V's own (docs/V_VOICE.md, "V's subtitle"), whether or not V's
+            -- voice speaks it, and replaced by the reply's caption. Once per sent line; nothing per frame. A refused or off subtitle is silent.
+            if sent ~= false then pcall(subtitles.showTyped, message) end
             -- The request could not be written (the world changed, a save is running, the request file is locked): V must know.
             if sent == false then pcall(convaiComposerWatch.lost, player, 'request not sent', context) end
         else

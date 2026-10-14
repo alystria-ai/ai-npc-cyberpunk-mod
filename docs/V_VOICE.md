@@ -4,14 +4,14 @@ October 14, 2026. A setting that makes a typed line sound like V said it. With *
 for typed lines** on, whatever you type to a companion is also spoken aloud, in a male or female V voice cloned from V's own
 lines in the game. Then the companion answers.
 
-**On by default** (new installs, and saved settings that never stored it; a player who turned it off keeps it off). Typed lines only: push-to-talk is never replayed (you already spoke it). Reactions, phone Chat, add-on
+**On by default** (new installs, and saved settings that never stored it; a player who turned it off keeps it off). The first version saved `false` as its default, so a saved `false` counts only when the player set it (an Apply that carried it stores `vVoiceChosen`, the same pattern as Expressive emotions and the holocall live picture); an unchosen `false` becomes `true` when the settings load, in `mod/manager.lua` and in the bridge's read of `runtime/settings.json`. Typed lines only: push-to-talk is never replayed (you already spoke it). Reactions, phone Chat, add-on
 speakers and the later speakers of a group round never get a V line.
 
 ## What you hear, and in which order
 
 1. You type a line and send it. The text goes to the companion's model at once, exactly as without the setting.
-2. In parallel, V's line is synthesized and played, in V's voice, at the game's dialogue volume. It has no face, lip sync or
-   subtitle: it is your own voice, not a game utterance.
+2. In parallel, V's line is synthesized and played, in V's voice, at the game's dialogue volume. It has no face or lip sync: it
+   is your own voice, not a game utterance. Its words are shown as **V's subtitle** (below).
 3. When the companion's reply is ready, its audio waits (silently, buffered) only while V's line is still playing, then starts.
    The two never overlap.
 4. **If V's line is not audible yet when the reply is ready, V's line is dropped.** The reply is never delayed to wait for V.
@@ -20,6 +20,25 @@ speakers and the later speakers of a group round never get a V line.
 
 Any failure (a clone that cannot be made, a voice error, no audio in time) skips V's line, writes one `[VVoice]` log line and
 never touches the conversation.
+
+## V's subtitle (2026-10-15)
+
+What V says is also on screen, in the same cinematic subtitles the companions' replies use. When you send a typed line, `mod/init.lua`
+calls `subtitles.showTyped` (`mod/subtitles.lua`) once, right after the request is written:
+
+- **Speaker `V`**, the same name V's live words use when you speak by microphone, as one dialogue-HUD line owned by the player. It is the
+  cinematic style whatever style replies use ("Cinematic subtitles" or overhead), since V has no head to hang an overhead caption on.
+- **Timing.** It appears when the line is sent, which is within a fraction of a second of V's audio starting (V's first audio is about 0.25
+  s after the request). It stays for the ordinary reading time (about 2.8 words a second, which is also about the pace V speaks, at least 3.5
+  seconds), the pages of a long line advance the same way, and a short line goes by itself. The bridge sends no signal for it and nothing
+  here waits for V's audio: the companion's audio already waits for V (below), so the reply's own caption normally arrives after V has finished.
+- **Cleared before the reply.** The reply's caption (`show` or `beginTimed`) clears the line first, so the companion's subtitle never
+  starts beneath it. V's subtitle owns no utterance, so it never holds a reply back.
+- **Typed and spoken.** It shows for every typed line, whether or not V's voice is on or can speak (the Convai cloud voice, or the
+  setting off): the subtitle is what V says, the voice is optional. The voice of a microphone turn was never replayed, but its recognised
+  words already showed as V's live line (`subtitles.showLive`, `mod/init.lua` `microphone.onHeard`), so mic turns are covered the same way.
+- **Settings.** With the game's subtitles off (`player:ConvaiManagerSubtitles()`, the same switch replies use) nothing is shown. No phone
+  Chat text, reaction or add-on remark gets it (those never pass the composer's submission); no per-frame work beyond a caption's own.
 
 ## Which voice speaks
 
@@ -230,7 +249,8 @@ actor says "assumed" where the subtitle says "assume" (the audio is clear).
 | Wiring | `bridge/convai-bridge.mjs` (`vVoice`, `runInput`, `continuousSpeech` hold, `publishResult`, settings poll, composer warm-up) |
 | Stage clock listener | `bridge/turn-clock.mjs` (`on`) |
 | Dialogue volume | `mod/turn-context.lua`, `bridge/turn-context.mjs` (`dialogueVolume`) |
-| Setting | `mod/manager.lua` (`vVoice`), `mod/mcm.lua` |
+| Setting | `mod/manager.lua` (`vVoice`, `vVoiceChosen`), `mod/mcm.lua` |
+| V's subtitle | `mod/subtitles.lua` (`showTyped`), `mod/init.lua` (the submission in `onUpdate`), `bridge/subtitles.test.mjs` |
 | Tests | `bridge/v-voice.test.mjs`, `bridge/v-helper-voice.test.mjs`, `bridge/manager.test.mjs`, `bridge/turn-context.test.mjs`, `bridge/addons.test.mjs` |
 
 ## Live check

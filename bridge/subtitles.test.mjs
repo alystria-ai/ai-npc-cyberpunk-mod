@@ -1315,6 +1315,55 @@ test('V\'s live words are never a holocall or voice-only line, even right after 
  assert(m.status().fallback==nil and m.holocall==false and m.voiceOnly==false)
 `));
 
+test('V\'s typed line is one cinematic dialogue line for V, from its first page, owned by no reply, replaced by the next caption and gone on its own', () => run(setup + `
+ scnDialogLineData.new=function()return setmetatable({},{__newindex=function(t,k,v)assert(not(k=='speaker' and v==nil),'a nil speaker must never be assigned to the native line');rawset(t,k,v)end})end
+ assert(m.showTyped('Hey Judy, got a minute?'))
+ assert(m.status().mode=='dialogue' and m.status().fallback==nil,'the cinematic dialogue HUD, whatever style replies use')
+ local line=shown()[1]
+ assert(line.speakerName=='V' and line.text=='Hey Judy, got a minute?' and line.speaker==player and line.type==scnDialogLineType.OwnerlessRegular)
+ assert(not m.ownsUtterance(),'V\\'s typed line is not a reply')
+ -- A reply's caption clears it first and owns the utterance.
+ local count=#shown()
+ m.show('Judy','The reply takes over.',judy,'201ULL')
+ assert(#shown()==count+1 and shown()[count+1].speakerName=='Judy' and m.ownsUtterance() and not m.live)
+ -- Typed text is cleaned like any caption, and nothing speakable shows nothing.
+ m.clear()
+ assert(m.showTyped('  what   was that?  ') and shown()[#shown()].text=='what was that?')
+ assert(not m.showTyped('   ') and not m.showTyped(nil) and not m.showTyped(42))
+ enabled=false;assert(not m.showTyped('subtitles are off'),'with subtitles off nothing is shown');enabled=true
+ -- A short line stays for the ordinary reading time (3.5 seconds at least) and then goes by itself.
+ m.clear();assert(m.showTyped('hey'))
+ m.update(3);assert(m.line~=nil,'still up inside the reading time')
+ for _=1,3 do m.update(1) end
+ assert(not m.live and m.line==nil and not m.ownsUtterance(),'gone on its own')
+ -- A long line starts on its first page and the pages advance by reading time, never starting at the newest page.
+ m.clear()
+ local long={};for i=1,60 do long[#long+1]='word'..i end
+ assert(m.showTyped(table.concat(long,' ')))
+ local pages=#m.pages;assert(pages>1,'long text is paginated')
+ assert(m.page==1 and shown()[#shown()].text:find('^word1 '),'first page first')
+ for _=1,60 do m.update(1) end
+ assert(not m.live and m.line==nil)
+`));
+
+test('V\'s typed line is never a holocall or voice-only line, even right after a reply that was', () => run(setup + `
+ scnDialogLineType.Holocall='holocall'
+ m.voiceOnly,m.holocall,m.voiceProfile=true,true,'addon-skippy-gun'
+ assert(m.showTyped('where are we?'))
+ local line=shown()[1]
+ assert(line.type==scnDialogLineType.OwnerlessRegular and line.speakerName=='V','plain dialogue line, no add-on tag')
+ assert(m.status().fallback==nil and m.holocall==false and m.voiceOnly==false)
+`));
+
+test('typing is the only thing that calls it: init.lua shows the sent line once, after the request was written, and never per frame', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.equal((init.match(/subtitles\.showTyped/g) ?? []).length, 1);
+  assert.match(init, /if sent ~= false then pcall\(subtitles\.showTyped, message\) end/);
+  const subtitlesSource = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
+  const body = subtitlesSource.slice(subtitlesSource.indexOf('function M.showTyped'), subtitlesSource.indexOf('function M.beginTimed'));
+  assert.doesNotMatch(body, /registerForEvent|onUpdate|Observe\(|os\.time|io\.open/);
+});
+
 const FONTS = `
 local calls={}
 local function walks()local r={};for _,c in ipairs(calls)do if type(c)=='table' then r[#r+1]=c end end;return r end

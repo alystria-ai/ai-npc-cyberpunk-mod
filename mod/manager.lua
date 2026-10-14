@@ -757,7 +757,10 @@ local function loadSettings()
     -- V's voice for typed lines (on by default, key vVoice): the bridge speaks what the player types in V's cloned voice. Only an
     -- explicit false (the player turned it off) is kept off. Beside the Convai cloud voice, which cannot clone, the setting simply
     -- stays on and does nothing; nothing here is switched, refused or announced for that pairing.
-    if type(settings.vVoice) ~= 'boolean' then settings.vVoice, settingsNeedSave = true, true end
+    -- The first version saved false as its default, so a saved false counts only once the player has set it themselves (an Apply that
+    -- carried it, vVoiceChosen); an unchosen false becomes the default, true (the pattern of holocallLiveImage above).
+    if type(settings.vVoiceChosen) ~= 'boolean' then settings.vVoiceChosen = false end
+    if type(settings.vVoice) ~= 'boolean' or (not settings.vVoice and not settings.vVoiceChosen) then settings.vVoice, settingsNeedSave = true, true end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -1707,6 +1710,7 @@ function M.applySettings(player, values)
     for key, value in pairs(values) do
         if key == 'expressiveEmotions' then nextSettings.expressiveEmotionsChosen = true end
         if key == 'holocallLiveImage' then nextSettings.holocallLiveImageChosen = true end
+        if key == 'vVoice' then nextSettings.vVoiceChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'holocallLiveImage' or key == 'youtubeTv'
