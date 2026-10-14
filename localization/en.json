@@ -45,7 +45,7 @@
     ]
   },
   "counts": {
-    "strings": 801,
+    "strings": 802,
     "dynamicTemplates": 57,
     "contexts": 36
   },
@@ -220,7 +220,7 @@
     "Copy": "Copy",
     "Copy report path": "Copy report path",
     "Copy the report path to the clipboard so you can paste it into a message.": "Copy the report path to the clipboard so you can paste it into a message.",
-    "Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and a monthly allowance.": "Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and a monthly allowance.",
+    "Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day. It sets its own monthly cap, estimated at about 150,000 turns.": "Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day. It sets its own monthly cap, estimated at about 150,000 turns.",
     "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.": "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.",
     "Copy your key from Inworld first. It is read from the clipboard once, checked with Inworld and saved on this computer.\n\nYou can also save it in player-inworld-key.txt in the conversation service folder. It is used only for the Inworld voice.": "Copy your key from Inworld first. It is read from the clipboard once, checked with Inworld and saved on this computer.\n\nYou can also save it in player-inworld-key.txt in the conversation service folder. It is used only for the Inworld voice.",
     "Could not save. Try again.": "Could not save. Try again.",
@@ -675,7 +675,8 @@
     "This manager action is unavailable. Reopen the manager and try again.": "This manager action is unavailable. Reopen the manager and try again.",
     "This setting must be on or off.": "This setting must be on or off.",
     "This video cannot be played here. Choose another one.": "This video cannot be played here. Choose another one.",
-    "Today’s Convai free tier limit is reached. Settings: Mistral is free, Local AI has no limit.": "Today’s Convai free tier limit is reached. Settings: Mistral is free, Local AI has no limit.",
+    "Today’s Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).": "Today’s Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
+    "Today’s {limit} Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).": "Today’s {limit} Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
     "Too many example lines. Keep {max} or fewer.": "Too many example lines. Keep {max} or fewer.",
     "Too many memories. Keep {max} or fewer.": "Too many memories. Keep {max} or fewer.",
     "Too many rules. Keep {max} or fewer.": "Too many rules. Keep {max} or fewer.",
@@ -757,7 +758,7 @@
     "You are driving. The companion trip was cancelled.": "You are driving. The companion trip was cancelled.",
     "You did not board the car, so the trip was cancelled.": "You did not board the car, so the trip was cancelled.",
     "You have changes that are not saved. Leave without saving?": "You have changes that are not saved. Leave without saving?",
-    "You have used today’s {limit} turns. They come back tomorrow. To keep talking now, choose Mistral (an estimated 3,000 turns a day) or Local AI (no limit), then Apply.": "You have used today’s {limit} turns. They come back tomorrow. To keep talking now, choose Mistral (an estimated 3,000 turns a day) or Local AI (no limit), then Apply.",
+    "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited), then Apply.": "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited), then Apply.",
     "You moved away from the car. The trip was cancelled.": "You moved away from the car. The trip was cancelled.",
     "You: {text}": "You: {text}",
     "YouTube": "YouTube",
@@ -789,7 +790,7 @@
     "Your party is empty": "Your party is empty",
     "Your party is empty. Add a character or model to create a companion copy.": "Your party is empty. Add a character or model to create a companion copy.",
     "Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.": "Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.",
-    "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows thousands of turns a day. Local AI has no limit: it runs on your PC.": "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows thousands of turns a day. Local AI has no limit: it runs on your PC.",
+    "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.": "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.",
     "all characters you have talked to": "all characters you have talked to",
     "an embedding model, not a chat model": "an embedding model, not a chat model",
     "another model": "another model",
@@ -1133,7 +1134,7 @@
     ],
     "mcm.keyRow": [
       "Convai API key",
-      "Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and a monthly allowance.",
+      "Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day. It sets its own monthly cap, estimated at about 150,000 turns.",
       "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.",
       "Copy your key from Inworld first. It is read from the clipboard once, checked with Inworld and saved on this computer.\n\nYou can also save it in player-inworld-key.txt in the conversation service folder. It is used only for the Inworld voice.",
       "Deletes the saved key. Conversations go back to Convai free tier.",
@@ -1413,7 +1414,7 @@
       "Waiting for the conversation service.",
       "Waiting for your previous message to finish.",
       "Write a message...  /  Enter to send  /  Esc to stop typing",
-      "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows thousands of turns a day. Local AI has no limit: it runs on your PC."
+      "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC."
     ],
     "phone.feedback": [
       "{name} is not in your group.",
@@ -1737,7 +1738,8 @@
       "This contact cannot take a holocall.",
       "This is a short report: the conversation service was not available to build the full one.",
       "This video cannot be played here. Choose another one.",
-      "Today’s Convai free tier limit is reached. Settings: Mistral is free, Local AI has no limit.",
+      "Today’s Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
+      "Today’s {limit} Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
       "Too many example lines. Keep {max} or fewer.",
       "Too many memories. Keep {max} or fewer.",
       "Too many rules. Keep {max} or fewer.",
@@ -1765,7 +1767,7 @@
       "Works with the Pocket, OmniVoice, Voxtral or Inworld voices.",
       "You are already on a call.",
       "You have changes that are not saved. Leave without saving?",
-      "You have used today’s {limit} turns. They come back tomorrow. To keep talking now, choose Mistral (an estimated 3,000 turns a day) or Local AI (no limit), then Apply.",
+      "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited), then Apply.",
       "You: {text}",
       "YouTube",
       "YouTube could not open on the TV. Try again.",
@@ -3074,7 +3076,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2229"
+        "mod/init.lua:2237"
       ]
     },
     "Convai free tier": {
@@ -3316,7 +3318,7 @@
         "mod/mcm.lua:1879"
       ]
     },
-    "Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and a monthly allowance.": {
+    "Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day. It sets its own monthly cap, estimated at about 150,000 turns.": {
       "contexts": [
         "mcm.keyRow"
       ],
@@ -3444,7 +3446,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2594"
+        "mod/init.lua:2602"
       ]
     },
     "Cyberpunk Convai: companion manager": {
@@ -3452,7 +3454,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2592"
+        "mod/init.lua:2600"
       ]
     },
     "Cyberpunk Convai: group text chat": {
@@ -3460,7 +3462,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2589"
+        "mod/init.lua:2597"
       ]
     },
     "Cyberpunk Convai: group voice chat": {
@@ -3468,7 +3470,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2591"
+        "mod/init.lua:2599"
       ]
     },
     "Cyberpunk Convai: talk by text": {
@@ -3476,7 +3478,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2588"
+        "mod/init.lua:2596"
       ]
     },
     "Cyberpunk Convai: talk by voice": {
@@ -3484,7 +3486,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2590"
+        "mod/init.lua:2598"
       ]
     },
     "DETAILS  {page} / {pages}": {
@@ -4382,7 +4384,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2260"
+        "mod/init.lua:2268"
       ]
     },
     "Local AI could not answer that. Try again in a moment.": {
@@ -4390,7 +4392,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2256"
+        "mod/init.lua:2264"
       ]
     },
     "Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.": {
@@ -4398,7 +4400,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2252"
+        "mod/init.lua:2260"
       ]
     },
     "Local AI could not start. Check Local AI in Settings > Conversation provider.": {
@@ -4596,7 +4598,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2244",
+        "mod/init.lua:2252",
         "mod/phone-chat-style.lua:53",
         "mod/phone-chat.lua:10"
       ]
@@ -4606,7 +4608,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2269"
+        "mod/init.lua:2277"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -4614,7 +4616,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2271"
+        "mod/init.lua:2279"
       ]
     },
     "Mistral: free limit reached for now": {
@@ -4647,7 +4649,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2246",
+        "mod/init.lua:2254",
         "mod/phone-chat-style.lua:54",
         "mod/phone-chat.lua:11"
       ]
@@ -4879,7 +4881,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3115"
+        "mod/init.lua:3123"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -6401,7 +6403,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2266"
+        "mod/init.lua:2274"
       ]
     },
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": {
@@ -6442,7 +6444,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2248",
+        "mod/init.lua:2256",
         "mod/phone-chat-style.lua:55",
         "mod/phone-chat.lua:12"
       ]
@@ -6612,7 +6614,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2225"
+        "mod/init.lua:2233"
       ]
     },
     "The conversation service could not start. Restart the game, or see Help in Settings.": {
@@ -7107,12 +7109,20 @@
         "mod/youtube-tv.lua:36"
       ]
     },
-    "Today’s Convai free tier limit is reached. Settings: Mistral is free, Local AI has no limit.": {
+    "Today’s Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2220"
+        "mod/init.lua:2228"
+      ]
+    },
+    "Today’s {limit} Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:2226"
       ]
     },
     "Too many example lines. Keep {max} or fewer.": {
@@ -7795,7 +7805,7 @@
         "mod/character-editor.lua:32"
       ]
     },
-    "You have used today’s {limit} turns. They come back tomorrow. To keep talking now, choose Mistral (an estimated 3,000 turns a day) or Local AI (no limit), then Apply.": {
+    "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited), then Apply.": {
       "contexts": [
         "ui.localized"
       ],
@@ -7897,7 +7907,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2227"
+        "mod/init.lua:2235"
       ]
     },
     "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.": {
@@ -7905,7 +7915,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2231"
+        "mod/init.lua:2239"
       ]
     },
     "Your Convai plan has no room for conversation memory, so companions will not remember past talks.": {
@@ -7913,7 +7923,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2239"
+        "mod/init.lua:2247"
       ]
     },
     "Your car has no free passenger seat for V.": {
@@ -8057,7 +8067,7 @@
         "mod/mcm.lua:1427"
       ]
     },
-    "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows thousands of turns a day. Local AI has no limit: it runs on your PC.": {
+    "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.": {
       "contexts": [
         "phone.chat"
       ],
@@ -8088,7 +8098,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2265"
+        "mod/init.lua:2273"
       ]
     },
     "could not be read": {
@@ -8374,7 +8384,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2491"
+        "mod/init.lua:2499"
       ]
     },
     "{name} joined your group.": {
@@ -9109,7 +9119,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:2491"
+        "mod/init.lua:2499"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

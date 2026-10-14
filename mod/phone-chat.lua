@@ -4,7 +4,7 @@
 local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}}
 local LOCAL_HISTORY = 'phone-local-player:v1'
 -- The status line when the bridge says the shared plan's daily allowance is used up (same wording as the game notice).
-local DAILY_LIMIT_STATUS = 'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows thousands of turns a day. Local AI has no limit: it runs on your PC.'
+local DAILY_LIMIT_STATUS = 'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'
 -- The same for the Mistral failures the bridge names; other failures keep the provider's text.
 local MISTRAL_STATUS = {
     ['mistral-key'] = 'Mistral did not accept your key. Check it in Settings > Conversation provider.',
