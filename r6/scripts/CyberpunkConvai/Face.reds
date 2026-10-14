@@ -1,5 +1,7 @@
 // A separate graph is chosen before native component initialization:
 //  - for dynamic entities tagged by our companion manager (the ungated ConvaiFace graph, as always);
+//  - while an add-on watches a face_rig rig (WatchScreenFace: the Delamain cab's seat-back screen face), for the NPC that
+//    spawns with that rig and a crowd graph, with the same gated copy (PrepareScreenFace);
 //  - for ordinary world NPCs (crowd, vendors, gangs and the other archetype characters), once per NPC, at spawn
 //    (OnWorldInitialize), with a gated copy of the same graph: the speech layer sits behind one Switch that stays
 //    closed until the mod voices that NPC, so a face that is not speaking evaluates one switch more than vanilla.
@@ -21,6 +23,11 @@ public class ConvaiFaceService extends ScriptableService {
   // 1 gated (shipping), 2 ungated, 0 off: the last two exist only to measure what the gate saves (docs/FACIAL_ANIMATION.md,
   // "Ordinary NPCs", set from mod/facial-playback.lua by runtime/crowd-face-mode.txt). It applies to NPCs that spawn afterwards.
   private let m_crowdMode: Int32;
+  // Screen faces (docs/FACIAL_ANIMATION.md, "A face on a screen"): the face_rig rig paths an add-on watches now (the Delamain cab
+  // while a cab exists: the NPC the seat-back screens film carries Delamain's own head rig) and, per rig, the last NPC prepared
+  // for it. Empty unless an add-on asked (mod/addons.lua handle:watchFace), so without add-ons nothing here ever runs.
+  private let m_screenRigs: array<String>;
+  private let m_screenIDs: array<EntityID>;
 
   private cb func OnLoad() {
     this.m_names = ConvaiFaceAssets.Names();
@@ -121,7 +128,8 @@ public class ConvaiFaceService extends ScriptableService {
   // its vanilla graph and only remembers why. A prepared NPC is written only when the Lua speech owner voices it
   // (ConvaiFaceRequest and the talk-time guards, ConvaiFaceReady).
   private cb func OnWorldInitialize(event: ref<EntityLifecycleEvent>) {
-    if this.m_crowdMode == 0 { return; };
+    let screens = ArraySize(this.m_screenRigs) > 0;
+    if this.m_crowdMode == 0 && !screens { return; };
     let npc = event.GetEntity() as NPCPuppet;
     if !IsDefined(npc) { return; };
     let dynamic = GameInstance.GetDynamicEntitySystem();
@@ -130,6 +138,8 @@ public class ConvaiFaceService extends ScriptableService {
     if !IsDefined(face) { return; };
     let index = this.CrowdIndex(ResRef.ToString(ResourceRef.GetPath(face.graph)));
     if index < 0 { return; };
+    if screens && this.PrepareScreenFace(npc, face, index) { return; };
+    if this.m_crowdMode == 0 { return; };
     let record = npc.GetRecordID();
     let recordValid = TDBID.IsValid(record);
     let reason = ConvaiFaceService.CrowdSkipReason(recordValid, recordValid && ArrayContains(this.m_named, record), "", "");
@@ -158,6 +168,60 @@ public class ConvaiFaceService extends ScriptableService {
       i += 1;
     };
     return -1;
+  }
+
+  // A watched screen face: an NPC whose face_rig runs a crowd graph on a rig an add-on watches gets the gated copy of that graph,
+  // whatever its record says (the rig itself names the one character, and the watch lasts only while the add-on's moment does:
+  // the Delamain cab's screen NPC is a story character's head filmed for the seat-back screens, so the named and quest filters
+  // would keep it vanilla). The gate keeps it exactly vanilla until the add-on's own line plays. True when the rig was watched.
+  private func PrepareScreenFace(npc: ref<NPCPuppet>, face: ref<AnimatedComponent>, index: Int32) -> Bool {
+    let slot = this.ScreenSlot(ResRef.ToString(ResourceRef.GetPath(face.rig)));
+    if slot < 0 { return false; };
+    let rig = this.CheckRig(face);
+    if !Equals(rig, "") { npc.ConvaiFacePrepared(false, "screen:" + rig); return true; };
+    let graph = this.m_crowdGated[index];
+    if !ResourceRef.IsLoaded(graph) || ResourceRef.IsFailed(graph) {
+      npc.ConvaiFacePrepared(false, "screen:speech-graph-not-loaded");
+      return true;
+    };
+    face.graph = graph;
+    this.m_screenIDs[slot] = npc.GetEntityID();
+    npc.ConvaiFacePrepared(true, "prepared:" + this.m_crowdNames[index], ResRef.ToString(ResourceRef.GetPath(graph)));
+    return true;
+  }
+
+  private func ScreenSlot(rig: String) -> Int32 {
+    let i = 0;
+    while i < ArraySize(this.m_screenRigs) {
+      if Equals(this.m_screenRigs[i], rig) { return i; };
+      i += 1;
+    };
+    return -1;
+  }
+
+  // Starts or ends the watch of one face_rig rig path (an add-on, through mod/addons.lua). It applies to NPCs that spawn while
+  // it lasts; ending it forgets the rig and its NPC (an NPC already prepared keeps its inert, gated graph until it despawns).
+  // At most 4 rigs. Returns the number of rigs watched now.
+  public func WatchScreenFace(rig: String, watch: Bool) -> Int32 {
+    let slot = this.ScreenSlot(rig);
+    if watch && slot < 0 && ArraySize(this.m_screenRigs) < 4 && StrEndsWith(rig, ".rig") {
+      ArrayPush(this.m_screenRigs, rig);
+      let none: EntityID;
+      ArrayPush(this.m_screenIDs, none);
+    };
+    if !watch && slot >= 0 {
+      ArrayErase(this.m_screenRigs, slot);
+      ArrayErase(this.m_screenIDs, slot);
+    };
+    return ArraySize(this.m_screenRigs);
+  }
+
+  // The last NPC prepared for a watched rig (an undefined ID when none spawned since the watch began, or the rig is not watched).
+  public func ScreenFace(rig: String) -> EntityID {
+    let slot = this.ScreenSlot(rig);
+    let none: EntityID;
+    if slot < 0 { return none; };
+    return this.m_screenIDs[slot];
   }
 
   // The 59 lipsync tracks must exist on the rig; checked once per rig path, not per NPC.

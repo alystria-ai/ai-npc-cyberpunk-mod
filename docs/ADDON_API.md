@@ -182,18 +182,20 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 
 | Method | What it does |
 |---|---|
-| `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers, playThrough, voiceFrom, showsReply}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
-| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
+| `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers, playThrough, voiceFrom, showsReply, approach, face}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
+| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, menus})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
 | `handle:setMode(speakerId, modeId)` | Switches the speaker's personality (a mode in the manifest). It is sent with every turn and in `runtime/addon-state.json`. |
 | `handle:remember(speakerId, text)` | Keeps a memory the speaker can call back to later, for example "V spared the Tyger Claw who begged." At most 300 characters; a repeat is ignored. The bridge keeps the last 12 per speaker across game sessions. |
 | `handle:setContext(speakerId, key, text, tier)` | Adds a prompt block to every turn of this speaker until it is cleared with `text = nil`. At most 8 blocks of 1,500 characters. `tier` is `'world'` (default; changes rarely), `'volatile'` (changes every turn) or `'notes'`. |
 | `handle:setCompanionContext(key, text)` | Adds a block to every **companion's** prompt (for example "You are riding in a Delamain cab with V."). At most 4 blocks of 600 characters. Clear it with `nil`. |
 | `handle:setState(table)` | Plain data the add-on's bridge module receives as `state` (at most 4,000 bytes as JSON). |
 | `handle:on(event, fn)` / events | See Events. |
-| `handle:settings{title, description, items}` / `handle:setting(id)` | A section on the main settings page. See Settings. |
+| `handle:settings{title, description, remarkCap, fixed, items}` / `handle:setting(id)` | A section on the main settings page. See Settings. |
 | `handle:setEnabled(bool)` | A disabled add-on is never offered for talk and makes no remarks. Its waiting remarks are dropped. |
 | `handle:prepare(speakerId)` | Warms the speaker's text route (opens the Mistral connection, or loads its prompt into the local AI). Call it when the speaker becomes available, for example when a fight starts or V gets into the cab. At most once every 20 s. |
 | `handle:cancel(speakerId)` | Drops the speaker's waiting remarks and stops its remark that is playing. |
+| `handle:releaseHold(speakerId)` | The speaker's held remark (`hold`) plays now, without waiting for the next tick. `true` when one was held. See "Held remarks and menus". |
+| `handle:watchFace(speakerId, on)` | Starts or ends the watch of the speaker's screen face (`face`). See "A face on a screen". |
 | `handle:notify(text)` | One on-screen notice (at most 200 characters; a repeat within 10 s is dropped). |
 | `handle:state()` | `{worldReady, combat, vehicle, scene, speaking, conversation, remark}`, read from the last tick. It costs nothing. |
 | `handle:live()` | True from the first tick of a session until the main mod releases its game references (a save load, the player detaching, death, fast travel, shutdown). Start every game hook (`Observe*` callback) with `if not handle:live() then return end`: while it is false the engine is destroying or building the world, and a native call from a callback on a half-built or half-destroyed object can crash the game. A session start is delivered by `sessionStarted`, so read the state there, not in a hook that fired earlier. Costs nothing. |
@@ -220,7 +222,6 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
   (subtitles, availability, the talk key), but his voice comes from the gun in V's hand. It is asked once when a reply starts and
   only changes the pan and distance of the browser voice (continuous Pocket playback). An object that is detached, unreadable or more
   than 3 m from the camera is dropped for the rest of that reply and the anchor is used. The native Omni phrases still play on the anchor.
-
 - `showsReply(text, event) -> boolean` (optional): the add-on shows its remarks itself, so they need no subtitle. Asked **once per
   remark**, when the reply text arrives and before anything is shown. `true`: the main mod plays that remark's voice **without a
   subtitle** (speech.lua skips every caption call that follows the voice). `false`, nothing or an error: the subtitle is shown as always,
@@ -229,6 +230,60 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
   lost. The add-on answers `true` only when it can show the text at that moment (Skippy: the gun's hologram is reachable); it shows
   the text itself on `remarkStarted` (the `text` field). A main mod older than this option ignores it and shows the subtitle: the
   add-on keeps working. Without add-ons nothing is asked (the main mod's code path is the same as before).
+- `approach(player) -> GameObject` (optional): the anchor before V reaches it (the Delamain cab V walks up to, while the `'vehicle'`
+  anchor is still empty). Only a remark with `hold` uses it, and only while the anchor itself is not there; talk, group rounds and
+  every other remark never do. When V then gets in, the anchor is the same cab, so the line plays on.
+- `face = {rig = '<face_rig rig path>'}` (optional): the speaker's face on a screen. See "A face on a screen".
+
+### Held remarks and menus
+
+Two remark options for a line that must start the instant something happens, and keep going through a menu:
+
+```lua
+handle:remark('delamain', {event = 'boarded', priority = 4, ttl = 20, maxWords = 22,
+    hold = function() return not S.seated end,           -- written and voiced now, silent until V sits
+    holdMax = 25,                                         -- given up unheard after this (1 to 30 s, default 20)
+    menus = function() return S.state <= READY end})      -- the destination map does not pause it
+```
+
+- **`hold() -> bool`**: the remark is written and its voice made as soon as it can be (it is anchored on `approach` while the anchor is
+  empty), and speech.lua keeps that voice paused from its first frame while `hold()` is true. `hold()` runs on the 0.1 s tick;
+  `handle:releaseHold(speakerId)` releases it at once (call it from the game event itself, such as the mount finishing). When the
+  hold ends the line plays from its first word; `remarkStarted` is sent then, not when the voice was made. A remark whose `hold()` is
+  already false when it is sent is an ordinary remark. A held remark counts as playing for scenes (a speaker with `playThrough` keeps
+  it through ordinary scenes) but not as heard: one given up after `holdMax` (`remarkFinished` with `hold-expired`, `spoken = false`)
+  costs no remark budget and its voice is stopped. While it is held it is the one remark in flight and its request owns the speech
+  (no other automatic line starts); a conversation V starts still cuts it. With voice playback off its subtitle shows when the
+  reply arrives.
+- **`menus = true | function() -> bool`**: while the remark plays (or is held), an open game menu does not pause it: speech.lua
+  compares the request id once per frame, as it already reads the menu flag. The function form runs on the 0.1 s tick. Without it a
+  menu pauses the line and it resumes afterwards, as always.
+- Log: `[Addons] Remark: ... (held until its moment)`, `Remark ready, held: <speaker> event=<e> after 3.1s`,
+  `Remark hold released: <speaker> event=<e> after 4.2s`.
+
+### A face on a screen
+
+A speaker whose face is shown on a screen in the game (the Delamain cab's seat-back screens film an NPC with Delamain's own head) can
+have that face move with its voice:
+
+```lua
+handle:speaker({id = 'delamain', ..., face = {rig = 'base\\characters\\main_npc\\delamain\\...\\h0_001_ma_c__delamain_skeleton.rig'}})
+handle:watchFace('delamain', true)    -- while the moment lasts (a cab exists); false when it ends
+```
+
+- While a rig is watched, `r6/scripts/CyberpunkConvai/Face.reds` gives the NPC that spawns with that `face_rig` rig and one of the
+  four crowd face graphs the main mod's **gated** copy of that graph (the same one ordinary NPCs get), whatever its record says: the
+  rig names the one character, and the watch lasts only as long as the add-on's moment, so the character is not touched anywhere else.
+  The gate keeps the face exactly vanilla (the game's own lip sync included) until the speaker's own line plays.
+- Watch it before the NPC spawns: the graph is chosen at spawn or never. `watchFace` is one call into the face service per change; a
+  save load or death releases the watch on the next gameplay tick unless the add-on watches again (in `sessionStarted`). Disabling the
+  add-on ends it. At most 4 rigs.
+- For each of the speaker's replies (once, when it starts) the main mod looks up the NPC the watch prepared (`ScreenFace`), and when it
+  is attached and still runs the gated graph (`ConvaiFaceReady`), the reply's mouth timeline drives that NPC's face, in time with the
+  heard voice like every face in the mod. The scene and autonomy guards of the expression layer do not apply to that one NPC (it is a
+  scene actor by nature). Nothing else of the speaker changes: the voice is still heard from the anchor.
+- Nothing runs per frame beyond the face write every speaking face already has; without a watch the spawn callback costs one array
+  size read more.
 
 ### Replacing the game's own lines
 
@@ -287,7 +342,7 @@ handle:replaceGameLines({name = 'Skippy',
 | `turnStarted` / `turnEnded` | `{requestId, profileKey, reaction, addon}` for any conversation turn |
 | `speechStarted` / `speechEnded` | `{requestId, name}` / `{requestId}` |
 | `remarkStarted` | `{speaker, event, text}`: the remark is heard (or its caption is shown). `text` is the reply's text (plain, at most 400 letters; nil from a main mod older than this field, so an add-on that shows it elsewhere keeps working without it) |
-| `remarkFinished` | `{speaker, event, reason, spoken, requeued}` (`requeued` is true when a remark with `patience` was taken back at a scene and waits to be written again). A remark that is playing finishes even when its speaker stops being `available` (V steps out of the cab while it ends); only a scene, a conversation V starts, `handle:cancel` or the add-on being switched off cut it. One still waiting to be heard is given up after 2.5 s without its speaker. `reason` is one of `finished`, `not-delivered`, `stale`, `manual-priority`, `scene`, `scene-tier`, `game-line`, `speaker-unavailable`, `interrupted`, `cancelled`, `add-on-disabled` or `anchor-changed` |
+| `remarkFinished` | `{speaker, event, reason, spoken, requeued}` (`requeued` is true when a remark with `patience` was taken back at a scene and waits to be written again). A remark that is playing finishes even when its speaker stops being `available` (V steps out of the cab while it ends); only a scene, a conversation V starts, `handle:cancel` or the add-on being switched off cut it. One still waiting to be heard is given up after 2.5 s without its speaker. `reason` is one of `finished`, `not-delivered`, `stale`, `manual-priority`, `scene`, `scene-tier`, `game-line`, `speaker-unavailable`, `interrupted`, `cancelled`, `add-on-disabled`, `anchor-changed` or `hold-expired` |
 | `remarkDropped` | `{speaker, event, reason}`: the remark was never sent. `reason` is one of `replaced`, `expired`, `irrelevant`, `scene`, `game-line`, `speaker-unavailable`, `speaker-cooldown`, `addon-gap`, `episode-budget` or `request-write-failed` |
 | `settingChanged` | `{id, value}`, sent on the tick after Apply (never inside the menu) |
 
@@ -621,7 +676,7 @@ handle:settings({title = 'Skippy', description = 'The talking smart pistol.', it
 - `fixed = {replaceGameLines = true|false, markLines = true|false}` (next to `title`) takes the two on/off built-ins away from the
   player and sets them for good: the toggle is not shown, cannot be staged, and the declared value applies even when an older install
   saved the other one. Only the keys given are fixed; the other toggle stays. An add-on without `fixed` is unchanged. Skippy fixes both
-  (always replaced, never marked) to keep his settings page to one choice and the two timing settings.
+  (always replaced, never marked) to keep his settings page to one choice and the two timing settings; the Delamain cab fixes both too.
 - `id` uses letters, digits and `_`. `remarkGap`, `remarkCap`, `remarkGapChosen`, `remarkRate`, `replaceGameLines` and `markLines` are
   reserved for the built-in settings (the last two: **Replace the game's own lines**, only with a rule, and **Mark our lines in the
   subtitles**, for every add-on with a speaker). At most 24 items; `kind` is `bool` or
@@ -714,7 +769,8 @@ check the list of calls.
 |---|---|
 | `mod/game-dialogue.lua` | `noteLine`: once per game subtitle line (both hooks, deduplicated; the mod's own replies, crowd chatter and TV are skipped), calls `convaiAddons.gameLine(seconds, kind)` through `options.onGameLine`, only while an add-on is live (`onGameLineWanted`). Independent of the "game dialogue context" setting. Lines an add-on declared with `replaceGameLines` (`matchWanted` / `matchLine` / `onMuted`): `installMute` overrides `SubtitlesGameController.ShouldDisplayLine` on the first rule, `ruleLine` stops the voice events and reports the muted line. |
 | `mod/init.lua` | Loads `addons.lua` with `pcall`; returns `{addons = …}` for `GetMod`. Talk target: add-on voices after aimed characters (a vehicle-anchored voice outranks characters outside V's car: `companionOrPassenger`), for the voice keys too when `manager.speechRecognitionReady()` (asked on the key press, with `microphone.decorate` adding the blocks). `sendRequest`/`decorate`; `reactionCanDeliver` → `canDeliver`; `groupAudience` → `participantLive`; the reply error branch → `replyError`; `warmConversation` skips add-on voices; tick, reset and shutdown. |
-| `mod/speech.lua`, `continuous-speech.lua`, `subtitles.lua` | `voiceOnly`: no face calls, no `IsDeadNoStatPool` check, subtitles owned by the player. `speech.lua` also sets `voiceProfile`; `subtitles.configure({mark})` adds the ` (AI)` marker to an add-on speaker's name (`captionName`). |
+| `mod/speech.lua`, `continuous-speech.lua`, `subtitles.lua` | `voiceOnly`: no face calls, no `IsDeadNoStatPool` check, subtitles owned by the player. `speech.lua` also sets `voiceProfile`; `subtitles.configure({mark})` adds the ` (AI)` marker to an add-on speaker's name (`captionName`). `speech.faceSource` → `faceActor` once per add-on reply: with a screen face the per-utterance face calls go to that NPC under its own entity (a re-addressed copy of the timeline), and `facial-playback.lua` `screenEntity` exempts it from the scene guards. `speech.holdRequest` / `speech.menuRequest` (seams `hold` / `menus`, set on the add-on tick): the pause decision (`pausedFor`) keeps a held request paused and lets a menus request play in menus. |
+| `r6/scripts/CyberpunkConvai/Face.reds` | `WatchScreenFace(rig, watch)` / `ScreenFace(rig)` (seam `faceService`): while a rig is watched, `OnWorldInitialize` prepares the NPC with that rig (`PrepareScreenFace`, gated graph) before the crowd mode check. An empty watch list changes nothing. |
 | `mod/group-chat.lua` | `voiceOnly` rows; add-on voices are left out of the other speakers' audience. |
 | `mod/microphone.lua`, `mod/manager.lua` | `microphone.decorate` (add-on blocks at start and finish); `manager.speechRecognitionReady()` (the bridge's `stt` flag). |
 | `mod/mcm.lua`, `mod/notices.lua` | Add-on settings sections; the `addon-notice` notice. |
@@ -744,7 +800,16 @@ check the list of calls.
     plays around the time the map opens (the log shows `the cab's own welcome is switched off for this boarding`). (b) At the end
     the log shows `muted game line: Delamain ... audio=stop-sent(vo_3d,vo_2d,vo_3d_important)`: if the cab's goodbye voice still
     plays, note the line id and the time; the next candidates are other Wwise events and the dialogue volume. (c) With the option
-    off the game's own welcome and goodbye play as before and nothing is written.
+    off the game's own welcome and goodbye play as before and nothing is written. (Since 2026-10-14 the cab fixes the option on:
+    (c) no longer applies.)
+11. Held remarks, menus and a screen face (the Delamain cab, 2026-10-14). (a) Call a cab and walk to it: the log shows
+    `Remark ... event=boarded ... (held until its moment)` and `Remark ready, held` before you sit, and nothing is heard. (b) The
+    welcome starts the moment V sits (`Remark hold released ... after <s>`), with no wait for the text or voice. (c) It keeps playing
+    while the destination map is open (Pocket/Voxtral browser voice, and the native Omni voice: note whether a paused game also
+    pauses Audioware). (d) Delamain's face on the seat-back screens moves with our line (log `Screen face watched: addon-delamain-cab-delamain`;
+    if the mouth stays still, the screen NPC may not spawn as an `NPCPuppet`, may spawn before the cab state reaches 1, or its rig may
+    fail the 59-track check: the face status reads `screen:unsupported-rig`). (e) The game's own vanilla lip sync of other Delamain
+    lines still works, and the FPS during the ride is unchanged.
 
 ## The two add-ons
 

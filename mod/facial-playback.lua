@@ -528,7 +528,11 @@ local function luaActorSafe(actor)
     end
     return true
 end
-local function safeExpressionActor(actor)
+-- M.screenEntity: the add-on screen face speaking now (speech.lua sets it for the reply whose voice it follows; nil otherwise). That NPC
+-- is a scene actor by nature (the Delamain cab's seat-back screen NPC is filmed inside the cab's scene), so the scene and autonomy
+-- guards would keep its mouth shut; Face.reds prepared it for exactly this speaker, so for it alone they do not apply.
+local function safeExpressionActor(actor,entity)
+    if entity~=nil and entity==M.screenEntity then return true end
     if not M.expressionManaged then return true end
     if native then
         local ok,answer=pcall(native.Safe,actor)
@@ -1020,7 +1024,7 @@ local function applyFeature(actor,feature,entity,phase,provider,upper,mix,bounda
     detectExtended(feature)
     detectOwner(feature)
     local slot=expressionSlot(entity)
-    local blocked=M.expressionBlocked or M.expressionPaused or not safeExpressionActor(actor)
+    local blocked=M.expressionBlocked or M.expressionPaused or not safeExpressionActor(actor,entity)
     if blocked then slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil end
     if native and applyNative(actor,feature,entity,phase,provider,upper,mix,boundary,room,slot,blocked) then return end
     if faceTest then pcall(faceTest.pre,entity,slot,M.expressionClock) end
