@@ -3134,6 +3134,10 @@ registerForEvent('onUpdate', function(delta)
                         local keyId, keyText = keyReplyNotice(reply)
                         if keyId == 'key-memory' then convaiNotices.send(player, 'key-memory', keyText) end
                         sendProviderNotice(player, keyId, keyText)
+                        -- An add-on remark's text goes to its remarkStarted event (docs/ADDON_API.md): one table write, no native call.
+                        if pending.reaction and pending.reaction.kind == 'addon' and convaiAddons and convaiAddons.live then
+                            pcall(convaiAddons.replyText, pending, reply.text)
+                        end
                         speech.start(pending, reply)
                     end
                 end)

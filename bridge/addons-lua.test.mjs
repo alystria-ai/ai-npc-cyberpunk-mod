@@ -79,6 +79,39 @@ test('a proactive remark: queued, written as an automatic request with a lease, 
   `);
 });
 
+test('remarkStarted carries the reply text of the remark that is heard, and no other', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2})
+    local started = {}
+    handle:on('remarkStarted', function(payload) started[#started + 1] = payload end)
+    assert(handle:remark('gun', {event = 'kill', priority = 3}))
+    tick()
+    local context = submitted[1].context
+    -- A stale or foreign context is ignored; the right one keeps the text (control letters cleaned, at most 400 letters).
+    M.replyText({requestId = 'other'}, 'not this one')
+    M.replyText(context, 'Headshot.\\1 Textbook.' .. string.rep('!', 600))
+    assert(M.canDeliver(context, player) == true)
+    state.pendingId, state.speechId = nil, context.requestId
+    tick()
+    assert(#started == 1 and started[1].event == 'kill' and started[1].speaker == 'gun')
+    assert(started[1].text:sub(1, 21) == 'Headshot.  Textbook.!' and #started[1].text == 400, tostring(started[1].text))
+    state.speechId = nil
+    tick()
+    -- The next remark starts without the old text.
+    now = now + 20; tick(10)
+    assert(handle:remark('gun', {event = 'kill', priority = 3}))
+    tick()
+    local second = submitted[2].context
+    assert(M.canDeliver(second, player) == true)
+    state.pendingId, state.speechId = nil, second.requestId
+    tick()
+    assert(#started == 2 and started[2].text == nil, 'a remark whose reply text was not reported has none')
+    M.replyText(nil, 'x'); M.replyText(second, 42)
+  `);
+});
+
 test('a reply the game accepts says "playing" in the lease at once, and the deadline allows for whole-second os.time()', () => {
   // probe.log 2026-10-14: companion-kill was played and released in the same second; the bridge cut it ("Continuous speech owner
   // changed") because its lease still had no playback time when the request's deadline passed.

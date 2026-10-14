@@ -266,7 +266,7 @@ handle:replaceGameLines({name = 'Skippy',
 | `companionJoined` / `companionLeft` | `{profileKey}` |
 | `turnStarted` / `turnEnded` | `{requestId, profileKey, reaction, addon}` for any conversation turn |
 | `speechStarted` / `speechEnded` | `{requestId, name}` / `{requestId}` |
-| `remarkStarted` | `{speaker, event}`: the remark is heard (or its caption is shown) |
+| `remarkStarted` | `{speaker, event, text}`: the remark is heard (or its caption is shown). `text` is the reply's text (plain, at most 400 letters; nil from a main mod older than this field, so an add-on that shows it elsewhere keeps working without it) |
 | `remarkFinished` | `{speaker, event, reason, spoken, requeued}` (`requeued` is true when a remark with `patience` was taken back at a scene and waits to be written again). A remark that is playing finishes even when its speaker stops being `available` (V steps out of the cab while it ends); only a scene, a conversation V starts, `handle:cancel` or the add-on being switched off cut it. One still waiting to be heard is given up after 2.5 s without its speaker. `reason` is one of `finished`, `not-delivered`, `stale`, `manual-priority`, `scene`, `scene-tier`, `game-line`, `speaker-unavailable`, `interrupted`, `cancelled`, `add-on-disabled` or `anchor-changed` |
 | `remarkDropped` | `{speaker, event, reason}`: the remark was never sent. `reason` is one of `replaced`, `expired`, `irrelevant`, `scene`, `game-line`, `speaker-unavailable`, `speaker-cooldown`, `addon-gap`, `episode-budget` or `request-write-failed` |
 | `settingChanged` | `{id, value}`, sent on the tick after Apply (never inside the menu) |
