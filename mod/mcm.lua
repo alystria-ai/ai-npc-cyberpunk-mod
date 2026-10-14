@@ -1894,8 +1894,8 @@ local function schema()
                 'Gets a conversation ready when you look at, approach or have just talked to a character, so they answer without a wait. Paused in combat and scenes.\n\nLimits: two characters ready at once, a new one every 3 s, released after 40 s unused. A crowd never adds up.'),
             setting('gameDialogueContext', 'Continue from game dialogue', 'bool', snapshot.settings.gameDialogueContext, true,
                 'Right after the game’s own dialogue with a character, they know its last few lines, including your chosen replies and your phone calls with them.\n\nOnly the last few minutes count, and none of it is saved to memory.'),
-            -- Holocalls start from the phone's Contacts list (docs/HOLOCALL.md); this is their only setting.
-            setting('holocallLiveImage', 'Live holocall picture (experimental)', 'bool', snapshot.settings.holocallLiveImage == true, false,
+            -- Holocalls start from the mod's Chat tab (docs/HOLOCALL.md); this is their only setting.
+            setting('holocallLiveImage', 'Live holocall picture (experimental)', 'bool', snapshot.settings.holocallLiveImage == true, true,
                 'Shows the character live in a holocall instead of their portrait.\n\nExperimental: the picture can stay empty. If she cannot be shown, the call goes on with the portrait.'),
         })
         -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys (Inworld's key is in Voices).

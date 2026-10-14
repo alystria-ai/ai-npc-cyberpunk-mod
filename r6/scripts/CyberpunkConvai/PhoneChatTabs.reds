@@ -157,8 +157,14 @@ public func AcceptAction() -> Void {
     };
     wrappedMethod();
 }
+// On the Chat list the secondary action (the game's Messages key, R) starts a holocall with that character (Holocall.reds,
+// docs/HOLOCALL.md); the accept action (F, Enter, click) opens the text chat.
 @wrapMethod(NewHudPhoneGameController)
 public func AlternativeAcceptAction() -> Void {
+    if Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) {
+        this.ConvaiChatListHolocall(this.m_contactListLogicController.GetSelectedContactData());
+        return;
+    };
     if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.Off) {
         this.ConvaiOpenChat(this.m_contactListLogicController.GetSelectedContactData());
         return;
@@ -269,7 +275,10 @@ private func RefreshInputHints(contactData: wref<ContactData>) -> Void {
     if IsDefined(contactData) && contactData.convaiChat {
         inkTextRef.SetText(this.m_acceptButtonLabel, "Chat");
         inkWidgetRef.SetVisible(this.m_acceptButtonWidget, true);
-        inkWidgetRef.SetVisible(this.m_action2ButtonWidget, false);
+        // The secondary action calls (Holocall.reds). The hint is the game's own, so its glyph is the real key; its
+        // text is the game's own translated Call label (the one the Contacts tab shows on the accept hint).
+        inkTextRef.SetLocalizedTextScript(this.m_action2ButtonLabel, "LocKey#22196");
+        inkWidgetRef.SetVisible(this.m_action2ButtonWidget, true);
         inkWidgetRef.SetVisible(this.m_showAllButtonWidget, false);
     };
 }
@@ -382,7 +391,9 @@ public final func ConvaiShowChatLabel(visible: Bool) -> Void {
 protected cb func OnDataChanged(value: Variant) -> Bool {
     let result = wrappedMethod(value);
     if IsDefined(this.m_contactData) && this.m_contactData.convaiChat {
-        // A Chat row only opens the chat; calling a character is done from the ordinary Contacts list.
+        // A Chat row has both actions: Chat (accept) and Call (the secondary action). The row's own call glyph belongs to
+        // the Contacts tab, where Call is the accept key (F); here F opens the chat, so that glyph stays hidden and the
+        // bottom hints, the game's own input hints, name the real keys.
         inkWidgetRef.SetVisible(this.m_callInputHint, false);
         inkWidgetRef.SetVisible(this.m_chatInputHint, true);
         inkWidgetRef.SetVisible(this.m_separtor, false);

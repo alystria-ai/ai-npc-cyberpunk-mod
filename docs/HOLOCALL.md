@@ -2,18 +2,31 @@
 
 V can call a mod character from the phone. The game's call window opens at the top left with the
 character's name and portrait. V talks by push-to-talk or typed text, and the character answers in the mod
-voice with call-style subtitles. Hanging up ends the call. Built 2026-10-14 on branch `holocall`; the entry
-point moved to the ordinary Contacts list the same day (branch `holocall-contacts`, after the first live test).
-It has not yet been tested in game.
+voice with call-style subtitles. Hanging up ends the call. Built 2026-10-14 on branch `holocall`. The entry point
+moved to the game's Contacts list (branch `holocall-contacts`), and after the first live test moved again, to the
+mod's own Chat tab (branch `holocall-chat-button`): the game's own phone is never changed. The Chat-tab call button
+has not yet been tested in game.
 
 ## Player flow
 
-- **Phone > Contacts:** select a mod character and use the game's own **Call** action (the Call key, or
-  the call glyph on the row; on the Messages tab the same action on a contact with messages). There is no separate
-  Holocall button. Vanilla contacts, and Johnny, call exactly as before. The game's own checks still apply: a
-  contact that is greyed out cannot be called, and calling is refused while the game has turned it off.
-- **Phone > Chat tab and inside an AI chat:** these only open and hold the text chat. They never call: the Chat
-  list shows only the Chat action, and the Call key inside a chat does nothing.
+- **The game's own phone is untouched.** Phone > Contacts and its Call action behave exactly as in the unmodded game
+  for every contact, including the characters this mod also talks to: Judy, Panam and the others the game stages a
+  video holocall for call as they always did, through the game's quest call. (A first build replaced the game's
+  call for those contacts; the live test showed only a portrait where the game would have opened its own call, so
+  that wrap, `CallSelectedContact`, is gone.)
+- **Phone > Chat tab (the mod's own tab), two places to call:**
+  - **Inside an open conversation:** the game's own Call hint (a phone glyph with the real key, **V** on a keyboard,
+    Triangle on a pad) shows beside the other hints. Press that key, or click the hint, and the call starts. The key
+    is only live while that conversation has the focus, and not while a message is being typed (V is then an
+    ordinary letter).
+  - **On the Chat list:** the bottom hints read **Chat** (the accept key) and **Call** (the secondary action, **R** on a
+    keyboard, Square on a pad), both the game's own input hints, so their glyphs show the keys the game really
+    binds. R starts a call with the selected character.
+  - **F is not the Call key.** F is the game's confirm (`click`, with Enter and the left mouse button), so on the Chat list it opens the
+    text chat, and inside a chat it does nothing. That is what the earlier test showed ("F just opened inside
+    chat"): the Contacts tab's Call is its accept key (F), but on our tab accept opens the chat. The Call hint now
+    names the real key, and the row's own call glyph (tied to the Contacts tab's F) is hidden on a Chat row.
+  - Calling is refused (the game's own blocked-action notice) while the game has turned calls off.
 - The call starts once the phone has closed. The window rings for 1.5 to 5 s, then connects. A notice
   says "Holocall with {name}. Tap the phone button to hang up."
 - Talk with the normal push-to-talk or typed-text keys. No one has to be nearby, because the call is the
@@ -23,7 +36,7 @@ It has not yet been tested in game.
   replaces the call.
 
 Only mod characters in `characters/phone-contacts.json` with a conversation profile can take a
-holocall. Johnny Silverhand never can; his ids are excluded in `mod/holocall.lua` (`NEVER`). Game
+holocall (the Chat tab lists only them). Johnny Silverhand never can; his ids are excluded in `mod/holocall.lua` (`NEVER`). Game
 and story characters are not touched.
 
 ## What the game allows (research evidence)
@@ -75,19 +88,18 @@ and story characters are not touched.
 
 ### Native (`r6/scripts/CyberpunkConvai/Holocall.reds`)
 
-- **The hook.** `NewHudPhoneGameController.CallSelectedContact(contactData)` is wrapped. It is the one function
-  that the game's `CallContact` (the Contacts Call key, glyph and the Messages-tab secondary action) ends in,
-  and the only place that builds the game's call request. It runs after the game's own checks (the contact is
-  callable and calling is enabled, otherwise the game shows its blocked notice). The wrap does one thing: if
-  the contact id is in the registry below, it stores a holocall request and returns without calling the
-  game's function; for every other contact it calls `wrappedMethod(contactData)` unchanged. It is event-driven (a
-  button press), with no per-frame work. A second, private `CallSelectedContact` exists in the older dialer
-  controller (`phoneDialerController.script`); the HUD phone does not use it and it is not hooked.
-- **The registry.** `mod/holocall.lua` `register` pushes the contact ids from `characters/phone-contacts.json`
-  that have a conversation profile (Johnny and Silverhand records excluded) to
-  `ConvaiHolocallRegisterContact`, once per world on the phone drain (cleared on a load or reload and pushed again,
-  retried until the native script answers). With nothing registered, every call is the game's.
-- The request is one contact id, stored by `ConvaiHolocallRequest`, which closes the contact list. Lua takes it.
+- **No hook on the game's phone.** Nothing here wraps or replaces `CallSelectedContact`, `CallContact` or any
+  other part of the game's call path; the wraps in this file (`OnInitialize`, `OnUninitialize`, `OnHoloAudioCallSpawned`,
+  `OnPhoneCall`, `OnAction`) all reach `wrappedMethod` and change nothing unless a mod call is active.
+  `bridge/holocall.test.mjs` asserts that no game call function is wrapped or redefined.
+- **Two entry points, both in the Chat tab,** both event-driven (a key press or a click), no per-frame work:
+  `PhoneMessagePopupGameController.ConvaiChatHolocall` (the Call key `call` while the conversation has the focus, or
+  a click on the Call hint; `PhoneChat.reds`) and `NewHudPhoneGameController.ConvaiChatListHolocall` (the secondary
+  action on a Chat row; `PhoneChatTabs.reds`). Each checks that calling is enabled (else the game's blocked
+  notice) and ends in `ConvaiHolocallRequest(contact)`, which accepts only a contact registered for AI chat
+  (`ConvaiPhoneChatHasContact`).
+- The request is one contact id, stored by `ConvaiHolocallRequest`, which closes the contact list (the phone closes).
+  Lua takes it. Lua refuses, with a notice, a contact with no holocall profile or a Johnny/Silverhand record.
 - `ConvaiHolocallBegin(contact)` returns one of the following:
   - `ok`
   - `no-hud`
@@ -141,10 +153,17 @@ and story characters are not touched.
 - **Latency.** Dialing warms the bridge conversation (`warmConversation`) while the window rings, so
   the first turn uses the same warm path as face-to-face talk.
 
-### Live picture (setting, off by default)
+### Live picture (setting, on by default)
 
 **Companion Manager > Settings > Conversations > Live holocall picture (experimental).** (It was in
 Development until 2026-10-14; it is the only holocall setting.)
+
+**On by default since 2026-10-14.** It was off by default at first, and the first version wrote that `false` into
+`runtime/settings.json` for everyone, so merely changing the default would not have reached an existing install.
+`mod/manager.lua` therefore treats a saved `false` as a choice only when an Apply carried it
+(`holocallLiveImageChosen`, as for Expressive emotions); an unchosen `false` becomes `true` on the next load. The
+live test that prompted this saw only the portrait for exactly that reason: with the setting off the call is always
+the portrait voice call, a normal result, not a failure.
 
 **Who gets a picture, as in the game (branch `holocall-native-look`, 2026-10-14).** Only the contacts the game
 itself has a holocall setup for (`STAGED` in `mod/holocall.lua`: 59 of the mod's phone contacts, mapped by hand
@@ -221,8 +240,10 @@ The bridge turn-context diagnostic ends with `holocall=audio` or `holocall=holo`
 
 - The window in game: the ring, the portrait, the connect, and the end animation drawn by
   `ShowEndCallContact`. The redscript compiles in the isolated check (2026-10-14).
-- That the Contacts Call key and glyph reach `CallSelectedContact` for a mod contact (and only for them), that
-  a mod contact the game shows as not callable stays not callable, and that vanilla contacts still call.
+- That the Call hint inside a chat shows with the right key glyph (V) and that V and a click on it start the call
+  (and that V typed into a message does not); that the Chat list's bottom hints read Chat and Call with the real
+  keys and R starts the call; that the vanilla Contacts Call (F) for Judy, Panam and others opens the game's own
+  call again, untouched.
 - That a tap of the phone button reaches the HUD controller as PRESSED then RELEASED on keyboard and
   pad, and does not also open the phone.
 - The Holocall subtitle type showing a bottom line for the player as speaker.
@@ -234,7 +255,7 @@ The bridge turn-context diagnostic ends with `holocall=audio` or `holocall=holo`
 ## Files
 
 - `r6/scripts/CyberpunkConvai/Holocall.reds` (new)
-- `PhoneChatTabs.reds` and `PhoneChat.reds` (no call entry points: the Chat tab and chat only open the text chat)
+- `PhoneChatTabs.reds` and `PhoneChat.reds` (the Chat tab's call entry points: the Call hint in a chat, the Call action on the list)
 - `mod/holocall.lua` (new)
 - `mod/init.lua`, `speech.lua`, `continuous-speech.lua`, `subtitles.lua`, `manager.lua`, `mcm.lua`,
   `notices.lua`

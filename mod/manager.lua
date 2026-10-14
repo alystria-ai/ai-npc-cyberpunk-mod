@@ -657,8 +657,13 @@ local function loadSettings()
     if type(settings.bodyGestures) ~= 'boolean' then settings.bodyGestures, settingsNeedSave = true, true end
     -- On by default (a missing key); an explicitly saved choice is kept.
     if type(settings.autoConnectNearby) ~= 'boolean' then settings.autoConnectNearby, settingsNeedSave = true, true end
-    -- Experimental, off by default (a missing key): the live picture in a holocall (mod/holocall.lua).
-    if type(settings.holocallLiveImage) ~= 'boolean' then settings.holocallLiveImage, settingsNeedSave = false, true end
+    -- Experimental, on by default (a missing key): the live picture in a holocall (mod/holocall.lua). The first version
+    -- saved false as its default, so a saved false counts only once the player has set it (an Apply that carried it,
+    -- holocallLiveImageChosen); an unchosen false becomes the default, true.
+    if type(settings.holocallLiveImageChosen) ~= 'boolean' then settings.holocallLiveImageChosen = false end
+    if type(settings.holocallLiveImage) ~= 'boolean' or (not settings.holocallLiveImage and not settings.holocallLiveImageChosen) then
+        settings.holocallLiveImage, settingsNeedSave = true, true
+    end
     -- On by default: recent subtitled game dialogue is attached to the next manual turn (mod/game-dialogue.lua).
     if type(settings.gameDialogueContext) ~= 'boolean' then settings.gameDialogueContext, settingsNeedSave = true, true end
     -- Off by default: the decision ledger (docs/QUEST_DECISIONS.md section 4.4) records V's picked dialogue options. Not proven in game; no menu entry.
@@ -1029,7 +1034,7 @@ function M.autoConnectNearby()
     return settings.autoConnectNearby == true
 end
 
--- Experimental, off by default: a holocall shows a live picture of the character instead of the portrait
+-- Experimental, on by default: a holocall shows a live picture of the character instead of the portrait
 -- (mod/holocall.lua, docs/HOLOCALL.md). Read once per call, when it starts.
 function M.holocallLiveImage()
     loadSettings()
@@ -1666,6 +1671,7 @@ function M.applySettings(player, values)
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     for key, value in pairs(values) do
         if key == 'expressiveEmotions' then nextSettings.expressiveEmotionsChosen = true end
+        if key == 'holocallLiveImage' then nextSettings.holocallLiveImageChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'holocallLiveImage'
