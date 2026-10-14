@@ -78,11 +78,11 @@ export class LocalStt extends EventEmitter {
       startupMs = LOCAL_STT_LIMITS.startupMs, finishMs = LOCAL_STT_LIMITS.finishMs, fixups = DEFAULT_FIXUPS,
       spawnImpl = spawn, exists = existsSync, setTimer = setTimeout, clearTimer = clearTimeout,
       paths = resolveLocalSttPaths({project, environment, pythonExecutable}), lowerPriority = true,
-      priority = 'below', pausePartials = true, pauseMs = LOCAL_STT_LIMITS.pauseMs} = {}) {
+      priority = 'below', pausePartials = true, pauseMs = LOCAL_STT_LIMITS.pauseMs, exitMs = 2000} = {}) {
     super();
     Object.assign(this, {paths, threads: Math.max(1, Math.min(LOCAL_STT_LIMITS.maxThreads, threads | 0 || 1)), partials,
       partialIntervalMs, idleMs, startupMs, finishMs, fixups, spawnImpl, exists, setTimer, clearTimer, lowerPriority,
-      pausePartials, pauseMs, priority: ['normal', 'below', 'idle'].includes(priority) ? priority : 'below'});
+      pausePartials, pauseMs, exitMs, priority: ['normal', 'below', 'idle'].includes(priority) ? priority : 'below'});
     this.worker = null;       // {child, ready, readyPromise, buffer}
     this.session = null;      // {id, held[], bytes, sentBytes, partialBytes, partialBusy, text, waiter}
     this.idleTimer = null; this.partialTimer = null;
@@ -139,6 +139,7 @@ export class LocalStt extends EventEmitter {
       }
     });
     child.stderr?.on('data', () => {}); // diagnostics stay out of the bridge log; a failure is reported through the 'failure' event and the rejected finish()
+    state.exitPromise = new Promise(done => { child.once('exit', done); child.once('error', done); });
     child.once('error', error => this.fail(state, error));
     child.once('exit', code => { state.exited = true; this.fail(state, Error('Local speech recognition stopped (exit ' + code + ')')); });
     return state.readyPromise;
@@ -352,26 +353,40 @@ export class LocalStt extends EventEmitter {
   armIdle() {
     this.clearTimer(this.idleTimer);
     if (!this.worker) return;
-    this.idleTimer = this.setTimer(() => { if (!this.session) this.shutdown(); }, this.idleMs);
+    // 'idle': the recogniser is gone and nothing records; the microphone page (bridge/local-stt-capture.mjs) is closed with it.
+    this.idleTimer = this.setTimer(() => { if (!this.session) { void this.shutdown(); this.emit('idle'); } }, this.idleMs);
     this.idleTimer.unref?.();
   }
 
-  // Ends the worker (memory back to the game). A later start() spawns a fresh one.
+  // Ends the worker (memory back to the game). A later start() spawns a fresh one. Resolves when the process has exited (it is told to
+  // quit and its input is closed; one that is still there after `exitMs` is killed, with its children where the platform has them),
+  // or after a bounded wait when even that did not end it. The bridge's own shutdown awaits this, so no recogniser outlives it.
   shutdown() {
     this.clearTimer(this.idleTimer); this.idleTimer = null; this.stopPartials();
     const state = this.worker; this.worker = null;
-    if (!state) return;
+    if (!state) return Promise.resolve();
     this.clearTimer(state.startTimer);
     this.send(state, {op: 'quit'});
     try { state.child.stdin.end(); } catch { /* closed */ }
-    const kill = this.setTimer(() => { try { state.child.kill(); } catch { /* gone */ } }, 2000);
-    kill.unref?.();
-    state.child.once?.('exit', () => this.clearTimer(kill));
+    return new Promise(done => {
+      const kill = this.setTimer(() => { this.killTree(state); }, this.exitMs);
+      const giveUp = this.setTimer(done, this.exitMs * 2);
+      state.exitPromise.then(() => { this.clearTimer(kill); this.clearTimer(giveUp); done(); });
+    });
+  }
+  killTree(state) {
+    try {
+      if (process.platform === 'win32' && this.spawnImpl === spawn && state.child.pid) {
+        spawn('taskkill', ['/PID', String(state.child.pid), '/T', '/F'], {windowsHide: true, stdio: 'ignore'}).on('error', () => {});
+        return;
+      }
+    } catch { /* fall through to a plain kill */ }
+    try { state.child.kill(); } catch { /* gone */ }
   }
   async close() {
     const session = this.session;
     if (session) await this.cancel(session.id);
-    this.shutdown();
+    await this.shutdown();
   }
 
   // Live words are short single lines, newest words last (the game shows the tail).

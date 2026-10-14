@@ -646,7 +646,7 @@ const mistralSpeech = createLocalSpeech({
   capture: new LocalSttCapture({getBrowser: hostBrowser(realtime)})});
 // Two side by side: the action decision and the reply of one turn are two requests at once (bridge/mistral-client.mjs, warmConnection).
 const warmTurnConnections = options => warmConnection({...options, connections: 2});
-for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: host === realtime, warmCloud: warmTurnConnections});
+for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections});
 // Add-on speakers (docs/ADDON_API.md) answer only through Mistral or the local AI, whatever the player's conversation provider is:
 // one text host per route (and whether the local AI may fall back to Mistral), made the first time an add-on speaker needs it. They
 // share the routes (one pacing per Mistral key), the persona book and the memory store; none exists without add-ons.
@@ -825,7 +825,8 @@ function logFollowUp(input, result) {
 const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line),
   planFor: (input, key) => planTurnVoice({enabled: multilingual.enabled,
     language: multilingual.enabled ? multilingual.expected(input.text) : 'en', local: localChoice(key)}),
-  ready: key => localVoice.usesProfile(key),
+  // Voice playback Off: V's typed line is silent too (no worker is kept for it, and a cloud voice is not asked).
+  ready: key => localVoice.playbackEnabled !== false && localVoice.usesProfile(key),
   isLocal: () => !localVoice.cloudActive,
   stream: (key, text, options) => localVoice.synthesizeStream(key, text, options),
   render: (key, text, options) => localVoice.synthesize(key, text, options),
@@ -1036,6 +1037,8 @@ function invitedVoiceCurrent(profile, receipt) {
   if (stopped || receipt?.ready !== true || localVoice.pending || localVoice.availabilityPending
       || voiceRouteReservation || voiceRoutePending.size) return false;
   if (receipt.provider === 'convai') return !localVoice.usesProfile(profile);
+  // Playback Off: the worker was released and none is waited for (bridge/voice-selection.mjs, prepareProfile `muted`).
+  if (receipt.muted === true) return localVoice.playbackEnabled === false && receipt.provider === localVoice.provider && localVoice.usesProfile(profile);
   return receipt.provider === localVoice.provider && ['pocket','omni'].includes(receipt.provider) && receipt.profile === profile
     && localVoice.usesProfile(profile) && localVoice.profileReady(profile);
 }
@@ -1053,7 +1056,9 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
     if (stopped) throw Error('Voice service is closed');
     // A settings change can commit while page retirement is awaiting its host.
     // Recheck the actual route before authorizing this invitation's connection.
-    if (receipt.provider !== 'convai') {
+    if (receipt.muted === true && localVoice.playbackEnabled === false) {
+      if (receipt.provider !== localVoice.provider || !localVoice.usesProfile(profile)) continue;
+    } else if (receipt.provider !== 'convai') {
       if(receipt.provider!==localVoice.provider)continue;
       if (!localVoice.usesProfile(profile) || !localVoice.profileReady(profile)) continue;
     } else if (localVoice.usesProfile(profile)) continue;
@@ -2430,8 +2435,10 @@ const voicePreview = new VoicePreviewLease();
 let audioDelaySetting = 'auto', audioOutput = null, audioDelayPublished = '';
 const audioWatch = new AudioOutputWatch({onChange: output => { audioOutput = output; void applyAudioDelay(); }});
 async function applyAudioDelay() {
-  // The probe starts with the first conversation turn, not at idle startup.
-  if (audioDelaySetting === 'auto' && active) audioWatch.start();
+  // The probe starts with the first conversation turn, not at idle startup. It runs only while the delay is automatic and voice
+  // playback is on: a hand-set delay or silence has nothing to measure, and its PowerShell process would only wake every minute.
+  if (audioDelaySetting === 'auto' && localVoice.playbackEnabled !== false) { if (active) audioWatch.start(); }
+  else audioWatch.suspend();
   const delayMs = resolveDelayMs(audioDelaySetting, audioOutput);
   if (setAudioDelayMs(delayMs)) console.error(`Lip sync delay: ${delayMs} ms (${audioDelaySetting}${audioOutput ? `, ${audioOutput.bluetooth ? 'Bluetooth' : 'not Bluetooth'}: ${audioOutput.name}` : ''})`);
   const document = JSON.stringify({version: 1, delayMs: audioDelayMs(), setting: audioDelaySetting,
@@ -2479,8 +2486,33 @@ async function applyProviderChoice() {
     // Leaving the local AI gives its graphics memory back at once; arriving loads it (a first start compiles shaders for a while).
     if (mistral.applied === 'local') void localServer.ensure({background: true}).catch(() => {});
     else void localServer.stop().catch(() => {});
+    // Back to Convai: the memory search's embedding process (CPU) is not needed either, and goes now instead of after its five idle minutes.
+    // Add-on speakers answer through the text routes whatever the provider is, so with an add-on installed it stays on its idle timer.
+    if (!mistral.active && !addonHost.active) void localEmbedder.close().catch(() => {});
     await mistralControl.publishStatus().catch(() => {});
   } finally { providerSwitching = false; }
+}
+// Resources the current settings do not use are released (docs/RESOURCE_LIFECYCLE.md). Due-checked from the 500 ms settings poll: a few property
+// reads, nothing per frame, never while a turn, microphone or preparation is running (the page releases wait for the next poll).
+//   - The facial model's worker thread leaves while voice playback has been Off past its grace period (MUTED_RELEASE_MS) and comes back
+//     at the first poll after playback is turned on.
+//   - V's line renderer page closes when V's voice is off (or has no clips), and with the companions' page when playback is Off.
+//   - The hidden browser closes when nothing uses it for BROWSER_IDLE_MS: no Convai page in the pool or kept for the party, no
+//     recording, no renderer turn, and (text provider with playback on) no wish to keep the local voice's renderer warm.
+const BROWSER_IDLE_MS = 300_000;
+let releasingUnused = false;
+async function releaseUnused() {
+  if (releasingUnused || stopped) return;
+  releasingUnused = true;
+  try {
+    const muted = localVoice.mutedIdle;
+    if (jaliFace) { if (muted) await jaliFace.suspend(); else if (!jaliFace.active) void jaliFace.resume(); }
+    if (voiceBoundaryBusy() || voiceRouteReservation || keySwitching || providerSwitching) return;
+    await realtime.releaseRendererPages({line: muted || !vVoice.enabled || !vVoice.available, companion: muted});
+    const keepRenderer = mistral.active && localVoice.playbackEnabled !== false;
+    await realtime.releaseIfIdle({idleMs: BROWSER_IDLE_MS, keepRenderer});
+    await phoneRealtime.releaseIfIdle({idleMs: BROWSER_IDLE_MS});
+  } finally { releasingUnused = false; }
 }
 // The Local AI model choice (bridge/local-model-choice.mjs), looked at on the settings poll: the pin from settings.json, Mature content and
 // the Mature pack decide it, and the list of installed models is published for the settings page (at most every 5 s). A change while Local AI is
@@ -2584,6 +2616,7 @@ async function pollSettings(checkShutdown = true) {
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
     if (vVoice.update(settings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}`);
     localVoice.setVHelperWanted(vVoice.enabled && vVoice.available);
+    void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));
     const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
     if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
     const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
@@ -2709,7 +2742,7 @@ async function shutdown() {
   await voiceRouteSync.catch(() => {});
   await relationshipRouteSync.catch(() => {});
   await Promise.allSettled([localVoice.close(), mic.cancel(), connections.clear(), mistralSpeech.close()]);
-  await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
+  await Promise.allSettled([realtime.close(), phoneRealtime.close(), jaliFace?.close()]);
   mistralHost.close();
   await mistralMemory.flush().catch(() => {});
   await Promise.allSettled([localServer.stop(), localEmbedder.close()]);

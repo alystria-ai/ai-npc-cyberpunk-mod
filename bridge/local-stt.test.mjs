@@ -35,6 +35,7 @@ function fakeWorker({readyAfter = 0, finalText = 'hello judy', speech = true, si
         const message = JSON.parse(pending.slice(0, at)); pending = pending.slice(at + 1);
         record.lines.push(message);
         if (message.op === 'audio') bytes += Buffer.from(message.pcm, 'base64').length;
+        if (message.op === 'quit') setImmediate(() => { if (!child.killed) child.emit('exit', 0); });   // the real worker leaves on quit
         if (silent) continue;
         if (message.op === 'partial') reply({type: 'partial', id: message.id, text: 'heard ' + bytes + ' bytes', ms: 5});
         if (message.op === 'finish') {

@@ -81,10 +81,17 @@ export class AudioOutputWatch {
     }
   }
 
-  stop() {
-    this.stopped = true; this.clearTimeoutFn(this.timer); this.timer = null;
+  // Ends the probe process but lets start() run it again (the delay is set by hand, or nothing is spoken). stop() is for good.
+  suspend() {
+    this.clearTimeoutFn(this.timer); this.timer = null;
     const child = this.child; this.child = null;
     try { child?.stdin?.end(); } catch {}
     try { child?.kill(); } catch {}
+  }
+  get running() { return !!this.child || !!this.timer; }
+
+  stop() {
+    this.stopped = true;
+    this.suspend();
   }
 }
