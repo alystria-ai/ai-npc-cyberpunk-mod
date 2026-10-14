@@ -84,7 +84,13 @@ window.localStt = {
     };
     source.connect(node);
     if (context.state !== 'running') await context.resume();
-    return {device: track.label, sampleRate: context.sampleRate};
+    // Which input the browser chose (its default) and what else there was, for the bridge's log: a wrong device shows here.
+    let inputs = [];
+    try { inputs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput').map(d => d.label || d.deviceId); } catch {}
+    const settings = track.getSettings ? track.getSettings() : {};
+    return {device: track.label, sampleRate: context.sampleRate, inputs,
+      settings: {echoCancellation: settings.echoCancellation, noiseSuppression: settings.noiseSuppression,
+        autoGainControl: settings.autoGainControl, channelCount: settings.channelCount}};
   },
   // Flush the last block, wait for every chunk to reach the bridge, then release the device.
   async end() {
@@ -162,6 +168,26 @@ export class LocalSttCapture {
   }
 }
 
+const clip = (text, size = 160) => String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, size);
+// One line when a recording opens: the input the browser chose (its default), the others it could have chosen, and the processing it applied.
+export function describeInput(info) {
+  const inputs = Array.isArray(info?.inputs) ? info.inputs : [];
+  const settings = info?.settings ? ' echoCancellation=' + info.settings.echoCancellation + ' noiseSuppression=' + info.settings.noiseSuppression
+    + ' autoGainControl=' + info.settings.autoGainControl : '';
+  return 'input "' + clip(info?.device || 'unknown', 120) + '"' + (info?.sampleRate ? ' at ' + info.sampleRate + ' Hz' : '')
+    + (inputs.length ? ', ' + inputs.length + ' available [' + inputs.map(name => clip(name, 80)).join(' | ') + ']' : '') + settings;
+}
+// One line when a recording ends: how long it was, how loud and how voiced the sound was, which input it came from, and what was made of it.
+// A near-silent recording names the likely cause (a wrong or muted Windows input device) because the words alone cannot show it.
+export function describeRecording(heard, device) {
+  const text = clip(heard?.text);
+  const levels = Number.isFinite(heard?.peakDb) ? 'peak ' + heard.peakDb + ' dBFS, ' + heard.soundMs + ' ms of sound, ' + heard.voicedMs + ' ms voiced' : 'levels unknown';
+  const lead = 'recorded ' + (Number.isFinite(heard?.seconds) ? heard.seconds : '?') + ' s from "' + clip(device || 'unknown', 80) + '" (' + levels + '): ';
+  if (heard?.rejected) return lead + 'ignored "' + clip(heard.ignored, 100) + '" as not speech (' + heard.rejected + ')';
+  if (text) return lead + 'heard "' + text + '"';
+  return lead + 'no words' + (Number.isFinite(heard?.peakDb) && heard.peakDb < -55 ? '; the input is almost silent, check the Windows input device' : '');
+}
+
 // A voice channel with the shape of RealtimeHost.voiceChannel(): beginVoice / finishVoice / heard / close.
 //
 //   stt      a LocalStt (bridge/local-stt.mjs)
@@ -172,9 +198,9 @@ export class LocalSttCapture {
 //
 // finishVoice rejects with Error('No speech was heard') for an empty recording, which the bridge already turns into
 // the game's "No speech was heard" notice (microphone-state.json "no-speech").
-export function createLocalSttChannel({stt, capture, reply, now = Date.now, speculate = () => false}) {
+export function createLocalSttChannel({stt, capture, reply, now = Date.now, speculate = () => false, log = () => {}}) {
   return () => {
-    let requestId = null, closed = false, begun = false;
+    let requestId = null, closed = false, begun = false, device = '';
     const controller = new AbortController();
     const pass = chunk => { if (requestId) stt.pushAudio(chunk); };
     // The reply on a stable live-words decode, started the moment the key is pressed (stt.stable()). Returns null when the newest decode
@@ -226,6 +252,8 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
         try { info = await capture.begin(pass); }
         catch (error) { await stt.cancel(requestId); requestId = null; throw error; }
         begun = true;
+        device = info?.device || '';
+        try { log(describeInput(info)); } catch { /* a log line never breaks a recording */ }
         if (closed) { await capture.abort(); await stt.cancel(requestId); throw Error('Microphone startup cancelled'); }
         return {device: info?.device ?? '', sessionID: undefined, local: true};
       },
@@ -236,11 +264,13 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
         // Option B (docs/LATENCY_2026-10-14.md): the newest live-words decode may stand in for the transcript while the final decode runs.
         let speculation = null;
         try { speculation = reply && speculate() ? startSpeculation(id, config, options) : null; } catch { speculation = null; }
-        let text, seconds;
+        let text, seconds, heard;
         try {
           await capture.end();
-          ({text, seconds} = await stt.finish(id));
+          heard = await stt.finish(id);
+          ({text, seconds} = heard);
         } catch (error) { speculation?.discard(); throw error; }
+        try { log(describeRecording(heard, device)); } catch { /* a log line never breaks a recording */ }
         if (closed || !text) { speculation?.discard(); }
         if (closed) throw Error('Microphone finish cancelled');
         if (!text) throw Error(NO_SPEECH_ERROR);
@@ -275,14 +305,14 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
 
 // The hook object the text provider's host takes (`attachMistral(host, {speech})`): available() says whether recognition can
 // run now; voiceChannel({reply}) returns a fresh channel for one recording.
-export function createLocalSpeech({stt, capture}) {
+export function createLocalSpeech({stt, capture, log}) {
   // The recogniser left after its idle time: the page that held the microphone's capture code goes with it (a page in the hidden browser
   // is a renderer process). The next recording opens it again while the recogniser loads, so it adds nothing to the start.
   stt.on?.('idle', () => { void Promise.resolve(capture.close?.()).catch(() => {}); });
   return {
     available: () => stt.availability().available,
     availability: () => stt.availability(),
-    voiceChannel: ({reply, speculate} = {}) => createLocalSttChannel({stt, capture, reply, speculate})(),
+    voiceChannel: ({reply, speculate} = {}) => createLocalSttChannel({stt, capture, reply, speculate, log})(),
     warm: () => stt.warm(),
     close: async () => { await capture.close?.(); await stt.close(); },
   };

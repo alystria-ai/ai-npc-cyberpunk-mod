@@ -24,7 +24,10 @@ def quiet(ms):
 
 
 def speech(ms):
-    return np.where(np.arange(RATE * ms // 1000) % 2, 7000, -7000).astype(np.int16)
+    """A voiced sound: 140 Hz and its harmonics, swelling and fading about four times a second like syllables."""
+    t = np.arange(RATE * ms // 1000) / RATE
+    voice = sum(np.sin(2 * np.pi * 140 * k * t) / k for k in range(1, 8))
+    return (voice / 2.2 * (0.55 + 0.45 * np.sin(2 * np.pi * 4 * t)) * 9000).astype(np.int16)
 
 
 def click(ms=200):
@@ -57,12 +60,18 @@ class Recognizer:
 
     def __init__(self):
         self.refuse_over = None
+        self.always = None   # a model that makes words out of anything (a breath, a click, a dead input)
+        self.decodes = 0
 
     def create_stream(self):
         return Stream()
 
     def decode_stream(self, stream):
         audio = stream.samples
+        self.decodes += 1
+        if self.always is not None:
+            stream.result.text = self.always
+            return
         too_long = self.refuse_over is not None and len(audio) > self.refuse_over
         heard = longest_quiet_ms(audio) <= 1000 and loud_ms(audio) >= 400 and not too_long
         stream.result.text = WORDS if heard else ""
@@ -113,7 +122,7 @@ two = w.speech_groups(np.concatenate([quiet(300), speech(900), quiet(3000), spee
 check(len(two) == 2, "two bursts of speech 3 s apart are two pieces")
 near = w.speech_groups(np.concatenate([quiet(300), speech(900), quiet(500), speech(900), quiet(300)]))
 check(len(near) == 1, "a short pause inside a sentence keeps the sentence in one piece")
-check(engine.read(lead) == WORDS, "a decode no longer fails on a long quiet before the words")
+check(engine.read(lead)[0] == WORDS, "a decode no longer fails on a long quiet before the words")
 
 # 1. a pause before the first word: the live decode and the final both read the words
 worker.begin("same")
@@ -212,4 +221,70 @@ worker.begin("same")
 push("same", quiet(800))
 worker.finish("same")
 check(last("final")["text"] == "", "words from an earlier recording never come back")
+
+
+# --- Words made out of nothing (live record 2026-10-15: V lines nobody said or typed, shown as V's subtitle) -------------------------------
+def breath(ms):
+    n = RATE * ms // 1000
+    return (np.convolve(rng.standard_normal(n) * 5000, np.ones(6) / 6, mode="same") * np.hanning(n)).astype(np.int16)
+
+
+def keyboard():
+    return np.concatenate([np.concatenate([click(30), quiet(120)]) for _ in range(6)])
+
+
+proof = w.evidence(np.concatenate([quiet(300), speech(900), quiet(300)]))
+check(proof["voicedMs"] >= 300 and proof["soundMs"] >= 600 and -40 < proof["peakDb"] < 0, "a voiced sound is measured as voiced: %s" % proof)
+for name, sound in (("a breath", breath(500)), ("a click", click(120)), ("keys", keyboard())):
+    proof = w.evidence(np.concatenate([quiet(400), sound, quiet(400)]))
+    check(proof["voicedMs"] == 0 and w.acoustic(proof) is not None, "%s is not a voice: %s" % (name, proof))
+check(w.evidence(quiet(1000))["soundMs"] == 0, "quiet has no sound")
+
+
+def recording(*parts, partial=False):
+    worker.begin("same")
+    for part in parts:
+        push("same", part)
+    if partial:
+        worker.partial("same")
+    worker.finish("same")
+    return last("final")
+
+
+recognizer.always = "Thank you."
+for name, parts in (("a breath", (quiet(500), breath(600), quiet(500))), ("a click", (quiet(300), click(200), quiet(600))),
+                    ("keys", (quiet(300), keyboard(), quiet(500)))):
+    recognizer.decodes = 0
+    done = recording(*parts, partial=True)
+    check(last("partial")["text"] == "" and last("partial").get("rejected"), "%s: the live words are never shown (%s)" % (name, last("partial")))
+    check(done["text"] == "" and done.get("rejected"), "%s: the final is empty and says why: %s" % (name, done))
+    check(recognizer.decodes == 0, "%s: sound that cannot be a voice is not even decoded" % name)
+# a dead input: nothing reaches the gate, the model is never asked, and the level is reported for the log
+recognizer.decodes = 0
+done = recording(quiet(1500), (speech(900) * 0.0004).astype(np.int16), quiet(500))
+check(done["text"] == "" and done["peakDb"] < -55 and recognizer.decodes == 0, "a dead input gives nothing and reports its level: %s" % done)
+# a stock phrase on a short weak voiced sound is dropped; the same words said clearly and for a while are kept
+done = recording(quiet(400), speech(200), quiet(400))
+check(done["text"] == "" and done.get("rejected") == "stock-phrase", "'Thank you.' on a 200 ms sound is a hallucination: %s" % done)
+done = recording(quiet(400), speech(1600), quiet(400))
+check(done["text"] == "Thank you." and not done.get("rejected"), "'Thank you.' said clearly is kept: %s" % done)
+# looping text and an impossible word rate
+recognizer.always = "go go go go go go"
+done = recording(quiet(400), speech(1600), quiet(400))
+check(done["text"] == "" and done.get("rejected") == "repeating", "looping words are dropped: %s" % done)
+recognizer.always = "one two three four five six seven eight nine ten eleven twelve"
+done = recording(quiet(400), speech(900), quiet(400))
+check(done["text"] == "" and done.get("rejected") == "too-many-words", "twelve words in under a second are dropped: %s" % done)
+# a rejected live decode does not become the words a later empty final falls back on
+recognizer.always = "go go go go go go"
+worker.begin("same")
+push("same", quiet(400)); push("same", speech(1600)); push("same", quiet(400))
+worker.partial("same")
+check(worker.last_words == "" and worker.last_partial is None, "a rejected partial is not kept as the live words")
+worker.cancel("same")
+recognizer.always = None
+# normal speech reports what the microphone gave and carries no rejection
+done = recording(quiet(300), speech(1200), quiet(400))
+check(done["text"] == WORDS and "rejected" not in done and done["voicedMs"] >= 300 and done["soundMs"] >= 900 and -40 < done["peakDb"] < 0,
+      "a normal final reports its levels: %s" % done)
 print("ok")

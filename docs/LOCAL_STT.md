@@ -97,6 +97,22 @@ words (`microphone-heard.json` from `mic.heard()`) all run through unchanged cod
   when the live decode left an early part out: words are better than a failed turn; the worker logs it). A final then costs one decode
   (about 0.2-0.4 s) when the live decode did not cover the whole recording, as before. `bridge/local-stt-worker.test.mjs` runs
   `local-stt-worker.check.py` against a stand-in model that has these quirks.
+- Words made out of nothing (live record 2026-10-15: "random V lines" nobody said or typed). The live words of a recording are shown as V's
+  own subtitle, and the final words are what V "said" to the model, so a decode of a breath, a key press, a fan or a dead input must never
+  reach either. The worker measures the sound itself (`evidence`: loudest sound in dBFS, ms of sound, ms of it voiced, meaning a 70-400 Hz
+  pitch repeating inside the 30 ms frame, which vowels have and noise does not) and refuses words (`judge`) when: no sound reached -50 dBFS
+  (`quiet`), less than 150 ms of sound (`short`), less than 60 ms of it voiced (`not-voiced`), more than 7.5 words a second
+  (`too-many-words`), the same 1-3 words four times over (`repeating`), or a stock phrase (Thank you., you, bye, so ...) on a weak sound
+  (under 240 ms voiced or quieter than -36 dBFS: `stock-phrase`). A piece of sound that cannot be a voice is not decoded at all. Refused
+  live words are sent as an empty partial with `rejected`, a refused final is empty with `rejected` and `ignored` (the words that were held
+  back), and the turn ends as "No speech was heard". Moonshine itself gives no confidence scores (`ys_log_probs` is empty) and does not
+  produce words from stationary noise, so the acoustic test is what stops the rest. Measured on the 36 test clips and the two V voice
+  references at -30 dB, with room noise at -41 dBFS and with a click: none refused.
+- The bridge log says what the microphone did, once when a recording opens and once when it ends: the input the browser chose (its
+  default; every input it could have chosen; echo cancellation, noise suppression and gain control), then the length, loudest sound, ms of
+  sound and ms voiced, and the words (`heard "..."`), the words that were ignored and why, or `no words` (with "the input is almost
+  silent, check the Windows input device" below -55 dBFS). A wrong or muted device shows as a label that is not the headset or laptop
+  microphone in use, or a near-silent peak.
 - Not installed (Python, worker, model or sherpa-onnx missing): `availability()` says which; `beginVoice` rejects before the microphone
   opens with `error.code === 'local-stt-unavailable'` and `error.reason`.
 - Spam, cancel, supersede: a new `start` cancels the open recording; late audio for an old id is dropped; cancel releases the device
