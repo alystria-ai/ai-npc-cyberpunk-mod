@@ -150,7 +150,7 @@ test('ordinary NPCs are prepared once at spawn, behind filters, with no per-fram
     assert(at >= 0, needle);
     return at;
   });
-  const positions = order(['if this.m_crowdMode == 0 { return; };', 'event.GetEntity() as NPCPuppet', 'dynamic.IsManaged(npc.GetEntityID())',
+  const positions = order(['if this.m_crowdMode == 0 && !screens { return; };', 'event.GetEntity() as NPCPuppet', 'dynamic.IsManaged(npc.GetEntityID())',
     'this.CrowdIndex(', 'npc.GetRecordID()', 'ConvaiFaceService.CrowdSkipReason(', 'this.CheckRig(face)', 'ResourceRef.IsLoaded(graph)', 'face.graph = graph;',
     'npc.ConvaiFacePrepared(true, "prepared:" + this.m_crowdNames[index]']);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, 'mode, type, dynamic spawns, crowd graph, record and tokens, rig, load, then the swap');

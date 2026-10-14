@@ -40,6 +40,8 @@ local bridgeStatusRead = false       -- runtime/addons-status.json is read once,
 local settingEvents = {}             -- settingChanged events, sent on the next tick (never inside the menu's Apply)
 local lineRulesDeclared = false      -- some add-on declared a replaceGameLines rule (mod/game-dialogue.lua asks, once per game line)
 local CAPTION_TAG = ' (AI)'          -- what "Mark our lines" adds after the speaker's name in its subtitles
+local heldRequest, menuRequest = nil, nil   -- the remark speech.lua keeps paused (hold) / lets play while a menu is open (menus)
+local unwatchFaces = {}              -- screen-face rigs a reset left watched: unwatched on the next tick unless the add-on watches again
 
 -- Limits shared with the bridge (bridge/addons.mjs ADDON_LIMITS).
 local LIMITS = {blocks = 8, blockText = 1500, eventText = 600, companionBlocks = 4, companionText = 600, queue = 6,
@@ -191,6 +193,14 @@ local function resolveAnchor(speaker, player)
     return object, entity
 end
 
+-- The anchor of a remark: the speaker's own, or, for a remark that is held until V gets there (`hold`), the speaker's `approach`
+-- object while the anchor is not there yet (the cab V walks up to). Talk never uses `approach`.
+local function anchorFor(speaker, player, entry)
+    local object, entity = resolveAnchor(speaker, player)
+    if entity or not speaker.approach or not entry or not entry.hold then return object, entity end
+    return resolveAnchor({anchor = speaker.approach}, player)
+end
+
 local function speakerAvailable(speaker, player)
     if not speaker.addon.enabled then return false end
     if speaker.available == nil then return true end
@@ -280,10 +290,24 @@ end
 
 local UNAVAILABLE_GRACE = 2.5   -- seconds a remark still waiting to be heard keeps its speaker after the speaker stops being available
 
+-- What speech.lua is told about the remark in flight (init.lua seams hold and menus; pure Lua fields there, never a native call).
+local function setHold(id)
+    if heldRequest == id then return end
+    heldRequest = id
+    if host and host.hold then pcall(host.hold, id) end
+end
+
+local function setMenus(id)
+    if menuRequest == id then return end
+    menuRequest = id
+    if host and host.menus then pcall(host.menus, id) end
+end
+
 local function release(reason, stop, detail, cut)
     local current = flight
     if not current then return end
     pcall(lease, false)
+    setHold(nil); setMenus(nil)
     if stop and host and host.drop then pcall(host.drop, current.requestId, reason, current.entity) end
     flight = nil
     local priorLast = current.speaker.lastAt
@@ -437,9 +461,14 @@ local function speakerOf(handle, id)
     return addon.speakers[id]
 end
 
---- handle:speaker({id, name, anchor, available, talk, group, minGap, sceneTiers, talkPriority, playThrough, voiceFrom}) -> profileKey
+--- handle:speaker({id, name, anchor, available, talk, group, minGap, sceneTiers, talkPriority, playThrough, voiceFrom, approach, face}) -> profileKey
 --- voiceFrom(player) -> GameObject (optional): where the voice is heard from, when that is not the anchor (Skippy: the gun in V's
 --- hand while the anchor stays V). Asked once when a reply starts; it only moves the sound (pan and distance), nothing else.
+--- approach(player) -> GameObject (optional): the anchor before V reaches it (the Delamain cab V walks up to, while the 'vehicle'
+--- anchor is still empty). Only a remark with `hold` uses it, and only while the anchor itself is not there; talk never does.
+--- face = {rig = 'base\...\<head>_skeleton.rig'} (optional): the speaker's face on a screen (the Delamain cab's seat-back screens
+--- film an NPC with Delamain's head). While the add-on watches it (handle:watchFace), the NPC that spawns with that face_rig rig gets
+--- the main mod's gated speech graph, and the speaker's lines move its mouth. docs/ADDON_API.md, "A face on a screen".
 Handle.speaker = guard('speaker', function(self, def)
     local addon = self and self.record
     if not addon or addons[addon.id] ~= addon then return nil, 'unknown add-on' end
@@ -452,6 +481,13 @@ Handle.speaker = guard('speaker', function(self, def)
     if anchor ~= 'player' and anchor ~= 'vehicle' and type(anchor) ~= 'function' then return nil, 'anchor must be player, vehicle or a function' end
     if def.available ~= nil and type(def.available) ~= 'function' then return nil, 'available must be a function' end
     if def.voiceFrom ~= nil and type(def.voiceFrom) ~= 'function' then return nil, 'voiceFrom must be a function' end
+    if def.approach ~= nil and type(def.approach) ~= 'function' then return nil, 'approach must be a function' end
+    local faceRig = nil
+    if def.face ~= nil then
+        local rig = type(def.face) == 'table' and def.face.rig
+        if type(rig) ~= 'string' or #rig > 200 or not rig:match('^[%w_\\/%.%-]+%.rig$') then return nil, 'face.rig must be a .rig path' end
+        faceRig = rig
+    end
     local tiers = {1}
     if type(def.sceneTiers) == 'table' then
         tiers = {}
@@ -462,7 +498,7 @@ Handle.speaker = guard('speaker', function(self, def)
     local speaker = {addon = addon, id = def.id, key = key, name = name, anchor = anchor, available = def.available,
         talk = def.talk ~= false, group = def.group == true, minGap = number(def.minGap, 2, 600, 8),
         talkPriority = number(def.talkPriority, 0, 100, 0), sceneTiers = tiers, playThrough = def.playThrough == true,
-        voiceFrom = def.voiceFrom,
+        voiceFrom = def.voiceFrom, approach = def.approach, faceRig = faceRig, faceWatched = false,
         contexts = {}, contextOrder = {}, contextTiers = {}, lastAt = nil, events = {}, warmedAt = nil, mode = nil}
     addon.speakers[def.id] = speaker
     speakers[key] = speaker
@@ -470,7 +506,13 @@ Handle.speaker = guard('speaker', function(self, def)
     return key
 end)
 
---- handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant}) -> true, or false and the reason
+--- handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, menus})
+--- -> true, or false and the reason.
+--- hold() -> bool (optional): the remark is written and voiced as soon as it can be, but kept silent while hold() is true (checked on
+--- the 0.1 s tick; handle:releaseHold plays it at once). For a line that must start the instant something happens (Delamain's welcome
+--- the moment V sits) without waiting for the text and voice then. Given up, unheard, after holdMax seconds (1 to 30, default 20).
+--- menus = true | function() -> bool (optional): while the remark plays (or is held), an open game menu (the cab's destination map)
+--- does not pause it. The function form is checked on the 0.1 s tick.
 Handle.remark = guard('remark', function(self, speakerId, event)
     local speaker = speakerOf(self, speakerId)
     if not speaker then return false, 'unknown speaker' end
@@ -500,6 +542,13 @@ Handle.remark = guard('remark', function(self, speakerId, event)
     entry.patienceEnd = clock + number(event.patience, 0, PATIENCE_MAX, 0)
     entry.patient = number(event.patience, 0, PATIENCE_MAX, 0) > 0
     entry.relevant = type(event.relevant) == 'function' and event.relevant or nil
+    if event.hold ~= nil and type(event.hold) ~= 'function' then return false, 'hold must be a function' end
+    if event.menus ~= nil and event.menus ~= true and event.menus ~= false and type(event.menus) ~= 'function' then
+        return false, 'menus must be true, false or a function'
+    end
+    entry.hold = event.hold
+    entry.holdMax = number(event.holdMax, 1, 30, 20)
+    entry.menus = (event.menus == true or type(event.menus) == 'function') and event.menus or nil
     -- One waiting remark per speaker and event name: the newer facts replace the older ones.
     for index = #queue, 1, -1 do
         local other = queue[index]
@@ -591,9 +640,11 @@ Handle.on = guard('on', function(self, name, fn)
     return true
 end)
 
---- handle:settings({title, description, remarkCap = true|false, items = {{id, label, kind = 'bool'|'select', default, description, elements}}})
+--- handle:settings({title, description, remarkCap = true|false, fixed = {replaceGameLines = bool, markLines = bool}, items = {{id, label, kind = 'bool'|'select', default, description, elements}}})
 --- `remarkCap = false` hides the built-in "Most remarks per fight" setting for an add-on whose remarks are not tied to fights (a ride, say):
 --- the player is not offered it, and the default count still guards the add-on's request budget.
+--- `fixed` takes the two on/off built-ins away from the player and sets them for good: `replaceGameLines = true` (the game's own lines of the
+--- character are always replaced, the toggle is not shown), `markLines = false` (the add-on's subtitles never carry " (AI)", no toggle).
 Handle.settings = guard('settings', function(self, section)
     local addon = self and self.record
     if not addon or addons[addon.id] ~= addon then return false, 'unknown add-on' end
@@ -624,7 +675,13 @@ Handle.settings = guard('settings', function(self, section)
         else return false, 'setting kind must be bool or select' end
         items[#items + 1] = entry
     end
-    addon.settingsDef = {title = title, description = trim(section.description, 300) or '', items = items, remarkCap = section.remarkCap ~= false}
+    local fixed = {}
+    if type(section.fixed) == 'table' then
+        if type(section.fixed.replaceGameLines) == 'boolean' then fixed.replaceGameLines = section.fixed.replaceGameLines end
+        if type(section.fixed.markLines) == 'boolean' then fixed.markLines = section.fixed.markLines end
+    end
+    addon.settingsDef = {title = title, description = trim(section.description, 300) or '', items = items, remarkCap = section.remarkCap ~= false,
+        fixed = fixed}
     for _, item in ipairs(items) do
         local value = addon.values[item.id]
         local valid = (item.kind == 'bool' and type(value) == 'boolean')
@@ -664,6 +721,13 @@ Handle.replaceGameLines = guard('replaceGameLines', function(self, def)
     return true
 end)
 
+--- A built-in on/off setting's value as it applies: the add-on's `fixed` value when it set one, else the player's choice (default on).
+local function builtIn(addon, key)
+    local fixed = addon.settingsDef and addon.settingsDef.fixed
+    if fixed and fixed[key] ~= nil then return fixed[key] end
+    return addon.values[key] ~= false
+end
+
 --- handle:setting(id) -> the current value (a boolean, or the 1-based index of a select).
 function Handle.setting(self, id)
     local addon = self and self.record
@@ -678,6 +742,7 @@ Handle.setEnabled = guard('setEnabled', function(self, value)
     if not addon.enabled then
         for index = #queue, 1, -1 do if queue[index].speaker.addon == addon then table.remove(queue, index) end end
         if flight and flight.speaker.addon == addon then release('add-on-disabled', true) end
+        for id, speaker in pairs(addon.speakers) do if speaker.faceWatched then Handle.watchFace(self, id, false) end end
     end
     return true
 end)
@@ -697,6 +762,37 @@ Handle.cancel = guard('cancel', function(self, speakerId)
     if not speaker then return false, 'unknown speaker' end
     for index = #queue, 1, -1 do if queue[index].speaker == speaker then table.remove(queue, index) end end
     if flight and flight.speaker == speaker then release('cancelled', true) end
+    return true
+end)
+
+--- handle:releaseHold(speakerId) : the speaker's held remark (`hold`) plays now, without waiting for the next tick. true when one was held.
+Handle.releaseHold = guard('releaseHold', function(self, speakerId)
+    local speaker = speakerOf(self, speakerId)
+    if not speaker then return false, 'unknown speaker' end
+    if not flight or flight.speaker ~= speaker or not flight.holding then return false end
+    flight.holding = false
+    setHold(nil)
+    log(string.format('Remark hold released: %s event=%s after %.1fs', speaker.key, flight.event, clock - (flight.holdSince or clock)))
+    return true
+end)
+
+--- handle:watchFace(speakerId, on) : starts or ends the watch of the speaker's screen face (its `face.rig`). While it lasts, the NPC
+--- that spawns with that face_rig rig is prepared for the speaker's lines (r6/scripts/CyberpunkConvai/Face.reds WatchScreenFace).
+--- Watch only while the moment lasts (the Delamain cab: while a cab exists), so the character is never touched anywhere else.
+--- One call into the face service per change; nothing runs per frame. true when the watch is now as asked.
+Handle.watchFace = guard('watchFace', function(self, speakerId, on)
+    local speaker = speakerOf(self, speakerId)
+    if not speaker then return false, 'unknown speaker' end
+    if not speaker.faceRig then return false, 'speaker has no face' end
+    on = on == true and speaker.addon.enabled
+    if speaker.faceWatched == on then return true end
+    if on then unwatchFaces[speaker.faceRig] = nil end
+    local found, service = pcall(function() return host and host.faceService and host.faceService() end)
+    if not found or not service then return false, 'face service unavailable' end
+    local ok = pcall(function() service:WatchScreenFace(speaker.faceRig, on) end)
+    if not ok then return false, 'face service failed' end
+    speaker.faceWatched = on
+    log('Screen face ' .. (on and 'watched' or 'released') .. ': ' .. speaker.key)
     return true
 end)
 
@@ -988,6 +1084,12 @@ local function trackFlight(player, state)
     local id = flight.requestId
     if state.pendingId == id then
         flight.stage = 'pending'
+    elseif state.speechId == id and flight.holding then
+        -- Written and voiced, kept silent by speech.lua until the add-on's hold() says go (or handle:releaseHold). Not heard yet.
+        if flight.stage ~= 'held' then
+            flight.stage = 'held'
+            log('Remark ready, held: ' .. flight.speaker.key .. ' event=' .. flight.event .. string.format(' after %.1fs', clock - flight.at))
+        end
     elseif state.speechId == id then
         if flight.stage ~= 'playing' then
             -- The lease already says "playing" when the reply was accepted (canDeliver); it is written again only if it did not.
@@ -1017,12 +1119,28 @@ local function trackFlight(player, state)
     -- A request nobody has answered long after its moment (the bridge is busy or the model is cold) is withdrawn: its reply could not be
     -- played any more (canDeliver), and it would keep every later remark of the ride waiting behind it.
     if flight.stage == 'pending' and clock - flight.at > flight.ttl + STALE_GRACE then release('stale', true); return end
+    -- A held remark (hold): released when hold() turns false, given up unheard after holdMax. A menus remark keeps playing in menus.
+    local entry = flight.entry
+    if flight.holding then
+        local ok, wait = pcall(entry.hold)
+        if ok and wait ~= true then
+            flight.holding = false
+            setHold(nil)
+            log(string.format('Remark hold released: %s event=%s after %.1fs', flight.speaker.key, flight.event, clock - flight.holdSince))
+        elseif clock - flight.holdSince > entry.holdMax then release('hold-expired', true); return end
+    end
+    if entry and entry.menus then
+        local wanted = entry.menus == true
+        if not wanted then local ok, value = pcall(entry.menus); wanted = ok and value == true end
+        setMenus(wanted and id or nil)
+    end
     -- A conversation the player starts, a scene, or the speaker going away ends the remark at once. A speaker that plays through
     -- (the Delamain cab: the game's own cab dialogue is a quest scene that begins and ends around its lines) finishes a line that has
     -- started when an ordinary scene begins; a call, a replacer or a cinematic tier still stops it, and so does a player's own turn.
     local manual = state.active or state.microphone or state.group or state.phone
     local blocked, why, detail = sceneBlocked(state.sample, flight.speaker)
-    local playing = flight.stage == 'playing' or flight.stage == 'captions'
+    -- A held remark counts as playing here (it plays through ordinary scenes like any of its speaker's lines), but not as heard.
+    local playing = flight.stage == 'playing' or flight.stage == 'captions' or flight.stage == 'held'
     if manual then release('manual-priority', true); return end
     if blocked then
         if playing and flight.speaker.playThrough and why ~= 'observation-unavailable' and not hardScene(state.sample) then
@@ -1096,7 +1214,7 @@ local function schedule(player, state, worldReady)
         local speaker = entry.speaker
         local blocked, why = sceneBlocked(state.sample, speaker, entry.patient == true)
         local object, entity = nil, nil
-        if not blocked and speakerAvailable(speaker, player) then object, entity = resolveAnchor(speaker, player) end
+        if not blocked and speakerAvailable(speaker, player) then object, entity = anchorFor(speaker, player, entry) end
         if blocked and entry.patient and holdable(why) and clock <= entry.patienceEnd then keep[#keep + 1] = entry
         elseif blocked then drop(entry, why)
         elseif entry.sceneAt and (not entry.clearAt or clock - entry.clearAt < SCENE_GAP) then
@@ -1129,6 +1247,12 @@ local function schedule(player, state, worldReady)
             flight = {requestId = context.requestId, speaker = speaker, event = event.event, priority = event.priority,
                 stage = 'pending', entity = entity, episode = episode, episodeStart = episode.start, at = entry.at, ttl = entry.ttl or DEFAULT_TTL,
                 entry = entry}
+            -- A remark with hold whose moment has not come yet is voiced silent (speech.lua holds it) until hold() says go.
+            if entry.hold then
+                local okHold, wait = pcall(entry.hold)
+                if okHold and wait == true then flight.holding, flight.holdSince = true, clock; setHold(context.requestId) end
+            end
+            if entry.menus then setMenus(context.requestId) end
             local ok, sent = false, false
             if lease(true) then ok, sent = pcall(host.submit, context, object) end
             restore()
@@ -1138,10 +1262,11 @@ local function schedule(player, state, worldReady)
                 while #queue > 1 do drop(table.remove(queue), 'replaced') end
                 if event.cooldown > 0 then speaker.events[event.event] = clock end
                 log('Remark: ' .. speaker.key .. ' event=' .. event.event .. ' priority=' .. event.priority
-                    .. (waited and string.format(' waited=%.1fs', waited) or ''))
+                    .. (waited and string.format(' waited=%.1fs', waited) or '') .. (flight.holding and ' (held until its moment)' or ''))
             else
                 pcall(lease, false)
                 flight = nil
+                setHold(nil); setMenus(nil)
                 drop(entry, 'request-write-failed')
             end
             return
@@ -1184,6 +1309,13 @@ function M.tick(player, elapsed, worldReady)
     end
     local state = host.state()
     deriveEvents(player, state, worldReady)
+    if next(unwatchFaces) ~= nil and worldReady then
+        -- Rigs a save load or death left watched (M.reset never calls the game): released now unless the add-on watched them again.
+        local found, service = pcall(function() return host.faceService and host.faceService() end)
+        if not found then service = nil end
+        for rig in pairs(unwatchFaces) do if service then pcall(function() service:WatchScreenFace(rig, false) end) end end
+        unwatchFaces = {}
+    end
     trackFlight(player, state)
     schedule(player, state, worldReady)
     writeState(false)
@@ -1222,7 +1354,7 @@ function M.matchLine(line, context)
                 end
                 if active then
                     local ok, hit = pcall(rule.match, line, context)
-                    if ok and hit == true then return rule, addon.values.replaceGameLines ~= false end
+                    if ok and hit == true then return rule, builtIn(addon, 'replaceGameLines') end
                 end
             end
         end
@@ -1252,7 +1384,7 @@ end
 --- The speaker name for a subtitle: with "Mark our lines" on, an add-on speaker's own line carries a small tag (speech.lua, subtitles.lua).
 function M.captionName(profileKey, name)
     local speaker = speakers[profileKey]
-    if not speaker or type(name) ~= 'string' or speaker.addon.values.markLines == false then return name end
+    if not speaker or type(name) ~= 'string' or not builtIn(speaker.addon, 'markLines') then return name end
     return name .. CAPTION_TAG
 end
 
@@ -1267,6 +1399,23 @@ function M.voiceSource(profileKey, player)
     return attached and yes == true and object or nil
 end
 
+--- The NPC whose face moves with an add-on speaker's voice (its `face`), for the reply that starts now (speech.lua, once per reply, never per
+--- frame), or nil (no face, not watched, or nothing prepared for it). Only the NPC the speaker's own watched rig prepared is ever returned
+--- (Face.reds ScreenFace), attached and still running the gated graph (ConvaiFaceReady).
+function M.faceActor(profileKey, player)
+    local speaker = type(profileKey) == 'string' and speakers[profileKey] or nil
+    if not speaker or not speaker.faceRig or not speaker.faceWatched or not player or not host or not host.faceService then return nil end
+    local ok, object = pcall(function()
+        local service = host.faceService()
+        local id = service and service:ScreenFace(speaker.faceRig)
+        if not id or tostring(id.hash) == '0ULL' or tostring(id.hash) == '0' then return nil end
+        local npc = Game.FindEntityByID(id)
+        if not npc or not npc:IsAttached() or not npc:ConvaiFaceReady() then return nil end
+        return npc
+    end)
+    return ok and object or nil
+end
+
 --- The reply of an add-on remark arrived: may it play now? (init.lua reactionCanDeliver)
 function M.canDeliver(context, player)
     if not flight or type(context) ~= 'table' or flight.requestId ~= context.requestId then return false end
@@ -1276,7 +1425,7 @@ function M.canDeliver(context, player)
     local blocked, why, detail = sceneBlocked(sample, flight.speaker, flight.entry ~= nil and flight.entry.patient == true)
     if blocked then release(why, true, detail); return false end
     if not speakerAvailable(flight.speaker, player) then release('speaker-unavailable', true); return false end
-    local _, entity = resolveAnchor(flight.speaker, player)
+    local _, entity = anchorFor(flight.speaker, player, flight.entry)
     if entity ~= context.entity then release('anchor-changed', true); return false end
     -- Accepted: the lease says "playing" now, before the voice starts. Until it did, the bridge judged the lease by the request's deadline
     -- alone and could cut a reply the game had just started when that deadline passed (probe.log 2026-10-14: companion-kill played and
@@ -1387,7 +1536,8 @@ function M.settingsSections()
                     description = 'How many remarks ' .. addon.name .. ' may make in one fight (outside combat: in five minutes). '
                         .. 'The last one is kept for a big moment.'}
             end
-            if #addon.lineRules > 0 then
+            local fixed = def and def.fixed or {}
+            if #addon.lineRules > 0 and fixed.replaceGameLines == nil then
                 items[#items + 1] = {mcmId = 'addon:' .. id .. ':replaceGameLines', label = 'Replace the game\'s own lines', kind = 'bool',
                     value = addon.values.replaceGameLines, default = true,
                     description = 'Silences the game\'s own voice and subtitle lines of ' .. addon.name .. ' (the ones the game plays by itself) so '
@@ -1395,10 +1545,12 @@ function M.settingsSections()
                         .. 'quest, the map and the payment behind them run as always. Where the game\'s voice cannot be stopped, ' .. addon.name
                         .. ' waits for it to end.'}
             end
-            items[#items + 1] = {mcmId = 'addon:' .. id .. ':markLines', label = 'Mark our lines in the subtitles', kind = 'bool',
-                value = addon.values.markLines, default = true,
-                description = 'Adds (AI) after ' .. addon.name .. '\'s name in the subtitles of its own lines, so you can tell them from the '
-                    .. 'game\'s own lines. Turn it off once the game\'s own lines are replaced.'}
+            if fixed.markLines == nil then
+                items[#items + 1] = {mcmId = 'addon:' .. id .. ':markLines', label = 'Mark our lines in the subtitles', kind = 'bool',
+                    value = addon.values.markLines, default = true,
+                    description = 'Adds (AI) after ' .. addon.name .. '\'s name in the subtitles of its own lines, so you can tell them from the '
+                        .. 'game\'s own lines. Turn it off once the game\'s own lines are replaced.'}
+            end
         end
         if #items > 0 or (def and #def.items > 0) then
             for _, item in ipairs(def and def.items or {}) do
@@ -1420,8 +1572,11 @@ local function settingFor(mcmId)
     if key == 'remarkCap' and next(addon.speakers) ~= nil and not (addon.settingsDef and addon.settingsDef.remarkCap == false) then
         return addon, {id = 'remarkCap', kind = 'select', elements = CAPS}
     end
-    if key == 'markLines' and next(addon.speakers) ~= nil then return addon, {id = 'markLines', kind = 'bool'} end
-    if key == 'replaceGameLines' and #addon.lineRules > 0 then return addon, {id = 'replaceGameLines', kind = 'bool'} end
+    local fixed = addon.settingsDef and addon.settingsDef.fixed or {}
+    if key == 'markLines' and next(addon.speakers) ~= nil and fixed.markLines == nil then return addon, {id = 'markLines', kind = 'bool'} end
+    if key == 'replaceGameLines' and #addon.lineRules > 0 and fixed.replaceGameLines == nil then
+        return addon, {id = 'replaceGameLines', kind = 'bool'}
+    end
     if not addon.settingsDef then return nil end
     for _, item in ipairs(addon.settingsDef.items) do if item.id == key then return addon, item end end
     return nil
@@ -1478,6 +1633,7 @@ function M.reset(reason)
     if not M.live then return end
     if flight then pcall(lease, false) end
     flight, queue = nil, {}
+    setHold(nil); setMenus(nil)
     watch, partyKnown, partyDirty = {}, nil, true
     outputsCache = nil
     STOP_REPEAT.pending = {}           -- repeated voice stops hold entity ids of a world that is going away
@@ -1489,6 +1645,9 @@ function M.reset(reason)
         addon.companion, addon.companionOrder, addon.state = {}, {}, nil
         addon.episode, addon.lastRemarkAt, addon.quietUntil, addon.paceUntil = {start = clock, count = 0}, nil, nil, nil
         addon.mutedUntil = nil
+        for _, speaker in pairs(addon.speakers) do
+            if speaker.faceWatched then unwatchFaces[speaker.faceRig] = true; speaker.faceWatched = false end
+        end
     end
     if had then writeState(true) end
     if sessionOpen then sessionOpen = false; emit('sessionEnded', {reason = reason}) end

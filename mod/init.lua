@@ -2522,6 +2522,16 @@ if convaiAddons then
     end
     -- Where an add-on voice is heard from (addons.lua voiceFrom), asked by speech.lua once per add-on reply.
     speech.voiceSource = function(profileKey, player) return convaiAddons.live and convaiAddons.voiceSource(profileKey, player) or nil end
+    -- An add-on speaker's face on a screen (addons.lua faceActor: an NPC filmed for a screen), asked once per add-on reply.
+    speech.faceSource = function(profileKey, player) return convaiAddons.live and convaiAddons.faceActor(profileKey, player) or nil end
+    -- A remark held silent until its moment, and one that plays on while a game menu is open (addons.lua hold / menus): the request id
+    -- speech.lua compares when it decides whether the voice is paused. Plain fields, set on the add-on tick.
+    seams.hold = function(requestId) speech.holdRequest = requestId end
+    seams.menus = function(requestId) speech.menuRequest = requestId end
+    -- The face service (Face.reds), for an add-on's screen-face watch: one call per watch change, never per frame.
+    seams.faceService = function()
+        return Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
+    end
     -- An automatic add-on remark: the same request file, reply path and playback as every other turn.
     seams.submit = function(context, anchor)
         if active or pending or automatic or microphone.context or groupChat.round then return false end

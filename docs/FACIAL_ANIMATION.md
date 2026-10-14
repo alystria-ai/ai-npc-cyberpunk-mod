@@ -4,6 +4,32 @@
 
 > **October 8: world NPCs, on demand (superseded October 14 by "ordinary NPCs get the face at spawn" below; kept as history, the on-demand rebuild never worked).** The layer is no longer companion-only, but nothing is prepared at spawn (FPS): a running `face_rig` cannot change its graph in place, so when a conversation opens `init.lua` calls `NPCPuppet.ConvaiFaceRequest()` on the talk target. `ConvaiFaceService.RequestWorldFace` checks the running face without writing it, queues the NPC's current appearance name and rebuilds that same appearance (`ScheduleAppearanceChange`). The `Entity/Extract` callback prepares the matching appearance-only rebuild, the same seam that replaced Johnny's face on October 2. `ConvaiFaceReady()` then adopts the world NPC from its running graph path; a dynamic entity still needs the `CyberpunkConvaiCompanion` tag. At most two world NPCs keep the layer; a third request rebuilds the oldest back to vanilla. NPCs in a dialogue, quest-owned NPCs (`q###`, `sq###` or `mq###` in the appearance name or TweakDB record), quest-marked or non-autonomous ones, and scene NPCs that are neither vendor nor crowd are never rebuilt (October 9, after a Konpeki receptionist from `q004` was; on October 10 a scene alone stopped blocking vendors, see [WORLD_COMPANIONS.md](WORLD_COMPANIONS.md)). Measured live later on October 10: the same-name appearance change this relies on is a no-op, so no world NPC is prepared (see [WORLD_COMPANIONS.md](WORLD_COMPANIONS.md)). Every other NPC keeps the vanilla graph. In Lua, speech playback writes to whoever `speech.lua` is voicing (`speaker()`), and idle, thinking and listening faces stay on managed companions (`owns()`). Not yet proven in game: that a same-name appearance change really rebuilds `face_rig`, and that the rebuild is not visible. The vanilla graphs offer no zero-cost alternative: their only script input is the `AnimFeature_FacialReaction` mood preset, and vanilla lip sync comes from authored scene/VO animations. Statements below that the layer is for owned companions only date from before this change.
 
+## October 14: a face on a screen (the Delamain cab's seat-back screens; branch `delamain-face`; built, NOT seen in the game)
+
+**How the game animates Delamain on the cab screens (evidence, from the game files with WolvenKit 9.0.1).** The screens show no
+drawn face and no widget animation. A real NPC is filmed: `delamain_taxi.scene` acquires an actor from a spawn set whose entity,
+`delamain_holo` (the `delamain.ent` / `delamain.app` appearances), has a `face_rig` with the vanilla `man_average_sermo` face
+graph on Delamain's own head rig (`base\characters\main_npc\delamain\h0_001_ma_c__delamain\h0_001_ma_c__delamain_skeleton.rig`).
+`delamain_camera.ent` holds an `entRenderToTextureCameraComponent` that renders that NPC into `delamain_rendertexture.dtex`, the
+dynamic texture the seat-back screen widgets show. The mouth moves because the scene's dialogue lines play JALI lip sync from
+`delamain.anims` on that NPC's face rig (the scene's `scnLipsyncAnimSetSRRef`). So the screen face is driven exactly like any
+NPC's face: through its `face_rig` graph.
+
+**What we do.** The NPC's graph is one of the four crowd graphs, so the gated crowd copy (the switch described below) fits it as it
+is: nothing new in the archive. While an add-on watches the rig (`ConvaiFaceService.WatchScreenFace`, from `handle:watchFace`; the
+Delamain add-on watches while a cab exists), `OnWorldInitialize` gives the NPC that spawns with that rig the gated graph and
+remembers its entity ID (`PrepareScreenFace`, checked before the crowd mode and past the named and quest filters, since this one
+character is a named story NPC). Its status is `prepared:man_average_sermo`, so it gets that head's jaw lift. While the add-on
+speaker's line plays, `speech.lua` sends the reply's mouth timeline (re-addressed to the NPC's entity) to `facial-playback.lua`
+for that NPC (`speech.faceSource` → `addons.faceActor`, which returns only the watched NPC, attached and `ConvaiFaceReady`), and the
+expression layer's scene and autonomy guards skip that one entity (`M.screenEntity`): it is a scene actor by nature. At the end
+`reset()` closes the gate and the game's own lip sync owns the face again. Without a watch nothing changes (one array size read per
+NPC spawn).
+
+**What only the game can prove.** That the spawn-set NPC goes through `Entity/Initialize` as an `NPCPuppet` after the cab state
+reaches 1 (when the add-on starts the watch), that its rig passes the 59-track check (`screen:unsupported-rig` otherwise), that a
+render-to-texture camera keeps evaluating our graph, and that the screen shows the mouth in time with our voice.
+
 ## October 14: ordinary NPCs get the face at spawn, behind a switch (branch `npc-lipsync`; built, NOT installed, NOT seen in the game)
 
 Why: the on-demand rebuild never worked (a same-name appearance change is a no-op, see [WORLD_COMPANIONS.md](WORLD_COMPANIONS.md)), and a running `face_rig` cannot change its graph. The only moment the graph can be chosen is the NPC's own spawn. Research and the ranked methods: [ORDINARY_NPC_LIPSYNC_RESEARCH_2026-10-14.md](ORDINARY_NPC_LIPSYNC_RESEARCH_2026-10-14.md), method 1. The user chose to skip the single-vendor proof and build it for every ordinary NPC.
