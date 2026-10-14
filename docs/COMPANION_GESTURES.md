@@ -816,3 +816,7 @@ To check live (Body gestures On, Developer mode for `Gestures` lines in `probe.l
 3. The round ends: each leaves with `reply ended` about 2.5 s later, no second `begin` in between.
 4. Group voice: while you speak, all members nod now and then, the first one 3 s or later into your speech.
 5. A fourth companion beside you who is not in the round does not take the stance, nods or exits.
+
+## Round 11 (October 15): an idle that walks the body away from a still V
+
+Live 2026-10-14 (Alex, V standing still the whole time): her idle workspot convai_idle_generic_hips (vanilla emale__stand_around__02) carried her body 0.7 m at +25 s and 2 m at +30 s into the idle (1.2 to 2 m/s, the follow command hold already Interrupted, no mod walk, no teleport); idle_alex and idle_jackie_hips never moved her. The idle scheduler (45 to 90 s idle, 20 to 45 s gap) made the slides recur. policy.travellingIdles (generic_hips) is never picked; and an idle flavour whose body moves more than policy.driftExit (0.45 m) from where the workspot began, V still, is left at once (drift-exit line, inished reason drifted) and its idle key is not picked again this session (self.travelling). 15 to 25 cm of settling stays. V walking away still ends every idle with movement.
