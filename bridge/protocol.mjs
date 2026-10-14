@@ -98,12 +98,16 @@ export function isAmbientProfile(key) {
 // memoryKey: the record of a one-shop vendor ("wat_kab_ripperdoc_01"), the identity its conversations are remembered under.
 const ARCHETYPE_FIELDS = ['base', 'category', 'title', 'affiliation', 'vendorType', 'district', 'area', 'memoryKey'];
 const ARCHETYPE_VALUE = /^[A-Za-z0-9][A-Za-z0-9 _.'-]{0,63}$/;
+// npcName: the Night City name the game side gave a nameless ordinary NPC (mod/npc-names.lua, docs/NPC_NAMES.md): letters of any
+// script, spaces, apostrophes (a street handle sits between them: Rico 'Chrome' Alvarez), hyphens and dots, 60 characters at most.
+const NPC_NAME = /^\p{L}[\p{L}\p{M} '.\-]{0,59}$/u;
 export function parseArchetype(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const result = {};
   for (const field of ARCHETYPE_FIELDS) {
     if (typeof value[field] === 'string' && ARCHETYPE_VALUE.test(value[field])) result[field] = value[field];
   }
+  if (typeof value.npcName === 'string' && NPC_NAME.test(value.npcName.trim())) result.npcName = value.npcName.trim();
   return Object.keys(result).length ? result : null;
 }
 
@@ -127,7 +131,11 @@ export function archetypeContext(input) {
   const facts = input.archetype ?? {};
   const lines = [];
   const label = typeof input.name === 'string' && input.name.trim() ? input.name.trim().slice(0, 60) : null;
-  if (facts.title) lines.push(`You are an unnamed ${facts.title}${label ? `; the game labels you "${label}"` : ''}.`);
+  if (facts.npcName) {
+    // A named passer-by: the same name the scanner shows. It is only a name; nothing about this person is a story.
+    lines.push(`Your name is ${facts.npcName}. Say it when someone asks who you are or what to call you, and never change it.`);
+    lines.push(facts.title ? `You are an ordinary ${facts.title}, not a story character.` : 'You are an ordinary person, not a story character.');
+  } else if (facts.title) lines.push(`You are an unnamed ${facts.title}${label ? `; the game labels you "${label}"` : ''}.`);
   else if (label) lines.push(`The game labels you "${label}". You are an ordinary person, not a story character.`);
   if (facts.category === 'corpo-security' && facts.affiliation) {
     lines.push(`Your employer: ${AFFILIATION_NAMES[facts.affiliation] ?? placeName(facts.affiliation)}.`);

@@ -188,6 +188,8 @@ return {
     ["Ready · Unsaved selection"] = "Готово · Выбор не сохранён",
     ["Relationships"] = "Отношения",
     ["Talk to ordinary NPCs"] = "Разговоры с обычными NPC",
+    ["Names for passers-by"] = "Имена для прохожих",
+    ["Pedestrians, shopkeepers and gang members the game leaves nameless get a Night City name. The scanner shows it and they tell you when you ask.\n\nThe name fits who they are: a Valentino sounds different from a corpo. Story characters and your companions keep their own names."] = "Прохожие, торговцы и члены банд, которых игра оставляет без имени, получают имя из Найт-Сити. Сканер показывает его, и они назовут его, если спросишь.\n\nИмя подходит тому, кто они такие: Валентино звучит не так, как корпо. Сюжетные персонажи и твои спутники сохраняют свои имена.",
     ["Conversation: {name} (archetype)"] = "Разговор: {name} (архетип)",
     ["{count} of them can talk."] = "Из них могут говорить: {count}.",
     ["Releasing local voice memory"] = "Освобождение памяти локальных голосов",

@@ -188,6 +188,8 @@ return {
     ["Ready · Unsaved selection"] = "就绪 · 选择未保存",
     ["Relationships"] = "关系",
     ["Talk to ordinary NPCs"] = "与普通 NPC 对话",
+    ["Names for passers-by"] = "路人姓名",
+    ["Pedestrians, shopkeepers and gang members the game leaves nameless get a Night City name. The scanner shows it and they tell you when you ask.\n\nThe name fits who they are: a Valentino sounds different from a corpo. Story characters and your companions keep their own names."] = "游戏中没有名字的路人、店主和帮派成员会获得一个夜之城风格的名字。扫描器会显示它，你询问时他们也会自己报上名字。\n\n名字与身份相称：瓦伦蒂诺帮成员和公司职员的名字听起来不同。剧情角色和你的同伴保留各自原本的名字。",
     ["Conversation: {name} (archetype)"] = "对话：{name}（原型）",
     ["{count} of them can talk."] = "其中 {count} 个可以对话。",
     ["Releasing local voice memory"] = "正在释放本地语音模型内存",

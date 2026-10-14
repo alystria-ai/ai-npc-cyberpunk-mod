@@ -602,7 +602,8 @@ local function currentDistrict()
     return {district = top, area = local_ ~= top and local_ or nil}
 end
 
-local function profileIdentity(npc)
+-- forceFacts: read the TweakDB facts even when "Talk to ordinary NPCs" is off (the scanner names, mod/npc-names.lua).
+local function profileIdentity(npc, forceFacts)
     local managedKey, managedName, owned = companions.identity(npc)
     local name = managedName or tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
     local body = tostring(npc:GetBodyType() or '')
@@ -613,7 +614,7 @@ local function profileIdentity(npc)
     -- conversation profile at all (character-catalog.lua resolve); only the spawned copy talks.
     local actor = {managedKey = managedKey, name = name, world = managedKey == nil,
         bodyType = body, record = recordOk and record or '', crowd = crowdOk and crowd}
-    if not managedKey and type(manager.archetypeConversations) == 'function' and manager.archetypeConversations() then
+    if not managedKey and (forceFacts or (type(manager.archetypeConversations) == 'function' and manager.archetypeConversations())) then
         local idOk, entity = pcall(function() return tostring(npc:GetEntityID().hash) end)
         actor.facts = archetypeFacts(npc, idOk and entity or nil, body)
     end
@@ -833,6 +834,48 @@ local function log(line)
         or entry:find('[Ss]hut') or entry:find('[Cc]rash') then convaiLogFlush() end
     print('[CyberpunkConvai] ' .. line)
 end
+-- Names for nameless ordinary NPCs (docs/NPC_NAMES.md, mod/npc-names.lua). One generator serves the scanner and the talk path.
+-- The gate is the rule above: not ours, not protected (named, quest-bound, story record), a resolved ordinary profile (an archetype
+-- or the two residents), an adult human. Read on demand (a scan, a conversation start), never per frame.
+do
+    local loaded, module = pcall(dofile, 'npc-names.lua')
+    if loaded and type(module) == 'table' and type(module.new) == 'function' then
+        local built, service = pcall(module.new, {
+            enabled = function() return type(manager.npcNames) == 'function' and manager.npcNames() == true end,
+            entity = function(npc)
+                local ok, id = pcall(function() return tostring(npc:GetEntityID().hash) end)
+                return ok and id or nil
+            end,
+            inCombat = function(npc)
+                local ok, fighting = pcall(function() return NPCPuppet.IsInCombat(npc) end)
+                return ok and fighting == true
+            end,
+            inspect = function(npc)
+                return module.ordinary({
+                    ours = convaiWorldPolicy.ours, protected = convaiWorldPolicy.protected,
+                    identify = function(target)
+                        local key, _, body, archetype = profileIdentity(target, true)
+                        local idOk, entity = pcall(function() return tostring(target:GetEntityID().hash) end)
+                        return key, archetype, archetypeFacts(target, idOk and entity or nil, body)
+                    end,
+                    ordinaryKey = function(key) return archetypes.keys[key] ~= nil or key == 'resident-male' or key == 'resident-female' end,
+                    gender = function(facts) return type(characterCatalog.gender) == 'function' and characterCatalog.gender(facts) or nil end,
+                    appearance = function(target)
+                        local ok, appearance = pcall(function() return nameString(target:GetCurrentAppearanceName()) end)
+                        return ok and appearance or nil
+                    end,
+                }, npc)
+            end,
+            apply = function(npc, name)
+                local ok, applied = pcall(function() return npc:ConvaiApplyScannerName(name) end)
+                return ok and applied == true
+            end,
+            log = function(line) log(line) end,
+        })
+        if built then convaiNpcNames = service else log('NPC names unavailable: ' .. tostring(service)) end
+    end
+end
+
 -- Managed companions crouch and stand with V (mod/companion-stance.lua). The hook is installed in onInit.
 local stanceModule, stanceBuilt = nil, nil
 do
@@ -1470,6 +1513,10 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         primary.archetype = archetype or {category = 'resident'}
         local place = currentDistrict()
         if place then primary.archetype.district, primary.archetype.area = place.district, place.area end
+        -- A nameless ordinary NPC gets its Night City name (the same one the scanner shows); the caption, the composer and the
+        -- bridge's "Your name is ..." line use it. Nil with the setting off or for anyone the gate refuses.
+        local generated = convaiNpcNames and convaiNpcNames.nameFor(npc, 'talk') or nil
+        if generated then primary.name, primary.archetype.npcName = generated, generated end
         log('Archetype conversation: profile=' .. key .. ' base=' .. tostring(primary.archetype.base)
             .. ' district=' .. tostring(primary.archetype.district))
     end
@@ -2747,6 +2794,10 @@ registerForEvent('onInit', function()
         return companions.ownsTravelCommand(npc, command)
     end)
     if stanceModule then stanceModule.install(stanceBuilt, log) end
+    if convaiNpcNames then
+        local hooked, hookError = pcall(convaiNpcNames.install, ObserveAfter)
+        if not hooked then log('NPC name scanner hook failed: ' .. tostring(hookError)) end
+    end
     dofile('composer-input.lua').install()
     dofile('phone-input.lua').install()
     phoneLayout.install()
