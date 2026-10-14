@@ -327,6 +327,10 @@ function M.new(options)
         -- Demands (a turn is coming) always rescan. Without events nothing changes: a cycle every refreshSeconds.
         verifySeconds = bounded(options.verifySeconds, 120, 5, 3600), changeSeq = 0, eventDriven = false,
         newEncoder = options.newEncoder,
+        -- Witness receipts (docs/QUEST_DECISIONS.md 4.3): both optional and set from outside (init.lua). With edgesWanted absent or
+        -- false a scan tracks nothing. lastKnown is the last value seen per 'fact:'/'journal:' key, only kept while tracking; baselined
+        -- says a tracked scan has completed since the last reset (the first one only records, it makes no edges).
+        edgesWanted = options.edgesWanted, onEdges = options.onEdges, lastKnown = {},
         journalDepth = math.floor(bounded(options.journalDepth, 12, 1, 16)),
         serial = 0, revision = 0, stamps = {}, reason = 'not-configured'}, Collector)
 end
@@ -338,6 +342,7 @@ function Collector:reset(generation, reason, worldToken)
     self.forced, self.encoding = nil, nil
     -- Journal timestamps belong to this world only; key -> {value, seconds}.
     self.stamps = {}
+    self.lastKnown, self.baselined = {}, false
     self.reason = reason or 'world-reset'
 end
 
@@ -400,6 +405,21 @@ local function factObservation(value, proof, key, job, index)
     return {status = 'known', value = value, present = true, sourceId = 'native-quests-system', evidenceRefs = refs}
 end
 
+-- A known value seen by a tracked job. A fact is an edge when it is non-zero and differs from the last scan's (missing counts as 0), a
+-- journal state when it differs (missing counts as different). The first tracked scan after a reset only records a baseline. An unknown
+-- observation never reaches here, so a read that failed once and then returns the same value is no edge.
+local MAX_EDGES = 48
+local function noteValue(self, job, kind, key, value)
+    local slot = kind .. ':' .. key
+    local before = self.lastKnown[slot]
+    job.updates[slot] = value
+    if job.baseline or #job.edges >= MAX_EDGES then return end
+    if kind == 'fact' then
+        if value == (before or 0) then return end
+    elseif value == before then return end
+    job.edges[#job.edges + 1] = {type = kind, key = key, value = value}
+end
+
 function Collector:progress()
     local job = self.job
     return {status = job and 'collecting' or (self.cache and 'ready' or 'unavailable'), reason = self.reason,
@@ -432,6 +452,17 @@ function Collector:update(context)
         self.serial = self.serial + 1
         self.job = {generation = generation, worldToken = worldToken, serial = self.serial, cursor = 1, started = now,
             seq = self.changeSeq, facts = {}, journal = {}, active = {}, lifepath = unknown('lifepath-unavailable')}
+        -- Witness receipts: one boolean per scan. A tracked job compares each known value with the last scan's (lastKnown, which the
+        -- job only reads) and commits its own values to it when it publishes, so a scan that is dropped half way loses nothing.
+        if self.edgesWanted then
+            local okWanted, wanted = pcall(self.edgesWanted)
+            if okWanted and wanted == true then
+                self.job.track, self.job.baseline, self.job.edges, self.job.updates = true, not self.baselined, {}, {}
+            elseif self.baselined then
+                -- Tracking was switched off: what was remembered is stale, so the next tracked scan starts over as a baseline.
+                self.lastKnown, self.baselined = {}, false
+            end
+        end
         self.forced, self.encoding = nil, nil
     end
     local job, total = self.job, #self.config.facts + #self.config.journal + 1
@@ -450,6 +481,10 @@ function Collector:update(context)
             local key = self.config.facts[index].key
             local ok, value, proof = pcall(self.adapter.readFact, key, generation)
             job.facts[key] = ok and factObservation(value, proof, key, job, index) or unknown('fact-read-failed')
+            if job.track then
+                local seen = job.facts[key]
+                if seen.status == 'known' and seen.value ~= 0 then noteValue(self, job, 'fact', key, seen.value) end
+            end
         elseif index <= #self.config.facts + #self.config.journal then
             local row = self.config.journal[index - #self.config.facts]
             local stamp = self.stamps[row.key]
@@ -468,6 +503,7 @@ function Collector:update(context)
                     sourceId = 'native-journal-manager', evidenceRefs = refs,
                     gameTimeSeconds = stamp and stamp.value == observation.value and stamp.seconds or nil}
                 if observation.isQuest == true and observation.value == 'active' then job.active[row.questKey] = true end
+                if job.track then noteValue(self, job, 'journal', row.key, observation.value) end
             else
                 job.journal[row.key] = unknown(ok and 'journal-not-revealed' or 'journal-read-failed')
             end
@@ -520,6 +556,12 @@ function Collector:update(context)
             local ok, facts = pcall(self.newEncoder, data.facts)
             local ok2, journal = pcall(self.newEncoder, data.journal)
             if ok and ok2 and facts and journal then self.encoding = {cache = self.cache, facts = facts, journal = journal} end
+        end
+        -- Witness receipts: the scan is published; remember what it saw and hand any new edges over, once, never raising.
+        if job.track then
+            for slot, value in pairs(job.updates) do self.lastKnown[slot] = value end
+            self.baselined = true
+            if not job.baseline and #job.edges > 0 and self.onEdges then pcall(self.onEdges, job.edges) end
         end
     end
     return self:progress()

@@ -138,6 +138,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/game-dialogue.lua"
         },
         {
+          "source": "mod/witness-receipts.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/witness-receipts.lua"
+        },
+        {
           "source": "mod/player-gear.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/player-gear.lua"
         },
@@ -673,6 +677,7 @@
             "bridge/voice-variants.mjs",
             "bridge/voxtral-reference.mjs",
             "bridge/voxtral-voice.mjs",
+            "bridge/witness-receipts.mjs",
             "bridge/world-knowledge.mjs",
             "bridge/world-session.mjs",
             "bridge/youtube-tv-host.mjs",

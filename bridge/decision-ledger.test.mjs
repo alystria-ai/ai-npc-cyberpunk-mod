@@ -183,8 +183,30 @@ test('one log line per outcome proves the choice hook: the first three recorded 
   const lines = raw.split('\n');
   assert.equal(lines.filter(line => /choice recorded/.test(line)).length, 3);
   assert.match(lines[0], /^Game dialogue: choice recorded #1 \(index=0 hub=7 options=3 channel=scene present=1 chars=18 ledger=on\)$/);
-  assert.equal(lines.filter(line => /choice not recorded \(not-dialogue\)/.test(line)).length, 1);
+  assert.equal(lines.filter(line => /choice not recorded \(not-dialogue/.test(line)).length, 1);
   assert.doesNotMatch(raw, /Tell her the truth/);
+});
+
+test('the not-dialogue proof line names the visualizer and success of the pick, never option text, and the skip itself is unchanged', () => {
+  const raw = lua$(`
+    N.dialogChoice = function() return false end
+    local ok, reason = dialogue:choice({isSuccess = false, visualizerType = {value = 'Interaction'}, choice = {caption = 'Secret option text'}})
+    assert(ok == false and reason == 'not-dialogue' and dialogue:status().skipped['not-dialogue'] == 1)
+    dialogue:choice({isSuccess = true, visualizerType = 'Dialog'})
+    local function fresh() return api.new({native = N, now = function() return now end, enabled = function() return true end, resolve = function() end,
+      resolveName = function() end, contactKey = function() end, present = function() return {} end, log = function(m) logs[#logs + 1] = m end}) end
+    fresh():choice({visualizerType = setmetatable({}, {__tostring = function() return string.rep('x', 40) .. '\\nline' end})})
+    fresh():choice({})
+    fresh():choice(setmetatable({}, {__index = function() error('native read failed') end}))
+    RESULT = table.concat(logs, '\\n')
+  `);
+  const lines = raw.split('\n');
+  assert.equal(lines.length, 4, raw);
+  assert.equal(lines[0], 'Game dialogue: choice not recorded (not-dialogue visualizer=Interaction success=false)');
+  assert.equal(lines[1], 'Game dialogue: choice not recorded (not-dialogue visualizer=' + 'x'.repeat(24) + ' success=?)');
+  assert.equal(lines[2], 'Game dialogue: choice not recorded (not-dialogue visualizer=? success=?)');
+  assert.equal(lines[3], 'Game dialogue: choice not recorded (not-dialogue visualizer=? success=?)');
+  assert.doesNotMatch(raw, /Secret option text/);
 });
 
 test('the setting defaults to off, is a boolean, and is exposed to the bridge snapshot', () => {

@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "builtAt": "2026-10-14T08:38:43.022Z",
+  "builtAt": "2026-10-14T20:38:42.836Z",
   "errors": [],
-  "enabledRules": 778,
-  "citedArtifacts": 774,
-  "verifiedEvidencePointers": 9263,
+  "enabledRules": 782,
+  "citedArtifacts": 777,
+  "verifiedEvidencePointers": 9270,
   "outcomesResearched": 1162,
-  "jsonHashBoundPointers": 9263,
+  "jsonHashBoundPointers": 9270,
   "legacyJsonPointers": 0,
-  "outcomesWithReviewedRules": 758,
-  "outcomesUnmapped": 404,
+  "outcomesWithReviewedRules": 762,
+  "outcomesUnmapped": 400,
   "verified": [
     {
       "evidenceId": "al5.ev.wartime.tracking-switch",
@@ -12805,6 +12805,72 @@
       "depotPath": "ep1\\quest\\ep1.questphase"
     },
     {
+      "evidenceId": "db.ev.fact.q112_08_oda_spared.6900f651ae88",
+      "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/part1/q112/scenes/q112_08_parade_speech.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/questNode/Data/type/Data",
+      "assetSha256": "c73b0c60e531c80042484895c9e75eb338dd49a7bea1318449d5e2e747518d1e",
+      "jsonSha256": "3a8d51c1428f5afa58f950123fc0a285983093990a7e5cc3720d5b6269f90e9a",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "c2ba5ca5f6c2901d784f1e7c85cf9eeaa1a49eb3",
+      "depotPath": "base\\quest\\main_quests\\part1\\q112\\scenes\\q112_08_parade_speech.scene"
+    },
+    {
+      "evidenceId": "db.ev.fact.q003_militech_invades.0c2df584713e",
+      "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_03a_militech_invades.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data/questNode/Data/type/Data",
+      "assetSha256": "500d73e1c984cd3aa75d70686d341dd185b1d4f85ca1213d27a3a018c5e8f742",
+      "jsonSha256": "bce4cf751c76d6cb6769ccbe4bf396c40deb2e73c680489d2b08361801bff4c1",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "f4ad1177d613e2e3e6c6406eb5a15740cce5d52b",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_03a_militech_invades.scene"
+    },
+    {
+      "evidenceId": "db.ev.fact.q003_militech_invades.594ec3bbf1ba",
+      "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/q003.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/45/Data/phaseGraph/Data/nodes/24/Data/type/Data",
+      "assetSha256": "17381eca9d97f8b47626d6901084b0db5c5c7f5ebe79567b950436a7188b1f07",
+      "jsonSha256": "18befc6f0d615d9ba048c27024ad2943c65b2d17d823a3839506636ea8fa6a56",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "4940812fce8f6e149c9481b2743da811c14f840f",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q003\\q003.questphase"
+    },
+    {
+      "evidenceId": "db.ev.fact.q003_royce_dead.301e13f5f843",
+      "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_03_deal.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/371/Data/questNode/Data/type/Data",
+      "assetSha256": "bdf35602e6e3b5ccca2f3a2c51a3a6deee48fa2a7239a2154a237f26a9729dd7",
+      "jsonSha256": "aacaea7eb76c54ad741ab2f1b017eae2248de61b5d690bc99bf95a077684498f",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "66c20643d51f1a414a46dda3c0ff7ffbf96270f1",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_03_deal.scene"
+    },
+    {
+      "evidenceId": "db.ev.fact.q003_royce_dead.27b18d5447d5",
+      "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_04d_shootout_militech.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/59/Data/questNode/Data/type/Data",
+      "assetSha256": "2b5fc7f0f2002e77d5617e2f50c7796c9ac39c8c9e274c66c6fa9047e26bf30a",
+      "jsonSha256": "2065e6ece770f90cbce508318e08243c5b47ad2252b559d044e65aaab8edea3c",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "4435c19e4fbcf333f8563db5cbb8bd8b0aa3216a",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_04d_shootout_militech.scene"
+    },
+    {
+      "evidenceId": "db.ev.fact.q003_royce_dead.aa9f089089bb",
+      "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-phases/raw/base/base/quest/main_quests/prologue/q003/phases/q003_royce_bossfight.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/31/Data/type/Data",
+      "assetSha256": "f464e4dffc802a6ec6066b926c7da0c2a5b9d6dd58d6ace57f5ee78a5e82b7dc",
+      "jsonSha256": "ed3584d0291a66b5172ac27b876759b89b3ec05d24b0b562a0c6d67ccf03ce70",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "692024131f0fd5087b674442b6f2e8f86fe73f1e",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q003\\phases\\q003_royce_bossfight.questphase"
+    },
+    {
       "evidenceId": "db.ev.fact.ina_02_big_pete_dead.7095410f12cf",
       "jsonPath": "scene-evidence/al5-09/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_02/phases/sts_bls_ina_02_ow.questphase.json",
       "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/phaseGraph/Data/nodes/2/Data/type/Data",
@@ -12946,6 +13012,17 @@
       "archive": "ep1",
       "archiveEntrySha1": "ba5e46817ae00c61f793d58d0defbf3b36eeb2ac",
       "depotPath": "ep1\\quest\\main_quests\\q302\\scenes\\q302_04_squot.scene"
+    },
+    {
+      "evidenceId": "db.ev.fact.sts_ep1_06_testimony_agree.aa3155bdf7ba",
+      "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/scenes/sts_ep1_06_george.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/questNode/Data/type/Data",
+      "assetSha256": "fdc9745062d7de81f22ca44dc2ddb118297f7c531ccef8aa2e4ff8642cba816c",
+      "jsonSha256": "b05d8b79aa8828daaa027be28b03e7a92a178580d67bed606cfdddbd18731fff",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "27cc0b4d921d2493be957c4271f6c16c0ccc21b1",
+      "depotPath": "ep1\\openworld\\street_stories\\sts_ep1_06_zembinsky\\scenes\\sts_ep1_06_george.scene"
     },
     {
       "evidenceId": "db.ev.fact.mq040_gangers_scene_done.a8b417bcf86d",
@@ -102192,7 +102269,9 @@
       "decisionId": "aldecaldos.queen.romance",
       "questKey": "queen-of-the-highway",
       "outcomeKey": "platonic",
-      "rules": []
+      "rules": [
+        "db.queen-friendship-hook"
+      ]
     },
     {
       "decisionId": "aldecaldos.queen.defense",
@@ -103724,7 +103803,9 @@
       "decisionId": "arasaka-heist.royce-fate",
       "questKey": "the-pickup",
       "outcomeKey": "killed-by-militech",
-      "rules": []
+      "rules": [
+        "db.royce-downed-by-militech"
+      ]
     },
     {
       "decisionId": "arasaka-heist.royce-fate",
@@ -104140,7 +104221,9 @@
       "decisionId": "arasaka-heist.oda-fate",
       "questKey": "play-it-safe",
       "outcomeKey": "spared",
-      "rules": []
+      "rules": [
+        "db.oda-spared"
+      ]
     },
     {
       "decisionId": "arasaka-heist.oda-fate",
@@ -109820,7 +109903,9 @@
       "decisionId": "phantom.hearts.testimony",
       "questKey": "gig-heaviest-of-hearts",
       "outcomeKey": "anonymized",
-      "rules": []
+      "rules": [
+        "db.hearts-testimony-anonymized"
+      ]
     },
     {
       "decisionId": "phantom.hearts.discretion",
@@ -111515,11 +111600,27 @@
         "qualification": "exact"
       },
       {
+        "ruleId": "db.hearts-testimony-anonymized",
+        "decisionId": "phantom.hearts.testimony",
+        "outcomeKey": "anonymized",
+        "nativeTopic": "maldonado.testimony",
+        "catalogTopic": "maldonado.testimony",
+        "qualification": "exact"
+      },
+      {
         "ruleId": "db.lucretia-oath-sworn",
         "decisionId": "phantom.lucretia.oath",
         "outcomeKey": "sworn",
         "nativeTopic": "v.nusa.oath",
         "catalogTopic": "v.nusa.oath",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "db.oda-spared",
+        "decisionId": "arasaka-heist.oda-fate",
+        "outcomeKey": "spared",
+        "nativeTopic": "oda.fate",
+        "catalogTopic": "oda.fate",
         "qualification": "exact"
       },
       {
@@ -111539,6 +111640,17 @@
         "qualification": "exact"
       },
       {
+        "ruleId": "db.queen-friendship-hook",
+        "decisionId": "aldecaldos.queen.romance",
+        "outcomeKey": "platonic",
+        "nativeTopic": "aldecaldos.panam-basilisk-intimacy",
+        "catalogTopic": "panam.romance",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "mutually-exclusive-stance",
+        "ruleSha256": "763b23cd015bf4718ee0c7792b2c3f325e79cc523cabcd41a2a1d48d1e49788c",
+        "reviewRef": "native-reviews/queen-friendship-alias-20261015.md"
+      },
+      {
         "ruleId": "db.river-intimate",
         "decisionId": "judy-river.following.relationship",
         "outcomeKey": "intimate",
@@ -111552,6 +111664,14 @@
         "outcomeKey": "heard",
         "nativeTopic": "river.parents_disclosure",
         "catalogTopic": "river.parents_disclosure",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "db.royce-downed-by-militech",
+        "decisionId": "arasaka-heist.royce-fate",
+        "outcomeKey": "killed-by-militech",
+        "nativeTopic": "maelstrom.royce.fate",
+        "catalogTopic": "maelstrom.royce.fate",
         "qualification": "exact"
       },
       {
@@ -116780,13 +116900,18 @@
         "qualification": "exact"
       }
     ],
-    "exactMatches": 734,
-    "reviewedAliases": 44,
+    "exactMatches": 737,
+    "reviewedAliases": 45,
     "reviewDocuments": [
       {
         "reference": "native-reviews/topic-identity-audit-oct03.md",
         "sha256": "ff796c45f250db2bdb9b04b3e36b8bf096e542818ace10c324098b8a6c484149",
         "bytes": 8452
+      },
+      {
+        "reference": "native-reviews/queen-friendship-alias-20261015.md",
+        "sha256": "1407655c1e0a8bd1ef6d61ff894111539771414a0069b46ea3b54f2003884db0",
+        "bytes": 2598
       },
       {
         "reference": "native-reviews/judy-river-oct01.md",

@@ -85,12 +85,13 @@ function freshSnapshot(snapshot, binding, route, now) {
 export class PlayerKnowledge {
   #prepared = new WeakMap();
 
-  constructor({playerMemory, pack, questCatalog = [], now = Date.now, isWorldCurrent, getBoundary, selectProfile, decisionLedger} = {}) {
+  constructor({playerMemory, pack, questCatalog = [], now = Date.now, isWorldCurrent, getBoundary, selectProfile, decisionLedger, witnessReceipts} = {}) {
     if (!playerMemory || typeof playerMemory.route !== 'function' || typeof playerMemory.isCurrent !== 'function'
         || typeof now !== 'function' || isWorldCurrent !== undefined && typeof isWorldCurrent !== 'function'
         || getBoundary !== undefined && typeof getBoundary !== 'function'
         || !isWorldCurrent && !getBoundary || selectProfile !== undefined && typeof selectProfile !== 'function'
-        || decisionLedger !== undefined && typeof decisionLedger !== 'function') fail('INVALID_CONFIGURATION');
+        || decisionLedger !== undefined && typeof decisionLedger !== 'function'
+        || witnessReceipts !== undefined && typeof witnessReceipts !== 'function') fail('INVALID_CONFIGURATION');
     if (!validateKnowledgePack(pack).ok) fail('INVALID_REVIEWED_PACK');
     this.playerMemory = playerMemory; this.pack = freeze(clone(pack));
     // The frozen copy is immutable; prepare it once here rather than per turn.
@@ -100,6 +101,8 @@ export class PlayerKnowledge {
     this.isWorldCurrent = isWorldCurrent; this.getBoundary = getBoundary; this.selectProfile = selectProfile;
     // Optional: () => the parsed runtime/decision-ledger.json (bridge/game-dialogue.mjs). Absent, the ledger costs nothing and changes nothing.
     this.decisionLedger = decisionLedger;
+    // Optional: () => the parsed runtime/witness-receipts.json (bridge/witness-receipts.mjs). Absent, nothing changes.
+    this.witnessReceipts = witnessReceipts;
   }
 
   #boundary() {
@@ -249,8 +252,15 @@ export class PlayerKnowledge {
             gameTimeSeconds: snapshot.gameTimeSeconds, profileKey: route.profileKey}));
         } catch { picks = ''; }
       }
+      let receipts;
+      if (this.witnessReceipts) {
+        try {
+          const value = this.witnessReceipts();
+          if (value) receipts = {receipts: value, worldToken: binding.worldToken, gameTimeSeconds: snapshot.gameTimeSeconds};
+        } catch { receipts = undefined; }
+      }
       const projection = resolveKnowledge({pack: this.pack, snapshot: {...snapshot, identity: {status: 'unknown'}},
-        profileKey: route.profileKey, query: frozen.text, maxChars: 8000 - (picks ? picks.length + 1 : 0)});
+        profileKey: route.profileKey, query: frozen.text, maxChars: 8000 - (picks ? picks.length + 1 : 0), witnessReceipts: receipts});
       if (projection.diagnostics.status === 'ready') {
         knowledgeContext = picks ? projection.context + '\n' + picks : projection.context; sharedEvents = projection.shared;
       }

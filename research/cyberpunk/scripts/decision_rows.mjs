@@ -18,6 +18,7 @@ import {createInterface} from 'node:readline';
 import {createHash} from 'node:crypto';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {nativeRuleAuthorHash} from './narrative_topic_identity.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url)), research = resolve(here, '..'), root = resolve(research, '../..');
 const identifier = v => typeof v === 'string' && v.length <= 160 && /^[a-z0-9][a-z0-9_.-]*$/u.test(v);
@@ -27,6 +28,7 @@ const PERSPECTIVES = new Set(['participant', 'witnessed', 'private', 'told-by-v'
 const CHANNELS = new Set(['private', 'phone', 'group']);
 const FACT_OPS = new Set(['eq', 'ne', 'gte', 'lte', 'in']);
 const JOURNAL_STATES = new Set(['inactive', 'active', 'succeeded', 'failed']);
+const ALIAS_POLICIES = new Set(['identity-preserving-namespace', 'compatible-facet', 'compatible-stage', 'mutually-exclusive-stance']);
 
 /** Leaves of a condition tree, depth-first. */
 export function leaves(node, out = []) {
@@ -89,6 +91,16 @@ export function validateSpec(spec, {decisions, profiles, journals, facts = {}}) 
     if (!PERSPECTIVES.has(row.perspective)) errors.push(`${where}: perspective`);
     if (row.channels !== undefined && !(Array.isArray(row.channels) && row.channels.length && row.channels.every(c => CHANNELS.has(c)))) errors.push(`${where}: channels`);
     if (typeof row.notes !== 'string' || row.notes.length < 20) errors.push(`${where}: notes (why this reading is right, or why it is unverified)`);
+    // A row whose decision already has rules under a reviewed topic alias names its native topic and the reviewed alias that joins it
+    // (narrative_topic_identity.mjs refuses a canonical-topic rule next to an alias domain, and a native topic without an alias).
+    if (row.topic !== undefined || row.topicAlias !== undefined) {
+      const alias = row.topicAlias;
+      if (!identifier(row.topic) || row.topic === decision.topic) errors.push(`${where}: topic must be a native topic different from the catalog topic ${decision.topic}`);
+      if (!alias || !ALIAS_POLICIES.has(alias.policy) || typeof alias.rationale !== 'string' || !alias.rationale.trim() || alias.rationale.length > 1200
+        || !/^native-reviews\/[a-z0-9-]+\.md$/u.test(alias.reviewRef || '')) errors.push(`${where}: topicAlias needs a policy, a rationale and a native-reviews/<name>.md reviewRef`);
+      if (row.status !== 'verified') errors.push(`${where}: only a verified row joins a topic domain`);
+    }
+    if (row.liveCheck !== undefined && (typeof row.liveCheck !== 'string' || row.liveCheck.length < 20)) errors.push(`${where}: liveCheck`);
     if (row.status === 'verified') {
       if (row.perspective === 'told-by-v') errors.push(`${where}: a told-by-v rule needs a disclosure receipt, not a save fact`);
       checkCondition(row.condition, errors, where, {facts, journals});
@@ -184,12 +196,12 @@ export function buildLane({spec, pack, decisions, writers, id, saveNotes = {}}) 
     const link = [{decisionId: row.decisionId, outcomeKey: row.outcomeKey}];
     const audience = {speakers: [...row.speakers], perspective: row.perspective, channels: row.channels || ['private', 'phone'],
       recipients: ['v', ...new Set(row.recipients || row.speakers)].filter((v, i, a) => a.indexOf(v) === i)};
-    const common = {id: row.id, revision: 1, questKey: decision.questKey, topic: decision.topic, outcome: row.outcomeKey};
+    const common = {id: row.id, revision: 1, questKey: decision.questKey, topic: row.topic ?? decision.topic, outcome: row.outcomeKey};
     if (row.status === 'unverified') {
       rules.push({id: row.id, status: 'candidate', questKey: decision.questKey, narrativeLinks: link,
         notes: `Unverified candidate, not executable. ${row.unverifiedBecause} ${row.notes}`,
         candidate: {statement: row.statement, audience, condition: row.condition ?? null, category: 'decision',
-          saves: saveNotes[row.id] ?? null}});
+          saves: saveNotes[row.id] ?? null, ...(row.liveCheck ? {liveCheck: row.liveCheck} : {})}});
       continue;
     }
     const refs = new Set();
@@ -261,9 +273,30 @@ async function main() {
     if (needExports.length) console.error(`Export these first (extract_scene_evidence.py, resource kind by extension):\n${needExports.join('\n')}`);
     process.exitCode = 1; return;
   }
-  if (!process.argv.includes('--check')) await writeFile(outPath, JSON.stringify(lane, null, 2) + '\n');
+  // Reviewed topic aliases for the rows that join an existing topic domain. The alias pins the rule's hash, so it is derived here from
+  // the lane just built; a hand edit of a row changes the hash and the pack build then refuses the stale alias.
+  const aliasPath = resolve(research, 'native-topic-aliases.json'), aliasDocument = await read(aliasPath), aliasErrors = [];
+  const wanted = spec.rows.filter(row => row.status === 'verified' && row.topicAlias).map(row => {
+    const rule = lane.rules.find(candidate => candidate.id === row.id), decision = decisions.get(row.decisionId);
+    if (!existsSync(resolve(research, row.topicAlias.reviewRef))) aliasErrors.push(`${row.id}: review note ${row.topicAlias.reviewRef} does not exist`);
+    return {ruleId: row.id, decisionId: row.decisionId, outcomeKey: row.outcomeKey, nativeTopic: row.topic, catalogTopic: decision.topic,
+      ruleSha256: nativeRuleAuthorHash(rule), policy: row.topicAlias.policy, rationale: row.topicAlias.rationale,
+      reviewRef: row.topicAlias.reviewRef, reviewed: true};
+  });
+  let aliasChanged = false;
+  for (const alias of wanted) {
+    const at = aliasDocument.aliases.findIndex(candidate => candidate.ruleId === alias.ruleId);
+    if (at < 0) { aliasDocument.aliases.push(alias); aliasChanged = true; }
+    else if (JSON.stringify(aliasDocument.aliases[at]) !== JSON.stringify(alias)) { aliasDocument.aliases[at] = alias; aliasChanged = true; }
+  }
+  if (aliasErrors.length) { console.error(aliasErrors.join('\n')); process.exitCode = 1; return; }
+  if (process.argv.includes('--check') && aliasChanged) { console.error('native-topic-aliases.json is out of date for the topicAlias rows; run without --check'); process.exitCode = 1; return; }
+  if (!process.argv.includes('--check')) {
+    await writeFile(outPath, JSON.stringify(lane, null, 2) + '\n');
+    if (aliasChanged) await writeFile(aliasPath, JSON.stringify(aliasDocument, null, 2) + '\n');
+  }
   const verified = lane.rules.filter(r => r.status === 'source-verified').length;
-  console.log(JSON.stringify({rows: lane.rules.length, verified, unverified: lane.rules.length - verified, facts: Object.keys(lane.factAllowlist).length,
+  console.log(JSON.stringify({rows: lane.rules.length, verified, unverified: lane.rules.length - verified, aliases: wanted.length, facts: Object.keys(lane.factAllowlist).length,
     evidence: lane.evidence.length, written: !process.argv.includes('--check') ? outPath : null}, null, 2));
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

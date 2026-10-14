@@ -687,6 +687,8 @@ local function loadSettings()
     if type(settings.gameDialogueContext) ~= 'boolean' then settings.gameDialogueContext, settingsNeedSave = true, true end
     -- Off by default: the decision ledger (docs/QUEST_DECISIONS.md section 4.4) records V's picked dialogue options. Not proven in game; no menu entry.
     if type(settings.decisionLedger) ~= 'boolean' then settings.decisionLedger, settingsNeedSave = false, true end
+    -- Off by default: witness receipts (section 4.3) let a companion who stood beside V hear `witnessed` rules. No menu entry.
+    if type(settings.witnessReceipts) ~= 'boolean' then settings.witnessReceipts, settingsNeedSave = false, true end
     if not isChoice(settings.eyeContactHeight, eyeContactHeights) then
         settings.eyeContactHeight, settingsNeedSave = 0, true
     end
@@ -1088,6 +1090,13 @@ end
 function M.decisionLedger()
     loadSettings()
     return settings.decisionLedger == true
+end
+
+-- Off by default (settings.json `witnessReceipts`): the quest edges a world scan sees are stamped with who stood beside V and written to
+-- runtime/witness-receipts.json (mod/witness-receipts.lua).
+function M.witnessReceipts()
+    loadSettings()
+    return settings.witnessReceipts == true
 end
 
 -- Read by the ordinary companion update, never by a native menu callback.
@@ -1652,6 +1661,7 @@ function M.snapshot(player)
             youtubeTv = settings.youtubeTv == true,
             gameDialogueContext = settings.gameDialogueContext,
             decisionLedger = settings.decisionLedger,
+            witnessReceipts = settings.witnessReceipts,
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
             audioDelay = settings.audioDelay,
@@ -1714,7 +1724,7 @@ function M.applySettings(player, values)
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'holocallLiveImage' or key == 'youtubeTv'
-            or key == 'gameDialogueContext' or key == 'decisionLedger'
+            or key == 'gameDialogueContext' or key == 'decisionLedger' or key == 'witnessReceipts'
             or key == 'naturalSpeech' or key == 'expressiveEmotions'
             or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
             or key == 'companionVision' then
