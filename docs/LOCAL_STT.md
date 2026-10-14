@@ -86,6 +86,11 @@ words (`microphone-heard.json` from `mic.heard()`) all run through unchanged cod
 - Empty transcript: `finishVoice` rejects with `No speech was heard`, which the bridge already turns into the `no-speech` state
   and the game's "No speech was heard" notice. The recogniser has its own energy gate (150 ms above -52 dBFS and 9 dB over the
   recording's noise floor), so silence is never sent to the model and cannot be hallucinated into words.
+- A pause before the first word: Moonshine returns no text at all for most speech that follows a second or more of quiet (29 of 36 test
+  clips at 1.5 s of leading quiet), and a player presses the key, thinks, then speaks. The worker therefore cuts the quiet before the first
+  word (keeping 240 ms) before every decode, and an empty full decode falls back to the newest live words of the same recording instead
+  of ending the turn with "No speech was heard" (found 2026-10-14 from a 66-character live decode followed by an empty final).
+  `bridge/local-stt-worker.test.mjs` runs `local-stt-worker.check.py` against a stand-in model that has this quirk.
 - Not installed (Python, worker, model or sherpa-onnx missing): `availability()` says which; `beginVoice` rejects before the microphone
   opens with `error.code === 'local-stt-unavailable'` and `error.reason`.
 - Spam, cancel, supersede: a new `start` cancels the open recording; late audio for an old id is dropped; cancel releases the device

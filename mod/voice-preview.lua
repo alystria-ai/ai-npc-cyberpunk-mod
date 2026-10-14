@@ -11,6 +11,8 @@ local DEFAULT_SETTLE = 0
 -- OmniVoice has two step counts and two reference lengths (short up to 10 s, long up to 18 s). The Mistral cloud voice
 -- (Voxtral) needs a Mistral key and the Inworld cloud voice an Inworld key; in the bridge both use only Pocket's route and audio
 -- format and load no local voice model (a reply they cannot deliver is asked again once, then shown as written text).
+-- The Inworld voice is the last entry because it is listed only in developer mode (Settings > Development): without it the menu is
+-- the first seven entries, so an index means the same thing in both.
 M.CHOICES = {
     {provider = 'pocket'},
     {provider = 'omni', steps = 16, reference = 'short'},
@@ -18,8 +20,8 @@ M.CHOICES = {
     {provider = 'omni', steps = 32, reference = 'short'},
     {provider = 'omni', steps = 32, reference = 'long'},
     {provider = 'voxtral'},
-    {provider = 'inworld'},
     {provider = 'convai'},
+    {provider = 'inworld'},
 }
 
 -- The select index of a saved choice ({voiceProvider, omniSteps, omniReference}).

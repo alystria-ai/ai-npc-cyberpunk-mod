@@ -40,6 +40,7 @@ SEGMENT_LIMIT = 24.0
 FRAME = 480               # 30 ms
 GATE_DB = -52.0           # a recording whose loudest 30 ms frames never reach this holds no speech
 SPEECH_FRAMES = 5         # 150 ms above the gate
+PRE_ROLL_FRAMES = 8       # 240 ms of the quiet before the first word stay in what is decoded
 
 
 def log(message: str) -> None:
@@ -120,6 +121,27 @@ def split_points(samples):
     return pieces
 
 
+def trim_lead(samples):
+    """Drop the quiet before the first word, keeping PRE_ROLL_FRAMES of it.
+
+    Moonshine returns NO text for most speech that follows a second or more of quiet (measured: 29 of 36 synthetic clips
+    were empty at 1.5 s of leading quiet, 6 of 36 at 1 s, none at 0.3 s). A player presses the key and then thinks for a
+    moment, so the whole recording, and a live decode of its newest 8 s, can come back empty although the words are there.
+    """
+    import numpy as np
+    levels = frame_levels(samples)
+    if levels.size < SPEECH_FRAMES:
+        return samples
+    above = levels > speech_gate(levels)
+    run = 0
+    for index, flag in enumerate(above):
+        run = run + 1 if flag else 0
+        if run >= 3:
+            start = max(0, (index - run + 1 - PRE_ROLL_FRAMES) * FRAME)
+            return samples[start:] if start > 0 else samples
+    return samples
+
+
 def tidy(text: str) -> str:
     text = " ".join(text.replace("\u0000", " ").split())
     return text
@@ -142,6 +164,7 @@ class Engine:
 
     def decode(self, samples) -> str:
         import numpy as np
+        samples = trim_lead(samples)
         stream = self.recognizer.create_stream()
         stream.accept_waveform(SAMPLE_RATE, samples.astype(np.float32) / 32768.0)
         self.recognizer.decode_stream(stream)
@@ -157,6 +180,7 @@ class Worker:
         self.chunks = []
         self.total = 0
         self.last_partial = None   # (samples covered, text) of the newest partial that decoded the whole recording
+        self.last_words = ""       # newest non-empty partial text of this recording, the last resort when the final decode is empty
 
     def samples(self):
         np = self.np
@@ -169,6 +193,7 @@ class Worker:
     def begin(self, request_id):
         self.id, self.chunks, self.total = request_id, [], 0
         self.last_partial = None
+        self.last_words = ""
 
     def audio(self, request_id, pcm):
         if request_id != self.id or self.total >= MAX_SECONDS * SAMPLE_RATE:
@@ -200,6 +225,8 @@ class Worker:
             left_out = whole[: len(whole) - len(samples)]
             covers = len(left_out) == 0 or not has_speech(left_out)
             self.last_partial = (len(whole), text) if covers else None
+            if text and covers:
+                self.last_words = text
             send({"type": "partial", "id": request_id, "text": text, "ms": round((time.perf_counter() - started) * 1000)})
 
     def finish(self, request_id):
@@ -218,7 +245,11 @@ class Worker:
                 text, reused = held[1], True
             else:
                 text = " ".join(part for part in (self.engine.decode(piece) for piece in split_points(samples)) if part)
-        self.id, self.chunks, self.total, self.last_partial = None, [], 0, None
+                if not text and self.last_words:
+                    # Speech was heard and the live words already read it: an empty full decode must not erase them.
+                    text, reused = self.last_words, True
+        self.id, self.chunks, self.total, self.last_partial, self.last_words = None, [], 0, None, ""
+
         send({"type": "final", "id": request_id, "text": text, "ms": round((time.perf_counter() - started) * 1000),
               "seconds": round(seconds, 2), "speech": speech, "reused": reused,
               "cpuMs": round(time.process_time() * 1000)})

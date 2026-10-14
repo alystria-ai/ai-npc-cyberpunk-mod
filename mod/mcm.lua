@@ -17,6 +17,10 @@ local preparationTarget, preparationStatus, preparationActionFeedback
 local preparationAt = 0
 local presentation = {active = false, rows = {}}
 local voiceSelectors = {}
+-- The Companion voices menu of the page on screen: how many entries it has (Inworld is listed only in developer mode), which of them
+-- are greyed out (OmniVoice while its pack is not installed), their texts, and a select whose value text has to be dimmed or put back
+-- (set by an observer, done in M.update: the widgets are never touched inside a hook).
+local voiceMenuSize, voiceDisabled, voiceLabelsShown, voiceDimController = 0, {}, {}, nil
 local renderOwn = false   -- the page MCM is drawing now is ours (set by the McmUiBegin override)
 -- Everything that does not need a frame runs on this tick (see M.update). A queue
 -- change, a session reset and the return to gameplay run it on the next frame.
@@ -38,6 +42,9 @@ local lastBackAt = -1000
 -- one). matureMemory: what turning it on changed in the drafts, to put back if it is turned off before Apply. matureChanges: the
 -- names of what the last change staged or put back, for inspect() only: nothing is shown to the player (no notice on either side).
 local matureCheck, matureReset, matureSeen, matureMemory, matureChanges = false, false, nil, nil, nil
+-- providerSeen: the Conversation provider draft last looked at (nil: take the saved one), so picking a cloud provider while Mature
+-- content is on can be told from any other draft change.
+local providerSeen
 -- The Companion voices list (menu order) lives with the draft preview: Pocket TTS, OmniVoice 16/32 steps with a
 -- short or long reference, Convai cloud voice.
 local voicePreviewModule = dofile('voice-preview.lua')
@@ -453,12 +460,18 @@ end
 -- Select options. The value of a select row sits between the game's two arrows in a fixed-width box, and a text that is too wide
 -- runs over the arrows. The width is not ours to change (the game's settings widget), so every option is kept within OPTION_BUDGET.
 -- optionUnits() is an estimate in "average lowercase letters": narrow letters (i l j t f r . , : ' space) count less, wide ones
--- (m w M W, capitals, digits) more, and a Chinese, Japanese or Korean character counts two. The budget is 32: the longest entry
--- that is known to fit (OmniVoice · Ultra Quality · needs Omni pack, 43 characters) is about 36 of these units and the entries seen
--- running over the arrows are about 33 to 41, so 32 stays clear of both. Static options are checked in bridge/select-labels.test.mjs;
--- fitOption() is the last resort for a label built at run time (a custom model's own name): it cuts the name, keeps a trailing
--- " (...)" or " · ..." part and ends the name with an ellipsis. Page build only, never per frame.
-local OPTION_BUDGET = 32
+-- (m w M W, capitals, digits) more, and a Chinese, Japanese or Korean character counts two.
+-- The box holds about 32 of these units (OPTION_BOX_UNITS: the longest entry that is known to fit unfocused, OmniVoice · Ultra
+-- Quality · needs Omni pack, is about 36, and the entries seen running over the arrows are about 33 to 41). On a focused row the game
+-- also draws a key box over each arrow, an "A" at the left one and a "D" at the right one, and they cover the first and the last
+-- letters of the text ("Gemma-4-E4B-MiniFo... (uncensored)" lost both ends). The selector is native, and neither the MCM scripts nor the
+-- game scripts that ship with the mod carry its geometry, so the two boxes could not be measured: each is taken as 3 units
+-- (KEY_HINT_UNITS). OPTION_BUDGET is what is left for the text between them, so a label fits focused as well as unfocused.
+-- Static options are checked in bridge/select-labels.test.mjs; fitOption() is the last resort for a label built at run time (a
+-- custom model's own name): it cuts the name, keeps a trailing " (...)" or " · ..." part and ends the name with an ellipsis.
+-- Page build only, never per frame.
+local OPTION_BOX_UNITS, KEY_HINT_UNITS = 32, 3
+local OPTION_BUDGET = OPTION_BOX_UNITS - 2 * KEY_HINT_UNITS
 local NARROW, MEDIUM = {}, {}
 for letter in ("il.,:;'|!"):gmatch('.') do NARROW[letter] = true end
 for letter in ('tfrI()-/[]'):gmatch('.') do MEDIUM[letter] = true end
@@ -513,7 +526,7 @@ local function fitOption(text)
     end
     return cutToUnits(text, OPTION_BUDGET)
 end
-M.OPTION_BUDGET, M.optionUnits, M.fitOption = OPTION_BUDGET, optionUnits, fitOption
+M.OPTION_BUDGET, M.OPTION_BOX_UNITS, M.KEY_HINT_UNITS, M.optionUnits, M.fitOption = OPTION_BUDGET, OPTION_BOX_UNITS, KEY_HINT_UNITS, optionUnits, fitOption
 
 local function readonly(id, label, value, description, raw)
     raw = raw or {}
@@ -524,7 +537,6 @@ end
 
 local function setting(id, label, kind, value, default, description, elements, raw)
     raw = raw or {}
-    if id:match('^enabled:') then raw.label = true end
     local localized
     if elements then
         localized = {}
@@ -689,24 +701,31 @@ local function savedVoiceIndex(settings)
     return voicePreviewModule.indexOf(settings)
 end
 
--- The select's labels, in menu order (fastest to best). An OmniVoice entry says what it needs while the optional pack is missing; it
--- cannot be applied then (applyBatch refuses it) and the bridge would fall back to Pocket TTS anyway.
-local function voiceMenuLabels(pack, mistral)
+-- The select's labels, in menu order (fastest to best). The Inworld voice is the last entry and is listed only in developer mode.
+-- An OmniVoice entry is greyed out while the optional pack is missing: voiceDisabled marks it, a step skips it, its value text is
+-- dimmed, and applyBatch still refuses it (the bridge would fall back to Pocket TTS anyway). The menu is rebuilt with the page, so
+-- the marks are too.
+local function voiceMenuLabels(pack, mistral, developer)
     local elements = {}
+    voiceDisabled = {}
     for index, choice in ipairs(VOICE_CHOICES) do
-        -- Short (OPTION_BUDGET), so the entry does not run over the arrows; the voice description says what the pack and the keys are. The
-        -- two cloud voices have a menu name of their own: the full one ("Mistral cloud voice (Voxtral)") stays for sentences.
-        local label
-        if choice.provider == 'voxtral' then
-            label = (mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')
-        elseif choice.provider == 'inworld' then
-            label = ((mistral or {}).inworld or {}).saved and ui.t('Inworld · Cloud voice') or ui.t('Inworld · needs key')
-        else
-            label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
-            if choice.provider == 'omni' and not pack.installed then label = ui.t('{voice} · needs pack', {voice = label}) end
+        -- Short (OPTION_BUDGET), so the entry does not run over the arrows or the key boxes of a focused row; the voice description says
+        -- what the pack and the keys are. The two cloud voices have a menu name of their own: the full one ("Mistral cloud voice
+        -- (Voxtral)") stays for sentences.
+        if choice.provider ~= 'inworld' or developer then
+            local label
+            if choice.provider == 'voxtral' then
+                label = (mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')
+            elseif choice.provider == 'inworld' then
+                label = ((mistral or {}).inworld or {}).saved and ui.t('Inworld · Cloud voice') or ui.t('Inworld · needs key')
+            else
+                label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
+                if choice.provider == 'omni' and not pack.installed then voiceDisabled[#elements + 1] = true end
+            end
+            elements[#elements + 1] = label
         end
-        elements[index] = label
     end
+    voiceMenuSize, voiceLabelsShown = #elements, elements
     return elements
 end
 
@@ -733,13 +752,16 @@ local function updateVoiceStatus(snapshot)
     end
 end
 
--- Mature content only works with the Local AI provider, and its replies must not go to a cloud voice. So turning it ON in the
--- drafts also stages (as pending changes, before Apply) the Local AI provider, the Auto model and, when the companion voice is a
--- cloud voice, Pocket TTS (a local voice is left as it is); without the Local AI pack nothing
--- else is touched. Turning it OFF puts back what that changed, unless the player changed it since. What was changed is kept in
--- matureMemory while the drafts are pending and, once applied, in the saved settings (manager: matureRestore). All of it runs
--- from M.update after a draft event, never in a hook, and costs nothing while no draft changes.
-local PROVIDER_IDS = {'convai', 'mistral', 'local'}
+-- Mature content only works with the Local AI provider, its replies must not go to a cloud voice, and it never stands beside a cloud
+-- provider (Convai free tier, Convai API key, Mistral). So turning it ON in the drafts also stages (as pending changes, before Apply)
+-- the Local AI provider, the uncensored model and, when the companion voice is a cloud voice, Pocket TTS (a local voice is left as it
+-- is); without the Local AI pack it cannot be on at all, and the switch is put back to off. Picking a cloud provider while it is on
+-- turns it OFF in the drafts. Turning it OFF puts back what turning it on changed, unless the player changed it since. What was
+-- changed is kept in matureMemory while the drafts are pending and, once applied, in the saved settings (manager: matureRestore). All of
+-- it runs from M.update after a draft event, never in a hook, and costs nothing while no draft changes.
+-- The provider drafts in menu order; PROVIDER_IDS names them for the restore record ('convai-key' is Convai with the player's own key).
+local PROVIDER_IDS = {'convai', 'convai-key', 'mistral', 'local'}
+local LOCAL_PROVIDER = 4
 -- Why a model the player added cannot be used (bridge/custom-models.mjs reason codes), as a short phrase for the Local AI model row's help.
 local function customProblemText(reason)
     if reason == 'missing' then return ui.t('file not found') end
@@ -783,12 +805,15 @@ local function matureTurnedOn()
     local installed = LOCAL_AI_PRESENT[(snapshot.mistral or {}).localAi] == true
     local providerNow = draftValue('conversationProvider')
     local record, names = {}, {}
-    local usingLocal = providerNow == 3
+    local usingLocal = providerNow == LOCAL_PROVIDER
     if not usingLocal and not installed then
+        -- Without the Local AI pack Mature content cannot be on beside a cloud provider: the switch goes back to off (the setting's
+        -- help says Local AI is needed).
         matureMemory = nil
-        return nil -- Without the Local AI pack nothing else is staged (the setting's help says Local AI is needed).
+        stageDraft('matureContent', false)
+        return nil
     end
-    if not usingLocal and PROVIDER_IDS[providerNow] and stageDraft('conversationProvider', 3) then
+    if not usingLocal and PROVIDER_IDS[providerNow] and stageDraft('conversationProvider', LOCAL_PROVIDER) then
         record.conversationProvider = {before = PROVIDER_IDS[providerNow], set = 'local'}
         names[#names + 1] = ui.t('Local AI')
         usingLocal = true
@@ -853,19 +878,42 @@ local function matureTurnedOff()
     return table.concat(names, ', ')
 end
 
--- Looks at the Mature content draft after a draft event; acts only on a change of it.
+-- The Conversation provider selector's index of the saved settings: 1 Convai free tier, 2 Convai API key, 3 Mistral, 4 Local.
+local function providerIndexOf(settings)
+    if settings.conversationProvider == 'local' then return 4 end
+    if settings.conversationProvider == 'mistral' then return 3 end
+    return settings.useOwnConvaiKey == true and 2 or 1
+end
+
+-- Looks at the Mature content and Conversation provider drafts after a draft event; acts only on a change of either: Mature content
+-- turned on (the Local AI provider and what goes with it are staged), Mature content turned off (the way back), or a cloud provider
+-- picked while it is on (it is turned off, with the same way back).
 local function syncMature()
     -- All drafts are gone (Apply or Revert): what was staged is moot, and a check queued before that looked at old drafts.
-    if matureReset then matureReset, matureCheck, matureSeen, matureMemory = false, false, nil, nil end
+    if matureReset then matureReset, matureCheck, matureSeen, matureMemory, providerSeen = false, false, nil, nil, nil end
     if not matureCheck then return end
     matureCheck = false
     local mature = draftValue('matureContent')
     if type(mature) ~= 'boolean' then return end
-    local before = matureSeen
-    if before == nil then before = manager.snapshot(player()).settings.matureContent == true end
-    matureSeen = mature
-    if mature == before then return end
-    if mature then matureChanges = matureTurnedOn() else matureChanges = matureTurnedOff() end
+    local provider = draftValue('conversationProvider')
+    local before, providerBefore = matureSeen, providerSeen
+    if before == nil or providerBefore == nil then
+        local saved = manager.snapshot(player()).settings
+        if before == nil then before = saved.matureContent == true end
+        if providerBefore == nil then providerBefore = providerIndexOf(saved) end
+    end
+    matureSeen, providerSeen = mature, provider
+    if mature ~= before then
+        if mature then matureChanges = matureTurnedOn() else matureChanges = matureTurnedOff() end
+    elseif mature and type(provider) == 'number' and provider ~= providerBefore and provider ~= LOCAL_PROVIDER then
+        if stageDraft('matureContent', false) then matureChanges = matureTurnedOff() end
+    else
+        return
+    end
+    -- What was just staged is not a change of the player's to look at again.
+    local nowMature, nowProvider = draftValue('matureContent'), draftValue('conversationProvider')
+    if type(nowMature) == 'boolean' then matureSeen = nowMature end
+    if type(nowProvider) == 'number' then providerSeen = nowProvider end
 end
 
 local function samplePreparationFeedback()
@@ -1315,6 +1363,32 @@ local function installEarly()
     earlyHooks = complete
 end
 
+-- A voice that cannot be chosen (OmniVoice while its pack is missing) is greyed out: the value text of the Companion voices select is
+-- dimmed while it shows one, and put back when it shows any other. A select shows one value at a time, so this is where a greyed-out
+-- entry is seen at all (a saved choice can be one; a step never lands on one: see McmUiEmitStep in M.install). Runs from M.update
+-- after the select refreshed, never in a hook; reads the few widgets of that one row.
+local DIM_OPACITY = 0.4
+local function dimVoiceValue(controller)
+    local ok, value, err = pcall(api.getValue, MOD_KEY .. ':voiceProvider')
+    local shown = ok and not err and type(value) == 'number' and voiceLabelsShown[value] or nil
+    if not shown then return end
+    local opacity = voiceDisabled[value] and DIM_OPACITY or 1.0
+    local budget = {left = 60}
+    local function visit(widget, depth)
+        if not widget or depth < 0 or budget.left <= 0 then return end
+        budget.left = budget.left - 1
+        if widget:IsA('inkText') or widget:IsA('inkTextWidget') then
+            if tostring(widget:GetText()) == shown then widget:SetOpacity(opacity) end
+            return
+        end
+        local compound, count = pcall(function() return widget:GetNumChildren() end)
+        if compound then
+            for index = 0, math.min(count, 40) - 1 do visit(widget:GetWidgetByIndex(index), depth - 1) end
+        end
+    end
+    visit(controller:GetRootWidget(), 6)
+end
+
 local function developerMode()
     if not manager or type(manager.developerMode) ~= 'function' then return false end
     local ok, enabled = pcall(manager.developerMode)
@@ -1372,86 +1446,83 @@ local function memorySettings(snapshot)
     return rows
 end
 
--- Settings > Conversation provider: the provider, Mature content, the Local AI rows and one group of key rows per provider
--- (docs/OWN_CONVAI_KEY.md for the Convai key; the Inworld key's rows are returned separately, for Voices). The text shown here is the status of the player's own key, never
--- the key: only its last four characters, which the bridge publishes, are ever displayed.
+-- One API key as one row. Its action reads Paste while no key is saved and Remove once one is, and what a separate status row used to say
+-- is in brackets after the name: the last four characters of a saved key (Added when the bridge sent none), or Checking… while it is
+-- being checked. A paste that failed puts its message first in the row's help, and the row then says Not added. The names and the two
+-- helps are source strings (the catalogue reads them from the call); `key` is {saved, tail, checking, message}. Only the last four
+-- characters of a key are ever shown (docs/OWN_CONVAI_KEY.md): the key itself never reaches this file.
+local function keyRow(name, pasteHelp, removeHelp, id, key, paste, remove, lastParagraph)
+    local info
+    if key.checking then info = ui.t('Checking…')
+    elseif key.saved then info = key.tail and ('…' .. key.tail) or ui.t('Added')
+    elseif key.message then info = ui.t('Not added') end
+    local help
+    if key.saved then
+        help = ui.t(removeHelp) .. '\n\n' .. ui.t('Saved on this computer only. Only the last four characters are ever shown.')
+    else
+        help = ui.t(pasteHelp)
+    end
+    if key.message then help = key.message .. '\n\n' .. help end
+    if lastParagraph then help = help .. '\n\n' .. lastParagraph end
+    return action(id, ui.t(name) .. (info and (' (' .. info .. ')') or ''), key.saved and ui.t('Remove') or ui.t('Paste'), help,
+        key.saved and remove or paste, nil, {label = true, value = true, description = true})
+end
+
+-- Settings > Conversation provider: the provider, Mature content, the Local AI model and the key rows of Convai and Mistral
+-- (docs/OWN_CONVAI_KEY.md for the Convai key). The second result is the Inworld key row, which belongs to Settings > Development
+-- (developer mode). The text shown here about a key is its status, never the key: only its last four characters, which the bridge
+-- publishes, are ever displayed.
 local function ownKeyRows(snapshot)
-    local own = snapshot.ownKey
-    local status, result = nil, own.result
-    if result == 'checking' then status = ui.t('Checking…')
-    elseif result == 'empty' then status = ui.t('The clipboard is empty. Copy your key first.')
-    elseif result == 'not-a-key' then status = ui.t('The clipboard does not hold a Convai API key.')
-    elseif result == 'invalid' then status = ui.t('Convai did not accept that key.')
-    elseif result == 'clipboard' then status = ui.t('The clipboard could not be read.')
-    elseif result == 'failed' then status = ui.t('The key could not be saved.')
-    elseif own.saved and own.tail then status = ui.t('Added (ends in {tail})', {tail = own.tail})
-    elseif own.saved then status = ui.t('Added')
-    else status = ui.t('Not added') end
-    local using, dailyBlocked
-    if own.limit == 'used-up' and own.limitOwn then using = ui.t('Your key: plan limit reached')
-    elseif own.limit == 'used-up' then using = ui.t('Convai free tier: limit used up')
-    elseif own.limit == 'rejected' then using = ui.t('Your key: not accepted')
-    elseif own.limit == 'memory-needed' then using = ui.t('Your key: no room for memory')
-    elseif own.active == 'player' and own.memoryOff then using = ui.t('Your own key, without memory')
-    elseif own.active == 'player' then using = ui.t('Your own key')
-    elseif own.daily and own.daily.blocked then using = ui.t('Convai free tier: daily limit reached'); dailyBlocked = true
-    elseif own.daily then using = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit})
-    else using = ui.t('Convai free tier') end
-    -- Mistral: the key status, and which provider answers right now. A player's own Convai key or a Mistral key is
-    -- never counted against the shared daily limit (bridge/shared-key-guard.mjs).
-    local mistral = snapshot.mistral or {}
-    local mistralStatus, mistralResult = nil, mistral.result
-    if mistralResult == 'invalid' then mistralStatus = ui.t('Mistral did not accept that key.')
-    elseif mistralResult == 'unreadable' then mistralStatus = ui.t('The clipboard could not be read.')
-    elseif mistralResult == 'failed' then mistralStatus = ui.t('The key could not be saved.')
-    elseif mistral.saved and mistral.tail then mistralStatus = ui.t('Added (ends in {tail})', {tail = mistral.tail})
-    elseif mistral.saved then mistralStatus = ui.t('Added')
-    else mistralStatus = ui.t('Not added') end
-    -- Inworld (cloud voice): the same key status, from the bridge's `inworld` object.
+    local own, mistral = snapshot.ownKey, snapshot.mistral or {}
     local inworld = type(mistral.inworld) == 'table' and mistral.inworld or {}
-    local inworldStatus, inworldResult = nil, inworld.result
-    if inworldResult == 'invalid' then inworldStatus = ui.t('Inworld did not accept that key.')
-    elseif inworldResult == 'unreadable' then inworldStatus = ui.t('The clipboard could not be read.')
-    elseif inworldResult == 'failed' then inworldStatus = ui.t('The key could not be saved.')
-    elseif inworld.saved and inworld.tail then inworldStatus = ui.t('Added (ends in {tail})', {tail = inworld.tail})
-    elseif inworld.saved then inworldStatus = ui.t('Added')
-    else inworldStatus = ui.t('Not added') end
+    -- The message of a paste that did not work, for each key (the Convai key has two more reasons than the others).
+    local ownMessage, result = nil, own.result
+    if result == 'empty' then ownMessage = ui.t('The clipboard is empty. Copy your key first.')
+    elseif result == 'not-a-key' then ownMessage = ui.t('The clipboard does not hold a Convai API key.')
+    elseif result == 'invalid' then ownMessage = ui.t('Convai did not accept that key.')
+    elseif result == 'clipboard' then ownMessage = ui.t('The clipboard could not be read.')
+    elseif result == 'failed' then ownMessage = ui.t('The key could not be saved.') end
+    local mistralMessage, mistralResult = nil, mistral.result
+    if mistralResult == 'invalid' then mistralMessage = ui.t('Mistral did not accept that key.')
+    elseif mistralResult == 'unreadable' then mistralMessage = ui.t('The clipboard could not be read.')
+    elseif mistralResult == 'failed' then mistralMessage = ui.t('The key could not be saved.') end
+    local inworldMessage, inworldResult = nil, inworld.result
+    if inworldResult == 'invalid' then inworldMessage = ui.t('Inworld did not accept that key.')
+    elseif inworldResult == 'unreadable' then inworldMessage = ui.t('The clipboard could not be read.')
+    elseif inworldResult == 'failed' then inworldMessage = ui.t('The key could not be saved.') end
+    -- Who answers right now, as the last paragraph of the provider row's help: only what the player has to act on or could not guess
+    -- (a limit, a rejected key, a wait, a fallback, the free tier's allowance). The selected provider is the row's own value, and a
+    -- key is never counted against the daily allowance (bridge/shared-key-guard.mjs).
+    local note, limitHelp
+    if mistral.pending then note = ui.t('Waiting for the conversation to end')
+    elseif mistral.effective == 'mistral' then
+        if mistral.limit == 'rate' or mistral.limit == 'daily' then note = ui.t('Mistral: free limit reached for now')
+        elseif mistral.limit == 'invalid' then note = ui.t('Mistral: key not accepted')
+        elseif mistral.limit == 'model' then note = ui.t('Mistral: model unavailable') end
+    elseif mistral.effective == 'local' then note = nil
+    elseif snapshot.settings.conversationProvider == 'local' then note = ui.t('Convai: Local AI is not ready')
+    elseif snapshot.settings.conversationProvider == 'mistral' then note = ui.t('Convai: Mistral has no key yet')
+    elseif own.limit == 'used-up' and own.limitOwn then note = ui.t('Your key: plan limit reached')
+    elseif own.limit == 'used-up' then note = ui.t('Convai free tier: limit used up')
+    elseif own.limit == 'rejected' then note = ui.t('Your key: not accepted')
+    elseif own.limit == 'memory-needed' then note = ui.t('Your key: no room for memory')
+    elseif own.active == 'player' and own.memoryOff then note = ui.t('Your own key, without memory')
+    elseif own.active == 'player' then note = nil
+    elseif own.daily and own.daily.blocked then
+        -- The limit is reached: the status is the provider help's last paragraph (that help is already close to the panel's height in
+        -- several languages) and what to do goes into the Mistral key row's help (the real limit comes from the sign-in backend,
+        -- bridge/shared-key-guard.mjs).
+        note = ui.t('Convai free tier: daily limit reached')
+        limitHelp = ui.t('You have used today’s {limit} turns. They come back tomorrow. To keep talking now, choose Mistral (an estimated 3,000 turns a day) or Local AI (no limit), then Apply.', {limit = own.daily.limit})
+    elseif own.daily then note = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit}) end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
-        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai needs no setup and gives better replies. Mistral uses its free plan with your own free key (signing up needs phone verification); memory stays on this computer.\n\nMistral allows about one message a second and a monthly allowance.\n\nWith Mistral or Local, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
-        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai needs no setup and gives better replies. Mistral uses its free plan with your own free key (signing up needs phone verification); memory stays on this computer.\n\nMistral allows about one message a second and a monthly allowance.\n\nWith Mistral or Local, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
-    if mistral.pending then using = ui.t('Waiting for the conversation to end')
-    elseif mistral.effective == 'mistral' then
-        if mistral.limit == 'rate' or mistral.limit == 'daily' then using = ui.t('Mistral: free limit reached for now')
-        elseif mistral.limit == 'invalid' then using = ui.t('Mistral: key not accepted')
-        elseif mistral.limit == 'model' then using = ui.t('Mistral: model unavailable')
-        else using = ui.t('Mistral (free plan)') end
-    elseif mistral.effective == 'local' then using = ui.t('Local AI (this computer)')
-    elseif snapshot.settings.conversationProvider == 'local' then using = ui.t('Convai: Local AI is not ready')
-    elseif snapshot.settings.conversationProvider == 'mistral' then using = ui.t('Convai: Mistral has no key yet') end
-    -- The Local AI pack's own state, as the bridge reports it. Anything unknown reads as not installed: never a state we were not told.
-    local localAi = mistral.localAi
-    local localAiStatus
-    if localAi == 'ready' then localAiStatus = ui.t('Ready')
-    elseif localAi == 'warming' then localAiStatus = ui.t('Warming up')
-    elseif localAi == 'no-memory' then localAiStatus = ui.t('Not enough graphics memory')
-    elseif localAi == 'failed' then localAiStatus = ui.t('Unavailable')
-    else localAiStatus = ui.t('Not installed') end
-    -- The Convai key rows are always listed, like the other keys: the switch, the key's status, Paste and Remove.
-    local convaiRows = {
-        setting('useOwnConvaiKey', 'Use my own Convai API key', 'bool', snapshot.settings.useOwnConvaiKey, false,
-            'Use your own Convai key for conversations: paste it below, turn this on, choose Apply.\n\nThe change waits until no conversation is running.'),
-        readonly('own-key-status', 'Convai API key', status,
-            'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
-        action('own-key:paste', 'Paste Convai API key', 'Paste from clipboard',
-            'Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.',
-            function() return manager.pasteOwnKey() end),
-        action('own-key:remove', 'Remove my Convai API key', 'Remove',
-            'Deletes the saved key. Conversations go back to Convai free tier.',
-            function() return manager.removeOwnKey() end, own.saved),
-    }
-    -- Mature content is part of the main mod (off by default). It applies to the Local AI provider only; the help says so while another
-    -- provider answers, and says whether the optional Mature pack (uncensored models) is installed (the bridge reports its marker).
+        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
+        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
+    if note then providerHelp = providerHelp .. '\n\n' .. note end
+    -- Mature content is part of the main mod (off by default). It works with the Local AI provider only: turning it on selects Local AI,
+    -- and choosing a cloud provider turns it off. The help says whether the optional Mature pack (uncensored models) is installed (the
+    -- bridge reports its marker).
     local matureRow
     do
         local matureHelp = ui.t('Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+), Local AI only.')
@@ -1460,15 +1531,16 @@ local function ownKeyRows(snapshot)
             or ui.t('The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s GitHub page).'))
         matureHelp = matureHelp .. '\n\n' .. ui.t('Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule.')
         matureHelp = matureHelp .. '\n\n' .. ui.t('Turning it on also selects Local AI, the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.')
+            .. ' ' .. ui.t('Choosing a cloud provider turns it off.')
         if not LOCAL_AI_PRESENT[mistral.localAi] then
             matureHelp = matureHelp .. '\n\n' .. ui.t('Needs the Local AI pack.')
-        elseif mistral.effective ~= 'local' then
-            matureHelp = matureHelp .. '\n\n' .. ui.t('Not using Local AI right now: no effect yet.')
         end
         matureRow = setting('matureContent', 'Mature content', 'bool', snapshot.settings.matureContent, false, matureHelp, nil, {description = true})
     end
     -- Which installed Local AI model loads: each installed model by its manifest name, smallest file first (the bridge reports the list); the sizes
-    -- are in the help. No Auto entry: while nothing was chosen the model the bridge would load is shown as selected.
+    -- are in the help. No Auto entry: while nothing was chosen the model the bridge would load is shown as selected. The state of the Local AI
+    -- pack is not a row of its own: while it warms up, or cannot start or run, the row's name says so in brackets and the help starts with the
+    -- sentence the loading notices use; ready and not installed need no words (the model list says No model installed).
     local modelRow
     do
         local choices, labels, selected, sizes, anyCustom = manager.localModelChoices(), {}, 1, {}, false
@@ -1511,56 +1583,42 @@ local function ownKeyRows(snapshot)
             problems[#problems + 1] = ui.t('{name}: {reason}', {name = problem.name, reason = customProblemText(problem.reason)})
         end
         if #problems > 0 then modelHelp = modelHelp .. '\n\n' .. ui.t('Not usable: {models}. See the Local AI notes, "Add your own model".', {models = table.concat(problems, '; ')}) end
-        modelRow = setting('localModel', 'Local AI model', 'select', selected, 1, modelHelp, labels, {elements = true, description = true})
+        local state, status = mistral.localAi, nil
+        local label = ui.t('Local AI model')
+        if state == 'warming' then label, status = label .. ' (' .. ui.t('Warming up') .. ')', loadingText('local-ai', 'loading')
+        elseif state == 'no-memory' then label, status = label .. ' (' .. ui.t('Not enough memory') .. ')', loadingText('local-ai', 'no-memory')
+        elseif state == 'failed' then label, status = label .. ' (' .. ui.t('Unavailable') .. ')', loadingText('local-ai', 'failed') end
+        if status then modelHelp = status .. '\n\n' .. modelHelp end
+        modelRow = setting('localModel', label, 'select', selected, 1, modelHelp, labels, {elements = true, description = true, label = true})
     end
-    -- The daily limit of Convai free tier is reached and Convai is still the provider: the row says what to do about it.
-    local usingHelp = ui.t('Who answers your conversations right now.\n\nA change of provider waits until no conversation is running.')
-    if dailyBlocked and mistral.effective ~= 'mistral' and mistral.effective ~= 'local' then
-        usingHelp = usingHelp .. '\n\n' .. ui.t('Convai free tier: you have used today’s {limit} turns. They come back tomorrow.\n\nTo keep talking now, choose another Conversation provider, then Apply.\n\nMistral (free, with your own free key): Mistral sets its free limits and can change them. Estimated at about 100,000 turns a month, roughly 3,000 a day.\n\nLocal AI: no limit. It runs on your PC and needs the Local AI pack.', {limit = own.daily.limit})
-    end
-    local rows = {}
-    -- The section's order: who answers and how, the Mature and Local AI rows, then one group of key rows per provider.
-    for _, group in ipairs({
-        {
-            setting('conversationProvider', 'Conversation provider', 'select',
-                snapshot.settings.conversationProvider == 'local' and 3
-                    or snapshot.settings.conversationProvider == 'mistral' and 2 or 1, 1, providerHelp,
-                {'Convai free tier', 'Mistral (free plan)', 'Local (needs Local AI pack)'}, {elements = true, description = true}),
-            readonly('own-key-using', 'Conversations use', using, usingHelp, {value = true, description = true}),
-            matureRow,
-            modelRow,
-            readonly('local-ai-status', 'Local AI', localAiStatus,
-                'Runs conversations on this computer with the optional Local AI pack. It needs free graphics memory while it works.\n\nChoose Local in Conversation provider, then Apply.', {value = true}),
-        },
-        convaiRows,
-        {
-            readonly('mistral-key-status', 'Mistral key', mistralStatus,
-                'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
-            action('mistral-key:paste', 'Paste Mistral key', 'Paste from clipboard',
-                'Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder.',
-                function() return manager.pasteMistralKey() end),
-            action('mistral-key:remove', 'Remove my Mistral key', 'Remove',
-                'Deletes the saved key. Conversations go back to Convai free tier.',
-                function() return manager.removeMistralKey() end, mistral.saved == true),
-        },
-    }) do for _, item in ipairs(group) do rows[#rows + 1] = item end end
-    -- The Inworld key belongs to the Inworld cloud voice, so its rows sit in Settings > Voices.
-    local inworldRows = {
-        readonly('inworld-key-status', 'Inworld key', inworldStatus,
-            'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
-        action('inworld-key:paste', 'Paste Inworld key', 'Paste from clipboard',
-            'Copy your key from Inworld first. It is read from the clipboard once, checked with Inworld and saved on this computer.\n\nYou can also save it in player-inworld-key.txt in the conversation service folder. It is used only for the Inworld voice.',
-            function() return manager.pasteInworldKey() end),
-        action('inworld-key:remove', 'Remove my Inworld key', 'Remove',
-            'Deletes the saved key. The Inworld cloud voice stops until you add a key again.',
-            function() return manager.removeInworldKey() end, inworld.saved == true),
+    local rows = {
+        setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
+            {'Convai free tier', 'Convai API key', 'Mistral (free plan)', 'Local (needs Local AI pack)'}, {elements = true, description = true}),
+        matureRow,
+        modelRow,
+        keyRow('Convai API key',
+            'Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.',
+            'Deletes the saved key. Conversations go back to Convai free tier.',
+            'own-key', {saved = own.saved, tail = own.tail, checking = result == 'checking', message = ownMessage},
+            function() return manager.pasteOwnKey() end, function() return manager.removeOwnKey() end),
+        keyRow('Mistral API key',
+            'Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and a monthly allowance.',
+            'Deletes the saved key. Conversations go back to Convai free tier.',
+            'mistral-key', {saved = mistral.saved == true, tail = mistral.tail, message = mistralMessage},
+            function() return manager.pasteMistralKey() end, function() return manager.removeMistralKey() end, limitHelp),
     }
     if editor then
         rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
             'Edit a character’s bio, speaking style, speaking rules and memories in your browser.\n\nWorks with Mistral and Local, not Convai. Changes apply from the next reply.',
             function() return editor.request() end)
     end
-    return rows, inworldRows
+    -- The Inworld key belongs to the Inworld cloud voice, which is a developer-mode voice: its row sits in Settings > Development.
+    local inworldRow = keyRow('Inworld API key',
+        'Copy your key from Inworld first. It is read from the clipboard once, checked with Inworld and saved on this computer.\n\nYou can also save it in player-inworld-key.txt in the conversation service folder. It is used only for the Inworld voice.',
+        'Deletes the saved key. The Inworld cloud voice stops until you add a key again.',
+        'inworld-key', {saved = inworld.saved == true, tail = inworld.tail, message = inworldMessage},
+        function() return manager.pasteInworldKey() end, function() return manager.removeInworldKey() end)
+    return rows, inworldRow
 end
 
 -- What the current page shows that can change without the player touching it, as one string: the page is drawn again only
@@ -1611,7 +1669,7 @@ local function pageSignature(snapshot)
         add(table.concat({'provider', tostring(mistral.saved), mistral.tail or '', mistral.provider or '', mistral.effective or '',
             mistral.localAi or '', tostring(mistral.maturePack), tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
             tostring(inworld.saved), inworld.tail or '', inworld.result or '',
-            tostring(pack.known), tostring(pack.installed)}, '|'))
+            tostring(pack.known), tostring(pack.installed), tostring(snapshot.settings.developerMode)}, '|'))
         -- The Local AI model row lists what is installed.
         local modelKey = {'models'}
         modelKey[#modelKey + 1] = 'd:' .. tostring(mistral.localModelDefault) .. ':' .. tostring(mistral.localModelMatureDefault)
@@ -1811,15 +1869,6 @@ local function schema()
         end
         categories[#categories + 1] = category('relationships', 'Relationships', rows,
             'Judy, Panam, River, Kerry and Meredith can speak as a partner or in their ordinary manner.\n\nAuto follows the relationship in your save.')
-    elseif view == 'permissions' then
-        rows[#rows + 1] = action('permissions:back', 'Back to settings', 'Back',
-            'Return to conversation settings.', function(context) return navigate('settings', context) end)
-        for _, profile in ipairs(snapshot.profiles) do
-            rows[#rows + 1] = setting('enabled:' .. profile.key, profile.name, 'bool',
-                snapshot.settings.enabledByKey[profile.key] ~= false, true,
-                ui.t('Allow {name} in private and group conversations. Existing copies can still follow you when this is off.',{name=profile.name}))
-        end
-        categories[#categories + 1] = category('permissions', 'Who can talk', rows)
     elseif view == 'help' and support then
         local where, report = support.locations(), support.status()
         local files = {mod = 'probe.log, mcm.log', bridge = 'bridge.stderr.log', launcher = 'launcher.log',
@@ -1870,6 +1919,13 @@ local function schema()
                 ui.t('Generated reports are saved in {path}. The five newest are kept.', {path = where.reports}), rawRow),
         }, 'Send the generated report rather than raw log files. Open these locations only if the developer asks for a specific file.')
     elseif view == 'settings' then
+        -- The Inworld cloud voice is a developer-mode voice (Settings > Development): its name appears in the help of a setting only
+        -- while developer mode is on, as one more paragraph after the help that holds for everybody.
+        local developer = snapshot.settings.developerMode == true
+        local function withInworld(row, extra)
+            if developer then row.description = row.description .. '\n\n' .. ui.t(extra) end
+            return row
+        end
         local choices, languageElements, languageIndex = ui.choices(), {}, 1
         for index, choice in ipairs(choices) do
             languageElements[index] = choice.label
@@ -1881,9 +1937,6 @@ local function schema()
                 languageElements, {elements=true}),
         })
         categories[#categories + 1] = category('conversation-controls', 'Conversations', {
-            action('permissions', 'Who can talk', 'Manage',
-                'Turn AI conversations on or off for each character.\n\nA character that is off can still follow you.',
-                function(context) return navigate('permissions', context) end),
             action('memory', 'Memory', 'Manage',
                 'See what each character remembers and make one or all of them forget.\n\nMemories are kept across saves.',
                 function(context) return navigate('memory', context) end),
@@ -1892,8 +1945,9 @@ local function schema()
                 function(context) return navigate('relationships', context) end),
             setting('archetypeConversations', 'Talk to ordinary NPCs', 'bool', snapshot.settings.archetypeConversations ~= false, true,
                 'Gang members, NCPD officers, guards, ripperdocs, shopkeepers, bartenders and passers-by answer as their kind of person.\n\nThey do not know your story and forget you after a save load, except shopkeepers you come back to.\n\nNamed characters are not affected.'),
-            setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
-                'Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket, Voxtral and Inworld speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
+            withInworld(setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
+                'Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
+                'Inworld speaks English only as well.'),
             setting('autoConnectNearby', 'Auto-connect nearby characters', 'bool', snapshot.settings.autoConnectNearby, true,
                 'Gets a conversation ready when you look at, approach or have just talked to a character, so they answer without a wait. Paused in combat and scenes.\n\nLimits: two characters ready at once, a new one every 3 s, released after 40 s unused. A crowd never adds up.'),
             setting('gameDialogueContext', 'Continue from game dialogue', 'bool', snapshot.settings.gameDialogueContext, true,
@@ -1902,8 +1956,9 @@ local function schema()
             setting('holocallLiveImage', 'Live holocall picture (experimental)', 'bool', snapshot.settings.holocallLiveImage == true, true,
                 'Shows the character live in a holocall instead of their portrait.\n\nExperimental: the picture can stay empty. If she cannot be shown, the call goes on with the portrait.'),
         })
-        -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys (Inworld's key is in Voices).
-        local providerRows, inworldRows = ownKeyRows(snapshot)
+        -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys (the Inworld key is in
+        -- Development).
+        local providerRows, inworldKeyRow = ownKeyRows(snapshot)
         categories[#categories + 1] = category('conversation-provider', 'Conversation provider', providerRows)
 
         local heights,strengths=manager.gazeChoices()
@@ -1931,31 +1986,35 @@ local function schema()
             if snapshot.settings.audioDelay == value then delayIndex = index end
         end
         local pack = manager.omniPack()
+        -- While the OmniVoice pack is missing its entries are greyed out; the row's name says why, in brackets.
+        local voiceName = ui.t('Companion voices')
+        if pack.known and not pack.installed then voiceName = voiceName .. ' (' .. ui.t('no Omni pack') .. ')' end
         local voicesCategory = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.'),
-            setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
-                'Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack; the higher tiers start in 1 to 2.5 s.\n\nVoxtral and Inworld: each companion’s own voice from the cloud, with your own key, English only. Inworld also speaks with emotion. They load no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.',
-                voiceMenuLabels(pack, snapshot.mistral), {elements = true}),
+            withInworld(setting('voiceProvider', voiceName, 'select', voiceIndex, 1,
+                'Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.',
+                voiceMenuLabels(pack, snapshot.mistral, developer), {elements = true, label = true}),
+                'Inworld: the same with your own Inworld key, and it also speaks with emotion.'),
             readonly('voice-status', 'Voice status', voiceStatus,
                 'Changes wait until you choose Apply; Revert discards them. No game restart is needed.'),
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
                 delayLabels, {elements = true}),
-            setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
-                'Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice and Inworld can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
-            setting('expressiveEmotions', 'Expressive emotions', 'bool', snapshot.settings.expressiveEmotions, true,
-                'Each character marks its own feelings as it speaks, so the face changes at that word instead of being guessed from the text. Subtle, set by personality, only where a feeling really shifts.\n\nInworld always speaks with emotion, whatever this says.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
+            withInworld(setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
+                'Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
+                'Inworld can voice laughs and sighs too.'),
+            withInworld(setting('expressiveEmotions', 'Expressive emotions', 'bool', snapshot.settings.expressiveEmotions, true,
+                'Each character marks its own feelings as it speaks, so the face changes at that word instead of being guessed from the text. Subtle, set by personality, only where a feeling really shifts.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
+                'Inworld always speaks with emotion, whatever this says.'),
             setting('followUpInterest', 'Follow-up questions', 'bool', snapshot.settings.followUpInterest, true,
                 'Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.'),
             setting('vVoice', 'V’s voice for typed lines', 'bool', snapshot.settings.vVoice, true,
                 ui.t('When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed.\n\nUses the voice chosen above, cloned for V.')
-                    .. (snapshot.settings.voiceProvider == 'convai' and ('\n\n' .. ui.t('Works with the Pocket, OmniVoice, Voxtral or Inworld voices.')) or ''),
+                    .. (snapshot.settings.voiceProvider == 'convai' and ('\n\n' .. (developer
+                        and ui.t('Works with the Pocket, OmniVoice, Voxtral or Inworld voices.')
+                        or ui.t('Works with the Pocket, OmniVoice or Voxtral voices.'))) or ''),
                 nil, {description = true}),
-            readonly('voice-pack', 'OmniVoice pack', pack.known and (pack.installed and 'Installed' or 'Not installed') or 'Waiting for voice service',
-                'OmniVoice is an optional add-on for computers with a capable GPU. Pocket TTS needs nothing extra.'),
         }, 'Changes wait until you choose Apply.')
-        -- The Inworld key rows follow Voice status (the 3rd row).
-        for index, item in ipairs(inworldRows) do table.insert(voicesCategory.settings, 3 + index, item) end
         categories[#categories + 1] = voicesCategory
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
             setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Shows companion replies as text.\n\nWith Voice playback off as well, automatic reactions stay silent.'),
@@ -1981,10 +2040,13 @@ local function schema()
                 categories[#categories + 1] = {id = section.id, name = section.title, description = section.description, settings = list}
             end
         end
-        categories[#categories + 1] = category('development', 'Development', {
+        -- Developer mode lists the Inworld cloud voice (in Voices) and puts its key here.
+        local development = {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
                 'For testing and bug reports; leave it off for normal play.\n\nShows routine popups (joining steps, dismissals, driving instructions, results of companion actions), writes a movement trace in the mod’s runtime folder, logs gesture decisions and adds itself to support reports.\n\nPreparation progress, joined notices, failures and replies to Stop trip stay visible when it is off.'),
-        })
+        }
+        if developer then development[#development + 1] = inworldKeyRow end
+        categories[#categories + 1] = category('development', 'Development', development)
         if support then
             categories[#categories + 1] = category('help', 'Help', {
                 action('help', 'Help and support', 'Open',
@@ -2099,13 +2161,13 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
             if os.clock() - lastDraftEventAt < AUTO_APPLY_WINDOW then
                 return {ok = false, error = hintPending()}
             end
-            local values, applied = {enabledByKey = {}, relationshipModes = {}}, {}
+            local values, applied = {relationshipModes = {}}, {}
             -- Add-on settings (docs/ADDON_API.md) are held until the main settings save succeeds.
             local addonChanges = 0
             if convaiAddons and convaiAddons.live then convaiAddons.discardSettings() end
             for _, change in ipairs(changes) do
                 local key = change.id
-                if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
+                if key == 'voice' or key == 'subtitles' or key == 'developerMode'
                     or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
                     or key == 'autoConnectNearby' or key == 'holocallLiveImage' or key == 'naturalSpeech'
                     or key == 'gameDialogueContext'
@@ -2118,13 +2180,16 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     end
                     values.audioDelay = delays[change.value]
                 elseif key == 'conversationProvider' then
-                    -- Order: 1 Convai (stored 'convai'), 2 Mistral (stored 'mistral'), 3 Local (stored 'local').
-                    local providers = {'convai', 'mistral', 'local'}
+                    -- Order: 1 Convai free tier (stored 'convai', own key off), 2 Convai API key (stored 'convai', own key on), 3 Mistral
+                    -- (stored 'mistral'), 4 Local (stored 'local'). The own-key choice only changes with a Convai entry, so it comes back when
+                    -- the player returns to Convai from Mistral or Local.
+                    local providers = {'convai', 'convai', 'mistral', 'local'}
                     local provider = type(change.value) == 'number' and providers[change.value] or nil
                     if not provider then
                         return {ok = false, error = ui.t('Choose one of the listed conversation providers.')}
                     end
                     values.conversationProvider = provider
+                    if change.value == 1 or change.value == 2 then values.useOwnConvaiKey = change.value == 2 end
                 elseif key == 'localModel' then
                     -- Order: each installed model in the bridge's list, smallest file first (stored by its id).
                     local choices = manager.localModelChoices()
@@ -2157,7 +2222,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     end
                     -- The Inworld cloud voice needs an Inworld key of its own.
                     if choice.provider == 'inworld' and not (manager.mistral().inworld or {}).saved then
-                        return {ok = false, error = ui.t('Requires an Inworld key (add it in Settings > Voices)')}
+                        return {ok = false, error = ui.t('Requires an Inworld key (add it in Settings > Development)')}
                     end
                     values.voiceProvider = choice.provider
                     if choice.provider == 'omni' then values.omniSteps, values.omniReference = choice.steps, choice.reference end
@@ -2174,7 +2239,6 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                         return {ok = false, error = ui.t('Choose one of the listed relationship options.')}
                     end
                     values.relationshipModes[key:sub(14)] = ({'auto', 'on', 'off'})[change.value]
-                elseif key:sub(1, 8) == 'enabled:' then values.enabledByKey[key:sub(9)] = change.value
                 elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
                 elseif key:sub(1, 6) == 'addon:' and convaiAddons and convaiAddons.live then
                     local staged, problem = convaiAddons.stageSetting(key, change.value)
@@ -2252,7 +2316,7 @@ function M.install()
         presentation = {active = false, rows = {}, beginKey = controllerKey(controller),
             statusAllowed = allowed, statusRestore = allowed and completed and '' or status}
         renderOwn = own and not holdDisabled
-        voiceSelectors = {}
+        voiceSelectors, voiceDimController = {}, nil
         if own and actionFeedback and completed and statusKind ~= 2 then
             status, statusKind = actionFeedback, 0
             presentation.preparationApplied = preparationActionFeedback == true
@@ -2345,17 +2409,30 @@ function M.install()
     end)
     Override('SettingsSelectorController', 'McmUiEmitStep', function(controller, forward, wrapped)
         local key = controllerKey(controller)
-        if key and presentation.active and active()
+        if key and presentation.active and active() and voiceMenuSize > 0
             and voiceSelectors[key] == presentation.controllerKey and type(api.getValue) == 'function' then
             local ok, value, err = pcall(api.getValue, MOD_KEY .. ':voiceProvider')
-            if ok and not err and ((forward == false and value == 1) or (forward == true and value == #VOICE_CHOICES)) then
-                -- Stop at the end of this voice list. Intercept the child
-                -- before it emits the host event observed by MCM, whose normal
-                -- cyclic navigation would move the marker the opposite way.
+            if ok and not err and type(value) == 'number' then
+                -- The voice list stops at its two ends and never lands on a greyed-out entry (an OmniVoice voice without its pack:
+                -- voiceDisabled). So the step is made as many times as it takes to reach the next entry that can be chosen, each one
+                -- a plain step of MCM's own (it changes the draft at once), or not at all when nothing is left in that direction.
+                -- Intercepting here, before the child emits the host event observed by MCM, also keeps MCM's normal cyclic
+                -- navigation from moving the marker the opposite way at an end.
+                local step = forward == false and -1 or 1
+                local target = value + step
+                while target >= 1 and target <= voiceMenuSize and voiceDisabled[target] do target = target + step end
+                if target < 1 or target > voiceMenuSize then return end
+                for _ = 1, math.abs(target - value) do wrapped(forward) end
                 return
             end
         end
         return wrapped(forward)
+    end)
+    -- A greyed-out voice is dimmed when a select shows it: the observer only remembers the select, M.update dims its value text.
+    ObserveAfter('SettingsSelectorControllerListString', 'McmUiFinishSelect', function(controller)
+        if next(voiceDisabled) == nil then return end
+        local key = controllerKey(controller)
+        if key and voiceSelectors[key] then voiceDimController = controller end
     end)
     ObserveAfter('SettingsMainGameController', 'McmUiSetManagedLabelState', function(controller, id, hovered)
         -- Native hover remains visible. After leaving a changed row, only its
@@ -2623,6 +2700,12 @@ function M.update(currentPlayer, worldReady)
         unveilPage()
         lastError = 'Settings presentation: ' .. tostring(styleError)
     end
+    if voiceDimController then
+        local controller = voiceDimController
+        voiceDimController = nil
+        local dimmed, dimError = pcall(dimVoiceValue, controller)
+        if not dimmed then lastError = 'Voice list presentation: ' .. tostring(dimError) end
+    end
     local placed, placeError = pcall(placeBackButton)
     if not placed then lastError = 'Back button: ' .. tostring(placeError) end
     local movedOk, movedError = pcall(placeStatusLine)
@@ -2710,7 +2793,8 @@ function M.resetSession()
     if type(convaiNotices) == 'table' and type(convaiNotices.resetLoading) == 'function' then convaiNotices.resetLoading() end
     presentation, early = {active = false, rows = {}}, {on = false}
     lastDrawKey, scrollBefore = nil, nil
-    matureCheck, matureReset, matureSeen, matureMemory, matureChanges = false, false, nil, nil, nil
+    matureCheck, matureReset, matureSeen, matureMemory, matureChanges, providerSeen = false, false, nil, nil, nil, nil
+    voiceDimController = nil
     fontPresentation.reset()
     voicePreview.reset()
     entry.reset()

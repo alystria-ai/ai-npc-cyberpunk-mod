@@ -5,6 +5,7 @@ import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
 import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
+import {VHelperVoice} from './v-helper-voice.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
@@ -85,6 +86,11 @@ export class VoiceSelection {
     this.phoneAnalysis=options.phoneAnalysis;
     this.factory = options.factory || ((settings, hooks) => new PocketVoice(settings, hooks));
     this.omniFactory=options.omniFactory||((settings,hooks)=>new ResidentVoice(settings,hooks));
+    // V's typed line, while OmniVoice is the committed voice: a Pocket worker of its own on the CPU (bridge/v-helper-voice.mjs). It is
+    // never the route of any character; `vHelperWanted` is the V setting (on, with clips), set by the bridge's settings poll.
+    this.vHelperWanted=false;
+    this.vHelper=options.vHelper||new VHelperVoice({wait:()=>this.retiring,log:message=>{try{this.options.onLog?.('[VHelper] '+message+'\n');}catch{}},
+      create:onState=>this.factory(this.configs.pocket,{...this.options,keepPreparedVoices:this.keepPrepared,onState})});
     // omniRetry: {failures, nextAt} while a failed Omni is to be loaded again; candidate: the background Omni worker
     // loading beside the committed fallback (Pocket is CPU only, so the two never share VRAM). candidateExit
     // chains each retired candidate's confirmed exit; a new worker starts only after it, like any replacement.
@@ -258,6 +264,7 @@ export class VoiceSelection {
     const registry=backend==='omni'?this.omniVariants[this.clientReference].registry:this.registries[backend];
     this.verifiedAvailabilities.set(this.verifiedKey(backend,this.clientReference),
       new Set(registry.keys.filter(key=>client.hasProfile(key))));
+    this.tickVHelper();
   }
   routingSettled({signal} = {}) {
     throwIfCancelled(signal);
@@ -340,6 +347,7 @@ export class VoiceSelection {
     if(this.clientBackend==='omni'&&wanted==='omni')this.client?.setSteps(this.warmSteps);
     if(wanted)void this.start().catch(()=>{});
     else if(this.client&&!this.busy)this.retire();
+    this.tickVHelper();
   }
   publish(state = this.state, extra = {}) {
     this.state = state;
@@ -438,7 +446,9 @@ export class VoiceSelection {
     if(backend==='omni')client.setSteps(this.warmSteps);
     client.setKeepPrepared?.(this.keepPrepared);
     this.publish(this.releasing ? 'releasing' : 'loading');
-    this.starting = Promise.all([this.retiring,this.candidateExit]).then(async () => {
+    // Pocket's work folder has one lock: V's helper Pocket worker (beside OmniVoice) is gone before this worker starts.
+    const helperExit=backend==='pocket'?this.vHelper.release():undefined;
+    this.starting = Promise.all([this.retiring,this.candidateExit,helperExit]).then(async () => {
       if (this.client !== client || this.closed) return;
       await client.start();
       this.stageAvailability(client,backend);
@@ -556,6 +566,7 @@ export class VoiceSelection {
     const client = this.client;
     const backend=this.clientBackend;
     this.client = this.starting = this.clientBackend = this.clientReference = null;
+    this.tickVHelper();
     if (!client) { this.publish(this.releasing ? 'releasing' : (this.closed ? 'stopped' : 'remote')); return this.retiring; }
     this.releasing = true;
     this.publish('releasing');
@@ -576,6 +587,30 @@ export class VoiceSelection {
     this.retiring.catch(() => this.publish('error', {detail: 'Could not release local voices. Restart the voice service.'}));
     return this.retiring;
   }
+  // ---- V's helper voice (bridge/v-helper-voice.mjs) ----
+  // It exists only while OmniVoice is the committed, loaded voice (never beside a cloud voice, the Pocket voice, the Convai voice or a
+  // muted playback), the V setting is on, and Pocket is configured. Due-checked where routing already changes; nothing runs on a timer.
+  get vHelperDue() {
+    return this.vHelperWanted&&!this.closed&&this.playbackEnabled!==false&&this.provider==='omni'&&!this.cloudActive
+      &&this.clientBackend==='omni'&&this.client?.loaded===true&&!this.client.failure&&!this.client.closing
+      &&this.provider===this.requestedProvider&&!!this.configuredByBackend.pocket;
+  }
+  tickVHelper() {
+    if (this.vHelperDue) this.vHelper.start(); else void this.vHelper.release();
+  }
+  setVHelperWanted(value) {
+    value = value === true;
+    if (value === this.vHelperWanted) return;
+    this.vHelperWanted = value; this.tickVHelper();
+  }
+  /** Could V's helper speak this key (Pocket's configuration has it)? True while OmniVoice is committed; says nothing about being loaded. */
+  vHelperSpeaks(key) {
+    return this.provider==='omni'&&!this.cloudActive&&!!this.configuredByBackend.pocket&&this.registries.pocket.has(key)&&this.availabilities.pocket.has(key);
+  }
+  /** Is the helper loaded and ready for this key? Also asks it to load when it is due and not yet running, so a missed trigger heals itself. */
+  vHelperReady(key) { this.tickVHelper(); return this.vHelper.ready(key); }
+  vHelperStream(key, text, options = {}) { return this.vHelper.stream(key, stripSpeechTags(text), options); }
+  vHelperPrepare(key, options = {}) { return this.vHelper.prepare(key, options); }
   async synthesizeStream(profile, text, options = {}) {
     if (this.provider!=='pocket'||!this.usesProfile(profile))throw Error('This character does not use Pocket streaming');
     // Pocket cannot render voice tags and would read them aloud: a last line of defence behind the display strip. The same
@@ -756,6 +791,6 @@ export class VoiceSelection {
     this.closed = true; this.preview = null; this.omniRetry = null;
     for (const waiter of this.routingWaiters) waiter.reject(Error('Voice service is closed'));
     this.routingWaiters.clear();
-    return this.closing=Promise.all([this.retire(),this.phoneAnalysis?.close(),this.dropCandidate()]);
+    return this.closing=Promise.all([this.retire(),this.phoneAnalysis?.close(),this.dropCandidate(),this.vHelper.release()]);
   }
 }

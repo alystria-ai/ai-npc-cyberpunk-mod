@@ -2535,6 +2535,8 @@ if convaiAddons then
     end
     -- Where an add-on voice is heard from (addons.lua voiceFrom), asked by speech.lua once per add-on reply.
     speech.voiceSource = function(profileKey, player) return convaiAddons.live and convaiAddons.voiceSource(profileKey, player) or nil end
+    -- An add-on remark whose speaker shows the text itself goes without a subtitle (addons.lua hideCaption), asked once per reply.
+    speech.hideCaption = function(profileKey, requestId) return convaiAddons.live and convaiAddons.hideCaption(profileKey, requestId) or false end
     -- An automatic add-on remark: the same request file, reply path and playback as every other turn.
     seams.submit = function(context, anchor)
         if active or pending or automatic or microphone.context or groupChat.round then return false end
