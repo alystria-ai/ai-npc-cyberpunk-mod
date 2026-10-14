@@ -236,6 +236,10 @@ function M.newBoard(options)
     -- Returns nil (nothing to say now) or {message, commit}. The caller invokes
     -- commit() only after the message was really posted.
     function B.take(worldReady)
+        -- Idle (init.lua asks every frame): nothing followed, nothing joined or failed. The sample, the composed lines and
+        -- the replacement burst below would all come out empty, so the frame builds no table. now() is not called either:
+        -- its clock accumulates the time since its last call, so a later call sees the same instant.
+        if #entries == 0 and #burst.joined == 0 and #burst.failures == 0 then return nil end
         worldReady = worldReady == true
         local at = now()
         local active = sample(worldReady)

@@ -238,7 +238,7 @@ function M.new(options)
     -- A gaze sample, about every 0.2 s: the character V is facing (a profile
     -- that is enabled and not already in the party), or nil.
     function A.look(key, entity, name, dt)
-        if not key or not entity then look = {}; return end
+        if not key or not entity then if next(look) ~= nil then look = {} end; return end
         if look.key ~= key or look.entity ~= entity then look = {key = key, entity = entity, name = name, dwell = 0} end
         look.dwell = look.dwell + (tonumber(dt) or 0)
         look.seen = clock
@@ -269,7 +269,7 @@ function M.new(options)
             if #active > 0 or #partners > 0 or (lastSignature ~= nil and lastSignature ~= '') then
                 releaseAll('setting off'); push(true)
             end
-            look = {}
+            if next(look) ~= nil then look = {} end
             return
         end
         if context.worldReady ~= true then return end
