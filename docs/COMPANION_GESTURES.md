@@ -261,7 +261,7 @@ lines: requests, native call results, 4 Hz traces while active).
    `gesture-workspot.lua`, fixture tests `bridge/companion-gestures.test.mjs`).
 2. Emotion/intensity mapping, stance families, character clips — built.
 3. Listening nods (V speaking) and signature idle flavour — built; group-chat
-   listeners are not yet included.
+   listeners since Round 10 (October 14).
 4. MCM string in 9 locales + `localization/en.json` — done. In-game
    qualification of the controller is next.
 
@@ -795,3 +795,24 @@ Rule now: a workspot and a crouch never overlap. `companions.lua` passes `crouch
 ## Round 9 (October 13): leave the workspot, let the pose blend out, then walk
 
 The movement check watches V (0.75 m from the anchor taken when the workspot began, running, or the group frame moving for 0.8 s), and the follow is suppressed while a workspot holds the copy. After the exit signal the workspot is left within a tick, but the pose blends out for about 0.5 s more; the follow used to start in that window. `exitSettle` (0.4 s) now keeps the copy held after any non-instant exit; combat and transport exits stay instant. `Gestures drift` is logged once per workspot if the body moves more than 15 cm while held (Evelyn, 10:02:00Z: 0.24 m with V standing still, 45 s into `convai_idle_panam_hips`, cause not found).
+
+## Round 10 (October 14): group listeners
+
+Phase 2 listed "group listener nods" as open: until now only the one companion V talks to (the microphone's entity) nodded while V spoke; in a group round (V talking to two or three companions at once, or one companion answering after another) the others stood in whatever they were doing, and a signature idle could even start while a neighbour spoke.
+
+Built (Lua only, CET reload; no archive, nothing per frame):
+
+- `mod/group-chat.lua` `roleOf(entity)` reads the round's own fields: `nil` (no round, not a member, or an add-on voice), `'recording'` (V is speaking the group utterance), `'reply'` plus the speaker's entity (a reply is being written or heard), `'between'` (the next speaker is being prepared or the round has just begun). Three comparisons at most.
+- `mod/companion-gestures.lua` `modeFor`: after the copy's own speech, a member of a round is never `nil`. During the microphone she is `listening` (group pacing); while another member's reply of at least 5 s (the same estimate as for gestures, 2.6 words/s) is heard she is `listening` with the speaker's remaining time and phrase timing; otherwise (a short reply, between speakers, the speaker herself waiting) she is `thinking`, which only holds the stance. So the stance is entered when the round starts, kept across the speaker changes (no leave-and-enter between speakers, no idle starting mid-round) and left 2.5 s after the round ends, the same linger as after a reply. A copy outside the round gets `nil` from the lookup and behaves as before; with the setting Off the round is never asked about (a test counts the calls).
+- `mod/gesture-selection.lua` group pacing (`groupFirst` 3-7 s, `groupGap` 8-16 s; one-to-one listening stays 2-4 s and 5-10 s): the first nod is 3-7 s into a speaker's reply (the clock restarts for each new speaker's reply and for the microphone), then at most one every 8-16 s after the nod ends; never into the last 1.2 s, never in a reply under 5 s, only a nod that fits (70 % of its length) the remaining speech, and inside the 0.7 s after a phrase start when the speaker's phrase timing is known. Only the `nod` category plays, never the same clip twice running.
+- Stagger: two listeners of one round never start a nod within 2 s of each other (`policy.groupStagger`, one number on the controller), so three heads do not bob together.
+- `Gestures gesture` log lines for a listener carry `group = true`.
+
+Tests: `bridge/gesture-selection.test.mjs` (pacing, bounds, short reply, phrase window, restart per speaker), `bridge/companion-gestures.test.mjs` (three copies: listeners keep one stance, only nod, 1-3 nods in a 24 s reply 8 s or more apart; the speaker still gestures; two listeners 2 s apart over 110 s; short reply, no nod and no exit; between speakers no exit and no re-entry, then one exit each after the round; microphone: all three nod after 3 s; outside copy and Off), `bridge/group-chat.test.mjs` (`roleOf` across text and voice rounds and an add-on voice).
+
+To check live (Body gestures On, Developer mode for `Gestures` lines in `probe.log`; two or three companions standing within 4 m of V, hands-at-sides or any catalogued ones; a group chat by text, then by voice):
+1. Send one group message: each member enters the talk stance once (`begin`), the first speaker gestures, the others only nod (`gesture` lines with `group: true`, category `nod`), about one nod per listener per reply, never together.
+2. A reply of one sentence: nobody nods; nobody leaves the stance between that speaker and the next.
+3. The round ends: each leaves with `reply ended` about 2.5 s later, no second `begin` in between.
+4. Group voice: while you speak, all members nod now and then, the first one 3 s or later into your speech.
+5. A fourth companion beside you who is not in the round does not take the stance, nods or exits.

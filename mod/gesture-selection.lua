@@ -64,6 +64,10 @@ M.holds = {{1.6, 3.2}, {1.2, 2.6}, {.9, 2.0}}
 M.phraseWindow = .7
 -- Now and then a phrase start is left calm, unless the hands rested a while.
 M.restChance, M.restLongest = .2, 7
+-- Group listeners (a companion hearing another companion, or V's group utterance, docs/COMPANION_GESTURES.md): the
+-- first nod comes later and the gaps are longer than for the one companion V talks to, so a round of three never
+-- reads as three heads bobbing together. Seconds, {low, high}.
+M.groupFirst, M.groupGap = {3, 7}, {8, 16}
 -- Expressive hand/arm gestures read from a distance; head flicks and nods
 -- barely register, so they are mostly left for listening.
 local subtle = {'head_flick', 'nod', 'yes__head', 'no__head', 'look_', 'shuffle', 'scratch', 'weight_shift', 'breathe'}
@@ -333,9 +337,11 @@ end
 -- gates speaking clips to phrase starts.
 function M.next(s, input)
     local now = input.now or 0
-    if input.mode ~= s.mode or (input.reply ~= nil and input.reply ~= s.reply) then
-        s.mode, s.reply, s.restedAt = input.mode, input.reply, now
+    local group = input.group == true
+    if input.mode ~= s.mode or s.group ~= group or (input.reply ~= nil and input.reply ~= s.reply) then
+        s.mode, s.group, s.reply, s.restedAt = input.mode, group, input.reply, now
         if input.mode == 'speaking' then s.nextAt = now + between(s, .1, .4)
+        elseif input.mode == 'listening' and group then s.nextAt = now + between(s, M.groupFirst[1], M.groupFirst[2])
         elseif input.mode == 'listening' then s.nextAt = now + between(s, 2, 4)
         else s.nextAt = math.huge end
     end
@@ -359,7 +365,14 @@ function M.next(s, input)
         item = speaking(s, input)
     elseif input.mode == 'listening' then
         -- Nods: the same kind by nature, but never the same clip twice running.
-        item = (pick(s, candidates(input.clips, input.rig, input.character, 'nod'), now, nil, true))
+        -- A group listener also nods only inside a fairly long reply of the speaker, never in its last
+        -- moments, on a phrase start when the timing is known, and only for a nod that fits what is left.
+        if group then
+            if input.total and input.total < M.minimumSpeech then return nil end
+            if input.remaining and input.remaining < 1.2 then return nil end
+            if input.phraseAge ~= nil and input.phraseAge > M.phraseWindow then return nil end
+        end
+        item = (pick(s, candidates(input.clips, input.rig, input.character, 'nod'), now, group and input.remaining or nil, true))
     else
         return nil
     end
@@ -370,6 +383,8 @@ function M.next(s, input)
         local hold = M.holds[clampScale(input.scale)]
         s.nextAt = finish + between(s, hold[1], hold[2]) / rate(input.character)
         s.restedAt = s.nextAt
+    elseif group then
+        s.nextAt = finish + between(s, M.groupGap[1], M.groupGap[2])
     else
         s.nextAt = finish + between(s, 5, 10)
     end

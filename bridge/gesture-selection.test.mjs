@@ -468,3 +468,63 @@ test('the first clip waits for busyUntil (the enter blend into the stance), then
   end
   assert(first and first>=1.65,'first clip at '..tostring(first))
 `));
+
+test('a group listener nods later and more rarely than the companion V talks to, and only inside a long reply', () => run(`
+  local firsts,gaps,count={},{},0
+  for run=1,40 do
+    local s=m.new(lcg)
+    local last
+    for t=0,60,.1 do
+      local item=m.next(s,{now=t,mode='listening',group=true,rig='woman_base',character='judy',clips=clips,reply='r1',total=60,remaining=60-t})
+      if item then
+        assert(item.clip.category=='nod','group listener played '..item.clip.name)
+        count=count+1
+        if not last then firsts[#firsts+1]=t else gaps[#gaps+1]=t-last end
+        last=t+item.duration
+      end
+    end
+  end
+  table.sort(firsts)
+  assert(firsts[1]>=2.9 and firsts[#firsts]<=7.2,'first nods '..firsts[1]..'-'..firsts[#firsts])
+  for _,gap in ipairs(gaps) do assert(gap>=7.9,'group nods '..gap..' s apart') end
+  assert(count/40<=5,'about '..(count/40)..' nods a minute')
+  -- the one-to-one listener is quicker
+  local s=m.new(lcg)
+  local first
+  for t=0,10,.1 do local item=m.next(s,{now=t,mode='listening',rig='woman_base',character='judy',clips=clips});if item then first=t;break end end
+  assert(first<=4.1)
+`));
+
+test('a group listener never nods in the last second of the speaker or into a short reply, and waits for a phrase start', () => run(`
+  local s=m.new(lcg)
+  for t=0,30,.1 do
+    assert(m.next(s,{now=t,mode='listening',group=true,rig='woman_base',clips=clips,reply='short',total=4,remaining=4-math.min(t,4)})==nil,'nod into a short reply')
+  end
+  s=m.new(lcg)
+  for t=0,40,.1 do
+    local item=m.next(s,{now=t,mode='listening',group=true,rig='woman_base',clips=clips,reply='r',total=40,remaining=math.max(0,40-t)})
+    if item then assert(40-t>=1.2,'nod started with '..(40-t)..' s left');assert(item.duration*.7<=40-t) end
+  end
+  s=m.new(lcg)
+  for t=0,40,.1 do
+    -- phrase starts every 4 s; the nod may only start within the phrase window
+    local phraseAt=math.floor(t/4)*4
+    local item=m.next(s,{now=t,mode='listening',group=true,rig='woman_base',clips=clips,reply='p',total=40,remaining=40-t,phraseAt=phraseAt,phraseAge=t-phraseAt})
+    if item then assert(t-phraseAt<=m.phraseWindow+.001,'nod '..(t-phraseAt)..' s into a phrase') end
+  end
+`));
+
+test('a new speaker restarts the group listener pacing; the one-to-one path is unchanged', () => run(`
+  local s=m.new(lcg)
+  local second
+  for t=0,6,.1 do m.next(s,{now=t,mode='listening',group=true,rig='woman_base',clips=clips,reply='a',total=60,remaining=60}) end
+  for t=6,20,.1 do
+    local item=m.next(s,{now=t,mode='listening',group=true,rig='woman_base',clips=clips,reply='b',total=60,remaining=60})
+    if item then second=t;break end
+  end
+  assert(second and second>=6+2.9 and second<=6+7.2,'first nod of the new speaker at '..tostring(second))
+  -- switching between group and one-to-one resets as a mode change does
+  local item
+  for t=30,40,.1 do item=m.next(s,{now=t,mode='listening',rig='woman_base',clips=clips}) or item end
+  assert(item,'one-to-one listening still nods')
+`));
