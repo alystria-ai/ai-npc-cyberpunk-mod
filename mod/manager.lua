@@ -30,8 +30,8 @@ local OMNI_LABELS = {
     ['32:long'] = 'OmniVoice · Ultra Quality',
 }
 local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
-local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it in Settings > Development)'
-local INWORLD_KEY_MISSING = 'Requires an Inworld key (add it in Settings > Development)'
+local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it in Settings > Conversation provider)'
+local INWORLD_KEY_MISSING = 'Requires an Inworld key (add it in Settings > Voices)'
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
 -- Natural speech and Expressive emotions need a local voice (the Convai cloud voice would read their tags aloud). The
 -- pending notice, once, after an Apply that switched the voice or turned the two settings off.
@@ -323,8 +323,6 @@ end
 -- the clipboard on request and keeps it in its own folder; this file sends two commands and reads the status the bridge
 -- publishes (runtime/mistral-state.json, never the key). Read on demand, at most once every 1.5 s.
 local mistralState, mistralReadAt, mistralCommand, mistralSequence = {}, nil, nil, 0
--- The Groq free plan (the player's own free key) is handled the same way, on its own command file and ids.
-local groqCommand, groqSequence = nil, 0
 
 -- Set further down, once the settings can be saved: replaces a saved Local AI model that left its pack (see goneLocalModelReplacement).
 local repairGoneLocalModel
@@ -363,31 +361,6 @@ function M.removeMistralKey()
     return true, 'Your key was removed.'
 end
 
-local function sendGroqCommand(action)
-    memorySession = memorySession or memorySessionUUID()
-    groqSequence = groqSequence + 1
-    local command = {version = 1, id = memorySession .. ':gkey:' .. groqSequence, action = action,
-        issuedAt = os.time() * 1000.0}
-    if not writeCommandFile('runtime/groq-key-command.json', command) then
-        return false, 'The request could not be sent. Try again.'
-    end
-    groqCommand = command.id
-    mistralReadAt = nil
-    return true
-end
-
-function M.pasteGroqKey()
-    local ok, reason = sendGroqCommand('paste')
-    if not ok then return false, reason end
-    return true, 'Checking…'
-end
-
-function M.removeGroqKey()
-    local ok, reason = sendGroqCommand('clear')
-    if not ok then return false, reason end
-    return true, 'Your key was removed.'
-end
-
 -- The Inworld cloud voice's key (docs/CLOUD_VOICE_INWORLD.md): the same shape again, on its own command file and ids. Its status
 -- (saved, last four characters, the latest paste or remove) rides in the same status file, under `inworld`.
 local inworldCommand, inworldSequence = nil, 0
@@ -417,60 +390,11 @@ function M.removeInworldKey()
     return true, 'Your key was removed.'
 end
 
--- Prepared voices on disk (bridge/prepared-voices.mjs): the disk the saved voice setups use ("Keep prepared voices") and Clear prepared
--- voices, in the same command file shape as the keys above. Nothing runs per frame: the bridge measures once when Settings opens (and
--- when a clear finishes); this reads its small status file at most once every 1.5 s, and only while Settings or the clear page is open.
-local preparedState, preparedReadAt, preparedCommand, preparedSequence, preparedWatching = {}, nil, nil, 0, false
-
-local function sendPreparedVoicesCommand(action)
-    memorySession = memorySession or memorySessionUUID()
-    preparedSequence = preparedSequence + 1
-    local command = {version = 1, id = memorySession .. ':pv:' .. preparedSequence, action = action,
-        issuedAt = os.time() * 1000.0}
-    if not writeCommandFile('runtime/prepared-voices-command.json', command) then
-        return false, 'The request could not be sent. Try again.'
-    end
-    preparedCommand = command.id
-    preparedReadAt = nil
-    return true
-end
-
--- `on`: Settings or the clear page is open (the status is read only then); `measure`: ask the bridge for a fresh total (Settings just opened).
-function M.watchPreparedVoices(on, measure)
-    preparedWatching = on == true
-    if preparedWatching and measure then sendPreparedVoicesCommand('measure') end
-end
-
-function M.clearPreparedVoices()
-    local ok, reason = sendPreparedVoicesCommand('clear')
-    if not ok then return false, reason end
-    return true, 'Clearing prepared voices…'
-end
-
--- {known, files, bytes, busy, cleared = {bytes}, failed}: `result` is the answer to the player's latest request, and only that one.
-function M.preparedVoices()
-    if preparedWatching then
-        local clock = os.clock()
-        if not preparedReadAt or clock - preparedReadAt >= 1.5 then
-            preparedReadAt = clock
-            local value = readJSON('runtime/prepared-voices-state.json')
-            preparedState = type(value) == 'table' and value or {}
-        end
-    end
-    local state = preparedState
-    local result = type(state.result) == 'table' and preparedCommand and state.result.id == preparedCommand and state.result or nil
-    local known = state.state == 'ready' and wholeNumber(state.files) and wholeNumber(state.bytes)
-    return {known = known == true, files = known and state.files or 0, bytes = known and state.bytes or 0,
-        busy = preparedCommand ~= nil and (result == nil or result.state == 'working'),
-        cleared = result and result.state == 'cleared' and {bytes = wholeNumber(result.bytes) and result.bytes or 0} or nil,
-        failed = result ~= nil and result.state == 'failed'}
-end
-
 local mistralResults = {saved = true, cleared = true, invalid = true, unreadable = true, failed = true}
 local mistralLimits = {rate = true, daily = true, invalid = true, model = true}
 local localAiStates = {ready = true, warming = true, ['not-installed'] = true, ['no-memory'] = true, failed = true}
 local function providerName(value)
-    return (value == 'mistral' or value == 'local' or value == 'groq') and value or 'convai'
+    return (value == 'mistral' or value == 'local') and value or 'convai'
 end
 
 -- What the settings page shows. `result` is the outcome of the player's latest Paste or Remove, and only that one.
@@ -586,17 +510,12 @@ function M.mistral()
     local result = type(state.result) == 'table' and state.result.id == mistralCommand and state.result.state or nil
     local tail = type(state.tail) == 'string' and #state.tail <= 8 and state.tail or nil
     local model = type(state.model) == 'string' and #state.model <= 80 and state.model:match('^[%w%.%-_:/]+$') and state.model or nil
-    local groq = type(state.groq) == 'table' and state.groq or {}
-    local groqResult = type(groq.result) == 'table' and groq.result.id == groqCommand and groq.result.state or nil
-    local groqTail = type(groq.tail) == 'string' and #groq.tail <= 8 and groq.tail or nil
     local inworld = type(state.inworld) == 'table' and state.inworld or {}
     local inworldResult = type(inworld.result) == 'table' and inworld.result.id == inworldCommand and inworld.result.state or nil
     local inworldTail = type(inworld.tail) == 'string' and #inworld.tail <= 8 and inworld.tail or nil
     local localModels = localModelList(state.localModels)
     return {provider = providerName(state.provider),
         inworld = {saved = inworld.saved == true, tail = inworldTail, result = mistralResults[inworldResult] and inworldResult or nil},
-        groq = {saved = groq.saved == true, tail = groqTail, limit = mistralLimits[groq.limit] and groq.limit or nil,
-            result = mistralResults[groqResult] and groqResult or nil},
         effective = providerName(state.effective),
         localAi = localAiStates[state.localAi] and state.localAi or nil,
         maturePack = state.maturePack == true,
@@ -725,11 +644,11 @@ local function loadSettings()
     if type(settings.developerMode) ~= 'boolean' then settings.developerMode, settingsNeedSave = false, true end
     -- Off by default: conversations use the shared plan until the player turns their own Convai key on (bridge/convai-key.mjs).
     if type(settings.useOwnConvaiKey) ~= 'boolean' then settings.useOwnConvaiKey, settingsNeedSave = false, true end
-    -- Who writes the replies: 'convai' (default), 'mistral' (the player's own Mistral key), 'groq' (the player's own free
-    -- Groq key) or 'local' (the optional Local AI pack, on this computer). Any other saved value is Convai. The bridge reads this from settings.json and applies it when
-    -- no conversation is running.
+    -- Who writes the replies: 'convai' (default), 'mistral' (the player's own Mistral key) or 'local' (the optional Local AI pack, on this
+    -- computer). Any other saved value is Convai, a saved 'groq' (an option that was removed) included, as in the bridge. The bridge reads
+    -- this from settings.json and applies it when no conversation is running.
     if settings.conversationProvider ~= 'convai' and settings.conversationProvider ~= 'mistral'
-        and settings.conversationProvider ~= 'local' and settings.conversationProvider ~= 'groq' then
+        and settings.conversationProvider ~= 'local' then
         settings.conversationProvider, settingsNeedSave = 'convai', true
     end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = false, true end
@@ -758,7 +677,8 @@ local function loadSettings()
     if settings.omniReference ~= 'short' and settings.omniReference ~= 'long' then
         settings.omniReference, settingsNeedSave = DEFAULT_OMNI_REFERENCE, true
     end
-    if type(settings.keepPreparedVoices) ~= 'boolean' then settings.keepPreparedVoices, settingsNeedSave = true, true end
+    -- Prepared voices are always kept (there is no switch for it any more): a saved false from an older settings file is ignored.
+    if settings.keepPreparedVoices ~= true then settings.keepPreparedVoices, settingsNeedSave = true, true end
     -- On by default: unnamed gang members, police, vendors and residents can be talked to (docs/NPC_ARCHETYPES.md).
     if type(settings.archetypeConversations) ~= 'boolean' then settings.archetypeConversations, settingsNeedSave = true, true end
     -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the cloud voice is kept (it is the
@@ -932,13 +852,13 @@ function M.developerMode()
     return settings ~= nil and settings.developerMode == true
 end
 
--- True when speaking to a companion cannot work right now: the player chose Mistral, Groq or Local AI, the bridge says that
+-- True when speaking to a companion cannot work right now: the player chose Mistral or Local AI, the bridge says that
 -- provider is in use, and this computer cannot recognise speech locally. Asked only when a voice key is pressed (never per
 -- frame); the bridge status is re-read at most once every 1.5 s.
 function M.voiceNeedsConvai()
     loadSettings()
     local chosen = settings.conversationProvider
-    if chosen ~= 'mistral' and chosen ~= 'local' and chosen ~= 'groq' then return false end
+    if chosen ~= 'mistral' and chosen ~= 'local' then return false end
     local state = M.mistral()
     return state.effective == chosen and state.stt ~= true
 end
@@ -1710,7 +1630,6 @@ function M.snapshot(player)
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         ownKey = M.ownKey(),
-        preparedVoices = M.preparedVoices(),
         mistral = M.mistral(),
         localVoice = localVoiceState,
         memory = memorySnapshot(),
@@ -1751,7 +1670,7 @@ function M.applySettings(player, values)
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'holocallLiveImage'
             or key == 'gameDialogueContext' or key == 'decisionLedger'
-            or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions'
+            or key == 'naturalSpeech' or key == 'expressiveEmotions'
             or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
@@ -1777,7 +1696,7 @@ function M.applySettings(player, values)
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.archetypeConversations = value
         elseif key == 'conversationProvider' then
-            if value ~= 'convai' and value ~= 'mistral' and value ~= 'local' and value ~= 'groq' then return false, 'Choose one of the listed conversation providers.' end
+            if value ~= 'convai' and value ~= 'mistral' and value ~= 'local' then return false, 'Choose one of the listed conversation providers.' end
             nextSettings.conversationProvider = value
         elseif key == 'audioDelay' then
             if not isChoice(value, audioDelays) then return false, 'Choose one of the listed lip sync delays.' end
@@ -1795,7 +1714,7 @@ function M.applySettings(player, values)
             end
             -- The Mistral cloud voice speaks with the player's Mistral key (the same one the text replies use).
             if value == 'voxtral' and not M.mistral().saved then return false, VOXTRAL_KEY_MISSING end
-            -- The Inworld cloud voice speaks with the player's own Inworld key (its own key, pasted in Settings > Development).
+            -- The Inworld cloud voice speaks with the player's own Inworld key (its own key, pasted in Settings > Voices).
             if value == 'inworld' and not (M.mistral().inworld or {}).saved then return false, INWORLD_KEY_MISSING end
             -- An OmniVoice choice cannot be saved while the optional pack is missing; the choice never takes effect.
             if value == 'omni' and not M.omniPack().installed then return false, OMNI_PACK_MISSING end

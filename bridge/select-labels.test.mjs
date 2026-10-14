@@ -22,7 +22,7 @@ const budget = Number(/local OPTION_BUDGET = (\d+)/.exec(mcmSource)[1]);
 const OMNI = ['OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality'];
 const STATIC_OPTIONS = [
   '10 cm higher', '10 cm lower', '5 cm higher', '5 cm lower', 'Above the speaker', 'Auto', 'Casual', 'Cinematic subtitles', 'Convai free tier',
-  'Default', 'Eyes only', 'Gentle (default)', 'Groq (free plan)', 'Local (needs Local AI pack)', 'Mistral (free plan)', 'No model installed',
+  'Default', 'Eyes only', 'Gentle (default)', 'Local (needs Local AI pack)', 'Mistral (free plan)', 'No model installed',
   'Off', 'Ordinary', 'Romantic', 'Strong', 'Subtle',
   'Pocket · Performance', ...OMNI, 'Convai · Cloud voice',
   'Voxtral · Mistral cloud', 'Voxtral · needs Mistral key', 'Inworld · Cloud voice', 'Inworld · needs key',

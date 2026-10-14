@@ -4,16 +4,13 @@
 local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}}
 local LOCAL_HISTORY = 'phone-local-player:v1'
 -- The status line when the bridge says the shared plan's daily allowance is used up (same wording as the game notice).
-local DAILY_LIMIT_STATUS = 'You’ve reached today’s free conversation limit. Convai (better quality responses) is back tomorrow. To keep talking now, add a free Mistral key and set Conversation provider to Mistral in Settings > Development. A fully local option is coming.'
+local DAILY_LIMIT_STATUS = 'You’ve reached today’s free conversation limit. Convai (better quality responses) is back tomorrow. To keep talking now, add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider. A fully local option is coming.'
 -- The same for the Mistral failures the bridge names; other failures keep the provider's text.
 local MISTRAL_STATUS = {
-    ['mistral-key'] = 'Mistral did not accept your key. Check it in Settings > Development.',
+    ['mistral-key'] = 'Mistral did not accept your key. Check it in Settings > Conversation provider.',
     ['mistral-limit'] = 'Mistral’s free limit is reached for now. Try again in a moment.',
     ['mistral-model'] = 'The Mistral model is unavailable right now. Try again in a minute.',
-    ['groq-key'] = 'Groq did not accept your key. Check it in Settings > Development.',
-    ['groq-limit'] = 'Groq’s free limit is reached for now. Try again in a moment.',
-    ['groq-model'] = 'The Groq model is unavailable right now. Try again in a minute.',
-    ['local-fallback'] = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development.',
+    ['local-fallback'] = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.',
     ['local-failed'] = 'Local AI could not answer that. Try again in a moment.',
 }
 local function copy(value)

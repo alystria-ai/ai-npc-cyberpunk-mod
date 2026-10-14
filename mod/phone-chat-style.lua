@@ -49,8 +49,8 @@ local statusSources = {
     ['Conversations are disabled in Companion Manager.'] = true,
     ['Conversation is unavailable for this contact.'] = true,
     ['Opening chat. Waiting for the conversation service.'] = true,
-    ['You’ve reached today’s free conversation limit. Convai (better quality responses) is back tomorrow. To keep talking now, add a free Mistral key and set Conversation provider to Mistral in Settings > Development. A fully local option is coming.'] = true,
-    ['Mistral did not accept your key. Check it in Settings > Development.'] = true,
+    ['You’ve reached today’s free conversation limit. Convai (better quality responses) is back tomorrow. To keep talking now, add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider. A fully local option is coming.'] = true,
+    ['Mistral did not accept your key. Check it in Settings > Conversation provider.'] = true,
     ['Mistral’s free limit is reached for now. Try again in a moment.'] = true,
     ['The Mistral model is unavailable right now. Try again in a minute.'] = true,
 }

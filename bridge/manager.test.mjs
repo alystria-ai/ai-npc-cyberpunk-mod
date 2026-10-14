@@ -669,8 +669,8 @@ test('voice selector arrows stay within their displayed direction and use effect
     assert(elements[4] == 'OmniVoice · High Quality' and elements[5] == 'OmniVoice · Ultra Quality')
     assert(elements[6] == 'Voxtral · needs Mistral key' and elements[7] == 'Inworld · needs key' and elements[8] == 'Convai · Cloud voice')
     assert(row('omniSteps') == nil and row('omniReference') == nil, 'retired quality steps remain in the active menu')
-    assert(row('keepPreparedVoices').type == 'bool' and row('keepPreparedVoices').value == true
-      and row('keepPreparedVoices').defaultValue == true, 'Keep prepared voices is on by default')
+    assert(row('keepPreparedVoices') == nil and row('prepared-voices') == nil and row('prepared-voices:open') == nil, 'prepared voices have no row: they are always kept')
+    assert(manager.snapshot(player).settings.keepPreparedVoices == true)
     handlers.McmUiConfigureBase(selector, controller, 'another-mod:settings:voiceProvider')
     emit(false)
     assert(effective == 8 and forwarded == 15, 'foreign selector behavior must pass through')
@@ -1122,7 +1122,7 @@ test('with Auto Apply every setting waits for an explicit Apply: the automatic a
     end
     local before, writes = snapshotOf(), #fileWrites
     -- One setting of every kind: bool, select, voice, gaze, language, relationship, conversation.
-    for _, change in ipairs({{'voiceProvider', 3}, {'voiceProvider', 2}, {'voiceProvider', 7}, {'keepPreparedVoices', false}, {'voice', false}, {'subtitles', false},
+    for _, change in ipairs({{'voiceProvider', 3}, {'voiceProvider', 2}, {'voiceProvider', 7}, {'voice', false}, {'subtitles', false},
         {'subtitleStyle', 2}, {'battleReactions', false}, {'lootReactions', false}, {'bodyGestures', true},
         {'developerMode', true}, {'eyeContactHeight', 5}, {'headFollowStrength', 4}, {'uiLanguage', 2},
         {'relationship:judy-alvarez', 2}, {'enabled:person-1', false}, {'autoConnectNearby', true}}) do
@@ -1985,7 +1985,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     assert(manager.voiceLabel('voxtral') == 'Mistral cloud voice (Voxtral)')
     local before = saved.voiceProvider
     local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}})
-    assert(result.ok == false and result.error == 'Requires a Mistral key (add it in Settings > Development)', result.error)
+    assert(result.ok == false and result.error == 'Requires a Mistral key (add it in Settings > Conversation provider)', result.error)
     assert(saved.voiceProvider == before)
     assert(not manager.applySettings(player, {voiceProvider = 'voxtral'}))
     -- A key is saved (the Conversation provider stays Convai, the default): the entry is a plain label and can be applied.
@@ -2158,10 +2158,10 @@ test('turning Mature content off puts the provider, model and voice back, except
     assert(apply({{id = 'matureContent', value = false}, {id = 'conversationProvider', value = 2}, {id = 'localModel', value = 2}, {id = 'voiceProvider', value = 6}}).ok)
     assert(saved.matureContent == false and saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral')
     assert(saved.matureRestore == nil, 'the way back stayed after Mature content was turned off')
-    -- On again, the player changes the provider to Groq and the model to Qwen before turning it off: those two stay.
+    -- On again, the player changes the provider to Mistral and the model to Qwen before turning it off: those two stay.
     user('matureContent', true)
     assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 1}}).ok)
-    assert(apply({{id = 'conversationProvider', value = 4}, {id = 'localModel', value = 1}}).ok)
+    assert(apply({{id = 'conversationProvider', value = 2}, {id = 'localModel', value = 1}}).ok)
     user('matureContent', false)
     assert(drafts() == 'matureContent=false,voiceProvider=6', 'only the voice was still the one Mature content chose: ' .. drafts())
   `);
@@ -2183,10 +2183,10 @@ test('Mature content turned on and off again before Apply leaves no pending chan
     user('matureContent', true)
     assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=1', drafts())
     -- The player's own later change of the provider while Mature content is on is theirs: turning it off does not undo it.
-    user('conversationProvider', 4)
+    user('conversationProvider', 1)
     user('matureContent', false)
     -- The model and the voice go back to what is saved (their drafts disappear); the provider stays the player's own choice.
-    assert(drafts() == 'conversationProvider=4', 'the provider the player chose was undone or others were left: ' .. drafts())
+    assert(drafts() == 'conversationProvider=1', 'the provider the player chose was undone or others were left: ' .. drafts())
   `);
 });
 
@@ -2604,7 +2604,7 @@ test('the Inworld cloud voice says it needs an Inworld key and cannot be applied
     assert(manager.voiceLabel('inworld') == 'Inworld cloud voice')
     local before = saved.voiceProvider
     local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}})
-    assert(result.ok == false and result.error == 'Requires an Inworld key (add it in Settings > Development)', result.error)
+    assert(result.ok == false and result.error == 'Requires an Inworld key (add it in Settings > Voices)', result.error)
     assert(saved.voiceProvider == before)
     assert(not manager.applySettings(player, {voiceProvider = 'inworld'}))
     -- A Mistral key alone does not unlock it.
@@ -2626,7 +2626,7 @@ test('the Inworld cloud voice says it needs an Inworld key and cannot be applied
   `);
 });
 
-test('the Inworld key is pasted and removed from Settings > Development through its own command file, and the page shows only its last four characters', () => {
+test('the Inworld key is pasted and removed from Settings > Voices through its own command file, and the page shows only its last four characters', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end
     assert(invoke('tab:settings').ok)
@@ -2649,51 +2649,38 @@ test('the Inworld key is pasted and removed from Settings > Development through 
   `);
 });
 
-test('Settings > Voices shows the prepared voices on disk, asked once when Settings opens, and Clear prepared voices confirms on its own page before it sends the command', () => {
+test('prepared voices are always kept: no switch, no disk row, no Clear action or page, and a saved false is ignored', () => {
   run(`${mcmFixture}
-    local clock = 1000; os.clock = function() return clock end
-    local function status(tag, value) jsonFixtures[tag] = value; files['runtime/prepared-voices-state.json'] = tag; clock = clock + 2 end
-    local function command() return jsonFixtures[files['runtime/prepared-voices-command.json']] end
-    assert(files['runtime/prepared-voices-command.json'] == nil, 'nothing is asked before Settings opens')
     assert(invoke('tab:settings').ok)
-    local asked = command()
-    assert(asked.version == 1 and asked.action == 'measure' and asked.id:find(':pv:1', 1, true), 'a measure request when Settings opens')
-    assert(files['runtime/memory-command.json'] == nil and files['runtime/inworld-key-command.json'] == nil, 'other channels untouched')
-    assert(row('prepared-voices').label == 'Prepared voices on disk' and row('prepared-voices').value == 'Checking…', row('prepared-voices').value)
-    assert(row('prepared-voices:open').disabled == true, 'nothing to clear until the total is known')
-    status('pv-a', {version = 1, state = 'ready', files = 3, bytes = 4 * 1048576, result = {id = asked.id, state = 'measured'}})
-    loaded = registered.loadMod('manager')
-    assert(row('prepared-voices').value == '4.0 MB · Saved voices: 3', row('prepared-voices').value)
-    assert(row('prepared-voices:open').disabled ~= true)
-    assert(invoke('prepared-voices:open').ok)
-    assert(command().id:find(':pv:1', 1, true), 'opening the clear page asks nothing new')
-    assert(row('prepared-voices-total').value == '4.0 MB · Saved voices: 3')
-    assert(row('prepared-voices:confirm') and row('prepared-voices:cancel'), 'confirm and cancel')
-    assert(row('prepared-voices:confirm').disabled ~= true)
-    -- Cancel goes back and deletes nothing: only a measure request is sent.
-    assert(invoke('prepared-voices:cancel').ok)
-    assert(command().action == 'measure' and command().id:find(':pv:2', 1, true))
-    status('pv-b', {version = 1, state = 'ready', files = 3, bytes = 4 * 1048576, result = {id = command().id, state = 'measured'}})
-    loaded = registered.loadMod('manager')
-    assert(invoke('prepared-voices:open').ok)
-    assert(invoke('prepared-voices:confirm').ok)
-    local clear = command()
-    assert(clear.version == 1 and clear.action == 'clear' and clear.id:find(':pv:3', 1, true), 'the clear command')
-    loaded = registered.loadMod('manager')
-    assert(row('prepared-voices:confirm').disabled == true, 'no second clear while the first waits for its answer')
-    status('pv-c', {version = 1, state = 'ready', files = 0, bytes = 0, result = {id = clear.id, state = 'cleared', files = 3, bytes = 4 * 1048576}})
-    loaded = registered.loadMod('manager')
-    assert(row('prepared-voices-result').value == 'Cleared 4.0 MB of saved voice setups.', row('prepared-voices-result').value)
-    assert(row('prepared-voices-total').value == 'None' and row('prepared-voices:confirm').disabled == true)
-    -- An answer to an older request is not shown as this one's result.
-    status('pv-d', {version = 1, state = 'ready', files = 2, bytes = 2048, result = {id = 'someone:pv:9', state = 'cleared', files = 9, bytes = 9}})
-    loaded = registered.loadMod('manager')
-    assert(row('prepared-voices-result') == nil and row('prepared-voices-total').value == '2 KB · Saved voices: 2', row('prepared-voices-total').value)
-    -- A bridge that cannot reach the folder reports a failure, shown plainly.
-    status('pv-e', {version = 1, state = 'unavailable', result = {id = clear.id, state = 'failed'}})
-    loaded = registered.loadMod('manager')
-    assert(row('prepared-voices-result').value == 'The request could not be completed.' and row('prepared-voices-total').value == 'Unavailable', row('prepared-voices-total').value)
-    assert(invoke('prepared-voices:back').ok)
+    for _, id in ipairs({'keepPreparedVoices', 'prepared-voices', 'prepared-voices:open', 'prepared-voices:confirm', 'prepared-voices:cancel'}) do
+      assert(row(id) == nil, id .. ' is still offered')
+    end
+    assert(manager.preparedVoices == nil and manager.clearPreparedVoices == nil and manager.watchPreparedVoices == nil, 'the prepared voices commands are gone')
+    assert(files['runtime/prepared-voices-command.json'] == nil, 'opening Settings asks the bridge to measure prepared voices')
+    assert(manager.snapshot(player).settings.keepPreparedVoices == true and manager.snapshot(player).preparedVoices == nil)
+    -- An older settings file that saved the switch off is read as on, and saved again as on.
+    seed = {version = 2, voice = true, subtitles = true, subtitleStyle = 'dialogue', voiceProvider = 'pocket', keepPreparedVoices = false,
+      battleReactions = false, lootReactions = false, enabledByKey = {}}
+    for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles)
+    assert(manager.snapshot(player).settings.keepPreparedVoices == true, 'a saved keepPreparedVoices = false was honoured')
+    assert(saved and saved.keepPreparedVoices == true, 'the file was not corrected')
+  `);
+});
+
+test('a saved Groq provider (the option was removed) reads as Convai free tier, as in the bridge', () => {
+  run(`${mcmFixture}
+    seed = {version = 2, voice = true, subtitles = true, subtitleStyle = 'dialogue', voiceProvider = 'pocket', conversationProvider = 'groq',
+      battleReactions = false, lootReactions = false, enabledByKey = {}}
+    for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
+    files['runtime/settings.json'], saved = 'seed', nil
+    jsonFixtures['mistral-groq'] = {provider = 'convai', effective = 'convai', saved = true}
+    files['runtime/mistral-state.json'] = 'mistral-groq'
+    manager.configure(api, profiles)
+    assert(manager.snapshot(player).settings.conversationProvider == 'convai', 'a saved groq was kept')
+    assert(saved and saved.conversationProvider == 'convai', 'the file was not corrected')
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 4}}).ok == false, 'there is no fourth provider')
   `);
 });
 
@@ -2971,7 +2958,7 @@ test('the Characters sidebar shows the settings in effect for each character, no
   reload()
   assert(description('viktor-vektor'):find('Voice: OmniVoice · Balanced · needs Omni pack', 1, true), description('viktor-vektor'))
   local judyLines = description('judy-alvarez')
-  assert(judyLines:sub(-#'\\nBehavior: Body gestures (experimental)') == '\\nBehavior: Body gestures (experimental)', judyLines)
+  assert(judyLines:sub(-#'\\nBehavior: Body gestures') == '\\nBehavior: Body gestures', judyLines)
   -- A character with conversations switched off shows only that, and Auto / Ordinary read as such for the others.
   assert(manager.applySettings(player, {enabledByKey = {['judy-alvarez'] = false}}))
   reload()
@@ -3156,7 +3143,7 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(row('subtitleStyle').defaultValue == 1 and row('subtitleStyle').capabilities.draft)
     assert(row('subtitleStyle').elements[1] == 'Cinematic subtitles' and row('subtitleStyle').elements[2] == 'Above the speaker')
     assert(row('voiceProvider').type == 'select' and row('voiceProvider').value == 1)
-    assert(row('keepPreparedVoices').type == 'bool' and row('keepPreparedVoices').value == true)
+    assert(row('keepPreparedVoices') == nil)
     assert(row('voice-pack').value == 'Waiting for voice service' or row('voice-pack').value == 'Installed')
     assert(row('disappearingMessages') == nil)
     assert(row('battleReactions').type == 'bool' and row('battleReactions').value == false)
@@ -3181,7 +3168,6 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}}).ok)
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 0}}).ok)
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = '1'}}).ok)
-    assert(registered.applyBatch('manager', {{id = 'keepPreparedVoices', value = false}}).ok and saved.keepPreparedVoices == false)
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
     assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'long')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}}).ok)
@@ -3202,7 +3188,7 @@ test('MCM schema uses native controls, operates on current copies while paused, 
   `);
 });
 
-test('settings review wording: short voice description, experimental gestures, full Developer mode text, Model browser says what it lists', () => {
+test('settings review wording: short voice description, Body gestures without a suffix, full Developer mode text, Model browser says what it lists', () => {
   run(`${mcmFixture}
     local home = row('tab:models')
     assert(home and home.label == 'Model browser')
@@ -3215,9 +3201,9 @@ test('settings review wording: short voice description, experimental gestures, f
     assert(utf8.len(voices.description) < 700 and select(2, voices.description:gsub(string.char(10) .. string.char(10), '')) >= 2, 'the voice description stays short and is split into blocks')
     assert(voices.description:find('Inworld also speaks with emotion.', 1, true), 'the Inworld voice is described as speaking with emotion')
     assert(not voices.description:lower():find('recommended', 1, true), 'no voice is called recommended')
-    assert(row('bodyGestures').label == 'Body gestures (experimental)' and row('bodyGestures').defaultValue == true and row('bodyGestures').value == true)
+    assert(row('bodyGestures').label == 'Body gestures' and row('bodyGestures').defaultValue == true and row('bodyGestures').value == true)
     assert(row('sitWithYou') == nil, 'companions always sit with V: there is no Sit with you setting')
-    assert(row('autoConnectNearby').defaultValue == true and row('keepPreparedVoices').defaultValue == true)
+    assert(row('autoConnectNearby').defaultValue == true and row('keepPreparedVoices') == nil)
     local developer = row('developerMode').description
     for _, part in ipairs({'popups', 'movement trace', 'gesture', 'support reports'}) do
       assert(developer:find(part, 1, true), 'Developer mode must say it enables ' .. part)
@@ -3881,7 +3867,7 @@ test('Pocket TTS is the default while saved choices migrate to the nearest voice
       manager.configure(api, profiles); manager.prepare(player)
       local expected = oldReference == 'short' and 'short' or 'long'
       assert(saved.omniReference == expected and manager.snapshot(player).settings.omniReference == expected)
-      assert(saved.omniSteps == 32 and saved.keepPreparedVoices == false, 'an explicit choice was reset by migration')
+      assert(saved.omniSteps == 32 and saved.keepPreparedVoices == true, 'an explicit choice was reset by migration, or the always-on prepared voices were not restored')
     end
     assert(manager.applySettings(player, {voiceProvider = 'convai', omniSteps = 16}))
     assert(manager.applySettings(player, {voiceProvider = 'hybrid'}))
@@ -4869,30 +4855,64 @@ test('Model browser maps generic records to archetypes, shows it in the row, cou
   `);
 });
 
-test('the Convai key rows are not offered to players: hidden unless Developer mode is on, a key is saved or the switch is on', () => {
+test('the Convai key rows are always listed, like the other keys, in the Conversation provider section', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end
     assert(invoke('tab:settings').ok)
     local ids = {'useOwnConvaiKey', 'own-key-status', 'own-key:paste', 'own-key:remove'}
-    for _, id in ipairs(ids) do assert(not row(id), id .. ' is hidden for a player') end
-    -- What stays for a player: the free alternative and the line saying who answers.
+    for _, id in ipairs(ids) do assert(row(id), id .. ' is listed without Developer mode') end
     assert(row('conversationProvider') and row('mistral-key:paste') and row('own-key-using'))
-    -- Developer mode shows them.
     assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok); loaded = registered.loadMod('manager')
-    for _, id in ipairs(ids) do assert(row(id), id .. ' shows in Developer mode') end
+    for _, id in ipairs(ids) do assert(row(id), id .. ' is still listed in Developer mode') end
     assert(registered.applyBatch('manager', {{id = 'developerMode', value = false}}).ok); loaded = registered.loadMod('manager')
-    for _, id in ipairs(ids) do assert(not row(id), id .. ' hidden again') end
-    -- A key that is saved or switched on can always be removed or switched off.
+    for _, id in ipairs(ids) do assert(row(id), id .. ' is listed with Developer mode off') end
     clock = clock + 2
     assert(registered.applyBatch('manager', {{id = 'useOwnConvaiKey', value = true}}).ok); loaded = registered.loadMod('manager')
-    for _, id in ipairs(ids) do assert(row(id), id .. ' shows while the switch is on') end
+    for _, id in ipairs(ids) do assert(row(id), id .. ' is listed while the switch is on') end
     clock = clock + 2
     assert(registered.applyBatch('manager', {{id = 'useOwnConvaiKey', value = false}}).ok); loaded = registered.loadMod('manager')
-    for _, id in ipairs(ids) do assert(not row(id), id .. ' hidden once the switch is off') end
+    for _, id in ipairs(ids) do assert(row(id), id .. ' is listed once the switch is off') end
+    -- The player-facing text never names the embedded key or a paid plan.
+    for _, id in ipairs(ids) do
+      local text = (row(id).label or '') .. ' ' .. tostring(row(id).description or '') .. ' ' .. tostring(row(id).value or '')
+      for _, word in ipairs({'embedded', 'shipped', 'paid', 'premium', 'subscription'}) do
+        assert(not text:lower():find(word, 1, true), id .. ' mentions ' .. word)
+      end
+    end
   `);
 });
 
-test('Development offers the own Convai key: off by default, no free-key promotion, two commands, and a status that never shows the key', () => {
+test('Settings sections: Conversation provider sits after Conversations and before Voices, Development keeps only Developer mode, Voice status follows Companion voices', () => {
+  run(`${mcmFixture}
+    assert(invoke('tab:settings').ok)
+    local order = {}
+    for _, category in ipairs(loaded.categories) do order[#order + 1] = category.id end
+    local joined = table.concat(order, ',')
+    assert(joined:find('conversation-controls,conversation-provider,companion-behavior,voices,', 1, true), joined)
+    local function idsOf(categoryId)
+      for _, category in ipairs(loaded.categories) do
+        if category.id == categoryId then
+          local ids = {}
+          for _, item in ipairs(category.settings) do ids[#ids + 1] = item.id end
+          return ids
+        end
+      end
+    end
+    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'own-key-using', 'matureContent', 'localModel',
+      'local-ai-status', 'useOwnConvaiKey', 'own-key-status', 'own-key:paste', 'own-key:remove', 'mistral-key-status', 'mistral-key:paste',
+      'mistral-key:remove'}, ','), table.concat(idsOf('conversation-provider'), ','))
+    assert(table.concat(idsOf('development'), ',') == 'developerMode', table.concat(idsOf('development'), ','))
+    local voices = idsOf('voices')
+    assert(voices[1] == 'voice' and voices[2] == 'voiceProvider' and voices[3] == 'voice-status', table.concat(voices, ','))
+    assert(voices[4] == 'inworld-key-status' and voices[5] == 'inworld-key:paste' and voices[6] == 'inworld-key:remove', table.concat(voices, ','))
+    for _, id in ipairs({'groq-key-status', 'groq-key:paste', 'groq-key:remove'}) do assert(row(id) == nil, id .. ' is still offered') end
+    local elements = row('conversationProvider').elements
+    assert(#elements == 3 and elements[1] == 'Convai free tier' and elements[2] == 'Mistral (free plan)' and elements[3] == 'Local (needs Local AI pack)')
+    assert(not tostring(row('conversationProvider').description):find('Groq', 1, true))
+  `);
+});
+
+test('The own Convai key rows: off by default, no free-key promotion, two commands, and a status that never shows the key', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end
     assert(invoke('tab:settings').ok)
@@ -4989,7 +5009,7 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     ${init.slice(start, end)}
     local function notice(reply) local id, text = keyReplyNotice(reply); return id, text end
     local id, text = notice({errorCode = 'quota-shared'})
-    assert(id == 'quota-exhausted' and text:find('Mistral', 1, true) and text:find('Settings > Development', 1, true), text)
+    assert(id == 'quota-exhausted' and text:find('Mistral', 1, true) and text:find('Settings > Conversation provider', 1, true), text)
     assert(not text:find('convai.com', 1, true) and not text:find('free API key', 1, true) and not text:find('Convai key', 1, true))
     assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shipped', 1, true))
     id, text = notice({errorCode = 'quota-own'}); assert(id == 'quota-exhausted' and text:find('plan limit', 1, true))
@@ -4997,7 +5017,7 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     id, text = notice({errorCode = 'key-memory-needed'}); assert(id == 'quota-exhausted' and text:find('memory', 1, true))
     id, text = notice({errorCode = 'daily-limit', error = 'x'})
     assert(id == 'daily-limit' and text:find('Convai (better quality responses)', 1, true) and text:find('free Mistral key', 1, true)
-      and text:find('Conversation provider', 1, true) and text:find('Settings > Development', 1, true) and text:find('fully local option is coming', 1, true), text)
+      and text:find('Conversation provider', 1, true) and text:find('Settings > Conversation provider', 1, true) and text:find('fully local option is coming', 1, true), text)
     assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shared', 1, true) and not text:lower():find('project', 1, true))
     -- No own-key offer, no paid tier, no "includes voice", no "text only", no credentials wording.
     assert(not text:find('Convai API key', 1, true) and not text:find('convai.com', 1, true) and not text:find('phone verification', 1, true), text)
@@ -5312,7 +5332,7 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     ${init.slice(start, end)}
     local function notice(reply) local id, text = keyReplyNotice(reply); return id, text end
     local id, text = notice({errorCode = 'mistral-key', error = 'x'})
-    assert(id == 'mistral-key' and text:find('did not accept your key', 1, true) and text:find('Settings > Development', 1, true), text)
+    assert(id == 'mistral-key' and text:find('did not accept your key', 1, true) and text:find('Settings > Conversation provider', 1, true), text)
     id, text = notice({errorCode = 'mistral-limit', error = 'x'})
     assert(id == 'mistral-limit' and text:find('free limit', 1, true) and not text:find('Convai', 1, true), text)
     id, text = notice({errorCode = 'mistral-model', error = 'x'})
@@ -5323,7 +5343,7 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     assert(id == 'mistral-voice' and text:find('local voice', 1, true), text)
     -- The one-time notices go through the gate under their own ids; anything else sends nothing.
     -- Local AI fell back to Convai: the same line on the first reply (keyNotice) and on a failed turn (errorCode).
-    local expected = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development.'
+    local expected = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.'
     id, text = notice({keyNotice = 'local-fallback', text = 'Hello'})
     assert(id == 'local-fallback' and text == expected, text)
     id, text = notice({errorCode = 'local-fallback', error = 'x'})
@@ -5331,13 +5351,13 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     assert(not text:lower():find('mistral', 1, true) and not text:lower():find('paid', 1, true) and not text:lower():find('text only', 1, true))
     -- Groq: three failures and a one-time notice, with the exact texts.
     id, text = notice({errorCode = 'groq-key', error = 'x'})
-    assert(id == 'groq-key' and text == 'Groq did not accept your key. Check it in Settings > Development.', text)
+    assert(id == 'groq-key' and text == 'Groq did not accept your key. Check it in Settings > Conversation provider.', text)
     id, text = notice({errorCode = 'groq-limit', error = 'x'})
     assert(id == 'groq-limit' and text == 'Groq’s free limit is reached for now. Try again in a moment.', text)
     id, text = notice({errorCode = 'groq-model', error = 'x'})
     assert(id == 'groq-model' and text == 'The Groq model is unavailable right now. Try again in a minute.', text)
     id, text = notice({keyNotice = 'groq-no-key', text = 'Hello'})
-    assert(id == 'groq-no-key' and text == 'Groq has no key yet, so Convai is used. Add your key in Settings > Development.', text)
+    assert(id == 'groq-no-key' and text == 'Groq has no key yet, so Convai is used. Add your key in Settings > Conversation provider.', text)
     assert(not text:lower():find('paid', 1, true) and not text:lower():find('text only', 1, true))
     sendProviderNotice({}, 'groq-no-key', 'g'); assert(#sent == 1 and sent[1] == 'groq-no-key=g', table.concat(sent, ';')); sent = {}
     sendProviderNotice({}, 'mistral-no-key', 'a'); sendProviderNotice({}, 'mistral-voice', 'b'); sendProviderNotice({}, 'key-memory', 'c')
@@ -6358,7 +6378,7 @@ test('Local AI warming up is one held notice while Local is the provider, with a
     mistral.localAi = 'no-memory'; step(2)
     assert(shown[#shown] == 'Not enough graphics memory for Local AI. A cloud provider is used instead.', tostring(shown[#shown]))
     mistral.localAi = 'warming'; step(3); mistral.localAi = 'failed'; step(2)
-    assert(shown[#shown] == 'Local AI could not start. Check Local AI in Settings > Development.', tostring(shown[#shown]))
+    assert(shown[#shown] == 'Local AI could not start. Check Local AI in Settings > Conversation provider.', tostring(shown[#shown]))
   `);
 });
 

@@ -143,10 +143,6 @@ const reviewed = {
     'Choose a character before clearing their memories about you.',
     'Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.',
   ],
-  'mcm.prepared-voices': [
-    'How much disk the saved voice setups use. Pocket saves them while Keep prepared voices is on, and each one is made again in about a second the next time that voice speaks.',
-    'Delete all saved voice setups? Voice references and models are not touched. Each voice is made again, in about a second, the next time it speaks.',
-  ],
   'mcm.relationships': [
     'Auto', 'Romantic', 'Casual', 'Ordinary',
     'Auto: follows the completed encounter in this save.\n\nCasual: speaks with that familiarity.\n\nOrdinary: keeps her usual manner.\n\nIt does not imply an ongoing relationship.',
@@ -254,8 +250,8 @@ const reviewed = {
     'Message sent. Waiting for reply.', 'Waiting for your previous message to finish.',
     'Conversations are disabled in Companion Manager.', 'Conversation is unavailable for this contact.',
     'Opening chat. Waiting for the conversation service.',
-    'You’ve reached today’s free conversation limit. Convai (better quality responses) is back tomorrow. To keep talking now, add a free Mistral key and set Conversation provider to Mistral in Settings > Development. A fully local option is coming.',
-    'Mistral did not accept your key. Check it in Settings > Development.',
+    'You’ve reached today’s free conversation limit. Convai (better quality responses) is back tomorrow. To keep talking now, add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider. A fully local option is coming.',
+    'Mistral did not accept your key. Check it in Settings > Conversation provider.',
     'Mistral’s free limit is reached for now. Try again in a moment.',
     'The Mistral model is unavailable right now. Try again in a minute.',
     'Write a message...  /  Enter to send  /  Esc to stop typing',
