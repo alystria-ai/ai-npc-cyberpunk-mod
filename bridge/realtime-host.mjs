@@ -134,9 +134,28 @@ export class RealtimeHost {
   withVision(config) {
     let settings = null, waitMs = null;
     try { settings = this.vision?.connectConfig?.() ?? null; waitMs = this.vision?.turnWaitMs?.() ?? null; } catch { settings = null; }
-    const {vision: _vision, visionTransport: _transport, visionWaitMs: _wait, ...rest} = config ?? {};
+    const {vision: _vision, visionTransport: _transport, visionWaitMs: _wait, visionMode: _mode, ...rest} = config ?? {};
     return settings ? {...rest, vision: true, visionTransport: settings.transport === 'upload' ? 'upload' : 'video',
+      ...(settings.mode === 'tv' ? {visionMode: 'tv'} : {}),
       ...(Number.isFinite(waitMs) ? {visionWaitMs: waitMs} : {})} : rest;
+  }
+  // YouTube on V's TV: one more frame of the video on the conversation page for `config` (image null stops its live track). A busy
+  // page takes it too (the turn reads the server's last frames). {fed, reason}: 'no-page', 'wrong-mode' (connected before the
+  // video started: refreshVision), 'failed'. Never throws.
+  async liveVision(config, image) {
+    const entry = this.pool?.entries.get(pageKey(config));
+    if (!entry?.value || entry.value.isClosed()) return {fed: false, reason: 'no-page'};
+    try {
+      return await entry.value.evaluate(image => window.convaiRealtime.liveVision
+        ? window.convaiRealtime.liveVision(image) : {fed: false, reason: 'old-client'}, image ?? null);
+    } catch { return {fed: false, reason: 'failed'}; }
+  }
+  // Reconnects an open, idle conversation page with the current vision settings (the source changed between the surroundings and
+  // the TV), so no turn pays for it. A page that is not open or serves a turn is left alone. Resolves true when it was refreshed.
+  async refreshVision(config) {
+    const entry = this.pool?.entries.get(pageKey(config));
+    if (!entry?.value || entry.value.isClosed() || entry.busy) return false;
+    try { await this.warm(config); return true; } catch { return false; }
   }
   // The picture(s) for one turn, or none. Never throws: a picture is never worth failing a turn for.
   async turnImages(config, phase) {

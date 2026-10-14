@@ -621,6 +621,10 @@ const companionVision = new CompanionVision({capture: new VisionCapture({log: vi
   isConversing: () => !!(active || mic.current || micPolling || connections.composer) || Date.now() - speechPlayingAt < 1500,
   stageVoice: images => realtime.stageVoiceVision(images),
   stagePage: (config, images) => realtime.prestageVision(config, images), unstagePage: config => realtime.unstageVision(config),
+  // YouTube on V's TV (setScreenSource below): the party's private pages get the video's frames while it plays.
+  livePages: () => connections.stale ? [] : connections.profiles.filter(profile => connections.isKnown(profile)).slice(0, 3)
+    .map(profile => connections.configFor(profile, 'private')),
+  feedPage: (config, image) => realtime.liveVision(config, image), refreshPage: config => realtime.refreshVision(config),
   log: visionLog});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
   transformReply: cleanReply, guard: hostGuard, vision: companionVision, ...keyHostOptions(() => [phoneRealtime])});
@@ -2730,6 +2734,8 @@ const editorControl = await EditorControl.open({server: new EditorServer({editor
 youtubeTv = await new YouTubeTv({runtime, stateDirectory, browserExecutable: process.env.CYBERPUNK_CONVAI_BROWSER,
   audible: async () => !!(active || mic.current) || ((await readSpeechStateCached().catch(() => ({})))?.state ?? 'idle') !== 'idle',
   log: message => console.error('[YouTubeTv] ' + message)}).start();
+// While a video is on, the TV is what companions see (about a frame a second, docs/COMPANION_VISION.md "The TV").
+companionVision.setScreenSource(youtubeTv.visionSource());
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);

@@ -75,7 +75,7 @@ Sources:
   - `captions.download` needs OAuth and edit rights on the video, so it only works for the uploader's own videos.
   - Reading `timedtext` or `ytInitialPlayerResponse` is scraping, which the Terms of Service forbid.
   - Reading the caption text the player shows in its own page (the DOM) is a grey zone: no rule names it, but it reads player internals. It is not built; it is a user decision below.
-- **Frames for companion vision.** Capturing what the player shows (`captureFrame`, a 640-px JPEG through the browser's screenshot call) is also a grey zone, because it copies a picture of the content. It is built on demand only and not wired anywhere. It waits for the companion-vision branch (`docs/COMPANION_VISION.md` there) and for the user's decision.
+- **Frames for companion vision.** Capturing what the player shows (`captureFrame`, a 640-px JPEG through the browser's screenshot call) is also a grey zone, because it copies a picture of the content. The user asked for it on 2026-10-15: while a video plays, the companion gets about one frame a second through Convai's dynamic vision context (`visionSource()`, `docs/COMPANION_VISION.md` "The TV as the source"). It runs only while "Companions can see" is on with Convai, a video is playing and someone is near. Frames stay in memory.
 - **Autoplay.** Autoplay with sound uses the browser flag `--autoplay-policy=no-user-gesture-required` in this private window. If the player still blocks it, YouTube's own play button shows (one click in the window starts it), and the bridge logs `autoplay blocked`.
 
 ### Context for the companion
@@ -158,7 +158,6 @@ The companion gets a block in its turn context, built by `watchingContext` in `b
 - translations in all 15 languages.
 
 **Stubbed or not built:**
-- vision frames (`captureFrame` exists, not wired);
 - captions (none);
 - companion remarks without the player speaking (not built);
 - a couch scene choice (the key instead);
@@ -169,7 +168,7 @@ The companion gets a block in its turn context, built by `watchingContext` in `b
 
 1. **Own Data API key** for descriptions and chapters: built as an optional field in the picker; no shared key ships. Keep or remove?
 2. **Captions from the player's page** (grey zone, see Terms): build or leave out?
-3. **Frames to companion vision** (grey zone): wire `captureFrame` to the vision branch, off by default, on demand only?
+3. **Frames to companion vision** (grey zone): decided 2026-10-15, wired (about one frame a second while a video plays, under "Companions can see").
 4. **The couch:** keep the key binding, or research a scene hub choice later (scene file edits)?
 5. **The setting stays off by default** until the FPS A/B passes.
 6. **Downloads:** none were needed. The dev install uses the installed Microsoft Edge, and packages use the Chrome for Testing they already bundle.

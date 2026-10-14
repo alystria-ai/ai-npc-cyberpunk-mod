@@ -14,7 +14,7 @@ import {ConvaiDataAudio} from './convai-data-audio.mjs';
 import {AnalysisPcm} from './analysis-pcm.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
-import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE} from './convai-vision.mjs';
+import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE, VISION_NOTE_TV} from './convai-vision.mjs';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
 
 const deferred = () => {
@@ -34,7 +34,7 @@ const clientSource = readFileSync(new URL('./realtime-client.mjs', import.meta.u
   .replace("import {AnalysisPcm} from './analysis-pcm.mjs';", '')
   .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '')
   .replace("import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';", '')
-  .replace("import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE} from './convai-vision.mjs';", '');
+  .replace("import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE, VISION_NOTE_TV} from './convai-vision.mjs';", '');
 
 // Run the actual host and lease pool. Each page executes the host's browser
 // callbacks against its own window, without launching a browser or SDK network.
@@ -97,7 +97,7 @@ function fixture(t, {disconnectTimeoutMs, realClient = false, onDisconnect, crea
         runInNewContext(clientSource, {ConvaiClient: Client, window: page.window,
           endUserOptions, transportKey, SessionBindings, drainBlendshapes, PcmChunkStream, ConvaiDataAudio, AnalysisPcm, ConvaiEmotion,
           CompanionActionWindow, publishCompanionActionContext, chauffeurActionName,
-          ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE,
+          ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE, VISION_NOTE_TV,
           TextDecoder, ArrayBuffer, Uint8Array,
           performance, setTimeout, clearTimeout, setInterval, clearInterval,
           btoa: data => Buffer.from(data, 'binary').toString('base64')});

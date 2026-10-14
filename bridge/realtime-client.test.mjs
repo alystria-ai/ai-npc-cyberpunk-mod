@@ -8,7 +8,7 @@ import {ConvaiDataAudio} from './convai-data-audio.mjs';
 import {AnalysisPcm} from './analysis-pcm.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
-import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE} from './convai-vision.mjs';
+import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE, VISION_NOTE_TV} from './convai-vision.mjs';
 
 const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
@@ -18,7 +18,7 @@ const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), '
   .replace("import {AnalysisPcm} from './analysis-pcm.mjs';", '')
   .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '')
   .replace("import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';", '')
-  .replace("import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE} from './convai-vision.mjs';", '');
+  .replace("import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE, VISION_NOTE_TV} from './convai-vision.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
 function manualTimers() {
   let now = 0, nextId = 0;
@@ -92,7 +92,7 @@ function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, tim
   runInNewContext(source, {ConvaiClient: Client, AudioContext: ForbiddenAudio, AudioWorkletNode: ForbiddenAudio,
     endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, AnalysisPcm, ConvaiEmotion, TextDecoder, TextEncoder,
     CompanionActionWindow, publishCompanionActionContext, chauffeurActionName,
-    ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE,
+    ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE, VISION_NOTE_TV,
     ContinuousPcmPlayer: player || ForbiddenAudio,
     window, performance: clock ?? performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval, clearInterval,
@@ -1728,4 +1728,24 @@ test('vision: without the setting the session connects audio-only, and turning i
   assert.equal(clients[1].options.enableVideo, true);
   finalText(clients[1], 'Hi.', 'second');
   await second;
+});
+
+test('vision: the TV source connects for several frames a turn on its own session, and a TV frame never fails anything', async () => {
+  const {api, clients, events} = fixture();
+  const first = api.reply({...config, ttsEnabled: false, vision: true});
+  for (let i = 0; i < 300 && !events.some(event => event[0] === 'message'); i++) await new Promise(done => setTimeout(done, 10));
+  assert.equal(clients[0].options.visionInputConfig.framesPerTurn, 1);
+  finalText(clients[0]);
+  await first;
+  const second = api.reply({...config, ttsEnabled: false, vision: true, visionMode: 'tv', text: 'Again'});
+  for (let i = 0; i < 300 && !events.some(event => event[0] === 'message' && event[1] === 'Again'); i++) await new Promise(done => setTimeout(done, 10));
+  assert.equal(clients.length, 2, 'switching to the TV reconnects');
+  assert.equal(clients[1].options.visionInputConfig.framesPerTurn, 5);
+  assert.equal(clients[1].options.visionInputConfig.sampleIntervalSecs, 1);
+  finalText(clients[1], 'Hi.', 'second');
+  await second;
+  assert.equal(api.diagnostics().vision.mode, 'tv');
+  // The fixture session has no video channel: the frame is refused, nothing throws.
+  assert.deepEqual(await api.liveVision({mime: 'image/jpeg', base64: '/9j/2Q=='}), {fed: false, reason: 'no-video-session'});
+  assert.deepEqual(await api.liveVision(null), {fed: false, reason: 'stopped'});
 });

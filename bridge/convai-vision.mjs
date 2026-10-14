@@ -12,6 +12,11 @@
 // when a frame is buffered; 'vision_not_enabled' marks the session so later turns do not try again.
 // Transport 'upload' is the SDK's uploadFile (LiveKit byte stream, topic 'file-upload'): the composed JPEG is sent once.
 // Its server-side behaviour is not documented; it exists for the live check only (settings.json "visionTransport": "upload").
+//
+// The TV (YouTube on V's TV, bridge/youtube-tv-host.mjs): while a video plays, the page connects with TV_VISION_INPUT_CONFIG and
+// the bridge feeds it about one frame of the video a second (liveFrame). The frames stay on one published canvas track for as long
+// as the video is on, so the server always holds the last few seconds and attaches several frames to whatever turn comes; a turn
+// then publishes nothing of its own and waits for nothing.
 
 export const MAX_IMAGES = 4;
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -21,23 +26,35 @@ export const COMPOSED_WIDTH = 768;
 // a short staleness window so a picture never rides along into a later turn, and Convai's 768 px resolution cap.
 export const VISION_INPUT_CONFIG = Object.freeze({enabled: true, sampleIntervalSecs: 0.25, framesPerTurn: 1, bufferFrames: 2,
   stalenessSeconds: 6, maxResolution: COMPOSED_WIDTH, replacePreviousVisionContext: true});
+// Connect-time vision settings while the TV is the source: one frame a second into a buffer of 10, the last 5 attached to a
+// turn (about five seconds of the video), nothing older than 8 s, 640 px (the TV frames' width).
+export const TV_FRAME_WIDTH = 640;
+export const TV_VISION_INPUT_CONFIG = Object.freeze({enabled: true, sampleIntervalSecs: 1, framesPerTurn: 5, bufferFrames: 10,
+  stalenessSeconds: 8, maxResolution: TV_FRAME_WIDTH, replacePreviousVisionContext: true});
 // The note added to the turn's context when a picture is handed over: V's view of the surroundings from a few seconds before the
 // conversation (bridge/companion-vision.mjs), a game screenshot that may include the HUD.
 export const VISION_NOTE = ' An image of your surroundings may be attached: V\'s view from a few seconds before this conversation. '
   + 'It can include the game\'s HUD, map, subtitles or menus, V\'s vehicle, or you. Treat it as what you both can see around you: '
   + 'mention it only when it fits or when V asks, describe the place and people in your own words, never the interface, '
   + 'and if no image is attached or it does not show what V asks about, say so plainly instead of guessing.';
+// The note while the TV is the source.
+export const VISION_NOTE_TV = ' Images of the video playing on the TV you and V are watching together may be attached: its last '
+  + 'few seconds, oldest first. Talk about what is on screen when it fits or when V asks, in your own words; never describe the '
+  + 'player\'s controls, and if no image is attached or it does not show what V asks about, say so plainly instead of guessing.';
 const REPAINT_MS = 200;
+const LIVE_REPAINT_MS = 500;
 const STATUS_POLL_MS = 100;
 
 // The ConvaiClient options a vision session connects with (none when vision is off).
 export function visionConnectOptions(config) {
   if (config?.vision !== true) return {};
-  return {enableVideo: true, startWithVideoOn: false, visionInputConfig: {...VISION_INPUT_CONFIG}};
+  return {enableVideo: true, startWithVideoOn: false,
+    visionInputConfig: {...(config.visionMode === 'tv' ? TV_VISION_INPUT_CONFIG : VISION_INPUT_CONFIG)}};
 }
 
-// The session's identity for reuse: a page connected without video must reconnect when vision turns on, and back.
-export const visionIdentity = (key, config) => config?.vision === true ? key + '|vision' : key;
+// The session's identity for reuse: a page connected without video must reconnect when vision turns on, and back. The TV's
+// settings differ (several frames a turn), so switching the source reconnects too (the bridge does it between conversations).
+export const visionIdentity = (key, config) => config?.vision !== true ? key : key + (config.visionMode === 'tv' ? '|vision-tv' : '|vision');
 
 // Accepts only well-formed images: {mime, base64[, width, height, label]}. Returns the valid ones (at most MAX_IMAGES).
 export function validImages(images) {
@@ -93,12 +110,15 @@ export const browserEnv = () => ({document: globalThis.document, createImageBitm
 
 export class ConvaiVision {
   // connection: the ConvaiClient. env: {document, createImageBitmap, setInterval, clearInterval, setTimeout, clearTimeout, now}.
-  constructor(connection, {transport = 'video', env = browserEnv()} = {}) {
+  // mode 'tv': the session was connected for the TV's frames (TV_VISION_INPUT_CONFIG); liveFrame works only then.
+  constructor(connection, {transport = 'video', mode = 'still', env = browserEnv()} = {}) {
     this.connection = connection;
     this.transport = transport === 'upload' ? 'upload' : 'video';
+    this.mode = mode === 'tv' ? 'tv' : 'still';
     this.env = env;
-    this.staged = null; this.notEnabled = false;
-    this.stats = {staged: 0, attached: 0, skipped: 0, lastOutcome: null, lastReadyMs: null, lastImageTokens: null, lastReason: null};
+    this.staged = null; this.live = null; this.notEnabled = false;
+    this.stats = {staged: 0, attached: 0, skipped: 0, lastOutcome: null, lastReadyMs: null, lastImageTokens: null, lastReason: null,
+      liveFrames: 0};
     this.unsubscribe = typeof connection?.on === 'function' ? connection.on('serverResponse', response => this.onServerResponse(response)) : null;
     this.waiters = new Set();
   }
@@ -115,6 +135,8 @@ export class ConvaiVision {
   // Returns {staged: boolean, reason?}.
   // ttlMs: a picture staged ahead of its turn is withdrawn after this long unless a turn claims it (claim()).
   async stage(images, {ttlMs = 0} = {}) {
+    // The TV's frames are on the session already: the turn takes the server's last few, nothing more is published.
+    if (this.live?.handle) return {staged: true, live: true};
     const valid = validImages(images);
     if (!valid.length) return this.skip('no-valid-image');
     if (this.transport === 'video' && this.connection?.connectionType !== 'video') return this.skip('no-video-session');
@@ -144,14 +166,14 @@ export class ConvaiVision {
     const staged = this.staged;
     if (staged?.expiry) { this.env.clearTimeout(staged.expiry); staged.expiry = null; }
   }
-  async compose(images) {
+  async compose(images, width = COMPOSED_WIDTH) {
     const {document, createImageBitmap} = this.env;
     const bitmaps = [];
     try {
       for (const image of images) bitmaps.push(await createImageBitmap(new Blob([decode(image.base64)], {type: image.mime})));
       const {columns, rows, cell} = layout(bitmaps.length);
       const single = bitmaps.length === 1;
-      const scale = single ? Math.min(1, COMPOSED_WIDTH / bitmaps[0].width) : 1;
+      const scale = single ? Math.min(1, width / bitmaps[0].width) : 1;
       const canvas = document.createElement('canvas');
       canvas.width = single ? Math.max(1, Math.round(bitmaps[0].width * scale)) : COMPOSED_WIDTH;
       canvas.height = single ? Math.max(1, Math.round(bitmaps[0].height * scale)) : Math.round(cell * rows * 9 / 16);
@@ -187,6 +209,7 @@ export class ConvaiVision {
   // Waits until the staged picture is buffered by the server (or uploaded), at most until `deadline` (a time from env.now).
   // Returns {attached, outcome, ms}. Never throws.
   async ready(deadline) {
+    if (this.live?.handle) return {attached: true, outcome: 'live', ms: 0, waitedMs: 0};
     const staged = this.staged, now = () => this.env.now(), asked = now();
     if (!staged) return {attached: false, outcome: 'nothing-staged', ms: 0, waitedMs: 0};
     const result = attached => {
@@ -238,8 +261,55 @@ export class ConvaiVision {
     try { await staged.ready; } catch {}
     if (staged.handle) await staged.handle.unpublish().catch(() => {});
   }
-  close() { void this.retire(); this.unsubscribe?.(); this.unsubscribe = null; for (const waiter of [...this.waiters]) waiter({}); }
+  // ---- the TV's frames ----------------------------------------------------------------------------------------------------
+  // Shows one more frame of the TV on the live track (published with the first frame, then repainted with each new one), or
+  // stops the track (image null). Returns {fed, reason?}; never throws.
+  async liveFrame(image) {
+    if (!image) { await this.stopLive(); return {fed: false, reason: 'stopped'}; }
+    if (this.mode !== 'tv') return {fed: false, reason: 'wrong-mode'};
+    if (this.transport !== 'video' || this.connection?.connectionType !== 'video') return {fed: false, reason: 'no-video-session'};
+    if (this.notEnabled) return {fed: false, reason: 'vision-not-enabled'};
+    const [valid] = validImages([image]);
+    if (!valid) return {fed: false, reason: 'no-valid-image'};
+    try {
+      if (!this.live) {
+        await this.retire();   // a still picture staged for a turn gives way to the TV
+        const live = this.live = {canvas: null, handle: null, timer: null, ready: null};
+        live.canvas = await this.compose([valid], TV_FRAME_WIDTH);
+        if (this.live !== live) return {fed: false, reason: 'superseded'};
+        live.ready = this.connection.videoControls.publishCanvas(live.canvas, {source: 'canvas', name: 'tv-view', fps: 2,
+          stopTrackOnUnpublish: true}).then(async handle => {
+          if (this.live !== live) { await handle.unpublish().catch(() => {}); return false; }
+          live.handle = handle;
+          // A canvas track carries a frame only when the canvas is painted: repaint between the bridge's frames.
+          const context = live.canvas.getContext('2d');
+          live.timer = this.env.setInterval(() => { try { context.drawImage(live.canvas, 0, 0); } catch {} }, LIVE_REPAINT_MS);
+          return true;
+        });
+        const published = await live.ready.catch(() => false);
+        if (!published) { if (this.live === live) this.live = null; return {fed: false, reason: 'publish-failed'}; }
+      } else {
+        const live = this.live;
+        if (!live.handle && !await live.ready?.catch(() => false)) return {fed: false, reason: 'publishing'};
+        const bitmap = await this.env.createImageBitmap(new Blob([decode(valid.base64)], {type: valid.mime}));
+        try { live.canvas.getContext('2d').drawImage(bitmap, 0, 0, live.canvas.width, live.canvas.height); }
+        finally { bitmap.close?.(); }
+      }
+      this.stats.liveFrames++;
+      return {fed: true};
+    } catch { return {fed: false, reason: 'failed'}; }
+  }
+  async stopLive() {
+    const live = this.live;
+    this.live = null;
+    if (!live) return;
+    if (live.timer) this.env.clearInterval(live.timer);
+    try { await live.ready; } catch {}
+    if (live.handle) await live.handle.unpublish().catch(() => {});
+  }
+  close() { void this.retire(); void this.stopLive(); this.unsubscribe?.(); this.unsubscribe = null; for (const waiter of [...this.waiters]) waiter({}); }
   diagnostics() {
-    return {transport: this.transport, enabled: this.enabled, notEnabled: this.notEnabled, staged: !!this.staged, ...this.stats};
+    return {transport: this.transport, mode: this.mode, enabled: this.enabled, notEnabled: this.notEnabled, staged: !!this.staged,
+      live: !!this.live?.handle, ...this.stats};
   }
 }

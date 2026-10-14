@@ -265,4 +265,126 @@ test('the realtime host never lets a picture fail a turn, and never gives one to
   assert.deepEqual(await host.stageVoiceVision([]), {staged: false, reason: 'no-recording'});
   assert.deepEqual(await host.prestageVision({characterId: 'c'}, []), {staged: false, reason: 'no-page'});
   await host.unstageVision({characterId: 'c'});
+  assert.deepEqual(await host.liveVision({characterId: 'c'}, {mime: 'image/jpeg', base64: TV}), {fed: false, reason: 'no-page'});
+  assert.equal(await host.refreshVision({characterId: 'c'}), false, 'a page that is not open is not opened for the TV');
+});
+
+// ---- the TV as the source (YouTube on V's TV) -------------------------------------------------------------------------------------
+const tvFrameOf = n => Buffer.from(`tv ${String(n).padStart(4, '0')}`).toString('base64');
+function tvScene(options = {}) {
+  const fed = [], refreshed = [];
+  const tv = {present: false, playing: false, grabs: 0};
+  const source = {present: () => tv.present, playing: () => tv.playing,
+    grab: async () => ({mime: 'image/jpeg', base64: tvFrameOf(++tv.grabs)})};
+  const answer = options.answer ?? (() => ({fed: true}));
+  const parts = scene({livePages: () => [{characterId: 'judy', scope: 'private'}],
+    feedPage: async (config, image) => { fed.push(image ? image.base64 : null); return image ? answer(config, image) : {fed: false, reason: 'stopped'}; },
+    refreshPage: async config => { refreshed.push(config.characterId); return true; }, ...options});
+  parts.vision.setScreenSource(source);
+  return {...parts, tv, fed, refreshed};
+}
+
+test('the TV: while a video plays its frames go to the party pages about once a second, the game helper is released, and the pages reconnect for it', async () => {
+  const {vision, capture, tv, fed, refreshed, run} = tvScene();
+  await run(1000);
+  assert.equal(capture.running, true, 'the surroundings before the video');
+  tv.present = true; tv.playing = true;
+  await run(500);
+  assert.equal(vision.mode, 'tv');
+  assert.deepEqual(vision.connectConfig(), {transport: 'video', mode: 'tv'});
+  assert.deepEqual(refreshed, ['judy'], 'the open page reconnects with the TV settings, once');
+  assert.equal(capture.running, false, 'no game capture while the TV is the source');
+  const grabsBefore = tv.grabs;
+  await run(5000);
+  assert.ok(tv.grabs - grabsBefore >= 4 && tv.grabs - grabsBefore <= 6, `${tv.grabs - grabsBefore} frames in 5 s`);
+  assert.ok(fed.length >= 5 && fed.every(Boolean), 'each frame is fed to the page');
+  assert.ok(vision.diagnostics().livePages === 1 && vision.diagnostics().liveFed >= 5);
+  assert.ok(vision.tvFrames.length <= 4);
+  assert.deepEqual(await vision.imagesForTurn({characterId: 'judy'}), [{mime: 'image/jpeg', base64: tvFrameOf(tv.grabs)}],
+    'a page without the live track gets the newest TV frame');
+  tv.playing = false;
+  const paused = tv.grabs;
+  await run(3000);
+  assert.equal(tv.grabs, paused, 'paused: nothing grabbed (the track keeps the last frame)');
+  tv.present = false;
+  await run(500);
+  assert.equal(vision.mode, 'still');
+  assert.equal(fed.at(-1), null, 'the video stopped: the live track is stopped');
+  assert.deepEqual(refreshed, ['judy', 'judy'], 'and the page reconnects for the surroundings');
+  assert.equal(vision.tvFrames.length, 0);
+  await run(1000);
+  assert.equal(capture.running, true, 'the surroundings again');
+});
+
+test('the TV: nothing is grabbed or published with the setting off, under another provider or with nobody near; a conversation holds the switch', async () => {
+  const {vision, state, tv, fed, refreshed, run, tick} = tvScene();
+  state.conversing = true;
+  tv.present = true; tv.playing = true;
+  await run(1000);
+  assert.equal(vision.mode, 'still', 'not during a conversation (the page would reconnect on a turn)');
+  assert.equal(tv.grabs, 0);
+  state.conversing = false;
+  await run(1500);
+  assert.equal(vision.mode, 'tv');
+  assert.ok(tv.grabs >= 1);
+  state.near = false;
+  const grabs = tv.grabs;
+  await run(2000);
+  assert.equal(tv.grabs, grabs, 'nobody near: nothing grabbed');
+  assert.equal(fed.at(-1), null, 'and the track is stopped');
+  state.near = true; await run(1500);
+  assert.ok(tv.grabs > grabs);
+  state.convai = false; await tick();
+  assert.equal(vision.mode, 'still', 'Mistral or Local AI: back at once');
+  assert.equal(fed.at(-1), null);
+  const afterProvider = tv.grabs;
+  await run(2000);
+  assert.equal(tv.grabs, afterProvider);
+  state.convai = true; await run(1500);
+  assert.equal(vision.mode, 'tv');
+  state.conversing = true; await tick();
+  await tick({companionVision: false});
+  assert.equal(vision.mode, 'still', 'setting off: back at once, even mid-conversation');
+  assert.equal(fed.at(-1), null);
+  assert.equal(vision.connectConfig(), null);
+  assert.ok(refreshed.length >= 2);
+});
+
+test('the TV: a page still connected for the surroundings is reconnected between conversations, at most every 10 s', async () => {
+  let mode = 'still';
+  const {vision, tv, refreshed, run} = tvScene({answer: () => mode === 'tv' ? {fed: true} : {fed: false, reason: 'wrong-mode'}});
+  tv.present = true; tv.playing = true;
+  await run(500);
+  assert.deepEqual(refreshed, ['judy'], 'the switch itself');
+  await run(3000);
+  assert.deepEqual(refreshed, ['judy'], 'a wrong-mode answer soon after waits');
+  await run(8000);
+  assert.deepEqual(refreshed, ['judy', 'judy'], 'then asks again');
+  mode = 'tv';
+  await run(2000);
+  assert.ok(vision.diagnostics().livePages === 1);
+  await run(12000);
+  assert.equal(refreshed.length, 2);
+});
+
+test('the TV host offers a vision source: present while a video is on, playing only while it plays and shows, one 640 px frame per grab', async () => {
+  const {YouTubeTv} = await import('./youtube-tv-host.mjs');
+  const shots = [];
+  const tv = new YouTubeTv({runtime: '.', stateDirectory: '.'});
+  const source = tv.visionSource();
+  assert.equal(source.present(), false); assert.equal(source.playing(), false);
+  assert.equal(await source.grab(), null);
+  const cdp = {send: async (method, params) => { shots.push([method, params]); return {data: TV}; }, detach: async () => { shots.push(['detach']); }};
+  const page = {url: () => 'http://127.0.0.1:1/tv/x', evaluate: async () => ({w: 1280, h: 720}), context: () => ({newCDPSession: async () => { shots.push(['session']); return cdp; }})};
+  tv.session = {origin: 'http://127.0.0.1:1', page, hidden: false, closing: false};
+  tv.video = {state: 'playing'};
+  assert.equal(source.present(), true); assert.equal(source.playing(), true);
+  assert.deepEqual(await source.grab(), {mime: 'image/jpeg', base64: TV});
+  await source.grab();
+  assert.equal(shots.filter(([name]) => name === 'session').length, 1, 'one DevTools session for the TV session');
+  assert.deepEqual(shots[1], ['Page.captureScreenshot', {format: 'jpeg', quality: 60, clip: {x: 0, y: 0, width: 1280, height: 720, scale: 0.5}}]);
+  tv.session.hidden = true; assert.equal(source.playing(), false, 'hidden under a menu');
+  tv.session.hidden = false; tv.video.state = 'paused'; assert.equal(source.playing(), false);
+  assert.equal(source.present(), true);
+  tv.video = null; assert.equal(source.present(), false);
 });

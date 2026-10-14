@@ -326,6 +326,8 @@ export class YouTubeTv {
     if (this.session === session) { this.session = null; this.video = null; }
     this.stopDucking(session);
     session.helper?.stop();
+    const cdp = session.cdp; session.cdp = null;
+    await cdp?.detach().catch(() => {});
     await session.context?.close().catch(() => {});
     session.server?.close();
   }
@@ -351,22 +353,41 @@ export class YouTubeTv {
     return {videoId, state, title, channel, duration};
   }
   /**
-   * One still of the player for a companion who can see (docs/COMPANION_VISION.md, once it lands), or null. Only on demand (a turn
-   * asked for it), never on a timer; the caller decides whether frames are allowed (off unless the player turned it on).
+   * One still of the player, or null: our own TV window's page, scaled to maxWidth by the browser (CDP Page.captureScreenshot with a
+   * clip scale), never the game. The DevTools session is kept for the TV session (closed with it), so a frame a second costs one
+   * readback and no setup.
    */
   async captureFrame({maxWidth = 640, quality = 60} = {}) {
-    const page = this.session?.page;
-    if (!page || !this.video || !page.url().startsWith(this.session.origin)) return null;
+    const session = this.session, page = session?.page;
+    if (!page || !this.video || !page.url().startsWith(session.origin)) return null;
     try {
       const size = await page.evaluate(() => ({w: innerWidth, h: innerHeight}));
       const scale = Math.min(1, maxWidth / Math.max(1, size.w));
-      const cdp = await page.context().newCDPSession(page);
+      session.cdp ??= await page.context().newCDPSession(page);
       try {
-        const shot = await cdp.send('Page.captureScreenshot', {format: 'jpeg', quality,
+        const shot = await session.cdp.send('Page.captureScreenshot', {format: 'jpeg', quality,
           clip: {x: 0, y: 0, width: size.w, height: size.h, scale}});
         return shot?.data ? {mime: 'image/jpeg', data: shot.data} : null;
-      } finally { await cdp.detach().catch(() => {}); }
+      } catch (error) { const cdp = session.cdp; session.cdp = null; await cdp?.detach().catch(() => {}); throw error; }
     } catch { return null; }
+  }
+  /**
+   * The TV as the companions' vision source (bridge/companion-vision.mjs setScreenSource, docs/COMPANION_VISION.md): present while a
+   * video is on the TV, playing while it plays and the window shows (not hidden under a menu or alt-tab, not on YouTube's own
+   * pages), grab = one 640 px JPEG of the player. Companion vision decides when to grab (about once a second, only while vision is
+   * on with Convai and someone is near).
+   */
+  visionSource() {
+    const live = () => !!(this.session && !this.session.closing && this.video);
+    return {
+      present: () => live(),
+      playing: () => live() && !this.session.hidden && this.video.state === 'playing'
+        && !!this.session.page?.url?.().startsWith(this.session.origin),
+      grab: async () => {
+        const shot = await this.captureFrame({maxWidth: 640, quality: 60});
+        return shot ? {mime: shot.mime, base64: shot.data} : null;
+      },
+    };
   }
   t(text) { return this.strings?.[text] ?? text; }
   async dataApiKey() {

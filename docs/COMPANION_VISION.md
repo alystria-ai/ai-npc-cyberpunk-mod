@@ -170,16 +170,55 @@ companionVision.attachToNextTurn(images, {characterId, ttlMs})
 - A retried turn sends the same picture again.
 - The function is synchronous and never throws. Pictures stay in memory only.
 
+## 5b. The TV as the source (YouTube on V's TV)
+
+The user asked (2026-10-15) that while a video plays on V's TV, the companion gets plenty of frames of it through the dynamic vision context, not one picture. The player sits indoors then, so a higher capture cost is accepted in this mode only.
+
+**Where the frames come from.** Our own TV window (Edge, `bridge/youtube-tv-host.mjs`), not the game: `Page.captureScreenshot` through a DevTools session kept for the TV session, JPEG quality 60, scaled by the browser to 640 px wide (`clip.scale`). The game process is not touched and the game-window helper is released while the TV is the source. The window region of the game was the other option; it would need the game helper every second and would include whatever covers it, so it is not used.
+
+**API.**
+
+```js
+// bridge/youtube-tv-host.mjs
+youtubeTv.visionSource()   // {present(), playing(), grab()}
+//   present(): a video is on the TV (playing, paused or ended)
+//   playing(): it plays and the window shows (not hidden under a menu or alt-tab, not on YouTube's own pages)
+//   grab():    one {mime: 'image/jpeg', base64} of the player at 640 px, or null
+// bridge/companion-vision.mjs
+companionVision.setScreenSource(source | null)   // wired once in bridge/convai-bridge.mjs after the TV service starts
+```
+
+**How it works** (all on the bridge's 500 ms settings poll; nothing in the game, nothing per frame):
+- **Source switch.** When a video is on and vision is active (setting on, Convai), the source becomes the TV. The switch waits for a moment with no conversation (the pages reconnect for it), except a switch back caused by the setting or the provider, which is immediate. On each switch the party companions' open conversation pages are reconnected once with the matching settings (`RealtimeHost.refreshVision`, an idle page only), so no turn pays for it. A page that still answers "wrong mode" is reconnected again at most every 10 s, between conversations.
+- **TV settings** (`TV_VISION_INPUT_CONFIG`): one frame a second sampled into a buffer of 10, the last **5 attached to each turn** (about five seconds of the video), staleness 8 s, 640 px. The surroundings keep their one-frame settings.
+- **Frames.** While the video plays and someone is near, one frame a second (`visionTvFps: 2` in `runtime/settings.json` for two) is grabbed, kept (the last 4, in memory) and fed to each party companion's open private page (`RealtimeHost.liveVision`, `window.convaiRealtime.liveVision`, `ConvaiVision.liveFrame`). The page publishes one canvas track (`tv-view`, 2 fps) with the first frame and repaints it with each new one, during turns too. A page still answering the previous frame skips one.
+- **Turns.** With the live track on a page, a turn publishes nothing, waits for nothing (`ready` answers `live` at once) and leaves the track alone at its end; Convai attaches the last frames from its buffer. The context sentence says these are the last few seconds of the video they are watching together. A page without the live track (a group's page) gets the newest TV frame as its one picture, the usual way.
+- **Paused** or hidden: no grabs; the track keeps the last frame. **Stopped, TV closed, nobody near, setting off, Mistral or Local AI:** grabs stop at once, every page's track is unpublished and the frames are dropped. When the video is over, the source goes back to the surroundings (the game helper starts again with the usual rules).
+
+**Measured 2026-10-15** against the running game (windowed, Balanced power, about 60 fps, no game input, so V was not seated; the game was in the background). The real TV window played a 4K60 video muted, placed topmost over the top of the game window as in player mode. A stand-in window helper did the placing, because the real one hides the TV while the game is not the foreground window. The runs were alternating 20 s blocks, read from `perf-probe.json`:
+
+| Condition | Game FPS median (mean) | Worst frame median / p95 | Frames over 25 ms per 2 s window |
+|---|---|---|---|
+| No TV window (27 windows) | 58.97 (58.69) | 21 / 52 ms | 0.15 |
+| Video playing, no frames taken (42) | 59.91 (58.48) | 20 / 25 ms | 0.36 |
+| Video playing, 1 frame a second (36) | 59.94 (59.20) | 19 / 23 ms | 0 |
+
+- Each grab took 13.9 ms median (p95 22, max 40) in the bridge and returned a 14 KB JPEG. All 160 grabs succeeded.
+- **Result:** no measurable cost at 1 fps, and the video itself stays within the 2 FPS budget. The game was close to a 60 fps cap, which hides small costs. Measuring seated, with the game in front, remains a live check.
+- **2 fps was not measured.** The game restarted, by someone else (no crash report), before those blocks, so they and the closing no-TV blocks have no frame data. 2 fps stays a developer setting.
+- **Two helper bugs found and fixed on the way:** see section 7. The YouTube TV window helper never answered `attach`, and it could not find the Edge window by its exact title.
+
 ## 6. Settings and developer keys
 
 - `companionVision` (bool, default **true**): the setting in Settings > Conversation provider. Written by `mod/manager.lua`, read by the bridge on its settings poll. `false` turns everything off (no helper, no buffer, pages audio-only).
 - `CYBERPUNK_CONVAI_VISION=off` (environment, development): turns vision off whatever the setting says.
 - `visionTransport` in `runtime/settings.json` (developer only, not in the menu): `"video"` (default, dynamic vision context) or `"upload"` (`uploadFile` of the JPEG, for the live comparison).
 - `visionWaitMs` in `runtime/settings.json` (developer only): the fallback wait cap, 0 to 900 ms (default 350). `0` sends the line at once and relies on the server sampling the published picture before the model answers.
+- `visionTvFps` in `runtime/settings.json` (developer only): TV frames a second while a video plays, 1 (default) or 2.
 - `CYBERPUNK_CONVAI_VISION_HELPER`: absolute path to a helper build. Default search: `<app>/vision/`, then `dist/vision/`.
 - `CYBERPUNK_CONVAI_VISION_DEBUG_DIR`: absolute folder; keeps one JPEG per picture (development only).
-- Bridge log lines begin `[Vision]`: the first picture and every 100th, helper releases with the reason, and one line per turn (`turn …: 1 image(s), frame N s old` or `no frame yet`). `runtime/bridge-diagnostics.json` (written on a `diagnostics` command) carries `vision` (frames buffered, newest frame age, helper running, counters including `prestaged`) and each page's `vision` (`lastOutcome`, `lastReadyMs`, `lastImageTokens`, `notEnabled`).
-- Build: `powershell -File scripts/Build-VisionCapture.ps1` (MSVC with C++/WinRT; about 20 to 40 s; output `dist/vision/CyberpunkConvaiVision.exe`). `packaging/build-release.mjs` builds and ships it as `vision/CyberpunkConvaiVision.exe` in the Runtime package (`--no-vision` skips it; `--vision PATH` uses a given build). A missing helper only means no picture.
+- Bridge log lines begin `[Vision]`: the first picture and every 100th, helper releases with the reason, and one line per turn (`turn …: 1 image(s), frame N s old` or `no frame yet`). `runtime/bridge-diagnostics.json` (written on a `diagnostics` command) carries `vision` (frames buffered, newest frame age, helper running, counters including `prestaged`; with the TV, `source`, `tvFrames`, `livePages`, `liveFed`, `liveRefreshes`) and each page's `vision` (`mode`, `live`, `liveFrames`, `lastOutcome`, `lastReadyMs`, `lastImageTokens`, `notEnabled`). The log says `[Vision] source: the TV` and `source: the surroundings` on each switch.
+- Build: `powershell -File scripts/Build-VisionCapture.ps1` (MSVC with C++/WinRT; an estimated 20 to 40 s, not timed; output `dist/vision/CyberpunkConvaiVision.exe`). `packaging/build-release.mjs` builds and ships it as `vision/CyberpunkConvaiVision.exe` in the Runtime package (`--no-vision` skips it; `--vision PATH` uses a given build). A missing helper only means no picture.
 
 ## 7. Files
 
@@ -187,18 +226,19 @@ companionVision.attachToNextTurn(images, {characterId, ttlMs})
 - `scripts/Build-VisionCapture.ps1`: builds the helper.
 - `scripts/Measure-VisionCapture.mjs`: measures the helper against the game.
 - `bridge/vision-capture.mjs`: helper client.
-- `bridge/companion-vision.mjs`: the buffer, frame choice, ahead-of-time staging, the unload rule and `attachToNextTurn`.
+- `bridge/companion-vision.mjs`: the buffer, frame choice, ahead-of-time staging, the unload rule, `attachToNextTurn` and the TV as the source (`setScreenSource`).
 - `bridge/convai-vision.mjs`: page side (connect options, compose, publish or upload, reuse of a picture staged ahead, acknowledgements); bundled into `runtime/realtime-client.js`.
-- `bridge/realtime-client.mjs`, `bridge/realtime-host.mjs` and `bridge/convai-bridge.mjs`: wiring.
+- `bridge/realtime-client.mjs`, `bridge/realtime-host.mjs` and `bridge/convai-bridge.mjs`: wiring. `bridge/youtube-tv-host.mjs`: `visionSource()` (the TV frames).
 - `mod/manager.lua` and `mod/mcm.lua`: the setting. `mod/locales/*.lua`: its 2 strings in 15 languages.
 - Packaging: `packaging/runtime-layout.mjs`, `packaging/release-plan.json` and `packaging/build-release.mjs`.
-- Tests: `bridge/companion-vision.test.mjs`, `bridge/convai-vision.test.mjs`, 2 cases in `bridge/realtime-client.test.mjs`, the provider-section row lists in `bridge/manager.test.mjs`.
+- Tests: `bridge/companion-vision.test.mjs`, `bridge/convai-vision.test.mjs`, 2 cases in `bridge/realtime-client.test.mjs`, the provider-section row lists in `bridge/manager.test.mjs`, the window helper regression test in `bridge/youtube-tv.test.mjs`.
+- `bridge/youtube-tv-window.ps1` (YouTube TV, fixed here): it read stdin with `[Console]::In.ReadLineAsync()`, which runs synchronously in Windows PowerShell 5.1. Asking for the next line before handling `attach` blocked until the bridge wrote again, and the bridge waits for `attached` first, so the TV never opened. It now uses a `StreamReader` over `[Console]::OpenStandardInput()`. It also matched the window title exactly, but Edge shows "<title> - Profile 1 - Microsoft Edge". It now matches the title, or the title followed by " - "; the title carries a random nonce.
 
 ## 8. Live check (needs the user's approval: real Convai turns)
 
 Each turn is one Convai interaction (about 1 of the 100k a month). No separate image charge is documented. A first check needs about 5 to 10 turns.
 
-1. Build the helper with `scripts/Build-VisionCapture.ps1` in the checkout the bridge runs from (the development bridge finds `dist/vision/CyberpunkConvaiVision.exe` there).
+1. Build the helper with `scripts/Build-VisionCapture.ps1` in the checkout the bridge runs from (the development bridge finds `dist/vision/CyberpunkConvaiVision.exe` there), and rebuild the page bundle with `npm run build:voice` (`runtime/realtime-client.js` carries `bridge/convai-vision.mjs`).
 2. Install `mod/manager.lua`, `mod/mcm.lua` and the 15 `mod/locales/*.lua`, reload CET, restart the bridge. Settings > Conversation provider shows **Companions can see** on.
 3. With Judy in the party, walk around for 15 s without talking: the log shows `[Vision] picture (buffer) 768x432` and Task Manager shows `CyberpunkConvaiVision.exe`.
 4. Turn to Judy, open the composer, type "what do you see around us?", send. The log shows `turn …: 1 image(s), frame N s old`. The reply describes the place, not her face and not the HUD. `bridge-diagnostics.json`: the page's `vision.lastOutcome` (watch for `vision_not_enabled`: then try one character on a Gemini or GPT model) and `prestaged` above 0.
@@ -208,3 +248,4 @@ Each turn is one Convai interaction (about 1 of the 100k a month). No separate i
 8. `"visionTransport": "upload"` and `"visionWaitMs": 0` in `runtime/settings.json`: do these paths work instead?
 9. Minimise the game for a while, then talk: the turn goes without a picture and the reply still comes.
 10. FPS: `perf-probe.json` for 2 minutes walking with Judy near (captures running) against 2 minutes with the setting off; watch for hitches.
+11. The TV (YouTube on V's TV on): sit with Judy, play a video, wait 10 s. The log shows `[Vision] source: the TV`; `bridge-diagnostics.json` shows `vision.livePages` 1 and the page's `vision.live` true. Ask "what's happening on the TV?": the reply is about the video. Pause, then ask again: still about the paused picture. Stop: `source: the surroundings`, `livePages` 0, and `CyberpunkConvaiVision.exe` returns about 12 s later. FPS seated with the video, setting on against off, 120 s each: within 2 FPS.
