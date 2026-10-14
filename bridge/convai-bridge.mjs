@@ -675,7 +675,9 @@ const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemo
 // only during and just after a recording; the Convai microphone route never touches it.
 const mistralSpeech = createLocalSpeech({
   stt: new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable}),
-  capture: new LocalSttCapture({getBrowser: hostBrowser(realtime)})});
+  capture: new LocalSttCapture({getBrowser: hostBrowser(realtime)}),
+  // The input device, its level and the words (or why they were ignored) of every recording, one line each.
+  log: line => console.error('[CyberpunkConvai] Microphone: ' + line)});
 // Two side by side: the action decision and the reply of one turn are two requests at once (bridge/mistral-client.mjs, warmConnection).
 const warmTurnConnections = options => warmConnection({...options, connections: 2});
 for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections});

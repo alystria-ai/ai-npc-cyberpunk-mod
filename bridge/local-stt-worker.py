@@ -42,7 +42,16 @@ GATE_DB = -52.0           # a recording whose loudest 30 ms frames never reach t
 SPEECH_FRAMES = 5         # 150 ms above the gate
 PRE_ROLL_FRAMES = 8       # 240 ms of quiet stay around each piece of sound that is decoded
 MERGE_FRAMES = 24         # sounds less than 720 ms apart are decoded together
-MAX_GROUPS = 12           # more pieces than this are joined (a noisy room), so a final stays a few decodes
+QUIET_PEAK_DB = -50.0     # no sound reached this: a dead or wrong input (or a muted one), not a person speaking
+MIN_SOUND_MS = 150        # fewer 30 ms frames of sound than this (5) are a click or a breath
+MIN_VOICED_MS = 60        # and at least 2 of them must carry a voice pitch
+VOICED_LAG_MIN, VOICED_LAG_MAX = 40, 230   # 400 Hz down to 70 Hz at 16 kHz
+VOICED_LEVEL = 0.4
+MAX_WORDS_PER_SECOND = 7.5
+# What a speech model says on sound that holds no speech, whatever the model (heard from Whisper, Moonshine and the like).
+HALLUCINATIONS = frozenset(["you", "thank you", "thanks for watching", "thank you for watching", "thank you very much", "bye",
+                            "bye bye", "so", "the", "i", "uh", "um", "hmm", "mm", "mhm", "oh", "ah", "huh"])
+MAX_GROUPS = 12          # more pieces than this are joined (a noisy room), so a final stays a few decodes
 
 
 def log(message: str) -> None:
@@ -94,6 +103,65 @@ def has_speech(samples) -> bool:
     if levels.size < SPEECH_FRAMES:
         return False
     return int(np.count_nonzero(levels > speech_gate(levels))) >= SPEECH_FRAMES
+
+
+def evidence(samples) -> dict:
+    """What the audio itself says about whether a person spoke: how loud the loudest sound was, how long the sound lasted,
+    and how much of it was voiced (a pitch between 70 and 400 Hz repeating inside the 30 ms frame: vowels have one, a breath,
+    a click, a fan and a key press do not). The words are judged against this (judge()), so a decode of noise is never shown."""
+    import numpy as np
+    levels = frame_levels(samples)
+    result = {"peakDb": -120.0, "soundMs": 0, "spanMs": 0, "voicedMs": 0}
+    if levels.size == 0:
+        return result
+    above = levels > speech_gate(levels)
+    result["peakDb"] = round(float(levels.max()), 1)
+    if not above.any():
+        return result
+    indexes = np.nonzero(above)[0]
+    result["soundMs"] = int(indexes.size * FRAME * 1000 // SAMPLE_RATE)
+    result["spanMs"] = int((indexes[-1] - indexes[0] + 1) * FRAME * 1000 // SAMPLE_RATE)
+    result["peakDb"] = round(float(levels[above].max()), 1)
+    frames = samples[: levels.size * FRAME].reshape(levels.size, FRAME)[above].astype(np.float32)
+    frames -= frames.mean(axis=1, keepdims=True)
+    spectrum = np.fft.rfft(frames, n=1024, axis=1)
+    autocorrelation = np.fft.irfft(spectrum * np.conj(spectrum), n=1024, axis=1)
+    energy = autocorrelation[:, 0] + 1e-9
+    best = (autocorrelation[:, VOICED_LAG_MIN:VOICED_LAG_MAX] / energy[:, None]).max(axis=1)
+    result["voicedMs"] = int(np.count_nonzero(best >= VOICED_LEVEL) * FRAME * 1000 // SAMPLE_RATE)
+    return result
+
+
+def acoustic(proof: dict):
+    """None when the sound could be a person speaking, else why it could not."""
+    if proof["peakDb"] < QUIET_PEAK_DB:
+        return "quiet"
+    if proof["soundMs"] < MIN_SOUND_MS:
+        return "short"
+    if proof["voicedMs"] < MIN_VOICED_MS:
+        return "not-voiced"
+    return None
+
+
+def judge(text: str, proof: dict):
+    """None when the words may stand, else why they may not. Moonshine can put words on a breath, a key press, a fan or a dead input;
+    those never reach the screen, the voice or the model."""
+    words = [word for word in "".join(c.lower() if c.isalnum() or c == "'" else " " for c in text).split() if word]
+    if not words:
+        return None
+    why = acoustic(proof)
+    if why:
+        return why
+    if proof["spanMs"] and len(words) * 1000 / proof["spanMs"] > MAX_WORDS_PER_SECOND and len(words) > 3:
+        return "too-many-words"
+    for size in (1, 2, 3):
+        for start in range(0, len(words) - size * 4 + 1):
+            chunk = words[start: start + size]
+            if all(words[start + size * i: start + size * (i + 1)] == chunk for i in range(4)):
+                return "repeating"
+    if " ".join(words) in HALLUCINATIONS and (proof["voicedMs"] < 240 or proof["peakDb"] < -36.0):
+        return "stock-phrase"
+    return None
 
 
 def tail_is_quiet(samples, start: int) -> bool:
@@ -183,10 +251,29 @@ class Engine:
             num_threads=threads,
         )
 
-    def read(self, samples) -> str:
-        """The words in a recording or its newest window: each piece of sound decoded on its own (see speech_groups)."""
+    def read(self, samples):
+        """(words, proof, why): the words in a recording or its newest window, each piece of sound decoded on its own (see
+        speech_groups). A piece that cannot be a person speaking (a click, a breath, a dead input) is not even decoded; `why` says what
+        kept the words back (judge, acoustic), and the words are then ''. `proof` is the sound that was read."""
         pieces = [part for group in (speech_groups(samples) or [samples]) for part in split_points(group)]
-        return " ".join(part for part in (self.decode(piece) for piece in pieces) if part and any(c.isalnum() for c in part))
+        kept, texts, blocked, decoded = [], [], None, 0
+        for piece in pieces:
+            proof = evidence(piece)
+            why = acoustic(proof)
+            if why:
+                blocked = blocked or why
+                continue
+            decoded += 1
+            text = self.decode(piece)
+            if text and any(c.isalnum() for c in text):
+                kept.append(proof)
+                texts.append(text)
+        total = {"peakDb": max((p["peakDb"] for p in kept), default=-120.0), "soundMs": sum(p["soundMs"] for p in kept),
+                 "spanMs": sum(p["spanMs"] for p in kept), "voicedMs": sum(p["voicedMs"] for p in kept)}
+        text = " ".join(texts)
+        # Nothing passed the acoustic test: that is the reason. Something was decoded and came back empty: no reason, just no words.
+        why = judge(text, total) if text else (None if decoded else blocked)
+        return ("" if why else text), total, why, (text if why else "")
 
     def decode(self, samples) -> str:
         import numpy as np
@@ -206,6 +293,7 @@ class Worker:
         self.total = 0
         self.last_partial = None   # (samples covered, text) of the newest partial that decoded the whole recording
         self.last_words = ""       # newest non-empty partial text of this recording, the last resort when the final decode is empty
+        self.last_proof = None     # the sound that partial read (what the log reports when the partial stands as the final)
 
     def samples(self):
         np = self.np
@@ -219,6 +307,7 @@ class Worker:
         self.id, self.chunks, self.total = request_id, [], 0
         self.last_partial = None
         self.last_words = ""
+        self.last_proof = None
 
     def audio(self, request_id, pcm):
         if request_id != self.id or self.total >= MAX_SECONDS * SAMPLE_RATE:
@@ -241,7 +330,7 @@ class Worker:
             # answer for the rest of the recording (a pause before the first word used to switch the live words off).
             send({"type": "partial", "id": request_id, "text": "", "ms": 0})
             return
-        text = self.engine.read(samples)
+        text, proof, why, ignored = self.engine.read(samples)
         if request_id == self.id:
             # A partial that decoded the entire recording (up to the window) can stand as the final text when only
             # silence follows it, so the key press does not wait for a second decode of the same words. A recording
@@ -249,10 +338,14 @@ class Worker:
             # first word): its words are all in the partial.
             left_out = whole[: len(whole) - len(samples)]
             covers = len(left_out) == 0 or not has_speech(left_out)
-            self.last_partial = (len(whole), text) if covers else None
+            self.last_partial = (len(whole), text) if covers and text else None
             if text:
                 self.last_words = text   # kept even when it left out an early word: better than ending the turn empty
-            send({"type": "partial", "id": request_id, "text": text, "ms": round((time.perf_counter() - started) * 1000)})
+                self.last_proof = proof
+            message = {"type": "partial", "id": request_id, "text": text, "ms": round((time.perf_counter() - started) * 1000)}
+            if why:
+                message["rejected"] = why   # words (or sound) that were not a person speaking: never shown
+            send(message)
 
     def finish(self, request_id):
         if request_id != self.id:
@@ -264,21 +357,29 @@ class Worker:
         speech = has_speech(samples)
         text = ""
         reused = False
+        why = ignored = None
         if speech:
             held = self.last_partial
             if held and held[1] and tail_is_quiet(samples, held[0]):
                 text, reused = held[1], True
             else:
-                text = self.engine.read(samples)
-                if not text and self.last_words:
+                text, _, why, ignored = self.engine.read(samples)
+                if not text and not why and self.last_words:
                     # Speech was heard and the live words already read it: an empty full decode must not erase them.
                     log("final decode was empty after speech; used the live words")
                     text, reused = self.last_words, True
+        # What the microphone gave, for the bridge's log (a wrong or dead input shows here). A live decode that stands as the final already
+        # measured its sound; anything else measures the recording (about 2 ms per second of audio).
+        proof = self.last_proof if reused and self.last_proof else evidence(samples)
         self.id, self.chunks, self.total, self.last_partial, self.last_words = None, [], 0, None, ""
-
-        send({"type": "final", "id": request_id, "text": text, "ms": round((time.perf_counter() - started) * 1000),
-              "seconds": round(seconds, 2), "speech": speech, "reused": reused,
-              "cpuMs": round(time.process_time() * 1000)})
+        message = {"type": "final", "id": request_id, "text": text, "ms": round((time.perf_counter() - started) * 1000),
+                   "seconds": round(seconds, 2), "speech": speech, "reused": reused,
+                   "peakDb": proof["peakDb"], "soundMs": proof["soundMs"], "voicedMs": proof["voicedMs"],
+                   "cpuMs": round(time.process_time() * 1000)}
+        if why:
+            message["rejected"] = why
+            message["ignored"] = (ignored or "")[:200]
+        send(message)
 
     def cancel(self, request_id):
         if request_id == self.id:

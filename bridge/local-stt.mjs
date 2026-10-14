@@ -192,7 +192,12 @@ export class LocalStt extends EventEmitter {
       this.stopPartials(); this.session = null;
       this.armIdle();
       session.waiter?.resolve({text: this.polish(message.text), seconds: message.seconds, ms: message.ms, speech: message.speech === true,
-        reused: message.reused === true, cpuMs: message.cpuMs});
+        reused: message.reused === true, cpuMs: message.cpuMs,
+        // What the microphone gave (loudest sound in dBFS, ms of sound, ms of it voiced) and, when words were held back as not a person
+        // speaking, why and what they were: for the log, so a wrong or dead input and a hallucinating model can be told apart.
+        peakDb: Number.isFinite(message.peakDb) ? message.peakDb : null, soundMs: Number.isFinite(message.soundMs) ? message.soundMs : null,
+        voicedMs: Number.isFinite(message.voicedMs) ? message.voicedMs : null,
+        rejected: typeof message.rejected === 'string' ? message.rejected : null, ignored: typeof message.ignored === 'string' ? message.ignored : ''});
     } else if (message.type === 'error') {
       if (!state.ready) { this.fail(state, Error(message.message || 'Local speech recognition failed to start')); return; }
       const session = this.session;

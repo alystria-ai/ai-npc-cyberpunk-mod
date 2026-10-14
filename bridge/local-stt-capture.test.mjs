@@ -13,7 +13,7 @@ const input = {requestId: '1-5-42ULL', entity: '42ULL', generation: 5, profileKe
 const config = {characterId: 'x', endUserId: 'u', scope: 'private', sessionId: 's'};
 
 // A LocalStt stand-in with the same surface.
-function fakeStt({available = true, text = 'hello there', partial = ''} = {}) {
+function fakeStt({available = true, text = 'hello there', partial = '', extra = {}} = {}) {
   const log = [];
   let open = null;
   return {log,
@@ -21,16 +21,16 @@ function fakeStt({available = true, text = 'hello there', partial = ''} = {}) {
     start: async id => { log.push('start:' + id); open = id; },
     pushAudio: chunk => { log.push('audio:' + chunk.length); return true; },
     heard: id => (open === id ? partial : ''),
-    finish: async id => { log.push('finish:' + id); open = null; return {text, seconds: 1.5}; },
+    finish: async id => { log.push('finish:' + id); open = null; return {text, seconds: 1.5, ...extra}; },
     cancel: async id => { log.push('cancel:' + id); open = null; },
     setPartial: value => { partial = value; }};
 }
 // A capture stand-in that pushes chunks when told to.
-function fakeCapture({failBegin = false} = {}) {
+function fakeCapture({failBegin = false, info = {device: 'Fake microphone'}} = {}) {
   const log = [];
   let sink = null;
   return {log, emit: chunk => sink?.(chunk),
-    begin: async onChunk => { log.push('begin'); if (failBegin) throw Error('NotAllowedError'); sink = onChunk; return {device: 'Fake microphone'}; },
+    begin: async onChunk => { log.push('begin'); if (failBegin) throw Error('NotAllowedError'); sink = onChunk; return info; },
     end: async () => { log.push('end'); sink = null; },
     abort: async () => { log.push('abort'); sink = null; }};
 }
@@ -235,4 +235,48 @@ test('the transcript is reported through options.onTranscript before the reply s
   assert.deepEqual(order, ['transcript:hello', 'reply:hello']);
   assert.equal(result.text, 'Hi.');
   await f.mic.cancel();
+});
+
+// The microphone log (2026-10-15: the input device, its level and the words of every recording, so a wrong device or an invented line can be seen).
+async function recordingLog({stt, capture}) {
+  const lines = [];
+  const channel = createLocalSttChannel({stt, capture, log: line => lines.push(line)})();
+  await channel.beginVoice(config);
+  capture.emit(Buffer.alloc(3200));
+  const outcome = await channel.finishVoice(config).then(() => 'words', error => error.message);
+  return {lines, outcome};
+}
+
+test('every recording logs its input device and what came of it: the words with their levels', async () => {
+  const info = {device: 'Default - Headset (realme Buds Air7 Hands-Free)', sampleRate: 16000,
+    inputs: ['Default - Headset (realme Buds Air7 Hands-Free)', 'Microphone Array (Realtek(R) Audio)'],
+    settings: {echoCancellation: true, noiseSuppression: true, autoGainControl: true}};
+  const {lines, outcome} = await recordingLog({stt: fakeStt({text: 'Hey Judy', extra: {peakDb: -21.4, soundMs: 900, voicedMs: 420}}), capture: fakeCapture({info})});
+  assert.equal(outcome, 'words');
+  assert.equal(lines.length, 2);
+  assert.match(lines[0], /^input "Default - Headset \(realme Buds Air7 Hands-Free\)" at 16000 Hz, 2 available \[.*Microphone Array \(Realtek\(R\) Audio\)\] echoCancellation=true noiseSuppression=true autoGainControl=true$/);
+  assert.equal(lines[1], 'recorded 1.5 s from "Default - Headset (realme Buds Air7 Hands-Free)" (peak -21.4 dBFS, 900 ms of sound, 420 ms voiced): heard "Hey Judy"');
+});
+
+test('words held back as not speech are logged with what they were and why, and the turn ends as No speech was heard', async () => {
+  const {lines, outcome} = await recordingLog({stt: fakeStt({text: '', extra: {peakDb: -30, soundMs: 330, voicedMs: 0, rejected: 'not-voiced', ignored: 'Thank you.'}}), capture: fakeCapture()});
+  assert.equal(outcome, NO_SPEECH_ERROR);
+  assert.match(lines[1], /\(peak -30 dBFS, 330 ms of sound, 0 ms voiced\): ignored "Thank you\." as not speech \(not-voiced\)$/);
+});
+
+test('a silent recording names the likely cause: a nearly silent input device', async () => {
+  const quiet = await recordingLog({stt: fakeStt({text: '', extra: {peakDb: -84.2, soundMs: 0, voicedMs: 0}}), capture: fakeCapture()});
+  assert.equal(quiet.outcome, NO_SPEECH_ERROR);
+  assert.match(quiet.lines[1], /no words; the input is almost silent, check the Windows input device$/);
+  const empty = await recordingLog({stt: fakeStt({text: '', extra: {peakDb: -30, soundMs: 600, voicedMs: 300}}), capture: fakeCapture()});
+  assert.match(empty.lines[1], /no words$/, 'a normal level with no words does not blame the device');
+  const unknown = await recordingLog({stt: fakeStt({text: 'hi'}), capture: fakeCapture()});
+  assert.match(unknown.lines[1], /levels unknown\): heard "hi"$/, 'a recogniser that reports no levels still logs the words');
+});
+
+test('a log hook that throws never breaks a recording', async () => {
+  const channel = createLocalSttChannel({stt: fakeStt({text: 'hello'}), capture: fakeCapture(), log: () => { throw Error('disk full'); }})();
+  await channel.beginVoice(config);
+  const result = await channel.finishVoice(config);
+  assert.equal(result.userText, 'hello');
 });

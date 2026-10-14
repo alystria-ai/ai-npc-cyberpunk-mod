@@ -15,7 +15,7 @@ const paths = {python: '/py/python.exe', worker: '/app/bridge/local-stt-worker.p
 const existsIn = files => path => files.has(String(path).replace(/^[A-Za-z]:/, '').replaceAll('\\', '/'));
 
 // A fake worker process: records the lines it was sent and answers like bridge/local-stt-worker.py.
-function fakeWorker({readyAfter = 0, finalText = 'hello judy', speech = true, silent = false} = {}) {
+function fakeWorker({readyAfter = 0, finalText = 'hello judy', speech = true, silent = false, finalExtra = {}} = {}) {
   const spawned = [];
   const spawnImpl = (command, args) => {
     const child = new EventEmitter();
@@ -39,7 +39,7 @@ function fakeWorker({readyAfter = 0, finalText = 'hello judy', speech = true, si
         if (silent) continue;
         if (message.op === 'partial') reply({type: 'partial', id: message.id, text: 'heard ' + bytes + ' bytes', ms: 5});
         if (message.op === 'finish') {
-          reply({type: 'final', id: message.id, text: finalText, ms: 12, seconds: bytes / 32000, speech});
+          reply({type: 'final', id: message.id, text: finalText, ms: 12, seconds: bytes / 32000, speech, ...finalExtra});
           bytes = 0;
         }
       }
@@ -286,4 +286,14 @@ test('real worker: silence is no speech, and a clean read decodes to its words',
     await quick.close();
   }
   await real.close();
+});
+
+test('finish carries what the microphone gave and why words were held back, for the bridge log', async () => {
+  const levels = {peakDb: -23.5, soundMs: 1200, voicedMs: 540};
+  const heard = await (async () => { const stt = make(fakeWorker({finalExtra: levels})); await stt.start('r1'); stt.pushAudio(pcm(100), 'r1'); return stt.finish('r1'); })();
+  assert.deepEqual([heard.peakDb, heard.soundMs, heard.voicedMs, heard.rejected, heard.ignored], [-23.5, 1200, 540, null, '']);
+  const held = await (async () => { const stt = make(fakeWorker({finalText: '', finalExtra: {...levels, rejected: 'not-voiced', ignored: 'Thank you.'}})); await stt.start('r2'); stt.pushAudio(pcm(100), 'r2'); return stt.finish('r2'); })();
+  assert.deepEqual([held.text, held.rejected, held.ignored], ['', 'not-voiced', 'Thank you.']);
+  const older = await (async () => { const stt = make(fakeWorker()); await stt.start('r3'); stt.pushAudio(pcm(100), 'r3'); return stt.finish('r3'); })();
+  assert.deepEqual([older.peakDb, older.rejected], [null, null], 'a worker that reports nothing about levels leaves them unknown');
 });
