@@ -8,7 +8,7 @@ import {parseArchetype, archetypeContext, parseInput} from './protocol.mjs';
 // Names for nameless ordinary NPCs (docs/NPC_NAMES.md): the generator, its trait mapping, the gate, the service (scanner hook and
 // talk path), the vendor file, the bridge's context line and the setting. The Lua runs in fengari with the real pools.
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
-const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
+const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const poolsSource = read('../mod/npc-name-pools.lua');
 const moduleSource = read('../mod/npc-names.lua');
 const initSource = read('../mod/init.lua');
