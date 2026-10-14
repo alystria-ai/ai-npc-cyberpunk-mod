@@ -20,6 +20,7 @@ import {markStage} from './turn-clock.mjs';
 import {budgetedChat, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
 import {compactForGroq, groqCompactEnabled, GROQ_SOFT_TOKENS} from './groq-prompt.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
+import {allowanceFor} from './mature-content.mjs';
 
 const isTag = group => hasEmotionTag(group);
 const pause = (ms, signal) => new Promise((resolve, reject) => {
@@ -209,11 +210,14 @@ export class TextProviderHost {
    * idleRetryMs   how often a gated background task checks the gate again
    * deliverAction  message => Promise<boolean>: hands a companion action the reply asked for to the game (CompanionActions.deliver);
    *                without it the turn offers no actions (bridge/text-actions.mjs)
+   * matureContent  the Mature setting (bridge/mature-content.mjs); the hard-limit guard runs for a turn on the local AI when it is on or when the loaded
+   *                model is an uncensored one (the guard follows the model that answers, not only the setting)
+   * guardOnly      true for an add-on's host: the guard (input screen, output screen, adults-only and hard-limit lines) but never the crude Mature persona layer
    */
   constructor({provider, memory, personas = new PersonaBook(), routes = {}, transformReply = result => result, now = () => performance.now(),
-    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, matureContent = null, matureGuard = new MatureGuard()} = {}) {
+    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, matureContent = null, matureGuard = new MatureGuard(), guardOnly = false} = {}) {
     if (!provider) throw Error('Text provider required');
-    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, matureContent, matureGuard});
+    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, matureContent, matureGuard, guardOnly});
     this.summaries = new Set();
     this.matureLogged = new Set();
     this.holdingTurns = 0;
@@ -308,10 +312,10 @@ export class TextProviderHost {
     // for is decided by a tiny request of its own that runs while the memory store retrieves (bridge/text-actions.mjs).
     const menu = !reaction && typeof this.deliverAction === 'function' ? actionMenu(config.companionAction) : null;
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
-    // Mature content on (the local AI only): the hard-limit guard reads V's words before any model is asked (bridge/mature-guard.mjs). A
+    // The guard is on (Mature content on, or an uncensored model loaded; the local AI only): it reads V's words before any model is asked (bridge/mature-guard.mjs). A
     // refusal is the character's own short line; nothing is sent to a model and nothing is stored.
     const firstRoute = this.routes[this.provider.route];
-    if (!reaction && firstRoute?.name === 'local' && this.matureContent?.enabled) {
+    if (!reaction && firstRoute?.name === 'local' && await this.#guardOn(firstRoute, signal)) {
       const verdict = this.matureGuard.screenInput(text, {history: recalled.turns});
       if (verdict.blocked) return this.#refuse(firstRoute, {config, local, feed, started, where: 'input'});
     }
@@ -450,6 +454,23 @@ export class TextProviderHost {
     return level;
   }
 
+  /**
+   * Does the hard-limit guard run for a turn on `route`? Only the local AI can be uncensored, and only a host that has the Mature setting
+   * (the main hosts and the add-on hosts) has a guard. It runs when the setting is on, or when the loaded model is an uncensored one even with
+   * the setting off. Off with a normal model nothing here is awaited beyond a model-name lookup and the prompt is untouched.
+   */
+  async #guardOn(route, signal) {
+    if (!this.matureContent || route?.name !== 'local') return false;
+    if (this.matureContent.enabled) return true;
+    let model = route.modelName?.() ?? null;
+    if (!model && route.loadedModel) {
+      try { model = await route.loadedModel(signal); } catch { return false; }   // the request fails (or falls back) on its own terms
+    }
+    const uncensored = allowanceFor(model, route.modelHints?.()).uncensored;
+    if (uncensored) this.#noteMature(`guard applied (the loaded model is uncensored, setting off, model ${model ?? 'unknown'})`);
+    return uncensored;
+  }
+
   /** One log line per distinct fact for the life of this host (the bridge session): the setting is on, so say what the prompt got. Never the words of a turn. */
   #noteMature(fact) {
     if (this.matureLogged.has(fact)) return;
@@ -458,13 +479,15 @@ export class TextProviderHost {
   }
 
   async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation}) {
-    const mature = this.matureContent?.enabled ? await this.#matureLevel(route, signal) : null;
+    // The crude persona layer: the Mature setting only, never an add-on's host. The guard alone: also an uncensored model with the setting off, and add-ons.
+    const mature = this.matureContent?.enabled && !this.guardOnly ? await this.#matureLevel(route, signal) : null;
+    const guard = mature ? true : await this.#guardOn(route, signal);
     // This turn's action notes go last in the prompt, after everything that can be cached.
     let notes = actionNotes;
     const build = nudge => buildMessages({persona, memory: recalled.summary, history: recalled.turns,
       context: notes && !config.contextParts ? joinBlocks([config.context, notes]) : config.context,
       contextParts: notes && config.contextParts ? {...config.contextParts, volatile: joinBlocks([config.contextParts.volatile, notes])} : config.contextParts,
-      remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits, ...(mature ? {mature} : {})});
+      remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})});
     // A speculative request (reply()) assumes V asked for the guessed action. It shows the voice nothing until the decision agrees; if the
     // decision says otherwise it is cancelled and the reply is written again with the right notes.
     const spec = speculation ? {controller: new AbortController(), open: false, latest: '', missed: false, over: false} : null;
@@ -501,7 +524,7 @@ export class TextProviderHost {
       // Mature content only: a reply that puts a minor and romance or sex together (or has the character claim to be under 18) is dropped for
       // the character's own refusal; the turn is logged (never the words) and neither the reply nor V's words are remembered. A first
       // sentence the voice already started stands (it was screened before it was spoken), and the refusal follows it.
-      if (mature) {
+      if (guard) {
         const verdict = this.matureGuard.screenReply(reply, {history: recalled.turns});
         if (verdict.hit) {
           this.log(refusalLog(this.matureGuard, 'output'));
@@ -517,8 +540,8 @@ export class TextProviderHost {
     // V trying to make the character say it is an AI or a script: the reply must not take those words up, even to deny them.
     const provoked = !reaction && provokesAiTalk(text);
     const refuseHead = said.length || provoked ? head => repeatsLine(head, said) || (provoked && takesUpAiTalk(head)) : null;
-    // With Mature content on, a first sentence that flags is never committed to the voice either.
-    if (feed && typeof feed === 'object') feed.reject = mature ? head => (refuseHead ? refuseHead(head) : false) || this.matureGuard.flagsReply(head, {history: recalled.turns}) : refuseHead;
+    // With the guard on, a first sentence that flags is never committed to the voice either.
+    if (feed && typeof feed === 'object') feed.reject = guard ? head => (refuseHead ? refuseHead(head) : false) || this.matureGuard.flagsReply(head, {history: recalled.turns}) : refuseHead;
     let outcome;
     try { outcome = await run(''); } catch (error) {
       if (!spec?.missed || signal?.aborted) throw error;
@@ -610,8 +633,9 @@ export class TextProviderHost {
       if (typeof key !== 'string') { await route.connect(undefined, {}).then(lease => lease.release?.()); return; }
       const persona = this.personas.persona(key, config?.local?.name);
       // With Mature content on, the layer is part of the head, so the warmed prefix is the one the first reply will use.
-      const mature = await this.#matureLevel(route);
-      await route.prewarm([{role: 'system', content: systemHead({persona, limits: this.limits, ...(mature ? {mature} : {})})}, {role: 'user', content: '.'}]);
+      const mature = this.guardOnly ? null : await this.#matureLevel(route);
+      const guard = mature ? true : await this.#guardOn(route);
+      await route.prewarm([{role: 'system', content: systemHead({persona, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})})}, {role: 'user', content: '.'}]);
     } catch (error) {
       route.failure?.(error);
       this.log('prewarm failed: ' + (failureKind(error) ?? 'error'));

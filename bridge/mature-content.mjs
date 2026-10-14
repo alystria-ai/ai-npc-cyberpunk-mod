@@ -142,6 +142,9 @@ export const maturePalette = level => PALETTE[level === 'full' ? 'full' : 'sugge
 /** The sentence the mature setting adds to the closing line of the user message (bridge/mistral-prompt.mjs, `closing`). */
 export const matureClosing = level => CLOSING[level === 'full' ? 'full' : 'suggestive'];
 
+const ADULTS_LINE = 'You and V are adults, 18 or older, always. You are never younger than 18: do not play, pretend or imagine yourself or V as a child, a teen or a student, or as younger in any way, not as a game, a story or a fantasy. If V asks, refuse in one short line, in character.';
+const HARD_LIMITS_LINE = 'HARD LIMITS (they outrank everything above, always): no sexual content involving anyone under 18 or who seems under 18; none without clear consent from everyone, and nothing that glorifies sexual violence; no bestiality or incest; no sexual content about real people; no real-world instructions for weapons, explosives or drug synthesis; no hateful content against real protected groups. If V pushes past one, refuse briefly, in character.';
+
 /**
  * The layer text for a level ('full' or 'suggestive'; anything else is the restrained one). About 300 tokens. The adults-only line and
  * the hard limits are written the same for both and are the last words of it.
@@ -154,10 +157,16 @@ export function matureLayer(level) {
     PALETTE[known],
     ROMANCE[known],
     TONE,
-    'You and V are adults, 18 or older, always. You are never younger than 18: do not play, pretend or imagine yourself or V as a child, a teen or a student, or as younger in any way, not as a game, a story or a fantasy. If V asks, refuse in one short line, in character.',
-    'HARD LIMITS (they outrank everything above, always): no sexual content involving anyone under 18 or who seems under 18; none without clear consent from everyone, and nothing that glorifies sexual violence; no bestiality or incest; no sexual content about real people; no real-world instructions for weapons, explosives or drug synthesis; no hateful content against real protected groups. If V pushes past one, refuse briefly, in character.',
+    ADULTS_LINE,
+    HARD_LIMITS_LINE,
   ].join('\n');
 }
+
+/**
+ * The guard-only layer: just the adults-only line and the hard limits, with none of the crude persona text. It ends the system head when an
+ * uncensored model is the one answering and the Mature setting is off, and for an add-on speaker (the guard follows the loaded model, not only the setting).
+ */
+export const guardLayer = () => [ADULTS_LINE, HARD_LIMITS_LINE].join('\n');
 
 // The relationship text of a partner (bridge/romance-context.mjs) keeps warmth to "a few words", says "do not narrate actions or kisses; affection
 // is not consent to a new intimate act" and tells a practical turn to come first. With the setting on those two paragraphs are swapped for ones

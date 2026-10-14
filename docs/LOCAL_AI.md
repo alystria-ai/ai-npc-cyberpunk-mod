@@ -603,8 +603,11 @@ abliterated or heretic) are full and flagged `uncensored`.
 
 An uncensored model has no limits of its own and ignores the one in the prompt: in the 2026-10-13 test (`docs/MATURE_MODELS_RESEARCH.md`
 on main) Mature Qwen3.5-4B went along with a romance-with-a-minor prompt 5 of 5 times and Mature Gemma E4B 3 to 4 of 5, with the limit
-written in the prompt. So the limit is enforced in the bridge, on the text, by `bridge/mature-guard.mjs`. It runs whenever the setting is
-on and the provider is Local AI, on any model (stock models too), and never otherwise.
+written in the prompt. So the limit is enforced in the bridge, on the text, by `bridge/mature-guard.mjs`. It runs for a turn on Local AI
+when the setting is on (any model, stock models too) or when the model that answers is an uncensored one (the Mature pack's, or one the
+player flagged uncensored) even with the setting off, and never otherwise. Add-on speakers (Skippy, Delamain) get the guard on the same
+terms, but only the guard: the screens and the adults-only and hard-limit lines, never the crude persona layer (`guardOnly` in
+`TextProviderHost`, `guardLayer()` in `bridge/mature-content.mjs`). With a stock model and the setting off nothing changes, byte for byte.
 - Input screen (`MatureGuard.screenInput`, called by `TextProviderHost` before any model request, right after recall). V's message is
   read for a minor cue together with romantic or sexual intent in the same message: an age under 18 ("I'm fifteen", "16f", "my 14th
   birthday", "born in 2011", "she's 12", "a 13 year old"), a word for a child or teen, school words (grades, "high school", a uniform,
