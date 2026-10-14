@@ -3216,8 +3216,10 @@ registerForEvent('onUpdate', function(delta)
                             return speech.actor:ConvaiFaceReady(), speech.actor:ConvaiFaceStatus() end)
                         faceState = faceOk and (tostring(faceReady) .. '/' .. tostring(faceStatus)) or 'unavailable'
                     end
+                    -- A voice that could not start says why (speech.lua keeps the reason in speech.error), once, on the same line.
+                    local why = speech.state == 'playback-failed' and speech.error and (' why=' .. tostring(speech.error):sub(1, 160)) or ''
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil)
-                        .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState)
+                        .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState .. why)
                     if automatic and pending.requestId == automatic.requestId then
                         automatic.shown = reply.error == nil
                         if automatic.shown and (speech.requestId or subtitles.ownsUtterance()) then

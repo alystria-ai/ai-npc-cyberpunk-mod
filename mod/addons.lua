@@ -463,7 +463,8 @@ end
 
 --- handle:speaker({id, name, anchor, available, talk, group, minGap, sceneTiers, talkPriority, playThrough, voiceFrom, showsReply, approach, face}) -> profileKey
 --- voiceFrom(player) -> GameObject (optional): where the voice is heard from, when that is not the anchor (Skippy: the gun in V's
---- hand while the anchor stays V). Asked once when a reply starts; it only moves the sound (pan and distance), nothing else.
+--- hand while the anchor stays V). Asked once when a reply starts; it moves the sound (pan and distance of a browser voice) and is the
+--- emitter of the native phrases (Audioware cannot play on V, so a V-anchored speaker needs it), nothing else.
 --- showsReply(text, event) -> boolean (optional): asked once for each remark's reply, when its text arrives and before anything is
 --- shown. true: the add-on shows the text itself (Skippy: the gun's hologram), so the main mod shows no subtitle for this remark's
 --- voice. false, nothing or an error: the subtitle is shown as always. Only remarks are asked; V's own conversation keeps its subtitle.

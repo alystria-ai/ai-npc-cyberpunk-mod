@@ -220,8 +220,13 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
   `Remark plays through a game scene: ... signals=dialogue+tier=2`, names the flags that were up.
 - `voiceFrom(player) -> GameObject` (optional): where the voice is heard from when that is not the anchor. Skippy's anchor stays V
   (subtitles, availability, the talk key), but his voice comes from the gun in V's hand. It is asked once when a reply starts and
-  only changes the pan and distance of the browser voice (continuous Pocket playback). An object that is detached, unreadable or more
-  than 3 m from the camera is dropped for the rest of that reply and the anchor is used. The native Omni phrases still play on the anchor.
+  changes the pan and distance of the browser voice (continuous Pocket playback); an object that is detached, unreadable or more than
+  3 m from the camera is dropped for the rest of that reply and the anchor is used. The native Omni phrases play **on that object** (it is
+  their emitter): Audioware refuses V as an emitter ("entity_id cannot be undefined or V" in its log), so a speaker anchored to V with no
+  `voiceFrom` object could not be heard with the native voice. Without one, the main mod plays on the weapon in V's hands, else the
+  chest item V wears (the same goes for a holocall reply, which is heard through the phone); with neither the voice does not start, the
+  CET log line `Conversation result` says `speech=playback-failed why=Audioware cannot play on V ...`, and the text is shown as a
+  subtitle. A speaker anchored to something else (the cab) is unchanged.
 - `showsReply(text, event) -> boolean` (optional): the add-on shows its remarks itself, so they need no subtitle. Asked **once per
   remark**, when the reply text arrives and before anything is shown. `true`: the main mod plays that remark's voice **without a
   subtitle** (speech.lua skips every caption call that follows the voice). `false`, nothing or an error: the subtitle is shown as always,
