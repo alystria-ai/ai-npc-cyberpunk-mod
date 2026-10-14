@@ -113,8 +113,27 @@ export class ReplyStream {
   onChange(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
   #changed() { for (const fn of this.listeners) { try { fn(); } catch { /* a listener never breaks the stream */ } } }
 
+  /**
+   * Hands everything this stream has been told, and everything it is told from now on, to `other` (a fresh stream for the same speaker):
+   * the reply was written into this one before its listener (the voice) existed. `other` reaches the same head and the same end.
+   * Used by a voice-key turn that was started on a stable live-words decode and adopted when the final words agreed
+   * (bridge/local-stt-capture.mjs); until then nothing of the reply reaches the voice.
+   */
+  mirrorTo(other) {
+    if (!other || other === this) return;
+    this.mirror = other;
+    other.reject = this.reject;
+    if (this.raw) other.update(this.raw);
+    if (this.finishedText !== null) other.finish(this.finishedText, this.meta);
+    else if (this.failure) other.fail(this.failure);
+  }
+
   /** The raw reply text so far (the model's whole answer, not a delta). A text that does not continue the earlier one is a new attempt. */
   update(raw) {
+    this.#update(raw);
+    if (this.mirror) { try { this.mirror.update(raw); } catch { /* a listener never breaks the stream */ } }
+  }
+  #update(raw) {
     if (this.complete || typeof raw !== 'string') return;
     if (this.raw && !raw.startsWith(this.raw)) {
       // The model started over (a retry, the next model). What was already committed was heard: it stands, the new attempt is ignored.
@@ -169,6 +188,7 @@ export class ReplyStream {
     if (this.headText === null) this.head_.resolve(null);
     this.final_.resolve(this.finishedText);
     this.#changed();
+    if (this.mirror) { try { this.mirror.finish(text, meta); } catch { /* a listener never breaks the stream */ } }
     return this.finishedText;
   }
 
@@ -179,5 +199,6 @@ export class ReplyStream {
     if (this.headText === null) this.head_.resolve(null);
     this.final_.reject(this.failure);
     this.#changed();
+    if (this.mirror) { try { this.mirror.fail(error); } catch { /* a listener never breaks the stream */ } }
   }
 }

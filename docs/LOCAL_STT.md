@@ -64,7 +64,8 @@ On a laptop in Silent power mode all numbers are slower; compare like with like.
 | No recording, and 90 s after the last one | nothing: no process, no timer except the one that ends the worker |
 | Voice key pressed ("Connecting microphone") | worker spawned if needed; the capture page opens the device |
 | "Listening" | the page sends a 100 ms Int16 chunk 10 times a second (a few KB each); the worker decodes the newest 8 s about every 1.2 s, never more than about 15% of one core, for the live words |
-| Key pressed again | final decode if no live decode covered it; the reply is requested |
+| "Listening", the player pauses (quiet 300 ms after speech) | one extra live-words decode at once, once per pause, at most 6 per recording, never while a decode runs, so the newest words are read before the key is pressed again |
+| Key pressed again | on the Mistral route, if the newest live decode read all the speech and the quiet after it, the reply is requested at once on its words and confirmed (or cancelled and asked again) when the final words are known (`docs/LATENCY_2026-10-14.md` 1.1); final decode if no live decode covered the recording |
 
 The worker runs at below-normal priority with one thread. Nothing runs on the game's side per frame: the Lua side is the existing
 state/words file poll.

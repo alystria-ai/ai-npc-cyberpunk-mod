@@ -240,8 +240,11 @@ export class TextProviderHost {
    * `stream` (optional, bridge/reply-stream.mjs): the voice's view of the reply while it is written. It is fed the text as it
    * arrives, told when the reply is finished (with the text the voice and subtitles end with) or failed, and a first sentence
    * that is safe to speak is handed to the voice before the model is done. Without one the reply is built exactly as before.
+   * `confirmed` (optional promise): the reply was started on words that are not final yet (a stable live-words decode, bridge/local-stt-capture.mjs).
+   * It is written as usual, but nothing is remembered and no companion action is handed to the game until `confirmed` resolves; when it rejects
+   * (the final words differ) the reply ends there with that error and leaves no trace.
    */
-  async reply(config, {signal, stream} = {}) {
+  async reply(config, {signal, stream, confirmed} = {}) {
     if (signal?.aborted) throw cancelled();
     const local = config?.local;
     if (!local || typeof local.profileKey !== 'string') throw new MistralError('request', 'turn has no character');
@@ -289,6 +292,7 @@ export class TextProviderHost {
     for (const [index, route] of candidates.entries()) {
       try {
         const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation});
+        if (confirmed) await confirmed;
         const elapsed = Math.round(this.now() - started);
         const {response} = outcome;
         // What was already spoken stands: a finished reply that does not begin with it is cut back to it.
@@ -315,6 +319,7 @@ export class TextProviderHost {
           try { route.fellBack?.(error); } catch { /* a notice never fails the turn */ }
           continue;
         }
+        if (confirmed) await confirmed;
         const standing = this.#standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey: local.profileKey});
         if (standing) return standing;
         feed.fail(error);
@@ -646,7 +651,10 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     if (!provider.active) return original.voiceChannel.call(this);
     // Local speech recognition (bridge/local-stt.mjs) supplies a channel that turns the recording into text and answers it
     // through the text route; without it the voice key says voice needs Convai.
-    if (speech?.available?.() && typeof speech.voiceChannel === 'function') return speech.voiceChannel({reply: (config, options) => textHost.reply(config, options)});
+    // A reply may start on a stable live-words decode before the final decode is back (bridge/local-stt-capture.mjs, `confirmed`): Mistral only
+    // (a cancelled request costs a little quota there; the local AI shares the game's GPU and a cancelled request there is not free).
+    if (speech?.available?.() && typeof speech.voiceChannel === 'function') return speech.voiceChannel({reply: (config, options) => textHost.reply(config, options),
+      speculate: () => provider.route === 'mistral' && process.env.CYBERPUNK_CONVAI_STT_SPECULATE !== '0'});
     const refuse = () => Promise.reject(Error(`Voice needs Convai for now: speech recognition is not available with ${label()} [mistral:voice]`));
     return {beginVoice: refuse, finishVoice: refuse, heard: async () => '', close: async () => {}};
   };

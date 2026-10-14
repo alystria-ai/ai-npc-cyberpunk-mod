@@ -28,6 +28,8 @@ const [{TextProviderHost, mistralRoute}, {MistralMemory}, {MistralProvider}, {Pe
   load('bridge/microphone-session.mjs'), load('bridge/local-stt-capture.mjs'), load('bridge/voice-key-stream.mjs')]);
 
 const args = process.argv.slice(2);
+// --voice-key-stt: how soon the reply model is started after the key press, with the real recogniser (scripts/Measure-VoiceKeyStart.mjs; takes its own options).
+if (args.includes('--voice-key-stt')) { await import('./Measure-VoiceKeyStart.mjs'); await new Promise(() => {}); }
 const option = (name, fallback) => { const at = args.indexOf(name); return at >= 0 ? args[at + 1] : fallback; };
 const RUNS = Number(option('--runs', 3));
 const roster = [...JSON.parse(await readFile(resolve(root, 'characters/roster.json'), 'utf8')),
