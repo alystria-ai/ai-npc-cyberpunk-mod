@@ -463,7 +463,6 @@ return {
     ["Walking commands did not release in time."] = "A gyaloglási parancsok nem szabadultak fel időben.",
     ["What to do"] = "Teendő",
     ["Where the logs are"] = "Hol vannak a naplók",
-    ["Write a message..."] = "Írj egy üzenetet...",
     ["Write a message...  /  Enter to send  /  Esc to stop typing"] = "Írj egy üzenetet...  /  Enter a küldéshez  /  Esc az írás befejezéséhez",
     ["YOUR PARTY"] = "A CSAPATOD",
     ["You are driving. The companion trip was cancelled."] = "Te vezetsz. A társ útja megszakadt.",
@@ -804,4 +803,5 @@ return {
     ["Paste"] = "Beillesztés",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "A Pocket, OmniVoice vagy Voxtral hangokkal működik.",
     ["no Omni pack"] = "nincs Omni-csomag",
+    ["V  Call"] = "V  Hívás",
 }

@@ -274,7 +274,6 @@ return {
     ["Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects."] = "正在等待清除{target}记忆的结果。记忆服务重新连接后，请重新打开此页。",
     ["Waiting for voice service"] = "正在等待语音服务",
     ["Waiting for your previous message to finish."] = "正在等待上一条消息处理完毕。",
-    ["Write a message..."] = "输入消息…",
     ["Write a message...  /  Enter to send  /  Esc to stop typing"] = "输入消息…  /  Enter 发送  /  Esc 结束输入",
     ["YOUR PARTY"] = "你的队伍",
     ["Your companions, character models and conversation settings."] = "管理你的伙伴、角色模型和对话设置。",
@@ -804,4 +803,5 @@ return {
     ["Paste"] = "粘贴",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "适用于 Pocket、OmniVoice 或 Voxtral 语音。",
     ["no Omni pack"] = "无 Omni 扩展包",
+    ["V  Call"] = "V  通话",
 }

@@ -463,7 +463,6 @@ return {
     ["Walking commands did not release in time."] = "Polecenia chodzenia nie zostały zwolnione na czas.",
     ["What to do"] = "Co zrobić",
     ["Where the logs are"] = "Gdzie są logi",
-    ["Write a message..."] = "Napisz wiadomość...",
     ["Write a message...  /  Enter to send  /  Esc to stop typing"] = "Napisz wiadomość...  /  Enter, aby wysłać  /  Esc, aby przestać pisać",
     ["YOUR PARTY"] = "TWOJA DRUŻYNA",
     ["You are driving. The companion trip was cancelled."] = "Prowadzisz. Przejazd z towarzyszem anulowano.",
@@ -804,4 +803,5 @@ return {
     ["Paste"] = "Wklej",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "Działa z głosami Pocket, OmniVoice lub Voxtral.",
     ["no Omni pack"] = "bez pakietu Omni",
+    ["V  Call"] = "V  Zadzwoń",
 }

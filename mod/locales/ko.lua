@@ -274,7 +274,6 @@ return {
   ["Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects."] = "{target}의 기억 삭제 결과를 기다리고 있습니다. 기억 서비스가 다시 연결되면 이 페이지를 다시 여세요.",
   ["Waiting for voice service"] = "음성 서비스 대기 중",
   ["Waiting for your previous message to finish."] = "이전 메시지의 처리가 끝나기를 기다리고 있습니다.",
-  ["Write a message..."] = "메시지 작성…",
   ["Write a message...  /  Enter to send  /  Esc to stop typing"] = "메시지 작성…  /  Enter로 전송  /  Esc로 입력 종료",
   ["YOUR PARTY"] = "내 파티",
   ["Your companions, character models and conversation settings."] = "동료, 캐릭터 모델 및 대화 설정입니다.",
@@ -804,4 +803,5 @@ return {
     ["Paste"] = "붙여넣기",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "Pocket, OmniVoice 또는 Voxtral 음성과 함께 작동합니다.",
     ["no Omni pack"] = "Omni 팩 없음",
+    ["V  Call"] = "V  통화",
 }

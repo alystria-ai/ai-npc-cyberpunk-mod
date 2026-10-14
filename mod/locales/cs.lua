@@ -463,7 +463,6 @@ return {
     ["Walking commands did not release in time."] = "Příkazy chůze se včas neuvolnily.",
     ["What to do"] = "Co dělat",
     ["Where the logs are"] = "Kde jsou logy",
-    ["Write a message..."] = "Napiš zprávu...",
     ["Write a message...  /  Enter to send  /  Esc to stop typing"] = "Napiš zprávu...  /  Enter odešle  /  Esc ukončí psaní",
     ["YOUR PARTY"] = "TVOJE SKUPINA",
     ["You are driving. The companion trip was cancelled."] = "Řídíš. Jízda se společníkem byla zrušena.",
@@ -804,4 +803,5 @@ return {
     ["Paste"] = "Vložit",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "Funguje s hlasy Pocket, OmniVoice nebo Voxtral.",
     ["no Omni pack"] = "bez balíčku Omni",
+    ["V  Call"] = "V  Volat",
 }

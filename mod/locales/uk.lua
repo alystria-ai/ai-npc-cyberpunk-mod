@@ -463,7 +463,6 @@ return {
     ["Walking commands did not release in time."] = "Команди ходьби не звільнилися вчасно.",
     ["What to do"] = "Що робити",
     ["Where the logs are"] = "Де журнали",
-    ["Write a message..."] = "Напиши повідомлення...",
     ["Write a message...  /  Enter to send  /  Esc to stop typing"] = "Напиши повідомлення...  /  Enter — надіслати  /  Esc — припинити введення",
     ["YOUR PARTY"] = "ТВОЯ ГРУПА",
     ["You are driving. The companion trip was cancelled."] = "Ти за кермом. Поїздку з компаньйоном скасовано.",
@@ -804,4 +803,5 @@ return {
     ["Paste"] = "Вставити",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "Працює з голосами Pocket, OmniVoice або Voxtral.",
     ["no Omni pack"] = "без пакета Omni",
+    ["V  Call"] = "V  Подзвонити",
 }

@@ -274,7 +274,6 @@ return {
   ["Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects."] = "{target}の記憶消去の結果を待っています。記憶サービスが再接続してから、このページを開き直してください。",
   ["Waiting for voice service"] = "音声サービスを待機中",
   ["Waiting for your previous message to finish."] = "前のメッセージの処理完了を待っています。",
-  ["Write a message..."] = "メッセージを入力…",
   ["Write a message...  /  Enter to send  /  Esc to stop typing"] = "メッセージを入力…  /  Enterで送信  /  Escで入力終了",
   ["YOUR PARTY"] = "あなたのパーティー",
   ["Your companions, character models and conversation settings."] = "コンパニオン、キャラクターモデル、会話の設定。",
@@ -804,4 +803,5 @@ return {
     ["Paste"] = "貼り付け",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "Pocket、OmniVoice、Voxtral の音声で使えます。",
     ["no Omni pack"] = "Omni パックなし",
+    ["V  Call"] = "V  通話",
 }

@@ -276,7 +276,6 @@ return {
     ["Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects."] = "Esperando el resultado del borrado de recuerdos: {target}. Vuelve a abrir esta página cuando el servicio de memoria se reconecte.",
     ["Waiting for voice service"] = "Esperando al servicio de voz",
     ["Waiting for your previous message to finish."] = "Esperando a que termine tu mensaje anterior.",
-    ["Write a message..."] = "Escribe un mensaje...",
     ["Write a message...  /  Enter to send  /  Esc to stop typing"] = "Escribe un mensaje...  /  Enter para enviar  /  Esc para dejar de escribir",
     ["YOUR PARTY"] = "TU GRUPO",
     ["Your companions, character models and conversation settings."] = "Tus compañeros, modelos de personajes y ajustes de conversación.",
@@ -804,4 +803,5 @@ return {
     ["Paste"] = "Pegar",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "Funciona con las voces Pocket, OmniVoice o Voxtral.",
     ["no Omni pack"] = "sin paquete Omni",
+    ["V  Call"] = "V  Llamar",
 }

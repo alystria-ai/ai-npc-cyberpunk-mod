@@ -463,7 +463,6 @@ return {
     ["Walking commands did not release in time."] = "Yürüme komutları zamanında bırakılmadı.",
     ["What to do"] = "Ne yapmalı",
     ["Where the logs are"] = "Günlüklerin yeri",
-    ["Write a message..."] = "Bir mesaj yaz...",
     ["Write a message...  /  Enter to send  /  Esc to stop typing"] = "Bir mesaj yaz...  /  Göndermek için Enter  /  Yazmayı bırakmak için Esc",
     ["YOUR PARTY"] = "EKİBİN",
     ["You are driving. The companion trip was cancelled."] = "Sen sürüyorsun. Yoldaş yolculuğu iptal edildi.",
@@ -804,4 +803,5 @@ return {
     ["Paste"] = "Yapıştır",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "Pocket, OmniVoice veya Voxtral seslerle çalışır.",
     ["no Omni pack"] = "Omni paketi yok",
+    ["V  Call"] = "V  Ara",
 }
