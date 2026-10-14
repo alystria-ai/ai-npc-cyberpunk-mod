@@ -384,7 +384,7 @@ test('face-test probe: say submits through the speech adapter hook, face-trace r
  local ring=face.faceTest.trace
  assert(ring.n>=3600 and #ring.clock==3600 and #ring.jaw_mid_open==3600,'the ring is preallocated at its bound and never grows: '..ring.n..' '..#ring.clock)
  local at=(ring.n-1)%3600+1
- assert(math.abs(ring.jaw_mid_open[at]-last(a).jaw_mid_open)<1e-9 and ring.jaw_mid_open[at]>.2,'it records the lifted value the writer wrote')
+ assert(math.abs(ring.jaw_mid_open[at]-last(a).jaw_mid_open)<1e-9 and ring.jaw_mid_open[at]>.13,'it records the value the writer wrote')
  files['runtime/face-trace.json']=nil
  request('t2\\nface-trace dump lipcase');tick(.3)
  assert(files['runtime/lipcase.json'] and files['runtime/lipcase.json']:find('rows',1,true),'one dump file')
@@ -569,13 +569,22 @@ test('face-stage probe: a freshly loaded probe never runs the stale request left
  assert(#moves>before and convaiFaceTest.stage,'a new request after the reload still runs')
 `));
 
-// October 9, lip sync on wider lips: the jaw weight is lifted per head type (the facial graph name), the identity at the
+// October 9, lip sync on wider lips: the jaw weight was lifted per head type (the facial graph name), the identity at the
 // validation ceiling and at zero, never for Judy's graph or a head whose graph is unknown.
+// October 15: the lift was fitted before speech_owner handed the idle mouth over, so it now applies only to a graph without
+// that input (an older archive). A model (local-jali) timeline is scaled towards the game's reach first (modelReach).
 const HEADS = {woman_average: {q: 2, floor: .21}, man_average: {q: 1.5, floor: .17}, man_big: {q: 1.5, floor: .17}, man_fat: {q: 1.5, floor: .17}};
+const REACH = {jaw_mid_open: 1.15, lips_l_purse: 1.35, lips_r_purse: 1.35, lips_l_corner_stretch: 1.45, lips_r_corner_stretch: 1.45,
+  lips_l_stretch: 1.45, lips_r_stretch: 1.45, lips_l_lower_raise: 1.3, lips_r_lower_raise: 1.3, lips_l_upper_raise: 1.4, lips_r_upper_raise: 1.4};
+const reachJaw = value => Math.min(value * REACH.jaw_mid_open, .7);
 const liftJaw = (value, {q, floor}) => {
   const rest = 1 - value / .7, lifted = rest > 0 ? .7 * (1 - rest ** q) : .7, x = Math.min(1, (value - .02) / .05);
   return x <= 0 ? lifted : Math.max(lifted, floor * x * x * (3 - 2 * x));
 };
+// A face graph from before October 10: the feature has no speech_owner field (reading or writing it raises).
+const OLD_GRAPH = `NewObject=function(name) assert(name=='ConvaiFaceFeature')
+ return setmetatable({},{__index=function(_,k) if k=='speech_owner' then error('no speech_owner') end end,
+  __newindex=function(t,k,v) if k=='speech_owner' then error('no speech_owner') end;rawset(t,k,v) end}) end`;
 const jawBody = (status, jaw, check, extra = '') => `
  ${status === undefined ? '' : `function a:ConvaiFaceStatus() return ${JSON.stringify(status)} end`}
  ${extra}
@@ -585,23 +594,31 @@ const jawBody = (status, jaw, check, extra = '') => `
  assert(face.start(context,timeline,a,1));face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.3,context.requestId)
  local jawValue=last(a).jaw_mid_open
  ${check}`;
-test('jaw lift: woman_average opens low and mid jaw values (q 2), man heads moderately (q 1.5), the ceiling and zero are unchanged', () => {
+test('jaw lift: on a graph without speech_owner, woman_average opens low and mid jaw values (q 2), man heads moderately (q 1.5)', () => {
   for (const [graph, head] of Object.entries(HEADS)) {
     for (const jaw of [0, .0381, .06, .12, .2, .37, .66, .7]) {
-      run(jawBody(`prepared:${graph}_sermo`, jaw, `assert(math.abs(jawValue-${liftJaw(jaw, head)})<1e-9,'${graph} ${jaw}: '..jawValue)`));
+      const want = liftJaw(reachJaw(jaw), head);
+      run(jawBody(`prepared:${graph}_sermo`, jaw, `assert(math.abs(jawValue-${want})<1e-9,'${graph} ${jaw}: '..jawValue)`, OLD_GRAPH));
     }
   }
   assert.ok(liftJaw(.12, HEADS.woman_average) > .21 && liftJaw(.12, HEADS.woman_average) < .23
     && liftJaw(0, HEADS.woman_average) === 0 && liftJaw(.7, HEADS.woman_average) === .7);
 });
+test('jaw lift: with speech_owner (every prepared graph since October 10) every head writes the model jaw at its reach, unlifted', () => {
+  for (const graph of [...Object.keys(HEADS), 'player_woman_photomode']) {
+    for (const jaw of [0, .015, .06, .088, .12, .2, .37, .66, .7]) {
+      run(jawBody(`prepared:${graph}_sermo`, jaw, `assert(math.abs(jawValue-${reachJaw(jaw)})<1e-9,'${graph} ${jaw}: '..jawValue)`));
+    }
+  }
+});
 // October 9, second round (Evelyn, "and fill it with exactly what they need to hear"): the model's jaw for f, th, l, w and
-// a short i is .088-.111, which the curve alone writes at .17-.20, the edge where her lips part. A speaking frame
-// is now written at the floor or above, silence is untouched, and the whole range never dips as the model's jaw rises.
+// a short i is .088-.111, which the curve alone writes at .17-.20, the edge where her lips part. On a graph without
+// speech_owner a speaking frame is written at the floor or above, silence is untouched, and the map never dips.
 test('jaw lift: low-jaw sounds in speech reach the floor, silence stays closed, and the map never dips', () => {
   const fillItWith = [.088, .096, .111, .099, .106];
   for (const jaw of fillItWith) {
     assert.ok(liftJaw(jaw, HEADS.woman_average) >= .21, `${jaw}: ${liftJaw(jaw, HEADS.woman_average)}`);
-    run(jawBody('prepared:woman_average_sermo', jaw, `assert(jawValue>=.21 and jawValue<.3,'fill it with '..jawValue)`));
+    run(jawBody('prepared:woman_average_sermo', jaw, `assert(jawValue>=.21 and jawValue<.3,'fill it with '..jawValue)`, OLD_GRAPH));
   }
   for (const head of Object.values(HEADS)) {
     let previous = -1;
@@ -613,17 +630,18 @@ test('jaw lift: low-jaw sounds in speech reach the floor, silence stays closed, 
     assert.equal(liftJaw(0, head), 0); assert.ok(liftJaw(.02, head) < .045 && liftJaw(.03, head) < .08);
     assert.ok(liftJaw(.07, head) >= head.floor - 1e-12 && liftJaw(.7, head) === .7);
   }
-  run(jawBody('prepared:woman_average_sermo', .015, `assert(jawValue<.03,'silence: '..jawValue)`));
-  run(jawBody('prepared:player_woman_photomode_sermo', .09, `assert(jawValue==.09,'Judy: '..jawValue)`));
+  run(jawBody('prepared:woman_average_sermo', .015, `assert(jawValue<.04,'silence: '..jawValue)`, OLD_GRAPH));
+  run(jawBody('prepared:player_woman_photomode_sermo', .09, `assert(math.abs(jawValue-${reachJaw(.09)})<1e-9,'Judy: '..jawValue)`, OLD_GRAPH));
 });
-test('jaw lift: Judy and an unknown or unreadable head keep the jaw exactly', () => {
+test('jaw lift: Judy and an unknown or unreadable head keep the model jaw (at its reach) even on a graph without speech_owner', () => {
   for (const [status, extra] of [['prepared:player_woman_photomode_sermo', ''], ['unsupported-graph', ''], [undefined, ''],
     ['prepared:woman_average_sermo', "rows[1].profileKey='judy-alvarez';face.beginExpressionFrame(.1,{actors=rows});face.updateExpressions({actors=rows})"]]) {
-    run(jawBody(status, .12, "assert(jawValue==.12,'unchanged: '..tostring(jawValue))", extra));
+    run(jawBody(status, .12, `assert(math.abs(jawValue-${reachJaw(.12)})<1e-9,'unchanged: '..tostring(jawValue))`, OLD_GRAPH + '\n' + extra));
   }
 });
 test('jaw lift: only the jaw is lifted, and the graph is read once per reply (no native read per frame)', () => {
   run(`
+ ${OLD_GRAPH}
  local reads=0
  function a:ConvaiFaceStatus() reads=reads+1;return 'prepared:woman_average_sermo' end
  face.beginExpressionFrame(.1,{actors=rows})
@@ -633,9 +651,33 @@ test('jaw lift: only the jaw is lifted, and the graph is read once per reply (no
  local position=0
  for _=1,12 do face.beginExpressionFrame(.1,{actors=rows});position=position+.1;face.sync(a,position,context.requestId) end
  assert(reads==1,'the graph is read once per reply: '..reads)
- assert(math.abs(last(a).jaw_mid_open-${liftJaw(.12, HEADS.woman_average)})<1e-9)
+ assert(math.abs(last(a).jaw_mid_open-${liftJaw(reachJaw(.12), HEADS.woman_average)})<1e-9)
  assert(last(a).lips_together_up==.5 and last(a).lips_l_funnel==.3,'only the jaw is lifted')
 `);
+});
+// October 15 (user: "not much variety in lipsync shapes"): the model reaches 66-75 % of the game's peaks on the shape
+// controls, so a model timeline is scaled per control towards the game's reach and clamped to the validation bounds.
+// Contacts, rolls, funnel, puffs and tongue keep the model's values, and other sources are never scaled.
+test('model reach: a local-jali timeline scales jaw, purse, spread and lip raises, clamps at the bound, and leaves the rest', () => {
+  const tracks = ['jaw_mid_open', 'lips_together_up', 'lips_together_dn', 'lips_l_funnel', 'lips_r_funnel', 'lips_l_purse', 'lips_r_purse',
+    'lips_l_corner_stretch', 'lips_r_corner_stretch', 'lips_l_stretch', 'lips_r_stretch', 'lips_l_lower_raise', 'lips_r_lower_raise',
+    'lips_l_upper_raise', 'lips_r_upper_raise', 'lips_suck_dn', 'tongue_mid_tip_up', 'cheek_l_puff'];
+  const values = [.3, .6, .9, .2, .2, .2, .45, .1, .1, .12, .12, .08, .08, .05, .05, .4, .2, .1];
+  const limit = {lips_together_up: 1, lips_together_dn: 1, lips_suck_dn: .8, jaw_mid_open: .7, cheek_l_puff: .35};
+  for (const source of ['local-jali', 'convai-arkit61']) {
+    const want = tracks.map((track, i) => source === 'local-jali' && REACH[track]
+      ? Math.min(values[i] * REACH[track], limit[track] ?? .5) : values[i]);
+    run(`
+ local timeline={version=1,requestId=context.requestId,entity=a.id,duration=1,source='${source}',
+  ${source === 'local-jali' ? "articulation='jali-audio-v1'," : ''}tracks=${literal(tracks)},frames={${literal([0, ...values])},${literal([1, ...values])}}}
+ face.beginExpressionFrame(.1,{actors=rows})
+ assert(face.start(context,timeline,a,1),face.error);face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.3,context.requestId)
+ local f=last(a)
+ local want=${literal(want)}
+ for i,track in ipairs(${literal(tracks)}) do
+  assert(math.abs((f[track] or -1)-want[i])<1e-9,'${source} '..track..': '..tostring(f[track])..' want '..want[i])
+ end`);
+  }
 });
 
 // October 9, night (Evelyn on a sad reply: the jaw was written at .3-.5 and the lips still barely parted): the chin raise of
@@ -660,7 +702,7 @@ test('chin raise gives way to an opening jaw while a lifted head speaks, and not
   run(chinBody('prepared:man_average_sermo', .12, "assert(chin==0,'man_average open jaw: '..chin)"));
   run(chinBody('prepared:woman_average_sermo', .0, "assert(chin>.1 and chin<=resting,'closed jaw keeps the frown: '..chin..' of '..resting)"));
   run(chinBody('prepared:woman_average_sermo', .015, "assert(jawValue<.03 and chin>.5*resting,'silence keeps the frown: '..chin)"));
-  run(chinBody('prepared:player_woman_photomode_sermo', .2, "assert(jawValue==.2 and chin>.1,'Judy unchanged: '..chin)"));
+  run(chinBody('prepared:player_woman_photomode_sermo', .2, `assert(math.abs(jawValue-${reachJaw(.2)})<1e-9 and chin>.1,'Judy unchanged: '..chin)`));
   run(chinBody('unsupported-graph', .2, "assert(chin>.1,'unknown head unchanged: '..chin)"));
 });
 
@@ -684,8 +726,8 @@ test('corner depressors give way to an opening jaw while a lifted head speaks, t
   run(dnBody('Sadness', 'prepared:woman_average_sermo', .2, "assert(rest.dn>.2 and jawValue>=.2 and dn==0 and f.lips_r_corner_dn==0,'open jaw, no corner depressors: '..dn..' of '..rest.dn); assert(f.eye_l_brows_raise_in>.5*rest.brow,'the inner brows still read: '..f.eye_l_brows_raise_in)"));
   run(dnBody('Sadness', 'prepared:man_average_sermo', .3, "assert(dn==0,'man_average: '..dn)"));
   run(dnBody('Sadness', 'prepared:woman_average_sermo', .0, "assert(dn>.5*rest.dn,'closed jaw keeps the corners: '..dn..' of '..rest.dn)"));
-  run(dnBody('Sadness', 'prepared:woman_average_sermo', .06, "assert(jawValue>.1 and dn>0 and dn<.7*rest.dn,'in between, partly: '..dn..' at jaw '..jawValue)"));
-  run(dnBody('Sadness', 'prepared:player_woman_photomode_sermo', .3, "assert(jawValue==.3 and dn>.5*rest.dn,'Judy unchanged: '..dn)"));
+  run(dnBody('Sadness', 'prepared:woman_average_sermo', .1, "assert(jawValue>.1 and dn>0 and dn<.7*rest.dn,'in between, partly: '..dn..' at jaw '..jawValue)"));
+  run(dnBody('Sadness', 'prepared:player_woman_photomode_sermo', .3, `assert(math.abs(jawValue-${reachJaw(.3)})<1e-9 and dn>.5*rest.dn,'Judy unchanged: '..dn)`));
   run(dnBody('Sadness', 'unsupported-graph', .3, "assert(dn>.5*rest.dn,'unknown head unchanged: '..dn)"));
   run(dnBody('Joy', 'prepared:woman_average_sermo', .3, "assert(rest.up>.1 and f.lips_l_corner_up>.5*rest.up,'the smile keeps its corner pull: '..f.lips_l_corner_up..' of '..rest.up)"));
 });
@@ -757,14 +799,37 @@ test('a stream whose heard cursor stops while it still reports playing closes th
  assert(last(a).jaw_mid_open>0)
 `));
 
-test('the speech-state turn record shows the peak written jaw, the open frames and the jaw lift in use', () => run(`
+test('the speech-state turn record shows the peak written jaw, the open frames and the jaw lift in use', () => {
+  for (const [extra, lift] of [['', 'false'], [OLD_GRAPH, '2']]) run(`
+ ${extra}
  function a:ConvaiFaceStatus() return 'prepared:woman_average_sermo' end
  local line=${literal(pumpLine(owner.requestId, 2))}
  face.beginExpression(context,${literal(receipt('Joy', 3, 0))})
  assert(face.updateContinuous(context,line,a,line.duration),face.error)
  for i=1,60 do face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,i/60,context.requestId);face.updateExpressions({actors=rows}) end
  local turn=face.status().expressions.lastSpeech
- assert(turn.jawPeak>.3 and turn.openFrames>20 and turn.jawLift==2,turn.jawPeak..' '..turn.openFrames..' '..tostring(turn.jawLift))
+ assert(turn.jawPeak>.3 and turn.openFrames>20 and turn.jawLift==${lift},turn.jawPeak..' '..turn.openFrames..' '..tostring(turn.jawLift))
+`);
+});
+
+// October 15: face-play replays a saved mouth timeline (the lip-sync captures) silently through the real writer, so the
+// same line can be captured before and after a change to how the face is applied.
+test('face-test probe: face-play replays a saved timeline through the writer, ends the reply at its end and refuses a missing file', () => runProbe(`
+ local doc={tracks={'jaw_mid_open','lips_together_up','lips_l_purse'},frames={{0,.2,0,.1},{1,.2,0,.1}},duration=1}
+ files['runtime/line-a.json']='LINE';json.decode=function(raw) assert(raw=='LINE');return doc end
+ request('p1\\nface-play judy line-a');tick(.3)
+ assert(files['runtime/face-test-response.txt']:find('ok=true',1,true),files['runtime/face-test-response.txt'])
+ assert(face.active and face.faceTest.play,'playing')
+ for _=1,6 do tick(.1) end
+ local f=last(a)
+ assert(math.abs(f.jaw_mid_open-.2*face.modelReach.jaw_mid_open)<1e-9,'the writer wrote the model jaw at its reach: '..tostring(f.jaw_mid_open))
+ assert(math.abs(f.lips_l_purse-.1*face.modelReach.lips_l_purse)<1e-9,'and the purse: '..tostring(f.lips_l_purse))
+ for _=1,15 do tick(.1) end
+ assert(not face.faceTest.play and not face.active,'the replay ends and frees the face')
+ request('p2\\nface-play judy missing');tick(.3)
+ assert(files['runtime/face-test-response.txt']:find('ok=false',1,true),files['runtime/face-test-response.txt'])
+ request('p3\\nface-play judy ../x');tick(.3)
+ assert(files['runtime/face-test-response.txt']:find('ok=false',1,true),'no path outside runtime/')
 `));
 
 test('face-test probe: direct mode bypasses the writer with its own feature and logs the apply result', () => runProbe(`
@@ -1033,7 +1098,7 @@ test('blinks continue through a reply on every voice route: every 2-6 s, short, 
    for _,f in ipairs(frames) do
     assert(f.eye_l_blink==f.eye_r_blink,'both eyes together')
     local v=f.eye_l_blink or 0;peak=math.max(peak,v);if v<.02 then open=open+1 end
-    assert(f.jaw_mid_open==.3,'speech fields untouched')
+    assert(f.jaw_mid_open==${source === 'local-jali' ? 'math.min(.3*face.modelReach.jaw_mid_open,.7)' : '.3'},'speech fields untouched')
    end
    assert(peak>=.6 and peak<=.96,'peak like the game (.62-.95): '..peak)
    assert(open/#frames>.85,'eyes open most of the time: '..open/#frames)

@@ -495,7 +495,25 @@ test('a world NPC opens the speech gate for its reply, closes it with one reset,
   assert(queries==before, 'idle ticks make no native call for a world NPC: '..(queries-before))
 `));
 
-test('a world NPC reply gets the per-head jaw lift from its prepared graph, and none from an unprepared one', () => run(`
+// October 15: the lift was fitted before speech_owner; a graph with it (every prepared graph, the gated crowd copies too)
+// writes the jaw as given, and only a graph without the field (an older archive) still gets the per-head lift.
+test('a world NPC reply on a prepared graph with speech_owner writes the jaw unlifted', () => run(`
+  local function jawFor(status)
+    local npc=actor('Resident-'..tostring(status)); npc.owned=false
+    if status then npc.ConvaiFaceStatus=function() native(); return status end end
+    local context,reply=input(npc,'lift-'..tostring(status)); assert(speech.start(context,reply))
+    cursor=0.5; speech.update(0.1)
+    return npc.frames[#npc.frames].jaw_mid_open
+  end
+  for _,status in ipairs({'prepared:woman_average_sermo','prepared:man_average_sermo','prepared:man_big_sermo'}) do
+    local jaw=jawFor(status); assert(math.abs(jaw-0.35)<0.0001, status..' is not lifted: '..jaw)
+  end
+`));
+
+test('a world NPC reply on a graph without speech_owner gets the per-head jaw lift from its prepared graph, and none from an unprepared one', () => run(`
+  NewObject=function(name) assert(name=='ConvaiFaceFeature')
+    return setmetatable({},{__index=function(_,k) if k=='speech_owner' then error('no speech_owner') end end,
+      __newindex=function(t,k,v) if k=='speech_owner' then error('no speech_owner') end;rawset(t,k,v) end}) end
   local function jawFor(status)
     local npc=actor('Resident-'..tostring(status)); npc.owned=false
     if status then npc.ConvaiFaceStatus=function() native(); return status end end
