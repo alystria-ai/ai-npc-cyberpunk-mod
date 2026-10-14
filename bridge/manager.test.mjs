@@ -3869,27 +3869,44 @@ test('Lip sync delay (Bluetooth) is a Voices select: Auto by default, Off and mi
   `);
 });
 
-test('Developer mode adds a game voice row per ready copy that queues one vanilla VO line for gameplay', () => {
+test('Current party shows no Play or game voice row under Dismiss, in Developer mode or out of it', () => {
   run(`${mcmFixture}
     api.spawn('johnny-silverhand')
     members[1].state = 'ready'; members[1].baseName = members[1].name; members[1].name = members[1].name .. ' #1'
-    assert(invoke('tab:party').ok); assert(not row('gamevoice:live:1'), 'hidden outside Developer mode')
+    local function onlyDismiss(navigate)
+      if navigate then assert(invoke('tab:party').ok) end
+      assert(not row('gamevoice:live:1'), 'no game voice row')
+      assert(row('dismiss:live:1'), 'Dismiss stays')
+      for _, category in ipairs(loaded.categories) do
+        for _, item in ipairs(category.settings) do assert(item.value ~= 'Play', 'no Play row: ' .. tostring(item.id)) end
+      end
+    end
+    onlyDismiss(true)
     assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok)
     loaded = registered.loadMod('manager')
-    local item = assert(row('gamevoice:live:1'))
-    assert(item.type == 'action' and item.value == 'Play' and item.label:find('game voice', 1, true))
+    onlyDismiss(false)
+  `);
+});
+
+test('The queue still queues one vanilla VO line per game voice request for gameplay', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles)
+    local queue = (function() ${queueSource} end)().new(api)
+    queue.bind('player-1')
+    api.spawn('johnny-silverhand'); members[1].state = 'ready'
     local queued, contexts = {}, {}
     SoundPlayVo = {new = function() return {} end}
     CName = CName or {new = function(value) return value end}
     api.actor = function(serial) return serial == 1 and {QueueEvent = function(_, event) queued[#queued + 1] = event end} or nil end
-    assert(invoke('gamevoice:live:1').ok)
+    assert(queue.gameVoice('live:1'))
     assert(#queued == 0, 'nothing plays inside the menu')
-    mcm.update(player, true)
+    queue.flush()
     assert(#queued == 1 and queued[1].ignoreFrustumCheck and queued[1].ignoreDistanceCheck)
     contexts[1] = queued[1].voContext
-    mcm.update(player, true); assert(#queued == 1, 'one press plays one line')
-    assert(invoke('gamevoice:live:1').ok); mcm.update(player, true)
-    assert(#queued == 2 and queued[2].voContext ~= contexts[1], 'the next press asks for another line')
+    queue.flush(); assert(#queued == 1, 'one request plays one line')
+    assert(queue.gameVoice('live:1')); queue.flush()
+    assert(#queued == 2 and queued[2].voContext ~= contexts[1], 'the next request asks for another line')
+    assert(queue.gameVoice('live:99') == false)
   `);
 });
 

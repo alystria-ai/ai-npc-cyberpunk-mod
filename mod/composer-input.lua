@@ -108,6 +108,31 @@ local function messageWidget(controller)
     return find(controller:GetRootWidget(), 'message', 8, {left=96})
 end
 
+-- Padding, in the dialog's own 3840x2160 ink units: the title-to-box gap the hidden message line used to leave, and
+-- room between the box's left border and the typed text.
+local TITLE_GAP = 44
+local TEXT_PAD_LEFT = 20
+
+-- Raises one side of a widget's margin to at least `value`, leaving the other sides alone. A larger native margin is
+-- never lowered, so applying it again (language change, the next OnInitialize) changes nothing.
+function M.raiseMargin(widget, side, value)
+    local margin = widget:GetMargin()
+    if not margin or (tonumber(margin[side]) or 0) >= value then return false end
+    margin[side] = value
+    widget:SetMargin(margin)
+    return true
+end
+
+-- The visible text of the Codeware input sits flush against the box's left edge. Its direct parent is the clipping
+-- viewport that holds the text, so padding that parent moves the typed text; the box itself stays put.
+function M.padInputText(input)
+    local root = input and input:GetRootWidget()
+    local visible = root and find(root, 'text', 4, {left = 40})
+    local holder = visible and visible.GetParentWidget and visible:GetParentWidget()
+    if not holder or holder == root or not holder.GetMargin then return false end
+    return M.raiseMargin(holder, 'left', TEXT_PAD_LEFT)
+end
+
 local function localizePresentation(controller, data)
     -- Codeware's own input wrapper uses this exact native title path. Change
     -- rendered text only: the English notification data remains our ownership
@@ -117,13 +142,18 @@ local function localizePresentation(controller, data)
         if title then title:SetText(text('TALK TO {character}', {character = data.title:sub(9)})) end
     end
     -- The dialog's message line ("Type your message to the character.") is not shown: it is emptied and hidden, and
-    -- stops taking room in the dialog's vertical layout, so there is no gap under the title. The English notification
-    -- data keeps the sentence as the ownership marker.
+    -- stops taking room in the dialog's vertical layout. The English notification data keeps the sentence as the
+    -- ownership marker. The gap that line left under the title is given back as a bottom margin on the title (a direct
+    -- child of the same vertical panel), so the box never sits on the title.
     local message = messageWidget(controller)
     if message then
         message:SetText('')
         pcall(function() message:SetAffectsLayoutWhenHidden(false) end)
         message:SetVisible(false)
+    end
+    if controller.GetChildWidgetByPath then
+        local title = controller:GetChildWidgetByPath(CName.new('notification/main/inkVerticalPanelWidget18/title'))
+        if title and title.GetMargin then M.raiseMargin(title, 'bottom', TITLE_GAP) end
     end
 end
 
@@ -217,6 +247,7 @@ function M.apply(controller)
         -- F6/F8 are immediately ready for typing. The box has no placeholder text and the dialog's message line above
         -- it is hidden (localizePresentation). SetDefaultText changes only the hint, never an existing typed draft.
         input:SetDefaultText('')
+        pcall(M.padInputText, input)
         M.patched = M.patched + 1
         M.lastCase = tostring(input:GetLetterCase())
         M.lastPlaceholder = input:GetDefaultText()

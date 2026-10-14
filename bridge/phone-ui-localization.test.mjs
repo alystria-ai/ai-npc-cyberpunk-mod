@@ -85,7 +85,8 @@ local function widget(name)
   function w:IsVisible()return self.visible end
   function w:SetVisible(value)self.visible=value end
   function w:SetSize(value)self.size=value end
-  function w:SetMargin(value)self.margin=value end
+  function w:SetMargin(value)self.margin=value;self.marginWrites=(self.marginWrites or 0)+1 end
+  function w:GetMargin()local m=self.margin or {};return {left=m.left or 0,top=m.top or 0,right=m.right or 0,bottom=m.bottom or 0}end
   function w:SetFitToContent(value)self.fit=value end
   function w:SetHAlign(value)self.hAlign=value end
   function w:SetVAlign(value)self.vAlign=value end
@@ -192,9 +193,28 @@ assert(title.text=='PARLER À Judy {A}' and c.placeholder=='')
 assert(message.text=='' and message.visible==false and message.affectsLayout==false and c.case==textLetterCase.OriginalCase)
 assert(data.title=='TALK TO Judy {A}' and data.message=='Type your message to the character.')
 assert(c.draft=='Hey Judy, mixed Case 日本語')
+assert(title.margin.bottom==44 and title.margin.left==0 and title.margin.top==0,'title keeps a gap above the box')
 language='ja';generation=2;m.apply(n)
 assert(title.text=='Judy {A}と話す' and c.placeholder=='' and message.text=='' and message.visible==false)
 for _,key in ipairs(calls)do assert(key~='Judy {A}' and key~=c.draft)end
+assert(title.margin.bottom==44 and title.marginWrites==1,'re-applying does not stack the gap')
+assert(m.lastError==nil,m.lastError)
+`));
+
+test('world composer pads the typed text from the box edge once and never lowers a larger native margin',()=>runLua(setup+`
+local m=(function()${composer}end)()
+local data={title='TALK TO Judy',message='Type your message to the character.'}
+local n,c,title=notification(data)
+local visible=measuredInput(c)
+local holder=visible:GetParentWidget()
+assert(holder.margin==nil)
+m.apply(n);m.apply(n)
+assert(holder.margin.left==20 and holder.margin.top==0 and holder.marginWrites==1,'text padded once')
+assert(c:GetRootWidget().margin==nil,'the box itself is not moved')
+holder.margin={left=60,top=3,right=0,bottom=0};holder.marginWrites=0;m.apply(n)
+assert(holder.margin.left==60 and holder.marginWrites==0,'a larger native padding stays')
+title.margin={left=0,top=0,right=0,bottom=90};title.marginWrites=0;m.apply(n)
+assert(title.margin.bottom==90 and title.marginWrites==0)
 assert(m.lastError==nil,m.lastError)
 `));
 
