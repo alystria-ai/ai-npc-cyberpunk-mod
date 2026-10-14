@@ -347,6 +347,7 @@ test('every character with a signature or generic idle resolves it on its own ri
       end
       local pool={['convai_idle_'..known.idle]=true}
       for _,key in ipairs(cat.generic.rigs[known.rig].idles) do pool['convai_idle_'..key]=true end
+      for _,key in ipairs(known.idles or {}) do pool['convai_idle_'..key]=true end
       assert(pool[localCalls[1] or ''],record..' played '..tostring(localCalls[1]))
       checked=checked+1
     end
@@ -354,9 +355,11 @@ test('every character with a signature or generic idle resolves it on its own ri
   assert(checked>=27,'characters with idles: '..checked)
   assert(own>=15,'character-specific idles: '..own)
   for _,record in ipairs({'Character.Judy','Character.Sobchak','Character.Rogue','Character.Misty','Character.reed',
-    'Character.Hanako','Character.Saul','Character.Placide','Character.songbird','Character.alex'}) do
+    'Character.Hanako','Character.Placide','Character.songbird','Character.alex'}) do
     assert(cat.characters[record] and cat.characters[record].flavour and cat.idleSources[cat.characters[record].idle].kind~='generic',record)
   end
+  -- Saul's own loop is the angry arms-crossed set, which did not fit him (Round 12): he rests in a generic idle on purpose.
+  assert(cat.characters['Character.Saul'].flavour and cat.idleSources[cat.characters['Character.Saul'].idle].kind=='generic')
 `));
 
 test('every tier-1 character has an idle of their own: no two characters share one', () => run(`
@@ -850,6 +853,229 @@ test('a copy outside the round is left alone, and with the setting off the round
   assert(asked==0,'the group lookup ran '..asked..' times with the setting off')
 `));
 
+// Round 12: prop idles (cigarette, sunglasses, cup, bottle). The natives are optional in the controller; these tests give
+// the fixture fake hand slots. Every VM is fresh, so installing them here affects no other test.
+const propFixture = `
+  local slots,clears={}, {}
+  function native.slotItem(n,slot,wanted) calls[#calls+1]={name='slotItem',slot=slot};return true,slots[slot] end
+  function native.clearSlot(n,slot,wanted)
+    clears[#clears+1]={slot=slot,item=wanted}
+    local had=slots[slot];slots[slot]=nil
+    return true,had and 'removed' or 'empty'
+  end
+  local function propLogs(kind) local n=0 for _,l in ipairs(logs) do if l.kind==kind then n=n+1 end end return n end
+  local function untilPlay() for i=1,80 do step(.1);if idles()>=1 then return end end end
+  entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
+  -- The random value that makes the controller pick one idle of Johnny's pool first (his own idle, his pool, then the rig's generic idles).
+  local function aim(key)
+    local cat=load(catalogSource)()
+    local known=cat.characters[entry.record]
+    local pool,seen={}, {}
+    local function add(k) if k and not seen[k] and cat.idleComponents[k] then seen[k]=true;pool[#pool+1]=k end end
+    add(known.idle) for _,k in ipairs(known.idles or {}) do add(k) end
+    if cat.generic.mix then for _,k in ipairs(cat.generic.rigs[known.rig].idles) do add(k) end end
+    for i,k in ipairs(pool) do if k==key then return (i-.5)/#pool end end
+    error('not in the pool: '..key)
+  end
+  local aimed=aim('johnny_smoke')
+  c.random=function() return aimed end
+`;
+
+test('a prop idle starts with a free hand, is looked at once, and the declared item is taken out of the slot afterwards', () => run(propFixture + `
+  untilPlay()
+  local began=lastLog('flavour-begin')
+  assert(began and began.fields.component=='convai_idle_johnny_smoke','the cigarette idle: '..tostring(began and began.fields.component))
+  slots['AttachmentSlots.WeaponLeft']={match=true,fists=false} -- the engine put the cigarette in his left hand
+  step(4)
+  assert(propLogs('props-seen')==1 and propLogs('props-missing')==0,'looked once and saw it')
+  local reads=0 for _,call in ipairs(calls) do if call.name=='slotItem' then reads=reads+1 end end
+  assert(reads==2,'one read to check the hand before the idle and one look after it began: '..reads)
+  assert(#clears==0,'nothing is cleared while the idle runs')
+  for i=1,8 do player.pos={x=i*.15,y=0,z=0};step(.1) end
+  assert(lastLog('exit') and lastLog('exit').fields.reason=='movement')
+  step(1)
+  assert(#clears==1,'the first clean-up pass half a second after the idle ended: '..#clears)
+  assert(clears[1].slot=='AttachmentSlots.WeaponLeft' and clears[1].item=='Items.crowd_cigarette_i_stick','exactly the declared item and slot')
+  assert(slots['AttachmentSlots.WeaponLeft']==nil,'taken out')
+  local removed=0 for _,l in ipairs(logs) do if l.kind=='props-clear' and l.fields.state=='removed' then removed=removed+1 end end
+  assert(removed==1,'the removal is logged')
+  step(4)
+  assert(#clears==2,'and a second pass a few seconds later: '..#clears)
+  local loud=0 for _,l in ipairs(logs) do if l.kind=='props-clear' then loud=loud+1 end end
+  assert(loud==1,'a pass that finds the slot already empty is silent')
+  step(10)
+  assert(#clears==2,'no further native calls once the clean-up is done')
+`));
+
+test('a prop idle is not started while her hand holds something: a prop-free idle takes its place and nothing is ever cleared', () => run(propFixture + `
+  slots['AttachmentSlots.WeaponLeft']={match=false,fists=false,record='Items.Preset_Yukimura_Default'}
+  slots['AttachmentSlots.WeaponRight']={match=false,fists=false,record='Items.Preset_Yukimura_Default'}
+  untilPlay()
+  assert(propLogs('props-busy')==1,'the busy hand is noted')
+  local began=lastLog('flavour-begin')
+  assert(began.fields.component~='convai_idle_johnny_smoke' and began.fields.component~='convai_idle_johnny_shades','a prop-free idle instead: '..began.fields.component)
+  for round=1,6 do step(40) end
+  for _,l in ipairs(logs) do
+    if l.kind=='flavour-begin' then assert(l.fields.component~='convai_idle_johnny_smoke' and l.fields.component~='convai_idle_johnny_shades','never a prop idle with a full hand') end
+  end
+  assert(#clears==0,'nothing of hers is ever removed')
+`));
+
+test('empty fists do not count as a busy hand, and a different item found at the look is left alone', () => run(propFixture + `
+  slots['AttachmentSlots.WeaponLeft']={match=false,fists=true}
+  untilPlay()
+  assert(lastLog('flavour-begin').fields.component=='convai_idle_johnny_smoke' and propLogs('props-busy')==0,'fists are free')
+  slots['AttachmentSlots.WeaponLeft']={match=false,fists=false,record='Items.Preset_Yukimura_Default'} -- something else turns up in the hand
+  step(4)
+  assert(propLogs('props-other')==1 and propLogs('props-missing')==0,'something else in the hand is noted, not counted as a miss')
+  for i=1,8 do player.pos={x=i*.15,y=0,z=0};step(.1) end
+  step(5)
+  assert(clears[1] and clears[1].item=='Items.crowd_cigarette_i_stick','the clean-up asks only for the declared item, so a rifle in the hand is never touched')
+`));
+
+test('a prop that never shows up is counted, and after the second miss that idle is dropped for the session', () => run(propFixture + `
+  local seed2=11
+  c.random=function() seed2=(seed2*1103515245+12345)%2147483648;return seed2/2147483648 end
+  for round=1,70 do step(30) end -- the hands stay empty: no prop ever appears
+  local disabled,misses,picked={}, {}, {}
+  for _,l in ipairs(logs) do
+    if l.kind=='props-missing' then misses[l.fields.key]=(misses[l.fields.key] or 0)+1; assert(l.fields.misses==misses[l.fields.key]) end
+    if l.kind=='props-disabled' then
+      assert(misses[l.fields.key]==2,l.fields.key..' is dropped after exactly two misses: '..tostring(misses[l.fields.key]))
+      disabled[l.fields.key]=true
+    end
+    if l.kind=='flavour-begin' then
+      for key in pairs(disabled) do assert(l.fields.component~='convai_idle_'..key,key..' picked again after it was dropped') end
+      picked[l.fields.component]=true
+    end
+  end
+  assert(disabled.johnny_smoke and disabled.johnny_shades,'both prop idles ended up dropped')
+  assert(picked.convai_idle_johnny_smoke and picked.convai_idle_johnny_shades,'and both were tried first')
+  assert(#clears>=4,'a miss still cleans up after itself: '..#clears)
+`));
+
+test('an old gesture-workspot.lua without the slot natives, or the kill switch, means no prop idle at all', () => run(`
+  entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
+  local function components() local list={} for _,l in ipairs(logs) do if l.kind=='flavour-begin' then list[#list+1]=l.fields.component end end return list end
+  for round=1,12 do step(40) end
+  local list=components()
+  assert(#list>=4,'idles still happen: '..#list)
+  for _,component in ipairs(list) do assert(component~='convai_idle_johnny_smoke' and component~='convai_idle_johnny_shades',component) end
+  -- natives present, kill switch off
+  local slots={}
+  function native.slotItem() return true,nil end
+  function native.clearSlot() return true,'empty' end
+  m.policy.propIdles=false
+  logs={}
+  for round=1,12 do step(40) end
+  list=components()
+  assert(#list>=4)
+  for _,component in ipairs(list) do assert(component~='convai_idle_johnny_smoke' and component~='convai_idle_johnny_shades',component) end
+`));
+
+test('releasing a copy in a prop idle still cleans her hands, and abandoning at world teardown makes no native call', () => run(propFixture + `
+  untilPlay()
+  slots['AttachmentSlots.WeaponLeft']={match=true,fists=false}
+  step(1)
+  c.release(entry,'despawn')
+  for i=1,15 do c.tick(player,.1,{}) end
+  assert(#clears==1 and slots['AttachmentSlots.WeaponLeft']==nil,'cleaned half a second after the release')
+  for i=1,40 do c.tick(player,.1,{}) end
+  assert(#clears==2,'second pass')
+  -- again, abandoned instead
+  entry.serial=3;npc.inside=false;calls={};logs={};clears={}
+  c.random=function() return .7 end
+  untilPlay()
+  slots['AttachmentSlots.WeaponLeft']={match=true,fists=false}
+  step(1)
+  for i=1,8 do player.pos={x=i*.15,y=0,z=0};step(.1) end
+  c.abandon('world teardown')
+  local reads=#calls
+  for i=1,60 do c.tick(player,.1,{}) end
+  assert(#clears==0,'no clean-up native call after abandon')
+  assert(#calls==reads+1 or #calls==reads,'only the one-time sweep follows')
+`));
+
+test('the catalog declares every prop idle completely, in hand slots, and never as a character\'s own primary idle', () => run(`
+  local cat=load(catalogSource)()
+  local n=0
+  for key,prop in pairs(cat.propIdles) do
+    n=n+1
+    assert(cat.idleComponents[key],key..' has a component')
+    assert(cat.idleSources[key],key..' has a recorded source')
+    assert(type(prop.prop)=='string' and #prop.items>=1,key..' declares its items')
+    for _,row in ipairs(prop.items) do
+      assert(row.item:match('^Items%.[%w_]+$'),key..' item '..row.item)
+      assert(row.slot=='AttachmentSlots.WeaponRight' or row.slot=='AttachmentSlots.WeaponLeft',key..' slot '..row.slot)
+    end
+    for record,known in pairs(cat.characters) do assert(known.idle~=key,record..' has the prop idle '..key..' as its primary idle') end
+  end
+  assert(n==4,'cigarette, sunglasses, cup and bottle: '..n)
+  assert(cat.experimentalIdles==nil,'the Round 4 experimental list is gone')
+  -- who may use which
+  local function pool(record)
+    local known=cat.characters[record]
+    local keys={known.idle}
+    for _,key in ipairs(known.idles or {}) do keys[#keys+1]=key end
+    return keys,known
+  end
+  local function has(keys,key) for _,k in ipairs(keys) do if k==key then return true end end return false end
+  for _,record in ipairs({'Character.Silverhand','CyberpunkConvai.JohnnyCompanion'}) do
+    local keys,known=pool(record)
+    assert(known.rig=='man_base')
+    for _,key in ipairs({'johnny_crossed','johnny_aggressive','johnny_smoke','johnny_shades'}) do assert(has(keys,key),record..' pool '..key) end
+  end
+  local judy=pool('Character.Judy');assert(has(judy,'judy_coffee') and not has(judy,'panam_beer'))
+  local panam=pool('Character.Panam');assert(has(panam,'panam_beer') and not has(panam,'judy_coffee'))
+  -- the prop idles are checked on the rig of the character that uses them
+  for key,prop in pairs(cat.propIdles) do
+    local source=cat.idleSources[key]
+    local rigs={} for _,rig in ipairs(source.rigs) do rigs[rig]=true end
+    for record,known in pairs(cat.characters) do
+      if has(pool(record),key) then assert(rigs[known.rig],record..' uses '..key..' which was not checked on '..known.rig) end
+    end
+  end
+`));
+
+test('Padre and Saul rest in measured, fitting idles: Padre in hands folded in front, Saul in relaxed hands at the sides', () => run(`
+  local cat=load(catalogSource)()
+  local padre,saul=cat.characters['Character.Padre'],cat.characters['Character.Saul']
+  assert(padre.idle=='generic_front' and padre.idles[1]=='generic_back','Padre: '..tostring(padre.idle))
+  assert(cat.idleSources.generic_front.kind=='generic' and cat.idleSources.generic_front.what:find('hands folded in front',1,true))
+  assert(saul.idle=='generic' and saul.idleSource=='generic' and saul.idles[1]=='generic_back','Saul: '..tostring(saul.idle))
+  assert(saul.note:find('angry',1,true),'the note says why his own loop is not used')
+  assert(padre.rig=='man_base' and saul.rig=='man_base')
+  for _,key in ipairs({'generic_front','generic','generic_back'}) do
+    local ok=false
+    for _,rig in ipairs(cat.idleSources[key].rigs) do if rig==padre.rig then ok=true end end
+    assert(ok,key..' is checked on '..padre.rig)
+  end
+  assert(cat.idleSources.generic_hold.what:find('right hand held out',1,true),'the hold pose is described from the measurement')
+`));
+
+test('a prop idle that drifts is left at once like any other, its idle is banned, and its item is still taken out of the hand', () => run(propFixture + `
+  entry.position={x=3,y=0,z=0}
+  untilPlay()
+  slots['AttachmentSlots.WeaponLeft']={match=true,fists=false}
+  step(1)
+  assert(not lastLog('drift-exit'),'no drift yet')
+  entry.position={x=4.2,y=0,z=0};step(.3)
+  local d=lastLog('drift-exit')
+  assert(d and d.fields.component=='convai_idle_johnny_smoke' and d.fields.metres>1,'the cigarette idle drifted and was left at once')
+  step(4)
+  local f=lastLog('finished')
+  assert(f and f.fields.reason=='drifted','finished as drifted')
+  assert(c.travelling.johnny_smoke==true,'and learned as travelling')
+  assert(#clears==2 and clears[1].item=='Items.crowd_cigarette_i_stick' and slots['AttachmentSlots.WeaponLeft']==nil,'the cigarette was taken out of the hand: '..#clears)
+  entry.position={x=3,y=0,z=0}
+  c.random=function() return aim('johnny_smoke') end
+  logs={}
+  for round=1,8 do step(40) end
+  local begun=0
+  for _,l in ipairs(logs) do if l.kind=='flavour-begin' then begun=begun+1;assert(l.fields.component~='convai_idle_johnny_smoke','never again') end end
+  assert(begun>=1,'other idles still happen')
+`));
+
 // A still V: an idle that walks the body away is never taken, and one that does it anyway is left at once.
 // Live 2026-10-14 (Alex, V still): convai_idle_generic_hips slid her 0.7 m and then 2 m at +25-30 s.
 test('the hands-on-hips idle that walks the body is never picked, for an uncatalogued woman or for Claire', () => run(`
@@ -904,5 +1130,4 @@ test('V walking still ends the idle with movement, never as a drift, and the exi
   for k=1,3 do assert(exitsOf(E[k].npc.id)==1,'every companion leaves when V walks off') end
   local reasons={} for _,l in ipairs(logs) do if l.kind=='finished' then reasons[l.fields.reason]=true end end
   assert(reasons.movement and not reasons.drifted,'movement, not drift')
-  assert(next(c.travelling)==nil,'nothing learned from V walking')
-`));
+  assert(next(c.travelling)==nil,'nothing learned from V walking')`));

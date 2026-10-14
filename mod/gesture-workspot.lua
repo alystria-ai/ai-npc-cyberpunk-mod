@@ -131,6 +131,53 @@ function M.exit(npc, instant)
     return call(function() return Game.GetWorkspotSystem():SendFastExitSignal(npc) end)
 end
 
+-- Hand slots (docs/COMPANION_GESTURES.md, Round 12, prop idles). The idle workspots put a prop in a hand slot through
+-- their own animation events; these two calls read the slot and take exactly the declared item out of it again.
+local function itemIs(item, wanted)
+    local id = item:GetItemID()
+    local tdb = ItemID.GetTDBID(id)
+    local okEqual, same = pcall(function() return tdb == TweakDBID.new(wanted) end)
+    if okEqual and same == true then return true, id end
+    local okName, name = pcall(function() return TDBID.ToStringDEBUG(tdb) end)
+    return okName and name == wanted, id, okName and name or nil
+end
+
+-- ok, nil when the slot is empty; ok, {match = <is the wanted item>, fists = <empty hands>, record = <name when known>}
+-- when something is in it. One read; callers decide when to look (never per frame).
+function M.slotItem(npc, slot, wanted)
+    return call(function()
+        local item = Game.GetTransactionSystem():GetItemInSlot(npc, TweakDBID.new(slot))
+        if not item then return nil end
+        local match, id, record = false, nil, nil
+        if wanted then match, id, record = itemIs(item, wanted) else id = item:GetItemID() end
+        local okFists, fists = pcall(function() return WeaponObject.IsFists(id) end)
+        return {match = match == true, fists = okFists and fists == true, record = record}
+    end)
+end
+
+-- Takes the declared item out of a slot and nothing else. ok, 'empty' | 'other' (something else is held: left alone) |
+-- 'removed' | 'stuck' (still there after both removal calls). Safe to repeat.
+function M.clearSlot(npc, slot, wanted)
+    return call(function()
+        local transactions = Game.GetTransactionSystem()
+        local slotId = TweakDBID.new(slot)
+        local item = transactions:GetItemInSlot(npc, slotId)
+        if not item then return 'empty' end
+        local match, id = itemIs(item, wanted)
+        if not match then return 'other' end
+        if not pcall(function() return transactions:RemoveItemFromSlot(npc, slotId, true) end) then
+            pcall(function() return transactions:RemoveItemFromSlot(npc, slotId) end)
+        end
+        local left = transactions:GetItemInSlot(npc, slotId)
+        if left and itemIs(left, wanted) then
+            pcall(function() return transactions:RemoveItem(npc, id, 1) end)
+            left = transactions:GetItemInSlot(npc, slotId)
+            if left and itemIs(left, wanted) then return 'stuck' end
+        end
+        return 'removed'
+    end)
+end
+
 function M.stopInDevice(npc)
     return call(function()
         return Game.GetWorkspotSystem():StopInDevice(npc, Vector4.new(0, 0, 0, 0), Quaternion.new(0, 0, 0, 1))
