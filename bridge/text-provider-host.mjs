@@ -18,6 +18,7 @@ import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {markStage} from './turn-clock.mjs';
 import {budgetedChat, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
+import {compactForGroq, groqCompactEnabled, GROQ_SOFT_TOKENS} from './groq-prompt.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 
 const isTag = group => hasEmotionTag(group);
@@ -97,11 +98,18 @@ const GROQ_DAILY = /per day|\bTPD\b|\bRPD\b|daily/i;
  * provider (Groq is left alone for a while) and the turn falls through to the next route (Mistral) when there is one.
  */
 export function groqRoute({provider, chat = streamChat, endpoint, onFailure, onSuccess,
-  models = () => GROQ_MODELS, log = () => {}} = {}) {
+  models = () => GROQ_MODELS, log = () => {}, compact: compact_} = {}) {
   // A request above the plan's 8,000 tokens a minute (reply included) is refused for good, so the prompt is cut to fit
   // (bridge/prompt-budget.mjs). Groq reports no token count the host reads, so this is an estimate with the default ratio.
   const meter = new TokenMeter();
-  chat = budgetedChat(chat, {budget: () => ({contextTokens: GROQ_REQUEST_TOKENS, reserveTokens: 256, meter}), onFit: fit => log('Groq: ' + describeFit(fit))});
+  // A smaller prompt first (bridge/groq-prompt.mjs): the persona without its Scope lines, six example lines, four exchanges. Only this route does it;
+  // the other providers' prompts are untouched. A player with no Mistral key has nowhere to go when Groq refuses a second turn within the minute
+  // (the turn falls to Convai), so the budget also cuts optional context, in its usual priority order, down to a soft target of two turns a minute.
+  // With a Mistral key the second turn simply goes there with its whole context, so nothing optional is cut for the target.
+  const compact = compact_ ?? groqCompactEnabled();
+  const soft = () => compact && !provider?.apiKey ? {soft: {contextTokens: GROQ_SOFT_TOKENS, reserveTokens: 256}} : {};
+  chat = budgetedChat(chat, {budget: () => ({contextTokens: GROQ_REQUEST_TOKENS, reserveTokens: 256, meter, ...soft()}),
+    shape: compact ? args => compactForGroq(args) : undefined, onFit: fit => log('Groq: ' + describeFit(fit))});
   return {name: 'groq', provider: 'groq', chat, endpoint, gapMs: 0, blocked: new Map(), nextSlot: 0, models, chatDefaults: CLOUD_CHAT_LIMITS,
     async connect() { return {apiKey: provider.groqApiKey}; },
     cacheBody: () => ({}),

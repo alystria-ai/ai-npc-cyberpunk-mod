@@ -237,7 +237,7 @@ export async function fitMessages({args, build = defaultBuild, budget}) {
 }
 
 /** One line for the log: what was cut, and what the prompt came to. */
-export const describeFit = fit => `prompt ${fit.tokens} of ${fit.limit} tokens${fit.exact ? '' : ' (estimated)'}${fit.trimmed.length ? `; cut: ${fit.trimmed.join(', ')}` : ''}${fit.fits ? '' : '; does not fit'}`;
+export const describeFit = fit => `prompt ${fit.tokens} of ${fit.limit} tokens${fit.target ? ` (${fit.target} target)` : ''}${fit.exact ? '' : ' (estimated)'}${fit.trimmed.length ? `; cut: ${fit.trimmed.join(', ')}` : ''}${fit.fits ? '' : '; does not fit'}`;
 
 // ---- The request wrapper --------------------------------------------------------------------------------------------------
 
@@ -254,18 +254,25 @@ export class PromptTooLarge extends MistralError {
  *   budget(options) -> {contextTokens, reserveTokens?, meter?, count?} | null    (null: send as is)
  *   onFit(fit, options)      called with every fit that cut something (the log line)
  *   tooLarge(fit, options)   the error to throw when the prompt cannot fit (default: PromptTooLarge)
+ *   shape(args, options)     optional: the arguments to build the prompt from instead (the Groq route builds a smaller persona and history,
+ *                            bridge/groq-prompt.mjs); a route without one fits exactly what `buildMessages` was given
+ *   budget().soft            optional {contextTokens, reserveTokens?}: a smaller target tried first; a prompt that cannot reach it is fitted
+ *                            to the budget's own (hard) limit as before, so a soft target never makes a request fail
  * Only requests built by `buildMessages` are fitted (summaries, fact extraction and prewarm are small and pass through). A server that
  * still refuses the prompt (an estimate that was too low) says how many tokens it counted: that count is learned, the prompt is cut
  * to it, and the request is sent once more.
  */
-export function budgetedChat(chat, {budget, onFit, tooLarge} = {}) {
+export function budgetedChat(chat, {budget, onFit, tooLarge, shape} = {}) {
   return async function fittedChat(options) {
-    const args = options?.messages?.[PROMPT_SOURCE];
-    const base = args ? await budget?.(options) : null;
+    const source = options?.messages?.[PROMPT_SOURCE];
+    const base = source ? await budget?.(options) : null;
     if (!base) return chat(options);
+    const args = shape ? shape(source, options) : source;
     let current = base;
     for (let attempt = 0; ; attempt++) {
-      const fit = await fitMessages({args, budget: current});
+      let fit = base.soft ? await fitMessages({args, budget: {...current, ...base.soft, soft: undefined}}) : null;
+      if (fit) fit.target = 'soft';
+      if (!fit?.fits) { fit = await fitMessages({args, budget: {...current, soft: undefined}}); if (base.soft) fit.target = 'hard'; }
       if (fit.trimmed.length || !fit.fits) { try { onFit?.(fit, options); } catch { /* a log line never fails a request */ } }
       if (!fit.fits) throw tooLarge ? tooLarge(fit, options) : new PromptTooLarge(fit, options?.provider);
       try {

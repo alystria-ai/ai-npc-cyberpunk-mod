@@ -51,6 +51,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/game-dialogue.mjs',
   'bridge/game-launch.mjs',
   'bridge/groq-key.mjs',
+  'bridge/groq-prompt.mjs',
   'bridge/group-context.mjs',
   'bridge/group-lookahead.mjs',
   'bridge/group-prefetch.mjs',
