@@ -5,6 +5,7 @@ import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
 import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
+import {VHelperVoice} from './v-helper-voice.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
@@ -36,6 +37,10 @@ const RETRY_KINDS = new Set(['timeout', 'network', 'request']);
 // a fourth failure ends the retries until the player chooses Omni again. Nothing here runs per frame: the retry is
 // due-checked from the 500 ms settings poll, and a due retry waits for a moment with no reply in flight.
 export const OMNI_RETRY_DELAYS_MS = Object.freeze([45_000, 180_000, 600_000]);
+// Voice playback Off (user decision, 2026-10-14: "if they turn it off it should not be loaded"): the companions' voice worker is released at
+// once, on the poll that reads the setting. The one thing kept is what V's typed line needs while V's voice is On (`vHelperWanted`): the
+// Pocket worker (the chosen one, or V's helper beside OmniVoice). A cloud voice has no worker. Loading again begins on the poll after
+// playback is turned back on. docs/RESOURCE_LIFECYCLE.md.
 const local = value => value === 'pocket' || value === 'omni';
 const equalSet = (a,b) => a.size===b.size&&[...a].every(key=>b.has(key));
 export class VoiceSelection {
@@ -85,6 +90,11 @@ export class VoiceSelection {
     this.phoneAnalysis=options.phoneAnalysis;
     this.factory = options.factory || ((settings, hooks) => new PocketVoice(settings, hooks));
     this.omniFactory=options.omniFactory||((settings,hooks)=>new ResidentVoice(settings,hooks));
+    // V's typed line, while OmniVoice is the committed voice: a Pocket worker of its own on the CPU (bridge/v-helper-voice.mjs). It is
+    // never the route of any character; `vHelperWanted` is the V setting (on, with clips), set by the bridge's settings poll.
+    this.vHelperWanted=false;
+    this.vHelper=options.vHelper||new VHelperVoice({wait:()=>this.retiring,log:message=>{try{this.options.onLog?.('[VHelper] '+message+'\n');}catch{}},
+      create:onState=>this.factory(this.configs.pocket,{...this.options,keepPreparedVoices:this.keepPrepared,onState})});
     // omniRetry: {failures, nextAt} while a failed Omni is to be loaded again; candidate: the background Omni worker
     // loading beside the committed fallback (Pocket is CPU only, so the two never share VRAM). candidateExit
     // chains each retired candidate's confirmed exit; a new worker starts only after it, like any replacement.
@@ -258,6 +268,7 @@ export class VoiceSelection {
     const registry=backend==='omni'?this.omniVariants[this.clientReference].registry:this.registries[backend];
     this.verifiedAvailabilities.set(this.verifiedKey(backend,this.clientReference),
       new Set(registry.keys.filter(key=>client.hasProfile(key))));
+    this.tickVHelper();
   }
   routingSettled({signal} = {}) {
     throwIfCancelled(signal);
@@ -284,11 +295,16 @@ export class VoiceSelection {
     // Apply still changes routing normally and lets unsupported profiles use
     // Convai; a configured draft retains its existing warm-up/retirement path.
     // A cloud voice loads no local model: only a settings draft that previews a local voice can ask for one.
+    // Voice playback Off: the companions speak nothing, so the committed voice's worker is released, except a Pocket worker that V's typed
+    // line uses while V's voice is On (a settings draft that previews a local voice still warms it: the player is choosing a voice).
+    const committed=this.cloudWanted?[]:[this.resolvedProvider,this.provider];
     const candidates=[this.previewSettled&&this.preview&&this.resolve(this.preview.provider),
-      ...(this.cloudWanted?[]:[this.resolvedProvider,this.provider])];
+      ...(this.silent?committed.filter(candidate=>candidate==='pocket'&&this.vHelperWanted):committed)];
     return candidates.find(candidate=>local(candidate)&&this.configuredByBackend[candidate]
       &&this.availabilities[candidate].size>0&&!this.failedBackends.has(candidate))||null;
   }
+  // Voice playback is Off: the companions' local voice has no use for a loaded worker.
+  get silent(){return this.playbackEnabled===false;}
   get previewSettled(){return !!this.preview&&this.clock()-this.previewSince>=this.previewSettleMs;}
   get warmSteps(){return this.previewSettled&&this.preview.provider==='omni'?this.preview.omniSteps:this.requestedOmniSteps;}
   setPreview(preview) {
@@ -340,6 +356,7 @@ export class VoiceSelection {
     if(this.clientBackend==='omni'&&wanted==='omni')this.client?.setSteps(this.warmSteps);
     if(wanted)void this.start().catch(()=>{});
     else if(this.client&&!this.busy)this.retire();
+    this.tickVHelper();
   }
   publish(state = this.state, extra = {}) {
     this.state = state;
@@ -408,7 +425,7 @@ export class VoiceSelection {
     if (this.closed) return Promise.reject(Error('Voice service is closed'));
     this.phoneAnalysis?.setWanted(this.phoneWanted);
     if (!this.wantsLocal) {
-      this.publish(this.releasing ? 'releasing' : (this.provider === 'convai'||this.cloudWanted ? 'remote' : 'disabled'));
+      this.publish(this.releasing ? 'releasing' : (this.provider === 'convai'||this.cloudWanted ? 'remote' : this.silent ? 'stopped' : 'disabled'));
       return Promise.resolve();
     }
     const backend=this.targetBackend;
@@ -438,7 +455,9 @@ export class VoiceSelection {
     if(backend==='omni')client.setSteps(this.warmSteps);
     client.setKeepPrepared?.(this.keepPrepared);
     this.publish(this.releasing ? 'releasing' : 'loading');
-    this.starting = Promise.all([this.retiring,this.candidateExit]).then(async () => {
+    // Pocket's work folder has one lock: V's helper Pocket worker (beside OmniVoice) is gone before this worker starts.
+    const helperExit=backend==='pocket'?this.vHelper.release():undefined;
+    this.starting = Promise.all([this.retiring,this.candidateExit,helperExit]).then(async () => {
       if (this.client !== client || this.closed) return;
       await client.start();
       this.stageAvailability(client,backend);
@@ -473,7 +492,7 @@ export class VoiceSelection {
     if(this.closed)return;
     // A background worker for a reference the player no longer wants (loading, or loaded and waiting for its idle
     // commit) is released; the normal start path loads the wanted one after its confirmed exit.
-    if(this.candidate&&(this.requestedProvider!=='omni'||this.candidate.reference!==this.requestedOmniReference))void this.dropCandidate();
+    if(this.candidate&&(this.requestedProvider!=='omni'||this.candidate.reference!==this.requestedOmniReference||this.silent))void this.dropCandidate();
     if(!this.omniRetry)return;
     if(this.requestedProvider!=='omni'||this.omniPack.installed===false){this.endOmniRetry();return;}
     if(this.candidate)return;
@@ -556,7 +575,8 @@ export class VoiceSelection {
     const client = this.client;
     const backend=this.clientBackend;
     this.client = this.starting = this.clientBackend = this.clientReference = null;
-    if (!client) { this.publish(this.releasing ? 'releasing' : (this.closed ? 'stopped' : 'remote')); return this.retiring; }
+    this.tickVHelper();
+    if (!client) { this.publish(this.releasing ? 'releasing' : (this.closed||this.silent ? 'stopped' : 'remote')); return this.retiring; }
     this.releasing = true;
     this.publish('releasing');
     // Signal EOF even during warmup. The worker owns its bounded physical
@@ -569,13 +589,42 @@ export class VoiceSelection {
       this.releasing = false;
       if (!this.client) {
         this.details = {resident:false,gpuVramBytes:0,cudaAllocatedMiB:0,cudaReservedMiB:0};
-        this.publish(this.closed ? 'stopped' : 'remote');
+        this.publish(this.closed||this.silent ? 'stopped' : 'remote');
       }
     });
     const completed = this.retiring;
     this.retiring.catch(() => this.publish('error', {detail: 'Could not release local voices. Restart the voice service.'}));
     return this.retiring;
   }
+  // ---- V's helper voice (bridge/v-helper-voice.mjs) ----
+  // It exists only while OmniVoice is the committed voice (never beside a cloud voice, the Pocket voice or the Convai voice), the V
+  // setting is on, and Pocket is configured. With playback on it waits for OmniVoice to be loaded (it is not started during OmniVoice's
+  // load), and one that already runs is kept while OmniVoice loads again. With playback Off OmniVoice is released and the helper is
+  // all that stays loaded: V speaks whenever the V setting is on. Due-checked where routing already changes; nothing runs on a timer.
+  get vHelperDue() {
+    if(!(this.vHelperWanted&&!this.closed&&this.provider==='omni'&&!this.cloudActive
+      &&this.provider===this.requestedProvider&&!!this.configuredByBackend.pocket))return false;
+    if(this.silent)return true;
+    if(this.client?.failure)return false;
+    if(this.vHelper.running)return true;
+    return this.clientBackend==='omni'&&this.client?.loaded===true&&!this.client.closing;
+  }
+  tickVHelper() {
+    if (this.vHelperDue) this.vHelper.start(); else void this.vHelper.release();
+  }
+  setVHelperWanted(value) {
+    value = value === true;
+    if (value === this.vHelperWanted) return;
+    this.vHelperWanted = value; this.tickVHelper();
+  }
+  /** Could V's helper speak this key (Pocket's configuration has it)? True while OmniVoice is committed; says nothing about being loaded. */
+  vHelperSpeaks(key) {
+    return this.provider==='omni'&&!this.cloudActive&&!!this.configuredByBackend.pocket&&this.registries.pocket.has(key)&&this.availabilities.pocket.has(key);
+  }
+  /** Is the helper loaded and ready for this key? Also asks it to load when it is due and not yet running, so a missed trigger heals itself. */
+  vHelperReady(key) { this.tickVHelper(); return this.vHelper.ready(key); }
+  vHelperStream(key, text, options = {}) { return this.vHelper.stream(key, stripSpeechTags(text), options); }
+  vHelperPrepare(key, options = {}) { return this.vHelper.prepare(key, options); }
   async synthesizeStream(profile, text, options = {}) {
     if (this.provider!=='pocket'||!this.usesProfile(profile))throw Error('This character does not use Pocket streaming');
     // Pocket cannot render voice tags and would read them aloud: a last line of defence behind the display strip. The same
@@ -694,6 +743,10 @@ export class VoiceSelection {
       if (this.closed) throw Error('Voice service is closed');
       if (this.provider === 'convai') return remote(this.convaiReason(profile));
       if (!this.configured || !this.registry.has(profile)) return remote(this.registry.status(profile));
+      // Playback Off: no worker is kept for the companions, and nobody is waited on for one. The character is ready to join; loading
+      // begins when playback is turned on (the poll after it). `muted` lets the caller accept a receipt that has no loaded worker behind it.
+      // Not when V's voice is on and the voice is Pocket or a cloud voice: V's line uses it, so it is prepared (or warmed) as usual.
+      if (this.silent && this.usesProfile(profile) && !(this.vHelperWanted && this.provider === 'pocket')) return {provider: this.provider, ready: true, profile, muted: true};
       // A cloud voice has no local model to prepare: the character is ready when it is routed. Its reference clip is read, cut and
       // encoded now (the Inworld voice is found or cloned now), so the first reply is not waiting for it.
       if (this.cloudActive) {
@@ -756,6 +809,6 @@ export class VoiceSelection {
     this.closed = true; this.preview = null; this.omniRetry = null;
     for (const waiter of this.routingWaiters) waiter.reject(Error('Voice service is closed'));
     this.routingWaiters.clear();
-    return this.closing=Promise.all([this.retire(),this.phoneAnalysis?.close(),this.dropCandidate()]);
+    return this.closing=Promise.all([this.retire(),this.phoneAnalysis?.close(),this.dropCandidate(),this.vHelper.release()]);
   }
 }

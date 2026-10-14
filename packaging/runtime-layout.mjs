@@ -135,6 +135,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/transport-pool.mjs',
   'bridge/turn-clock.mjs',
   'bridge/turn-context.mjs',
+  'bridge/v-helper-voice.mjs',
   'bridge/v-voice.mjs',
   'bridge/vendor-memory.mjs',
   'bridge/vision-capture.mjs',

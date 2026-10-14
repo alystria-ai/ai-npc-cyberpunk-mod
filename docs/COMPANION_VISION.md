@@ -78,7 +78,11 @@ Sources:
 
 ### Chosen approach: why it is the cheapest robust option
 
-`native/vision/CyberpunkConvaiVision.exe` is a small C++/WinRT helper that the bridge starts when the setting is turned on. It idles at below-normal priority and holds no capture session between requests, so while idle it costs nothing.
+`native/vision/CyberpunkConvaiVision.exe` is a small C++/WinRT helper. It runs at below-normal priority and holds no capture session between requests. It follows the unload rule in `docs/RESOURCE_LIFECYCLE.md`:
+- It exists only while the setting is on and Convai answers. It starts ahead of the first picture.
+- It stops at once when the setting is turned off or Mistral or Local AI becomes the provider.
+- It also stops after 10 minutes without a picture. The next picture starts it again (about 400 ms), and that turn waits up to 700 ms more for it.
+- It is never stopped mid-capture.
 
 Each capture:
 1. Finds the window owned by `Cyberpunk2077.exe`: visible, unowned, not cloaked, the largest.
@@ -112,7 +116,7 @@ Nothing touches the game process or the disk.
 - Nothing is written to disk.
 - Exception: a developer sets `CYBERPUNK_CONVAI_VISION_DEBUG_DIR` (an absolute folder) to keep one copy per picture.
 
-**Turning it off** stops the helper, clears queued pictures and reconnects the pages audio-only, once.
+**Turning it off** stops the helper at once, clears queued pictures and reconnects the pages audio-only, once.
 
 ### Four views around V (front, back, left, right): not built
 
@@ -140,7 +144,7 @@ The question: could about four pictures in different directions be captured once
 | Round trip including the pipe to the bridge | 138 ms | 169 ms |
 | Helper CPU time | 15.6 ms | 47 ms |
 
-The helper starts once in about 400 ms, prewarmed when the setting is turned on.
+The helper starts in about 400 ms. It is started ahead when the setting comes on with Convai, and again by the first picture after a 10-minute idle release.
 
 **Game FPS A/B.** 10 alternating blocks of 12 s, with a capture every 2 s while on: far more often than real use.
 

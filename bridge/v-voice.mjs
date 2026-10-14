@@ -3,7 +3,9 @@
 // With the setting on, what the player types to a companion is also spoken aloud in V's own voice, so the typed line sounds like
 // V said it. The voice is cloned from a short reference clip cut from the game's own V lines (male or female V; assets/v-voice),
 // by the voice the player already chose: Pocket TTS and OmniVoice clone it locally, the Mistral and Inworld cloud voices clone it
-// in the cloud. No other model is ever loaded for it, and the Convai cloud voice (which cannot clone) is never used.
+// in the cloud. The Convai cloud voice (which cannot clone) is never used. No model is loaded for it beside a cloud voice or the Pocket
+// voice. Beside OmniVoice, V is spoken by a Pocket worker on the CPU (bridge/v-helper-voice.mjs): OmniVoice's one GPU worker could
+// not make V's line before the companion's reply and would hold the companion's own render, so V is never rendered on OmniVoice.
 //
 // Latency comes first. The typed text goes to the companion's text model at once, exactly as without this feature; V's line is
 // synthesized beside it and never in front of it:
@@ -212,7 +214,7 @@ export class VLine {
   summary() {
     const snapshot = this.clock.snapshot();
     return {result: this.state === 'done' ? 'played' : this.state === 'dropped' ? 'dropped' : this.state,
-      ...(this.reason ? {reason: this.reason} : {}), engine: this.plan.engine, voice: this.key, chars: this.text.length,
+      ...(this.reason ? {reason: this.reason} : {}), engine: this.plan.helper ? 'pocket-helper' : this.plan.engine, voice: this.key, chars: this.text.length,
       marks: snapshot.marks, totalMs: snapshot.totalMs};
   }
 
@@ -299,9 +301,12 @@ export class VVoice {
    * ready    key => boolean: the chosen local voice or cloud voice has that voice
    * stream / render / play / prepare / warm   the voice and renderer calls (convai-bridge.mjs wires the real ones)
    * isLocal  () => boolean: the chosen voice is a local worker (false for the cloud voices)
+   * helper   {speaks(key), ready(key), stream, prepare} or null: the Pocket voice that speaks V's line while the companions use
+   *          OmniVoice (bridge/v-helper-voice.mjs). OmniVoice's one GPU worker cannot make V's line in time and would hold the
+   *          companion's own render, so with it V is never rendered on OmniVoice.
    */
-  constructor({voices = {}, planFor, ready, stream, render, play, prepare, warm, isLocal = () => true, log = () => {}, report = () => {}} = {}) {
-    Object.assign(this, {voices, planFor, ready, stream, render, play, prepare, warm, isLocal, log, report});
+  constructor({voices = {}, planFor, ready, stream, render, play, prepare, warm, isLocal = () => true, helper = null, log = () => {}, report = () => {}} = {}) {
+    Object.assign(this, {voices, planFor, ready, stream, render, play, prepare, warm, isLocal, helper, log, report});
     this.enabled = false;
     this.lastGender = null;
     this.previous = null;
@@ -363,15 +368,27 @@ export class VVoice {
       this.lastGender = gender;
       const text = vLineText(input.text);
       if (!text) return null;
-      const plan = this.planFor(input, voice.key);
+      let plan = this.planFor(input, voice.key);
       if (!plan || (plan.engine !== 'pocket' && plan.engine !== 'omni')) return null;
+      // An OmniVoice companion: V's line is made by the helper Pocket voice (CPU, audible in about 0.25 s), never on OmniVoice.
+      const helped = plan.engine === 'omni' && !!this.helper;
+      if (helped) {
+        if (plan.language && plan.language !== 'en') { this.once('helper-language', "V's voice skipped: beside OmniVoice it is spoken by Pocket, which speaks English only"); return null; }
+        if (!this.helper.speaks(voice.key)) { this.once('helper-speaks:' + voice.key, `V's voice skipped: the Pocket helper has no ${voice.key} voice`); return null; }
+        plan = {engine: 'pocket', helper: true, language: 'en'};
+      }
       const volume = input.turnContext?.dialogueVolume;
       if (typeof volume !== 'number' || !Number.isFinite(volume)) { this.once('volume', 'V\'s voice skipped: the game\'s dialogue volume is not known'); return null; }
       if (volume <= 0.001) return null;
-      if (!this.ready(voice.key)) { this.once('ready:' + voice.key, `V's voice skipped: the chosen voice has no ${voice.key} voice yet`); return null; }
+      if (helped) {
+        // Still loading (or failed): V is skipped, the reply never waits for it. Asking also starts a due load.
+        if (!this.helper.ready(voice.key)) { this.log("V's line skipped: the Pocket helper voice is not loaded yet"); return null; }
+      } else if (!this.ready(voice.key)) { this.once('ready:' + voice.key, `V's voice skipped: the chosen voice has no ${voice.key} voice yet`); return null; }
       const line = new VLine({input, key: voice.key, text, plan, volume: Math.min(1, volume), signal, log: this.log,
-        play: (config, producer, options) => this.play(config, producer, options), stream: this.stream, render: this.render,
-        local: this.isLocal(), after: this.previous,
+        play: (config, producer, options) => this.play(config, producer, options),
+        stream: helped ? (key, spoken, options) => this.helper.stream(key, spoken, options) : this.stream, render: this.render,
+        // The helper is a CPU worker of its own: the companion's OmniVoice request neither waits for it nor is waited for.
+        local: helped ? false : this.isLocal(), after: this.previous,
         onSettled: summary => { this.report(input, summary); }, onAudible: () => clock?.mark('vAudible')});
       this.previous = line.finished;
       line.whenClear(() => { clock?.mark(line.state === 'done' ? 'vEnded' : 'vDropped'); });
@@ -393,7 +410,10 @@ export class VVoice {
     const gender = this.lastGender && this.voices[this.lastGender] ? this.lastGender : GENDERS.find(name => this.voices[name]);
     // With one clip, or after a first line, the voice to prepare is known; with two clips and no line yet it is not worth guessing.
     if (gender && (this.lastGender || GENDERS.filter(name => this.voices[name]).length === 1)) {
-      Promise.resolve().then(() => this.prepare?.(this.voices[gender].key, {signal})).catch(() => {});
+      const key = this.voices[gender].key;
+      // Beside OmniVoice the helper Pocket voice speaks V: preparing the key on OmniVoice would be a hidden GPU render for nothing.
+      const prepare = this.helper?.speaks(key) ? this.helper.prepare : this.prepare;
+      Promise.resolve().then(() => prepare?.(key, {signal})).catch(() => {});
     }
   }
 }

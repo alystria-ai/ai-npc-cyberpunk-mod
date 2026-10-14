@@ -276,6 +276,9 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
 // The hook object the text provider's host takes (`attachMistral(host, {speech})`): available() says whether recognition can
 // run now; voiceChannel({reply}) returns a fresh channel for one recording.
 export function createLocalSpeech({stt, capture}) {
+  // The recogniser left after its idle time: the page that held the microphone's capture code goes with it (a page in the hidden browser
+  // is a renderer process). The next recording opens it again while the recogniser loads, so it adds nothing to the start.
+  stt.on?.('idle', () => { void Promise.resolve(capture.close?.()).catch(() => {}); });
   return {
     available: () => stt.availability().available,
     availability: () => stt.availability(),

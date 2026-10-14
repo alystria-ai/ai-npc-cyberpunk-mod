@@ -167,9 +167,11 @@ A first reply from a fresh resident or archetype should be as quick as a compani
 ## UI
 
 - Settings > Conversations > **Talk to ordinary NPCs** (On by default), translated in all 15 locales.
-- Archetypes are **not** listed on the Characters page, in Who can talk or in the profile assignment list:
+- Archetypes are **not** listed on the Characters page or in the profile assignment list:
   they are not invitable companions (no spawn record, no identity of their own), and 44 rows would bury the
-  named cast. The one setting governs all of them; the two residents keep their own Who can talk rows.
+  named cast. The one setting governs all of them. (The "Who can talk" page, which once listed the named cast and
+  the two residents, was removed from Settings on 2026-10-14; every character may talk by default and a character the
+  player muted earlier stays muted.)
 
 ## Model browser (installed character models)
 

@@ -135,7 +135,6 @@ const reviewed = {
     'Releasing local voice memory', 'Convai voices · Local model unloaded',
     'Changing after the current reply', 'Ready · Unsaved selection',
     'OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality',
-    'Installed', 'Not installed',
   ],
   'mcm.memory': [
     'Choose a character', 'Unavailable', 'Memories can be managed here.',
@@ -250,7 +249,7 @@ const reviewed = {
     'Message sent. Waiting for reply.', 'Waiting for your previous message to finish.',
     'Conversations are disabled in Companion Manager.', 'Conversation is unavailable for this contact.',
     'Opening chat. Waiting for the conversation service.',
-    'You’ve reached today’s free conversation limit. Convai (better quality responses) is back tomorrow. To keep talking now, add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider. A fully local option is coming.',
+    'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows thousands of turns a day. Local AI has no limit: it runs on your PC.',
     'Mistral did not accept your key. Check it in Settings > Conversation provider.',
     'Mistral’s free limit is reached for now. Try again in a moment.',
     'The Mistral model is unavailable right now. Try again in a minute.',
@@ -301,7 +300,6 @@ const templates = [
   ['mcm.models', 'Search by character name or model record using Search settings. {query}', 'mod/mcm.lua', 'Search by character name or model record using Search settings. '],
   ['mcm.memory', 'Search by character name using Search settings. {query}\nThe character can be outside your current party.', 'mod/mcm.lua', 'Search by character name using Search settings. ', '\nThe character can be outside your current party.'],
   ['mcm.memory', 'Select {name} for memory controls. This does not invite them or change their conversation settings.', 'mod/mcm.lua', 'Select ', ' for memory controls. This does not invite them or change their conversation settings.'],
-  ['mcm.permissions', 'Allow {name} in private and group conversations. Existing copies can still follow you when this is off.', 'mod/mcm.lua', 'Allow ', ' in private and group conversations. Existing copies can still follow you when this is off.'],
   ['memory.feedback', 'Clearing memories for {target}…', 'mod/manager.lua', 'Clearing memories for '],
   ['memory.feedback', 'Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.', 'mod/manager.lua', 'Waiting for the result of clearing memories for ', '. Reopen this page after the memory service reconnects.'],
   ['memory.feedback', 'Memory clear confirmed for {target}.', 'mod/manager.lua', 'Memory clear confirmed for '],
@@ -398,7 +396,9 @@ function references(text, onlyFile, trim = false) {
 for (const [file, tokens] of tokenByFile) {
   const native = file.endsWith('.reds');
   const mcm = file === 'mod/mcm.lua';
-  const calls = mcm ? { readonly: [1, 2, 3], setting: [1, 5], action: [1, 2, 3], category: [1, 3] } : {};
+  // keyRow(name, pasteHelp, removeHelp, ...) builds one API key row (mod/mcm.lua): its name and its two helps are source strings.
+  // withInworld(row, extra) adds a paragraph about the Inworld voice to a help while developer mode is on: `extra` is a source string.
+  const calls = mcm ? { readonly: [1, 2, 3], setting: [1, 5], action: [1, 2, 3], category: [1, 3], keyRow: [0, 1, 2], withInworld: [1] } : {};
   Object.assign(calls, { ConvaiPhoneFeedback: [0], SetDefaultText: [0] });
   if (file === 'mod/manager.lua') Object.assign(calls, { say: [0], savedFeedback: [0] });
   if (native) Object.assign(calls, {

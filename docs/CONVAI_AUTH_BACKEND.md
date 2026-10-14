@@ -180,3 +180,15 @@ Errors: `429 {error: "daily" | "rate", resetAt}`, `403 {error: "refused" | "outd
 - 25 Oct: v0.2.1 with the add-on release, then rotate about two weeks later.
 
 If a public key is judged unacceptable even for one week, the minimum version is feasible but would displace release polish, and would still go out with step 0 done the day before.
+
+## Update 2026-10-14: the daily limit is set by the server
+
+Status note: the backend was deployed to Vercel on 2026-10-13 (the "Not deployed" line in the build status above is out of date), and the bridge's backend mode is switched on per machine in `runtime/convai-auth.json`.
+
+The per-install daily limit ("Convai free tier: N turns a day", 100 until now) is no longer fixed in the mod:
+
+- **Where it lives:** in the backend's store under `cfg:dailyInteractionLimit`, set with `POST /api/admin/config {"dailyInteractionLimit": 150}` (admin secret). The environment variable `CONVAI_AUTH_DAILY_TURN_CAP` stays as the default (100). No redeploy is needed to change it, and players do not update the mod. `auth-backend/README.md` has the commands.
+- **How the server uses it:** the admission script reads the stored value in the same single Redis round trip and compares it with the install's reported turns, so the number enforced is the number reported (`dailyInteractionLimit`, also `allowance.limit`) on every token answer and every "daily" refusal.
+- **How the bridge uses it:** `bridge/convai-credential.mjs` validates the value (a whole number from 1 to 10000, else ignored) and hands it to `SharedKeyGuard.setLimit`, which changes what is counted, enforced and shown in the settings ("{left} of {limit} left today"). The last value is kept in `daily-limit.json` in the bridge state folder (signed per computer, like the daily counter), so a restart or an unreachable backend keeps it; with no value ever received the limit is 100. `CYBERPUNK_CONVAI_DAILY_LIMIT` (a developer's own number or `off`) still wins over the server. A bridge that was blocked for the day asks again every 30 minutes, so a raised limit lets it through without waiting for the UTC midnight.
+- **What it does not change:** the server only counts turns an install reports, and the bridge counts locally, so a modified client can still ignore both, exactly as before (see the README table). Without the backend switched on there is no server value and the built-in 100 applies.
+- **Tests:** `auth-backend/test/admin.test.mjs` (set, show, remove, refuse bad values, applies on the next request, no extra command), `bridge/convai-credential.test.mjs` (the value reaches the bridge, bad values ignored, raising unblocks), `bridge/shared-key-guard.test.mjs` (range, signed file, pinned and off guards).

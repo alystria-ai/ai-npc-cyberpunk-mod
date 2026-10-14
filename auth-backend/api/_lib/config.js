@@ -17,6 +17,15 @@ export const DEFAULTS = Object.freeze({
   remintMarginSeconds: 300,
 });
 
+/** The per-install daily limit can be changed at run time (POST /api/admin/config, stored in the store under CAP_KEY); these are the
+ * values the service and the bridge both accept. Anything outside is ignored, never clamped. */
+export const CAP_KEY = 'cfg:dailyInteractionLimit';
+export const CAP_BOUNDS = Object.freeze({ min: 1, max: 10_000 });
+export const validCap = value => {
+  const number = typeof value === 'string' && /^\d{1,6}$/.test(value.trim()) ? Number(value.trim()) : value;
+  return Number.isSafeInteger(number) && number >= CAP_BOUNDS.min && number <= CAP_BOUNDS.max ? number : null;
+};
+
 /** Names of every variable the service reads, for the readiness report. Values are never reported. */
 export const ENV_NAMES = Object.freeze([
   'CONVAI_API_KEY',
@@ -53,7 +62,7 @@ export function readConfig(env = process.env) {
     ipPerHour: toInteger(env.CONVAI_AUTH_IP_PER_HOUR, DEFAULTS.ipPerHour, { min: 1 }),
     newInstallsPerIpPerDay: toInteger(env.CONVAI_AUTH_NEW_INSTALLS_PER_IP_PER_DAY, DEFAULTS.newInstallsPerIpPerDay, { min: 1 }),
     mintsPerDay: toInteger(env.CONVAI_AUTH_MINTS_PER_DAY, DEFAULTS.mintsPerDay, { min: 1 }),
-    dailyTurnCap: toInteger(env.CONVAI_AUTH_DAILY_TURN_CAP, DEFAULTS.dailyTurnCap, { min: 1 }),
+    dailyTurnCap: toInteger(env.CONVAI_AUTH_DAILY_TURN_CAP, DEFAULTS.dailyTurnCap, { min: CAP_BOUNDS.min, max: CAP_BOUNDS.max }),
     remintMarginSeconds: toInteger(env.CONVAI_AUTH_REMINT_MARGIN_SECONDS, DEFAULTS.remintMarginSeconds, { min: 30, max: 3000 }),
     blockedInstalls: new Set(text(env.CONVAI_AUTH_BLOCKED_INSTALLS).split(/[\s,]+/).filter(Boolean)),
     connectUrl: text(env.CONVAI_CONNECT_URL) || 'https://api.convai.com/user/connect',

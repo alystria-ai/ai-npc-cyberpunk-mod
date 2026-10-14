@@ -2209,7 +2209,7 @@ end
 -- what to do; it never names where the shared key comes from.
 -- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). Phone Chat words the same line (phone-chat.lua).
 local function dailyLimitText()
-    return ui.t('You’ve reached today’s free conversation limit. Convai (better quality responses) is back tomorrow. To keep talking now, add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider. A fully local option is coming.')
+    return ui.t('You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows thousands of turns a day. Local AI has no limit: it runs on your PC.')
 end
 
 local function keyNoticeText(code)
@@ -2293,6 +2293,19 @@ local function reactionCanDeliver(context, player)
     end
     cancelAutomatic('speaker-missing')
     return false
+end
+
+-- Development only: shows one notice on demand, so its wording can be looked at in game without real Convai use. It runs from the
+-- diagnostic mailbox's existing poll (never per frame), only for a new "notice:<id>:<stamp>" request, and only with Developer mode on:
+-- for a player the request is read and dropped. Writes the notice the same way a failed reply does (same text, same repeat rules).
+speech.devNotice = function(request)
+    if not manager.developerMode() then return false, 'developer mode is off' end
+    local id = type(request) == 'string' and request:match('^notice:([%w%-]+)') or nil
+    local player = Game.GetPlayer()
+    if id ~= 'daily-limit' or not player then log('Developer notice request ignored: ' .. tostring(id)); return false, 'unknown notice or no player' end
+    convaiNotices.send(player, 'daily-limit', dailyLimitText())
+    log('Developer notice shown: ' .. id)
+    return true
 end
 
 local function groupAudience(player)
@@ -2522,6 +2535,18 @@ if convaiAddons then
     end
     -- Where an add-on voice is heard from (addons.lua voiceFrom), asked by speech.lua once per add-on reply.
     speech.voiceSource = function(profileKey, player) return convaiAddons.live and convaiAddons.voiceSource(profileKey, player) or nil end
+    -- An add-on speaker's face on a screen (addons.lua faceActor: an NPC filmed for a screen), asked once per add-on reply.
+    speech.faceSource = function(profileKey, player) return convaiAddons.live and convaiAddons.faceActor(profileKey, player) or nil end
+    -- A remark held silent until its moment, and one that plays on while a game menu is open (addons.lua hold / menus): the request id
+    -- speech.lua compares when it decides whether the voice is paused. Plain fields, set on the add-on tick.
+    seams.hold = function(requestId) speech.holdRequest = requestId end
+    seams.menus = function(requestId) speech.menuRequest = requestId end
+    -- The face service (Face.reds), for an add-on's screen-face watch: one call per watch change, never per frame.
+    seams.faceService = function()
+        return Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
+    end
+    -- An add-on remark whose speaker shows the text itself goes without a subtitle (addons.lua hideCaption), asked once per reply.
+    speech.hideCaption = function(profileKey, requestId) return convaiAddons.live and convaiAddons.hideCaption(profileKey, requestId) or false end
     -- An automatic add-on remark: the same request file, reply path and playback as every other turn.
     seams.submit = function(context, anchor)
         if active or pending or automatic or microphone.context or groupChat.round then return false end
@@ -2919,7 +2944,8 @@ registerForEvent('onUpdate', function(delta)
             request:close()
             if nonce and #nonce > 0 and nonce ~= lastDiagnosticRequest then
                 lastDiagnosticRequest = nonce
-                captureDiagnostic()
+                -- "notice:<id>:<nonce>" shows one notice on demand (Developer mode only); anything else is a diagnostic capture.
+                if nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end
                 local response = io.open('runtime/diagnostic-response.txt', 'wb')
                 if response then response:write(nonce); response:close() end
             end

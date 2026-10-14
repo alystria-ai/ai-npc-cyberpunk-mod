@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { createAdminTurnsHandler, createReadyHandler, healthHandler } from '../api/_lib/admin.js';
+import { createAdminConfigHandler, createAdminTurnsHandler, createReadyHandler, healthHandler } from '../api/_lib/admin.js';
 import { ADMIN_SECRET, FAKE_API_KEY, SIGNING_SECRET, START, createWorld, makeEnv, mockResponse } from '../testkit/harness.mjs';
 
 const call = async (handler, { method = 'GET', url = '/', headers = {} } = {}) => {
@@ -100,4 +100,82 @@ test('/healthz never touches the store or Convai', async () => {
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.json, { status: 'ok' });
   assert.equal((await call(healthHandler, { method: 'POST' })).statusCode, 405);
+});
+
+const post = (handler, body, headers = asAdmin) => call(handler, { method: 'POST', url: '/api/admin/config', headers, body: typeof body === 'string' ? body : JSON.stringify(body) });
+const callWithBody = async (handler, { method, headers, body }) => {
+  const response = mockResponse();
+  await handler({ method, url: '/api/admin/config', headers, body }, response);
+  return response;
+};
+
+test('the admin config sets, shows and removes the daily limit, and the token endpoint uses it at once', async () => {
+  const world = createWorld({ CONVAI_AUTH_DAILY_TURN_CAP: '100' });
+  const handler = createAdminConfigHandler({ env: world.env, store: world.store });
+  const shown = await call(handler, { url: '/api/admin/config', headers: asAdmin });
+  assert.deepEqual(shown.json, { dailyInteractionLimit: 100, stored: null, environmentDefault: 100, min: 1, max: 10000 });
+  const set = await callWithBody(handler, { method: 'POST', headers: asAdmin, body: JSON.stringify({ dailyInteractionLimit: 150 }) });
+  assert.equal(set.statusCode, 200);
+  assert.equal(set.json.dailyInteractionLimit, 150);
+  assert.equal(set.json.stored, 150);
+  const first = await world.send({ turns: 120 });
+  assert.equal(first.statusCode, 200, 'under the new limit of 150');
+  assert.equal(first.json.dailyInteractionLimit, 150);
+  assert.deepEqual(first.json.allowance, { used: 120, limit: 150, resetAt: '2026-10-15T00:00:00.000Z' });
+  const capped = await world.send({ turns: 30 });
+  assert.equal(capped.statusCode, 429);
+  assert.equal(capped.json.error, 'daily');
+  assert.equal(capped.json.allowance.limit, 150);
+  const lowered = await callWithBody(handler, { method: 'POST', headers: asAdmin, body: JSON.stringify({ dailyInteractionLimit: 20 }) });
+  assert.equal(lowered.json.dailyInteractionLimit, 20);
+  const refused = await world.send({ installId: randomUUID(), turns: 25 });
+  assert.equal(refused.statusCode, 429, 'a lowered limit applies to the next request');
+  assert.equal(refused.json.allowance.limit, 20);
+  const removed = await callWithBody(handler, { method: 'POST', headers: asAdmin, body: JSON.stringify({ dailyInteractionLimit: null }) });
+  assert.deepEqual(removed.json, { dailyInteractionLimit: 100, stored: null, environmentDefault: 100, min: 1, max: 10000 });
+  const back = await world.send({ installId: randomUUID(), turns: 50 });
+  assert.equal(back.json.allowance.limit, 100);
+  const turns = await call(createAdminTurnsHandler({ env: world.env, store: world.store, now: () => world.clock.now }), { headers: asAdmin });
+  assert.equal(turns.json.dailyTurnCap, 100);
+});
+
+test('the daily limit costs no extra store command on a token request', async () => {
+  const world = createWorld();
+  await world.send({ turns: 1 });
+  world.store.commands = 0;
+  const handler = createAdminConfigHandler({ env: world.env, store: world.store });
+  await callWithBody(handler, { method: 'POST', headers: asAdmin, body: JSON.stringify({ dailyInteractionLimit: 200 }) });
+  world.store.commands = 0;
+  assert.equal((await world.send({ turns: 1 })).statusCode, 200);
+  assert.equal(world.store.commands, 1, 'one script, however many limits it reads');
+});
+
+test('the admin config refuses bad values, bad bodies, the wrong secret and the wrong method', async () => {
+  const world = createWorld();
+  const handler = createAdminConfigHandler({ env: world.env, store: world.store });
+  for (const bad of [0, -5, 10001, 1.5, 'lots', true, [], {}]) {
+    const response = await callWithBody(handler, { method: 'POST', headers: asAdmin, body: JSON.stringify({ dailyInteractionLimit: bad }) });
+    assert.equal(response.statusCode, 400, `${JSON.stringify(bad)} is refused`);
+  }
+  assert.equal((await callWithBody(handler, { method: 'POST', headers: asAdmin, body: 'not json' })).statusCode, 400);
+  assert.equal((await callWithBody(handler, { method: 'POST', headers: asAdmin, body: '{}' })).statusCode, 400);
+  assert.equal((await callWithBody(handler, { method: 'POST', headers: asAdmin, body: JSON.stringify({ dailyInteractionLimit: '175' }) })).json.dailyInteractionLimit, 175, 'a whole number in a string is accepted');
+  assert.equal((await callWithBody(handler, { method: 'POST', headers: {}, body: JSON.stringify({ dailyInteractionLimit: 5 }) })).statusCode, 401);
+  assert.equal((await callWithBody(handler, { method: 'POST', headers: { authorization: `Bearer ${SIGNING_SECRET}` }, body: JSON.stringify({ dailyInteractionLimit: 5 }) })).statusCode, 401);
+  assert.equal((await call(handler, { method: 'PUT', headers: asAdmin })).statusCode, 405);
+  assert.equal((await call(handler, { headers: asAdmin })).json.dailyInteractionLimit, 175, 'the refused requests changed nothing');
+  const env = makeEnv();
+  delete env.CONVAI_AUTH_ADMIN_SECRET;
+  assert.equal((await call(createAdminConfigHandler({ env, store: world.store }), { headers: asAdmin })).statusCode, 404);
+  world.store.failing = true;
+  assert.equal((await call(handler, { headers: asAdmin })).statusCode, 503);
+});
+
+test('a stored value outside the accepted range is ignored by the token endpoint', async () => {
+  const world = createWorld({ CONVAI_AUTH_DAILY_TURN_CAP: '100' });
+  for (const junk of ['0', '-3', '99999', 'abc', '12.5']) {
+    await world.store.command(['SET', 'cfg:dailyInteractionLimit', junk]);
+    const response = await world.send({ installId: randomUUID(), turns: 1 });
+    assert.equal(response.json.allowance.limit, 100, `${junk} falls back to the environment's value`);
+  }
 });

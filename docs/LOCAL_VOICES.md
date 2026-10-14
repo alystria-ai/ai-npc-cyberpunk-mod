@@ -72,8 +72,10 @@ Tests: `npm run test:reference-picker`.
 
 **Menu** (Settings > Voices > Companion voices, in this order, fastest to best): Pocket · Performance (default),
 OmniVoice · Balanced (16 steps, short reference), OmniVoice · Quality (16 steps, long reference), OmniVoice · High Quality
-(32 steps, short reference), OmniVoice · Ultra Quality (32 steps, long reference), Convai · Cloud voice. Without the Omni pack
-the four OmniVoice entries end in "· needs pack" and Apply refuses them. There is no Pocket base. Settings store `voiceProvider` (`pocket`, `omni`, `convai`), `omniSteps` (16 or
+(32 steps, short reference), OmniVoice · Ultra Quality (32 steps, long reference), Voxtral · Mistral cloud, Convai · Cloud voice,
+and, in Developer mode only, Inworld · Cloud voice (see docs/CLOUD_VOICE_VOXTRAL.md and docs/CLOUD_VOICE_INWORLD.md). Without the Omni pack
+the four OmniVoice entries are greyed out (the shown text is dimmed and the arrows skip them; they no longer end in "· needs pack"), the row name gains " (no Omni pack)"
+and Apply refuses them. There is no Pocket base. Settings store `voiceProvider` (`pocket`, `omni`, `convai`), `omniSteps` (16 or
 32), `omniReference` (`short` up to 10 s of reference audio, `long` up to 18 s) and `keepPreparedVoices` (default on). A fresh
 profile starts on Pocket TTS. Migration (`mod/manager.lua`): a saved `omni`/`hybrid` choice keeps its steps and gains
 `omniReference = "long"` (whoever chose OmniVoice chose quality; long matches the voice better for about 0.15 s more latency at
@@ -115,9 +117,9 @@ hash matches the weights file, and all 44 decoder tensors in `model.safetensors`
 (`vendor/reference-voicestudio/.venv/Scripts/python.exe` or `CYBERPUNK_CONVAI_PYTHON`), the model weights
 (`<config.model>/model.safetensors` or `CYBERPUNK_CONVAI_OMNI_MODEL`), the adapter (`.../backend/services/tts_backend.py`) and the
 worker script. The bridge publishes `omniPack: {installed, missing}` in `local-voice-state.json` (re-checked every 30 s while
-missing). Without the pack the four Omni menu entries read "… · Requires the optional OmniVoice pack (GPU)", Apply refuses them
-with that message, a saved Omni choice falls back to Pocket with the usual one-time notice, and Settings shows "OmniVoice pack:
-Not installed". An unknown status (the service has not reported) never locks an entry. CUDA is not probed up front; a worker
+missing). Without the pack the four Omni menu entries are greyed out, Apply refuses them
+with "Requires the optional OmniVoice pack (GPU)", a saved Omni choice falls back to Pocket with the usual one-time notice, and the Companion voices
+row name reads "(no Omni pack)" (the separate "OmniVoice pack" row was removed on 2026-10-14). An unknown status (the service has not reported) never locks an entry. CUDA is not probed up front; a worker
 that cannot get a GPU fails at start and the same fallback applies.
 
 **Keep prepared voices** (Settings > Voices, default on; the bridge picks it up from `settings.json` without a restart).

@@ -86,7 +86,7 @@ import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryReco
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {readKeyFileText} from './key-codec.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
-import {DAILY_LIMIT, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
+import {DAILY_LIMIT, LimitStore, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
 import {MISTRAL_KEY_FILE, MistralControl, MistralProvider} from './mistral-key.mjs';
 import {TextProviderHost, attachTextProvider, isLocalUnavailable, localRoute, mistralRoute} from './text-provider-host.mjs';
 import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
@@ -229,12 +229,15 @@ await addonHost.loadJournal(stateDirectory);
 // background (never on a turn); a player's own key is untouched. If the backend cannot be reached the embedded key stands in
 // (CYBERPUNK_CONVAI_AUTH_FALLBACK=0 removes that), reported in this log only.
 const authSettings = await readAuthSettings({path: resolve(stateDirectory, AUTH_CONFIG_FILE)});
+// The backend sets the daily limit (auth-backend/, POST /api/admin/config). A value that arrives before the guard exists waits here.
+let backendDailyLimit = null, turnGuardRef = null;
 if (authSettings.problem) console.error(`[CyberpunkConvai] Sign-in backend is off: ${authSettings.problem}`);
 const modVersion = await readFile(resolve(project, 'package.json'), 'utf8').then(text => JSON.parse(text).version, () => undefined);
 const tokenSource = authSettings.enabled ? new TokenSource({url: authSettings.url, secret: authSettings.secret,
   installId: await loadInstallId({path: resolve(stateDirectory, INSTALL_FILE)}),
   version: typeof modVersion === 'string' && /^\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/.test(modVersion) ? modVersion : '0.0.0-dev',
-  fallback: authSettings.fallback, log: message => console.error('[CyberpunkConvai] ' + message)}) : null;
+  fallback: authSettings.fallback, log: message => console.error('[CyberpunkConvai] ' + message),
+  onLimit: value => { backendDailyLimit = value; if (turnGuardRef?.setLimit(value)) console.error(`[CyberpunkConvai] Shared conversation allowance changed by the sign-in backend: ${value} turns a day`); }}) : null;
 if (tokenSource) {
   console.error(`[CyberpunkConvai] Conversation sign-in: backend ${new URL(authSettings.url).host}, embedded-key fallback ${authSettings.fallback ? 'on' : 'off'}`);
   tokenSource.start(); // in the background, in parallel with the rest of start-up
@@ -318,11 +321,18 @@ const mistralMemory = await MemoryStore.open({dir: resolve(stateDirectory, 'loca
 // Daily cap and rate limit for the package's shared key; never applied to a player's own key. CYBERPUNK_CONVAI_DAILY_LIMIT
 // sets the cap (a number) or switches the guard off (off); without it only the packaged key is limited, so a development
 // checkout with a plain runtime/convai-key.txt is not. The count is saved twice (state folder, user profile), signed.
-const dailyLimit = limitFromEnvironment(process.env.CYBERPUNK_CONVAI_DAILY_LIMIT, keyFileContent.packed ? DAILY_LIMIT : 0);
-const turnGuard = await new SharedKeyGuard({limit: dailyLimit, applies: () => keys.source === 'shared',
+const dailyLimitPinned = typeof process.env.CYBERPUNK_CONVAI_DAILY_LIMIT === 'string' && process.env.CYBERPUNK_CONVAI_DAILY_LIMIT.trim() !== '';
+// With the sign-in backend on, the cap is the backend's number: the last one it told this installation (kept in daily-limit.json), else 100,
+// until the first answer arrives. Without the backend, or with the environment variable set, it stays what it was.
+const limitStore = tokenSource && !dailyLimitPinned ? new LimitStore({machine: await machineId(), path: resolve(stateDirectory, 'daily-limit.json')}) : undefined;
+const dailyLimit = limitFromEnvironment(process.env.CYBERPUNK_CONVAI_DAILY_LIMIT, keyFileContent.packed ? (await limitStore?.load() ?? DAILY_LIMIT) : 0);
+const turnGuard = await new SharedKeyGuard({limit: dailyLimit, applies: () => keys.source === 'shared', limitStore, pinned: dailyLimitPinned,
+  onLimit: () => { void ownKeyControl?.publishStatus().catch(() => {}); },
   store: dailyLimit > 0 ? new UsageStore({machine: await machineId(), paths: [resolve(stateDirectory, 'daily-usage.json'),
     resolve(process.env.LOCALAPPDATA || homedir(), 'CyberpunkConvai', 'daily-usage.json')]}) : undefined,
   onChange: () => { tokenSource?.noteTurn(); void ownKeyControl?.publishStatus().catch(() => {}); }}).load();
+turnGuardRef = turnGuard;
+if (backendDailyLimit !== null) turnGuard.setLimit(backendDailyLimit);
 // What the hosts ask before a turn: the local gate as before, plus (backend mode only) the backend's own "daily allowance used"
 // answer, shown with the same notice. Both are synchronous checks of memory; nothing here touches the network.
 const hostGuard = tokenSource ? {check: () => { turnGuard.check(); keys.assertAllowed(); }, consume: () => turnGuard.consume()} : turnGuard;
@@ -654,7 +664,7 @@ const mistralSpeech = createLocalSpeech({
   capture: new LocalSttCapture({getBrowser: hostBrowser(realtime)})});
 // Two side by side: the action decision and the reply of one turn are two requests at once (bridge/mistral-client.mjs, warmConnection).
 const warmTurnConnections = options => warmConnection({...options, connections: 2});
-for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: host === realtime, warmCloud: warmTurnConnections});
+for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections});
 // Add-on speakers (docs/ADDON_API.md) answer only through Mistral or the local AI, whatever the player's conversation provider is:
 // one text host per route (and whether the local AI may fall back to Mistral), made the first time an add-on speaker needs it. They
 // share the routes (one pacing per Mistral key), the persona book and the memory store; none exists without add-ons.
@@ -833,6 +843,7 @@ function logFollowUp(input, result) {
 const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line),
   planFor: (input, key) => planTurnVoice({enabled: multilingual.enabled,
     language: multilingual.enabled ? multilingual.expected(input.text) : 'en', local: localChoice(key)}),
+  // Voice playback Off silences the companions, not V: with the V setting on his line is spoken (docs/RESOURCE_LIFECYCLE.md).
   ready: key => localVoice.usesProfile(key),
   isLocal: () => !localVoice.cloudActive,
   stream: (key, text, options) => localVoice.synthesizeStream(key, text, options),
@@ -840,6 +851,11 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
   prepare: (key, options) => localVoice.prepareProfile(key, options),
   play: (config, producer, options) => realtime.playVoiceLine(config, producer, options),
   warm: options => realtime.prewarmVoiceLine(options),
+  // Beside OmniVoice, V's line is spoken by a Pocket worker of its own on the CPU (bridge/v-helper-voice.mjs), never rendered on
+  // OmniVoice's one GPU worker. It is loaded in the background while the OmniVoice voice is committed and the setting is on.
+  helper: {speaks: key => localVoice.vHelperSpeaks(key), ready: key => localVoice.vHelperReady(key),
+    stream: (key, text, options) => localVoice.vHelperStream(key, text, options),
+    prepare: (key, options) => localVoice.vHelperPrepare(key, options)},
   // One log line and one record per V line: what happened and when (V's own stage clock), no dialogue.
   report: (input, summary) => {
     try {
@@ -1040,6 +1056,8 @@ function invitedVoiceCurrent(profile, receipt) {
   if (stopped || receipt?.ready !== true || localVoice.pending || localVoice.availabilityPending
       || voiceRouteReservation || voiceRoutePending.size) return false;
   if (receipt.provider === 'convai') return !localVoice.usesProfile(profile);
+  // Playback Off: the worker was released and none is waited for (bridge/voice-selection.mjs, prepareProfile `muted`).
+  if (receipt.muted === true) return localVoice.playbackEnabled === false && receipt.provider === localVoice.provider && localVoice.usesProfile(profile);
   return receipt.provider === localVoice.provider && ['pocket','omni'].includes(receipt.provider) && receipt.profile === profile
     && localVoice.usesProfile(profile) && localVoice.profileReady(profile);
 }
@@ -1057,7 +1075,9 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
     if (stopped) throw Error('Voice service is closed');
     // A settings change can commit while page retirement is awaiting its host.
     // Recheck the actual route before authorizing this invitation's connection.
-    if (receipt.provider !== 'convai') {
+    if (receipt.muted === true && localVoice.playbackEnabled === false) {
+      if (receipt.provider !== localVoice.provider || !localVoice.usesProfile(profile)) continue;
+    } else if (receipt.provider !== 'convai') {
       if(receipt.provider!==localVoice.provider)continue;
       if (!localVoice.usesProfile(profile) || !localVoice.profileReady(profile)) continue;
     } else if (localVoice.usesProfile(profile)) continue;
@@ -2437,8 +2457,10 @@ const voicePreview = new VoicePreviewLease();
 let audioDelaySetting = 'auto', audioOutput = null, audioDelayPublished = '';
 const audioWatch = new AudioOutputWatch({onChange: output => { audioOutput = output; void applyAudioDelay(); }});
 async function applyAudioDelay() {
-  // The probe starts with the first conversation turn, not at idle startup.
-  if (audioDelaySetting === 'auto' && active) audioWatch.start();
+  // The probe starts with the first conversation turn, not at idle startup. It runs only while the delay is automatic and voice
+  // playback is on: a hand-set delay or silence has nothing to measure, and its PowerShell process would only wake every minute.
+  if (audioDelaySetting === 'auto' && localVoice.playbackEnabled !== false) { if (active) audioWatch.start(); }
+  else audioWatch.suspend();
   const delayMs = resolveDelayMs(audioDelaySetting, audioOutput);
   if (setAudioDelayMs(delayMs)) console.error(`Lip sync delay: ${delayMs} ms (${audioDelaySetting}${audioOutput ? `, ${audioOutput.bluetooth ? 'Bluetooth' : 'not Bluetooth'}: ${audioOutput.name}` : ''})`);
   const document = JSON.stringify({version: 1, delayMs: audioDelayMs(), setting: audioDelaySetting,
@@ -2486,8 +2508,33 @@ async function applyProviderChoice() {
     // Leaving the local AI gives its graphics memory back at once; arriving loads it (a first start compiles shaders for a while).
     if (mistral.applied === 'local') void localServer.ensure({background: true}).catch(() => {});
     else void localServer.stop().catch(() => {});
+    // Back to Convai: the memory search's embedding process (CPU) is not needed either, and goes now instead of after its five idle minutes.
+    // Add-on speakers answer through the text routes whatever the provider is, so with an add-on installed it stays on its idle timer.
+    if (!mistral.active && !addonHost.active) void localEmbedder.close().catch(() => {});
     await mistralControl.publishStatus().catch(() => {});
   } finally { providerSwitching = false; }
+}
+// Resources the current settings do not use are released (docs/RESOURCE_LIFECYCLE.md). Due-checked from the 500 ms settings poll: a few property
+// reads, nothing per frame, never while a turn, microphone or preparation is running (the page releases wait for the next poll).
+//   - The facial model's worker thread leaves at once when voice playback is turned Off (V speaks no face) and comes back
+//     at the first poll after playback is turned on.
+//   - V's line renderer page closes when V's voice is off (or has no clips), and with the companions' page when playback is Off.
+//   - The hidden browser closes when nothing uses it for BROWSER_IDLE_MS: no Convai page in the pool or kept for the party, no
+//     recording, no renderer turn, and (text provider with playback on) no wish to keep the local voice's renderer warm.
+const BROWSER_IDLE_MS = 300_000;
+let releasingUnused = false;
+async function releaseUnused() {
+  if (releasingUnused || stopped) return;
+  releasingUnused = true;
+  try {
+    const muted = localVoice.silent;
+    if (jaliFace) { if (muted) await jaliFace.suspend(); else if (!jaliFace.active) void jaliFace.resume(); }
+    if (voiceBoundaryBusy() || voiceRouteReservation || keySwitching || providerSwitching) return;
+    await realtime.releaseRendererPages({line: !vVoice.enabled || !vVoice.available, companion: muted});
+    const keepRenderer = mistral.active && localVoice.playbackEnabled !== false;
+    await realtime.releaseIfIdle({idleMs: BROWSER_IDLE_MS, keepRenderer});
+    await phoneRealtime.releaseIfIdle({idleMs: BROWSER_IDLE_MS});
+  } finally { releasingUnused = false; }
 }
 // The Local AI model choice (bridge/local-model-choice.mjs), looked at on the settings poll: the pin from settings.json, Mature content and
 // the Mature pack decide it, and the list of installed models is published for the settings page (at most every 5 s). A change while Local AI is
@@ -2591,6 +2638,8 @@ async function pollSettings(checkShutdown = true) {
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
     if (vVoice.update(settings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}`);
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
+    localVoice.setVHelperWanted(vVoice.enabled && vVoice.available);
+    void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));
     const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
     if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
     const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
@@ -2717,7 +2766,7 @@ async function shutdown() {
   await voiceRouteSync.catch(() => {});
   await relationshipRouteSync.catch(() => {});
   await Promise.allSettled([localVoice.close(), mic.cancel(), connections.clear(), mistralSpeech.close()]);
-  await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
+  await Promise.allSettled([realtime.close(), phoneRealtime.close(), jaliFace?.close()]);
   mistralHost.close();
   await mistralMemory.flush().catch(() => {});
   await Promise.allSettled([localServer.stop(), localEmbedder.close()]);

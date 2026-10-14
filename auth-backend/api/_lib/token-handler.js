@@ -1,5 +1,5 @@
 import { ADMIT_SCRIPT } from './admit.js';
-import { readConfig, missingSettings } from './config.js';
+import { CAP_BOUNDS, CAP_KEY, readConfig, missingSettings, validCap } from './config.js';
 import { createConvaiClient } from './convai.js';
 import { checkSignature, pseudonym } from './crypto.js';
 import { clientAddress, headerValue, readRawBody, sendJson } from './http.js';
@@ -136,9 +136,9 @@ export function createTokenHandler(options = {}) {
     const perInstall = config.mode === 'per-install';
     const sharedFresh = !!sharedToken && sharedToken.expiresAtMs - marginMs > nowMs;
     const keys = [`ip:${ipKey}:${hour}`, `in:${installKey}:${hour}`, `seen:${installKey}`, `ipnew:${ipKey}:${day}`,
-      `turns:${day}`, `mint:${day}`, `tok:${installKey}`];
+      `turns:${day}`, `mint:${day}`, `tok:${installKey}`, CAP_KEY];
     const args = [config.ipPerHour, config.installPerHour, config.newInstallsPerIpPerDay, config.dailyTurnCap, turns, installKey,
-      config.mode, sharedFresh ? '0' : '1', config.mintsPerDay, nowMs, marginMs];
+      config.mode, sharedFresh ? '0' : '1', config.mintsPerDay, nowMs, marginMs, CAP_BOUNDS.min, CAP_BOUNDS.max];
 
     let store, verdict;
     try {
@@ -155,13 +155,17 @@ export function createTokenHandler(options = {}) {
       sendJson(response, 503, { error: 'unavailable' }, { 'Retry-After': '30' });
       return;
     }
-    const [code, turnsRaw, extra] = verdict;
+    const [code, turnsRaw, extra, limitRaw] = verdict;
     const used = Number(turnsRaw) || 0;
-    const allowance = { used, limit: config.dailyTurnCap, resetAt: new Date(nextUtcMidnight(nowMs)).toISOString() };
+    // The limit in force: the stored value (POST /api/admin/config) when there is one, else the environment's. The script read it
+    // atomically with the count, so the number reported is the number enforced.
+    const limit = validCap(limitRaw) ?? config.dailyTurnCap;
+    const allowance = { used, limit, resetAt: new Date(nextUtcMidnight(nowMs)).toISOString() };
     const deliver = ({ token, expiresAtMs }) => sendJson(response, 200, {
       authToken: token,
       expiresAt: new Date(expiresAtMs).toISOString(),
       allowance,
+      dailyInteractionLimit: limit,
       serverTime: Math.floor(nowMs / 1000),
       ...(config.minVersion ? { minClient: config.minVersion } : {}),
     });
@@ -182,7 +186,7 @@ export function createTokenHandler(options = {}) {
         const convai = createConvaiClient({ fetchImpl, connectUrl: config.connectUrl, revokeUrl: config.revokeUrl, now });
         await convai.revoke(config.apiKey, extra.slice(extra.indexOf('|') + 1));
       }
-      sendJson(response, 429, { error: 'daily', allowance, resetAt: allowance.resetAt });
+      sendJson(response, 429, { error: 'daily', allowance, dailyInteractionLimit: limit, resetAt: allowance.resetAt });
       return;
     }
 

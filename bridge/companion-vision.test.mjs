@@ -10,9 +10,10 @@ const TV = Buffer.from('tv frame').toString('base64');
 
 function fakeCapture({result = {ok: true, mime: 'image/jpeg', base64: PICTURE, width: 768, height: 432, bytes: 9, ms: {total: 140}},
   delayMs = 0} = {}) {
-  const capture = {calls: 0, started: 0, stopped: 0,
-    start: async () => { capture.started++; return true; }, stop: () => { capture.stopped++; },
-    capture: async () => { capture.calls++; if (delayMs) await new Promise(r => setTimeout(r, delayMs)); return result; }};
+  const capture = {calls: 0, started: 0, stopped: 0, running: false,
+    start: async () => { capture.started++; capture.running = true; return true; },
+    stop: () => { capture.stopped++; capture.running = false; },
+    capture: async () => { capture.calls++; capture.running = true; if (delayMs) await new Promise(r => setTimeout(r, delayMs)); return result; }};
   return capture;
 }
 const on = (vision, settings = {}) => { vision.update({companionVision: true, ...settings}); return vision; };
@@ -70,6 +71,35 @@ test('a typed look-like line captures at admission and the turn takes that pictu
   assert.equal(capture.calls, 1);
   assert.equal(await vision.imagesForTurn({visionTurn: 'turn-2'}), null);
   assert.equal(await vision.imagesForTurn({visionTurn: 'turn-1', freshSession: true}), null, 'speculative turns never carry one');
+});
+
+test('unload rule: no helper while the setting is off or another provider answers, and none after its idle time', async () => {
+  let convai = true, now = 0;
+  const capture = fakeCapture(), vision = new CompanionVision({capture, isConvai: () => convai, now: () => now, idleMs: 1000});
+  vision.update({companionVision: false});
+  assert.equal(capture.running, false, 'off: never started');
+  vision.update({companionVision: true});
+  assert.equal(capture.running, true, 'on with Convai: started ahead of the first picture');
+  convai = false; vision.update({companionVision: true});
+  assert.equal(capture.running, false, 'another provider: released at once');
+  convai = true; vision.update({companionVision: true});
+  assert.equal(capture.running, true, 'back to Convai: started again');
+  now = 999; vision.update({companionVision: true});
+  assert.equal(capture.running, true);
+  now = 1000; vision.update({companionVision: true});
+  assert.equal(capture.running, false, 'idle time: released');
+  assert.equal(vision.diagnostics().helperReleases, 2);
+  // The next picture starts it again and that turn may wait COLD_START_MS longer; a running capture is never cut off.
+  vision.beginTurn({requestId: 'cold', text: 'what do you see'});
+  assert.equal(vision.busy, 1);
+  now = 5000; vision.update({companionVision: true});
+  assert.equal(capture.running, true, 'not released while a capture runs');
+  assert.deepEqual(await vision.imagesForTurn({visionTurn: 'cold'}), [{mime: 'image/jpeg', base64: PICTURE}]);
+  assert.equal(vision.busy, 0);
+  vision.update(null);
+  assert.equal(vision.enabled, true, 'an unreadable settings file changes nothing');
+  vision.update({companionVision: false});
+  assert.equal(capture.running, false, 'turned off: released at once');
 });
 
 test('a slow capture never holds a turn longer than CAPTURE_WAIT_MS', async () => {

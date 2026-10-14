@@ -19,6 +19,10 @@ import {MAX_IMAGES, validImages} from './convai-vision.mjs';
 export const CAPTURE_WAIT_MS = 400;
 // How long a queued picture (attachToNextTurn) waits for a turn before it is dropped.
 export const QUEUE_TTL_MS = 20000;
+// The helper process follows the unload rule (docs/RESOURCE_LIFECYCLE.md): it exists only while the setting is on and Convai answers, and
+// it leaves after this long without a picture. A picture after that starts it again (about 400 ms), so that turn waits COLD_START_MS longer.
+export const HELPER_IDLE_MS = 600_000;
+export const COLD_START_MS = 700;
 const TURN_MEMORY = 32;
 
 // Lines that ask about something V and the companion can see. English only; a miss just means no picture.
@@ -56,24 +60,42 @@ export class CompanionVision {
   // stageVoice(images, requestId): hands pictures to the running microphone turn ({staged}). debugDirectory: absolute, optional.
   constructor({capture, isConvai = () => true, stageVoice = async () => ({staged: false}), log = () => {}, now = () => Date.now(),
     debugDirectory = absoluteRuntimeOverride(process.env.CYBERPUNK_CONVAI_VISION_DEBUG_DIR || undefined, 'CYBERPUNK_CONVAI_VISION_DEBUG_DIR'),
-    writeDebug = (path, bytes) => writeFile(path, bytes), waitMs = CAPTURE_WAIT_MS} = {}) {
-    Object.assign(this, {capture, isConvai, stageVoice, log, now, debugDirectory, writeDebug, waitMs});
-    this.enabled = false; this.transport = 'video';
-    this.queue = []; this.captures = new Map(); this.voice = new Map(); this.answered = new Map();
-    this.counters = {captures: 0, failed: 0, minimised: 0, queued: 0, turnsWithPicture: 0};
+    writeDebug = (path, bytes) => writeFile(path, bytes), waitMs = CAPTURE_WAIT_MS, idleMs = HELPER_IDLE_MS} = {}) {
+    Object.assign(this, {capture, isConvai, stageVoice, log, now, debugDirectory, writeDebug, waitMs, idleMs});
+    this.enabled = false; this.transport = 'video'; this.wanted = false; this.busy = 0; this.lastUse = 0;
+    this.queue = []; this.captures = new Map(); this.voice = new Map(); this.answered = new Map(); this.cold = new WeakSet();
+    this.counters = {captures: 0, failed: 0, minimised: 0, queued: 0, turnsWithPicture: 0, helperStarts: 0, helperReleases: 0};
   }
   get active() {
     try { return this.enabled && this.isConvai() === true; } catch { return false; }
   }
-  // Reads the settings (on the bridge's settings poll, never per turn). Returns true when the setting changed.
+  // Reads the settings on the bridge's 500 ms settings poll (a few property reads; never per frame, never per turn) and applies the
+  // unload rule to the helper. A missing settings object (an unreadable file) changes nothing. Returns true when the setting changed.
   update(settings) {
-    const enabled = settings?.companionVision === true;
-    const transport = settings?.visionTransport === 'upload' ? 'upload' : 'video';
-    const changed = enabled !== this.enabled || transport !== this.transport;
-    this.enabled = enabled; this.transport = transport;
-    if (changed && enabled) void this.capture?.start?.();   // the helper idles, ready, so the first picture is not slower
-    if (changed && !enabled) { this.capture?.stop?.(); this.queue = []; this.captures.clear(); this.voice.clear(); this.answered.clear(); }
+    let changed = false;
+    if (settings && typeof settings === 'object') {
+      const enabled = settings.companionVision === true;
+      const transport = settings.visionTransport === 'upload' ? 'upload' : 'video';
+      changed = enabled !== this.enabled || transport !== this.transport;
+      this.enabled = enabled; this.transport = transport;
+      if (changed && !enabled) { this.queue = []; this.captures.clear(); this.voice.clear(); this.answered.clear(); }
+    }
+    this.syncHelper();
     return changed;
+  }
+  // The helper exists only while it can be used: setting on and Convai answering. Becoming usable starts it (so the first picture is not
+  // slower); becoming unusable stops it at once; HELPER_IDLE_MS without a picture stops it too. Never while a capture is running.
+  syncHelper() {
+    const wanted = this.active, running = this.capture?.running === true;
+    if (wanted && !this.wanted) {
+      this.lastUse = this.now();
+      if (!running) { this.counters.helperStarts++; void this.capture?.start?.(); }
+    } else if (running && this.busy === 0 && (!wanted || this.now() - this.lastUse >= this.idleMs)) {
+      this.capture.stop();
+      this.counters.helperReleases++;
+      this.log(wanted ? 'helper released after its idle time' : 'helper released (setting off or another provider)');
+    }
+    this.wanted = wanted;
   }
   // What the realtime host connects pages with (bridge/realtime-host.mjs): null while vision is off or another provider answers.
   connectConfig() { return this.active ? {transport: this.transport} : null; }
@@ -106,7 +128,7 @@ export class CompanionVision {
   // What Convai has heard of a running recording: the first look-like words capture and stage the picture while V talks.
   noteHeard(requestId, text) {
     if (!this.active || typeof requestId !== 'string' || this.voice.has(requestId) || !wantsLook(text)) return false;
-    const entry = {images: null, staged: false};
+    const entry = {images: null, staged: false, cold: this.capture?.running !== true};
     this.remember(this.voice, requestId, entry);
     entry.done = (async () => {
       const shot = await this.grab('voice');
@@ -126,7 +148,7 @@ export class CompanionVision {
     const pictures = [];
     if (phase === 'finish' && id && this.voice.has(id)) {
       const entry = this.voice.get(id);
-      await this.within(entry.done, this.waitMs);
+      await this.within(entry.done, this.waitMs + (entry.cold ? COLD_START_MS : 0));
       // Already on the page: the finish adds nothing unless queued pictures must be composed with it.
       const queued = this.takeQueued(config.characterId);
       if (!queued.length) return this.settle(id, null, entry.staged ? 'staged-while-talking' : 'no-picture');
@@ -134,8 +156,9 @@ export class CompanionVision {
       pictures.push(...queued);
     } else {
       let shot = null;
-      if (id && this.captures.has(id)) shot = await this.within(this.captures.get(id), this.waitMs);
-      else if (phase === 'finish' && wantsLook(heard)) shot = await this.within(this.grab('voice-finish'), this.waitMs);
+      const pending = id && this.captures.has(id) ? this.captures.get(id)
+        : phase === 'finish' && wantsLook(heard) ? this.grab('voice-finish') : null;
+      if (pending) shot = await this.within(pending, this.waitMs + (this.cold.has(pending) ? COLD_START_MS : 0));
       if (shot) pictures.push(shot);
       pictures.push(...this.takeQueued(config.characterId));
     }
@@ -159,8 +182,18 @@ export class CompanionVision {
     return taken;
   }
   // One game picture, or null. Never throws.
-  async grab(trigger) {
-    if (!this.capture) return null;
+  // A helper that is not running (released after its idle time) starts first: that picture's promise is marked cold, and the turn
+  // waits COLD_START_MS longer for it.
+  grab(trigger) {
+    if (!this.capture) return Promise.resolve(null);
+    const cold = this.capture.running !== true;
+    if (cold) this.counters.helperStarts++;
+    this.busy++; this.lastUse = this.now();
+    const shot = this.grabOnce(trigger).finally(() => { this.busy--; this.lastUse = this.now(); });
+    if (cold) this.cold.add(shot);
+    return shot;
+  }
+  async grabOnce(trigger) {
     let result;
     try { result = await this.capture.capture(); } catch { result = {ok: false, reason: 'failed'}; }
     if (!result?.ok) {
@@ -187,7 +220,8 @@ export class CompanionVision {
     while (map.size > TURN_MEMORY) map.delete(map.keys().next().value);
   }
   diagnostics() {
-    return {enabled: this.enabled, active: this.active, transport: this.transport, queued: this.queue.length, ...this.counters};
+    return {enabled: this.enabled, active: this.active, transport: this.transport, queued: this.queue.length,
+      helperRunning: this.capture?.running === true, ...this.counters};
   }
-  stop() { this.capture?.stop?.(); }
+  stop() { this.wanted = false; this.capture?.stop?.(); }
 }

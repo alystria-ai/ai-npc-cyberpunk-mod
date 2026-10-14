@@ -576,3 +576,51 @@ test('the voice stop of a muted line is sent on the line speaker and can be sent
   assert(native.stopAudio({}, {'vo_3d'}) == 'no-speaker')
   assert(#calls == 4, 'nothing sent without a speaker or an event')
 `));
+
+test('a rule\'s own silence function runs once per muted line with the line and its type, its text joins the log, its repeat is chained to the voice stop, and a failure changes nothing', () => lua$(`
+  local muted, calls = {}, {}
+  local firstAgain = 0
+  local native = setmetatable({
+    stopAudio = function(line, events) return 'stop-sent(' .. (events[1] or '?') .. ')', function() firstAgain = firstAgain + 1 end end,
+    hideLine = function() return true end,
+  }, {__index = N})
+  local function make(rule)
+    return api.new({native = native, now = function() return now end, enabled = function() return false end,
+      onGameLineWanted = function() return true end, onGameLine = function() end,
+      matchWanted = function() return true end,
+      matchLine = function(line) if line.speakerName == 'Skippy' then return rule, true end return nil end,
+      onMuted = function(r, info) muted[#muted + 1] = info end, log = function() end})
+  end
+  local again = 0
+  local rule = {name = 'Skippy', audio = {'vo_3d_important'}, silence = function(line, context)
+    calls[#calls + 1] = line.id .. ':' .. context.typeName()
+    return 'gun-stop(1)', function() again = again + 1 end
+  end}
+  local dialogue2 = make(rule)
+  dialogue2:line({id = 600, speakerName = 'Skippy', type = 'Invisible', duration = 2}, 'show')
+  dialogue2:line({id = 600, speakerName = 'Skippy', type = 'Invisible', duration = 2}, 'event')
+  assert(#calls == 1 and calls[1] == '600:Invisible', 'once per line')
+  assert(muted[1].audio == 'stop-sent(vo_3d_important)+gun-stop(1)', muted[1].audio)
+  muted[1].repeatStop()
+  assert(firstAgain == 1 and again == 1, 'both repeats run together')
+  -- A rule with no voice event at all still repeats what silence gave.
+  local quiet = make({name = 'Skippy', silence = function() return 'x', function() again = again + 10 end end})
+  quiet:line({id = 601, speakerName = 'Skippy', type = 'Invisible', duration = 2}, 'show')
+  assert(type(muted[2].repeatStop) == 'function' and muted[2].audio:find('+x', 1, true))
+  muted[2].repeatStop()
+  assert(again == 11)
+  -- A silence function that fails, or returns nothing, leaves the stop and the muting as they were.
+  local broken = make({name = 'Skippy', audio = {'vo_3d_important'}, silence = function() error('boom') end})
+  broken:line({id = 602, speakerName = 'Skippy', type = 'Invisible', duration = 2}, 'show')
+  assert(muted[3].audio == 'stop-sent(vo_3d_important)' and type(muted[3].repeatStop) == 'function')
+  local nothing = make({name = 'Skippy', audio = {'vo_3d_important'}, silence = function() end})
+  nothing:line({id = 603, speakerName = 'Skippy', type = 'Invisible', duration = 2}, 'show')
+  assert(muted[4].audio == 'stop-sent(vo_3d_important)')
+  -- A line the player did not ask to have replaced is never silenced.
+  local off = api.new({native = native, now = function() return now end, enabled = function() return false end,
+    onGameLineWanted = function() return true end, onGameLine = function() end, matchWanted = function() return true end,
+    matchLine = function() return rule, false end, onMuted = function() error('not muted') end, log = function() end})
+  local before = #calls
+  off:line({id = 604, speakerName = 'Skippy', type = 'Invisible', duration = 2}, 'show')
+  assert(#calls == before)
+`));

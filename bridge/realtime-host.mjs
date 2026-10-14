@@ -195,6 +195,7 @@ export class RealtimeHost {
   }
   async start({signal} = {}) {
     throwIfCancelled(signal);
+    this.lastUsedAt = Date.now();
     if (this.closing) await this.closing;
     throwIfCancelled(signal);
     if (this.browser?.isConnected()) return;
@@ -426,8 +427,12 @@ export class RealtimeHost {
     throwIfCancelled(signal);
     const epoch = this.epoch, local = this.localPcm;
     if (!local || this.closing) throw cancelled();
-    return local.play(config, producer, {...options,
-      current: async () => epoch === this.epoch && local === this.localPcm && !this.closing && await current()});
+    // A page being released a moment ago (releaseRendererPages) finishes closing first; the turn then opens its own.
+    if (local.closing) await abortable(local.closing.catch(() => {}), signal);
+    try {
+      return await local.play(config, producer, {...options,
+        current: async () => epoch === this.epoch && local === this.localPcm && !this.closing && await current()});
+    } finally { this.lastUsedAt = Date.now(); }
   }
   // V's voice for typed lines: the same renderer page and the same PCM format as a companion's local voice, on a second page. There
   // is no game utterance behind it (no face, lip sync or subtitle): the caller answers the renderer's clock with its own control.
@@ -446,8 +451,36 @@ export class RealtimeHost {
     throwIfCancelled(signal);
     const epoch = this.epoch, host = this.vPcm;
     if (!host || this.closing) throw cancelled();
-    return host.play(config, producer, {...options,
-      current: async () => epoch === this.epoch && host === this.vPcm && !this.closing && await current()});
+    if (host.closing) await abortable(host.closing.catch(() => {}), signal);
+    try {
+      return await host.play(config, producer, {...options,
+        current: async () => epoch === this.epoch && host === this.vPcm && !this.closing && await current()});
+    } finally { this.lastUsedAt = Date.now(); }
+  }
+  // ---- Releasing what nothing uses (docs/RESOURCE_LIFECYCLE.md) ----
+  // Closes a local renderer page (a Chromium renderer, an AudioContext and its worklet) that no turn owns: V's line page (`line`, when
+  // V's voice is off) and/or the companions' page (`companion`, when voice playback is off). A page that owns a turn is left alone and
+  // the next call tries again. The next turn or warm-up opens a page again (about a second, overlapped with the voice's first packet).
+  async releaseRendererPages({line = false, companion = false} = {}) {
+    const closing = [];
+    for (const [wanted, host] of [[companion, this.localPcm], [line, this.vPcm]]) {
+      if (wanted && host && !host.active && !host.closing && (host.page || host.warming)) closing.push(host.close());
+    }
+    await Promise.allSettled(closing);
+    return closing.length;
+  }
+  // Closes the whole hidden browser (Edge: a process tree of several hundred MB with a few pages) when nothing needs it: no Convai page open in
+  // the pool (the keys the party retains are only permissions to keep one), no microphone lease, no renderer turn, and nothing used it for `idleMs`. `keepRenderer` is the
+  // caller's wish to keep the local voice's renderer warm (a text provider with voice playback on); the browser then stays. The next
+  // use starts it again (about 0.8 s for the browser and about 1 s for the page; a composer warm-up does it before the first reply).
+  // Resolves true when the browser was closed.
+  async releaseIfIdle({idleMs = 300_000, keepRenderer = false, now = Date.now()} = {}) {
+    if (keepRenderer || this.closing || this.starting || !this.browser) return false;
+    if (this.pool?.entries.size || this.voiceLease) return false;
+    for (const host of [this.localPcm, this.vPcm]) if (host && (host.active || host.warming || host.closing)) return false;
+    if (now - (this.lastUsedAt ?? 0) < idleMs) return false;
+    await this.close();
+    return true;
   }
   prepare(config, options) {
     // A speculative session is never written back by the page or retained in

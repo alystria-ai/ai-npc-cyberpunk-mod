@@ -57,21 +57,56 @@ function localeTable(code) {
 }
 
 // The strings of the pages that are shown as a description (the rows' own labels are short and fit trivially).
-const DESCRIPTION_CONTEXTS = ['mcm.setting', 'mcm.action', 'mcm.readonly', 'mcm.category'];
+const DESCRIPTION_CONTEXTS = ['mcm.setting', 'mcm.action', 'mcm.readonly', 'mcm.category', 'mcm.keyRow'];
 const singles = DESCRIPTION_CONTEXTS.flatMap(name => catalog.contexts[name]).filter(text => text.length > 40);
 
 // Descriptions that mod/mcm.lua builds from several strings, each joined by a blank line, at their longest (every optional paragraph
 // present, a few installed models, one custom model and one unusable one). {tokens} are filled with sample values.
 const sampleModels = ['Qwen3.5-2B (1.3 GB)', 'Qwen3.5-4B · uncensored (2.6 GB)', 'Gemma 4 E4B (5.0 GB)', 'Gemma 4 E4B · uncensored (5.1 GB)', 'My Model (custom, 4.0 GB, needs 5.2 GB)'].join('\n');
 const MATURE_PACK = 'The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s GitHub page).';
+// A catalog string found by its beginning (the long helps are not repeated here).
+const byStart = (start, contains = '') => {
+  const hits = Object.keys(catalog.strings).filter(text => text.startsWith(start) && text.includes(contains));
+  assert(hits.length >= 1, `no catalog string starts with: ${start}`);
+  return hits[hits.length - 1];
+};
+// A part that starts with this mark continues the previous paragraph (joined by a space, not a blank line).
+const SAME = '~';
+const providerHelpLongest = byStart('Who writes your companions’ replies.', 'Speech recognition for the voice key is not available yet');
 const composites = {
   'Mature content': [
     'Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+), Local AI only.',
     MATURE_PACK,
     'Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule.',
     'Turning it on also selects Local AI, the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.',
-    'Not using Local AI right now: no effect yet.',
+    `${SAME}Choosing a cloud provider turns it off.`,
+    'Needs the Local AI pack.',
   ],
+  // The provider help with its longest note (the free tier's allowance line, the longest of the notes) after it.
+  'Conversation provider': [
+    providerHelpLongest,
+    'Convai free tier: {left} of {limit} left today',
+  ],
+  // The same help while the daily limit is reached: the status only (what to do is in the Mistral key row's help, below).
+  'Conversation provider (daily limit reached)': [
+    providerHelpLongest,
+    'Convai free tier: daily limit reached',
+  ],
+  // A key row that is not saved yet, after a paste that failed: the message first, then the help; and one that is saved.
+  // While the daily limit is reached the Mistral row ends with what to do (Mistral's estimate and Local AI without a limit).
+  'Mistral API key (failed paste)': ['Mistral did not accept that key.', byStart('Copy your free key from Mistral first')],
+  'Mistral API key (failed paste, daily limit reached)': [
+    'Mistral did not accept that key.',
+    byStart('Copy your free key from Mistral first'),
+    'You have used today’s {limit} turns. They come back tomorrow. To keep talking now, choose Mistral (an estimated 3,000 turns a day) or Local AI (no limit), then Apply.',
+  ],
+  'Inworld API key (failed paste)': ['The clipboard could not be read.', byStart('Copy your key from Inworld first.')],
+  'Inworld API key (saved)': ['Mistral did not accept that key.', 'Deletes the saved key. The Inworld cloud voice stops until you add a key again.', 'Saved on this computer only. Only the last four characters are ever shown.'],
+  // Developer mode adds a paragraph about the Inworld voice to these helps.
+  'Companion voices (developer mode)': [byStart('Pocket: the lightest'), 'Inworld: the same with your own Inworld key, and it also speaks with emotion.'],
+  'Natural speech (developer mode)': [byStart('Companions now and then pause'), 'Inworld can voice laughs and sighs too.'],
+  'Expressive emotions (developer mode)': [byStart('Each character marks its own feelings'), 'Inworld always speaks with emotion, whatever this says.'],
+  'Multilingual conversations (developer mode)': [byStart('Talk in any language'), 'Inworld speaks English only as well.'],
   'Local AI model': [
     'Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice.',
     `LIST`,
@@ -79,21 +114,29 @@ const composites = {
     'Not usable: Embedder: an embedding model, not a chat model; Gone: file not found. See the Local AI notes, "Add your own model".',
   ],
 };
-const compositeSources = [...composites['Mature content'], ...composites['Local AI model']];
+const compositeSources = Object.values(composites).flat().map(text => text.startsWith(SAME) ? text.slice(SAME.length) : text);
 for (const text of compositeSources) {
   const known = text === 'LIST' || text.startsWith('Not usable') || text.startsWith('Until you choose') || text in catalog.strings;
   assert(known, `a composite part is not in the catalog: ${text.slice(0, 50)}`);
 }
 
-const translateComposite = (parts, translate) => parts.map(part => {
+const translateComposite = (parts, translate) => parts.map((part, index) => {
+  const joiner = index === 0 ? '' : part.startsWith(SAME) ? ' ' : '\n\n';
+  if (part.startsWith(SAME)) part = part.slice(SAME.length);
+  return joiner + translatePart(part, translate);
+}).join('');
+
+const translatePart = (part, translate) => {
   if (part === 'LIST') {
     // The installed models: names as the bridge gives them, the custom line from its template.
     return sampleModels.split('\n').map(line => line.includes('custom')
       ? translate('{name} (custom, {size} GB, needs {need} GB)').replace('{name}', 'My Model').replace('{size}', '4.0').replace('{need}', '5.2') : line).join('\n');
   }
   if (part.startsWith('Not usable:')) return translate('Not usable: {models}. See the Local AI notes, "Add your own model".').replace('{models}', 'Embedder: an embedding model, not a chat model; Gone: file not found');
+  if (part.startsWith('You have used today’s {limit}')) return translate(part).replace('{limit}', '100');
+  if (part.startsWith('Convai free tier: {left}')) return translate(part).replace('{left}', '87').replace('{limit}', '100');
   return translate(part);
-}).join('\n\n');
+};
 
 const check = (translate, label) => {
   const tooLong = [];

@@ -466,3 +466,39 @@ test('phone journal history is captured beside world knowledge under the origina
  phone.catalog.judy='a-different-profile';reply(pending);update()
  assert(callbacks[1].profileKey=='judy-alvarez')
 `));
+
+test('an add-on remark whose speaker shows the text itself plays without a subtitle; a failed voice still shows it, and no other reply is asked', () => run(speechSetup, `
+ local calls = {show = 0, begin = 0, sync = 0, clear = 0, asked = 0}
+ captions.show = function() calls.show = calls.show + 1 end
+ captions.beginTimed = function() calls.begin = calls.begin + 1 end
+ captions.syncTimed = function() calls.sync = calls.sync + 1 end
+ captions.clear = function() calls.clear = calls.clear + 1 end
+ local hide = true
+ speech.hideCaption = function(key, requestId) calls.asked = calls.asked + 1; assert(key == 'addon-x-gun' and requestId == context.requestId); return hide end
+ local addon = {entity = context.entity, requestId = context.requestId, generation = context.generation, name = 'Gun', voiceOnly = true, profileKey = 'addon-x-gun'}
+ local reply = {text = 'A reply', audio = chunk(1).audio}
+ -- Hidden: the voice plays and ends, and no caption call follows it.
+ assert(speech.start(addon, reply))
+ assert(speech.captionHidden == true and calls.asked == 1)
+ advance(.1); advance(1); advance(.5)
+ assert(speech.state == 'playing')
+ advance(2)
+ assert(calls.begin == 0 and calls.sync == 0 and calls.show == 0, 'no subtitle at any point of a hidden remark')
+ assert(not speech.requestId and speech.captionHidden == nil, 'the flag ends with the reply')
+ -- The voice cannot start: the text is shown as a subtitle so the line is not lost.
+ canStart = false
+ assert(not speech.start(addon, reply))
+ assert(calls.show == 1, 'a failed voice falls back to the subtitle')
+ canStart = true
+ -- The speaker did not agree (no hologram): the subtitle follows the voice as always.
+ hide = false
+ assert(speech.start(addon, reply))
+ assert(speech.captionHidden == nil)
+ advance(.1); advance(1)
+ assert(calls.begin >= 1 and calls.sync >= 1)
+ speech.stop('cancelled')
+ -- An ordinary reply (not voiceOnly) is never asked.
+ calls.asked = 0
+ assert(speech.start(context, reply))
+ assert(calls.asked == 0 and speech.captionHidden == nil)
+`));

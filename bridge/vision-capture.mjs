@@ -30,6 +30,8 @@ export class VisionCapture {
   }
   get path() { return this.candidates.find(path => this.exists(path)) ?? null; }
   get available() { return this.path !== null; }
+  // True while a helper process exists (starting or ready).
+  get running() { return this.child !== null; }
   // Starts the helper (idempotent). Resolves true once it reports ready, false when it is missing or cannot start.
   start({readyTimeoutMs = CAPTURE_DEFAULTS.readyTimeoutMs} = {}) {
     if (this.ready) return this.ready;

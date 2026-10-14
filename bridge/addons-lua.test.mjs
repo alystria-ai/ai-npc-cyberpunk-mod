@@ -898,9 +898,11 @@ test('init.lua: every call into the add-on API is skipped until an add-on is liv
   const init = code('init.lua');
   assert.match(init, /local loaded, module = pcall\(dofile, 'addons\.lua'\)\s+convaiAddons = loaded and type\(module\) == 'table' and module or nil/);
   const calls = [...init.matchAll(/convaiAddons\.(\w+)\(/g)].map(match => match[1]);
-  assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'captionName', 'decorate', 'gameLine', 'isSpeaker', 'lineRulesWanted', 'matchLine', 'mutedLine', 'participantLive', 'replyError', 'talkCandidates', 'voiceSource']);
+  assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'captionName', 'decorate', 'faceActor', 'gameLine', 'hideCaption', 'isSpeaker', 'lineRulesWanted', 'matchLine', 'mutedLine', 'participantLive', 'replyError', 'talkCandidates', 'voiceSource']);
   // Where an add-on voice is heard from: asked by speech.lua once per voice-only reply, and only while an add-on is live.
   assert.match(init, /speech\.voiceSource = function\(profileKey, player\) return convaiAddons\.live and convaiAddons\.voiceSource\(profileKey, player\) or nil end/);
+  // An add-on remark whose speaker shows the text itself goes without a subtitle: asked by speech.lua once per voice-only reply, only while live.
+  assert.match(init, /speech\.hideCaption = function\(profileKey, requestId\) return convaiAddons\.live and convaiAddons\.hideCaption\(profileKey, requestId\) or false end/);
   // The game-line notice runs only for a live add-on: the dialogue module asks first (one function call per game subtitle line).
   assert.match(init, /onGameLineWanted = function\(\) return convaiAddons ~= nil and convaiAddons\.live == true end,\s+onGameLine = function\(seconds, kind, measured\) convaiAddons\.gameLine\(seconds, kind, measured\) end/);
   assert.match(init, /if key and not participants and convaiAddons and convaiAddons\.live and convaiAddons\.isSpeaker\(key\) then key = nil end/);
@@ -938,7 +940,7 @@ test('init.lua: every call into the add-on API is skipped until an add-on is liv
 
 test('speech, subtitles, continuous speech, group chat and the manager change nothing for an ordinary reply', () => {
   const speech = code('speech.lua'), subtitles = code('subtitles.lua'), continuous = code('continuous-speech.lua');
-  assert.match(speech, /if M\.voiceOnly and NO_FACE\[key\] then return noFace end\s+return facial\[key\]/);
+  assert.match(speech, /if M\.voiceOnly and NO_FACE\[key\] then return M\.faceActor and screenFace\[key\] or noFace end\s+return facial\[key\]/);
   assert.match(speech, /M\.voiceOnly = context\.voiceOnly == true\s+captions\.voiceOnly = M\.voiceOnly/);
   assert.match(speech, /\(not M\.voiceOnly and M\.actor:IsDeadNoStatPool\(\)\)/);
   assert.match(subtitles, /if M\.voiceOnly == true then\s+M\.mode, M\.fallback = 'dialogue', 'voice-only'/);
@@ -969,4 +971,374 @@ test('the face proxy forwards every facial call for an ordinary reply and drops 
     face.start(); face.sync(); face.pause(); face.stop(); face.hold(); face.beginExpression(); face.endExpression(); face.updateExpressions()
     assert(table.concat(calls, ',') == 'start,sync,updateExpressions,updateExpressions', table.concat(calls, ','))
   `);
+});
+
+test('settings fixed by the add-on: the two on/off built-ins are not offered, cannot be changed, and apply as fixed whatever was saved', () => {
+  run(`${WORLD}
+    M.attach(host)
+    -- An older install saved the player's choices for the built-ins.
+    files['runtime/addon-settings.json'] = json.encode({version = 1, addons = {skippy = {replaceGameLines = false, markLines = true}, cab = {replaceGameLines = false, markLines = false}}})
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2})
+    assert(handle:replaceGameLines({name = 'Skippy', match = function(line) return line.speakerName == 'Skippy' end}))
+    -- Before the add-on declares anything, nothing is fixed: the saved choices apply and both are offered.
+    assert(select(2, M.matchLine({speakerName = 'Skippy'}, {})) == false)
+    assert(M.captionName('addon-skippy-gun', 'Skippy') == 'Skippy (AI)')
+    local function labels(index)
+        local out = {}
+        for _, item in ipairs(M.settingsSections()[index or 1].items) do out[#out + 1] = item.label end
+        return table.concat(out, '|')
+    end
+    assert(labels():find('Replace the game', 1, true) and labels():find('Mark our lines', 1, true))
+    assert(handle:settings({title = 'Skippy', fixed = {replaceGameLines = true, markLines = false, nonsense = true}, items = {
+        {id = 'personality', label = 'Personality', kind = 'select', default = 1, elements = {'A', 'B'}}}}))
+    assert(labels() == 'Time between remarks|Most remarks per fight|Personality', labels())
+    assert(select(2, M.matchLine({speakerName = 'Skippy'}, {})) == true, 'fixed on, whatever was saved')
+    assert(M.captionName('addon-skippy-gun', 'Skippy') == 'Skippy', 'fixed off, whatever was saved')
+    assert(M.stageSetting('addon:skippy:replaceGameLines', false) == false and M.stageSetting('addon:skippy:markLines', true) == false)
+    assert(M.stageSetting('addon:skippy:personality', 2) and M.commitSettings())
+    assert(select(2, M.matchLine({speakerName = 'Skippy'}, {})) == true)
+    -- One fixed value does not hide the other built-in.
+    local cab = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    cab:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle', minGap = 2})
+    assert(cab:replaceGameLines({name = 'Delamain', match = function(line) return line.speakerName == 'Delamain' end}))
+    assert(cab:settings({fixed = {markLines = false}, items = {}}))
+    local text = labels(2)
+    assert(text:find('Replace the game', 1, true) and not text:find('Mark our lines', 1, true), text)
+    assert(M.captionName('addon-cab-voice', 'Delamain') == 'Delamain')
+    assert(M.stageSetting('addon:cab:replaceGameLines', true) and M.commitSettings())
+    -- An add-on that fixes nothing keeps both switches, as before.
+    local plain = assert(M.public.register({id = 'plain', name = 'Plain', version = '1.0.0', requires = '1.0'}))
+    plain:speaker({id = 'one', name = 'Plain', anchor = 'player', minGap = 2})
+    assert(plain:settings({items = {{id = 'x', label = 'X', kind = 'bool', default = true}}}))
+    assert(labels(3):find('Mark our lines', 1, true))
+    assert(M.captionName('addon-plain-one', 'Plain') == 'Plain (AI)')
+  `);
+});
+
+test('showsReply: an add-on that shows a remark itself is asked once per remark, and the main mod then hides that remark\'s subtitle', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    assert(select(2, handle:speaker({id = 'gun', name = 'Skippy', showsReply = 3})) == 'showsReply must be a function')
+    local asked, answer = {}, true
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2,
+        showsReply = function(text, event) asked[#asked + 1] = event .. ':' .. text; if answer == 'error' then error('boom') end; return answer end})
+    handle:speaker({id = 'plain', name = 'Plain', anchor = 'player', minGap = 2})
+    assert(M.hideCaption('addon-skippy-gun', 'nothing') == false, 'no remark, no answer')
+    assert(handle:remark('gun', {event = 'kill', priority = 3}))
+    tick()
+    local context = submitted[1].context
+    assert(M.hideCaption('addon-skippy-gun', context.requestId) == false, 'not asked until the reply text arrives')
+    M.replyText({requestId = 'other'}, 'not this one')
+    assert(#asked == 0)
+    M.replyText(context, 'Headshot.')
+    assert(#asked == 1 and asked[1] == 'kill:Headshot.')
+    assert(M.hideCaption('addon-skippy-gun', context.requestId) == true)
+    assert(M.hideCaption('addon-skippy-gun', 'another') == false and M.hideCaption('addon-skippy-plain', context.requestId) == false
+        and M.hideCaption('judy-alvarez', context.requestId) == false and M.hideCaption(nil, nil) == false)
+    -- It is for this remark only: the next one is asked again, and a refusal or an error keeps the subtitle and says so once.
+    assert(M.canDeliver(context, player) == true)
+    state.pendingId, state.speechId = nil, context.requestId
+    tick()
+    state.speechId = nil
+    tick()
+    answer = false
+    now = now + 20; tick(10)
+    assert(handle:remark('gun', {event = 'kill', priority = 3}))
+    tick()
+    local second = submitted[2].context
+    M.replyText(second, 'Another.')
+    assert(#asked == 2 and M.hideCaption('addon-skippy-gun', second.requestId) == false, 'a refusal keeps the subtitle')
+    local kept = 0
+    for _, line in ipairs(logs) do if line:find('Remark subtitle kept', 1, true) then kept = kept + 1 end end
+    assert(kept == 1, kept)
+    assert(M.canDeliver(second, player) == true)
+    state.pendingId, state.speechId = nil, second.requestId
+    tick(); state.speechId = nil; tick()
+    answer = 'error'
+    now = now + 20; tick(10)
+    assert(handle:remark('gun', {event = 'kill', priority = 3}))
+    tick()
+    local third = submitted[3].context
+    M.replyText(third, 'Third.')
+    assert(M.hideCaption('addon-skippy-gun', third.requestId) == false, 'a failing add-on never loses the line')
+    -- A speaker without showsReply is never asked and keeps its subtitle.
+    assert(M.canDeliver(third, player) == true)
+    state.pendingId, state.speechId = nil, third.requestId
+    tick(); state.speechId = nil; tick()
+    -- The answer is dropped with the remark.
+    answer = true
+    now = now + 20; tick(10)
+    assert(handle:remark('gun', {event = 'kill', priority = 3}))
+    tick()
+    local fourth = submitted[4].context
+    M.replyText(fourth, 'Fourth.')
+    assert(M.hideCaption('addon-skippy-gun', fourth.requestId) == true and M.hideCaption('addon-skippy-gun', third.requestId) == false)
+  `);
+});
+
+test('silence: an add-on\'s own extra silencing runs with the muted line and repeats on the tick, even for a rule with no voice event', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2})
+    assert(select(2, handle:replaceGameLines({match = function() end, silence = 3})) == 'silence must be a function')
+    assert(handle:replaceGameLines({name = 'Skippy', match = function(line) return line.speakerName == 'Skippy' end,
+        silence = function() return 'did it', function() end end}))
+    local rule = M.matchLine({speakerName = 'Skippy'}, {})
+    assert(type(rule.silence) == 'function' and #rule.audio == 0)
+    local sent = 0
+    M.mutedLine(rule, {seconds = 3, measured = true, id = '000007', subtitle = 'filtered', audio = 'no-event-known+did it', repeatStop = function() sent = sent + 1 end})
+    for _ = 1, 30 do tick(0.1) end
+    assert(sent == 3, 'repeated at 0.3, 0.8 and 1.6 s: ' .. sent)
+  `);
+});
+
+// ---- 2026-10-14: fixed built-ins, held remarks, remarks that play through menus, and a face on a screen (the Delamain cab) ----
+
+test('fixed built-ins: the add-on sets "Replace the game\'s own lines" and "Mark our lines" for good, the toggles are gone and old saved values are ignored', () => {
+  run(`${WORLD}
+    M.attach(host)
+    files['runtime/addon-settings.json'] = json.encode({version = 1, addons = {cab = {replaceGameLines = false, markLines = true}}})
+    local handle = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle'})
+    assert(handle:replaceGameLines({name = 'Delamain', match = function(line) return line.speakerName == 'Delamain' end}))
+    -- Before the add-on fixes them, the saved choices apply (as always).
+    assert(select(2, M.matchLine({speakerName = 'Delamain'}, {})) == false)
+    assert(M.captionName('addon-cab-voice', 'Delamain') == 'Delamain (AI)')
+    assert(handle:settings({title = 'Delamain Cab', remarkCap = false, fixed = {replaceGameLines = true, markLines = false, other = true},
+        items = {{id = 'enabled', label = 'Enabled', kind = 'bool', default = true}}}))
+    local rule, replace = M.matchLine({speakerName = 'Delamain'}, {})
+    assert(rule and replace == true, 'always replaced, whatever was saved')
+    assert(M.captionName('addon-cab-voice', 'Delamain') == 'Delamain', 'never marked')
+    local labels = {}
+    for _, item in ipairs(M.settingsSections()[1].items) do labels[#labels + 1] = item.label end
+    assert(table.concat(labels, '|') == 'Time between remarks|Enabled', table.concat(labels, '|'))
+    assert(M.stageSetting('addon:cab:replaceGameLines', false) == false and M.stageSetting('addon:cab:markLines', true) == false)
+    -- A non-boolean fixed value is no fixed value.
+    assert(handle:settings({title = 'Delamain Cab', fixed = {replaceGameLines = 'yes'}, items = {}}))
+    assert(select(2, M.matchLine({speakerName = 'Delamain'}, {})) == false)
+  `);
+});
+
+const CAB = `
+    M.attach(host)
+    local holds, menus = {}, {}
+    host.hold = function(id) holds[#holds + 1] = id or 'nil' end
+    host.menus = function(id) menus[#menus + 1] = id or 'nil' end
+    local handle = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    local cab = car
+    local key = handle:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle', minGap = 2, playThrough = true,
+        approach = function() return cab end})
+    local events = {}
+    for _, name in ipairs({'remarkStarted', 'remarkFinished', 'remarkDropped'}) do
+        handle:on(name, function(payload) events[#events + 1] = name .. ':' .. tostring(payload.reason or payload.event)
+            .. (payload.spoken ~= nil and (':' .. tostring(payload.spoken)) or '') end)
+    end
+    local seated = false
+`;
+
+test('a held remark is written and voiced before its moment (anchored on the approached cab), kept silent, and plays when hold() turns false', () => {
+  run(`${WORLD}${CAB}
+    assert(select(2, handle:remark('voice', {event = 'x', hold = 3})) == 'hold must be a function')
+    assert(select(2, handle:remark('voice', {event = 'x', menus = 'yes'})) == 'menus must be true, false or a function')
+    assert(handle:remark('voice', {event = 'boarded', priority = 4, ttl = 15, hold = function() return not seated end, holdMax = 20}))
+    tick()
+    assert(#submitted == 1, 'sent while V is not in the cab yet')
+    local context = submitted[1].context
+    assert(submitted[1].anchor == cab and context.entity == '88ULL', 'the approach object is the anchor')
+    assert(holds[1] == context.requestId, 'speech.lua is told to keep it paused')
+    assert(M.canDeliver(context, player) == true)
+    state.pendingId, state.speechId = nil, context.requestId
+    tick(); tick(1)
+    assert(M._test.flight().stage == 'held' and #events == 0, 'voiced but not heard: no remarkStarted')
+    -- V sits: the hold ends on the next tick, the line is heard from there.
+    player.vehicle = cab; seated = true
+    tick()
+    assert(holds[#holds] == 'nil')
+    tick()
+    assert(events[1] == 'remarkStarted:boarded', tostring(events[1]))
+    state.speechId = nil
+    tick()
+    assert(events[2] == 'remarkFinished:finished:true', tostring(events[2]))
+    assert(#menus == 0, 'no menus option: speech.lua is never told about menus')
+  `);
+});
+
+test('a held remark plays at once on handle:releaseHold, is given up unheard after holdMax, and the cab must still be the one V boards', () => {
+  run(`${WORLD}${CAB}
+    assert(handle:remark('voice', {event = 'boarded', priority = 4, ttl = 15, hold = function() return not seated end}))
+    tick()
+    local context = submitted[1].context
+    assert(M.canDeliver(context, player))
+    state.pendingId, state.speechId = nil, context.requestId
+    tick()
+    assert(handle:releaseHold('voice') == true and holds[#holds] == 'nil', 'released without waiting for a tick')
+    assert(handle:releaseHold('voice') == false, 'nothing held any more')
+    tick()
+    assert(events[1] == 'remarkStarted:boarded')
+    state.speechId = nil; tick()
+    -- Never seated: given up after holdMax, unheard, its voice stopped.
+    now = now + 30; tick(30)
+    assert(handle:remark('voice', {event = 'boarded2', priority = 4, ttl = 15, hold = function() return true end, holdMax = 5}))
+    tick()
+    local second = submitted[2].context
+    assert(M.canDeliver(second, player))
+    state.pendingId, state.speechId = nil, second.requestId
+    tick(); tick(3)
+    assert(M._test.flight() ~= nil)
+    tick(2.5)
+    assert(M._test.flight() == nil and dropped[#dropped].reason == 'hold-expired' and dropped[#dropped].requestId == second.requestId)
+    assert(events[#events] == 'remarkFinished:hold-expired:false', tostring(events[#events]))
+    assert(holds[#holds] == 'nil')
+    -- V got into another car before the reply arrived: not this cab's line any more.
+    now = now + 30; tick(30)
+    assert(handle:remark('voice', {event = 'boarded3', priority = 4, ttl = 15, hold = function() return true end}))
+    tick()
+    tick(3)   -- the quiet gap after the stopped voice
+    local third = submitted[3].context
+    player.vehicle = {hash = '99ULL', IsAttached = function() return true end, GetEntityID = function(self) return {hash = self.hash} end}
+    assert(M.canDeliver(third, player) == false and dropped[#dropped].reason == 'anchor-changed')
+  `);
+});
+
+test('approach is for held remarks only: an ordinary remark and talk still need V in the cab', () => {
+  run(`${WORLD}${CAB}
+    assert(handle:remark('voice', {event = 'plain', priority = 3}))
+    tick()
+    assert(#submitted == 0 and events[1] == 'remarkDropped:speaker-unavailable', tostring(events[1]))
+    assert(#M.talkCandidates(player, false) == 0, 'talk never uses approach')
+    -- A held remark whose moment has already come is not held at all.
+    seated = true; player.vehicle = cab
+    assert(handle:remark('voice', {event = 'late', priority = 4, hold = function() return not seated end}))
+    tick()
+    assert(#submitted == 1 and #holds == 0 and submitted[1].context.entity == '88ULL')
+  `);
+});
+
+test('menus: speech.lua is told which remark plays on while a menu is open, for as long as the add-on says so', () => {
+  run(`${WORLD}${CAB}
+    player.vehicle = cab
+    local waiting = true
+    assert(handle:remark('voice', {event = 'boarded', priority = 4, menus = function() return waiting end}))
+    tick()
+    local context = submitted[1].context
+    assert(menus[1] == context.requestId)
+    assert(M.canDeliver(context, player))
+    state.pendingId, state.speechId = nil, context.requestId
+    tick()
+    assert(#menus == 1, 'told once, not every tick')
+    waiting = false
+    tick()
+    assert(menus[2] == 'nil')
+    waiting = true; tick()
+    assert(menus[3] == context.requestId)
+    state.speechId = nil; tick()
+    assert(menus[4] == 'nil', 'the release clears it')
+  `);
+});
+
+test('a face on a screen: validated, watched through the face service only while the add-on asks, released after a reset, and only that NPC is returned', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local watched, calls = {}, {}
+    local npc = {hash = '55ULL', ready = true}
+    function npc:IsAttached() return true end
+    function npc:GetEntityID() return {hash = self.hash} end
+    function npc:ConvaiFaceReady() return self.ready end
+    local service = {}
+    function service:WatchScreenFace(rig, on) calls[#calls + 1] = rig .. '=' .. tostring(on); watched[rig] = on or nil end
+    function service:ScreenFace(rig) return {hash = watched[rig] and '55ULL' or '0ULL'} end
+    host.faceService = function() return service end
+    Game = {FindEntityByID = function(id) return id.hash == '55ULL' and npc or nil end}
+    local RIG = 'base\\\\characters\\\\main_npc\\\\delamain\\\\h0_001_ma_c__delamain\\\\h0_001_ma_c__delamain_skeleton.rig'
+    local handle = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    assert(select(2, handle:speaker({id = 'bad', name = 'X', face = {rig = 'not a rig'}})) == 'face.rig must be a .rig path')
+    assert(select(2, handle:speaker({id = 'bad', name = 'X', approach = 3})) == 'approach must be a function')
+    local key = handle:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle', face = {rig = RIG}})
+    local plain = handle:speaker({id = 'other', name = 'Other', anchor = 'vehicle'})
+    assert(select(2, handle:watchFace('other', true)) == 'speaker has no face')
+    assert(M.faceActor(key, player) == nil, 'not watched: no face')
+    assert(handle:watchFace('voice', true) and calls[1] == RIG .. '=true')
+    assert(handle:watchFace('voice', true) and #calls == 1, 'one service call per change')
+    assert(M.faceActor(key, player) == npc and M.faceActor(plain, player) == nil and M.faceActor('judy-alvarez', player) == nil)
+    npc.ready = false
+    assert(M.faceActor(key, player) == nil, 'a face that no longer runs the gated graph is not used')
+    npc.ready = true
+    -- A save load: the watch is released on the next gameplay tick (M.reset never calls the game) unless the add-on watches again.
+    M.reset('load')
+    assert(#calls == 1 and M.faceActor(key, player) == nil)
+    tick()
+    assert(calls[2] == RIG .. '=false' and watched[RIG] == nil)
+    assert(handle:watchFace('voice', true) and calls[3] == RIG .. '=true')
+    M.reset('load')
+    assert(handle:watchFace('voice', true) and calls[4] == RIG .. '=true')
+    tick()
+    assert(#calls == 4, 'watched again before the tick: not released')
+    -- Switching the add-on off ends the watch.
+    assert(handle:setEnabled(false) and calls[5] == RIG .. '=false')
+    assert(handle:watchFace('voice', true) and #calls == 5, 'a disabled add-on watches nothing')
+  `);
+});
+
+test('speech.lua: a screen face gets the voice\'s face calls under its own entity, and hold / menus decide the pause; without them nothing changes', () => {
+  const speechSource = read('../mod/speech.lua');
+  const head = speechSource.slice(0, speechSource.indexOf('local continuous'));
+  run(`
+    local calls = {}
+    local facial = setmetatable({}, {__index = function(_, key) return function(...) calls[#calls + 1] = {key, ...} end end})
+    dofile = function(name) if name == 'facial-playback.lua' then return facial end; return {} end
+    convaiSpeech = {heartbeat = 0}
+    ${head}
+    local screen = {}
+    M.voiceOnly, M.faceActor, M.faceEntity = true, screen, '55ULL'
+    M.faceContext = {requestId = 'r1', generation = 3, entity = '55ULL', name = 'Delamain'}
+    local timeline = {version = 1, requestId = 'r1', entity = '88ULL', frames = {{0, 0}, {1, 0}}}
+    face.start({entity = '88ULL'}, timeline, 'cab', 1, nil)
+    local start = calls[1]
+    assert(start[1] == 'start' and start[2] == M.faceContext and start[4] == screen and start[5] == 1)
+    assert(start[3] ~= timeline and start[3].entity == '55ULL' and start[3].frames == timeline.frames and timeline.entity == '88ULL',
+        'a re-addressed copy; the reply timeline itself is untouched')
+    face.updateContinuous({}, timeline, 'cab', 1)
+    assert(calls[2][1] == 'updateContinuous' and calls[2][3].entity == '55ULL' and calls[2][4] == screen)
+    face.sync('cab', .5, 'r1'); face.pause('cab'); face.hold('cab', 'r1'); face.stop('cab', 'finished')
+    assert(calls[3][2] == screen and calls[3][3] == .5 and calls[4][2] == screen and calls[5][2] == screen and calls[6][2] == screen)
+    local before = #calls
+    face.beginExpression(); face.acceptExpression(); face.endExpression()
+    assert(#calls == before, 'no expression calls for a screen face')
+    -- Pause rules: a menu pauses (as always) unless this request plays through menus; a held request stays paused.
+    assert(pausedFor('r1', true) == true and pausedFor('r1', false) == false and pausedFor(nil, true) == true)
+    M.menuRequest = 'r1'
+    assert(pausedFor('r1', true) == false and pausedFor('r2', true) == true)
+    M.holdRequest = 'r1'
+    assert(pausedFor('r1', false) == true and pausedFor('r1', true) == true and pausedFor('r2', false) == false)
+  `);
+  // The wiring: asked once per reply, cleared with the reply, and the pause uses it every frame for the native and the browser voice.
+  assert.match(speechSource, /if M\.voiceOnly and not M\.holocall and type\(M\.faceSource\) == 'function' then/);
+  assert.match(speechSource, /if M\.faceEntity then facial\.clearExpression\(M\.faceEntity\); facial\.screenEntity = nil end/);
+  assert.match(speechSource, /local paused = pausedFor\(M\.requestId, Game\.GetBlackboardSystem\(\)/);
+  assert.match(speechSource, /paused = pausedFor\(context\.requestId, paused\)/);
+  assert.match(speechSource, /if started and M\.requestId and pausedFor\(M\.requestId, false\) then/);
+  const init = read('../mod/init.lua');
+  assert.match(init, /speech\.faceSource = function\(profileKey, player\) return convaiAddons\.live and convaiAddons\.faceActor\(profileKey, player\) or nil end/);
+  assert.match(init, /seams\.hold = function\(requestId\) speech\.holdRequest = requestId end/);
+  assert.match(init, /seams\.menus = function\(requestId\) speech\.menuRequest = requestId end/);
+  const facialSource = read('../mod/facial-playback.lua');
+  assert.match(facialSource, /local function safeExpressionActor\(actor,entity\)\s+if entity~=nil and entity==M\.screenEntity then return true end/);
+  assert.match(facialSource, /not safeExpressionActor\(actor,entity\)/);
+});
+
+test('Face.reds: the screen-face watch is checked only while a rig is watched, before the crowd mode, and keeps the gate', () => {
+  const reds = read('../r6/scripts/CyberpunkConvai/Face.reds');
+  const world = reds.slice(reds.indexOf('private cb func OnWorldInitialize'), reds.indexOf('// A watched screen face'));
+  assert.match(world, /let screens = ArraySize\(this\.m_screenRigs\) > 0;\s+if this\.m_crowdMode == 0 && !screens \{ return; \};/);
+  assert.match(world, /if screens && this\.PrepareScreenFace\(npc, face, index\) \{ return; \};\s+if this\.m_crowdMode == 0 \{ return; \};/);
+  const prepare = reds.slice(reds.indexOf('private func PrepareScreenFace'), reds.indexOf('private func ScreenSlot'));
+  assert.match(prepare, /this\.CheckRig\(face\)/);
+  assert.match(prepare, /let graph = this\.m_crowdGated\[index\];/, 'the gated graph, never the ungated one');
+  assert.doesNotMatch(prepare, /m_crowdPlain/);
+  assert.match(reds, /public func WatchScreenFace\(rig: String, watch: Bool\) -> Int32/);
+  assert.match(reds, /ArraySize\(this\.m_screenRigs\) < 4 && StrEndsWith\(rig, "\.rig"\)/);
+  assert.match(reds, /public func ScreenFace\(rig: String\) -> EntityID/);
 });
