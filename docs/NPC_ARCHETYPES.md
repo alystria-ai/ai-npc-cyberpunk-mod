@@ -5,6 +5,8 @@ a generic **archetype** Convai character, one per kind of person and gender: 37 
 A named roster character the game placed in the world (the real Judy) is never routed to Convai at all; only the copy the mod spawns talks (docs/WORLD_COMPANIONS.md, 2026-10-11).
 
 
+Names: a nameless ordinary NPC also gets a generated Night City name (scanner, conversation, caption), 2026-10-15; see docs/NPC_NAMES.md.
+
 Not yet seen in game: every TweakDB read below is from code and the shipped REDmod tweak sources, so the
 in-game check list at the end must pass before this is trusted.
 
