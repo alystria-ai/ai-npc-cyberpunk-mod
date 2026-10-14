@@ -786,7 +786,8 @@
             "research/cyberpunk/native-character-claims/evelyn-parker.json",
             "research/cyberpunk/native-character-claims/river-ward.json",
             "research/cyberpunk/native-character-claims/solomon-reed.json",
-            "research/cyberpunk/native-character-claims/songbird.json"
+            "research/cyberpunk/native-character-claims/songbird.json",
+            "research/cyberpunk/native-character-claims/alt-cunningham.json"
           ],
           "selection": "only reviewed canonical authored documents loaded by the production bridge",
           "includeRawGameExports": false,
