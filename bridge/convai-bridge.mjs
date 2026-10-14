@@ -22,6 +22,8 @@ import {ReplyStream} from './reply-stream.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
+import {CompanionVision} from './companion-vision.mjs';
+import {VisionCapture} from './vision-capture.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
 import {createAddonVoice} from './addon-voice.mjs';
 import {startVoiceKeyStream} from './voice-key-stream.mjs';
@@ -608,8 +610,24 @@ function writeStreamManifest(document,current){
 }
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
+// "Companions can see" (docs/COMPANION_VISION.md): on by default, Convai only. Every conversation turn carries a recent picture of
+// V's surroundings from an in-memory buffer that native/vision fills out of process while someone is near and nobody is talking;
+// it is published on the page ahead of the line. companionVision.attachToNextTurn(images) lets other features show the companion
+// something (e.g. a TV picture).
+const visionLog = message => console.error('[Vision] ' + message);
+let speechPlayingAt = 0;
+const companionVision = new CompanionVision({capture: new VisionCapture({log: visionLog}), isConvai: () => !mistral.active,
+  isNear: () => !connections.stale && (connections.profiles.length > 0 || connections.nearby.length > 0 || connections.partners.length > 0),
+  isConversing: () => !!(active || mic.current || micPolling || connections.composer) || Date.now() - speechPlayingAt < 1500,
+  stageVoice: images => realtime.stageVoiceVision(images),
+  stagePage: (config, images) => realtime.prestageVision(config, images), unstagePage: config => realtime.unstageVision(config),
+  // YouTube on V's TV (setScreenSource below): the party's private pages get the video's frames while it plays.
+  livePages: () => connections.stale ? [] : connections.profiles.filter(profile => connections.isKnown(profile)).slice(0, 3)
+    .map(profile => connections.configFor(profile, 'private')),
+  feedPage: (config, image) => realtime.liveVision(config, image), refreshPage: config => realtime.refreshVision(config),
+  log: visionLog});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
-  transformReply: cleanReply, guard: hostGuard, ...keyHostOptions(() => [phoneRealtime])});
+  transformReply: cleanReply, guard: hostGuard, vision: companionVision, ...keyHostOptions(() => [phoneRealtime])});
 // Mistral route (docs/MISTRAL.md): the same text reply path as Convai, with the persona built from characters/*.json and a small
 // local memory. attachMistral makes both hosts answer text turns through it while the provider is Mistral. `localTurn` names
 // the character, the channel and (for an ordinary NPC) its conversation, so the host can recall the right history; the Convai path
@@ -916,6 +934,7 @@ const realtimeConfig = input => memoryPolicy({key: currentKey(), characterId: ro
   scope: routeFor(input)?.scope || conversationScope(input), ...(routeFor(input)?.remoteConfig || {}),
   ...textProviderContext(input), text: battleTrigger(input), reaction: input.reaction,
   companionAction: companionActions.configFor(input), local: localTurn(input),
+  ...(companionVision.active && typeof input.requestId === 'string' ? {visionTurn: input.requestId} : {}),
   ttsEnabled: localVoice.playbackEnabled!==false&&!turnUsesLocal(input)});
 const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.configFor(profile, scope,
   {worldToken: worldSession?.token, generation: worldSession?.generation});
@@ -944,6 +963,15 @@ const connections = new PartyConnections({host: realtime,
     return connectionMetricsWriting;
   },
 });
+// The conversation pages a composer hint is about to use (its target's private page, or each speaker's group page), for staging
+// the surroundings picture ahead of the line. Empty while vision is not active.
+function composerPages(hint, config) {
+  if (!companionVision.active) return [];
+  try {
+    if (hint.scope === 'private') return [config ?? connections.configFor(hint.audience[0], 'private')];
+    return hint.audience.filter(profile => connections.isKnown(profile)).slice(0, 3).map(profile => connections.configFor(profile, hint.scope));
+  } catch { return []; }
+}
 // "Auto-connect nearby characters": the game lists up to two characters it is looking at or
 // standing near; their connection and local voice are prepared ahead (bridge/nearby-warm.mjs).
 const nearbyWarm = new NearbyWarm({connections, isKnown: profile => Object.hasOwn(ids, profile), routeFor: ambientWarmConfig,
@@ -1862,6 +1890,8 @@ async function pollMicrophone() {
         if (!profile || !ids[profile.key] || !await audioReady(runtime)) {
           await mic.onError(input, Error('Voice service or character is unavailable')); return;
         }
+        // The talk key: the surroundings picture is published on the voice page as soon as the recording runs, while V talks.
+        companionVision.beginVoice(input.requestId);
         // A new microphone turn supersedes a pending text reply.
         void companionActions.revoke();
         active?.controller.abort(); dropPrefetch();
@@ -2148,6 +2178,8 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
 async function runInput(request, prepared, clock) {
   let input = request.input;
   const {controller} = request;
+  // A conversation turn: the frame buffer stops capturing (the view is on the companion now); the turn takes a buffered frame.
+  companionVision.beginTurn(input);
   const ahead = request.lookahead;
   const preparationStarted = performance.now();
   const stages = {};
@@ -2295,6 +2327,7 @@ async function pollPrefetch() {
       lastAudioHeartbeat = 0; dropPrefetch();
       active?.controller.abort(); await connections.clear(); await realtime.close();
     }
+    if (speech.state === 'playing' && Date.now() - speech.updated < 5000) speechPlayingAt = Date.now();   // a reply is playing: no capture
     const row = latency.get(speech.requestId);
     if (row && speech.state === 'playing' && speech.position > 0 && !row.nativePlaybackObserved) {
       turnMark(speech.requestId, 'playbackObserved');
@@ -2308,13 +2341,16 @@ async function pollPrefetch() {
     if (hintRaw !== prewarmObserved && !active && !mic.current && !micPolling) {
       prewarmObserved = hintRaw;
       let hint; try { hint = parsePrewarm(JSON.parse(hintRaw), ids); } catch {}
-      if (!hint) await connections.setComposer(null);
+      if (!hint) { companionVision.closeComposer(); await connections.setComposer(null); }
       else if (await audioReady(runtime)) {
         if (mic.current || micPolling || stopped) { prewarmObserved = ''; return; }
         // A private hint for an ambient NPC carries its entity: open that NPC's own route now, while V types.
         const config = hint.scope === 'private' && hint.entity ? ambientWarmConfig(hint.audience[0], hint.entity) : null;
         vVoice.warmUp();
-        await connections.setComposer(config ? {...hint, config} : hint);
+        const opening = connections.setComposer(config ? {...hint, config} : hint);
+        // The surroundings picture goes onto the target pages now, while V types (retried while a page still connects).
+        companionVision.openComposer(composerPages(hint, config));
+        await opening;
       }
     }
     await nearbyWarm.apply(await readFile(nearbyPath, 'utf8').catch(() => ''));
@@ -2632,6 +2668,7 @@ async function pollSettings(checkShutdown = true) {
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
     if (vVoice.update(settings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}`);
+    if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.enabled && vVoice.available);
     void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));
     const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
@@ -2666,7 +2703,7 @@ async function pollSettings(checkShutdown = true) {
           action: {admitted: !!pendingAction, accepted: pendingAction?.accepted === true,
             current: !!pendingAction && companionActions.current(pendingAction),
             profile: pendingAction?.input?.profileKey ?? null},
-          pages: await realtime.diagnostics()}));
+          vision: companionVision.diagnostics(), pages: await realtime.diagnostics()}));
       }
     }
   } finally { settingsPolling = false; }
@@ -2697,6 +2734,8 @@ const editorControl = await EditorControl.open({server: new EditorServer({editor
 youtubeTv = await new YouTubeTv({runtime, stateDirectory, browserExecutable: process.env.CYBERPUNK_CONVAI_BROWSER,
   audible: async () => !!(active || mic.current) || ((await readSpeechStateCached().catch(() => ({})))?.state ?? 'idle') !== 'idle',
   log: message => console.error('[YouTubeTv] ' + message)}).start();
+// While a video is on, the TV is what companions see (about a frame a second, docs/COMPANION_VISION.md "The TV").
+companionVision.setScreenSource(youtubeTv.visionSource());
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
@@ -2752,6 +2791,7 @@ async function shutdown() {
   if (stopped) return;
   await companionActions.revoke();
   stopped = true; active?.controller.abort(); dropPrefetch(); audioWatch.stop(); tokenSource?.stop();
+  companionVision.stop();
   settleVoiceRouteWaiters(Error('Voice service is closed'));
   phone.close(); clearInterval(phoneTimer);
   phoneKnowledge.clear();

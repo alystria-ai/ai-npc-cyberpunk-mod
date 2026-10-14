@@ -1594,6 +1594,9 @@ local function ownKeyRows(snapshot)
     local rows = {
         setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
             {'Convai free tier', 'Convai API key', 'Mistral (free plan)', 'Local (needs Local AI pack)'}, {elements = true, description = true}),
+        -- Companions can see (docs/COMPANION_VISION.md): Convai only, on by default; the bridge does all the work.
+        setting('companionVision', 'Companions can see', 'bool', snapshot.settings.companionVision ~= false, true,
+            'With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only.'),
         matureRow,
         modelRow,
         keyRow('Convai API key',
@@ -2175,7 +2178,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     or key == 'autoConnectNearby' or key == 'holocallLiveImage' or key == 'youtubeTv' or key == 'naturalSpeech'
                     or key == 'gameDialogueContext'
                     or key == 'expressiveEmotions' or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
-                    or key == 'matureContent' then values[key] = change.value
+                    or key == 'matureContent' or key == 'companionVision' then values[key] = change.value
                 elseif key == 'audioDelay' then
                     local delays = manager.audioDelayChoices()
                     if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not delays[change.value] then

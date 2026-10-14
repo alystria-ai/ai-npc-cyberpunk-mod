@@ -2,7 +2,7 @@
 # Started by bridge/youtube-tv-host.mjs only while a video session is open; it exits with its parent (-ParentId) or on "exit".
 #
 # Reads one JSON command per line on stdin and writes one JSON event per line on stdout:
-#   {"op":"attach","title":"<window title>"}   find the TV window by its exact title (waits up to 8 s)
+#   {"op":"attach","title":"<window title>"}   find the TV window by its title, or that title and " - ..." added by Edge (waits up to 8 s)
 #   {"op":"layout","mode":"picker"|"player"}  picker: centred, takes the keyboard; player: above the game's subtitle band, never
 #                                             takes focus, and the game gets the keyboard back
 #   {"op":"hide"} / {"op":"show"}             hidden while a game menu is open (the game says so)
@@ -54,7 +54,9 @@ namespace CyberpunkConvaiTv {
       EnumWindows((hwnd, l) => {
         var text = new StringBuilder(512);
         GetWindowText(hwnd, text, 512);
-        if (text.ToString() == title) { found = hwnd; return false; }
+        // Edge may add " - Profile 1 - Microsoft Edge" to the page title; the title carries a random nonce, so its start is unique.
+        var name = text.ToString();
+        if (name == title || name.StartsWith(title + " - ", StringComparison.Ordinal)) { found = hwnd; return false; }
         return true;
       }, IntPtr.Zero);
       return found;
@@ -184,7 +186,10 @@ function Tick {
 $parent = $null
 if ($CheckOnly) { Send @{event = 'ready'}; exit 0 }
 if ($ParentId -gt 0) { try { $parent = [System.Diagnostics.Process]::GetProcessById($ParentId) } catch { exit 0 } }
-$reader = [Console]::In
+# Not [Console]::In: in Windows PowerShell 5.1 its ReadLineAsync runs synchronously, so asking for the next line before handling the
+# current one blocked until the bridge wrote again (and the bridge waits for 'attached' first). A StreamReader over the raw stdin
+# stream reads on a pool thread.
+$reader = New-Object System.IO.StreamReader([Console]::OpenStandardInput(), (New-Object System.Text.UTF8Encoding($false)))
 $pending = $reader.ReadLineAsync()
 while ($true) {
   if ($parent -and $parent.HasExited) { break }

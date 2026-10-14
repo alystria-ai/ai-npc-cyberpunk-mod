@@ -79,7 +79,7 @@ Sources:
   - If the player fetched no track by itself 4 s after the video starts, the page asks it to load one through the player's own captions module (`loadModule('captions')`, `setOption('captions', 'track', …)`). Once the track has been read, the captions are hidden again so the picture stays clean.
   - Everything stays in memory for the playing video only and is never written to disk or memory. The history still keeps only id, title, channel and time, for 30 days at most and 8 videos.
   - **Rules this touches:** nothing is downloaded beyond what the player loads anyway, and nothing is drawn over the player. Reading the player's own responses is not named in any rule, which makes it a grey zone, but it is closer to "reading player internals" than to a documented API, so it may break when YouTube changes its player. Without captions the companion falls back to the title, channel, chapter and description.
-- **Frames for companion vision.** Capturing what the player shows (`captureFrame`, a 640-px JPEG through the browser's screenshot call) is also a grey zone, because it copies a picture of the content. It is built on demand only and not wired anywhere. Not chosen on 2026-10-15; the stub stays.
+- **Frames for companion vision.** Capturing what the player shows (`captureFrame`, a 640-px JPEG through the browser's screenshot call) is also a grey zone, because it copies a picture of the content. The user asked for it on 2026-10-15: while a video plays, the companion gets about one frame a second through Convai's dynamic vision context (`visionSource()`, `docs/COMPANION_VISION.md` "The TV as the source"). It runs only while "Companions can see" is on with Convai, a video is playing and someone is near. Frames stay in memory.
 - **Autoplay.** Autoplay with sound uses the browser flag `--autoplay-policy=no-user-gesture-required` in this private window. If the player still blocks it, YouTube's own play button shows (one click in the window starts it), and the bridge logs `autoplay blocked`.
 
 ### Context for the companion
@@ -167,7 +167,6 @@ The companion gets a block in its turn context, built by `watchingContext` in `b
 - translations in all 15 languages.
 
 **Stubbed or not built:**
-- vision frames (`captureFrame` exists, not wired; not chosen);
 - companion remarks without the player speaking (not built);
 - a couch scene choice (the key instead);
 - a volume control in the game (YouTube's own control in the window works);
@@ -179,7 +178,7 @@ The companion gets a block in its turn context, built by `watchingContext` in `b
 2. **Own Data API key box: removed**, with its strings in all locales. The description and chapters now come from the player's own answer instead, so they did not disappear with the key.
 3. **The couch key binding: fine as built.**
 4. **The setting stays off by default** until the FPS check passes.
-5. **Frames to companion vision: not chosen for now**; the `captureFrame` stub stays.
+5. **Frames to companion vision: yes** (2026-10-15, later the same day): about one frame a second while a video plays, through Convai's dynamic vision context under "Companions can see" (`docs/COMPANION_VISION.md`).
 6. **Downloads:** none. The dev install uses the installed Microsoft Edge, and packages use the Chrome for Testing they already bundle.
 
 ## Live checks

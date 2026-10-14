@@ -662,6 +662,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "저장되지 않은 변경 사항이 있습니다. 저장하지 않고 나갈까요?",
     ["{count} of {max}"] = "{count} / {max}",
     ["Mature content"] = "성인 콘텐츠",
+    ["Companions can see"] = "동료의 시야",
+    ["With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only."] = "말할 때마다 대화를 시작하기 몇 초 전에 게임 창에서 찍은 주변 이미지가 캐릭터에게 함께 전달됩니다.\n\n게임 창만, 대화할 상대가 가까이 있을 때만 캡처하며, 이미지는 잠시 메모리에만 있고 저장되지 않습니다. Convai에서만 작동합니다.",
     ["Local AI model"] = "로컬 AI 모델",
     ["Uncensored model"] = "검열 없는 모델",
     ["No model installed"] = "설치된 모델이 없습니다",

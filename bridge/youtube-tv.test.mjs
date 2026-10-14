@@ -10,7 +10,7 @@ import fengari from 'fengari';
 import {parseVideoInput, parseClock, formatClock, parseChapters, chapterAt, descriptionExcerpt, parseTvCommand, watchingContext,
   parseOembed, lookupVideo, HOME_PLACES, MAX_CONTEXT_CHARS, MAX_CAPTION_CHARS, cleanStrings, captionWindow, parseTimedText, timedTextTrack,
   trackRank, parsePlayerResponse} from './youtube-tv.mjs';
-import {YouTubeTv} from './youtube-tv-host.mjs';
+import {YouTubeTv, spawnWindowHelper} from './youtube-tv-host.mjs';
 import {tvPage, PAGE_STRINGS} from './youtube-tv-page.mjs';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
@@ -600,4 +600,21 @@ MENU = true; M.hotkey(); assert(#writes == 2, 'not from a menu')
 M.reset('world'); assert(not M.active and writes[3].action == 'stop' and writes[3].reason == 'world')
 ENABLED = false; MENU = false; M.hotkey(); assert(#writes == 3)
 `);
+});
+
+// Found 2026-10-15 against the real helper: Windows PowerShell 5.1's [Console]::In.ReadLineAsync runs synchronously, so the helper
+// sat waiting for a second line before it handled 'attach' while the bridge waited for 'attached'; and Edge titles the window
+// "<title> - Profile 1 - Microsoft Edge", which an exact match never found.
+test('the window helper answers a command while its input stays open, and finds the TV by the start of its title', {skip: process.platform !== 'win32'}, async () => {
+  const source = read('./youtube-tv-window.ps1');
+  assert.match(source, /StreamReader\(\[Console\]::OpenStandardInput\(\)/);
+  assert.doesNotMatch(source, /\$reader = \[Console\]::In/);
+  assert.match(source, /name\.StartsWith\(title \+ " - ", StringComparison\.Ordinal\)/);
+  const helper = spawnWindowHelper();
+  try {
+    const answer = new Promise(done => helper.onEvent(event => { if (event.event === 'error' || event.event === 'attached') done(event); }));
+    helper.send({op: 'attach', title: 'Cyberpunk Convai TV no-such-window-' + Date.now()});
+    const event = await Promise.race([answer, new Promise(done => setTimeout(() => done({event: 'timeout'}), 20000))]);
+    assert.deepEqual(event, {message: 'window-not-found', event: 'error'}, 'an answer arrives with stdin still open');
+  } finally { helper.stop(); }
 });

@@ -662,6 +662,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "Vannak nem mentett módosításaid. Mentés nélkül kilépsz?",
     ["{count} of {max}"] = "{count} / {max}",
     ["Mature content"] = "Felnőtt tartalom",
+    ["Companions can see"] = "A társak látnak",
+    ["With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only."] = "Minden mondatnál a karakter egy friss képet is kap a környezetedről, amely a játék ablakából készül néhány másodperccel a beszélgetés kezdete előtt.\n\nCsak a játék ablaka kerül rögzítésre, csak akkor, ha a közelben van valaki, akivel beszélhetsz, és a képek csak rövid ideig maradnak a memóriában, soha nem kerülnek mentésre. Csak a Convai-jal működik.",
     ["Local AI model"] = "Helyi MI modell",
     ["Uncensored model"] = "Cenzúrázatlan modell",
     ["No model installed"] = "Nincs telepített modell",

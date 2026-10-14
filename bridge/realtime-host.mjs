@@ -107,7 +107,11 @@ export class RealtimeHost {
   // credential(config): optional, may be async. Returns the config as it must be sent to Convai (an `authToken` from the
   // sign-in backend, or the `key`). Asked at the moment a page is called; the token is already in memory (bridge/convai-credential.mjs),
   // so a turn never waits on a network call for it. Absent: the config is sent as it is.
-  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard, credential,
+  // vision: optional "Companions can see" policy (bridge/companion-vision.mjs, docs/COMPANION_VISION.md):
+  //   connectConfig() -> null | {transport}: whether pages connect with Convai's vision channel (read when a page is called);
+  //   imagesForTurn(config, {phase: 'reply' | 'finish'}) -> images or null: the picture(s) for this turn, from memory;
+  //   turnWaitMs() -> null | ms: the page's cap on waiting for Convai to buffer a picture not staged ahead.
+  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard, credential, vision,
     browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
     clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
     // The hidden browser outputs real audio in the game. Under the Node test runner (NODE_TEST_CONTEXT is set in every
@@ -124,6 +128,68 @@ export class RealtimeHost {
     this.exclusive = exclusive; this.onFailure = onFailure; this.onSuccess = onSuccess; this.recover = recover;
     this.guard = guard;
     this.credential = typeof credential === 'function' ? credential : null;
+    this.vision = vision && typeof vision === 'object' ? vision : null;
+  }
+  // The page config with the current vision setting applied (and any stale vision fields from the caller removed).
+  withVision(config) {
+    let settings = null, waitMs = null;
+    try { settings = this.vision?.connectConfig?.() ?? null; waitMs = this.vision?.turnWaitMs?.() ?? null; } catch { settings = null; }
+    const {vision: _vision, visionTransport: _transport, visionWaitMs: _wait, visionMode: _mode, ...rest} = config ?? {};
+    return settings ? {...rest, vision: true, visionTransport: settings.transport === 'upload' ? 'upload' : 'video',
+      ...(settings.mode === 'tv' ? {visionMode: 'tv'} : {}),
+      ...(Number.isFinite(waitMs) ? {visionWaitMs: waitMs} : {})} : rest;
+  }
+  // YouTube on V's TV: one more frame of the video on the conversation page for `config` (image null stops its live track). A busy
+  // page takes it too (the turn reads the server's last frames). {fed, reason}: 'no-page', 'wrong-mode' (connected before the
+  // video started: refreshVision), 'failed'. Never throws.
+  async liveVision(config, image) {
+    const entry = this.pool?.entries.get(pageKey(config));
+    if (!entry?.value || entry.value.isClosed()) return {fed: false, reason: 'no-page'};
+    try {
+      return await entry.value.evaluate(image => window.convaiRealtime.liveVision
+        ? window.convaiRealtime.liveVision(image) : {fed: false, reason: 'old-client'}, image ?? null);
+    } catch { return {fed: false, reason: 'failed'}; }
+  }
+  // Reconnects an open, idle conversation page with the current vision settings (the source changed between the surroundings and
+  // the TV), so no turn pays for it. A page that is not open or serves a turn is left alone. Resolves true when it was refreshed.
+  async refreshVision(config) {
+    const entry = this.pool?.entries.get(pageKey(config));
+    if (!entry?.value || entry.value.isClosed() || entry.busy) return false;
+    try { await this.warm(config); return true; } catch { return false; }
+  }
+  // The picture(s) for one turn, or none. Never throws: a picture is never worth failing a turn for.
+  async turnImages(config, phase) {
+    if (!this.vision?.imagesForTurn || config?.freshSession || config?.reaction) return null;
+    try {
+      const images = await this.vision.imagesForTurn(config, {phase});
+      return Array.isArray(images) && images.length ? images : null;
+    } catch { return null; }
+  }
+  // Publishes a picture on the idle conversation page for `config` ahead of its turn (the composer is open), so Convai has
+  // buffered it before the line is sent. {staged, reason}: 'no-page' while the page is not open yet, 'busy' while it serves a turn.
+  async prestageVision(config, images) {
+    const entry = this.pool?.entries.get(pageKey(config));
+    if (!entry?.value || entry.value.isClosed()) return {staged: false, reason: 'no-page'};
+    if (entry.busy) return {staged: false, reason: 'busy'};
+    try {
+      return await entry.value.evaluate(images => window.convaiRealtime.prestageVision
+        ? window.convaiRealtime.prestageVision(images) : {staged: false, reason: 'old-client'}, images);
+    } catch { return {staged: false, reason: 'failed'}; }
+  }
+  // Withdraws a picture staged ahead on an idle page that no turn took. Never throws.
+  async unstageVision(config) {
+    const entry = this.pool?.entries.get(pageKey(config));
+    if (!entry?.value || entry.value.isClosed() || entry.busy) return;
+    await entry.value.evaluate(() => window.convaiRealtime.unstageVision?.()).catch(() => {});
+  }
+  // Hands pictures to the running microphone turn while V is still talking ({staged, reason}); never throws.
+  async stageVoiceVision(images, owner) {
+    const lease = this.voiceLease;
+    if (!lease || (owner !== undefined && lease.owner !== owner) || lease.value.isClosed()) return {staged: false, reason: 'no-recording'};
+    try {
+      return await lease.value.evaluate(images => window.convaiRealtime.stageVision
+        ? window.convaiRealtime.stageVision(images) : {staged: false, reason: 'old-voice-client'}, images);
+    } catch { return {staged: false, reason: 'failed'}; }
   }
   // Single-session plans: close the idle connections of this host (except `key`) and of its peers.
   async yieldOtherSessions(key) {
@@ -258,6 +324,7 @@ export class RealtimeHost {
   }
   async evaluateSpeech(page, method, config, {signal, liveSpeech, current = () => true} = {}) {
     if (this.credential) config = await abortable(Promise.resolve(this.credential(config)), signal);
+    config = this.withVision(config);
     if (!liveSpeech || config?.ttsEnabled === false)
       return abortable(page.evaluate(({config, method}) => window.convaiRealtime[method](config), {config, method}), signal);
     const {token, onFrame} = liveSpeech;
@@ -343,6 +410,8 @@ export class RealtimeHost {
     if (onAudioChunk !== undefined) throw Error('Chunked Convai playback is retired; use liveSpeech or the complete reply audio');
     const key = pageKey(config);
     this.sessions.check(config);
+    // A turn's picture comes from the in-memory frame buffer (bridge/companion-vision.mjs); nothing is captured here.
+    const pictures = method === 'reply' ? this.turnImages(config, 'reply') : null;
     const started = performance.now();
     await this.start({signal});
     throwIfCancelled(signal);
@@ -358,6 +427,9 @@ export class RealtimeHost {
       throwIfCancelled(signal);
       if (epoch !== this.epoch) throw cancelled();
       this.connectOwners.set(lease.value, connectOwner(config));
+      const images = await pictures;
+      throwIfCancelled(signal);
+      if (images) config.visionImages = images;
       const result = await this.evaluateSpeech(lease.value, method, config, {signal, liveSpeech,
         current: () => epoch === this.epoch && !this.closing});
       throwIfCancelled(signal);
@@ -525,7 +597,7 @@ export class RealtimeHost {
       // This is the only code path that grants microphone permission.
       await lease.value.context().grantPermissions(['microphone'], {origin: new URL(lease.value.url()).origin});
       throwIfCancelled(signal);
-      const credentialed = this.credential ? await abortable(Promise.resolve(this.credential(config)), signal) : config;
+      const credentialed = this.withVision(this.credential ? await abortable(Promise.resolve(this.credential(config)), signal) : config);
       throwIfCancelled(signal);
       const result = await lease.value.evaluate(config => window.convaiRealtime.beginVoice(config), credentialed);
       throwIfCancelled(signal);
@@ -556,7 +628,11 @@ export class RealtimeHost {
         }
         this.sessions.check(config);
       }
-      const result = await this.evaluateSpeech(lease.value, 'finishVoice', config || lease.config, {signal, liveSpeech,
+      // "Companions can see": the frame staged while V talked is already on the page; only queued pictures go with the finish.
+      let finishConfig = config || lease.config;
+      const images = this.withVision(finishConfig).vision ? await this.turnImages(finishConfig, 'finish') : null;
+      if (images) finishConfig = {...finishConfig, visionImages: images};
+      const result = await this.evaluateSpeech(lease.value, 'finishVoice', finishConfig, {signal, liveSpeech,
         current: () => lease.epoch === this.epoch && this.voiceLease === lease && !this.closing});
       if (lease.epoch !== this.epoch || this.voiceLease !== lease) throw cancelled();
       this.sessions.accept(config || lease.config);

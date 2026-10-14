@@ -662,6 +662,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "Máš neuložené změny. Odejít bez uložení?",
     ["{count} of {max}"] = "{count} z {max}",
     ["Mature content"] = "Obsah pro dospělé",
+    ["Companions can see"] = "Společníci vidí",
+    ["With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only."] = "S každou větou postava dostane i čerstvý snímek okolí, pořízený z okna hry pár sekund před začátkem rozhovoru.\n\nZachytí se jen okno hry, jen když je poblíž někdo, s kým můžeš mluvit, a snímky zůstávají jen krátce v paměti a nikdy se neukládají. Funguje jen s Convai.",
     ["Local AI model"] = "Model Místní AI",
     ["Uncensored model"] = "Necenzurovaný model",
     ["No model installed"] = "Žádný model nenainstalován",

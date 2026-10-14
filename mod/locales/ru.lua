@@ -662,6 +662,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "Есть несохранённые изменения. Выйти без сохранения?",
     ["{count} of {max}"] = "{count} из {max}",
     ["Mature content"] = "Контент для взрослых",
+    ["Companions can see"] = "Спутники видят",
+    ["With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only."] = "С каждой репликой персонаж получает и свежий снимок окружения, сделанный из окна игры за несколько секунд до начала разговора.\n\nСнимается только окно игры, только когда рядом есть с кем поговорить; снимки недолго хранятся в памяти и никогда не сохраняются. Работает только с Convai.",
     ["Local AI model"] = "Модель локального ИИ",
     ["Uncensored model"] = "Модель без цензуры",
     ["No model installed"] = "Модель не установлена",

@@ -662,6 +662,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "保存されていない変更があります。保存せずに終了しますか？",
     ["{count} of {max}"] = "{count} / {max}",
     ["Mature content"] = "成人向けコンテンツ",
+    ["Companions can see"] = "仲間の視覚",
+    ["With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only."] = "セリフごとに、会話を始める数秒前にゲーム画面から撮った周囲の画像もキャラクターに届きます。\n\n撮影するのはゲームのウィンドウだけで、話せる相手が近くにいるときだけです。画像は短い間メモリに置かれるだけで、保存されることはありません。Convai でのみ動作します。",
     ["Local AI model"] = "ローカル AI モデル",
     ["Uncensored model"] = "制限なしモデル",
     ["No model installed"] = "モデル未インストール",

@@ -662,6 +662,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "Vous avez des modifications non enregistrées. Quitter sans enregistrer ?",
     ["{count} of {max}"] = "{count} sur {max}",
     ["Mature content"] = "Contenu pour adultes",
+    ["Companions can see"] = "Les compagnons voient",
+    ["With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only."] = "À chaque réplique, le personnage reçoit aussi une image récente de vos environs, prise dans la fenêtre du jeu quelques secondes avant que vous commenciez à parler.\n\nSeule la fenêtre du jeu est capturée, seulement quand quelqu’un à qui parler est à proximité, et les images restent peu de temps en mémoire, sans jamais être enregistrées. Fonctionne uniquement avec Convai.",
     ["Local AI model"] = "Modèle d'IA locale",
     ["Uncensored model"] = "Modèle sans censure",
     ["No model installed"] = "Aucun modèle installé",

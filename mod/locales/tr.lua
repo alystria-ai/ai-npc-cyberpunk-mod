@@ -662,6 +662,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "Kaydedilmemiş değişiklikler var. Kaydetmeden çıkılsın mı?",
     ["{count} of {max}"] = "{count} / {max}",
     ["Mature content"] = "Yetişkin içeriği",
+    ["Companions can see"] = "Yol arkadaşları görür",
+    ["With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only."] = "Her cümleyle birlikte karakter, konuşmaya başlamadan birkaç saniye önce oyun penceresinden alınan güncel bir çevre görüntüsü de alır.\n\nYalnızca oyun penceresi yakalanır, yalnızca yakında konuşabileceğin biri varken; görüntüler kısa süre bellekte tutulur ve asla kaydedilmez. Yalnızca Convai ile çalışır.",
     ["Local AI model"] = "Yerel AI modeli",
     ["Uncensored model"] = "Sansürsüz model",
     ["No model installed"] = "Yüklü model yok",

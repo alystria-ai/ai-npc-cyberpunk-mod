@@ -662,6 +662,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "你有未儲存的修改。要不儲存就離開嗎？",
     ["{count} of {max}"] = "{count} / {max}",
     ["Mature content"] = "成人內容",
+    ["Companions can see"] = "同伴看得見",
+    ["With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only."] = "每句話都會附上一張你周遭環境的近期畫面，取自你開始說話前幾秒的遊戲視窗。\n\n只擷取遊戲視窗，只在附近有可交談的人時擷取；畫面只在記憶體中短暫保留，從不儲存。僅適用於 Convai。",
     ["Local AI model"] = "本機 AI 模型",
     ["Uncensored model"] = "無審查模型",
     ["No model installed"] = "未安裝任何模型",
