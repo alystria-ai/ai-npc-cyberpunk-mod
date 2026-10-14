@@ -1,0 +1,90 @@
+// The value of a select row in Settings sits between the game's two arrows in a fixed-width box; a longer text runs over the arrows.
+// This test keeps every option text of every select (English and the 15 translations), and the names of the built-in models, within
+// the budget of mod/mcm.lua (OPTION_BUDGET, in the units of optionUnits()). The Lua side is checked in bridge/manager.test.mjs
+// (the live menus in the worst case, the truncation of a custom model's name); here the units are re-derived in JavaScript and the
+// two are compared on sample strings there.
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import fengari from 'fengari';
+import {optionUnits} from './option-units.mjs';
+
+const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
+const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
+const catalog = JSON.parse(read('../localization/en.json'));
+const releaseConfig = JSON.parse(read('../packaging/release.config.json'));
+const mcmSource = read('../mod/mcm.lua');
+const codes = ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko'];
+
+const budget = Number(/local OPTION_BUDGET = (\d+)/.exec(mcmSource)[1]);
+
+// Every English text that reaches a select row through ui.t, as it is built in mod/mcm.lua and mod/manager.lua.
+const OMNI = ['OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality'];
+const STATIC_OPTIONS = [
+  '10 cm higher', '10 cm lower', '5 cm higher', '5 cm lower', 'Above the speaker', 'Auto', 'Casual', 'Cinematic subtitles', 'Convai free tier',
+  'Default', 'Eyes only', 'Gentle (default)', 'Local (needs Local AI pack)', 'Mistral (free plan)', 'No model installed',
+  'Off', 'Ordinary', 'Romantic', 'Strong', 'Subtle',
+  'Pocket · Performance', ...OMNI, 'Convai · Cloud voice',
+  'Voxtral · Mistral cloud', 'Voxtral · needs Mistral key', 'Inworld · Cloud voice', 'Inworld · needs key',
+];
+const OMNI_NEEDS_PACK = '{voice} · needs pack';
+
+function localeTable(code) {
+  const vm = lauxlib.luaL_newstate();
+  lualib.luaL_openlibs(vm);
+  const status = lauxlib.luaL_dostring(vm, to_luastring(read(`../mod/locales/${code}.lua`)));
+  assert.equal(status, lua.LUA_OK, status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1)));
+  const rows = {};
+  lua.lua_pushnil(vm);
+  while (lua.lua_next(vm, -2) !== 0) {
+    rows[to_jsstring(lua.lua_tostring(vm, -2))] = to_jsstring(lua.lua_tostring(vm, -1));
+    lua.lua_pop(vm, 1);
+  }
+  lua.lua_close(vm);
+  return rows;
+}
+
+const labelsIn = translate => [
+  ...STATIC_OPTIONS.map(text => ({text, shown: translate(text)})),
+  ...OMNI.map(text => ({text: `${OMNI_NEEDS_PACK} (${text})`, shown: translate(OMNI_NEEDS_PACK).replace('{voice}', translate(text))})),
+];
+
+test('the English option texts are the strings of the catalog, and every option string of the catalog is checked here', () => {
+  for (const text of [...STATIC_OPTIONS, OMNI_NEEDS_PACK]) assert(text in catalog.strings, `not in the catalog: ${text}`);
+  const checked = new Set(STATIC_OPTIONS);
+  for (const text of catalog.contexts['mcm.options']) assert(checked.has(text), `an option text of the catalog is not checked here: ${text}`);
+});
+
+test('every English select option fits the budget', () => {
+  assert(budget >= 20 && budget <= 40, `budget ${budget}`);
+  const tooWide = labelsIn(text => text).filter(({shown}) => optionUnits(shown) > budget).map(({shown}) => `${shown} (${optionUnits(shown)})`);
+  assert.deepEqual(tooWide, []);
+});
+
+for (const code of codes) {
+  test(`${code}: every select option fits the budget`, () => {
+    const rows = localeTable(code);
+    const tooWide = labelsIn(text => rows[text] ?? assert.fail(`${code} has no translation of ${text}`))
+      .filter(({shown}) => optionUnits(shown) > budget).map(({text, shown}) => `${text} -> ${shown} (${optionUnits(shown)})`);
+    assert.deepEqual(tooWide, [], `${code} has options wider than ${budget}`);
+  });
+}
+
+test('the built-in Local AI model names fit the budget (the names of the packs are the display names)', () => {
+  const names = [
+    releaseConfig.localAi.tiers.standard.name, releaseConfig.localAi.tiers.lite.name,
+    releaseConfig.maturePack.tiers.lite.name, releaseConfig.maturePack.tiers.good.name,
+  ];
+  assert.equal(names.length, 4);
+  const tooWide = names.filter(name => optionUnits(name) > budget).map(name => `${name} (${optionUnits(name)})`);
+  assert.deepEqual(tooWide, []);
+  // Whatever its name, an uncensored model must keep the word the Mature allowance reads (bridge/mature-content.mjs).
+  for (const name of [releaseConfig.maturePack.tiers.lite.name, releaseConfig.maturePack.tiers.good.name]) assert(/uncensored/i.test(name), name);
+});
+
+test('the units used by the test are the units the game code uses', () => {
+  // The Lua estimate is compared on the same strings in bridge/manager.test.mjs ("select option width").
+  for (const [text, expected] of [['Pocket · Performance', 18], ['Voxtral · needs Mistral key', 22.3], ['日本語', 6], ['', 0]]) {
+    assert(Math.abs(optionUnits(text) - expected) < 1, `${text}: ${optionUnits(text)}`);
+  }
+});

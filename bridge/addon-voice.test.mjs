@@ -108,7 +108,7 @@ test('one recogniser for every provider: the Mistral route\'s own, never a Conva
   assert.match(bridge, /attachTextProvider\(host, \{provider: mistral, mistral: mistralHost, speech: mistralSpeech,/);
   assert.equal(bridge.match(/new LocalStt\(/g).length, 1, 'no second recognition stack');
   assert.equal(bridge.match(/new LocalSttCapture\(/g).length, 1);
-  // It takes no provider: the same channel serves a Convai, Mistral, Groq or Local AI player.
+  // It takes no provider: the same channel serves a Convai, Mistral or Local AI player.
   const voice = createAddonVoice({isSpeaker: () => true, speech: {voiceChannel: ({reply}) => ({reply})}, currentFor() {}, runTurn() {}, answerError() {}});
   assert.equal(typeof voice.channel().reply, 'function');
 });

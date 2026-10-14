@@ -1,21 +1,21 @@
 #!/usr/bin/env node
 // Measures the text stage of a turn with REAL calls through the bridge's own code (streamChat, buildMessages, cleanReply, the
-// Mistral and Groq routes of bridge/text-provider-host.mjs): time to response headers, first token, first complete sentence and the
+// Mistral route of bridge/text-provider-host.mjs): time to response headers, first token, first complete sentence and the
 // whole reply, for a realistic layout-v2 prompt of a named character (Judy Alvarez).
 //
-//   node scripts/Measure-TextLatency.mjs [--dry] [--out <folder>] [--only mistral|groq]
+//   node scripts/Measure-TextLatency.mjs [--dry] [--out <folder>] [--only mistral]
 //
 // --dry builds the prompt, prints its size and checks the key lines' shape (never the keys), and makes no request.
 // Budget: at most 12 requests in total (completions, warm-up GETs and retries all count; retries are off). Keys: line 14
-// (mistral) and line 9 (groq) of "Commonly used Keys.txt" are read in memory and used only as the Authorization header of a
+// (mistral) of "Commonly used Keys.txt" is read in memory and used only as the Authorization header of a
 // request to their own provider; nothing else of that file is used, and no key is printed, written or put on a command line.
 import {readFileSync, mkdirSync, writeFileSync} from 'node:fs';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import dc from 'node:diagnostics_channel';
-import {streamChat, validateKey, redact, MISTRAL_ENDPOINT, GROQ_ENDPOINT} from '../bridge/mistral-client.mjs';
+import {streamChat, validateKey, redact, MISTRAL_ENDPOINT} from '../bridge/mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, capPoint, LIMITS, joinBlocks} from '../bridge/mistral-prompt.mjs';
-import {mistralRoute, groqRoute} from '../bridge/text-provider-host.mjs';
+import {mistralRoute} from '../bridge/text-provider-host.mjs';
 import {hasEmotionTag, EMOTION_TAG_BLOCK} from '../bridge/emotion-tags.mjs';
 import {stripSpeechTags, naturalSpeechContext} from '../bridge/natural-speech.mjs';
 import {conversationContextBlocks, FIRST_PERSON_REMINDER} from '../bridge/quest-context.mjs';
@@ -31,14 +31,14 @@ const PROFILE = 'judy-alvarez';
 const sleep = ms => new Promise(done => setTimeout(done, ms));
 const round = value => typeof value === 'number' ? Math.round(value * 10) / 10 : value;
 
-// ---- Keys (two lines only, in memory) ---------------------------------------------------------------------------------------
+// ---- Keys (one line only, in memory) ---------------------------------------------------------------------------------------
 function keyFromLine(line) {
   const tokens = String(line ?? '').match(/[A-Za-z0-9_\-]{20,}/g);
   return tokens ? tokens[tokens.length - 1] : '';
 }
 function readKeys() {
   const lines = readFileSync(KEYS_FILE, 'utf8').split(/\r?\n/);
-  return {mistral: keyFromLine(lines[13]), groq: keyFromLine(lines[8])};
+  return {mistral: keyFromLine(lines[13])};
 }
 
 // ---- The prompt -------------------------------------------------------------------------------------------------------------
@@ -120,7 +120,7 @@ const messagesFor = (prompt, userKey, parts = prompt.contextParts) => buildMessa
 const sizeOf = messages => messages.reduce((sum, message) => sum + message.content.length, 0);
 
 // ---- Measuring --------------------------------------------------------------------------------------------------------------
-const tally = {total: 0, mistral: 0, groq: 0};
+const tally = {total: 0, mistral: 0};
 let current = null;   // the record of the request in flight
 let Agent;
 async function agentClass() {
@@ -135,7 +135,7 @@ for (const name of ['undici:client:beforeConnect', 'undici:client:connected', 'u
   dc.subscribe(name, () => { events.push({name: name.split(':').pop(), at: performance.now()}); });
 }
 
-const INTERESTING = /^(x-ratelimit|ratelimit|retry-after|keep-alive|connection|server$|via$|x-envoy|alt-svc|x-groq|x-kong|x-request)/i;
+const INTERESTING = /^(x-ratelimit|ratelimit|retry-after|keep-alive|connection|server$|via$|x-envoy|alt-svc|x-kong|x-request)/i;
 function headerFacts(headers) {
   const names = [...headers.keys()].sort(), values = {};
   for (const name of names) if (INTERESTING.test(name) && !/x-request-id/i.test(name)) values[name] = headers.get(name);
@@ -204,7 +204,7 @@ function usageFrom(tail) {
   let usage;
   for (const line of String(tail ?? '').split(/\r?\n/)) {
     if (!line.startsWith('data:') || !/usage/.test(line)) continue;
-    try { const chunk = JSON.parse(line.slice(5).trim()); usage = chunk.usage ?? chunk.x_groq?.usage ?? usage; } catch { /* a cut chunk */ }
+    try { const chunk = JSON.parse(line.slice(5).trim()); usage = chunk.usage ?? usage; } catch { /* a cut chunk */ }
   }
   return usage;
 }
@@ -233,7 +233,7 @@ async function complete({label, provider, model, route, item, messages, agent, k
   };
   try {
     const result = await streamChat({apiKey: key, model, messages, maxTokens: item?.maxTokens ?? LIMITS.maxTokens, temperature: LIMITS.temperature,
-      onDelta, shouldStop, fetchImpl: tee(agent, label, drain), provider, retries: 0, endpoint: provider === 'groq' ? GROQ_ENDPOINT : MISTRAL_ENDPOINT,
+      onDelta, shouldStop, fetchImpl: tee(agent, label, drain), provider, retries: 0, endpoint: MISTRAL_ENDPOINT,
       extraBody: {...route.cacheBody(PROFILE), ...(item?.body ?? {})}});
     const total = performance.now() - t0;
     const cleaned = stripSpeechTags(cleanReply(result.text, {name, isTag: hasEmotionTag})).trim();
@@ -273,24 +273,6 @@ const report = rec => {
     + (rec.error ? ` ${rec.error}` : ''));
 };
 
-// Groq's free plan is small (tokens a minute): wait until the bucket of the model can take the next request.
-async function groqPace(model, needTokens) {
-  const last = [...all].reverse().find(item => item.provider === 'groq' && item.model === model && item.response);
-  const values = last?.response?.values ?? {};
-  const limit = Number(values['x-ratelimit-limit-tokens']) || 8000;
-  const remaining = Number(values['x-ratelimit-remaining-tokens']);
-  const reset = (text => { const m = /^(?:(\d+)m)?(?:([\d.]+)s)?$/.exec(String(text ?? '')); return m ? (Number(m[1] ?? 0) * 60 + Number(m[2] ?? 0)) : NaN; })(values['x-ratelimit-reset-tokens']);
-  if (!last) return;
-  let wait = 0;
-  if (Number.isFinite(remaining) && remaining < needTokens + 300) {
-    const rate = Number.isFinite(reset) && reset > 0 && limit > remaining ? (limit - remaining) / reset : limit / 60;
-    wait = Math.min(75, (needTokens + 300 - remaining) / rate + 1.5);
-  } else if (!Number.isFinite(remaining)) wait = 20;
-  // The reset header was read when the last answer began; the time since then already refilled part of the bucket.
-  wait -= (performance.now() - (last.endedAt ?? performance.now())) / 1000;
-  if (wait > 0) { console.log(`  (pacing: waiting ${Math.round(wait)} s for ${model}'s token allowance)`); await sleep(wait * 1000); }
-}
-
 // ---- Run --------------------------------------------------------------------------------------------------------------------
 const prompt = buildPrompt();
 const full = messagesFor(prompt, 'a');
@@ -306,7 +288,7 @@ const promptFacts = {
 console.log('prompt', JSON.stringify(promptFacts));
 
 const keys = readKeys();
-console.log(`keys: mistral ${keys.mistral ? 'found (' + keys.mistral.length + ' chars)' : 'MISSING'}, groq ${keys.groq ? 'found (' + keys.groq.length + ' chars, gsk_ prefix: ' + keys.groq.startsWith('gsk_') + ')' : 'MISSING'}`);
+console.log(`keys: mistral ${keys.mistral ? 'found (' + keys.mistral.length + ' chars)' : 'MISSING'}`);
 if (flag('--dry')) process.exit(0);
 const only = option('--only');
 const Pool = await agentClass();
@@ -328,27 +310,6 @@ if (!only || only === 'mistral') {
   await a1.close(); await a2.close();
 }
 
-if (!only || only === 'groq') {
-  const route = groqRoute({provider: {}});
-  const [qwen, oss] = route.models();
-  const key = keys.groq;
-  const need = item => Math.round(sizeOf(full) / 3.8) + item.maxTokens;
-  const a1 = new Pool();
-  const run = (label, item, messages, agent, note, drain = false) => complete({label, provider: 'groq', model: item.id, route, item, messages, agent, key, note, drain});
-  await run('Q1 qwen full, cold process', qwen, full, a1, 'first call of the process: DNS + TLS');
-  await run('G1 gpt-oss full', oss, messagesFor(prompt, 'a'), a1, 'same connection, other model');
-  await groqPace(qwen.id, need(qwen));
-  await run('Q2 qwen full, again', qwen, messagesFor(prompt, 'b'), a1, 'same prefix, new last message');
-  await groqPace(oss.id, need(oss));
-  await run('G2 gpt-oss full, again', oss, messagesFor(prompt, 'f'), a1, 'same prefix, new last message (gpt-oss caches automatically)');
-  await groqPace(qwen.id, need(qwen));
-  const a2 = new Pool();
-  await warmup({label: 'Q3a warm-up GET /models', provider: 'groq', agent: a2, key, drain: true});
-  await sleep(150);
-  await run('Q3 qwen after warm-up', qwen, messagesFor(prompt, 'g'), a2, 'fresh pool, warmed by Q3a, connection kept', true);
-  await a1.close(); await a2.close();
-}
-
 // ---- Output -----------------------------------------------------------------------------------------------------------------
 const clean = all.map(rec => { const {messages: _m, ...rest} = rec; return rest; });
 mkdirSync(OUT, {recursive: true});
@@ -360,4 +321,4 @@ const rows = clean.map(rec => `${rec.label.padEnd(26)} ${(rec.newConnection ? 'n
 const table = ['call                       conn(ms)   headers    ttft   s1punct  s1conf   total chars sen finish    prompt/cached', ...rows].join('\n');
 writeFileSync(resolve(OUT, 'table.txt'), table + '\n');
 console.log('\n' + table);
-console.log(`\nrequests used: ${tally.total} of ${BUDGET} (mistral ${tally.mistral}, groq ${tally.groq})\nresults: ${resolve(OUT, 'results.json')}`);
+console.log(`\nrequests used: ${tally.total} of ${BUDGET} (mistral ${tally.mistral})\nresults: ${resolve(OUT, 'results.json')}`);

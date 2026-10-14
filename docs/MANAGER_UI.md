@@ -581,7 +581,7 @@ most). Not avoidable from a provider: MCM draws the whole screen again on every 
 
 ### Mature content stages its companions as pending changes
 
-The Local AI provider, the Local AI model and Mature content sit in one group on Settings > Development (provider, Mature content, model, in that
+The Local AI provider, the Local AI model and Mature content sit in one group on Settings > Conversation provider (provider, Mature content, model, in that
 order). Turning **Mature content on** also stages, as pending changes before Apply (`api.setDraft`, from `M.update` after a `drafts.changed`
 event, never in a hook): the provider = Local AI (only when the Local AI pack is present; without it nothing else is touched and the notice and the
 help say Local AI is needed), the model = the largest uncensored model that fits (only when one is installed; otherwise the model is left alone), and, when the companion voice is a cloud voice (Voxtral, Inworld or Convai), Pocket TTS (a voice that is
@@ -592,3 +592,42 @@ model and voice back, except any the player changed since. What was staged is ke
 on Apply, dropped when Mature content is off; an older record whose model `set` is `auto` still restores). The Local AI model row has no Auto
 entry: it lists the installed models from the smallest file to the largest and shows the default (the largest that fits the free graphics memory)
 as selected until a model is chosen; Apply then saves that model's id (docs/LOCAL_AI.md, "Choosing the model"). Revert or Apply forgets the in-memory staging.
+
+### Select labels and the description panel (2026-10-14)
+
+**Select labels.** A select row (`settingsSelectorStringList`) shows its value between two arrows in a box of fixed width that the mod cannot change.
+A longer text runs over the arrows. `mod/mcm.lua` therefore keeps every option within `OPTION_BUDGET` = 32 "average lowercase letters"
+(`optionUnits`: space 0.5; `i l . , : ; ' | !` 0.45; `t f r I ( ) - / [ ]` 0.65; `m w` 1.45; `M W` 1.6; other capitals and digits 1.15; a Chinese,
+Japanese or Korean character 2). Seen running over the arrows: Inworld (about 33), Voxtral (about 40) and the Mature pack's model name (about 41);
+the longest entry reported to fit was an OmniVoice one (about 36 by this estimate), so 32 sits below all of them. The built-in entries are now:
+`Voxtral · Mistral cloud`, `Voxtral · needs Mistral key`, `Inworld · Cloud voice`, `Inworld · needs key`, `OmniVoice · ... · needs pack`
+(a voice name that appears in sentences and notices keeps its full name), and the Mature pack models `Qwen3.5-4B · uncensored` and
+`Gemma 4 E4B · uncensored` (the word stays: `bridge/local-model-choice.mjs` recognises uncensored models by it). A model the player adds shows its
+own name, `(custom)` or `(custom · too large)`, and `fitOption()` is the last resort: a label still over the budget keeps its trailing
+`(...)` or ` · ...` part and ends its name with an ellipsis. The 15 translations are held to the same budget. `bridge/select-labels.test.mjs`
+checks every select text in English and in each language, the built-in model names and the estimate; `bridge/manager.test.mjs` checks the
+live menus in the worst case and the truncation.
+
+**Description panel.** The text on the right of the page is MCM's `description_text` (an `inkRichTextBox`, 382 wide, in a viewport that cannot
+scroll), so what does not fit is cut off at the bottom. `mod/mcm-fonts.lua` draws our descriptions at size 22 (`DESCRIPTION_FONT_SIZE`; the game
+uses 20) and restores the original size for text that is not ours. The descriptions were rewritten to say only what a player could not guess
+(trade-offs, requirements, what a setting selects or turns off, the engineering reason behind a default), in short blocks separated by a blank line.
+`bridge/description-fit.test.mjs` estimates the height (32 letters a line, at most 26 lines at size 22) for every description, English and the 15
+translations, including the longest composites (Mature content and Local AI model with every optional paragraph present). It estimates; the
+live check is to open each page and look for cut-off text.
+
+### Settings sections after the 2026-10-14 restructure
+
+Order on the Settings tab: Interface, Conversations, **Conversation provider**, Companion behavior, Voices, Subtitles, Automatic reactions,
+add-on sections, Development, Help.
+
+- **Conversation provider** (new): the provider, Conversations use, Mature content, Local AI model, Local AI status, the four Convai key rows
+  (always listed, not only in Developer mode), the three Mistral key rows, Edit characters. Everything that decides who answers is here.
+- **Voices**: Voice playback, Companion voices, **Voice status** (moved up to sit right under Companion voices), the three Inworld key rows
+  (the Inworld key is a voice setting), Lip sync delay, Natural speech, Expressive emotions, Follow-up questions, V's voice, OmniVoice pack.
+- **Development** keeps only Developer mode.
+- **Prepared voices** have no switch, no disk row, no Clear action and no page: they are always kept, and a saved `keepPreparedVoices = false`
+  is read as on and written back as on. `bridge/prepared-voices.mjs` stays only for `scripts/Clear-PreparedVoices.mjs`.
+- **Groq** is no longer a provider. A saved `groq` is read as `convai` (the default), in the bridge and in the Lua settings alike; `player-groq-key.txt` is never read.
+- **Add-ons** can hide **Most remarks per fight** with `remarkCap = false` in `handle:settings` (Delamain does; the default guard of 30 stays).
+- **Body gestures** is shown without "(experimental)".

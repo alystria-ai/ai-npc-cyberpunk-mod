@@ -245,8 +245,7 @@ export class VoiceSelection {
     if(typeof settings?.multilingualConversations==='boolean')this.multilingual=settings.multilingualConversations;
     const reference=canonicalOmniReference(settings?.omniReference);
     if(reference)this.requestedOmniReference=reference;
-    if(typeof settings?.keepPreparedVoices==='boolean'&&settings.keepPreparedVoices!==this.keepPrepared)
-      this.setKeepPrepared(settings.keepPreparedVoices);
+    // Prepared voices are always kept (Settings has no switch for it any more): a saved keepPreparedVoices is not read.
   }
   get pending() { return this.provider!==this.resolvedProvider||this.cloud!==this.requestedCloud
     ||(this.provider==='omni'&&(this.omniSteps!==this.requestedOmniSteps||this.omniReference!==this.requestedOmniReference)); }

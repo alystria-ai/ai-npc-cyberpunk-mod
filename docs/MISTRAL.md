@@ -8,7 +8,7 @@ text is the same code. Local speech-to-text for the voice key is documented in `
 ## What the player does
 
 1. Get a free key from Mistral (the free plan, "Experiment", needs phone verification at signup).
-2. Settings > Development > **Paste Mistral key** (copies it from the clipboard, checks it with Mistral, saves it on this computer).
+2. Settings > Conversation provider > **Paste Mistral key** (copies it from the clipboard, checks it with Mistral, saves it on this computer).
    Or save the key by hand in `player-mistral-key.txt` in the conversation service's state folder (`api-key=<key>` or just the key).
    The page shows only the last four characters.
 3. **Conversation provider** > Mistral (free plan), then Apply. The switch waits until no conversation is running, so a conversation
@@ -21,11 +21,10 @@ is no longer offered to players: the notice, the settings text and the player do
 
 | Item | Where |
 |---|---|
-| Provider setting | `conversationProvider` in `settings.json` (`convai` default, `mistral`, `local` for the optional Local AI pack, `groq` for Groq's free plan; anything else reads as `convai`) |
+| Provider setting | `conversationProvider` in `settings.json` (`convai` default, `mistral`, `local` for the optional Local AI pack; anything else reads as `convai`, including the `groq` of an old settings file: Groq was removed as a provider by the user on 2026-10-14, and a saved `player-groq-key.txt` is left alone and never read) |
 | Key | `<state folder>/player-mistral-key.txt`, written with mode 0600 through a temporary file |
 | Paste / Remove commands | `runtime/mistral-key-command.json` (the game writes, the bridge reads; ids `<session>:mkey:<n>`; the same protocol as the Convai key) |
-| Groq key | Same as the Mistral key, handled the same way: `<state folder>/player-groq-key.txt`; commands in `runtime/groq-key-command.json` (ids `<session>:gkey:<n>`, `paste` or `clear`); the bridge adds a `groq` object to `runtime/mistral-state.json`: `{saved, tail, limit, result}` (`limit` is `rate`, `daily`, `invalid`, `model` or `null`; `result` is `{id, state}` with `state` one of `checking`, `saved`, `cleared`, `invalid`, `unreadable`, `failed`). When Groq cannot answer a turn and a Mistral key exists, the bridge answers that turn with Mistral; otherwise the reply carries `errorCode` `groq-key`, `groq-limit` or `groq-model`, and the first reply with Groq chosen and no key carries `keyNotice` `groq-no-key`. |
-| Status for the settings page | `runtime/mistral-state.json`: `{version, updated, provider, effective, saved, tail, pending, result, limit, model, stt, localAi}` (`provider` and `effective` are `convai`, `mistral`, `groq` or `local`; `localAi` is `ready`, `warming`, `not-installed`, `no-memory` or `failed`, shown as the Local AI row) |
+| Status for the settings page | `runtime/mistral-state.json`: `{version, updated, provider, effective, saved, tail, pending, result, limit, model, stt, localAi}` (`provider` and `effective` are `convai`, `mistral` or `local`; `localAi` is `ready`, `warming`, `not-installed`, `no-memory` or `failed`, shown as the Local AI row) |
 | Local memory | `<state folder>/mistral-memory.json` (bounded, see Memory) |
 
 The key is never printed, logged, written to a status file or sent anywhere except `api.mistral.ai`. It is scrubbed from the support
@@ -44,8 +43,8 @@ player chose it; adding the key and applying switches over).
 | `bridge/mistral-key.mjs` | The key file, the provider state (setting, requested/applied, one-time notices) and the Paste/Remove control. |
 | `bridge/mistral-prompt.mjs` | The system prompt, the message list, reply cleaning and caps, the summary request. |
 | `bridge/mistral-memory.mjs` | The old rolling history and summaries (kept as the base of the memory store, and migrated once). |
-| `bridge/memory-store.mjs` | The memory the text providers share (Mistral, Groq, local): the same history and summaries plus lasting records with embeddings (docs/LOCAL_AI.md). |
-| `bridge/text-provider-host.mjs` | One host for every text provider: `TextProviderHost.reply(config)` over a route per provider (`mistralRoute`, `groqRoute`, `localRoute`), and `attachTextProvider(host, ...)`, which makes the bridge's realtime hosts use it while a text provider is active. |
+| `bridge/memory-store.mjs` | The memory the text providers share (Mistral, local): the same history and summaries plus lasting records with embeddings (docs/LOCAL_AI.md). |
+| `bridge/text-provider-host.mjs` | One host for every text provider: `TextProviderHost.reply(config)` over a route per provider (`mistralRoute`, `localRoute`), and `attachTextProvider(host, ...)`, which makes the bridge's realtime hosts use it while a text provider is active. |
 | `bridge/mistral-host.mjs` | `MistralHost` (the shared host with only the Mistral route) and `attachMistral`, kept under their old names. |
 
 A turn reaches `MistralHost.reply` with the same configuration the Convai host gets (the bridge adds a `local` field with the
@@ -84,7 +83,7 @@ stops on a comma) gets one more try with a short reminder; reasoning twice is ne
 ### Prompt order (layout v2)
 
 When the bridge supplies the context in tiers (`contextParts`), the prompt is ordered from what never changes to what changes every turn, so
-a prefix cache keeps working on Mistral, Groq and the local model:
+a prefix cache keeps working on Mistral and the local model:
 
 1. system: the persona and the output rules (the persona prefix; the local AI loads it ahead on an invitation);
 2. system: the format notes for tags (Expressive emotions), then the world and quest context (slow), then what the character

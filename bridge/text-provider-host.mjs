@@ -1,4 +1,4 @@
-// The text routes (docs/MISTRAL.md, docs/LOCAL_AI.md): Mistral, Groq and the fully local AI (llama.cpp's llama-server) all speak the
+// The text routes (docs/MISTRAL.md, docs/LOCAL_AI.md): Mistral and the fully local AI (llama.cpp's llama-server) both speak the
 // OpenAI chat-completions protocol, so one host serves them. `TextProviderHost.reply(config)` takes the same configuration the bridge
 // hands the Convai realtime host for a turn and returns the same kind of result ({text, sessionID, timing, ...}, cleaned by the same
 // transformReply), so subtitles, Phone Chat, the local voices, the face, the emotion selector and group rounds see no difference.
@@ -7,7 +7,7 @@
 //
 // A route describes what differs: where the request goes and with which key, the models in order of preference (and their own
 // request fields), whether requests are paced (Mistral's free plan), how a failure is recorded on the provider, and whether a
-// failure may fall through to the next route (Groq -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
+// failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
@@ -18,7 +18,6 @@ import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {markStage} from './turn-clock.mjs';
 import {budgetedChat, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
-import {compactForGroq, groqCompactEnabled, GROQ_SOFT_TOKENS} from './groq-prompt.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor} from './mature-content.mjs';
 
@@ -90,53 +89,6 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
     label: 'Mistral'};
 }
 
-// Groq's free plan is small (8,000 tokens a minute, 200,000 a day per model; docs/FREE_CLOUD_OPTION_RESEARCH.md): a limit is not
-// an error to the player when a Mistral key exists, the turn simply goes there.
-const GROQ_DAILY = /per day|\bTPD\b|\bRPD\b|daily/i;
-/**
- * Groq: the player's own key; `qwen/qwen3.8-27b` with reasoning off first, then `openai/gpt-oss-20b` with low effort. Caching is
- * automatic on gpt-oss, so the stable prefix order of the prompt is all it needs. A key, limit or model failure is remembered on the
- * provider (Groq is left alone for a while) and the turn falls through to the next route (Mistral) when there is one.
- */
-export function groqRoute({provider, chat = streamChat, endpoint, onFailure, onSuccess,
-  models = () => GROQ_MODELS, log = () => {}, compact: compact_} = {}) {
-  // A request above the plan's 8,000 tokens a minute (reply included) is refused for good, so the prompt is cut to fit
-  // (bridge/prompt-budget.mjs). Groq reports no token count the host reads, so this is an estimate with the default ratio.
-  const meter = new TokenMeter();
-  // A smaller prompt first (bridge/groq-prompt.mjs): the persona without its Scope lines, six example lines, four exchanges. Only this route does it;
-  // the other providers' prompts are untouched. A player with no Mistral key has nowhere to go when Groq refuses a second turn within the minute
-  // (the turn falls to Convai), so the budget also cuts optional context, in its usual priority order, down to a soft target of two turns a minute.
-  // With a Mistral key the second turn simply goes there with its whole context, so nothing optional is cut for the target.
-  const compact = compact_ ?? groqCompactEnabled();
-  const soft = () => compact && !provider?.apiKey ? {soft: {contextTokens: GROQ_SOFT_TOKENS, reserveTokens: 256}} : {};
-  chat = budgetedChat(chat, {budget: () => ({contextTokens: GROQ_REQUEST_TOKENS, reserveTokens: 256, meter, ...soft()}),
-    shape: compact ? args => compactForGroq(args) : undefined, onFit: fit => log('Groq: ' + describeFit(fit))});
-  return {name: 'groq', provider: 'groq', chat, endpoint, gapMs: 0, blocked: new Map(), nextSlot: 0, models, chatDefaults: CLOUD_CHAT_LIMITS,
-    async connect() { return {apiKey: provider.groqApiKey}; },
-    cacheBody: () => ({}),
-    jsonBody: () => ({response_format: {type: 'json_object'}}),
-    summarizeAllowed: () => !provider.groqLimit,
-    fallsBack: error => ['limit', 'key', 'model'].includes(failureKind(error)),
-    success() { provider.noteGroqSuccess(); try { onSuccess?.(); } catch { /* an observer never fails a reply */ } },
-    failure(error) {
-      const kind = failureKind(error);
-      if (kind === 'limit') provider.noteGroqLimit(error?.daily || GROQ_DAILY.test(error?.message ?? '') ? 'daily' : 'rate');
-      else if (kind === 'key') provider.noteGroqLimit('invalid');
-      else if (kind === 'model') provider.noteGroqLimit('model');
-      try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
-    },
-    label: 'Groq'};
-}
-// The most tokens one Groq request may carry on the free plan (tokens per minute).
-export const GROQ_REQUEST_TOKENS = 8000;
-// Request fields per model. Reasoning must stay off or low and must not use up the reply's token budget.
-export const GROQ_MODELS = Object.freeze([
-  {id: 'qwen/qwen3.8-27b', body: {reasoning_effort: 'none'}, maxTokens: 200},
-  // Hidden reasoning counts against max_tokens (a limit of 20 left an empty reply), so this one gets headroom; the reasoning text
-  // itself is not requested. Groq rejects unknown fields (prompt_cache_key is a 400), so nothing else is added.
-  {id: 'openai/gpt-oss-20b', body: {reasoning_effort: 'low', include_reasoning: false}, maxTokens: 256},
-]);
-
 /**
  * The fully local AI: the supervised llama-server (bridge/local-llm-server.mjs). No pacing, no key of the player's: the
  * supervisor's per-session key on a loopback port. Starting the server is part of `connect` (it waits for the model to load on the
@@ -201,7 +153,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
 export class TextProviderHost {
   /**
    * provider    the provider state (bridge/mistral-key.mjs): `route` names the route in use, `active` whether one is
-   * routes      {mistral, groq, local}: route objects as above
+   * routes      {mistral, local}: route objects as above
    * memory      MistralMemory or MemoryStore (bridge/memory-store.mjs; adds retrieval and fact extraction)
    * personas    PersonaBook
    * transformReply   the bridge's cleanReply (Natural speech, Expressive emotions)
@@ -274,18 +226,13 @@ export class TextProviderHost {
     } finally { try { lease.release?.(); } catch { /* best effort */ } }
   }
 
-  /** The routes a turn may use, in order: the provider's own, then (Groq only) Mistral when the player has a Mistral key. */
+  /** The routes a turn may use, in order: the provider's own, then (the local AI only) Mistral when the player has a Mistral key. */
   #candidates() {
     const first = this.routes[this.provider.route];
     if (!first) throw new MistralError('request', 'has no route for this provider');
     const list = [first];
-    if (first.name === 'groq' && this.routes.mistral && this.provider.apiKey) list.push(this.routes.mistral);
-    // The local AI: the player's own cloud provider answers a turn it could not (Mistral when a key is saved, else Groq).
-    if (first.name === 'local') {
-      const groqReady = this.routes.groq && this.provider.groqApiKey && Date.now() >= (this.provider.groqBlockedUntil ?? 0);
-      const cloud = this.routes.mistral && this.provider.apiKey ? this.routes.mistral : groqReady ? this.routes.groq : null;
-      if (cloud) list.push(cloud);
-    }
+    // The local AI: Mistral answers a turn it could not when the player has a Mistral key saved.
+    if (first.name === 'local' && this.routes.mistral && this.provider.apiKey) list.push(this.routes.mistral);
     return list;
   }
 
@@ -431,7 +378,7 @@ export class TextProviderHost {
     if (!route) return null;
     try {
       const response = await this.#request(route, menu.classifier({text, last}), signal,
-        {maxTokens: route.name === 'groq' ? 300 : 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, models: route.decisionModels?.()});
+        {maxTokens: 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, models: route.decisionModels?.()});
       return menu.decide(response.text);
     } catch (error) {
       if (!signal?.aborted) this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
@@ -669,7 +616,7 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     const {local: _local, contextParts: _parts, ...rest} = config;
     return rest;
   };
-  const label = () => ({mistral: 'Mistral', groq: 'Groq', local: 'the local AI'})[provider.route] ?? 'Mistral';
+  const label = () => ({mistral: 'Mistral', local: 'the local AI'})[provider.route] ?? 'Mistral';
   host.reply = function reply(config, options) {
     return provider.active ? textHost.reply(config, options) : original.reply.call(this, withoutLocal(config), options);
   };
@@ -681,7 +628,7 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     if (!provider.active) return original.warm.call(this, withoutLocal(config), options);
     if (provider.route === 'local') void textHost.prewarm?.(config);
     // A cloud route's connection is kept open for 60 s after its last use: opening the composer renews it (an unauthenticated request).
-    else if (warmCloud && (provider.route === 'mistral' || provider.route === 'groq')) void warmCloud({provider: provider.route});
+    else if (warmCloud && provider.route === 'mistral') void warmCloud({provider: provider.route});
     // The local voice's browser and renderer page open now, while V types or looks, not in front of the first reply.
     if (prewarmVoice) void this.prewarmLocal?.();
     return Promise.resolve({connectionMs: 0, provider: provider.route});

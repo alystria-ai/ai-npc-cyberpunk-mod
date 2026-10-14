@@ -2,7 +2,7 @@
 
 Added 2026-10-12. An optional Companion voice that speaks a reply with Mistral's text-to-speech (`voxtral-mini-tts-latest`),
 cloned from the character's own reference clip (the OmniVoice long set first; see "Which clip is cloned"), on the player's free Mistral key. It works with any
-conversation provider (Convai free tier, Mistral, Groq or Local), because it only needs the key. Research and measurements behind the
+conversation provider (Convai free tier, Mistral or Local), because it only needs the key. Research and measurements behind the
 choice: `docs/FREE_CLOUD_OPTION_RESEARCH.md`.
 The Inworld cloud voice (`docs/CLOUD_VOICE_INWORLD.md`) is the sibling choice on the player's own Inworld key; the menu then has eight entries.
 
@@ -22,10 +22,10 @@ Code: `bridge/voxtral-voice.mjs` (the adapter), `bridge/mistral-rate.mjs` (the s
 
 ## What the player sees
 
-Settings > Voices > Companion voices has seven entries: Pocket · Performance, four OmniVoice tiers, **Mistral cloud voice
-(Voxtral)**, Convai · Cloud voice. Without a Mistral key the entry reads "Mistral cloud voice (Voxtral) · needs Mistral key" and
-Apply refuses it ("Requires a Mistral key (add it in Settings > Development)"), the same way the OmniVoice entries behave without
-the pack. The key is the one used for the Mistral text option (`player-mistral-key.txt`, pasted in Settings > Development); the
+Settings > Voices > Companion voices has seven entries: Pocket · Performance, four OmniVoice tiers, **Voxtral · Mistral cloud**, Convai · Cloud voice. Without a Mistral key the entry reads "Voxtral · needs Mistral key" (short on purpose: a select value
+that is wider than about 32 average letters runs over the arrows, see docs/MANAGER_UI.md, "Select labels") and
+Apply refuses it ("Requires a Mistral key (add it in Settings > Conversation provider)"), the same way the OmniVoice entries behave without
+the pack. The key is the one used for the Mistral text option (`player-mistral-key.txt`, pasted in Settings > Conversation provider); the
 bridge publishes only whether one is saved (`runtime/mistral-state.json`, `saved`).
 
 It speaks English only here (it uses Pocket's English route): with Multilingual conversations on, choosing it is refused
@@ -47,7 +47,7 @@ work exactly as with Pocket. Group chat look-ahead (`BufferedPcm`) is unchanged.
 - `ref_audio` is the character's reference clip, chosen as in "Which clip is cloned" below (a clip over 25 s is cut). Saved
   voices need a paid plan, so the clip is sent with **every** call; its base64 form is cached per voice in memory (32 voices).
 - **One request per reply**, streamed, never one per sentence, with two exceptions: a long reply (160 characters or more) is split
-  once, into its first sentence and the rest (see "Long replies"), and a reply that the text route streams (a Mistral, Groq or Local
+  once, into its first sentence and the rest (see "Long replies"), and a reply that the text route streams (a Mistral or Local
   AI reply) is voiced as its first sentence while the model is still writing and its rest when it is finished (see "One reply, one
   voice").
 - The key goes only in the Authorization header; messages pass through `redact`; it is never logged or written to a state file.

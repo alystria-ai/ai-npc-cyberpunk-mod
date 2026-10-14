@@ -6,7 +6,7 @@ import {warmMatureGuard, analyse} from './mature-guard.mjs';
 // Source-level regressions for fixes of the 2026-10-14 review (the behaviour tests sit beside each module's own tests).
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
-test('the settings page redraws when the Inworld key state changes (the signature reads it, as it does Mistral and Groq)', () => {
+test('the settings page redraws when the Inworld key state changes (the signature reads it, as it does Mistral)', () => {
   const mcm = read('../mod/mcm.lua');
   const body = mcm.slice(mcm.indexOf('local function pageSignature(snapshot)'));
   const settings = body.slice(body.indexOf("if view == 'settings' then"), body.indexOf('-- The Local AI model row'));
@@ -21,7 +21,7 @@ test('every status the phone shows for a provider failure is translated by the p
   const chat = read('../mod/phone-chat.lua');
   const table = chat.slice(chat.indexOf('local MISTRAL_STATUS = {'), chat.indexOf('local function copy'));
   const statuses = [...table.matchAll(/\] = '([^']+)',/g)].map(match => match[1]);
-  assert.ok(statuses.length >= 8, String(statuses.length));
+  assert.ok(statuses.length >= 5, String(statuses.length));
   const style = read('../mod/phone-chat-style.lua');
   const sources = style.slice(style.indexOf('local statusSources = {'), style.indexOf('local feedbackSources'));
   for (const status of statuses) assert.ok(sources.includes(`['${status}'] = true`), `not translated: ${status}`);
@@ -30,7 +30,8 @@ test('every status the phone shows for a provider failure is translated by the p
 test('the Conversation provider options are translated (the catalogue has them in every language)', () => {
   const mcm = read('../mod/mcm.lua');
   const row = mcm.slice(mcm.indexOf("{'Convai free tier', 'Mistral (free plan)'"));
-  assert.match(row.slice(0, 200), /'Groq \(free plan\)'\}, \{description = true\}\)/);
+  assert.match(row.slice(0, 200), /'Local \(needs Local AI pack\)'\}, \{elements = true, description = true\}\)/);
+  assert.ok(!/groq/i.test(row.slice(0, 200)), 'Groq was removed as a provider');
 });
 
 test('the phone-chat 30 ms reply probe runs before the 10 Hz early return, not after it', () => {

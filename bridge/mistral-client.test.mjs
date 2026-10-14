@@ -206,32 +206,30 @@ test('an allowance of 0 for a model is recognised from the rate-limit headers an
   assert.equal(calls, 1);
 });
 
-// ---- Groq and the local server (same client, one more label and one more allowed host) ---------------------------------------
+// ---- The local server (same client, one more label and one more allowed host) -------------------------------------------------
 
 test('a key goes only to its own provider host or to loopback; errors name the provider and never hold the key', async () => {
-  const GROQ = 'gsk_' + 'Zx9Qw8Er7Ty6Ui5Op4As3Df2Gh1Jk0LmNb';
   const messages = [{role: 'user', content: 'hi'}];
-  await assert.rejects(streamChat({apiKey: GROQ, messages, provider: 'groq', endpoint: 'https://api.mistral.ai/v1/chat/completions'}), /Groq key is only ever sent to api\.groq\.com/);
-  await assert.rejects(streamChat({apiKey: KEY, messages, endpoint: 'https://api.groq.com/openai/v1/chat/completions'}), /Mistral key is only ever sent to api\.mistral\.ai/);
+  await assert.rejects(streamChat({apiKey: KEY, messages, endpoint: 'https://api.example.com/v1/chat/completions'}), /Mistral key is only ever sent to api\.mistral\.ai/);
   await assert.rejects(streamChat({apiKey: KEY, messages, provider: 'local', endpoint: 'https://example.com/v1/chat/completions'}), /only ever sent/);
+  // Groq was removed on 2026-10-14: it is no provider, so its host is refused like any other.
+  await assert.rejects(streamChat({apiKey: KEY, messages, endpoint: 'https://api.groq.com/openai/v1/chat/completions'}), /Mistral key is only ever sent to api\.mistral\.ai/);
   const requests = [];
-  const fetchImpl = async (url, init) => { requests.push({url, headers: init.headers, body: JSON.parse(init.body)}); return fail(401, {message: `Invalid API Key ${GROQ}`}); };
-  const error = await streamChat({apiKey: GROQ, messages, provider: 'groq', fetchImpl, retries: 0, extraBody: {reasoning_effort: 'none'}}).catch(caught => caught);
-  assert.equal(requests[0].url, 'https://api.groq.com/openai/v1/chat/completions');
+  const fetchImpl = async (url, init) => { requests.push({url, headers: init.headers, body: JSON.parse(init.body)}); return fail(401, {message: `Invalid API Key ${KEY}`}); };
+  const error = await streamChat({apiKey: KEY, messages, fetchImpl, retries: 0, extraBody: {reasoning_effort: 'none'}}).catch(caught => caught);
+  assert.equal(requests[0].url, 'https://api.mistral.ai/v1/chat/completions');
   assert.equal(requests[0].body.reasoning_effort, 'none');
-  assert.match(error.message, /^Groq .*\[groq:key\]$/);
-  assert.equal(errorCodeFor(error), 'groq-key');
-  assert.doesNotMatch(error.message, new RegExp(GROQ));
-  assert.equal(await validateKey(GROQ, {provider: 'groq', fetchImpl: async url => { assert.match(url, /^https:\/\/api\.groq\.com\//); return {ok: false, status: 401}; }}), 'invalid');
+  assert.match(error.message, /^Mistral .*\[mistral:key\]$/);
+  assert.equal(errorCodeFor(error), 'mistral-key');
+  assert.doesNotMatch(error.message, new RegExp(KEY));
+  assert.equal(await validateKey(KEY, {fetchImpl: async url => { assert.match(url, /^https:\/\/api\.mistral\.ai\//); return {ok: false, status: 401}; }}), 'invalid');
 });
 
-test('a daily limit is not retried, a per-minute one with a long wait is not either, and a short per-second one is', () => {
+test('a daily limit is not retried, and a short per-second one is', () => {
   const headers = value => new Headers(value === undefined ? {} : {'retry-after': String(value)});
-  const daily = mapFailure(429, {error: {message: 'Rate limit reached for model on tokens per day (TPD): Limit 200000'}}, {headers: headers(), provider: 'groq'});
+  const daily = mapFailure(429, {error: {message: 'Rate limit reached for model on tokens per day (TPD): Limit 200000'}}, {headers: headers(), provider: 'mistral'});
   assert.equal(daily.daily, true); assert.equal(retryable(daily), false);
-  const minute = mapFailure(429, {error: {message: 'Rate limit reached on tokens per minute (TPM)'}}, {headers: headers(30), provider: 'groq'});
-  assert.equal(minute.daily, false); assert.equal(retryable(minute), false);
-  const quick = mapFailure(429, {error: {message: 'Rate limit reached'}}, {headers: headers(1), provider: 'groq'});
+  const quick = mapFailure(429, {error: {message: 'Rate limit reached'}}, {headers: headers(1), provider: 'mistral'});
   assert.equal(retryable(quick), true);
   const mistral = mapFailure(429, {message: 'Requests rate limit exceeded'}, {headers: headers(), provider: 'mistral'});
   assert.equal(retryable(mistral), true);
@@ -386,11 +384,9 @@ test('the cloud routes get a keep-alive dispatcher, the local ones keep the defa
   const seen = [];
   const fake = async (url, init) => { seen.push({url, dispatcher: init.dispatcher}); return sse(delta('Hi.'), 'data: [DONE]\n\n'); };
   await streamChat({apiKey: KEY, messages: [], fetchImpl: fake});
-  await streamChat({apiKey: KEY, messages: [], provider: 'groq', fetchImpl: fake});
   await streamChat({apiKey: KEY, messages: [], endpoint: 'http://127.0.0.1:9/v1/chat/completions', fetchImpl: fake});
-  const [mistral, groq, local] = seen;
+  const [mistral, local] = seen;
   assert.equal(typeof mistral.dispatcher?.dispatch, 'function');
-  assert.equal(groq.dispatcher, mistral.dispatcher, 'one Agent, shared by the cloud routes');
   assert.equal(local.dispatcher, undefined);
   assert.equal(KEEP_ALIVE_MS, 60000);
 });
@@ -410,15 +406,15 @@ test('warmConnection sends one unauthenticated GET to the provider host, and nev
   const calls = [];
   const fake = async (url, init) => { calls.push({url, init}); return {status: 404, arrayBuffer: async () => new ArrayBuffer(100)}; };
   assert.equal(await warmConnection({provider: 'mistral', fetchImpl: fake}), true);
-  assert.equal(await warmConnection({provider: 'groq', fetchImpl: fake}), true);
-  assert.deepEqual(calls.map(call => call.url), ['https://api.mistral.ai/', 'https://api.groq.com/']);
+  assert.equal(await warmConnection({provider: 'groq', fetchImpl: fake}), false, 'Groq is no provider any more');
+  assert.deepEqual(calls.map(call => call.url), ['https://api.mistral.ai/']);
   for (const {init} of calls) {
     assert.equal(init.method, 'GET');
     assert.equal(JSON.stringify(init.headers ?? {}).toLowerCase().includes('authorization'), false);
     assert.equal(init.body, undefined);
   }
   assert.equal(await warmConnection({provider: 'local', fetchImpl: fake}), false);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 1);
   assert.equal(await warmConnection({provider: 'mistral', fetchImpl: async () => { throw Error('offline'); }}), false);
   assert.equal(await warmConnection({provider: 'mistral', fetchImpl: async () => ({arrayBuffer: async () => { throw Error('cut'); }})}), true);
   // A host that never answers is given up on at the limit.

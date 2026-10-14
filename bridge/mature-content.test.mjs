@@ -9,9 +9,8 @@ import {ROMANCE_LIMITS, ROMANCE_USE, relationshipContext} from './romance-contex
 import {RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {PersonaBook, buildMessages, closing, systemHead, systemPrompt} from './mistral-prompt.mjs';
 import {BUDGET, TokenMeter, estimateTokens, fitMessages, textTokens} from './prompt-budget.mjs';
-import {TextProviderHost, groqRoute, localRoute, mistralRoute} from './text-provider-host.mjs';
+import {TextProviderHost, localRoute, mistralRoute} from './text-provider-host.mjs';
 import {MistralProvider} from './mistral-key.mjs';
-import {GroqKey} from './groq-key.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 
 const roster = [...JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8')),
@@ -20,7 +19,6 @@ const book = new PersonaBook(roster);
 const judy = book.persona('judy-alvarez');
 
 const MISTRAL_KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
-const GROQ_KEY = 'gsk_' + 'Zx9Qw8Er7Ty6Ui5Op4As3Df2Gh1Jk0LmNb';
 
 // The sentences of the hard limits, each as the words that must be there.
 const HARD_LIMITS = [/under 18/, /clear consent/, /glorifies sexual violence/, /bestiality or incest/, /real people/,
@@ -66,8 +64,8 @@ test('the Mature pack does not gate the setting: it works without the pack, and 
   assert.equal(setting.forTurn('local', 'gemma-4-E4B-it-Q4_K_M'), null);
 });
 
-test('only the local AI may have it: Convai, Mistral and Groq never do, with the setting on or off', () => {
-  assert.deepEqual({...MATURE_PROVIDERS}, {local: true, mistral: false, groq: false, convai: false});
+test('only the local AI may have it: Convai and Mistral never do (nor does a removed provider), with the setting on or off', () => {
+  assert.deepEqual({...MATURE_PROVIDERS}, {local: true, mistral: false, convai: false});
   const setting = withPack({matureContent: true});
   for (const provider of ['convai', 'mistral', 'groq', 'anything']) {
     assert.equal(setting.forTurn(provider, 'qwen3.5-2b'), null, provider);
@@ -249,14 +247,13 @@ async function hostWith({preference, enabled, pack = true, localModel = 'gemma-4
     if (name === 'local' && localFails) throw Object.assign(new Error('refused'), {kind: 'request'});
     return {text: 'Fine, V.', model: 'x', finishReason: 'stop', usage: {}};
   };
-  const groq = await new GroqKey({keyPath: 'g.txt', readText: async () => `api-key=${GROQ_KEY}\n`, writeText: async () => {}}).load();
-  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}, groq});
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}});
   await provider.load();
   provider.setPreference(preference); provider.apply();
   const prewarms = [];
   const server = {status: () => ({state: 'ready', model: localModel}), ensure: async () => ({endpoint: 'http://127.0.0.1:1/v1', apiKey: 'session-key-abcdef123456', model: localModel}),
     touch() {}, prewarm: async messages => { prewarms.push(messages); }};
-  const routes = {mistral: mistralRoute({provider, chat: chat('mistral'), gapMs: 0}), groq: groqRoute({provider, chat: chat('groq')}),
+  const routes = {mistral: mistralRoute({provider, chat: chat('mistral'), gapMs: 0}),
     local: localRoute({server, provider, chat: chat('local')})};
   const matureContent = new MatureContent(); matureContent.setPack(pack); matureContent.update({matureContent: enabled});
   const memory = await MistralMemory.open({path: null});
@@ -299,8 +296,8 @@ test('the host: the Mature pack does not gate anything: the local AI gets the la
   } finally { absent.close(); }
 });
 
-test('the host: Mistral and Groq never get it, with the setting on', async () => {
-  for (const preference of ['mistral', 'groq']) {
+test('the host: Mistral never gets it, with the setting on', async () => {
+  for (const preference of ['mistral']) {
     const harness = await hostWith({preference, enabled: true});
     try {
       await harness.host.reply(turn('hello'));
@@ -562,7 +559,7 @@ test('the word palette is on only while the setting is on: off, no prompt, closi
   assert.doesNotMatch(closing('Judy Alvarez'), /choom|palette/);
 });
 
-test('the word palette in the host: the local AI gets it with the setting on and loses it when it is switched off; Mistral and Groq never get it', async () => {
+test('the word palette in the host: the local AI gets it with the setting on and loses it when it is switched off; Mistral never gets it', async () => {
   const local = await hostWith({preference: 'local', enabled: true});
   try {
     await local.host.reply(turn('hello'));
@@ -572,7 +569,7 @@ test('the word palette in the host: the local AI gets it with the setting on and
     local.matureContent.update({matureContent: true}); await local.host.reply(turn('once more'));
     assert.match(local.seen[2].system, PALETTE_MARKER);
   } finally { local.close(); }
-  for (const preference of ['mistral', 'groq']) {
+  for (const preference of ['mistral']) {
     const harness = await hostWith({preference, enabled: true});
     try {
       await harness.host.reply(turn('hello'));

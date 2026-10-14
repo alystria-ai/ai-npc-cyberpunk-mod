@@ -1,5 +1,5 @@
-// The player's own Inworld key (docs/CLOUD_VOICE_INWORLD.md): handled exactly like the Groq key (bridge/groq-key.mjs) and the
-// Mistral key (bridge/mistral-key.mjs).
+// The player's own Inworld key (docs/CLOUD_VOICE_INWORLD.md): handled exactly like the Mistral key
+// (bridge/mistral-key.mjs).
 //
 // Stored only in this bridge's state folder (player-inworld-key.txt), never in the game folder, in settings.json, in a status file or in
 // a log. The settings page shows only its last four characters. A player pastes it from the clipboard (the same command file

@@ -1,6 +1,6 @@
 // Reply text that is still being written, handed to the voice before the model has finished (docs/LATENCY_2026-10-12.md).
 //
-// The text routes (Mistral, Groq, the local AI) stream a reply token by token. A ReplyStream sits between that stream and the
+// The text routes (Mistral, the local AI) stream a reply token by token. A ReplyStream sits between that stream and the
 // voice: the text host feeds it the raw text so far (`update`), it cleans the text the way the finished reply is cleaned and watches
 // for the first complete sentence. When that sentence is safe to speak it becomes the stream's HEAD: the voice starts on it at
 // once while the model writes the rest, and the rest (the TAIL) follows when the reply is finished.

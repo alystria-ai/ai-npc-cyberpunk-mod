@@ -1,11 +1,11 @@
-// A voice-key turn on a text route (Mistral, Groq, the local AI) voiced while its reply is still being written
+// A voice-key turn on a text route (Mistral, the local AI) voiced while its reply is still being written
 // (docs/LATENCY_2026-10-13.md, 4.1).
 //
 // A typed turn already works this way (`respondStreamed` in bridge/convai-bridge.mjs): the text host feeds a ReplyStream, the voice
 // starts on the first complete sentence, and the finished reply is merged in when the voice is done. A voice-key turn went through
 // `MicrophoneSession.finish` instead: `finishVoice` recognised the speech, asked the model and returned only when the WHOLE reply
-// was written, and only then did `onReply` start the voice. The model's time after its first sentence (0.17 to 0.45 s on Mistral and
-// Groq, about 1.2 s on the local AI) was added to every such turn.
+// was written, and only then did `onReply` start the voice. The model's time after its first sentence (0.17 to 0.45 s on Mistral,
+// about 1.2 s on the local AI) was added to every such turn.
 //
 // A VoiceKeyStream is the missing hook. `prepareReply` creates one and returns `options`, which `finishVoice` hands to the text host
 // (`options.stream` is the ReplyStream the host feeds; `options.onTranscript` tells us what the player said, which the first

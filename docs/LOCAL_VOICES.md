@@ -73,7 +73,7 @@ Tests: `npm run test:reference-picker`.
 **Menu** (Settings > Voices > Companion voices, in this order, fastest to best): Pocket · Performance (default),
 OmniVoice · Balanced (16 steps, short reference), OmniVoice · Quality (16 steps, long reference), OmniVoice · High Quality
 (32 steps, short reference), OmniVoice · Ultra Quality (32 steps, long reference), Convai · Cloud voice. Without the Omni pack
-the four OmniVoice entries end in "· needs Omni pack" and Apply refuses them. There is no Pocket base. Settings store `voiceProvider` (`pocket`, `omni`, `convai`), `omniSteps` (16 or
+the four OmniVoice entries end in "· needs pack" and Apply refuses them. There is no Pocket base. Settings store `voiceProvider` (`pocket`, `omni`, `convai`), `omniSteps` (16 or
 32), `omniReference` (`short` up to 10 s of reference audio, `long` up to 18 s) and `keepPreparedVoices` (default on). A fresh
 profile starts on Pocket TTS. Migration (`mod/manager.lua`): a saved `omni`/`hybrid` choice keeps its steps and gains
 `omniReference = "long"` (whoever chose OmniVoice chose quality; long matches the voice better for about 0.15 s more latency at

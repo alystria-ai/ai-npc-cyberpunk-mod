@@ -1712,7 +1712,7 @@ local function toggleVoice(groupMode)
         -- boolean, asked only here, when the voice key is pressed.
         if manager.voiceNeedsConvai() then
             convaiNotices.send(player, 'voice-needs-convai',
-                ui.t('Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Development, or type your message.'))
+                ui.t('Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.'))
             return
         end
         if not gameplayCanAcquire(player) then return end
@@ -2209,16 +2209,16 @@ end
 -- what to do; it never names where the shared key comes from.
 -- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). Phone Chat words the same line (phone-chat.lua).
 local function dailyLimitText()
-    return ui.t('You’ve reached today’s free conversation limit. Convai (better quality responses) is back tomorrow. To keep talking now, add a free Mistral key and set Conversation provider to Mistral in Settings > Development. A fully local option is coming.')
+    return ui.t('You’ve reached today’s free conversation limit. Convai (better quality responses) is back tomorrow. To keep talking now, add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider. A fully local option is coming.')
 end
 
 local function keyNoticeText(code)
     if code == 'quota-shared' then
-        return ui.t('The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Development.')
+        return ui.t('The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.')
     elseif code == 'quota-own' then
-        return ui.t('Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development.')
+        return ui.t('Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.')
     elseif code == 'key-rejected' then
-        return ui.t('Convai did not accept your API key. Check it in Settings > Development.')
+        return ui.t('Convai did not accept your API key. Check it in Settings > Conversation provider.')
     elseif code == 'key-memory-needed' then
         return ui.t('Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.')
     end
@@ -2233,23 +2233,15 @@ local function keyReplyNotice(reply)
     if reply.errorCode == 'daily-limit' then return 'daily-limit', dailyLimitText() end
     -- Mistral: three failures the bridge names, and two one-time notices on the first reply.
     if reply.errorCode == 'mistral-key' then
-        return 'mistral-key', ui.t('Mistral did not accept your key. Check it in Settings > Development.')
+        return 'mistral-key', ui.t('Mistral did not accept your key. Check it in Settings > Conversation provider.')
     elseif reply.errorCode == 'mistral-limit' then
         return 'mistral-limit', ui.t('Mistral’s free limit is reached for now. Try again in a moment.')
     elseif reply.errorCode == 'mistral-model' then
         return 'mistral-model', ui.t('The Mistral model is unavailable right now. Try again in a minute.')
     end
-    -- Groq (free plan): the same three failures and the same one-time notice, under their own ids.
-    if reply.errorCode == 'groq-key' then
-        return 'groq-key', ui.t('Groq did not accept your key. Check it in Settings > Development.')
-    elseif reply.errorCode == 'groq-limit' then
-        return 'groq-limit', ui.t('Groq’s free limit is reached for now. Try again in a moment.')
-    elseif reply.errorCode == 'groq-model' then
-        return 'groq-model', ui.t('The Groq model is unavailable right now. Try again in a minute.')
-    end
     -- Local AI could not start, so the bridge used Convai: the same line whether it rode on a failed turn or on the first reply.
     if reply.errorCode == 'local-fallback' or reply.keyNotice == 'local-fallback' then
-        return 'local-fallback', ui.t('Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Development.')
+        return 'local-fallback', ui.t('Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.')
     end
     -- A turn the local AI could not answer, with no cloud provider to take it over: say so (the next turn tries again).
     if reply.errorCode == 'local-failed' then
@@ -2265,11 +2257,8 @@ local function keyReplyNotice(reply)
         if type(used) ~= 'string' or used == '' or #used > 80 or used:find('%c') then used = ui.t('another model') end
         return 'local-model-fallback', ui.t('The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.', {model = used})
     end
-    if reply.keyNotice == 'groq-no-key' then
-        return 'groq-no-key', ui.t('Groq has no key yet, so Convai is used. Add your key in Settings > Development.')
-    end
     if reply.keyNotice == 'mistral-no-key' then
-        return 'mistral-no-key', ui.t('Mistral has no key yet, so Convai is used. Add your key in Settings > Development.')
+        return 'mistral-no-key', ui.t('Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.')
     elseif reply.keyNotice == 'mistral-voice' then
         return 'mistral-voice', ui.t('Mistral replies are spoken by a local voice instead of the Convai cloud voice.')
     end
@@ -2282,7 +2271,6 @@ end
 local function sendProviderNotice(player, keyId, keyText)
     if keyId == 'mistral-no-key' then convaiNotices.send(player, 'mistral-no-key', keyText)
     elseif keyId == 'mistral-voice' then convaiNotices.send(player, 'mistral-voice', keyText)
-    elseif keyId == 'groq-no-key' then convaiNotices.send(player, 'groq-no-key', keyText)
     elseif keyId == 'local-fallback' then convaiNotices.send(player, 'local-fallback', keyText)
     elseif keyId == 'local-turn-fallback' then convaiNotices.send(player, 'local-turn-fallback', keyText)
     elseif keyId == 'local-model-fallback' then convaiNotices.send(player, 'local-model-fallback', keyText) end
@@ -3112,20 +3100,13 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'mistral-limit', keyText) end
                         elseif keyId == 'mistral-model' then
                             if not pending.reaction then convaiNotices.send(player, 'mistral-model', keyText) end
-                        -- Groq failures: the same rule as Mistral's.
-                        elseif keyId == 'groq-key' then
-                            if not pending.reaction then convaiNotices.send(player, 'groq-key', keyText) end
-                        elseif keyId == 'groq-limit' then
-                            if not pending.reaction then convaiNotices.send(player, 'groq-limit', keyText) end
-                        elseif keyId == 'groq-model' then
-                            if not pending.reaction then convaiNotices.send(player, 'groq-model', keyText) end
                         -- Local AI could not start and the turn failed: the notice for a turn V asked for, like the Mistral failures.
                         elseif keyId == 'local-fallback' then
                             if not pending.reaction then convaiNotices.send(player, 'local-fallback', keyText) end
                         -- A local turn failed and nothing took it over: the same rule, its own notice.
                         elseif keyId == 'local-failed' then
                             if not pending.reaction then convaiNotices.send(player, 'local-failed', keyText) end
-                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'groq-no-key' then
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
                         elseif keyId then convaiNotices.send(player, 'quota-exhausted', keyText)

@@ -1,6 +1,6 @@
 // A player's own edits to a character (docs/CHARACTER_EDITOR.md): the bio, the speaking style, the player's speaking rules, the example
 // lines and a few memories written by hand. They are kept apart from the shipped profile, one small file per character in
-// <state>/character-overrides/<key>.json, so an update of the mod never touches them, and only the text providers (Mistral, Groq and
+// <state>/character-overrides/<key>.json, so an update of the mod never touches them, and only the text providers (Mistral and
 // the Local AI) read them: the Convai profile lives on Convai's side and is not changed.
 //
 // A file holds only the fields that differ from the shipped profile ("reset" removes a field or the whole file). Everything is

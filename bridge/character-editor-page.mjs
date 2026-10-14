@@ -244,13 +244,13 @@ export function editorClient() {
     document.title = T('Character editor');
     document.documentElement.lang = boot.language || 'en';
     $('title').textContent = T('Character editor');
-    $('sub').textContent = T('Your changes work with Mistral, Groq and Local. They do not apply to Convai.');
+    $('sub').textContent = T('Your changes work with Mistral and Local. They do not apply to Convai.');
     $('close').textContent = T('Close editor');
     $('search').placeholder = T('Search characters');
     $('search').setAttribute('aria-label', T('Search characters'));
     $('foot').textContent = T('Changes are saved on this computer and used from the next reply.');
     const banner = $('banner');
-    if (model.state.provider === 'convai') { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Mistral, Groq or Local as the conversation provider in the settings.'); }
+    if (model.state.provider === 'convai') { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.'); }
     else banner.hidden = true;
   };
   window.addEventListener('beforeunload', event => { if (dirtyFields().length) { event.preventDefault(); event.returnValue = ''; } });

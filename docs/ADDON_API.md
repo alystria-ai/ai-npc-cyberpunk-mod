@@ -596,6 +596,8 @@ handle:settings({title = 'Skippy', description = 'The talking smart pistol.', it
 
 - The section appears on the main settings page after Reactions, with the built-in **Time between remarks** and **Most remarks per
   fight** settings first.
+- `remarkCap = false` (next to `title` and `description`) hides **Most remarks per fight** for an add-on whose remarks are not fight
+  remarks (Delamain's cab talk). The saved value is then unused and the default guard of 30 stays in force.
 - `id` uses letters, digits and `_`. `remarkGap`, `remarkCap`, `remarkGapChosen`, `remarkRate`, `replaceGameLines` and `markLines` are
   reserved for the built-in settings (the last two: **Replace the game's own lines**, only with a rule, and **Mark our lines in the
   subtitles**, for every add-on with a speaker). At most 24 items; `kind` is `bool` or
@@ -691,7 +693,7 @@ check the list of calls.
 | `mod/group-chat.lua` | `voiceOnly` rows; add-on voices are left out of the other speakers' audience. |
 | `mod/microphone.lua`, `mod/manager.lua` | `microphone.decorate` (add-on blocks at start and finish); `manager.speechRecognitionReady()` (the bridge's `stt` flag). |
 | `mod/mcm.lua`, `mod/notices.lua` | Add-on settings sections; the `addon-notice` notice. |
-| `bridge/convai-bridge.mjs` | `AddonHost.load`, `extend` (roster rows; add-on Convai IDs removed), voice config merge, status, state/settings watchers, journal; `runAddonTurn` before every Convai step of `runInput`; one `TextProviderHost` per add-on route (`fixedProvider`, `sharedMemory`, never Groq); `onWarm`. The microphone poll's add-on branches (start, finish, watch) and `bridge/addon-voice.mjs` (the channel on the Mistral route's recogniser; `MicrophoneSession` passes its `hostFactory` the recording). |
+| `bridge/convai-bridge.mjs` | `AddonHost.load`, `extend` (roster rows; add-on Convai IDs removed), voice config merge, status, state/settings watchers, journal; `runAddonTurn` before every Convai step of `runInput`; one `TextProviderHost` per add-on route (`fixedProvider`, `sharedMemory`); `onWarm`. The microphone poll's add-on branches (start, finish, watch) and `bridge/addon-voice.mjs` (the channel on the Mistral route's recogniser; `MicrophoneSession` passes its `hostFactory` the recording). |
 | `bridge/protocol.mjs`, `bridge/mistral-prompt.mjs` | The `addon` request field and reaction; persona rows with `intro`, `identityRule`, `rules` and `talkWords` (an add-on row only; the main mod's length rule is unchanged for every other row). |
 
 ## What the game must confirm live

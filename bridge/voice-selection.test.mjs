@@ -668,18 +668,16 @@ test('without the optional OmniVoice pack an Omni choice falls to Pocket and say
   await h.voice.close();
 });
 
-test('Keep prepared voices defaults on and reaches the live worker and every new one',async()=>{
+test('prepared voices are always kept: on for every worker, and an old saved keepPreparedVoices false is ignored',async()=>{
   const h=referenceFixture();
   await h.voice.start();
   assert.equal(h.voice.keepPrepared,true);assert.equal(h.workers[0].hooks.keepPreparedVoices,true);assert.equal(h.workers[0].keep,true);
   h.voice.update({voiceProvider:'pocket',keepPreparedVoices:false},null,false);
-  assert.equal(h.workers[0].keep,false);
+  assert.equal(h.workers[0].keep,true);assert.equal(h.voice.keepPrepared,true);
   h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'long',keepPreparedVoices:false},null,false);
   await h.voice.start();
   const omni=h.workers.find(worker=>worker.backend==='omni');
-  assert.equal(omni.hooks.keepPreparedVoices,false);assert.equal(omni.keep,false);
-  h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'long',keepPreparedVoices:true},null,false);
-  assert.equal(omni.keep,true);
+  assert.equal(omni.hooks.keepPreparedVoices,true);assert.equal(omni.keep,true);
   await h.voice.close();
 });
 

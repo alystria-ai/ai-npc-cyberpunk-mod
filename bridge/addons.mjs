@@ -444,12 +444,12 @@ const REFERENCE_PREFIX = 'runtime/voice-references/';
 
 /**
  * The provider state an add-on speaker's text host (bridge/text-provider-host.mjs) sees: always active, its route fixed to the one
- * routeFor chose ('mistral' or 'local'), the player's saved Mistral key, and never Groq (an add-on host has no Groq route).
+ * routeFor chose ('mistral' or 'local'), the player's saved Mistral key.
  */
 export function fixedProvider(provider, route) {
   if (!ADDON_PROVIDERS.includes(route)) throw Error(`add-on speakers cannot use ${route}`);
   return {get route() { return route; }, get applied() { return route; }, get active() { return true; },
-    get apiKey() { return provider?.apiKey ?? null; }, groqApiKey: null, groqBlockedUntil: Infinity};
+    get apiKey() { return provider?.apiKey ?? null; }};
 }
 
 const MEMORY_METHODS = ['recall', 'record', 'retrieve', 'interrupt', 'forget', 'beginSummary', 'applySummary', 'failSummary', 'pendingSummary'];
@@ -705,7 +705,7 @@ export class AddonHost {
    * The text provider of an add-on speaker's turn: the player's own provider when the speaker allows it, else Mistral when a key is
    * saved, else the local AI when its pack is installed and working; null when none can serve it (the game then tells the player once
    * that the add-on needs a free Mistral key or the Local AI pack).
-   *   applied        the conversation provider in use ('convai', 'mistral', 'local', 'groq')
+   *   applied        the conversation provider in use ('convai', 'mistral', 'local')
    *   mistralKey     a Mistral key is saved and was not refused
    *   localReady     the Local AI pack is installed and has not failed to start
    */

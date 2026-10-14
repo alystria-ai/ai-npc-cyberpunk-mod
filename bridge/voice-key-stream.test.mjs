@@ -12,7 +12,6 @@ import {startVoiceKeyStream} from './voice-key-stream.mjs';
 import {TextProviderHost, mistralRoute} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
-import {GroqKey} from './groq-key.mjs';
 import {PersonaBook} from './mistral-prompt.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
@@ -36,7 +35,7 @@ async function model(reply, {pieceMs = 10} = {}) {
     });
   });
   await new Promise(done => server.listen(0, '127.0.0.1', done));
-  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${KEY}\n`, writeText: async () => {}, groq: new GroqKey({keyPath: 'g.txt'})});
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${KEY}\n`, writeText: async () => {}});
   await provider.load(); provider.setPreference('mistral'); provider.apply();
   const memory = await MistralMemory.open({path: null});
   const host = new TextProviderHost({provider, memory, personas: new PersonaBook(roster), log: () => {},

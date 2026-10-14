@@ -63,7 +63,7 @@ async function control(inworldText = null) {
   return {instance, provider, published, clip, send: (id, action) => { command = JSON.stringify({version: 1, issuedAt: 9_999, id, action}); return instance.poll(); }};
 }
 
-test('the Inworld key is pasted, checked and saved like the Groq key, and the status never holds it', async () => {
+test('the Inworld key is pasted, checked and saved like the Mistral key, and the status never holds it', async () => {
   const {instance, provider, published, send} = await control();
   await instance.open();
   assert.equal(published.at(-1).inworld.saved, false);

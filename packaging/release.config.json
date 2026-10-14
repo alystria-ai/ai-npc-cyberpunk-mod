@@ -151,7 +151,7 @@
     "licenceFiles": ["packaging/licenses/Apache-2.0.txt"],
     "tiers": {
       "lite": {
-        "name": "Qwen3.5-4B-HauhauCS-Aggressive (uncensored)",
+        "name": "Qwen3.5-4B · uncensored",
         "family": "qwen",
         "baseModel": "Qwen3.5-4B (Alibaba Cloud), Apache-2.0",
         "repository": "HauhauCS/Qwen3.5-4B-Uncensored-HauhauCS-Aggressive",
@@ -163,7 +163,7 @@
         "license": "Apache-2.0"
       },
       "good": {
-        "name": "Gemma-4-E4B-MiniFantasy (uncensored)",
+        "name": "Gemma 4 E4B · uncensored",
         "family": "gemma-4",
         "baseModel": "Gemma 4 E4B (Google), Apache-2.0",
         "repository": "Nubinu/Gemma4-E4B-MiniFantasy-V1-GGUF",

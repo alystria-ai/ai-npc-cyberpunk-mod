@@ -254,8 +254,8 @@ export class PromptTooLarge extends MistralError {
  *   budget(options) -> {contextTokens, reserveTokens?, meter?, count?} | null    (null: send as is)
  *   onFit(fit, options)      called with every fit that cut something (the log line)
  *   tooLarge(fit, options)   the error to throw when the prompt cannot fit (default: PromptTooLarge)
- *   shape(args, options)     optional: the arguments to build the prompt from instead (the Groq route builds a smaller persona and history,
- *                            bridge/groq-prompt.mjs); a route without one fits exactly what `buildMessages` was given
+ *   shape(args, options)     optional: the arguments to build the prompt from instead (a route may build a smaller persona and history);
+ *                            a route without one fits exactly what `buildMessages` was given
  *   budget().soft            optional {contextTokens, reserveTokens?}: a smaller target tried first; a prompt that cannot reach it is fitted
  *                            to the budget's own (hard) limit as before, so a soft target never makes a request fail
  * Only requests built by `buildMessages` are fitted (summaries, fact extraction and prewarm are small and pass through). A server that

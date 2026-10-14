@@ -3,15 +3,13 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {MistralHost, attachMistral} from './mistral-host.mjs';
-import {TextProviderHost, attachTextProvider, groqRoute, localRoute, mistralRoute, GROQ_MODELS, isLocalUnavailable, CLOUD_CHAT_LIMITS, HOLDING_LINES} from './text-provider-host.mjs';
+import {TextProviderHost, attachTextProvider, localRoute, mistralRoute, isLocalUnavailable, CLOUD_CHAT_LIMITS, HOLDING_LINES} from './text-provider-host.mjs';
 import {MistralMemory, MEMORY_LIMITS} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
-import {GroqKey, parseGroqKey} from './groq-key.mjs';
 import {PersonaBook, buildMessages, systemHead, parseFacts, factMessages, joinBlocks, FACT_SCHEMA, LIMITS, CONTEXT_PREFIX} from './mistral-prompt.mjs';
 import {errorCodeFor, failureKind, MistralError, DEFAULT_MODELS} from './mistral-client.mjs';
 
 const MISTRAL_KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
-const GROQ_KEY = 'gsk_' + 'Zx9Qw8Er7Ty6Ui5Op4As3Df2Gh1Jk0LmNb';
 const roster = [...JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8')),
   ...JSON.parse(await readFile(new URL('../characters/archetype-roster.json', import.meta.url), 'utf8'))];
 const book = new PersonaBook(roster);
@@ -116,20 +114,19 @@ test('facts: the request carries what is known, and the answer is parsed defensi
 
 // ---- Mistral: cache key, model order ---------------------------------------------------------------------------------------
 
-async function harness(script, {preference = 'mistral', groqKey = null, mistralKey = MISTRAL_KEY, host: hostOptions = {}, groqScript, chatDefaults} = {}) {
+async function harness(script, {preference = 'mistral', mistralKey = MISTRAL_KEY, host: hostOptions = {}, chatDefaults} = {}) {
   const server = await fakeServer(script);
-  const groqServer = groqScript ? await fakeServer(groqScript) : null;
-  const groq = groqKey ? await new GroqKey({keyPath: 'g.txt', readText: async () => `api-key=${groqKey}\n`, writeText: async () => {}}).load() : new GroqKey({keyPath: 'g.txt'});
-  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => mistralKey ? `api-key=${mistralKey}\n` : '', writeText: async () => {}, groq});
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => mistralKey ? `api-key=${mistralKey}
+` : '', writeText: async () => {}});
   await provider.load();
   provider.setPreference(preference); provider.apply();
   const memory = await MistralMemory.open({path: null});
   const logs = [];
   const mistral = mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, cacheScope: 'scope1', ...(chatDefaults ? {chatDefaults} : {})});
-  const routes = {mistral, ...(groqServer ? {groq: groqRoute({provider, endpoint: groqServer.endpoint})} : {})};
+  const routes = {mistral};
   const host = new TextProviderHost({provider, memory, personas: book, routes, log: line => logs.push(line), ...hostOptions});
-  const close = async () => { host.close(); await server.close(); await groqServer?.close(); };
-  return {server, groqServer, provider, memory, host, logs, close, groq};
+  const close = async () => { host.close(); await server.close(); };
+  return {server, provider, memory, host, logs, close};
 }
 
 test('Mistral requests carry a stable prompt_cache_key per character, never the key, and the first model is ministral-8b', async () => {
@@ -182,80 +179,17 @@ test('a remark with a word limit asks for few tokens and is cut at a sentence en
   } finally { await close(); }
 });
 
-// ---- Groq ------------------------------------------------------------------------------------------------------------------
+// ---- A removed provider ----------------------------------------------------------------------------------------------------
 
-test('Groq: qwen first with reasoning off, no prompt_cache_key, and the Groq key goes only to the Groq route', async () => {
-  const {groqServer, server, host, close, provider} = await harness(() => 'from mistral', {preference: 'groq', groqKey: GROQ_KEY, groqScript: () => 'Sure thing, V.'});
+test('a saved conversation provider of groq (removed 2026-10-14) is the default: Convai answers, nothing is sent to a Groq host, no notice', async () => {
+  const {provider, server, close} = await harness(() => 'from mistral', {preference: 'groq'});
   try {
-    assert.equal(provider.route, 'groq');
-    const result = await host.reply(turn('hi'));
-    assert.equal(result.text, 'Sure thing, V.');
-    assert.equal(result.transport, 'groq');
-    const {body, headers} = groqServer.requests[0];
-    assert.equal(headers.authorization, `Bearer ${GROQ_KEY}`);
-    assert.equal(body.model, 'qwen/qwen3.8-27b');
-    assert.equal(body.reasoning_effort, 'none');
-    assert.equal(body.prompt_cache_key, undefined);
-    assert.equal(body.max_tokens, 200);
-    assert.equal(server.requests.length, 0);
-    assert.deepEqual(GROQ_MODELS.map(model => model.id), ['qwen/qwen3.8-27b', 'openai/gpt-oss-20b']);
-    assert.equal(GROQ_MODELS[1].body.reasoning_effort, 'low');
-  } finally { await close(); }
-});
-
-test('Groq at its limit: the same turn goes to Mistral when a Mistral key exists, and Groq is left alone for a while', async () => {
-  const {groqServer, server, host, close, provider} = await harness(() => 'From Mistral, V.', {preference: 'groq', groqKey: GROQ_KEY,
-    groqScript: () => ({status: 429, message: 'Rate limit reached for model on tokens per day (TPD): Limit 200000', headers: {'retry-after': '0'}})});
-  try {
-    const result = await host.reply(turn('hi'));
-    assert.equal(result.text, 'From Mistral, V.');
-    assert.equal(result.transport, 'mistral');
-    assert.equal(groqServer.requests.length, 1, 'a daily limit is not retried');
-    assert.equal(server.requests.length, 1);
-    assert.equal(provider.groqLimit.kind, 'daily');
-    assert.equal(provider.requested, 'mistral');
-    assert.equal(provider.pending, true);
-    assert.equal(server.requests[0].headers.authorization, `Bearer ${MISTRAL_KEY}`);
-    assert.doesNotMatch(JSON.stringify(server.requests), new RegExp(GROQ_KEY));
-    assert.doesNotMatch(JSON.stringify(groqServer.requests.map(request => request.body)), new RegExp(MISTRAL_KEY));
-  } finally { await close(); }
-});
-
-test('Groq at its limit with no Mistral key: the turn fails with a groq-limit code and Convai is requested next', async () => {
-  const {host, close, provider} = await harness(() => 'x', {preference: 'groq', groqKey: GROQ_KEY, mistralKey: null,
-    groqScript: () => ({status: 429, message: 'Rate limit reached for model on tokens per minute (TPM)', headers: {'retry-after': '30'}})});
-  try {
-    const error = await host.reply(turn('hi')).catch(caught => caught);
-    assert.equal(errorCodeFor(error), 'groq-limit');
-    assert.equal(provider.groqLimit.kind, 'rate');
-    assert.equal(provider.requested, 'convai');
-    assert.doesNotMatch(error.message, new RegExp(GROQ_KEY));
-  } finally { await close(); }
-});
-
-test('Groq key and model failures are remembered (invalid until the key changes) and fall through to Mistral', async () => {
-  const bad = await harness(() => 'ok from mistral', {preference: 'groq', groqKey: GROQ_KEY, groqScript: () => ({status: 401, message: `Invalid API Key ${GROQ_KEY}`})});
-  try {
-    assert.equal((await bad.host.reply(turn('hi'))).text, 'ok from mistral');
-    assert.equal(bad.provider.groqLimit.kind, 'invalid');
-    assert.equal(bad.provider.requested, 'mistral');
-    bad.provider.groq.key = GROQ_KEY; // a saved key ends the block
-    await bad.provider.groq.save(GROQ_KEY);
-    assert.equal(bad.provider.groqLimit, null);
-    assert.equal(bad.provider.requested, 'groq');
-  } finally { await bad.close(); }
-});
-
-test('Groq preference without a Groq key requests Convai and says so once; the Groq key shape is checked', async () => {
-  const {provider, close} = await harness(() => 'x', {preference: 'groq', groqKey: null});
-  try {
-    assert.equal(provider.requested, 'convai');
-    assert.equal(provider.takeNotice(), 'groq-no-key');
+    assert.equal(provider.preference, 'convai');
+    assert.equal(provider.route, 'convai');
+    assert.equal(provider.active, false);
     assert.equal(provider.takeNotice(), undefined);
-    assert.equal(parseGroqKey(`api-key=${GROQ_KEY}`), GROQ_KEY);
-    assert.equal(parseGroqKey(MISTRAL_KEY), null);
-    assert.equal(parseGroqKey('gsk_short'), null);
-    assert(provider.secrets().every(secret => secret !== GROQ_KEY));
+    assert.equal(server.requests.length, 0);
+    assert.equal('groqRoute' in await import('./text-provider-host.mjs'), false, 'there is no Groq route');
   } finally { await close(); }
 });
 
@@ -374,11 +308,11 @@ test('the Mistral host keeps its original export and a Mistral turn still works 
   } finally { await server.close(); }
 });
 
-test('errors name their provider, and only a refused Mistral or Groq key becomes a game code', () => {
-  const groq = new MistralError('limit', 'rate limited', {provider: 'groq'});
-  assert.match(groq.message, /^Groq .*\[groq:limit\]$/);
-  assert.equal(failureKind(groq), 'limit');
-  assert.equal(errorCodeFor(groq), 'groq-limit');
+test('errors name their provider, and only a refused Mistral key becomes a game code', () => {
+  const limited = new MistralError('limit', 'rate limited', {provider: 'mistral'});
+  assert.match(limited.message, /^Mistral .*\[mistral:limit\]$/);
+  assert.equal(failureKind(limited), 'limit');
+  assert.equal(errorCodeFor(limited), 'mistral-limit');
   const local = new MistralError('network', 'could not be reached', {provider: 'local'});
   assert.match(local.message, /^The local AI .*\[local:network\]$/);
   // A failed local turn (no answer, a refused prompt, a server that went away) has its own code; one that could not start does not.
@@ -566,7 +500,7 @@ test('a stream that goes quiet after the first sentence ends with that sentence 
     });
     http.listen(0, '127.0.0.1', () => done({http, requests, endpoint: `http://127.0.0.1:${http.address().port}/v1/chat/completions`}));
   });
-  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}, groq: new GroqKey({keyPath: 'g.txt'})});
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}});
   await provider.load(); provider.setPreference('mistral'); provider.apply();
   const memory = await MistralMemory.open({path: null}), logs = [];
   const host = new TextProviderHost({provider, memory, personas: book, log: line => logs.push(line),

@@ -576,7 +576,9 @@ Handle.on = guard('on', function(self, name, fn)
     return true
 end)
 
---- handle:settings({title, description, items = {{id, label, kind = 'bool'|'select', default, description, elements}}})
+--- handle:settings({title, description, remarkCap = true|false, items = {{id, label, kind = 'bool'|'select', default, description, elements}}})
+--- `remarkCap = false` hides the built-in "Most remarks per fight" setting for an add-on whose remarks are not tied to fights (a ride, say):
+--- the player is not offered it, and the default count still guards the add-on's request budget.
 Handle.settings = guard('settings', function(self, section)
     local addon = self and self.record
     if not addon or addons[addon.id] ~= addon then return false, 'unknown add-on' end
@@ -607,7 +609,7 @@ Handle.settings = guard('settings', function(self, section)
         else return false, 'setting kind must be bool or select' end
         items[#items + 1] = entry
     end
-    addon.settingsDef = {title = title, description = trim(section.description, 300) or '', items = items}
+    addon.settingsDef = {title = title, description = trim(section.description, 300) or '', items = items, remarkCap = section.remarkCap ~= false}
     for _, item in ipairs(items) do
         local value = addon.values[item.id]
         local valid = (item.kind == 'bool' and type(value) == 'boolean')
@@ -1354,12 +1356,14 @@ function M.settingsSections()
             items[1] = {mcmId = 'addon:' .. id .. ':remarkGap', label = 'Time between remarks', kind = 'select', elements = gaps,
                 value = addon.values.remarkGap, default = GAP_DEFAULT,
                 description = 'The shortest quiet time between two remarks of ' .. addon.name .. ', counted from the end of the last one. '
-                    .. 'The biggest moments (a near death, the end of a fight) need only half of it. While its text comes from the Local AI '
+                    .. 'The biggest moments need only half of it. While its text comes from the Local AI '
                     .. 'and you keep the default, ' .. addon.name .. ' waits about 20 seconds between remarks to keep the graphics card free for the game.'}
-            items[2] = {mcmId = 'addon:' .. id .. ':remarkCap', label = 'Most remarks per fight', kind = 'select', elements = caps,
-                value = addon.values.remarkCap, default = CAP_DEFAULT,
-                description = 'How many remarks ' .. addon.name .. ' may make in one fight (outside combat: in five minutes). '
-                    .. 'The last one is kept for a big moment.'}
+            if not (def and def.remarkCap == false) then
+                items[#items + 1] = {mcmId = 'addon:' .. id .. ':remarkCap', label = 'Most remarks per fight', kind = 'select', elements = caps,
+                    value = addon.values.remarkCap, default = CAP_DEFAULT,
+                    description = 'How many remarks ' .. addon.name .. ' may make in one fight (outside combat: in five minutes). '
+                        .. 'The last one is kept for a big moment.'}
+            end
             if #addon.lineRules > 0 then
                 items[#items + 1] = {mcmId = 'addon:' .. id .. ':replaceGameLines', label = 'Replace the game\'s own lines', kind = 'bool',
                     value = addon.values.replaceGameLines, default = true,
@@ -1390,7 +1394,9 @@ local function settingFor(mcmId)
     local addon = id and addons[id]
     if not addon then return nil end
     if key == 'remarkGap' and next(addon.speakers) ~= nil then return addon, {id = 'remarkGap', kind = 'select', elements = GAPS} end
-    if key == 'remarkCap' and next(addon.speakers) ~= nil then return addon, {id = 'remarkCap', kind = 'select', elements = CAPS} end
+    if key == 'remarkCap' and next(addon.speakers) ~= nil and not (addon.settingsDef and addon.settingsDef.remarkCap == false) then
+        return addon, {id = 'remarkCap', kind = 'select', elements = CAPS}
+    end
     if key == 'markLines' and next(addon.speakers) ~= nil then return addon, {id = 'markLines', kind = 'bool'} end
     if key == 'replaceGameLines' and #addon.lineRules > 0 then return addon, {id = 'replaceGameLines', kind = 'bool'} end
     if not addon.settingsDef then return nil end

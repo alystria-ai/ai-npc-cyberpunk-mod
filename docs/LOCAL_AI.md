@@ -8,7 +8,7 @@ The design and the measurements behind it are in `docs/LOCAL_OPTION_DESIGN.md` a
 
 ### What it is
 
-Choose **Local** as the Conversation provider (Settings > Development) and the characters answer with an AI model that runs on your
+Choose **Local** as the Conversation provider (Settings > Conversation provider) and the characters answer with an AI model that runs on your
 computer. Replies are spoken by the local voices (Pocket or OmniVoice) and the characters keep a memory of your talks, stored on your
 computer. Convai free tier gives better quality responses; Local is for playing without an account or without the internet.
 
@@ -19,7 +19,7 @@ The models are optional downloads, like the OmniVoice pack. There are two, and y
 | **Local AI standard** | Gemma 4 E4B | about 5.3 GB | Named characters and companions: it stays closest to what the character knows and invents the least |
 | **Local AI lite** | Qwen3.5-2B | about 1.5 GB | Smaller graphics cards, or a game that already uses most of the video memory. Plainer replies; fine for ordinary NPCs |
 
-Extract each download into your Cyberpunk 2077 folder (the same way as the OmniVoice pack), then pick **Local** in Settings > Development.
+Extract each download into your Cyberpunk 2077 folder (the same way as the OmniVoice pack), then pick **Local** in Settings > Conversation provider.
 The Local AI row there shows one of: Ready, Warming up, Not installed, Not enough graphics memory, Unavailable.
 
 The first start after installing takes about a minute while the graphics card prepares the model (the row says "Warming up"). After
@@ -40,7 +40,7 @@ If the pack is missing or the model cannot start, the same fallback applies. Cho
 
 ### Choosing the model
 
-Settings > Development has a **Local AI model** row, right under Mature content. It lists every installed chat model by its name,
+Settings > Conversation provider has a **Local AI model** row, right under Mature content. It lists every installed chat model by its name,
 **sorted by file size, from the smallest to the largest** (models of the same size by name); the sizes are in the help text. There is
 no "Auto" entry: the row always shows one concrete model as selected. Only one model is ever loaded.
 
@@ -83,7 +83,7 @@ no "Auto" entry: the row always shows one concrete model as selected. Only one m
 - The small CPU embedder for memory search is not part of the choice and stays as it is.
 
 If Local AI cannot answer one particular turn (for example the model went away mid-reply), that turn is answered by your cloud provider
-(Mistral with a saved key, else Groq with a saved key) and you see "Local AI could not answer that one, so a cloud provider did." at most
+(Mistral with a saved key) and you see "Local AI could not answer that one, so a cloud provider did." at most
 once every ten minutes. With no cloud account saved you see "Local AI could not answer that. Try again in a moment." instead of silence.
 Local AI stays the chosen provider either way.
 
@@ -129,7 +129,7 @@ You can list up to 16 models. A wrong entry is skipped and the rest still work. 
 game runs (the settings page shows the new list the next time it refreshes), and a model you pick loads the next time Local AI starts
 or at the next idle moment.
 
-**3. Choose it.** In Settings > Development, open **Local AI model** and pick "My Model (custom)", then **Apply**.
+**3. Choose it.** In Settings > Conversation provider, open **Local AI model** and pick "My Model (custom)", then **Apply**.
 
 **What the mod checks.** When it looks at your manifest it checks, without loading anything:
 
@@ -250,7 +250,7 @@ replaced by an environment variable, and the model is only ever configuration:
 | `CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL` | The embedding model file |
 | `CYBERPUNK_CONVAI_LOCAL_CACHE_RAM` | `--cache-ram` in MiB (default from free system memory: 4096 at 12 GB free, 2048 at 8 GB, else 1024) |
 
-Then set `conversationProvider` to `local` in Settings > Development (or in `settings.json`) and Apply. Nothing is copied into the
+Then set `conversationProvider` to `local` in Settings > Conversation provider (or in `settings.json`) and Apply. Nothing is copied into the
 repository.
 
 ### The pack
@@ -278,9 +278,8 @@ pinned hash. See `docs/PACKAGING.md`.
 | `bridge/local-ai-pack.mjs` | Detects the pack: server, tiers, embedding model, what is missing. |
 | `bridge/local-llm-server.mjs` | The supervisor of `llama-server` (Vulkan). Random loopback port; the per-session API key goes through a private file (`--api-key-file`), never the command line, a log or a status file. Chooses the tier by free VRAM (standard needs its file size plus 1.2 GB, lite plus 0.7 GB), runs warm-up requests of the bridge's batch shapes on the first start (a progress state, not an error), unloads after ten idle minutes, restarts a crashed server twice, and reports one `failed` event. `begin()`/`end()` mark a request in flight so the idle stop never cuts a reply. |
 | `bridge/local-embed.mjs` | The embedding model (granite-embedding-107m-multilingual, 384 dimensions) as a CPU-only `llama-server` (`--device none -ngl 0`, one thread), started on demand and exiting after 90 idle seconds. About 14 ms a query. |
-| `bridge/text-provider-host.mjs` | The host shared by Mistral, Groq and Local (see `docs/MISTRAL.md`). `localRoute` calls `server.ensure()` for a connection, no pacing, JSON-schema fact extraction, persona-prefix prewarm on an invitation. Background work never starts the server. |
+| `bridge/text-provider-host.mjs` | The host shared by Mistral and Local (see `docs/MISTRAL.md`). `localRoute` calls `server.ensure()` for a connection, no pacing, JSON-schema fact extraction, persona-prefix prewarm on an invitation. Background work never starts the server. |
 | `bridge/memory-store.mjs` | The memory shared by the text providers. |
-| `bridge/groq-key.mjs` | The Groq key file (see `docs/MISTRAL.md`). |
 
 ### Ordering with OmniVoice
 
@@ -298,12 +297,11 @@ characters (a named character's persona and the output rules are about 4.5k toke
 memories could add more than 4k), so one turn at a busy place sent 8,790 tokens, was refused, and was neither retried nor handed to
 another provider.
 
-`bridge/prompt-budget.mjs` fits every Local and Groq request before it is sent (`budgetedChat`, wrapped around the route's `chat` in
-`localRoute` and `groqRoute`). `buildMessages` leaves its arguments on the messages (a non-enumerable symbol property, never sent), so the
+`bridge/prompt-budget.mjs` fits every Local request before it is sent (`budgetedChat`, wrapped around the route's `chat` in
+`localRoute`). `buildMessages` leaves its arguments on the messages (a non-enumerable symbol property, never sent), so the
 budget rebuilds the prompt with less in it instead of cutting a string.
 
-- **The limit.** `n_ctx` from the server (`GET /props`, in the supervisor's handle as `contextSize`; Groq: 8,000 tokens, the free plan's
-  per-minute allowance, which is also the most one request may carry) minus a reply reserve (320 tokens; 256 for Groq) minus a safety
+- **The limit.** `n_ctx` from the server (`GET /props`, in the supervisor's handle as `contextSize`) minus a reply reserve (320 tokens) minus a safety
   margin (the larger of 48 tokens and 1.5% of n_ctx). Mistral's cloud models have contexts of 128k and more, so they are not fitted.
 - **The count.** An estimate first: characters per token learned from the server's own counts (`TokenMeter`: the lowest recent ratio times
   0.97; 3.6 before anything is learned, the prompt really measures about 4.2), plus the chat template's cost per message; Chinese,
@@ -348,7 +346,7 @@ build, so it is not used. A fuller prompt costs prefill time, not memory: a 15,7
 ### When Local AI cannot answer a turn
 
 `localRoute` falls back for any failure of a turn (a prompt that cannot fit, a server that went away, no first byte in time): to Mistral
-when a key is saved, else to Groq when a Groq key is saved and not blocked (`TextProviderHost#candidates`). The turn's reply is the cloud
+when a key is saved (`TextProviderHost#candidates`). The turn's reply is the cloud
 provider's, and `MistralProvider.noteLocalTurnFallback()` queues the `local-turn-fallback` notice (sent as `keyNotice` on that reply; the
 game shows it at most every ten minutes). With no cloud provider the turn fails with the game code `local-failed` (`errorCodeFor`), shown
 as "Local AI could not answer that. Try again in a moment." (the phone shows the same words). Automatic reactions show neither notice.
@@ -370,7 +368,7 @@ reader is to read through the native core.
 
 ### Provider state
 
-`conversationProvider` is `convai | mistral | local | groq`. `MistralProvider` (`bridge/mistral-key.mjs`) keeps `preference` (the
+`conversationProvider` is `convai | mistral | local` (a saved `groq` from before 2026-10-14 reads as `convai`). `MistralProvider` (`bridge/mistral-key.mjs`) keeps `preference` (the
 setting), `requested` and `applied`; a switch happens only at an idle boundary. `local` is requested while it works; after
 `noteLocalFailure(reason)` it is Mistral when a key exists, else Convai, until the setting is chosen again. The status file
 `runtime/mistral-state.json` carries `localAi`: `ready | warming | not-installed | no-memory | failed`, and `localModels`:
@@ -507,10 +505,10 @@ with Mature content on the default choice and the fallback prefer the largest on
 
 #### The setting
 
-Settings > Development, right under Conversation provider: "Mature content" (key `matureContent`, off by default, an ordinary Apply setting; the
+Settings > Conversation provider, right under the provider row: "Mature content" (key `matureContent`, off by default, an ordinary Apply setting; the
 bridge reads it from `runtime/settings.json` when the file changes, never per turn, and drops prepared replies when it flips). It exists
 only for this provider: the layer is built in `bridge/mature-content.mjs`, and `MATURE_PROVIDERS` is `{local: true, mistral: false,
-groq: false, convai: false}`. The host asks for the layer per route (`TextProviderHost#matureLevel`), so a local turn that falls back to
+convai: false}`. The host asks for the layer per route (`TextProviderHost#matureLevel`), so a local turn that falls back to
 the player's cloud provider is answered without it. While another provider answers, the setting's help says it applies to Local AI only.
 Turning it on shows no notice, neither on Apply nor in the status line (removed 2026-10-14); the help text (all 15 locales) says it is for adults (18+),
 that it applies to Local AI only and that some things are never allowed.
@@ -674,9 +672,7 @@ Provider policies (read 2026-10-13; the pages were summarised by a small model, 
   content as such. It bars "Content that enables or exploits individuals, including through human trafficking or sexual services." and
   intimate images "without the explicit consent of all individuals involved." Its Commercial Terms add no content line. `safe_prompt`:
   "Whether to inject a safety prompt before all conversations.", default `false`. Verdict: ambiguous, so Mistral stays off.
-- Groq, Acceptable Use and Responsible AI Policy (console.groq.com/docs/legal/ai-policy, effective October 15, 2025): bars "non-consensual
-  intimate imagery or sexually explicit content that is illegal;". Adult content is not mentioned; the Services Agreement defers to the
-  model developer's terms. Verdict: ambiguous, so Groq stays off.
+- Groq (Acceptable Use and Responsible AI Policy, read 2026-10-13): ambiguous, so it stayed off; Groq was removed as a provider on 2026-10-14.
 - Convai: never (a hosted service; the player's own key changes nothing).
 
 Nexus Mods (help.nexusmods.com, read 2026-10-13): the Adult Content Guidelines (updated May 12, 2026) define adult content as

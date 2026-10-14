@@ -207,7 +207,7 @@ Fallbacks:
   path, like `mistral-memory.json`.
 - Caps: 2,000 records per character, 20,000 per player, 5 MB file. When over a cap, the oldest unpinned records with the lowest
   importance are folded into the character's summary.
-- Options 2 and 3 share this store. On the cloud route (option 3) the extraction prompt below runs on Mistral or Groq. The
+- Options 2 and 3 share this store. On the cloud route (option 3) the extraction prompt below runs on Mistral (it also ran on Groq, removed 2026-10-14). The
   embeddings stay local in both. `mistral-memory.json` (8 exchanges plus a summary) becomes the store's "recent history and
   summary" part, migrated once.
 
@@ -351,7 +351,7 @@ The editor (TODO: in game if possible, else a web page) writes overrides to `<st
 rules, sample lines, keyed by profile. Memories are edited through `memory-store.mjs`.
 
 `PersonaBook` merges the overrides over the roster. The persona block's hash is part of the prompt-cache and snapshot key, so an
-edit only costs one re-prewarm. The same overrides feed option 3 (Mistral/Groq). Convai profiles are not changed by the editor.
+edit only costs one re-prewarm. The same overrides feed option 3 (Mistral). Convai profiles are not changed by the editor.
 
 ## Packaging
 

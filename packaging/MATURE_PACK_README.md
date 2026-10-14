@@ -7,7 +7,7 @@ The **Mature content** setting is part of the main mod and works without this pa
 ## What it adds
 
 - **Two uncensored models for Local AI, a lite one and a good one.** The standard Local AI models are trained to refuse most adult content, so the full effect needs the uncensored models in this pack. The lite one (about 2.7 GB) is for smaller graphics cards; the good one (about 5.3 GB) writes better. They are community fine-tunes of Apache-2.0 base models. The models run on your own graphics card, on your own computer.
-- **Local AI only.** The setting applies to the Local AI provider. Convai, Mistral and Groq never get it, with the setting on or off. If your conversations are not using Local AI at the moment, the setting says so and does nothing.
+- **Local AI only.** The setting applies to the Local AI provider. Convai and Mistral never get it, with the setting on or off. If your conversations are not using Local AI at the moment, the setting says so and does nothing.
 
 ## What stays the same
 
@@ -49,8 +49,8 @@ The uncensored models have no limits of their own, so the mod holds these in thr
 
 The models are fine-tunes of Apache-2.0 base models (the licence text is in `mature/licenses/Apache-2.0.txt`; the exact list, with sources, is in `mature/THIRD-PARTY-NOTICES.txt`):
 
-- Lite: Qwen3.5-4B-HauhauCS-Aggressive, an uncensored fine-tune of Qwen3.5-4B (Alibaba Cloud, Apache-2.0)
-- Good: Gemma-4-E4B-MiniFantasy, an uncensored fine-tune of Gemma 4 E4B (Google, Apache-2.0)
+- Lite: Qwen3.5-4B-HauhauCS-Aggressive (shown in the menu as "Qwen3.5-4B · uncensored"), an uncensored fine-tune of Qwen3.5-4B (Alibaba Cloud, Apache-2.0)
+- Good: Gemma-4-E4B-MiniFantasy (shown in the menu as "Gemma 4 E4B · uncensored"), an uncensored fine-tune of Gemma 4 E4B (Google, Apache-2.0)
 
 Cyberpunk Convai itself is under the Cyberpunk Convai Use License of the main mod.
 
