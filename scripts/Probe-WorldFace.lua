@@ -124,11 +124,7 @@ return function(words, probe)
                         end
                     end
                 end)
-                pcall(function() row.pending = #self.m_worldPending end)
                 out(row)
-            end)
-            ObserveAfter('ConvaiFaceService', 'RequestWorldFace', function(self, npc)
-                if state.on then out({kind = 'request-after', pending = read(function() return #self.m_worldPending end)}) end
             end)
         end)
         probe.watchers = probe.watchers or {}

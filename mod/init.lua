@@ -1606,7 +1606,7 @@ local function beginTextNow(groupMode, waited)
         groupChat.cancel()
         subtitles.clear()
         speech.target = npc
-        -- A world NPC's face gets the speech layer on demand (Face.reds ConvaiFaceRequest). An add-on's voice has no face or gaze.
+        -- An ordinary world NPC's face carries the gated speech layer from its spawn (Face.reds OnWorldInitialize); ConvaiFaceRequest reports it and runs the talk-time guards. An add-on's voice has no face or gaze.
         if not primary.voiceOnly then
             local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
             if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
@@ -1730,7 +1730,7 @@ local function toggleVoice(groupMode)
         warmConversation(participants, key, entity)
         speech.stop('microphone'); subtitles.clear()
         speech.target = npc
-        -- A world NPC's face gets the speech layer on demand (Face.reds ConvaiFaceRequest). An add-on's voice has no face.
+        -- An ordinary world NPC's face carries the gated speech layer from its spawn (Face.reds OnWorldInitialize); ConvaiFaceRequest reports it and runs the talk-time guards. An add-on's voice has no face.
         if not primary.voiceOnly then
             local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
             if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
@@ -2389,7 +2389,7 @@ local function updateGroup(player)
     local context, actor = groupChat.next(generation, os.time(), live)
     if not context then focusUntil = os.time() + 1; return end
     speech.target = actor
-    -- A world NPC's face gets the speech layer on demand (Face.reds ConvaiFaceRequest). An add-on's voice has no face.
+    -- An ordinary world NPC's face carries the gated speech layer from its spawn (Face.reds OnWorldInitialize); ConvaiFaceRequest reports it and runs the talk-time guards. An add-on's voice has no face.
     if not context.voiceOnly then
         local faceOk, faceStatus = pcall(function() return actor:ConvaiFaceRequest() end)
         if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
@@ -2622,6 +2622,15 @@ end
 registerForEvent('onInit', function()
     -- The native core plugin's classes are bound by now, not when init.lua first ran.
     if convaiNative and convaiNative.pending then pcall(convaiNative.redetect, 'onInit') end
+    -- Development switch for the ordinary-NPC face comparison (runtime/crowd-face-mode.txt, docs/FACIAL_ANIMATION.md). Once per
+    -- load, only when the file exists; a missing file leaves the shipping mode (gated) and logs nothing.
+    if convaiFacialPlayback and type(convaiFacialPlayback.applyCrowdMode) == 'function' then
+        local okMode, requested, applied, problem = pcall(convaiFacialPlayback.applyCrowdMode)
+        if not okMode then log('Crowd face mode failed: ' .. tostring(requested))
+        elseif requested or problem then
+            log('Crowd face mode: requested=' .. tostring(requested) .. ' applied=' .. tostring(applied) .. (problem and (' problem=' .. tostring(problem)) or ''))
+        end
+    end
     -- Disk receipts grant only interrupted cleanup authority. Native unique
     -- tags are checked later in gameplay; no party/save restoration occurs.
     if type(companions.initReloadCleanup)=='function' then
@@ -3146,15 +3155,12 @@ registerForEvent('onUpdate', function(delta)
                     groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.ownsUtterance()), listeners, utterance, reply.userText)
                     if type(microphone.received) == 'function' then microphone.received(pending.requestId) end
                     -- One line per reply: did speech start, and does the speaker's face carry
-                    -- the speech layer (world NPCs get it on demand, Face.reds ConvaiFaceRequest).
+                    -- the speech layer (an ordinary world NPC gets it at its spawn, Face.reds OnWorldInitialize).
                     local faceState = 'none'
                     if speech.actor then
                         local faceOk, faceReady, faceStatus = pcall(function()
                             return speech.actor:ConvaiFaceReady(), speech.actor:ConvaiFaceStatus() end)
                         faceState = faceOk and (tostring(faceReady) .. '/' .. tostring(faceStatus)) or 'unavailable'
-                        -- A rebuilt world NPC (a vendor at its stall): workspot before>after the rebuild, once per reply.
-                        local noteOk, note = pcall(function() return speech.actor:ConvaiFaceWorkspotNote() end)
-                        if noteOk and type(note) == 'string' and note ~= '' then faceState = faceState .. ' workspot=' .. note end
                     end
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil)
                         .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState)

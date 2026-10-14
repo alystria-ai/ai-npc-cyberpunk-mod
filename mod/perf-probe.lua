@@ -141,6 +141,9 @@ local function publish(now)
         sections = {}, opens = opens,
         -- Lua heap after the window: shared 50-90 ms frames may be GC steps.
         luaKB = heapOk and type(heap) == 'number' and heap or nil,
+        -- The ordinary-NPC face mode in effect (runtime/crowd-face-mode.txt: off, ungated, gated; "default" is gated
+        -- with no file), so every window of an FPS comparison says which build it measured.
+        crowdFace = type(convaiFacialPlayback) == 'table' and convaiFacialPlayback.crowdMode or 'default',
         -- Hook handlers wrapped so far (0 with hooks registered: the wrap missed them).
         hooksWrapped = M.hooksWrapped}
     for label, s in pairs(stats) do

@@ -1,16 +1,26 @@
-// A separate graph is chosen before native component initialization, for
-// dynamic entities tagged by our companion manager, and on demand for the one
-// or two world NPCs V actually talks to (ConvaiFaceRequest). Every other NPC
-// keeps its vanilla face graph and pays nothing. Shared game resources are
-// never patched, zero inputs leave the native face unchanged, and this service
-// keeps entity IDs and appearance names only, never a live actor or component.
+// A separate graph is chosen before native component initialization:
+//  - for dynamic entities tagged by our companion manager (the ungated ConvaiFace graph, as always);
+//  - for ordinary world NPCs (crowd, vendors, gangs and the other archetype characters), once per NPC, at spawn
+//    (OnWorldInitialize), with a gated copy of the same graph: the speech layer sits behind one Switch that stays
+//    closed until the mod voices that NPC, so a face that is not speaking evaluates one switch more than vanilla.
+// Story and quest characters, named roster characters (Johnny included, his record also uses man_average_sermo) and
+// every NPC whose face is not one of the four crowd graphs keep the vanilla graph. Shared game resources are never
+// patched, zero inputs leave the native face unchanged, and this service keeps entity IDs and strings only, never a
+// live actor or component. There is no per-frame work here: one callback per NPC spawn, one call per conversation.
 public class ConvaiFaceService extends ScriptableService {
   private let m_names: array<String>;
   private let m_graphs: array<ResourceRef>;
-  // Appearance rebuilds requested for talk targets, consumed by the extraction
-  // callback; and the world NPCs whose face currently carries the layer.
-  private let m_worldPending: array<CName>;
-  private let m_worldPrepared: array<EntityID>;
+  // Ordinary NPCs: the gated copies (shipping), the ungated companion graphs (an FPS comparison only), the record IDs
+  // of the named roster (generated from the character data into FaceFeature.reds) and the rigs already checked.
+  private let m_crowdNames: array<String>;
+  private let m_crowdGated: array<ResourceRef>;
+  private let m_crowdPlain: array<ResourceRef>;
+  private let m_crowdVanilla: array<String>;
+  private let m_named: array<TweakDBID>;
+  private let m_verifiedRigs: array<String>;
+  // 1 gated (shipping), 2 ungated, 0 off: the last two exist only to measure what the gate saves (docs/FACIAL_ANIMATION.md,
+  // "Ordinary NPCs", set from mod/facial-playback.lua by runtime/crowd-face-mode.txt). It applies to NPCs that spawn afterwards.
+  private let m_crowdMode: Int32;
 
   private cb func OnLoad() {
     this.m_names = ConvaiFaceAssets.Names();
@@ -19,9 +29,29 @@ public class ConvaiFaceService extends ScriptableService {
       ArrayPush(this.m_graphs, ResourceRef.FromPath(ResRef.FromString("cyberpunk_convai\\facial\\" + this.m_names[i] + ".animgraph")));
       i += 1;
     };
+    this.m_crowdNames = ConvaiFaceAssets.CrowdNames();
+    let folder = ConvaiFaceAssets.CrowdFolder();
+    i = 0;
+    while i < ArraySize(this.m_crowdNames) {
+      ArrayPush(this.m_crowdGated, ResourceRef.FromPath(ResRef.FromString(folder + this.m_crowdNames[i] + ".animgraph")));
+      ArrayPush(this.m_crowdPlain, ResourceRef.FromPath(ResRef.FromString("cyberpunk_convai\\facial\\" + this.m_crowdNames[i] + ".animgraph")));
+      ArrayPush(this.m_crowdVanilla, "base\\animations\\facial\\_facial_graphs\\" + this.m_crowdNames[i] + ".animgraph");
+      i += 1;
+    };
+    let records = ConvaiFaceAssets.NamedRecords();
+    i = 0;
+    while i < ArraySize(records) {
+      ArrayPush(this.m_named, TDBID.Create(records[i]));
+      i += 1;
+    };
+    this.m_crowdMode = 1;
     GameInstance.GetCallbackSystem()
       .RegisterCallback(n"Entity/Initialize", this, n"OnCompanionInitialize")
       .AddTarget(DynamicEntityTarget.Tag(n"CyberpunkConvaiCompanion"));
+    // Ordinary NPCs: one callback per NPC spawn, filtered to the NPCPuppet type by the callback system itself.
+    GameInstance.GetCallbackSystem()
+      .RegisterCallback(n"Entity/Initialize", this, n"OnWorldInitialize")
+      .AddTarget(EntityTarget.Type(n"NPCPuppet"));
     // DynamicEntityTarget is a lifecycle-event filter, not a builder filter.
     // The extraction callback repeats ownership using the builder request ID
     // before touching any newly extracted component instance.
@@ -31,13 +61,6 @@ public class ConvaiFaceService extends ScriptableService {
 
   private cb func OnCompanionExtract(event: ref<EntityBuilderEvent>) {
     let builder = event.GetEntityBuilder();
-    // A talk target's own requested appearance rebuild. With nothing pending,
-    // the normal case, this costs one array size check per build.
-    if ArraySize(this.m_worldPending) > 0 && IsDefined(builder) && !builder.HasEntity()
-      && builder.HasAppearance() && this.ConsumeWorldRequest(builder.GetAppearanceName()) {
-      this.PrepareWorldAppearance(builder);
-      return;
-    };
     let dynamic = GameInstance.GetDynamicEntitySystem();
     if !IsDefined(builder) || !IsDefined(dynamic)
       || !dynamic.IsTagged(builder.GetEntityID(), n"CyberpunkConvaiCompanion") { return; };
@@ -90,66 +113,114 @@ public class ConvaiFaceService extends ScriptableService {
     npc.ConvaiFacePrepared(StrBeginsWith(status, "prepared:"), status, graphPath);
   }
 
-  // On demand, once per talk target. Ambient and archetype NPCs are spawned by
-  // the game, so their running face_rig has the vanilla graph with no
-  // ConvaiFace input, and a running component's graph cannot be swapped in
-  // place. Rebuilding the NPC's CURRENT appearance re-extracts face_rig (the
-  // same seam that replaced Johnny's prepared face on October 2), and the
-  // extraction callback above prepares that one rebuild. At most two world
-  // NPCs keep the layer; a third request returns the oldest to vanilla.
-  public func RequestWorldFace(npc: ref<NPCPuppet>) -> String {
+  // Ordinary world NPCs, once per spawn, before the face component initializes (so no flash and no rebuild). The game
+  // spawns them with a vanilla face graph that has no ConvaiFace input, and a running component's graph cannot be
+  // swapped (a same-name appearance change is a no-op, measured 2026-10-10), so the choice is made here or never.
+  // Cheap filters first, in order: mode, our own companion copies and other mods' spawns (dynamic entities), the face
+  // graph (only the four crowd graphs), the record and the named roster, then the quest tokens. A skipped NPC keeps
+  // its vanilla graph and only remembers why. A prepared NPC is written only when the Lua speech owner voices it
+  // (ConvaiFaceRequest and the talk-time guards, ConvaiFaceReady).
+  private cb func OnWorldInitialize(event: ref<EntityLifecycleEvent>) {
+    if this.m_crowdMode == 0 { return; };
+    let npc = event.GetEntity() as NPCPuppet;
+    if !IsDefined(npc) { return; };
     let dynamic = GameInstance.GetDynamicEntitySystem();
-    if !IsDefined(npc) || !npc.IsAttached() || !IsDefined(dynamic) { return "unavailable"; };
-    if dynamic.IsManaged(npc.GetEntityID()) { return "managed"; };
+    if !IsDefined(dynamic) || dynamic.IsManaged(npc.GetEntityID()) { return; };
     let face = npc.FindComponentByName(n"face_rig") as AnimatedComponent;
-    let status = this.PrepareFaceComponent(face, true);
-    if StrBeginsWith(status, "prepared:") { this.RememberWorld(npc.GetEntityID()); return status; };
-    if !StrBeginsWith(status, "supported:") { return status; };
-    // Never rebuild an NPC a quest owns or a scene drives: one in a dialogue, one a
-    // quest marked or whose AI a quest or scene commands, or one whose appearance or
-    // record belongs to a quest (q004, sq021, mq003..., e.g. the Konpeki receptionists
-    // of The Heist). Their voice still plays.
-    let scene = GameInstance.GetSceneSystem(npc.GetGame()).GetScriptInterface();
-    let inScene = false;
-    if IsDefined(scene) {
-      if scene.IsEntityInDialogue(npc.GetEntityID()) { return "skipped:dialogue"; };
-      inScene = scene.IsEntityInScene(npc.GetEntityID());
+    if !IsDefined(face) { return; };
+    let index = this.CrowdIndex(ResRef.ToString(ResourceRef.GetPath(face.graph)));
+    if index < 0 { return; };
+    let record = npc.GetRecordID();
+    let recordValid = TDBID.IsValid(record);
+    let reason = ConvaiFaceService.CrowdSkipReason(recordValid, recordValid && ArrayContains(this.m_named, record), "", "");
+    if Equals(reason, "") {
+      reason = ConvaiFaceService.CrowdSkipReason(true, false, NameToString(npc.GetCurrentAppearanceName()), TDBID.ToStringDEBUG(record));
     };
-    let appearance = npc.GetCurrentAppearanceName();
-    if ConvaiFaceService.QuestBound(NameToString(appearance))
-      || ConvaiFaceService.QuestBound(TDBID.ToStringDEBUG(npc.GetRecordID())) { return "skipped:quest"; };
-    if npc.IsQuest() || !npc.IsOnAutonomousAI() { return "skipped:driven"; };
-    // IsEntityInScene is true for plenty of ordinary gameplay (vendors and other
-    // community NPCs at their workspots are scene actors), so a scene alone no longer
-    // blocks the rebuild. It still does for anyone who is not a crowd or vendor NPC,
-    // i.e. every story character, who belong to quests.
-    if inScene && !npc.IsVendor() && !npc.IsCrowd() { return "skipped:scene"; };
-    // Measured live on October 10: ScheduleAppearanceChange with the NPC's own current
-    // appearance name does nothing. No Entity/Extract fires and face_rig keeps the vanilla
-    // graph (a different name rebuilds at once, and the builder then carries face_rig, but
-    // the look changes; a second change in the same call is dropped). So the request below
-    // can never prepare a world NPC, and its pending name would only sit in the queue
-    // until an unrelated NPC with that appearance spawns and gets the heavier graph.
-    // Stop here until a rebuild that keeps the look exists.
-    if !ConvaiFaceService.WorldRebuildKeepsLook() { return "unavailable:same-name-rebuild-is-a-noop"; };
-    npc.ConvaiFaceNoteWorkspot();
-    if this.HasWorldRequest(appearance) { return "requested:" + NameToString(appearance); };
-    this.ReleaseOldestWorld(npc, appearance);
-    if ArraySize(this.m_worldPending) >= 4 { ArrayErase(this.m_worldPending, 0); };
-    ArrayPush(this.m_worldPending, appearance);
-    this.RememberWorld(npc.GetEntityID());
-    npc.ScheduleAppearanceChange(appearance);
-    return "requested:" + NameToString(appearance);
+    if !Equals(reason, "") { npc.ConvaiFacePrepared(false, reason); return; };
+    let rig = this.CheckRig(face);
+    if !Equals(rig, "") { npc.ConvaiFacePrepared(false, rig); return; };
+    let graph = this.m_crowdGated[index];
+    if this.m_crowdMode == 2 { graph = this.m_crowdPlain[index]; };
+    if !ResourceRef.IsLoaded(graph) || ResourceRef.IsFailed(graph) {
+      npc.ConvaiFacePrepared(false, "speech-graph-not-loaded");
+      return;
+    };
+    face.graph = graph;
+    npc.ConvaiFacePrepared(true, "prepared:" + this.m_crowdNames[index], ResRef.ToString(ResourceRef.GetPath(graph)));
   }
 
-  // False while the only known trigger, a same-name appearance change, is a no-op.
-  public static func WorldRebuildKeepsLook() -> Bool {
-    return false;
+  // The crowd graph (0 to 3) that a face graph path names, or -1. Only the vanilla path counts: anything else (the
+  // player's and Judy's photo-mode graphs, other rigs, a face that already runs one of our graphs) is not touched.
+  private func CrowdIndex(path: String) -> Int32 {
+    let i = 0;
+    while i < ArraySize(this.m_crowdVanilla) {
+      if Equals(path, this.m_crowdVanilla[i]) { return i; };
+      i += 1;
+    };
+    return -1;
+  }
+
+  // The 59 lipsync tracks must exist on the rig; checked once per rig path, not per NPC.
+  private func CheckRig(face: ref<AnimatedComponent>) -> String {
+    let path = ResRef.ToString(ResourceRef.GetPath(face.rig));
+    if ArrayContains(this.m_verifiedRigs, path) { return ""; };
+    let rig = ResourceRef.GetResource(face.rig) as animRig;
+    if !IsDefined(rig) { return "rig-not-loaded"; };
+    let tracks = ConvaiFaceAssets.RequiredTracks();
+    let t = 0;
+    while t < ArraySize(tracks) {
+      if !ArrayContains(rig.trackNames, tracks[t]) { return "unsupported-rig"; };
+      t += 1;
+    };
+    ArrayPush(this.m_verifiedRigs, path);
+    return "";
+  }
+
+  // Why an NPC with a crowd graph stays vanilla, or "" when it is ordinary: no readable record (fail closed, so a story
+  // character is never touched by mistake), a named roster record, or a quest token in the appearance or the record
+  // (q004, sq021, mq003...). The named roster is the one thing the graph and the tokens cannot tell apart: Johnny's
+  // record uses man_average_sermo. The strings are only read for an NPC the cheap checks passed.
+  public static func CrowdSkipReason(recordValid: Bool, named: Bool, appearance: String, record: String) -> String {
+    if !recordValid { return "skipped:no-record"; };
+    if named { return "skipped:named"; };
+    if ConvaiFaceService.QuestBound(appearance) || ConvaiFaceService.QuestBound(record) { return "skipped:quest"; };
+    return "";
+  }
+
+  // Development switch for the FPS comparison: "off" (no ordinary NPC is touched, vanilla), "ungated" (the speech layer
+  // on every ordinary face, always evaluated) or "gated" (shipping). Applies to NPCs that spawn after the call, so
+  // reload the save. Any other word changes nothing. Returns the mode now in effect.
+  public func SetCrowdMode(mode: String) -> String {
+    if Equals(mode, "off") { this.m_crowdMode = 0; };
+    if Equals(mode, "gated") { this.m_crowdMode = 1; };
+    if Equals(mode, "ungated") { this.m_crowdMode = 2; };
+    return this.CrowdMode();
+  }
+
+  public func CrowdMode() -> String {
+    if this.m_crowdMode == 0 { return "off"; };
+    if this.m_crowdMode == 2 { return "ungated"; };
+    return "gated";
+  }
+
+  // The talk-time guards, once per conversation start for an NPC that carries the layer. They cannot matter for an NPC
+  // the spawn filter let through, except for a quest that took it since or a record the filter could not know: such an
+  // NPC is only refused here (it keeps an inert, switched-off graph, never written), its voice still plays.
+  public func TalkRefusal(npc: ref<NPCPuppet>) -> String {
+    // A dialogue in progress, one a quest marked or whose AI a quest or scene commands, and one whose appearance or
+    // record belongs to a quest. A scene alone is no reason: vendors and community NPCs at their workspots are scene
+    // actors, and the spawn filter already kept the story characters out.
+    let scene = GameInstance.GetSceneSystem(npc.GetGame()).GetScriptInterface();
+    if IsDefined(scene) && scene.IsEntityInDialogue(npc.GetEntityID()) { return "skipped:dialogue"; };
+    if ConvaiFaceService.QuestBound(NameToString(npc.GetCurrentAppearanceName()))
+      || ConvaiFaceService.QuestBound(TDBID.ToStringDEBUG(npc.GetRecordID())) { return "skipped:quest"; };
+    if npc.IsQuest() || !npc.IsOnAutonomousAI() { return "skipped:driven"; };
+    return "";
   }
 
   // True for a quest token: "q", "sq" or "mq" right after "_" or "." or at the
   // start, then three digits ("..._q004_...", "Character.sq021_..."). Runs once
-  // per conversation start, on two short strings.
+  // per NPC spawn and once per conversation start, on two short strings.
   public static func QuestBound(text: String) -> Bool {
     let digits = "0123456789";
     let length = StrLen(text);
@@ -167,60 +238,7 @@ public class ConvaiFaceService extends ScriptableService {
     return false;
   }
 
-  private func PrepareWorldAppearance(builder: ref<EntityBuilderWrapper>) -> Void {
-    let none: ref<NPCPuppet>;
-    this.PrepareExtractedComponents(builder.GetAppearance().GetComponents(), none);
-  }
-
-  private func HasWorldRequest(appearance: CName) -> Bool {
-    let i = 0;
-    while i < ArraySize(this.m_worldPending) {
-      if Equals(this.m_worldPending[i], appearance) { return true; };
-      i += 1;
-    };
-    return false;
-  }
-
-  private func ConsumeWorldRequest(appearance: CName) -> Bool {
-    let i = 0;
-    while i < ArraySize(this.m_worldPending) {
-      if Equals(this.m_worldPending[i], appearance) { ArrayErase(this.m_worldPending, i); return true; };
-      i += 1;
-    };
-    return false;
-  }
-
-  private func RememberWorld(id: EntityID) -> Void {
-    if !ArrayContains(this.m_worldPrepared, id) { ArrayPush(this.m_worldPrepared, id); };
-  }
-
-  // Keeps the layer on at most two world NPCs: the oldest is rebuilt with its
-  // vanilla graph (nothing pending matches it). One that shares the new
-  // appearance name is only forgotten, so it cannot consume the new request.
-  private func ReleaseOldestWorld(next: ref<NPCPuppet>, appearance: CName) -> Void {
-    while ArraySize(this.m_worldPrepared) >= 2 {
-      let id = this.m_worldPrepared[0];
-      ArrayErase(this.m_worldPrepared, 0);
-      let old = GameInstance.FindEntityByID(next.GetGame(), id) as NPCPuppet;
-      if IsDefined(old) && old.IsAttached() && !Equals(old.GetEntityID(), next.GetEntityID()) {
-        let name = old.GetCurrentAppearanceName();
-        if !Equals(name, appearance) && !this.HasWorldRequest(name) && !this.SceneOwns(old) {
-          old.ConvaiFacePrepared(false, "released");
-          old.ScheduleAppearanceChange(name);
-        };
-      };
-    };
-  }
-
-  // A quest or dialogue may have taken an NPC since it was prepared. Its layer has
-  // zero inputs and does nothing, so such an NPC is only forgotten, never rebuilt
-  // under the scene.
-  private func SceneOwns(npc: ref<NPCPuppet>) -> Bool {
-    let scene = GameInstance.GetSceneSystem(npc.GetGame()).GetScriptInterface();
-    return !IsDefined(scene) || scene.IsEntityInDialogue(npc.GetEntityID()) || npc.IsQuest() || !npc.IsOnAutonomousAI();
-  }
-
-  private func PrepareFaceComponent(face: ref<AnimatedComponent>, opt check: Bool) -> String {
+  private func PrepareFaceComponent(face: ref<AnimatedComponent>) -> String {
     if !IsDefined(face) {
       return "no-face-rig";
     };
@@ -247,9 +265,7 @@ public class ConvaiFaceService extends ScriptableService {
         };
         // Initialize can follow an already prepared extraction. Do not rewrite
         // that instance or modify the loaded graph resource itself.
-        // A check of a running component (check = true) never writes its graph.
         if Equals(original, preparedPath) { return "prepared:" + this.m_names[i]; };
-        if check { return "supported:" + this.m_names[i]; };
         face.graph = this.m_graphs[i];
         return "prepared:" + this.m_names[i];
       };
@@ -275,26 +291,15 @@ public final func ConvaiFacePrepared(ready: Bool, status: String, opt graphPath:
 @addField(NPCPuppet)
 private let m_convaiFaceGraphPath: String;
 
-// Whether the NPC stood in a workspot when its rebuild was requested ("in" or
-// "out"; empty when none was). One native read per request, never per frame.
+// The reason a conversation start refused this NPC (a dialogue, a quest, a commanded AI): the layer stays inert and
+// unwritten. Empty when it was never refused, or when the latest start cleared it.
 @addField(NPCPuppet)
-private let m_convaiFaceWorkspot: String;
+private let m_convaiFaceRefusal: String;
 
-@addMethod(NPCPuppet)
-public final func ConvaiFaceNoteWorkspot() -> Void {
-  this.m_convaiFaceWorkspot = GameInstance.GetWorkspotSystem(this.GetGame()).IsActorInWorkspot(this) ? "in" : "out";
-}
-
-// "in>in" for a vendor that kept its workspot through the rebuild, "in>out" for one
-// that lost it, empty when this NPC was never rebuilt. Read once per reply for the log.
-@addMethod(NPCPuppet)
-public final func ConvaiFaceWorkspotNote() -> String {
-  if Equals(this.m_convaiFaceWorkspot, "") { return ""; };
-  return this.m_convaiFaceWorkspot + ">" + (GameInstance.GetWorkspotSystem(this.GetGame()).IsActorInWorkspot(this) ? "in" : "out");
-}
-
+// What the Lua log shows: the refusal while there is one, otherwise how the face was prepared.
 @addMethod(NPCPuppet)
 public final func ConvaiFaceStatus() -> String {
+  if !Equals(this.m_convaiFaceRefusal, "") { return this.m_convaiFaceRefusal; };
   return this.m_convaiFaceStatus;
 }
 
@@ -307,6 +312,7 @@ public final func ConvaiFaceReady() -> Bool {
     // A dynamic entity must be our companion copy.
     if !dynamic.IsTagged(this.GetEntityID(), n"CyberpunkConvaiCompanion") { return false; };
   } else {
+    if !Equals(this.m_convaiFaceRefusal, "") { return false; };
     if !this.m_convaiFacePrepared && !this.ConvaiFaceAdoptWorld() { return false; };
   };
   if !this.m_convaiFacePrepared || Equals(this.m_convaiFaceGraphPath, "") { return false; };
@@ -317,9 +323,9 @@ public final func ConvaiFaceReady() -> Bool {
     && Equals(ResRef.ToString(ResourceRef.GetPath(face.graph)), this.m_convaiFaceGraphPath);
 }
 
-// A world NPC is prepared only by its own requested rebuild, which leaves our
-// graph on the running face_rig; the extraction had no puppet to flag. Called
-// only for the current speaker while it is not yet prepared.
+// A world NPC is prepared at its spawn (OnWorldInitialize), which sets the flag. This only recognizes a face that
+// already runs one of our graphs without the flag (an NPC prepared before a script reload). Called only for the
+// current speaker while it is not yet prepared.
 @addMethod(NPCPuppet)
 private final func ConvaiFaceAdoptWorld() -> Bool {
   let face = this.FindComponentByName(n"face_rig") as AnimatedComponent;
@@ -330,15 +336,27 @@ private final func ConvaiFaceAdoptWorld() -> Bool {
   return true;
 }
 
-// The talk target asks for the layer (init.lua, when a conversation opens).
-// Returns a short status; repeated calls for a prepared NPC change nothing.
+// The talk target asks for the layer (init.lua, when a conversation opens). Nothing is built here: an ordinary NPC
+// was prepared at its spawn or it was not, and the answer is the status of that decision plus the talk-time guards.
+// "managed" for a dynamic entity, "prepared:<graph>" when the mouth can follow the voice, otherwise why not.
 @addMethod(NPCPuppet)
 public final func ConvaiFaceRequest() -> String {
   let service = GameInstance.GetScriptableServiceContainer().GetService(n"ConvaiFaceService") as ConvaiFaceService;
   if !IsDefined(service) { return "service-unavailable"; };
-  let status = service.RequestWorldFace(this);
-  if !this.m_convaiFacePrepared { this.m_convaiFaceStatus = status; };
-  return status;
+  let dynamic = GameInstance.GetDynamicEntitySystem();
+  if !this.IsAttached() || !IsDefined(dynamic) { return "unavailable"; };
+  if dynamic.IsManaged(this.GetEntityID()) { return "managed"; };
+  if !this.m_convaiFacePrepared && !this.ConvaiFaceAdoptWorld() {
+    // Skipped at spawn (the reason is remembered), a graph that is not a crowd graph, or an NPC that spawned
+    // before the scripts or while the mode was off.
+    if !Equals(this.m_convaiFaceStatus, "") { return this.m_convaiFaceStatus; };
+    let face = this.FindComponentByName(n"face_rig") as AnimatedComponent;
+    if !IsDefined(face) { return "no-face-rig"; };
+    return "unprepared:" + ResRef.ToString(ResourceRef.GetPath(face.graph));
+  };
+  this.m_convaiFaceRefusal = service.TalkRefusal(this);
+  if !Equals(this.m_convaiFaceRefusal, "") { return this.m_convaiFaceRefusal; };
+  return this.m_convaiFaceStatus;
 }
 
 @addMethod(NPCPuppet)

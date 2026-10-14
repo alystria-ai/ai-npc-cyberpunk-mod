@@ -3,6 +3,11 @@
   "feature": "ConvaiFaceFeature",
   "group": "ConvaiFace",
   "ownedTag": "CyberpunkConvaiCompanion",
+  "crowd": {
+    "folder": "crowd",
+    "graphs": ["man_average_sermo", "man_big_sermo", "man_fat_sermo", "woman_average_sermo"],
+    "gate": {"label": "Convai speech gate", "input": "speech_owner", "blendTime": 0}
+  },
   "graphs": [
     "man_average_sermo",
     "man_big_sermo",
