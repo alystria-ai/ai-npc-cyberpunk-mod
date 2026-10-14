@@ -1367,3 +1367,24 @@ assert(m.reviseTimed('Sure, I will drive. 了解です。',5,1))
 assert(m.fontCode=='ja','the script is re-decided when the text of a reply grows')
 `));
 
+
+test('a timed page whose driver went away is cleared by the safety timer; a driver that keeps syncing, and a menu, never lose it', () => run(setup + `
+style='dialogue'
+assert(m.beginTimed('Judy','A reply that is still being heard.',6,judy,'201ULL'))
+local first=m.line.id
+-- A live driver: a sync every 40 ms for far longer than the limit keeps the page.
+for _=1,400 do m.syncTimed(1);m.update(.04) end
+assert(m.line and m.line.id==first and m.timed,'a driver that keeps syncing keeps its page')
+-- A menu reports no time and, at the limit, only holds the page.
+menu=true;for _=1,40 do m.update(.25) end;assert(m.line and m.timed,'a menu holds the page');menu=false
+m.update(120);assert(m.line and m.timed,'one long hitch is not a dead driver');m.syncTimed(1)
+-- The driver goes away (speech abandoned, state lost): nothing syncs any more.
+for _=1,30 do m.update(.25) end;assert(m.line and m.timed,'not yet at the limit')
+for _=1,3 do m.update(.25) end
+assert(m.line==nil and not m.timed and not m.ownsUtterance(),'the page is removed')
+assert(hidden()[#hidden()]==first,'the native line is hidden')
+assert(m.stalledClears==1)
+-- A new utterance starts its own timer.
+assert(m.beginTimed('Judy','Next reply.',2,judy,'201ULL'))
+for _=1,28 do m.update(.25) end;assert(m.line,'the timer restarted with the new utterance')
+`));

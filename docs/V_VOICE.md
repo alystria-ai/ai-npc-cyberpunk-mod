@@ -68,6 +68,23 @@ Latency is as important as FPS here, so V never stands in front of anything:
 - Nothing runs per frame. The game-side change is one extra read of the game's dialogue volume when a typed turn is built,
   and only while the setting is on (`mod/turn-context.lua`, cached with the rest of the turn context for 5 seconds).
 
+### Air at both ends (2026-10-14)
+
+Live report: V's line "feels abrupt on both ends, like there is air missing". Cause: Pocket starts a line at its first voiced sample and
+ends it one frame after its own end-of-speech (`frames_after_eos=1`, `eos_threshold=-1.0` in `bridge/pocket-voice-worker.py`), and the
+renderer plays exactly the samples it is given (no fade, no trim, no padding anywhere on that path by design), so the line starts and stops
+tight, and the reply followed it at the very last sample. The reference clips are not the cause (80 ms lead, 90 ms tail, natural pauses).
+
+`bridge/pcm-edges.mjs` (`PcmEdges`) wraps the packet consumer of a V line (`VLine.streamProducer` and `omniProducer`): 160 ms of silence in
+front, merged into the first packet (nothing waits for it, no synthesis cost); a 15 ms raised-cosine fade-in; only the last 40 ms of the
+line are held back (never a whole packet), faded to zero; then 320 ms of silence. The line is "ended" (and the companion released, `hold`)
+only after that tail has been heard, so the reply starts about 320 ms after V's last word. Packets keep the engine's shape and are
+renumbered. Latency: the first sound is not later than before; the lead-in silence counts toward the renderer's 400 ms start buffer.
+
+The companion's own Pocket lines share the cause but are not changed: their PCM also feeds the facial and lip-sync stream, the subtitle
+cues and the head/tail continuation by exact frame position, so padding them is a separate, live-tested change. With V's voice on, a reply
+now starts after V's tail, so its start has air too.
+
 ### Timings
 
 V's line runs under its own stage clock (`bridge/turn-clock.mjs`), so its marks never mix into the companion's. One log line per
