@@ -104,12 +104,32 @@ class CachedPipeline:
         return self.pipe.timeline(audio, text, mode)
 
 
+class JawSplitPipeline:
+    """Research what-if `name=<dir>|jaw=<dir2>`: every track from <dir> except the jaw output's tracks, which come
+    from <dir2> (a runtime that would evaluate two phrase nets). Not a drop-in; costs a second stage-2 pass."""
+
+    def __init__(self, spec):
+        import lipsync_model as lm
+        main, jaw = spec.split('|jaw=')
+        self.a, self.b = CachedPipeline(main), CachedPipeline(jaw)
+        self.has_text = self.a.has_text
+        self.jaw_controls = lm.OUTPUTS[0][1]
+
+    def timeline(self, audio, text, mode):
+        tracks, frames, *rest = self.a.timeline(audio, text, mode)
+        tracks_b, frames_b, *_ = self.b.timeline(audio, text, mode)
+        frames = frames.copy()
+        for c in self.jaw_controls:
+            frames[:, tracks.index(c) + 1] = frames_b[:, tracks_b.index(c) + 1]
+        return (tracks, frames, *rest)
+
+
 def _init(stacks, modes):
     import lipsync_eval as le
     from native_mouth import NativeMouth
     ev._G['le'] = le
     ev._G['mouth'] = NativeMouth('judy')
-    _G['stacks'] = {name: CachedPipeline(d) for name, d in stacks}
+    _G['stacks'] = {name: (JawSplitPipeline(d) if '|jaw=' in str(d) else CachedPipeline(d)) for name, d in stacks}
     _G['modes'] = modes
     _G['texts'] = ev._load_texts()
 

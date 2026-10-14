@@ -97,10 +97,13 @@ def main():
     p.add_argument('--peak', type=float, default=0.0, help='MSE frame weight 1 + peak * target (targets in scale units)')
     p.add_argument('--under', type=float, default=0.0, help='extra weight on under-prediction (asymmetric MSE)')
     p.add_argument('--shut', type=float, default=0.0, help='extra penalty on jaw opening where the authored jaw is shut')
+    p.add_argument('--shut-hinge', type=float, default=0.0,
+                   help='only penalise shut-frame jaw above this raw value (e.g. .05, below the lifted heads\' lip-part point)')
     p.add_argument('--ema', type=float, default=0.0, help='export an exponential moving average of the weights (e.g. 0.999)')
     p.add_argument('--seed', type=int, default=1)
     p.add_argument('--init', type=Path, help='warm start from a stage-2 .pt (same shape)')
-    p.add_argument('--soup', type=Path, help='interpolate the --init weights toward this stage-2 .pt (use with --epochs 0)')
+    p.add_argument('--jaw-teacher', type=Path, help='stage-2 .pt whose jaw output (and jaw quantile map) is kept: jaw target = its prediction')
+    p.add_argument('--soup',type=Path, help='interpolate the --init weights toward this stage-2 .pt (use with --epochs 0)')
     p.add_argument('--soup-alpha', type=float, default=.5, help='weight of --soup in the interpolation')
     args = p.parse_args()
     torch.manual_seed(args.seed)
@@ -122,6 +125,13 @@ def main():
     if args.soup:
         other = torch.load(args.soup, map_location=device, weights_only=False)['state']
         net.load_state_dict({k: (1 - args.soup_alpha) * v + args.soup_alpha * other[k] for k, v in net.state_dict().items()})
+    teacher = teacher_ck = None
+    if args.jaw_teacher:
+        teacher_ck = torch.load(args.jaw_teacher, map_location=device, weights_only=False)
+        teacher = Stage2(ck1['channels'], ck1['n_phones'], teacher_ck['channels'], teacher_ck['dilations'], len(lm.OUTPUTS)).to(device)
+        teacher.load_state_dict(teacher_ck['state']); teacher.eval()
+        for q in teacher.parameters():
+            q.requires_grad_(False)
     ema = None
     if args.ema:
         import copy
@@ -149,6 +159,11 @@ def main():
                 _, h1 = s1((x - mean_t) / std_t, None, hidden=True)
             pred = net(h1, lab_in[:, r1 - 1:])
             yt = y / scale_t
+            if teacher is not None:
+                # keep the teacher's jaw (target = its own raw jaw on the same inputs); every other output learns from the game
+                with torch.no_grad():
+                    yt = yt.clone()
+                    yt[..., 0] = teacher(h1, lab_in[:, r1 - 1:])[..., 0]
             sq = (pred - yt).square() * 4
             if args.peak:
                 sq = sq * (1 + args.peak * yt.clamp(0, 1.5))
@@ -160,7 +175,8 @@ def main():
             if args.shut:
                 # the authored mouth is shut (jaw < .02): penalise any jaw opening there (over-opening on lifted heads)
                 shut = (yt[..., 0] < .02 / scale_t[0]).float()
-                loss = loss + args.shut * ((pred[..., 0] - yt[..., 0]).clamp(min=0).square() * 4 * shut).mean() * weight[0]
+                over = (pred[..., 0] - torch.maximum(yt[..., 0], args.shut_hinge / scale_t[0])).clamp(min=0)
+                loss = loss + args.shut * (over.square() * 4 * shut).mean() * weight[0]
             if args.var:
                 # per sequence and control: match the temporal spread of the authored curve (FDD-style)
                 sd_p = pred.clamp(min=0).std(1)
@@ -188,6 +204,8 @@ def main():
             P.append(np.clip(net(h1, torch.tensor(li[None, r1 - 1:], device=device))[0].cpu().numpy(), 0, None) * ck1['scale'])
             Y.append(yy)
     qin, qout = lt.fit_qmap(P, Y)
+    if teacher_ck is not None:  # the jaw imitates the teacher, so it keeps the teacher's jaw quantile map too
+        qin[0], qout[0] = teacher_ck['qin'][0], teacher_ck['qout'][0]
     torch.save(dict(kind='stage2', stage1=str(args.stage1), state={k: v.cpu() for k, v in net.state_dict().items()},
                     channels=args.channels, dilations=dil, delay=delay, lag=args.lag, qin=qin, qout=qout), args.out)
     print(f'saved {args.out} ({(time.time() - began) / 60:.1f} min)', flush=True)
