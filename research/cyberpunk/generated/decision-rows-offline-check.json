@@ -1,0 +1,3073 @@
+{
+  "version": 1,
+  "savesRead": 110,
+  "grades": {
+    "anchored-and-seen": 15,
+    "not-executable": 3,
+    "anchored-not-seen": 11,
+    "writer-unbound": 1
+  },
+  "rows": [
+    {
+      "id": "db.dex-shot-v",
+      "status": "verified",
+      "decisionId": "arasaka-heist.dex-betrayal",
+      "outcomeKey": "shot-v",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 98,
+      "facts": [
+        {
+          "key": "q005_done",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 31,
+            "assignment": 18
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 18,
+            "positive": 18,
+            "hashBoundPositive": 3,
+            "sceneWriterDepots": [
+              "phases/q005_09_no_tell_motel.questphase",
+              "quest/ep1.questphase"
+            ],
+            "graphWriterDepots": [
+              "mq048/mq048.questphase",
+              "mq055/mq055.quest",
+              "test/coyote_performance.questphase",
+              "test/parade_performance.questphase"
+            ]
+          },
+          "readers": {
+            "comparisons": 31,
+            "depots": [
+              "phases/q204_columbarium_holograms.questphase",
+              "bugfixing/open_world_bugfixing.questphase",
+              "bugfixing/level_design_bugfixing.questphase",
+              "additional_content/media_bugfixing.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 105,
+            "values": {
+              "1": 105
+            }
+          }
+        }
+      ],
+      "journals": [
+        {
+          "key": "jt.heist.briefing",
+          "type": "journal",
+          "nativePath": "quests/main_quest/prologue/q005_heist/the_plan/participate_briefing",
+          "nativeClass": "gameJournalQuestObjective",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuestObjective",
+          "classesInGraphs": [
+            "gameJournalQuestObjective"
+          ],
+          "graphFiles": 2,
+          "saves": {
+            "of": 110,
+            "states": {
+              "succeeded": 98,
+              "absent": 12
+            }
+          }
+        }
+      ],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:q005_done",
+          "journal:jt.heist.briefing"
+        ],
+        "rows": [
+          {
+            "values": [
+              "1",
+              "succ"
+            ],
+            "saves": 98,
+            "kinds": {
+              "CM": 89,
+              "CF": 3,
+              "SM": 2,
+              "NM": 4
+            }
+          },
+          {
+            "values": [
+              "1",
+              "-"
+            ],
+            "saves": 7,
+            "kinds": {
+              "CF": 6,
+              "CM": 1
+            }
+          },
+          {
+            "values": [
+              "0",
+              "-"
+            ],
+            "saves": 5,
+            "kinds": {
+              "CM": 5
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.frank-chat-cut-short",
+      "status": "unverified",
+      "decisionId": "arasaka-heist.frank-prologue",
+      "outcomeKey": "brief-or-skipped",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 97,
+      "facts": [
+        {
+          "key": "q000_corpo_02_cut_short",
+          "type": "fact",
+          "inDictionary": false,
+          "roles": null,
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/q000_corpo_02_to_elevators.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 0,
+            "depots": []
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 99,
+            "values": {
+              "1": 99
+            }
+          }
+        }
+      ],
+      "journals": [
+        {
+          "key": "ah5.corpo-rat.talk-friend",
+          "type": "journal",
+          "nativePath": "quests/main_quest/prologue/q000_corpo/lobby/03a_talk_friend",
+          "nativeClass": "gameJournalQuestObjective",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuestObjective",
+          "classesInGraphs": [],
+          "graphFiles": 0,
+          "saves": {
+            "of": 110,
+            "states": {
+              "succeeded": 97,
+              "absent": 13
+            }
+          }
+        }
+      ],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:q000_corpo_02_cut_short",
+          "journal:ah5.corpo-rat.talk-friend",
+          "fact:q000_corpo_02_choice_02_done",
+          "journal:quests/main_quest/prologue/q000_corpo/lobby/03a_talk_friend"
+        ],
+        "rows": [
+          {
+            "values": [
+              "1",
+              "succ",
+              "1",
+              "succ"
+            ],
+            "saves": 96,
+            "kinds": {
+              "CM": 94,
+              "CF": 2
+            }
+          },
+          {
+            "values": [
+              "0",
+              "-",
+              "0",
+              "-"
+            ],
+            "saves": 6,
+            "kinds": {
+              "SM": 2,
+              "NM": 4
+            }
+          },
+          {
+            "values": [
+              "0",
+              "-",
+              "1",
+              "-"
+            ],
+            "saves": 5,
+            "kinds": {
+              "CF": 4,
+              "CM": 1
+            }
+          },
+          {
+            "values": [
+              "1",
+              "-",
+              "0",
+              "-"
+            ],
+            "saves": 2,
+            "kinds": {
+              "CF": 2
+            }
+          },
+          {
+            "values": [
+              "1",
+              "succ",
+              "0",
+              "succ"
+            ],
+            "saves": 1,
+            "kinds": {
+              "CF": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.frank-talked-down",
+      "status": "unverified",
+      "decisionId": "arasaka-heist.frank-fate",
+      "outcomeKey": "walked-away",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 1,
+      "facts": [
+        {
+          "key": "mq041_var_frank_sofa",
+          "type": "fact",
+          "inDictionary": false,
+          "roles": null,
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/mq041_corpo_02_confrontation.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 0,
+            "depots": []
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 1,
+            "values": {
+              "1": 1
+            }
+          }
+        }
+      ],
+      "journals": [
+        {
+          "key": "ah5.war-pigs.completed",
+          "type": "journal",
+          "nativePath": "quests/minor_quest/mq041_corpo",
+          "nativeClass": "gameJournalQuest",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuest",
+          "classesInGraphs": [],
+          "graphFiles": 0,
+          "saves": {
+            "of": 110,
+            "states": {
+              "succeeded": 75,
+              "absent": 34,
+              "active": 1
+            }
+          }
+        }
+      ],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:mq041_var_frank_sofa",
+          "journal:ah5.war-pigs.completed",
+          "journal:quests/minor_quest/mq041_corpo",
+          "journal:quests/minor_quest/mq041_corpo/corpo/04_confront_frank"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "succ",
+              "succ",
+              "succ"
+            ],
+            "saves": 74,
+            "kinds": {
+              "CM": 71,
+              "CF": 3
+            }
+          },
+          {
+            "values": [
+              "0",
+              "-",
+              "-",
+              "-"
+            ],
+            "saves": 34,
+            "kinds": {
+              "CM": 22,
+              "SM": 2,
+              "NM": 4,
+              "CF": 6
+            }
+          },
+          {
+            "values": [
+              "0",
+              "acti",
+              "acti",
+              "-"
+            ],
+            "saves": 1,
+            "kinds": {
+              "CM": 1
+            }
+          },
+          {
+            "values": [
+              "1",
+              "succ",
+              "succ",
+              "succ"
+            ],
+            "saves": 1,
+            "kinds": {
+              "CM": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.evelyn-off-hint",
+      "status": "unverified",
+      "decisionId": "arasaka-heist.report-evelyn",
+      "outcomeKey": "withheld",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 4,
+      "facts": [
+        {
+          "key": "q005_01_evelyn_fluff",
+          "type": "fact",
+          "inDictionary": false,
+          "roles": null,
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/q005_01_plan.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 0,
+            "depots": []
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 4,
+            "values": {
+              "1": 4
+            }
+          }
+        }
+      ],
+      "journals": [
+        {
+          "key": "jt.heist.briefing",
+          "type": "journal",
+          "nativePath": "quests/main_quest/prologue/q005_heist/the_plan/participate_briefing",
+          "nativeClass": "gameJournalQuestObjective",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuestObjective",
+          "classesInGraphs": [
+            "gameJournalQuestObjective"
+          ],
+          "graphFiles": 2,
+          "saves": {
+            "of": 110,
+            "states": {
+              "succeeded": 98,
+              "absent": 12
+            }
+          }
+        }
+      ],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:q005_01_evelyn_fluff",
+          "journal:jt.heist.briefing",
+          "fact:q005_01_dex_knows",
+          "fact:q005_lie_relic"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "succ",
+              "1",
+              "1"
+            ],
+            "saves": 91,
+            "kinds": {
+              "CM": 89,
+              "SM": 2
+            }
+          },
+          {
+            "values": [
+              "0",
+              "-",
+              "0",
+              "0"
+            ],
+            "saves": 10,
+            "kinds": {
+              "CM": 6,
+              "CF": 4
+            }
+          },
+          {
+            "values": [
+              "0",
+              "succ",
+              "1",
+              "0"
+            ],
+            "saves": 3,
+            "kinds": {
+              "CF": 3
+            }
+          },
+          {
+            "values": [
+              "1",
+              "succ",
+              "1",
+              "0"
+            ],
+            "saves": 3,
+            "kinds": {
+              "NM": 3
+            }
+          },
+          {
+            "values": [
+              "0",
+              "-",
+              "1",
+              "0"
+            ],
+            "saves": 2,
+            "kinds": {
+              "CF": 2
+            }
+          },
+          {
+            "values": [
+              "1",
+              "succ",
+              "0",
+              "1"
+            ],
+            "saves": 1,
+            "kinds": {
+              "NM": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.oda-spared",
+      "status": "verified",
+      "decisionId": "arasaka-heist.oda-fate",
+      "outcomeKey": "spared",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 71,
+      "facts": [
+        {
+          "key": "q112_08_oda_spared",
+          "type": "fact",
+          "inDictionary": false,
+          "roles": null,
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/q112_08_parade_speech.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 0,
+            "depots": []
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 71,
+            "values": {
+              "1": 71
+            }
+          }
+        }
+      ],
+      "journals": [
+        {
+          "key": "jt.parade.oda-defeated",
+          "type": "journal",
+          "nativePath": "quests/main_quest/act_01/q112_03_dashi_parade/05_parade/05f_fight_cyberninja",
+          "nativeClass": "gameJournalQuestObjective",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuestObjective",
+          "classesInGraphs": [],
+          "graphFiles": 0,
+          "saves": {
+            "of": 110,
+            "states": {
+              "succeeded": 79,
+              "absent": 31
+            }
+          }
+        }
+      ],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:q112_08_oda_spared",
+          "journal:jt.parade.oda-defeated",
+          "fact:q112_oda_dead"
+        ],
+        "rows": [
+          {
+            "values": [
+              "1",
+              "succ",
+              "0"
+            ],
+            "saves": 71,
+            "kinds": {
+              "CM": 70,
+              "NM": 1
+            }
+          },
+          {
+            "values": [
+              "0",
+              "-",
+              "0"
+            ],
+            "saves": 31,
+            "kinds": {
+              "CM": 25,
+              "CF": 6
+            }
+          },
+          {
+            "values": [
+              "0",
+              "succ",
+              "0"
+            ],
+            "saves": 6,
+            "kinds": {
+              "SM": 2,
+              "NM": 3,
+              "CF": 1
+            }
+          },
+          {
+            "values": [
+              "0",
+              "succ",
+              "1"
+            ],
+            "saves": 2,
+            "kinds": {
+              "CF": 2
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.royce-downed-by-militech",
+      "status": "verified",
+      "decisionId": "arasaka-heist.royce-fate",
+      "outcomeKey": "killed-by-militech",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 2,
+      "facts": [
+        {
+          "key": "q003_militech_invades",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 5,
+            "assignment": 1
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 1,
+            "positive": 1,
+            "hashBoundPositive": 2,
+            "sceneWriterDepots": [
+              "scenes/q003_03a_militech_invades.scene",
+              "q003/q003.questphase"
+            ],
+            "graphWriterDepots": [
+              "q003/q003.questphase"
+            ]
+          },
+          "readers": {
+            "comparisons": 5,
+            "depots": [
+              "q003/q003_encounter_bugfixes.questphase",
+              "phases/q003_end.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 4,
+            "values": {
+              "1": 4
+            }
+          }
+        },
+        {
+          "key": "q003_royce_dead",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 7,
+            "assignment": 1
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 1,
+            "positive": 1,
+            "hashBoundPositive": 3,
+            "sceneWriterDepots": [
+              "scenes/q003_03_deal.scene",
+              "scenes/q003_04d_shootout_militech.scene",
+              "phases/q003_royce_bossfight.questphase"
+            ],
+            "graphWriterDepots": [
+              "phases/q003_royce_bossfight.questphase"
+            ]
+          },
+          "readers": {
+            "comparisons": 7,
+            "depots": [
+              "phases/sq011_nancy.questphase",
+              "phases/q204_columbarium_holograms.questphase",
+              "phases/q003_end.questphase",
+              "q003/q003_quest_bugfixes.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 93,
+            "values": {
+              "1": 93
+            }
+          }
+        }
+      ],
+      "journals": [
+        {
+          "key": "jt.pickup.completed",
+          "type": "journal",
+          "nativePath": "quests/main_quest/prologue/q003_maelstrom",
+          "nativeClass": "gameJournalQuest",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuest",
+          "classesInGraphs": [
+            "gameJournalQuest"
+          ],
+          "graphFiles": 8,
+          "saves": {
+            "of": 110,
+            "states": {
+              "succeeded": 103,
+              "absent": 6,
+              "active": 1
+            }
+          }
+        }
+      ],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:q003_militech_invades",
+          "fact:q003_royce_dead",
+          "journal:jt.pickup.completed",
+          "fact:q003_deal_royce_shoot",
+          "fact:q003_militech_refused"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "1",
+              "succ",
+              "0",
+              "0"
+            ],
+            "saves": 89,
+            "kinds": {
+              "CM": 89
+            }
+          },
+          {
+            "values": [
+              "0",
+              "0",
+              "succ",
+              "0",
+              "0"
+            ],
+            "saves": 10,
+            "kinds": {
+              "SM": 2,
+              "NM": 3,
+              "CF": 4,
+              "CM": 1
+            }
+          },
+          {
+            "values": [
+              "0",
+              "0",
+              "-",
+              "0",
+              "0"
+            ],
+            "saves": 4,
+            "kinds": {
+              "CM": 4
+            }
+          },
+          {
+            "values": [
+              "0",
+              "0",
+              "succ",
+              "0",
+              "1"
+            ],
+            "saves": 2,
+            "kinds": {
+              "CF": 2
+            }
+          },
+          {
+            "values": [
+              "1",
+              "1",
+              "-",
+              "0",
+              "0"
+            ],
+            "saves": 2,
+            "kinds": {
+              "CF": 2
+            }
+          },
+          {
+            "values": [
+              "1",
+              "1",
+              "succ",
+              "0",
+              "0"
+            ],
+            "saves": 2,
+            "kinds": {
+              "NM": 1,
+              "CF": 1
+            }
+          },
+          {
+            "values": [
+              "0",
+              "0",
+              "acti",
+              "0",
+              "0"
+            ],
+            "saves": 1,
+            "kinds": {
+              "CM": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.brick-died-in-trap",
+      "status": "unverified",
+      "decisionId": "arasaka-heist.brick-fate",
+      "outcomeKey": "trap-killed",
+      "grade": "not-executable",
+      "conditionHoldsInSaves": 95,
+      "facts": [
+        {
+          "key": "q003_brick_dead",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 1,
+            "assignment": 1
+          },
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 1,
+            "positive": 1,
+            "hashBoundPositive": 2,
+            "sceneWriterDepots": [
+              "scenes/q003_05_transition.scene",
+              "phases/q003_end.questphase"
+            ],
+            "graphWriterDepots": [
+              "phases/q003_end.questphase"
+            ]
+          },
+          "readers": {
+            "comparisons": 1,
+            "depots": [
+              "phases/q204_columbarium_holograms.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 95,
+            "values": {
+              "1": 95
+            }
+          }
+        }
+      ],
+      "journals": [
+        {
+          "key": "jt.pickup.completed",
+          "type": "journal",
+          "nativePath": "quests/main_quest/prologue/q003_maelstrom",
+          "nativeClass": "gameJournalQuest",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuest",
+          "classesInGraphs": [
+            "gameJournalQuest"
+          ],
+          "graphFiles": 8,
+          "saves": {
+            "of": 110,
+            "states": {
+              "succeeded": 103,
+              "absent": 6,
+              "active": 1
+            }
+          }
+        }
+      ],
+      "extraJournal": [
+        {
+          "key": "quests/main_quest/prologue/q003_maelstrom/03_escape/15_talk_to_brick5",
+          "type": "journal",
+          "nativePath": "quests/main_quest/prologue/q003_maelstrom/03_escape/15_talk_to_brick5",
+          "nativeClass": "gameJournalQuestObjective",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuestObjective",
+          "classesInGraphs": [],
+          "graphFiles": 0,
+          "saves": {
+            "of": 110,
+            "states": {
+              "succeeded": 95,
+              "absent": 14,
+              "failed": 1
+            }
+          }
+        },
+        {
+          "key": "quests/main_quest/prologue/q003_maelstrom/03_escape/15_talk_to_brick2",
+          "type": "journal",
+          "nativePath": "quests/main_quest/prologue/q003_maelstrom/03_escape/15_talk_to_brick2",
+          "nativeClass": "gameJournalQuestObjective",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuestObjective",
+          "classesInGraphs": [],
+          "graphFiles": 0,
+          "saves": {
+            "of": 110,
+            "states": {
+              "succeeded": 95,
+              "absent": 15
+            }
+          }
+        }
+      ],
+      "combos": {
+        "selectors": [
+          "fact:q003_brick_dead",
+          "journal:jt.pickup.completed",
+          "fact:q003_brick_saved",
+          "journal:quests/main_quest/prologue/q003_maelstrom/03_escape/15_talk_to_brick5",
+          "journal:quests/main_quest/prologue/q003_maelstrom/03_escape/15_talk_to_brick2"
+        ],
+        "rows": [
+          {
+            "values": [
+              "1",
+              "succ",
+              "1",
+              "succ",
+              "succ"
+            ],
+            "saves": 94,
+            "kinds": {
+              "CM": 89,
+              "SM": 2,
+              "NM": 3
+            }
+          },
+          {
+            "values": [
+              "0",
+              "succ",
+              "0",
+              "-",
+              "-"
+            ],
+            "saves": 8,
+            "kinds": {
+              "CF": 7,
+              "CM": 1
+            }
+          },
+          {
+            "values": [
+              "0",
+              "-",
+              "0",
+              "-",
+              "-"
+            ],
+            "saves": 6,
+            "kinds": {
+              "CM": 4,
+              "CF": 2
+            }
+          },
+          {
+            "values": [
+              "0",
+              "acti",
+              "1",
+              "succ",
+              "succ"
+            ],
+            "saves": 1,
+            "kinds": {
+              "CM": 1
+            }
+          },
+          {
+            "values": [
+              "1",
+              "succ",
+              "0",
+              "fail",
+              "-"
+            ],
+            "saves": 1,
+            "kinds": {
+              "NM": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.pete-defeated",
+      "status": "verified",
+      "decisionId": "aldecaldos.pete.resolution",
+      "outcomeKey": "killed",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 6,
+      "facts": [
+        {
+          "key": "ina_02_big_pete_dead",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "assignment": 1,
+            "comparison": 6
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 1,
+            "positive": 1,
+            "hashBoundPositive": 2,
+            "sceneWriterDepots": [
+              "phases/sts_bls_ina_02_ow.questphase",
+              "inland_avenue/sts_bls_inland_avenue.questphase"
+            ],
+            "graphWriterDepots": [
+              "phases/sts_bls_ina_02_ow.questphase"
+            ]
+          },
+          "readers": {
+            "comparisons": 6,
+            "depots": [
+              "phases/sts_bls_ina_02_ow.questphase",
+              "phases/sts_hey_rey_06_bugfixing.questphase",
+              "sts/sts_vista_bugfixing.questphase",
+              "phases/sts_hey_rey_06_combat.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 6,
+            "values": {
+              "1": 6
+            }
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:ina_02_big_pete_dead"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0"
+            ],
+            "saves": 104,
+            "kinds": {
+              "CM": 95,
+              "SM": 2,
+              "NM": 3,
+              "CF": 4
+            }
+          },
+          {
+            "values": [
+              "1"
+            ],
+            "saves": 6,
+            "kinds": {
+              "CF": 5,
+              "NM": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.queen-friendship-hook",
+      "status": "verified",
+      "decisionId": "aldecaldos.queen.romance",
+      "outcomeKey": "platonic",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 6,
+      "facts": [],
+      "journals": [
+        {
+          "key": "al5.panam.friendship-hook",
+          "type": "journal",
+          "nativePath": "contacts/panam/q114_panam_ending_hook_friendship/02_msg_panam_friend",
+          "nativeClass": "gameJournalPhoneMessage",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalPhoneMessage",
+          "classesInGraphs": [
+            "gameJournalPhoneMessage"
+          ],
+          "graphFiles": 1,
+          "saves": {
+            "of": 110,
+            "states": {
+              "absent": 104,
+              "active": 6
+            }
+          }
+        }
+      ],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "journal:al5.panam.friendship-hook",
+          "fact:sq027_panam_lover",
+          "fact:sq027_panzer_sex"
+        ],
+        "rows": [
+          {
+            "values": [
+              "-",
+              "1",
+              "1"
+            ],
+            "saves": 72,
+            "kinds": {
+              "CM": 69,
+              "SM": 2,
+              "NM": 1
+            }
+          },
+          {
+            "values": [
+              "-",
+              "0",
+              "0"
+            ],
+            "saves": 32,
+            "kinds": {
+              "CM": 26,
+              "CF": 6
+            }
+          },
+          {
+            "values": [
+              "acti",
+              "0",
+              "0"
+            ],
+            "saves": 6,
+            "kinds": {
+              "CF": 3,
+              "NM": 3
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.ben-at-party",
+      "status": "verified",
+      "decisionId": "aldecaldos.together.returning-contacts",
+      "outcomeKey": "ben-present",
+      "grade": "anchored-not-seen",
+      "conditionHoldsInSaves": 0,
+      "facts": [
+        {
+          "key": "ina_09_finished",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 14,
+            "assignment": 1
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 1,
+            "positive": 1,
+            "hashBoundPositive": 2,
+            "sceneWriterDepots": [
+              "phases/sts_bls_ina_09_openworld.questphase",
+              "inland_avenue/sts_bls_inland_avenue.questphase"
+            ],
+            "graphWriterDepots": [
+              "phases/sts_bls_ina_09_openworld.questphase"
+            ]
+          },
+          "readers": {
+            "comparisons": 14,
+            "depots": [
+              "bugfixing/open_world_bugfixing.questphase",
+              "subphases/q114_nomad_community.questphase",
+              "phases/sts_bls_ina_09_openworld.questphase",
+              "phases/dakota.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 6,
+            "values": {
+              "1": 6
+            }
+          }
+        }
+      ],
+      "journals": [
+        {
+          "key": "al5.initiation.party-talk-panam",
+          "type": "journal",
+          "nativePath": "quests/main_quest/act_01/q114_01_nomad_initiation/party/talk_panam",
+          "nativeClass": "gameJournalQuestObjective",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuestObjective",
+          "classesInGraphs": [
+            "gameJournalQuestObjective"
+          ],
+          "graphFiles": 1,
+          "saves": {
+            "of": 110,
+            "states": {
+              "absent": 109,
+              "succeeded": 1
+            }
+          }
+        }
+      ],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:ina_09_finished",
+          "journal:al5.initiation.party-talk-panam"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "-"
+            ],
+            "saves": 103,
+            "kinds": {
+              "CM": 94,
+              "SM": 2,
+              "NM": 3,
+              "CF": 4
+            }
+          },
+          {
+            "values": [
+              "1",
+              "-"
+            ],
+            "saves": 6,
+            "kinds": {
+              "CF": 5,
+              "NM": 1
+            }
+          },
+          {
+            "values": [
+              "0",
+              "succ"
+            ],
+            "saves": 1,
+            "kinds": {
+              "CM": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.nash-declined",
+      "status": "unverified",
+      "decisionId": "aldecaldos.ghost.nash",
+      "outcomeKey": "declined",
+      "grade": "anchored-not-seen",
+      "conditionHoldsInSaves": 0,
+      "facts": [],
+      "journals": [
+        {
+          "key": "contacts/rogue/q103/q103_clean_deal",
+          "type": "journal",
+          "nativePath": "contacts/rogue/q103/q103_clean_deal",
+          "nativeClass": null,
+          "inCookedJournal": true,
+          "cookedType": "gameJournalPhoneMessage",
+          "classesInGraphs": [
+            "gameJournalPhoneMessage"
+          ],
+          "graphFiles": 3,
+          "saves": {
+            "of": 110,
+            "states": {
+              "absent": 110
+            }
+          }
+        }
+      ],
+      "extraJournal": [
+        {
+          "key": "contacts/rogue/q103/q103_clean_deal",
+          "type": "journal",
+          "nativePath": "contacts/rogue/q103/q103_clean_deal",
+          "nativeClass": "gameJournalPhoneMessage",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalPhoneMessage",
+          "classesInGraphs": [
+            "gameJournalPhoneMessage"
+          ],
+          "graphFiles": 3,
+          "saves": {
+            "of": 110,
+            "states": {
+              "absent": 110
+            }
+          }
+        }
+      ],
+      "combos": {
+        "selectors": [
+          "journal:contacts/rogue/q103/q103_clean_deal",
+          "fact:q103_helped_panam"
+        ],
+        "rows": [
+          {
+            "values": [
+              "-",
+              "1"
+            ],
+            "saves": 96,
+            "kinds": {
+              "CM": 85,
+              "CF": 5,
+              "SM": 2,
+              "NM": 4
+            }
+          },
+          {
+            "values": [
+              "-",
+              "0"
+            ],
+            "saves": 14,
+            "kinds": {
+              "CM": 10,
+              "CF": 4
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.iris-car-left",
+      "status": "unverified",
+      "decisionId": "aldecaldos.nofixers.rescue",
+      "outcomeKey": "delivered-without-van",
+      "grade": "not-executable",
+      "conditionHoldsInSaves": 74,
+      "facts": [
+        {
+          "key": "ina_06_dakota_met",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 1
+          },
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 0,
+            "sceneWriterDepots": [],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 1,
+            "depots": [
+              "phases/sts_bls_ina_06_ow.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 74,
+            "values": {
+              "1": 74
+            }
+          }
+        },
+        {
+          "key": "ina_06_iris_hired",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "assignment": 2
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 2,
+            "positive": 2,
+            "hashBoundPositive": 4,
+            "sceneWriterDepots": [
+              "phases/sts_bls_ina_06_ow.questphase",
+              "inland_avenue/sts_bls_inland_avenue.questphase"
+            ],
+            "graphWriterDepots": [
+              "phases/sts_bls_ina_06_ow.questphase"
+            ]
+          },
+          "readers": {
+            "comparisons": 0,
+            "depots": []
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 77,
+            "values": {
+              "1": 77
+            }
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [
+        {
+          "key": "quests/street_stories/badlands/inland_avenue/sts_bls_ina_06/opt_get_iris_car",
+          "type": "journal",
+          "nativePath": "quests/street_stories/badlands/inland_avenue/sts_bls_ina_06/opt_get_iris_car",
+          "nativeClass": "gameJournalQuestObjective",
+          "inCookedJournal": false,
+          "cookedType": null,
+          "classesInGraphs": [],
+          "graphFiles": 0,
+          "saves": {
+            "of": 110,
+            "states": {
+              "absent": 110
+            }
+          }
+        }
+      ],
+      "combos": {
+        "selectors": [
+          "fact:ina_06_dakota_met",
+          "fact:ina_06_iris_hired",
+          "fact:ina_06_car_delivered",
+          "fact:ina_06_tanner_left_alone"
+        ],
+        "rows": [
+          {
+            "values": [
+              "1",
+              "1",
+              "1",
+              "0"
+            ],
+            "saves": 74,
+            "kinds": {
+              "CM": 68,
+              "CF": 2,
+              "NM": 4
+            }
+          },
+          {
+            "values": [
+              "0",
+              "0",
+              "0",
+              "0"
+            ],
+            "saves": 33,
+            "kinds": {
+              "CM": 27,
+              "SM": 2,
+              "CF": 4
+            }
+          },
+          {
+            "values": [
+              "0",
+              "1",
+              "1",
+              "0"
+            ],
+            "saves": 3,
+            "kinds": {
+              "CF": 3
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.river-intimate",
+      "status": "verified",
+      "decisionId": "judy-river.following.relationship",
+      "outcomeKey": "intimate",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 3,
+      "facts": [
+        {
+          "key": "sq029_river_had_sex",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 2
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/sq029_04a_dinner.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 2,
+            "depots": [
+              "phases/sq029_messages.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 3,
+            "values": {
+              "1": 3
+            }
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:sq029_river_had_sex"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0"
+            ],
+            "saves": 107,
+            "kinds": {
+              "CM": 95,
+              "CF": 6,
+              "SM": 2,
+              "NM": 4
+            }
+          },
+          {
+            "values": [
+              "1"
+            ],
+            "saves": 3,
+            "kinds": {
+              "CF": 3
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.river-parents-heard",
+      "status": "verified",
+      "decisionId": "judy-river.following.parents",
+      "outcomeKey": "heard",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 69,
+      "facts": [
+        {
+          "key": "sq029_02_dark_story",
+          "type": "fact",
+          "inDictionary": false,
+          "roles": null,
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/sq029_02a_arrival.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 0,
+            "depots": []
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 69,
+            "values": {
+              "1": 69
+            }
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:sq029_02_dark_story"
+        ],
+        "rows": [
+          {
+            "values": [
+              "1"
+            ],
+            "saves": 69,
+            "kinds": {
+              "CM": 69
+            }
+          },
+          {
+            "values": [
+              "0"
+            ],
+            "saves": 41,
+            "kinds": {
+              "CM": 26,
+              "CF": 9,
+              "SM": 2,
+              "NM": 4
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.sandra-hired",
+      "status": "verified",
+      "decisionId": "judy-river.black-steel.sandra-contact",
+      "outcomeKey": "hired",
+      "grade": "anchored-not-seen",
+      "conditionHoldsInSaves": 0,
+      "facts": [
+        {
+          "key": "q305_01_netrunner_picked_Sandra",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "assignment": 2,
+            "comparison": 4
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 2,
+            "positive": 2,
+            "hashBoundPositive": 2,
+            "sceneWriterDepots": [
+              "phases/q305_01_task.questphase"
+            ],
+            "graphWriterDepots": [
+              "phases/q305_01_task.questphase"
+            ]
+          },
+          "readers": {
+            "comparisons": 4,
+            "depots": [
+              "phases/q305_01_task.questphase",
+              "phases/q305_11_after_quest.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 0,
+            "values": {}
+          }
+        },
+        {
+          "key": "q305_got_netrunner",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "assignment": 4,
+            "comparison": 2
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 4,
+            "positive": 4,
+            "hashBoundPositive": 4,
+            "sceneWriterDepots": [
+              "phases/q305_01_task.questphase"
+            ],
+            "graphWriterDepots": [
+              "phases/q305_01_task.questphase"
+            ]
+          },
+          "readers": {
+            "comparisons": 2,
+            "depots": [
+              "phases/q305_01_task.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 51,
+            "values": {
+              "1": 51
+            }
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:q305_01_netrunner_picked_Sandra",
+          "fact:q305_got_netrunner"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "0"
+            ],
+            "saves": 59,
+            "kinds": {
+              "CM": 45,
+              "CF": 9,
+              "SM": 2,
+              "NM": 3
+            }
+          },
+          {
+            "values": [
+              "0",
+              "1"
+            ],
+            "saves": 51,
+            "kinds": {
+              "CM": 50,
+              "NM": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.sandra-trojan-request",
+      "status": "unverified",
+      "decisionId": "judy-river.black-steel.sandra-favor",
+      "outcomeKey": "requested",
+      "grade": "anchored-not-seen",
+      "conditionHoldsInSaves": 0,
+      "facts": [
+        {
+          "key": "q305_sandra_task_accepted",
+          "type": "fact",
+          "inDictionary": false,
+          "roles": null,
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/q305_02e_sandra.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 0,
+            "depots": []
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 0,
+            "values": {}
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:q305_sandra_task_accepted",
+          "fact:q305_01_netrunner_picked_Sandra",
+          "fact:q305_got_netrunner"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "0",
+              "0"
+            ],
+            "saves": 59,
+            "kinds": {
+              "CM": 45,
+              "CF": 9,
+              "SM": 2,
+              "NM": 3
+            }
+          },
+          {
+            "values": [
+              "0",
+              "0",
+              "1"
+            ],
+            "saves": 51,
+            "kinds": {
+              "CM": 50,
+              "NM": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.hunt-edgewood-two-farms",
+      "status": "unverified",
+      "decisionId": "judy-river.hunt.location",
+      "outcomeKey": "edgewood-guessed",
+      "grade": "anchored-not-seen",
+      "conditionHoldsInSaves": 0,
+      "facts": [
+        {
+          "key": "sq021_v_has_2_choose",
+          "type": "fact",
+          "inDictionary": false,
+          "roles": null,
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/sq021_07_ride_back.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 0,
+            "depots": []
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 0,
+            "values": {}
+          }
+        },
+        {
+          "key": "sq021_good_farm_chosen",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 5,
+            "assignment": 3
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 3,
+            "positive": 3,
+            "hashBoundPositive": 5,
+            "sceneWriterDepots": [
+              "sq029/sq029.questphase",
+              "scenes/sq021_07_ride_back.scene",
+              "phases/sq021_finale.questphase"
+            ],
+            "graphWriterDepots": [
+              "sq029/sq029.questphase",
+              "phases/sq021_finale.questphase"
+            ]
+          },
+          "readers": {
+            "comparisons": 5,
+            "depots": [
+              "phases/sq021_fin_ride.questphase",
+              "sq021/sq021.questphase",
+              "phases/sq029_bbq_prep.questphase",
+              "phases/sq021_finale.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 80,
+            "values": {
+              "1": 80
+            }
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:sq021_v_has_2_choose",
+          "fact:sq021_good_farm_chosen",
+          "fact:sq021_v_knows_farm",
+          "fact:sq021_bad_farm_chosen"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "1",
+              "1",
+              "0"
+            ],
+            "saves": 80,
+            "kinds": {
+              "CM": 74,
+              "CF": 5,
+              "NM": 1
+            }
+          },
+          {
+            "values": [
+              "0",
+              "0",
+              "0",
+              "0"
+            ],
+            "saves": 30,
+            "kinds": {
+              "CM": 21,
+              "SM": 2,
+              "NM": 3,
+              "CF": 4
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.claire-first-call-refused",
+      "status": "unverified",
+      "decisionId": "judy-river.beast.accept",
+      "outcomeKey": "refused",
+      "grade": "anchored-not-seen",
+      "conditionHoldsInSaves": 0,
+      "facts": [
+        {
+          "key": "sq024_v_said_not_interested_at_start",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "assignment": 1
+          },
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 1,
+            "positive": 1,
+            "hashBoundPositive": 2,
+            "sceneWriterDepots": [
+              "phases/sq024_00_hook.questphase",
+              "scenes/sq024_00_claire_hook.scene"
+            ],
+            "graphWriterDepots": [
+              "phases/sq024_00_hook.questphase"
+            ]
+          },
+          "readers": {
+            "comparisons": 0,
+            "depots": []
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 0,
+            "values": {}
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:sq024_v_said_not_interested_at_start",
+          "fact:sq024_quest_declined"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "0"
+            ],
+            "saves": 110,
+            "kinds": {
+              "CM": 95,
+              "CF": 9,
+              "SM": 2,
+              "NM": 4
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.sh-assault-companion-present",
+      "status": "verified",
+      "decisionId": "silverhand.arasaka-assault-companion",
+      "outcomeKey": "present",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 1,
+      "facts": [],
+      "journals": [
+        {
+          "key": "endings.takemura.hideout-rescue",
+          "type": "journal",
+          "nativePath": "quests/main_quest/act_01/q112_04_hideout/06_safe_house/06i_save",
+          "nativeClass": "gameJournalQuestObjective",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuestObjective",
+          "classesInGraphs": [],
+          "graphFiles": 0,
+          "saves": {
+            "of": 110,
+            "states": {
+              "succeeded": 79,
+              "absent": 31
+            }
+          }
+        },
+        {
+          "key": "ah5.tower.confront-yorinobu",
+          "type": "journal",
+          "nativePath": "quests/main_quest/act_01/q113_corpo/06_ceo_floor/05_confront_yorinobu",
+          "nativeClass": "gameJournalQuestObjective",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuestObjective",
+          "classesInGraphs": [
+            "gameJournalQuestObjective"
+          ],
+          "graphFiles": 1,
+          "saves": {
+            "of": 110,
+            "states": {
+              "absent": 109,
+              "succeeded": 1
+            }
+          }
+        }
+      ],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "journal:endings.takemura.hideout-rescue",
+          "journal:ah5.tower.confront-yorinobu"
+        ],
+        "rows": [
+          {
+            "values": [
+              "succ",
+              "-"
+            ],
+            "saves": 78,
+            "kinds": {
+              "CM": 69,
+              "CF": 3,
+              "SM": 2,
+              "NM": 4
+            }
+          },
+          {
+            "values": [
+              "-",
+              "-"
+            ],
+            "saves": 31,
+            "kinds": {
+              "CM": 25,
+              "CF": 6
+            }
+          },
+          {
+            "values": [
+              "succ",
+              "succ"
+            ],
+            "saves": 1,
+            "kinds": {
+              "CM": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.sh-assault-companion-absent",
+      "status": "unverified",
+      "decisionId": "silverhand.arasaka-assault-companion",
+      "outcomeKey": "absent",
+      "grade": "anchored-not-seen",
+      "conditionHoldsInSaves": 0,
+      "facts": [
+        {
+          "key": "q112_takemura_dead",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 37,
+            "assignment": 1
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 1,
+            "positive": 1,
+            "hashBoundPositive": 2,
+            "sceneWriterDepots": [
+              "scenes/q112_10_safe_house.scene"
+            ],
+            "graphWriterDepots": [
+              "test/q113_boss_fight.quest"
+            ]
+          },
+          "readers": {
+            "comparisons": 37,
+            "depots": [
+              "phases/q113_04_estate.questphase",
+              "combat/q113_jungle_combat.questphase",
+              "phases/q113_03_drive_to_estate.questphase",
+              "combat/q113_atrium_combat.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 0,
+            "values": {}
+          }
+        }
+      ],
+      "journals": [
+        {
+          "key": "ah5.tower.confront-yorinobu",
+          "type": "journal",
+          "nativePath": "quests/main_quest/act_01/q113_corpo/06_ceo_floor/05_confront_yorinobu",
+          "nativeClass": "gameJournalQuestObjective",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuestObjective",
+          "classesInGraphs": [
+            "gameJournalQuestObjective"
+          ],
+          "graphFiles": 1,
+          "saves": {
+            "of": 110,
+            "states": {
+              "absent": 109,
+              "succeeded": 1
+            }
+          }
+        }
+      ],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:q112_takemura_dead",
+          "journal:ah5.tower.confront-yorinobu",
+          "journal:quests/main_quest/act_01/q113_corpo/06_ceo_floor/05_confront_yorinobu"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "-",
+              "-"
+            ],
+            "saves": 109,
+            "kinds": {
+              "CM": 94,
+              "CF": 9,
+              "SM": 2,
+              "NM": 4
+            }
+          },
+          {
+            "values": [
+              "0",
+              "succ",
+              "succ"
+            ],
+            "saves": 1,
+            "kinds": {
+              "CM": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.sh-rogue-absent-afterlife",
+      "status": "unverified",
+      "decisionId": "silverhand.rogue-afterlife",
+      "outcomeKey": "absent-after-death",
+      "grade": "anchored-not-seen",
+      "conditionHoldsInSaves": 0,
+      "facts": [
+        {
+          "key": "q116_rogue_dead",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 2
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/q116_01_adam_smasher.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 2,
+            "depots": [
+              "phases/q204_00_setup.questphase",
+              "epilogue/final_boards.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 1,
+            "values": {
+              "1": 1
+            }
+          }
+        }
+      ],
+      "journals": [
+        {
+          "key": "jr5.sun.claire-drink",
+          "type": "journal",
+          "nativePath": "quests/main_quest/epilogues/q203_legend/afterlife/drink",
+          "nativeClass": "gameJournalQuestObjective",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuestObjective",
+          "classesInGraphs": [
+            "gameJournalQuestObjective"
+          ],
+          "graphFiles": 1,
+          "saves": {
+            "of": 110,
+            "states": {
+              "absent": 110
+            }
+          }
+        }
+      ],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:q116_rogue_dead",
+          "journal:jr5.sun.claire-drink",
+          "journal:quests/main_quest/epilogues/q203_legend/afterlife/drink"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "-",
+              "-"
+            ],
+            "saves": 109,
+            "kinds": {
+              "CM": 94,
+              "CF": 9,
+              "SM": 2,
+              "NM": 4
+            }
+          },
+          {
+            "values": [
+              "1",
+              "-",
+              "-"
+            ],
+            "saves": 1,
+            "kinds": {
+              "CM": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.sh-yacht-intimacy-occurred",
+      "status": "unverified",
+      "decisionId": "silverhand.yacht-intimacy",
+      "outcomeKey": "occurred",
+      "grade": "anchored-not-seen",
+      "conditionHoldsInSaves": 0,
+      "facts": [
+        {
+          "key": "sq028_kerry_sex",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 1
+          },
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 2,
+            "sceneWriterDepots": [
+              "scenes/sq028_05_sex.scene",
+              "test/sq028_chicken_test.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 1,
+            "depots": [
+              "phases/sq028_02_cruiser.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 0,
+            "values": {}
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:sq028_kerry_sex",
+          "fact:sq028_kerry_relationship",
+          "fact:sq028_kerry_dislike"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "0",
+              "0"
+            ],
+            "saves": 110,
+            "kinds": {
+              "CM": 95,
+              "CF": 9,
+              "SM": 2,
+              "NM": 4
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.lucretia-oath-sworn",
+      "status": "verified",
+      "decisionId": "phantom.lucretia.oath",
+      "outcomeKey": "sworn",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 63,
+      "facts": [
+        {
+          "key": "q302_oath_pledged",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 1
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/q302_04_squot.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 1,
+            "depots": [
+              "quest/cyberpunk2077_metajournal.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 63,
+            "values": {
+              "1": 63
+            }
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:q302_oath_pledged"
+        ],
+        "rows": [
+          {
+            "values": [
+              "1"
+            ],
+            "saves": 63,
+            "kinds": {
+              "CM": 61,
+              "SM": 2
+            }
+          },
+          {
+            "values": [
+              "0"
+            ],
+            "saves": 47,
+            "kinds": {
+              "CM": 34,
+              "CF": 9,
+              "NM": 4
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.dazed-schedule-hacked",
+      "status": "unverified",
+      "decisionId": "phantom.dazed.lina-recruitment",
+      "outcomeKey": "schedule-edited",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 58,
+      "facts": [
+        {
+          "key": "mq303_linas_pc_hacked",
+          "type": "fact",
+          "inDictionary": false,
+          "roles": null,
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/mq303_02_linas_mansion.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 0,
+            "depots": []
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 58,
+            "values": {
+              "1": 58
+            }
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:mq303_linas_pc_hacked",
+          "journal:ep1/quests/minor_quest/mq303_addict",
+          "journal:ep1/contacts/lina_malina/money/money_transfer/money_01"
+        ],
+        "rows": [
+          {
+            "values": [
+              "1",
+              "succ",
+              "-"
+            ],
+            "saves": 54,
+            "kinds": {
+              "CM": 52,
+              "CF": 2
+            }
+          },
+          {
+            "values": [
+              "0",
+              "-",
+              "-"
+            ],
+            "saves": 45,
+            "kinds": {
+              "CM": 38,
+              "CF": 7
+            }
+          },
+          {
+            "values": [
+              "0",
+              "acti",
+              "-"
+            ],
+            "saves": 4,
+            "kinds": {
+              "NM": 3,
+              "CM": 1
+            }
+          },
+          {
+            "values": [
+              "1",
+              "acti",
+              "-"
+            ],
+            "saves": 4,
+            "kinds": {
+              "CM": 4
+            }
+          },
+          {
+            "values": [
+              "0",
+              "succ",
+              "-"
+            ],
+            "saves": 3,
+            "kinds": {
+              "SM": 2,
+              "NM": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.hearts-testimony-anonymized",
+      "status": "verified",
+      "decisionId": "phantom.hearts.testimony",
+      "outcomeKey": "anonymized",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 47,
+      "facts": [
+        {
+          "key": "sts_ep1_06_testimony_agree",
+          "type": "fact",
+          "inDictionary": false,
+          "roles": null,
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/sts_ep1_06_george.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 0,
+            "depots": []
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 47,
+            "values": {
+              "1": 47
+            }
+          }
+        }
+      ],
+      "journals": [
+        {
+          "key": "pg5.hearts.completed",
+          "type": "journal",
+          "nativePath": "ep1/quests/street_stories/sts_ep1_06",
+          "nativeClass": "gameJournalQuest",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalQuest",
+          "classesInGraphs": [
+            "gameJournalQuest"
+          ],
+          "graphFiles": 3,
+          "saves": {
+            "of": 110,
+            "states": {
+              "succeeded": 51,
+              "absent": 59
+            }
+          }
+        }
+      ],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:sts_ep1_06_testimony_agree",
+          "journal:pg5.hearts.completed",
+          "fact:sts_ep1_06_deal_refuse",
+          "fact:sts_ep1_06_testimony_withdrawn"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "-",
+              "0",
+              "0"
+            ],
+            "saves": 59,
+            "kinds": {
+              "CM": 48,
+              "NM": 4,
+              "CF": 7
+            }
+          },
+          {
+            "values": [
+              "1",
+              "succ",
+              "0",
+              "0"
+            ],
+            "saves": 47,
+            "kinds": {
+              "CM": 47
+            }
+          },
+          {
+            "values": [
+              "0",
+              "succ",
+              "0",
+              "1"
+            ],
+            "saves": 4,
+            "kinds": {
+              "CF": 2,
+              "SM": 2
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.shot-dante-alive-bree-shot",
+      "status": "unverified",
+      "decisionId": "phantom.shot.resolution",
+      "outcomeKey": "dante-alive",
+      "grade": "anchored-not-seen",
+      "conditionHoldsInSaves": 0,
+      "facts": [
+        {
+          "key": "mq305_v_killed_bree",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 1
+          },
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/mq305_04_bunker.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 1,
+            "depots": [
+              "phases/mq305_outcome.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 0,
+            "values": {}
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [
+        {
+          "key": "contacts/mr_hands/mq305/v_kills_bree",
+          "type": "journal",
+          "nativePath": "contacts/mr_hands/mq305/v_kills_bree",
+          "nativeClass": "gameJournalPhoneMessage",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalPhoneMessage",
+          "classesInGraphs": [
+            "gameJournalPhoneMessage"
+          ],
+          "graphFiles": 1,
+          "saves": {
+            "of": 110,
+            "states": {
+              "absent": 110
+            }
+          }
+        },
+        {
+          "key": "contacts/mr_hands/mq305/03b_ch_v_kills_bree",
+          "type": "journal",
+          "nativePath": "contacts/mr_hands/mq305/03b_ch_v_kills_bree",
+          "nativeClass": "gameJournalPhoneChoiceGroup",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalPhoneChoiceGroup",
+          "classesInGraphs": [
+            "gameJournalPhoneChoiceGroup"
+          ],
+          "graphFiles": 1,
+          "saves": {
+            "of": 110,
+            "states": {
+              "absent": 110
+            }
+          }
+        }
+      ],
+      "combos": {
+        "selectors": [
+          "fact:mq305_v_killed_bree",
+          "fact:mq305_bree_dead",
+          "fact:mq305_dante_killed",
+          "fact:mq305_both_killed"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "0",
+              "1",
+              "0"
+            ],
+            "saves": 62,
+            "kinds": {
+              "CM": 57,
+              "CF": 2,
+              "SM": 2,
+              "NM": 1
+            }
+          },
+          {
+            "values": [
+              "0",
+              "0",
+              "0",
+              "0"
+            ],
+            "saves": 48,
+            "kinds": {
+              "CM": 38,
+              "NM": 3,
+              "CF": 7
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.sinnerman-joshua-killed",
+      "status": "unverified",
+      "decisionId": "fixers.sinnerman.contract",
+      "outcomeKey": "joshua-killed",
+      "grade": "writer-unbound",
+      "conditionHoldsInSaves": 0,
+      "facts": [
+        {
+          "key": "sq023_joshua_killed",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 2,
+            "assignment": 1
+          },
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 1,
+            "positive": 1,
+            "hashBoundPositive": 0,
+            "sceneWriterDepots": [],
+            "graphWriterDepots": [
+              "phases/sq023_hook.questphase"
+            ]
+          },
+          "readers": {
+            "comparisons": 2,
+            "depots": [
+              "radio/radio_content.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 0,
+            "values": {}
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:sq023_joshua_killed",
+          "fact:sq023_telem_joshua_killed"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0",
+              "0"
+            ],
+            "saves": 110,
+            "kinds": {
+              "CM": 95,
+              "CF": 9,
+              "SM": 2,
+              "NM": 4
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.pepe-bar-talked-down",
+      "status": "verified",
+      "decisionId": "heywood.pepe.bar-intervention",
+      "outcomeKey": "intimidated",
+      "grade": "anchored-and-seen",
+      "conditionHoldsInSaves": 2,
+      "facts": [
+        {
+          "key": "mq040_gangers_scene_done",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "comparison": 2
+          },
+          "alreadyInPack": true,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "scenes/mq040_01_bar.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 2,
+            "depots": [
+              "phases/mq040_bar_corpo.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 2,
+            "values": {
+              "1": 2
+            }
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:mq040_gangers_scene_done"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0"
+            ],
+            "saves": 108,
+            "kinds": {
+              "CM": 95,
+              "CF": 9,
+              "NM": 4
+            }
+          },
+          {
+            "values": [
+              "1"
+            ],
+            "saves": 2,
+            "kinds": {
+              "SM": 2
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.lizzy-disposal-refused",
+      "status": "unverified",
+      "decisionId": "city-contacts.violence.disposal",
+      "outcomeKey": "help-refused",
+      "grade": "not-executable",
+      "conditionHoldsInSaves": 73,
+      "facts": [
+        {
+          "key": "mq019_done",
+          "type": "fact",
+          "inDictionary": true,
+          "roles": {
+            "assignment": 2,
+            "comparison": 5
+          },
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 2,
+            "positive": 2,
+            "hashBoundPositive": 1,
+            "sceneWriterDepots": [
+              "phases/mq019_06_finale.questphase"
+            ],
+            "graphWriterDepots": [
+              "phases/mq019_06_finale.questphase",
+              "q203/q203_legend.quest"
+            ]
+          },
+          "readers": {
+            "comparisons": 5,
+            "depots": [
+              "phases/ch02_n54_entertainment.questphase",
+              "phase/q203_penthouse.questphase",
+              "minor_quests/minorquests.questphase",
+              "mq019/mq019_quest_bugfixes.questphase"
+            ]
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 73,
+            "values": {
+              "1": 73
+            }
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [
+        {
+          "key": "contacts/lizzy_wizzy/mq019_05_no_job/01_lizzy_msg_no_reward",
+          "type": "journal",
+          "nativePath": "contacts/lizzy_wizzy/mq019_05_no_job/01_lizzy_msg_no_reward",
+          "nativeClass": "gameJournalPhoneMessage",
+          "inCookedJournal": true,
+          "cookedType": "gameJournalPhoneMessage",
+          "classesInGraphs": [
+            "gameJournalPhoneMessage"
+          ],
+          "graphFiles": 1,
+          "saves": {
+            "of": 110,
+            "states": {
+              "absent": 110
+            }
+          }
+        }
+      ],
+      "combos": {
+        "selectors": [
+          "fact:mq019_done",
+          "fact:mq019_liam_disposed",
+          "fact:mq019_liam_disposed_failed",
+          "journal:contacts/lizzy_wizzy/mq019_05_no_job/01_lizzy_msg_no_reward"
+        ],
+        "rows": [
+          {
+            "values": [
+              "1",
+              "1",
+              "0",
+              "-"
+            ],
+            "saves": 73,
+            "kinds": {
+              "CM": 67,
+              "CF": 2,
+              "NM": 4
+            }
+          },
+          {
+            "values": [
+              "0",
+              "0",
+              "0",
+              "-"
+            ],
+            "saves": 37,
+            "kinds": {
+              "CM": 28,
+              "SM": 2,
+              "CF": 7
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "db.blue-op-aborted",
+      "status": "unverified",
+      "decisionId": "city-contacts.blue.protection",
+      "outcomeKey": "operation-abandoned",
+      "grade": "anchored-not-seen",
+      "conditionHoldsInSaves": 0,
+      "facts": [
+        {
+          "key": "mq028_aborted",
+          "type": "fact",
+          "inDictionary": false,
+          "roles": null,
+          "alreadyInPack": false,
+          "writers": {
+            "assignments": 0,
+            "positive": 0,
+            "hashBoundPositive": 3,
+            "sceneWriterDepots": [
+              "scenes/mq028_02_park.scene"
+            ],
+            "graphWriterDepots": []
+          },
+          "readers": {
+            "comparisons": 0,
+            "depots": []
+          },
+          "saves": {
+            "of": 110,
+            "nonZero": 0,
+            "values": {}
+          }
+        }
+      ],
+      "journals": [],
+      "extraJournal": [],
+      "combos": {
+        "selectors": [
+          "fact:mq028_aborted"
+        ],
+        "rows": [
+          {
+            "values": [
+              "0"
+            ],
+            "saves": 110,
+            "kinds": {
+              "CM": 95,
+              "CF": 9,
+              "SM": 2,
+              "NM": 4
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

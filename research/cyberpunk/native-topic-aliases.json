@@ -528,6 +528,18 @@
       "rationale": "The completed dive and safe return are earlier than a separately established later departure while Judy sleeps. Both historical stages can coexist; this move preserves the original statement, audience and positive lake/pier conditions.",
       "reviewRef": "native-reviews/judy-river-oct01.md",
       "reviewed": true
+    },
+    {
+      "ruleId": "db.queen-friendship-hook",
+      "decisionId": "aldecaldos.queen.romance",
+      "outcomeKey": "platonic",
+      "nativeTopic": "aldecaldos.panam-basilisk-intimacy",
+      "catalogTopic": "panam.romance",
+      "ruleSha256": "763b23cd015bf4718ee0c7792b2c3f325e79cc523cabcd41a2a1d48d1e49788c",
+      "policy": "mutually-exclusive-stance",
+      "rationale": "Joins the reviewed domain of aldecaldos.queen.romance. The friendship hook is sent only on the False side of sq027_panam_lover > 0 and the romance rule requires that fact, so the two outcomes cannot both hold; sharing the topic makes the resolver suppress both if a contradictory snapshot ever shows them together.",
+      "reviewRef": "native-reviews/queen-friendship-alias-20261015.md",
+      "reviewed": true
     }
   ]
 }

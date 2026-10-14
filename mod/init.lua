@@ -685,6 +685,25 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
         return keys
     end}) or nil
 convaiGameDialogue = gameDialogue
+
+-- Witness receipts (docs/QUEST_DECISIONS.md 4.3): off unless settings.witnessReceipts. When a world scan sees a quest fact or journal entry
+-- change, who stood within 15 m is written to runtime/witness-receipts.json. One boolean check per scan; optional like the modules above.
+do
+    local loaded, module = pcall(dofile, 'witness-receipts.lua')
+    convaiWitnessReceipts = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
+        enabled = function() return type(manager.witnessReceipts) == 'function' and manager.witnessReceipts() == true end,
+        worldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end,
+        gameTime = function() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end,
+        near = function(radius)
+            local keys = {}
+            for _, person in ipairs(companions.conversationCandidates(Game.GetPlayer(), radius)) do keys[#keys + 1] = person.profileKey end
+            return keys
+        end}) or nil
+    if convaiWitnessReceipts then
+        worldKnowledge.edgesWanted = function() return convaiWitnessReceipts:on() end
+        worldKnowledge.onEdges = function(edges) convaiWitnessReceipts:record(edges) end
+    end
+end
 local function captureGameDialogue() return gameDialogue and gameDialogue:capture() or nil end
 groupChat.captureGameDialogue = captureGameDialogue
 phoneChat.captureGameDialogue = captureGameDialogue
@@ -843,6 +862,7 @@ if playerGear then playerGear.options.log = log end
 if convaiTurnContext then convaiTurnContext.options.log = log end
 -- Continue from game dialogue: one line the first time each of its four hooks fires in a session (mod/game-dialogue.lua).
 if gameDialogue then gameDialogue.options.log = log end
+if convaiWitnessReceipts then convaiWitnessReceipts.options.log = log end
 -- Doors, lifts, fast travel and stranded followers: one line per recovery
 -- decision (companions.lua note(), throttled per kind; never per frame).
 companions.recoveryLog = function(kind, fields)

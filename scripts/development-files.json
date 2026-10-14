@@ -130,6 +130,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/game-dialogue.lua"
     },
     {
+      "source": "mod/witness-receipts.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/witness-receipts.lua"
+    },
+    {
       "source": "mod/player-gear.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/player-gear.lua"
     },

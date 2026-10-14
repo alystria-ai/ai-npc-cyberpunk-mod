@@ -55,3 +55,20 @@ test('rows that overreach, guess, or cannot be proven are refused', () => {
   assert.match(check(row(), row()).join('\n'), /duplicate id/);
   assert.deepEqual(validateSpec({version: 2, rows: []}, context()), ['spec: version 1 and rows required']);
 });
+
+test('a row joins a native topic domain only through a verified row with a reviewed alias policy, and a live check must be a real recipe', () => {
+  const aliased = (fields = {}, alias = {}) => row({topic: 'silverhand.native-rooftop', topicAlias: {policy: 'mutually-exclusive-stance',
+    rationale: 'The two outcomes are exclusive in the quest script.', reviewRef: 'native-reviews/rooftop-alias-20261015.md', ...alias}, ...fields});
+  const withTopic = (...rows) => validateSpec({version: 1, rows}, {...context(),
+    decisions: new Map([['silverhand.rooftop-kerry-call', {topic: 'silverhand.rooftop', outcomes: [{key: 'called'}, {key: 'other'}]}]])});
+  assert.deepEqual(withTopic(aliased()), []);
+  assert.match(withTopic(aliased({topic: 'silverhand.rooftop'})).join('\n'), /different from the catalog topic/);
+  assert.match(withTopic(aliased({}, {policy: 'whatever'})).join('\n'), /topicAlias needs/);
+  assert.match(withTopic(aliased({}, {reviewRef: '../outside.md'})).join('\n'), /topicAlias needs/);
+  assert.match(withTopic(aliased({}, {rationale: '  '})).join('\n'), /topicAlias needs/);
+  assert.match(withTopic(aliased({topicAlias: undefined})).join('\n'), /topicAlias needs/);
+  assert.match(withTopic(aliased({status: 'unverified', unverifiedBecause: 'Not yet read.'})).join('\n'), /only a verified row joins/);
+  assert.deepEqual(check(row({id: 'db.kerry-open', status: 'unverified', outcomeKey: 'other', unverifiedBecause: 'Never observed in a save.',
+    liveCheck: 'Pick the Kerry option, then read q115_kerry_romance_chosen in the CET console.'})), []);
+  assert.match(check(row({id: 'db.kerry-open', status: 'unverified', outcomeKey: 'other', unverifiedBecause: 'Never observed.', liveCheck: 'look'})).join('\n'), /liveCheck/);
+});

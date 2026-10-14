@@ -68,7 +68,9 @@ test('the reviewed pack: choices are flagged, results of play and plain events a
     'jt.oda-refusal.refused']) assert.equal(flagged.has(id), false, id);
   assert.equal(flagged.get('cc5.jim.invite-declined'), 'phone-reply');
   assert.equal(flagged.get('jt.takemura-fate.rescued'), 'alternatives');
-  assert.equal(flagged.get('jt.oda-fate.killed'), 'statement');
+  // Oda killed was a lone statement until db.oda-spared (2026-10-15) gave the decision its second outcome.
+  assert.equal(flagged.get('jt.oda-fate.killed'), 'alternatives');
+  assert.equal(flagged.get('db.oda-spared'), 'alternatives');
 });
 
 // A small pack for the resolver: `events` plain beats and `choices` acts, every statement distinct and of similar length.

@@ -149,6 +149,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/voice-variants.mjs',
   'bridge/voxtral-reference.mjs',
   'bridge/voxtral-voice.mjs',
+  'bridge/witness-receipts.mjs',
   'bridge/world-knowledge.mjs',
   'bridge/world-session.mjs',
   'bridge/youtube-tv-host.mjs',

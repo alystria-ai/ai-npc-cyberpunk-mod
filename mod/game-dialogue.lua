@@ -510,6 +510,22 @@ end
 -- hook really does: the first three picks it recorded (index, hub, option count, channel, who stood by) and the first time each reason
 -- it skipped one. A pick that never produces either line did not reach this code (the 'hook choice fired' line says whether the hook
 -- itself ran). No option text is logged. Runs per pick, never per frame.
+-- What a pick that was not a dialogue choice looked like, for the one proof line: the visualizer enum name (or its text) and isSuccess, each
+-- cut to 24 characters. Read in pcall, only when that line is about to be written; never option text.
+local function detail(attempted, field)
+    local ok, text = pcall(function()
+        local value = attempted[field]
+        if value == nil then return nil end
+        if type(value) == 'table' or type(value) == 'userdata' then
+            local inner = value.value
+            if inner ~= nil then value = inner end
+        end
+        return tostring(value)
+    end)
+    if not ok or type(text) ~= 'string' or text == '' then return '?' end
+    return (text:gsub('[%c]', ' '):sub(1, 24))
+end
+
 function Instance:choice(attempted)
     self.lastChoice = nil
     local ok, reason = self:choiceRow(attempted)
@@ -526,7 +542,11 @@ function Instance:choice(attempted)
             end
         elseif not notes.skipped[reason or '?'] then
             notes.skipped[reason or '?'] = true
-            pcall(log, 'Game dialogue: choice not recorded (' .. tostring(reason) .. ')')
+            local extra = ''
+            if reason == 'not-dialogue' then
+                extra = string.format(' visualizer=%s success=%s', detail(attempted, 'visualizerType'), detail(attempted, 'isSuccess'))
+            end
+            pcall(log, 'Game dialogue: choice not recorded (' .. tostring(reason) .. extra .. ')')
         end
     end
     return ok, reason

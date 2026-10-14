@@ -1810,6 +1810,36 @@
       "locator": "archive winner ep1\\quest\\ep1.questphase exported with WolvenKit CLI (scene-evidence batch); raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory. Authored by research/cyberpunk/scripts/decision_rows.mjs from decision-rows-b.json."
     },
     {
+      "id": "db.source.eba5bb6e1132",
+      "kind": "native",
+      "locator": "archive winner base\\quest\\main_quests\\part1\\q112\\scenes\\q112_08_parade_speech.scene exported with WolvenKit CLI (scene-evidence batch); raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory. Authored by research/cyberpunk/scripts/decision_rows.mjs from decision-rows-b.json."
+    },
+    {
+      "id": "db.source.c3e13a81728e",
+      "kind": "native",
+      "locator": "archive winner base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_03a_militech_invades.scene exported with WolvenKit CLI (scene-evidence batch); raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory. Authored by research/cyberpunk/scripts/decision_rows.mjs from decision-rows-b.json."
+    },
+    {
+      "id": "db.source.151c9a044f4d",
+      "kind": "native",
+      "locator": "archive winner base\\quest\\main_quests\\prologue\\q003\\q003.questphase exported with WolvenKit CLI (scene-evidence batch); raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory. Authored by research/cyberpunk/scripts/decision_rows.mjs from decision-rows-b.json."
+    },
+    {
+      "id": "db.source.86ccc4b66fa9",
+      "kind": "native",
+      "locator": "archive winner base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_03_deal.scene exported with WolvenKit CLI (scene-evidence batch); raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory. Authored by research/cyberpunk/scripts/decision_rows.mjs from decision-rows-b.json."
+    },
+    {
+      "id": "db.source.19c1d57c850c",
+      "kind": "native",
+      "locator": "archive winner base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_04d_shootout_militech.scene exported with WolvenKit CLI (scene-evidence batch); raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory. Authored by research/cyberpunk/scripts/decision_rows.mjs from decision-rows-b.json."
+    },
+    {
+      "id": "db.source.752f36b67be0",
+      "kind": "native",
+      "locator": "archive winner base\\quest\\main_quests\\prologue\\q003\\phases\\q003_royce_bossfight.questphase exported with WolvenKit CLI (scene-evidence batch); raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory. Authored by research/cyberpunk/scripts/decision_rows.mjs from decision-rows-b.json."
+    },
+    {
       "id": "db.source.dd52544bf007",
       "kind": "native",
       "locator": "archive winner base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_02\\phases\\sts_bls_ina_02_ow.questphase exported with WolvenKit CLI (scene-evidence batch); raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory. Authored by research/cyberpunk/scripts/decision_rows.mjs from decision-rows-b.json."
@@ -1843,6 +1873,11 @@
       "id": "db.source.6f01f97ad3bf",
       "kind": "native",
       "locator": "archive winner ep1\\quest\\main_quests\\q302\\scenes\\q302_04_squot.scene exported with WolvenKit CLI (scene-evidence batch); raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory. Authored by research/cyberpunk/scripts/decision_rows.mjs from decision-rows-b.json."
+    },
+    {
+      "id": "db.source.a4e5a725738e",
+      "kind": "native",
+      "locator": "archive winner ep1\\openworld\\street_stories\\sts_ep1_06_zembinsky\\scenes\\sts_ep1_06_george.scene exported with WolvenKit CLI (scene-evidence batch); raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory. Authored by research/cyberpunk/scripts/decision_rows.mjs from decision-rows-b.json."
     },
     {
       "id": "db.source.a532d1b1384f",
@@ -16927,6 +16962,126 @@
       }
     },
     {
+      "id": "db.ev.fact.q112_08_oda_spared.6900f651ae88",
+      "sourceId": "db.source.eba5bb6e1132",
+      "kind": "native",
+      "locator": "q112_08_parade_speech.scene sets q112_08_oda_spared to 1 (questSetVar node).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/part1/q112/scenes/q112_08_parade_speech.scene.json",
+        "assetSha256": "c73b0c60e531c80042484895c9e75eb338dd49a7bea1318449d5e2e747518d1e",
+        "jsonSha256": "3a8d51c1428f5afa58f950123fc0a285983093990a7e5cc3720d5b6269f90e9a",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q112_08_oda_spared",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "db.ev.fact.q003_militech_invades.0c2df584713e",
+      "sourceId": "db.source.c3e13a81728e",
+      "kind": "native",
+      "locator": "q003_03a_militech_invades.scene sets q003_militech_invades to 1 (questSetVar node).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_03a_militech_invades.scene.json",
+        "assetSha256": "500d73e1c984cd3aa75d70686d341dd185b1d4f85ca1213d27a3a018c5e8f742",
+        "jsonSha256": "bce4cf751c76d6cb6769ccbe4bf396c40deb2e73c680489d2b08361801bff4c1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q003_militech_invades",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "db.ev.fact.q003_militech_invades.594ec3bbf1ba",
+      "sourceId": "db.source.151c9a044f4d",
+      "kind": "native",
+      "locator": "q003.questphase sets q003_militech_invades to 1 (questSetVar node).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/q003.questphase.json",
+        "assetSha256": "17381eca9d97f8b47626d6901084b0db5c5c7f5ebe79567b950436a7188b1f07",
+        "jsonSha256": "18befc6f0d615d9ba048c27024ad2943c65b2d17d823a3839506636ea8fa6a56",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/45/Data/phaseGraph/Data/nodes/24/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q003_militech_invades",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "db.ev.fact.q003_royce_dead.301e13f5f843",
+      "sourceId": "db.source.86ccc4b66fa9",
+      "kind": "native",
+      "locator": "q003_03_deal.scene sets q003_royce_dead to 1 (questSetVar node).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_03_deal.scene.json",
+        "assetSha256": "bdf35602e6e3b5ccca2f3a2c51a3a6deee48fa2a7239a2154a237f26a9729dd7",
+        "jsonSha256": "aacaea7eb76c54ad741ab2f1b017eae2248de61b5d690bc99bf95a077684498f",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/371/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q003_royce_dead",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "db.ev.fact.q003_royce_dead.27b18d5447d5",
+      "sourceId": "db.source.19c1d57c850c",
+      "kind": "native",
+      "locator": "q003_04d_shootout_militech.scene sets q003_royce_dead to 1 (questSetVar node).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_04d_shootout_militech.scene.json",
+        "assetSha256": "2b5fc7f0f2002e77d5617e2f50c7796c9ac39c8c9e274c66c6fa9047e26bf30a",
+        "jsonSha256": "2065e6ece770f90cbce508318e08243c5b47ad2252b559d044e65aaab8edea3c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/59/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q003_royce_dead",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "db.ev.fact.q003_royce_dead.aa9f089089bb",
+      "sourceId": "db.source.752f36b67be0",
+      "kind": "native",
+      "locator": "q003_royce_bossfight.questphase sets q003_royce_dead to 1 (questSetVar node).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-phases/raw/base/base/quest/main_quests/prologue/q003/phases/q003_royce_bossfight.questphase.json",
+        "assetSha256": "f464e4dffc802a6ec6066b926c7da0c2a5b9d6dd58d6ace57f5ee78a5e82b7dc",
+        "jsonSha256": "ed3584d0291a66b5172ac27b876759b89b3ec05d24b0b562a0c6d67ccf03ce70",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/31/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q003_royce_dead",
+          "/value": 1
+        }
+      }
+    },
+    {
       "id": "db.ev.fact.ina_02_big_pete_dead.7095410f12cf",
       "sourceId": "db.source.dd52544bf007",
       "kind": "native",
@@ -17182,6 +17337,26 @@
         "expectedType": "questSetVar_NodeType",
         "expected": {
           "/factName": "q302_oath_pledged",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "db.ev.fact.sts_ep1_06_testimony_agree.aa3155bdf7ba",
+      "sourceId": "db.source.a4e5a725738e",
+      "kind": "native",
+      "locator": "sts_ep1_06_george.scene sets sts_ep1_06_testimony_agree to 1 (questSetVar node).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/scenes/sts_ep1_06_george.scene.json",
+        "assetSha256": "fdc9745062d7de81f22ca44dc2ddb118297f7c531ccef8aa2e4ff8642cba816c",
+        "jsonSha256": "b05d8b79aa8828daaa027be28b03e7a92a178580d67bed606cfdddbd18731fff",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_06_testimony_agree",
           "/value": 1
         }
       }
@@ -153166,6 +153341,70 @@
         "db.ev.fact.q005_done.1d3a0a54c27a"
       ]
     },
+    "q112_08_oda_spared": {
+      "evidenceRefs": [
+        "db.ev.fact.q112_08_oda_spared.6900f651ae88"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/part1/q112/scenes/q112_08_parade_speech.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q003_militech_invades": {
+      "evidenceRefs": [
+        "jt-native.q003_militech_invades"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_03a_militech_invades.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data/questNode/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Full cached quest/questphase index and explicitly exported scene indexes, deduplicated by depot path and JSON pointer; not a complete all-scenes claim.",
+        "reviewRef": "runtime/quest-priority-eight-20261004/jackie-takemura/all-writers.json",
+        "candidateWriters": 0
+      }
+    },
+    "q003_royce_dead": {
+      "evidenceRefs": [
+        "db.ev.fact.q003_royce_dead.301e13f5f843",
+        "db.ev.fact.q003_royce_dead.27b18d5447d5",
+        "db.ev.fact.q003_royce_dead.aa9f089089bb"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_03_deal.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/371/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_04d_shootout_militech.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/59/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-phases/raw/base/base/quest/main_quests/prologue/q003/phases/q003_royce_bossfight.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/31/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 3
+      }
+    },
     "ina_02_big_pete_dead": {
       "evidenceRefs": [
         "db.ev.fact.ina_02_big_pete_dead.7095410f12cf",
@@ -153196,6 +153435,23 @@
       "evidenceRefs": [
         "db.ev.fact.q302_oath_pledged.fdd2da7f82d0"
       ]
+    },
+    "sts_ep1_06_testimony_agree": {
+      "evidenceRefs": [
+        "db.ev.fact.sts_ep1_06_testimony_agree.aa3155bdf7ba"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/scenes/sts_ep1_06_george.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
     },
     "mq040_gangers_scene_done": {
       "evidenceRefs": [
@@ -155182,22 +155438,6 @@
         "scope": "Full cached quest/questphase index and explicitly exported scene indexes, deduplicated by depot path and JSON pointer; not a complete all-scenes claim.",
         "reviewRef": "runtime/quest-priority-eight-20261004/jackie-takemura/all-writers.json",
         "candidateWriters": 1
-      }
-    },
-    "q003_militech_invades": {
-      "evidenceRefs": [
-        "jt-native.q003_militech_invades"
-      ],
-      "writers": [
-        {
-          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_03a_militech_invades.scene.json",
-          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data/questNode/Data/type/Data"
-        }
-      ],
-      "writerAuditScope": {
-        "scope": "Full cached quest/questphase index and explicitly exported scene indexes, deduplicated by depot path and JSON pointer; not a complete all-scenes claim.",
-        "reviewRef": "runtime/quest-priority-eight-20261004/jackie-takemura/all-writers.json",
-        "candidateWriters": 0
       }
     },
     "q003_no_deal": {
@@ -172636,7 +172876,8 @@
           "value": 1
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "During the park stakeout wait or leave the area until Blue Moon gives up and says she is going home. Read mq028_aborted (expect 1). The writers are not behind a choice, so also note what V did to trigger it before wording the row."
       }
     },
     {
@@ -172683,7 +172924,8 @@
           ]
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "Build step first: add the objective quests/main_quest/prologue/q003_maelstrom/03_escape/15_talk_to_brick5 (gameJournalQuestObjective, in the cooked journal) to the journal allowlist with a hash-bound cooked-journal pointer, then the condition is q003_brick_dead >= 1 and brick5 == failed. Live: let Brick die in the trap in a second run (one save exists) and confirm brick5 failed."
       }
     },
     {
@@ -172720,7 +172962,8 @@
           "value": 1
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "On Claire's first call pick \"Racing? Don't think so. No thanks.\" Read sq024_v_said_not_interested_at_start (expect 1). Then repeat accepting (\"OK, sounds good.\") and a later missed call, and read it again (expect 0 on both), which settles the two writers in sq024_00_hook that could not be read."
       }
     },
     {
@@ -172733,7 +172976,7 @@
           "outcomeKey": "schedule-edited"
         }
       ],
-      "notes": "Unverified candidate, not executable. mq303_linas_pc_hacked is zero or absent in all 110 real saves (every save took the paid or other route), so it was never observed set. Also unproven that Lina herself learns V tampered with her schedule (she is meant to 'buy it'); Hands is not shown being told either, so the speaker is the weakest part of this row. Writer: mq303_02_linas_mansion scene (scene-evidence/pg5-04) graph[100] sets mq303_linas_pc_hacked=1; sceneview says only choice 751 option 0 '[Hack schedule]' leads to it (preceded by the line 'Scheduled her for a shoot with Tool'). Only reader is the scene's own later choice option (graph[20] option 1), so the game also treats it as a branch marker. The earlier line 'No dice. Her systems are ICEd to the gills. Plan B' sits 9 hops upstream and belongs to a different path.",
+      "notes": "Unverified candidate, not executable. The fact is set in 58 saves and splits the finished saves, but it is unproven that Lina or anyone else learns that V tampered with her schedule, so the speaker is the open question. Writer: mq303_02_linas_mansion scene (scene-evidence/pg5-04) graph[100] sets mq303_linas_pc_hacked=1; sceneview says only choice 751 option 0 '[Hack schedule]' leads to it (preceded by the line 'Scheduled her for a shoot with Tool'). Only reader is the scene's own later choice option (graph[20] option 1), so the game also treats it as a branch marker. The earlier line 'No dice. Her systems are ICEd to the gills. Plan B' sits 9 hops upstream and belongs to a different path.",
       "candidate": {
         "statement": "At Lina Malina's mansion V used the [Hack schedule] option and booked her into a fake shoot with Tool to lure her out.",
         "audience": {
@@ -172757,7 +173000,8 @@
           "value": 1
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "Replay mq303 with [Hack schedule] and read mq303_linas_pc_hacked (expect 1), then ask what Lina says in her next scene and in Hands' debrief: if neither mentions the tampering, no character is a valid speaker and the row stays unmapped."
       }
     },
     {
@@ -172834,7 +173078,7 @@
           "outcomeKey": "withheld"
         }
       ],
-      "notes": "Unverified candidate, not executable. q005_01_evelyn_fluff is not in the allowlist and never nonzero in any save (the scene-local q005_01_* facts do not appear in the 110 saves, even q005_01_v_sits, so they may not persist), so there is no real-save confirmation; it also covers only one of the two withholding paths. Scene q005_01_plan (priority-jackie-takemura batch). q005_01_evelyn_fluff=1 exact (node 3428, graph[96]) is written ONLY by option 2 'Something's off about her.' of choice 3385, itself reachable only after option 0 'Pretty well. Saw Konpeki Plaza from the inside.' of choice 3545 (sceneview confirms both are exclusive). The disclosure fact q005_01_dex_knows (node 3387) is written only via 3545 option 1 or 3385 option 1, so evelyn_fluff and dex_knows cannot both be set in one pass (3385 is a one-shot choice). This is only the 'withheld but hinted' half of 'withheld': V who answers 'That's it. Let's go over the plan.' withholds with no fact at all, so absence stays a non-signal. Statement is limited to what V said.",
+      "notes": "Unverified candidate, not executable. q005_01_evelyn_fluff and q005_01_dex_knows are both set in 3 saves, so the options are not exclusive and the row would conflict with the shipped disclosed rule; it also covers only one of the two withholding paths. Scene q005_01_plan (priority-jackie-takemura batch). q005_01_evelyn_fluff=1 exact (node 3428, graph[96]) is written ONLY by option 2 'Something's off about her.' of choice 3385, itself reachable only after option 0 'Pretty well. Saw Konpeki Plaza from the inside.' of choice 3545 (sceneview confirms both are exclusive). The disclosure fact q005_01_dex_knows (node 3387) is written only via 3545 option 1 or 3385 option 1, so evelyn_fluff and dex_knows cannot both be set in one pass (3385 is a one-shot choice). This is only the 'withheld but hinted' half of 'withheld': V who answers 'That's it. Let's go over the plan.' withholds with no fact at all, so absence stays a non-signal. Statement is limited to what V said.",
       "candidate": {
         "statement": "In the briefing with Dex and Jackie, V told Dex that something felt off about Evelyn Parker.",
         "audience": {
@@ -172868,7 +173112,8 @@
           ]
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "No live check is needed for the conflict. Do not promote as \"withheld\". If wanted, make it its own facet (native topic with a compatible-facet alias: \"V also said something felt off about Evelyn\") and keep the disclosed rule."
       }
     },
     {
@@ -172881,7 +173126,7 @@
           "outcomeKey": "brief-or-skipped"
         }
       ],
-      "notes": "Unverified candidate, not executable. q000_corpo_02_cut_short is never nonzero in any of the 110 saves (not-in-dict; no real playthrough took the cut-short option) and is not in the pack allowlist, so no real-save confirmation of the write. Scene q000_corpo_02_to_elevators (ah5-04). The only writer of q000_corpo_02_cut_short (node 433, graph[35], =1 exact) is reached only from the player options 'I'm in a rush.' (choice 12 option 1) and 'I need to run.' (choice 61 option 3), after which Frank says 'Listen, sorry, uh, in a bit of a rush right now? We'll talk another time' (node 59). history-init phases do not write it (they write choice_02_done only). Caveat: q000_corpo_02_choice_02_done (used by the mapped frank-chat rule) is set by the And node 1636 after ANY of the three topic questions (Cape Town, Jenkins, boss), so a V who asked one topic and then said 'I need to run' has both facts; the mapped 'completed' rule can therefore co-fire with this one. 03a_talk_friend succeeds on both paths (prior review), kept only as a stage guard.",
+      "notes": "Unverified candidate, not executable. Topic conflict: the fact is set in 99 saves and is 1 together with the mapped choice_02_done in 96, so this row and ah5.corpo-rat.frank-chat (same topic) would suppress each other on the common branch; it needs its own topic and an alias for both rules. Scene q000_corpo_02_to_elevators (ah5-04). The only writer of q000_corpo_02_cut_short (node 433, graph[35], =1 exact) is reached only from the player options 'I'm in a rush.' (choice 12 option 1) and 'I need to run.' (choice 61 option 3), after which Frank says 'Listen, sorry, uh, in a bit of a rush right now? We'll talk another time' (node 59). history-init phases do not write it (they write choice_02_done only). Caveat: q000_corpo_02_choice_02_done (used by the mapped frank-chat rule) is set by the And node 1636 after ANY of the three topic questions (Cape Town, Jenkins, boss), so a V who asked one topic and then said 'I need to run' has both facts; the mapped 'completed' rule can therefore co-fire with this one. 03a_talk_friend succeeds on both paths (prior review), kept only as a stage guard.",
       "candidate": {
         "statement": "In the Arasaka lobby V told Frank Nostra they were in a rush, and the reunion chat was cut short.",
         "audience": {
@@ -172915,7 +173160,8 @@
           ]
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "No live check is needed for the fact. Build step: give the row its own native topic (compatible-facet) and alias the existing ah5.corpo-rat.frank-chat rule too (an aliased decision requires every rule of the decision to be aliased), then regenerate the lane."
       }
     },
     {
@@ -172928,7 +173174,7 @@
           "outcomeKey": "walked-away"
         }
       ],
-      "notes": "Unverified candidate, not executable. mq041_var_frank_sofa is never nonzero in any save (4 playthroughs finished mq041: 683244, 65a9d8, 5fd173, 65df79; none took the talk-down) and is not allowlisted; the sofa workspot content was not readable, so it is unproven that the end state is 'walked away alive' rather than another calm end. Scene mq041_corpo_02_confrontation (ah5-02). V's persuasion line 'It's a closed book, Frank. Gotta refigure your life. Game over, start again.' (node 204; reached from 'Open your eyes' node 191 or 'Gotta start over' choice 55 option 1) fans out to: EquipItem (768), SetAttitudeGroup friendly for Frank (687), MovePuppet + two workspots (247, 359, 1226) and SetVar mq041_var_frank_sofa=1 exact (438) then the quest-entry updates, Johnny's closing lines and End. Combat branches (V's 'I kill you right here and now', 'Go ahead, try') never pass node 204 and write no fact. So frank_sofa>=1 is a positive, exclusive 'talked down, attitude friendly' marker. It does NOT distinguish suicide from walking away: the catalog outcomes are walked-away / self-inflicted-death, and the scripted workspot content (sofa) could not be read from the graph, so the outcome key walked-away is the closest fit, not an exact one. No fact exists for killed / incapacitated / suicide (all use killed|defeated|unconscious community conditions).",
+      "notes": "Unverified candidate, not executable. mq041_var_frank_sofa is set in only 1 save, and the end state behind the sofa workspot is unread, so it is unproven that \"stood down alive\" is right rather than another calm end. Scene mq041_corpo_02_confrontation (ah5-02). V's persuasion line 'It's a closed book, Frank. Gotta refigure your life. Game over, start again.' (node 204; reached from 'Open your eyes' node 191 or 'Gotta start over' choice 55 option 1) fans out to: EquipItem (768), SetAttitudeGroup friendly for Frank (687), MovePuppet + two workspots (247, 359, 1226) and SetVar mq041_var_frank_sofa=1 exact (438) then the quest-entry updates, Johnny's closing lines and End. Combat branches (V's 'I kill you right here and now', 'Go ahead, try') never pass node 204 and write no fact. So frank_sofa>=1 is a positive, exclusive 'talked down, attitude friendly' marker. It does NOT distinguish suicide from walking away: the catalog outcomes are walked-away / self-inflicted-death, and the scripted workspot content (sofa) could not be read from the graph, so the outcome key walked-away is the closest fit, not an exact one. No fact exists for killed / incapacitated / suicide (all use killed|defeated|unconscious community conditions).",
       "candidate": {
         "statement": "In the War Pigs confrontation V talked Frank Nostra down and he stood down, ending the standoff without a fight.",
         "audience": {
@@ -172962,55 +173208,70 @@
           ]
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "At the War Pigs confrontation pick \"Gotta start over\" (the talk-down line), watch what Frank does (sits and stays alive, or shoots himself), then read mq041_var_frank_sofa in the CET console: print(Game.GetQuestsSystem():GetFactStr(\"mq041_var_frank_sofa\")) (expect 1; 0 on the fight branches). If Frank dies on the sofa, reword to the self-inflicted-death outcome."
       }
     },
     {
       "id": "db.hearts-testimony-anonymized",
-      "status": "candidate",
+      "revision": 1,
       "questKey": "gig-heaviest-of-hearts",
+      "topic": "maldonado.testimony",
+      "outcome": "anonymized",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "In Heaviest of Hearts V accepted Georgina's offer to anonymize Michael Maldonado's testimony instead of having it deleted.",
+      "sourceIds": [
+        "db.source.a4e5a725738e",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "db.ev.fact.sts_ep1_06_testimony_agree.aa3155bdf7ba",
+        "pg5.ev.journal.38d8c7f0accf"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_06_testimony_agree",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.hearts.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
       "narrativeLinks": [
         {
           "decisionId": "phantom.hearts.testimony",
           "outcomeKey": "anonymized"
         }
       ],
-      "notes": "Unverified candidate, not executable. sts_ep1_06_testimony_agree is 'not-in-dict': never present in any of the 110 saves (the saves took the delete branch or withdrawn stayed 0 without the deal), so it was never observed set. Hands' debrief reads withdrawn==0 only as an absence, not testimony_agree, and which socket of that debrief condition is the true branch was inferred from the dialogue, not tested in game. Writer: sts_ep1_06_george scene (scene-evidence/pg5-04) graph[17] sets sts_ep1_06_testimony_agree=1, reached only through the line 'Fine, deal. Don't trust you, but that goes double for Mike.' which follows choice 1123 option 0 'Fine. We have a deal.' after Georgina says 'I'm offering to anonymize Michael's testimony'. The delete option ('I don't believe you. Delete the testimony.') writes sts_ep1_06_deal_refuse and testimony_withdrawn=1 instead, so the two branches are exclusive. The deal path then sets testimony_withdrawn=0 exact. Reads: the client scene shows option 1 'Georgina scrubbed your name from the testimony' only while withdrawn==0, and Hands' holocall debrief (sts_ep1_06_holocall_debrief graph[17], withdrawn==0 branch) opens 'I just got off the holo with Mr. Maldonado. He was most certainly not pleased', while the withdrawn==1 branch is the 'most satisfied' variant already used by pg5.hearts.deleted, so Hands does hear about this outcome.",
-      "candidate": {
-        "statement": "In Heaviest of Hearts V accepted Georgina's offer to anonymize Michael Maldonado's testimony instead of having it deleted.",
-        "audience": {
-          "speakers": [
-            "mr-hands"
-          ],
-          "perspective": "participant",
-          "channels": [
-            "private",
-            "phone"
-          ],
-          "recipients": [
-            "v",
-            "mr-hands"
-          ]
-        },
-        "condition": {
-          "all": [
-            {
-              "type": "fact",
-              "key": "sts_ep1_06_testimony_agree",
-              "op": "gte",
-              "value": 1
-            },
-            {
-              "type": "journal",
-              "key": "pg5.hearts.completed",
-              "op": "eq",
-              "value": "succeeded"
-            }
-          ]
-        },
-        "category": "decision",
-        "saves": null
-      }
+      "notes": "Writer: sts_ep1_06_george scene (scene-evidence/pg5-04) graph[17] sets sts_ep1_06_testimony_agree=1, reached only through the line 'Fine, deal. Don't trust you, but that goes double for Mike.' which follows choice 1123 option 0 'Fine. We have a deal.' after Georgina says 'I'm offering to anonymize Michael's testimony'. The delete option ('I don't believe you. Delete the testimony.') writes sts_ep1_06_deal_refuse and testimony_withdrawn=1 instead, so the two branches are exclusive. The deal path then sets testimony_withdrawn=0 exact. Reads: the client scene shows option 1 'Georgina scrubbed your name from the testimony' only while withdrawn==0, and Hands' holocall debrief (sts_ep1_06_holocall_debrief graph[17], withdrawn==0 branch) opens 'I just got off the holo with Mr. Maldonado. He was most certainly not pleased', while the withdrawn==1 branch is the 'most satisfied' variant already used by pg5.hearts.deleted, so Hands does hear about this outcome. Offline check 2026-10-15: of the 51 saves with the quest succeeded, 47 have sts_ep1_06_testimony_agree=1 (with deal_refuse and testimony_withdrawn absent) and 4 have testimony_withdrawn=1 (with agree absent). Never both, never neither: the fact splits the finished saves exactly as the dialogue reading says, and the withdrawn side is the deleted rule pg5.hearts.deleted that already ships."
     },
     {
       "id": "db.hunt-edgewood-two-farms",
@@ -173056,7 +173317,8 @@
           ]
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "In The Hunt skip the deduction clues, reach the vote and pick \"[Stand] Let's try Edgewood Farm\". Expect sq021_v_has_2_choose=1, sq021_good_farm_chosen=1, sq021_v_knows_farm=0. Then repeat with the deduction to see whether v_has_2_choose can be 1 together with v_knows_farm."
       }
     },
     {
@@ -173105,7 +173367,8 @@
           ]
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "Nothing to build. Retire this row after checking cc5.iris.car-left live: fail or abandon the optional car objective, then expect the journal entry opt_get_iris_car failed and Iris/Dakota told the car was left."
       }
     },
     {
@@ -173142,7 +173405,8 @@
           "value": 1
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "In the finale refuse to move the body. Expect mq019_done=1, mq019_liam_disposed absent and the phone message contacts/lizzy_wizzy/mq019_05_no_job/01_lizzy_msg_no_reward present; the message must be added to the journal allowlist before the row can run (condition: that message active)."
       }
     },
     {
@@ -173233,55 +173497,70 @@
           ]
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "At q103_11_tunnel_drive do not help Panam. Expect q103_helped_panam=0 and the Rogue message contacts/rogue/q103/q103_clean_deal active in the phone journal. Needs that message in the journal allowlist before the row can run."
       }
     },
     {
       "id": "db.oda-spared",
-      "status": "candidate",
+      "revision": 1,
       "questKey": "play-it-safe",
+      "topic": "oda.fate",
+      "outcome": "spared",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the Dashi parade V spared the defeated Oda instead of killing him.",
+      "sourceIds": [
+        "db.source.eba5bb6e1132",
+        "jt-native-231"
+      ],
+      "evidenceRefs": [
+        "db.ev.fact.q112_08_oda_spared.6900f651ae88",
+        "jt-native.parade.oda-defeated"
+      ],
+      "audience": {
+        "speakers": [
+          "takemura"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "takemura"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q112_08_oda_spared",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jt.parade.oda-defeated",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
       "narrativeLinks": [
         {
           "decisionId": "arasaka-heist.oda-fate",
           "outcomeKey": "spared"
         }
       ],
-      "notes": "Unverified candidate, not executable. q112_08_oda_spared is never nonzero in any save and not allowlisted: in 5 of 6 playthroughs that passed the Oda fight V did not kill him (q112_oda_dead absent) yet the fact is unset, so the mercy prompt can be skipped; a real spare was never observed. Scene q112_08_parade_speech (priority-jackie-takemura batch). q112_08_oda_spared=1 (node 372, graph[42]) is written only through the single-option choice 43 'It's your lucky day today...' which is offered while Oda is down but not killed (condition 366 killed>=1 false; Takemura on the holocall: 'Do not kill him'). The kill path writes q112_oda_dead (node 341, already used by jt.oda-fate.killed) and V's 'I'm sorry, Oda.' instead. Same speaker/guard convention as the mapped jt.oda-fate.killed (takemura, participant, guarded by jt.parade.oda-defeated). Hanako is not on that call and is left out.",
-      "candidate": {
-        "statement": "At the Dashi parade V spared the defeated Oda instead of killing him.",
-        "audience": {
-          "speakers": [
-            "takemura"
-          ],
-          "perspective": "participant",
-          "channels": [
-            "private",
-            "phone"
-          ],
-          "recipients": [
-            "v",
-            "takemura"
-          ]
-        },
-        "condition": {
-          "all": [
-            {
-              "type": "fact",
-              "key": "q112_08_oda_spared",
-              "op": "gte",
-              "value": 1
-            },
-            {
-              "type": "journal",
-              "key": "jt.parade.oda-defeated",
-              "op": "eq",
-              "value": "succeeded"
-            }
-          ]
-        },
-        "category": "decision",
-        "saves": null
-      }
+      "notes": "Scene q112_08_parade_speech (priority-jackie-takemura batch). q112_08_oda_spared=1 (node 372, graph[42]) is written only through the single-option choice 43 'It's your lucky day today...' which is offered while Oda is down but not killed (condition 366 killed>=1 false; Takemura on the holocall: 'Do not kill him'). The kill path writes q112_oda_dead (node 341, already used by jt.oda-fate.killed) and V's 'I'm sorry, Oda.' instead. Same speaker/guard convention as the mapped jt.oda-fate.killed (takemura, participant, guarded by jt.parade.oda-defeated). Hanako is not on that call and is left out. Offline check 2026-10-15 (decision_rows_offline_check.mjs, 110 real saves): the earlier \"never set in any save\" was an artefact of the fact dictionary, which does not index scene-written facts. q112_08_oda_spared is 1 in 71 saves (the long corporate run, parade objective succeeded, q112_oda_dead absent) and 0 in the 8 other saves that passed the Oda fight, 2 of which have q112_oda_dead=1; the two facts are never both set (0 of 110) and neither is set in 6 saves that passed the fight, so the mercy prompt can be skipped and absence is not claimed. 70 of the 71 saves are one run; other runs show the dead branch and the skipped prompt."
     },
     {
       "id": "db.pepe-bar-talked-down",
@@ -173385,43 +173664,55 @@
     },
     {
       "id": "db.queen-friendship-hook",
-      "status": "candidate",
+      "revision": 1,
       "questKey": "queen-of-the-highway",
+      "topic": "aldecaldos.panam-basilisk-intimacy",
+      "outcome": "platonic",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After the Aldecaldo initiation party, Panam sent V her friendly check-in messages about the chip and her plans, the friends version of her ending hook rather than the romantic one.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.d3d6cfe53b1b"
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "al5.panam.friendship-hook",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
       "narrativeLinks": [
         {
           "decisionId": "aldecaldos.queen.romance",
           "outcomeKey": "platonic"
         }
       ],
-      "notes": "Unverified candidate, not executable. The decision aldecaldos.queen.romance already has rules under the reviewed topic alias aldecaldos.panam-basilisk-intimacy; a rule with the canonical topic is refused (narrative_topic_identity.mjs). Joining needs a reviewed alias entry and a native-reviews note, which this change does not add. The signal itself (the Panam friendship hook message is active) is sound and the save sets are disjoint. q114_msg_panam_ending_hook questphase node 1 branches on sq027_panam_lover>0: True side sends contacts/panam/q114_panam_ending_hook_lover/*, False side sends q114_panam_ending_hook_friendship/*, including 02_msg_panam_friend (pack key al5.panam.friendship-hook, already used as guard of al5.devil.called-platonic). sq027_panam_lover is written only in sq027_06_panzer (and test scenes) and is 1 in saves 683244, 64a0c3, 65224c; the friendship message is active in 65a9d8, 653802, 5fd173. The two sets of saves are disjoint. Caveat: the hook is sent for anyone who reaches q114 without the lover fact, including a V who skipped the Panam job, so the statement avoids claiming the Queen of the Highway job was completed.",
-      "candidate": {
-        "statement": "After the Aldecaldo initiation party, Panam sent V her friendly check-in messages about the chip and her plans, the friends version of her ending hook rather than the romantic one.",
-        "audience": {
-          "speakers": [
-            "panam-palmer"
-          ],
-          "perspective": "private",
-          "channels": [
-            "private",
-            "phone"
-          ],
-          "recipients": [
-            "v",
-            "panam-palmer"
-          ]
-        },
-        "condition": {
-          "type": "journal",
-          "key": "al5.panam.friendship-hook",
-          "op": "in",
-          "value": [
-            "active",
-            "succeeded"
-          ]
-        },
-        "category": "decision",
-        "saves": null
-      }
+      "notes": "q114_msg_panam_ending_hook questphase node 1 branches on sq027_panam_lover>0: True side sends contacts/panam/q114_panam_ending_hook_lover/*, False side sends q114_panam_ending_hook_friendship/*, including 02_msg_panam_friend (pack key al5.panam.friendship-hook, already used as guard of al5.devil.called-platonic). sq027_panam_lover is written only in sq027_06_panzer (and test scenes) and is 1 in saves 683244, 64a0c3, 65224c; the friendship message is active in 65a9d8, 653802, 5fd173. The two sets of saves are disjoint. Caveat: the hook is sent for anyone who reaches q114 without the lover fact, including a V who skipped the Panam job, so the statement avoids claiming the Queen of the Highway job was completed. Offline check 2026-10-15: the friendship message is active in 6 saves, all with sq027_panam_lover absent; sq027_panam_lover=1 in 72 saves, none of which has the message; 32 saves have neither (the quest is not reached). Disjoint in every save. The row joins the topic aliases."
     },
     {
       "id": "db.river-intimate",
@@ -173523,56 +173814,79 @@
     },
     {
       "id": "db.royce-downed-by-militech",
-      "status": "candidate",
+      "revision": 1,
       "questKey": "the-pickup",
+      "topic": "maelstrom.royce.fate",
+      "outcome": "killed-by-militech",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Royce went down under the Militech assault on All Foods while V and Jackie were there.",
+      "sourceIds": [
+        "db.source.c3e13a81728e",
+        "db.source.151c9a044f4d",
+        "jt-native-231",
+        "db.source.86ccc4b66fa9",
+        "db.source.19c1d57c850c",
+        "db.source.752f36b67be0"
+      ],
+      "evidenceRefs": [
+        "db.ev.fact.q003_militech_invades.0c2df584713e",
+        "db.ev.fact.q003_militech_invades.594ec3bbf1ba",
+        "jt-native.q003_militech_invades",
+        "db.ev.fact.q003_royce_dead.301e13f5f843",
+        "db.ev.fact.q003_royce_dead.27b18d5447d5",
+        "db.ev.fact.q003_royce_dead.aa9f089089bb",
+        "jt-native.pickup.completed"
+      ],
+      "audience": {
+        "speakers": [
+          "jackie-welles"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jackie-welles"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q003_militech_invades",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q003_royce_dead",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jt.pickup.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
       "narrativeLinks": [
         {
           "decisionId": "arasaka-heist.royce-fate",
           "outcomeKey": "killed-by-militech"
         }
       ],
-      "notes": "Unverified candidate, not executable. The flag is set for killed, defeated or unconscious, so 'killed' is not proven (prior review's concern stands); the statement was worded as 'went down' for that reason. Both Militech saves agree but no save shows Royce alive after a Militech assault. Scene q003_04d_shootout_militech (ah5-01). Node 301 writes q003_royce_dead=1 after node 298: CharacterKilled(#royce, killed OR defeated OR unconscious, entireCommunity=1). The other writers of q003_royce_dead are q003_03_deal node 8612 (only the 'Shoot Royce' option, i.e. q003_deal_royce_shoot, which cannot coexist with the Militech assault) and the royce_bossfight phase (hostile no_deal route, where Militech does not invade), so militech_invades>=1 AND royce_dead>=1 isolates the Militech-assault writer. The scene scripts the reaction (DumDum: 'They killed Royce!!!', Jackie: 'They got him! He's done!'). Real saves 65224c and 5fd173 (the only militech_invades=1 playthroughs) both have royce_dead=1. Totentanz routing (sq011_nancy node 276) was checked and cannot serve as an alive marker (Royce is shown there unless dead AND dumdum dead AND combat AND no_deal).",
-      "candidate": {
-        "statement": "Royce went down under the Militech assault on All Foods while V and Jackie were there.",
-        "audience": {
-          "speakers": [
-            "jackie-welles"
-          ],
-          "perspective": "witnessed",
-          "channels": [
-            "private",
-            "phone"
-          ],
-          "recipients": [
-            "v",
-            "jackie-welles"
-          ]
-        },
-        "condition": {
-          "all": [
-            {
-              "type": "fact",
-              "key": "q003_militech_invades",
-              "op": "gte",
-              "value": 1
-            },
-            {
-              "type": "fact",
-              "key": "q003_royce_dead",
-              "op": "gte",
-              "value": 1
-            },
-            {
-              "type": "journal",
-              "key": "jt.pickup.completed",
-              "op": "eq",
-              "value": "succeeded"
-            }
-          ]
-        },
-        "category": "decision",
-        "saves": null
-      }
+      "notes": "Scene q003_04d_shootout_militech (ah5-01). Node 301 writes q003_royce_dead=1 after node 298: CharacterKilled(#royce, killed OR defeated OR unconscious, entireCommunity=1). The other writers of q003_royce_dead are q003_03_deal node 8612 (only the 'Shoot Royce' option, i.e. q003_deal_royce_shoot, which cannot coexist with the Militech assault) and the royce_bossfight phase (hostile no_deal route, where Militech does not invade), so militech_invades>=1 AND royce_dead>=1 isolates the Militech-assault writer. The scene scripts the reaction (DumDum: 'They killed Royce!!!', Jackie: 'They got him! He's done!'). Real saves 65224c and 5fd173 (the only militech_invades=1 playthroughs) both have royce_dead=1. Totentanz routing (sq011_nancy node 276) was checked and cannot serve as an alive marker (Royce is shown there unless dead AND dumdum dead AND combat AND no_deal). Offline check 2026-10-15: q003_militech_invades is set in exactly 4 saves and q003_royce_dead is set in all 4; royce_dead is also set in the 89 saves of the long run that fought Royce (boss fight, militech_invades absent) and in none of the saves where V never reached All Foods. q003_deal_royce_shoot and q003_militech_refused are never set together with militech_invades. The statement still says only that Royce went down."
     },
     {
       "id": "db.sandra-hired",
@@ -173676,7 +173990,8 @@
           "value": 1
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "Pick Sandra as the netrunner, then in her scene try the option that refuses and one that accepts. Read q305_sandra_task_accepted after each (expect 1 after every path that reaches the request, which settles whether it means \"asked\" or \"agreed\")."
       }
     },
     {
@@ -173723,7 +174038,8 @@
           ]
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "Let Takemura die in the safe-house assault (q112_10), play the tower assault to the CEO floor. Read q112_takemura_dead (expect 1) and check Hanako is on the CEO floor in that variant (the note assumes it)."
       }
     },
     {
@@ -173831,7 +174147,8 @@
           ]
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "Take the ending where Rogue dies, play the Sun epilogue to the Afterlife drink with Claire. Expect q116_rogue_dead=1 and the drink objective succeeded, and that Rogue is not at the bar."
       }
     },
     {
@@ -173868,7 +174185,8 @@
           "value": 1
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "In Boat Drinks take the [Kiss] path to the intimacy scene and read sq028_kerry_sex (expect 1); on the [Stop] path expect 0."
       }
     },
     {
@@ -173905,7 +174223,8 @@
           "value": 1
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "At the lab standoff side with Dante and shoot Bree. Expect mq305_v_killed_bree=1, mq305_bree_dead=1, mq305_dante_killed=0, and the Hands message contacts/mr_hands/mq305/v_kills_bree in the phone journal. Then do the both-dead route to see whether v_killed_bree stays 1."
       }
     },
     {
@@ -173942,7 +174261,8 @@
           "value": 1
         },
         "category": "decision",
-        "saves": null
+        "saves": null,
+        "liveCheck": "Export the sq023_hook questphase (nested sub-phase nodes/25) with extract_scene_evidence.py first. Live: finish the Sinnerman chase once by killing Joshua and once with \"Screw this, I'm out\", and read sq023_joshua_killed after each."
       }
     },
     {
