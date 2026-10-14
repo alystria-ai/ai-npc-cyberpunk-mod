@@ -4,7 +4,8 @@ import {parentPort, workerData} from 'node:worker_threads';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {parseFaceModel, FaceModelStream} from './jali-face-model.mjs';
-import {parseFaceText} from './jali-face-text.mjs';
+import {parseFaceText, PHONES} from './jali-face-text.mjs';
+import {warmVisemes} from './face-visemes.mjs';
 
 const weights = readFileSync(workerData.weights);
 const model = parseFaceModel(JSON.parse(readFileSync(workerData.meta, 'utf8')), weights);
@@ -17,6 +18,9 @@ if (workerData.text) {
     else { faceText = parseFaceText(meta, readFileSync(workerData.text.weights), readFileSync(workerData.text.lexicon), model); textStatus = 'ready'; }
   } catch (error) { textStatus = `invalid: ${String(error?.message || error).slice(0, 120)}`; }
 }
+// Text-derived shapes (bridge/face-visemes.mjs) ride on the text path; CYBERPUNK_CONVAI_FACE_VISEMES=off leaves the model's rows as they are.
+const visemes = process.env.CYBERPUNK_CONVAI_FACE_VISEMES !== 'off';
+if (visemes && faceText) try { warmVisemes(PHONES, model.outputs); } catch { /* the first reply compiles it instead */ }
 const streams = new Map();
 const send = (message, transfer) => parentPort.postMessage(message, transfer);
 send({type: 'ready', lookahead: model.lookahead, outputs: model.outputs, controls: model.controls, upper: model.upper,
@@ -29,7 +33,7 @@ parentPort.on('message', message => {
       if (streams.has(id) || streams.size >= 8) throw Error('Facial model stream limit');
       let text;
       if (faceText && typeof message.text === 'string') {
-        try { text = faceText.session({mode: message.textMode === 'phrase' ? 'phrase' : 'stream', text: message.text, complete: message.textComplete !== false}); }
+        try { text = faceText.session({mode: message.textMode === 'phrase' ? 'phrase' : 'stream', text: message.text, complete: message.textComplete !== false, visemes}); }
         catch { text = undefined; }
       }
       streams.set(id, new FaceModelStream(model, message.sampleRate, {text}));
