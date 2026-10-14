@@ -30,7 +30,7 @@ export const LIMITS = Object.freeze({
   context: 20000,        // characters of live context; a longer one keeps its head and its tail (the format notes are at the end)
   world: 16000,          // layout v2: characters of the world block in the system message (head and tail kept)
   notes: 3000,           // layout v2: format notes in the system message
-  now: 700,              // layout v2: the right-now block
+  now: 900,              // layout v2: the right-now block (matches MAX_CHARS in turn-context.mjs, so the block is never clipped)
   volatile: 6000,        // layout v2: this turn's volatile notes in the last user message
   remembered: 1200,      // layout v2: retrieved memories for this turn (about 300 tokens)
   summary: 1400,         // what the character remembers of V from older talks

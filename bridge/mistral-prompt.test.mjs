@@ -226,3 +226,8 @@ test('a remark is cut to its word limit at a sentence end, with a small token bu
   assert.equal(capWords('No, no, no. Not again.', 8), 'No, no, no. Not again.', 'a short repeat is kept');
   assert.ok(remarkTokens(10) >= 40 &&remarkTokens(10) < LIMITS.maxTokens / 2 && remarkTokens(60) <= 160);
 });
+
+test('the right-now block is never clipped below the turn-context cap', async () => {
+  const {MAX_CHARS} = await import('./turn-context.mjs');
+  assert.ok(LIMITS.now >= MAX_CHARS, `LIMITS.now ${LIMITS.now} < turn-context MAX_CHARS ${MAX_CHARS}`);
+});
