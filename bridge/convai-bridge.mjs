@@ -2516,6 +2516,9 @@ async function pollSettings(checkShutdown = true) {
       // Conversation provider (docs/MISTRAL.md): the setting and the settings page's commands, then the switch itself.
       if (mistral.setPreference(settings.conversationProvider)) {
         if (mistral.preference === 'local') prepareLocal();
+        // Choosing another provider unloads the local model at once when it is not answering turns (it was loaded ahead by prepareLocal and
+        // never applied, or the player changed their mind); when it is answering, applyProviderChoice unloads it at the next idle boundary.
+        else if (mistral.localUnused) void localServer.stop().catch(() => {});
         await mistralControl.publishStatus().catch(() => {});
       }
       await mistralControl.poll().catch(() => {});

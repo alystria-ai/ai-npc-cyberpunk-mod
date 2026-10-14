@@ -69,10 +69,14 @@ test('no choice (the default) with the Mature pack and Mature content on prefers
   // The big one's profile is by size (standard headroom), the small one's lite.
   assert.equal(pick(withMature, {matureOn: true}).profile, 'standard');
   assert.equal(pick(withMature, {matureOn: true, freeMiB: needOf('mature:lite')}).profile, 'lite');
-  // None of the uncensored models fits: the ordinary ones are the fallback, never an uncensored one that does not fit.
+  // None of the uncensored models fits: the fallback stays in the Mature pack (never a censored model), the smallest one is
+  // loaded anyway with layers on the CPU.
   const tight = needOf('mature:lite') - 1;
   assert.ok(tight >= needOf('lite'), 'the lite model still fits (test premise)');
-  assert.equal(pick(withMature, {matureOn: true, freeMiB: tight}).model.id, 'lite');
+  const forced = pick(withMature, {matureOn: true, freeMiB: tight});
+  assert.deepEqual([forced.model.id, forced.offload, forced.fellBack], ['mature:lite', true, null]);
+  assert.equal(pick(withMature, {matureOn: true}).offload, false);
+  assert.equal(pick(withMature, {matureOn: true, freeMiB: needOf('mature:good') - 1}).offload, false, 'lite fits: no offload');
 });
 
 test('a pinned model is used whatever fits better, and whatever Mature content says', () => {
@@ -87,9 +91,11 @@ test('a pinned model is used whatever fits better, and whatever Mature content s
 test('a chosen model that is missing falls back to the default, and says why', () => {
   const missing = pick(stock, {pin: 'mature:good'});
   assert.equal(missing.model.id, 'standard'); assert.equal(missing.fellBack, 'missing'); assert.equal(missing.pinned, false);
-  // With Mature content on and the pack gone, the fallback is still never an uncensored model.
-  assert.equal(pick(stock, {pin: 'mature:good', matureOn: true}).model.id, 'standard');
-  assert.equal(pick(withMature, {pin: 'nonsense', matureOn: true}).fellBack, 'missing');
+  // With Mature content on and no Mature model installed at all, the notice stays (the "not installed" case) and the fallback is an ordinary model.
+  const noPack = pick(stock, {pin: 'mature:good', matureOn: true});
+  assert.deepEqual([noPack.model.id, noPack.fellBack], ['standard', 'missing']);
+  // The player's own model that is gone is announced; an id of a model that left a pack is not (see the migration test).
+  assert.equal(pick(withMature, {pin: 'custom:mine', matureOn: true}).fellBack, 'missing');
 });
 
 test('a chosen model that does not fit falls back to the default, and says why (the low-memory fallback)', () => {
@@ -105,7 +111,9 @@ test('a chosen model that does not fit falls back to the default, and says why (
 
 test('nothing fits, or nothing is installed', () => {
   assert.throws(() => pick(stock, {freeMiB: 1000}), error => error.reason === 'low-memory');
-  assert.throws(() => pick(withMature, {freeMiB: 1000, matureOn: true}), error => error.reason === 'low-memory');
+  // With Mature content on a Mature model is always loaded (offload), so nothing "does not fit"; with it off the ordinary rule throws.
+  assert.equal(pick(withMature, {freeMiB: 1000, matureOn: true}).model.id, 'mature:lite');
+  assert.throws(() => pick(withMature, {freeMiB: 1000, matureOn: false}), error => error.reason === 'low-memory');
   assert.throws(() => pick([], {}), error => error.reason === 'not-installed');
   assert.throws(() => pick(stock, {pin: 'standard', freeMiB: 1000}), error => error.reason === 'low-memory');
 });
@@ -138,6 +146,10 @@ test('stillSatisfies: a chosen model needs that model, no choice any model of th
   assert.equal(stillSatisfies({loadedId: 'mature:lite', models: withMature, pin: 'auto', matureOn: false}), false);
   assert.equal(stillSatisfies({loadedId: 'standard', models: stock, pin: 'auto', matureOn: true}), true, 'no uncensored model installed');
   assert.equal(stillSatisfies({loadedId: 'standard', models: stock, pin: 'gone', matureOn: false}), true, 'a missing pin is auto');
+  // A saved Mature model that left the pack stands for the Mature pack: either of its models satisfies it, an ordinary one does not.
+  assert.equal(stillSatisfies({loadedId: 'mature:lite', models: withMature, pin: 'mature:qwen3.5-9b-old', matureOn: false}), true);
+  assert.equal(stillSatisfies({loadedId: 'mature:good', models: withMature, pin: 'mature:qwen3.5-9b-old', matureOn: true}), true);
+  assert.equal(stillSatisfies({loadedId: 'standard', models: withMature, pin: 'mature:qwen3.5-9b-old', matureOn: true}), false);
   assert.equal(stillSatisfies({loadedId: null, models: stock}), false);
 });
 
@@ -173,23 +185,25 @@ test('the default model: the largest that fits the free memory, shown as selecte
   // A migrated legacy value becomes the concrete id the settings page saves; loading it is a plain choice, not a fallback.
   const migrated = pick(withMature, {pin: ids().default});
   assert.deepEqual([migrated.model.id, migrated.pinned, migrated.fellBack], ['standard', true, null]);
-  // Nothing fits: no default to show (and loading says low-memory).
-  assert.equal(ids({freeMiB: 1000}).default, null);
+  // Nothing ordinary fits: no default to show with Mature content off and none installed (and loading says low-memory); the Mature lite
+  // model stands in when one is installed (it loads with layers on the CPU).
+  assert.equal(defaultModelIds({models: stock, sizeOf, freeMiB: 1000}).default, null);
+  assert.equal(ids({freeMiB: 1000}).default, 'mature:lite');
 });
 
 test('turning Mature content on selects the largest uncensored model that fits, or nothing when none is installed', () => {
   const ids = options => defaultModelIds({models: withMature, sizeOf, freeMiB: 24000, ...options});
   assert.equal(ids().mature, 'mature:good');
   assert.equal(ids({freeMiB: needOf('mature:good') - 1}).mature, 'mature:lite');
-  assert.equal(ids({freeMiB: needOf('mature:lite') - 1}).mature, null, 'installed but none fits: nothing is selected');
+  assert.equal(ids({freeMiB: needOf('mature:lite') - 1}).mature, 'mature:lite', 'installed but none fits: the lite one, loaded with layers on the CPU');
   assert.equal(defaultModelIds({models: stock, sizeOf, freeMiB: 24000}).mature, null, 'no uncensored model installed');
   assert.equal(ids({matureOn: false}).mature, 'mature:good', 'the answer does not depend on the setting being on yet');
 });
 
 test('the fallback names the model it used: the largest that fits, an uncensored one first while Mature content is on', () => {
-  const missing = pick(withMature, {pin: 'gone', matureOn: false});
+  const missing = pick(withMature, {pin: 'custom:gone', matureOn: false});
   assert.deepEqual([missing.fellBack, missing.model.id, missing.model.name], ['missing', 'standard', 'Gemma-4-E4B']);
-  const matureMissing = pick(withMature, {pin: 'gone', matureOn: true});
+  const matureMissing = pick(withMature, {pin: 'custom:gone', matureOn: true});
   assert.deepEqual([matureMissing.fellBack, matureMissing.model.name], ['missing', 'Gemma-4-E4B-uncensored']);
   const tight = pick(withMature, {pin: 'standard', matureOn: true, freeMiB: needOf('standard') - 1});
   assert.deepEqual([tight.fellBack, tight.model.id], ['low-memory', 'mature:lite'], 'the largest uncensored model that fits');
@@ -204,8 +218,9 @@ test('Mature on: the default is mature:good when it fits, mature:lite when only 
   assert.equal(on(good).model.id, 'mature:good');
   assert.equal(on(good - 1).model.id, 'mature:lite');
   assert.equal(on(lite).model.id, 'mature:lite');
-  assert.equal(on(lite - 1).model.id, 'lite', 'no Mature model fits: the ordinary default');
-  assert.equal(on(lite - 1).fellBack, null);
+  // No Mature model fits: still a Mature model (the lite one, with layers on the CPU), never the ordinary default.
+  assert.deepEqual([on(lite - 1).model.id, on(lite - 1).offload, on(lite - 1).fellBack], ['mature:lite', true, null]);
+  assert.equal(on(1000).model.id, 'mature:lite');
   // Only one Mature model installed.
   const onlyLite = listLocalModels({pack, matureModels: matureModels.filter(model => model.tier === 'lite')});
   assert.equal(pick(onlyLite, {matureOn: true}).model.id, 'mature:lite');
@@ -233,4 +248,54 @@ test('headroom: mature:good needs its file plus the standard headroom, mature:li
   // A custom model is still by size.
   assert.equal(profileOf({tier: null, custom: true}, 3000), 'standard');
   assert.equal(profileOf({tier: null, custom: true}, 2999), 'lite');
+});
+
+test('a saved choice naming a model that left the packs maps silently: mature:* to mature:good if it fits, else mature:lite, others to the default rule', () => {
+  const stale = 'mature:qwen3.5-9b-uncensored-hauhaucs-aggressive-q4_k_m';
+  for (const matureOn of [false, true]) {
+    const roomy = pick(withMature, {pin: stale, matureOn});
+    assert.deepEqual([roomy.model.id, roomy.fellBack, roomy.pinned, roomy.offload], ['mature:good', null, true, false]);
+    const tight = pick(withMature, {pin: stale, matureOn, freeMiB: needOf('mature:good') - 1});
+    assert.deepEqual([tight.model.id, tight.fellBack, tight.offload], ['mature:lite', null, false], 'good does not fit, lite does');
+  }
+  // Neither fits: with Mature content on the lite one is loaded anyway (layers on the CPU), with no notice; off, the ordinary rule applies.
+  const nothing = pick(withMature, {pin: stale, matureOn: true, freeMiB: 1000});
+  assert.deepEqual([nothing.model.id, nothing.fellBack, nothing.offload], ['mature:lite', null, true]);
+  assert.throws(() => pick(withMature, {pin: stale, matureOn: false, freeMiB: 1000}), error => error.reason === 'low-memory');
+  // Only the lite model is installed.
+  const onlyLite = listLocalModels({pack, matureModels: matureModels.filter(model => model.tier === 'lite')});
+  const lone = pick(onlyLite, {pin: stale});
+  assert.deepEqual([lone.model.id, lone.fellBack], ['mature:lite', null]);
+  // A standard id of a removed model: the default rule, no notice (Mature content on prefers the Mature pack as usual).
+  const gone = pick(withMature, {pin: 'gemma-4-e2b-old'});
+  assert.deepEqual([gone.model.id, gone.fellBack], ['standard', null]);
+  const goneMature = pick(withMature, {pin: 'gemma-4-e2b-old', matureOn: true});
+  assert.deepEqual([goneMature.model.id, goneMature.fellBack], ['mature:good', null]);
+  // Not silent: a model the player added that is gone, and a Mature id when no Mature model is installed at all.
+  assert.equal(pick(withMature, {pin: 'custom:mine'}).fellBack, 'missing');
+  assert.equal(pick(stock, {pin: stale}).fellBack, 'missing');
+});
+
+test('Mature content on never falls back to a censored model: good, then lite (offloaded when it does not fit); off keeps the ordinary fallback', () => {
+  const good = needOf('mature:good');
+  // A pinned Mature model that does not fit gives way to the other Mature model, with the usual notice.
+  const down = pick(withMature, {pin: 'mature:good', matureOn: true, freeMiB: good - 1});
+  assert.deepEqual([down.model.id, down.fellBack, down.offload], ['mature:lite', 'low-memory', false]);
+  // The lite model pinned and too big for the free memory: loaded anyway, it is the choice (no notice), layers on the CPU.
+  const lite = pick(withMature, {pin: 'mature:lite', matureOn: true, freeMiB: 1000});
+  assert.deepEqual([lite.model.id, lite.fellBack, lite.offload], ['mature:lite', null, true]);
+  // The good model pinned and nothing fits: lite, offloaded, with the notice naming it.
+  const both = pick(withMature, {pin: 'mature:good', matureOn: true, freeMiB: 1000});
+  assert.deepEqual([both.model.id, both.fellBack, both.offload], ['mature:lite', 'low-memory', true]);
+  // An ordinary pin that does not fit moves to the Mature pack, never to the other ordinary model.
+  const ordinary = pick(withMature, {pin: 'standard', matureOn: true, freeMiB: 1000});
+  assert.deepEqual([ordinary.model.id, ordinary.offload], ['mature:lite', true]);
+  // Mature content off: the ordinary rule, no offload.
+  const off = pick(withMature, {pin: 'mature:good', matureOn: false, freeMiB: good - 1});
+  assert.deepEqual([off.model.id, off.fellBack, off.offload], ['standard', 'low-memory', false]);
+  // The settings page's default stays in step with what loads.
+  assert.equal(defaultModelIds({models: withMature, sizeOf, freeMiB: 1000, matureOn: true}).default, 'mature:lite');
+  // No Mature model installed at all: the ordinary models serve (the setting works with any model), no offload.
+  const none = pick(stock, {matureOn: true, freeMiB: needOf('standard') - 1});
+  assert.deepEqual([none.model.id, none.offload], ['lite', false]);
 });

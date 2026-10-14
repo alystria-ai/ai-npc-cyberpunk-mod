@@ -90,6 +90,12 @@ export class MistralProvider {
     return 'convai';
   }
   get pending() { return this.requested !== this.applied; }
+  /**
+   * Neither the setting nor the provider in use is the local AI, so its model server has no job: the bridge unloads it (its graphics memory and RAM
+   * go back to the game). False while the local AI answers turns, even when the player has just chosen another provider: the switch waits for an
+   * idle boundary (apply) and unloads then.
+   */
+  get localUnused() { return this.preference !== 'local' && this.applied !== 'local'; }
   /** A text provider (Mistral or the local AI) answers turns, not Convai. */
   get active() { return this.applied !== 'convai'; }
   /** Which text route answers: 'mistral', 'local' or (Convai) 'convai'. */

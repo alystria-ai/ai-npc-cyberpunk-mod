@@ -60,6 +60,19 @@ no "Auto" entry: the row always shows one concrete model as selected. Only one m
   model that fits (with Mature content on and an uncensored model available: the largest uncensored one that fits), with one notice
   that names the model used: "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so
   Gemma-4-E4B was used instead." It is not repeated at the next start.
+  **Mature content never falls back to a censored model** (when a Mature model is installed): the fallbacks stay in the Mature pack, good
+  first, then lite. When even the lite model does not fit the free graphics memory it is loaded anyway, with part of its layers on the CPU
+  (`offload`: the server is started without `-ngl` and with `-fit on`, so llama-server keeps as many layers on the card as fit; slower, but
+  uncensored; the log says so). Only with no Mature model installed at all do the ordinary models answer, as before (the setting works
+  with any model; a pinned Mature id with no Mature model installed gets the usual "missing" notice).
+- **A saved choice that names a model no longer in any pack** (a Mature model of an older pack such as `mature:qwen3.5-9b-...`, a removed
+  standard model) is mapped without any notice: `mature:*` to `mature:good` if it fits, else `mature:lite`; any other id to the default.
+  The bridge maps it when a model loads; the game also saves the mapped id (`manager.lua` `repairGoneLocalModel`, when the bridge's state
+  file is read again, at most every 1.5 s, and on any Apply). A model the player added by hand (`custom:`) that is gone keeps its notice.
+- **Leaving Local AI unloads the model.** When the conversation provider changes away from Local AI, the llama-server of the chat model is
+  stopped and its graphics memory and RAM are freed (at the next idle boundary when Local AI was answering, at once when the choice is
+  withdrawn before it was applied; `MistralProvider.localUnused`). Choosing Local AI again loads it. The small memory embedder and the voice
+  models are not touched.
 - Models you add yourself (see "Add your own model" below) are listed among the others, in size order, with "(custom)". They take part
   in the default choice and the fallback like any other model, by size and fit. A custom model that is too large for the graphics card
   stays in the row, marked "too large for this graphics card"; it is never chosen as the default or the fallback, and choosing it

@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -337,4 +338,35 @@ test('the Groq key is pasted, checked and saved like the Mistral key, and the st
   await instance.poll();
   assert.equal(provider.groq.key, null);
   assert.equal(published.at(-1).groq.result.state, 'cleared');
+});
+
+test('localUnused: the local model server has no job once neither the setting nor the provider in use is Local AI; it waits while Local AI still answers', async () => {
+  const provider = await pair({groq: null});
+  assert.equal(provider.localUnused, true, 'the default provider is Convai');
+  provider.setPreference('local');
+  assert.equal(provider.localUnused, false, 'chosen, and loaded ahead of the switch');
+  // The player changes their mind before the switch was applied: the model loaded ahead must go.
+  provider.setPreference('convai');
+  assert.equal(provider.localUnused, true);
+  provider.setPreference('local'); provider.apply();
+  assert.equal(provider.route, 'local');
+  provider.setPreference('mistral');
+  assert.equal(provider.localUnused, false, 'Local AI still answers until the switch is applied at an idle boundary');
+  provider.apply();
+  assert.equal(provider.route, 'mistral');
+  assert.equal(provider.localUnused, true, 'applied: unloaded (the bridge also stops the server in applyProviderChoice)');
+  provider.setPreference('groq'); provider.apply();
+  assert.equal(provider.localUnused, true);
+});
+
+test('the bridge unloads the local model server when the provider leaves Local AI: at the idle switch, and at once when the choice is withdrawn before it was applied', () => {
+  const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const applyAt = source.indexOf('async function applyProviderChoice()');
+  const apply = source.slice(applyAt, applyAt + 2200);
+  assert.match(apply, /if \(mistral\.applied === 'local'\) void localServer\.ensure\(\{background: true\}\)\.catch\(\(\) => \{\}\);\n\s*else void localServer\.stop\(\)\.catch\(\(\) => \{\}\);/);
+  const pollAt = source.indexOf('if (mistral.setPreference(settings.conversationProvider))');
+  const poll = source.slice(pollAt, pollAt + 900);
+  assert.match(poll, /if \(mistral\.preference === 'local'\) prepareLocal\(\);\n(\s*\/\/[^\n]*\n)+\s*else if \(mistral\.localUnused\) void localServer\.stop\(\)\.catch\(\(\) => \{\}\);/);
+  // The tiny memory embedder is a different process (localEmbedder): neither place stops it.
+  assert.ok(!/localEmbedder\.(close|stop)/.test(apply) && !/localEmbedder\.(close|stop)/.test(poll));
 });
