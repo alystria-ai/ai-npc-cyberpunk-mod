@@ -43,6 +43,7 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common  # noqa: E402
+import loudband  # noqa: E402
 
 ROOT = common.ROOT
 SEARCH_SEED = 1042
@@ -108,6 +109,18 @@ def mean(values):
     return sum(values) / len(values) if values else float("nan")
 
 
+_SIGNALS: dict = {}
+
+
+def clip_signal(path: str):
+    """The decoded 24 kHz mono clip as the reference builder reads it (small FIFO cache)."""
+    if path not in _SIGNALS:
+        if len(_SIGNALS) >= 96:
+            _SIGNALS.pop(next(iter(_SIGNALS)))
+        _SIGNALS[path] = common.load_audio_mono(path).numpy()
+    return _SIGNALS[path]
+
+
 def residual_sd(matrix) -> float:
     """Residual sd of a (clips x lines) score matrix after removing clip and line effects (paired-design noise)."""
     n, m = len(matrix), len(matrix[0]) if matrix else 0
@@ -121,8 +134,12 @@ def residual_sd(matrix) -> float:
 
 
 class Search:
-    def __init__(self, engine, renderer, scorer, voice, index, out_root: Path, sizes: dict, log=print, plan=None, constraint=None, compare_dir=None):
+    def __init__(self, engine, renderer, scorer, voice, index, out_root: Path, sizes: dict, log=print, plan=None, constraint=None, compare_dir=None, loud=False):
         self.engine, self.renderer, self.scorer, self.voice, self.sizes, self.log = engine, renderer, scorer, voice, sizes, log
+        self.loud = loud                  # loudness-aware selection: loudband.bonus is added to the ECAPA in every selection comparison
+        self.rejected: set = set()
+        self.lm: dict = {}                # clip id -> loudband measures (loud runs)
+        self._set_loud: dict = {}
         self.plan = plan                  # {"split", "screened"}: a precomputed split and prescreen (portable runs)
         self.constraint = CONSTRAINTS[constraint] if constraint else None
         self.compare_dir = compare_dir    # another run's folder: its picks are re-rendered in this final as baselines
@@ -239,6 +256,37 @@ class Search:
     def value(self, ids, lines, seeds=(SEARCH_SEED,), field="ec") -> float:
         return mean(self.cells(ids, lines, seeds, field))
 
+    # ---- loudness band (loud runs only; every method is a no-op otherwise) ----
+    def set_loudness(self, ids) -> dict:
+        """Measures of a set exactly as built (whole clips, 0.4 s gaps, 24 kHz mono, no gain): lufs, tp, plr, floor, gated, clipped."""
+        import numpy as np
+        ids = tuple(ids)
+        if ids not in self._set_loud:
+            missing = [self.clip(cid) for cid in ids if cid not in self.lm and not cid.startswith(("live:", "line:"))]
+            if missing:
+                self.lm.update(loudband.clip_measures(missing, common.WORK / "loudness" / f"{self.voice}.json"))
+            gap = np.zeros(round(common.GAP_SECONDS * common.REFERENCE_RATE), dtype=np.float32)
+            parts = []
+            for at, cid in enumerate(ids):
+                parts.append(clip_signal(self.clip(cid)["path"]))
+                if at < len(ids) - 1:
+                    parts.append(gap)
+            row = loudband.measure_signal(np.concatenate(parts))
+            row["clipped"] = any((self.lm.get(cid) or {}).get("clip") for cid in ids)
+            self._set_loud[ids] = row
+        return self._set_loud[ids]
+
+    def lb(self, ids) -> float:
+        """The loudness-band bonus of a set (0 when the run is not loudness-aware; a clipped set is sunk)."""
+        if not self.loud:
+            return 0.0
+        row = self.set_loudness(ids)
+        return -1.0 if row["clipped"] else loudband.bonus_of(row)
+
+    def sel(self, ids, lines, seeds=(SEARCH_SEED,)) -> float:
+        """The selection score: mean ECAPA plus the loudness bonus (identical to value() in a normal run)."""
+        return self.value(ids, lines, seeds) + self.lb(ids)
+
     # ---- stage 0: screen candidates for free ----
     def screen(self):
         sizes, split, pool = self.sizes, self.split, self.pool
@@ -263,18 +311,37 @@ class Search:
         if self.constraint:
             candidates = [c for c in candidates if constraint_ok(self.constraint, c, median)]
             self.log(f"  [{self.voice}] constraint ({self.constraint['label']}): {len(candidates)} of {len(split['candidates'])} candidates left")
-        near = [c for c in candidates if median is None or c.get("lv") is None or abs(c["lv"] - median) <= 3.5]
-        if len(near) < 60:
-            near = [c for c in candidates if median is None or c.get("lv") is None or abs(c["lv"] - median) <= 6.0]
-        if len(near) < 20:
-            near = candidates
-        near.sort(key=lambda c: (-(c.get("ty") if c.get("ty") is not None else 50), common.stable(c.id, "screen")))
+        if self.loud:
+            # Loudness-aware: clipped clips, silent clips and clips with a hum or constant noise floor are never candidates; the
+            # window around the voice's median level (which excluded the loud side by design) now drops only the quiet side and
+            # anything hotter than the band's hot limit; the ranking below is nudged by each clip's loudness bonus.
+            self.lm = loudband.clip_measures(candidates, common.WORK / "loudness" / f"{self.voice}.json")
+            before = len(candidates)
+            self.rejected = {c.id for c in candidates if loudband.reject_clip(self.lm[c.id]) is not None}
+            candidates = [c for c in candidates if c.id not in self.rejected]
+            self.log(f"  [{self.voice}] loudness: {before - len(candidates)} of {before} candidates rejected (clipping, silence or noise floor)")
+            levels = sorted(self.lm[c.id]["lufs"] for c in candidates) or [-23.0]
+            mid = levels[len(levels) // 2]
+            for width in (3.5, 6.0):
+                near = [c for c in candidates if mid - width <= self.lm[c.id]["lufs"] <= loudband.HOT_ABOVE]
+                if len(near) >= (60 if width == 3.5 else 20):
+                    break
+            else:
+                near = candidates
+            near.sort(key=lambda c: (-((c.get("ty") if c.get("ty") is not None else 50) + 600 * loudband.bonus_of(self.lm[c.id])), common.stable(c.id, "screen")))
+        else:
+            near = [c for c in candidates if median is None or c.get("lv") is None or abs(c["lv"] - median) <= 3.5]
+            if len(near) < 60:
+                near = [c for c in candidates if median is None or c.get("lv") is None or abs(c["lv"] - median) <= 6.0]
+            if len(near) < 20:
+                near = candidates
+            near.sort(key=lambda c: (-(c.get("ty") if c.get("ty") is not None else 50), common.stable(c.id, "screen")))
         embedded = near[:350] + self.rng.sample(near[350:], min(250, max(0, len(near) - 350)))
         for c in embedded:
             self.scorer.embed_cached(c["path"])
         self.scorer.save_embeddings(emb_file, {str(c["path"]) for c in pool.clips})
         centroid = self.targets["centroid"]
-        prior = {c.id: float(self.scorer._cache[str(c["path"])] @ centroid) for c in embedded}
+        prior = {c.id: float(self.scorer._cache[str(c["path"])] @ centroid) + (loudband.bonus_of(self.lm[c.id]) if self.loud else 0.0) for c in embedded}
         ranked = sorted(embedded, key=lambda c: -prior[c.id])
         chosen = ranked[:sizes["screen_top"]]
         rest = [c for c in ranked if c not in chosen]
@@ -286,7 +353,7 @@ class Search:
     def screen_from_other(self, other_dir: Path):
         """Pocket: reuse another engine's singles ranking (its racers plus wildcards plus its picks)."""
         result = json.loads((other_dir / self.voice / "result.json").read_text(encoding="utf-8"))
-        allowed = set(self.split["candidates"])
+        allowed = set(self.split["candidates"]) - getattr(self, "rejected", set())
         ranking = [row["id"] for row in result["singles"] if row["id"] in allowed]
         sizes = self.sizes
         keep = ranking[:sizes["screen_top"]]
@@ -320,10 +387,11 @@ class Search:
             racers = list(self.screened)
         else:
             self.evaluate([(c,) for c in self.screened], dev[:1], stage="1 singles")
-            first = sorted(self.screened, key=lambda c: -self.value((c,), dev[:1]))
+            first = sorted(self.screened, key=lambda c: -self.sel((c,), dev[:1]))
             racers = first[:max(min(len(first), 12), math.ceil(len(first) * 0.55))]
             self.evaluate([(c,) for c in racers], dev[1:], stage="1 singles")
-        s1 = {c: self.value((c,), dev) for c in racers}
+        raw1 = {c: self.value((c,), dev) for c in racers}
+        s1 = {c: raw1[c] + self.lb((c,)) for c in racers}      # likeness plus the loudness bonus (the same as raw1 in a normal run)
         noise = residual_sd([self.per_line((c,), dev) for c in racers])
         se_diff = noise * math.sqrt(2 / len(dev))
         order = sorted(racers, key=lambda c: -s1[c])
@@ -352,7 +420,7 @@ class Search:
         result.update({"voice": self.voice, "engine": self.engine, "tag": self.renderer.tag, "split": self.split, "split_key": self.split_key, "screen": screen_info,
                        "noise": {"single_sd": round(noise, 4), "se_diff_two_lines": round(se_diff, 4)},
                        "pool_for_growth": pool_q,
-                       "singles": [{"id": c, "ec": round(s1[c], 4), "seconds": self.dur(c)} for c in order],
+                       "singles": [{"id": c, "ec": round(raw1[c], 4), "sel": round(s1[c], 4), "seconds": self.dur(c)} for c in order],
                        "budget": {"renders": self.stats["renders"], "failed": self.stats["failed"],
                                   "render_seconds": round(self.stats["render_ms"] / 1000, 1), "wall_seconds": round(time.time() - self.started, 1),
                                   "stages": self.stats["stage"]}})
@@ -385,7 +453,7 @@ class Search:
         starts = [c for c in sorted(pool_q, key=lambda c: -s1[c]) if self.seconds((c,)) <= cap][:sizes["beam"]]
         self.evaluate([(c,) for c in starts], dev, stage=stage)
         states = [(c,) for c in starts]
-        history = [[(s, self.value(s, dev)) for s in states]]
+        history = [[(s, self.sel(s, dev)) for s in states]]
         step = 1
         while states:
             children: dict = {}
@@ -399,15 +467,15 @@ class Search:
                 options = list(dict.fromkeys(by_score + by_rate))
                 trials = [(*state, c) for c in options if frozenset((*state, c)) not in seen]
                 self.evaluate(trials, dev[:1], stage=stage)
-                base = self.value(state, dev[:1])
-                gain = {t: (self.value(t, dev[:1]) - base) / (self.dur(t[-1]) + common.GAP_SECONDS) for t in trials}
-                top = sorted(trials, key=lambda t: -self.value(t, dev[:1]))[:sizes["second"]]
+                base = self.sel(state, dev[:1])
+                gain = {t: (self.sel(t, dev[:1]) - base) / (self.dur(t[-1]) + common.GAP_SECONDS) for t in trials}
+                top = sorted(trials, key=lambda t: -self.sel(t, dev[:1]))[:sizes["second"]]
                 top += [t for t in sorted(trials, key=lambda t: -gain[t])[:2] if t not in top]
                 self.evaluate(top, dev[1:], stage=stage)
                 for t in top:
                     if frozenset(t) not in seen:
                         seen.add(frozenset(t))
-                        children[t] = self.value(t, dev)
+                        children[t] = self.sel(t, dev)
             if not children:
                 break
             step += 1
@@ -457,7 +525,7 @@ class Search:
         budgets = [10.0, 18.0] if self.engine == "omni" else [POCKET_BRIDGE_LIMIT]
         extra = []
         for cap in budgets:
-            tops = sorted(allowed(cap), key=lambda s: -self.value(s, final, seeds))[:2]
+            tops = sorted(allowed(cap), key=lambda s: -self.sel(s, final, seeds))[:2]
             for s in tops:
                 if len(s) < 2:
                     continue
@@ -471,6 +539,8 @@ class Search:
         extra = [s for s in dict.fromkeys(extra) if s not in finalists]
         self.evaluate(extra, final, seeds, keep=keep_wavs, stage="4 final")
         candidates = finalists + extra
+        if self.loud:                                    # the earlier (likeness-only) picks compete too: the loudness-aware choice may keep one
+            candidates += [s for s in compare.values() if s not in candidates]
 
         def choose(cap):
             # A reference has at least two whole clips (user rule), except for a voice with no feasible multi-clip set.
@@ -479,11 +549,11 @@ class Search:
             pool = multi if self.constraint else (multi or pool)      # a hand-constrained run never falls back to one clip
             if not pool:
                 return None
-            top = max(pool, key=lambda s: self.value(s, final, seeds))
+            top = max(pool, key=lambda s: self.sel(s, final, seeds))
             cells_top = self.cells(top, final, seeds)
             within = [s for s in pool if s == top or (self.seconds(s) < self.seconds(top) and
-                      self.value(top, final, seeds) - self.value(s, final, seeds) <= self.paired_se(cells_top, self.cells(s, final, seeds)))]
-            return min(within, key=lambda s: (self.seconds(s), -self.value(s, final, seeds)))
+                      self.sel(top, final, seeds) - self.sel(s, final, seeds) <= self.paired_se(cells_top, self.cells(s, final, seeds)))]
+            return min(within, key=lambda s: (self.seconds(s), -self.sel(s, final, seeds)))
 
         picks = {}
         if self.engine == "omni":
@@ -491,11 +561,11 @@ class Search:
             short, long_ = picks["short"], picks["long"]
             self.infeasible = [name for name, cap in (("short", 10.0), ("long", 18.0)) if picks[name] is None]
             picks["best"] = long_ if (short is None or (long_ and self.seconds(long_) > self.seconds(short) and
-                                                         self.value(long_, final, seeds) - self.value(short, final, seeds) >
+                                                         self.sel(long_, final, seeds) - self.sel(short, final, seeds) >
                                                          self.paired_se(self.cells(long_, final, seeds), self.cells(short, final, seeds)))) else short
         else:
             picks["best"] = choose(POCKET_BRIDGE_LIMIT)
-            beyond = max(candidates, key=lambda s: self.value(s, final, seeds))
+            beyond = max(candidates, key=lambda s: self.sel(s, final, seeds))
             picks["unconstrained"] = beyond if self.seconds(beyond) > POCKET_BRIDGE_LIMIT else None
         longest = max(histories)
         curve = [self.describe(s, final, seeds, with_pls=False) for s in paths[longest]]
@@ -506,7 +576,7 @@ class Search:
                   "curve": curve,
                   "paths": {f"{cap:g}": [self.describe(s, final, seeds, with_pls=False) for s in path] for cap, path in paths.items()},
                   "candidates": [self.describe(s, final, seeds, with_pls=False)
-                                 for s in sorted(candidates, key=lambda s: -self.value(s, final, seeds))[:40]],
+                                 for s in sorted(candidates, key=lambda s: -self.sel(s, final, seeds))[:40]],
                   "final_lines": len(final), "final_seeds": list(seeds)}
         if self.engine == "omni":
             for row in result["picks"].values():
@@ -524,6 +594,8 @@ class Search:
         row = {"ids": list(ids), "seconds": self.seconds(ids), "ecapa": round(mean(per_line), 4),
                "ecapa_se": round(statistics.stdev(per_line) / math.sqrt(len(per_line)), 4) if len(per_line) > 1 else None,
                "ecapa_tgt": round(self.value(ids, final, seeds, "et"), 4), "per_line": [round(v, 4) for v in per_line]}
+        if self.loud:
+            row["loud"] = {**self.set_loudness(ids), "bonus": round(self.lb(ids), 4), "sel": round(self.sel(ids, final, seeds), 4)}
         if with_pls and getattr(self, "rechoose", False):
             old = getattr(self, "old_result", None) or {}
             for earlier in list((old.get("picks") or {}).values()) + [old.get("today")] + list(old.get("candidates", [])):
@@ -643,13 +715,19 @@ def main(argv=None) -> int:
     parser.add_argument("--omni-direct", action="store_true", help="call the omnivoice package directly (portable GPU runs) instead of the VoiceStudio backend")
     parser.add_argument("--constraint", choices=sorted(CONSTRAINTS), help="hand-set candidate constraints (see CONSTRAINTS)")
     parser.add_argument("--compare-with", type=Path, help="another run's <tag> folder; its picks are re-rendered in this run's final as baselines")
+    parser.add_argument("--loud", action="store_true", help="loudness-aware selection (scripts/clip-search/loudband.py): a band bonus on top of the ECAPA likeness")
+    parser.add_argument("--seed-scores", help="tag of an earlier run whose score caches (same split key) are copied into this run's folders first, so already-rendered sets cost nothing")
     parser.add_argument("--wait-gpu", action="store_true")
     parser.add_argument("--scorer-device", default="cuda")
     args = parser.parse_args(argv)
 
     index = common.load_index(args.index)
     shown = json.loads((ROOT / "scripts/reference-picker/shown-voices.json").read_text(encoding="utf-8"))
-    voices = args.voices.split(",") if args.voices else shown
+    if args.voices == "remaining43":                   # the 43 searched voices that are not among the 29 report characters
+        from loud_survey import voices43
+        voices = voices43()
+    else:
+        voices = args.voices.split(",") if args.voices else shown
     from score import Scorer
     if args.rechoose:                                  # cached scores only; a renderer starts lazily if a score is missing
         class _Cached:
@@ -680,6 +758,8 @@ def main(argv=None) -> int:
     else:
         from render import PocketRenderer
         renderer = PocketRenderer(args.export, args.workers, args.threads, tag=args.tag)
+    if args.tag and args.engine == "omni":
+        renderer.tag = args.tag
     scorer = Scorer(args.scorer_device)
     out_root = args.out
     if args.make_plans:
@@ -710,7 +790,12 @@ def main(argv=None) -> int:
             if args.plan_dir and (args.plan_dir / f"{voice}.json").is_file():
                 plan = json.loads((args.plan_dir / f"{voice}.json").read_text(encoding="utf-8"))
             search = Search(args.engine, renderer, scorer, voice, index, out_root, SIZES[args.engine], plan=plan,
-                            constraint=args.constraint, compare_dir=args.compare_with)
+                            constraint=args.constraint, compare_dir=args.compare_with, loud=args.loud)
+            if args.seed_scores and not search.store_file.is_file():
+                source = out_root / args.seed_scores / voice / search.store_file.name
+                if source.is_file():
+                    shutil.copy2(source, search.store_file)
+                    search.store = json.loads(search.store_file.read_text(encoding="utf-8"))
             try:
                 if args.rechoose:
                     search.old_result = json.loads(result_file.read_text(encoding="utf-8"))
