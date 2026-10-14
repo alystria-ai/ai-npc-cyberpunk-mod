@@ -87,10 +87,16 @@ words (`microphone-heard.json` from `mic.heard()`) all run through unchanged cod
   and the game's "No speech was heard" notice. The recogniser has its own energy gate (150 ms above -52 dBFS and 9 dB over the
   recording's noise floor), so silence is never sent to the model and cannot be hallucinated into words.
 - A pause before the first word: Moonshine returns no text at all for most speech that follows a second or more of quiet (29 of 36 test
-  clips at 1.5 s of leading quiet), and a player presses the key, thinks, then speaks. The worker therefore cuts the quiet before the first
-  word (keeping 240 ms) before every decode, and an empty full decode falls back to the newest live words of the same recording instead
-  of ending the turn with "No speech was heard" (found 2026-10-14 from a 66-character live decode followed by an empty final).
-  `bridge/local-stt-worker.test.mjs` runs `local-stt-worker.check.py` against a stand-in model that has this quirk.
+  clips at 1.5 s of leading quiet), and a player presses the key (a click in the microphone), thinks, then speaks. Cutting only the quiet
+  before the first sound was not enough (live record 2026-10-15: a click, 8 s of quiet and the words in a 12 s recording: the live decode
+  of the newest 8 s read the words, the decode of the whole recording came back empty, and the fallback below could not apply because the
+  click sat in the part the live decode had left out; 6 of 12 test clips were empty in that pattern). The worker therefore splits a
+  recording into pieces of sound (`speech_groups`: runs of 3 frames above the gate, sounds under 720 ms apart together, 240 ms of quiet
+  kept around each piece) and decodes each piece on its own, live decodes and finals alike, so no decode ever sees a long quiet. If the
+  full decode is still empty after speech, the newest live words of the same recording stand instead of "No speech was heard" (even
+  when the live decode left an early part out: words are better than a failed turn; the worker logs it). A final then costs one decode
+  (about 0.2-0.4 s) when the live decode did not cover the whole recording, as before. `bridge/local-stt-worker.test.mjs` runs
+  `local-stt-worker.check.py` against a stand-in model that has these quirks.
 - Not installed (Python, worker, model or sherpa-onnx missing): `availability()` says which; `beginVoice` rejects before the microphone
   opens with `error.code === 'local-stt-unavailable'` and `error.reason`.
 - Spam, cancel, supersede: a new `start` cancels the open recording; late audio for an old id is dropped; cancel releases the device
