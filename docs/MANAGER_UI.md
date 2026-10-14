@@ -581,7 +581,7 @@ most). Not avoidable from a provider: MCM draws the whole screen again on every 
 
 ### Mature content stages its companions as pending changes
 
-The Local AI provider, the Local AI model and Mature content sit in one group on Settings > Development (provider, Mature content, model, in that
+The Local AI provider, the Local AI model and Mature content sit in one group on Settings > Conversation provider (provider, Mature content, model, in that
 order). Turning **Mature content on** also stages, as pending changes before Apply (`api.setDraft`, from `M.update` after a `drafts.changed`
 event, never in a hook): the provider = Local AI (only when the Local AI pack is present; without it nothing else is touched and the notice and the
 help say Local AI is needed), the model = the largest uncensored model that fits (only when one is installed; otherwise the model is left alone), and, when the companion voice is a cloud voice (Voxtral, Inworld or Convai), Pocket TTS (a voice that is
@@ -615,3 +615,19 @@ uses 20) and restores the original size for text that is not ours. The descripti
 `bridge/description-fit.test.mjs` estimates the height (32 letters a line, at most 26 lines at size 22) for every description, English and the 15
 translations, including the longest composites (Mature content and Local AI model with every optional paragraph present). It estimates; the
 live check is to open each page and look for cut-off text.
+
+### Settings sections after the 2026-10-14 restructure
+
+Order on the Settings tab: Interface, Conversations, **Conversation provider**, Companion behavior, Voices, Subtitles, Automatic reactions,
+add-on sections, Development, Help.
+
+- **Conversation provider** (new): the provider, Conversations use, Mature content, Local AI model, Local AI status, the four Convai key rows
+  (always listed, not only in Developer mode), the three Mistral key rows, Edit characters. Everything that decides who answers is here.
+- **Voices**: Voice playback, Companion voices, **Voice status** (moved up to sit right under Companion voices), the three Inworld key rows
+  (the Inworld key is a voice setting), Lip sync delay, Natural speech, Expressive emotions, Follow-up questions, V's voice, OmniVoice pack.
+- **Development** keeps only Developer mode.
+- **Prepared voices** have no switch, no disk row, no Clear action and no page: they are always kept, and a saved `keepPreparedVoices = false`
+  is read as on and written back as on. `bridge/prepared-voices.mjs` stays only for `scripts/Clear-PreparedVoices.mjs`.
+- **Groq** is no longer a provider. A saved `groq` is read as `convai` (the default), in the bridge and in the Lua settings alike; `player-groq-key.txt` is never read.
+- **Add-ons** can hide **Most remarks per fight** with `remarkCap = false` in `handle:settings` (Delamain does; the default guard of 30 stays).
+- **Body gestures** is shown without "(experimental)".

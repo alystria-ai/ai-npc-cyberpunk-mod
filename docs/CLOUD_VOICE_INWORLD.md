@@ -44,9 +44,9 @@ Read from the Terms of Service (2025-06-11), the Acceptable Use Policy, the Serv
 
 Settings > Voices > Companion voices has eight entries: Pocket · Performance, four OmniVoice tiers, Voxtral · Mistral cloud,
 **Inworld · Cloud voice**, Convai · Cloud voice. Without a key the entry reads "Inworld · needs key" and Apply
-refuses it ("Requires an Inworld key (add it in Settings > Development)").
+refuses it ("Requires an Inworld key (add it in Settings > Voices)").
 
-The key is entered like the Mistral key: in Settings > Development, **Paste Inworld key** reads the clipboard once, checks
+The key is entered like the Mistral key: in Settings > Voices, **Paste Inworld key** reads the clipboard once, checks
 it with Inworld (a free request, the voice list) and saves it in the bridge's state folder as `player-inworld-key.txt`; the same
 file can be written by hand. **Remove my Inworld key** deletes it. The page shows only whether a key is saved and its last four
 characters (`runtime/mistral-state.json`, `inworld.saved` and `inworld.tail`). The key never goes to a log, a status file or a
@@ -207,7 +207,7 @@ in `E:\CyberpunkConvai-offload\work\inworld-2026-10-13\`).
 ## Live checks in game (user)
 
 Install the committed `mod/` files and the bridge from this branch (never `mod/diagnostics.lua`), restart the bridge, reload CET.
-1. Settings > Development > Paste Inworld key (key copied from Inworld's portal first): the row reads "Added (ends in ....)".
+1. Settings > Voices > Paste Inworld key (key copied from Inworld's portal first): the row reads "Added (ends in ....)".
 2. Settings > Voices > Companion voices: choose "Inworld · Cloud voice", Apply.
 3. Talk to a companion: the voice is hers, the lips and subtitles follow it. The first reply of a character not seen before may be
    written only while the voice is made; later replies are Inworld's.

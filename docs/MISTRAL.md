@@ -8,7 +8,7 @@ text is the same code. Local speech-to-text for the voice key is documented in `
 ## What the player does
 
 1. Get a free key from Mistral (the free plan, "Experiment", needs phone verification at signup).
-2. Settings > Development > **Paste Mistral key** (copies it from the clipboard, checks it with Mistral, saves it on this computer).
+2. Settings > Conversation provider > **Paste Mistral key** (copies it from the clipboard, checks it with Mistral, saves it on this computer).
    Or save the key by hand in `player-mistral-key.txt` in the conversation service's state folder (`api-key=<key>` or just the key).
    The page shows only the last four characters.
 3. **Conversation provider** > Mistral (free plan), then Apply. The switch waits until no conversation is running, so a conversation

@@ -24,8 +24,8 @@ Code: `bridge/voxtral-voice.mjs` (the adapter), `bridge/mistral-rate.mjs` (the s
 
 Settings > Voices > Companion voices has seven entries: Pocket · Performance, four OmniVoice tiers, **Voxtral · Mistral cloud**, Convai · Cloud voice. Without a Mistral key the entry reads "Voxtral · needs Mistral key" (short on purpose: a select value
 that is wider than about 32 average letters runs over the arrows, see docs/MANAGER_UI.md, "Select labels") and
-Apply refuses it ("Requires a Mistral key (add it in Settings > Development)"), the same way the OmniVoice entries behave without
-the pack. The key is the one used for the Mistral text option (`player-mistral-key.txt`, pasted in Settings > Development); the
+Apply refuses it ("Requires a Mistral key (add it in Settings > Conversation provider)"), the same way the OmniVoice entries behave without
+the pack. The key is the one used for the Mistral text option (`player-mistral-key.txt`, pasted in Settings > Conversation provider); the
 bridge publishes only whether one is saved (`runtime/mistral-state.json`, `saved`).
 
 It speaks English only here (it uses Pocket's English route): with Multilingual conversations on, choosing it is refused

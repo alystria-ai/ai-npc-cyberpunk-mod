@@ -21,7 +21,7 @@ test('every status the phone shows for a provider failure is translated by the p
   const chat = read('../mod/phone-chat.lua');
   const table = chat.slice(chat.indexOf('local MISTRAL_STATUS = {'), chat.indexOf('local function copy'));
   const statuses = [...table.matchAll(/\] = '([^']+)',/g)].map(match => match[1]);
-  assert.ok(statuses.length >= 8, String(statuses.length));
+  assert.ok(statuses.length >= 5, String(statuses.length));
   const style = read('../mod/phone-chat-style.lua');
   const sources = style.slice(style.indexOf('local statusSources = {'), style.indexOf('local feedbackSources'));
   for (const status of statuses) assert.ok(sources.includes(`['${status}'] = true`), `not translated: ${status}`);
@@ -30,7 +30,7 @@ test('every status the phone shows for a provider failure is translated by the p
 test('the Conversation provider options are translated (the catalogue has them in every language)', () => {
   const mcm = read('../mod/mcm.lua');
   const row = mcm.slice(mcm.indexOf("{'Convai free tier', 'Mistral (free plan)'"));
-  assert.match(row.slice(0, 200), /'Local \(needs Local AI pack\)'\}, \{description = true\}\)/);
+  assert.match(row.slice(0, 200), /'Local \(needs Local AI pack\)'\}, \{elements = true, description = true\}\)/);
   assert.ok(!/groq/i.test(row.slice(0, 200)), 'Groq was removed as a provider');
 });
 

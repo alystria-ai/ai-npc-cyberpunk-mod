@@ -596,6 +596,8 @@ handle:settings({title = 'Skippy', description = 'The talking smart pistol.', it
 
 - The section appears on the main settings page after Reactions, with the built-in **Time between remarks** and **Most remarks per
   fight** settings first.
+- `remarkCap = false` (next to `title` and `description`) hides **Most remarks per fight** for an add-on whose remarks are not fight
+  remarks (Delamain's cab talk). The saved value is then unused and the default guard of 30 stays in force.
 - `id` uses letters, digits and `_`. `remarkGap`, `remarkCap`, `remarkGapChosen`, `remarkRate`, `replaceGameLines` and `markLines` are
   reserved for the built-in settings (the last two: **Replace the game's own lines**, only with a rule, and **Mark our lines in the
   subtitles**, for every add-on with a speaker). At most 24 items; `kind` is `bool` or

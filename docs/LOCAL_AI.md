@@ -8,7 +8,7 @@ The design and the measurements behind it are in `docs/LOCAL_OPTION_DESIGN.md` a
 
 ### What it is
 
-Choose **Local** as the Conversation provider (Settings > Development) and the characters answer with an AI model that runs on your
+Choose **Local** as the Conversation provider (Settings > Conversation provider) and the characters answer with an AI model that runs on your
 computer. Replies are spoken by the local voices (Pocket or OmniVoice) and the characters keep a memory of your talks, stored on your
 computer. Convai free tier gives better quality responses; Local is for playing without an account or without the internet.
 
@@ -19,7 +19,7 @@ The models are optional downloads, like the OmniVoice pack. There are two, and y
 | **Local AI standard** | Gemma 4 E4B | about 5.3 GB | Named characters and companions: it stays closest to what the character knows and invents the least |
 | **Local AI lite** | Qwen3.5-2B | about 1.5 GB | Smaller graphics cards, or a game that already uses most of the video memory. Plainer replies; fine for ordinary NPCs |
 
-Extract each download into your Cyberpunk 2077 folder (the same way as the OmniVoice pack), then pick **Local** in Settings > Development.
+Extract each download into your Cyberpunk 2077 folder (the same way as the OmniVoice pack), then pick **Local** in Settings > Conversation provider.
 The Local AI row there shows one of: Ready, Warming up, Not installed, Not enough graphics memory, Unavailable.
 
 The first start after installing takes about a minute while the graphics card prepares the model (the row says "Warming up"). After
@@ -40,7 +40,7 @@ If the pack is missing or the model cannot start, the same fallback applies. Cho
 
 ### Choosing the model
 
-Settings > Development has a **Local AI model** row, right under Mature content. It lists every installed chat model by its name,
+Settings > Conversation provider has a **Local AI model** row, right under Mature content. It lists every installed chat model by its name,
 **sorted by file size, from the smallest to the largest** (models of the same size by name); the sizes are in the help text. There is
 no "Auto" entry: the row always shows one concrete model as selected. Only one model is ever loaded.
 
@@ -129,7 +129,7 @@ You can list up to 16 models. A wrong entry is skipped and the rest still work. 
 game runs (the settings page shows the new list the next time it refreshes), and a model you pick loads the next time Local AI starts
 or at the next idle moment.
 
-**3. Choose it.** In Settings > Development, open **Local AI model** and pick "My Model (custom)", then **Apply**.
+**3. Choose it.** In Settings > Conversation provider, open **Local AI model** and pick "My Model (custom)", then **Apply**.
 
 **What the mod checks.** When it looks at your manifest it checks, without loading anything:
 
@@ -250,7 +250,7 @@ replaced by an environment variable, and the model is only ever configuration:
 | `CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL` | The embedding model file |
 | `CYBERPUNK_CONVAI_LOCAL_CACHE_RAM` | `--cache-ram` in MiB (default from free system memory: 4096 at 12 GB free, 2048 at 8 GB, else 1024) |
 
-Then set `conversationProvider` to `local` in Settings > Development (or in `settings.json`) and Apply. Nothing is copied into the
+Then set `conversationProvider` to `local` in Settings > Conversation provider (or in `settings.json`) and Apply. Nothing is copied into the
 repository.
 
 ### The pack
@@ -505,7 +505,7 @@ with Mature content on the default choice and the fallback prefer the largest on
 
 #### The setting
 
-Settings > Development, right under Conversation provider: "Mature content" (key `matureContent`, off by default, an ordinary Apply setting; the
+Settings > Conversation provider, right under the provider row: "Mature content" (key `matureContent`, off by default, an ordinary Apply setting; the
 bridge reads it from `runtime/settings.json` when the file changes, never per turn, and drops prepared replies when it flips). It exists
 only for this provider: the layer is built in `bridge/mature-content.mjs`, and `MATURE_PROVIDERS` is `{local: true, mistral: false,
 convai: false}`. The host asks for the layer per route (`TextProviderHost#matureLevel`), so a local turn that falls back to

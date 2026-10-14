@@ -2335,8 +2335,8 @@
         "phone.native"
       ],
       "references": [
-        "mod/phone-chat-style.lua:181",
-        "mod/phone-chat-style.lua:242",
+        "mod/phone-chat-style.lua:178",
+        "mod/phone-chat-style.lua:239",
         "r6/scripts/CyberpunkConvai/PhoneChat.reds:440",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:302"
       ]
@@ -2346,7 +2346,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "mod/phone-chat-style.lua:65",
+        "mod/phone-chat-style.lua:62",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:317"
       ]
     },
@@ -2363,7 +2363,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "mod/phone-chat-style.lua:66",
+        "mod/phone-chat-style.lua:63",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:317"
       ]
     },
@@ -2528,7 +2528,7 @@
         "phone.native"
       ],
       "references": [
-        "mod/phone-chat-style.lua:225",
+        "mod/phone-chat-style.lua:222",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:270"
       ]
     },
@@ -3480,7 +3480,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "mod/phone-chat-style.lua:64",
+        "mod/phone-chat-style.lua:61",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:316"
       ]
     },
@@ -4006,7 +4006,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "mod/phone-chat-style.lua:63",
+        "mod/phone-chat-style.lua:60",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:316"
       ]
     },
@@ -5373,7 +5373,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:317"
+        "mod/phone-chat-style.lua:314"
       ]
     },
     "Press your Group voice chat shortcut to finish recording.": {
@@ -5897,7 +5897,7 @@
       ],
       "references": [
         "mod/mcm.lua:1785",
-        "mod/phone-chat-style.lua:143"
+        "mod/phone-chat-style.lua:140"
       ]
     },
     "Selected character": {
@@ -7813,7 +7813,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:316"
+        "mod/phone-chat-style.lua:313"
       ]
     },
     "YOUR PARTY": {
