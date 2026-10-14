@@ -4925,7 +4925,7 @@ test('The own Convai key rows: off by default, no free-key promotion, two comman
     assert(not use.description:find('daily', 1, true) and not use.description:find('recommended', 1, true) and not use.description:find('Mistral', 1, true))
     assert(use.description:find('paste it below', 1, true) and use.description:find('choose Apply', 1, true))
     assert(not row('own-key:paste').description:find('convai.com', 1, true))
-    assert(row('own-key-status').value == 'Not added' and row('own-key-using').value == 'The shared plan')
+    assert(row('own-key-status').value == 'Not added' and row('own-key-using').value == 'Convai free tier')
     assert(row('own-key:remove').disabled == true, 'there is nothing to remove yet')
     assert(row('own-key:paste').disabled ~= true)
     local first = invoke('own-key:paste')
@@ -4987,16 +4987,16 @@ test('Development says when the player key runs without memory or cannot hold th
     state({saved = true, tail = 'wxyz', active = 'player', memory = 'off'}, 'again')
     assert(row('own-key-using').value ~= 'Your key: plan limit reached' and row('own-key-using').value ~= 'Shared plan: limit used up')
     state({saved = false, active = 'shared', memory = 'on'}, 'shared')
-    assert(row('own-key-using').value == 'The shared plan' and manager.ownKey().memoryOff == false)
+    assert(row('own-key-using').value == 'Convai free tier' and manager.ownKey().memoryOff == false)
     -- The shared plan's daily allowance, published by the bridge only while the shared key is in use.
     state({saved = false, active = 'shared', daily = {limit = 100, left = 63, blocked = false}}, 'daily')
-    assert(row('own-key-using').value == 'The shared plan: 63 of 100 left today')
+    assert(row('own-key-using').value == 'Convai free tier: 63 of 100 left today')
     state({saved = false, active = 'shared', daily = {limit = 100, left = 0, blocked = true}}, 'blocked')
     assert(row('own-key-using').value == 'Shared plan: daily limit reached')
     state({saved = true, tail = 'wxyz', active = 'player', daily = {limit = 100, left = 0, blocked = true}}, 'own')
     assert(row('own-key-using').value == 'Your own key', 'an own key is never shown as limited')
     state({saved = false, active = 'shared', daily = {limit = 'x', left = -4}}, 'garbled')
-    assert(row('own-key-using').value == 'The shared plan' and manager.ownKey().daily == nil, 'a damaged status is ignored')
+    assert(row('own-key-using').value == 'Convai free tier' and manager.ownKey().daily == nil, 'a damaged status is ignored')
   `);
 });
 
@@ -5046,7 +5046,7 @@ test('The Conversation provider section offers the provider, Mistral and Convai 
     assert(localRow and localRow.label == 'Local AI' and localRow.value == 'Not installed', 'the Local AI row is always there')
     assert(localRow.description:find('Runs conversations on this computer with the optional Local AI pack. It needs free graphics memory while it works.', 1, true) and localRow.description:find('Choose Local in Conversation provider, then Apply.', 1, true))
     assert(row('mistral-key:paste').disabled ~= true and row('mistral-key:paste').description:find('player-mistral-key.txt', 1, true))
-    assert(row('own-key-using').value == 'The shared plan', 'the Convai plan line is unchanged while Convai is chosen')
+    assert(row('own-key-using').value == 'Convai free tier', 'the Convai plan line is unchanged while Convai is chosen')
     -- The rows sit in their own section: the provider first, then who answers and the Local AI rows, the Convai key rows, the Mistral key rows.
     assert(row('useOwnConvaiKey') and not row('groq-key-status') and not row('groq-key:paste'), 'the Convai key rows are always listed, Groq is gone')
     assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok); loaded = registered.loadMod('manager')

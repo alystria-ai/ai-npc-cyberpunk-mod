@@ -1395,8 +1395,8 @@ local function ownKeyRows(snapshot)
     elseif own.active == 'player' and own.memoryOff then using = ui.t('Your own key, without memory')
     elseif own.active == 'player' then using = ui.t('Your own key')
     elseif own.daily and own.daily.blocked then using = ui.t('Shared plan: daily limit reached')
-    elseif own.daily then using = ui.t('The shared plan: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit})
-    else using = ui.t('The shared plan') end
+    elseif own.daily then using = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit})
+    else using = ui.t('Convai free tier') end
     -- Mistral: the key status, and which provider answers right now. A player's own Convai key or a Mistral key is
     -- never counted against the shared daily limit (bridge/shared-key-guard.mjs).
     local mistral = snapshot.mistral or {}
@@ -1447,7 +1447,7 @@ local function ownKeyRows(snapshot)
             'Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.',
             function() return manager.pasteOwnKey() end),
         action('own-key:remove', 'Remove my Convai API key', 'Remove',
-            'Deletes the saved key. Conversations go back to the shared plan.',
+            'Deletes the saved key. Conversations go back to Convai free tier.',
             function() return manager.removeOwnKey() end, own.saved),
     }
     -- Mature content is part of the main mod (off by default). It applies to the Local AI provider only; the help says so while another

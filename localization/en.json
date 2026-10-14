@@ -44,7 +44,7 @@
     ]
   },
   "counts": {
-    "strings": 797,
+    "strings": 795,
     "dynamicTemplates": 58,
     "contexts": 35
   },
@@ -192,6 +192,7 @@
     "Convai did not accept that key.": "Convai did not accept that key.",
     "Convai did not accept your API key. Check it in Settings > Conversation provider.": "Convai did not accept your API key. Check it in Settings > Conversation provider.",
     "Convai free tier": "Convai free tier",
+    "Convai free tier: {left} of {limit} left today": "Convai free tier: {left} of {limit} left today",
     "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.": "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.",
     "Convai voice": "Convai voice",
     "Convai voices · Local model unloaded": "Convai voices · Local model unloaded",
@@ -244,7 +245,6 @@
     "Delete this memory?": "Delete this memory?",
     "Deleted.": "Deleted.",
     "Deletes the saved key. Conversations go back to Convai free tier.": "Deletes the saved key. Conversations go back to Convai free tier.",
-    "Deletes the saved key. Conversations go back to the shared plan.": "Deletes the saved key. Conversations go back to the shared plan.",
     "Deletes the saved key. The Inworld cloud voice stops until you add a key again.": "Deletes the saved key. The Inworld cloud voice stops until you add a key again.",
     "Destination reached. Step out when ready.": "Destination reached. Step out when ready.",
     "Developer mode": "Developer mode",
@@ -658,8 +658,6 @@
     "The selected companion is unavailable.": "The selected companion is unavailable.",
     "The service launcher writes launcher.log at {path}": "The service launcher writes launcher.log at {path}",
     "The settings could not be saved. Your changes are still pending.": "The settings could not be saved. Your changes are still pending.",
-    "The shared plan": "The shared plan",
-    "The shared plan: {left} of {limit} left today": "The shared plan: {left} of {limit} left today",
     "The speaking style is too long. Keep it under {max} characters.": "The speaking style is too long. Keep it under {max} characters.",
     "The trip exceeded its time limit.": "The trip exceeded its time limit.",
     "The trip stopped for combat.": "The trip stopped for combat.",
@@ -1064,7 +1062,6 @@
       "Copy your key from Inworld first. It is read from the clipboard once, checked with Inworld and saved on this computer.\n\nYou can also save it in player-inworld-key.txt in the conversation service folder. It is used only for the Inworld voice.",
       "Create",
       "Deletes the saved key. Conversations go back to Convai free tier.",
-      "Deletes the saved key. Conversations go back to the shared plan.",
       "Deletes the saved key. The Inworld cloud voice stops until you add a key again.",
       "Edit a character’s bio, speaking style, speaking rules and memories in your browser.\n\nWorks with Mistral and Local, not Convai. Changes apply from the next reply.",
       "Edit characters",
@@ -1528,6 +1525,8 @@
       "Connecting microphone - wait for Listening",
       "Convai did not accept that key.",
       "Convai did not accept your API key. Check it in Settings > Conversation provider.",
+      "Convai free tier",
+      "Convai free tier: {left} of {limit} left today",
       "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.",
       "Convai voice",
       "Convai · Cloud voice",
@@ -1734,8 +1733,6 @@
       "The redscript compiler writes redscript_rCURRENT.log at {path}",
       "The report could not be created. Check that the mod folder can be written to, then try again.",
       "The service launcher writes launcher.log at {path}",
-      "The shared plan",
-      "The shared plan: {left} of {limit} left today",
       "The speaking style is too long. Keep it under {max} characters.",
       "The trip will be stopped when you return to gameplay.",
       "The voice model did not load. Check the voice in Settings or choose another one, then invite again.",
@@ -2372,7 +2369,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:330"
+        "mod/holocall.lua:540"
       ]
     },
     "Calls are not available right now.": {
@@ -2380,8 +2377,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:331",
-        "mod/holocall.lua:344"
+        "mod/holocall.lua:541",
+        "mod/holocall.lua:554"
       ]
     },
     "Cancel": {
@@ -3083,10 +3080,20 @@
     },
     "Convai free tier": {
       "contexts": [
-        "mcm.options"
+        "mcm.options",
+        "ui.localized"
       ],
       "references": [
+        "mod/mcm.lua:1399",
         "mod/mcm.lua:1523"
+      ]
+    },
+    "Convai free tier: {left} of {limit} left today": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:1398"
       ]
     },
     "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.": {
@@ -3250,7 +3257,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:326",
+        "mod/holocall.lua:536",
         "mod/phone-chat-style.lua:43",
         "mod/phone-chat.lua:507"
       ]
@@ -3521,15 +3528,8 @@
         "mcm.action"
       ],
       "references": [
+        "mod/mcm.lua:1450",
         "mod/mcm.lua:1539"
-      ]
-    },
-    "Deletes the saved key. Conversations go back to the shared plan.": {
-      "contexts": [
-        "mcm.action"
-      ],
-      "references": [
-        "mod/mcm.lua:1450"
       ]
     },
     "Deletes the saved key. The Inworld cloud voice stops until you add a key again.": {
@@ -3973,7 +3973,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:280"
+        "mod/holocall.lua:490"
       ]
     },
     "Holocall with {name} ended.": {
@@ -3981,7 +3981,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:281"
+        "mod/holocall.lua:491"
       ]
     },
     "Holocall with {name}. Tap the phone button to hang up.": {
@@ -3990,7 +3990,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/holocall.lua:370"
+        "mod/holocall.lua:583"
       ]
     },
     "How they sound: pace, attitude, favourite habits of speech.": {
@@ -4264,8 +4264,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/holocall.lua:362",
-        "mod/holocall.lua:401"
+        "mod/holocall.lua:575",
+        "mod/holocall.lua:614"
       ]
     },
     "Load a save before inviting a companion.": {
@@ -4840,7 +4840,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3051"
+        "mod/init.lua:3052"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -6995,22 +6995,6 @@
         "mod/manager.lua:1775"
       ]
     },
-    "The shared plan": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/mcm.lua:1399"
-      ]
-    },
-    "The shared plan: {left} of {limit} left today": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/mcm.lua:1398"
-      ]
-    },
     "The speaking style is too long. Keep it under {max} characters.": {
       "contexts": [
         "ui.localized"
@@ -7072,9 +7056,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:321",
-        "mod/holocall.lua:323",
-        "mod/holocall.lua:343"
+        "mod/holocall.lua:531",
+        "mod/holocall.lua:533",
+        "mod/holocall.lua:553"
       ]
     },
     "This contact has no companion mapping yet.": {
@@ -7830,8 +7814,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:331",
-        "mod/holocall.lua:342"
+        "mod/holocall.lua:541",
+        "mod/holocall.lua:552"
       ]
     },
     "You are driving. The companion trip was cancelled.": {
