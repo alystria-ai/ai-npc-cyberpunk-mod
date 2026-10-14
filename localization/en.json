@@ -1427,8 +1427,7 @@
     "phone.localized": [
       "CHAT",
       "Chat",
-      "TALK TO {character}",
-      "Type your message to the character."
+      "TALK TO {character}"
     ],
     "phone.native": [
       "CHAT",
@@ -3458,7 +3457,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2602"
+        "mod/init.lua:2607"
       ]
     },
     "Cyberpunk Convai: companion manager": {
@@ -3466,7 +3465,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2600"
+        "mod/init.lua:2605"
       ]
     },
     "Cyberpunk Convai: group text chat": {
@@ -3474,7 +3473,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2597"
+        "mod/init.lua:2602"
       ]
     },
     "Cyberpunk Convai: group voice chat": {
@@ -3482,7 +3481,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2599"
+        "mod/init.lua:2604"
       ]
     },
     "Cyberpunk Convai: talk by text": {
@@ -3490,7 +3489,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2596"
+        "mod/init.lua:2601"
       ]
     },
     "Cyberpunk Convai: talk by voice": {
@@ -3498,7 +3497,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2598"
+        "mod/init.lua:2603"
       ]
     },
     "DETAILS  {page} / {pages}": {
@@ -4893,7 +4892,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3123"
+        "mod/init.lua:3128"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -7228,13 +7227,10 @@
     },
     "Type your message to the character.": {
       "contexts": [
-        "phone.localized",
         "world.conversation"
       ],
       "references": [
-        "mod/composer-input.lua:120",
-        "mod/composer-input.lua:183",
-        "mod/composer-input.lua:212",
+        "mod/composer-input.lua:190",
         "mod/composer-input.lua:39",
         "r6/scripts/CyberpunkConvai/Composer.reds:121"
       ]
