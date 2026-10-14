@@ -1,6 +1,7 @@
 -- A transaction inside companion-vehicles' movement/seat owner. There is no
 -- update registration here and no independent NPC controller.
 local M={}
+local catalog=dofile('companion-vehicle-catalog.lua')
 local RELEASE_TIMEOUT,BOARD_TIMEOUT,START_TIMEOUT=12,25,5
 local STOP_TIMEOUT,PARTY_TIMEOUT,TRIP_TIMEOUT,STALL_TIMEOUT=15,75,1800,35
 local PLAYER_WAIT_TIMEOUT,PLAYER_WAIT_DISTANCE=300,40
@@ -66,6 +67,8 @@ local function approaching(phase)
     return phase=='releasing' or phase=='boarding-driver' or phase=='waiting-for-driver-seat'
 end
 local function offer(s,player,entry)
+    -- A passenger-only companion (Alt Cunningham, a digital ghost) is never offered the wheel; no native read is needed to know.
+    if not catalog.drives(entry) then return {available=false,code='does-not-drive',reason='This companion does not drive.'} end
     local sample,err=safe(s.chauffeurApi.sample,player,entry,nil,s.api)
     if not sample then return {available=false,code='world-unavailable',reason='Vehicle information is not ready.',error=err} end
     local value=publicOffer(sample)

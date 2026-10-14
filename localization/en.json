@@ -1980,7 +1980,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:209"
+        "mod/companion-chauffeur.lua:212"
       ]
     },
     "A previous memory request could not be read. The memory service must reconcile it before another clear.": {
@@ -2013,7 +2013,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:206"
+        "mod/companion-chauffeur.lua:209"
       ]
     },
     "A short rule": {
@@ -2095,7 +2095,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:85"
+        "mod/companion-chauffeur.lua:88"
       ]
     },
     "An example line is too long. Keep each one under {max} characters.": {
@@ -2111,8 +2111,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:193",
-        "mod/companion-chauffeur.lua:287"
+        "mod/companion-chauffeur.lua:196",
+        "mod/companion-chauffeur.lua:290"
       ]
     },
     "Another AutoDrive journey has control.": {
@@ -2658,8 +2658,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1001",
-        "mod/companions.lua:1007"
+        "mod/companions.lua:1008",
+        "mod/companions.lua:1014"
       ]
     },
     "Choose a short or a long voice reference.": {
@@ -2957,7 +2957,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:462"
+        "mod/companion-chauffeur.lua:465"
       ]
     },
     "Companion preparation failed.": {
@@ -2974,7 +2974,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/companions.lua:384",
+        "mod/companions.lua:386",
         "mod/manager-party.lua:389"
       ]
     },
@@ -3571,7 +3571,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:388"
+        "mod/companion-chauffeur.lua:391"
       ]
     },
     "Developer mode": {
@@ -3791,8 +3791,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:599",
-        "mod/companion-vehicles.lua:727"
+        "mod/companion-vehicles.lua:608",
+        "mod/companion-vehicles.lua:736"
       ]
     },
     "Find the log files and create a report to send to the developer if something goes wrong.": {
@@ -3808,7 +3808,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:84"
+        "mod/companion-chauffeur.lua:87"
       ]
     },
     "Follow-up questions": {
@@ -4719,7 +4719,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:87"
+        "mod/companion-chauffeur.lua:90"
       ]
     },
     "Move onto open, walkable ground to invite a companion here.": {
@@ -5871,7 +5871,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:103"
+        "mod/companion-chauffeur.lua:106"
       ]
     },
     "Select {name} for memory controls. This does not invite them or change their conversation settings.": {
@@ -6069,7 +6069,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:90"
+        "mod/companion-chauffeur.lua:93"
       ]
     },
     "Stand near your owned car.": {
@@ -6077,7 +6077,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:102"
+        "mod/companion-chauffeur.lua:105"
       ]
     },
     "Starting": {
@@ -6109,8 +6109,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1006",
-        "mod/companions.lua:998"
+        "mod/companions.lua:1005",
+        "mod/companions.lua:1013"
       ]
     },
     "Step out before starting a new companion trip.": {
@@ -6118,7 +6118,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:76"
+        "mod/companion-chauffeur.lua:79"
       ]
     },
     "Step out of the driver seat before asking your companion to drive.": {
@@ -6126,7 +6126,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:74"
+        "mod/companion-chauffeur.lua:77"
       ]
     },
     "Step out of the driver seat so your companion can get in.": {
@@ -6134,7 +6134,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:329"
+        "mod/companion-chauffeur.lua:332"
       ]
     },
     "Stop requested": {
@@ -6326,7 +6326,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1009"
+        "mod/companions.lua:1016"
       ]
     },
     "That confirmation is no longer active.": {
@@ -6489,7 +6489,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:455"
+        "mod/companion-chauffeur.lua:458"
       ]
     },
     "The borrowed car is unavailable.": {
@@ -6501,7 +6501,7 @@
         "mod/companion-chauffeur-native.lua:706",
         "mod/companion-chauffeur-native.lua:719",
         "mod/companion-chauffeur-native.lua:729",
-        "mod/companion-chauffeur.lua:205"
+        "mod/companion-chauffeur.lua:208"
       ]
     },
     "The car has stopped. Step out so your companion can leave the driver seat.": {
@@ -6517,7 +6517,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:324"
+        "mod/companion-chauffeur.lua:327"
       ]
     },
     "The character count changed. Review Forget all memories again.": {
@@ -6585,7 +6585,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:202"
+        "mod/companion-chauffeur.lua:205"
       ]
     },
     "The companion could not finish entering the driver seat.": {
@@ -6593,7 +6593,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:314"
+        "mod/companion-chauffeur.lua:317"
       ]
     },
     "The companion left the driver seat.": {
@@ -6601,7 +6601,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:300"
+        "mod/companion-chauffeur.lua:303"
       ]
     },
     "The companion, car, seat or selected destination changed. Ask again.": {
@@ -6609,7 +6609,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:128"
+        "mod/companion-chauffeur.lua:131"
       ]
     },
     "The conversation connection did not open. Check your connection, then invite again.": {
@@ -6716,7 +6716,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:104"
+        "mod/companion-chauffeur.lua:107"
       ]
     },
     "The driver seat was not released, so the trip was cancelled.": {
@@ -6724,7 +6724,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:320"
+        "mod/companion-chauffeur.lua:323"
       ]
     },
     "The driving request could not be cancelled.": {
@@ -6884,7 +6884,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:346"
+        "mod/companion-chauffeur.lua:349"
       ]
     },
     "The party list could not be read. Close and reopen the manager.": {
@@ -6943,7 +6943,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:411"
+        "mod/companion-chauffeur.lua:414"
       ]
     },
     "The selected companion is leaving.": {
@@ -6951,8 +6951,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:240",
-        "mod/companion-vehicles.lua:719"
+        "mod/companion-chauffeur.lua:243",
+        "mod/companion-vehicles.lua:728"
       ]
     },
     "The selected companion is unavailable.": {
@@ -6960,7 +6960,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:709"
+        "mod/companion-vehicles.lua:718"
       ]
     },
     "The service launcher writes launcher.log at {path}": {
@@ -6993,7 +6993,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:412"
+        "mod/companion-chauffeur.lua:415"
       ]
     },
     "The trip stopped for combat.": {
@@ -7001,7 +7001,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:204"
+        "mod/companion-chauffeur.lua:207"
       ]
     },
     "The trip will be stopped when you return to gameplay.": {
@@ -7091,7 +7091,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:81"
+        "mod/companion-chauffeur.lua:84"
       ]
     },
     "This manager action is unavailable. Reopen the manager and try again.": {
@@ -7173,7 +7173,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:149"
+        "mod/companion-chauffeur.lua:152"
       ]
     },
     "Turn chat off": {
@@ -7379,7 +7379,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:218"
+        "mod/companion-chauffeur.lua:221"
       ]
     },
     "V left the passenger seat.": {
@@ -7387,7 +7387,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:219"
+        "mod/companion-chauffeur.lua:222"
       ]
     },
     "V or a scene has taken vehicle control.": {
@@ -7411,7 +7411,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:243"
+        "mod/companion-chauffeur.lua:246"
       ]
     },
     "Vehicle information is not ready.": {
@@ -7419,7 +7419,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:70"
+        "mod/companion-chauffeur.lua:73"
       ]
     },
     "Voice playback": {
@@ -7486,8 +7486,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:78",
-        "mod/companion-chauffeur.lua:79"
+        "mod/companion-chauffeur.lua:81",
+        "mod/companion-chauffeur.lua:82"
       ]
     },
     "Wait for your car to stop.": {
@@ -7495,7 +7495,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:101"
+        "mod/companion-chauffeur.lua:104"
       ]
     },
     "Wait for your previous reply before sending another message.": {
@@ -7512,7 +7512,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:93"
+        "mod/companion-chauffeur.lua:96"
       ]
     },
     "Waiting for current vehicle information.": {
@@ -7520,7 +7520,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:248"
+        "mod/companion-chauffeur.lua:251"
       ]
     },
     "Waiting for party to board": {
@@ -7536,8 +7536,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:431",
-        "mod/companion-chauffeur.lua:441"
+        "mod/companion-chauffeur.lua:434",
+        "mod/companion-chauffeur.lua:444"
       ]
     },
     "Waiting for the conversation service.": {
@@ -7585,7 +7585,7 @@
         "party.vehicle-transition-feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:261"
+        "mod/companion-vehicles.lua:270"
       ]
     },
     "Waiting for the native vehicle mount to release.": {
@@ -7601,8 +7601,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:330",
-        "mod/companion-vehicles.lua:380"
+        "mod/companion-chauffeur.lua:333",
+        "mod/companion-vehicles.lua:389"
       ]
     },
     "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.": {
@@ -7630,7 +7630,7 @@
         "party.vehicle-transition-feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:267"
+        "mod/companion-vehicles.lua:276"
       ]
     },
     "Waiting for you to board": {
@@ -7662,7 +7662,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:341"
+        "mod/companion-chauffeur.lua:344"
       ]
     },
     "Waiting for your previous message to finish.": {
@@ -7679,7 +7679,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:310"
+        "mod/companion-chauffeur.lua:313"
       ]
     },
     "Warming up": {
@@ -7802,7 +7802,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:284"
+        "mod/companion-chauffeur.lua:287"
       ]
     },
     "You did not board the car, so the trip was cancelled.": {
@@ -7810,7 +7810,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:339"
+        "mod/companion-chauffeur.lua:342"
       ]
     },
     "You have changes that are not saved. Leave without saving?": {
@@ -7834,7 +7834,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:304"
+        "mod/companion-chauffeur.lua:307"
       ]
     },
     "You: {text}": {
@@ -7947,7 +7947,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:106"
+        "mod/companion-chauffeur.lua:109"
       ]
     },
     "Your changes work with Mistral and Local. They do not apply to Convai.": {
@@ -7979,7 +7979,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:83"
+        "mod/companion-chauffeur.lua:86"
       ]
     },
     "Your companions, character models and conversation settings.": {

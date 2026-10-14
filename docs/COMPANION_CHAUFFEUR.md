@@ -12,6 +12,10 @@ changing the garage selection does not switch or cancel the borrowed car.
 
 The companion takes the driver seat and waits for V to enter a passenger seat through normal gameplay. The remaining companions fill free seats and use the existing overflow-car controller. The mod never mounts, ejects or switches seats for V, changes garage ownership, or deletes the borrowed lead car.
 
+A passenger-only companion (Alt Cunningham, a digital ghost; `passengerOnly` in `mod/companion-vehicle-catalog.lua`) is
+never offered the wheel: the offer is `available=false`, code `does-not-drive`, before any native read, under any chat
+profile (the model decides). See `docs/COMPANION_VEHICLES_DESIGN.md`.
+
 Routine preparing, boarding, driving and exit popups are shown only with
 **Settings → Development → Developer mode** On. The setting defaults Off.
 Current party always retains the trip status; actionable errors remain visible.
