@@ -192,6 +192,8 @@
     "Convai did not accept that key.": "Convai did not accept that key.",
     "Convai did not accept your API key. Check it in Settings > Conversation provider.": "Convai did not accept your API key. Check it in Settings > Conversation provider.",
     "Convai free tier": "Convai free tier",
+    "Convai free tier: daily limit reached": "Convai free tier: daily limit reached",
+    "Convai free tier: limit used up": "Convai free tier: limit used up",
     "Convai free tier: {left} of {limit} left today": "Convai free tier: {left} of {limit} left today",
     "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.": "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.",
     "Convai voice": "Convai voice",
@@ -533,8 +535,6 @@
     "Settings are active, but could not be saved for next time.": "Settings are active, but could not be saved for next time.",
     "Settings saved.": "Settings saved.",
     "Shared across your saves": "Shared across your saves",
-    "Shared plan: daily limit reached": "Shared plan: daily limit reached",
-    "Shared plan: limit used up": "Shared plan: limit used up",
     "Short facts you write yourself, such as a name or a promise. The character knows them in every talk.": "Short facts you write yourself, such as a name or a promise. The character knows them in every talk.",
     "Short report saved because the conversation service could not build the full report: {path}": "Short report saved because the conversation service could not build the full report: {path}",
     "Short report saved because the conversation service did not answer: {path}": "Short report saved because the conversation service did not answer: {path}",
@@ -1526,6 +1526,8 @@
       "Convai did not accept that key.",
       "Convai did not accept your API key. Check it in Settings > Conversation provider.",
       "Convai free tier",
+      "Convai free tier: daily limit reached",
+      "Convai free tier: limit used up",
       "Convai free tier: {left} of {limit} left today",
       "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.",
       "Convai voice",
@@ -1671,8 +1673,6 @@
       "Search by character name using Search settings. {query}\nThe character can be outside your current party.",
       "Search characters",
       "Select {name} for memory controls. This does not invite them or change their conversation settings.",
-      "Shared plan: daily limit reached",
-      "Shared plan: limit used up",
       "Short facts you write yourself, such as a name or a promise. The character knows them in every talk.",
       "Short report saved because the conversation service could not build the full report: {path}",
       "Short report saved because the conversation service did not answer: {path}",
@@ -3086,6 +3086,22 @@
       "references": [
         "mod/mcm.lua:1399",
         "mod/mcm.lua:1523"
+      ]
+    },
+    "Convai free tier: daily limit reached": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:1397"
+      ]
+    },
+    "Convai free tier: limit used up": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:1392"
       ]
     },
     "Convai free tier: {left} of {limit} left today": {
@@ -5947,22 +5963,6 @@
       ],
       "references": [
         "mod/mcm.lua:1334"
-      ]
-    },
-    "Shared plan: daily limit reached": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/mcm.lua:1397"
-      ]
-    },
-    "Shared plan: limit used up": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/mcm.lua:1392"
       ]
     },
     "Short facts you write yourself, such as a name or a promise. The character knows them in every talk.": {

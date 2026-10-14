@@ -1389,12 +1389,12 @@ local function ownKeyRows(snapshot)
     else status = ui.t('Not added') end
     local using
     if own.limit == 'used-up' and own.limitOwn then using = ui.t('Your key: plan limit reached')
-    elseif own.limit == 'used-up' then using = ui.t('Shared plan: limit used up')
+    elseif own.limit == 'used-up' then using = ui.t('Convai free tier: limit used up')
     elseif own.limit == 'rejected' then using = ui.t('Your key: not accepted')
     elseif own.limit == 'memory-needed' then using = ui.t('Your key: no room for memory')
     elseif own.active == 'player' and own.memoryOff then using = ui.t('Your own key, without memory')
     elseif own.active == 'player' then using = ui.t('Your own key')
-    elseif own.daily and own.daily.blocked then using = ui.t('Shared plan: daily limit reached')
+    elseif own.daily and own.daily.blocked then using = ui.t('Convai free tier: daily limit reached')
     elseif own.daily then using = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit})
     else using = ui.t('Convai free tier') end
     -- Mistral: the key status, and which provider answers right now. A player's own Convai key or a Mistral key is
