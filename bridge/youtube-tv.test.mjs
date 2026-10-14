@@ -12,9 +12,7 @@ import {parseVideoInput, parseClock, formatClock, parseChapters, chapterAt, desc
 import {YouTubeTv} from './youtube-tv-host.mjs';
 import {tvPage, PAGE_STRINGS} from './youtube-tv-page.mjs';
 
-const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/
-/g, '
-');
+const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const ID = 'M7lc1UVf-VE';
 
 test('video links and ids', () => {
