@@ -96,9 +96,12 @@ def main():
     p.add_argument('--var', type=float, default=0.0, help='per-sequence, per-control std matching (anti regression-to-mean)')
     p.add_argument('--peak', type=float, default=0.0, help='MSE frame weight 1 + peak * target (targets in scale units)')
     p.add_argument('--under', type=float, default=0.0, help='extra weight on under-prediction (asymmetric MSE)')
+    p.add_argument('--shut', type=float, default=0.0, help='extra penalty on jaw opening where the authored jaw is shut')
     p.add_argument('--ema', type=float, default=0.0, help='export an exponential moving average of the weights (e.g. 0.999)')
     p.add_argument('--seed', type=int, default=1)
     p.add_argument('--init', type=Path, help='warm start from a stage-2 .pt (same shape)')
+    p.add_argument('--soup', type=Path, help='interpolate the --init weights toward this stage-2 .pt (use with --epochs 0)')
+    p.add_argument('--soup-alpha', type=float, default=.5, help='weight of --soup in the interpolation')
     args = p.parse_args()
     torch.manual_seed(args.seed)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -116,6 +119,9 @@ def main():
     net = Stage2(ck1['channels'], ck1['n_phones'], args.channels, dil, len(lm.OUTPUTS)).to(device)
     if args.init:
         net.load_state_dict(torch.load(args.init, map_location=device, weights_only=False)['state'])
+    if args.soup:
+        other = torch.load(args.soup, map_location=device, weights_only=False)['state']
+        net.load_state_dict({k: (1 - args.soup_alpha) * v + args.soup_alpha * other[k] for k, v in net.state_dict().items()})
     ema = None
     if args.ema:
         import copy
@@ -131,7 +137,7 @@ def main():
     weight = torch.tensor(weight / weight.mean(), dtype=torch.float32, device=device)
     steps = max(1, int(hours * 3600 / (4 * args.batch)))
     opt = torch.optim.AdamW(net.parameters(), lr=args.lr, weight_decay=1e-4)
-    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=steps * args.epochs, pct_start=.1)
+    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=max(1, steps * args.epochs), pct_start=.1)
     data = lt.Stream(args.pack, keys, [], 0, 400, r1 + r2 - 1, ck1['lookahead'], args.batch, args.seed, None, delay, args.jitter)
     it = iter(torch.utils.data.DataLoader(data, batch_size=None, num_workers=args.workers, persistent_workers=True, prefetch_factor=4))
     began = time.time()
@@ -151,6 +157,10 @@ def main():
             err = (sq * weight).mean()
             dv = (pred[:, 1:] - pred[:, :-1]) - (yt[:, 1:] - yt[:, :-1])
             loss = err + (dv.square() * 16 * weight).mean()
+            if args.shut:
+                # the authored mouth is shut (jaw < .02): penalise any jaw opening there (over-opening on lifted heads)
+                shut = (yt[..., 0] < .02 / scale_t[0]).float()
+                loss = loss + args.shut * ((pred[..., 0] - yt[..., 0]).clamp(min=0).square() * 4 * shut).mean() * weight[0]
             if args.var:
                 # per sequence and control: match the temporal spread of the authored curve (FDD-style)
                 sd_p = pred.clamp(min=0).std(1)
