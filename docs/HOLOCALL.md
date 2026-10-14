@@ -42,11 +42,31 @@ and story characters are not touched.
   `ui_phone_incoming_call_positive`). **This audio window with name and portrait is fully
   script-drivable.**
 - **A live holo picture is a world render, not a widget feature.** In vanilla calls the picture comes
-  from `base\cinematics\cameras\holocall_camera.ent`, a `RenderToTextureCamera` component that renders
-  into `holocall_camera_render_texture.dtex`, which the call widget shows. The caller is a real actor
-  posed in front of that camera somewhere in the world. The mod can copy this, but there is no
-  script-only "show this NPC in the window" call. So the live picture is **experimental** and off by
-  default.
+  from `base\cinematics\cameras\holocall_camera.ent`, whose `RenderToTextureCamera` component
+  (`gameuiHolocallCameraComponent`, fov 35, off until something toggles it) renders into
+  `holocall_camera_render_texture.dtex`; the call window's holocall image
+  (`HudPhoneAvatarController.m_HolocallRenderTexture`, shown by `StartHolocall`) displays that texture
+  through `holocall_camera_texture_atlas.inkatlas`. Script never binds the picture: it is whatever the
+  camera films. `StartHolocall(avatar, name)` only switches the window to holocall mode.
+- **How the game stages the caller (checked 2026-10-14 in the extracted quest files under
+  `research/cyberpunk/cache/game/raw/`).** Every video holocall character has a setup
+  `base\quest\holocalls\<name>\<name>_holocall.questphase` (69 in the base game, 20 more in
+  `ep1\quest\holocalls\`). Each runs `<name>_holocall.scene` at the studio marker `#<name>_sm_holocall`,
+  armed by quest facts `holo_<name>_calls_v_start/end` (the character calls V) and `holo_v_calls_<name>_start/end`
+  (V calls them; set by the story quests at scripted moments, e.g. `q105`). The scene holds the studio prefab
+  `#holocalls_studio` (out of bounds in the NE, lit by its own lights), switches a per-character lighting
+  variant, activates the character's `#<name>_holo` community entry (the character's normal record and
+  appearance), mounts a holocall workspot and switches the camera on. The camera rig there: 0.675 m in front
+  of the actor, lens 1.65 m above the feet, 20.4 degrees round from their facing, level. The phone's own
+  `CallSelectedContact` asks for `questPhoneCallMode.Video`; whether a call becomes a video or a voice call
+  (`StartAudiocall`, with the portrait when `showAvatar`) is decided by the scene, so characters without a
+  setup only ever get voice calls. (Third-party write-up with in-game measurements that matches this:
+  github.com/blackpotoftea/cyberpunk_docs, `holo_studio/`.)
+- **Why the mod cannot reuse it.** All of that is quest state: the facts, the scene, the community
+  activation and the global `holo_setup_active` lock that every vanilla holocall respects (a leaked one
+  blocks every holocall in the save). Script cannot run a scene or a quest node either. So the mod copies
+  the mechanism instead: its own copy of the character, the game's own camera and framing, the game's own
+  window.
 - **Subtitles have a call type.** `scnDialogLineType.Holocall` (= 2). In the dump, `IsMainDialogLine`
   treats it as a main dialogue line whenever the speaker is set, with no distance check. A remote
   speaker therefore gets a normal bottom subtitle.
@@ -124,18 +144,49 @@ and story characters are not touched.
 ### Live picture (setting, off by default)
 
 **Companion Manager > Settings > Conversations > Live holocall picture (experimental).** (It was in
-Development until 2026-10-14; it is the only holocall setting.) With it on, dialing does the following:
+Development until 2026-10-14; it is the only holocall setting.)
 
-1. Spawns a copy of the character, tagged `CyberpunkConvaiHolocall`, 40 m above V.
-2. Holds the copy with the gesture device workspot, using the character's talk family from
-   `gesture-catalog.lua`.
-3. Spawns `holocall_camera.ent` 0.9 m in front of the copy at 1.62 m height, facing it, and turns on
-   its `RenderToTextureCamera`.
+**Who gets a picture, as in the game (branch `holocall-native-look`, 2026-10-14).** Only the contacts the game
+itself has a holocall setup for (`STAGED` in `mod/holocall.lua`: 59 of the mod's phone contacts, mapped by hand
+from the folders above, e.g. `stout` -> `meredith`, `marianne` -> `claire`, `stud` -> `mr_stud` (mq012)). Every other
+contact is a voice call with the portrait, as the game does for contacts without a setup, with no spawn, no search
+and no notice. The probe line says `cast=video` or `cast=voice`.
 
-If the copy or camera is not ready when the ring ends, or the copy drifts more than 1.5 m, the call
-continues with the portrait. In that case the mod logs `holo failed ... fallback=audio` and shows the
-notice "Live picture unavailable. The call continues with the portrait." Copies and cameras are
-removed at hang-up. A sweep also clears tagged leftovers after a reload.
+With the setting on, dialing a staged character does the following (one step per 0.25 s call tick):
+
+1. **Finds a studio** out of V's sight: the first floor 10 to 90 m above V, straight up or at one of eight
+   points 30 m away, that is level, has 2.3 m of headroom, is hidden from V's eyes by something solid, and
+   has open space for the camera on one side. One candidate per tick (about 22 raycasts each), so the search
+   costs at most nine ticks once per call and nothing afterwards. No floor: `holo failed ... reason=no-studio-spot
+   (<last reason>)` and the portrait. The vanilla studio has a floor too: a copy in mid-air falls.
+2. **Spawns the copy** there with the character's own record (checked to be a real character record first: a
+   record that does not resolve would crash), tagged `CyberpunkConvaiCompanion` (speech face layer) and
+   `CyberpunkConvaiHolocall`, transient, `alwaysSpawned`.
+3. **Spawns the game's camera** (`holocall_camera.ent`) at the game's framing: 20.4 degrees round from her facing,
+   level, fov 35, at a 0.5 m frame (0.79 m away, lens 1.6 m above her feet; the game's own is 0.675 m and 1.65 m,
+   a slightly tighter face shot that a taller or shorter character can fall out of).
+4. **Keeps the copy animating** off screen (`AnimationSystem.SetForcedVisible(id, true)`; without it an unseen body
+   is culled and stands frozen with a still face), holds her in her talk pose (gesture device workspot, her talk
+   family from `gesture-catalog.lua`), switches the camera on (`Toggle(true)`), and turns her eyes to the lens
+   (`LookAtAddEvent` on the camera entity, eyes leading, transition speed 80 as the game's holocall look),
+   renewed every 5 s.
+5. The call connects with `StartHolocall`: the window shows the holocall image instead of the portrait.
+
+If the copy or camera is not ready when the ring ends (6 s at most; the game's own failsafe is 8 s), or the copy
+drifts more than 1.5 m, the call continues with the portrait. In that case the mod logs `holo failed ...
+fallback=audio` and shows the notice "Live picture unavailable. The call continues with the portrait." At hang-up
+the look is retired, the forced animation cleared, the pose left, the copy deleted, and the camera switched off at
+once but deleted 1.5 s later: freeing a render-to-texture camera in the frame it is switched off can crash the
+render thread. A sweep also clears tagged leftovers after a reload; a load forgets everything without native calls.
+
+**Why the first version stayed empty (never seen in game; from the code and the research):** the copy was
+placed 40 m straight up in mid-air, so it fell out of frame while its talk pose was still being set up (and inside
+a tall building or megabuilding that spot is inside walls); nothing kept an unseen copy's animation running; the
+camera stood dead in front at 0.9 m with no look at the lens.
+
+**Not solved: light.** The game's studio is a black box lit by its own lights; the mod's copy stands under the
+real sky, so the picture has the city behind it and at night may be dark. Spawned lights are a further step
+(a light component added at entity assembly, or a baked light sector in an archive).
 
 ### Bridge
 
@@ -153,10 +204,10 @@ removed at hang-up. A sweep also clears tagged leftovers after a reload.
 
 ```
 requested contact=<id>
-state=dialing contact=<id> profile=<key> mode=audio|holo hud=ok
-holo spawn contact=<id> record=<record>                       (live picture only)
-holo ready contact=<id> held=true|false camera=on drift=<m>   (live picture only)
-holo failed contact=<id> reason=<r> fallback=audio            (live picture only)
+state=dialing contact=<id> profile=<key> mode=audio|holo cast=video|voice hud=ok
+holo spawn contact=<id> record=<record> floor=+<m>m yaw=<deg> lens=<m>m                (live picture only)
+holo ready contact=<id> held=yes camera=on animated=true|false look=true|false drift=<m> (live picture only)
+holo failed contact=<id> reason=<r> fallback=audio                                       (live picture only)
 state=connected contact=<id> mode=audio|holo window=audiocall|holocall|pending
 window=<w> contact=<id>                                       (a pending window appeared)
 state=ended contact=<id> reason=<r> length=<n>s
@@ -175,8 +226,9 @@ The bridge turn-context diagnostic ends with `holocall=audio` or `holocall=holo`
 - That a tap of the phone button reaches the HUD controller as PRESSED then RELEASED on keyboard and
   pad, and does not also open the phone.
 - The Holocall subtitle type showing a bottom line for the player as speaker.
-- Everything about the live picture: whether the render texture shows the copy, whether the workspot
-  holds the copy in mid-air at 40 m, and whether its face animates at that distance.
+- Everything about the live picture: whether the floor search finds a roof in typical places (V's apartment,
+  a street, the Badlands), whether the window's holocall image shows the copy, how dark it is at night, the
+  framing, whether her lips move with the mod voice and her eyes find the lens.
 - What happens when a real quest call arrives during a mod call: the preempt path.
 
 ## Files

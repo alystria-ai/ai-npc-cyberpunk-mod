@@ -195,7 +195,9 @@ public final func ConvaiCallConnect(live: Bool) -> String {
     let wanted = live ? EHudPhoneFunction.Holocall : EHudPhoneFunction.Audiocall;
     if NotEquals(this.m_convaiCallWanted, wanted) {
         if Equals(this.m_convaiCallWanted, EHudPhoneFunction.IncomingCall) {
+            // The game's own pick-up sounds, in the order PhoneSystem plays them when a call is answered.
             this.m_audioSystem.Play(n"ui_phone_initiation_call_stop");
+            this.m_audioSystem.Play(n"ui_phone_incoming_call_stop");
             this.m_audioSystem.Play(n"ui_phone_incoming_call_positive");
         };
         this.m_convaiCallWanted = wanted;
@@ -233,7 +235,9 @@ public final func ConvaiCallEnd() -> Void {
 
 // Bring the call window to the wanted state: spawn it when it does not exist (OnHoloAudioCallSpawned below finishes),
 // otherwise call the same controller method the game's SetPhoneFunction would. The portrait stays visible in a voice
-// call (StartAudiocall showAvatar=true): there is no live picture to replace it.
+// call (StartAudiocall showAvatar=true): there is no live picture to replace it. A holocall (StartHolocall) hides the
+// portrait and shows the window's holocall image, which is bound to holocall_camera_render_texture.dtex: the picture is
+// whatever the game's holocall camera films (mod/holocall.lua places and switches it on before asking for this).
 @addMethod(NewHudPhoneGameController)
 private final func ConvaiCallShow() -> Void {
     if !this.m_convaiCallActive || this.m_convaiCallPreempted || !IsDefined(this.m_convaiCallContact) { return; };
@@ -250,6 +254,8 @@ private final func ConvaiCallShow() -> Void {
     let name = this.m_convaiCallContact.GetLocalizedName(this.m_journalMgr);
     switch this.m_convaiCallWanted {
         case EHudPhoneFunction.IncomingCall:
+            // As the game's UpdateHoloAudioCall does for a ringing call.
+            this.PlaySound(n"PhoneCallPopup", n"OnOpen");
             this.m_holoAudioCallLogicController.ShowIncomingContact(avatar, name);
             break;
         case EHudPhoneFunction.Audiocall:

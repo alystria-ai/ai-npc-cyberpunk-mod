@@ -1,20 +1,26 @@
 -- Holocalls with the mod's characters (docs/HOLOCALL.md).
 --
 -- V calls one of the mod's characters from the phone's ordinary Contacts list, with the game's own Call action
--- (Holocall.reds replaces the game's call request for those contacts only; this file registers which ones). The game's call window opens at the top left with that character's portrait and name
--- (Holocall.reds drives it; the game's own call path, its quest facts and its call blackboard are never used). While the
--- call is connected, the talk keys (typed and voice) address that character wherever V is, through the same request
--- path as a face to face talk; the reply is spoken in the mod voice at full volume (no distance) with call subtitles,
--- and the turn says V is on a call (bridge/turn-context.mjs).
+-- (Holocall.reds replaces the game's call request for those contacts only; this file registers which ones). The game's
+-- call window opens at the top left with that character's portrait and name (Holocall.reds drives it; the game's own
+-- call path, its quest facts and its call blackboard are never used). While the call is connected, the talk keys (typed
+-- and voice) address that character wherever V is, through the same request path as a face to face talk; the reply is
+-- spoken in the mod voice at full volume (no distance) with call subtitles, and the turn says V is on a call
+-- (bridge/turn-context.mjs).
 --
--- Live picture (setting "Live holocall picture", experimental, off by default): the game's holocall picture is a
--- render-to-texture camera filming a real character (base\cinematics\cameras\holocall_camera.ent, component
--- RenderToTextureCamera). With the setting on, a copy of the character is placed far above V, held still in a talk
--- pose, and that camera is spawned in front of it and switched on. Whether the picture appears cannot be detected from
--- script; if the copy or camera cannot be placed the call falls back to the portrait.
+-- Live picture, as the game does it. The game's video holocall is a render-to-texture camera
+-- (base\cinematics\cameras\holocall_camera.ent, component RenderToTextureCamera) filming the caller's real body, posed
+-- at a workspot in a lit room, into holocall_camera_render_texture.dtex, which the call window's holocall image shows.
+-- The game stages that body only for the characters it has a holocall setup for (base\quest\holocalls\<name>\ and
+-- ep1\quest\holocalls\<name>\, STAGED below); every other call is a voice call with the portrait. This file does the
+-- same without the quest path: for a STAGED character (and the setting on) it finds a floor out of V's sight above V,
+-- places a copy of the character there (the character's own record) held in a talk pose and kept animating, and points
+-- the game's own holocall camera at it with the game's own framing. Anything that does not work out (no floor, the copy
+-- or camera not ready in time, the copy moving) falls back to the portrait voice call.
 --
 -- Cost: idle, update() is one nil check and drain() runs only on the phone's own request drain. A call ticks every
--- 0.25 s and reads one native event queue per tick. One probe line per call state change: "[Holocall] ...".
+-- 0.25 s and reads one native event queue per tick; the floor search runs once per live call, one candidate per tick.
+-- The camera renders only while its call is live. One probe line per call state change: "[Holocall] ...".
 local M = convaiHolocall or {}
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 
@@ -24,16 +30,46 @@ M.CAMERA = 'base\\cinematics\\cameras\\holocall_camera.ent'
 M.CAMERA_COMPONENT = 'RenderToTextureCamera'
 M.TICK = 0.25
 -- The call rings at least RING_MIN seconds (the character's connection warms meanwhile), and waits for the live
--- picture at most RING_MAX seconds.
-M.RING_MIN, M.RING_MAX = 1.5, 5
+-- picture at most RING_MAX seconds (the game's own call failsafe is 8 s).
+M.RING_MIN, M.RING_MAX = 1.5, 6
 -- No turn and no speech for this long hangs up; no call is longer than MAX_LENGTH (seconds of play, pauses excluded).
 M.IDLE_LIMIT, M.MAX_LENGTH = 180, 1800
--- Live picture placement: the copy stands this far above V; the camera is this far in front of it, at face height.
-M.HOLO_HEIGHT, M.CAMERA_DISTANCE, M.CAMERA_HEIGHT = 40, 0.9, 1.62
+-- The shot. The game's own rig (the holocall studio's camera node against its actor spot): 0.675 m in front, the lens
+-- 1.65 m above the feet, 20.4 degrees round from the actor's facing, level, fov 35 (the camera's own). The frame here is
+-- a little taller (0.5 m, which solves to 0.79 m at fov 35) so a shorter or taller character still has the face in it.
+M.SHOT = {frameH = 0.5, aimZ = 1.6, orbit = 20.4, fov = 35}
+-- The studio: a floor 10 to 90 m above V, straight up or within 30 m, out of V's sight.
+M.STUDIO_MIN, M.STUDIO_TOP, M.STUDIO_RADIUS = 10, 90, 30
 -- The copy may drift this far from its place before the picture is given up.
 M.HOLO_DRIFT = 1.5
+-- The camera is switched off at once and deleted this many seconds later: the render thread may still hold its
+-- target for some frames after the switch, and freeing it in the same frame crashes.
+M.LENS_DELAY = 1.5
+-- The look at the lens is asked for again this often (the game drops a stale look request).
+M.LOOK_REFRESH = 5
 -- Never on a holocall, whatever a catalogue says.
 M.NEVER = {johnny = true, ['johnny-silverhand'] = true, silverhand = true}
+-- The contacts the game itself stages a video holocall for: phone contact id -> the game's holocall setup
+-- (base\quest\holocalls\<name>\<name>_holocall.questphase, or ep1\... for Phantom Liberty; each runs a <name>_holocall
+-- scene at the studio marker #<name>_sm_holocall). Every other contact gets the portrait voice call, as in the game.
+M.STAGED = {
+    coach = 'coach', wakako_okada = 'wakako', regina_jones = 'reggie', victor_vector = 'victor', stout = 'meredith',
+    evelyn = 'evelyn', jackie = 'jackie', jackie_dead = 'jackie', takemura = 'takemura', judy = 'judy',
+    muamar_el_capitan_reyes = 'muamar', wilson = 'wilson', mama_welles = 'mama_welles', dino_dinovic = 'dino',
+    sebastian_padre_perez = 'padre', mr_hands = 'mr_hands', panam = 'panam', rogue = 'rogue', dakota_smith = 'dakota',
+    saul = 'saul', marianne = 'claire', cassidy = 'cassidy', mitch = 'mitch', stud = 'mr_stud', river_ward = 'river',
+    rachel = 'rachel', pepe_el_coyote = 'pepe', placide = 'placide', joss = 'joss', carol = 'carol', ozob = 'ozob',
+    nix = 'nix', hanako_arasaka = 'hanako', lizzy_wizzy = 'lizzy', bob = 'bob', nancy = 'nancy',
+    kerry_eurodyne = 'kerry', blue_moon = 'blue_moon', sandra_dorsett = 'sandra', misty = 'misty',
+    agent_jenkins = 'jenkins', tbug = 't_bug', dex = 'dex', thompson = 'thompson', spider_murphy = 'spider_murphy',
+    elizabeth_peralez = 'elizabeth', jefferson_peralez = 'jefferson', santiago = 'santiago',
+    rachel_joestar_mq040 = 'cynthia', seller = 'r3no', frank = 'frank', yorinobu = 'yorinobu',
+    -- Phantom Liberty (ep1\quest\holocalls).
+    songbird = 'songbird', reed = 'reed', alex = 'alex', janet = 'janet', ['8ug8ear'] = '8ug8ear',
+    chang_hoon_nam = 'chang_hoon_nam', mark_bana = 'mark_bana',
+}
+-- The collision the floor search and the sight checks look at.
+M.GROUPS = {'Static', 'Terrain'}
 
 M.env = M.env or {}
 M.catalog = M.catalog or {}
@@ -76,7 +112,7 @@ function M.configure(env)
     M.env = type(env) == 'table' and env or {}
     local rows = type(M.env.contacts) == 'function' and M.env.contacts() or readJson('phone-contacts.json')
     M.catalog = M.loadCatalog(rows)
-    M.sweepDue, M.registered = true, nil
+    M.sweepDue, M.registered, M.lenses = true, nil, nil
 end
 
 -- Tell the phone which contacts a holocall replaces the game's call for: the catalogue rows only (so Johnny, game and
@@ -125,6 +161,16 @@ function M.sweep()
     end)
 end
 
+-- Cameras switched off by a cleanup, deleted once LENS_DELAY has passed (from update, which runs while any wait).
+local function releaseLenses(elapsed)
+    local waiting = {}
+    for _, lens in ipairs(M.lenses or {}) do
+        lens.wait = lens.wait - (tonumber(elapsed) or 0)
+        if lens.wait <= 0 then deleteTagged(lens.id) else waiting[#waiting + 1] = lens end
+    end
+    M.lenses = #waiting > 0 and waiting or nil
+end
+
 local function workspot()
     if M.workspot == nil then
         local ok, module = pcall(dofile, 'gesture-workspot.lua')
@@ -152,6 +198,84 @@ local function holdComponent(record)
     return catalog.device, family and family.component
 end
 
+-- Where the camera stands for a copy whose feet are at `feet` facing `yaw` (degrees; the game's forward at yaw t is
+-- (-sin t, cos t)): in front of the copy, SHOT.orbit degrees round, at the frame's centre height, looking back at it.
+function M.rig(feet, yaw)
+    local shot = M.SHOT
+    local dist = (shot.frameH * 0.5) / math.tan(math.rad(shot.fov * 0.5))
+    local bearing = yaw + shot.orbit
+    local radians = math.rad(bearing)
+    return {x = feet.x - math.sin(radians) * dist, y = feet.y + math.cos(radians) * dist, z = feet.z + shot.aimZ,
+        yaw = bearing + 180, dist = dist}
+end
+
+-- The nearest solid point between a and b over M.GROUPS: the point, false when the segment is clear, nil when the game
+-- could not answer (nothing unanswered ever counts as clear).
+local function trace(a, b)
+    local ok, result = pcall(function()
+        local spatial = Game.GetSpatialQueriesSystem()
+        local from, to = Vector4.new(a.x, a.y, a.z, 1), Vector4.new(b.x, b.y, b.z, 1)
+        local best, bestDistance = false, math.huge
+        for _, group in ipairs(M.GROUPS) do
+            local hit, out = spatial:SyncRaycastByCollisionGroup(from, to, CName.new(group), false, false)
+            if type(hit) ~= 'boolean' then return nil end
+            if hit then
+                local p = out and out.position
+                local point = p and {x = tonumber(p.x), y = tonumber(p.y), z = tonumber(p.z)} or nil
+                if not point or not point.x or not point.y or not point.z then return nil end
+                local distance = (point.x - a.x)^2 + (point.y - a.y)^2 + (point.z - a.z)^2
+                if distance < bestDistance then best, bestDistance = point, distance end
+            end
+        end
+        return best
+    end)
+    if not ok then return nil end
+    return result
+end
+
+local function clear(a, b) return trace(a, b) == false end
+
+-- Is the column (x, y) a studio: a level floor between STUDIO_MIN and STUDIO_TOP above V with headroom, out of V's
+-- sight, with room for the camera on one side? The spot {x, y, z, yaw}, or nil and why not.
+function M.studioAt(origin, x, y)
+    local top, bottom = origin.z + M.STUDIO_TOP, origin.z + M.STUDIO_MIN
+    local floor = trace({x = x, y = y, z = top}, {x = x, y = y, z = bottom})
+    if floor == nil then return nil, 'no-answer' end
+    if not floor then return nil, 'no-floor' end
+    local z = floor.z
+    -- A hit where the ray starts is the inside of something, not a floor.
+    if z > top - 0.5 then return nil, 'inside' end
+    if not clear({x = x, y = y, z = z + 0.2}, {x = x, y = y, z = z + 2.5}) then return nil, 'no-headroom' end
+    for _, d in ipairs({{0.35, 0}, {-0.35, 0}, {0, 0.35}, {0, -0.35}}) do
+        local under = trace({x = x + d[1], y = y + d[2], z = z + 0.5}, {x = x + d[1], y = y + d[2], z = z - 0.5})
+        if not under or math.abs(under.z - z) > 0.2 then return nil, 'not-level' end
+    end
+    -- V must not see the copy: something solid between V's eyes and its chest.
+    local eyes = {x = origin.x, y = origin.y, z = origin.z + 1.6}
+    local cover = trace(eyes, {x = x, y = y, z = z + 1.2})
+    if cover == nil then return nil, 'no-answer' end
+    if cover == false then return nil, 'in-view' end
+    -- The first facing whose camera spot (a little beyond it, too) is open from the copy's face.
+    for _, yaw in ipairs({0, 90, 180, 270}) do
+        local lens = M.rig({x = x, y = y, z = z}, yaw)
+        local face = {x = x, y = y, z = z + M.SHOT.aimZ}
+        local scale = (lens.dist + 0.3) / lens.dist
+        local beyond = {x = x + (lens.x - x) * scale, y = y + (lens.y - y) * scale, z = lens.z}
+        if clear(face, beyond) then return {x = x, y = y, z = z, yaw = yaw} end
+    end
+    return nil, 'no-lens-room'
+end
+
+-- The columns searched, in order: straight above V, then eight around at STUDIO_RADIUS.
+local function columns(origin)
+    local list = {{x = origin.x, y = origin.y}}
+    for i = 0, 7 do
+        local a = math.rad(i * 45)
+        list[#list + 1] = {x = origin.x + math.cos(a) * M.STUDIO_RADIUS, y = origin.y + math.sin(a) * M.STUDIO_RADIUS}
+    end
+    return list
+end
+
 local function holoFail(call, reason)
     local holo = call.holo
     if not holo or holo.failed then return end
@@ -159,31 +283,52 @@ local function holoFail(call, reason)
     log('holo failed contact=' .. call.contact .. ' reason=' .. tostring(reason) .. ' fallback=audio')
 end
 
+-- The character's own record, as a real character record (a name that does not resolve would spawn a body with no
+-- record, which crashes a few seconds later).
+local function characterRecord(name)
+    local ok, valid = pcall(function()
+        local record = TweakDB:GetRecord(TweakDBID.new(name))
+        return record ~= nil and record:IsA('gamedataCharacter_Record')
+    end)
+    return ok and valid == true
+end
+
 local function holoBegin(call, player)
-    local holo = {wait = 0}
+    local holo = {wait = 0, stage = 'search', column = 1}
     call.holo = holo
     if not call.record then holoFail(call, 'no-record'); return end
+    if not characterRecord(call.record) then holoFail(call, 'record-unavailable'); return end
+    local ok, origin = pcall(function()
+        local p = player:GetWorldPosition()
+        return {x = p.x, y = p.y, z = p.z}
+    end)
+    if not ok or not origin then holoFail(call, 'no-position'); return end
+    holo.origin, holo.columns = origin, columns(origin)
+end
+
+-- Spawn the copy at the studio spot and the camera at its rig, both tagged and transient.
+local function holoSpawn(call, holo)
+    local spot = holo.spot
     local ok, err = pcall(function()
         local dynamic = system()
         assert(dynamic and dynamic:IsReady(), 'entity system not ready')
-        local origin = player:GetWorldPosition()
-        local anchor = Vector4.new(origin.x, origin.y, origin.z + M.HOLO_HEIGHT, 1)
-        holo.anchor = {x = anchor.x, y = anchor.y, z = anchor.z}
+        holo.anchor = {x = spot.x, y = spot.y, z = spot.z}
         local copy = NewObject('DynamicEntitySpec')
         copy.recordID = TweakDBID.new(call.record)
-        copy.position = anchor
-        copy.orientation = EulerAngles.new(0, 0, 0):ToQuat()
+        copy.position = Vector4.new(spot.x, spot.y, spot.z, 1)
+        copy.orientation = EulerAngles.new(0, 0, spot.yaw):ToQuat()
         copy.persistState, copy.persistSpawn = false, false
         copy.alwaysSpawned, copy.spawnInView, copy.active = true, true, true
         -- The companion tag gives the copy the speech face layer (Face.reds) before it attaches.
         copy.tags = {CName.new(M.COMPANION_TAG), CName.new(M.TAG)}
         holo.copyId = dynamic:CreateEntity(copy)
         assert(holo.copyId and not tostring(holo.copyId.hash):match('^0+[uUlL]*$'), 'copy was not created')
-        -- Facing yaw 0 the copy looks along +Y; the camera stands in front of it and looks back (yaw 180).
+        local lens = M.rig(spot, spot.yaw)
+        holo.lens = lens
         local camera = NewObject('DynamicEntitySpec')
         if not pcall(function() camera.templatePath = M.CAMERA end) then camera.templatePath = ResRef.FromString(M.CAMERA) end
-        camera.position = Vector4.new(anchor.x, anchor.y + M.CAMERA_DISTANCE, anchor.z + M.CAMERA_HEIGHT, 1)
-        camera.orientation = EulerAngles.new(0, 0, 180):ToQuat()
+        camera.position = Vector4.new(lens.x, lens.y, lens.z, 1)
+        camera.orientation = EulerAngles.new(0, 0, lens.yaw):ToQuat()
         camera.persistState, camera.persistSpawn = false, false
         camera.alwaysSpawned, camera.spawnInView, camera.active = true, true, true
         camera.tags = {CName.new(M.TAG)}
@@ -191,7 +336,9 @@ local function holoBegin(call, player)
         assert(holo.cameraId and not tostring(holo.cameraId.hash):match('^0+[uUlL]*$'), 'camera was not created')
     end)
     if not ok then holoFail(call, 'spawn: ' .. tostring(err)) return end
-    log('holo spawn contact=' .. call.contact .. ' record=' .. call.record)
+    holo.stage = 'spawn'
+    log(string.format('holo spawn contact=%s record=%s floor=%+.1fm yaw=%d lens=%.2fm', call.contact, call.record,
+        spot.z - holo.origin.z, spot.yaw, holo.lens.dist))
 end
 
 local function spawned(id)
@@ -212,14 +359,60 @@ local function drift(holo)
     return ok and distance or math.huge
 end
 
--- Place the copy and the camera: both spawned, the copy held in its talk pose, the camera switched on.
+-- The copy looks into the lens, eyes first, as the game's holocall look does (transition speed 80). Any earlier
+-- request of ours is retired first so only one is ever live.
+local function holoLook(holo)
+    if not holo.npc or not holo.camera then return false end
+    local ok = pcall(function()
+        if holo.look then
+            LookAtRemoveEvent.QueueRemoveLookatEvent(holo.npc, holo.look)
+            holo.look = nil
+        end
+        local event = LookAtAddEvent.new()
+        event:SetEntityTarget(holo.camera, CName.new(''), Vector4.new(0, 0, 0, 0))
+        event:SetStyle(Enum.new('animLookAtStyle', 'Normal'))
+        event.bodyPart = CName.new('Eyes')
+        event.request.transitionSpeed = 80
+        event.request.limits.softLimitDegrees = 360
+        event.request.limits.hardLimitDegrees = 270
+        event.request.limits.backLimitDegrees = 210
+        event.request.limits.hardLimitDistance = 1000000
+        local eyes = LookAtPartRequest.new()
+        eyes.partName, eyes.weight, eyes.suppress, eyes.mode = CName.new('Eyes'), 1, 1, 0
+        local head = LookAtPartRequest.new()
+        head.partName, head.weight, head.suppress, head.mode = CName.new('Head'), 0.05, 1, 0
+        event:SetAdditionalPartsArray({eyes, head})
+        holo.look = event
+        holo.npc:QueueEvent(event)
+    end)
+    holo.lookAge = 0
+    return ok
+end
+
+-- One step of the live picture while the call rings: search one floor candidate, or wait for the copy and camera,
+-- keep the copy animating, hold it in its talk pose, switch the camera on and turn the copy's eyes to it.
 local function holoStep(call, dt)
     local holo = call.holo
     if not holo or holo.failed or holo.ready then return end
     holo.wait = holo.wait + dt
+    if holo.stage == 'search' then
+        local column = holo.columns[holo.column]
+        if not column then holoFail(call, 'no-studio-spot (' .. tostring(holo.lastReason) .. ')'); return end
+        holo.column = holo.column + 1
+        local spot, reason = M.studioAt(holo.origin, column.x, column.y)
+        if not spot then holo.lastReason = reason; return end
+        holo.spot = spot
+        holoSpawn(call, holo)
+        return
+    end
     if holo.wait > M.RING_MAX then holoFail(call, 'placement-timeout'); return end
     holo.npc = holo.npc or spawned(holo.copyId)
     holo.camera = holo.camera or spawned(holo.cameraId)
+    if holo.npc and holo.forced == nil then
+        -- Off screen, the copy's animation would be culled: it would stand frozen and its face would not move.
+        -- Asked once; cleanup clears it again before the copy is deleted.
+        holo.forced = pcall(function() Game.GetAnimationSystem():SetForcedVisible(holo.copyId, true) end)
+    end
     if not holo.npc or not holo.camera then return end
     if not holo.held then
         local spots = workspot()
@@ -245,12 +438,14 @@ local function holoStep(call, dt)
         component:Toggle(true)
     end)
     if not switched then holoFail(call, 'camera: ' .. tostring(err)); return end
+    holo.cameraOn = true
     pcall(function() holo.npc:ConvaiFaceRequest() end)
     local identity = pcall(function() holo.entity = tostring(holo.npc:GetEntityID().hash) end)
     if not identity then holoFail(call, 'copy-identity'); return end
+    local looked = holoLook(holo)
     holo.ready = true
-    log('holo ready contact=' .. call.contact .. ' held=' .. tostring(holo.held) .. ' camera=on'
-        .. string.format(' drift=%.2f', drift(holo)))
+    log('holo ready contact=' .. call.contact .. ' held=' .. tostring(holo.held) .. ' camera=on animated='
+        .. tostring(holo.forced == true) .. ' look=' .. tostring(looked) .. string.format(' drift=%.2f', drift(holo)))
 end
 
 local function holoValid(call)
@@ -261,17 +456,32 @@ local function holoValid(call)
     return drift(holo) <= M.HOLO_DRIFT
 end
 
+-- Undo everything the live picture did, in order: the look, the forced animation, the pose, then the camera (switched
+-- off now, deleted LENS_DELAY later) and the copy.
 local function holoCleanup(holo)
     if not holo or holo.cleaned then return end
     holo.cleaned = true
+    if holo.look and holo.npc then
+        pcall(function() LookAtRemoveEvent.QueueRemoveLookatEvent(holo.npc, holo.look) end)
+        holo.look = nil
+    end
+    if holo.forced == true and holo.copyId then
+        pcall(function() Game.GetAnimationSystem():SetForcedVisible(holo.copyId, false) end)
+        holo.forced = false
+    end
     local spots = holo.held and workspot()
     if spots and holo.npc then pcall(spots.exit, holo.npc, true) end
     if spots and holo.deviceId then pcall(spots.deleteDevice, holo.deviceId) end
-    if holo.cameraId and holo.camera then
-        pcall(function() holo.camera:FindComponentByName(CName.new(M.CAMERA_COMPONENT)):Toggle(false) end)
+    if holo.cameraId then
+        if holo.cameraOn and holo.camera then
+            pcall(function() holo.camera:FindComponentByName(CName.new(M.CAMERA_COMPONENT)):Toggle(false) end)
+            M.lenses = M.lenses or {}
+            M.lenses[#M.lenses + 1] = {id = holo.cameraId, wait = M.LENS_DELAY}
+        else
+            deleteTagged(holo.cameraId)
+        end
     end
     deleteTagged(holo.copyId)
-    deleteTagged(holo.cameraId)
 end
 
 local function notifyEnded(player, call, reason)
@@ -296,7 +506,7 @@ end
 -- The world went away (a load, death, the game shutting down): forget the call without native calls. The HUD and its
 -- window are rebuilt by the game; a copy or camera left behind is swept after the next configure.
 function M.abandon(reason)
-    M.request, M.registered = nil, nil
+    M.request, M.registered, M.lenses = nil, nil, nil
     local call = M.call
     if not call then return end
     M.call = nil
@@ -345,12 +555,15 @@ function M.start(player, contact, sample)
     end
     local identity, entity = pcall(function() return tostring(player:GetEntityID().hash) end)
     M.serial = M.serial + 1
+    -- A video holocall for the characters the game stages one for; the portrait voice call for everyone else.
+    local cast = M.STAGED[contact] and entry.record and 'video' or 'voice'
     local call = {serial = M.serial, contact = contact, key = entry.key, name = entry.name, record = entry.record,
         state = 'dialing', mode = 'audio', entity = identity and entity or nil, ring = 0, age = 0, idle = 0, tick = 0,
-        wantLive = type(M.env.liveImage) == 'function' and M.env.liveImage() == true}
+        cast = cast, wantLive = cast == 'video' and type(M.env.liveImage) == 'function' and M.env.liveImage() == true}
     M.call = call
     if type(M.env.warm) == 'function' then pcall(M.env.warm, call.key, call.entity) end
-    log('state=dialing contact=' .. contact .. ' profile=' .. call.key .. ' mode=' .. (call.wantLive and 'holo' or 'audio') .. ' hud=ok')
+    log('state=dialing contact=' .. contact .. ' profile=' .. call.key .. ' mode=' .. (call.wantLive and 'holo' or 'audio')
+        .. ' cast=' .. cast .. ' hud=ok')
     if call.wantLive then holoBegin(call, player) end
     return true
 end
@@ -401,6 +614,11 @@ local function step(call, player, dt, sample)
         convaiNotices.send(player, 'holocall-live-fallback', ui.t('Live picture unavailable. The call continues with the portrait.'))
         if call.window == 'ended' then return M.finish(player, 'hud-lost') end
     end
+    if call.mode == 'holo' then
+        local holo = call.holo
+        holo.lookAge = (holo.lookAge or 0) + dt
+        if holo.lookAge >= M.LOOK_REFRESH then holoLook(holo) end
+    end
     if call.window == 'pending' then
         -- The window was still being created when the call connected: show it once it exists.
         local ok, window = pcall(function() return player:ConvaiHolocallConnect(call.mode == 'holo') end)
@@ -428,8 +646,9 @@ end
 -- From the 0.1 s game tick. A request starts once the world is playable (the phone has closed); a call advances only
 -- while the world is playable, every TICK seconds.
 function M.update(player, elapsed, worldReady, sample)
-    if not M.request and not M.call then return end
+    if not M.request and not M.call and not M.lenses then return end
     if not player or not worldReady then return end
+    if M.lenses then releaseLenses(elapsed) end
     if M.request then
         local request = M.request
         M.request = nil
