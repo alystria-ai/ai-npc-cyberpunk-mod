@@ -2213,9 +2213,10 @@ end
 -- keyNotice to the first reply that ran without long-term memory on a limited plan (bridge/convai-key.mjs). The text says
 -- what to do; it never names where the shared key comes from.
 -- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). The game's warning line shows this in upper case
--- at 35 pt, wraps it at 800 px and draws a frame sized for one or two lines, so the notice is two short lines with a forced
--- break ("\n", which the warning text honours): the first sentence on line 1, the Mistral / Local AI choice on line 2, each at
--- most 770 px of upper-case Rajdhani Semi-Bold so neither wraps (bridge/daily-notice-fit.test.mjs); it stays 9 s (notices.showS).
+-- at 35 pt, wraps it at 800 px and draws a frame sized for one or two lines, so the notice has a forced break ("\n", which the
+-- warning text honours): the first sentence on line 1 (one rendered line, at most 770 px of upper-case Rajdhani Semi-Bold), the
+-- detailed Mistral / Local AI sentence starting on a fresh line 2, which may wrap to a third line (at most three rendered lines in
+-- all; bridge/daily-notice-fit.test.mjs); it stays 9 s (notices.showS).
 -- Phone Chat has room for the long version and keeps it (phone-chat.lua), which says where the details are.
 -- The turns used are the limit the backend set, read the way the settings page reads it (manager.ownKey().daily.limit), never a number
 -- written here; without it the line says "Today’s Convai turns". Mistral's about 5,000 a day is the conservative bound of its free
@@ -2224,9 +2225,9 @@ local function dailyLimitText()
     local ok, own = pcall(manager.ownKey)
     local limit = ok and type(own) == 'table' and type(own.daily) == 'table' and own.daily.limit or nil
     if type(limit) == 'number' then
-        return ui.t('Today’s {limit} Convai turns are used.\nMistral (free, ~5,000/day) or Local AI (unlimited).', {limit = limit})
+        return ui.t('Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {limit = limit})
     end
-    return ui.t('Today’s Convai turns are used.\nMistral (free, ~5,000/day) or Local AI (unlimited).')
+    return ui.t('Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).')
 end
 
 local function keyNoticeText(code)
