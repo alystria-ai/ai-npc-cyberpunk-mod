@@ -849,3 +849,60 @@ test('a copy outside the round is left alone, and with the setting off the round
   gstep(5)
   assert(asked==0,'the group lookup ran '..asked..' times with the setting off')
 `));
+
+// A still V: an idle that walks the body away is never taken, and one that does it anyway is left at once.
+// Live 2026-10-14 (Alex, V still): convai_idle_generic_hips slid her 0.7 m and then 2 m at +25-30 s.
+test('the hands-on-hips idle that walks the body is never picked, for an uncatalogued woman or for Claire', () => run(`
+  entry.record='Character.sq017_blue_moon_x'
+  function native.bodyType() return 'womanaverage' end
+  local seen={}
+  for round=1,14 do step(40) end
+  for _,l in ipairs(logs) do if l.kind=='flavour-begin' then seen[l.fields.component]=(seen[l.fields.component] or 0)+1 end end
+  assert(not seen.convai_idle_generic_hips,'never generic_hips')
+  assert(seen.convai_idle_jackie_hips and seen.convai_idle_panam_hips,'the other idles of the rig stay in the rotation')
+  calls={};logs={};entry.record='Character.Claire';entry.serial=5;npc.inside=false;npc.entering=nil;npc.leaving=nil
+  for round=1,14 do step(40) end
+  seen={}
+  for _,l in ipairs(logs) do if l.kind=='flavour-begin' then seen[l.fields.component]=true end end
+  assert(not seen.convai_idle_generic_hips,'Claire does not use her generic_hips signature either')
+  assert(seen.convai_idle_jackie_hips or seen.convai_idle_panam_hips,'she still idles from the other clean ones')
+`));
+
+test('an idle that carries the body more than 45 cm with V still is left at once, and not picked again by anyone', () => run(groupFixture + `
+  for k=1,3 do E[k].position={x=k*3,y=0,z=0} end
+  gstep(3)
+  for k=1,3 do assert(playsOf(E[k].npc.id)==1,'all three companions idle') end
+  -- 20 cm of settling is normal and stays in the idle
+  E[1].position={x=3.2,y=0,z=0};gstep(1)
+  assert(exitsOf('77')==0 and not lastLog('drift-exit'),'20 cm is not a slide')
+  -- the idle walks her one metre: leave at once, remember the idle
+  local first=nil for _,call in ipairs(calls) do if call.name=='play' and call.who=='77' then first=call.component end end
+  E[1].position={x=4.1,y=0,z=0};gstep(1)
+  local d=lastLog('drift-exit')
+  assert(d and d.fields.serial==1 and d.fields.component==first and d.fields.metres>.9,'drift-exit logged')
+  assert(exitsOf('77')==1 and exitsOf('78')==0 and exitsOf('79')==0,'only the drifting copy leaves; the others keep their idle')
+  gstep(1)
+  local f=nil for _,l in ipairs(logs) do if l.kind=='finished' and l.fields.serial==1 then f=l end end
+  assert(f and f.fields.reason=='drifted','finished as drifted: '..tostring(f and f.fields.reason))
+  local learned=0 for key,v in pairs(c.travelling) do if v then learned=learned+1 end end
+  assert(learned==1,'one idle learned')
+  -- she idles again later, but never with the idle that slid her (and neither does anyone else)
+  E[1].position={x=3,y=0,z=0}
+  calls={}
+  for round=1,12 do gstep(40) end
+  for _,call in ipairs(calls) do
+    if call.name=='play' and call.component==first then error('the drifting idle was played again by '..call.who) end
+  end
+  assert(playsOf('77')>=1,'she still gets other idles')
+`));
+
+test('V walking still ends the idle with movement, never as a drift, and the exit leaves no learned idle', () => run(groupFixture + `
+  for k=1,3 do E[k].position={x=k*3,y=0,z=0} end
+  gstep(3)
+  for k=1,3 do assert(playsOf(E[k].npc.id)==1,'all three companions idle') end
+  player.pos={x=5,y=0,z=0};gstep(1)
+  for k=1,3 do assert(exitsOf(E[k].npc.id)==1,'every companion leaves when V walks off') end
+  local reasons={} for _,l in ipairs(logs) do if l.kind=='finished' then reasons[l.fields.reason]=true end end
+  assert(reasons.movement and not reasons.drifted,'movement, not drift')
+  assert(next(c.travelling)==nil,'nothing learned from V walking')
+`));
