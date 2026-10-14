@@ -86,7 +86,8 @@ export function build({check = false} = {}) {
   const source = luaSource(data);
   if (check) {
     const current = existsSync(TARGET) ? readFileSync(TARGET, 'utf8') : '';
-    return current === source ? {ok: true, problems: []} : {ok: false, problems: ['mod/npc-name-pools.lua is stale; run node scripts/Build-NpcNamePools.mjs']};
+    // A checkout may have converted the line endings; the content is what counts.
+    return current.replace(/\r\n/g, '\n') === source ?{ok: true, problems: []} : {ok: false, problems: ['mod/npc-name-pools.lua is stale; run node scripts/Build-NpcNamePools.mjs']};
   }
   writeFileSync(TARGET, source);
   return {ok: true, problems: []};
