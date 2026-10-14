@@ -345,3 +345,33 @@ test('current gang/turf/street war questions do not inject Johnny military biogr
     assert.equal(selector.select(prepared.input, prepared, value => router.currentSync(value)).topic, topic, query);
   }
 });
+
+test('Alt Cunningham: reviewed topics select her own claims, never the conditional scene claims or other characters', () => {
+  const alt = (text, fields = {}) => selected(text, {profileKey: 'alt-cunningham', name: 'Alt', ...fields});
+  const identity = alt('Do you still feel like the real Alt?');
+  assert.equal(identity.topic, 'identity');
+  assert(identity.claims.length >= 2 && identity.claims.length <= 3);
+  assert.match(identity.context, /no longer exists/);
+  assert.match(alt('Tell me about Soulkiller.').context, /little in common/);
+  assert.equal(alt('Do you fear Mikoshi?').topic, 'mikoshi');
+  assert.equal(alt('What do you think of NetWatch?').topic, 'netwatch');
+  const fear = alt('Do you feel afraid of dying?');
+  assert.equal(fear.topic, 'fear-and-mortality');
+  assert.match(fear.context, /q108_04_alt_harsh|earlier flashback/);
+  const death = alt('Did you blame Johnny for his death?');
+  assert.equal(death.topic, 'johnny-death');
+  assert.match(death.context, /brief reaction is a natural initial response/);
+  assert.equal(alt('What do you think of Johnny?').topic, 'johnny');
+  for (const query of ['Hey!', 'Tell me everything.', 'Can you open the door?', 'What did V decide about the nomads?']) {
+    assert.equal(alt(query).context, '', query);
+  }
+  // Conditional scene claims (Transmission bargain, nomad meeting) are never selectable.
+  for (const query of ['Tell me about the BBS address.', 'What was the program you sent to the shard?', 'What happened in the debate?']) {
+    const result = alt(query);
+    assert(!result.claims.some(claim => claim.id.includes('.conditional.')), query);
+  }
+  // Group and other profiles never reach her claims.
+  assert.equal(selected('Do you still feel like the real Alt?', {profileKey: 'judy-alvarez'}).topic, null);
+  const group = request('Do you still feel like the real Alt?', {profileKey: 'alt-cunningham'});
+  assert.equal(selector.select({...group, group: 'party'}, admission(group), () => true).context, '');
+});

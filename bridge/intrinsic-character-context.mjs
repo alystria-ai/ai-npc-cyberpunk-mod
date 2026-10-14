@@ -41,6 +41,10 @@ export const REVIEWED_INTRINSIC_PACKS = Object.freeze([
   Object.freeze({key: 'songbird', file: 'research/cyberpunk/native-character-claims/songbird.json',
     hashEncoding: 'canonical-json-v1', sha256: '6331ce5ae6bbe3b3162327d15f370941d79dbbce262117aca1c3bdc9a71dc2c1',
     reviewedRawFileSha256: '28f9f7cb522390357d262fe5ce3e3b2d4d5f7da2104ecc3fe1ba5ac3d9ed8381'}),
+  // Reviewed 2026-10-14 (research/cyberpunk/native-reviews/alt-cunningham-20261014.md); raw hash is the LF bytes.
+  Object.freeze({key: 'alt-cunningham', file: 'research/cyberpunk/native-character-claims/alt-cunningham.json',
+    hashEncoding: 'canonical-json-v1', sha256: 'af7876902333712d5f1ba8e28214d5fb5417d5c79ba4cddce16cedf5780303ec',
+    reviewedRawFileSha256: '9ea1b151cc46108a5273cf4691f4615af2b9ab3d2ccd54902ddad08244946ca6'}),
 ]);
 
 const MAX_PACK_BYTES = 2 * 1024 * 1024;
@@ -151,6 +155,28 @@ const TOPICS = freeze({
       claims: ['songbird.history.service-oath', 'songbird.history.orders-and-teamwork']},
     {id: 'brooklyn', match: /\bbrooklyn\b/u, personal: true,
       claims: ['songbird.origin.brooklyn', 'songbird.history.night-city-posting']},
+  ],
+  // Alt Cunningham: her own words about herself (the Blackwall copy, the codex, her scenes with V and Johnny).
+  // The two conditional scene claims (Transmission bargain, nomad meeting) are not selectable here.
+  'alt-cunningham': [
+    {id: 'johnny-death', match: /\bjohnny\b/u, personal: true, sensitive: true,
+      detail: /\b(?:death|died|die|blame|responsib\w*|fault|arasaka\s+tower|saved?|saving)\b/u,
+      claims: ['alt-cunningham.johnny.his-own-making', 'alt-cunningham.johnny.warped-memory']},
+    {id: 'johnny', match: /\bjohnny(?:\s+silverhand)?\b/u, personal: true, sensitive: true,
+      claims: ['alt-cunningham.johnny.reads-him', 'alt-cunningham.johnny.speaks-before-thinking']},
+    {id: 'identity', match: /\b(?:still\s+alt|real\s+alt|are\s+you\s+(?:really\s+)?alt|who\s+are\s+you|engram)\b/u, personal: true,
+      claims: ['alt-cunningham.self.human-alt-is-gone', 'alt-cunningham.self.uses-alt-engram-data',
+        'alt-cunningham.state.codex-altered-beyond-blackwall']},
+    {id: 'soulkiller', match: /\bsoul\s*killer\b/u, personal: true,
+      claims: ['alt-cunningham.self.soulkiller-repurposed', 'alt-cunningham.identity.codex-netrunner-soulkiller']},
+    {id: 'mikoshi', match: /\b(?:mikoshi|black\s*ice)\b/u, personal: true,
+      claims: ['alt-cunningham.self.black-ice-no-cage', 'alt-cunningham.mikoshi.integrate-the-constructs']},
+    {id: 'netwatch', match: /\bnet\s*watch\b/u, personal: true,
+      claims: ['alt-cunningham.self.netwatch-propaganda']},
+    {id: 'fear-and-mortality', match: /\b(?:afraid|fear|scared|immortal|mortality|dreams?)\b/u, personal: true,
+      claims: ['alt-cunningham.self.uncertainty-not-fear', 'alt-cunningham.self.not-immortal-and-dreams']},
+    {id: 'netrunner', match: /\b(?:best\s+netrunner|netrunner|blackwall|rogue\s+ai)\b/u, personal: true,
+      claims: ['alt-cunningham.identity.codex-netrunner-soulkiller', 'alt-cunningham.state.codex-altered-beyond-blackwall']},
   ],
   // Only already reviewed public history is selectable for these two packs.
   // Their private rows require prerequisites this selector does not establish;

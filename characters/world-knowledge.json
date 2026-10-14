@@ -168841,6 +168841,65 @@
       "reason": "Panam/Judy accompanying V, River/Kerry staying and no partner scene require actual relationship/ending combinations. No absent flag selects a default partner branch."
     },
     {
+      "id": "alt-cunningham.nomad.met-v",
+      "revision": 1,
+      "questKey": "we-gotta-live-together",
+      "topic": "v.alt-contact-at-camp",
+      "outcome": "completed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V met Alt in cyberspace during the Aldecaldo preparations, on a Net run from the camp.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.5d6e9c75441e",
+        "al5.ev.journal.ec75551516aa"
+      ],
+      "audience": {
+        "speakers": [
+          "alt-cunningham"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "alt-cunningham"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "al5.initiation.dakota-carol-wrap",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "al5.initiation.talk-alt",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.alt-link",
+          "outcomeKey": "completed"
+        }
+      ]
+    },
+    {
       "id": "cc5.blue.band-coerced",
       "revision": 1,
       "questKey": "i-dont-wanna-hear-it",
@@ -207034,6 +207093,7 @@
       ],
       "audience": {
         "speakers": [
+          "alt-cunningham",
           "johnny-silverhand"
         ],
         "perspective": "participant",
@@ -207043,6 +207103,7 @@
         ],
         "recipients": [
           "v",
+          "alt-cunningham",
           "johnny-silverhand"
         ]
       },

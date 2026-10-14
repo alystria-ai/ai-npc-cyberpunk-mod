@@ -1345,6 +1345,73 @@ export const REVIEWED_INTRINSIC_SUBJECT_BINDINGS = freeze({
       }
     ]
   },
+  "alt-cunningham": {
+    "kind": "codex",
+    "id": "alt_cunningham",
+    "titles": [
+      "Alt Cunningham"
+    ],
+    "emittedSpeech": true,
+    "subjectQualifications": [
+      {
+        "subjectPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/24/Data/id",
+        "titlePointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/24/Data/title/value",
+        "primaryKeyPointer": "/Data/RootChunk/root/Data/entries/15084/primaryKey",
+        "variantPointer": "/Data/RootChunk/root/Data/entries/15084/femaleVariant",
+        "subject": {
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/alt-cunningham-20261014/raw/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "fd069432d89cf374d06516867f5a5fe59f32c4edef294111bc960966769ca26c"
+        },
+        "localization": {
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/alt-cunningham-20261014/raw/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "3e6be87fef2764a5bf2c5db6e33fce3cd30c75e6449f997a7af422cc3a1ac620"
+        }
+      }
+    ],
+    "actors": [
+      {
+        "name": "Alt",
+        "voice": "1103967280742240264",
+        "qualification": {
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/alt-cunningham-20261014/raw/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+          "jsonSha256": "45823fb1aa91619ca7e69534f3bc11066c60a5b2652cdd2fdcce34093ec4a565",
+          "actorPointer": "/Data/RootChunk/actors/0",
+          "voicetagPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "linePointer": "/Data/RootChunk/screenplayStore/lines/2",
+          "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/6/Data"
+        }
+      },
+      {
+        "name": "Alt",
+        "voice": "1103967280742240264",
+        "qualification": {
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/alt-cunningham-20261014/raw/base/quest/main_quests/part1/q114/scenes/q114_03d_alt_meeting.scene.json",
+          "assetSha256": "09a63e641b2c3ed49de2ba4a31cc1e0e52cb7c9067087bf44b4d7eca2dd95b07",
+          "jsonSha256": "e60f6bccc010364f524d40e7853dac0138839b20db5db4f5d0520fc3b607f436",
+          "actorPointer": "/Data/RootChunk/actors/0",
+          "voicetagPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "linePointer": "/Data/RootChunk/screenplayStore/lines/1",
+          "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data"
+        }
+      },
+      {
+        "name": "alt",
+        "voice": "1103967280742240264",
+        "qualification": {
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/alt-cunningham-20261014/raw/base/quest/main_quests/part1/q115/scenes/q115_03a_alt.scene.json",
+          "assetSha256": "be9965126c13c7d511c1b2690067773785e06e724ba4a755d8394ef9bc8ccb30",
+          "jsonSha256": "942b1ce2176271608d6f9f7de4abeeaeab28a1b50acfdd01f292a0375aa75680",
+          "actorPointer": "/Data/RootChunk/actors/0",
+          "voicetagPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "linePointer": "/Data/RootChunk/screenplayStore/lines/2",
+          "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/1/Data"
+        }
+      }
+    ]
+  },
   "ana-friedman": {
     "kind": "codex",
     "id": "ana_friedman",

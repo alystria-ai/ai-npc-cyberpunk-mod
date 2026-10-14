@@ -6,6 +6,7 @@
     "2.31"
   ],
   "profileKeys": [
+    "alt-cunningham",
     "carol-emeka",
     "hanako-arasaka",
     "johnny-silverhand",
@@ -1680,6 +1681,7 @@
       ],
       "audience": {
         "speakers": [
+          "alt-cunningham",
           "johnny-silverhand"
         ],
         "perspective": "participant",
@@ -1689,6 +1691,7 @@
         ],
         "recipients": [
           "v",
+          "alt-cunningham",
           "johnny-silverhand"
         ]
       },

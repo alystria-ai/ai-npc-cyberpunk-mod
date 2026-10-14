@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "builtAt": "2026-10-10T08:57:12.802Z",
+  "builtAt": "2026-10-14T08:51:58.724Z",
   "profilesExpected": 80,
   "profilesAuthored": 80,
   "profilesMissing": [],
@@ -130,6 +130,31 @@
       ],
       "sourceContentSha256": "da87d0c66799f3ed34d61a6e04221f49f125b931fbb8be0e7ea72337b3e98d51",
       "referencesVerified": 635,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "alt-cunningham",
+      "claimIds": [
+        "alt-cunningham.identity.codex-netrunner-soulkiller",
+        "alt-cunningham.state.codex-altered-beyond-blackwall",
+        "alt-cunningham.self.human-alt-is-gone",
+        "alt-cunningham.self.uses-alt-engram-data",
+        "alt-cunningham.self.soulkiller-repurposed",
+        "alt-cunningham.self.black-ice-no-cage",
+        "alt-cunningham.self.netwatch-propaganda",
+        "alt-cunningham.self.not-immortal-and-dreams",
+        "alt-cunningham.self.uncertainty-not-fear"
+      ],
+      "sampleIds": [
+        "identity",
+        "uncertainty",
+        "soulkiller",
+        "cage",
+        "netwatch",
+        "mortality"
+      ],
+      "sourceContentSha256": "805330e9ac0c0466a7d5a0ef453d26e1321976888e91ab94e8c7e15c5e312b36",
+      "referencesVerified": 493,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
