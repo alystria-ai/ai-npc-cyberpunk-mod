@@ -576,3 +576,85 @@ test('the loading ids are Player notices without a repeat window, and a read tha
     assert(#shown == 0 and #posts == 0)
   `);
 });
+
+// The daily limit has two lines to read and a choice to make: it stays longer than the game's own five seconds.
+test('only the daily-limit notice stays longer: it is written to the warning line with its own duration, every other notice keeps the five-second call', () => {
+  run(`
+    local written = {}
+    local board = {SetVariant = function(_, id, value, force) written[#written + 1] = {id = id, value = value, force = force} end}
+    Game = {GetAllBlackboardDefs = function() return {UI_Notifications = {WarningMessage = 'warning-id'}} end,
+      GetBlackboardSystem = function() return {Get = function() return board end} end}
+    SimpleScreenMessage = {new = function() return {} end}
+    Enum = {new = function(name, value) return name .. '.' .. value end}
+    ToVariant = function(value) return value end
+    assert(notices.send(player, 'daily-limit', 'Today limit.'))
+    assert(#shown == 0 and #written == 1, 'the five-second call was used')
+    local message = written[1].value
+    assert(written[1].id == 'warning-id' and written[1].force == true)
+    assert(message.isShown == true and message.message == 'Today limit.' and message.isInstant == false)
+    assert(message.duration == notices.showS['daily-limit'] and message.duration >= 8 and message.duration <= 12, 'duration ' .. tostring(message.duration))
+    assert(message.type == 'SimpleMessageType.Neutral')
+    -- every other id: the ordinary five-second notice, nothing written to the line
+    written = {}
+    assert(notices.send(player, 'service-down', 'The service is down.'))
+    assert(#shown == 1 and shown[1] == 'The service is down.' and #written == 0)
+    local ids = 0
+    for id, seconds in pairs(notices.showS) do ids = ids + 1; assert(id == 'daily-limit' and seconds == 9) end
+    assert(ids == 1, 'another notice got a longer duration')
+    -- a joined notice that holds a long line is shown with it; the line is still subject to the class and repeat window
+    now = now + 100000
+    shown, written = {}, {}
+    assert(notices.sendLines(player, {{id = 'service-down', text = 'A.'}, {id = 'daily-limit', text = 'B.'}}) == 2)
+    assert(#written == 1 and written[1].value.message == 'A.\\nB.' and written[1].value.duration == 9)
+    assert(not notices.send(player, 'daily-limit', 'B.'), 'repeated inside its window')
+  `);
+});
+
+test('when the warning line cannot be written the daily-limit notice falls back to the ordinary five-second notice', () => {
+  run(`
+    -- no Game here: the write fails
+    assert(notices.send(player, 'daily-limit', 'Today limit.'))
+    assert(#shown == 1 and shown[1] == 'Today limit.')
+    -- a screen without the timed call (older state, tests) behaves the same
+    now = now + 100000
+    shown = {}
+    notices.screen = {post = function() return 'native' end, clear = function() end}
+    assert(notices.send(player, 'daily-limit', 'Today limit.') and #shown == 1)
+    now = now + 100000
+    notices.screen.timed = function() error('boom') end
+    assert(notices.send(player, 'daily-limit', 'Today limit.') and #shown == 2)
+  `);
+});
+
+test('the loading notice does not cover a long notice before it has run its time, and covers it again afterwards', () => {
+  run(`${boardSetup}
+    local timed = {}
+    notices.screen.timed = function(_, text, seconds) timed[#timed + 1] = {text = text, seconds = seconds}; screen = {text, true}; return true end
+    state.omni = 'loading'; run(2)
+    assert(#posts == 1 and posts[1].text == 'omni:loading')
+    assert(notices.send(player, 'daily-limit', 'Today limit.') and #timed == 1 and timed[1].seconds == 9)
+    -- the ordinary rule would cover it after 3 s; it is on screen for its 9 s, the intro and the outro
+    run(8); assert(#posts == 1, 'the loading notice covered the long notice: ' .. #posts)
+    run(6); assert(#posts == 2 and posts[2].text == 'omni:loading', 'the loading notice did not come back: ' .. #posts)
+    -- an ordinary notice keeps the short wait
+    local before = #posts
+    assert(notices.send(player, 'service-down', 'The service is down.'))
+    run(4); assert(#posts == before + 1, 'the ordinary rule changed: ' .. #posts)
+  `);
+});
+
+test('the default screen writes a timed notice once with the duration asked for', () => {
+  run(`
+    local written = {}
+    local board = {SetVariant = function(_, id, value) written[#written + 1] = value end}
+    Game = {GetAllBlackboardDefs = function() return {UI_Notifications = {WarningMessage = 'warning-id'}} end,
+      GetBlackboardSystem = function() return {Get = function() return board end} end}
+    SimpleScreenMessage = {new = function() return {} end}
+    ToVariant = function(value) return value end
+    assert(notices.screen.timed(player, 'x', 9) == true)
+    assert(#written == 1 and written[1].duration == 9 and written[1].isShown == true)
+    -- the held loading notice still gets its long safety net, and hiding writes duration 0
+    assert(notices.screen.post(player, 'y', false) == 'native' and written[2].duration >= 60)
+    assert(notices.screen.clear() == true and written[3].duration == 0 and written[3].isShown == false)
+  `);
+});
