@@ -2984,9 +2984,10 @@ registerForEvent('onUpdate', function(delta)
             log('Battle observation skipped: ' .. tostring(battleError))
         end
     end
-    -- A holocall (mod/holocall.lua): only while one is asked for or running; it ends itself on combat or a scene.
+    -- A holocall (mod/holocall.lua): only while one is asked for or running, or its switched-off camera still waits to
+    -- be deleted; it ends itself on combat or a scene.
     local holocall = convaiHolocall
-    if holocall and (holocall.call or holocall.request) then
+    if holocall and (holocall.call or holocall.request or holocall.lenses) then
         local callOk, callError = pcall(holocall.update, player, elapsedPoll, worldReady, battleSample)
         if not callOk then log('Holocall update failed: ' .. tostring(callError)); pcall(holocall.finish, player, 'error') end
     end

@@ -193,7 +193,7 @@ test('idle costs nothing, and a phone request rings, connects as a voice call an
   holocall.update(player, 0.1, true, open)
   assert(game.began == 'judy' and holocall.call.state == 'dialing')
   assert(warmed[1] == 'judy-alvarez@7ULL', 'the connection warms while the call rings')
-  assert(logged('state=dialing contact=judy profile=judy%-alvarez mode=audio hud=ok'))
+  assert(logged('state=dialing contact=judy profile=judy%-alvarez mode=audio cast=video hud=ok'))
   assert(holocall.partner(player, false) == nil, 'nobody answers before the call connects')
   tick(1.6)
   assert(holocall.connected() and game.connects[1] == false)
@@ -265,33 +265,58 @@ test('calling the same character again hangs up; a load forgets the call without
   assert(holocall.call == nil and ended[#ended] == 'judy:hud-lost' and logged('reason=hud%-lost'))
 `));
 
-test('the experimental live picture places a held copy and a switched-on camera, and falls back to the portrait', () => run(`
-  local created, deleted, toggles, played = {}, {}, {}, {}
-  local entities = {}
-  local function entity(id, name)
-    local e = {id = id, name = name, attached = true, position = {x = 10, y = 20, z = 70}}
-    function e:GetEntityID() return {hash = id} end
+// A world for the live picture: V at (10, 20, 30) under a roof slab at z = 50 (x 0..20, y 10..30) when `roof` is set;
+// raycasts hit the slab's plane inside its bounds (Static only). Entities spawn at once; every native call is recorded.
+const world = `
+  local created, deleted, toggles, played, forced, looks, removed = {}, {}, {}, {}, {}, {}, {}
+  local entities, roof, records = {}, true, {['Character.Judy'] = true, ['Character.wat_lch_melee_01'] = true}
+  local function entity(id, name, spec)
+    local p = spec.position
+    local e = {id = id, name = name, attached = true, position = {x = p.x, y = p.y, z = p.z}}
+    function e:GetEntityID() return {hash = id, id = id} end
     function e:IsAttached() return self.attached end
     function e:GetWorldPosition() return self.position end
     function e:ConvaiFaceRequest() self.face = true; return 'managed' end
+    function e:QueueEvent(event) looks[#looks + 1] = {npc = name, event = event}; return true end
     function e:FindComponentByName() return {Toggle = function(_, on) toggles[#toggles + 1] = name .. ':' .. tostring(on) end} end
     return e
   end
   local dynamic = {}
   function dynamic:IsReady() return true end
   function dynamic:CreateEntity(spec) local id = tostring(9000 + #created) .. 'ULL'; created[#created + 1] = spec
-    entities[id] = entity(id, spec.recordID and 'copy' or 'camera'); return {hash = id, id = id} end
+    entities[id] = entity(id, spec.recordID and 'copy' or 'camera', spec); return {hash = id, id = id} end
   function dynamic:IsSpawned(id) return entities[id.id] ~= nil end
   function dynamic:IsManaged() return true end
   function dynamic:IsTagged() return true end
   function dynamic:DeleteEntity(id) deleted[#deleted + 1] = id.id end
   function dynamic:GetTaggedIDs() return {} end
-  Game = {GetDynamicEntitySystem = function() return dynamic end, FindEntityByID = function(id) return entities[id.id] end}
+  local spatial = {rays = 0}
+  function spatial:SyncRaycastByCollisionGroup(a, b, group)
+    self.rays = self.rays + 1
+    if group ~= 'Static' or not roof or (a.z - 50) * (b.z - 50) > 0 or a.z == b.z then return false, {} end
+    local t = (a.z - 50) / (a.z - b.z)
+    local x, y = a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t
+    if x < 0 or x > 20 or y < 10 or y > 30 then return false, {} end
+    return true, {position = {x = x, y = y, z = 50}}
+  end
+  local animation = {}
+  function animation:SetForcedVisible(id, on) forced[#forced + 1] = id.id .. ':' .. tostring(on) end
+  Game = {GetDynamicEntitySystem = function() return dynamic end, FindEntityByID = function(id) return entities[id.id] end,
+    GetSpatialQueriesSystem = function() return spatial end, GetAnimationSystem = function() return animation end}
+  TweakDB = {GetRecord = function(_, id) if records[id] then return {IsA = function(_, class) return class == 'gamedataCharacter_Record' end} end end}
   CName = {new = function(v) return v end}
+  Enum = {new = function(_, v) return v end}
   NewObject = function() return {} end
   TweakDBID = {new = function(v) return v end}
   Vector4 = {new = function(x, y, z) return {x = x, y = y, z = z} end}
-  EulerAngles = {new = function(r, p, y) return {ToQuat = function() return {yaw = y} end} end}
+  EulerAngles = {new = function(r, p, y) return {ToQuat = function() return {yaw = y, pitch = p} end} end}
+  LookAtAddEvent = {new = function() local e = {request = {limits = {}}}
+    function e:SetEntityTarget(target, slot) self.target, self.slot = target, slot end
+    function e:SetStyle(style) self.style = style end
+    function e:SetAdditionalPartsArray(parts) self.parts = parts end
+    return e end}
+  LookAtPartRequest = {new = function() return {} end}
+  LookAtRemoveEvent = {QueueRemoveLookatEvent = function(npc, event) removed[#removed + 1] = event end}
   function player:GetWorldPosition() return {x = 10, y = 20, z = 30} end
   dofile = function(path)
     if path == 'gesture-catalog.lua' then return {device = 'device.ent', families = {on_sides = {component = 'talk_on_sides'},
@@ -302,35 +327,123 @@ test('the experimental live picture places a held copy and a switched-on camera,
       exit = function() end, deleteDevice = function() end} end
     error('unexpected ' .. path)
   end
+  local function near(a, b) return math.abs(a - b) < 1e-3 end
   live = true
+`;
+
+test('a staged character gets the live picture: a hidden floor above V, the copy held and animated there, and the game camera framing her', () => run(world + `
   game.window = 'holocall'
   game.requests = {'judy'}; holocall.drain(player); tick(0.1)
-  assert(logged('mode=holo') and #created == 2, 'a copy and a camera are created')
+  assert(logged('state=dialing contact=judy profile=judy%-alvarez mode=holo cast=video hud=ok'))
+  assert(#created == 0, 'nothing is spawned before a floor is found')
+  tick(0.2)
+  assert(#created == 2, 'a copy and a camera are created once the floor above V is found')
   local copy, camera = created[1], created[2]
-  assert(copy.recordID == 'Character.Judy' and copy.position.z == 70 and copy.persistState == false and copy.persistSpawn == false)
+  -- The copy stands on the roof 20 m above V, out of V's sight, with her own record.
+  assert(copy.recordID == 'Character.Judy' and near(copy.position.x, 10) and near(copy.position.y, 20) and near(copy.position.z, 50))
+  assert(copy.persistState == false and copy.persistSpawn == false and copy.alwaysSpawned == true and copy.orientation.yaw == 0)
   assert(copy.tags[1] == 'CyberpunkConvaiCompanion' and copy.tags[2] == 'CyberpunkConvaiHolocall')
+  -- The game's own holocall camera, at the game's framing: 0.79 m in front, 20.4 degrees round, 1.6 m up, level, looking back.
   assert(camera.templatePath == 'base\\\\cinematics\\\\cameras\\\\holocall_camera.ent' and camera.tags[1] == 'CyberpunkConvaiHolocall')
-  assert(math.abs(camera.position.y - 20.9) < 1e-6 and math.abs(camera.position.z - 71.62) < 1e-6 and camera.orientation.yaw == 180 and copy.orientation.yaw == 0)
+  assert(near(camera.position.x, 9.72362) and near(camera.position.y, 20.74317) and near(camera.position.z, 51.6), camera.position.x .. ' ' .. camera.position.y)
+  assert(near(camera.orientation.yaw, 200.4) and camera.orientation.pitch == 0)
+  assert(logged('holo spawn contact=judy record=Character.Judy floor=%+20.0m yaw=0 lens=0.79m'))
   tick(2)
-  assert(played[1] == 'convai_talk_judy' and toggles[1] == 'camera:true' and logged('holo ready contact=judy held=yes camera=on'))
+  assert(forced[1] == '9000ULL:true', 'the copy keeps animating off screen')
+  assert(played[1] == 'convai_talk_judy' and toggles[1] == 'camera:true')
+  -- Her eyes go to the lens (the camera entity), eyes leading, at the game's holocall look speed.
+  local look = looks[1]
+  assert(look and look.npc == 'copy' and look.event.target.name == 'camera' and look.event.bodyPart == 'Eyes')
+  assert(look.event.request.transitionSpeed == 80 and look.event.parts[1].partName == 'Eyes' and look.event.parts[1].weight == 1)
+  assert(look.event.parts[2].partName == 'Head' and look.event.parts[2].suppress == 1)
+  assert(logged('holo ready contact=judy held=yes camera=on animated=true look=true'))
   assert(holocall.connected() and game.connects[#game.connects] == true and logged('state=connected contact=judy mode=holo window=holocall'))
   local caller = holocall.partner(player, false)
   assert(caller.entity == '9000ULL' and caller.voiceOnly == nil and caller.holocall.mode == 'holo' and caller.npc.face)
   assert(holocall.partnerValid({entity = '9000ULL', holocall = {contact = 'judy', mode = 'holo'}}))
+  -- The look is asked for again every few seconds, the old one retired first.
+  local before = #looks
+  tick(5.1)
+  assert(#looks == before + 1 and removed[#removed] == looks[before].event)
+  -- Hang up: look retired, animation released, camera off at once and deleted only after a delay, copy deleted.
+  local rays = spatial.rays
+  holocall.finish(player, 'hangup')
+  assert(forced[#forced] == '9000ULL:false' and toggles[#toggles] == 'camera:false' and removed[#removed] == looks[#looks].event)
+  assert(#deleted == 1 and deleted[1] == '9000ULL', 'the copy goes now; the camera waits')
+  assert(holocall.lenses and #holocall.lenses == 1)
+  tick(1.0); assert(#deleted == 1, 'the switched-off camera is not freed in the next frames')
+  tick(0.6); assert(#deleted == 2 and deleted[2] == '9001ULL' and holocall.lenses == nil)
+  tick(1); assert(spatial.rays == rays, 'nothing runs after the call')
+`));
+
+test('the live picture falls back to the portrait when the copy moves, when there is no floor, and for an unknown record', () => run(world + `
+  game.window = 'holocall'
+  game.requests = {'judy'}; holocall.drain(player); tick(2.5)
+  assert(holocall.connected() and holocall.call.mode == 'holo')
   -- The copy falls: the call goes on with the portrait.
-  entities['9000ULL'].position = {x = 10, y = 20, z = 60}
+  entities['9000ULL'].position = {x = 10, y = 20, z = 40}
   game.window = 'audiocall'; tick(0.3)
   assert(holocall.connected() and holocall.call.mode == 'audio' and game.connects[#game.connects] == false)
   assert(logged('holo failed contact=judy reason=copy%-lost fallback=audio') and lastNotice().id == 'holocall-live-fallback')
-  assert(#deleted == 2 and toggles[#toggles] == 'camera:false', 'the copy and the camera are removed')
+  assert(deleted[1] == '9000ULL' and toggles[#toggles] == 'camera:false' and forced[#forced] == '9000ULL:false')
   assert(holocall.partner(player, false).entity == '7ULL')
+  tick(2); assert(deleted[2] == '9001ULL', 'the camera is deleted after its delay, the call still on')
   holocall.finish(player, 'hangup')
-  -- No catalogue talk pose: the portrait from the start.
+  -- Open sky above and around V: nothing to stand on, so the portrait, after one candidate per tick.
+  roof = false; created = {}
+  game.requests = {'judy'}; holocall.drain(player); tick(2.4)
+  assert(#created == 0 and holocall.call.state == 'dialing', 'nine candidates, one per tick')
+  tick(1.2)
+  assert(logged('reason=no%-studio%-spot %(no%-floor%)') and holocall.connected() and holocall.call.mode == 'audio')
+  holocall.finish(player, 'hangup'); roof = true
+  -- A record the game does not have: never spawned (it would crash), the portrait instead.
+  records['Character.Judy'] = nil
+  game.requests = {'judy'}; holocall.drain(player); tick(2)
+  assert(#created == 0 and logged('reason=record%-unavailable') and holocall.connected() and holocall.call.mode == 'audio')
+  holocall.finish(player, 'hangup'); records['Character.Judy'] = true
+  -- No catalogue talk pose: the portrait.
   dofile = function(path) if path == 'gesture-workspot.lua' then return false end; return {families = {}} end
-  holocall.workspot = nil
+  holocall.workspot, holocall.gestures = nil, nil
   game.requests = {'judy'}; holocall.drain(player); tick(2)
   assert(holocall.connected() and holocall.call.mode == 'audio' and logged('reason=no%-talk%-pose'))
 `));
+
+test('a character the game has no holocall setup for gets the portrait voice call, as in the game, with nothing spawned', () => run(world + `
+  holocall.catalog.trainer_fred = {contact = 'trainer_fred', key = 'judy-alvarez', name = 'Coach Fred', record = 'Character.wat_lch_melee_01'}
+  game.requests = {'trainer_fred'}; holocall.drain(player); tick(2)
+  assert(logged('state=dialing contact=trainer_fred profile=judy%-alvarez mode=audio cast=voice hud=ok'))
+  assert(holocall.connected() and holocall.call.mode == 'audio' and game.connects[1] == false)
+  assert(#created == 0 and spatial.rays == 0 and lastNotice().id == 'holocall-connected', 'no spawn, no search, no fallback notice')
+  holocall.finish(player, 'hangup')
+  -- With the setting off a staged character is a voice call too.
+  live = false
+  game.requests = {'judy'}; holocall.drain(player); tick(2)
+  assert(logged('contact=judy profile=judy%-alvarez mode=audio cast=video') and #created == 0 and spatial.rays == 0)
+  -- A load forgets a camera still waiting to be deleted (it died with the world).
+  holocall.lenses = {{id = {id = 'x'}, wait = 1}}
+  holocall.abandon('save restored')
+  assert(holocall.lenses == nil and holocall.call == nil)
+`));
+
+test("the staged list names only the mod's own phone contacts with a character record, never Johnny, and no quest path is used", () => {
+  const block = /M\.STAGED = \{([^]*?)\n\}/.exec(holocallSource)[1];
+  const keys = [...block.matchAll(/(?:^|[\s,])(?:\['([^']+)'\]|([a-z0-9_]+)) = '/g)].map(m => m[1] || m[2]);
+  assert.ok(keys.length >= 50, `${keys.length} staged contacts`);
+  const rows = new Map(JSON.parse(read('../characters/phone-contacts.json')).map(row => [row.contact, row]));
+  for (const key of keys) {
+    const row = rows.get(key);
+    assert.ok(row, `${key} is a phone contact`);
+    assert.match(row.record || '', /^Character\./, `${key} has a character record`);
+    assert.doesNotMatch(row.record + row.key + key, /johnny|silverhand/i);
+  }
+  const code = holocallSource.split('\n').filter(line => !line.trim().startsWith('--')).join('\n');
+  for (const forbidden of ['GetQuestsSystem', 'SetFact', 'PhoneSystem', 'Blackboard', 'questTriggerCallRequest', 'JournalManager']) {
+    assert.ok(!code.includes(forbidden), `holocall.lua uses ${forbidden}`);
+  }
+  // Nothing per frame: the module is driven from the 0.1 s tick only while something is due, and the camera delete waits.
+  const init = read('../mod/init.lua');
+  assert.match(init, /if holocall and \(holocall\.call or holocall\.request or holocall\.lenses\) then/);
+});
 
 test('callable contacts are registered once per world, again after a load, and retried while the native side is missing', () => run(`
   game.requests = {}
