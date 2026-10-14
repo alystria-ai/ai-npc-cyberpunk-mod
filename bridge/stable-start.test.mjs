@@ -15,7 +15,6 @@ import {hasEmotionTag} from './emotion-tags.mjs';
 import {TextProviderHost, mistralRoute} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
-import {GroqKey} from './groq-key.mjs';
 import {PersonaBook} from './mistral-prompt.mjs';
 
 const tick = (ms = 5) => new Promise(done => setTimeout(done, ms));
@@ -379,7 +378,7 @@ async function textHost(reply = 'Hey choom, good to see you again. You look like
     });
   });
   await new Promise(done => server.listen(0, '127.0.0.1', done));
-  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => 'api-key=aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL\n', writeText: async () => {}, groq: new GroqKey({keyPath: 'g.txt'})});
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => 'api-key=aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL\n', writeText: async () => {}});
   await provider.load(); provider.setPreference('mistral'); provider.apply();
   const memory = await MistralMemory.open({path: null});
   const recorded = [];
