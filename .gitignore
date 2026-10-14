@@ -20,7 +20,7 @@ __pycache__/
 
 # Voice cloning devslot now lives outside the repo (Downloads).
 convai voice cloning devslot/
-# Game audio extracted for an add-on's voice reference stays on the developer's machine (see addons/delamain/VOICE.md).
+# Game audio extracted for an add-on's voice reference stays on the developer's machine (the Delamain and Skippy add-ons keep the same rule in their own repositories).
 /addons/*/voice/*.wav
 /addons/*/voice/*-reference.json
 # The root TODO.md is the maintained work list and captain's log.

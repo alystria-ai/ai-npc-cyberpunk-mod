@@ -6,7 +6,10 @@
 // file: it is a separate CET mod folder that only talks to the main mod through GetMod('CyberpunkConvai').addons and its
 // convai-addon.json manifest.
 //
-// Usage: node packaging/build-addon.mjs addons/<id> [--out dist/addons]
+// Works on any add-on folder, in this repository (addons/example) or outside it. Skippy and Delamain live in repositories of their
+// own, each with a self-contained copy of this builder (tools/build.mjs there, same files and same bytes): keep the rules in step.
+//
+// Usage: node packaging/build-addon.mjs <add-on folder> [--out dist/addons]
 import {mkdir, readFile, readdir, rm} from 'node:fs/promises';
 import {basename, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
