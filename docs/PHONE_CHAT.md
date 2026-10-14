@@ -152,8 +152,8 @@ coverage is recorded in [CHAT_MEMORY_RESET.md](CHAT_MEMORY_RESET.md).
 - Follow-up: inherited Codeware focus callbacks also reached F6/F8 inputs.
   Placeholder and text-style changes now require a `convaiPhoneComposer` ancestor.
   The world composer keeps mixed-case typing (its box has had no placeholder
-  text since 2026-10-15; the dialog line above it still reads “Type your message
-  to the character.”); changing the hint never changes a draft. The regression reproduced
+  text, and its message line “Type your message to the character.” is hidden
+  and takes no layout room, since 2026-10-15; only the title stays); changing the hint never changes a draft. The regression reproduced
   the leaked hint before the fix and passes afterward, including detached inputs
   and manager search. All 20 focused phone checks pass. Applied live without a
   reload; the user confirmed the original in-world prompt is restored.

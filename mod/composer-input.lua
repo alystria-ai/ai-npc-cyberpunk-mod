@@ -116,8 +116,15 @@ local function localizePresentation(controller, data)
         local title = controller:GetChildWidgetByPath(CName.new('notification/main/inkVerticalPanelWidget18/title'))
         if title then title:SetText(text('TALK TO {character}', {character = data.title:sub(9)})) end
     end
+    -- The dialog's message line ("Type your message to the character.") is not shown: it is emptied and hidden, and
+    -- stops taking room in the dialog's vertical layout, so there is no gap under the title. The English notification
+    -- data keeps the sentence as the ownership marker.
     local message = messageWidget(controller)
-    if message then message:SetText(text('Type your message to the character.')) end
+    if message then
+        message:SetText('')
+        pcall(function() message:SetAffectsLayoutWhenHidden(false) end)
+        message:SetVisible(false)
+    end
 end
 
 -- The stock notification library draws three full-screen siblings of the dialog
@@ -207,8 +214,8 @@ function M.apply(controller)
     end
     if input then
         input:SetLetterCase(textLetterCase.OriginalCase)
-        -- F6/F8 are immediately ready for typing. The box has no placeholder text (the dialog's own line above it keeps
-        -- the prompt). SetDefaultText changes only the hint, never an existing typed draft.
+        -- F6/F8 are immediately ready for typing. The box has no placeholder text and the dialog's message line above
+        -- it is hidden (localizePresentation). SetDefaultText changes only the hint, never an existing typed draft.
         input:SetDefaultText('')
         M.patched = M.patched + 1
         M.lastCase = tostring(input:GetLetterCase())

@@ -189,11 +189,11 @@ local data={title='TALK TO Judy {A}',message='Type your message to the character
 local n,c,title,message=notification(data)
 m.apply(n)
 assert(title.text=='PARLER À Judy {A}' and c.placeholder=='')
-assert(message.text==translations.fr[data.message] and c.case==textLetterCase.OriginalCase)
+assert(message.text=='' and message.visible==false and message.affectsLayout==false and c.case==textLetterCase.OriginalCase)
 assert(data.title=='TALK TO Judy {A}' and data.message=='Type your message to the character.')
 assert(c.draft=='Hey Judy, mixed Case 日本語')
 language='ja';generation=2;m.apply(n)
-assert(title.text=='Judy {A}と話す' and c.placeholder=='')
+assert(title.text=='Judy {A}と話す' and c.placeholder=='' and message.text=='' and message.visible==false)
 for _,key in ipairs(calls)do assert(key~='Judy {A}' and key~=c.draft)end
 assert(m.lastError==nil,m.lastError)
 `));
@@ -204,7 +204,7 @@ local m=(function()${composer}end)()
 local data={title='TALK TO Judy',message='Type your message to the character.'}
 local n,c,title,message=notification(data);n.m_message=nil
 m.apply(n);m.applyFonts(n)
-assert(message.text==translations.ja[data.message] and message.fontFamily.path==convaiUiFonts.family('ja'))
+assert(message.text=='' and message.visible==false and message.fontFamily.path==convaiUiFonts.family('ja'))
 assert(data.message=='Type your message to the character.' and c.draft=='Hey Judy, mixed Case 日本語')
 `));
 
@@ -219,7 +219,7 @@ function n:GetChildWidgetByPath(path)
   return self:GetRootWidget()
 end
 m.apply(n);m.applyFonts(n)
-assert(message.text==translations.ja[data.message] and message.fontFamily.path==convaiUiFonts.family('ja'))
+assert(message.text=='' and message.visible==false and message.fontFamily.path==convaiUiFonts.family('ja'))
 assert(c.draft=='Hey Judy, mixed Case 日本語' and m.lastError==nil,m.lastError)
 `));
 

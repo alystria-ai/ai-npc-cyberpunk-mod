@@ -1427,8 +1427,7 @@
     "phone.localized": [
       "CHAT",
       "Chat",
-      "TALK TO {character}",
-      "Type your message to the character."
+      "TALK TO {character}"
     ],
     "phone.native": [
       "CHAT",
@@ -7228,12 +7227,10 @@
     },
     "Type your message to the character.": {
       "contexts": [
-        "phone.localized",
         "world.conversation"
       ],
       "references": [
-        "mod/composer-input.lua:120",
-        "mod/composer-input.lua:183",
+        "mod/composer-input.lua:190",
         "mod/composer-input.lua:39",
         "r6/scripts/CyberpunkConvai/Composer.reds:121"
       ]
