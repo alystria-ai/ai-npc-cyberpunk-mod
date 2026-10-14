@@ -22,8 +22,8 @@ Code: `bridge/voxtral-voice.mjs` (the adapter), `bridge/mistral-rate.mjs` (the s
 
 ## What the player sees
 
-Settings > Voices > Companion voices has seven entries: Pocket · Performance, four OmniVoice tiers, **Mistral cloud voice
-(Voxtral)**, Convai · Cloud voice. Without a Mistral key the entry reads "Mistral cloud voice (Voxtral) · needs Mistral key" and
+Settings > Voices > Companion voices has seven entries: Pocket · Performance, four OmniVoice tiers, **Voxtral · Mistral cloud**, Convai · Cloud voice. Without a Mistral key the entry reads "Voxtral · needs Mistral key" (short on purpose: a select value
+that is wider than about 32 average letters runs over the arrows, see docs/MANAGER_UI.md, "Select labels") and
 Apply refuses it ("Requires a Mistral key (add it in Settings > Development)"), the same way the OmniVoice entries behave without
 the pack. The key is the one used for the Mistral text option (`player-mistral-key.txt`, pasted in Settings > Development); the
 bridge publishes only whether one is saved (`runtime/mistral-state.json`, `saved`).

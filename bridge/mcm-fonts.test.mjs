@@ -34,6 +34,9 @@ const fixture = `
       guard(); self.fontFamily = {path = path, hash = 'applied-' .. path}; self.style = style
       self.writes, fontWrites = self.writes + 1, fontWrites + 1
     end
+    w.size, w.sizeWrites = 20, 0
+    function w:GetFontSize() guard(); return self.size end
+    function w:SetFontSize(value) guard(); self.size = value; self.sizeWrites = self.sizeWrites + 1 end
     function w:GetNumChildren() guard(); return #self.children end
     function w:GetWidgetByIndex(index) guard(); return self.children[index + 1] end
     return w
@@ -334,4 +337,37 @@ test('busy is false on a Latin page that shows no native language names', () => 
   render(true)
   assert(gated.busy() == false, 'a page with nothing to restyle was held back')
   assert(gated.update())
+`));
+
+test('our description is drawn larger than MCM draws it, and another mod text gets MCM size back', () => run(`
+  code, revision = 'en', 3
+  local p = render(true)
+  assert(p.description.size == 20 and p.description.sizeWrites == 0, 'no ink call inside a native observer')
+  frame()
+  assert(p.description.size == 22 and p.description.sizeWrites == 1)
+  assert(p.title.sizeWrites == 0 and p.label.sizeWrites == 0, 'only the description panel is resized')
+  -- Hovering one of our rows again changes nothing (the same size is not written twice).
+  emit('McmUiEmitHover', reference(), 'our-setting', '', true); emit('McmUiUpdateDescription', reference()); frame()
+  assert(p.description.size == 22 and p.description.sizeWrites == 1)
+  -- A hover on another mod's row: the panel shows its text at the size MCM gave it.
+  emit('McmUiEmitHover', reference(), 'foreign', '', true); emit('McmUiUpdateDescription', reference()); frame()
+  assert(p.description.size == 20 and p.description.sizeWrites == 2)
+  emit('McmUiEmitHover', reference(), 'another-foreign', '', false); frame()
+  assert(p.description.size == 22 and p.description.sizeWrites == 3)
+  -- MCM draws a new text widget whenever it sets a description: the new one is read and sized again.
+  p.description = widget('description_text', 'Our replaced description')
+  p.render.children[6] = widget('mcm_description_panel', nil, {p.description})
+  emit('McmUiSetDescription', reference()); frame()
+  assert(p.description.size == 22)
+  -- Shutdown puts MCM's size back.
+  assert(adapter.restoreNow() and p.description.size == 20)
+`));
+
+test('a page of another mod keeps MCM description size, and a missing size call never breaks the paint', () => run(`
+  local p = render(false); frame()
+  assert(p.description.size == 20 and p.description.sizeWrites == 0)
+  local q = render(true)
+  q.description.GetFontSize = nil
+  q.description.SetFontSize = nil
+  frame(); assert(adapter.inspect().error == '' and not adapter.inspect().pending)
 `));

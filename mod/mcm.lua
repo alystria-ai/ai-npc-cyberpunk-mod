@@ -450,6 +450,71 @@ function M.styleBegin()
     if presentation.pending and not presentation.job then return beginStyleJob() end
 end
 
+-- Select options. The value of a select row sits between the game's two arrows in a fixed-width box, and a text that is too wide
+-- runs over the arrows. The width is not ours to change (the game's settings widget), so every option is kept within OPTION_BUDGET.
+-- optionUnits() is an estimate in "average lowercase letters": narrow letters (i l j t f r . , : ' space) count less, wide ones
+-- (m w M W, capitals, digits) more, and a Chinese, Japanese or Korean character counts two. The budget is 32: the longest entry
+-- that is known to fit (OmniVoice · Ultra Quality · needs Omni pack, 43 characters) is about 36 of these units and the entries seen
+-- running over the arrows are about 33 to 41, so 32 stays clear of both. Static options are checked in bridge/select-labels.test.mjs;
+-- fitOption() is the last resort for a label built at run time (a custom model's own name): it cuts the name, keeps a trailing
+-- " (...)" or " · ..." part and ends the name with an ellipsis. Page build only, never per frame.
+local OPTION_BUDGET = 32
+local NARROW, MEDIUM = {}, {}
+for letter in ("il.,:;'|!"):gmatch('.') do NARROW[letter] = true end
+for letter in ('tfrI()-/[]'):gmatch('.') do MEDIUM[letter] = true end
+local function optionUnits(text)
+    local units, index, size = 0, 1, #text
+    while index <= size do
+        local byte = text:byte(index)
+        local length = byte < 128 and 1 or byte >= 240 and 4 or byte >= 224 and 3 or byte >= 192 and 2 or 1
+        local piece = text:sub(index, index + length - 1)
+        if length == 1 then
+            if piece == ' ' then units = units + 0.5
+            elseif NARROW[piece] then units = units + 0.45
+            elseif MEDIUM[piece] then units = units + 0.65
+            elseif piece == 'm' or piece == 'w' then units = units + 1.45
+            elseif piece == 'M' or piece == 'W' then units = units + 1.6
+            elseif piece:find('[A-Z0-9]') then units = units + 1.15
+            else units = units + 1 end
+        elseif length == 2 then
+            units = units + (piece == '·' and 0.65 or 1.05)
+        elseif length == 3 then
+            local code = (byte - 224) * 4096 + (piece:byte(2) - 128) * 64 + (piece:byte(3) - 128)
+            if code >= 0x2E80 then units = units + 2
+            elseif piece == '’' then units = units + 0.45
+            else units = units + 1 end
+        else
+            units = units + 2
+        end
+        index = index + length
+    end
+    return math.floor(units * 10 + 0.5) / 10
+end
+-- Whole characters of `text` from the start while the part plus an ellipsis stays within `limit` units.
+local function cutToUnits(text, limit)
+    local cut, units, index, size = 0, optionUnits('…'), 1, #text
+    while index <= size do
+        local byte = text:byte(index)
+        local length = byte < 128 and 1 or byte >= 240 and 4 or byte >= 224 and 3 or byte >= 192 and 2 or 1
+        local after = units + optionUnits(text:sub(index, index + length - 1))
+        if after > limit then break end
+        units, cut, index = after, index + length - 1, index + length
+    end
+    return text:sub(1, cut) .. '…'
+end
+local function fitOption(text)
+    text = tostring(text or '')
+    if optionUnits(text) <= OPTION_BUDGET then return text end
+    local at = text:find(' (', 1, true) or text:find(' ·', 1, true)
+    if at and at > 1 then
+        local head, tail = text:sub(1, at - 1), text:sub(at)
+        local room = OPTION_BUDGET - optionUnits(tail)
+        if room >= 8 then return cutToUnits(head, room) .. tail end
+    end
+    return cutToUnits(text, OPTION_BUDGET)
+end
+M.OPTION_BUDGET, M.optionUnits, M.fitOption = OPTION_BUDGET, optionUnits, fitOption
+
 local function readonly(id, label, value, description, raw)
     raw = raw or {}
     return {id = id, label = raw.label and label or ui.t(label), value = raw.value and value or ui.t(value or ''),
@@ -461,7 +526,10 @@ local function setting(id, label, kind, value, default, description, elements, r
     raw = raw or {}
     if id:match('^enabled:') then raw.label = true end
     local localized
-    if elements then localized = {};for i,item in ipairs(elements) do localized[i]=raw.elements and item or ui.t(item) end end
+    if elements then
+        localized = {}
+        for i, item in ipairs(elements) do localized[i] = fitOption(raw.elements and item or ui.t(item)) end
+    end
     return {id = id, label = raw.label and label or ui.t(label), type = kind, value = value, defaultValue = default,
         description = raw.description and description or ui.t(description), elements = localized,
         capabilities = {read = true, write = true, draft = true, reset = true}}
@@ -628,14 +696,16 @@ end
 local function voiceMenuLabels(pack, mistral)
     local elements = {}
     for index, choice in ipairs(VOICE_CHOICES) do
-        local label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
-        -- Short, so the entry does not truncate; the voice description says what the pack is.
-        if choice.provider == 'omni' and not pack.installed then
-            label = ui.t('{voice} · needs Omni pack', {voice = label})
-        elseif choice.provider == 'voxtral' and not (mistral or {}).saved then
-            label = ui.t('{voice} · needs Mistral key', {voice = label})
-        elseif choice.provider == 'inworld' and not ((mistral or {}).inworld or {}).saved then
-            label = ui.t('{voice} · needs Inworld key', {voice = label})
+        -- Short (OPTION_BUDGET), so the entry does not run over the arrows; the voice description says what the pack and the keys are. The
+        -- two cloud voices have a menu name of their own: the full one ("Mistral cloud voice (Voxtral)") stays for sentences.
+        local label
+        if choice.provider == 'voxtral' then
+            label = (mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')
+        elseif choice.provider == 'inworld' then
+            label = ((mistral or {}).inworld or {}).saved and ui.t('Inworld · Cloud voice') or ui.t('Inworld · needs key')
+        else
+            label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
+            if choice.provider == 'omni' and not pack.installed then label = ui.t('{voice} · needs pack', {voice = label}) end
         end
         elements[index] = label
     end
@@ -1264,14 +1334,14 @@ local function memorySettings(snapshot)
     local pending = memory.command and memory.command.state == 'pending'
     local rows = {
         readonly('memory-identity', 'Player memory', 'Shared across your saves',
-            'Invited characters are prepared immediately. Natural memories are created when you actually talk to them. One player identity is shared across all saves and stays the same after forgetting. Current game context describes the world you have loaded.'),
+            'Invited characters are prepared immediately. Their memories start when you actually talk to them.\n\nOne player identity is shared across all saves and stays the same after forgetting.\n\nCurrent game context describes the world you have loaded.'),
         readonly('memory-service', 'Memory service', memory.state == 'ready' and 'Ready' or 'Unavailable',
             memory.state == 'ready' and 'Memories can be managed here.'
                 or 'Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.'),
         readonly('memory-count', 'Characters you have talked to',
             memory.talkedToCount and (memory.state == 'ready' and tostring(memory.talkedToCount)
                 or ui.t('{count} · Last reported',{count=memory.talkedToCount})) or 'Unavailable',
-            'Forget all memories applies to these characters. Visiting the catalogue or inviting a companion does not add anyone to this count.'),
+            'Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count.'),
         action('memory:choose', 'Selected character', memory.selectedName or 'Choose a character',
             'Choose any character from the catalogue. They do not need to be in your current party.',
             function(context) return navigate('memory-characters', context) end, not pending and not memory.confirmation),
@@ -1296,11 +1366,11 @@ local function memorySettings(snapshot)
             function() return manager.beginMemoryClear('character') end, memory.canClearCharacter)
         rows[#rows + 1] = action('memory:forget-all', 'Forget all memories',
             memory.talkedToCount and ui.t('Forget ({count} characters)',{count=memory.talkedToCount}) or 'Forget',
-            'Clear memories about you for every character you have talked to. Your player identity is retained. Review an inline confirmation first.',
+            'Clear memories about you for every character you have talked to.\n\nYour player identity stays. A confirmation comes first.',
             function() return manager.beginMemoryClear('all') end, memory.canClearAll)
     end
     rows[#rows + 1] = readonly('memory-chat-history', 'Phone Chat messages', 'Kept until forgotten',
-        'Chat history stays available across game launches. Forgetting a character also clears their saved Chat messages and drafts. Forgetting all memories clears all saved chats.')
+        'Chat history stays available across game launches.\n\nForgetting a character also clears their saved Chat messages and drafts. Forgetting all memories clears all saved chats.')
     return rows
 end
 
@@ -1369,8 +1439,8 @@ local function ownKeyRows(snapshot)
     else inworldStatus = ui.t('Not added') end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
-        and ui.t('Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works. The change waits until no conversation is running; choose Apply.')
-        or ui.t('Who writes your companions’ replies. Convai is the default. It works with no setup and gives better quality responses. Mistral uses its free plan with your own free key (add it below; signing up needs phone verification): memory stays on this computer, and the free plan allows about one message a second and a monthly allowance. A Convai cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with Mistral, so type your messages. The change waits until no conversation is running; choose Apply.')
+        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai needs no setup and gives better replies. Mistral and Groq use their free plans with your own free key (signing up for Mistral needs phone verification); memory stays on this computer.\n\nMistral allows about one message a second and a monthly allowance. When Groq’s free limit is reached, Mistral answers instead if you added a key.\n\nWith Mistral, Groq or Local, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
+        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai needs no setup and gives better replies. Mistral and Groq use their free plans with your own free key (signing up for Mistral needs phone verification); memory stays on this computer.\n\nMistral allows about one message a second and a monthly allowance. When Groq’s free limit is reached, Mistral answers instead if you added a key.\n\nWith Mistral, Groq or Local, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
     if mistral.pending then using = ui.t('Waiting for the conversation to end')
     elseif mistral.effective == 'mistral' then
         if mistral.limit == 'rate' or mistral.limit == 'daily' then using = ui.t('Mistral: free limit reached for now')
@@ -1400,7 +1470,7 @@ local function ownKeyRows(snapshot)
     if developerMode() or snapshot.settings.useOwnConvaiKey == true or own.saved == true then
         rows = {
             setting('useOwnConvaiKey', 'Use my own Convai API key', 'bool', snapshot.settings.useOwnConvaiKey, false,
-                'Use a Convai API key of your own for conversations. Paste it below, turn this on and choose Apply. The change waits until no conversation is running.'),
+                'Use your own Convai key for conversations: paste it below, turn this on, choose Apply.\n\nThe change waits until no conversation is running.'),
             readonly('own-key-status', 'Convai API key', status,
                 'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
             action('own-key:paste', 'Paste Convai API key', 'Paste from clipboard',
@@ -1415,17 +1485,16 @@ local function ownKeyRows(snapshot)
     -- provider answers, and says whether the optional Mature pack (uncensored models) is installed (the bridge reports its marker).
     local matureRow
     do
-        local matureHelp = ui.t('Lets companions answer with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content, in the tone of Night City. For adults (18+) only. It applies to Local AI only: Convai, Mistral and Groq never get it. Some things are never allowed (sex involving minors or without consent, sex about real people, hate, or real-world instructions for weapons or drugs). The uncensored models of the Mature pack give the full effect; the standard Local AI models are trained to refuse most sexual content. Off by default.')
-        matureHelp = matureHelp .. ' ' .. ui.t('A safety check on your messages and on the replies refuses anything romantic or sexual involving minors, on every model.')
-        matureHelp = matureHelp .. ' ' .. (mistral.maturePack == true
-            and ui.t('The Mature pack (uncensored models) is installed.')
-            or ui.t('The Mature pack (uncensored models) is not installed. It is an optional download on the GitHub releases page of this mod.'))
-        matureHelp = matureHelp .. ' ' .. ui.t('Turning it on also chooses Local AI as the conversation provider, the largest uncensored model that fits (if one is installed) and, if the companion voice is a cloud voice, a local voice (waiting for Apply). Turning it off puts your earlier choices back.')
+        local matureHelp = ui.t('Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+), Local AI only.')
+        matureHelp = matureHelp .. '\n\n' .. (mistral.maturePack == true
+            and ui.t('The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: installed.')
+            or ui.t('The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s GitHub page).'))
+        matureHelp = matureHelp .. '\n\n' .. ui.t('Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule.')
+        matureHelp = matureHelp .. '\n\n' .. ui.t('Turning it on also selects Local AI, the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.')
         if not LOCAL_AI_PRESENT[mistral.localAi] then
-            matureHelp = matureHelp .. ' ' .. ui.t('Local AI is needed for this. Without its optional pack, turning Mature content on changes nothing else.')
-        end
-        if mistral.effective ~= 'local' then
-            matureHelp = matureHelp .. ' ' .. ui.t('Your conversations are not using Local AI right now, so this has no effect for now.')
+            matureHelp = matureHelp .. '\n\n' .. ui.t('Needs the Local AI pack.')
+        elseif mistral.effective ~= 'local' then
+            matureHelp = matureHelp .. '\n\n' .. ui.t('Not using Local AI right now: no effect yet.')
         end
         matureRow = setting('matureContent', 'Mature content', 'bool', snapshot.settings.matureContent, false, matureHelp, nil, {description = true})
     end
@@ -1444,12 +1513,12 @@ local function ownKeyRows(snapshot)
                     -- A model the player added by hand: marked "(custom)", with the graphics memory it needs or that the card is too small for it.
                     anyCustom = true
                     if choice.tooLarge then
-                        labels[index] = ui.t('{name} (custom, too large for this graphics card)', {name = choice.name})
-                        sizes[#sizes + 1] = ui.t('{name} (custom, {size} GB, too large for this graphics card)', {name = choice.name, size = gb})
+                        labels[index] = ui.t('{name} (custom · too large)', {name = choice.name})
+                        sizes[#sizes + 1] = ui.t('{name} (custom, {size} GB, too large for this card)', {name = choice.name, size = gb})
                     else
                         labels[index] = ui.t('{name} (custom)', {name = choice.name})
                         sizes[#sizes + 1] = choice.sizeMiB > 0
-                            and ui.t('{name} (custom, {size} GB, needs about {need} GB of graphics memory)', {name = choice.name, size = gb, need = string.format('%.1f', choice.needMiB / 1024)})
+                            and ui.t('{name} (custom, {size} GB, needs {need} GB)', {name = choice.name, size = gb, need = string.format('%.1f', choice.needMiB / 1024)})
                             or ui.t('{name} (custom)', {name = choice.name})
                     end
                 else
@@ -1463,16 +1532,16 @@ local function ownKeyRows(snapshot)
             for index, choice in ipairs(choices) do if choice.id == default then selected = index end end
         end
         if #choices == 0 then labels[1] = ui.t('No model installed') end
-        local modelHelp = ui.t('Which installed model Local AI uses, from the smallest to the largest. Until you choose one, the largest model that fits the free graphics memory is used; with Mature content on, the largest uncensored model that fits. Only one model is loaded at a time, and a change applies when the model next loads, never in the middle of a reply. If the chosen model is missing, does not fit or does not start, the largest model that fits is used instead and you are told once.')
-        if #sizes > 0 then modelHelp = modelHelp .. ' ' .. ui.t('Installed models: {models}.', {models = table.concat(sizes, ', ')}) end
+        local modelHelp = ui.t('Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice.')
+        if #sizes > 0 then modelHelp = modelHelp .. '\n\n' .. table.concat(sizes, '\n') end
         if anyCustom then
-            modelHelp = modelHelp .. ' ' .. ui.t('Models marked custom are ones you added yourself; they take part in the default choice like any other model, by size.')
+            modelHelp = modelHelp .. '\n\n' .. ui.t('Custom models are ones you added; they join the default choice by size.')
         end
         local problems = {}
         for _, problem in ipairs(manager.localModelProblems()) do
             problems[#problems + 1] = ui.t('{name}: {reason}', {name = problem.name, reason = customProblemText(problem.reason)})
         end
-        if #problems > 0 then modelHelp = modelHelp .. ' ' .. ui.t('Not usable: {models}. See the Local AI notes, "Add your own model".', {models = table.concat(problems, '; ')}) end
+        if #problems > 0 then modelHelp = modelHelp .. '\n\n' .. ui.t('Not usable: {models}. See the Local AI notes, "Add your own model".', {models = table.concat(problems, '; ')}) end
         modelRow = setting('localModel', 'Local AI model', 'select', selected, 1, modelHelp, labels, {elements = true, description = true})
     end
     for _, item in ipairs({
@@ -1486,7 +1555,7 @@ local function ownKeyRows(snapshot)
             readonly('mistral-key-status', 'Mistral key', mistralStatus,
                 'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
             action('mistral-key:paste', 'Paste Mistral key', 'Paste from clipboard',
-                'Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer. You can also save it in the file player-mistral-key.txt in the conversation service folder.',
+                'Copy your free key from Mistral first. It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder.',
                 function() return manager.pasteMistralKey() end),
             action('mistral-key:remove', 'Remove my Mistral key', 'Remove',
                 'Deletes the saved key. Conversations go back to Convai free tier.',
@@ -1494,7 +1563,7 @@ local function ownKeyRows(snapshot)
             readonly('groq-key-status', 'Groq key', groqStatus,
                 'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
             action('groq-key:paste', 'Paste Groq key', 'Paste from clipboard',
-                'Copy your free key from Groq first. It is read from the clipboard once, checked with Groq and saved on this computer. You can also save it in the file player-groq-key.txt in the conversation service folder.',
+                'Copy your free key from Groq first. It is read from the clipboard once, checked with Groq and saved on this computer.\n\nYou can also save it in player-groq-key.txt in the conversation service folder.',
                 function() return manager.pasteGroqKey() end),
             action('groq-key:remove', 'Remove my Groq key', 'Remove',
                 'Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai free tier.',
@@ -1502,19 +1571,19 @@ local function ownKeyRows(snapshot)
             readonly('inworld-key-status', 'Inworld key', inworldStatus,
                 'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
             action('inworld-key:paste', 'Paste Inworld key', 'Paste from clipboard',
-                'Copy your key from Inworld first. It is read from the clipboard once, checked with Inworld and saved on this computer. You can also save it in the file player-inworld-key.txt in the conversation service folder. It is used only for the Inworld cloud voice.',
+                'Copy your key from Inworld first. It is read from the clipboard once, checked with Inworld and saved on this computer.\n\nYou can also save it in player-inworld-key.txt in the conversation service folder. It is used only for the Inworld voice.',
                 function() return manager.pasteInworldKey() end),
             action('inworld-key:remove', 'Remove my Inworld key', 'Remove',
                 'Deletes the saved key. The Inworld cloud voice stops until you add a key again.',
                 function() return manager.removeInworldKey() end, inworld.saved == true),
             readonly('local-ai-status', 'Local AI', localAiStatus,
-                'Runs conversations on this computer with the optional Local AI pack. It needs free graphics memory while it works, and memory stays on this computer. Choose Local in Conversation provider, then Apply.', {value = true}),
+                'Runs conversations on this computer with the optional Local AI pack. It needs free graphics memory while it works.\n\nChoose Local in Conversation provider, then Apply.', {value = true}),
             readonly('own-key-using', 'Conversations use', using,
-                'Which provider answers your conversations right now and, for Convai, which plan pays for them. Changes wait until no conversation is running.', {value = true}),
+                'Who answers your conversations right now.\n\nA change of provider waits until no conversation is running.', {value = true}),
     }) do if item then rows[#rows + 1] = item end end
     if editor then
         rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
-            'Change a character’s bio, speaking style, speaking rules and memories in your browser. It works with Mistral, Groq and Local, not Convai. Changes are used from the next reply.',
+            'Edit a character’s bio, speaking style, speaking rules and memories in your browser.\n\nWorks with Mistral, Groq and Local, not Convai. Changes apply from the next reply.',
             function() return editor.request() end)
     end
     return rows
@@ -1638,7 +1707,7 @@ local function schema()
                 ['exiting-driver'] = 'Driver leaving the car'}
             status[#status + 1] = readonly('chauffeur-state', 'Companion driver',
                 trip.stopPending and 'Stop requested' or tripStates[trip.phase] or trip.phase,
-                'Ask a companion to drive to your selected map waypoint, then get into the passenger seat when they are ready.')
+                'Ask a companion to drive to your selected map waypoint.\n\nGet into the passenger seat when they are ready.')
             status[#status + 1] = action('chauffeur:stop', 'Companion driver', 'Stop trip',
                 'Stop the trip after returning to gameplay. Wait for the car to stop, then step out before dismissing the driver.',
                 function() return queue.stopTrip() end, not trip.stopPending)
@@ -1664,7 +1733,7 @@ local function schema()
                 -- reference for the companion voice (docs/DIALOGUE_LEVEL.md).
                 if member.serial and member.state == 'ready' and developerMode() then
                     rows[#rows + 1] = action('gamevoice:' .. id, ui.t('{name} · game voice', {name = display}), 'Play',
-                        'Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them.',
+                        'Plays one of this character’s own lines from the game, to compare with their companion voice.\n\nYou hear it when you return to gameplay. Each press tries another line; some characters have none.',
                         function() return queue.gameVoice(id) end, nil, {label = true})
                 end
                 if problem then
@@ -1765,14 +1834,14 @@ local function schema()
             -- The saved values stay auto / on / off; only the labels read Romantic (Casual for Meredith) / Ordinary.
             local casual = profile.key == 'meredith-stout'
             local description = casual
-                and 'Auto follows the completed encounter in this save. Casual lets her speak with that familiarity; Ordinary keeps her usual manner. This does not imply an ongoing relationship.'
-                or 'Auto follows the relationship in this save. Romantic has them speak to V as a partner; Ordinary keeps their usual manner. This changes conversations without changing game choices.'
+                and 'Auto: follows the completed encounter in this save.\n\nCasual: speaks with that familiarity.\n\nOrdinary: keeps her usual manner.\n\nIt does not imply an ongoing relationship.'
+                or 'Auto: follows the relationship in this save.\n\nRomantic: speaks to V as a partner.\n\nOrdinary: keeps their usual manner.\n\nOnly changes how they talk, never your game choices.'
             rows[#rows + 1] = setting('relationship:' .. profile.key, profile.name, 'select',
                 mode == 'on' and 2 or mode == 'off' and 3 or 1, 1, description,
                 {'Auto', casual and 'Casual' or 'Romantic', 'Ordinary'})
         end
         categories[#categories + 1] = category('relationships', 'Relationships', rows,
-            'Choose ordinary or romantic conversations for supported characters.')
+            'Judy, Panam, River, Kerry and Meredith can speak as a partner or in their ordinary manner.\n\nAuto follows the relationship in your save.')
     elseif view == 'prepared-voices' then
         local prepared = snapshot.preparedVoices
         rows[#rows + 1] = action('prepared-voices:back', 'Back to settings', 'Back',
@@ -1823,13 +1892,13 @@ local function schema()
         rows[#rows + 1] = action('help:back', 'Back to settings', 'Back', 'Return to conversation settings.',
             function(context) return navigate('settings', context) end)
         rows[#rows + 1] = readonly('help-steps', 'What to do', 'Create a report',
-            'If a character stops answering, voices stop or an error appears: open this page, choose Generate report, then send the file it names to the developer with a short note about what you were doing. The logs listed below show what went wrong.')
+            'If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.')
         rows[#rows + 1] = readonly('help-service', 'Conversation service', support.serviceLabel(),
             'The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.', {value = true})
         categories[#categories + 1] = category('help-trouble', 'If something goes wrong', rows)
         categories[#categories + 1] = category('help-report', 'Report for the developer', {
             action('help:generate', 'Generate report', 'Create',
-                'Save a report file you can send to the developer. API keys, tokens, IDs, microphone audio and conversation text are left out. If the conversation service is not running, a shorter report is made from the files the game can read.',
+                'Saves a report file you can send to the developer.\n\nAPI keys, tokens, IDs, microphone audio and conversation text are left out. Without the conversation service, a shorter report is made from the files the game can read.',
                 function() return support.request() end, report.phase ~= 'working'),
             readonly('help-last', 'Last report', lastValue, lastDescription, {value = report.path ~= nil, description = true}),
             action('help:copy', 'Copy report path', 'Copy',
@@ -1860,30 +1929,30 @@ local function schema()
         end
         categories[#categories + 1] = category('interface', 'Interface', {
             setting('uiLanguage', 'Interface language', 'select', languageIndex, 1,
-                'Choose the mod interface language independently of character voices and conversation language.',
+                'Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate.',
                 languageElements, {elements=true}),
         })
         categories[#categories + 1] = category('conversation-controls', 'Conversations', {
             action('permissions', 'Who can talk', 'Manage',
-                'Enable or disable each character’s participation in AI conversations.',
+                'Turn AI conversations on or off for each character.\n\nA character that is off can still follow you.',
                 function(context) return navigate('permissions', context) end),
             action('memory', 'Memory', 'Manage',
-                'Choose a character, review memory status and manage memories from your conversations.',
+                'See what each character remembers and make one or all of them forget.\n\nMemories are kept across saves.',
                 function(context) return navigate('memory', context) end),
             action('relationships', 'Relationships', 'Manage',
-                'Choose ordinary or romantic conversations for supported characters.',
+                'Judy, Panam, River, Kerry and Meredith can speak as a partner or in their ordinary manner.\n\nAuto follows the relationship in your save.',
                 function(context) return navigate('relationships', context) end),
             setting('archetypeConversations', 'Talk to ordinary NPCs', 'bool', snapshot.settings.archetypeConversations ~= false, true,
-                'Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save, except shopkeepers you come back to. Named characters are not affected. On by default.'),
+                'Gang members, NCPD officers, guards, ripperdocs, shopkeepers, bartenders and passers-by answer as their kind of person.\n\nThey do not know your story and forget you after a save load, except shopkeepers you come back to.\n\nNamed characters are not affected.'),
             setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
-                'Talk to companions in any language: each character answers in the language you use. It uses a multilingual copy of each character, so what they remember from these conversations is kept apart from your English ones; forgetting a character clears both. Pocket TTS speaks only English, so turning this on switches Companion voices to OmniVoice · Balanced when the optional OmniVoice pack is installed, or to Convai · Cloud voice otherwise; without the pack, Natural speech and Expressive emotions are turned off, because the cloud voice would read their tags aloud. Off by default.'),
+                'Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket, Voxtral and Inworld speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
             setting('autoConnectNearby', 'Auto-connect nearby characters', 'bool', snapshot.settings.autoConnectNearby, true,
-                'Prepares the conversation with a character you look at, walk up to or have just talked to, so they answer without a wait; it pauses during combat and scenes. At most two characters are kept ready at any moment, at most one new connection starts every 3 seconds and a character is released after 40 seconds unused, so a crowd never adds up.'),
+                'Gets a conversation ready when you look at, approach or have just talked to a character, so they answer without a wait. Paused in combat and scenes.\n\nLimits: two characters ready at once, a new one every 3 s, released after 40 s unused. A crowd never adds up.'),
             setting('gameDialogueContext', 'Continue from game dialogue', 'bool', snapshot.settings.gameDialogueContext, true,
-                'When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default.'),
+                'Right after the game’s own dialogue with a character, they know its last few lines, including your chosen replies and your phone calls with them.\n\nOnly the last few minutes count, and none of it is saved to memory.'),
             -- Holocalls start from the phone's Contacts list (docs/HOLOCALL.md); this is their only setting.
             setting('holocallLiveImage', 'Live holocall picture (experimental)', 'bool', snapshot.settings.holocallLiveImage == true, false,
-                'In a holocall, try to show the character live instead of their portrait. Experimental: the picture can stay empty. If the character cannot be shown, the call goes on with the portrait. Off by default.'),
+                'Shows the character live in a holocall instead of their portrait.\n\nExperimental: the picture can stay empty. If she cannot be shown, the call goes on with the portrait.'),
         })
         local heights,strengths=manager.gazeChoices()
         local heightIndex,strengthIndex=3,3
@@ -1891,13 +1960,13 @@ local function schema()
         for index,value in ipairs(strengths) do if snapshot.settings.headFollowStrength==value then strengthIndex=index end end
         categories[#categories + 1] = category('companion-behavior', 'Companion behavior', {
             setting('eyeContactHeight', 'Eye contact height', 'select', heightIndex, 3,
-                'Raise or lower where companions look when they make eye contact with you.',
+                'Use it if companions seem to look above or below your eyes.',
                 {'10 cm lower', '5 cm lower', 'Default', '5 cm higher', '10 cm higher'}),
             setting('headFollowStrength', 'Head tracking strength', 'select', strengthIndex, 3,
-                'Choose how much companions turn their heads during eye contact. Eyes only relies on eye movement.',
+                'Eyes only: the head stays still and just the eyes move.\n\nSubtle to Strong: the head turns toward you more and more.',
                 {'Eyes only', 'Subtle', 'Gentle (default)', 'Strong'}),
             setting('bodyGestures', 'Body gestures (experimental)', 'bool', snapshot.settings.bodyGestures, true,
-                'Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts.'),
+                'Companions gesture while they speak longer replies and nod while you talk, with the game’s own animations in their usual stance.\n\nThey stop at once when anyone moves or a fight starts.'),
         })
         local voiceStatus = voiceStatusText(snapshot)
         -- The list: Pocket Performance (the default), OmniVoice Balanced / Quality (16 steps, short / long reference),
@@ -1911,29 +1980,29 @@ local function schema()
         end
         local pack = manager.omniPack()
         categories[#categories + 1] = category('voices', 'Voices', {
-            setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
+            setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.'),
             setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
-                'Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. The Mistral (Voxtral) and Inworld cloud voices speak in each companion’s own voice with your own key and any provider, in English only. Inworld also speaks with emotion. Convai uses its cloud; if a choice cannot run, a simpler voice takes over and you are told once.',
+                'Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack; the higher tiers start in 1 to 2.5 s.\n\nVoxtral and Inworld: each companion’s own voice from the cloud, with your own key, English only. Inworld also speaks with emotion. They load no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.',
                 voiceMenuLabels(pack, snapshot.mistral), {elements = true}),
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
-                'Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it.',
+                'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
                 delayLabels, {elements = true}),
             setting('keepPreparedVoices', 'Keep prepared voices', 'bool', snapshot.settings.keepPreparedVoices, true,
-                'Remember each companion’s prepared voice so summoning them again is quicker. Pocket TTS saves one small file per character (about 5 to 15 MB) in the mod’s runtime folder; OmniVoice does a short hidden warm-up at your chosen quality while a companion joins. Turn this off to save nothing on disk. The change applies without a restart.'),
+                'Keeps each companion’s prepared voice, so summoning them again is quicker.\n\nPocket saves one small file per character (5 to 15 MB) in the mod’s runtime folder. OmniVoice does a short hidden warm-up while a companion joins.\n\nOff saves nothing on disk. No restart needed.'),
             readonly('prepared-voices', 'Prepared voices on disk', preparedVoicesValue(snapshot.preparedVoices), PREPARED_VOICES_ABOUT),
             action('prepared-voices:open', 'Clear prepared voices', 'Clear',
-                'Delete the saved voice setups to free that disk space. Voice references and models are not touched. You confirm on the next page.',
+                'Frees the disk space of the saved voice setups. Voice references and models are kept.\n\nYou confirm on the next page.',
                 function(context) return navigate('prepared-voices', context) end,
                 snapshot.preparedVoices.known and snapshot.preparedVoices.files > 0),
             setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
-                'Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice: choosing the Convai cloud voice keeps it and turns this off, and turning this on while the cloud voice is saved moves Companion voices to Pocket TTS. Off by default.'),
+                'Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice and Inworld can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
             setting('expressiveEmotions', 'Expressive emotions', 'bool', snapshot.settings.expressiveEmotions, true,
-                'Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice: choosing the Convai cloud voice keeps it and turns this off, and turning this on while the cloud voice is saved moves Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. On by default.'),
+                'Each character marks its own feelings as it speaks, so the face changes at that word instead of being guessed from the text. Subtle, set by personality, only where a feeling really shifts.\n\nInworld always speaks with emotion, whatever this says.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
             setting('followUpInterest', 'Follow-up questions', 'bool', snapshot.settings.followUpInterest, true,
-                'Characters sometimes show interest in you and keep the conversation going: they ask about something you just said, pick up something from earlier or share a thought that invites an answer. It happens now and then, never on every reply, and never while you are leaving, giving an order or fighting. Works with any voice. On by default.'),
+                'Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.'),
             setting('vVoice', 'V’s voice for typed lines', 'bool', snapshot.settings.vVoice, true,
-                ui.t('When you type a line to a companion, V says it out loud too, in a male or female V voice that matches your V. Only typed lines: push-to-talk is never replayed. V speaks first, then the companion answers; a slow V line is skipped so the reply is never delayed. Uses the voice you chose above. On by default.')
-                    .. (snapshot.settings.voiceProvider == 'convai' and (' ' .. ui.t('Works with the Pocket, OmniVoice, Voxtral or Inworld voices.')) or ''),
+                ui.t('When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed.\n\nUses the voice chosen above, cloned for V.')
+                    .. (snapshot.settings.voiceProvider == 'convai' and ('\n\n' .. ui.t('Works with the Pocket, OmniVoice, Voxtral or Inworld voices.')) or ''),
                 nil, {description = true}),
             readonly('voice-pack', 'OmniVoice pack', pack.known and (pack.installed and 'Installed' or 'Not installed') or 'Waiting for voice service',
                 'OmniVoice is an optional add-on for computers with a capable GPU. Pocket TTS needs nothing extra.'),
@@ -1941,16 +2010,16 @@ local function schema()
                 'Changes wait until you choose Apply; Revert discards them. No game restart is needed.'),
         }, 'Changes wait until you choose Apply.')
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
-            setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies using the selected subtitle display.'),
+            setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Shows companion replies as text.\n\nWith Voice playback off as well, automatic reactions stay silent.'),
             setting('subtitleStyle', 'Subtitle display', 'select', snapshot.settings.subtitleStyle == 'overhead' and 2 or 1, 1,
-                'Cinematic subtitles use the game’s regular dialogue display; Above the speaker places them over the speaking companion. The Subtitles switch controls both.',
+                'Cinematic: the game’s regular dialogue subtitles.\n\nAbove the speaker: over the companion who is talking.\n\nThe Subtitles switch turns both off.',
                 {'Cinematic subtitles', 'Above the speaker'}),
         })
         categories[#categories + 1] = category('reactions', 'Automatic reactions', {
             setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, false,
-                'A nearby companion can make one short comment as combat starts and another afterward. Ten-minute cooldown after a fight; conversations and story scenes take priority. Loading a save resets the cooldown.'),
+                'A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.'),
             setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, false,
-                'Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment.'),
+                'Companions comment after you finish collecting loot from the world. Storage transfers stay silent.\n\nOrdinary comments are ten minutes apart; newly acquired Legendary gear has its own two-minute cooldown.\n\nPickups made during a fight are folded into one comment at its end.'),
         })
         -- One section per installed add-on that has settings (docs/ADDON_API.md). The add-on wrote its own labels.
         if convaiAddons and convaiAddons.live then
@@ -1966,7 +2035,7 @@ local function schema()
         end
         categories[#categories + 1] = category('development', 'Development', {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
-                'For testing and bug reports; leave it off for normal play. It shows routine companion popups (the joining step, dismissal confirmations, driving instructions such as boarding and exit, results of companion actions, and a notice when a support report is ready), writes a movement trace file in the mod’s runtime folder, logs body gesture decisions, and adds this setting to support reports. Preparation progress, joined notices, failures and replies to Stop trip remain visible when off.'),
+                'For testing and bug reports; leave it off for normal play.\n\nShows routine popups (joining steps, dismissals, driving instructions, results of companion actions), writes a movement trace in the mod’s runtime folder, logs gesture decisions and adds itself to support reports.\n\nPreparation progress, joined notices, failures and replies to Stop trip stay visible when it is off.'),
             table.unpack(ownKeyRows(snapshot)),
         })
         if support then

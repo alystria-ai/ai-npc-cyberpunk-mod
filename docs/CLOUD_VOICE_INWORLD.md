@@ -42,8 +42,8 @@ Read from the Terms of Service (2025-06-11), the Acceptable Use Policy, the Serv
 
 ## What the player sees
 
-Settings > Voices > Companion voices has eight entries: Pocket · Performance, four OmniVoice tiers, Mistral cloud voice (Voxtral),
-**Inworld cloud voice**, Convai · Cloud voice. Without a key the entry reads "Inworld cloud voice · needs Inworld key" and Apply
+Settings > Voices > Companion voices has eight entries: Pocket · Performance, four OmniVoice tiers, Voxtral · Mistral cloud,
+**Inworld · Cloud voice**, Convai · Cloud voice. Without a key the entry reads "Inworld · needs key" and Apply
 refuses it ("Requires an Inworld key (add it in Settings > Development)").
 
 The key is entered like the Mistral and Groq keys: in Settings > Development, **Paste Inworld key** reads the clipboard once, checks
@@ -208,11 +208,11 @@ in `E:\CyberpunkConvai-offload\work\inworld-2026-10-13\`).
 
 Install the committed `mod/` files and the bridge from this branch (never `mod/diagnostics.lua`), restart the bridge, reload CET.
 1. Settings > Development > Paste Inworld key (key copied from Inworld's portal first): the row reads "Added (ends in ....)".
-2. Settings > Voices > Companion voices: choose "Inworld cloud voice", Apply.
+2. Settings > Voices > Companion voices: choose "Inworld · Cloud voice", Apply.
 3. Talk to a companion: the voice is hers, the lips and subtitles follow it. The first reply of a character not seen before may be
    written only while the voice is made; later replies are Inworld's.
 4. `runtime/bridge.stderr.log`: `[Inworld] first audio ... ms` lines and `[VoiceRouting]` lines naming "Inworld cloud voice".
-5. Remove the key: the entry reads "... · needs Inworld key" and Apply refuses it.
+5. Remove the key: the entry reads "Inworld · needs key" and Apply refuses it.
 6. Switch the network off mid-session: the next reply is written only (after the longer second ask), with one "not ready yet" notice; no reply changes voice
    in the middle.
 7. Emotion: a reply with a strong feeling ({anger:strong}, {sadness}) sounds different from a plain one. Turn Expressive emotions

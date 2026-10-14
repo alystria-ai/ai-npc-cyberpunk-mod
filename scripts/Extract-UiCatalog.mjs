@@ -149,8 +149,8 @@ const reviewed = {
   ],
   'mcm.relationships': [
     'Auto', 'Romantic', 'Casual', 'Ordinary',
-    'Auto follows the completed encounter in this save. Casual lets her speak with that familiarity; Ordinary keeps her usual manner. This does not imply an ongoing relationship.',
-    'Auto follows the relationship in this save. Romantic has them speak to V as a partner; Ordinary keeps their usual manner. This changes conversations without changing game choices.',
+    'Auto: follows the completed encounter in this save.\n\nCasual: speaks with that familiarity.\n\nOrdinary: keeps her usual manner.\n\nIt does not imply an ongoing relationship.',
+    'Auto: follows the relationship in this save.\n\nRomantic: speaks to V as a partner.\n\nOrdinary: keeps their usual manner.\n\nOnly changes how they talk, never your game choices.',
   ],
   'mcm.party': [
     'Invite', 'Profile only', 'Dismiss', 'Cancel invitation',

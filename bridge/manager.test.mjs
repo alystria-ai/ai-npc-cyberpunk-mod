@@ -4,6 +4,7 @@ import {readFileSync, readdirSync} from 'node:fs';
 import path from 'node:path';
 import fengari from 'fengari';
 import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
+import {optionUnits} from './option-units.mjs';
 import {MistralProvider, MistralControl} from './mistral-key.mjs';
 import {createLocalSpeech} from './local-stt-capture.mjs';
 import {companionModules, companionEngine, flatNavigation, flatSpatial} from './companion-fixture.mjs';
@@ -666,7 +667,7 @@ test('voice selector arrows stay within their displayed direction and use effect
     assert(#elements == 8 and elements[1] == 'Pocket · Performance')
     assert(elements[2] == 'OmniVoice · Balanced' and elements[3] == 'OmniVoice · Quality')
     assert(elements[4] == 'OmniVoice · High Quality' and elements[5] == 'OmniVoice · Ultra Quality')
-    assert(elements[6] == 'Mistral cloud voice (Voxtral) · needs Mistral key' and elements[7] == 'Inworld cloud voice · needs Inworld key' and elements[8] == 'Convai · Cloud voice')
+    assert(elements[6] == 'Voxtral · needs Mistral key' and elements[7] == 'Inworld · needs key' and elements[8] == 'Convai · Cloud voice')
     assert(row('omniSteps') == nil and row('omniReference') == nil, 'retired quality steps remain in the active menu')
     assert(row('keepPreparedVoices').type == 'bool' and row('keepPreparedVoices').value == true
       and row('keepPreparedVoices').defaultValue == true, 'Keep prepared voices is on by default')
@@ -1937,10 +1938,10 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
     loaded = registered.loadMod('manager')
     local elements = row('voiceProvider').elements
     assert(elements[1] == 'Pocket · Performance' and elements[8] == 'Convai · Cloud voice')
-    assert(elements[2] == 'OmniVoice · Balanced · needs Omni pack', elements[2])
+    assert(elements[2] == 'OmniVoice · Balanced · needs pack', elements[2])
     for index = 2, 5 do
-      assert(elements[index]:find(' · needs Omni pack', 1, true), 'entry ' .. index)
-      assert(utf8.len(elements[index]) <= 44, 'entry ' .. index .. ' must stay short enough not to truncate')
+      assert(elements[index]:find(' · needs pack', 1, true), 'entry ' .. index)
+      assert(mcm.optionUnits(elements[index]) <= mcm.OPTION_BUDGET, 'entry ' .. index .. ' must stay short enough not to run over the arrows')
     end
     assert(row('voice-pack').value == 'Not installed')
     local before = saved.voiceProvider
@@ -1976,7 +1977,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
       files['runtime/mistral-state.json'] = 'mistral-' .. tag
       clock = clock + 2
     end
-    local NEEDS = 'Mistral cloud voice (Voxtral) · needs Mistral key'
+    local NEEDS = 'Voxtral · needs Mistral key'
     assert(invoke('tab:settings').ok)
     loaded = registered.loadMod('manager')
     local elements = row('voiceProvider').elements
@@ -1990,7 +1991,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     -- A key is saved (the Conversation provider stays Convai, the default): the entry is a plain label and can be applied.
     key('a', {provider = 'convai', effective = 'convai', saved = true})
     loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').elements[6] == 'Mistral cloud voice (Voxtral)', row('voiceProvider').elements[6])
+    assert(row('voiceProvider').elements[6] == 'Voxtral · Mistral cloud', row('voiceProvider').elements[6])
     assert(manager.snapshot(player).settings.conversationProvider == 'convai')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}}).ok)
     assert(saved.voiceProvider == 'voxtral' and manager.snapshot(player).settings.voiceProvider == 'voxtral')
@@ -2018,28 +2019,28 @@ test('Mature content is a settings row with or without the Mature pack: the help
     assert(noPack ~= nil and noPack.label == 'Mature content', 'no Mature pack: the row is still there')
     assert(row('conversationProvider') ~= nil)
     assert(tostring(noPack.description):find('safety check', 1, true), 'the help says the minors check runs on every model')
-    assert(tostring(noPack.description):find('is not installed', 1, true), 'the help says the uncensored models are not installed')
-    assert(tostring(noPack.description):find('GitHub releases', 1, true), 'and where to get them')
+    assert(tostring(noPack.description):find('not installed', 1, true), 'the help says the uncensored models are not installed')
+    assert(tostring(noPack.description):find('GitHub page', 1, true), 'and where to get them')
     assert(registered.applyBatch('manager', {{id = 'matureContent', value = true}}).ok and saved.matureContent == true, 'usable without the pack')
     assert(registered.applyBatch('manager', {{id = 'matureContent', value = false}}).ok and saved.matureContent == false)
     state('pack', {provider = 'local', effective = 'local', saved = false, maturePack = true})
     loaded = registered.loadMod('manager')
     local mature = row('matureContent')
     assert(mature ~= nil and mature.label == 'Mature content', 'the Mature pack is installed: the row is there')
-    assert(tostring(mature.description):find('uncensored models of the Mature pack', 1, true), 'the help names where the full effect comes from')
-    assert(tostring(mature.description):find('(uncensored models) is installed', 1, true), 'the help says the pack is installed')
-    assert(not tostring(mature.description):find('is not installed', 1, true))
-    assert(not tostring(mature.description):find('not using Local AI', 1, true), 'Local AI answers, so no warning')
+    assert(tostring(mature.description):find('Mature pack’s uncensored models', 1, true), 'the help names where the full effect comes from')
+    assert(tostring(mature.description):find('Pack: installed', 1, true), 'the help says the pack is installed')
+    assert(not tostring(mature.description):find('not installed', 1, true))
+    assert(not tostring(mature.description):find('Not using Local AI', 1, true), 'Local AI answers, so no warning')
     assert(registered.applyBatch('manager', {{id = 'matureContent', value = true}}).ok and saved.matureContent == true)
     -- Another provider answers: the row stays and says it has no effect for now.
-    state('other', {provider = 'mistral', effective = 'mistral', saved = true, maturePack = true})
+    state('other', {provider = 'mistral', effective = 'mistral', saved = true, maturePack = true, localAi = 'ready'})
     loaded = registered.loadMod('manager')
-    assert(tostring(row('matureContent').description):find('not using Local AI', 1, true))
+    assert(tostring(row('matureContent').description):find('Not using Local AI', 1, true))
     -- The pack goes away: the row stays, the setting stays on, and the help says the pack is not installed.
     state('gone', {provider = 'local', effective = 'local', saved = false, maturePack = false})
     loaded = registered.loadMod('manager')
     assert(row('matureContent') ~= nil)
-    assert(tostring(row('matureContent').description):find('is not installed', 1, true))
+    assert(tostring(row('matureContent').description):find('not installed', 1, true))
   `);
 });
 
@@ -2192,7 +2193,7 @@ test('Mature content turned on and off again before Apply leaves no pending chan
 test('without the Local AI pack Mature content stages nothing else and the help says Local AI is needed', () => {
   run(`${mcmFixture}${matureFixture}
     startFrom({noPack = true})
-    assert(tostring(row('matureContent').description):find('Local AI is needed', 1, true), 'the help does not say Local AI is needed')
+    assert(tostring(row('matureContent').description):find('Needs the Local AI pack', 1, true), 'the help does not say Local AI is needed')
     user('matureContent', true)
     assert(drafts() == 'matureContent=true', drafts())
     assert(mcm.inspect().mature.changes == nil and mcm.inspect().mature.notice == nil)
@@ -2357,8 +2358,8 @@ test('Local AI model: a row with each installed model by its name from the small
     -- Nothing chosen (saved 'auto'): the default model is shown as selected, and 'auto' stays saved until an Apply.
     assert(pick.value == 2, tostring(pick.value))
     assert(manager.snapshot(player).settings.localModel == 'auto' and saved.localModel == 'auto')
-    assert(tostring(pick.description):find('Qwen3.5-2B (1.3 GB), Gemma-4-E4B (5.2 GB), Gemma-4-E4B-uncensored (5.3 GB)', 1, true), pick.description)
-    assert(tostring(pick.description):find('from the smallest to the largest', 1, true), pick.description)
+    assert(tostring(pick.description):find('Qwen3.5-2B (1.3 GB)' .. string.char(10) .. 'Gemma-4-E4B (5.2 GB)' .. string.char(10) .. 'Gemma-4-E4B-uncensored (5.3 GB)', 1, true), pick.description)
+    assert(tostring(pick.description):find('Until you choose one', 1, true), pick.description)
     -- Choosing by position saves the model's id.
     assert(registered.applyBatch('manager', {{id = 'localModel', value = 1}}).ok and saved.localModel == 'lite')
     loaded = registered.loadMod('manager')
@@ -2453,13 +2454,13 @@ test('Local AI model: custom models are marked, show the memory they need or tha
     local pick = row('localModel')
     assert(#pick.elements == 4 and pick.elements[1] == 'Odd' and pick.elements[3] == 'Gemma-4-E4B', table.concat(pick.elements, '|'))
     for _, label in ipairs(pick.elements) do assert(label ~= 'Auto', 'there is no Auto entry') end
-    assert(pick.elements[2] == 'My Model (custom)' and pick.elements[4] == 'Huge (custom, too large for this graphics card)', table.concat(pick.elements, '|'))
+    assert(pick.elements[2] == 'My Model (custom)' and pick.elements[4] == 'Huge (custom · too large)', table.concat(pick.elements, '|'))
     assert(pick.elements[1] == 'Odd', 'only custom models are marked, whatever else the file says')
     local help = tostring(pick.description)
     assert(help:find('Gemma-4-E4B (5.2 GB)', 1, true), help)
-    assert(help:find('My Model (custom, 4.0 GB, needs about 5.2 GB of graphics memory)', 1, true), help)
-    assert(help:find('Huge (custom, 40.0 GB, too large for this graphics card)', 1, true), help)
-    assert(help:find('Models marked custom are ones you added yourself;', 1, true), help)
+    assert(help:find('My Model (custom, 4.0 GB, needs 5.2 GB)', 1, true), help)
+    assert(help:find('Huge (custom, 40.0 GB, too large for this card)', 1, true), help)
+    assert(help:find('Custom models are ones you added;', 1, true), help)
     assert(help:find('Not usable: Embedder: an embedding model, not a chat model; Gone: file not found; Fake: not a valid GGUF file; Locked: could not be read.', 1, true), help)
     assert(not help:find('Bad', 1, true), 'an unknown reason is dropped')
     -- Pinning a custom model saves its id; it can be chosen even though it is too large (the bridge then falls back to the largest model that fits, with one notice).
@@ -2472,6 +2473,81 @@ test('Local AI model: custom models are marked, show the memory they need or tha
     loaded = registered.loadMod('manager')
     local plain = tostring(row('localModel').description)
     assert(not plain:find('custom', 1, true) and not plain:find('Not usable', 1, true), plain)
+  `);
+});
+
+test('select option width: the Lua estimate equals the test estimate, and a name that is too long is cut with an ellipsis and keeps its marker', () => {
+  const samples = ['Pocket · Performance', 'OmniVoice · Ultra Quality · needs pack', 'Qwen3.5-4B · uncensored', 'Mistral (free plan)', 'WWWW MMMM mmmm', '日本語のテスト', 'Español (México)', 'Русский', 'It’s'];
+  const expected = samples.map(text => `{${JSON.stringify(text)}, ${optionUnits(text)}}`).join(', ');
+  run(`${mcmFixture}
+    for _, pair in ipairs({${expected}}) do
+      assert(math.abs(mcm.optionUnits(pair[1]) - pair[2]) < 0.05, pair[1] .. ' ' .. mcm.optionUnits(pair[1]) .. ' vs ' .. pair[2])
+    end
+    local budget = mcm.OPTION_BUDGET
+    local function valid(text) return utf8.len(text) ~= nil end
+    -- A text that fits is returned as it is.
+    assert(mcm.fitOption('Pocket · Performance') == 'Pocket · Performance')
+    assert(mcm.fitOption('') == '' and mcm.fitOption(nil) == '')
+    -- The name is cut, the marker stays.
+    local long = mcm.fitOption('Qwen3.5-4B-HauhauCS-Aggressive-Extended (uncensored)')
+    assert(long:find('…', 1, true) and long:sub(-13) == ' (uncensored)' and mcm.optionUnits(long) <= budget, long)
+    local custom = mcm.fitOption('A very long custom model name from somebody (custom · too large)')
+    assert(custom:sub(-22) == ' (custom · too large)' and custom:find('…', 1, true) and mcm.optionUnits(custom) <= budget, custom)
+    local dotted = mcm.fitOption('Gemma 4 E4B Heretic Ultra Abliterated Edition · uncensored')
+    assert(dotted:sub(-14) == ' · uncensored' and mcm.optionUnits(dotted) <= budget, dotted)
+    -- No marker: the whole text is cut. Wide characters are cut on a character boundary, never inside one.
+    local plain = mcm.fitOption(string.rep('M', 60))
+    assert(plain:sub(-3) == '…' and mcm.optionUnits(plain) <= budget, plain)
+    local wide = mcm.fitOption(string.rep('日本語', 20))
+    assert(valid(wide) and wide:sub(-3) == '…' and mcm.optionUnits(wide) <= budget and #wide > 3, wide)
+    local accented = mcm.fitOption(string.rep('é', 80))
+    assert(valid(accented) and mcm.optionUnits(accented) <= budget, accented)
+    -- A marker that is itself wider than the budget does not leave an empty name: the whole text is cut instead.
+    local huge = mcm.fitOption('x (' .. string.rep('long marker ', 10) .. ')')
+    assert(valid(huge) and mcm.optionUnits(huge) <= budget and huge:find('…', 1, true), huge)
+  `);
+});
+
+test('select option width: every select of the settings page fits in English, the built-in model names are shown whole, and a custom model with a long name is cut', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    files['runtime/mistral-state.json'] = 'wide'
+    jsonFixtures['wide'] = {provider = 'local', effective = 'local', saved = false, localModels = {
+      {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311},
+      {id = 'mature:lite', name = 'Qwen3.5-4B · uncensored', sizeMiB = 2700},
+      {id = 'standard', name = 'Gemma 4 E4B', sizeMiB = 5280},
+      {id = 'mature:good', name = 'Gemma 4 E4B · uncensored', sizeMiB = 5335},
+      {id = 'custom:long', name = 'My Own Fine-Tuned Companion Model 13B Instruct', sizeMiB = 7000, custom = true, needMiB = 8000},
+      {id = 'custom:huge', name = 'Enormous Community Merge With A Very Long Name', sizeMiB = 40960, custom = true, needMiB = 42160, tooLarge = true}}}
+    clock = clock + 2
+    files['runtime/local-voice-state.json'] = 'voice-runtime'
+    assert(invoke('tab:settings').ok)
+    loaded = registered.loadMod('manager')
+    local checked, widest = 0, 0
+    for _, category in ipairs(loaded.categories) do
+      for _, setting in ipairs(category.settings) do
+        if setting.type == 'select' and setting.elements then
+          for index, label in ipairs(setting.elements) do
+            checked = checked + 1
+            widest = math.max(widest, mcm.optionUnits(label))
+            assert(mcm.optionUnits(label) <= mcm.OPTION_BUDGET, setting.id .. ' option ' .. index .. ': ' .. label .. ' (' .. mcm.optionUnits(label) .. ')')
+          end
+        end
+      end
+    end
+    assert(checked >= 30, 'only ' .. checked .. ' options were looked at')
+    local models = row('localModel').elements
+    assert(#models == 6, table.concat(models, '|'))
+    assert(models[1] == 'Qwen3.5-2B' and models[2] == 'Qwen3.5-4B · uncensored' and models[3] == 'Gemma 4 E4B', table.concat(models, '|'))
+    assert(models[4] == 'Gemma 4 E4B · uncensored', table.concat(models, '|'))
+    local hasCustom, hasHuge = false, false
+    for _, label in ipairs(models) do
+      if label:find('(custom)', 1, true) then hasCustom = label:find('…', 1, true) ~= nil end
+      if label:find('(custom · too large)', 1, true) then hasHuge = label:find('…', 1, true) ~= nil end
+    end
+    assert(hasCustom and hasHuge, 'a long custom name is cut with an ellipsis and keeps its marker: ' .. table.concat(models, '|'))
+    -- The full names stay in the help of the row.
+    assert(tostring(row('localModel').description):find('My Own Fine-Tuned Companion Model 13B Instruct (custom, 6.8 GB', 1, true), tostring(row('localModel').description))
   `);
 });
 
@@ -2521,7 +2597,7 @@ test('the Inworld cloud voice says it needs an Inworld key and cannot be applied
       files['runtime/mistral-state.json'] = 'mistral-' .. tag
       clock = clock + 2
     end
-    local NEEDS = 'Inworld cloud voice · needs Inworld key'
+    local NEEDS = 'Inworld · needs key'
     assert(invoke('tab:settings').ok)
     loaded = registered.loadMod('manager')
     assert(row('voiceProvider').elements[7] == NEEDS, row('voiceProvider').elements[7])
@@ -2539,7 +2615,7 @@ test('the Inworld cloud voice says it needs an Inworld key and cannot be applied
     -- An Inworld key is saved: the entry is a plain label and can be applied.
     key('b', {provider = 'convai', effective = 'convai', saved = true, inworld = {saved = true, tail = 'wxyz'}})
     loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').elements[7] == 'Inworld cloud voice', row('voiceProvider').elements[7])
+    assert(row('voiceProvider').elements[7] == 'Inworld · Cloud voice', row('voiceProvider').elements[7])
     assert(manager.mistral().inworld.saved == true and manager.mistral().inworld.tail == 'wxyz')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok)
     assert(saved.voiceProvider == 'inworld' and manager.snapshot(player).settings.voiceProvider == 'inworld')
@@ -2837,7 +2913,7 @@ test('Relationships use their own MCM page and only applied selections reach sav
   local selected=row('relationship:judy-alvarez')
   assert(selected and selected.value==1 and selected.defaultValue==1)
   assert(selected.elements[1]=='Auto' and selected.elements[2]=='Romantic' and selected.elements[3]=='Ordinary')
-  assert(selected.description:find('Romantic has them speak to V as a partner',1,true) and not selected.description:find('Off uses',1,true))
+  assert(selected.description:find('Romantic: speaks to V as a partner',1,true) and not selected.description:find('Off uses',1,true))
   local meredith=row('relationship:meredith-stout')
   assert(meredith.elements[1]=='Auto' and meredith.elements[2]=='Casual' and meredith.elements[3]=='Ordinary')
   assert(meredith.description:find('does not imply an ongoing relationship',1,true))
@@ -3136,7 +3212,7 @@ test('settings review wording: short voice description, experimental gestures, f
     assert(voices.defaultValue == 1 and voices.value == 1)
     assert(voices.description:find('about 0.2 s', 1, true) and voices.description:find('1 to 2.5 s', 1, true))
     assert(not voices.description:find('%', 1, true), 'no listening percentages in the voice description')
-    assert(not voices.description:find(string.char(10), 1, true) and utf8.len(voices.description) < 600, 'the voice description stays short')
+    assert(utf8.len(voices.description) < 700 and select(2, voices.description:gsub(string.char(10) .. string.char(10), '')) >= 2, 'the voice description stays short and is split into blocks')
     assert(voices.description:find('Inworld also speaks with emotion.', 1, true), 'the Inworld voice is described as speaking with emotion')
     assert(not voices.description:lower():find('recommended', 1, true), 'no voice is called recommended')
     assert(row('bodyGestures').label == 'Body gestures (experimental)' and row('bodyGestures').defaultValue == true and row('bodyGestures').value == true)
@@ -4202,7 +4278,7 @@ test('Natural speech sits in the Voices category and Auto Apply cannot commit it
       for _, item in ipairs(category.settings) do if item.id == 'naturalSpeech' then owner = category end end
     end
     assert(owner and owner.id == 'voices' and row('voiceProvider') and row('naturalSpeech').label == 'Natural speech')
-    assert(row('naturalSpeech').description:find('Pocket TTS', 1, true) and row('naturalSpeech').description:find('Off by default', 1, true))
+    assert(row('naturalSpeech').description:find('Pocket', 1, true) and row('naturalSpeech').description:find('Convai’s cloud voice', 1, true))
     local clock = 5000
     os.clock = function() return clock end
     local listeners = {}
@@ -4271,8 +4347,7 @@ test('Expressive emotions and the cloud voice: choosing the cloud voice keeps it
       for _, item in ipairs(category.settings) do if item.id == 'expressiveEmotions' then owner = category end end
     end
     assert(owner and owner.id == 'voices' and entry.label == 'Expressive emotions')
-    assert(entry.description:find('On by default', 1, true) and not entry.description:find('Off by default', 1, true)
-        and entry.description:find('local voice', 1, true))
+    assert(entry.description:find('Inworld always speaks with emotion', 1, true) and entry.description:find('Convai’s cloud voice', 1, true))
     local EMOTIONS = 'Expressive emotions need a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
     local SPEECH = 'Natural speech needs a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
     local OFF = 'The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.'
@@ -4425,8 +4500,8 @@ test('Follow-up questions sits in the Voices category after Expressive emotions,
     end
     assert(owner and owner.id == 'voices' and row('followUpInterest').label == 'Follow-up questions')
     assert(row('followUpInterest').value == true and row('followUpInterest').defaultValue == true)
-    assert(row('followUpInterest').description:find('On by default', 1, true) and not row('followUpInterest').description:find('Off by default', 1, true)
-        and row('followUpInterest').description:find('now and then', 1, true))
+    assert(row('followUpInterest').description:find('never on every reply', 1, true) and not row('followUpInterest').description:find('Off by default', 1, true)
+        and row('followUpInterest').description:find('Now and then', 1, true))
     local at = {}
     for index, id in ipairs(order) do at[id] = index end
     assert(at.naturalSpeech < at.expressiveEmotions and at.expressiveEmotions < at.followUpInterest, 'next to the other two speech settings')
@@ -4505,8 +4580,8 @@ test('V’s voice sits in the Voices category after Follow-up questions, is on b
     end
     assert(owner and owner.id == 'voices' and row('vVoice').label == 'V’s voice for typed lines')
     assert(row('vVoice').value == true and row('vVoice').defaultValue == true)
-    assert(row('vVoice').description:find('On by default', 1, true) and row('vVoice').description:find('typed', 1, true)
-        and row('vVoice').description:find('push-to-talk', 1, true))
+    assert(row('vVoice').description:find('type a line', 1, true)
+        and row('vVoice').description:find('Push-to-talk', 1, true))
     assert(not row('vVoice').description:find('Off by default', 1, true) and not row('vVoice').description:find('cannot clone', 1, true))
     for _, banned in ipairs({'recommended', 'antivirus', 'embedded', 'paid'}) do
       assert(not row('vVoice').description:lower():find(banned, 1, true), banned)
@@ -4598,7 +4673,7 @@ test('Multilingual conversations sits in Conversations and is off by default', (
     local entry = row('multilingualConversations')
     assert(owner and owner.id == 'conversation-controls', 'in Conversations')
     assert(entry.type == 'bool' and entry.value == false and entry.defaultValue == false and entry.label == 'Multilingual conversations')
-    assert(entry.description:find('OmniVoice · Balanced', 1, true) and entry.description:find('Off by default', 1, true))
+    assert(entry.description:find('OmniVoice · Balanced', 1, true) and entry.description:find('English only', 1, true))
     assert(registered.applyBatch('manager', {{id = 'multilingualConversations', value = 'yes'}}).ok == false)
     assert(not manager.applySettings(player, {multilingualConversations = 1}))
   `);
@@ -4828,7 +4903,7 @@ test('Development offers the own Convai key: off by default, no free-key promoti
     assert(not use.description:find('embedded', 1, true) and not use.description:find('shipped', 1, true))
     -- The sidebar no longer sells a free key or compares plans.
     assert(not use.description:find('daily', 1, true) and not use.description:find('recommended', 1, true) and not use.description:find('Mistral', 1, true))
-    assert(use.description:find('Paste it below', 1, true) and use.description:find('choose Apply', 1, true))
+    assert(use.description:find('paste it below', 1, true) and use.description:find('choose Apply', 1, true))
     assert(not row('own-key:paste').description:find('convai.com', 1, true))
     assert(row('own-key-status').value == 'Not added' and row('own-key-using').value == 'The shared plan')
     assert(row('own-key:remove').disabled == true, 'there is nothing to remove yet')
@@ -4950,12 +5025,12 @@ test('Development offers the conversation provider and the Mistral key rows: Con
     local groqRow = row('groq-key-status')
     assert(groqRow and groqRow.label == 'Groq key' and groqRow.value == 'Not added' and row('groq-key:remove').disabled == true)
     assert(row('groq-key:paste').label == 'Paste Groq key' and row('groq-key:paste').disabled ~= true)
-    assert(row('groq-key:paste').description == 'Copy your free key from Groq first. It is read from the clipboard once, checked with Groq and saved on this computer. You can also save it in the file player-groq-key.txt in the conversation service folder.')
+    assert(row('groq-key:paste').description:find('Copy your free key from Groq first. It is read from the clipboard once, checked with Groq and saved on this computer.', 1, true) and row('groq-key:paste').description:find('player-groq-key.txt', 1, true))
     assert(row('groq-key:remove').label == 'Remove my Groq key' and row('groq-key:remove').description == 'Deletes the saved key. Conversations go back to Mistral if you added a key there, otherwise to Convai free tier.')
     assert(not row('groq-key:paste').description:lower():find('text only', 1, true) and not row('groq-key:remove').description:lower():find('paid', 1, true))
     local localRow = row('local-ai-status')
     assert(localRow and localRow.label == 'Local AI' and localRow.value == 'Not installed', 'the Local AI row is always there')
-    assert(localRow.description == 'Runs conversations on this computer with the optional Local AI pack. It needs free graphics memory while it works, and memory stays on this computer. Choose Local in Conversation provider, then Apply.')
+    assert(localRow.description:find('Runs conversations on this computer with the optional Local AI pack. It needs free graphics memory while it works.', 1, true) and localRow.description:find('Choose Local in Conversation provider, then Apply.', 1, true))
     assert(row('mistral-key:paste').disabled ~= true and row('mistral-key:paste').description:find('player-mistral-key.txt', 1, true))
     assert(row('own-key-using').value == 'The shared plan', 'the Convai plan line is unchanged while Convai is chosen')
     -- The rows sit in Development: the provider choice after the Convai key rows (shown in Developer mode), the status line last.

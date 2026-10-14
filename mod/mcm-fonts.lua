@@ -5,6 +5,11 @@ local M = {}
 -- WALK_BUDGET: widgets visited per update (about 4-6 native calls each, so a batch stays near a frame of work).
 local MAX_EVENTS, FIND_BUDGET, WALK_BUDGET, MAX_ROWS = 2048, 2048, 160, 2048
 local RENDER = 'MCMRenderRoot'
+-- The help text on the right of the page (MCM's description panel) is drawn at 20, which is small to read. Our own descriptions are
+-- drawn at 22, the size of the setting rows, and put back to what MCM set whenever the panel shows another mod's text. The panel is
+-- 414 wide and 762 tall in the 1920 x 1080 layout and does not scroll, so a description has to fit it: bridge/description-fit.test.mjs.
+local DESCRIPTION_FONT_SIZE, DESCRIPTION_FONT_FALLBACK = 22, 20
+M.DESCRIPTION_FONT_SIZE = DESCRIPTION_FONT_SIZE
 
 function M.new(options)
     options = options or {}
@@ -108,11 +113,32 @@ function M.new(options)
         end
         return state.owned and active()
     end
+    -- Sets the size of the description panel's text: ours while the text is ours, MCM's own while it is not. The size MCM gave the
+    -- widget is read once per widget (a new text widget is created whenever MCM sets a description) and kept as a plain number.
+    local function describeSize(widget, own)
+        if not widget or not state then return end
+        local identity = key(widget)
+        if not identity then return end
+        local ok, current = pcall(function() return widget:GetFontSize() end)
+        current = ok and tonumber(current) or nil
+        local record = state.descriptionSize
+        if own then
+            if not record or record.key ~= identity then
+                record = {key = identity, original = current or DESCRIPTION_FONT_FALLBACK}
+                state.descriptionSize = record
+            end
+            if current ~= DESCRIPTION_FONT_SIZE then pcall(function() widget:SetFontSize(DESCRIPTION_FONT_SIZE) end) end
+        elseif record and record.key == identity then
+            if current ~= record.original then pcall(function() widget:SetFontSize(record.original) end) end
+            state.descriptionSize = nil
+        end
+    end
     local function shared(found, code, restoring, budget)
         local owned = not restoring and state.owned and active()
         scope.apply(found.title, owned and code or false)
         scope.apply(found.status, owned and code or false)
         scope.apply(found.description, not restoring and ownDescription() and code or false)
+        describeSize(found.description, not restoring and ownDescription())
         if found.sidebar then
             for index = 0, math.min(found.sidebar:GetNumChildren(), MAX_ROWS) - 1 do
                 local row = found.sidebar:GetWidgetByIndex(index)
@@ -250,6 +276,7 @@ function M.new(options)
         if not state.full and not state.work then
             -- Description only: no generation change, so the font records of the rows stay.
             scope.apply(found.description, ownDescription() and code or false)
+            describeSize(found.description, ownDescription())
             state.pending = false
             return
         end
