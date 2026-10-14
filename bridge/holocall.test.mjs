@@ -84,16 +84,45 @@ test('Holocall.reds drives only the call window: no quest call, quest fact or ca
   // A call never starts while the game has one or blocks calls.
   assert.match(code, /if this\.ConvaiCallGameBusy\(\) \{ return "quest-call"; \};/);
   assert.match(code, /IsCallingEnabled\(\)/);
-  // Only an AI Chat contact (the mod's own characters) can be called.
-  assert.match(code, /!this\.ConvaiPhoneChatHasContact\(contact\)/);
+  // Only a contact Lua registered (the mod's own characters, never Johnny) can be called.
+  assert.match(code, /!this\.ConvaiHolocallHasContact\(contact\)/);
+  assert.ok(!code.includes('ConvaiPhoneChatHasContact'), 'the call list is its own, not the Chat list');
 });
 
-test('the phone offers Holocall on the Chat list and Call inside an AI chat, never the game\'s call', () => {
+test('a holocall starts from the ordinary Contacts call, only for registered mod contacts; every other contact calls as before', () => {
+  const code = reds.split('\n').filter(line => !line.trim().startsWith('//')).join('\n');
+  // The one hook: the function that would send the game's call request, after the game's own checks (callable, calls enabled).
+  const wrapped = [...code.matchAll(/@wrapMethod\((\w+)\)\s*\n(?:public|protected|private) (?:cb )?func (CallSelectedContact|CallContact|AcceptAction|AlternativeAcceptAction|OnContactListAction)\b/g)]
+    .map(m => m[1] + '.' + m[2]);
+  assert.deepEqual(wrapped, ['NewHudPhoneGameController.CallSelectedContact']);
+  const hook = /public func CallSelectedContact\(contactData: wref<ContactData>\) -> Void \{([^]*?)\n\}/.exec(code)[1];
+  // The mod's own request is the only early return; everything else reaches the game's function with the same argument.
+  assert.match(hook, /^\s*if IsDefined\(contactData\) && !contactData\.convaiChat && IsDefined\(this\.m_player\)\s*&& this\.m_player\.ConvaiHolocallRequest\(contactData\.contactId\) \{\s*return;\s*\};\s*wrappedMethod\(contactData\);\s*$/);
+  assert.equal([...hook.matchAll(/return/g)].length, 1);
+  // The request is refused (so the game's call runs) unless the contact was registered by Lua.
+  const request = /public final func ConvaiHolocallRequest\(contact: String\) -> Bool \{([^]*?)\n\}/.exec(code)[1];
+  assert.match(request, /if StrLen\(contact\) == 0 \|\| !this\.ConvaiHolocallHasContact\(contact\) \{ return false; \};/);
+  // Nothing in the Chat list or inside a chat offers or starts a call any more.
+  for (const file of ['PhoneChatTabs.reds', 'PhoneChat.reds']) {
+    assert.doesNotMatch(read('../r6/scripts/CyberpunkConvai/' + file), /[Hh]olocall/, file);
+  }
   const tabs = read('../r6/scripts/CyberpunkConvai/PhoneChatTabs.reds');
-  assert.match(tabs, /Equals\(this\.m_convaiChatState, ConvaiPhoneChatState\.List\) \{\s*this\.ConvaiStartHolocall/);
-  assert.match(tabs, /player\.ConvaiHolocallLabel\(\)/);
+  assert.match(tabs, /inkWidgetRef\.SetVisible\(this\.m_action2ButtonWidget, false\);/);
+  assert.match(tabs, /inkWidgetRef\.SetVisible\(this\.m_callInputHint, false\);[^]*inkWidgetRef\.SetVisible\(this\.m_separtor, false\);/);
+  assert.match(tabs, /public func AlternativeAcceptAction\(\) -> Void \{\s*if NotEquals\(this\.m_convaiChatState, ConvaiPhoneChatState\.Off\) \{\s*this\.ConvaiOpenChat/);
   const chat = read('../r6/scripts/CyberpunkConvai/PhoneChat.reds');
-  assert.match(chat, /this\.ConvaiChatHolocall\(\);\s*\};\s*ListenerActionConsumer\.Consume\(consumer\);\s*return false;/);
+  assert.match(chat, /inkWidgetRef\.SetVisible\(this\.m_hintCall, false\);/);
+  // The Call key inside a chat is swallowed and does nothing.
+  assert.match(chat, /n"phone_open_journal"\)\) \{\s*\/\/[^\n]*\n\s*ListenerActionConsumer\.Consume\(consumer\);\s*return false;/);
+});
+
+test('the live picture setting is a Conversations setting, not a developer one', () => {
+  const mcm = read('../mod/mcm.lua');
+  const conversations = mcm.slice(mcm.indexOf("category('conversation-controls'"), mcm.indexOf("category('companion-behavior'"));
+  const development = mcm.slice(mcm.indexOf("category('development'"), mcm.indexOf("category('help', 'Help'"));
+  assert.match(conversations, /setting\('holocallLiveImage', 'Live holocall picture \(experimental\)'/);
+  assert.doesNotMatch(development, /holocall/i);
+  assert.match(mcm, /key == 'holocallLiveImage'/);
 });
 
 // ---------------------------------------------------------------- Lua state machine
@@ -124,7 +153,8 @@ function player:ConvaiHolocallBegin(contact) game.began = contact; return game.b
 function player:ConvaiHolocallConnect(live) game.connects[#game.connects + 1] = live; return game.window end
 function player:ConvaiHolocallEnd() game.ends = game.ends + 1 end
 function player:ConvaiHolocallTakeEvent() return table.remove(game.events, 1) or '' end
-function player:ConvaiHolocallSetLabel(label) game.labels[#game.labels + 1] = label end
+function player:ConvaiHolocallClearContacts() game.registered = {} end
+function player:ConvaiHolocallRegisterContact(contact) game.registered[#game.registered + 1] = contact end
 local enabled, busy, live = {['judy-alvarez'] = true, ['johnny-silverhand'] = true}, false, false
 local open = {available = true, combat = false, tier = 1, dialogue = false, choices = false, call = false, replacer = false}
 local function sample(extra) local s = {} for k, v in pairs(open) do s[k] = v end for k, v in pairs(extra or {}) do s[k] = v end return s end
@@ -154,7 +184,8 @@ test('idle costs nothing, and a phone request rings, connects as a voice call an
   assert(holocall.call == nil and game.began == nil)
   game.requests = {'judy'}
   holocall.drain(player)
-  assert(game.labels[1] == 'Holocall', 'the translated phone label is pushed on the drain')
+  -- The drain registers the callable contacts once: the catalogue rows, never Johnny, a Silverhand record or a bad key.
+  assert(#game.registered == 1 and game.registered[1] == 'judy', 'only judy is registered')
   assert(holocall.request and holocall.request.contact == 'judy' and logged('requested contact=judy'))
   -- Nothing starts while the world is not playable (the phone is still open).
   holocall.update(player, 0.1, false, open)
@@ -290,4 +321,18 @@ test('the experimental live picture places a held copy and a switched-on camera,
   holocall.workspot = nil
   game.requests = {'judy'}; holocall.drain(player); tick(2)
   assert(holocall.connected() and holocall.call.mode == 'audio' and logged('reason=no%-talk%-pose'))
+`));
+
+test('callable contacts are registered once per world, again after a load, and retried while the native side is missing', () => run(`
+  game.requests = {}
+  holocall.drain(player); holocall.drain(player)
+  assert(game.registered and #game.registered == 1 and game.registered[1] == 'judy')
+  game.registered = nil; holocall.drain(player)
+  assert(game.registered == nil, 'registered once per world: no repeated native calls')
+  holocall.abandon('save restored'); holocall.drain(player)
+  assert(game.registered and game.registered[1] == 'judy', 'a load registers again on the new player')
+  -- Staged Lua before the native script is installed: the calls fail, nothing breaks, and the drain retries.
+  local bare = {ConvaiHolocallTakeRequest = function() return '' end}
+  holocall.abandon('reload'); holocall.drain(bare); assert(holocall.registered == nil)
+  holocall.drain(player); assert(holocall.registered == true)
 `));

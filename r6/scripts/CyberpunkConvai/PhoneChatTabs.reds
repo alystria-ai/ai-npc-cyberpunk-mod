@@ -157,27 +157,13 @@ public func AcceptAction() -> Void {
     };
     wrappedMethod();
 }
-// On the Chat list the secondary action (the game's Messages key on a contact) starts a holocall with that character
-// (Holocall.reds, docs/HOLOCALL.md); the accept action opens the text chat.
 @wrapMethod(NewHudPhoneGameController)
 public func AlternativeAcceptAction() -> Void {
-    if Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) {
-        this.ConvaiStartHolocall(this.m_contactListLogicController.GetSelectedContactData());
-        return;
-    };
     if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.Off) {
         this.ConvaiOpenChat(this.m_contactListLogicController.GetSelectedContactData());
         return;
     };
     wrappedMethod();
-}
-
-@addMethod(NewHudPhoneGameController)
-private final func ConvaiStartHolocall(contact: wref<ContactData>) -> Void {
-    if !IsDefined(contact) || !contact.convaiChat || !IsDefined(this.m_player) { return; };
-    if this.m_player.ConvaiHolocallRequest(contact.id) {
-        this.m_audioSystem.Play(n"ui_phone_incoming_call_positive");
-    };
 }
 
 @addMethod(NewHudPhoneGameController)
@@ -283,10 +269,7 @@ private func RefreshInputHints(contactData: wref<ContactData>) -> Void {
     if IsDefined(contactData) && contactData.convaiChat {
         inkTextRef.SetText(this.m_acceptButtonLabel, "Chat");
         inkWidgetRef.SetVisible(this.m_acceptButtonWidget, true);
-        // The secondary action starts a holocall (Holocall.reds); Lua pushes the translated label.
-        let player = GetPlayer(GetGameInstance()) as PlayerPuppet;
-        inkTextRef.SetText(this.m_action2ButtonLabel, IsDefined(player) ? player.ConvaiHolocallLabel() : "Holocall");
-        inkWidgetRef.SetVisible(this.m_action2ButtonWidget, true);
+        inkWidgetRef.SetVisible(this.m_action2ButtonWidget, false);
         inkWidgetRef.SetVisible(this.m_showAllButtonWidget, false);
     };
 }
@@ -399,10 +382,10 @@ public final func ConvaiShowChatLabel(visible: Bool) -> Void {
 protected cb func OnDataChanged(value: Variant) -> Bool {
     let result = wrappedMethod(value);
     if IsDefined(this.m_contactData) && this.m_contactData.convaiChat {
-        // Both actions exist on a Chat row: chat (accept) and holocall (the call glyph, the secondary action).
-        inkWidgetRef.SetVisible(this.m_callInputHint, true);
+        // A Chat row only opens the chat; calling a character is done from the ordinary Contacts list.
+        inkWidgetRef.SetVisible(this.m_callInputHint, false);
         inkWidgetRef.SetVisible(this.m_chatInputHint, true);
-        inkWidgetRef.SetVisible(this.m_separtor, true);
+        inkWidgetRef.SetVisible(this.m_separtor, false);
     };
     return result;
 }

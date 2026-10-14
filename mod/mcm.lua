@@ -1879,6 +1879,9 @@ local function schema()
                 'Prepares the conversation with a character you look at, walk up to or have just talked to, so they answer without a wait; it pauses during combat and scenes. At most two characters are kept ready at any moment, at most one new connection starts every 3 seconds and a character is released after 40 seconds unused, so a crowd never adds up.'),
             setting('gameDialogueContext', 'Continue from game dialogue', 'bool', snapshot.settings.gameDialogueContext, true,
                 'When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default.'),
+            -- Holocalls start from the phone's Contacts list (docs/HOLOCALL.md); this is their only setting.
+            setting('holocallLiveImage', 'Live holocall picture (experimental)', 'bool', snapshot.settings.holocallLiveImage == true, false,
+                'In a holocall, try to show the character live instead of their portrait. Experimental: the picture can stay empty. If the character cannot be shown, the call goes on with the portrait. Off by default.'),
         })
         local heights,strengths=manager.gazeChoices()
         local heightIndex,strengthIndex=3,3
@@ -1962,8 +1965,6 @@ local function schema()
         categories[#categories + 1] = category('development', 'Development', {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
                 'For testing and bug reports; leave it off for normal play. It shows routine companion popups (the joining step, dismissal confirmations, driving instructions such as boarding and exit, results of companion actions, and a notice when a support report is ready), writes a movement trace file in the mod’s runtime folder, logs body gesture decisions, and adds this setting to support reports. Preparation progress, joined notices, failures and replies to Stop trip remain visible when off.'),
-            setting('holocallLiveImage', 'Live holocall picture (experimental)', 'bool', snapshot.settings.holocallLiveImage == true, false,
-                'In a holocall, try to show the character live instead of their portrait. Experimental: the picture can stay empty. If the character cannot be shown, the call goes on with the portrait. Off by default.'),
             table.unpack(ownKeyRows(snapshot)),
         })
         if support then

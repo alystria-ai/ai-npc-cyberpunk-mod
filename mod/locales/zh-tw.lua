@@ -816,7 +816,6 @@ return {
     ["The voice model did not load. Check the voice in Settings or choose another one, then invite again."] = "語音模型未能載入。請在設定中檢查語音，或選擇其他語音，然後重新邀請。",
     ["The memory service did not respond. Check your connection, then invite again."] = "記憶服務沒有回應。請檢查連線，然後重新邀請。",
     ["The conversation connection did not open. Check your connection, then invite again."] = "對話連線未能開啟。請檢查連線，然後重新邀請。",
-    ["Holocall"] = "全像通話",
     ["Calls are not available during combat."] = "戰鬥中無法通話。",
     ["Calls are not available right now."] = "目前無法通話。",
     ["Holocall ended: combat started."] = "全像通話已結束：戰鬥開始。",

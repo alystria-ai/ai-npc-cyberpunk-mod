@@ -816,7 +816,6 @@ return {
     ["The voice model did not load. Check the voice in Settings or choose another one, then invite again."] = "O modelo de voz não carregou. Verifique a voz em Configurações ou escolha outra e convide novamente.",
     ["The memory service did not respond. Check your connection, then invite again."] = "O serviço de memória não respondeu. Verifique sua conexão e convide novamente.",
     ["The conversation connection did not open. Check your connection, then invite again."] = "A conexão de conversa não abriu. Verifique sua conexão e convide novamente.",
-    ["Holocall"] = "Holochamada",
     ["Calls are not available during combat."] = "As chamadas não estão disponíveis durante o combate.",
     ["Calls are not available right now."] = "As chamadas não estão disponíveis no momento.",
     ["Holocall ended: combat started."] = "Holochamada encerrada: o combate começou.",

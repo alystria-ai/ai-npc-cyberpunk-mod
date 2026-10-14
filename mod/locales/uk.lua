@@ -816,7 +816,6 @@ return {
     ["The voice model did not load. Check the voice in Settings or choose another one, then invite again."] = "Голосову модель не вдалося завантажити. Перевір голос у Налаштуваннях або вибери інший і запроси знову.",
     ["The memory service did not respond. Check your connection, then invite again."] = "Служба пам'яті не відповіла. Перевір з'єднання і запроси знову.",
     ["The conversation connection did not open. Check your connection, then invite again."] = "З'єднання для розмови не відкрилося. Перевір з'єднання і запроси знову.",
-    ["Holocall"] = "Голодзвінок",
     ["Calls are not available during combat."] = "Дзвінки недоступні під час бою.",
     ["Calls are not available right now."] = "Дзвінки зараз недоступні.",
     ["Holocall ended: combat started."] = "Голодзвінок завершено: почався бій.",
