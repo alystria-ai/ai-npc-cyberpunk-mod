@@ -35,7 +35,7 @@ def main() -> int:
     w("# Clip search for the remaining 43 voices, loudness-aware (2026-10-14)")
     w("")
     w("**Status: applied to the runtime assets, not heard by anyone yet.** The OmniVoice references of the 43 voices (short, long and best) are the new loudness-aware picks, "
-      "Pocket keeps its current picks, and all four reference sets are gain-matched towards -20 LUFS. The 29 report voices, `8ug8ear` and `jake-estevez` were not touched. "
+      "Pocket keeps its current picks, and all four reference sets are gain-matched towards -20 LUFS (ceiling -1 dBTP, a quiet set is never made quieter). The 29 report voices, `8ug8ear` and `jake-estevez` were not touched. "
       "The reference WAVs and the four autobest configs live under `runtime/` (not in git); the originals are in `runtime/backups/clip-search-43-20261014/`. "
       "The bridge reads the configs at start, so it needs a restart to pick them up.")
     w("")
@@ -54,16 +54,17 @@ def main() -> int:
     w("")
     w(f"- {band['low']:g} to {band['high']:g} LUFS full bonus (+{band['bonus']:g}); between {band['high']:g} and {band['hot_above']:g} the same bonus (nothing extra for louder); "
       f"quieter than {band['low']:g}: -{band['quiet_slope']:g} per dB; hotter than {band['hot_above']:g}: -{band['hot_slope']:g} per dB.")
-    w("- True peak above -3 dBFS: -0.010 per dB; peak-to-loudness ratio under 11 dB (squashed or shouted): -0.004 per dB.")
+    w("- True peak above -3 dBFS: -0.010 per dB (this is the search bonus; the gain stage below uses a -1 dBTP ceiling); peak-to-loudness ratio under 11 dB (squashed or shouted): -0.004 per dB.")
     w("- A clip with clipping, silence or a noise floor above -48 dBFS is never a candidate; the combat, shouted-delivery, effect and media exclusions still apply.")
     w("")
     w("## Findings")
     w("")
     w("- **The game pool is level-matched.** Lines are mixed at about -23.6 LUFS: the median of 42 of the 43 voices lies between -23.4 and -25.1 LUFS, and the 10th to 90th percentile spans only 1 to 2 dB for most. "
       "Few clips sit in the -22 to -16 band (0 to 36 per voice; `jesse` is the exception, all hot at about -17.8). So selection alone moved the Omni sets by only a few tenths of a dB.")
-    w("- **The gain is limited by the -3 dBFS true-peak ceiling, not by the target.** Lines have isolated peaks; raising a set to -20 LUFS usually pushes its peak over -3 dBFS. "
-      "Following the agreed rule (linear gain, never past -3 dBFS true peak, no limiter), each set got the highest level that fits. "
-      "Some sets already peak above -3 dBFS before any gain, so the rule *lowers* them to fit; they end quieter than they started (marked below).")
+    w("- **The gain stage** (`loud43/apply_loud43.py`): one linear gain towards -20 LUFS integrated, capped so the true peak stays at or below -1 dBTP (the EBU R128 ceiling), no limiter. "
+      "Below -20 LUFS the gain is max(0, min(gain to -20, gain to the ceiling)), so a quiet set is never made quieter; a set whose peak is already over -1 dBTP keeps gain 0. "
+      "Sets between -20 and -16 LUFS are left alone; sets hotter than -16 LUFS come down to -20 (only `jesse`; `robert-wilson`'s short set at -18.1 is inside the range and stays).")
+    w("- **Most sets still end under -20 LUFS** because lines have isolated peaks: raising a set towards -20 pushes its peak past -1 dBTP first. Every such set is listed below.")
     w("")
     sets = {"omni-short": "OmniVoice short (up to 10 s)", "omni-long": "OmniVoice long (up to 18 s)", "pocket": "Pocket (current picks, up to 30 s)"}
     summary = []
@@ -73,12 +74,13 @@ def main() -> int:
         after = [r["gain"]["lufs"] for r in rows]
         under = sum(1 for r in rows if r["gain"]["lufs"] < -20.05)
         inband = sum(1 for r in rows if band["low"] <= r["gain"]["lufs"] <= band["hot_above"])
-        lowered = sum(1 for r in rows if r["gain"]["gain_db"] < 0 and r["gain"]["raw_lufs"] < -20)
-        summary.append((name, mean(before), mean(after), mean([r["gain"]["gain_db"] for r in rows]), under, inband, lowered))
-    w("| Set | Mean LUFS before (live file) | Mean LUFS after | Mean gain | Sets under -20 LUFS (held by -3 dBFS peak) | Sets inside -22 to -16 | Quiet sets that had to be lowered to fit |")
-    w("|---|---:|---:|---:|---:|---:|---:|")
-    for name, b, a, g, u, i, lo in summary:
-        w(f"| {name} | {b:.2f} | {a:.2f} | {g:+.2f} dB | {u} of 43 | {i} of 43 | {lo} |")
+        lowered = sum(1 for r in rows if r["gain"]["gain_db"] < 0)
+        zero = sum(1 for r in rows if r["gain"].get("reason", "") and r["gain"]["reason"].startswith("peak already"))
+        summary.append((name, mean(before), mean(after), mean([r["gain"]["gain_db"] for r in rows]), under, inband, lowered, zero))
+    w("| Set | Mean LUFS before (live file) | Mean LUFS after | Mean gain | Sets still under -20 LUFS | Sets inside -22 to -16 | Hot sets turned down | Sets left at gain 0 (peak already over -1 dBTP) |")
+    w("|---|---:|---:|---:|---:|---:|---:|---:|")
+    for name, b, a, g, u, i, lo, z in summary:
+        w(f"| {name} | {b:.2f} | {a:.2f} | {g:+.2f} dB | {u} of 43 | {i} of 43 | {lo} | {z} |")
     w("")
     w("(`omni` is the OmniVoice best set, equal to the long or the short one for each voice.)")
     w("")
@@ -96,7 +98,7 @@ def main() -> int:
             rows.append((v, a, old, new_ec if name != "pocket" else (None, None)))
         changed = sum(1 for v, a, o, n in rows if a["set_changed"])
         w((f"{changed} of 43 voices got a different clip set than the likeness-only pick; the others keep the same clips. " if name != "pocket" else "Clip sets unchanged (current picks); only the level changed. ")
-          + "LUFS: before = the file that was live, after = the new gain-matched file. † = held below -20 LUFS by the -3 dBFS true-peak ceiling; ↓ = a quiet set lowered to fit under it.")
+          + "LUFS: before = the file that was live, after = the new gain-matched file. † = still under -20 LUFS, held by the -1 dBTP ceiling; ‡ = gain 0, the peak is already over -1 dBTP; ↓ = a hot set turned down to -20.")
         w("")
         if name != "pocket":
             w("| Voice | Clips now (StringID, in order) | s | ECAPA ±SE | LUFS before → after | Gain | Likeness-only pick it replaces (same final) |")
@@ -106,7 +108,7 @@ def main() -> int:
             w("|---|---|---:|---|---|")
         for v, a, old, (ec, se) in rows:
             g = a["gain"]
-            mark = " ↓" if (g["gain_db"] < 0 and g["raw_lufs"] < -20) else (" †" if g["lufs"] < -20.05 else "")
+            mark = " ↓" if g["gain_db"] < 0 else ((" ‡" if (g.get("reason") or "").startswith("peak already") else " †") if g["lufs"] < -20.05 else "")
             level = f"{a['before']['lufs']:.1f} → {g['lufs']:.1f}{mark}"
             gain = f"{g['gain_db']:+.1f} dB"
             if name == "pocket":
@@ -121,19 +123,18 @@ def main() -> int:
             se_text = f" ±{se:.3f}" if se is not None else ""
             w(f"| {v} | {short_ids(a['ids'])} | {a['seconds']:.1f} | {f(ec, '.3f')}{se_text} | {level} | {gain} | {old_text} |")
         w("")
-    w("## Sets that cannot reach -20 LUFS")
-    w("")
-    w("The 20 furthest below the target (final LUFS, raw true peak before gain). Every row of the tables above that carries † or ↓ is such a case; the full list is `peak_limited` in `E:/CyberpunkConvai-offload/work/clip-search/loud43/apply-report.json`.")
-    w("")
-    w("| Voice | Set | Raw LUFS | Raw true peak | Gain | Final LUFS |")
-    w("|---|---|---:|---:|---:|---:|")
     flat = [(v, n, app["voices"][v][n]["gain"]) for v in voices for n in ("omni-short", "omni-long", "pocket")]
-    flat.sort(key=lambda t: t[2]["lufs"])
-    for v, n, g in flat[:20]:
-        w(f"| {v} | {n} | {g['raw_lufs']:.1f} | {g['raw_tp']:.1f} dBFS | {g['gain_db']:+.1f} dB | {g['lufs']:.1f} |")
+    under = sorted([t for t in flat if t[2]["lufs"] < -20.05], key=lambda t: t[2]["lufs"])
+    w("## Sets that stay under -20 LUFS")
     w("")
-    w("A true-peak limiter (or trimming the one loud transient) would let these sets reach -20 LUFS; it was ruled out, so the levels above stand. "
-      "Reverting is a copy of the backup folder over `runtime/` (below).")
+    w(f"{len(under)} of {len(flat)} short, long and Pocket sets end under -20 LUFS (the OmniVoice best set repeats the long or short one). Quietest first. Reason: † = the -1 dBTP ceiling stops the gain; ‡ = the peak is already over the ceiling, so gain 0 (never quieter). Also in `peak_limited` of `E:/CyberpunkConvai-offload/work/clip-search/loud43/apply-report.json`.")
+    w("")
+    w("| Voice | Set | Raw LUFS | Raw true peak | Gain | Final LUFS | Reason |")
+    w("|---|---|---:|---:|---:|---:|---|")
+    for v, n, g in under:
+        w(f"| {v} | {n} | {g['raw_lufs']:.1f} | {g['raw_tp']:.1f} dBTP | {g['gain_db']:+.1f} dB | {g['lufs']:.1f} | {'‡' if (g.get('reason') or '').startswith('peak already') else '†'} |")
+    w("")
+    w("A true-peak limiter (or trimming the one loud transient) would let these sets reach -20 LUFS; it was ruled out. Reverting is a copy of the backup folder over `runtime/` (below).")
     w("")
     w("## Listen first")
     w("")
@@ -149,7 +150,7 @@ def main() -> int:
         w(f"- `{v}`: {n_changed} Omni set(s) changed ({', '.join(ch) or 'none'}), level moved up to {move:.1f} dB")
     movers = sorted(ranking, key=lambda t: -t[1])[:6]
     w("")
-    w("Biggest level moves overall: " + ", ".join(f"`{v}` ({m:.1f} dB)" for _, m, v, _ in movers) + ". Listen for harshness or shouting in the sets that went up, and for thin or distant sound in the ones that were lowered.")
+    w("Biggest level moves overall: " + ", ".join(f"`{v}` ({m:.1f} dB)" for _, m, v, _ in movers) + ". Listen for harshness or shouting in the sets that went up, and for the hot `jesse` sets that were turned down for thin or distant sound.")
     w("")
     w("## Files, revert, re-run")
     w("")

@@ -6,9 +6,10 @@ For the 43 voices only (the 29 report voices, 8ug8ear and jake-estevez are never
   OmniVoice  short / long / best  -> the NEW picks of runs3/omni16-loud, rebuilt from the pool clips the clip-search way (whole clips,
                                      0.4 s gaps, mono 24 kHz, 16-bit) and then gain-matched
   Pocket     best                 -> the CURRENT pick (the reference already in the live config, from its backup copy) gain-matched
-Gain match: one linear gain towards -20 LUFS integrated (BS.1770-4); where that would push the true peak over -3 dBFS the highest level that
-fits is used instead (a voice that cannot reach -20 is listed in the report).  No limiter, no compressor, no EQ.  A set hotter than -20 LUFS
-is turned down by the same rule.  Gain is always computed from the raw (un-gained) reference, so re-running changes nothing.
+Gain match: one linear gain towards -20 LUFS integrated (BS.1770-4), capped so the true peak stays at or below -1 dBTP (EBU R128 ceiling).
+Below -20 LUFS: gain = max(0, min(target gain, ceiling gain)), so a quiet set is never made quieter (a set whose peak is already over the
+ceiling keeps gain 0).  -20 to -16 LUFS: left alone.  Hotter than -16 LUFS: turned down to -20.  No limiter, no compressor, no EQ.
+Every set that stays under -20 LUFS is listed in the report.  Gain is always computed from the raw (un-gained) reference, so re-running changes nothing.
 
 Writes   <runtime>/voice-references/picked/autobest/<omni-short|omni-long|omni|pocket>/<voice>.wav       (43 voices x 4 folders)
          the four autobest configs (entries of the 43 voices only; line endings and every other entry byte for byte), runtime/autobest-sets.json
@@ -39,7 +40,7 @@ MAIN = Path(os.environ.get("CLIP_SEARCH_ROOT") or common.ROOT)
 RUNTIME = MAIN / "runtime"
 REFS = RUNTIME / "voice-references/picked/autobest"
 BACKUP = RUNTIME / "backups/clip-search-43-20261014"
-TARGET_LUFS, CEILING_DB, MARGIN_DB = -20.0, -3.0, 0.03
+TARGET_LUFS, CEILING_DB, MARGIN_DB, HOT_ABOVE = -20.0, -1.0, 0.03, -16.0
 RATE = common.REFERENCE_RATE
 CONFIGS = {"pocket": "pocket-voices.autobest.json", "omni-short": "local-voices.autobest-short.json",
            "omni-long": "local-voices.autobest-long.json", "omni": "local-voices.autobest.json"}
@@ -68,15 +69,29 @@ def gain_match(x: np.ndarray):
     16-bit rounding; the gain is trimmed in 0.01 dB steps if rounding pushes it over)."""
     lufs, tp = loudband.L.lufs(x, RATE), loudband.L.true_peak_db(x)
     want = TARGET_LUFS - lufs
-    gain = min(want, CEILING_DB - MARGIN_DB - tp)
-    for _ in range(40):
-        y = np.round(np.clip(x * 10 ** (gain / 20), -1, 1) * 32767) / 32767
-        if loudband.L.true_peak_db(y) <= CEILING_DB:
-            break
-        gain -= 0.01
+    room = CEILING_DB - MARGIN_DB - tp
+    if lufs > HOT_ABOVE:                 # too hot: turned down to the target
+        gain = want
+    elif lufs >= TARGET_LUFS:            # already inside the healthy range (-20 to -16): left alone
+        gain = 0.0
+    else:                                # below the target: never quieter, never past the ceiling
+        gain = max(0.0, min(want, room))
+    y = x
+    if gain != 0.0:
+        for _ in range(60):
+            y = np.round(np.clip(x * 10 ** (gain / 20), -1, 1) * 32767) / 32767
+            if gain <= 0 or loudband.L.true_peak_db(y) <= CEILING_DB:
+                break
+            gain = max(0.0, gain - 0.01)
+        if gain == 0.0:
+            y = x
     after = loudband.measure_signal(y)
+    held = lufs < TARGET_LUFS and gain < want - 0.005          # below the target and held back
+    reason = None
+    if held:
+        reason = "peak already over the ceiling (gain 0)" if room <= 0 else "held by the true-peak ceiling"
     return y, {"raw_lufs": round(lufs, 2), "raw_tp": round(tp, 2), "gain_db": round(gain, 2), "wanted_db": round(want, 2),
-               "peak_limited": bool(CEILING_DB - MARGIN_DB - tp < want), "lufs": after["lufs"], "tp": after["tp"], "plr": after["plr"]}
+               "peak_limited": held, "reason": reason, "lufs": after["lufs"], "tp": after["tp"], "plr": after["plr"]}
 
 
 def wav_bytes(y: np.ndarray) -> bytes:
@@ -165,7 +180,7 @@ def main() -> int:
             data = wav_bytes(y)
             import io
             chk = loudband.measure_signal(sf.read(io.BytesIO(data), dtype="float64")[0])
-            assert chk["tp"] <= CEILING_DB + 1e-6 and abs(chk["lufs"] - info["lufs"]) < 0.05, f"{voice}/{name}: encoded file measures {chk}"
+            assert chk["tp"] <= max(CEILING_DB, info["raw_tp"]) + 1e-6 and abs(chk["lufs"] - info["lufs"]) < 0.05, f"{voice}/{name}: encoded file measures {chk}"
             digest = sha(data)
             pending[REFS / name / f"{voice}.wav"] = data
             same_set = sorted(ids) == sorted(old_entry["pick"]["clips"])
@@ -179,8 +194,8 @@ def main() -> int:
             assert new_cfgs[name]["voices"][voice]["reference"] == f"runtime/voice-references/picked/autobest/{name}/{voice}.wav"
             row[name] = {"ids": ids, "seconds": seconds, "set_changed": not same_set, "before": old_measure, "gain": info,
                          "before_seconds": old_entry["pick"]["seconds"], "before_clips": old_entry["pick"]["clips"]}
-            if info["peak_limited"] and info["lufs"] < TARGET_LUFS - 0.05:
-                report["peak_limited"].append({"voice": voice, "set": name, "lufs": info["lufs"], "tp": info["tp"], "raw_lufs": info["raw_lufs"]})
+            if info["lufs"] < TARGET_LUFS - 0.05:
+                report["peak_limited"].append({"voice": voice, "set": name, "lufs": info["lufs"], "tp": info["tp"], "raw_lufs": info["raw_lufs"], "raw_tp": info["raw_tp"], "reason": info["reason"]})
         # runtime/autobest-sets.json (the picker/builder data file): new Omni picks; Pocket untouched
         sv = new_sets["voices"][voice]["omni"]
         for key, name in (("short", "omni-short"), ("long", "omni-long"), ("best", "omni")):
@@ -194,7 +209,7 @@ def main() -> int:
         cfg = new_cfgs[name]
         cfg["proposal"] = {**cfg["proposal"], "loudness_update": {"date": "2026-10-14", "voices": voices,
                            "omni": "loudness-aware picks (runs3/omni16-loud)" if name != "pocket" else "Pocket keeps its current picks",
-                           "gain": f"linear gain to {TARGET_LUFS:g} LUFS, true peak at most {CEILING_DB:g} dBFS, no limiter",
+                           "gain": f"linear gain to {TARGET_LUFS:g} LUFS, true peak at most {CEILING_DB:g} dBTP, never lowers a set below {TARGET_LUFS:g} LUFS, sets hotter than {HOT_ABOVE:g} LUFS come down to the target, no limiter",
                            "script": "scripts/clip-search/loud43/apply_loud43.py", "backup": "runtime/backups/clip-search-43-20261014"}}
     report["peak_limited"].sort(key=lambda r: (r["set"], r["voice"]))
     out = common.WORK / "loud43" / "apply-report.json"

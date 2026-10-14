@@ -1,6 +1,6 @@
 {
  "version": 2,
- "generated": "2026-10-14T09:14:39+00:00",
+ "generated": "2026-10-14T09:21:44+00:00",
  "note": "43 non-report voices: OmniVoice = loudness-aware picks (omni16-loud), Pocket = current picks; references are gain-matched to -20 LUFS (apply_loud43.py). Rebuilding with Build-AutobestConfigs.mjs would NOT apply the gain.",
  "voices": {
   "aaron": {
@@ -19,7 +19,7 @@
       "16": 415,
       "32": 940
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.30 dB to -22.4 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.30 dB to -20.4 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -35,7 +35,7 @@
       "16": 478,
       "32": 1081
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.48 dB to -22.1 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.48 dB to -20.1 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -51,7 +51,7 @@
       "16": 478,
       "32": 1081
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.48 dB to -22.1 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.48 dB to -20.1 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -82,7 +82,7 @@
       "16": 411,
       "32": 930
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.16 dB to -20.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +4.04 dB to -20.0 LUFS (true peak -2.1 dBFS)"
     },
     "long": {
      "ids": [
@@ -98,7 +98,7 @@
       "16": 646,
       "32": 1461
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.45 dB to -21.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.41 dB to -20.0 LUFS (true peak -2.1 dBFS)"
     },
     "best": {
      "ids": [
@@ -114,7 +114,7 @@
       "16": 646,
       "32": 1461
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.45 dB to -21.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.41 dB to -20.0 LUFS (true peak -2.1 dBFS)"
     }
    },
    "pocket": {
@@ -161,7 +161,7 @@
       "16": 726,
       "32": 1643
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.14 dB to -20.7 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.80 dB to -20.0 LUFS (true peak -2.4 dBFS)"
     },
     "best": {
      "ids": [
@@ -177,7 +177,7 @@
       "16": 726,
       "32": 1643
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.14 dB to -20.7 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.80 dB to -20.0 LUFS (true peak -2.4 dBFS)"
     }
    },
    "pocket": {
@@ -208,7 +208,7 @@
       "16": 415,
       "32": 938
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.15 dB to -22.4 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.15 dB to -20.4 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -226,7 +226,7 @@
       "16": 748,
       "32": 1692
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.67 dB to -22.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.67 dB to -20.9 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -244,7 +244,7 @@
       "16": 748,
       "32": 1692
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.67 dB to -22.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.67 dB to -20.9 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -275,7 +275,7 @@
       "16": 379,
       "32": 858
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.97 dB to -24.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.03 dB to -22.6 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -291,7 +291,7 @@
       "16": 379,
       "32": 858
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -0.97 dB to -24.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.03 dB to -22.6 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -307,7 +307,7 @@
       "16": 379,
       "32": 858
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -0.97 dB to -24.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.03 dB to -22.6 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -339,7 +339,7 @@
       "16": 418,
       "32": 947
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.48 dB to -21.1 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.63 dB to -20.0 LUFS (true peak -1.9 dBFS)"
     },
     "long": {
      "ids": [
@@ -356,7 +356,7 @@
       "16": 710,
       "32": 1605
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.07 dB to -23.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.07 dB to -21.6 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -373,7 +373,7 @@
       "16": 710,
       "32": 1605
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.07 dB to -23.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.07 dB to -21.6 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -404,7 +404,7 @@
       "16": 344,
       "32": 777
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -1.18 dB to -24.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.82 dB to -22.8 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -421,7 +421,7 @@
       "16": 598,
       "32": 1353
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -1.18 dB to -24.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.82 dB to -22.9 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -438,7 +438,7 @@
       "16": 598,
       "32": 1353
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -1.18 dB to -24.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.82 dB to -22.9 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -468,7 +468,7 @@
       "16": 374,
       "32": 847
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.51 dB to -21.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.39 dB to -20.0 LUFS (true peak -1.1 dBFS)"
     },
     "long": {
      "ids": [
@@ -484,7 +484,7 @@
       "16": 374,
       "32": 847
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.51 dB to -21.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.39 dB to -20.0 LUFS (true peak -1.1 dBFS)"
     },
     "best": {
      "ids": [
@@ -500,7 +500,7 @@
       "16": 374,
       "32": 847
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.51 dB to -21.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.39 dB to -20.0 LUFS (true peak -1.1 dBFS)"
     }
    },
    "pocket": {
@@ -549,7 +549,7 @@
       "16": 654,
       "32": 1480
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.21 dB to -20.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.04 dB to -20.0 LUFS (true peak -2.2 dBFS)"
     },
     "best": {
      "ids": [
@@ -566,7 +566,7 @@
       "16": 654,
       "32": 1480
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.21 dB to -20.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.04 dB to -20.0 LUFS (true peak -2.2 dBFS)"
     }
    },
    "pocket": {
@@ -596,7 +596,7 @@
       "16": 339,
       "32": 766
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +2.45 dB to -21.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.44 dB to -20.0 LUFS (true peak -2.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -613,7 +613,7 @@
       "16": 642,
       "32": 1453
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.35 dB to -21.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.66 dB to -20.0 LUFS (true peak -1.7 dBFS)"
     },
     "best": {
      "ids": [
@@ -630,7 +630,7 @@
       "16": 642,
       "32": 1453
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.35 dB to -21.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.66 dB to -20.0 LUFS (true peak -1.7 dBFS)"
     }
    },
    "pocket": {
@@ -661,7 +661,7 @@
       "16": 385,
       "32": 871
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.26 dB to -23.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.74 dB to -21.6 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -677,7 +677,7 @@
       "16": 455,
       "32": 1029
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.08 dB to -20.7 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.74 dB to -20.0 LUFS (true peak -2.4 dBFS)"
     },
     "best": {
      "ids": [
@@ -693,7 +693,7 @@
       "16": 385,
       "32": 871
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -0.26 dB to -23.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.74 dB to -21.6 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -723,7 +723,7 @@
       "16": 347,
       "32": 784
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.17 dB to -20.7 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.53 dB to -20.0 LUFS (true peak -2.3 dBFS)"
     },
     "long": {
      "ids": [
@@ -739,7 +739,7 @@
       "16": 521,
       "32": 1178
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -0.17 dB to -22.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.83 dB to -20.3 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -755,7 +755,7 @@
       "16": 521,
       "32": 1178
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -0.17 dB to -22.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.83 dB to -20.3 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -802,7 +802,7 @@
       "16": 611,
       "32": 1382
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.96 dB to -22.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.96 dB to -20.6 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -847,7 +847,7 @@
       "16": 370,
       "32": 836
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.87 dB to -21.7 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.56 dB to -20.0 LUFS (true peak -1.3 dBFS)"
     },
     "long": {
      "ids": [
@@ -863,7 +863,7 @@
       "16": 419,
       "32": 949
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.28 dB to -22.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.28 dB to -20.3 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -879,7 +879,7 @@
       "16": 370,
       "32": 836
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.87 dB to -21.7 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.56 dB to -20.0 LUFS (true peak -1.3 dBFS)"
     }
    },
    "pocket": {
@@ -972,7 +972,7 @@
       "16": 366,
       "32": 827
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.99 dB to -22.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +2.99 dB to -20.6 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -989,7 +989,7 @@
       "16": 593,
       "32": 1341
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.99 dB to -22.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.99 dB to -20.6 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -1006,7 +1006,7 @@
       "16": 593,
       "32": 1341
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.99 dB to -22.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.99 dB to -20.6 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -1038,7 +1038,7 @@
       "16": 325,
       "32": 735
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -1.14 dB to -25.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.86 dB to -23.3 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -1054,7 +1054,7 @@
       "16": 325,
       "32": 735
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -1.14 dB to -25.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.86 dB to -23.3 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -1070,7 +1070,7 @@
       "16": 325,
       "32": 735
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -1.14 dB to -25.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.86 dB to -23.3 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -1102,7 +1102,7 @@
       "16": 327,
       "32": 739
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -1.18 dB to -24.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.82 dB to -22.6 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -1118,7 +1118,7 @@
       "16": 452,
       "32": 1022
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.35 dB to -23.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.65 dB to -21.9 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -1134,7 +1134,7 @@
       "16": 452,
       "32": 1022
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.35 dB to -23.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.65 dB to -21.9 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -1230,7 +1230,7 @@
       "16": 379,
       "32": 857
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.91 dB to -20.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +2.52 dB to -20.0 LUFS (true peak -2.4 dBFS)"
     },
     "long": {
      "ids": [
@@ -1246,7 +1246,7 @@
       "16": 379,
       "32": 857
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.91 dB to -20.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.52 dB to -20.0 LUFS (true peak -2.4 dBFS)"
     },
     "best": {
      "ids": [
@@ -1262,7 +1262,7 @@
       "16": 379,
       "32": 857
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.91 dB to -20.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.52 dB to -20.0 LUFS (true peak -2.4 dBFS)"
     }
    },
    "pocket": {
@@ -1293,7 +1293,7 @@
       "16": 303,
       "32": 685
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -1.07 dB to -20.5 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.00 dB to -19.4 LUFS (true peak -2.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -1309,7 +1309,7 @@
       "16": 303,
       "32": 685
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -1.07 dB to -20.5 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.00 dB to -19.4 LUFS (true peak -2.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -1325,7 +1325,7 @@
       "16": 303,
       "32": 685
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -1.07 dB to -20.5 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.00 dB to -19.4 LUFS (true peak -2.0 dBFS)"
     }
    },
    "pocket": {
@@ -1371,7 +1371,7 @@
       "16": 727,
       "32": 1644
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.20 dB to -21.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.98 dB to -20.0 LUFS (true peak -1.2 dBFS)"
     },
     "best": {
      "ids": [
@@ -1417,7 +1417,7 @@
       "16": 377,
       "32": 854
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -1.02 dB to -24.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.98 dB to -22.8 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -1433,7 +1433,7 @@
       "16": 377,
       "32": 854
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -1.02 dB to -24.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.98 dB to -22.8 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -1449,7 +1449,7 @@
       "16": 377,
       "32": 854
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -1.02 dB to -24.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.98 dB to -22.8 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -1542,7 +1542,7 @@
       "16": 419,
       "32": 947
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.99 dB to -22.7 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.99 dB to -20.7 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -1559,7 +1559,7 @@
       "16": 419,
       "32": 947
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.99 dB to -22.7 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.99 dB to -20.7 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -1576,7 +1576,7 @@
       "16": 419,
       "32": 947
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.99 dB to -22.7 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.99 dB to -20.7 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -1606,7 +1606,7 @@
       "16": 375,
       "32": 847
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +2.53 dB to -21.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.55 dB to -20.0 LUFS (true peak -2.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -1622,7 +1622,7 @@
       "16": 375,
       "32": 847
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +2.53 dB to -21.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.55 dB to -20.0 LUFS (true peak -2.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -1638,7 +1638,7 @@
       "16": 375,
       "32": 847
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +2.53 dB to -21.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.55 dB to -20.0 LUFS (true peak -2.0 dBFS)"
     }
    },
    "pocket": {
@@ -1668,7 +1668,7 @@
       "16": 342,
       "32": 775
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.39 dB to -22.1 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.39 dB to -20.1 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -1684,7 +1684,7 @@
       "16": 376,
       "32": 850
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.45 dB to -23.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.45 dB to -21.0 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -1700,7 +1700,7 @@
       "16": 342,
       "32": 775
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.39 dB to -22.1 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.39 dB to -20.1 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -1732,7 +1732,7 @@
       "16": 415,
       "32": 939
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +2.79 dB to -20.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.72 dB to -20.0 LUFS (true peak -2.1 dBFS)"
     },
     "long": {
      "ids": [
@@ -1749,7 +1749,7 @@
       "16": 610,
       "32": 1381
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.73 dB to -21.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.50 dB to -20.0 LUFS (true peak -1.3 dBFS)"
     },
     "best": {
      "ids": [
@@ -1766,7 +1766,7 @@
       "16": 610,
       "32": 1381
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.73 dB to -21.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.50 dB to -20.0 LUFS (true peak -1.3 dBFS)"
     }
    },
    "pocket": {
@@ -1796,7 +1796,7 @@
       "16": 316,
       "32": 716
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.21 dB to -20.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.81 dB to -20.0 LUFS (true peak -2.4 dBFS)"
     },
     "long": {
      "ids": [
@@ -1813,7 +1813,7 @@
       "16": 516,
       "32": 1168
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.92 dB to -21.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.77 dB to -20.0 LUFS (true peak -1.2 dBFS)"
     },
     "best": {
      "ids": [
@@ -1830,7 +1830,7 @@
       "16": 516,
       "32": 1168
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.92 dB to -21.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +3.77 dB to -20.0 LUFS (true peak -1.2 dBFS)"
     }
    },
    "pocket": {
@@ -1860,7 +1860,7 @@
       "16": 398,
       "32": 901
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.36 dB to -24.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.64 dB to -22.0 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -1877,7 +1877,7 @@
       "16": 755,
       "32": 1707
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -0.92 dB to -22.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.08 dB to -20.9 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -1894,7 +1894,7 @@
       "16": 755,
       "32": 1707
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -0.92 dB to -22.9 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.08 dB to -20.9 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -1926,7 +1926,7 @@
       "16": 364,
       "32": 824
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.84 dB to -21.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.59 dB to -20.0 LUFS (true peak -1.3 dBFS)"
     },
     "long": {
      "ids": [
@@ -1942,7 +1942,7 @@
       "16": 364,
       "32": 824
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.84 dB to -21.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.59 dB to -20.0 LUFS (true peak -1.3 dBFS)"
     },
     "best": {
      "ids": [
@@ -1958,7 +1958,7 @@
       "16": 364,
       "32": 824
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.84 dB to -21.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.59 dB to -20.0 LUFS (true peak -1.3 dBFS)"
     }
    },
    "pocket": {
@@ -1989,7 +1989,7 @@
       "16": 254,
       "32": 574
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -1.90 dB to -20.0 LUFS (true peak -3.8 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.00 dB to -18.1 LUFS (true peak -1.9 dBFS)"
     },
     "long": {
      "ids": [
@@ -2005,7 +2005,7 @@
       "16": 540,
       "32": 1221
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.29 dB to -22.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.29 dB to -20.3 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -2021,7 +2021,7 @@
       "16": 540,
       "32": 1221
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.29 dB to -22.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.29 dB to -20.3 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -2052,7 +2052,7 @@
       "16": 323,
       "32": 731
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.51 dB to -20.1 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.61 dB to -20.0 LUFS (true peak -2.9 dBFS)"
     },
     "long": {
      "ids": [
@@ -2068,7 +2068,7 @@
       "16": 509,
       "32": 1151
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.29 dB to -21.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.60 dB to -20.0 LUFS (true peak -1.7 dBFS)"
     },
     "best": {
      "ids": [
@@ -2084,7 +2084,7 @@
       "16": 509,
       "32": 1151
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.29 dB to -21.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +3.60 dB to -20.0 LUFS (true peak -1.7 dBFS)"
     }
    },
    "pocket": {
@@ -2115,7 +2115,7 @@
       "16": 278,
       "32": 629
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.38 dB to -23.1 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.38 dB to -21.1 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -2134,7 +2134,7 @@
       "16": 740,
       "32": 1675
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.38 dB to -23.2 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.38 dB to -21.2 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -2153,7 +2153,7 @@
       "16": 740,
       "32": 1675
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.38 dB to -23.2 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.38 dB to -21.2 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -2188,7 +2188,7 @@
       "16": 412,
       "32": 933
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.39 dB to -24.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.61 dB to -22.0 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -2205,7 +2205,7 @@
       "16": 652,
       "32": 1476
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.39 dB to -24.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.61 dB to -22.0 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -2222,7 +2222,7 @@
       "16": 652,
       "32": 1476
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.39 dB to -24.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.61 dB to -22.0 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -2253,7 +2253,7 @@
       "16": 313,
       "32": 707
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.98 dB to -22.3 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.02 dB to -20.3 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -2270,7 +2270,7 @@
       "16": 646,
       "32": 1462
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -1.08 dB to -23.5 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.92 dB to -21.5 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -2287,7 +2287,7 @@
       "16": 646,
       "32": 1462
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -1.08 dB to -23.5 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.92 dB to -21.5 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -2400,7 +2400,7 @@
       "16": 709,
       "32": 1604
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.30 dB to -24.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.70 dB to -22.6 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -2418,7 +2418,7 @@
       "16": 709,
       "32": 1604
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.30 dB to -24.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.70 dB to -22.6 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -2466,7 +2466,7 @@
       "16": 687,
       "32": 1553
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.11 dB to -22.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.11 dB to -20.0 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -2483,7 +2483,7 @@
       "16": 687,
       "32": 1553
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.11 dB to -22.0 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.11 dB to -20.0 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -2515,7 +2515,7 @@
       "16": 410,
       "32": 928
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.26 dB to -23.4 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.26 dB to -21.4 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -2531,7 +2531,7 @@
       "16": 410,
       "32": 928
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.26 dB to -23.4 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.26 dB to -21.4 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -2547,7 +2547,7 @@
       "16": 410,
       "32": 928
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.26 dB to -23.4 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.26 dB to -21.4 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -2578,7 +2578,7 @@
       "16": 362,
       "32": 820
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.94 dB to -22.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +2.94 dB to -20.6 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -2595,7 +2595,7 @@
       "16": 706,
       "32": 1597
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.39 dB to -24.1 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.61 dB to -22.1 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -2612,7 +2612,7 @@
       "16": 706,
       "32": 1597
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.39 dB to -24.1 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.61 dB to -22.1 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -2642,7 +2642,7 @@
       "16": 417,
       "32": 943
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -1.24 dB to -24.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +0.76 dB to -22.8 LUFS (true peak -1.0 dBFS)"
     },
     "long": {
      "ids": [
@@ -2658,7 +2658,7 @@
       "16": 417,
       "32": 943
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -1.24 dB to -24.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.76 dB to -22.8 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -2674,7 +2674,7 @@
       "16": 417,
       "32": 943
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain -1.24 dB to -24.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +0.76 dB to -22.8 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
@@ -2706,7 +2706,7 @@
       "16": 407,
       "32": 922
      },
-     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +1.23 dB to -21.6 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (new clip set), gain +2.88 dB to -20.0 LUFS (true peak -1.4 dBFS)"
     },
     "long": {
      "ids": [
@@ -2723,7 +2723,7 @@
       "16": 544,
       "32": 1231
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.80 dB to -24.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.20 dB to -22.8 LUFS (true peak -1.0 dBFS)"
     },
     "best": {
      "ids": [
@@ -2740,7 +2740,7 @@
       "16": 544,
       "32": 1231
      },
-     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain -0.80 dB to -24.8 LUFS (true peak -3.0 dBFS)"
+     "note": "loudness-aware clip search 2026-10-14 (kept the earlier set), gain +1.20 dB to -22.8 LUFS (true peak -1.0 dBFS)"
     }
    },
    "pocket": {
