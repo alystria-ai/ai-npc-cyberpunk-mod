@@ -6,9 +6,19 @@ is a cost with no benefit. This page is the inventory (audit of 2026-10-14, bran
 it, what must end it, and how that is checked. `mod/` starts nothing of its own (it only reads and writes files); every process below is
 the bridge's.
 
-Release is always one of three kinds. **At once** when a setting turns the feature off or another choice replaces it. **After a grace
-period** where the setting is toggled often or the reload is slow (a short Off must not cost a 45 s reload). **After an idle time** where
-the thing is used in bursts and reloading is cheap. Nothing here runs per frame: every check is due-checked on the bridge's existing 500 ms
+Release is one of two kinds. **At once** when a setting turns the feature off or another choice replaces it (user decision, 2026-10-14,
+for voice playback: "if they turn it off it should not be loaded"; there is no grace period). **After an idle time** where the thing is
+used in bursts and reloading is cheap.
+
+**Voice playback Off silences the companions, not V.** With playback Off the companions' voice worker (Pocket or OmniVoice) is released
+on the poll that reads the setting. V's typed line is spoken whenever V's voice setting is On ("if the setting for V voice is on he should
+speak"), so exactly what V needs stays loaded and nothing more: with a Pocket companion voice, that Pocket worker; with OmniVoice, V's
+helper Pocket worker (CPU) and OmniVoice itself is released; with a cloud voice, nothing local (V's line is one HTTPS request to that
+same cloud voice, spoken as V's cloned reference, exactly as with playback On); with the Convai voice, V has no line (it cannot clone),
+so nothing. V's line renderer page stays; the companions' page, the facial model and the audio probe go. With V's voice also Off,
+nothing voice-related stays loaded.
+
+Nothing here runs per frame: every check is due-checked on the bridge's existing 500 ms
 settings poll (a few property reads) or is a single timer. The cloud-voice rule still holds: **Voxtral or Inworld chosen means no Pocket,
 no OmniVoice, no worker of any kind**, not even as a backup (`bridge/voice-selection.mjs`, `targetBackend`).
 
@@ -18,17 +28,17 @@ no OmniVoice, no worker of any kind**, not even as a backup (`bridge/voice-selec
 
 | Resource | Loads when | Released when | Idle timeout? | Verified |
 |---|---|---|---|---|
-| **Pocket TTS worker** (Python, CPU; `pocket-voice.mjs`) | The committed (or settings-draft) voice is Pocket; with playback On | Another voice is chosen (exit confirmed through EOF, then the process tree is killed if it stays; the next worker waits for it); a cloud voice is chosen; **voice playback Off for 2 min (new)**; bridge shutdown | Only the playback grace (`MUTED_RELEASE_MS`, 120 s). Not an idle timer: a voice that is on is used in every conversation. Reload takes seconds | `voice-selection.test.mjs` (retire on every switch), `resource-lifecycle.test.mjs` (muted) |
-| **OmniVoice worker** (Python, GPU; `resident-voice.mjs`) | The committed (or draft) voice is OmniVoice and the pack is installed; playback On | Another voice or reference is chosen; a cloud voice is chosen; **playback Off for 2 min (new)**; shutdown. A background retry worker is dropped for another reference, another voice or playback Off (new) | Playback grace only. A reload takes about 45 s, so no shorter timer fits | `voice-selection.test.mjs`, `resource-lifecycle.test.mjs` |
-| **V's helper Pocket worker** (Python, CPU; `v-helper-voice.mjs`) | OmniVoice is committed and loaded, V's voice is On, the V clips exist and playback is On; after Omni is ready, never beside its load | **At once**: V's voice Off or no clips; the voice is not OmniVoice (Pocket, any cloud voice, Convai); playback Off; before any other Pocket worker starts (one work-folder lock, exit confirmed); a failure; shutdown | None needed: immediate on every condition | `v-helper-voice.test.mjs` (nine cases, including V off and a muted playback) |
-| **V's voice engine** (`v-voice.mjs`) | It is logic only (no process, no model); it uses the voice the player chose | n/a. **V's line is silent while playback is Off (new)**, so no worker and no cloud request is made for it | n/a | `resource-lifecycle.test.mjs` (bridge wiring) |
-| **V's line renderer page** (a second page in the hidden browser) | The composer opens with V's voice On and a usable voice | **V's voice Off or no clips; playback Off (new)**; never while it owns a line | None | `resource-lifecycle.test.mjs` (`releaseRendererPages`) |
+| **Pocket TTS worker** (Python, CPU; `pocket-voice.mjs`) | The committed (or settings-draft) voice is Pocket; with playback On, or with playback Off while V's voice is On (V's line uses it) | Another voice is chosen (exit confirmed through EOF, then the process tree is killed if it stays; the next worker waits for it); a cloud voice is chosen; **voice playback Off, at once, unless V's voice is On (new)**; V's voice turned Off while playback is Off; bridge shutdown | None. Not an idle timer: a voice that is on is used in every conversation. Reload takes seconds | `voice-selection.test.mjs` (retire on every switch), `resource-lifecycle.test.mjs` (playback Off, with and without V) |
+| **OmniVoice worker** (Python, GPU; `resident-voice.mjs`) | The committed (or draft) voice is OmniVoice and the pack is installed; playback On | Another voice or reference is chosen; a cloud voice is chosen; **playback Off, at once (new; V's helper below takes over V's line)**; shutdown. A background retry worker is dropped for another reference, another voice or playback Off (new) | None. A reload takes about 45 s, which is the price of turning playback back On (user decision) | `voice-selection.test.mjs`, `resource-lifecycle.test.mjs` |
+| **V's helper Pocket worker** (Python, CPU; `v-helper-voice.mjs`) | OmniVoice is the committed voice, V's voice is On, the V clips exist. With playback On it starts after Omni is ready (never beside its load) and a running one is kept while Omni loads again; **with playback Off it starts without OmniVoice, and is then the only voice worker loaded (new)** | **At once**: V's voice Off or no clips; the voice is not OmniVoice (Pocket, any cloud voice, Convai); before any other Pocket worker starts (one work-folder lock, exit confirmed); a failure; shutdown. **Not** released by playback Off (new) | None needed: immediate on every condition | `v-helper-voice.test.mjs` (eleven cases, including playback Off with V on and off, and a cloud voice) |
+| **V's voice engine** (`v-voice.mjs`) | It is logic only (no process, no model); it uses the voice the player chose | n/a. **V's line is spoken with playback Off whenever V's voice is On (new, reverts the silent-V rule of the first audit)**: Pocket companion voice: the chosen Pocket worker; OmniVoice: V's helper; cloud voice (Voxtral or Inworld): the same cloud voice over HTTPS, no local model; Convai voice: no V line | n/a | `resource-lifecycle.test.mjs` (bridge wiring), `v-helper-voice.test.mjs` |
+| **V's line renderer page** (a second page in the hidden browser) | The composer opens with V's voice On and a usable voice | **V's voice Off or no clips (new)**; never while it owns a line. Playback Off no longer closes it | None | `resource-lifecycle.test.mjs` (`releaseRendererPages`) |
 | **Local AI** (`llama-server`, GPU; `local-llm-server.mjs`) | Local AI is chosen (loaded ahead on choosing it), or an add-on remark needs it | The provider leaves Local AI (at the idle boundary); the choice is withdrawn before it was applied; **10 idle minutes**; shutdown (stop waits for exit, kills if needed) | Yes, 10 min (already). A longer wait is a reload with a shader warm-up, so it stays | `local-llm-server.test.mjs`, `mistral-key.test.mjs` (provider switch), `resource-lifecycle.test.mjs` |
 | **Memory embedder** (`llama-server`, CPU, 1 thread; `local-embed.mjs`) | The first memory search or write of a text provider | 5 idle minutes; **at once when the provider goes back to Convai and no add-on is installed (new)**; shutdown | Yes, 5 min (already) | `local-embed.test.mjs`, `mistral-key.test.mjs` |
 | **Local speech recogniser** (Python, CPU; `local-stt.mjs`) | A recording starts (nothing warms it) | 90 s after the last recording; shutdown now **waits for the exit and kills the process tree** (new: it only fired a kill timer before) | Yes, 90 s (already) | `local-stt.test.mjs`, `resource-lifecycle.test.mjs` |
 | **Microphone capture page** (`local-stt-capture.mjs`) | The first recording through the recogniser | **With the recogniser's idle exit (new)**; with the browser; shutdown (it stayed open for the life of the browser before) | Same 90 s | `resource-lifecycle.test.mjs` |
 | **Hidden browser (Edge)** and its pages (`realtime-host.mjs`) | First use: a Convai turn or warm-up, the local voice's warm-up, a recording | A provider switch, a key switch or a world reset closes it (already; the local voice reopens it at once). **Idle 5 min (new)**: no Convai page in the pool, no recording, no renderer turn, nothing used it; a text provider with playback On keeps the renderer warm instead. The renderer pages close as above | Yes, 5 min (`BROWSER_IDLE_MS`). A start costs about 0.8 s plus about 1 s for the page, and a composer warm-up pays it before the first reply | `resource-lifecycle.test.mjs`, `realtime-rewarm.test.mjs` |
-| **Facial model** (worker thread, 3.6 MB weights plus the text model; `jali-face.mjs`) | Bridge start (the files exist) | **Playback Off for 2 min (new)**: the thread is terminated; it loads again at the first poll after playback is On (a fraction of a second). Never cut off an analysis in flight; shutdown | Playback grace only | `resource-lifecycle.test.mjs` (real worker) |
+| **Facial model** (worker thread, 3.6 MB weights plus the text model; `jali-face.mjs`) | Bridge start (the files exist) | **Playback Off, at once (new)**: the thread is terminated (V's line has no face); it loads again at the first poll after playback is On (a fraction of a second). Never cut off an analysis in flight; shutdown | None | `resource-lifecycle.test.mjs` (real worker) |
 | **Phone-analysis worker** (Python, CPU; `resident-phone-analysis.mjs`) | Only without the facial model, with Pocket speaking and playback On | `setWanted(false)` retires it as soon as Pocket stops speaking or playback is Off (already) | None needed | `resident-phone-analysis.test.mjs` |
 | **Rhubarb** (`phonetic-lipsync.mjs`) | One short process per analysed phrase | Exits with the phrase | n/a | `phonetic-lipsync.test.mjs` |
 | **Mature safety check** (`mature-guard.mjs`) | Not a model: regular expressions compiled on first use (about 1 s, warmed when Mature turns on) | Nothing to unload (a few KB). The uncensored chat models are Local AI's `llama-server` above | n/a | `mature-guard.test.mjs` |
@@ -48,10 +58,10 @@ no OmniVoice, no worker of any kind**, not even as a backup (`bridge/voice-selec
 
 ## Trade-offs the user can change
 
-- `MUTED_RELEASE_MS` (`bridge/voice-selection.mjs`, 120 000): how long playback must stay Off before the voice workers and the facial
-  model go. At 0 the release is at the click; OmniVoice then costs about 45 s to load after every unmute. A game that **starts** with
-  playback Off never loads a worker.
-- `BROWSER_IDLE_MS` (`bridge/convai-bridge.mjs`, 300 000): the idle time before the hidden browser closes.
+- Voice playback Off releases at once (decided 2026-10-14; the 2-minute grace, `MUTED_RELEASE_MS`, is gone). The price: turning playback
+  back On reloads OmniVoice (about 45 s) or Pocket (seconds). A game that **starts** with playback Off never loads a companion worker.
+- `BROWSER_IDLE_MS` (`bridge/convai-bridge.mjs`, 300 000, decided 2026-10-14 to stay at 5 min): the idle time before the hidden browser
+  closes. V's line page and a speaking turn keep it open.
 - Local AI keeps its 10-minute idle unload and the embedder its 5-minute one (unchanged).
 
 ## Exit and lock discipline
@@ -67,10 +77,13 @@ synchronous kill on process exit (`killSync`).
 1. **V's helper**: with an OmniVoice voice and V's voice On, one extra `python.exe` (about 400 MiB, CPU) appears after OmniVoice is ready
    (`[VHelper] ... is ready`). Turn V's voice Off in Settings: the extra process is gone within about a second
    (`runtime/bridge.stderr.log` has no new line; the process count is the evidence). Turn it On again and it returns.
-2. **Playback Off**: with Pocket or OmniVoice loaded, turn Voice playback Off and wait 2 minutes: the voice's `python.exe` exits, GPU
-   memory drops (OmniVoice), `runtime/local-voice-state.json` says `"state": "stopped"` and `"resident": false`. Turn it On: the worker
-   loads again (a Pocket `python.exe` within seconds; OmniVoice about 45 s) and the status goes back to Ready. Turn Off then On inside
-   2 minutes: nothing is released.
+2. **Playback Off, V's voice Off**: with Pocket or OmniVoice loaded, turn Voice playback Off: within about a second the voice's
+   `python.exe` exits, GPU memory drops (OmniVoice), `runtime/local-voice-state.json` says `"state": "stopped"` and `"resident": false`.
+   Turn it On: the worker loads again (a Pocket `python.exe` within seconds; OmniVoice about 45 s) and the status goes back to Ready.
+   **Playback Off, V's voice On**: with OmniVoice, only V's helper `python.exe` (about 400 MiB, CPU) is left and V's typed line is still
+   spoken; with a Pocket voice, the one Pocket `python.exe` stays and V speaks; with Voxtral or Inworld no local process exists at all
+   and V's line still sounds (a request to that cloud voice); with the Convai voice nothing is loaded and V has no line. Then turn V's
+   voice Off: the last `python.exe` exits too.
 3. **Browser**: with a text provider and playback Off (or Convai with nobody in the party), after 5 idle minutes the hidden `msedge.exe`
    tree is gone; the next composer opening starts it again.
 4. **Recogniser**: record once with Mistral or Local AI; 90 s later its `python.exe` is gone, and with it the microphone page.

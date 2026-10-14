@@ -77,7 +77,7 @@ test('the helper loads only after the OmniVoice worker is ready, and only while 
   await h.voice.close();
 });
 
-test('V off, a muted voice playback, the Pocket voice or the Convai voice: no helper is ever loaded', async () => {
+test('V off, the Pocket voice or the Convai voice: no helper is ever loaded', async () => {
   const off = fixture(); await omniReady(off, {wanted: false});
   off.voice.setVHelperWanted(false); await tick();
   assert.equal(off.helperWorker(), undefined, 'V off');
@@ -85,11 +85,6 @@ test('V off, a muted voice playback, the Pocket voice or the Convai voice: no he
   off.voice.setVHelperWanted(true); await until(() => off.helperWorker()?.loaded, 'the helper');
   off.voice.setVHelperWanted(false); await until(() => off.helperWorker().closes === 1, 'the helper to be released');
   await off.voice.close();
-
-  const muted = fixture();
-  muted.voice.request({voice: false}); await omniReady(muted); await tick();
-  assert.equal(muted.helperWorker(), undefined, 'voice playback off');
-  await muted.voice.close();
 
   const pocket = fixture();
   pocket.voice.setVHelperWanted(true);
@@ -105,6 +100,39 @@ test('V off, a muted voice playback, the Pocket voice or the Convai voice: no he
   await convai.voice.close();
 });
 
+test('voice playback Off with V on: OmniVoice is released at once, the helper stays and speaks V; with V off nothing stays', async () => {
+  // Playback Off from the start: OmniVoice never loads, the helper does.
+  const muted = fixture();
+  muted.voice.request({voice: false}); await omniReady(muted);
+  await until(() => muted.helperWorker()?.loaded, 'the helper to load with playback Off');
+  assert.equal(muted.workers.filter(worker => worker.backend === 'omni').length, 0, 'no OmniVoice worker for a silent companion');
+  assert.equal(muted.voice.vHelperReady('v-male'), true);
+  assert.equal(muted.voice.vHelperSpeaks('v-male'), true);
+  // V off as well: the helper goes and nothing is left.
+  muted.voice.setVHelperWanted(false);
+  await until(() => muted.helperWorker().closes === 1, 'the helper to be released');
+  assert.equal(muted.workers.filter(worker => worker.backend === 'omni').length, 0);
+  await muted.voice.close();
+
+  // Playing, then Off: OmniVoice is released at the same poll, the helper keeps running (never restarted).
+  const live = fixture();
+  live.voice.request({voice: true}); await omniReady(live);
+  await until(() => live.helperWorker()?.loaded, 'the helper');
+  const omni = live.workers.find(worker => worker.backend === 'omni');
+  assert.equal(omni.loaded, true);
+  live.voice.update({voice: false}, null, false);
+  await until(() => omni.closes === 1, 'OmniVoice to be released at once');
+  assert.equal(live.helperWorker().closes, 0, 'V\'s helper stays');
+  assert.equal(live.helperWorker().loaded, true);
+  assert.equal(live.workers.filter(worker => worker.backend === 'pocket').length, 1, 'the helper was not restarted');
+  // Playback On again: OmniVoice loads again, the running helper is kept beside its load.
+  live.voice.update({voice: true}, null, false);
+  await until(() => live.workers.filter(worker => worker.backend === 'omni').length === 2 && live.workers.at(-1).loaded, 'OmniVoice to load again');
+  assert.equal(live.helperWorker().closes, 0);
+  assert.equal(live.workers.filter(worker => worker.backend === 'pocket').length, 1);
+  await live.voice.close();
+});
+
 test('a cloud voice never loads the helper: no local voice model, not even for V', async () => {
   const cloud = {hasKey: true, ready: true, setReferences() {}, async synthesizeStream() { return {}; }};
   const h = fixture({options: {voxtral: cloud}});
@@ -114,6 +142,21 @@ test('a cloud voice never loads the helper: no local voice model, not even for V
   assert.equal(h.voice.vHelperDue, false); assert.equal(h.voice.vHelper.running, false);
   assert.equal(h.voice.vHelperSpeaks('v-male'), false);
   assert.equal(h.workers.length, 0, 'no local voice worker of any kind');
+  await h.voice.close();
+});
+
+test('a cloud companion voice with playback Off and V on: still no local model; V keeps using the cloud voice (reference warmed)', async () => {
+  const references = [];
+  const cloud = {hasKey: true, ready: true, setReferences() {}, async reference(key) { references.push(key); }, async synthesizeStream() { return {}; }};
+  const h = fixture({options: {voxtral: cloud}});
+  h.voice.setVHelperWanted(true);
+  h.voice.update({voiceProvider: 'voxtral', voice: false}, null, false); await h.voice.start(); await tick();
+  assert.equal(h.workers.length, 0, 'no local voice worker of any kind');
+  assert.equal(h.voice.vHelper.running, false);
+  assert.equal(h.voice.usesProfile('v-male'), true, 'V\'s line is still routed to the cloud voice');
+  const receipt = await h.voice.prepareProfile('v-male');
+  assert.equal(receipt.cloudVoice, 'voxtral', 'V\'s voice is prepared on the cloud voice, not skipped as muted');
+  assert.deepEqual(references, ['v-male']);
   await h.voice.close();
 });
 

@@ -7,7 +7,7 @@ import {PassThrough} from 'node:stream';
 import {mkdtemp, mkdtempSync, writeFile, writeFileSync, rm, rmSync, readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
-import {VoiceSelection, MUTED_RELEASE_MS} from './voice-selection.mjs';
+import {VoiceSelection} from './voice-selection.mjs';
 import {JaliFace} from './jali-face.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {LocalStt, MODEL_FILES} from './local-stt.mjs';
@@ -47,53 +47,58 @@ function voiceFixture(options = {}) {
   return {voice, workers, events, states, clockState, advance: ms => { clockState.now += ms; }};
 }
 
-test('voice playback Off releases the Pocket worker after the grace period, not at the click, and playback On loads it again', async () => {
+test('voice playback Off releases the Pocket worker at once, and playback On loads it again', async () => {
   const h = voiceFixture();
   h.voice.update({voiceProvider: 'pocket', voice: true}, null, false);
   await h.voice.start();
   assert.equal(h.workers.length, 1);
   assert.equal(h.workers[0].loaded, true);
   h.voice.update({voice: false}, null, false);
-  await tick();
-  assert.equal(h.workers[0].closes, 0, 'switching playback Off does not release the worker at once');
-  h.advance(MUTED_RELEASE_MS - 1000);
-  h.voice.update({voice: false}, null, false); await tick();
-  assert.equal(h.workers[0].closes, 0, 'still inside the grace period');
-  h.advance(1000);
-  h.voice.update({voice: false}, null, false);
-  await until(() => h.workers[0].closes === 1, 'the worker to be released');
+  await until(() => h.workers[0].closes === 1, 'the worker to be released at the click, no grace period');
   assert.equal(h.workers[0].loaded, false);
-  assert.equal(h.voice.mutedIdle, true);
+  assert.equal(h.voice.silent, true);
   await h.voice.retiring;
   assert.equal(h.states.at(-1), 'stopped', 'the status says stopped, not "Convai voices"');
+  h.advance(10 * 60_000);
+  h.voice.update({voice: false}, null, false); await tick();
+  assert.equal(h.workers.length, 1, 'nothing loads again while it stays Off');
   // Playback On again: the next poll loads it.
   h.voice.update({voice: true}, null, false);
   await until(() => h.workers.length === 2 && h.workers[1].loaded, 'the worker to load again');
-  assert.equal(h.voice.mutedIdle, false);
+  assert.equal(h.voice.silent, false);
   await h.voice.close();
   assert.equal(h.workers[1].closes, 1, 'closing the service releases it, once');
 });
 
-test('playback turned On inside the grace period keeps the worker: a short mute costs nothing', async () => {
+test('V on keeps the Pocket worker while playback is Off (V\'s line uses it); V off releases it', async () => {
   const h = voiceFixture();
-  h.voice.update({voiceProvider: 'pocket', voice: true}, null, false); await h.voice.start();
+  h.voice.update({voiceProvider: 'pocket', voice: true}, null, false);
+  await h.voice.start();
+  h.voice.setVHelperWanted(true);
+  h.voice.update({voice: false}, null, false); await tick(); await tick();
+  assert.equal(h.workers[0].closes, 0, 'V is on: the Pocket worker stays loaded for his line');
+  assert.equal(h.workers[0].loaded, true);
+  assert.equal(h.voice.usesProfile('judy-alvarez'), true, 'the voice is still routed, so V\'s line can use it');
+  h.voice.setVHelperWanted(false);
   h.voice.update({voice: false}, null, false);
-  h.advance(MUTED_RELEASE_MS - 1);
-  h.voice.update({voice: false}, null, false);
-  h.voice.update({voice: true}, null, false); await tick();
-  h.advance(MUTED_RELEASE_MS * 3);
-  h.voice.update({voice: true}, null, false); await tick();
-  assert.equal(h.workers.length, 1);
-  assert.equal(h.workers[0].closes, 0);
+  await until(() => h.workers[0].closes === 1, 'the worker to be released when V is off too');
   await h.voice.close();
+
+  // A game that starts with playback Off and V on loads the Pocket worker for V only.
+  const start = voiceFixture();
+  start.voice.setVHelperWanted(true);
+  start.voice.update({voiceProvider: 'pocket', voice: false}, null, false);
+  await start.voice.start();
+  await until(() => start.workers.length === 1 && start.workers[0].loaded, 'the Pocket worker for V');
+  await start.voice.close();
 });
 
-test('a game that starts with playback Off never loads a worker; OmniVoice is released the same way', async () => {
+test('a game that starts with playback Off and V off never loads a worker; OmniVoice is released at once', async () => {
   const off = voiceFixture();
   off.voice.update({voiceProvider: 'pocket', voice: false}, null, false);
   await off.voice.start(); await tick();
   assert.equal(off.workers.length, 0, 'the first reading, Off, loads nothing');
-  assert.equal(off.voice.mutedIdle, true);
+  assert.equal(off.voice.silent, true);
   await off.voice.close();
 
   const omni = voiceFixture();
@@ -101,9 +106,8 @@ test('a game that starts with playback Off never loads a worker; OmniVoice is re
   await omni.voice.start();
   assert.equal(omni.workers[0].backend, 'omni');
   omni.voice.update({voice: false}, null, false);
-  omni.advance(MUTED_RELEASE_MS);
-  omni.voice.update({voice: false}, null, false);
-  await until(() => omni.workers[0].closes === 1, 'OmniVoice to be released (its VRAM goes back)');
+  await until(() => omni.workers[0].closes === 1, 'OmniVoice to be released at once (its VRAM goes back)');
+  assert.equal(omni.workers.length, 1, 'with V off no Pocket worker takes its place');
   await omni.voice.close();
 });
 
@@ -307,13 +311,15 @@ test('the bridge releases what settings stop using: facial model, renderer pages
   assert.match(bridge, /const BROWSER_IDLE_MS = 300_000;/);
   assert.match(bridge, /localVoice\.setVHelperWanted\(vVoice\.enabled && vVoice\.available\);\s*void releaseUnused\(\)/, 'due-checked from the settings poll');
   assert.match(bridge, /if \(muted\) await jaliFace\.suspend\(\); else if \(!jaliFace\.active\) void jaliFace\.resume\(\);/);
-  assert.match(bridge, /realtime\.releaseRendererPages\(\{line: muted \|\| !vVoice\.enabled \|\| !vVoice\.available, companion: muted\}\)/);
+  assert.match(bridge, /realtime\.releaseRendererPages\(\{line: !vVoice\.enabled \|\| !vVoice\.available, companion: muted\}\)/);
   assert.match(bridge, /releaseIfIdle\(\{idleMs: BROWSER_IDLE_MS, keepRenderer\}\)/);
   assert.match(bridge, /phoneRealtime\.releaseIfIdle\(\{idleMs: BROWSER_IDLE_MS\}\)/);
   assert.match(bridge, /if \(voiceBoundaryBusy\(\) \|\| voiceRouteReservation \|\| keySwitching \|\| providerSwitching\) return;/, 'pages only between turns');
   assert.match(bridge, /else audioWatch\.suspend\(\);/);
   assert.match(bridge, /if \(!mistral\.active && !addonHost\.active\) void localEmbedder\.close\(\)/);
-  assert.match(bridge, /ready: key => localVoice\.playbackEnabled !== false && localVoice\.usesProfile\(key\)/, 'V is silent with playback Off');
+  assert.match(bridge, /ready: key => localVoice\.usesProfile\(key\),/, 'V speaks with playback Off while his setting is on');
+  assert.doesNotMatch(bridge, /ready: key => localVoice\.playbackEnabled/);
+  assert.match(bridge, /const muted = localVoice\.silent;/, 'no grace period: the release follows the setting');
   assert.match(bridge, /prewarmVoice: \(\) => host === realtime && localVoice\.playbackEnabled !== false/, 'no browser warm-up while muted');
   assert.match(bridge, /Promise\.allSettled\(\[realtime\.close\(\), phoneRealtime\.close\(\), jaliFace\?\.close\(\)\]\)/, 'shutdown ends the facial thread too');
 });

@@ -835,8 +835,8 @@ function logFollowUp(input, result) {
 const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line),
   planFor: (input, key) => planTurnVoice({enabled: multilingual.enabled,
     language: multilingual.enabled ? multilingual.expected(input.text) : 'en', local: localChoice(key)}),
-  // Voice playback Off: V's typed line is silent too (no worker is kept for it, and a cloud voice is not asked).
-  ready: key => localVoice.playbackEnabled !== false && localVoice.usesProfile(key),
+  // Voice playback Off silences the companions, not V: with the V setting on his line is spoken (docs/RESOURCE_LIFECYCLE.md).
+  ready: key => localVoice.usesProfile(key),
   isLocal: () => !localVoice.cloudActive,
   stream: (key, text, options) => localVoice.synthesizeStream(key, text, options),
   render: (key, text, options) => localVoice.synthesize(key, text, options),
@@ -2504,7 +2504,7 @@ async function applyProviderChoice() {
 }
 // Resources the current settings do not use are released (docs/RESOURCE_LIFECYCLE.md). Due-checked from the 500 ms settings poll: a few property
 // reads, nothing per frame, never while a turn, microphone or preparation is running (the page releases wait for the next poll).
-//   - The facial model's worker thread leaves while voice playback has been Off past its grace period (MUTED_RELEASE_MS) and comes back
+//   - The facial model's worker thread leaves at once when voice playback is turned Off (V speaks no face) and comes back
 //     at the first poll after playback is turned on.
 //   - V's line renderer page closes when V's voice is off (or has no clips), and with the companions' page when playback is Off.
 //   - The hidden browser closes when nothing uses it for BROWSER_IDLE_MS: no Convai page in the pool or kept for the party, no
@@ -2515,10 +2515,10 @@ async function releaseUnused() {
   if (releasingUnused || stopped) return;
   releasingUnused = true;
   try {
-    const muted = localVoice.mutedIdle;
+    const muted = localVoice.silent;
     if (jaliFace) { if (muted) await jaliFace.suspend(); else if (!jaliFace.active) void jaliFace.resume(); }
     if (voiceBoundaryBusy() || voiceRouteReservation || keySwitching || providerSwitching) return;
-    await realtime.releaseRendererPages({line: muted || !vVoice.enabled || !vVoice.available, companion: muted});
+    await realtime.releaseRendererPages({line: !vVoice.enabled || !vVoice.available, companion: muted});
     const keepRenderer = mistral.active && localVoice.playbackEnabled !== false;
     await realtime.releaseIfIdle({idleMs: BROWSER_IDLE_MS, keepRenderer});
     await phoneRealtime.releaseIfIdle({idleMs: BROWSER_IDLE_MS});
