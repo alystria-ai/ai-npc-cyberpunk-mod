@@ -273,6 +273,49 @@ local function liftJaw(value,lift)
     return lifted>floor and lifted or floor
 end
 M.expressions, M.expressionClock, M.expressionFrame = {}, 0, 0
+-- Ordinary world NPCs (crowd, vendors, gangs, archetype characters) get the gated speech layer at their own spawn,
+-- decided in Face.reds (OnWorldInitialize), never here. Gate: the layer sits behind one switch in the graph that
+-- "speech_owner > 0" opens, and speech_owner is written only by the writer below while that NPC's reply is heard
+-- (ownerLevel, applyFeature) and zeroed by reset(): the switch is open for the talking NPC from its first speaking
+-- frame and closed again at the release, with no extra call. Everything else about the mouth (mapArkit, the retargeted
+-- tracks, jawLiftFor) is the companions' own path.
+-- The one thing configured here is a development switch for the FPS comparison (docs/FACIAL_ANIMATION.md, "Ordinary
+-- NPCs"): runtime/crowd-face-mode.txt with one word: "off" (no ordinary NPC is touched), "ungated" (the layer is always
+-- evaluated) or "gated" (shipping; also what a missing file means, and then nothing is sent). It is read once per load
+-- (a CET reload reads it again) and handed to the redscript service once; no per-frame work. It applies to NPCs that
+-- spawn afterwards, so reload the save.
+local crowdModes={off=true,ungated=true,gated=true}
+function M.crowdModeRequested()
+    local opener=io and io.open
+    local file=opener and opener('runtime/crowd-face-mode.txt','rb')
+    if not file then return nil end
+    local text=file:read('*a')
+    file:close()
+    -- PowerShell writes a byte-order mark with Set-Content/Out-File -Encoding utf8.
+    if type(text)=='string' then text=text:gsub('^\239\187\191','') end
+    local word=type(text)=='string' and text:match('^%s*(%a+)') or nil
+    word=word and word:lower() or nil
+    if crowdModes[word] then return word end
+    return nil,'invalid'
+end
+-- requested word (nil when there is no file), the mode the game reports (nil when it could not be set), error text.
+function M.applyCrowdMode()
+    local requested,problem=M.crowdModeRequested()
+    M.crowdMode=nil
+    if not requested then
+        if problem then M.crowdMode='invalid-file' end
+        return nil,nil,problem
+    end
+    local ok,result=pcall(function()
+        local service=Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
+        return service:SetCrowdMode(requested)
+    end)
+    local applied=ok and type(result)=='string' and result or nil
+    -- The perf probe stamps this on every window: a switch that did not take must not read as the default.
+    M.crowdMode=applied or ('failed:'..requested)
+    if ok then return requested,applied,nil end
+    return requested,applied,tostring(result)
+end
 -- Development-only visibility probe (mod/face-test.lua). It is absent from a
 -- normal install, inert until a runtime request file appears, and errors in it
 -- can never reach speech or the writer (every call below is pcall-wrapped).

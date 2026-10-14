@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync, existsSync} from 'node:fs';
-import {extendFacialGraph, inspectGraph, schema, featureSource} from '../scripts/Build-FacialGraphs.mjs';
+import {extendFacialGraph, inspectGraph, schema, featureSource, namedRecords, crowdPath, GATE_EXPRESSION} from '../scripts/Build-FacialGraphs.mjs';
+import {verifyGraph, verifyArchive, archivePaths, pathHash} from '../scripts/Verify-FacialGraphs.mjs';
 
 const name = value => ({$type: 'CName', $storage: 'string', $value: value});
 const nativeFace = readFileSync(new URL('../r6/scripts/CyberpunkConvai/Face.reds', import.meta.url), 'utf8');
@@ -101,8 +102,8 @@ test('initialization recognizes already prepared graphs without layering or modi
   const prepare = nativeFace.slice(nativeFace.indexOf('private func PrepareFaceComponent'),
     nativeFace.indexOf('@addField(NPCPuppet)'));
   assert.match(prepare, /Equals\(original, preparedPath\)/);
-  assert.match(prepare, /if Equals\(original, preparedPath\) \{ return "prepared:" \+ this\.m_names\[i\]; \};\s*if check \{ return "supported:" \+ this\.m_names\[i\]; \};\s*face\.graph = this\.m_graphs\[i\];/,
-    'a prepared graph is never rewritten, and a check of a running component never writes');
+  assert.match(prepare, /if Equals\(original, preparedPath\) \{ return "prepared:" \+ this\.m_names\[i\]; \};\s*face\.graph = this\.m_graphs\[i\];/,
+    'a prepared graph is never rewritten');
   assert.match(prepare, /ArrayContains\(rig\.trackNames, tracks\[t\]\)/);
   assert.match(prepare, /ResourceRef\.IsLoaded\(this\.m_graphs\[i\]\)/);
   assert.match(prepare, /ResourceRef\.IsFailed\(this\.m_graphs\[i\]\)/);
@@ -125,63 +126,135 @@ test('latched preparation alone cannot pass readiness after face_rig graph repla
   assert(fields.every(([, , type]) => ['Bool', 'String'].includes(type)), 'no actor/component/resource handle is retained on the puppet');
 });
 
-// October 8: a resident-male pedestrian on Pocket kept a still mouth. Crowd and
-// community NPCs are not dynamic entities, so their running face_rig has the
-// vanilla graph. FPS rules out preparing every spawned NPC: only the talk target
-// is prepared, on demand, by rebuilding its own current appearance.
-test('world NPC faces are prepared on demand for the talk target only, never at spawn', () => {
-  assert.doesNotMatch(nativeFace, /OnWorldInitialize|EntityTarget\.Type\(/, 'no per-spawn preparation of world NPCs');
-  assert.equal([...nativeFace.matchAll(/RegisterCallback\(/g)].length, 2, 'only the companion Initialize and the Extract callbacks');
-  const extract = nativeFace.slice(nativeFace.indexOf('private cb func OnCompanionExtract'),
-    nativeFace.indexOf('private func PrepareExtractedComponents'));
-  const pending = extract.indexOf('ArraySize(this.m_worldPending) > 0');
-  assert(pending >= 0 && pending < extract.indexOf('builder.HasEntity()'), 'with nothing pending a build costs one size check');
-  assert.match(extract, /!builder\.HasEntity\(\)\s*&& builder\.HasAppearance\(\) && this\.ConsumeWorldRequest\(builder\.GetAppearanceName\(\)\)/);
-  const request = nativeFace.slice(nativeFace.indexOf('public func RequestWorldFace'),
-    nativeFace.indexOf('private func PrepareWorldAppearance'));
-  assert.match(request, /if dynamic\.IsManaged\(npc\.GetEntityID\(\)\) \{ return "managed"; \};/);
-  assert.match(request, /this\.PrepareFaceComponent\(face, true\)/, 'the running component is only checked');
-  assert(request.indexOf('this.ReleaseOldestWorld(npc, appearance)') < request.indexOf('npc.ScheduleAppearanceChange(appearance)'));
-  // October 9: a Konpeki receptionist (appearance ..._q004_...) was rebuilt. Quest-owned NPCs and
-  // NPCs in a dialogue are never rebuilt. October 10: a scene alone no longer blocks it, because a
-  // vendor at its stall is a scene actor; a scene still blocks anyone who is neither crowd nor vendor,
-  // and an NPC a quest marked or whose AI is commanded (not autonomous) is skipped before any rebuild.
-  const rebuild = request.indexOf('npc.ScheduleAppearanceChange(appearance)');
-  for (const guard of ['return "skipped:dialogue"', 'return "skipped:quest"', 'return "skipped:driven"', 'return "skipped:scene"']) {
-    assert(request.indexOf(guard) >= 0 && request.indexOf(guard) < rebuild, guard);
-  }
-  assert.match(request, /scene\.IsEntityInDialogue\(npc\.GetEntityID\(\)\) \{ return "skipped:dialogue"; \};/);
-  assert.match(request, /inScene = scene\.IsEntityInScene\(npc\.GetEntityID\(\)\)/);
-  assert.match(request, /if npc\.IsQuest\(\) \|\| !npc\.IsOnAutonomousAI\(\) \{ return "skipped:driven"; \};/);
-  assert.match(request, /if inScene && !npc\.IsVendor\(\) && !npc\.IsCrowd\(\) \{ return "skipped:scene"; \};/);
-  assert.doesNotMatch(request, /IsEntityInScene\(npc\.GetEntityID\(\)\) \|\|/, 'a scene alone must not skip an ambient NPC');
-  assert(request.indexOf('ConvaiFaceNoteWorkspot()') > request.indexOf('return "skipped:scene"') && request.indexOf('ConvaiFaceNoteWorkspot()') < rebuild,
-    'the workspot is noted once, right before a rebuild that will happen');
-  assert.match(request, /QuestBound\(NameToString\(appearance\)\)\s*\|\| ConvaiFaceService\.QuestBound\(TDBID\.ToStringDEBUG\(npc\.GetRecordID\(\)\)\)/);
-  assert(request.indexOf('return "skipped:quest"') < request.indexOf('return "skipped:driven"'));
-  assert.match(nativeFace, /public final func ConvaiFaceWorkspotNote\(\) -> String/);
-  // October 10 (live): a same-name appearance change is a no-op, so nothing may be queued or scheduled
-  // until a rebuild that keeps the look exists (WorldRebuildKeepsLook).
-  const gate = request.indexOf('if !ConvaiFaceService.WorldRebuildKeepsLook() { return "unavailable:same-name-rebuild-is-a-noop"; };');
-  assert(gate > request.indexOf('return "skipped:scene"') && gate < request.indexOf('ArrayPush(this.m_worldPending'), 'the no-op gate sits before the queue and the schedule');
-  assert(gate < rebuild);
-  assert.doesNotMatch(request, /face\.graph =/);
-  const release = nativeFace.slice(nativeFace.indexOf('private func ReleaseOldestWorld'),
-    nativeFace.indexOf('private func PrepareFaceComponent'));
-  assert.match(release, /while ArraySize\(this\.m_worldPrepared\) >= 2/, 'at most two world NPCs keep the layer');
-  assert.match(release, /!this\.SceneOwns\(old\)/, 'an NPC a quest took since is forgotten, never rebuilt under the scene');
-  const sceneOwns = nativeFace.slice(nativeFace.indexOf('private func SceneOwns'), nativeFace.indexOf('private func PrepareFaceComponent'));
-  assert.match(sceneOwns, /IsEntityInDialogue\(npc\.GetEntityID\(\)\) \|\| npc\.IsQuest\(\) \|\| !npc\.IsOnAutonomousAI\(\)/);
-  const adopt = nativeFace.slice(nativeFace.indexOf('private final func ConvaiFaceAdoptWorld'),
-    nativeFace.indexOf('public final func ConvaiFaceRequest'));
+// October 14: ordinary NPCs (crowd, vendors, gangs, archetype characters) are prepared ONCE, at their own spawn, with a
+// gated copy of the crowd graph. The on-demand route (rebuild the NPC's own appearance when V talks to it) never worked:
+// a same-name appearance change is a no-op (measured 2026-10-10), so it is gone. FPS rules: one callback per NPC spawn,
+// nothing per frame, nothing for an NPC that is not one of the four crowd graphs.
+const body = (source, from, to) => {
+  const start = source.indexOf(from), end = source.indexOf(to, start + from.length);
+  assert(start >= 0 && end > start, `${from} ... ${to}`);
+  return source.slice(start, end);
+};
+test('ordinary NPCs are prepared once at spawn, behind filters, with no per-frame work and no rebuild', () => {
+  const callbacks = [...nativeFace.matchAll(/RegisterCallback\(n"(Entity\/\w+)", this, n"(\w+)"\)/g)].map(match => `${match[1]} ${match[2]}`);
+  assert.deepEqual(callbacks, ['Entity/Initialize OnCompanionInitialize', 'Entity/Initialize OnWorldInitialize', 'Entity/Extract OnCompanionExtract'],
+    'the companion initialize and extract callbacks, and one per-NPC-spawn callback');
+  assert.match(nativeFace, /RegisterCallback\(n"Entity\/Initialize", this, n"OnWorldInitialize"\)\s*\.AddTarget\(EntityTarget\.Type\(n"NPCPuppet"\)\)/,
+    'the callback system filters to NPCPuppet before the script runs');
+  // Nothing per frame, nothing delayed, nothing rebuilt.
+  assert.doesNotMatch(nativeFace, /OnUpdate|UpdateScriptableService|GetDelaySystem|DelayCallback|DelayEvent|ScheduleAppearanceChange|Entity\/(?:Attach|AfterAttach|Reassemble|Update)/);
+  assert.doesNotMatch(nativeFace, /m_worldPending|m_worldPrepared|RequestWorldFace|WorldRebuildKeepsLook|ReleaseOldestWorld|NoteWorkspot/, 'the on-demand rebuild machinery is retired');
+  const world = body(nativeFace, 'private cb func OnWorldInitialize', 'private func CrowdIndex');
+  const order = needles => needles.map(needle => {
+    const at = world.indexOf(needle);
+    assert(at >= 0, needle);
+    return at;
+  });
+  const positions = order(['if this.m_crowdMode == 0 { return; };', 'event.GetEntity() as NPCPuppet', 'dynamic.IsManaged(npc.GetEntityID())',
+    'this.CrowdIndex(', 'npc.GetRecordID()', 'ConvaiFaceService.CrowdSkipReason(', 'this.CheckRig(face)', 'ResourceRef.IsLoaded(graph)', 'face.graph = graph;',
+    'npc.ConvaiFacePrepared(true, "prepared:" + this.m_crowdNames[index]']);
+  assert.deepEqual([...positions].sort((a, b) => a - b), positions, 'mode, type, dynamic spawns, crowd graph, record and tokens, rig, load, then the swap');
+  assert.equal([...world.matchAll(/face\.graph = /g)].length, 1, 'one graph write, after every filter');
+  assert.match(world, /graph = this\.m_crowdPlain\[index\]/, 'the ungated copy exists only for the FPS comparison mode');
+  assert.match(world, /this\.m_crowdGated\[index\]/);
+  assert.match(world, /dynamic\.IsManaged\(npc\.GetEntityID\(\)\) \{ return; \}/, 'our companions and other mods\' dynamic spawns are never touched here');
+  assert.doesNotMatch(world, /TDBID\.ToStringDEBUG\(record\)[\s\S]*TDBID\.ToStringDEBUG\(record\)/, 'strings are read once, and only after the cheap checks passed');
+  assert(world.indexOf('ArrayContains(this.m_named, record)') < world.indexOf('NameToString(npc.GetCurrentAppearanceName())'), 'the roster check comes before any string work');
+  // The rig's track check is cached per rig path.
+  const rig = body(nativeFace, 'private func CheckRig', 'public static func CrowdSkipReason');
+  assert(rig.indexOf('ArrayContains(this.m_verifiedRigs, path)') < rig.indexOf('ArrayContains(rig.trackNames'), 'a verified rig is not checked again');
+  assert.match(rig, /ArrayPush\(this\.m_verifiedRigs, path\)/);
+  // The graphs: four crowd graphs, the vanilla paths exact, gated copies in the crowd folder.
+  const onLoad = body(nativeFace, 'private cb func OnLoad', 'private cb func OnCompanionExtract');
+  assert.match(onLoad, /ConvaiFaceAssets\.CrowdNames\(\)/);
+  assert.match(onLoad, /let folder = ConvaiFaceAssets\.CrowdFolder\(\);/);
+  assert.match(onLoad, /"base\\\\animations\\\\facial\\\\_facial_graphs\\\\" \+ this\.m_crowdNames\[i\] \+ "\.animgraph"/);
+  assert.match(onLoad, /TDBID\.Create\(records\[i\]\)/, 'the roster hashes are built once at load');
+  // Judy and the player stay vanilla: only the four crowd names are crowd graphs.
+  assert.deepEqual(schema.crowd.graphs, ['man_average_sermo', 'man_big_sermo', 'man_fat_sermo', 'woman_average_sermo']);
+  assert.match(featureSource(), /CrowdNames\(\) -> array<String> \{\s*return \["man_average_sermo", "man_big_sermo", "man_fat_sermo", "woman_average_sermo"\];/);
+});
+
+test('conversation start reports the spawn decision and keeps the talk-time guards; a scene alone is no reason', () => {
+  const request = body(nativeFace, 'public final func ConvaiFaceRequest()', 'public final func ConvaiFaceApply(');
+  assert.match(request, /if dynamic\.IsManaged\(this\.GetEntityID\(\)\) \{ return "managed"; \};/);
+  assert.match(request, /service\.TalkRefusal\(this\)/);
+  assert.match(request, /return "unprepared:" \+ ResRef\.ToString\(ResourceRef\.GetPath\(face\.graph\)\)/, 'a face that is not ours says which graph it has');
+  assert.doesNotMatch(request, /face\.graph =|ScheduleAppearanceChange|PrepareFaceComponent/);
+  const guards = body(nativeFace, 'public func TalkRefusal', 'public static func QuestBound');
+  for (const guard of ['return "skipped:dialogue"', 'return "skipped:quest"', 'return "skipped:driven"']) assert(guards.includes(guard), guard);
+  assert.match(guards, /scene\.IsEntityInDialogue\(npc\.GetEntityID\(\)\) \{ return "skipped:dialogue"; \};/);
+  assert.match(guards, /if npc\.IsQuest\(\) \|\| !npc\.IsOnAutonomousAI\(\) \{ return "skipped:driven"; \};/);
+  assert(guards.indexOf('skipped:dialogue') < guards.indexOf('skipped:quest') && guards.indexOf('skipped:quest') < guards.indexOf('skipped:driven'));
+  assert.match(guards, /QuestBound\(NameToString\(npc\.GetCurrentAppearanceName\(\)\)\)\s*\|\| ConvaiFaceService\.QuestBound\(TDBID\.ToStringDEBUG\(npc\.GetRecordID\(\)\)\)/);
+  assert.doesNotMatch(guards, /IsEntityInScene|skipped:scene|IsVendor|IsCrowd/, 'vendors and community NPCs are scene actors: the scene guard is gone');
+  assert.doesNotMatch(nativeFace, /skipped:scene/);
+  // A refused NPC is never written: readiness checks the refusal, and the status the log shows is the refusal.
+  const ready = body(nativeFace, 'public final func ConvaiFaceReady()', 'private final func ConvaiFaceAdoptWorld');
+  assert.match(ready, /if !Equals\(this\.m_convaiFaceRefusal, ""\) \{ return false; \};/);
+  assert(ready.indexOf('m_convaiFaceRefusal') < ready.indexOf('ConvaiFaceAdoptWorld()'), 'adoption cannot undo a refusal');
+  assert.match(body(nativeFace, 'public final func ConvaiFaceStatus()', 'public final func ConvaiFaceReady()'), /m_convaiFaceRefusal/);
+  const adopt = body(nativeFace, 'private final func ConvaiFaceAdoptWorld', 'public final func ConvaiFaceRequest');
   assert(adopt.includes('StrBeginsWith(path, "cyberpunk_convai\\\\facial\\\\")'));
-  const apply = nativeFace.slice(nativeFace.indexOf('public final func ConvaiFaceApply('),
-    nativeFace.indexOf('public final func ConvaiFaceReset('));
+  const apply = body(nativeFace, 'public final func ConvaiFaceApply(', 'public final func ConvaiFaceReset(');
   assert.match(apply, /if !this\.ConvaiFaceReady\(\) \|\| !IsDefined\(feature\) \{ return false; \};/);
+  assert.match(nativeFace.slice(nativeFace.indexOf('public final func ConvaiFaceReset(')), /return this\.ConvaiFaceApply\(new ConvaiFaceFeature\(\)\);/,
+    'the reset is a fresh all-zero feature: speech_owner 0 closes the gate');
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.equal([...init.matchAll(/:ConvaiFaceRequest\(\)/g)].length, 4, 'composer, microphone, group speaker and the dev-only scripted talk only');
   const gaze = init.slice(init.indexOf('local function updateGaze'), init.indexOf('local function updateGaze') + 4000);
-  assert.doesNotMatch(gaze, /ConvaiFaceRequest/, 'a glance never rebuilds an NPC');
+  assert.doesNotMatch(gaze, /ConvaiFaceRequest/, 'a glance never touches an NPC face');
+});
+
+// The filter, run as written: CrowdSkipReason and QuestBound are mechanical transliterations of their redscript bodies
+// (let/while/if and four string natives only). Story characters, named roster characters and Johnny stay vanilla.
+const redscript = nativeFace.replace(/\r\n/g, '\n');
+const transliterate = (signature, parameters) => {
+  const from = redscript.indexOf(signature);
+  assert(from >= 0, signature);
+  const text = redscript.slice(redscript.indexOf('{', from) + 1, redscript.indexOf('\n  }', from));
+  const js = text.replace(/\};/g, '}').replace(/\b(if|while) ([\s\S]*?) \{/g, '$1 ($2) {').replace(/ConvaiFaceService\.QuestBound\(/g, 'questBound(');
+  return new Function(...parameters, js);
+};
+const questBoundJs = transliterate('public static func QuestBound(text: String) -> Bool {', ['text', 'StrLen', 'StrMid', 'StrContains', 'Equals']);
+const questBound = text => questBoundJs(text, s => s.length, (s, i, n) => s.substr(i, n), (s, x) => x !== '' && s.includes(x), (a, b) => a === b);
+const skipJs = transliterate('public static func CrowdSkipReason(', ['recordValid', 'named', 'appearance', 'record', 'questBound']);
+const skipReason = (recordValid, named, appearance = '', record = '') => skipJs(recordValid, named, appearance, record, questBound);
+const redscriptNamed = new Set([...featureSource().match(/NamedRecords\(\) -> array<String> \{\s*return \[([^\]]*)\]/)[1].matchAll(/"([^"]+)"/g)].map(match => match[1]));
+test('the spawn filter keeps story characters, named roster characters and Johnny vanilla, and lets ordinary NPCs through', () => {
+  // The decision for a record, as OnWorldInitialize makes it: roster first, then the strings.
+  const decide = (record, appearance) => {
+    const named = redscriptNamed.has(record);
+    let reason = skipReason(true, named);
+    if (reason === '') reason = skipReason(true, false, appearance, record);
+    return reason;
+  };
+  assert.equal(skipReason(false, false), 'skipped:no-record', 'an unreadable record fails closed');
+  assert.equal(decide('Character.Silverhand', 'johnny_silverhand'), 'skipped:named', 'Johnny: his record uses man_average_sermo');
+  for (const record of ['Character.Smasher', 'Character.Alt', 'Character.Judy', 'Character.Jackie', 'Character.wakako_okada', 'Character.reggie']) {
+    assert.equal(decide(record, 'whatever'), 'skipped:named', record);
+  }
+  // Quest tokens in the appearance or the record, even for a record the roster does not list.
+  assert.equal(decide('Character.LowlifeMale', 'citizen__arasaka_corpo_wa__q004__konpeki_receptionist_04'), 'skipped:quest');
+  assert.equal(decide('Character.sq021_unlisted_vendor', 'lowlife_ma__01'), 'skipped:quest');
+  assert.equal(decide('Character.mq003_guard', 'x'), 'skipped:quest');
+  assert.equal(decide('Character.q101_johnny_bartender', 'x'), 'skipped:quest', 'a quest-placed Johnny');
+  for (const record of ['Character.LowlifeMale', 'Character.CorpoMan', 'Character.HomelessMan', 'Character.StoopKing', 'Character.WorkerMale',
+    'Character.LowlifeWoman', 'Character.cct_dtn_food_02', 'Character.wat_kab_foodshop_04']) {
+    assert.equal(decide(record, 'citizen__lowlife_ma__01'), '', record);
+  }
+  // The roster list is the character data, not a guess: every record of every profile, phone contact and managed copy.
+  const named = new Set(namedRecords());
+  assert.deepEqual([...redscriptNamed].sort(), [...named].sort(), 'FaceFeature.reds carries the roster as generated');
+  for (const record of ['Character.Silverhand', 'Character.Smasher', 'Character.Alt']) assert(named.has(record), record);
+  const read = file => JSON.parse(readFileSync(new URL(`../characters/${file}`, import.meta.url), 'utf8').replace(/^﻿/, ''));
+  for (const row of read('roster.json')) for (const record of row.records || []) assert(named.has(record), `roster ${row.key} ${record}`);
+  for (const row of read('manager-characters.json')) assert(named.has(row.record), row.key);
+  for (const row of read('phone-contacts.json')) if (row.record) assert(named.has(row.record), row.contact);
+  assert(named.size >= 75, `the roster has ${named.size} records`);
+  for (const record of ['Character.LowlifeMale', 'Character.CorpoMan', 'Character.HomelessMan', 'Character.StoopKing']) {
+    assert.equal(named.has(record), false, `${record} is an ordinary crowd record`);
+  }
 });
 
 // The native quest-token check, run as written (a mechanical transliteration of
@@ -266,5 +339,134 @@ test('every extracted game graph exposes the ownership tracks', {skip: !existsSy
     const inputs = objects.filter(node => node.$type === 'animAnimNode_FloatInput' && node.group?.$value === 'ConvaiFace');
     assert.equal(inputs.length, schema.tracks.length + 1, graph);
     assert.equal(forwardReferences(result), 0, graph);
+  }
+});
+
+// October 14: the crowd copy of the four graphs. The speech layer sits behind one Switch that a face that is not being
+// voiced never selects. The game builds the same shape itself (Switch nodes 25, 27 and 427 of woman_average_sermo: input 0
+// is a node, input 1 is that node plus more), so a face that is not speaking evaluates one switch more than vanilla.
+const nodeTypes = document => {
+  const counts = {};
+  for (const node of inspectGraph(document).objects) counts[node.$type] = (counts[node.$type] || 0) + 1;
+  return counts;
+};
+// Graph nodes and the expression objects only: links, colors and names are plumbing that follow the nodes.
+const typeDiff = (a, b) => {
+  const diff = {};
+  for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    if (/^(animAnimNode_|mathExpr|animMathExpression|animAnimMathExpression)/.test(key) && (a[key] || 0) !== (b[key] || 0)) diff[key] = (b[key] || 0) - (a[key] || 0);
+  }
+  return diff;
+};
+const gateNodeTypes = {animAnimNode_Switch: 1, animAnimNode_MathExpressionFloat: 1, mathExprExpression: 1, animMathExpressionNodeData: 1, animAnimMathExpressionFloatSocket: 1};
+
+test('the crowd graph puts the speech layer behind one switch that speech_owner > 0 opens and leaves input 0 as the vanilla pose', () => {
+  const original = fixture(), before = JSON.stringify(original);
+  const result = extendFacialGraph(original, {gate: true});
+  assert.equal(JSON.stringify(original), before, 'the source graph is never edited');
+  const {handles} = inspectGraph(result);
+  const solver = result.Data.RootChunk.nodesToInit[0].Data;
+  const select = solver.inputLink.node.Data;
+  assert.equal(select.$type, 'animAnimNode_Switch');
+  assert.equal(select.numInputs, 2);
+  assert.equal(select.inputNodes.length, 2);
+  assert.equal(select.blendTime, schema.crowd.gate.blendTime, 'no blend: the switch opens on the first speaking frame');
+  assert.deepEqual(select.inputNodes[0], original.Data.RootChunk.nodesToInit[0].Data.inputLink, 'input 0 is the solver\'s original input, untouched');
+  let at = select.inputNodes[1], speech = 0, owners = 0;
+  while (at.node.Data?.$type === 'animAnimNode_FloatTrackModifier') {
+    if (at.node.Data.debugName.$value === 'Convai speech owner') owners++; else speech++;
+    at = at.node.Data.poseInputNode;
+  }
+  assert.deepEqual(at, {$type: 'animPoseLink', node: {HandleRefId: '1'}}, 'input 1 ends on the very node input 0 is');
+  assert.equal(speech, schema.tracks.length);
+  assert.equal(owners, schema.owner.faded.length + 1);
+  const compare = select.weightNode.node.Data;
+  assert.equal(compare.$type, 'animAnimNode_MathExpressionFloat');
+  assert.equal(compare.expressionString, 'a > 0');
+  assert.deepEqual({returnVarType: compare.expressionData.expression.Data.returnVarType, tokenData: compare.expressionData.expression.Data.tokenData,
+    valuesData: compare.expressionData.expression.Data.valuesData}, GATE_EXPRESSION, 'the game\'s own compiled "a > 0"');
+  assert.equal(compare.expressionData.floatSockets.length, 1);
+  assert.equal(compare.expressionData.floatSockets[0].expressionVarId, 0);
+  const source = handles.get(compare.expressionData.floatSockets[0].link.node.HandleRefId).Data;
+  assert.equal(source.$type, 'animAnimNode_FloatInput');
+  assert.equal(source.name.$value, schema.owner.input, 'the gate reads speech_owner, which the writer holds above zero while the reply is heard');
+  assert.equal(source.group.$value, 'ConvaiFace');
+  assert.equal(forwardReferences(result), forwardReferences(original), 'every handle is defined before it is referenced');
+  const initialized = result.Data.RootChunk.nodesToInit.map(entry => entry.HandleRefId);
+  const ids = [...handles].filter(([, entry]) => entry.Data === select || entry.Data === compare).map(([id]) => id);
+  assert.equal(ids.length, 2);
+  for (const id of ids) assert(initialized.includes(id), `node ${id} is initialized`);
+  // Same nodes as the companion graph plus the gate, nothing else.
+  const companion = extendFacialGraph(fixture());
+  assert.deepEqual(typeDiff(nodeTypes(companion), nodeTypes(result)), gateNodeTypes);
+  assert.equal(nodeTypes(companion).animAnimNode_Switch, undefined, 'the companion graph has no switch');
+  assert.equal(result.Data.RootChunk.animFeatures.filter(feature => feature.name.$value === 'ConvaiFace').length, 1);
+});
+
+test('the gate changes nothing for the companion graphs and refuses a schema that cannot gate', () => {
+  assert.deepEqual(extendFacialGraph(fixture(), {gate: false}), extendFacialGraph(fixture()));
+  assert.deepEqual(extendFacialGraph(fixture(), {}), extendFacialGraph(fixture()));
+  assert.equal(schema.crowd.gate.input, schema.owner.input);
+  assert.deepEqual(schema.crowd.graphs.filter(name => !schema.graphs.includes(name)), []);
+  for (const name of schema.crowd.graphs) assert.match(crowdPath(name), /^cyberpunk_convai\\facial\\crowd\\[a-z_]+_sermo\.animgraph$/);
+  assert.equal(new Set([...schema.graphs.map(name => `cyberpunk_convai\\facial\\${name}.animgraph`), ...schema.crowd.graphs.map(crowdPath)]).size, 13,
+    'nine companion graphs and four crowd copies never share a path');
+});
+
+test('graph verification accepts the built shapes and rejects a gate that is not exactly the designed one', () => {
+  const plain = extendFacialGraph(fixture()), gated = () => extendFacialGraph(fixture(), {gate: true});
+  assert.equal(verifyGraph(plain, 'companion').gates, 0);
+  const report = verifyGraph(gated(), 'crowd', {gated: true});
+  assert.deepEqual([report.gates, report.connectedControls, report.ownershipNodes], [1, schema.tracks.length, schema.owner.faded.length + 1]);
+  assert.throws(() => verifyGraph(gated(), 'x'), /controls are not connected/, 'a gated graph is not a companion graph');
+  assert.throws(() => verifyGraph(extendFacialGraph(fixture()), 'x', {gated: true}), /not the speech gate/);
+  const mutate = change => { const doc = gated(); change(doc.Data.RootChunk.nodesToInit[0].Data.inputLink.node.Data); return doc; };
+  assert.throws(() => verifyGraph(mutate(select => { select.numInputs = 3; }), 'x', {gated: true}), /two-input switch/);
+  assert.throws(() => verifyGraph(mutate(select => { select.blendTime = 0.5; }), 'x', {gated: true}), /two-input switch/);
+  assert.throws(() => verifyGraph(mutate(select => { select.weightNode.node.Data.expressionString = 'a < 0'; }), 'x', {gated: true}), /compare an input with zero/);
+  assert.throws(() => verifyGraph(mutate(select => { select.weightNode.node.Data.expressionData.expression.Data.tokenData = [1, 2, 3]; }), 'x', {gated: true}), /compare an input with zero/);
+  assert.throws(() => verifyGraph(mutate(select => { select.inputNodes.reverse(); }), 'x', {gated: true}), /do not share the original input/);
+  assert.throws(() => verifyGraph(mutate(select => {
+    select.weightNode.node.Data.expressionData.floatSockets[0].link.node = {HandleRefId: '1'};
+  }), 'x', {gated: true}), /does not read speech_owner/);
+});
+
+// The archive layout the facial build verifies: nine companion graphs and four crowd copies, nothing at a base-game path.
+test('archive verification accepts exactly the thirteen approved depot paths', () => {
+  const archive = paths => {
+    const index = 40, bytes = Buffer.alloc(index + 28 + paths.length * 56);
+    bytes.write('RDAR', 0, 'ascii'); bytes.writeUInt32LE(12, 4); bytes.writeBigUInt64LE(BigInt(index), 8);
+    bytes.writeUInt32LE(paths.length, index + 16);
+    paths.forEach((path, i) => bytes.writeBigUInt64LE(BigInt(pathHash(path)), index + 28 + i * 56));
+    return bytes;
+  };
+  const approved = archivePaths();
+  assert.equal(approved.length, 13);
+  assert.equal(verifyArchive(archive(approved)), 13);
+  assert.throws(() => verifyArchive(archive(approved.slice(1))), /Unexpected archive entries/);
+  assert.throws(() => verifyArchive(archive([...approved.slice(1), 'base\\animations\\facial\\_facial_graphs\\man_average_sermo.animgraph'])), /unapproved/);
+  assert.throws(() => verifyArchive(archive([...approved.slice(1), approved[1]])), /unapproved or duplicate/);
+});
+
+// The real extracted graphs (the user's own game files, not in git). The same four vanilla graphs, three ways.
+test('on the extracted game graphs the crowd copy is the companion graph plus exactly one gate, and input 0 is the vanilla input', {skip: !existsSync(shipped)}, () => {
+  for (const graph of schema.crowd.graphs) {
+    const vanilla = JSON.parse(readFileSync(new URL(`../runtime/facial-rig/json/${graph}.animgraph.json`, import.meta.url), 'utf8').replace(/^\uFEFF/, ''));
+    const companion = extendFacialGraph(vanilla), crowd = extendFacialGraph(vanilla, {gate: true});
+    assert.deepEqual(typeDiff(nodeTypes(companion), nodeTypes(crowd)), gateNodeTypes, graph);
+    const vanillaSolver = inspectGraph(vanilla).objects.find(node => node.$type === 'animAnimNode_Sermo');
+    const crowdSolver = inspectGraph(crowd).objects.find(node => node.$type === 'animAnimNode_Sermo');
+    const select = crowdSolver.inputLink.node.Data;
+    assert.equal(JSON.stringify(select.inputNodes[0]), JSON.stringify(vanillaSolver.inputLink), `${graph}: input 0 is the vanilla solver input, byte for byte`);
+    assert.equal(forwardReferences(crowd), 0, graph);
+    assert.equal(verifyGraph(crowd, graph, {gated: true}).gates, 1);
+    assert.equal(verifyGraph(companion, graph).gates, 0);
+    // The vanilla graph already holds the "a > 0" the gate reuses, with identical compiled data.
+    const reference = inspectGraph(vanilla).objects.filter(node => node.$type === 'animAnimNode_MathExpressionFloat' && node.expressionString === 'a > 0');
+    assert(reference.length > 0, graph);
+    for (const node of reference) {
+      const data = node.expressionData.expression.Data || inspectGraph(vanilla).handles.get(node.expressionData.expression.HandleRefId).Data;
+      assert.deepEqual({returnVarType: data.returnVarType, tokenData: data.tokenData, valuesData: data.valuesData}, GATE_EXPRESSION, graph);
+    }
   }
 });

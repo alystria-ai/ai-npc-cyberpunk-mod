@@ -37,8 +37,33 @@ try {
     Invoke-FacialTool 'serialize.log' @('convert', 'serialize', (Join-Path $work 'original'), '--outpath', (Join-Path $work 'json'))
     & node (Join-Path $PSScriptRoot 'Build-FacialGraphs.mjs') (Join-Path $work 'json') (Join-Path $work 'extended-json') *> (Join-Path $work 'build.log')
     if ($LASTEXITCODE -ne 0) { throw 'Facial graph extension failed.' }
+    # The gated crowd copies (ordinary NPCs) live in a subfolder of the archive. WolvenKit's convert walks a folder
+    # recursively and writes every result flat (measured 2026-10-14), so a crowd copy beside the companion graph of the
+    # same name would silently replace it. Each set is converted from its own folder, in both directions, and every graph
+    # must exist at its own path afterwards.
+    $crowdJson = Join-Path $work 'extended-json-crowd'
+    $crowdResources = Join-Path $resources $schema.crowd.folder
+    Move-Item -LiteralPath (Join-Path $work ('extended-json\' + $schema.crowd.folder)) -Destination $crowdJson
+    [IO.Directory]::CreateDirectory($crowdResources) | Out-Null
     Invoke-FacialTool 'deserialize.log' @('convert', 'deserialize', (Join-Path $work 'extended-json'), '--outpath', $resources, '--pattern', '*.animgraph.json')
-    Invoke-FacialTool 'roundtrip.log' @('convert', 'serialize', $resources, '--outpath', (Join-Path $work 'roundtrip'))
+    Invoke-FacialTool 'deserialize-crowd.log' @('convert', 'deserialize', $crowdJson, '--outpath', $crowdResources, '--pattern', '*.animgraph.json')
+    foreach ($graph in $schema.graphs) {
+        if (-not (Test-Path -LiteralPath (Join-Path $resources "$graph.animgraph"))) { throw "Speech graph was not written: $graph" }
+    }
+    foreach ($graph in $schema.crowd.graphs) {
+        if (-not (Test-Path -LiteralPath (Join-Path $crowdResources "$graph.animgraph"))) { throw "Crowd graph was not written: $graph" }
+        if ((Get-Item -LiteralPath (Join-Path $crowdResources "$graph.animgraph")).Length -le (Get-Item -LiteralPath (Join-Path $resources "$graph.animgraph")).Length) { throw "Crowd graph is not larger than its companion graph: $graph" }
+    }
+    $stage = Join-Path $work 'roundtrip-in'
+    $stageCrowd = Join-Path $work 'roundtrip-in-crowd'
+    [IO.Directory]::CreateDirectory($stage) | Out-Null
+    [IO.Directory]::CreateDirectory($stageCrowd) | Out-Null
+    Get-ChildItem -LiteralPath $resources -File -Filter '*.animgraph' | Copy-Item -Destination $stage
+    Get-ChildItem -LiteralPath $crowdResources -File -Filter '*.animgraph' | Copy-Item -Destination $stageCrowd
+    Invoke-FacialTool 'roundtrip.log' @('convert', 'serialize', $stage, '--outpath', (Join-Path $work 'roundtrip'))
+    $roundtripCrowd = Join-Path $work ('roundtrip\' + $schema.crowd.folder)
+    [IO.Directory]::CreateDirectory($roundtripCrowd) | Out-Null
+    Invoke-FacialTool 'roundtrip-crowd.log' @('convert', 'serialize', $stageCrowd, '--outpath', $roundtripCrowd)
     & node (Join-Path $PSScriptRoot 'Verify-FacialGraphs.mjs') (Join-Path $work 'roundtrip')
     if ($LASTEXITCODE -ne 0) { throw 'Native graph verification failed.' }
     Invoke-FacialTool 'pack.log' @('pack', (Join-Path $work 'archive\convai_facial'), '--outpath', (Join-Path $work 'package'))

@@ -116,6 +116,8 @@ When an adopted character joins, `convaiAutoConnect.promote(key)` (`mod/auto-con
 
 ## Lip sync for vendors and scene NPCs (`r6/scripts/CyberpunkConvai/Face.reds`)
 
+> **October 14: this section is history.** The on-demand rebuild below never worked (measured October 10) and its code is removed. Ordinary NPCs now get a gated copy of the crowd face graph at their own spawn, filtered so quest, story and named roster characters (Johnny included) keep the vanilla graph, and the talk path only turns the switch on while that NPC's reply is heard. The current design, the rules for who is touched, the FPS A/B and the install steps are in [FACIAL_ANIMATION.md](FACIAL_ANIMATION.md), "October 14: ordinary NPCs get the face at spawn". The dialogue, quest and autonomy refusals (`skipped:dialogue`, `skipped:quest`, `skipped:driven`) still apply to a speaking NPC; the scene guard and the vendor rule are gone.
+
 A world NPC V talks to has the vanilla face graph, which has no speech input. When a conversation opens, `RequestWorldFace` rebuilds the NPC's own current appearance once (`ScheduleAppearanceChange` with the same name), and the `Entity/Extract` callback gives the rebuilt `face_rig` the prepared `ConvaiFace` graph. It is not a respawn (the entity ID is unchanged, seen on the receptionist), and no workspot or scene call is made; whether the component rebuild disturbs a running workspot animation is unproven. At most two world NPCs keep the layer; nothing is prepared at spawn and nothing runs per frame.
 
 Which NPCs are rebuilt (October 10; before, any NPC in a scene was skipped, which also skipped every vendor):

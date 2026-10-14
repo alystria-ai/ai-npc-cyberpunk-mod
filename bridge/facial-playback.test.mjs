@@ -467,3 +467,48 @@ test('actual resident allphone Pocket timeline reaches the Lua consumer with var
   `);
   await stream.close();
 });
+
+// October 14: ordinary NPCs. Face.reds opens the speech gate at their spawn; the writer below is the companions' own path.
+// The gate is the "speech_owner > 0" switch, so for a world NPC the writer must hold speech_owner above zero while the reply
+// is heard, close it with exactly one reset at the end, and do nothing at all while the NPC is idle.
+test('a world NPC opens the speech gate for its reply, closes it with one reset, and costs no native call while idle', () => run(`
+  local resident=actor('Resident-gate'); resident.owned=false
+  local context,reply=input(resident,'gate-1'); assert(speech.start(context,reply))
+  assert(#resident.frames==0 and resident.resets==0, 'nothing is written before the audio cursor moves')
+  local owner=0
+  for _,at in ipairs({0.1,0.3,0.5,0.8,1.2}) do
+    cursor=at; speech.update(0.1)
+    local frame=resident.frames[#resident.frames]
+    assert(frame and type(frame.speech_owner)=='number', 'speech_owner is written on every speaking frame')
+    assert(frame.speech_owner>0, 'the gate is open from the first speaking frame')
+    assert(frame.speech_owner>=owner-0.0001, 'and does not dip while the reply plays')
+    owner=frame.speech_owner
+  end
+  assert(owner>=0.99, 'the layer is fully handed over mid reply: '..owner)
+  cursor=2; speech.update(0.1)
+  assert(resident.resets==1 and not face.active, 'one reset at the end closes the gate: '..resident.resets)
+  local written=#resident.frames
+  for _=1,30 do speech.update(0.016); face.updateExpressions({actors={{entity=resident.id,npc=resident}}}) end
+  assert(#resident.frames==written and resident.resets==1, 'an idle world NPC is never written')
+  local before=queries
+  for _=1,120 do face.updateExpressions({actors={{entity=resident.id,npc=resident}}}) end
+  assert(queries==before, 'idle ticks make no native call for a world NPC: '..(queries-before))
+`));
+
+test('a world NPC reply gets the per-head jaw lift from its prepared graph, and none from an unprepared one', () => run(`
+  local function jawFor(status)
+    local npc=actor('Resident-'..tostring(status)); npc.owned=false
+    if status then npc.ConvaiFaceStatus=function() native(); return status end end
+    local context,reply=input(npc,'lift-'..tostring(status)); assert(speech.start(context,reply))
+    cursor=0.5; speech.update(0.1)
+    return npc.frames[#npc.frames].jaw_mid_open
+  end
+  local raw=jawFor(nil)
+  assert(math.abs(raw-0.35)<0.0001, 'no status, no lift: '..raw)
+  local woman,man=jawFor('prepared:woman_average_sermo'),jawFor('prepared:man_average_sermo')
+  assert(math.abs(woman-0.7*(1-(1-0.35/0.7)^2))<0.0001, 'woman_average q=2: '..woman)
+  assert(math.abs(man-0.7*(1-(1-0.35/0.7)^1.5))<0.0001, 'man_average q=1.5: '..man)
+  assert(math.abs(jawFor('prepared:man_big_sermo')-man)<0.0001 and math.abs(jawFor('prepared:man_fat_sermo')-man)<0.0001)
+  assert(math.abs(jawFor('unprepared:woman_average_sermo')-0.35)<0.0001, 'an unprepared graph is not lifted')
+  assert(math.abs(jawFor('skipped:named')-0.35)<0.0001)
+`));

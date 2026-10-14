@@ -28,7 +28,28 @@ export function inspectGraph(document) {
   return {handles, objects};
 }
 
-export function extendFacialGraph(original) {
+// The vanilla "a > 0" expression (compiled by the game; all four crowd graphs carry identical token data), and the
+// pieces of a vanilla animAnimNode_Switch / animAnimNode_MathExpressionFloat. The gate below copies how the game
+// itself builds a two-input switch: a MathExpressionFloat node feeding Switch.weightNode, and a second input that
+// reaches the same upstream node as the first (Switch nodes 25, 27 and 427 of woman_average_sermo do exactly that).
+export const GATE_EXPRESSION = {returnVarType: 1, tokenData: [2164293632, 16777216, 2701131908], valuesData: [0]};
+const none = () => ({$type: 'CName', $storage: 'string', $value: 'None'});
+const noColor = () => ({$type: 'Color', Alpha: 0, Blue: 0, Green: 0, Red: 0});
+const vis = () => ({visAxes: 0, visMask: null, visNames: 0, visPostPose: 0, visPostPoseColor: noColor(), visPrePose: 0,
+  visPrePoseColor: noColor(), visRigPartMask: none(), visWhenActive: 0});
+
+// options.gate: true builds the crowd variant. The speech layer then sits behind one Switch that a face which is not
+// being voiced never selects: input 0 is the solver's original input, untouched (the vanilla pose), input 1 is the
+// same node with the speech layer on top, and the weight is "speech_owner > 0". A face that is not speaking
+// evaluates one switch and one comparison more than vanilla.
+export function extendFacialGraph(original, options = {}) {
+  const gate = options.gate ? schema.crowd?.gate : null;
+  if (options.gate && (!gate || !schema.owner || gate.input !== schema.owner.input
+      || !Number.isFinite(gate.blendTime) || gate.blendTime < 0 || typeof gate.label !== 'string')) {
+    throw new Error('Invalid speech gate schema');
+  }
+  if (schema.crowd && (!/^[a-z]+$/.test(schema.crowd.folder) || new Set(schema.crowd.graphs).size !== schema.crowd.graphs.length
+      || schema.crowd.graphs.some(name => !schema.graphs.includes(name)))) throw new Error('Invalid crowd graph schema');
   if (schema.version !== 1 || new Set(schema.tracks).size !== schema.tracks.length
       || schema.tracks.some(name => !/^[a-z][a-zA-Z0-9_]+$/.test(name))) throw new Error('Invalid face schema');
   if (schema.owner && (!/^[a-z][a-zA-Z0-9_]+$/.test(schema.owner.input) || schema.tracks.includes(schema.owner.input)
@@ -45,7 +66,11 @@ export function extendFacialGraph(original) {
   let nextId = Math.max(...[...handles.keys()].map(Number)) + 1;
   const alloc = data => ({HandleId: String(nextId++), Data: data});
   const base = type => ({$type: type, id: 4294967295, debugName: cname('Convai speech')});
-  let upstream = solvers[0].inputLink;
+  // The solver's original input. With the gate it is defined once, inline, as the Switch's input 0, and the speech
+  // chain reaches it by reference (a handle reference resolves only after the definition, in document order).
+  const originalInput = solvers[0].inputLink;
+  const originalNode = originalInput.node;
+  let upstream = gate ? link('animPoseLink', ref(originalNode.HandleId ?? originalNode.HandleRefId)) : originalInput;
   const added = [];
   for (const track of schema.tracks) {
     const input = alloc({...base('animAnimNode_FloatInput'), group: cname(schema.group),
@@ -92,6 +117,23 @@ export function extendFacialGraph(original) {
     for (const name of owner.faded) ownerNode(`${name}AnimOverrideWeight`, 'Subtract');
     ownerNodes.at(-1).Data.floatInputNode = link('animFloatLink', input);
     added.push(ref(input.HandleId));
+    if (gate) {
+      // The weight node comes after the inputs in document order, so it refers to the owner input by handle.
+      const expression = alloc({$type: 'mathExprExpression', ...structuredClone(GATE_EXPRESSION)});
+      const compare = alloc({$type: 'animAnimNode_MathExpressionFloat', debugName: cname(gate.label),
+        expressionData: {$type: 'animMathExpressionNodeData', expression,
+          floatSockets: [{$type: 'animAnimMathExpressionFloatSocket', expressionVarId: 0, inputFloatTrack: trackIndex('None'),
+            link: link('animFloatLink', ref(input.HandleId))}],
+          quaternionSockets: [], vectorSockets: []},
+        expressionString: 'a > 0', id: 4294967295, poseInfoLogger: null, ...vis()});
+      const select = alloc({$type: 'animAnimNode_Switch', blendTime: gate.blendTime, canRequestInertialization: 0,
+        debugName: cname(gate.label), id: 4294967295,
+        inputNodes: [originalInput, upstream],
+        motionProvider: null, numInputs: 2, poseInfoLogger: null, pushDataByTag: none(), syncMethod: null,
+        timeWarpingEnabled: 0, ...vis(), weightNode: link('animFloatLink', compare)});
+      upstream = link('animPoseLink', select);
+      added.push(ref(select.HandleId), ref(compare.HandleId));
+    }
   }
   // Speech deltas and ownership go in before the native Sermo solver. Zero inputs leave every existing pose, eye
   // target, head rotation and animation link intact.
@@ -101,6 +143,23 @@ export function extendFacialGraph(original) {
     name: cname(schema.group), debugEnabled: 0, forceAllocate: 1});
   inspectGraph(document);
   return document;
+}
+
+// Records of the named roster: every character the mod gives a profile or a phone contact, and the managed copies. The
+// crowd preparation (Face.reds) never touches them: Johnny's record uses man_average_sermo, and a named character met
+// in the world is a story character. Sorted, so the generated source is stable.
+export function namedRecords() {
+  const read = name => JSON.parse(readFileSync(new URL(`../characters/${name}`, import.meta.url), 'utf8').replace(/^﻿/, ''));
+  const records = new Set();
+  for (const row of read('roster.json')) for (const record of row.records || []) records.add(record);
+  for (const row of read('manager-characters.json')) if (row.record) records.add(row.record);
+  for (const row of read('phone-contacts.json')) if (row.record) records.add(row.record);
+  for (const record of records) if (!/^Character\.[A-Za-z0-9_]+$/.test(record)) throw new Error(`Unexpected record name ${record}`);
+  return [...records].sort();
+}
+
+export function crowdPath(name) {
+  return `cyberpunk_convai\\facial\\${schema.crowd.folder}\\${name}.animgraph`;
 }
 
 export function featureSource() {
@@ -113,7 +172,14 @@ export function featureSource() {
     + '  public static func Names() -> array<String> {\n    return ['
     + schema.graphs.map(name => `"${name}"`).join(', ') + '];\n  }\n'
     + '  public static func RequiredTracks() -> array<CName> {\n    return ['
-    + schema.tracks.map(track => `n"${track}LipsyncPoseOutput"`).join(', ') + '];\n  }\n}\n';
+    + schema.tracks.map(track => `n"${track}LipsyncPoseOutput"`).join(', ') + '];\n  }\n'
+    // The crowd graphs (ordinary NPCs): gated copies of the first four graphs, assigned at spawn by Face.reds.
+    + '  public static func CrowdNames() -> array<String> {\n    return ['
+    + schema.crowd.graphs.map(name => `"${name}"`).join(', ') + '];\n  }\n'
+    + '  public static func CrowdFolder() -> String {\n    return "'
+    + `cyberpunk_convai\\\\facial\\\\${schema.crowd.folder}\\\\` + '";\n  }\n'
+    + '  public static func NamedRecords() -> array<String> {\n    return ['
+    + namedRecords().map(record => `"${record}"`).join(', ') + '];\n  }\n}\n';
 }
 
 export function build(inputDirectory, outputDirectory) {
@@ -130,9 +196,21 @@ export function build(inputDirectory, outputDirectory) {
     const target = resolve(outputDirectory, `${name}.animgraph.json`);
     mkdirSync(dirname(target), {recursive: true});
     writeFileSync(target, JSON.stringify(document));
-    generated.push({source: basename(path), sourceSha256: createHash('sha256').update(source).digest('hex'),
-      originalPath: `base\\animations\\facial\\_facial_graphs\\${name}.animgraph`, depotPath,
+    const sourceSha256 = createHash('sha256').update(source).digest('hex');
+    const originalPath = `base\\animations\\facial\\_facial_graphs\\${name}.animgraph`;
+    generated.push({source: basename(path), sourceSha256, originalPath, depotPath,
       nodes: document.Data.RootChunk.nodesToInit.length, controls: schema.tracks.length});
+    // The crowd copy of the same four graphs, behind the speech gate, in its own folder of the archive.
+    if (schema.crowd?.graphs.includes(name)) {
+      const gated = extendFacialGraph(original, {gate: true});
+      const gatedPath = crowdPath(name);
+      gated.Header.ArchiveFileName = gatedPath;
+      const gatedTarget = resolve(outputDirectory, schema.crowd.folder, `${name}.animgraph.json`);
+      mkdirSync(dirname(gatedTarget), {recursive: true});
+      writeFileSync(gatedTarget, JSON.stringify(gated));
+      generated.push({source: basename(path), sourceSha256, originalPath, depotPath: gatedPath, gated: true,
+        nodes: gated.Data.RootChunk.nodesToInit.length, controls: schema.tracks.length});
+    }
   }
   mkdirSync(outputDirectory, {recursive: true});
   writeFileSync(resolve(outputDirectory, 'build-manifest.json'), JSON.stringify({version: 1, graphs: generated}, null, 2));
@@ -142,6 +220,12 @@ export function build(inputDirectory, outputDirectory) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  // "--reds": rewrite only FaceFeature.reds (after a roster change; needs no game files).
+  if (process.argv[2] === '--reds') {
+    writeFileSync(new URL('../r6/scripts/CyberpunkConvai/FaceFeature.reds', import.meta.url), featureSource());
+    console.log('Wrote r6/scripts/CyberpunkConvai/FaceFeature.reds');
+    process.exit(0);
+  }
   const input = process.argv[2] || resolve(project, 'runtime/facial-rig/json');
   const output = process.argv[3] || resolve(project, 'runtime/facial-rig/extended-json');
   console.log(JSON.stringify(build(input, output).map(({depotPath, controls, nodes}) => ({depotPath, controls, nodes})), null, 2));
