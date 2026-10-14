@@ -92,9 +92,9 @@ is the one above: a question that presupposes a trait the profile lacks, plus ex
   (hair, clothes) from the spawned appearance in the dynamic context; the game adapter gives none today.
 * Residual: with the old journal rows present, Natural speech alone still produced an unnamed "she" in 2 to 3 of 10; with the
   retrieval fix those rows are not summoned by this kind of question.
-* The profile texts of 71 characters are third person. Rewriting them in the second person ("You are Evelyn...", as the nine
-  that already are) would remove the root of the narrator voice, but it means re-uploading every Convai character and
-  re-measuring; not done here.
+* The profile texts of 71 characters were third person. Update 2026-10-14: rewritten in the first person ("I'm Judy Alvarez, ...")
+  in the repo (`characters/first-person-profiles.json`, `scripts/Rewrite-FirstPersonProfiles.mjs`); still to do: re-upload the
+  Convai characters and re-measure (see TODO.md). The nine "You are" profiles were not touched.
 
 ## Install
 
