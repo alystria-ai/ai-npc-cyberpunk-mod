@@ -832,6 +832,11 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
   prepare: (key, options) => localVoice.prepareProfile(key, options),
   play: (config, producer, options) => realtime.playVoiceLine(config, producer, options),
   warm: options => realtime.prewarmVoiceLine(options),
+  // Beside OmniVoice, V's line is spoken by a Pocket worker of its own on the CPU (bridge/v-helper-voice.mjs), never rendered on
+  // OmniVoice's one GPU worker. It is loaded in the background while the OmniVoice voice is committed and the setting is on.
+  helper: {speaks: key => localVoice.vHelperSpeaks(key), ready: key => localVoice.vHelperReady(key),
+    stream: (key, text, options) => localVoice.vHelperStream(key, text, options),
+    prepare: (key, options) => localVoice.vHelperPrepare(key, options)},
   // One log line and one record per V line: what happened and when (V's own stage clock), no dialogue.
   report: (input, summary) => {
     try {
@@ -2578,6 +2583,7 @@ async function pollSettings(checkShutdown = true) {
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
     if (vVoice.update(settings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}`);
+    localVoice.setVHelperWanted(vVoice.enabled && vVoice.available);
     const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
     if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
     const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
