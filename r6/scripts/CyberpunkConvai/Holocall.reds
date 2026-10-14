@@ -341,8 +341,9 @@ public final func ConvaiChatHolocall() -> Void {
     player.ConvaiHolocallRequest(this.m_contactEntry.GetId());
 }
 
-// On the Chat list the secondary action (the game's own Messages key, R on a keyboard; its hint now reads Call) starts a
-// holocall with the selected character. Accept (F, Enter, click) still opens the text chat.
+// On the Chat list the Call key (the game's `call` action: V on a keyboard, Triangle on a pad; PhoneChatTabs.reds
+// registers the listener and shows the hint) starts a holocall with the selected character. Accept (F, Enter, click)
+// and the secondary action (R, the envelope on the row) open the text chat.
 @addMethod(NewHudPhoneGameController)
 public final func ConvaiChatListHolocall(contact: wref<ContactData>) -> Void {
     if !IsDefined(contact) || !contact.convaiChat || !IsDefined(this.m_player) { return; };

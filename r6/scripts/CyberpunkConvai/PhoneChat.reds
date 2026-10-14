@@ -25,7 +25,8 @@ public class ConvaiPhoneChatInput extends HubTextInput {
         input.CreateInstance();
         input.SetLetterCase(textLetterCase.OriginalCase);
         input.SetMaxLength(1200);
-        input.SetDefaultText("Write a message...");
+        // No placeholder text: the box stays empty until the player types.
+        input.SetDefaultText("");
         return input;
     }
 
@@ -188,11 +189,9 @@ private func SetupData() -> Void {
     InkImageUtils.RequestAvatarOrUnknown(this, this.m_avatarImage, this.m_contactEntry.GetAvatarID(this.m_journalMgr));
     inkWidgetRef.SetVisible(this.m_menuBackgrouns, false);
     inkWidgetRef.SetVisible(this.m_hintTrack, false);
-    // The game's own Call hint (its glyph is the real `call` key), shown for a Chat contact and dimmed like the game's
-    // while calls are blocked. It starts the mod's holocall (Holocall.reds), never the game's call.
-    inkWidgetRef.SetVisible(this.m_hintCall, true);
-    inkWidgetRef.SetOpacity(this.m_hintCall, this.m_phoneSystem.IsCallingEnabled() ? 1.0 : 0.1);
-    this.ConvaiChatHookCall();
+    // The game's own Call hint stays hidden here (the game's call is a quest call); the mod's Call hint sits in the
+    // composer panel (ConvaiChatCreate), where it cannot be covered.
+    inkWidgetRef.SetVisible(this.m_hintCall, false);
     inkWidgetRef.SetVisible(this.m_hintReply, false);
     inkWidgetRef.SetVisible(this.m_scrollReply, false);
     inkWidgetRef.SetVisible(this.m_hintMessenger, false);
@@ -254,8 +253,46 @@ private final func ConvaiChatCreate() -> Void {
     hint.BindProperty(n"tintColor", n"MainColors.Blue");
     hint.SetMargin(new inkMargin(4.0, 8.0, 0.0, 0.0));
     hint.SetText("ENTER  Write message   /   ESC  Stop typing");
-    hint.Reparent(panel);
+    // One row under the message box: the key text, then the Call hint (the game's own key hint for the `call` action,
+    // so it shows the real key, V or Triangle, with the game's own translated Call label; a click on it calls too).
+    let row = new inkHorizontalPanel();
+    row.SetName(n"convaiPhoneComposerHints");
+    row.SetFitToContent(true);
+    row.Reparent(panel);
+    hint.Reparent(row);
     this.m_convaiChatHint = hint;
+    this.ConvaiChatCallHint(row);
+}
+
+@addField(PhoneMessagePopupGameController)
+private let m_convaiChatCallHint: wref<inkWidget>;
+@addMethod(PhoneMessagePopupGameController)
+private final func ConvaiChatCallHint(row: ref<inkHorizontalPanel>) -> Void {
+    let widget = this.SpawnFromExternal(row, r"base\\gameplay\\gui\\common\\buttons\\base_buttons.inkwidget", n"inputDisplayLabelFlex");
+    let label = IsDefined(widget) ? widget.GetController() as LabelInputDisplayController : null;
+    if IsDefined(label) {
+        label.SetInputActionLabel(n"call", GetLocalizedText("LocKey#22196"));
+        widget.SetVAlign(inkEVerticalAlign.Center);
+        widget.SetMargin(new inkMargin(40.0, 4.0, 0.0, 0.0));
+    } else {
+        // The game's hint could not be built: the same hint as plain text, like the line beside it.
+        let text = new inkText();
+        text.SetName(n"convaiPhoneComposerCall");
+        text.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
+        text.SetFontStyle(n"Medium");
+        text.SetFontSize(26);
+        text.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
+        text.BindProperty(n"tintColor", n"MainColors.Blue");
+        text.SetMargin(new inkMargin(40.0, 8.0, 0.0, 0.0));
+        text.SetText("V  Call");
+        text.Reparent(row);
+        widget = text;
+    };
+    if IsDefined(widget) {
+        widget.SetInteractive(true);
+        widget.RegisterToCallback(n"OnRelease", this, n"OnConvaiChatCallClick");
+        this.m_convaiChatCallHint = widget;
+    };
 }
 
 @addMethod(PhoneMessagePopupGameController)
@@ -335,6 +372,9 @@ public final func ConvaiChatPresent(lines: array<ref<ConvaiPhoneChatLine>>, stat
     this.m_convaiChatBusy = busy;
     this.m_convaiChatInput.SetDisabled(!enabled);
     this.m_convaiChatHint.SetText(StrLen(status) > 0 ? status : "ENTER  Write / Send   /   ESC  Stop typing");
+    if IsDefined(this.m_convaiChatCallHint) {
+        this.m_convaiChatCallHint.SetOpacity(this.m_phoneSystem.IsCallingEnabled() ? 1.0 : 0.3);
+    };
     this.m_dialogViewController.ConvaiChatSetLines(lines);
 }
 
@@ -379,18 +419,7 @@ protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsu
     };
     return wrappedMethod(action, consumer);
 }
-// A click on the Call hint does the same as its key. Registered once per popup; the hint is the game's own widget.
-@addField(PhoneMessagePopupGameController)
-private let m_convaiChatCallHooked: Bool;
-@addMethod(PhoneMessagePopupGameController)
-private final func ConvaiChatHookCall() -> Void {
-    if this.m_convaiChatCallHooked { return; };
-    let hint = inkWidgetRef.Get(this.m_hintCall);
-    if !IsDefined(hint) { return; };
-    hint.SetInteractive(true);
-    hint.RegisterToCallback(n"OnRelease", this, n"OnConvaiChatCallClick");
-    this.m_convaiChatCallHooked = true;
-}
+// A click on the Call hint does the same as its key (registered when the hint is built, ConvaiChatCallHint).
 @addMethod(PhoneMessagePopupGameController)
 private cb func OnConvaiChatCallClick(evt: ref<inkPointerEvent>) -> Bool {
     if evt.IsAction(n"click") && this.m_data.convaiChat && this.m_isFocused && !this.ConvaiChatTyping() {
