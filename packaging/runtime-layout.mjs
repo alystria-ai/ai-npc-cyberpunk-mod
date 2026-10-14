@@ -151,6 +151,9 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/voxtral-voice.mjs',
   'bridge/world-knowledge.mjs',
   'bridge/world-session.mjs',
+  'bridge/youtube-tv-host.mjs',
+  'bridge/youtube-tv-page.mjs',
+  'bridge/youtube-tv.mjs',
   'bridge/zip-writer.mjs',
 ]);
 // Files the production bridge starts at run time by path (worker threads and
@@ -168,6 +171,7 @@ export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   'bridge/phone-analysis-worker.py',
   'bridge/local-stt-worker.py',
   'bridge/audio-output-probe.ps1', // Lip sync delay Auto: default output device
+  'bridge/youtube-tv-window.ps1', // YouTube on V's TV: places the video window over the game
 ]);
 // These are the pinned external package entry points, not a replacement for the
 // full reviewed Playwright distributions and their transitive source/notices.

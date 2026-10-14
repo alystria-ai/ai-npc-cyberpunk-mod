@@ -59,6 +59,8 @@ M.catalog = {
     ['holocall-refused'] = {class = PLAYER, repeatS = 10},      -- a holocall could not start (a game call, combat, a scene, calls blocked)
     ['holocall-connected'] = {class = PLAYER},                  -- the call connected: how to hang up
     ['holocall-ended'] = {class = PLAYER},                      -- the call ended for a reason other than V hanging up
+    -- YouTube on V's TV (mod/youtube-tv.lua, docs/YOUTUBE_TV.md): the TV window could not open, or the key was used outside V's home
+    ['youtube-tv'] = {class = PLAYER, repeatS = 10},
     ['holocall-live-fallback'] = {class = PLAYER, repeatS = 60}, -- the experimental live picture could not be shown: the portrait is used
     ['message-lost'] = {class = PLAYER, repeatS = 5},         -- a typed message was dropped (empty text box confirmed, box closed without a result, request not written)
     ['voice-needs-convai'] = {class = PLAYER, repeatS = 15},   -- the voice key is pressed while Mistral is in use and this computer cannot recognise speech
@@ -166,11 +168,11 @@ local function warningLine()
     local definitions = Game.GetAllBlackboardDefs()
     return Game.GetBlackboardSystem():Get(definitions.UI_Notifications), definitions.UI_Notifications.WarningMessage
 end
-local function writeLine(shown, text, instant)
+local function writeLine(shown, text, instant, seconds)
     local board, id = warningLine()
     local message = SimpleScreenMessage.new()
     message.isShown, message.message, message.isInstant = shown, text, instant == true
-    message.duration = shown and HOLD_S or 0
+    message.duration = shown and (seconds or HOLD_S) or 0
     local kind = messageKind()
     if kind ~= nil then message.type = kind end
     board:SetVariant(id, ToVariant(message), true)
@@ -182,6 +184,9 @@ M.screen = {
         return false
     end,
     clear = function() return pcall(writeLine, false, '', false) end,
+    -- a notice that stays `seconds` after its frame has opened (the game's own timer, started when the intro ends), not the
+    -- five seconds PlayerPuppet:SetWarningMessage always asks for
+    timed = function(_, text, seconds) return (pcall(writeLine, true, text, false, seconds)) end,
     -- the message on the line now and whether it is shown (errors reach the caller's pcall)
     read = function()
         local board, id = warningLine()
@@ -195,6 +200,13 @@ function M.ordinary(player, text)
     return (pcall(function() player:ConvaiPhoneFeedback(text) end))
 end
 
+-- Notices that stay longer than the ordinary five seconds: id -> seconds the notice stays after its frame has opened (the game
+-- adds about 2.7 s of intro and 0.9 s of outro around it). The daily limit has two lines to read and a choice to make.
+-- Cost: one table lookup per permitted line of a notice. The loading notice may not cover such a notice before that time
+-- plus the intro and outro has passed (lastSentWait).
+M.showS = {['daily-limit'] = 9}
+local INTRO_OUTRO_S = 3.6
+
 -- The notice held on screen: {text, at, mode, mask (which loads it lists), sig (the texts of the lines that change while their load goes on), matched, checkedAt, menu}, or nil.
 local held
 M.lastSentAt = -1000
@@ -205,7 +217,7 @@ local function hold(player, text, instant, mask, sig)
     if not ok or not mode then return false end
     local now = M.clock()
     held = {text = text, at = now, mode = mode, mask = mask, sig = sig, matched = false, checkedAt = now, menu = false}
-    M.lastSentAt = now
+    M.lastSentAt, M.lastSentWait = now, nil
     return true
 end
 
@@ -227,9 +239,11 @@ end
 -- shown in the same call (the board offers them again).
 function M.sendLines(player, lines)
     if not player then return 0 end
-    local texts, loading, loadingCount, instant, mask, sig = {}, nil, 0, false, nil, nil
+    local texts, loading, loadingCount, instant, mask, sig, showS = {}, nil, 0, false, nil, nil, nil
     for _, line in ipairs(lines) do
         if M.permit(line.id, line.text) then
+            local longer = M.showS[line.id]
+            if longer and (not showS or longer > showS) then showS = longer end
             if line.id == LOADING_ID then
                 loading, loadingCount = loading and (loading .. '\n' .. line.text) or line.text, loadingCount + 1
                 instant, mask, sig = line.instant == true, line.mask, line.sig
@@ -239,8 +253,14 @@ function M.sendLines(player, lines)
         end
     end
     if #texts > 0 then
-        local ok = M.ordinary(player, table.concat(texts, '\n'))
-        if ok then M.lastSentAt = M.clock() end
+        local joined, ok, wait = table.concat(texts, '\n'), false, nil
+        if showS then
+            local posted, written = pcall(M.screen.timed, player, joined, showS)
+            ok = posted and written == true
+            if ok then wait = showS + INTRO_OUTRO_S end
+        end
+        if not ok then ok = M.ordinary(player, joined) end
+        if ok then M.lastSentAt, M.lastSentWait = M.clock(), wait end
         return ok and #texts or 0
     end
     if loading then return hold(player, loading, instant, mask, sig) and loadingCount or 0 end
@@ -350,7 +370,7 @@ function M.loading(worldReady, keys, read, describe)
     if active == 0 then
         release = held ~= nil
     elseif not ended then
-        local quiet = now - M.lastSentAt >= RESHOW_S
+        local quiet = now - M.lastSentAt >= (M.lastSentWait or RESHOW_S)
         local post, instant = false, false
         if not held then
             post = quiet and now - lastEndAt >= END_SHOW_S

@@ -153,7 +153,7 @@ test('an audio-only session, a bad image or nothing staged never publishes', asy
   const video = fakeConnection();
   const vision = new ConvaiVision(video, {env});
   assert.deepEqual(await vision.stage([image('image/gif')]), {staged: false, reason: 'no-valid-image'});
-  assert.deepEqual(await vision.ready(100), {attached: false, outcome: 'nothing-staged', ms: 0});
+  assert.deepEqual(await vision.ready(100), {attached: false, outcome: 'nothing-staged', ms: 0, waitedMs: 0});
   assert.equal(audio.calls.length + video.calls.length, 0);
 });
 
@@ -173,13 +173,44 @@ test('a newer picture replaces the staged one (its track is withdrawn first)', a
   const vision = new ConvaiVision(connection, {env});
   await vision.stage([image()]);
   await settle();
-  await vision.stage([image()]);
+  await vision.stage([image('image/png')]);
   await settle();
   assert.deepEqual(connection.calls.map(call => call[0]), ['publish', 'unpublish', 'publish']);
 });
 
-test('the context note tells the character the picture is the game view and to ignore the interface', () => {
-  assert.match(VISION_NOTE, /game view/);
+test('a picture staged ahead is reused by its turn (no second publish) and the turn waits for nothing once it is buffered', async () => {
+  const {env, advance} = fakeEnv();
+  const connection = fakeConnection({ack: id => ({event_type: 'vision-status', status: 'success',
+    extras: {update_id: id, vision_buffer: {retained_frames: 1}, outcome: 'frames_available'}})});
+  const vision = new ConvaiVision(connection, {env});
+  assert.deepEqual(await vision.stage([image()], {ttlMs: 60000}), {staged: true});
+  const ahead = vision.ready(5000);
+  for (let i = 0; i < 4; i++) { await settle(); advance(100); }
+  assert.equal((await ahead).attached, true, 'buffered while V typed');
+  assert.deepEqual(await vision.stage([image()]), {staged: true, reused: true});
+  const turn = await vision.ready(350);
+  assert.equal(turn.attached, true);
+  assert.equal(turn.waitedMs, 0);
+  assert.equal(connection.calls.filter(call => call[0] === 'publish').length, 1);
+  advance(61000);
+  assert.ok(vision.staged, 'a claimed picture is not withdrawn by the ahead-of-time expiry');
+});
+
+test('a picture staged ahead that no turn takes is withdrawn after its time', async () => {
+  const {env, advance} = fakeEnv();
+  const connection = fakeConnection();
+  const vision = new ConvaiVision(connection, {env});
+  await vision.stage([image()], {ttlMs: 60000});
+  await settle();
+  advance(60001);
+  await settle();
+  assert.equal(vision.staged, null);
+  assert.deepEqual(connection.calls.map(call => call[0]), ['publish', 'unpublish']);
+});
+
+test('the context note says the picture shows the surroundings from before the conversation and to ignore the interface', () => {
+  assert.match(VISION_NOTE, /surroundings/);
+  assert.match(VISION_NOTE, /before this conversation/);
   assert.match(VISION_NOTE, /never the interface/);
   assert.doesNotMatch(VISION_NOTE, /screenshot|key|free|recommended/i);
 });

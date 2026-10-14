@@ -1,111 +1,136 @@
-// "Companions can see" (docs/COMPANION_VISION.md): when V's line asks about something visible, the companion gets one still picture
-// of the game window with that turn. Convai only, off by default (settings.json "companionVision").
+// "Companions can see" (docs/COMPANION_VISION.md): with Convai, every conversation turn carries one recent picture of V's
+// surroundings. On by default (settings.json "companionVision"; false turns it off, as does CYBERPUNK_CONVAI_VISION=off).
 //
-// Policy, all on demand (never per frame, never in the game process):
-//  - typed line: the words are known when the turn is admitted; a look-like line starts the capture at once (beginTurn), and the
-//    page acquisition overlaps it; the turn waits for it at most CAPTURE_WAIT_MS.
-//  - talk key: the bridge already reads what Convai has heard while V talks (publishHeard). The first look-like words start the
-//    capture and stage the picture on the voice page while V is still talking (noteHeard), so the finish does not wait for it.
-//    If only V's last words ask, the finish captures then (bounded by CAPTURE_WAIT_MS).
-//  - other features (YouTube-on-TV) queue their own frames with attachToNextTurn(); they go with the next turn, with or without
-//    a game view, composed into the same single picture (bridge/convai-vision.mjs).
-// Nothing is saved to disk, except one copy per picture into CYBERPUNK_CONVAI_VISION_DEBUG_DIR when a developer sets it.
+// Why a rolling buffer and not a screenshot at talk time: when V talks, V is usually looking at the companion, so a picture taken
+// then is mostly her face. The view from a few seconds *before* the conversation shows where they are. So, while a companion (or
+// a character V may talk to) is near and no conversation is running, the out-of-process helper takes one game-window picture
+// every FRAME_INTERVAL_MS and keeps the last FRAME_SLOTS in memory. Nothing is captured during a conversation or for TAIL_MS
+// after it (the view is still on the companion), and a turn takes the newest frame from at least LEAD_MS before the conversation
+// started (the moment V turned to talk). Pictures never touch the disk (except CYBERPUNK_CONVAI_VISION_DEBUG_DIR, development).
+//
+// Latency: the frame is already in memory when V talks. It is published to Convai ahead of the line (stagePage when the composer
+// opens, stageVoice when the talk key is pressed), so Convai's acceptance of the frame overlaps typing or talking instead of the
+// turn. The unload rule (docs/RESOURCE_LIFECYCLE.md): the helper process exists only while it is capturing: setting on, Convai
+// answering, someone near, and no conversation running.
 import {writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
 import {MAX_IMAGES, validImages} from './convai-vision.mjs';
 
-// The longest a turn waits for its game picture (the helper takes ~140 ms, p95 ~190 ms; docs/COMPANION_VISION.md, "Measured").
-export const CAPTURE_WAIT_MS = 400;
+export const FRAME_INTERVAL_MS = 3000;
+export const FRAME_SLOTS = 4;
+// A frame this close before the conversation started may already be the companion's face (V turning to talk).
+export const LEAD_MS = 2500;
+// After the last sign of a conversation (composer, turn, microphone, reply playing) the view is probably still on the companion.
+export const TAIL_MS = 12000;
+// An older frame is not sent: the scene may have changed (a long ride, a long talk).
+export const MAX_FRAME_AGE_MS = 120000;
 // How long a queued picture (attachToNextTurn) waits for a turn before it is dropped.
 export const QUEUE_TTL_MS = 20000;
-// The helper process follows the unload rule (docs/RESOURCE_LIFECYCLE.md): it exists only while the setting is on and Convai answers, and
-// it leaves after this long without a picture. A picture after that starts it again (about 400 ms), so that turn waits COLD_START_MS longer.
-export const HELPER_IDLE_MS = 600_000;
-export const COLD_START_MS = 700;
+// How long ahead-of-time staging keeps retrying while the page is still connecting or the recording is starting.
+export const STAGE_RETRY_MS = 6000;
+const STAGE_RETRY_EVERY_MS = 250;
+const STAGE_ATTEMPTS = Math.ceil(STAGE_RETRY_MS / STAGE_RETRY_EVERY_MS);
 const TURN_MEMORY = 32;
 
-// Lines that ask about something V and the companion can see. English only; a miss just means no picture.
-export const LOOK_PATTERNS = Object.freeze([
-  /\bwhat (?:do|can|did|could) (?:you|ya|u) (?:see|spot|notice|make of)\b/,
-  /\b(?:do|can|did) (?:you|ya|u) (?:see|spot|notice)\b/,
-  /\b(?:look|looking|check|checking) (?:at|over|around|out|behind|up|down)\b/,
-  /\b(?:take|have|get) a (?:look|gander|peek)\b/,
-  /\b(?:look|check) (?:this|that|it|these|those)\b/,
-  /\bsee (?:that|this|those|these|him|her|them|it|the)\b/,
-  /\bhow (?:do|does) (?:i|my \w+|this|it|that|the \w+) look\b/,
-  /\bdo i look\b/,
-  /\bhow(?:'s| is| are) my (?:outfit|hair|look|clothes|car|ride|bike|jacket|gear|style)\b/,
-  /\bwhat (?:am i|i'm|i am) wearing\b/,
-  /\bwhat do you think (?:of|about) (?:my|this|that|these|those|the view)\b/,
-  /\b(?:what|who)(?:'s| is| are) (?:that|this|those|these|he|she|they) (?:over|there|right|behind|guy|girl|woman|man|thing)\b/,
-  /\b(?:what|who)(?:'s| is) (?:that|this)\s*\??\s*$/,
-  /\b(?:that|this|those|these) (?:sky|sunset|sunrise|skyline|view|building|tower|car|bike|ride|sign|billboard|crowd|room|place|tv|screen|guy|girl|woman|man|dude|thing|graffiti|ad)\b/,
-  /\b(?:nice|great|beautiful|amazing) view\b/,
-  /\bover there\b/, /\bright there\b/,
-  /\b(?:around|in front of|behind) (?:us|me|you)\b/,
-  /\b(?:notice|spot) (?:anything|something|that|this|him|her|them)\b/,
-  /\bdescribe (?:the|this|that|what|where|my|your|our|it)\b/,
-  /\bon (?:the )?(?:tv|screen)\b/,
-]);
-
-export function wantsLook(text) {
-  if (typeof text !== 'string' || !text) return false;
-  const line = text.toLowerCase().replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim();
-  return LOOK_PATTERNS.some(pattern => pattern.test(line));
-}
+export const visionDisabledByEnv = (env = process.env) => /^(0|off|false|no)$/i.test(String(env.CYBERPUNK_CONVAI_VISION ?? '').trim());
 
 export class CompanionVision {
   // capture: a VisionCapture (bridge/vision-capture.mjs). isConvai(): true while Convai answers (Mistral and Local AI get no picture).
-  // stageVoice(images, requestId): hands pictures to the running microphone turn ({staged}). debugDirectory: absolute, optional.
-  constructor({capture, isConvai = () => true, stageVoice = async () => ({staged: false}), log = () => {}, now = () => Date.now(),
-    debugDirectory = absoluteRuntimeOverride(process.env.CYBERPUNK_CONVAI_VISION_DEBUG_DIR || undefined, 'CYBERPUNK_CONVAI_VISION_DEBUG_DIR'),
-    writeDebug = (path, bytes) => writeFile(path, bytes), waitMs = CAPTURE_WAIT_MS, idleMs = HELPER_IDLE_MS} = {}) {
-    Object.assign(this, {capture, isConvai, stageVoice, log, now, debugDirectory, writeDebug, waitMs, idleMs});
-    this.enabled = false; this.transport = 'video'; this.wanted = false; this.busy = 0; this.lastUse = 0;
-    this.queue = []; this.captures = new Map(); this.voice = new Map(); this.answered = new Map(); this.cold = new WeakSet();
-    this.counters = {captures: 0, failed: 0, minimised: 0, queued: 0, turnsWithPicture: 0, helperStarts: 0, helperReleases: 0};
+  // isNear(): a party member or a character V may talk to is around. isConversing(): a composer, turn, recording or reply is running.
+  // stageVoice(images): hands pictures to the running microphone turn ({staged, reason}). stagePage(config, images) / unstagePage(config):
+  // publish or withdraw a picture on an idle conversation page ahead of the turn ({staged, reason}). All optional; none may throw far.
+  constructor({capture, isConvai = () => true, isNear = () => true, isConversing = () => false,
+    stageVoice = async () => ({staged: false}), stagePage = async () => ({staged: false}), unstagePage = async () => {},
+    log = () => {}, now = () => Date.now(), env = process.env,
+    debugDirectory = absoluteRuntimeOverride(env.CYBERPUNK_CONVAI_VISION_DEBUG_DIR || undefined, 'CYBERPUNK_CONVAI_VISION_DEBUG_DIR'),
+    writeDebug = (path, bytes) => writeFile(path, bytes), sleep = ms => new Promise(done => setTimeout(done, ms))} = {}) {
+    Object.assign(this, {capture, isConvai, isNear, isConversing, stageVoice, stagePage, unstagePage, log, now, debugDirectory, writeDebug, sleep});
+    this.envOff = visionDisabledByEnv(env);
+    this.enabled = !this.envOff; this.transport = 'video'; this.waitMs = null;
+    this.frames = []; this.lastCaptureAt = -Infinity; this.busy = 0; this.frameSerial = 0;
+    this.conversing = false; this.conversationStart = null; this.lastConversationAt = -Infinity;
+    this.queue = []; this.voice = new Map(); this.answered = new Map(); this.staged = new Map(); this.stageRound = 0;
+    this.counters = {captures: 0, failed: 0, minimised: 0, queued: 0, turnsWithPicture: 0, turnsWithoutFrame: 0,
+      prestaged: 0, helperStarts: 0, helperReleases: 0};
   }
   get active() {
     try { return this.enabled && this.isConvai() === true; } catch { return false; }
   }
-  // Reads the settings on the bridge's 500 ms settings poll (a few property reads; never per frame, never per turn) and applies the
-  // unload rule to the helper. A missing settings object (an unreadable file) changes nothing. Returns true when the setting changed.
+  // True while the helper may run: it is capturing frames.
+  get capturing() {
+    if (!this.active || this.conversing || this.now() - this.lastConversationAt < TAIL_MS) return false;
+    try { return this.isNear() === true; } catch { return false; }
+  }
+
+  // ---- the 500 ms settings poll ----------------------------------------------------------------------------------------------
+  // Reads the settings (a missing object changes nothing) and runs one cheap tick: conversation state, the helper's lifetime and,
+  // when due, one capture. Returns true when the setting changed. Never per frame and never inside the game.
   update(settings) {
     let changed = false;
     if (settings && typeof settings === 'object') {
-      const enabled = settings.companionVision === true;
+      const enabled = !this.envOff && settings.companionVision !== false;
       const transport = settings.visionTransport === 'upload' ? 'upload' : 'video';
+      const wait = Number(settings.visionWaitMs);
       changed = enabled !== this.enabled || transport !== this.transport;
       this.enabled = enabled; this.transport = transport;
-      if (changed && !enabled) { this.queue = []; this.captures.clear(); this.voice.clear(); this.answered.clear(); }
+      this.waitMs = Number.isFinite(wait) ? Math.max(0, Math.min(900, Math.round(wait))) : null;
+      if (changed && !enabled) this.forget();
     }
-    this.syncHelper();
+    this.tick();
     return changed;
   }
-  // The helper exists only while it can be used: setting on and Convai answering. Becoming usable starts it (so the first picture is not
-  // slower); becoming unusable stops it at once; HELPER_IDLE_MS without a picture stops it too. Never while a capture is running.
-  syncHelper() {
-    const wanted = this.active, running = this.capture?.running === true;
-    if (wanted && !this.wanted) {
-      this.lastUse = this.now();
-      if (!running) { this.counters.helperStarts++; void this.capture?.start?.(); }
-    } else if (running && this.busy === 0 && (!wanted || this.now() - this.lastUse >= this.idleMs)) {
-      this.capture.stop();
-      this.counters.helperReleases++;
-      this.log(wanted ? 'helper released after its idle time' : 'helper released (setting off or another provider)');
+  forget() { this.frames = []; this.queue = []; this.voice.clear(); this.answered.clear(); this.closeComposer(); }
+  tick() {
+    let conversing = false;
+    try { conversing = this.isConversing() === true; } catch {}
+    if (conversing) this.markConversation(); else this.conversing = false;
+    if (!this.active) this.frames = [];
+    const running = this.capture?.running === true;
+    if (!this.capturing) {
+      if (running && this.busy === 0) {
+        this.capture.stop(); this.counters.helperReleases++;
+        this.log(`helper released (${!this.active ? 'setting off or another provider' : this.conversing || this.now() - this.lastConversationAt < TAIL_MS ? 'conversation' : 'nobody near'})`);
+      }
+      return;
     }
-    this.wanted = wanted;
+    if (this.busy === 0 && this.now() - this.lastCaptureAt >= FRAME_INTERVAL_MS) void this.collect();
   }
-  // What the realtime host connects pages with (bridge/realtime-host.mjs): null while vision is off or another provider answers.
+  // A conversation is running now (composer, typed turn, talk key, reply). The first mark after a quiet spell starts a new one.
+  markConversation() {
+    const now = this.now();
+    if (!this.conversing && now - this.lastConversationAt >= TAIL_MS) this.conversationStart = now;
+    this.conversing = true; this.lastConversationAt = now;
+  }
+  async collect() {
+    if (!this.capture) return;
+    if (this.capture.running !== true) this.counters.helperStarts++;
+    this.busy++; this.lastCaptureAt = this.now();
+    try {
+      const shot = await this.grab('buffer');
+      // A picture that finished after a conversation began is dropped: V may already have turned to the companion.
+      if (shot && this.active && this.lastConversationAt < this.lastCaptureAt) {
+        this.frames.push({...shot, at: this.lastCaptureAt, serial: ++this.frameSerial});
+        while (this.frames.length > FRAME_SLOTS) this.frames.shift();
+      }
+    } finally { this.busy--; }
+  }
+  // The frame a turn sends: the newest one at least LEAD_MS older than the conversation's start, else the newest, never one older
+  // than MAX_FRAME_AGE_MS. Null when there is none.
+  frame() {
+    const now = this.now(), fresh = this.frames.filter(frame => now - frame.at <= MAX_FRAME_AGE_MS);
+    if (!fresh.length) return null;
+    const start = this.conversationStart ?? now;
+    return [...fresh].reverse().find(frame => frame.at <= start - LEAD_MS) ?? fresh.at(-1);
+  }
   connectConfig() { return this.active ? {transport: this.transport} : null; }
+  turnWaitMs() { return this.waitMs; }
 
   // ---- public API for other features ------------------------------------------------------------------------------------------
-  // Sends `images` with the next conversation turn (typed or talk key), e.g. frames of a TV the companion is watching.
-  // images: up to 4 of {mime: 'image/jpeg' | 'image/png' | 'image/webp', base64}; each at most 4 MB. They are composed into one
-  // picture with the game view (if that turn has one). Options: characterId (only a turn with that Convai character takes them),
-  // ttlMs (dropped if no turn comes in time, default 20 s). Returns {queued: n} or {queued: 0, reason}. Nothing is sent while
-  // the setting is off or another provider answers, and nothing is kept on disk.
+  // Sends `images` with the next conversation turn, e.g. frames of a TV the companion is watching. images: up to 4 of
+  // {mime: 'image/jpeg' | 'image/png' | 'image/webp', base64}; each at most 4 MB. They are composed into one picture with the
+  // surroundings frame. Options: characterId (only a turn with that Convai character takes them), ttlMs (default 20 s).
+  // Returns {queued: n} or {queued: 0, reason}. Nothing is sent while the setting is off or another provider answers.
   attachToNextTurn(images, {characterId, ttlMs = QUEUE_TTL_MS} = {}) {
     if (!this.active) return {queued: 0, reason: this.enabled ? 'provider' : 'off'};
     const valid = validImages(images);
@@ -118,52 +143,79 @@ export class CompanionVision {
     return {queued: valid.length};
   }
 
-  // ---- turn hooks (bridge/convai-bridge.mjs) ----------------------------------------------------------------------------------
-  // A typed turn was admitted: a look-like line starts its capture now.
-  beginTurn(input) {
-    if (!this.active || !input || input.reaction || typeof input.requestId !== 'string' || !wantsLook(input.text)) return false;
-    this.remember(this.captures, input.requestId, this.grab('typed'));
+  // ---- ahead-of-time staging (bridge/convai-bridge.mjs) -----------------------------------------------------------------------
+  // The composer (or a group's composer) opened for these conversation pages: the frame is published on each page now, while V
+  // types, retried while a page is still connecting. Queued pictures are not staged ahead (they may arrive later).
+  openComposer(configs) {
+    if (!this.active || !Array.isArray(configs) || !configs.length) return false;
+    this.markConversation();
+    const frame = this.frame();
+    if (!frame) return false;
+    const round = ++this.stageRound, images = [{mime: frame.mime, base64: frame.base64}];
+    for (const config of configs) void this.stageAhead(round, config, images);
     return true;
   }
-  // What Convai has heard of a running recording: the first look-like words capture and stage the picture while V talks.
-  noteHeard(requestId, text) {
-    if (!this.active || typeof requestId !== 'string' || this.voice.has(requestId) || !wantsLook(text)) return false;
-    const entry = {images: null, staged: false, cold: this.capture?.running !== true};
+  async stageAhead(round, config, images) {
+    const until = this.now() + STAGE_RETRY_MS;
+    for (let attempt = 0; attempt <= STAGE_ATTEMPTS && round === this.stageRound && this.active; attempt++) {
+      let result;
+      try { result = await this.stagePage(config, images); } catch { result = {staged: false, reason: 'failed'}; }
+      if (result?.staged) { this.staged.set(config, round); this.counters.prestaged++; return true; }
+      if (!['no-page', 'busy', 'connecting', 'no-video-session'].includes(result?.reason) || this.now() >= until) return false;
+      await this.sleep(STAGE_RETRY_EVERY_MS);
+    }
+    return false;
+  }
+  // The composer closed: pictures staged on pages that no turn took are withdrawn (each page also drops one after a minute).
+  closeComposer() {
+    this.stageRound++;
+    for (const config of this.staged.keys()) void Promise.resolve().then(() => this.unstagePage(config)).catch(() => {});
+    this.staged.clear();
+  }
+
+  // ---- turn hooks (bridge/convai-bridge.mjs, bridge/realtime-host.mjs) --------------------------------------------------------
+  // A typed turn was admitted (or a group's next speaker): it counts as conversation, so no capture runs beside it.
+  beginTurn(input) {
+    if (!this.active || !input || input.reaction || input.addon) return false;
+    this.markConversation();
+    return true;
+  }
+  // The talk key was pressed: the frame is published on the voice page as soon as the recording runs, while V talks.
+  beginVoice(requestId) {
+    if (!this.active || typeof requestId !== 'string' || this.voice.has(requestId)) return false;
+    this.markConversation();
+    const frame = this.frame();
+    const entry = {images: frame ? [{mime: frame.mime, base64: frame.base64}] : null, staged: false};
     this.remember(this.voice, requestId, entry);
+    if (!entry.images) { entry.done = Promise.resolve(); return false; }
     entry.done = (async () => {
-      const shot = await this.grab('voice');
-      if (!shot || this.voice.get(requestId) !== entry) return;
-      entry.images = [shot];
-      const result = await this.stageVoice([shot], requestId).catch(() => ({staged: false}));
-      entry.staged = result?.staged === true;
-      if (!entry.staged) this.log(`picture not staged on the recording (${result?.reason ?? 'unknown'})`);
+      const until = this.now() + STAGE_RETRY_MS;
+      for (let attempt = 0; attempt <= STAGE_ATTEMPTS && this.voice.get(requestId) === entry && this.active; attempt++) {
+        const result = await this.stageVoice(entry.images, requestId).catch(() => ({staged: false, reason: 'failed'}));
+        if (result?.staged) { entry.staged = true; return; }
+        if (result?.reason !== 'no-recording' || this.now() >= until) { this.log(`picture not staged on the recording (${result?.reason ?? 'unknown'})`); return; }
+        await this.sleep(STAGE_RETRY_EVERY_MS);
+      }
     })();
     return true;
   }
-  // The picture(s) for a turn about to be sent: the game view (if this turn asked) first, then queued pictures. Bounded in time.
-  async imagesForTurn(config, {phase = 'reply', heard = ''} = {}) {
+  // The picture(s) for a turn about to be sent: the surroundings frame first, then queued pictures. Never waits for a capture.
+  // phase 'finish' (talk key): a frame staged while V talked is already on the page, so nothing more goes unless pictures were queued.
+  async imagesForTurn(config, {phase = 'reply'} = {}) {
     if (!this.active || !config || config.freshSession || config.reaction) return null;
     const id = typeof config.visionTurn === 'string' ? config.visionTurn : null;
     if (id && this.answered.has(id)) return this.answered.get(id);   // a retried turn sends the same picture
-    const pictures = [];
+    const queued = this.takeQueued(config.characterId);
     if (phase === 'finish' && id && this.voice.has(id)) {
       const entry = this.voice.get(id);
-      await this.within(entry.done, this.waitMs + (entry.cold ? COLD_START_MS : 0));
-      // Already on the page: the finish adds nothing unless queued pictures must be composed with it.
-      const queued = this.takeQueued(config.characterId);
-      if (!queued.length) return this.settle(id, null, entry.staged ? 'staged-while-talking' : 'no-picture');
-      if (entry.images) pictures.push(...entry.images);
-      pictures.push(...queued);
-    } else {
-      let shot = null;
-      const pending = id && this.captures.has(id) ? this.captures.get(id)
-        : phase === 'finish' && wantsLook(heard) ? this.grab('voice-finish') : null;
-      if (pending) shot = await this.within(pending, this.waitMs + (this.cold.has(pending) ? COLD_START_MS : 0));
-      if (shot) pictures.push(shot);
-      pictures.push(...this.takeQueued(config.characterId));
+      if (!queued.length) return this.settle(id, null, entry.staged ? 'staged while talking' : entry.images ? 'not staged' : 'no frame yet');
+      return this.settle(id, [...(entry.images ?? []), ...queued].slice(0, MAX_IMAGES), 'frame and queued pictures');
     }
-    const images = pictures.slice(0, MAX_IMAGES);
-    return this.settle(id, images.length ? images : null, images.length ? `${images.length} image(s)` : 'none');
+    const frame = this.frame();
+    if (!frame) this.counters.turnsWithoutFrame++;
+    const images = [...(frame ? [{mime: frame.mime, base64: frame.base64}] : []), ...queued].slice(0, MAX_IMAGES);
+    return this.settle(id, images.length ? images : null,
+      images.length ? `${images.length} image(s)${frame ? `, frame ${Math.round((this.now() - frame.at) / 1000)} s old` : ''}` : 'no frame yet');
   }
   settle(id, images, what) {
     if (id) this.remember(this.answered, id, images);
@@ -182,46 +234,32 @@ export class CompanionVision {
     return taken;
   }
   // One game picture, or null. Never throws.
-  // A helper that is not running (released after its idle time) starts first: that picture's promise is marked cold, and the turn
-  // waits COLD_START_MS longer for it.
-  grab(trigger) {
-    if (!this.capture) return Promise.resolve(null);
-    const cold = this.capture.running !== true;
-    if (cold) this.counters.helperStarts++;
-    this.busy++; this.lastUse = this.now();
-    const shot = this.grabOnce(trigger).finally(() => { this.busy--; this.lastUse = this.now(); });
-    if (cold) this.cold.add(shot);
-    return shot;
-  }
-  async grabOnce(trigger) {
+  async grab(trigger) {
     let result;
     try { result = await this.capture.capture(); } catch { result = {ok: false, reason: 'failed'}; }
     if (!result?.ok) {
       if (result?.reason === 'minimised') this.counters.minimised++; else this.counters.failed++;
-      this.log(`no picture (${trigger}): ${result?.reason ?? 'failed'}`);
+      if (result?.reason !== 'minimised' || this.counters.minimised === 1) this.log(`no picture (${trigger}): ${result?.reason ?? 'failed'}`);
       return null;
     }
     this.counters.captures++;
-    this.log(`picture (${trigger}) ${result.width}x${result.height} ${result.bytes} bytes in ${Math.round(result.ms?.total ?? 0)} ms`);
+    if (this.counters.captures === 1 || this.counters.captures % 100 === 0)
+      this.log(`picture (${trigger}) ${result.width}x${result.height} ${result.bytes} bytes in ${Math.round(result.ms?.total ?? 0)} ms (${this.counters.captures} so far)`);
     if (this.debugDirectory) {
       const path = resolve(this.debugDirectory, `vision-${new Date(this.now()).toISOString().replace(/[:.]/g, '-')}.jpg`);
       this.writeDebug(path, Buffer.from(result.base64, 'base64')).catch(() => {});
     }
     return {mime: result.mime, base64: result.base64};
   }
-  within(promise, ms) {
-    return new Promise(done => {
-      const timer = setTimeout(() => done(null), ms);
-      Promise.resolve(promise).then(value => { clearTimeout(timer); done(value ?? null); }, () => { clearTimeout(timer); done(null); });
-    });
-  }
   remember(map, key, value) {
     map.delete(key); map.set(key, value);
     while (map.size > TURN_MEMORY) map.delete(map.keys().next().value);
   }
   diagnostics() {
-    return {enabled: this.enabled, active: this.active, transport: this.transport, queued: this.queue.length,
-      helperRunning: this.capture?.running === true, ...this.counters};
+    const newest = this.frames.at(-1);
+    return {enabled: this.enabled, active: this.active, transport: this.transport, frames: this.frames.length,
+      newestFrameAgeMs: newest ? this.now() - newest.at : null, capturing: this.capturing, helperRunning: this.capture?.running === true,
+      queued: this.queue.length, ...this.counters};
   }
-  stop() { this.wanted = false; this.capture?.stop?.(); }
+  stop() { this.stageRound++; this.capture?.stop?.(); }
 }

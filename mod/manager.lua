@@ -681,6 +681,8 @@ local function loadSettings()
     if type(settings.holocallLiveImage) ~= 'boolean' or (not settings.holocallLiveImage and not settings.holocallLiveImageChosen) then
         settings.holocallLiveImage, settingsNeedSave = true, true
     end
+    -- Off by default: YouTube on V's TV (mod/youtube-tv.lua, docs/YOUTUBE_TV.md).
+    if type(settings.youtubeTv) ~= 'boolean' then settings.youtubeTv, settingsNeedSave = false, true end
     -- On by default: recent subtitled game dialogue is attached to the next manual turn (mod/game-dialogue.lua).
     if type(settings.gameDialogueContext) ~= 'boolean' then settings.gameDialogueContext, settingsNeedSave = true, true end
     -- Off by default: the decision ledger (docs/QUEST_DECISIONS.md section 4.4) records V's picked dialogue options. Not proven in game; no menu entry.
@@ -720,9 +722,9 @@ local function loadSettings()
     -- Follow-up questions (on by default, key followUpInterest: the retired followUpQuestions key above is a different, dropped
     -- setting): characters sometimes show interest in the player. Works with any voice.
     if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = true, true end
-    -- Companions can see (off by default, Convai only, docs/COMPANION_VISION.md): a line that asks about something visible sends one
-    -- picture of the game window with that turn. Read by the bridge on change only; nothing in the game runs for it.
-    if type(settings.companionVision) ~= 'boolean' then settings.companionVision, settingsNeedSave = false, true end
+    -- Companions can see (on by default, Convai only, docs/COMPANION_VISION.md): each conversation turn carries a recent picture of
+    -- V's surroundings. The bridge does all the work out of process; nothing in the game runs for it.
+    if type(settings.companionVision) ~= 'boolean' then settings.companionVision, settingsNeedSave = true, true end
     -- Mature content (off by default): lets the Local AI provider write adult language and themes. Read by the bridge on change only.
     if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
     -- Mature content and a cloud provider (Convai free tier, Convai API key, Mistral) exclude each other: a saved pairing (an older
@@ -1064,6 +1066,12 @@ end
 function M.holocallLiveImage()
     loadSettings()
     return settings.holocallLiveImage == true
+end
+
+-- Off by default: the TVs in V's homes offer YouTube (mod/youtube-tv.lua, docs/YOUTUBE_TV.md).
+function M.youtubeTv()
+    loadSettings()
+    return settings.youtubeTv == true
 end
 
 -- On by default: a character addressed right after the game's own dialogue with them knows the last lines that
@@ -1638,6 +1646,7 @@ function M.snapshot(player)
             bodyGestures = settings.bodyGestures,
             autoConnectNearby = settings.autoConnectNearby,
             holocallLiveImage = settings.holocallLiveImage,
+            youtubeTv = settings.youtubeTv == true,
             gameDialogueContext = settings.gameDialogueContext,
             decisionLedger = settings.decisionLedger,
             eyeContactHeight = settings.eyeContactHeight,
@@ -1650,7 +1659,7 @@ function M.snapshot(player)
             naturalSpeech = settings.naturalSpeech,
             expressiveEmotions = settings.expressiveEmotions,
             followUpInterest = settings.followUpInterest,
-            companionVision = settings.companionVision == true,
+            companionVision = settings.companionVision ~= false,
             vVoice = settings.vVoice == true,
             -- Part of the main mod: off by default, Local AI only. The optional Mature pack (uncensored models) only changes the help text.
             matureContent = settings.matureContent == true,
@@ -1700,7 +1709,7 @@ function M.applySettings(player, values)
         if key == 'holocallLiveImage' then nextSettings.holocallLiveImageChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
-            or key == 'holocallLiveImage'
+            or key == 'holocallLiveImage' or key == 'youtubeTv'
             or key == 'gameDialogueContext' or key == 'decisionLedger'
             or key == 'naturalSpeech' or key == 'expressiveEmotions'
             or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'

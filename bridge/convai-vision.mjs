@@ -21,12 +21,14 @@ export const COMPOSED_WIDTH = 768;
 // a short staleness window so a picture never rides along into a later turn, and Convai's 768 px resolution cap.
 export const VISION_INPUT_CONFIG = Object.freeze({enabled: true, sampleIntervalSecs: 0.25, framesPerTurn: 1, bufferFrames: 2,
   stalenessSeconds: 6, maxResolution: COMPOSED_WIDTH, replacePreviousVisionContext: true});
-// The note added to the turn's context when a picture was handed over. The picture is a screenshot of the game, HUD included.
-export const VISION_NOTE = ' An image of what V sees right now is attached: the game view, which may include the game\'s HUD, '
-  + 'map, subtitles or menus. Use it only if V asks about something visible; describe the scene and people in it in your own '
-  + 'words, never the interface, and say so plainly if the image does not show what V asks about.';
+// The note added to the turn's context when a picture is handed over: V's view of the surroundings from a few seconds before the
+// conversation (bridge/companion-vision.mjs), a game screenshot that may include the HUD.
+export const VISION_NOTE = ' An image of your surroundings may be attached: V\'s view from a few seconds before this conversation. '
+  + 'It can include the game\'s HUD, map, subtitles or menus, V\'s vehicle, or you. Treat it as what you both can see around you: '
+  + 'mention it only when it fits or when V asks, describe the place and people in your own words, never the interface, '
+  + 'and if no image is attached or it does not show what V asks about, say so plainly instead of guessing.';
 const REPAINT_MS = 200;
-const STATUS_POLL_MS = 300;
+const STATUS_POLL_MS = 100;
 
 // The ConvaiClient options a vision session connects with (none when vision is off).
 export function visionConnectOptions(config) {
@@ -57,6 +59,9 @@ export function layout(count, width = COMPOSED_WIDTH) {
   if (count === 2) return {columns: 2, rows: 1, cell: width / 2};
   return {columns: 2, rows: 2, cell: width / 2};
 }
+
+// A cheap identity for a set of pictures (length and tail of each), to recognise one already staged.
+export const signatureOf = images => images.map(image => `${image.mime}:${image.base64.length}:${image.base64.slice(-48)}`).join('|');
 
 function decode(base64) {
   const binary = atob(base64), bytes = new Uint8Array(binary.length);
@@ -108,14 +113,19 @@ export class ConvaiVision {
   }
   // Starts handing `images` to the session. Never throws: a failure only means the turn goes without a picture.
   // Returns {staged: boolean, reason?}.
-  async stage(images) {
+  // ttlMs: a picture staged ahead of its turn is withdrawn after this long unless a turn claims it (claim()).
+  async stage(images, {ttlMs = 0} = {}) {
     const valid = validImages(images);
     if (!valid.length) return this.skip('no-valid-image');
     if (this.transport === 'video' && this.connection?.connectionType !== 'video') return this.skip('no-video-session');
     if (this.notEnabled) return this.skip('vision-not-enabled');
+    const signature = signatureOf(valid);
+    // The same picture is already on the session (staged ahead while V typed or talked): nothing to publish again.
+    if (this.staged?.signature === signature) { if (!ttlMs) this.claim(); return {staged: true, reused: true}; }
     await this.retire();
     const started = this.env.now();
-    const staged = this.staged = {started, ready: null, attached: false, handle: null, timer: null, canvas: null};
+    const staged = this.staged = {started, signature, ready: null, attached: false, handle: null, timer: null, canvas: null, expiry: null};
+    if (ttlMs > 0) staged.expiry = this.env.setTimeout(() => { if (this.staged === staged) void this.retire(); }, ttlMs);
     try {
       staged.canvas = await this.compose(valid);
       if (this.staged !== staged) return {staged: false, reason: 'superseded'};
@@ -129,6 +139,11 @@ export class ConvaiVision {
     }
   }
   skip(reason) { this.stats.skipped++; this.stats.lastReason = reason; return {staged: false, reason}; }
+  // A turn takes the staged picture: it is no longer withdrawn by its ahead-of-time expiry (the turn retires it).
+  claim() {
+    const staged = this.staged;
+    if (staged?.expiry) { this.env.clearTimeout(staged.expiry); staged.expiry = null; }
+  }
   async compose(images) {
     const {document, createImageBitmap} = this.env;
     const bitmaps = [];
@@ -172,14 +187,16 @@ export class ConvaiVision {
   // Waits until the staged picture is buffered by the server (or uploaded), at most until `deadline` (a time from env.now).
   // Returns {attached, outcome, ms}. Never throws.
   async ready(deadline) {
-    const staged = this.staged, now = () => this.env.now();
-    if (!staged) return {attached: false, outcome: 'nothing-staged', ms: 0};
+    const staged = this.staged, now = () => this.env.now(), asked = now();
+    if (!staged) return {attached: false, outcome: 'nothing-staged', ms: 0, waitedMs: 0};
     const result = attached => {
       const ms = now() - staged.started;
       this.stats.lastReadyMs = ms;
-      if (attached) { staged.attached = true; this.stats.attached++; }
-      return {attached, outcome: this.notEnabled ? 'vision_not_enabled' : this.stats.lastOutcome, ms};
+      if (attached && !staged.attached) { staged.attached = true; this.stats.attached++; }
+      return {attached, outcome: this.notEnabled ? 'vision_not_enabled' : this.stats.lastOutcome, ms, waitedMs: now() - asked};
     };
+    // Buffered already (staged ahead and acknowledged while V typed or talked): the turn waits for nothing.
+    if (staged.attached) return result(true);
     const remaining = () => Math.max(0, deadline - now());
     const published = await this.within(staged.ready.catch(() => false), remaining());
     if (published !== true || this.staged !== staged) return result(false);
@@ -217,6 +234,7 @@ export class ConvaiVision {
     this.staged = null;
     if (!staged) return;
     if (staged.timer) this.env.clearInterval(staged.timer);
+    if (staged.expiry) this.env.clearTimeout(staged.expiry);
     try { await staged.ready; } catch {}
     if (staged.handle) await staged.handle.unpublish().catch(() => {});
   }

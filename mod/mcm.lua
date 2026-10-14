@@ -1594,9 +1594,9 @@ local function ownKeyRows(snapshot)
     local rows = {
         setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
             {'Convai free tier', 'Convai API key', 'Mistral (free plan)', 'Local (needs Local AI pack)'}, {elements = true, description = true}),
-        -- Companions can see (docs/COMPANION_VISION.md): Convai only, off by default; the bridge does all the work.
-        setting('companionVision', 'Companions can see', 'bool', snapshot.settings.companionVision == true, false,
-            'When you ask about something you can see ("what do you see?", "look at that", "how do I look?"), the character gets one picture of the game window with that line.\n\nOnly the game window is captured, only for that line, and nothing is saved. Works with Convai only.'),
+        -- Companions can see (docs/COMPANION_VISION.md): Convai only, on by default; the bridge does all the work.
+        setting('companionVision', 'Companions can see', 'bool', snapshot.settings.companionVision ~= false, true,
+            'With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only.'),
         matureRow,
         modelRow,
         keyRow('Convai API key',
@@ -1938,6 +1938,9 @@ local function schema()
             setting('uiLanguage', 'Interface language', 'select', languageIndex, 1,
                 'Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate.',
                 languageElements, {elements=true}),
+            -- YouTube on V's TV (mod/youtube-tv.lua, docs/YOUTUBE_TV.md); its only setting.
+            setting('youtubeTv', 'YouTube on V’s TV', 'bool', snapshot.settings.youtubeTv == true, false,
+                'In V’s apartments the TV offers YouTube: pick a video and watch it with your companion, who can talk about it.\n\nThe video plays in a window over the game, so use Windowed Borderless or Windowed mode. On the couch, use the key binding YouTube on the TV (Cyberpunk Convai, in the CET bindings).'),
         })
         categories[#categories + 1] = category('conversation-controls', 'Conversations', {
             action('memory', 'Memory', 'Manage',
@@ -2172,7 +2175,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 local key = change.id
                 if key == 'voice' or key == 'subtitles' or key == 'developerMode'
                     or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
-                    or key == 'autoConnectNearby' or key == 'holocallLiveImage' or key == 'naturalSpeech'
+                    or key == 'autoConnectNearby' or key == 'holocallLiveImage' or key == 'youtubeTv' or key == 'naturalSpeech'
                     or key == 'gameDialogueContext'
                     or key == 'expressiveEmotions' or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
                     or key == 'matureContent' or key == 'companionVision' then values[key] = change.value

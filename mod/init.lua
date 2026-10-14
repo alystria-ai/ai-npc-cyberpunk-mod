@@ -42,6 +42,11 @@ do
     local loaded, module = pcall(dofile, 'holocall.lua')
     convaiHolocall = loaded and type(module) == 'table' and module or nil
 end
+-- YouTube on V's TV (mod/youtube-tv.lua, docs/YOUTUBE_TV.md). A global like the holocall; nil if it cannot load.
+do
+    local loaded, module = pcall(dofile, 'youtube-tv.lua')
+    convaiYouTubeTv = loaded and type(module) == 'table' and module or nil
+end
 local questContext = dofile('quest-context.lua')
 local battleObserver = dofile('battle-observer.lua')
 local battles = dofile('battle-reactions.lua').new()
@@ -2207,9 +2212,12 @@ end
 -- The bridge adds errorCode to a failed reply when Convai refused it for the plan or the key (bridge/convai-quota.mjs), and
 -- keyNotice to the first reply that ran without long-term memory on a limited plan (bridge/convai-key.mjs). The text says
 -- what to do; it never names where the shared key comes from.
--- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). Phone Chat words the same line (phone-chat.lua).
+-- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). The game's warning line shows this in upper case
+-- at 35 pt, wraps it at 800 px and draws a frame sized for one or two lines, so the notice is two short lines (about 90
+-- letters, at most 1,400 px of upper-case Rajdhani Semi-Bold; bridge/daily-notice-fit.test.mjs) and stays 9 s (notices.showS).
+-- Phone Chat has room for the long version and keeps it (phone-chat.lua), which says where the details are.
 local function dailyLimitText()
-    return ui.t('You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows thousands of turns a day. Local AI has no limit: it runs on your PC.')
+    return ui.t('Today’s Convai free tier limit is reached. Settings: Mistral is free, Local AI has no limit.')
 end
 
 local function keyNoticeText(code)
@@ -2582,6 +2590,17 @@ registerHotkey('cyberpunk_convai_group_text', 'Cyberpunk Convai: group text chat
 registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice', function() toggleVoice(false) end)
 registerHotkey('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat', function() toggleVoice(true) end)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
+-- On the couch the game shows the apartment's own scene choices, not the TV's, so YouTube is also on a key (mod/youtube-tv.lua).
+registerHotkey('cyberpunk_convai_youtube_tv', 'Cyberpunk Convai: YouTube on the TV', function()
+    if convaiYouTubeTv then pcall(convaiYouTubeTv.hotkey) end
+end)
+-- Global so onInit gains no upvalue (LuaJIT limits upvalues).
+function convaiInstallYouTubeTv()
+    if not convaiYouTubeTv then return end
+    convaiYouTubeTv.install({log = log, ui = ui,
+        enabled = function() return type(manager.youtubeTv) == 'function' and manager.youtubeTv() end,
+        place = currentDistrict, inMenu = function() return convaiInMenu ~= nil and convaiInMenu() end})
+end
 
 local worldSuspended, sessionHasState = false, false
 local fastTravelActive
@@ -2615,6 +2634,7 @@ local function abandonSession(reason,preserveTransit)
     if convaiTalkGate then convaiTalkGate.waiting = nil end
     if convaiAddons and convaiAddons.live then pcall(convaiAddons.reset, reason) end
     if convaiHolocall then pcall(convaiHolocall.abandon, reason) end
+    if convaiYouTubeTv then pcall(convaiYouTubeTv.reset, 'world') end
     focusedCrowd, releasedCrowd = nil, nil
     if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
     phoneCatalogReady = false
@@ -2651,6 +2671,8 @@ registerForEvent('onInit', function()
         if not ok then log('Interrupted driver cleanup initialization failed: '..tostring(error)) end
     end
     subtitles.install()
+    -- YouTube on V's TV: one ObserveAfter on the TV choice (mod/youtube-tv.lua).
+    pcall(convaiInstallYouTubeTv)
     -- Free look while V sits (docs/COMPANION_SEATING.md): one Observe pair on
     -- the player's Workspot state; widens the camera limits once per sit.
     local lookLoaded, lookResult, lookReason = pcall(function()
@@ -3013,6 +3035,12 @@ registerForEvent('onUpdate', function(delta)
     if holocall and (holocall.call or holocall.request or holocall.lenses) then
         local callOk, callError = pcall(holocall.update, player, elapsedPoll, worldReady, battleSample)
         if not callOk then log('Holocall update failed: ' .. tostring(callError)); pcall(holocall.finish, player, 'error') end
+    end
+    -- YouTube on V's TV (mod/youtube-tv.lua): the setting reaches the TV choices at most every 2 s; the rest only while a video is open.
+    local youtube = convaiYouTubeTv
+    if youtube then
+        pcall(youtube.sync, player)
+        if youtube.active then pcall(youtube.update, player, worldReady) end
     end
     -- Add-ons (docs/ADDON_API.md): only once one has registered.
     if convaiAddons and convaiAddons.live then

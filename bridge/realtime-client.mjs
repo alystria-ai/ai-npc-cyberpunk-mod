@@ -11,7 +11,8 @@ let client, identity, turn, micTimer, verifiedProvider, audioParticipant, admitt
 // "Companions can see" (docs/COMPANION_VISION.md): the current connection's picture handler, null without vision.
 let vision = null;
 // How long a turn waits for its picture to be buffered by Convai before it is sent anyway (bridge/convai-vision.mjs).
-const VISION_READY_MS = 900;
+const VISION_READY_MS = 350;
+const PRESTAGE_TTL_MS = 60000;
 let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
 let retiredAudioOwners = [];
 let retiredExpressionOwners = [];
@@ -715,8 +716,12 @@ async function reply(config) {
   const admission = admitting = {};
   try {
     const timing = await connect(config);
-    const seen = config.reaction ? false : await turnVision(config);
+    // The picture is usually on the session already (staged while V typed); then this costs nothing. Otherwise the wait for
+    // Convai to buffer it runs beside the context update and is capped (visionWaitMs).
+    const seen = config.reaction ? false : await stageTurnVision(config);
+    const buffered = seen ? awaitTurnVision(config) : null;
     await updateContext(config, true, seen);
+    if (buffered) await buffered;
     const current = beginTurn(timing, config);
     // collect() owns every later failure path. Until it runs, a failed send must
     // not leave the standby output device open.
@@ -728,27 +733,50 @@ async function reply(config) {
   } finally { if (admitting === admission) admitting = null; await retireVision(); }
 }
 
-// "Companions can see": hands this turn's picture (config.visionImages, or one staged during the recording by stageVision) to
-// Convai and waits until it is buffered, at most VISION_READY_MS. True when the turn's context may mention it.
-async function turnVision(config) {
+// "Companions can see": puts this turn's picture (config.visionImages) on the session, unless the same picture was staged ahead
+// (prestageVision while V typed, stageVision while V talked). True when a picture is on the session for this turn.
+async function stageTurnVision(config) {
   const own = vision;
   if (!own) return false;
   if (Array.isArray(config?.visionImages) && config.visionImages.length) await own.stage(config.visionImages);
-  if (!own.staged || own !== vision) return false;
-  const result = await own.ready(performance.now() + VISION_READY_MS);
-  observed.visionReady = {attached: result.attached, outcome: result.outcome, ms: Math.round(result.ms)};
+  else own.claim();
   return own === vision && !!own.staged && !own.notEnabled;
+}
+// Waits until Convai has buffered the staged picture, at most visionWaitMs (default VISION_READY_MS). A picture staged ahead is
+// usually buffered already, so this returns at once. Out of time, the line goes anyway and the picture stays published for the
+// turn, so the server may still take it before the model answers.
+async function awaitTurnVision(config) {
+  const own = vision;
+  if (!own?.staged) return false;
+  const cap = Number.isFinite(config?.visionWaitMs) ? Math.max(0, Math.min(900, config.visionWaitMs)) : VISION_READY_MS;
+  const result = await own.ready(performance.now() + cap);
+  observed.visionReady = {attached: result.attached, outcome: result.outcome, ms: Math.round(result.ms), waitedMs: Math.round(result.waitedMs ?? 0)};
+  return result.attached;
 }
 
 // After a turn, its picture is withdrawn (track unpublished), so it can never ride along into a later turn.
 async function retireVision() { try { await vision?.retire(); } catch {} }
 
-// Starts handing pictures to the running microphone turn while V is still talking (the bridge calls it when V's words ask about
-// something visible), so the picture is buffered before V finishes. Returns {staged, reason?}; never throws.
+// Starts handing pictures to the running microphone turn while V is still talking (the bridge calls it right after the talk key),
+// so the picture is buffered before V finishes. Returns {staged, reason?}; never throws.
 async function stageVision(images) {
   if (!vision || !turn?.recording) return {staged: false, reason: vision ? 'no-recording' : 'vision-off'};
-  return vision.stage(images);
+  const result = await vision.stage(images);
+  if (result.staged) void vision.ready(performance.now() + 5000).catch(() => {});
+  return result;
 }
+// Publishes a picture on this idle page ahead of its turn (the composer is open), withdrawn after PRESTAGE_TTL_MS unless a turn
+// takes it. Returns {staged, reason?}; never throws.
+async function prestageVision(images) {
+  if (!vision) return {staged: false, reason: client ? 'vision-off' : 'no-page'};
+  if (turn || admitting) return {staged: false, reason: 'busy'};
+  try {
+    const result = await vision.stage(images, {ttlMs: PRESTAGE_TTL_MS});
+    if (result.staged) void vision.ready(performance.now() + 5000).catch(() => {});
+    return result;
+  } catch { return {staged: false, reason: 'failed'}; }
+}
+async function unstageVision() { if (!turn && !admitting) await retireVision(); }
 
 async function disableMic() {
   clearTimeout(micTimer);
@@ -841,8 +869,9 @@ async function finishVoice(config) {
   }
   await verifyProviderIdentity(current.providerIdentity, client);
   if (turn !== current || current.epoch !== epoch || !current.recording) throw Error('Microphone finish cancelled');
-  // A picture staged while V talked (or handed over now) is buffered before the end of input, within VISION_READY_MS.
-  const seen = await turnVision(config);
+  // The picture staged while V talked is normally buffered already; one handed over only now waits at most visionWaitMs.
+  const seen = await stageTurnVision(config);
+  if (seen) await awaitTurnVision(config);
   if (turn !== current || current.epoch !== epoch || !current.recording) throw Error('Microphone finish cancelled');
   // Same leased connection, new verified context. Updating before mute keeps
   // the fresh facts ahead of the end-of-input notification to the service.
@@ -882,6 +911,6 @@ function readLateEmotion(token) {
   return !held.closed && !held.emotion.ambiguous && performance.now() - held.at < LATE_EMOTION_MS ? {pending: true} : {};
 }
 
-window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close, diagnostics, stageVision,
+window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close, diagnostics, stageVision, prestageVision, unstageVision,
   heard: () => heardText(turn),
   continuousSnapshot, continuousControl, lateEmotion: readLateEmotion};

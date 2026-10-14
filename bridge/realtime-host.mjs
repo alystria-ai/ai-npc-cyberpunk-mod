@@ -109,7 +109,8 @@ export class RealtimeHost {
   // so a turn never waits on a network call for it. Absent: the config is sent as it is.
   // vision: optional "Companions can see" policy (bridge/companion-vision.mjs, docs/COMPANION_VISION.md):
   //   connectConfig() -> null | {transport}: whether pages connect with Convai's vision channel (read when a page is called);
-  //   imagesForTurn(config, {phase: 'reply' | 'finish', heard}) -> images or null: the picture(s) for this turn, bounded in time.
+  //   imagesForTurn(config, {phase: 'reply' | 'finish'}) -> images or null: the picture(s) for this turn, from memory;
+  //   turnWaitMs() -> null | ms: the page's cap on waiting for Convai to buffer a picture not staged ahead.
   constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard, credential, vision,
     browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
     clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
@@ -131,18 +132,36 @@ export class RealtimeHost {
   }
   // The page config with the current vision setting applied (and any stale vision fields from the caller removed).
   withVision(config) {
-    let settings = null;
-    try { settings = this.vision?.connectConfig?.() ?? null; } catch { settings = null; }
-    const {vision: _vision, visionTransport: _transport, ...rest} = config ?? {};
-    return settings ? {...rest, vision: true, visionTransport: settings.transport === 'upload' ? 'upload' : 'video'} : rest;
+    let settings = null, waitMs = null;
+    try { settings = this.vision?.connectConfig?.() ?? null; waitMs = this.vision?.turnWaitMs?.() ?? null; } catch { settings = null; }
+    const {vision: _vision, visionTransport: _transport, visionWaitMs: _wait, ...rest} = config ?? {};
+    return settings ? {...rest, vision: true, visionTransport: settings.transport === 'upload' ? 'upload' : 'video',
+      ...(Number.isFinite(waitMs) ? {visionWaitMs: waitMs} : {})} : rest;
   }
   // The picture(s) for one turn, or none. Never throws: a picture is never worth failing a turn for.
-  async turnImages(config, phase, heard) {
+  async turnImages(config, phase) {
     if (!this.vision?.imagesForTurn || config?.freshSession || config?.reaction) return null;
     try {
-      const images = await this.vision.imagesForTurn(config, {phase, heard});
+      const images = await this.vision.imagesForTurn(config, {phase});
       return Array.isArray(images) && images.length ? images : null;
     } catch { return null; }
+  }
+  // Publishes a picture on the idle conversation page for `config` ahead of its turn (the composer is open), so Convai has
+  // buffered it before the line is sent. {staged, reason}: 'no-page' while the page is not open yet, 'busy' while it serves a turn.
+  async prestageVision(config, images) {
+    const entry = this.pool?.entries.get(pageKey(config));
+    if (!entry?.value || entry.value.isClosed()) return {staged: false, reason: 'no-page'};
+    if (entry.busy) return {staged: false, reason: 'busy'};
+    try {
+      return await entry.value.evaluate(images => window.convaiRealtime.prestageVision
+        ? window.convaiRealtime.prestageVision(images) : {staged: false, reason: 'old-client'}, images);
+    } catch { return {staged: false, reason: 'failed'}; }
+  }
+  // Withdraws a picture staged ahead on an idle page that no turn took. Never throws.
+  async unstageVision(config) {
+    const entry = this.pool?.entries.get(pageKey(config));
+    if (!entry?.value || entry.value.isClosed() || entry.busy) return;
+    await entry.value.evaluate(() => window.convaiRealtime.unstageVision?.()).catch(() => {});
   }
   // Hands pictures to the running microphone turn while V is still talking ({staged, reason}); never throws.
   async stageVoiceVision(images, owner) {
@@ -372,7 +391,7 @@ export class RealtimeHost {
     if (onAudioChunk !== undefined) throw Error('Chunked Convai playback is retired; use liveSpeech or the complete reply audio');
     const key = pageKey(config);
     this.sessions.check(config);
-    // A turn's picture is captured while the page is being acquired (bridge/companion-vision.mjs bounds the wait).
+    // A turn's picture comes from the in-memory frame buffer (bridge/companion-vision.mjs); nothing is captured here.
     const pictures = method === 'reply' ? this.turnImages(config, 'reply') : null;
     const started = performance.now();
     await this.start({signal});
@@ -590,10 +609,9 @@ export class RealtimeHost {
         }
         this.sessions.check(config);
       }
-      // "Companions can see": a picture staged while V talked is already on the page; one decided only now (V's last words
-      // asked about something visible, or a queued picture) goes with the finish.
+      // "Companions can see": the frame staged while V talked is already on the page; only queued pictures go with the finish.
       let finishConfig = config || lease.config;
-      const images = this.withVision(finishConfig).vision ? await this.turnImages(finishConfig, 'finish', await this.voiceHeard(owner)) : null;
+      const images = this.withVision(finishConfig).vision ? await this.turnImages(finishConfig, 'finish') : null;
       if (images) finishConfig = {...finishConfig, visionImages: images};
       const result = await this.evaluateSpeech(lease.value, 'finishVoice', finishConfig, {signal, liveSpeech,
         current: () => lease.epoch === this.epoch && this.voiceLease === lease && !this.closing});
