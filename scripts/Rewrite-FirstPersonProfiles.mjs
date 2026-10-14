@@ -24,9 +24,9 @@ const readJson = async file => JSON.parse((await readFile(file, 'utf8')).replace
 const rosterPath = resolve(root, 'characters/roster.json');
 const storePath = resolve(root, 'characters/first-person-profiles.json');
 
-// The 71 third-person profiles open with the character's name or a description; the nine second-person ones open "You are",
-// and the rewritten ones "I'm".
-export const isThirdPerson = row => !/^(You\b|I(?:'|’)m\b|I\b)/u.test(row.backstory);
+// A profile still to be rewritten opens with the character's name, a description or "You are"; a finished one opens "I'm".
+// (Name kept from the first pass; it means "not yet first person".)
+export const isThirdPerson = row => !/^(I(?:'|’)m\b|I\b)/u.test(row.backstory);
 
 function pieces(row) {
   const {core: backstoryCore, tail: backstoryTail} = splitBackstory(row.backstory);
@@ -92,6 +92,9 @@ export function checkRewrite(input, output) {
         : segment.id === 'b1' ? text.replace(/^I(?:'|’)m [^,.;]*/u, "I'm") : text;
       const leftoverNames = [...own].filter(part => new RegExp(`(?<![\\p{L}\\p{N}-])${part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'u').test(body));
       if (leftoverNames.length) add(segment.id, `own name still present: ${leftoverNames.join(', ')}`, text);
+      // second-person profiles ("You are ...") become first person too: a you/your left over is flagged for a look
+      const second = text.match(/\b(you|your|yours|yourself)\b/giu);
+      if (second) add(segment.id, `you/your left (check it is not the speaker): ${[...new Set(second.map(w => w.toLowerCase()))].join(', ')}`, text);
       const narrator = text.match(NARRATOR);
       if (narrator) add(segment.id, `narrator phrase: ${narrator.join(', ')}`, text);
       const pronouns = (text.match(ownPronouns) || []);
@@ -138,10 +141,10 @@ function checkAll({inputs, outputs}) {
 
 // ---- commands -----------------------------------------------------------------------------------------
 
-async function extract(workdir) {
+async function extract(workdir, keys) {
   const roster = await readJson(rosterPath);
   await mkdir(resolve(workdir, 'input'), {recursive: true});
-  const rows = roster.filter(isThirdPerson);
+  const rows = roster.filter(row => (keys ? keys.includes(row.key) : isThirdPerson(row)));
   for (const row of rows) await writeFile(resolve(workdir, 'input', row.key + '.json'), JSON.stringify(makeInput(row), null, 1) + '\n');
   console.log(`${rows.length} third-person profiles written to ${resolve(workdir, 'input')}`);
 }
@@ -182,7 +185,8 @@ async function apply(workdir) {
   const issues = checkAll(set).filter(issue => /^(.*: expected|wrong id|empty line|contains a line break|lost the|meta text|the opening line|no first-person|no output file)/u.test(issue.message));
   if (issues.length) { for (const issue of issues) console.error(`${issue.key} ${issue.id}: ${issue.message}`); throw Error('The outputs have problems; fix them first'); }
   const roster = await readJson(rosterPath);
-  const store = {version: 1, note: 'First-person rewrites of the composed third-person profile texts; see scripts/first-person-profiles.mjs.', characters: {}};
+  // adds to (or replaces entries of) the stored rewrites
+  const store = await readJson(storePath).catch(() => ({version: 1, note: 'First-person rewrites of the composed third-person profile texts; see scripts/first-person-profiles.mjs.', characters: {}}));
   for (const input of set.inputs) {
     const output = set.outputs.get(input.key), row = roster.find(item => item.key === input.key), p = pieces(row);
     const backstoryCore = reassemble(p.backstory, output.backstory.map(line => line.text));
@@ -233,7 +237,7 @@ async function report(base) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [command, arg, ...rest] = process.argv.slice(2);
   const only = rest.find(item => item.startsWith('--only='))?.slice(7).split(',');
-  if (command === 'extract') await extract(resolve(arg));
+  if (command === 'extract') await extract(resolve(arg), rest.find(item => item.startsWith('--keys='))?.slice(7).split(','));
   else if (command === 'check') process.exitCode = (await check(resolve(arg), {only})).length ? 1 : 0;
   else if (command === 'review') console.log(await review(resolve(arg), {only}));
   else if (command === 'apply') await apply(resolve(arg));
