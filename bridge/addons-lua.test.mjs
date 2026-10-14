@@ -79,6 +79,64 @@ test('a proactive remark: queued, written as an automatic request with a lease, 
   `);
 });
 
+test('a reply the game accepts says "playing" in the lease at once, and the deadline allows for whole-second os.time()', () => {
+  // probe.log 2026-10-14: companion-kill was played and released in the same second; the bridge cut it ("Continuous speech owner
+  // changed") because its lease still had no playback time when the request's deadline passed.
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2})
+    -- A remark that waited most of its ttl: 0.3 s left when it is sent.
+    assert(handle:remark('gun', {event = 'companion-kill', priority = 2, ttl = 3}))
+    M.tick(player, 2.7, true)
+    assert(#submitted == 1)
+    local context = submitted[1].context
+    assert(context.reaction.expiresAt == (now + 1 + 1) * 1000,
+        'the 1 s floor plus a second for the whole-second clock: ' .. tostring(context.reaction.expiresAt))
+    -- The reply arrives and the game takes it: the lease says playing before any tick.
+    now = now + 1
+    assert(M.canDeliver(context, player) == true)
+    local accepted = lease()
+    assert(accepted.valid == true and accepted.requestId == context.requestId and accepted.playbackStartedAt == now * 1000)
+    assert(accepted.playbackStartedAt <= context.reaction.expiresAt, 'the bridge reads it as playing')
+    -- The voice starts on the next tick: no second write of the same playback time.
+    local writes = 0
+    for _, entry in ipairs(opened) do if entry == 'wb runtime/reaction-lease.json.tmp' then writes = writes + 1 end end
+    state.pendingId, state.speechId = nil, context.requestId
+    now = now + 1
+    tick()
+    local after = 0
+    for _, entry in ipairs(opened) do if entry == 'wb runtime/reaction-lease.json.tmp' then after = after + 1 end end
+    assert(lease().playbackStartedAt == (now - 1) * 1000, 'the playback time is the moment it was accepted')
+    assert(after - writes <= 1, 'at most the regular refresh')
+  `);
+});
+
+test('a remark whose voice stopped early says why in its release line; one heard to its end does not', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 0})
+    local function play(stop, err)
+        tick(20)
+        assert(handle:remark('gun', {event = 'kill', priority = 3}))
+        tick(3)
+        local context = submitted[#submitted].context
+        assert(M.canDeliver(context, player))
+        state.pendingId, state.speechId = nil, context.requestId
+        tick()
+        state.speechId, state.speechStop, state.speechError = nil, stop, err
+        tick()
+        state.speechStop, state.speechError = nil, nil
+        return logs[#logs]
+    end
+    local cut = play('playback-failed', 'Continuous playback cancelled')
+    assert(cut:find('reason=finished spoken=true voice%-stopped=playback%-failed %(Continuous playback cancelled%)'), cut)
+    local heard = play('finished', nil)
+    assert(heard:find('reason=finished spoken=true$'), heard)
+  `);
+});
+
 test('arbitration: nothing is submitted while anything else talks, a manual turn wins, and a scene or a lost anchor stops a remark', () => {
   run(`${WORLD}
     M.attach(host)

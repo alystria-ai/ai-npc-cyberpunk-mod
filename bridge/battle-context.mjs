@@ -45,13 +45,24 @@ export function parseReaction(value, battle, loot) {
     ...(merged ? {batch: value.batch} : {})};
 }
 
-export function reactionLeaseValid(input, lease, now = Date.now()) {
-  const playing = Number.isSafeInteger(lease?.playbackStartedAt)
+// Why a reaction lease does not let its request go on (null: it does). The reasons are for the log only.
+export function reactionLeaseProblem(input, lease, now = Date.now()) {
+  if (!input.reaction) return null;
+  if (lease?.requestId !== input.requestId) return 'the lease names another request';
+  if (lease.valid !== true) return 'withdrawn by the game';
+  if (!Number.isFinite(lease.updated) || now < lease.updated - 1000 || now - lease.updated > 5000)
+    return `not refreshed (${Number.isFinite(lease.updated) ? Math.round(now - lease.updated) + ' ms old' : 'no time'})`;
+  const playing = Number.isSafeInteger(lease.playbackStartedAt)
     && lease.playbackStartedAt > 0 && lease.playbackStartedAt <= input.reaction?.expiresAt
     && now >= lease.playbackStartedAt && now - lease.playbackStartedAt <= 30000;
-  return !input.reaction || !!(lease?.requestId === input.requestId && lease.valid === true
-    && Number.isFinite(lease.updated) && now >= lease.updated - 1000 && now - lease.updated <= 5000
-    && (playing || now <= input.reaction.expiresAt));
+  if (!playing && now > input.reaction.expiresAt) {
+    return lease.playbackStartedAt ? 'playback began after the deadline' : `past its deadline by ${Math.round(now - input.reaction.expiresAt)} ms with no playback confirmed`;
+  }
+  return null;
+}
+
+export function reactionLeaseValid(input, lease, now = Date.now()) {
+  return reactionLeaseProblem(input, lease, now) === null;
 }
 
 // Keep the current event and its limits in the trigger itself. Long-lived

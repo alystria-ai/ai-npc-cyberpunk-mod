@@ -2497,6 +2497,9 @@ if convaiAddons then
             pendingId = pending and pending.requestId or nil, pendingProfile = pending and pending.profileKey or nil,
             pendingReaction = pending and pending.reaction and pending.reaction.kind or nil,
             speechId = speech.requestId, speechName = speech.speaker, captions = subtitles.ownsUtterance() == true,
+            -- Why the last voice stopped (speech.lua: 'finished', 'playback-failed', 'target-lost', 'muted', ...) and its error, for the
+            -- add-on log line of a remark whose voice ended early. Plain strings, read with the rest of this table.
+            speechStop = not speech.requestId and speech.state or nil, speechError = not speech.requestId and speech.error or nil,
             sample = battleSample}
     end
     -- An automatic add-on remark: the same request file, reply path and playback as every other turn.

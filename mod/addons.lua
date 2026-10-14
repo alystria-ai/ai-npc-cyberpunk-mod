@@ -265,7 +265,7 @@ end
 
 local UNAVAILABLE_GRACE = 2.5   -- seconds a remark still waiting to be heard keeps its speaker after the speaker stops being available
 
-local function release(reason, stop, detail)
+local function release(reason, stop, detail, cut)
     local current = flight
     if not current then return end
     pcall(lease, false)
@@ -307,6 +307,7 @@ local function release(reason, stop, detail)
     log('Remark released: ' .. current.speaker.key .. ' event=' .. current.event .. ' reason=' .. tostring(reason)
         .. (current.refused and (' refused=' .. current.refused) or '')
         .. (detail and detail ~= '' and (' signals=' .. detail) or '') .. ' spoken=' .. tostring(heard)
+        .. (cut and (' voice-stopped=' .. cut) or '')
         .. (requeued and ' (taken back; it is asked for again)' or ''))
     emitTo(current.speaker.addon, 'remarkFinished', {speaker = current.speaker.id, event = current.event,
         reason = reason, spoken = heard, requeued = requeued})
@@ -968,19 +969,28 @@ local function trackFlight(player, state)
         flight.stage = 'pending'
     elseif state.speechId == id then
         if flight.stage ~= 'playing' then
-            flight.stage, flight.playbackAt, flight.leaseAt = 'playing', os.time(), nil
+            -- The lease already says "playing" when the reply was accepted (canDeliver); it is written again only if it did not.
+            if not flight.playbackAt then flight.playbackAt, flight.leaseAt = os.time(), nil end
+            flight.stage = 'playing'
             log('Remark played: ' .. flight.speaker.key .. ' event=' .. flight.event .. string.format(' after %.1fs', clock - flight.at))
             emitTo(flight.speaker.addon, 'remarkStarted', {speaker = flight.speaker.id, event = flight.event})
         end
     elseif flight.stage == 'pending' and state.captions and not state.speechId then
         -- Subtitles only (voice off): the caption this reply showed owns the turn until it ends.
-        flight.stage, flight.playbackAt, flight.leaseAt = 'captions', os.time(), nil
+        if not flight.playbackAt then flight.playbackAt, flight.leaseAt = os.time(), nil end
+        flight.stage = 'captions'
         log('Remark played (captions only): ' .. flight.speaker.key .. ' event=' .. flight.event .. string.format(' after %.1fs', clock - flight.at))
         emitTo(flight.speaker.addon, 'remarkStarted', {speaker = flight.speaker.id, event = flight.event})
     elseif flight.stage == 'captions' and state.captions then
         -- still on screen
     else
-        release(flight.stage == 'pending' and 'not-delivered' or 'finished', false)
+        -- A voice that stopped before its end says why (speech.lua's stop reason and error), so a remark that was cut is told from one
+        -- that was heard to its end.
+        local cut = nil
+        if flight.stage == 'playing' and state.speechStop and state.speechStop ~= 'finished' then
+            cut = tostring(state.speechStop) .. (state.speechError and (' (' .. tostring(state.speechError) .. ')') or '')
+        end
+        release(flight.stage == 'pending' and 'not-delivered' or 'finished', false, nil, cut)
         return
     end
     -- A request nobody has answered long after its moment (the bridge is busy or the model is cold) is withdrawn: its reply could not be
@@ -1087,7 +1097,9 @@ local function schedule(player, state, worldReady)
                 profileKey = speaker.key, sentAt = now, voiceOnly = true,
                 text = event.text or ('[' .. speaker.addon.name .. '] ' .. event.event),
                 reaction = {kind = 'addon', addon = speaker.addon.id, speaker = speaker.id, event = event.event,
-                    priority = event.priority, expiresAt = math.floor((now + math.max(1, entry.expires - clock)) * 1000)},
+                    -- os.time() is whole seconds (up to 1 s behind the real moment): the extra second keeps the bridge's deadline from
+                    -- falling before the game's own (canDeliver judges staleness with the exact clock).
+                    priority = event.priority, expiresAt = math.floor((now + 1 + math.max(1, entry.expires - clock)) * 1000)},
                 addon = {id = speaker.addon.id, speaker = speaker.id, event = event.event, text = event.text,
                     facts = event.facts, maxWords = event.maxWords, mode = speaker.mode, blocks = speakerBlocks(speaker),
                     stock = event.stock or nil}}
@@ -1226,6 +1238,13 @@ function M.canDeliver(context, player)
     if not speakerAvailable(flight.speaker, player) then release('speaker-unavailable', true); return false end
     local _, entity = resolveAnchor(flight.speaker, player)
     if entity ~= context.entity then release('anchor-changed', true); return false end
+    -- Accepted: the lease says "playing" now, before the voice starts. Until it did, the bridge judged the lease by the request's deadline
+    -- alone and could cut a reply the game had just started when that deadline passed (probe.log 2026-10-14: companion-kill played and
+    -- was released in the same second, bridge "Continuous speech owner changed").
+    if not flight.playbackAt then
+        flight.playbackAt, flight.leaseAt = os.time(), nil
+        pcall(lease, true)
+    end
     return true
 end
 
