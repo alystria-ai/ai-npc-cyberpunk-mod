@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "note": "Source for scripts/Build-GestureAssets.mjs (docs/COMPANION_GESTURES.md). Each talk family becomes one workspot (idle loop + one sequence per clip) and one component on the device entity. Clips are discovered from the family animsets by prefix, categorised by name, and kept only when in place (no motion extraction) and not banned. Idle workspots marked experimental in 'experimentalIdles' spawn props whose cleanup on exit is unverified; the controller never uses them, the probe can.",
+  "note": "Source for scripts/Build-GestureAssets.mjs (docs/COMPANION_GESTURES.md). Each talk family becomes one workspot (idle loop + one sequence per clip) and one component on the device entity. Clips are discovered from the family animsets by prefix, categorised by name, and kept only when in place (no motion extraction) and not banned. Idle workspots listed in 'propIdles' put a prop in the companion's hand (cigarette, glasses, cup, bottle); the controller starts one only with a free hand slot and takes the prop out of the slot when the idle is over (Round 11).",
   "device": "cyberpunk_convai\\gestures\\convai_gesture_device.ent",
   "template": "base\\workspots\\common\\ground\\big__stand_ground__stand_around__01.workspot",
   "banned": [
@@ -400,6 +400,7 @@
       "rig": "woman_base",
       "talk": "judy_own",
       "idle": "judy",
+      "idles": ["judy_coffee"],
       "flavour": true,
       "fallback": "on_sides",
       "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
@@ -410,6 +411,7 @@
       "rig": "woman_base",
       "talk": "on_sides",
       "idle": "panam",
+      "idles": ["panam_beer"],
       "flavour": true,
       "fallback": "on_sides",
       "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
@@ -540,6 +542,7 @@
       "rig": "man_base",
       "talk": "on_sides",
       "idle": "johnny",
+      "idles": ["johnny_crossed", "johnny_aggressive", "johnny_smoke", "johnny_shades"],
       "flavour": true,
       "fallback": "on_sides",
       "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
@@ -550,6 +553,7 @@
       "rig": "man_base",
       "talk": "on_sides",
       "idle": "johnny",
+      "idles": ["johnny_crossed", "johnny_aggressive", "johnny_smoke", "johnny_shades"],
       "flavour": true,
       "fallback": "on_sides",
       "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
@@ -599,7 +603,8 @@
       "key": "padre",
       "rig": "man_base",
       "talk": "on_sides",
-      "idle": "generic_hold",
+      "idle": "generic_front",
+      "idles": ["generic_back"],
       "flavour": true,
       "fallback": "on_sides",
       "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
@@ -659,11 +664,12 @@
       "key": "saul",
       "rig": "man_base",
       "talk": "on_sides",
-      "idle": "saul",
+      "idle": "generic",
+      "idles": ["generic_back"],
       "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Rig from the entity's animated component (Oct 9).",
-      "idleSource": "character"
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Rig from the entity's animated component (Oct 9). His own workspot loop is the angry arms-crossed set (saul__stand__arms_crossed_front__angry__01, hands crossed at the chest 29-33 cm above the hips), which did not fit him: since Round 11 he rests in the relaxed hands-at-sides idle with hands behind the back as the second.",
+      "idleSource": "generic"
     },
     "Character.Placide": {
       "key": "placide",
@@ -728,11 +734,46 @@
     "ripperdoc_arms": "base\\workspots\\main_characters\\ripperdoc\\ground\\ripperdoc__stand_ground_arms_crossed__talk__01.workspot",
     "generic_arms_crossed_b": "base\\workspots\\common\\ground\\generic__stand_ground__stand_around__08.workspot"
 ,
-    "uscracks_cute": "base\\workspots\\quest\\side_quests\\sq017\\sq017_18_uscracks_premiere_video\\uscracks__stand_stage__cute__01.workspot"
+    "uscracks_cute": "base\\workspots\\quest\\side_quests\\sq017\\sq017_18_uscracks_premiere_video\\uscracks__stand_stage__cute__01.workspot",
+    "johnny_crossed": "base\\workspots\\main_characters\\johnny\\johnny__stand_ground__stand_around__02.workspot",
+    "johnny_aggressive": "base\\workspots\\main_characters\\johnny\\johnny__stand_ground__aggressive__01.workspot",
+    "johnny_shades": "base\\workspots\\main_characters\\johnny\\johnny__stand_ground_glasses__stand_around__02.workspot",
+    "judy_coffee": "base\\workspots\\common\\ground\\generic__stand_ground_coffee__drink__01.workspot",
+    "panam_beer": "base\\workspots\\common\\ground\\generic__stand_ground_bottle__drink__01.workspot",
+    "generic_front": "base\\workspots\\common\\ground\\generic__stand_ground__stand_around__04.workspot"
   },
-  "experimentalIdles": [
-    "johnny_smoke"
-  ],
+  "propIdles": {
+    "note": "Idle workspots whose clips put a prop in the companion's hand (the engine does it: a workEquipItemToSlotAction in a clip's WorkspotItem event or in the workspot's initialActions; the item is despawned by the workspot's own item policy). The controller only starts one when the hand slot is free, looks once at the slot after the idle began, and takes the declared item out of the slot when the idle is over (mod/companion-gestures.lua, mod/gesture-workspot.lua clearSlot). 'items' is read from the animation data by scripts/Audit-PropIdles.mjs (item record and slot, the clip event that equips it); the build only checks the shape. johnny_smoke was the 'experimental' idle of Round 4 (prop cleanup unverified); it is a prop idle with a cleanup now.",
+    "johnny_smoke": {
+      "prop": "cigarette",
+      "items": [{ "item": "Items.crowd_cigarette_i_stick", "slot": "AttachmentSlots.WeaponLeft" }],
+      "equip": "johnny__stand__lh_cigarette__aggressive__01 frame 0 (cig_equip); ember_passive effect on the item, smoke effects on the puff clips"
+    },
+    "johnny_shades": {
+      "prop": "sunglasses",
+      "items": [{ "item": "Items.crowd_int_apparel_002__h0_001_ma_specs__silverhand", "slot": "AttachmentSlots.WeaponRight" }],
+      "equip": "johnny__stand__rh_glasses__01 frame 0 (glasses_equip)"
+    },
+    "judy_coffee": {
+      "prop": "paper cup",
+      "items": [{ "item": "Items.takeout_cup_a_small", "slot": "AttachmentSlots.WeaponRight" }],
+      "equip": "stand__rh_cup__01 (generic_female_average_work__stand__rh_cup__01), cup event at frame 0"
+    },
+    "panam_beer": {
+      "prop": "beer bottle",
+      "items": [{ "item": "Items.crowd__bottle_k_beer", "slot": "AttachmentSlots.WeaponRight" }],
+      "equip": "stand__rh_bottle__01 (generic_female_average_work__stand__rh_bottle__01), bottle event at frame 0"
+    }
+  },
+  "idleOptions": {
+    "note": "Per idle workspot build options. omitClips: break clips removed from the copy (a clip the rig's animsets do not carry would stall the workspot; the audit names them). endless: the sequence does not repeat by itself (a few break clips, then the workspot leaves through its own exit while the controller still thinks it plays), so its break list is set to a clip count that is never reached and the sequence repeats, as for the seats.",
+    "generic_front": { "omitClips": ["stand__2h_front__01__shuffle__05"] },
+    "johnny_crossed": { "endless": true },
+    "johnny_aggressive": { "endless": true },
+    "johnny_shades": { "endless": true },
+    "judy_coffee": { "endless": true },
+    "panam_beer": { "endless": true }
+  },
   "blend": {
     "enter": 1.5,
     "exitNatural": 1.4,
@@ -857,10 +898,17 @@
     "panam_hips": ["character workspot", "Panam's second workspot, hands on hips (2h_on_hip__02, 20 break clips)", "woman_base"],
     "bodyguard_front": ["generic", "formal, hands folded in front (bodyguard, no break clips)", "woman_base,man_base"],
     "bodyguard_back": ["generic", "formal, hands behind the back (bodyguard, no break clips)", "woman_base,man_base,man_big"],
-    "generic_hold": ["generic", "hands raised and held in front (gesture_hold)", "woman_base,man_base,man_big"],
+    "generic_hold": ["generic", "gesture_hold: right hand held out at belly height (10 cm above the hips, 20 cm forward), left hand at the side; measured from the animation data in Round 11, so not 'hands raised'; no character uses it", "woman_base,man_base,man_big"],
     "ripperdoc_arms": ["generic", "arms crossed (ripperdoc, no break clips)", "woman_base,man_base,man_big"],
     "generic_arms_crossed_b": ["generic", "arms crossed (generic 08, 8 break clips)", "woman_base"],
-    "uscracks_cute": ["character workspot", "US Cracks stage idle (sq017_18): dirtgirl hip loop with shuffles, a spin and poses, no props", "woman_base"]
+    "uscracks_cute": ["character workspot", "US Cracks stage idle (sq017_18): dirtgirl hip loop with shuffles, a spin and poses, no props", "woman_base"],
+    "johnny_smoke": ["character", "Johnny's own cigarette idle (lh_cigarette__aggressive__01: puffs, shuffles, think; PROP: cigarette in the left hand)", "man_base"],
+    "johnny_crossed": ["character", "Johnny's own arms-crossed idle (stand_around__02: wait, shuffles, look around)", "man_base"],
+    "johnny_aggressive": ["character", "Johnny's own hands-at-sides aggressive idle (2h_on_sides__aggressive__01: look back, look around, shuffles)", "man_base"],
+    "johnny_shades": ["character", "Johnny's own sunglasses-in-hand idle (rh_glasses__01: shuffle, look left; PROP: his specs in the right hand)", "man_base"],
+    "judy_coffee": ["generic", "generic coffee idle (stand__rh_cup__01: drink, shuffle; PROP: paper cup in the right hand), the cup held at chest height", "woman_base"],
+    "panam_beer": ["generic", "generic bottle idle (stand__rh_bottle__01: drink, check the bottle, yawn, shuffle; PROP: beer bottle in the right hand)", "woman_base"],
+    "generic_front": ["generic", "hands folded in front at belt height, 11 cm apart (generic stand_around__04, 11 break clips after dropping one the man rig lacks)", "woman_base,man_base"]
   },
   "conversationFit": {
     "note": "Oct 9 audit (Judy feedback: pointing that made no sense). Each clip is classified for conversation: centred (moving hands stay in front of the body, between hips and chest), neutral, or excluded as directional (pointing, indicating a side, behind or across), turn (torso or head turned away from V) or sweep (broad or overhead arms). Name rules first, then the measured shape (assets/gestures/clip-shape.json, scripts/Measure-GestureShape.py) on every rig that has the clip; excluded clips keep their workspot sequence (the probe can still play them) but never play in conversation.",

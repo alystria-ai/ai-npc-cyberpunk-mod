@@ -563,9 +563,9 @@ A live capture of a gesture start is the check.
 | Takemura | `takemura__stand_ground__stand_around__01` (formal, hands at sides) | own |
 | Viktor | `ripperdoc__stand_ground_arms_crossed__talk__01` (arms crossed) | generic |
 | Mr. Hands | `bodyguard__stand_ground__2h_back__01` | generic |
-| Padre | `generic__stand_ground__stand_around__07` (hands raised and held in front) | generic |
+| Padre | `generic__stand_ground__stand_around__07` (hands raised and held in front; Round 11: that was judged by name, the pose is a right hand held out at belly height, and Padre now rests in `generic_front`, hands folded in front) | generic |
 | Mitch | `generic__stand_ground_arms_crossed__stand_around__02` | generic |
-| Saul | `saul__stand_ground__stand_around__01` (arms crossed; the loop is the `angry` set, to be watched) | own |
+| Saul | `saul__stand_ground__stand_around__01` (arms crossed; the loop is the `angry` set, to be watched; Round 11: it was angry and did not fit him, he now rests in the generic hands-at-sides idle) | own |
 | Jackie | `jackie__stand_ground__stand_around__01` | own |
 | River | `q202__river__stand_ground__stand_around__01` | own workspot |
 | Reed | `ep1__reed__stand_ground__stand_around__01` | own |
@@ -816,3 +816,67 @@ To check live (Body gestures On, Developer mode for `Gestures` lines in `probe.l
 3. The round ends: each leaves with `reply ended` about 2.5 s later, no second `begin` in between.
 4. Group voice: while you speak, all members nod now and then, the first one 3 s or later into your speech.
 5. A fourth companion beside you who is not in the round does not take the stance, nods or exits.
+
+## Round 11 (October 15): prop idles, Johnny's flavour, Padre and Saul measured
+
+Phase 2 items built without the game: the cigarette cleanup, Judy and Panam prop idles, Johnny's flavour animations, a better idle for Saul, and a data check of Padre's `generic_hold`. Everything below was read from the extracted animation and workspot data (`scripts/Audit-PropIdles.mjs`, WolvenKit JSON of the workspots and the animsets they load) and from hips-frame forward kinematics of the exported clips; nothing was played in the game. The live checks at the end are what is still open.
+
+### How a prop gets into a hand, from the data
+
+The prop is not spawned by the mod. A clip carries an `animAnimEvent_WorkspotItem` with a `workEquipItemToSlotAction` (an `Items.*` record and `AttachmentSlots.WeaponRight` or `WeaponLeft`) at frame 0, or the workspot lists the same action in its `initialActions`. The workspot's `itemsPolicy` (SpawnItemOnIdleChange, DespawnItemOnIdleChange, DespawnItemOnReaction) says when the engine removes it again. The mod's idle workspots are copies of the vanilla ones, so they carry the same events; the prop appears and should leave without the controller touching anything. The controller therefore does not guess: the item and slot of each prop idle are in the catalog (`propIdles`, generated from `assets/gestures/gestures.json`, shape enforced by the build), and the cleanup removes exactly that item from exactly that slot.
+
+| Idle key | Workspot | Prop (item record, slot, where the data equips it) |
+|---|---|---|
+| `johnny_smoke` | `johnny__stand_ground_cigarette__idle__01` | cigarette `Items.crowd_cigarette_i_stick`, WeaponLeft (`lh_cigarette__aggressive__01`, `cig_equip` at frame 0; ember effect on the item, smoke effects on the puff clips) |
+| `johnny_shades` | `johnny__stand_ground_glasses__stand_around__02` | his specs `Items.crowd_int_apparel_002__h0_001_ma_specs__silverhand`, WeaponRight (`rh_glasses__01`, `glasses_equip`) |
+| `judy_coffee` | `generic__stand_ground_coffee__drink__01` | paper cup `Items.takeout_cup_a_small`, WeaponRight (`stand__rh_cup__01`, cup event at frame 0) |
+| `panam_beer` | `generic__stand_ground_bottle__drink__01` | bottle `Items.crowd__bottle_k_beer`, WeaponRight (`stand__rh_bottle__01`, bottle event at frame 0) |
+
+Rejected on the data: Judy's BD-headset workspot (no equip event anywhere in it, so the prop would have been invisible; the coffee cup replaced it).
+
+### What the controller does (`mod/companion-gestures.lua`, `mod/gesture-workspot.lua`)
+
+All of it runs on demand, never per frame. With the catalog's `propIdles` and the two new natives present:
+
+1. **Start.** A prop idle is picked like any other idle of her pool. Before it starts, one read of its hand slot(s) (`slotItem`): if the hand holds anything that is not empty fists, a prop-free idle is played instead (log `props-busy`), so a weapon in her hand is never fought over.
+2. **One look.** 2.5 s after the idle became active (`policy.propLook`) the slot is read once more. `props-seen`: the declared item is there. `props-other`: something else is in the hand (noted only). `props-missing`: empty. A key whose prop is missing twice (`policy.propMisses`) is dropped for the session (`props-disabled`): an idle that drinks from nothing is worse than no idle.
+3. **Cleanup.** After the idle ends, whatever ended it (flavour time, a conversation, movement, combat, a failed start, `release`), the declared item is taken out of the slot at 0.5 s and again at 3 s (`policy.propCleanup`, jobs held in a table that is empty except for those seconds). `clearSlot` reads the slot, leaves anything that is not the declared item alone (`other`), removes it with `RemoveItemFromSlot` (then `RemoveItem` if it is still there) and reports `removed`, `empty`, `other` or `stuck`; only a removal or trouble is logged (`props-clear`). The engine's own despawn normally leaves the slot empty already, so the log line is the live answer to whether the engine cleaned up. `abandon` (world teardown) clears the jobs and makes no native call.
+4. **Kill switches.** `M.policy.propIdles = false` turns every prop idle off; an old `gesture-workspot.lua` without the natives means no prop idle is ever picked.
+
+The cigarette was the Round 4 "experimental" idle (cleanup unverified, so it was never in a pool). It is now Johnny's `johnny_smoke` with this cleanup.
+
+### Build changes
+
+- `idleOptions.<key>.endless`: the vanilla coffee, bottle, crossed-arms, aggressive and glasses workspots play a few break clips and then leave through their own exit, which would end the idle while the controller thinks it still plays (the seats did exactly that, `docs/COMPANION_SEATING.md`). Their break list is set to a clip count that is never reached and the sequence repeats; entries, exits and fast exit are untouched. The copies' entry clips are dropped as for every idle.
+- `idleOptions.<key>.omitClips`: `generic_front` loses `stand__2h_front__01__shuffle__05`, which the man rig does not carry (a missing clip would stall the workspot).
+- Validation: every character's `idles` pool must have a workspot and a rig check; `propIdles` need a workspot, a checked source and `Items.*` records in a hand slot; the catalog now carries `propIdles` in place of `experimentalIdles`.
+
+### Johnny
+
+Both Johnny records (`Character.Silverhand`, `CyberpunkConvai.JohnnyCompanion`) keep `johnny` and gain a pool of four more of his own workspots, all on `man_base`, all with complete clip sets and no motion extraction: `johnny_crossed` (`stand_around__02`, arms crossed, wait, shuffles, look around), `johnny_aggressive` (`2h_on_sides__aggressive__01`, look back, look around, shuffles), `johnny_smoke` and `johnny_shades` (above). The generic mix of the rig's clean idles stays in his pool as before; two consecutive idles are never the same.
+
+### Judy and Panam
+
+`judy_coffee` joins Judy's pool, `panam_beer` Panam's; both are generic workspots on `woman_base` (right-hand cup or bottle, drink and shuffle clips; the bottle also yawns and checks the bottle). They are the prop idles of the two women; the rest of their rotation is unchanged.
+
+### Padre and Saul
+
+- **Padre's `generic_hold`.** Measured from the animation (hips-frame kinematics, hands relative to the hips): the right hand is held out at belly height, 10 cm above the hips and 20 cm forward, the left hangs at the side. It is not "hands raised", so it was a wrong fit for a man who should look calm. `generic_hold` stays in the catalog (relabelled, used by nobody). Padre now rests in `generic_front` (`generic__stand_ground__stand_around__04`, hands folded in front at belt height, 11 cm apart) with `generic_back` (hands behind the back) as his second idle.
+- **Saul.** His own workspot loop is `saul__stand__arms_crossed_front__angry__01`: hands crossed at the chest, 29-33 cm above the hips, from the `angry` set. It did not fit the character. He now rests in the relaxed generic hands-at-sides idle (`generic`) with `generic_back` as his second; the note on his catalog row says why. The test that required every listed character to have a non-generic signature idle excludes him on purpose.
+
+### Tests
+
+`bridge/companion-gestures.test.mjs` (fake hand slots; the existing seeded idle tests only needed Johnny's pool and Saul's choice updated): a prop idle starts with a free hand, is looked at once, and its declared item and slot are cleaned in two passes with a quiet second pass and no further native call; a busy hand gets a prop-free idle and nothing is ever cleared; empty fists are free and a foreign item found at the look is `props-other`; two misses drop a prop idle for the session and it is never picked again, with cleanup still scheduled; no natives or the kill switch means no prop idle at all; release still cleans and abandon makes no native call; the catalog declares every prop idle completely (component, source, `Items.*` records in hand slots, the right rig, never a primary idle) and Padre and Saul's rows are as described.
+
+### Install
+
+Archive rebuilt into `E:\CyberpunkConvai-offload\work\gesture-assets-p3\package\convai_gestures.archive` (nothing installed): **game restart** is needed for the new idle workspots. CET reload for `mod/companion-gestures.lua`, `mod/gesture-workspot.lua`, `mod/gesture-catalog.lua`. All committed `mod/` files get installed; `diagnostics.lua` never.
+
+### To check live (Body gestures On, Developer mode for `Gestures` lines in `probe.log`; Johnny, Judy and Panam as companions, one at a time, standing within 4 m of V)
+
+1. Johnny, a cigarette idle (`flavour-begin` with `convai_idle_johnny_smoke`): is a cigarette in his left hand, does it glow, and is he puffing? About 2.5 s in, `props-seen`. When the idle ends: is the hand empty (nothing stuck to it, no floating cigarette)? `props-clear` lines are only for a removal; none means the engine had already despawned it.
+2. Johnny, the sunglasses idle: specs in the right hand, `props-seen`, gone afterwards. Then the crossed-arms and aggressive idles: pose, shuffles, and that none of them ends by itself before 45-90 s (`flavour ended` should be the only reason).
+3. Judy with the cup and Panam with the bottle: item in the right hand, drinking clips look right, `props-seen`. If `props-missing` shows twice for a key the idle is dropped for the session; the line also tells which keys the engine does not equip on this mod's copied workspot.
+4. Hand busy: give a companion a drawn weapon, wait for an idle: `props-busy` and a prop-free idle, the weapon untouched.
+5. Entry and exit of the new idles: the blend into and out of each pose, whether the legs cross, and the first seconds after a prop idle ends for any leftover item.
+6. Padre in the hands-folded idle and Saul in hands-at-sides: do they look calm and fitting.

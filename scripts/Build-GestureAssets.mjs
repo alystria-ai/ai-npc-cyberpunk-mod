@@ -201,6 +201,31 @@ for (const [record, known] of Object.entries(source.characters)) {
     if (!source.idleWorkspots[known.idle]) fail(`${record}: idle ${known.idle} has no workspot`);
     const checked = source.idleSources?.[known.idle];
     if (!checked || !checked[2].split(',').includes(known.rig)) fail(`${record}: idle ${known.idle} is not checked on ${known.rig}`);
+    // The character's extra idles (a rotation of its own: coffee, cigarette, ...) are held to the same rule.
+    for (const key of known.idles ?? []) {
+        if (!source.idleWorkspots[key]) fail(`${record}: pool idle ${key} has no workspot`);
+        const poolChecked = source.idleSources?.[key];
+        if (!poolChecked || !poolChecked[2].split(',').includes(known.rig)) fail(`${record}: pool idle ${key} is not checked on ${known.rig}`);
+    }
+}
+// Prop idles (docs/COMPANION_GESTURES.md, Round 11): each needs a workspot, a checked source and at least one declared
+// item with a hand slot, which is what the controller takes out of the slot afterwards. The item records themselves
+// come from scripts/Audit-PropIdles.mjs (animation data); here only the shape is enforced.
+const HAND_SLOTS = new Set(['AttachmentSlots.WeaponRight', 'AttachmentSlots.WeaponLeft']);
+for (const [key, row] of Object.entries(source.propIdles ?? {})) {
+    if (key === 'note') continue;
+    if (!source.idleWorkspots[key]) fail(`prop idle ${key} has no workspot`);
+    if (!source.idleSources?.[key]) fail(`prop idle ${key} has no idleSources row`);
+    if (!Array.isArray(row.items) || row.items.length === 0) fail(`prop idle ${key} declares no item`);
+    for (const item of row.items) {
+        if (!/^Items\.[A-Za-z0-9_]+$/.test(item.item ?? '')) fail(`prop idle ${key}: item ${item.item} is not an Items.* record`);
+        if (!HAND_SLOTS.has(item.slot)) fail(`prop idle ${key}: slot ${item.slot} is not a hand slot`);
+    }
+}
+for (const [key, row] of Object.entries(source.idleOptions ?? {})) {
+    if (key === 'note') continue;
+    if (!source.idleWorkspots[key]) fail(`idle option for ${key}, which has no workspot`);
+    if (row.omitClips && !Array.isArray(row.omitClips)) fail(`idle option ${key}: omitClips must be a list`);
 }
 // The generic fallback (companions not in 'characters'): every body type maps to a rig that has a talk family
 // and an idle checked on that rig.
@@ -271,17 +296,71 @@ const withoutEntries = (workspot, what) => {
 const report = [];
 const outputs = [];
 const faceCopies = new Map();
+// Break clips an idle's rig does not carry (scripts/Audit-PropIdles.mjs names them) are removed from the copy: a clip
+// missing from the animsets would stall the workspot. The random lists keep at least their clip counts' worth of members.
+const omitClips = (workspot, names, what) => {
+    const drop = new Set(names);
+    let removed = 0;
+    (function walk(node) {
+        if (Array.isArray(node)) { node.forEach(walk); return; }
+        if (!node || typeof node !== 'object') return;
+        if (Array.isArray(node.list)) {
+            const kept = node.list.filter((entry) => {
+                const data = entry.Data ?? entry;
+                const hit = data.$type === 'workAnimClip' && drop.has(data.animName?.$value);
+                if (hit) removed++;
+                return !hit;
+            });
+            if (kept.length !== node.list.length) {
+                node.list = kept;
+                if (node.$type === 'workRandomList') {
+                    if (Number(node.maxClips) > kept.length) node.maxClips = kept.length;
+                    if (Number(node.minClips) > node.maxClips) node.minClips = node.maxClips;
+                }
+            }
+        }
+        Object.values(node).forEach(walk);
+    })(workspot.Data.RootChunk.workspotTree);
+    if (removed === 0) fail(`${what}: none of the clips to omit was found (${names.join(', ')})`);
+    return removed;
+};
+// An idle whose sequence ends after its few break clips would leave through the workspot's own exit by itself while the
+// controller still thinks it is playing (docs/COMPANION_SEATING.md: the seats did exactly that). Each break list directly
+// under a sequence that does not already repeat is set to a clip count that is never reached and the sequence repeats;
+// the fast exit, the exits and the clips are untouched, so the controller's exit works as before.
+const IDLE_ENDLESS_CLIPS = 127; // the clip counts are signed bytes
+const endlessIdle = (workspot, what) => {
+    let lists = 0;
+    (function walk(node) {
+        if (Array.isArray(node)) { node.forEach(walk); return; }
+        if (!node || typeof node !== 'object') return;
+        if (node.$type === 'workSequence' && Array.isArray(node.list) && Number(node.loopInfinitely) !== 1) {
+            const direct = node.list.map((entry) => entry.Data ?? entry).filter((entry) => entry.$type === 'workRandomList');
+            if (direct.length > 0) {
+                for (const list of direct) { list.minClips = IDLE_ENDLESS_CLIPS; list.maxClips = IDLE_ENDLESS_CLIPS; lists++; }
+                node.loopInfinitely = 1;
+            }
+        }
+        Object.values(node).forEach(walk);
+    })(workspot.Data.RootChunk.workspotTree);
+    if (lists === 0) fail(`${what}: no break list to repeat`);
+    return lists;
+};
 for (const [what, depot] of Object.entries(source.idleWorkspots).map(([key, d]) => [`${key} idle`, d])) {
+    const key = what.replace(/ idle$/, '');
     const json = jsonFor(depot);
     if (!json) fail(`${what} workspot was not extracted: ${depot}`);
     const copy = clone(json);
     if (!faceNeutral(copy)) neutralFace(copy, what);
     const dropped = withoutEntries(copy, what);
+    const options = source.idleOptions?.[key] ?? {};
+    const omitted = options.omitClips?.length ? omitClips(copy, options.omitClips, what) : 0;
+    const looped = options.endless ? endlessIdle(copy, what) : 0;
     const target = `cyberpunk_convai\\gestures\\convai_idle_${base(depot)}`;
     copy.Header.ArchiveFileName = target;
     outputs.push([`convai_idle_${base(depot)}.json`, copy]);
     faceCopies.set(depot, target);
-    report.push(`idle: ${base(depot)} copied to ${target} without ${dropped} entry clip(s)`);
+    report.push(`idle: ${base(depot)} copied to ${target} without ${dropped} entry clip(s)${omitted ? `, ${omitted} omitted break clip(s)` : ''}${looped ? `, ${looped} endless break list(s)` : ''}`);
 }
 const playable = (depot) => faceCopies.get(depot) ?? depot;
 
@@ -524,7 +603,9 @@ const catalog = {
     idleComponents: Object.fromEntries(Object.keys(source.idleWorkspots).map((key) => [key, `convai_idle_${key}`])),
     // Per idle: character (own clips), character workspot (shared clips) or generic, and the rigs it was checked on.
     idleSources: Object.fromEntries(Object.entries(source.idleSources ?? {}).map(([key, [kind, what, rigs]]) => [key, { kind, what, rigs: rigs.split(',') }])),
-    experimentalIdles: source.experimentalIdles ?? [],
+    // Idles that put an item in a hand (animation data, scripts/Audit-PropIdles.mjs): what the controller takes off afterwards.
+    propIdles: Object.fromEntries(Object.entries(source.propIdles ?? {}).filter(([key]) => key !== 'note')
+        .map(([key, row]) => [key, { prop: row.prop, items: row.items.map((item) => ({ item: item.item, slot: item.slot })) }])),
     seatComponents: Object.fromEntries(Object.keys(seatWorkspots).map((key) => [key, `convai_sit_${key}`])),
     characters: source.characters,
     // Fallback for records not in 'characters': body type -> rig -> talk family and idle (mod/companion-gestures.lua).

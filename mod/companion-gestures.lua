@@ -15,7 +15,11 @@ M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourA
     -- Idle flavour (characters marked flavour in the catalog, and the generic fallback): she goes into an idle as
     -- soon as she has been settled for a moment (a copy that never talked included), for 45-90 s, then again after a
     -- gap of 20-45 s measured from the end of the last one; five seconds after a reply ends (flavourAfterTalk).
-    groupStagger = 2, exitSettle = .4, driftNote = .15, flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {20, 45}, flavourLength = {45, 90}}
+    groupStagger = 2, exitSettle = .4, driftNote = .15, flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {20, 45}, flavourLength = {45, 90},
+    -- Prop idles (catalog.propIdles): one look at the hand slot propLook s after the idle began, a key whose prop did not
+    -- show up propMisses times is dropped for the session, and the declared item is taken out of the slot at each
+    -- propCleanup time (s) after the idle ends. propIdles = false switches every prop idle off.
+    propIdles = true, propLook = 2.5, propMisses = 2, propCleanup = {.5, 3}}
 
 local function distance(a, b)
     if not a or not b then return 0 end
@@ -52,7 +56,7 @@ function M.new(options)
         group = options.group or function() return nil end,
         thinking = options.thinking or function() return nil end,
         allowed = options.allowed or nativeAllowed, native = options.native or workspot,
-        random = options.random, log = options.log or function() end, errors = {}}
+        random = options.random, log = options.log or function() end, errors = {}, cleanups = {}, cleanupSerial = 0, propMisses = {}, propOff = {}}
     local native, policy = self.native, M.policy
 
     -- A family whose workspot is missing from the installed archive (older
@@ -112,11 +116,13 @@ function M.new(options)
         return pool
     end
     -- A random idle from the pool, never the one she just had when there is a choice.
-    local function pickIdle(s, known)
+    local function pickIdle(s, known, allow)
         local pool = poolOf(known)
         if #pool == 0 then return nil end
         local choices = {}
-        for _, key in ipairs(pool) do if key ~= s.lastIdle or #pool == 1 then choices[#choices + 1] = key end end
+        for _, key in ipairs(pool) do
+            if (key ~= s.lastIdle or #pool == 1) and (not allow or allow(key)) then choices[#choices + 1] = key end
+        end
         local key = choices[math.min(#choices, math.floor(((self.random or math.random)()) * #choices) + 1)]
         return key
     end
@@ -265,10 +271,80 @@ function M.new(options)
     end
 
     local function between(range) return range[1] + (range[2] - range[1]) * ((self.random or math.random)()) end
+
+    -- Prop idles. The idle's own animation puts the item in the hand; the controller only (1) starts a prop idle when its
+    -- hand slot is free, (2) looks once whether the prop appeared, and (3) takes the declared item out of the slot again
+    -- after the idle, whatever ended it. Natives are optional (an older gesture-workspot.lua has none: no prop idle then).
+    local function propOf(key) return key and self.catalog.propIdles and self.catalog.propIdles[key] or nil end
+    local function propUsable(key)
+        if not propOf(key) then return true end
+        return policy.propIdles ~= false and not self.propOff[key] and native.slotItem ~= nil and native.clearSlot ~= nil
+    end
+    local function propSlotsFree(npc, prop)
+        if not npc then return false end
+        for _, row in ipairs(prop.items) do
+            local ok, held = native.slotItem(npc, row.slot, row.item)
+            if not ok then return false end
+            if held and not held.fists then return false end
+        end
+        return true
+    end
+    local function scheduleCleanup(s, prop, npc)
+        if not prop or not npc or not native.clearSlot then return end
+        for pass, after in ipairs(policy.propCleanup) do
+            self.cleanupSerial = self.cleanupSerial + 1
+            self.cleanups[self.cleanupSerial] = {npc = npc, prop = prop, due = self.clock + after, pass = pass, serial = s.serial, key = s.idleKey}
+        end
+    end
+    local function runCleanup(job)
+        for _, row in ipairs(job.prop.items) do
+            local ok, state = native.clearSlot(job.npc, row.slot, row.item)
+            -- The engine's own despawn normally leaves the slot empty already: only a removal or trouble is logged.
+            if not ok then self.log('props-clear', {serial = job.serial, key = job.key, item = row.item, state = 'error', error = tostring(state)})
+            elseif state ~= 'empty' then
+                self.log('props-clear', {serial = job.serial, key = job.key, item = row.item, slot = row.slot, state = state, pass = job.pass})
+            end
+        end
+    end
+    -- One look, once per idle, a moment after it began: did the engine put the prop in her hand?
+    local function lookAtProp(s)
+        local prop = s.prop
+        prop.looked = true
+        local npc = s.entry.npc
+        if not npc or not native.slotItem then return end
+        local seen, other = 0, nil
+        for _, row in ipairs(prop.items) do
+            local ok, held = native.slotItem(npc, row.slot, row.item)
+            if ok and held and held.match then seen = seen + 1 elseif ok and held and not held.fists then other = held.record or true end
+        end
+        if seen == #prop.items then
+            self.propMisses[s.idleKey] = 0
+            note(s, 'props-seen', {key = s.idleKey})
+        elseif other then
+            note(s, 'props-other', {key = s.idleKey, held = tostring(other)})
+        else
+            self.propMisses[s.idleKey] = (self.propMisses[s.idleKey] or 0) + 1
+            note(s, 'props-missing', {key = s.idleKey, misses = self.propMisses[s.idleKey]})
+            if self.propMisses[s.idleKey] >= policy.propMisses then
+                self.propOff[s.idleKey] = true
+                note(s, 'props-disabled', {key = s.idleKey})
+            end
+        end
+    end
+
     local function begin(s, known, family, recovery, flavour, familyKey)
         s.phase, s.since = recovery and 'recovering' or 'spawning', self.clock
         s.flavour = flavour == true
-        s.idleKey = flavour and pickIdle(s, known) or nil
+        s.idleKey = flavour and pickIdle(s, known, propUsable) or nil
+        s.prop = nil
+        if s.idleKey and propOf(s.idleKey) then
+            if propSlotsFree(s.entry.npc, propOf(s.idleKey)) then s.prop = {items = propOf(s.idleKey).items}
+            else
+                -- Her hand holds something: a prop-free idle instead (the primary one when nothing else is left).
+                note(s, 'props-busy', {key = s.idleKey})
+                s.idleKey = pickIdle(s, known, function(key) return not propOf(key) end) or known.idle
+            end
+        end
         s.lastIdle = s.idleKey or s.lastIdle
         s.component = flavour and s.idleKey and self.catalog.idleComponents[s.idleKey] or family.component
         s.flavourUntil = flavour and self.clock + between(policy.flavourLength) or nil
@@ -278,6 +354,7 @@ function M.new(options)
         note(s, recovery and 'recovery-begin' or (flavour and 'flavour-begin') or 'begin', {family = known.talk, component = s.component})
     end
     local function finish(s, reason)
+        if s.prop then scheduleCleanup(s, s.prop, s.entry.npc); s.prop = nil end
         note(s, 'finished', {reason = reason, exitLatency = s.exitAt and self.clock - s.exitAt})
         -- The workspot is left a tenth of a second after the exit signal, but the pose blends out for
         -- about half a second more (forced exit blend). Movement waits for that blend (observe keeps
@@ -297,6 +374,7 @@ function M.new(options)
         else s.nextFlavourAt = math.max(s.nextFlavourAt or 0, self.clock + policy.flavourAfterTalk) end
     end
     local function fail(s, reason)
+        if s.prop then scheduleCleanup(s, s.prop, s.entry.npc); s.prop = nil end
         note(s, 'failed', {reason = reason})
         s.phase, s.clip, s.exitAt = 'off', nil, nil
         s.cooldownUntil = self.clock + policy.failureCooldown
@@ -402,6 +480,7 @@ function M.new(options)
                 after = s.activeAt and self.clock - s.activeAt, component = s.component,
                 from = copy(s.homeAt), to = copy(s.entry.position)})
         end
+        if s.prop and not s.prop.looked and s.activeAt and self.clock - s.activeAt >= policy.propLook then lookAtProp(s) end
         if s.flavour then
             -- Signature idle: leave when its time is up or a conversation starts
             -- (the talk stance follows from the next settled tick).
@@ -535,6 +614,15 @@ function M.new(options)
             self.playerPosition = at
         end
         if not self.swept then self.swept = true; native.sweep() end
+        -- Item clean-ups after a prop idle: the list is empty except for a few seconds after one ends.
+        if next(self.cleanups) then
+            for id, job in pairs(self.cleanups) do
+                if self.clock >= job.due then
+                    self.cleanups[id] = nil
+                    pcall(runCleanup, job)
+                end
+            end
+        end
         local present = {}
         for _, row in ipairs(rows or {}) do present[row.entry.serial] = row end
         for serial, s in pairs(self.states) do
@@ -556,6 +644,7 @@ function M.new(options)
         local s = self.states[entry.serial]
         if not s then return end
         if HOLDING[s.phase] and entry.npc then native.exit(entry.npc, true) end
+        if s.prop and HOLDING[s.phase] then scheduleCleanup(s, s.prop, entry.npc) end
         if s.deviceID then native.deleteDevice(s.deviceID) end
         self.states[entry.serial] = nil
         self.log('released', {serial = entry.serial, reason = reason})
@@ -563,7 +652,7 @@ function M.new(options)
 
     function self.abandon(reason)
         -- Native teardown: devices are non-persistent; no native calls here.
-        self.states = {}
+        self.states, self.cleanups = {}, {}
         self.swept = false
         self.player = nil -- the tick stores V's handle; do not pin the old player across the unload
     end

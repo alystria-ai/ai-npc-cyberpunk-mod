@@ -34811,6 +34811,12 @@ local catalog = {
         ripperdoc_arms = "convai_idle_ripperdoc_arms",
         generic_arms_crossed_b = "convai_idle_generic_arms_crossed_b",
         uscracks_cute = "convai_idle_uscracks_cute",
+        johnny_crossed = "convai_idle_johnny_crossed",
+        johnny_aggressive = "convai_idle_johnny_aggressive",
+        johnny_shades = "convai_idle_johnny_shades",
+        judy_coffee = "convai_idle_judy_coffee",
+        panam_beer = "convai_idle_panam_beer",
+        generic_front = "convai_idle_generic_front",
     },
     idleSources = {
         judy = {
@@ -35005,7 +35011,7 @@ local catalog = {
         },
         generic_hold = {
             kind = "generic",
-            what = "hands raised and held in front (gesture_hold)",
+            what = "gesture_hold: right hand held out at belly height (10 cm above the hips, 20 cm forward), left hand at the side; measured from the animation data in Round 11, so not 'hands raised'; no character uses it",
             rigs = {
                 "woman_base",
                 "man_base",
@@ -35035,9 +35041,94 @@ local catalog = {
                 "woman_base",
             },
         },
+        johnny_smoke = {
+            kind = "character",
+            what = "Johnny's own cigarette idle (lh_cigarette__aggressive__01: puffs, shuffles, think; PROP: cigarette in the left hand)",
+            rigs = {
+                "man_base",
+            },
+        },
+        johnny_crossed = {
+            kind = "character",
+            what = "Johnny's own arms-crossed idle (stand_around__02: wait, shuffles, look around)",
+            rigs = {
+                "man_base",
+            },
+        },
+        johnny_aggressive = {
+            kind = "character",
+            what = "Johnny's own hands-at-sides aggressive idle (2h_on_sides__aggressive__01: look back, look around, shuffles)",
+            rigs = {
+                "man_base",
+            },
+        },
+        johnny_shades = {
+            kind = "character",
+            what = "Johnny's own sunglasses-in-hand idle (rh_glasses__01: shuffle, look left; PROP: his specs in the right hand)",
+            rigs = {
+                "man_base",
+            },
+        },
+        judy_coffee = {
+            kind = "generic",
+            what = "generic coffee idle (stand__rh_cup__01: drink, shuffle; PROP: paper cup in the right hand), the cup held at chest height",
+            rigs = {
+                "woman_base",
+            },
+        },
+        panam_beer = {
+            kind = "generic",
+            what = "generic bottle idle (stand__rh_bottle__01: drink, check the bottle, yawn, shuffle; PROP: beer bottle in the right hand)",
+            rigs = {
+                "woman_base",
+            },
+        },
+        generic_front = {
+            kind = "generic",
+            what = "hands folded in front at belt height, 11 cm apart (generic stand_around__04, 11 break clips after dropping one the man rig lacks)",
+            rigs = {
+                "woman_base",
+                "man_base",
+            },
+        },
     },
-    experimentalIdles = {
-        "johnny_smoke",
+    propIdles = {
+        johnny_smoke = {
+            prop = "cigarette",
+            items = {
+                {
+                    item = "Items.crowd_cigarette_i_stick",
+                    slot = "AttachmentSlots.WeaponLeft",
+                },
+            },
+        },
+        johnny_shades = {
+            prop = "sunglasses",
+            items = {
+                {
+                    item = "Items.crowd_int_apparel_002__h0_001_ma_specs__silverhand",
+                    slot = "AttachmentSlots.WeaponRight",
+                },
+            },
+        },
+        judy_coffee = {
+            prop = "paper cup",
+            items = {
+                {
+                    item = "Items.takeout_cup_a_small",
+                    slot = "AttachmentSlots.WeaponRight",
+                },
+            },
+        },
+        panam_beer = {
+            prop = "beer bottle",
+            items = {
+                {
+                    item = "Items.crowd__bottle_k_beer",
+                    slot = "AttachmentSlots.WeaponRight",
+                },
+            },
+        },
     },
     seatComponents = {
         couch = "convai_sit_couch",
@@ -35051,6 +35142,9 @@ local catalog = {
             rig = "woman_base",
             talk = "judy_own",
             idle = "judy",
+            idles = {
+                "judy_coffee",
+            },
             flavour = true,
             fallback = "on_sides",
             note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
@@ -35061,6 +35155,9 @@ local catalog = {
             rig = "woman_base",
             talk = "on_sides",
             idle = "panam",
+            idles = {
+                "panam_beer",
+            },
             flavour = true,
             fallback = "on_sides",
             note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
@@ -35191,6 +35288,12 @@ local catalog = {
             rig = "man_base",
             talk = "on_sides",
             idle = "johnny",
+            idles = {
+                "johnny_crossed",
+                "johnny_aggressive",
+                "johnny_smoke",
+                "johnny_shades",
+            },
             flavour = true,
             fallback = "on_sides",
             note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
@@ -35201,6 +35304,12 @@ local catalog = {
             rig = "man_base",
             talk = "on_sides",
             idle = "johnny",
+            idles = {
+                "johnny_crossed",
+                "johnny_aggressive",
+                "johnny_smoke",
+                "johnny_shades",
+            },
             flavour = true,
             fallback = "on_sides",
             note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
@@ -35250,7 +35359,10 @@ local catalog = {
             key = "padre",
             rig = "man_base",
             talk = "on_sides",
-            idle = "generic_hold",
+            idle = "generic_front",
+            idles = {
+                "generic_back",
+            },
             flavour = true,
             fallback = "on_sides",
             note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
@@ -35310,11 +35422,14 @@ local catalog = {
             key = "saul",
             rig = "man_base",
             talk = "on_sides",
-            idle = "saul",
+            idle = "generic",
+            idles = {
+                "generic_back",
+            },
             flavour = true,
             fallback = "on_sides",
-            note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Rig from the entity's animated component (Oct 9).",
-            idleSource = "character",
+            note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Rig from the entity's animated component (Oct 9). His own workspot loop is the angry arms-crossed set (saul__stand__arms_crossed_front__angry__01, hands crossed at the chest 29-33 cm above the hips), which did not fit him: since Round 11 he rests in the relaxed hands-at-sides idle with hands behind the back as the second.",
+            idleSource = "generic",
         },
         ["Character.Placide"] = {
             key = "placide",
