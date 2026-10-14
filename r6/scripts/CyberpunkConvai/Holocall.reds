@@ -11,6 +11,11 @@ module CyberpunkConvai
 //
 // Quest calls always win: any call the game shows (OnPhoneCall with IncomingCall/StartCall) preempts the mod call
 // before the game's handler runs, the game's handler always runs, and a mod call never starts while the game has one.
+//
+// A holocall starts from the phone's ordinary Contacts list: when V uses the game's own Call action on a contact that is
+// one of the mod's characters (registered by mod/holocall.lua), the one function that would send the game's call request
+// (NewHudPhoneGameController.CallSelectedContact, at the end of this file) is replaced by a holocall request. Every other
+// contact reaches the game's own function untouched.
 
 @addField(PlayerPuppet)
 private let m_convaiHolocallHud: wref<NewHudPhoneGameController>;
@@ -20,9 +25,10 @@ private let m_convaiHolocallRequest: String;
 // Call events for mod/holocall.lua: "hangup", "quest-call", "hud-lost". Bounded; read on the call's own 0.25 s tick.
 @addField(PlayerPuppet)
 private let m_convaiHolocallEvents: array<String>;
-// The translated action label pushed by Lua (mod/holocall.lua pushLabel); English until then.
+// The contact ids that can take a holocall, registered by mod/holocall.lua (the mod's own characters with a conversation
+// profile, never Johnny). Any other contact is left to the game.
 @addField(PlayerPuppet)
-private let m_convaiHolocallLabel: String;
+private let m_convaiHolocallContacts: array<String>;
 
 @addMethod(PlayerPuppet)
 public final func ConvaiHolocallAttachHud(hud: ref<NewHudPhoneGameController>) -> Void {
@@ -38,14 +44,11 @@ public final func ConvaiHolocallDetachHud(hud: ref<NewHudPhoneGameController>) -
 }
 
 @addMethod(PlayerPuppet)
-public final func ConvaiHolocallSetLabel(label: String) -> Void {
-    this.m_convaiHolocallLabel = label;
-}
-
+public final func ConvaiHolocallClearContacts() -> Void { ArrayClear(this.m_convaiHolocallContacts); }
 @addMethod(PlayerPuppet)
-public final func ConvaiHolocallLabel() -> String {
-    return StrLen(this.m_convaiHolocallLabel) > 0 ? this.m_convaiHolocallLabel : "Holocall";
-}
+public final func ConvaiHolocallRegisterContact(contact: String) -> Void { ArrayPush(this.m_convaiHolocallContacts, contact); }
+@addMethod(PlayerPuppet)
+public final func ConvaiHolocallHasContact(contact: String) -> Bool { return ArrayContains(this.m_convaiHolocallContacts, contact); }
 
 @addMethod(PlayerPuppet)
 public final func ConvaiHolocallEvent(name: String) -> Void {
@@ -62,11 +65,11 @@ public final func ConvaiHolocallTakeEvent() -> String {
     return name;
 }
 
-// From the phone: a Holocall action on a Chat contact. Only a contact registered for AI chat (mod/phone-chat.lua, the
-// mod's own characters) can be called. The phone closes; mod/holocall.lua starts the call once the world is playable.
+// From the phone's Contacts list (the CallSelectedContact wrap below). Only a registered contact can be called. The phone
+// closes; mod/holocall.lua starts the call once the world is playable.
 @addMethod(PlayerPuppet)
 public final func ConvaiHolocallRequest(contact: String) -> Bool {
-    if StrLen(contact) == 0 || !this.ConvaiPhoneChatHasContact(contact) { return false; };
+    if StrLen(contact) == 0 || !this.ConvaiHolocallHasContact(contact) { return false; };
     this.m_convaiHolocallRequest = contact;
     let hud = this.m_convaiHolocallHud;
     if IsDefined(hud) { hud.ConvaiCallCloseContacts(); };
@@ -328,11 +331,15 @@ protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsu
     return wrappedMethod(action, consumer);
 }
 
-// Inside an AI Chat conversation the phone's Call action starts a holocall with that contact (PhoneChat.reds consumes
-// the action so the game never sends its own call request for a mod character).
-@addMethod(PhoneMessagePopupGameController)
-public final func ConvaiChatHolocall() -> Void {
-    let player = this.m_player as PlayerPuppet;
-    if !IsDefined(player) || !IsDefined(this.m_contactEntry) { return; };
-    player.ConvaiHolocallRequest(this.m_contactEntry.GetId());
+// The game's Call action on a Contacts row (the Call key, or the secondary action on the Messages tab) ends in this one
+// function, after the game has checked that the contact is callable and that calls are enabled. For one of the mod's
+// characters the call becomes a holocall: no call request is sent and nothing else of the game's call path runs. Any
+// other contact, and every contact while none are registered, goes to the game's own function unchanged.
+@wrapMethod(NewHudPhoneGameController)
+public func CallSelectedContact(contactData: wref<ContactData>) -> Void {
+    if IsDefined(contactData) && !contactData.convaiChat && IsDefined(this.m_player)
+        && this.m_player.ConvaiHolocallRequest(contactData.contactId) {
+        return;
+    };
+    wrappedMethod(contactData);
 }

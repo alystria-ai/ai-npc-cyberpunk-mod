@@ -1,7 +1,7 @@
 -- Holocalls with the mod's characters (docs/HOLOCALL.md).
 --
--- V calls a Chat contact from the phone (the Holocall action on the phone's Chat tab, or Call inside an AI Chat
--- conversation). The game's call window opens at the top left with that character's portrait and name
+-- V calls one of the mod's characters from the phone's ordinary Contacts list, with the game's own Call action
+-- (Holocall.reds replaces the game's call request for those contacts only; this file registers which ones). The game's call window opens at the top left with that character's portrait and name
 -- (Holocall.reds drives it; the game's own call path, its quest facts and its call blackboard are never used). While the
 -- call is connected, the talk keys (typed and voice) address that character wherever V is, through the same request
 -- path as a face to face talk; the reply is spoken in the mod voice at full volume (no distance) with call subtitles,
@@ -76,15 +76,19 @@ function M.configure(env)
     M.env = type(env) == 'table' and env or {}
     local rows = type(M.env.contacts) == 'function' and M.env.contacts() or readJson('phone-contacts.json')
     M.catalog = M.loadCatalog(rows)
-    M.sweepDue = true
+    M.sweepDue, M.registered = true, nil
 end
 
--- The translated phone label (the Chat tab's Holocall action), pushed when the language changes.
-function M.pushLabel(player)
-    local revision = type(ui.revision) == 'function' and ui.revision() or 0
-    if M.labelRevision == revision or not player then return end
-    local ok = pcall(function() player:ConvaiHolocallSetLabel(ui.t('Holocall')) end)
-    if ok then M.labelRevision = revision end
+-- Tell the phone which contacts a holocall replaces the game's call for: the catalogue rows only (so Johnny, game and
+-- story contacts keep the game's own call). Once per world: abandon() and configure() clear the flag. A failed call (the
+-- native script not installed yet) is retried on the next drain.
+function M.register(player)
+    if M.registered or not player then return end
+    local ok = pcall(function()
+        player:ConvaiHolocallClearContacts()
+        for contact in pairs(M.catalog) do player:ConvaiHolocallRegisterContact(contact) end
+    end)
+    M.registered = ok or nil
 end
 
 -- Why a call cannot be on now, from the battle observer's half-second sample (mod/battle-observer.lua), or nil.
@@ -292,7 +296,7 @@ end
 -- The world went away (a load, death, the game shutting down): forget the call without native calls. The HUD and its
 -- window are rebuilt by the game; a copy or camera left behind is swept after the next configure.
 function M.abandon(reason)
-    M.request = nil
+    M.request, M.registered = nil, nil
     local call = M.call
     if not call then return end
     M.call = nil
@@ -407,7 +411,7 @@ end
 -- The phone's request drain (init.lua phoneDrainDue): while the phone is open, briefly after, and once a second.
 function M.drain(player)
     if not player then return end
-    M.pushLabel(player)
+    M.register(player)
     if M.sweepDue then M.sweep() end
     local ok, contact = pcall(function() return player:ConvaiHolocallTakeRequest() end)
     if not ok or type(contact) ~= 'string' or contact == '' then return end
