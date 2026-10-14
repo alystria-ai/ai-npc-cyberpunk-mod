@@ -1306,6 +1306,15 @@ test('V\'s live words are one dialogue line swapped in place as they grow, owned
  assert(not m.live and not m.ownsUtterance(),'with no update the caption expires like any other')
 `));
 
+test('V\'s live words are never a holocall or voice-only line, even right after a reply that was', () => run(setup + `
+ scnDialogLineType.Holocall='holocall'
+ m.voiceOnly,m.holocall,m.voiceProfile=true,true,'addon-skippy-gun'   -- what speech.lua leaves behind after such a reply
+ assert(m.showLive('V','what do you think'))
+ local line=shown()[1]
+ assert(line.type==scnDialogLineType.OwnerlessRegular and line.speakerName=='V','plain dialogue line, no add-on tag')
+ assert(m.status().fallback==nil and m.holocall==false and m.voiceOnly==false)
+`));
+
 const FONTS = `
 local calls={}
 local function walks()local r={};for _,c in ipairs(calls)do if type(c)=='table' then r[#r+1]=c end end;return r end

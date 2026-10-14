@@ -575,7 +575,9 @@ function M.showLive(speaker, text)
     if text == '' or not M.enabled() then return false end
     if M.live and M.playerID and identity(Game.GetPlayer()) ~= M.playerID then M.clear() end
     if not M.live then
-        M.voiceProfile = nil   -- V's own words never carry an add-on speaker's tag
+        -- V's own words never carry an add-on speaker's tag, and are never a voice-only or holocall line: speech.lua sets these for each
+        -- reply and clears its own copy at the end of one, so the last reply's flags are still here when V next speaks.
+        M.voiceProfile, M.voiceOnly, M.holocall = nil, false, false
         if not prepare(speaker, text, nil, nil) then return false end
         -- Always the cinematic dialogue HUD, whatever style replies use: V has no head to hang an overhead caption on.
         M.mode, M.fallback, M.anchor, M.paginationStyle = 'dialogue', nil, nil, 'dialogue'

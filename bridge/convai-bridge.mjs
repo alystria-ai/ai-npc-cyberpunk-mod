@@ -49,6 +49,7 @@ import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-sp
 import {FollowUp} from './follow-up.mjs';
 import {VVoice, loadVVoiceReferences, extraVoices} from './v-voice.mjs';
 import {MatureContent} from './mature-content.mjs';
+import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
 import {turnContextDiagnostic} from './turn-context.mjs';
@@ -1327,6 +1328,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     // may be prepared from that text.
     // V's typed line, when it is audible, holds the reply the same way until it ends (bridge/v-voice.mjs).
     hold: () => ahead?.isHeld() === true || current.vLine?.()?.holds() === true,
+    holdPeek: () => ahead?.isHeld() === true || current.vLine?.()?.blocking === true,
     onHeld: (bufferedSeconds, textComplete) => { if (bufferedSeconds >= 0.4 && textComplete) ahead?.markReady(); },
     onText: (text, userText) => {
       if (typeof userText === 'string') noteKnowledgeTurn(receiptPrepared, {userText});
@@ -2581,10 +2583,12 @@ async function pollSettings(checkShutdown = true) {
     if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
     const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
     if (matureChanged) console.error(`[MatureContent] setting is now ${matureContent.enabled ? 'on' : 'off'}`);
+    // The guard's patterns compile on first use (about a second); do that now, in the background, not inside the first Mature turn.
+    if (matureChanged && matureContent.enabled) void warmMatureGuard();
     await syncLocalModelChoice(settings);
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
-    replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
+    if (settings && typeof settings === 'object') replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
     // Multilingual conversations changes which voice a turn uses (and so its instructions).
     // (The voice selection reads the same setting: while it is on, a fallback never lands on Pocket.)
     const multilingualChanged = multilingual.update(settings);

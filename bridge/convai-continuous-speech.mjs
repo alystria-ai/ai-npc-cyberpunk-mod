@@ -36,6 +36,9 @@ export class ConvaiContinuousSpeech {
     // hold(): true while this turn is a look-ahead that must keep buffering and
     // publish nothing. onText(text, userText): the complete reply text is known.
     hold = () => false, onHeld = () => {}, onText = () => {},
+    // holdPeek(): the same question without side effects. The host's pollMs/wake run on every poll from the stream's start, before any
+    // audio exists; hold() may drop a V line that is still being synthesized (bridge/v-voice.mjs), so only frame() may call it.
+    holdPeek = undefined,
     // leaseWake(): a promise that resolves when the game's lease file is replaced (bridge/file-wake.mjs), so the host's clock poll that
     // is waiting for the first lease runs at once instead of after its 40 ms sleep (docs/LATENCY_2026-10-13.md, 4.2).
     leaseWake,
@@ -46,7 +49,7 @@ export class ConvaiContinuousSpeech {
     this.readControl = readControl; this.writeState = writeState; this.writeReply = writeReply;
     this.writeFace = writeFace; this.faceFile = faceFile; this.faceRevision = 0; this.faceWritten = 0;
     this.onPublished = onPublished; this.onStarted = onStarted; this.onGenerated = onGenerated; this.onAudio = onAudio; this.audioSeen = false;
-    this.hold = hold; this.onHeld = onHeld; this.onText = onText; this.textAnnounced = false;
+    this.hold = hold; this.holdPeek = holdPeek || hold; this.onHeld = onHeld; this.onText = onText; this.textAnnounced = false;
     this.woken = new Promise(resolve => { this.resolveWake = resolve; });
     this.faceBuilder = faceBuilder || ((snapshot, input, jali) => buildProviderFacialTimeline(snapshot, input, jali));
     // Optional game-trained model on an analysis copy of the same PCM. The
@@ -62,10 +65,10 @@ export class ConvaiContinuousSpeech {
   get options() {
     return {token: this.token, onFrame: snapshot => this.frame(snapshot), pcmCursor: () => this.pcmCursor(),
       // A held look-ahead turn only buffers: the host may poll it less often.
-      pollMs: () => this.hold() ? 120 : undefined,
+      pollMs: () => this.holdPeek() ? 120 : undefined,
       // Held: until the game submits the turn. Admitted but no lease read yet: until the game writes its lease. Afterwards the 40 ms poll
       // alone carries the stream (a wake on every lease refresh would only add polls).
-      wake: () => this.hold() ? this.woken : this.controlAt === undefined ? this.leaseWake?.() : undefined};
+      wake: () => this.holdPeek() ? this.woken : this.controlAt === undefined ? this.leaseWake?.() : undefined};
   }
 
   // Next analysis frame wanted from the renderer, or undefined (no model).

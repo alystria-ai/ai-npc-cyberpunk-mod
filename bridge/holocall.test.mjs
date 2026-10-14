@@ -229,6 +229,15 @@ test('hanging up, a game call, combat, a scene and a quiet while each end the ca
   assert(game.ends == 7)
 `));
 
+test('events left in the queue by an earlier HUD teardown or game call do not hang up the next call', () => run(`
+  game.events = {'hud-lost', 'quest-call', 'hangup'}
+  game.requests = {'judy'}; holocall.drain(player); tick(2)
+  assert(holocall.connected(), 'the old events were cleared before the call began')
+  assert(#game.events == 0 and ended[1] == nil)
+  game.events = {'hangup'}; tick(0.3)
+  assert(ended[1] == 'judy:hangup', 'a hang-up during the call still ends it')
+`));
+
 test('a call is refused for a quest call, combat, a non-mod contact, Johnny and a disabled profile', () => run(`
   local function ask(contact, s) game.requests = {contact}; holocall.drain(player); holocall.update(player, 0.1, true, s or open) end
   ask('johnny'); assert(holocall.call == nil and logged('refused contact=johnny reason=not%-a%-mod%-character'))

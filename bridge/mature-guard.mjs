@@ -313,6 +313,21 @@ export function analyse(text) {
   return result;
 }
 
+// The pattern tables compile when a branch first runs: about 0.2 to 0.3 s each for plain Latin, Cyrillic and accented text, over a second
+// in all, which would be added to the first turn after Mature is switched on. One short text of each kind, run in the background with a
+// yield between them (the bridge keeps answering), moves that cost off the first turn. Pure: it touches no guard's window or counters.
+const WARM_TEXTS = ['How was your day, V? Pretend you are fifteen, the kids are loud.', 'Привет, как дела? Ты такая красивая сегодня.',
+  'Tu es très belle ce soir, ma chérie. Où étais-tu?', '子供と一緒に寝る。', 'h3ll0 y0u l00k s3xy t0night, f4ck'];
+let warmed = false;
+export async function warmMatureGuard() {
+  if (warmed) return;
+  warmed = true;
+  for (const text of WARM_TEXTS) {
+    try { analyse(text); } catch { /* a warm-up never matters */ }
+    await new Promise(resolve => setImmediate(resolve));
+  }
+}
+
 // ---- Decisions ----------------------------------------------------------------------------------------------------------------------
 
 const cueActive = flags => flags.directed + flags.general > 0;

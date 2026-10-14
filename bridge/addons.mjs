@@ -572,7 +572,10 @@ export class AddonHost {
     const started = performance.now();
     try {
       const result = fn(args);
-      if (result && typeof result.then === 'function') throw Error('hooks must return a value, not a promise');
+      if (result && typeof result.then === 'function') {
+        result.then(undefined, () => {});   // an async hook that rejects must not become an unhandled rejection (it ends the bridge)
+        throw Error('hooks must return a value, not a promise');
+      }
       const ms = performance.now() - started;
       if (ms > ADDON_LIMITS.hookMs) this.log(`Add-on ${addonId}: ${name} took ${ms.toFixed(1)} ms; keep hooks under ${ADDON_LIMITS.hookMs} ms`);
       return result;
@@ -1052,7 +1055,9 @@ export class AddonHost {
   /** Files the bridge should re-read when the game replaces them (bridge/file-wake.mjs). Empty with no add-ons. */
   watchHandlers(runtime, {read = path => readFile(path, 'utf8')} = {}) {
     if (!this.active) return {};
-    const reader = (name, apply) => () => read(resolve(runtime, name)).then(raw => apply(raw), () => apply(''));
+    // A file that cannot be read keeps what was last seen: the game replaces these files by removing then renaming, so a read in
+    // between finds nothing, and an empty document would drop every mode and prepared stock line (a missing file starts empty anyway).
+    const reader = (name, apply) => () => read(resolve(runtime, name)).then(raw => apply(raw), () => undefined);
     return {[ADDON_STATE_FILE]: reader(ADDON_STATE_FILE, raw => this.observeState(raw)),
       [ADDON_SETTINGS_FILE]: reader(ADDON_SETTINGS_FILE, raw => this.observeSettings(raw))};
   }

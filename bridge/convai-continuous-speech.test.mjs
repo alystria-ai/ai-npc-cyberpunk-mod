@@ -426,3 +426,16 @@ test('the playback wake: held turns wake on release, admitted turns wake on the 
   assert.equal(held.stream.options.wake(), held.stream.woken, 'a held look-ahead still wakes on its release');
   assert.equal(fixture(owner).stream.options.wake(), undefined, 'no lease latch: nothing to wake on');
 });
+
+test('the host polls never call hold(): only a frame with audio may decide (a V line still being synthesized survives)', () => {
+  let holdCalls = 0, peek = false;
+  const stream = new ConvaiContinuousSpeech({input: owner, profile: {key: 'judy-alvarez'}, token: 'continuous-1',
+    current: async () => true, readControl: async () => '{}', writeState: async () => true, writeReply: async () => true,
+    hold: () => { holdCalls++; return false; }, holdPeek: () => peek});
+  assert.equal(stream.options.pollMs(), undefined); void stream.options.wake();
+  assert.equal(holdCalls, 0);
+  peek = true;
+  assert.equal(stream.options.pollMs(), 120);
+  assert.equal(stream.options.wake(), stream.woken);
+  assert.equal(holdCalls, 0);
+});

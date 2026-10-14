@@ -170,6 +170,7 @@ function M.new(options)
     local pending = {}
     local pendingCount = 0
     local waiting = {}          -- serial -> reason a wanted crouch is held back (logged once per reason)
+    local failedIn = {}         -- serial -> episode in which the stance call raised an error: not tried again until V's stance changes
     local lastSay = {}
 
     local function label(entry) return tostring(entry.profileKey or entry.name or entry.serial) end
@@ -258,6 +259,7 @@ function M.new(options)
         local ok, err = native.set(entry.npc, 'Crouch')
         if not ok then
             say(entry, 'crouch failed: ' .. tostring(err), true)
+            failedIn[entry.serial] = episode
             dropRaise(entry, record)
             if records[entry.serial] == record then records[entry.serial] = nil; holding = holding - 1 end
             return false
@@ -465,6 +467,8 @@ function M.new(options)
                     if p and not p.level then clearPending(entry.serial) end
                     return
                 end
+                -- The stance call itself raised an error in this crouch of V's: the same call is not repeated every sync.
+                if failedIn[entry.serial] == episode then return end
                 -- A raised state not yet put back stays ours: this crouch takes it over.
                 local inherited = p and p.level or nil
                 clearPending(entry.serial)
@@ -522,6 +526,9 @@ function M.new(options)
         for serial in pairs(waiting) do
             if not present[serial] then waiting[serial] = nil end
         end
+        for serial in pairs(failedIn) do
+            if not present[serial] then failedIn[serial] = nil end
+        end
     end
 
     function T.crouched() return crouched == true end
@@ -532,7 +539,7 @@ function M.new(options)
     -- A reload or world change: forget everything without a native call.
     function T.abandon()
         records, lastSay, holding, crouched, dirty = {}, {}, 0, nil, false
-        pending, pendingCount, waiting = {}, 0, {}
+        pending, pendingCount, waiting, failedIn = {}, 0, {}, {}
     end
 
     return T
