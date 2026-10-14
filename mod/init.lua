@@ -2212,9 +2212,12 @@ end
 -- The bridge adds errorCode to a failed reply when Convai refused it for the plan or the key (bridge/convai-quota.mjs), and
 -- keyNotice to the first reply that ran without long-term memory on a limited plan (bridge/convai-key.mjs). The text says
 -- what to do; it never names where the shared key comes from.
--- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). Phone Chat words the same line (phone-chat.lua).
+-- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). The game's warning line shows this in upper case
+-- at 35 pt, wraps it at 800 px and draws a frame sized for one or two lines, so the notice is two short lines (about 90
+-- letters, at most 1,400 px of upper-case Rajdhani Semi-Bold; bridge/daily-notice-fit.test.mjs) and stays 9 s (notices.showS).
+-- Phone Chat has room for the long version and keeps it (phone-chat.lua), which says where the details are.
 local function dailyLimitText()
-    return ui.t('You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows thousands of turns a day. Local AI has no limit: it runs on your PC.')
+    return ui.t('Today’s Convai free tier limit is reached. Settings: Mistral is free, Local AI has no limit.')
 end
 
 local function keyNoticeText(code)

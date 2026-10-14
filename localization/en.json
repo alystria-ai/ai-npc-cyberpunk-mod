@@ -45,7 +45,7 @@
     ]
   },
   "counts": {
-    "strings": 808,
+    "strings": 809,
     "dynamicTemplates": 57,
     "contexts": 36
   },
@@ -681,6 +681,7 @@
     "This manager action is unavailable. Reopen the manager and try again.": "This manager action is unavailable. Reopen the manager and try again.",
     "This setting must be on or off.": "This setting must be on or off.",
     "This video cannot be played here. Choose another one.": "This video cannot be played here. Choose another one.",
+    "Today’s Convai free tier limit is reached. Settings: Mistral is free, Local AI has no limit.": "Today’s Convai free tier limit is reached. Settings: Mistral is free, Local AI has no limit.",
     "Too many example lines. Keep {max} or fewer.": "Too many example lines. Keep {max} or fewer.",
     "Too many memories. Keep {max} or fewer.": "Too many memories. Keep {max} or fewer.",
     "Too many rules. Keep {max} or fewer.": "Too many rules. Keep {max} or fewer.",
@@ -1750,6 +1751,7 @@
       "This contact cannot take a holocall.",
       "This is a short report: the conversation service was not available to build the full one.",
       "This video cannot be played here. Choose another one.",
+      "Today’s Convai free tier limit is reached. Settings: Mistral is free, Local AI has no limit.",
       "Too many example lines. Keep {max} or fewer.",
       "Too many memories. Keep {max} or fewer.",
       "Too many rules. Keep {max} or fewer.",
@@ -1802,7 +1804,6 @@
       "Your message was not sent. Open the text box again and retype it.",
       "Your own key, without memory",
       "Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.",
-      "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows thousands of turns a day. Local AI has no limit: it runs on your PC.",
       "all characters you have talked to",
       "an embedding model, not a chat model",
       "another model",
@@ -3089,7 +3090,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2226"
+        "mod/init.lua:2229"
       ]
     },
     "Convai free tier": {
@@ -3459,7 +3460,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2591"
+        "mod/init.lua:2594"
       ]
     },
     "Cyberpunk Convai: companion manager": {
@@ -3467,7 +3468,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2589"
+        "mod/init.lua:2592"
       ]
     },
     "Cyberpunk Convai: group text chat": {
@@ -3475,7 +3476,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2586"
+        "mod/init.lua:2589"
       ]
     },
     "Cyberpunk Convai: group voice chat": {
@@ -3483,7 +3484,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2588"
+        "mod/init.lua:2591"
       ]
     },
     "Cyberpunk Convai: talk by text": {
@@ -3491,7 +3492,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2585"
+        "mod/init.lua:2588"
       ]
     },
     "Cyberpunk Convai: talk by voice": {
@@ -3499,7 +3500,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:2587"
+        "mod/init.lua:2590"
       ]
     },
     "DETAILS  {page} / {pages}": {
@@ -4429,7 +4430,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2257"
+        "mod/init.lua:2260"
       ]
     },
     "Local AI could not answer that. Try again in a moment.": {
@@ -4437,7 +4438,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2253"
+        "mod/init.lua:2256"
       ]
     },
     "Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.": {
@@ -4445,7 +4446,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2249"
+        "mod/init.lua:2252"
       ]
     },
     "Local AI could not start. Check Local AI in Settings > Conversation provider.": {
@@ -4643,7 +4644,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2241",
+        "mod/init.lua:2244",
         "mod/phone-chat-style.lua:53",
         "mod/phone-chat.lua:10"
       ]
@@ -4653,7 +4654,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2266"
+        "mod/init.lua:2269"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -4661,7 +4662,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2268"
+        "mod/init.lua:2271"
       ]
     },
     "Mistral: free limit reached for now": {
@@ -4694,7 +4695,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2243",
+        "mod/init.lua:2246",
         "mod/phone-chat-style.lua:54",
         "mod/phone-chat.lua:11"
       ]
@@ -4926,7 +4927,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3112"
+        "mod/init.lua:3115"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -6464,7 +6465,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2263"
+        "mod/init.lua:2266"
       ]
     },
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": {
@@ -6505,7 +6506,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2245",
+        "mod/init.lua:2248",
         "mod/phone-chat-style.lua:55",
         "mod/phone-chat.lua:12"
       ]
@@ -6675,7 +6676,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2222"
+        "mod/init.lua:2225"
       ]
     },
     "The conversation service could not start. Restart the game, or see Help in Settings.": {
@@ -7168,6 +7169,14 @@
       ],
       "references": [
         "mod/youtube-tv.lua:36"
+      ]
+    },
+    "Today’s Convai free tier limit is reached. Settings: Mistral is free, Local AI has no limit.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:2220"
       ]
     },
     "Too many example lines. Keep {max} or fewer.": {
@@ -7968,7 +7977,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2224"
+        "mod/init.lua:2227"
       ]
     },
     "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.": {
@@ -7976,7 +7985,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2228"
+        "mod/init.lua:2231"
       ]
     },
     "Your Convai plan has no room for conversation memory, so companions will not remember past talks.": {
@@ -7984,7 +7993,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2236"
+        "mod/init.lua:2239"
       ]
     },
     "Your car has no free passenger seat for V.": {
@@ -8130,11 +8139,9 @@
     },
     "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows thousands of turns a day. Local AI has no limit: it runs on your PC.": {
       "contexts": [
-        "phone.chat",
-        "ui.localized"
+        "phone.chat"
       ],
       "references": [
-        "mod/init.lua:2217",
         "mod/phone-chat-style.lua:52",
         "mod/phone-chat.lua:7"
       ]
@@ -8161,7 +8168,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2262"
+        "mod/init.lua:2265"
       ]
     },
     "could not be read": {
@@ -8447,7 +8454,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2488"
+        "mod/init.lua:2491"
       ]
     },
     "{name} joined your group.": {
@@ -9182,7 +9189,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:2488"
+        "mod/init.lua:2491"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

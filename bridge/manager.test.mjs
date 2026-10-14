@@ -5593,11 +5593,11 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     id, text = notice({errorCode = 'key-rejected'}); assert(id == 'quota-exhausted' and text:find('did not accept', 1, true))
     id, text = notice({errorCode = 'key-memory-needed'}); assert(id == 'quota-exhausted' and text:find('memory', 1, true))
     id, text = notice({errorCode = 'daily-limit', error = 'x'})
-    -- The notice names the free tier, when it resets, and the two ways on: Mistral (a rounded estimate) and Local AI (no limit).
-    assert(id == 'daily-limit' and text:find('Convai free tier limit', 1, true) and text:find('resets tomorrow', 1, true)
-      and text:find('Mistral (free, with your own free key) allows thousands of turns a day', 1, true)
-      and text:find('Local AI has no limit', 1, true) and text:find('Settings > Conversation provider', 1, true), text)
-    assert(not text:lower():find('recommend', 1, true) and #text <= 270, 'short enough for the notice line: ' .. #text)
+    -- The notice names the free tier and today, where to go (Settings) and the two ways on: Mistral (free) and Local AI (no limit).
+    -- It is two short lines in the game's warning frame (about 90 letters; the width itself is checked in bridge/daily-notice-fit.test.mjs).
+    assert(id == 'daily-limit' and text:find('Convai free tier limit', 1, true) and text:find('Today', 1, true)
+      and text:find('Mistral is free', 1, true) and text:find('Local AI has no limit', 1, true) and text:find('Settings', 1, true), text)
+    assert(not text:lower():find('recommend', 1, true) and #text <= 95, 'short enough for two lines of the warning frame: ' .. #text)
     assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shared', 1, true) and not text:lower():find('project', 1, true))
     -- No own-key offer, no paid tier, no "includes voice", no "text only", no credentials wording.
     assert(not text:find('Convai API key', 1, true) and not text:find('convai.com', 1, true) and not text:find('phone verification', 1, true), text)
