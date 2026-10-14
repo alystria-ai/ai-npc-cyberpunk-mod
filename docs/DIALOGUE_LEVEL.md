@@ -114,9 +114,10 @@ scripts\audio-level\Measure-OutputLoudness.ps1 -Seconds 90
 ### The game's own voice for a companion
 
 Companions are copies without the game's Talk interaction, so there is nothing
-to compare with by ear. With **Developer mode** on, **Companion Manager >
-Current party** shows a "{name} · game voice" row (Play) under each ready copy.
-It queues one of that character's vanilla voiceset lines and plays it when the
+to compare with by ear. The "{name} · game voice" row (Play) that **Companion
+Manager > Current party** used to show under each ready copy in Developer mode
+was removed on 2026-10-15; the queue function behind it (`gameVoice` in
+`mod/manager-party.lua`) is kept, but no menu row calls it now. It queues one of that character's vanilla voiceset lines and plays it when the
 menu closes, through the game's VO path (a `SoundPlayVo` event on the copy,
 what `GameObject.PlayVoiceOver` sends; frustum and distance checks off). Each
 press asks for the next context: `greeting`, `bump`, `start_combat`,
@@ -140,10 +141,9 @@ ChatterHelper.PlayVoiceOver(Game.GetTargetingSystem():GetLookAtObject(Game.GetPl
    other app playing sound. Stand 1 to 1.5 m in front of the companion,
    facing them, with the camera still.
 2. Developer start: `scripts\audio-level\Measure-OutputLoudness.ps1 -Seconds 90`.
-3. Within those 90 s: open Companion Manager > Current party, press Play on
-   the companion's game voice row, close the menu, and wait for the line.
-   Repeat (each press is another line) until two or three game lines have
-   played. Then ask the companion one short question by text or voice and let
+3. Within those 90 s: play two or three of the companion's own game lines by
+   another route (the console line above on the copy, as with any world NPC;
+   the Current party Play row is gone). Then ask the companion one short question by text or voice and let
    the whole reply play. Keep 2 s of quiet between sounds.
 4. The table lists each segment with its source; `Cyberpunk2077` rows are the
    game lines (or Omni replies), `msedge` rows are Pocket/Convai. Set

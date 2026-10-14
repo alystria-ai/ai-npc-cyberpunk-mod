@@ -1759,13 +1759,6 @@ local function schema()
                     member.serial and 'Dismiss' or 'Cancel invitation',
                     ui.t('Remove only this copy from your group.') .. (problem and ('\n' .. ui.t(problem)) or ''),
                     function() return queue.dismiss(id) end, nil, {description = true})
-                -- Developer mode: the character's own game voice as a loudness
-                -- reference for the companion voice (docs/DIALOGUE_LEVEL.md).
-                if member.serial and member.state == 'ready' and developerMode() then
-                    rows[#rows + 1] = action('gamevoice:' .. id, ui.t('{name} · game voice', {name = display}), 'Play',
-                        'Plays one of this character’s own lines from the game, to compare with their companion voice.\n\nYou hear it when you return to gameplay. Each press tries another line; some characters have none.',
-                        function() return queue.gameVoice(id) end, nil, {label = true})
-                end
                 if problem then
                     local text = (member.baseName or member.name) .. ': ' .. ui.t(problem)
                     rows[#rows + 1] = readonly('error:' .. id, text, '', text, {label = true, description = true})
