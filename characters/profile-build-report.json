@@ -381,7 +381,7 @@
         "sample.work",
         "sample.memorial"
       ],
-      "sourceContentSha256": "a07b788a81b5fb6a0d3156da59ed373d15636ef15d3507130e935c8a1ce5f456",
+      "sourceContentSha256": "f4da5f90783684330138337eacd0cb46acf514eb132f548c3b295dd689628104",
       "referencesVerified": 167,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
@@ -518,7 +518,7 @@
         "contacts",
         "district"
       ],
-      "sourceContentSha256": "2947ab8a75229240f0670fa1e8a48b0b1e5687922830ada3fa4f85312e65482e",
+      "sourceContentSha256": "be1fa5e3f8d6ab2de8b89b73404f6ba3d1cc9f1b14065104197c2a4a67e69981",
       "referencesVerified": 332,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
@@ -976,7 +976,7 @@
         "original.07",
         "original.08"
       ],
-      "sourceContentSha256": "a8da578ffe49e2837ce04fadd81a8b4a615d7d79c4435053a25de81ed10d54b4",
+      "sourceContentSha256": "96d553e74c9837ac85231ca6e3b54e3470a0cee693f039ba6184cfbe72b024a4",
       "referencesVerified": 268,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
@@ -1047,7 +1047,7 @@
         "original.07",
         "original.08"
       ],
-      "sourceContentSha256": "67cfa7bc854c707b2d33c440c99e6fd61c6990cc1c8d721514dfe8a4b4449e41",
+      "sourceContentSha256": "ca88d20bf26f5b31da6c7adbfa0afa0ca3557a94e6aa0b9f18819e1c332751af",
       "referencesVerified": 632,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
@@ -1324,7 +1324,7 @@
         "on-clock",
         "toast"
       ],
-      "sourceContentSha256": "1b514a7bc4d16700b22e52eaed976581fa8834444fd313f22bbcf3a6f6cc878d",
+      "sourceContentSha256": "5645cfb12f6fb0674d9a8e934cca233d81544df61ee48292d3c579c741b44203",
       "referencesVerified": 446,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
@@ -1897,10 +1897,10 @@
       "key": "alex",
       "words": 975,
       "speakingStyleWords": 157,
-      "sampleDialogueWords": 225,
+      "sampleDialogueWords": 230,
       "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 10,
-      "researchRevision": "3a2a2569ffa7f1797b027b6ca31a9d8319721e728ba81041d7b619c2f44b7f39"
+      "researchRevision": "07e6f4c999605b8b2005438d0b72f899419b6fcc0ea64462d887e211d3b26309"
     },
     {
       "key": "alt-cunningham",
@@ -2003,12 +2003,12 @@
     },
     {
       "key": "claire-russell",
-      "words": 769,
+      "words": 774,
       "speakingStyleWords": 202,
-      "sampleDialogueWords": 176,
+      "sampleDialogueWords": 185,
       "voice": "Katie (Husky Young-Adult American Female)",
       "sources": 7,
-      "researchRevision": "730a971fcac1ea01869a8fbfe10f8657385eaff70fce37d83b4d0b3112212c9c"
+      "researchRevision": "13af550c5f085c84fdcfad8e009b1ad438db7152d5528bc169cc55f4118ef9c8"
     },
     {
       "key": "coach-fred",
@@ -2057,12 +2057,12 @@
     },
     {
       "key": "dino-dinovic",
-      "words": 787,
+      "words": 790,
       "speakingStyleWords": 165,
-      "sampleDialogueWords": 216,
+      "sampleDialogueWords": 224,
       "voice": "Ryan (Expressive Young-Adult American Male)",
       "sources": 7,
-      "researchRevision": "ae42e3faad8b448343416456f48d76847cd69b48c6e23658bf6dc6c2c7c58b1b"
+      "researchRevision": "8d6596e9a10eb7e21d854f603c75439d12e440a3c0e4b12edcf2005301357c74"
     },
     {
       "key": "elizabeth-peralez",
@@ -2192,7 +2192,7 @@
     },
     {
       "key": "liam-northom",
-      "words": 482,
+      "words": 538,
       "speakingStyleWords": 157,
       "sampleDialogueWords": 132,
       "voice": "Ethan (Calm Young-Adult American Male)",
@@ -2228,16 +2228,16 @@
     },
     {
       "key": "mama-welles",
-      "words": 701,
+      "words": 702,
       "speakingStyleWords": 126,
-      "sampleDialogueWords": 236,
+      "sampleDialogueWords": 232,
       "voice": "Linda (Deep Middle-Aged American Female)",
       "sources": 7,
-      "researchRevision": "42dc10f7be87789530670dba866ab402741e22e7eeaf108aabc923c9edb6e451"
+      "researchRevision": "471aba44fda47f7800a4de651434a0ed952f41a7f7060df5af862f9a27eef66c"
     },
     {
       "key": "mark-bana",
-      "words": 492,
+      "words": 565,
       "speakingStyleWords": 143,
       "sampleDialogueWords": 131,
       "voice": "Arthur (Husky Middle-Aged British Male)",
@@ -2255,12 +2255,12 @@
     },
     {
       "key": "misty-olszewski",
-      "words": 843,
+      "words": 848,
       "speakingStyleWords": 121,
-      "sampleDialogueWords": 251,
+      "sampleDialogueWords": 250,
       "voice": "Helen (Gentle Middle-Aged American Female)",
       "sources": 11,
-      "researchRevision": "1b9b885ee095834b37382abf32cf12c7cb25eba99f76f2608b07273fa783b735"
+      "researchRevision": "600ae16cda88f43fba318e0b2bc0143c6c70ecb64f010c9be7ba86881294b454"
     },
     {
       "key": "mitch-anderson",
@@ -2354,12 +2354,12 @@
     },
     {
       "key": "pepe-najarro",
-      "words": 492,
+      "words": 493,
       "speakingStyleWords": 126,
-      "sampleDialogueWords": 150,
+      "sampleDialogueWords": 152,
       "voice": "Lucas (Light Middle-Aged American Male)",
       "sources": 7,
-      "researchRevision": "2f97fd9222f1326ef1afedfc9e00f1f7112f66e7d0d13b2001ee756932d99153"
+      "researchRevision": "c07e555a94d3a522186fa7b4fe94c2a89bfda2ee1c6cad57466f1b6fc06ac939"
     },
     {
       "key": "placide",
@@ -2408,21 +2408,21 @@
     },
     {
       "key": "robert-wilson",
-      "words": 486,
+      "words": 487,
       "speakingStyleWords": 112,
-      "sampleDialogueWords": 166,
+      "sampleDialogueWords": 163,
       "voice": "Lucas (Light Middle-Aged American Male)",
       "sources": 4,
-      "researchRevision": "df67218c5383bd676e316ef0ce9147f2c189a521629f66fdb992e28810a3c895"
+      "researchRevision": "8e1016d51b2ce1c46a1c10218d8b9eabbf41ad406a457b1cd90fe3bbceeb4c17"
     },
     {
       "key": "rogue-amendiares",
       "words": 999,
       "speakingStyleWords": 154,
-      "sampleDialogueWords": 212,
+      "sampleDialogueWords": 214,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
       "sources": 14,
-      "researchRevision": "df7809b7c799685facea168ef8a0606c1044f09e1a5d03b2a59d0ba2dd609ee6"
+      "researchRevision": "7650a3ba5ccd4533dc7d81fa6ef2af1c3cb6754a99028e4880d14d12205a2cea"
     },
     {
       "key": "sandra-dorsett",
@@ -2462,12 +2462,12 @@
     },
     {
       "key": "shank",
-      "words": 535,
+      "words": 542,
       "speakingStyleWords": 140,
-      "sampleDialogueWords": 178,
+      "sampleDialogueWords": 176,
       "voice": "Cole (Husky Middle-Aged American Male)",
       "sources": 4,
-      "researchRevision": "ddf377025478f77c8af85f0f45707c9186184476a380f18b4a170c5da8ccaeaa"
+      "researchRevision": "fdd74793553f4b7c6796a90d5e0e973fe89af1fcbb4ec673fa68b086cbe9139e"
     },
     {
       "key": "solomon-reed",
