@@ -182,7 +182,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 
 | Method | What it does |
 |---|---|
-| `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers, playThrough, voiceFrom, approach, face}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
+| `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers, playThrough, voiceFrom, showsReply, approach, face}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
 | `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, menus})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
 | `handle:setMode(speakerId, modeId)` | Switches the speaker's personality (a mode in the manifest). It is sent with every turn and in `runtime/addon-state.json`. |
 | `handle:remember(speakerId, text)` | Keeps a memory the speaker can call back to later, for example "V spared the Tyger Claw who begged." At most 300 characters; a repeat is ignored. The bridge keeps the last 12 per speaker across game sessions. |
@@ -222,6 +222,14 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
   (subtitles, availability, the talk key), but his voice comes from the gun in V's hand. It is asked once when a reply starts and
   only changes the pan and distance of the browser voice (continuous Pocket playback). An object that is detached, unreadable or more
   than 3 m from the camera is dropped for the rest of that reply and the anchor is used. The native Omni phrases still play on the anchor.
+- `showsReply(text, event) -> boolean` (optional): the add-on shows its remarks itself, so they need no subtitle. Asked **once per
+  remark**, when the reply text arrives and before anything is shown. `true`: the main mod plays that remark's voice **without a
+  subtitle** (speech.lua skips every caption call that follows the voice). `false`, nothing or an error: the subtitle is shown as always,
+  and the log says `Remark subtitle kept: <speaker> (...)` once per remark. Only remarks are asked; V's own conversation with the speaker
+  keeps its subtitle. If the voice cannot play (voice off, playback failed) the text is shown as a subtitle anyway, so a line is never
+  lost. The add-on answers `true` only when it can show the text at that moment (Skippy: the gun's hologram is reachable); it shows
+  the text itself on `remarkStarted` (the `text` field). A main mod older than this option ignores it and shows the subtitle: the
+  add-on keeps working. Without add-ons nothing is asked (the main mod's code path is the same as before).
 - `approach(player) -> GameObject` (optional): the anchor before V reaches it (the Delamain cab V walks up to, while the `'vehicle'`
   anchor is still empty). Only a remark with `hold` uses it, and only while the anchor itself is not there; talk, group rounds and
   every other remark never do. When V then gets in, the anchor is the same cab, so the line plays on.
@@ -287,13 +295,20 @@ handle:replaceGameLines({name = 'Skippy',
     match = function(line, context) return isSkippy(line) end,   -- cheap: a few string reads; context.typeName() resolves the line type
     active = function() return S.holding end,                     -- optional: only while this is true (V holds the gun, V sits in the cab)
     audio = {'vo_3d_important'},                                  -- optional: Wwise events stopped on the line's speaker (at most 4)
-    audioVerified = false})                                       -- true once it is heard in the game that the voice really stops
+    audioVerified = false,                                        -- true once it is heard in the game that the voice really stops
+    silence = function(line, context)                             -- optional: the add-on's own extra way to silence a muted line
+        return 'what was done', function() end                    --   returns a short text for the log and a function that is repeated
+    end})
 ```
 
 - **Per add-on option, on by default:** the add-on's settings section gets **Replace the game's own lines** (only when a rule is
   declared) and **Mark our lines in the subtitles**. At most 4 rules per add-on; `replaceGameLines` and `markLines` are reserved ids.
-  An add-on may fix either for good with `handle:settings{fixed = {replaceGameLines = true, markLines = false}}` (see Settings); its
-  toggle is then not shown and a saved value is ignored.
+  An add-on that wants no such switches declares `fixed` in `handle:settings` (see Settings): `fixed = {replaceGameLines = true,
+  markLines = false}` removes both toggles and applies those values whatever the player saved before.
+- **`silence(line, context) -> text, again`** (optional): runs once for each muted line, right after the main mod's own voice stop, for
+  whatever else the add-on knows to silence a line (Skippy: the same stops on the gun entity, which the line's own speaker may not be, and
+  the game's scene-interrupt fact). `text` (at most 80 letters) is appended to the `audio=` part of the `muted game line` log line; `again`
+  is called with the voice stop's repeats at 0.3, 0.8 and 1.6 s. An error in it changes nothing else. Not per frame.
 - **What is silenced is only the voice and the subtitle of the lines `match` claims, only while `active()` holds and the add-on is
   enabled.** The scene, the quest, the map, the payment and every other character's line run as always (a line is never skipped
   or blocked). The main mod never decides who the character is: the add-on's own `match` does, and a line of the mod's own replies is
@@ -658,10 +673,10 @@ handle:settings({title = 'Skippy', description = 'The talking smart pistol.', it
   fight** settings first.
 - `remarkCap = false` (next to `title` and `description`) hides **Most remarks per fight** for an add-on whose remarks are not fight
   remarks (Delamain's cab talk). The saved value is then unused and the default guard of 30 stays in force.
-- `fixed = {replaceGameLines = true|false, markLines = true|false}` (next to `title`) takes those two on/off built-ins away from the
-  player and sets them for good: the toggle is not shown, a value saved earlier is ignored, and a staged change of it is refused.
-  Skippy and the Delamain cab use `{replaceGameLines = true, markLines = false}`. Without `fixed` (or with a non-boolean value) the
-  player's choice applies, default on.
+- `fixed = {replaceGameLines = true|false, markLines = true|false}` (next to `title`) takes the two on/off built-ins away from the
+  player and sets them for good: the toggle is not shown, cannot be staged, and the declared value applies even when an older install
+  saved the other one. Only the keys given are fixed; the other toggle stays. An add-on without `fixed` is unchanged. Skippy fixes both
+  (always replaced, never marked) to keep his settings page to one choice and the two timing settings; the Delamain cab fixes both too.
 - `id` uses letters, digits and `_`. `remarkGap`, `remarkCap`, `remarkGapChosen`, `remarkRate`, `replaceGameLines` and `markLines` are
   reserved for the built-in settings (the last two: **Replace the game's own lines**, only with a rule, and **Mark our lines in the
   subtitles**, for every add-on with a speaker). At most 24 items; `kind` is `bool` or
@@ -678,7 +693,8 @@ handle:settings({title = 'Skippy', description = 'The talking smart pistol.', it
 - The speaker then speaks with the player's local voice engine (Pocket, Voxtral or OmniVoice).
 - Without a voice entry, or with voice playback off, the speaker shows subtitles only. The Convai cloud voice is never used.
 - Subtitles show the speaker's name (`subtitles.lua` dialogue mode, fallback `voice-only`). Audio comes from the anchor: V for
-  `'player'`, the vehicle for `'vehicle'`.
+  `'player'`, the vehicle for `'vehicle'`. A speaker whose `showsReply` says yes for a remark has no subtitle for it (see the speaker
+  options); the text is then the add-on's to show.
 
 ## Evaluating a speaker
 

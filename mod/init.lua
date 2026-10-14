@@ -2532,6 +2532,8 @@ if convaiAddons then
     seams.faceService = function()
         return Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
     end
+    -- An add-on remark whose speaker shows the text itself goes without a subtitle (addons.lua hideCaption), asked once per reply.
+    speech.hideCaption = function(profileKey, requestId) return convaiAddons.live and convaiAddons.hideCaption(profileKey, requestId) or false end
     -- An automatic add-on remark: the same request file, reply path and playback as every other turn.
     seams.submit = function(context, anchor)
         if active or pending or automatic or microphone.context or groupChat.round then return false end

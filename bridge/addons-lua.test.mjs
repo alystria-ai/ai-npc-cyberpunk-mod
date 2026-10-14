@@ -898,9 +898,11 @@ test('init.lua: every call into the add-on API is skipped until an add-on is liv
   const init = code('init.lua');
   assert.match(init, /local loaded, module = pcall\(dofile, 'addons\.lua'\)\s+convaiAddons = loaded and type\(module\) == 'table' and module or nil/);
   const calls = [...init.matchAll(/convaiAddons\.(\w+)\(/g)].map(match => match[1]);
-  assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'captionName', 'decorate', 'faceActor', 'gameLine', 'isSpeaker', 'lineRulesWanted', 'matchLine', 'mutedLine', 'participantLive', 'replyError', 'talkCandidates', 'voiceSource']);
+  assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'captionName', 'decorate', 'faceActor', 'gameLine', 'hideCaption', 'isSpeaker', 'lineRulesWanted', 'matchLine', 'mutedLine', 'participantLive', 'replyError', 'talkCandidates', 'voiceSource']);
   // Where an add-on voice is heard from: asked by speech.lua once per voice-only reply, and only while an add-on is live.
   assert.match(init, /speech\.voiceSource = function\(profileKey, player\) return convaiAddons\.live and convaiAddons\.voiceSource\(profileKey, player\) or nil end/);
+  // An add-on remark whose speaker shows the text itself goes without a subtitle: asked by speech.lua once per voice-only reply, only while live.
+  assert.match(init, /speech\.hideCaption = function\(profileKey, requestId\) return convaiAddons\.live and convaiAddons\.hideCaption\(profileKey, requestId\) or false end/);
   // The game-line notice runs only for a live add-on: the dialogue module asks first (one function call per game subtitle line).
   assert.match(init, /onGameLineWanted = function\(\) return convaiAddons ~= nil and convaiAddons\.live == true end,\s+onGameLine = function\(seconds, kind, measured\) convaiAddons\.gameLine\(seconds, kind, measured\) end/);
   assert.match(init, /if key and not participants and convaiAddons and convaiAddons\.live and convaiAddons\.isSpeaker\(key\) then key = nil end/);
@@ -968,6 +970,128 @@ test('the face proxy forwards every facial call for an ordinary reply and drops 
     M.voiceOnly = true
     face.start(); face.sync(); face.pause(); face.stop(); face.hold(); face.beginExpression(); face.endExpression(); face.updateExpressions()
     assert(table.concat(calls, ',') == 'start,sync,updateExpressions,updateExpressions', table.concat(calls, ','))
+  `);
+});
+
+test('settings fixed by the add-on: the two on/off built-ins are not offered, cannot be changed, and apply as fixed whatever was saved', () => {
+  run(`${WORLD}
+    M.attach(host)
+    -- An older install saved the player's choices for the built-ins.
+    files['runtime/addon-settings.json'] = json.encode({version = 1, addons = {skippy = {replaceGameLines = false, markLines = true}, cab = {replaceGameLines = false, markLines = false}}})
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2})
+    assert(handle:replaceGameLines({name = 'Skippy', match = function(line) return line.speakerName == 'Skippy' end}))
+    -- Before the add-on declares anything, nothing is fixed: the saved choices apply and both are offered.
+    assert(select(2, M.matchLine({speakerName = 'Skippy'}, {})) == false)
+    assert(M.captionName('addon-skippy-gun', 'Skippy') == 'Skippy (AI)')
+    local function labels(index)
+        local out = {}
+        for _, item in ipairs(M.settingsSections()[index or 1].items) do out[#out + 1] = item.label end
+        return table.concat(out, '|')
+    end
+    assert(labels():find('Replace the game', 1, true) and labels():find('Mark our lines', 1, true))
+    assert(handle:settings({title = 'Skippy', fixed = {replaceGameLines = true, markLines = false, nonsense = true}, items = {
+        {id = 'personality', label = 'Personality', kind = 'select', default = 1, elements = {'A', 'B'}}}}))
+    assert(labels() == 'Time between remarks|Most remarks per fight|Personality', labels())
+    assert(select(2, M.matchLine({speakerName = 'Skippy'}, {})) == true, 'fixed on, whatever was saved')
+    assert(M.captionName('addon-skippy-gun', 'Skippy') == 'Skippy', 'fixed off, whatever was saved')
+    assert(M.stageSetting('addon:skippy:replaceGameLines', false) == false and M.stageSetting('addon:skippy:markLines', true) == false)
+    assert(M.stageSetting('addon:skippy:personality', 2) and M.commitSettings())
+    assert(select(2, M.matchLine({speakerName = 'Skippy'}, {})) == true)
+    -- One fixed value does not hide the other built-in.
+    local cab = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    cab:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle', minGap = 2})
+    assert(cab:replaceGameLines({name = 'Delamain', match = function(line) return line.speakerName == 'Delamain' end}))
+    assert(cab:settings({fixed = {markLines = false}, items = {}}))
+    local text = labels(2)
+    assert(text:find('Replace the game', 1, true) and not text:find('Mark our lines', 1, true), text)
+    assert(M.captionName('addon-cab-voice', 'Delamain') == 'Delamain')
+    assert(M.stageSetting('addon:cab:replaceGameLines', true) and M.commitSettings())
+    -- An add-on that fixes nothing keeps both switches, as before.
+    local plain = assert(M.public.register({id = 'plain', name = 'Plain', version = '1.0.0', requires = '1.0'}))
+    plain:speaker({id = 'one', name = 'Plain', anchor = 'player', minGap = 2})
+    assert(plain:settings({items = {{id = 'x', label = 'X', kind = 'bool', default = true}}}))
+    assert(labels(3):find('Mark our lines', 1, true))
+    assert(M.captionName('addon-plain-one', 'Plain') == 'Plain (AI)')
+  `);
+});
+
+test('showsReply: an add-on that shows a remark itself is asked once per remark, and the main mod then hides that remark\'s subtitle', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    assert(select(2, handle:speaker({id = 'gun', name = 'Skippy', showsReply = 3})) == 'showsReply must be a function')
+    local asked, answer = {}, true
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2,
+        showsReply = function(text, event) asked[#asked + 1] = event .. ':' .. text; if answer == 'error' then error('boom') end; return answer end})
+    handle:speaker({id = 'plain', name = 'Plain', anchor = 'player', minGap = 2})
+    assert(M.hideCaption('addon-skippy-gun', 'nothing') == false, 'no remark, no answer')
+    assert(handle:remark('gun', {event = 'kill', priority = 3}))
+    tick()
+    local context = submitted[1].context
+    assert(M.hideCaption('addon-skippy-gun', context.requestId) == false, 'not asked until the reply text arrives')
+    M.replyText({requestId = 'other'}, 'not this one')
+    assert(#asked == 0)
+    M.replyText(context, 'Headshot.')
+    assert(#asked == 1 and asked[1] == 'kill:Headshot.')
+    assert(M.hideCaption('addon-skippy-gun', context.requestId) == true)
+    assert(M.hideCaption('addon-skippy-gun', 'another') == false and M.hideCaption('addon-skippy-plain', context.requestId) == false
+        and M.hideCaption('judy-alvarez', context.requestId) == false and M.hideCaption(nil, nil) == false)
+    -- It is for this remark only: the next one is asked again, and a refusal or an error keeps the subtitle and says so once.
+    assert(M.canDeliver(context, player) == true)
+    state.pendingId, state.speechId = nil, context.requestId
+    tick()
+    state.speechId = nil
+    tick()
+    answer = false
+    now = now + 20; tick(10)
+    assert(handle:remark('gun', {event = 'kill', priority = 3}))
+    tick()
+    local second = submitted[2].context
+    M.replyText(second, 'Another.')
+    assert(#asked == 2 and M.hideCaption('addon-skippy-gun', second.requestId) == false, 'a refusal keeps the subtitle')
+    local kept = 0
+    for _, line in ipairs(logs) do if line:find('Remark subtitle kept', 1, true) then kept = kept + 1 end end
+    assert(kept == 1, kept)
+    assert(M.canDeliver(second, player) == true)
+    state.pendingId, state.speechId = nil, second.requestId
+    tick(); state.speechId = nil; tick()
+    answer = 'error'
+    now = now + 20; tick(10)
+    assert(handle:remark('gun', {event = 'kill', priority = 3}))
+    tick()
+    local third = submitted[3].context
+    M.replyText(third, 'Third.')
+    assert(M.hideCaption('addon-skippy-gun', third.requestId) == false, 'a failing add-on never loses the line')
+    -- A speaker without showsReply is never asked and keeps its subtitle.
+    assert(M.canDeliver(third, player) == true)
+    state.pendingId, state.speechId = nil, third.requestId
+    tick(); state.speechId = nil; tick()
+    -- The answer is dropped with the remark.
+    answer = true
+    now = now + 20; tick(10)
+    assert(handle:remark('gun', {event = 'kill', priority = 3}))
+    tick()
+    local fourth = submitted[4].context
+    M.replyText(fourth, 'Fourth.')
+    assert(M.hideCaption('addon-skippy-gun', fourth.requestId) == true and M.hideCaption('addon-skippy-gun', third.requestId) == false)
+  `);
+});
+
+test('silence: an add-on\'s own extra silencing runs with the muted line and repeats on the tick, even for a rule with no voice event', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2})
+    assert(select(2, handle:replaceGameLines({match = function() end, silence = 3})) == 'silence must be a function')
+    assert(handle:replaceGameLines({name = 'Skippy', match = function(line) return line.speakerName == 'Skippy' end,
+        silence = function() return 'did it', function() end end}))
+    local rule = M.matchLine({speakerName = 'Skippy'}, {})
+    assert(type(rule.silence) == 'function' and #rule.audio == 0)
+    local sent = 0
+    M.mutedLine(rule, {seconds = 3, measured = true, id = '000007', subtitle = 'filtered', audio = 'no-event-known+did it', repeatStop = function() sent = sent + 1 end})
+    for _ = 1, 30 do tick(0.1) end
+    assert(sent == 3, 'repeated at 0.3, 0.8 and 1.6 s: ' .. sent)
   `);
 });
 

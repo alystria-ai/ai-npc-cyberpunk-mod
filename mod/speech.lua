@@ -158,6 +158,7 @@ function M.stop(reason)
         else captions.clear() end
     end
     M.streamReceipt = receipt()
+    M.captionHidden = nil
     M.stream, M.context, M.nativeCompleted = nil, nil, nil
     M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
     M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState, M.continuousHeardAll = nil, nil, nil, nil
@@ -238,6 +239,14 @@ function M.start(context, reply)
     M.holocall = type(context.holocall) == 'table'
     captions.holocall = M.holocall
     captions.voiceProfile = M.voiceOnly and context.profileKey or nil
+    -- An add-on remark whose speaker shows the text itself (addons.lua handle:speaker showsReply) is heard without a subtitle: asked once
+    -- here, and every caption call below that follows the voice is skipped. A subtitle shown because the voice could not play (the
+    -- captions.show calls) is never skipped, so the text is not lost. Anything that is not an add-on remark is never asked.
+    M.captionHidden = nil
+    if M.voiceOnly and type(M.hideCaption) == 'function' then
+        local ok, hidden = pcall(M.hideCaption, context.profileKey, context.requestId)
+        if ok and hidden == true then M.captionHidden = true; captions.clear() end
+    end
     -- An add-on speaker's face on a screen (see screenFace above), asked once for this reply.
     if M.voiceOnly and not M.holocall and type(M.faceSource) == 'function' then
         local ok, npc = pcall(M.faceSource, context.profileKey, Game.GetPlayer())
@@ -346,6 +355,7 @@ function M.abandon()
     if continuous then continuous.stop() end
     face.abandon()
     M.faceActor, M.faceEntity, M.faceContext, facial.screenEntity = nil, nil, nil, nil
+    M.captionHidden = nil
     M.streamReceipt = receipt()
     M.stream, M.context, M.target, M.nativeCompleted = nil, nil, nil, nil
     M.utterance = nil
@@ -424,7 +434,7 @@ end
 local function syncUtterance(position)
     local s = M.stream or M.continuousCaptions
     s.position = math.max(s.position or 0, position)
-    if not captions.enabled() then return end
+    if M.captionHidden or not captions.enabled() then return end
     -- Continuous speech carries audio-aligned cues (bridge/caption-cues.mjs);
     -- a new cue revision re-times the pages without redisplaying them.
     local cues = M.continuousCaptions == s and s.cues or nil
@@ -559,7 +569,7 @@ local function updateSpeech(delta)
         M.stalled = 0
         if M.state == 'starting' then
             M.state = 'playing'
-            if not s or s.version ~= 2 then captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity) end
+            if not M.captionHidden and (not s or s.version ~= 2) then captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity) end
             if s then
                 s.history[#s.history + 1] = {index = s.index, slot = M.slot, duration = M.duration,
                     firstCursor = pos, gapSeconds = s.completed > 0 and math.max(0, s.gap - pos) or 0,
@@ -576,8 +586,10 @@ local function updateSpeech(delta)
         local heard = math.max(0, pos - (M.outputDelay or 0))
         if s and s.version == 2 then syncUtterance(s.chunkStart + heard)
         else
-            if captions.enabled() and not captions.timed then captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity) end
-            captions.syncTimed(heard)
+            if not M.captionHidden then
+                if captions.enabled() and not captions.timed then captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity) end
+                captions.syncTimed(heard)
+            end
         end
         face.sync(M.actor, heard, M.requestId)
     end
