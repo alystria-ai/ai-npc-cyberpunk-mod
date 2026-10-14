@@ -977,14 +977,14 @@ local function trackFlight(player, state)
             if not flight.playbackAt then flight.playbackAt, flight.leaseAt = os.time(), nil end
             flight.stage = 'playing'
             log('Remark played: ' .. flight.speaker.key .. ' event=' .. flight.event .. string.format(' after %.1fs', clock - flight.at))
-            emitTo(flight.speaker.addon, 'remarkStarted', {speaker = flight.speaker.id, event = flight.event})
+            emitTo(flight.speaker.addon, 'remarkStarted', {speaker = flight.speaker.id, event = flight.event, text = flight.text})
         end
     elseif flight.stage == 'pending' and state.captions and not state.speechId then
         -- Subtitles only (voice off): the caption this reply showed owns the turn until it ends.
         if not flight.playbackAt then flight.playbackAt, flight.leaseAt = os.time(), nil end
         flight.stage = 'captions'
         log('Remark played (captions only): ' .. flight.speaker.key .. ' event=' .. flight.event .. string.format(' after %.1fs', clock - flight.at))
-        emitTo(flight.speaker.addon, 'remarkStarted', {speaker = flight.speaker.id, event = flight.event})
+        emitTo(flight.speaker.addon, 'remarkStarted', {speaker = flight.speaker.id, event = flight.event, text = flight.text})
     elseif flight.stage == 'captions' and state.captions then
         -- still on screen
     else
@@ -1261,6 +1261,13 @@ function M.canDeliver(context, player)
         pcall(lease, true)
     end
     return true
+end
+
+--- The reply text of the remark in flight (init.lua, when the reply arrives): carried by `remarkStarted` as `text`, so an add-on can show it
+--- somewhere of its own (Skippy's hologram). Plain text, at most 400 letters; nothing is stored for any other request.
+function M.replyText(context, text)
+    if not flight or type(context) ~= 'table' or flight.requestId ~= context.requestId or type(text) ~= 'string' then return end
+    flight.text = trim(text, 400)
 end
 
 --- Speakers the talk keys may address now: [{npc, entity, name, bodyType, profileKey, voiceOnly}], best first.
