@@ -827,6 +827,14 @@ test('Judy idles at about .19 with the corner gain, a cold character stays flat,
  face.endExpression(context,false)
 `));
 
+test('Alt Cunningham rests at the dry level (.05) while the other cold characters stay flat', () => run(`
+ rows[1].profileKey='alt-cunningham';rows[2].profileKey='adam-smasher'
+ for _=1,40 do tick(.1) end
+ local alt,cold=last(a),last(b)
+ assert(math.abs(alt.lips_l_corner_up-.05)<.005,'alt rests at .05: '..alt.lips_l_corner_up)
+ assert(cold.lips_l_corner_up==0,'a cold face stays flat')
+`));
+
 test('speaking with Interest or no emotion shows no smile, even for a warm character', () => {
   const lineFor = (emotion, id) => {
     const line = buildFacialTimeline({audio: wav(), mouthCuesFormat: 'rhubarb-phonetic-v1',
