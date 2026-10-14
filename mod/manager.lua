@@ -701,6 +701,9 @@ local function loadSettings()
     -- Follow-up questions (on by default, key followUpInterest: the retired followUpQuestions key above is a different, dropped
     -- setting): characters sometimes show interest in the player. Works with any voice.
     if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = true, true end
+    -- Companions can see (off by default, Convai only, docs/COMPANION_VISION.md): a line that asks about something visible sends one
+    -- picture of the game window with that turn. Read by the bridge on change only; nothing in the game runs for it.
+    if type(settings.companionVision) ~= 'boolean' then settings.companionVision, settingsNeedSave = false, true end
     -- Mature content (off by default): lets the Local AI provider write adult language and themes. Read by the bridge on change only.
     if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
     -- Which installed Local AI model loads: one model's id. 'auto' means none chosen yet (or a value an older version saved): the bridge then
@@ -1625,6 +1628,7 @@ function M.snapshot(player)
             naturalSpeech = settings.naturalSpeech,
             expressiveEmotions = settings.expressiveEmotions,
             followUpInterest = settings.followUpInterest,
+            companionVision = settings.companionVision == true,
             vVoice = settings.vVoice == true,
             -- Part of the main mod: off by default, Local AI only. The optional Mature pack (uncensored models) only changes the help text.
             matureContent = settings.matureContent == true,
@@ -1677,7 +1681,8 @@ function M.applySettings(player, values)
             or key == 'holocallLiveImage'
             or key == 'gameDialogueContext' or key == 'decisionLedger'
             or key == 'naturalSpeech' or key == 'expressiveEmotions'
-            or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations' then
+            or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
+            or key == 'companionVision' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'matureContent' then

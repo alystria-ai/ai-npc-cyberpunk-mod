@@ -26,6 +26,8 @@
 //   --launcher PATH    use a prebuilt launcher DLL instead of compiling native/autostart with MSVC
 //   --native PATH      use a prebuilt CyberpunkConvaiNative.dll instead of compiling native/core with MSVC
 //   --no-native        leave the native plugin out (the Lua keeps its own path)
+//   --vision PATH      use a prebuilt CyberpunkConvaiVision.exe instead of compiling native/vision with MSVC
+//   --no-vision        leave the "Companions can see" picture helper out (the setting then sends no picture)
 //   --local-ai-source DIR  with --models local: a folder shaped like the Local AI developer folder
 //                      (default: CYBERPUNK_CONVAI_LOCAL_AI_DEV); a file missing there is downloaded
 //   --python EXE       host CPython used to run pip (default: python)
@@ -203,6 +205,25 @@ async function buildLauncher(source) {
   return resolve(output, 'CyberpunkConvaiLauncher.dll');
 }
 
+// The "Companions can see" picture helper (native/vision, docs/COMPANION_VISION.md). Optional: without it the setting simply
+// sends no picture, so a failed build is logged and the release goes on (--no-vision skips it, --vision PATH uses a prebuilt one).
+async function buildVision(source) {
+  if (flag('--no-vision')) return null;
+  const prebuilt = value('--vision');
+  if (prebuilt) {
+    if (!existsSync(resolve(prebuilt))) throw Error(`--vision: ${prebuilt} does not exist.`);
+    return resolve(prebuilt);
+  }
+  const output = resolve(out, 'native-vision');
+  await rm(output, {recursive: true, force: true});
+  log('Compiling the vision helper from native/vision with MSVC.');
+  try {
+    await run('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+      resolve(source.root, 'scripts/Build-VisionCapture.ps1'), '-ProjectDirectory', source.root, '-OutputDirectory', output], {quiet: true});
+    return resolve(output, 'CyberpunkConvaiVision.exe');
+  } catch (error) { log(`The vision helper was not built (${error.message}); the release ships without it.`); return null; }
+}
+
 // The optional native plugin (native/core). Built with MSVC and CMake like the launcher. The package works without it,
 // because the Lua keeps its own path for every system, but a failed build fails the release unless --no-native says so.
 async function buildNative(source) {
@@ -304,6 +325,10 @@ async function runtimePackage(source, config, models, key) {
   pkg.add(`${plugin}/launcher.ini`, {buffer: launcherIni()});
   pkg.text(`${plugin}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${plugin}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
+
+  // The vision helper sits beside the bridge (bridge/vision-capture.mjs looks for app/vision/CyberpunkConvaiVision.exe).
+  const visionExe = await buildVision(source);
+  if (visionExe) pkg.file(`${app}/vision/CyberpunkConvaiVision.exe`, visionExe);
 
   // The optional native plugin: RED4ext loads it from red4ext/plugins/<name>/, and runtime/native-off.txt keeps the systems
   // that are not yet proven in the real game on their script path.

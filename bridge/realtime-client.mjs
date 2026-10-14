@@ -5,8 +5,13 @@ import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';
 import {AnalysisPcm} from './analysis-pcm.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
+import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE} from './convai-vision.mjs';
 
 let client, identity, turn, micTimer, verifiedProvider, audioParticipant, admitting;
+// "Companions can see" (docs/COMPANION_VISION.md): the current connection's picture handler, null without vision.
+let vision = null;
+// How long a turn waits for its picture to be buffered by Convai before it is sent anyway (bridge/convai-vision.mjs).
+const VISION_READY_MS = 900;
 let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
 let retiredAudioOwners = [];
 let retiredExpressionOwners = [];
@@ -163,7 +168,8 @@ function diagnostics() {
       lastSkip: observed.actionSkipReason ?? null, lastProposal: observed.actionProposal ?? null},
     isThinking: client?.state?.isThinking === true, isSpeaking: client?.state?.isSpeaking === true,
     wire: {...observed, outerTypes: {...observed.outerTypes}, innerTypes: {...observed.innerTypes}},
-    turn: turnDiagnostics(turn), previousTurn: previousTurnDiagnostics};
+    turn: turnDiagnostics(turn), previousTurn: previousTurnDiagnostics,
+    vision: vision && client && vision.connection === client ? vision.diagnostics() : null};
 }
 
 async function close(reason = 'Conversation cancelled') {
@@ -187,6 +193,7 @@ async function close(reason = 'Conversation cancelled') {
     }
   }
   if (previous.turn) previousTurnDiagnostics = turnDiagnostics(previous.turn);
+  vision?.close(); vision = null;
   client = identity = turn = verifiedProvider = audioParticipant = lateEmotion = null;
   retiredAudioOwners = [];
   retiredExpressionOwners = [];
@@ -205,7 +212,7 @@ async function close(reason = 'Conversation cancelled') {
 
 async function connect(config) {
   const started = performance.now();
-  const desired = transportKey(config);
+  const desired = visionIdentity(transportKey(config), config);
   sessions.check(config);
   const sessionMatches = !config.sessionId || config.sessionId === initialSession || config.sessionId === client?.characterSessionId;
   // Preparation can reuse a warmed *unused* anonymous connection. It can
@@ -239,8 +246,11 @@ async function connect(config) {
     characterSessionId: initialSession, transport: 'livekit', startWithAudioOn: false,
     enableVideo: false, enableLipsync: ttsEnabled, ttsEnabled, logRtviMessages: false,
     enableEmotion: true, emotionConfig: {provider: 'llm'},
-    respondModes: {contextUpdate: 'silent'},
+    // Vision (when on) arrives on the silent lane: a picture never makes the character speak by itself.
+    respondModes: {contextUpdate: 'silent', ...(config.vision === true ? {vision: 'silent'} : {})},
+    ...visionConnectOptions(config),
     blendshapeConfig: {format: 'arkit', output_fps: 30}});
+  vision = config.vision === true ? new ConvaiVision(connection, {transport: config.visionTransport}) : null;
   const currentConnection = () => epoch === connectionEpoch && client === connection;
   let transportError;
   const rejectTransport = reason => {
@@ -705,7 +715,8 @@ async function reply(config) {
   const admission = admitting = {};
   try {
     const timing = await connect(config);
-    await updateContext(config, true);
+    const seen = config.reaction ? false : await turnVision(config);
+    await updateContext(config, true, seen);
     const current = beginTurn(timing, config);
     // collect() owns every later failure path. Until it runs, a failed send must
     // not leave the standby output device open.
@@ -714,7 +725,29 @@ async function reply(config) {
       else client.sendUserTextMessage(config.text);
     } catch (error) { retireStandby(current.live, 'Conversation failed'); throw error; }
     return await collect(current);
-  } finally { if (admitting === admission) admitting = null; }
+  } finally { if (admitting === admission) admitting = null; await retireVision(); }
+}
+
+// "Companions can see": hands this turn's picture (config.visionImages, or one staged during the recording by stageVision) to
+// Convai and waits until it is buffered, at most VISION_READY_MS. True when the turn's context may mention it.
+async function turnVision(config) {
+  const own = vision;
+  if (!own) return false;
+  if (Array.isArray(config?.visionImages) && config.visionImages.length) await own.stage(config.visionImages);
+  if (!own.staged || own !== vision) return false;
+  const result = await own.ready(performance.now() + VISION_READY_MS);
+  observed.visionReady = {attached: result.attached, outcome: result.outcome, ms: Math.round(result.ms)};
+  return own === vision && !!own.staged && !own.notEnabled;
+}
+
+// After a turn, its picture is withdrawn (track unpublished), so it can never ride along into a later turn.
+async function retireVision() { try { await vision?.retire(); } catch {} }
+
+// Starts handing pictures to the running microphone turn while V is still talking (the bridge calls it when V's words ask about
+// something visible), so the picture is buffered before V finishes. Returns {staged, reason?}; never throws.
+async function stageVision(images) {
+  if (!vision || !turn?.recording) return {staged: false, reason: vision ? 'no-recording' : 'vision-off'};
+  return vision.stage(images);
 }
 
 async function disableMic() {
@@ -741,7 +774,7 @@ async function beginVoice(config) {
     await updateContext(config, false);
     const connection = client;
     current = beginTurn(timing, config);
-    current.recording = true; current.microphone = true;
+    current.recording = true; current.microphone = true; current.contextConfig = config;
     client.toggleStt(true);
     await client.audioControls.enableAudio();
     if (turn !== current || current.epoch !== epoch || client !== connection) throw Error('Microphone startup cancelled');
@@ -756,13 +789,13 @@ async function beginVoice(config) {
   finally { if (admitting === admission) admitting = null; }
 }
 
-async function updateContext(config, allowActions = false) {
+async function updateContext(config, allowActions = false, seen = false) {
   const connection = client, contextEpoch = epoch;
   const context = {mode: 'replace', run_llm: 'false',
     text: 'You are speaking to V in Night City. Reply briefly without stage directions. '
       + 'Use only explicitly supplied current-save facts for quest progress and relationships. '
       + 'Any relationship state not explicitly supplied is unknown; do not infer it from character presence or past sessions. '
-      + (config.context || 'This is a private conversation with V.')};
+      + (config.context || 'This is a private conversation with V.') + (seen ? VISION_NOTE : '')};
   const baseContext = context.text;
   const manual = allowActions && !config.reaction && !config.freshSession && typeof config.endUserId === 'string';
   const privateManual = manual && /^private(?::|$)/.test(config.scope || '');
@@ -801,16 +834,20 @@ async function finishVoice(config) {
   const current = turn;
   if (!current?.recording) throw Error('No microphone conversation is recording');
   if (config !== undefined) {
-    if (config.freshSession || transportKey(config) !== identity
+    if (config.freshSession || visionIdentity(transportKey(config), config) !== identity
         || (config.sessionId && config.sessionId !== initialSession && config.sessionId !== client.characterSessionId)) {
       await close('Microphone reply identity changed'); throw Error('Microphone reply identity changed');
     }
   }
   await verifyProviderIdentity(current.providerIdentity, client);
   if (turn !== current || current.epoch !== epoch || !current.recording) throw Error('Microphone finish cancelled');
+  // A picture staged while V talked (or handed over now) is buffered before the end of input, within VISION_READY_MS.
+  const seen = await turnVision(config);
+  if (turn !== current || current.epoch !== epoch || !current.recording) throw Error('Microphone finish cancelled');
   // Same leased connection, new verified context. Updating before mute keeps
   // the fresh facts ahead of the end-of-input notification to the service.
-  if (config !== undefined) await updateContext(config, true);
+  if (config !== undefined) await updateContext(config, true, seen);
+  else if (seen) await updateContext(current.contextConfig ?? {}, false, true);
   try { attachContinuous(current, config?.liveSpeechToken); }
   catch (error) { await close('Microphone playback admission failed'); throw error; }
   current.recording = false;
@@ -818,7 +855,7 @@ async function finishVoice(config) {
     await disableMic();
     if (turn !== current || current.epoch !== epoch) throw Error('Microphone finish cancelled');
   } catch (error) { retireStandby(current.live, 'Microphone finish failed'); throw error; }
-  return collect(current);
+  try { return await collect(current); } finally { await retireVision(); }
 }
 
 function readiness(keepAlive = false) {
@@ -845,6 +882,6 @@ function readLateEmotion(token) {
   return !held.closed && !held.emotion.ambiguous && performance.now() - held.at < LATE_EMOTION_MS ? {pending: true} : {};
 }
 
-window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close, diagnostics,
+window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close, diagnostics, stageVision,
   heard: () => heardText(turn),
   continuousSnapshot, continuousControl, lateEmotion: readLateEmotion};

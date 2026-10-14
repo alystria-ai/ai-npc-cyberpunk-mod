@@ -678,6 +678,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "Vannak nem mentett módosításaid. Mentés nélkül kilépsz?",
     ["{count} of {max}"] = "{count} / {max}",
     ["Mature content"] = "Felnőtt tartalom",
+    ["Companions can see"] = "A társak látnak",
+    ["When you ask about something you can see (\"what do you see?\", \"look at that\", \"how do I look?\"), the character gets one picture of the game window with that line.\n\nOnly the game window is captured, only for that line, and nothing is saved. Works with Convai only."] = "Ha valamiről kérdezel, ami látható („mit látsz?”, „nézd azt”, „hogy nézek ki?”), a karakter ezzel a mondattal együtt kap egy képet a játék ablakáról.\n\nCsak a játék ablaka kerül rögzítésre, csak ehhez a mondathoz, és semmi sem lesz mentve. Csak a Convai-jal működik.",
     ["Local AI model"] = "Helyi MI modell",
     ["Uncensored model"] = "Cenzúrázatlan modell",
     ["No model installed"] = "Nincs telepített modell",

@@ -678,6 +678,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "保存されていない変更があります。保存せずに終了しますか？",
     ["{count} of {max}"] = "{count} / {max}",
     ["Mature content"] = "成人向けコンテンツ",
+    ["Companions can see"] = "仲間の視覚",
+    ["When you ask about something you can see (\"what do you see?\", \"look at that\", \"how do I look?\"), the character gets one picture of the game window with that line.\n\nOnly the game window is captured, only for that line, and nothing is saved. Works with Convai only."] = "見えているものについて尋ねると（「何が見える？」「あれを見て」「似合ってる？」）、そのセリフと一緒にゲーム画面の画像が1枚キャラクターに届きます。\n\n撮影するのはゲームのウィンドウだけで、そのセリフのためだけです。何も保存されません。Convai でのみ動作します。",
     ["Local AI model"] = "ローカル AI モデル",
     ["Uncensored model"] = "制限なしモデル",
     ["No model installed"] = "モデル未インストール",

@@ -678,6 +678,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "Você tem mudanças não salvas. Sair sem salvar?",
     ["{count} of {max}"] = "{count} de {max}",
     ["Mature content"] = "Conteúdo maduro",
+    ["Companions can see"] = "Companheiros enxergam",
+    ["When you ask about something you can see (\"what do you see?\", \"look at that\", \"how do I look?\"), the character gets one picture of the game window with that line.\n\nOnly the game window is captured, only for that line, and nothing is saved. Works with Convai only."] = "Quando você pergunta sobre algo que dá para ver (\"o que você vê?\", \"olha aquilo\", \"como estou?\"), o personagem recebe uma imagem da janela do jogo junto com essa fala.\n\nSó a janela do jogo é capturada, só para essa fala, e nada é salvo. Funciona apenas com a Convai.",
     ["Local AI model"] = "Modelo de IA local",
     ["Uncensored model"] = "Modelo sem censura",
     ["No model installed"] = "Nenhum modelo instalado",

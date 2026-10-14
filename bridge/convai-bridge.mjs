@@ -22,6 +22,8 @@ import {ReplyStream} from './reply-stream.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
+import {CompanionVision} from './companion-vision.mjs';
+import {VisionCapture} from './vision-capture.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
 import {createAddonVoice} from './addon-voice.mjs';
 import {startVoiceKeyStream} from './voice-key-stream.mjs';
@@ -597,8 +599,14 @@ function writeStreamManifest(document,current){
 }
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
+// "Companions can see" (docs/COMPANION_VISION.md): off by default, Convai only. A look-like line gets one game-window picture,
+// captured out of process by native/vision on demand. companionVision.attachToNextTurn(images) is the entry point for other
+// features that want to show the companion something (e.g. a TV picture).
+const visionLog = message => console.error('[Vision] ' + message);
+const companionVision = new CompanionVision({capture: new VisionCapture({log: visionLog}), isConvai: () => !mistral.active,
+  stageVoice: images => realtime.stageVoiceVision(images), log: visionLog});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
-  transformReply: cleanReply, guard: hostGuard, ...keyHostOptions(() => [phoneRealtime])});
+  transformReply: cleanReply, guard: hostGuard, vision: companionVision, ...keyHostOptions(() => [phoneRealtime])});
 // Mistral route (docs/MISTRAL.md): the same text reply path as Convai, with the persona built from characters/*.json and a small
 // local memory. attachMistral makes both hosts answer text turns through it while the provider is Mistral. `localTurn` names
 // the character, the channel and (for an ordinary NPC) its conversation, so the host can recall the right history; the Convai path
@@ -894,6 +902,7 @@ const realtimeConfig = input => memoryPolicy({key: currentKey(), characterId: ro
   scope: routeFor(input)?.scope || conversationScope(input), ...(routeFor(input)?.remoteConfig || {}),
   ...textProviderContext(input), text: battleTrigger(input), reaction: input.reaction,
   companionAction: companionActions.configFor(input), local: localTurn(input),
+  ...(companionVision.active && typeof input.requestId === 'string' ? {visionTurn: input.requestId} : {}),
   ttsEnabled: localVoice.playbackEnabled!==false&&!turnUsesLocal(input)});
 const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.configFor(profile, scope,
   {worldToken: worldSession?.token, generation: worldSession?.generation});
@@ -1571,6 +1580,7 @@ let heardSent = {id: '', text: ''}, heardPolled = '';
 async function publishHeard(recording) {
   const text = await mic.heard();
   if (mic.current !== recording || stopped) return;
+  companionVision.noteHeard(recording.requestId, text);
   // One line per recording shows where the live caption stops: the poll reached it, and when the first words came.
   if (heardPolled !== recording.requestId) { heardPolled = recording.requestId; console.error('[CyberpunkConvai] Microphone: reading heard words for ' + recording.requestId.slice(-12)); }
   if (heardSent.id === recording.requestId ? heardSent.text === text : !text) return;
@@ -2122,6 +2132,8 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
 async function runInput(request, prepared, clock) {
   let input = request.input;
   const {controller} = request;
+  // A typed line that asks about something visible starts its game picture now, beside the turn's preparation.
+  companionVision.beginTurn(input);
   const ahead = request.lookahead;
   const preparationStarted = performance.now();
   const stages = {};
@@ -2578,6 +2590,7 @@ async function pollSettings(checkShutdown = true) {
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
     if (vVoice.update(settings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}`);
+    if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
     if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
     const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
@@ -2610,7 +2623,7 @@ async function pollSettings(checkShutdown = true) {
           action: {admitted: !!pendingAction, accepted: pendingAction?.accepted === true,
             current: !!pendingAction && companionActions.current(pendingAction),
             profile: pendingAction?.input?.profileKey ?? null},
-          pages: await realtime.diagnostics()}));
+          vision: companionVision.diagnostics(), pages: await realtime.diagnostics()}));
       }
     }
   } finally { settingsPolling = false; }
@@ -2689,6 +2702,7 @@ async function shutdown() {
   if (stopped) return;
   await companionActions.revoke();
   stopped = true; active?.controller.abort(); dropPrefetch(); audioWatch.stop(); tokenSource?.stop();
+  companionVision.stop();
   settleVoiceRouteWaiters(Error('Voice service is closed'));
   phone.close(); clearInterval(phoneTimer);
   phoneKnowledge.clear();

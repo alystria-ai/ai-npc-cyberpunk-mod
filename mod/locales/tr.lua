@@ -678,6 +678,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "Kaydedilmemiş değişiklikler var. Kaydetmeden çıkılsın mı?",
     ["{count} of {max}"] = "{count} / {max}",
     ["Mature content"] = "Yetişkin içeriği",
+    ["Companions can see"] = "Yol arkadaşları görür",
+    ["When you ask about something you can see (\"what do you see?\", \"look at that\", \"how do I look?\"), the character gets one picture of the game window with that line.\n\nOnly the game window is captured, only for that line, and nothing is saved. Works with Convai only."] = "Görebildiğin bir şeyi sorduğunda (\"ne görüyorsun?\", \"şuna bak\", \"nasıl görünüyorum?\"), karakter o cümleyle birlikte oyun penceresinin bir görüntüsünü alır.\n\nYalnızca oyun penceresi, yalnızca o cümle için yakalanır ve hiçbir şey kaydedilmez. Yalnızca Convai ile çalışır.",
     ["Local AI model"] = "Yerel AI modeli",
     ["Uncensored model"] = "Sansürsüz model",
     ["No model installed"] = "Yüklü model yok",

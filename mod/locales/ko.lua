@@ -678,6 +678,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "저장되지 않은 변경 사항이 있습니다. 저장하지 않고 나갈까요?",
     ["{count} of {max}"] = "{count} / {max}",
     ["Mature content"] = "성인 콘텐츠",
+    ["Companions can see"] = "동료의 시야",
+    ["When you ask about something you can see (\"what do you see?\", \"look at that\", \"how do I look?\"), the character gets one picture of the game window with that line.\n\nOnly the game window is captured, only for that line, and nothing is saved. Works with Convai only."] = "보이는 것에 대해 물으면(\"뭐가 보여?\", \"저것 좀 봐\", \"나 어때?\") 그 말과 함께 게임 창 이미지 한 장이 캐릭터에게 전달됩니다.\n\n게임 창만, 그 말에 대해서만 캡처하며 아무것도 저장하지 않습니다. Convai에서만 작동합니다.",
     ["Local AI model"] = "로컬 AI 모델",
     ["Uncensored model"] = "검열 없는 모델",
     ["No model installed"] = "설치된 모델이 없습니다",

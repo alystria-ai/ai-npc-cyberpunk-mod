@@ -1523,6 +1523,9 @@ local function ownKeyRows(snapshot)
                 {'Convai free tier', 'Mistral (free plan)', 'Local (needs Local AI pack)'}, {elements = true, description = true}),
             readonly('own-key-using', 'Conversations use', using,
                 'Who answers your conversations right now.\n\nA change of provider waits until no conversation is running.', {value = true}),
+            -- Companions can see (docs/COMPANION_VISION.md): Convai only, off by default; the bridge does all the work.
+            setting('companionVision', 'Companions can see', 'bool', snapshot.settings.companionVision == true, false,
+                'When you ask about something you can see ("what do you see?", "look at that", "how do I look?"), the character gets one picture of the game window with that line.\n\nOnly the game window is captured, only for that line, and nothing is saved. Works with Convai only.'),
             matureRow,
             modelRow,
             readonly('local-ai-status', 'Local AI', localAiStatus,
@@ -2106,7 +2109,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     or key == 'autoConnectNearby' or key == 'holocallLiveImage' or key == 'naturalSpeech'
                     or key == 'gameDialogueContext'
                     or key == 'expressiveEmotions' or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
-                    or key == 'matureContent' then values[key] = change.value
+                    or key == 'matureContent' or key == 'companionVision' then values[key] = change.value
                 elseif key == 'audioDelay' then
                     local delays = manager.audioDelayChoices()
                     if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not delays[change.value] then

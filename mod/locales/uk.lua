@@ -678,6 +678,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "Є незбережені зміни. Вийти без збереження?",
     ["{count} of {max}"] = "{count} з {max}",
     ["Mature content"] = "Контент для дорослих",
+    ["Companions can see"] = "Супутники бачать",
+    ["When you ask about something you can see (\"what do you see?\", \"look at that\", \"how do I look?\"), the character gets one picture of the game window with that line.\n\nOnly the game window is captured, only for that line, and nothing is saved. Works with Convai only."] = "Коли ти питаєш про те, що видно («що бачиш?», «поглянь на це», «як я виглядаю?»), персонаж отримує разом із цією реплікою один знімок вікна гри.\n\nЗнімається лише вікно гри, лише для цієї репліки, і нічого не зберігається. Працює лише з Convai.",
     ["Local AI model"] = "Модель локального ШІ",
     ["Uncensored model"] = "Модель без цензури",
     ["No model installed"] = "Жодну модель не встановлено",

@@ -678,6 +678,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "你有未保存的修改。要不保存就离开吗？",
     ["{count} of {max}"] = "{count} / {max}",
     ["Mature content"] = "成人内容",
+    ["Companions can see"] = "同伴能看见",
+    ["When you ask about something you can see (\"what do you see?\", \"look at that\", \"how do I look?\"), the character gets one picture of the game window with that line.\n\nOnly the game window is captured, only for that line, and nothing is saved. Works with Convai only."] = "当你问起能看到的东西时（“你看到了什么？”“看那个”“我看起来怎么样？”），角色会随这句话收到一张游戏窗口的画面。\n\n只截取游戏窗口，只为这句话截取，不保存任何内容。仅适用于 Convai。",
     ["Local AI model"] = "本地 AI 模型",
     ["Uncensored model"] = "无审查模型",
     ["No model installed"] = "未安装任何模型",

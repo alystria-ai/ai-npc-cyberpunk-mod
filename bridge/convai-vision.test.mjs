@@ -1,0 +1,185 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {dirname, join} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {ConvaiVision, VISION_INPUT_CONFIG, visionConnectOptions, visionIdentity, validImages, layout, readAck,
+  MAX_IMAGES, VISION_NOTE} from './convai-vision.mjs';
+
+// The SDK's own serializer (the installed @convai/web-sdk, read only): its dist uses bundler-style imports, so the one
+// dependency-free file is loaded directly.
+const sdk = dirname(createRequire(import.meta.url).resolve('@convai/web-sdk/package.json'));
+const {serializeVisionInputConfig, resolveVisionInputConfig} = await import(pathToFileURL(join(sdk, 'dist/core/visionRequest.js')).href);
+
+const JPEG =Buffer.from([0xff, 0xd8, 0xff, 0xd9]).toString('base64');
+const image = (mime = 'image/jpeg', base64 = JPEG) => ({mime, base64});
+
+// The connect request the SDK builds from our options (@convai/web-sdk 1.7.0 core/visionRequest.js, ConvaiClient.connect).
+test('a vision session connects with video and the documented vision_input_config, within the documented ranges', () => {
+  assert.deepEqual(visionConnectOptions({}), {});
+  assert.deepEqual(visionConnectOptions({vision: 'yes'}), {});
+  const options = visionConnectOptions({vision: true});
+  assert.equal(options.enableVideo, true);
+  assert.equal(options.startWithVideoOn, false, 'no camera, ever');
+  const wire = serializeVisionInputConfig(resolveVisionInputConfig(options));
+  assert.deepEqual(wire, {enabled: true, sample_interval_secs: 0.25, frames_per_turn: 1, buffer_frames: 2,
+    staleness_seconds: 6, max_resolution: 768, replace_previous_vision_context: true});
+  // Ranges from Convai's "Dynamic vision context" page.
+  assert.ok(wire.sample_interval_secs >= 0.1 && wire.sample_interval_secs <= 60);
+  assert.ok(wire.frames_per_turn >= 1 && wire.frames_per_turn <= 20);
+  assert.ok(wire.buffer_frames >= wire.frames_per_turn && wire.buffer_frames <= 120);
+  assert.ok(wire.staleness_seconds >= 0.1 && wire.staleness_seconds <= 120);
+  assert.ok(wire.max_resolution >= 64 && wire.max_resolution <= 2048);
+  assert.ok(Object.isFrozen(VISION_INPUT_CONFIG));
+});
+
+test('a page connected without video is not reused for a vision turn, and back', () => {
+  assert.equal(visionIdentity('k', {}), 'k');
+  assert.equal(visionIdentity('k', {vision: true}), 'k|vision');
+  assert.notEqual(visionIdentity('k', {}), visionIdentity('k', {vision: true}));
+});
+
+test('only well-formed images of an allowed type and size are accepted, at most four', () => {
+  assert.deepEqual(validImages(null), []);
+  assert.deepEqual(validImages([image('image/gif'), image('image/jpeg', 'not base64!'), image('image/jpeg', ''), {mime: 'image/png'}]), []);
+  assert.deepEqual(validImages([image('image/png'), image('image/webp')]).map(i => i.mime), ['image/png', 'image/webp']);
+  assert.equal(validImages(Array.from({length: 6}, () => image())).length, MAX_IMAGES);
+  const huge = 'A'.repeat(4 * 1024 * 1024 / 3 * 4 + 8);
+  assert.deepEqual(validImages([image('image/jpeg', huge)]), []);
+  // Extra fields from a caller never reach the page.
+  assert.deepEqual(validImages([{...image(), label: 'x', url: 'https://example.invalid'}]), [image()]);
+});
+
+test('one to four images always make one picture: full, side by side, or a 2x2 grid', () => {
+  assert.deepEqual(layout(1), {columns: 1, rows: 1, cell: 768});
+  assert.deepEqual(layout(2), {columns: 2, rows: 1, cell: 384});
+  assert.deepEqual(layout(3), {columns: 2, rows: 2, cell: 384});
+  assert.deepEqual(layout(4), {columns: 2, rows: 2, cell: 384});
+});
+
+test('server acknowledgements are read from either nesting', () => {
+  assert.deepEqual(readAck({event_type: 'vision-status', status: 'success', extras: {update_id: 'u1', outcome: 'frames_available',
+    vision_buffer: {retained_frames: 1}}}), {eventType: 'vision-status', status: 'success', outcome: 'frames_available',
+    retained: 1, updateId: 'u1', imageTokens: null});
+  const ack = readAck({event_type: 'vision-status', status: 'error', message: 'vision_not_enabled', extras: null});
+  assert.equal(ack.outcome, 'vision_not_enabled');
+  assert.equal(readAck({event_type: 'vision-trigger', extras: {vision_image_tokens_est: 258}}).imageTokens, 258);
+  assert.equal(readAck({}).eventType, null);
+});
+
+function fakeEnv() {
+  let now = 0, id = 0;
+  const timers = new Map();
+  const drawn = [];
+  const canvas = () => ({width: 0, height: 0, getContext: () => ({fillStyle: '', fillRect() {}, drawImage: (...args) => drawn.push(args.length)}),
+    toBlob: (done, type) => done(new Blob([Buffer.from('jpeg')], {type}))});
+  return {drawn, timers,
+    advance(ms) { now += ms; for (const [key, timer] of [...timers]) if (timer.due <= now) { timers.delete(key); if (timer.every) timers.set(key, {...timer, due: now + timer.every}); timer.fn(); } },
+    env: {document: {createElement: tag => { assert.equal(tag, 'canvas'); return canvas(); }},
+      createImageBitmap: async () => ({width: 1366, height: 768, close() {}}),
+      setTimeout: (fn, ms) => { timers.set(++id, {fn, due: now + ms}); return id; }, clearTimeout: key => timers.delete(key),
+      setInterval: (fn, ms) => { timers.set(++id, {fn, due: now + ms, every: ms}); return id; }, clearInterval: key => timers.delete(key),
+      now: () => now}};
+}
+
+function fakeConnection({video = true, ack} = {}) {
+  const handlers = new Map(), calls = [];
+  let statusCount = 0;
+  const connection = {connectionType: video ? 'video' : 'audio', calls,
+    on(name, fn) { handlers.set(name, fn); return () => handlers.delete(name); },
+    emit(response) { handlers.get('serverResponse')?.(response); },
+    videoControls: {publishCanvas: async (canvas, options) => {
+      calls.push(['publish', options]);
+      return {unpublish: async () => { calls.push(['unpublish']); }};
+    }},
+    visionStatus() {
+      const id = 'status-' + ++statusCount;
+      calls.push(['status', id]);
+      queueMicrotask(() => ack && connection.emit(ack(id, statusCount)));
+      return id;
+    },
+    uploadFile: async (file, options) => { calls.push(['upload', file.name, file.type, options]); }};
+  return connection;
+}
+const settle = () => new Promise(resolve => setImmediate(resolve));
+
+test('a staged picture is published as a canvas track on the silent lane and ready once the server buffers a frame', async () => {
+  const {env, advance, timers} = fakeEnv();
+  const connection = fakeConnection({ack: (id, n) => ({event_type: 'vision-status', status: 'success',
+    extras: {update_id: id, vision_buffer: {retained_frames: n >= 2 ? 1 : 0}, outcome: n >= 2 ? 'frames_available' : 'buffer_empty'}})});
+  const vision = new ConvaiVision(connection, {env});
+  assert.deepEqual(await vision.stage([image()]), {staged: true});
+  const ready = vision.ready(900);
+  for (let i = 0; i < 10; i++) { await settle(); advance(100); }
+  const result = await ready;
+  assert.equal(result.attached, true);
+  assert.equal(result.outcome, 'frames_available');
+  assert.deepEqual(connection.calls[0], ['publish', {source: 'canvas', name: 'game-view', fps: 5, stopTrackOnUnpublish: true}]);
+  assert.ok(connection.calls.filter(call => call[0] === 'status').length >= 2);
+  assert.ok([...timers.values()].some(timer => timer.every), 'the picture is repainted while it is staged');
+  await vision.retire();
+  assert.deepEqual(connection.calls.at(-1), ['unpublish']);
+  assert.ok(![...timers.values()].some(timer => timer.every), 'the repaint stops with the turn');
+  assert.equal(vision.diagnostics().attached, 1);
+});
+
+test('vision_not_enabled is remembered: later turns of that session do not publish again', async () => {
+  const {env, advance} = fakeEnv();
+  const connection = fakeConnection({ack: id => ({event_type: 'vision-status', status: 'error', message: 'vision_not_enabled', extras: {update_id: id}})});
+  const vision = new ConvaiVision(connection, {env});
+  await vision.stage([image()]);
+  const ready = vision.ready(900);
+  for (let i = 0; i < 4; i++) { await settle(); advance(100); }
+  assert.deepEqual(await ready.then(r => [r.attached, r.outcome]), [false, 'vision_not_enabled']);
+  assert.deepEqual(await vision.stage([image()]), {staged: false, reason: 'vision-not-enabled'});
+  assert.equal(connection.calls.filter(call => call[0] === 'publish').length, 1);
+});
+
+test('without an acknowledgement the turn waits no longer than its deadline', async () => {
+  const {env, advance} = fakeEnv();
+  const vision = new ConvaiVision(fakeConnection(), {env});
+  await vision.stage([image()]);
+  const ready = vision.ready(900);
+  for (let i = 0; i < 12; i++) { await settle(); advance(100); }
+  const result = await ready;
+  assert.equal(result.attached, false);
+  assert.ok(result.ms <= 1000, `waited ${result.ms} ms`);
+});
+
+test('an audio-only session, a bad image or nothing staged never publishes', async () => {
+  const {env} = fakeEnv();
+  const audio = fakeConnection({video: false});
+  assert.deepEqual(await new ConvaiVision(audio, {env}).stage([image()]), {staged: false, reason: 'no-video-session'});
+  const video = fakeConnection();
+  const vision = new ConvaiVision(video, {env});
+  assert.deepEqual(await vision.stage([image('image/gif')]), {staged: false, reason: 'no-valid-image'});
+  assert.deepEqual(await vision.ready(100), {attached: false, outcome: 'nothing-staged', ms: 0});
+  assert.equal(audio.calls.length + video.calls.length, 0);
+});
+
+test('the upload transport sends one composed JPEG through uploadFile', async () => {
+  const {env} = fakeEnv();
+  const connection = fakeConnection({video: false});
+  const vision = new ConvaiVision(connection, {env, transport: 'upload'});
+  assert.deepEqual(await vision.stage([image(), image('image/png')]), {staged: true});
+  const result = await vision.ready(900);
+  assert.equal(result.attached, true);
+  assert.deepEqual(connection.calls, [['upload', 'game-view.jpg', 'image/jpeg', undefined]]);
+});
+
+test('a newer picture replaces the staged one (its track is withdrawn first)', async () => {
+  const {env} = fakeEnv();
+  const connection = fakeConnection();
+  const vision = new ConvaiVision(connection, {env});
+  await vision.stage([image()]);
+  await settle();
+  await vision.stage([image()]);
+  await settle();
+  assert.deepEqual(connection.calls.map(call => call[0]), ['publish', 'unpublish', 'publish']);
+});
+
+test('the context note tells the character the picture is the game view and to ignore the interface', () => {
+  assert.match(VISION_NOTE, /game view/);
+  assert.match(VISION_NOTE, /never the interface/);
+  assert.doesNotMatch(VISION_NOTE, /screenshot|key|free|recommended/i);
+});

@@ -678,6 +678,8 @@ return {
     ["You have changes that are not saved. Leave without saving?"] = "Máš neuložené změny. Odejít bez uložení?",
     ["{count} of {max}"] = "{count} z {max}",
     ["Mature content"] = "Obsah pro dospělé",
+    ["Companions can see"] = "Společníci vidí",
+    ["When you ask about something you can see (\"what do you see?\", \"look at that\", \"how do I look?\"), the character gets one picture of the game window with that line.\n\nOnly the game window is captured, only for that line, and nothing is saved. Works with Convai only."] = "Když se ptáš na něco, co je vidět („co vidíš?“, „podívej se na to“, „jak vypadám?“), postava s touto větou dostane jeden snímek okna hry.\n\nZachytí se jen okno hry, jen pro tuto větu, a nic se neukládá. Funguje jen s Convai.",
     ["Local AI model"] = "Model Místní AI",
     ["Uncensored model"] = "Necenzurovaný model",
     ["No model installed"] = "Žádný model není nainstalován",

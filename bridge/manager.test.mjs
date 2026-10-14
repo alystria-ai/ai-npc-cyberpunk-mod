@@ -4925,7 +4925,7 @@ test('Settings sections: Conversation provider sits after Conversations and befo
         end
       end
     end
-    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'own-key-using', 'matureContent', 'localModel',
+    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'own-key-using', 'companionVision', 'matureContent', 'localModel',
       'local-ai-status', 'useOwnConvaiKey', 'own-key-status', 'own-key:paste', 'own-key:remove', 'mistral-key-status', 'mistral-key:paste',
       'mistral-key:remove'}, ','), table.concat(idsOf('conversation-provider'), ','))
     assert(table.concat(idsOf('development'), ',') == 'developerMode', table.concat(idsOf('development'), ','))
