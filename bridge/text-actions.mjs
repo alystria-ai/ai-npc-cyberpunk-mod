@@ -1,4 +1,4 @@
-// Companion actions for the text routes (Mistral, Groq, the local AI; docs/MISTRAL.md, "Actions").
+// Companion actions for the text routes (Mistral, the local AI; docs/MISTRAL.md, "Actions").
 //
 // On the Convai route the model asks for an action through Convai's action system (bridge/companion-actions.mjs). A text model has no
 // such channel, so the text route decides in its own small request and the game's verified offers stay the only authority:

@@ -1,6 +1,6 @@
 // A realistic layout-v2 prompt of a named character (Judy Alvarez) for the offline prompt measurements and tests: the real persona
 // from characters/roster.json and the real context blocks (right-now, journal, voice notes, follow-up policy), with the save-specific
-// world facts written at a realistic size. Used by scripts/Measure-GroqPrompt.mjs and bridge/groq-prompt.test.mjs (the same fixture
+// world facts written at a realistic size. Used by bridge/prompt-pinned.test.mjs (the same fixture
 // as scripts/Measure-TextLatency.mjs). No request is made here.
 import {readFileSync} from 'node:fs';
 import {resolve, dirname} from 'node:path';

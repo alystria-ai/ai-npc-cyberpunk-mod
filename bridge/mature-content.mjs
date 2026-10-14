@@ -10,7 +10,6 @@
 // (bridge/prompt-budget.mjs only trims the world, memory, history, notes and example lines). Every other provider is refused here:
 //   convai    never (a hosted service with its own rules; the player's own key does not change that)
 //   mistral   no: its published usage policy does not clearly permit adult sexual content through the API
-//   groq      no: same reason
 // (the quotes and dates are in docs/LOCAL_AI.md). A provider is added by setting its flag below to true, and only with a policy that
 // says so in plain words.
 //
@@ -24,7 +23,7 @@
 import {ROMANCE_LIMITS, ROMANCE_USE} from './romance-context.mjs';
 
 /** Providers that may get the layer. */
-export const MATURE_PROVIDERS = Object.freeze({local: true, mistral: false, groq: false, convai: false});
+export const MATURE_PROVIDERS = Object.freeze({local: true, mistral: false, convai: false});
 
 /** The allowance per model family, first match wins. `licence` is the reason, for the log and the docs. */
 export const MODEL_ALLOWANCE = Object.freeze([

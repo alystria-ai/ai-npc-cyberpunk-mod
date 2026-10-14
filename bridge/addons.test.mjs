@@ -74,7 +74,7 @@ test('manifest validation names what is wrong and keeps paths inside the add-on 
     [{speakers: [{id: 'gun', name: 'A', persona: {backstory: 'x'}, voice: {reference: 'v.wav'}}]}, /transcript/],
     [{speakers: [{id: 'gun', name: 'A', persona: {backstory: 'x'}, convai: {characterId: 'abcd-1234-efgh'}}]}, /Mistral or the local AI only/],
     [{providers: ['convai']}, /never use Convai/], [{providers: []}, /providers/], [{providers: ['mistral', 'mistral']}, /providers/],
-    [{speakers: [{id: 'gun', name: 'A', persona: {backstory: 'x'}, providers: ['groq']}]}, /never use Convai/],
+    [{speakers: [{id: 'gun', name: 'A', persona: {backstory: 'x'}, providers: ['unknown']}]}, /never use Convai/],
     [{speakers: [{id: 'gun', name: 'A', persona: {backstory: 'x'}, modes: {Killer: {name: 'K'}}}]}, /mode id/],
     [{speakers: [{id: 'gun', name: 'A', persona: {backstory: 'x'}, modes: {killer: {}}}]}, /needs a name/],
     [{speakers: [{id: 'gun', name: 'A', persona: {backstory: 'x'}, modes: {killer: {name: 'K'}}, defaultMode: 'puppy'}]}, /defaultMode/],
@@ -149,7 +149,7 @@ test('the bridge only touches add-ons through the host, and every touch is a no-
     assert.equal(turn.includes(banned), false, `runAddonTurn uses ${banned}`);
   }
   assert.match(bridge, /new TextProviderHost\(\{provider: fixedProvider\(mistral, route\), memory: sharedMemory\(mistralMemory\)/);
-  assert.match(bridge, /routes: \{\[route\]: textRoutes\[route\], \.\.\.\(allowsMistral \? \{mistral: textRoutes\.mistral\} : \{\}\)\}/, 'never Groq');
+  assert.match(bridge, /routes: \{\[route\]: textRoutes\[route\], \.\.\.\(allowsMistral \? \{mistral: textRoutes\.mistral\} : \{\}\)\}/, 'only the chosen route, and Mistral when the speaker allows it');
   // The once-a-second re-read exists only with add-ons.
   assert.match(bridge, /const addonTimer = addonHost\.active \? setInterval\(/);
   assert.match(bridge, /\.\.\.addonHost\.blocks\(input\),/);
@@ -194,8 +194,8 @@ test('providers: add-on speakers use Mistral or the local AI only, the player\'s
   // The player's own provider when the speaker allows it and it works.
   assert.equal(route('addon-skippy-gun', {applied: 'local', mistralKey: true, localReady: true}), 'local');
   assert.equal(route('addon-skippy-gun', {applied: 'mistral', mistralKey: true, localReady: true}), 'mistral');
-  // Convai or Groq players: a saved Mistral key, else the Local AI pack; never Convai, never Groq.
-  for (const applied of ['convai', 'groq']) {
+  // Convai players: a saved Mistral key, else the Local AI pack; never Convai.
+  for (const applied of ['convai']) {
     assert.equal(route('addon-skippy-gun', {applied, mistralKey: true, localReady: true}), 'mistral');
     assert.equal(route('addon-skippy-gun', {applied, mistralKey: false, localReady: true}), 'local');
     assert.equal(route('addon-skippy-gun', {applied, mistralKey: false, localReady: false}), null);
@@ -207,12 +207,12 @@ test('providers: add-on speakers use Mistral or the local AI only, the player\'s
   assert.equal(route('judy-alvarez', {applied: 'mistral', mistralKey: true}), null, 'not an add-on speaker');
   assert.equal(host.providerNotice('addon-skippy-gun'), "Skippy needs a free Mistral key or the Local AI pack. Set it up under Conversation provider in Cyberpunk Convai's settings.");
   assert.match(host.providerNotice('addon-cab-delamain'), /^Delamain needs the Local AI pack\./);
-  // The text host's view of the provider: fixed route, always active, the saved Mistral key, no Groq.
-  const player = {apiKey: 'k', applied: 'convai', route: 'convai', active: false, groqApiKey: 'g'};
+  // The text host's view of the provider: fixed route, always active, the saved Mistral key.
+  const player = {apiKey: 'k', applied: 'convai', route: 'convai', active: false};
   const fixed = fixedProvider(player, 'mistral');
-  assert.deepEqual([fixed.route, fixed.applied, fixed.active, fixed.apiKey, fixed.groqApiKey], ['mistral', 'mistral', true, 'k', null]);
+  assert.deepEqual([fixed.route, fixed.applied, fixed.active, fixed.apiKey], ['mistral', 'mistral', true, 'k']);
   assert.throws(() => fixedProvider(player, 'convai'), /cannot use convai/);
-  assert.throws(() => fixedProvider(player, 'groq'), /cannot use groq/);
+  assert.throws(() => fixedProvider(player, 'groq'), /cannot use groq/, 'Groq is not a route any more');
   // The memory view keeps the store's methods but not its fact-extraction hook.
   const store = {recall: () => 'r', record: () => 'w', setExtractor: () => { throw Error('taken over'); }};
   const view = sharedMemory(store);

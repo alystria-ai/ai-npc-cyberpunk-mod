@@ -19,9 +19,9 @@ import {resolve, dirname} from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const load = path => import(pathToFileURL(resolve(root, path)).href);
-const [{TextProviderHost, mistralRoute}, {MistralMemory}, {MistralProvider}, {GroqKey}, {PersonaBook}, {RealtimeHost}, {deliverPocketSpeech},
+const [{TextProviderHost, mistralRoute}, {MistralMemory}, {MistralProvider}, {PersonaBook}, {RealtimeHost}, {deliverPocketSpeech},
   {ReplyStream}, {TurnClock, withClock}, {ConvaiContinuousSpeech}, {ownedPocketFace}, {hasEmotionTag}, {NaturalSpeech}, {ExpressiveEmotions}, {MicrophoneSession}, {createLocalSttChannel}, {startVoiceKeyStream}] = await Promise.all([
-  load('bridge/text-provider-host.mjs'), load('bridge/mistral-memory.mjs'), load('bridge/mistral-key.mjs'), load('bridge/groq-key.mjs'),
+  load('bridge/text-provider-host.mjs'), load('bridge/mistral-memory.mjs'), load('bridge/mistral-key.mjs'),
   load('bridge/mistral-prompt.mjs'), load('bridge/realtime-host.mjs'), load('bridge/pocket-speech.mjs'), load('bridge/reply-stream.mjs'),
   load('bridge/turn-clock.mjs'), load('bridge/convai-continuous-speech.mjs'), load('bridge/pocket-facial-stream.mjs'),
   load('bridge/emotion-tags.mjs'), load('bridge/natural-speech.mjs'), load('bridge/expressive-emotions.mjs'),
@@ -125,8 +125,7 @@ async function voiceKeyTurn({mode, text, config, input, profile, current, voice,
 
 async function oneTurn({host, stream, model, voice, reply, chatDefaults, mic}) {
   const server = await languageModel({...model, ...(reply ? {reply} : {})});
-  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => 'api-key=aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL\n', writeText: async () => {},
-    groq: new GroqKey({keyPath: 'g.txt'})});
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => 'api-key=aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL\n', writeText: async () => {}});
   await provider.load(); provider.setPreference('mistral'); provider.apply();
   const memory = await MistralMemory.open({path: null});
   const naturalSpeech = new NaturalSpeech(), expressive = new ExpressiveEmotions();
@@ -193,7 +192,6 @@ async function scenario({label, model, voiceModel, stream, warm, reply, chatDefa
 const MODELS = {
   // first token / ms per character, from the 2026-10-12 measurements (docs/LATENCY_2026-10-12.md)
   mistral: {firstTokenMs: 430, msPerChar: 2.6},
-  groq: {firstTokenMs: 620, msPerChar: 0.45},
   local: {firstTokenMs: 900, msPerChar: 7},
 };
 const VOICES = {
@@ -324,7 +322,7 @@ if (args.includes('--live')) {
 }
 // --voice-key: the voice key on a text route (docs/LATENCY_2026-10-13.md 4.1), the reply voiced whole against from its first sentence.
 if (args.includes('--voice-key')) {
-  for (const [modelName, voiceName] of [['mistral', 'voxtral'], ['groq', 'voxtral'], ['local', 'voxtral'], ['local', 'pocket']]) {
+  for (const [modelName, voiceName] of [['mistral', 'voxtral'], ['local', 'voxtral'], ['local', 'pocket']]) {
     if (only && !`${modelName} + ${voiceName}`.includes(only)) continue;
     for (const mic of ['whole', 'streamed']) {
       const row = await scenario({label: `voice key, ${modelName} + ${voiceName}, ${mic}`, model: MODELS[modelName], voiceModel: VOICES[voiceName], stream: mic === 'streamed', warm: true, mic});
@@ -335,7 +333,7 @@ if (args.includes('--voice-key')) {
   if (target) await writeFile(target, JSON.stringify(results, null, 1));
   process.exit(0);
 }
-for (const [modelName, voiceName] of [['mistral', 'voxtral'], ['groq', 'voxtral'], ['local', 'voxtral'], ['local', 'pocket'], ['mistral', 'pocket']]) {
+for (const [modelName, voiceName] of [['mistral', 'voxtral'], ['local', 'voxtral'], ['local', 'pocket'], ['mistral', 'pocket']]) {
   if (only && !`${modelName} + ${voiceName}`.includes(only)) continue;
   for (const [stream, warm] of [[false, false], [false, true], [true, true]]) {
     const row = await scenario({label: `${modelName} + ${voiceName}`, model: MODELS[modelName], voiceModel: VOICES[voiceName], stream, warm});

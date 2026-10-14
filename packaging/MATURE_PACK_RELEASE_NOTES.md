@@ -21,7 +21,7 @@ The main mod has a **Mature content** setting (Settings > Development, under Con
 
 - Characters stay themselves: their voices, personalities and orientations decide how they flirt and talk about sex, not whether they do. They are direct and explicit; your relationship with them sets the tone (a partner is the most forward).
 - The **hard limits are always on**, on every model, with or without this pack: no sexual content involving minors or anyone who seems under 18, none without consent, no bestiality or incest, nothing sexual about real people, no real-world instructions for weapons, explosives or drug synthesis, no hateful content about real protected groups. The mod holds them in a rule at the start of every conversation, in a check on your messages before any model sees them, and in a check on every reply sentence before it is spoken.
-- It applies to **Local AI only**. Convai, Mistral and Groq never get it.
+- It applies to **Local AI only**. Convai and Mistral never get it.
 
 **Requirements**
 

@@ -1,15 +1,12 @@
-// Chat completions client for the OpenAI-compatible text providers (docs/MISTRAL.md, docs/LOCAL_AI.md): Mistral (the original), Groq
+// Chat completions client for the OpenAI-compatible text providers (docs/MISTRAL.md, docs/LOCAL_AI.md): Mistral (the original)
 // and the local llama.cpp server. One streamed request, an SSE parser, bounded retries and errors mapped to the few things a player
-// can act on. `provider` ('mistral' default, 'groq', 'local') picks the wording and marker of errors and the hosts a key may go to.
+// can act on. `provider` ('mistral' default, 'local') picks the wording and marker of errors and the hosts a key may go to.
 //
-// The player's API key is used for exactly one thing: the Authorization header of a request to its own provider (api.mistral.ai or
-// api.groq.com). It is never put in a message, a log line, an error text or a state file; every message that leaves this module goes
+// The player's API key is used for exactly one thing: the Authorization header of a request to its own provider (api.mistral.ai). It is never put in a message, a log line, an error text or a state file; every message that leaves this module goes
 // through `redact`. A different endpoint is accepted only when it is on this computer (the tests' fake server, the local AI).
 import {markStage} from './turn-clock.mjs';
 export const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions';
 export const MISTRAL_MODELS_ENDPOINT = 'https://api.mistral.ai/v1/models';
-export const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-export const GROQ_MODELS_ENDPOINT = 'https://api.groq.com/openai/v1/models';
 // The conversation models, fastest first. The free plan's allowance differs by model and account (measured 11 Oct 2026: Small and
 // Medium had a request allowance of 0 on a free account while the Ministral models answered at 30 to 750 requests a minute), so
 // Small is not listed, and a model whose allowance is 0 is skipped for a while and the next one is used. `ministral-8b` answers
@@ -32,7 +29,7 @@ export function redact(text, apiKey) {
   return out.replace(KEY_SHAPE, '[key]');
 }
 
-const PROVIDER_LABELS = Object.freeze({mistral: 'Mistral', groq: 'Groq', local: 'The local AI'});
+const PROVIDER_LABELS = Object.freeze({mistral: 'Mistral', local: 'The local AI'});
 
 /**
  * kind: 'key' (not accepted), 'limit' (the free plan's rate limit or allowance), 'model' (the model is not available to this
@@ -51,7 +48,7 @@ export class MistralError extends Error {
   }
 }
 
-export const MISTRAL_MARKER = /\[(?:mistral|groq|local):(key|limit|model|network|empty|request)\]/;
+export const MISTRAL_MARKER = /\[(?:mistral|local):(key|limit|model|network|empty|request)\]/;
 
 /** The failure kind in an error's text ('key', 'limit', 'model', ...) or null. */
 export function failureKind(error) {
@@ -64,7 +61,7 @@ export function failureKind(error) {
 export function errorCodeFor(error) {
   const kind = failureKind(error);
   const text = typeof error === 'string' ? error : typeof error?.message === 'string' ? error.message : '';
-  const provider = /\[(mistral|groq|local):/.exec(text)?.[1] ?? 'mistral';
+  const provider = /\[(mistral|local):/.exec(text)?.[1] ?? 'mistral';
   // The local AI has no key or limit of its own. A server that could not be started has its own code in the bridge (local-fallback);
   // any other failure of a turn (a refused prompt, no answer, a server that went away) is 'local-failed'.
   if (provider === 'local') return kind ? 'local-failed' : undefined;
@@ -94,7 +91,7 @@ export function mapFailure(status, body, {headers, apiKey, provider} = {}) {
   // The free plan allows about one request a second and a monthly allowance; the first clears in a second, so it is retried.
   if (status === 429) {
     const error = new MistralError('limit', 'rate limited', options);
-    // A daily allowance does not clear by waiting a few seconds: no retry (Groq says "tokens per day"; its body is the only hint).
+    // A daily allowance does not clear by waiting a few seconds: no retry (the body's words are the only hint).
     error.daily = /per day|TPD|RPD|daily/i.test(lower);
     return error;
   }
@@ -112,8 +109,6 @@ export function mapFailure(status, body, {headers, apiKey, provider} = {}) {
 
 /** Retry only what clears by itself: the per-second limit, a server fault, a timeout, an empty answer. Never a bad key. */
 export const retryable = error => error instanceof MistralError && !error.zeroQuota && !error.daily
-  // Groq's per-minute budget refills slowly: a long wait is worse than the next route.
-  && !(error.provider === 'groq' && error.kind === 'limit' && error.retryAfterMs > 4000)
   && (error.kind === 'network' || error.kind === 'empty' || error.kind === 'limit');
 
 // ---- SSE ---------------------------------------------------------------------------------------------------------------
@@ -195,7 +190,7 @@ const LATE = Symbol('late');
 
 const DRAIN_MS = 250;
 const LOOPBACK = /^(?:127\.0\.0\.1|localhost|\[::1\])$/;
-const HOSTS = Object.freeze({mistral: 'api.mistral.ai', groq: 'api.groq.com'});
+const HOSTS = Object.freeze({mistral: 'api.mistral.ai'});
 function checkedEndpoint(endpoint, provider = 'mistral') {
   const url = new URL(endpoint);
   if (url.protocol === 'https:' && HOSTS[provider] && url.hostname === HOSTS[provider]) return url.href;
@@ -230,8 +225,8 @@ const isCloud = url => { const {protocol, hostname} = new URL(url); return proto
 /**
  * Opens the connection to the provider ahead of the first turn, so that turn finds a ready connection (TLS done). One unauthenticated
  * `GET` of the provider's origin root: it carries no key (only the method, the host and the client's default headers leave), is not
- * an API call so it uses no quota, and answers with a body of about 100 bytes (JSON, 404 at Mistral, 200 at Groq) that is read to
- * its end so the connection returns to the shared pool. A `HEAD` is not used: both hosts (Cloudflare) answer it with
+ * an API call so it uses no quota, and answers with a body of about 100 bytes (JSON, 404 at Mistral) that is read to
+ * its end so the connection returns to the shared pool. A `HEAD` is not used: Mistral's host (Cloudflare) answers it with
  * `Connection: close`, which drops the connection (measured 2026-10-13). Resolves true when the host answered (any status), false
  * otherwise; never throws, never rejects, gives up after `timeoutMs`, and the caller does not need to wait for it.
  * `connections`: how many are opened side by side. A turn that may offer a game action sends two requests at once (the action decision
@@ -285,7 +280,7 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
   signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, totalMs = 70000, retries = 2,
   backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', onHeaders, onRetry, now = () => performance.now()} = {}) {
   if (typeof apiKey !== 'string' || apiKey.length < 8) throw new MistralError('key', 'has no API key', {provider});
-  const url = checkedEndpoint(endpoint ?? (provider === 'groq' ? GROQ_ENDPOINT : MISTRAL_ENDPOINT), provider);
+  const url = checkedEndpoint(endpoint ?? MISTRAL_ENDPOINT, provider);
   let lastError;
   const failed = [];
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -377,7 +372,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
 }
 
 /** The key check: one authenticated GET of the model list (no completion is used). 'valid', 'invalid' or 'unknown'. */
-export async function validateKey(apiKey, {fetchImpl = globalThis.fetch, provider = 'mistral', endpoint = provider === 'groq' ? GROQ_MODELS_ENDPOINT : MISTRAL_MODELS_ENDPOINT, timeoutMs = 10000} = {}) {
+export async function validateKey(apiKey, {fetchImpl = globalThis.fetch, provider = 'mistral', endpoint = MISTRAL_MODELS_ENDPOINT, timeoutMs = 10000} = {}) {
   try {
     const url = checkedEndpoint(endpoint, provider);
     const response = await fetchImpl(url, {headers: {Authorization: `Bearer ${apiKey}`, Accept: 'application/json'}, signal: AbortSignal.timeout(timeoutMs)});
