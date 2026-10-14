@@ -137,6 +137,25 @@ test('a remark whose voice stopped early says why in its release line; one heard
   `);
 });
 
+test('voiceFrom: a speaker can be heard from its own object; only an attached one counts, and a bad definition is refused', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    assert(select(2, handle:speaker({id = 'bad', name = 'Bad', voiceFrom = 'gun'})) == 'voiceFrom must be a function')
+    local gun = {attached = true}
+    function gun:IsAttached() return self.attached end
+    local asked = nil
+    local key = handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', voiceFrom = function(p) asked = p; return gun end})
+    local plain = handle:speaker({id = 'plain', name = 'Plain', anchor = 'player'})
+    assert(M.voiceSource(key, player) == gun and asked == player)
+    gun.attached = false
+    assert(M.voiceSource(key, player) == nil)
+    assert(M.voiceSource(plain, player) == nil and M.voiceSource('addon-x-y', player) == nil and M.voiceSource(key, nil) == nil)
+    handle:speaker({id = 'boom', name = 'Boom', voiceFrom = function() error('no weapon') end})
+    assert(M.voiceSource('addon-skippy-boom', player) == nil)
+  `);
+});
+
 test('arbitration: nothing is submitted while anything else talks, a manual turn wins, and a scene or a lost anchor stops a remark', () => {
   run(`${WORLD}
     M.attach(host)
@@ -809,7 +828,9 @@ test('init.lua: every call into the add-on API is skipped until an add-on is liv
   const init = code('init.lua');
   assert.match(init, /local loaded, module = pcall\(dofile, 'addons\.lua'\)\s+convaiAddons = loaded and type\(module\) == 'table' and module or nil/);
   const calls = [...init.matchAll(/convaiAddons\.(\w+)\(/g)].map(match => match[1]);
-  assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'captionName', 'decorate', 'gameLine', 'isSpeaker', 'lineRulesWanted', 'matchLine', 'mutedLine', 'participantLive', 'replyError', 'talkCandidates']);
+  assert.deepEqual([...new Set(calls)].sort(), ['attach', 'canDeliver', 'captionName', 'decorate', 'gameLine', 'isSpeaker', 'lineRulesWanted', 'matchLine', 'mutedLine', 'participantLive', 'replyError', 'talkCandidates', 'voiceSource']);
+  // Where an add-on voice is heard from: asked by speech.lua once per voice-only reply, and only while an add-on is live.
+  assert.match(init, /speech\.voiceSource = function\(profileKey, player\) return convaiAddons\.live and convaiAddons\.voiceSource\(profileKey, player\) or nil end/);
   // The game-line notice runs only for a live add-on: the dialogue module asks first (one function call per game subtitle line).
   assert.match(init, /onGameLineWanted = function\(\) return convaiAddons ~= nil and convaiAddons\.live == true end,\s+onGameLine = function\(seconds, kind, measured\) convaiAddons\.gameLine\(seconds, kind, measured\) end/);
   assert.match(init, /if key and not participants and convaiAddons and convaiAddons\.live and convaiAddons\.isSpeaker\(key\) then key = nil end/);

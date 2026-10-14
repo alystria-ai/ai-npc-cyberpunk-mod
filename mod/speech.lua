@@ -216,7 +216,13 @@ function M.start(context, reply)
             local defs = Game.GetAllBlackboardDefs()
             paused = Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu)
         end)
-        local accepted, reason = controller.start(context, reply.continuous, player, actor, paused)
+        -- An add-on voice may be heard from its own object (addons.lua voiceFrom: Skippy's gun), asked once here for this reply.
+        local source = nil
+        if M.voiceOnly and type(M.voiceSource) == 'function' then
+            local ok, object = pcall(M.voiceSource, context.profileKey, player)
+            source = ok and object or nil
+        end
+        local accepted, reason = controller.start(context, reply.continuous, player, actor, paused, source)
         if not accepted then
             M.state, M.error = 'playback-failed', reason
             captions.show(context.name, reply.text, actor, context.entity); publish(); return false

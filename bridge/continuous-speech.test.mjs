@@ -198,6 +198,40 @@ speech.stop('cancelled');assert(not control().allow and not speech.requestId and
 context.entity='Wrong-copy';assert(not begin());assert(not control().allow)
 `));
 
+test('an add-on voice is heard from its own object (the gun Skippy lives in) and falls back to its anchor for good when that goes away',()=>run(`
+captions.beginTimed=function(_,text,duration)captions.timed={duration=duration};captions.line=text end
+local gun=actor('Gun',1,1)
+local asked={}
+speech.voiceSource=function(key,p)asked[#asked+1]=key;assert(p==player);return gun end
+local skippy={requestId='addon-1',entity=player.id,generation=8,name='Skippy',voiceOnly=true,profileKey='addon-skippy-gun'}
+local function snap(changes)
+ local value={version=1,id=id,requestId=skippy.requestId,entity=skippy.entity,generation=skippy.generation,
+  updated=(wall+.05)*1000,state='playing',position=.2,bufferedDuration=2,text='Hi.',textComplete=false,complete=false,ended=false,underruns=0}
+ for k,v in pairs(changes or {})do value[k]=v end
+ put('runtime/continuous-speech.json',value)
+end
+speech.target=player
+assert(speech.start(skippy,{text='Hi.',continuous={version=1,id=id}}))
+-- Asked once, with the speaker's profile; V (the anchor) is right under the camera, so only the gun gives the voice a side.
+assert(#asked==1 and asked[1]=='addon-skippy-gun')
+assert(control().allow and control().pan>.4 and control().pan<=.7 and controller.status().voiceFrom=='source')
+local d=control().distance;assert(d>1.3 and d<1.5)
+snap();tick(.16);assert(#asked==1)
+-- The gun is not near the camera any more (holstered, dropped, a bad read): back to V, and never asked again for this reply.
+gun.pos={x=40,y=0,z=0};snap();tick(.16)
+assert(control().pan==0 and controller.status().voiceFrom=='dropped' and #asked==1)
+gun.pos={x=1,y=1,z=0};snap();tick(.16);assert(control().pan==0)
+speech.stop('cancelled');assert(controller.status().voiceFrom==nil)
+-- An ordinary (not voice-only) reply never asks.
+assert(begin());assert(#asked==1 and control().pan==.7)
+speech.stop('cancelled')
+-- A source that fails to resolve is simply the anchor.
+speech.voiceSource=function()error('no weapon')end
+speech.target=player;skippy.requestId='addon-2'
+assert(speech.start(skippy,{text='Hi.',continuous={version=1,id=id}}))
+assert(control().allow and control().pan==0 and controller.status().voiceFrom==nil)
+`));
+
 test('provider EOF cannot complete group delivery before the device queue drains',()=>run(`
 assert(begin());snapshot({complete=true,textComplete=true,position=.2});tick()
 local t=speech.transcript(context.requestId,7,judy.id)

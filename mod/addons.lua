@@ -422,7 +422,9 @@ local function speakerOf(handle, id)
     return addon.speakers[id]
 end
 
---- handle:speaker({id, name, anchor, available, talk, group, minGap, sceneTiers, talkPriority, playThrough}) -> profileKey
+--- handle:speaker({id, name, anchor, available, talk, group, minGap, sceneTiers, talkPriority, playThrough, voiceFrom}) -> profileKey
+--- voiceFrom(player) -> GameObject (optional): where the voice is heard from, when that is not the anchor (Skippy: the gun in V's
+--- hand while the anchor stays V). Asked once when a reply starts; it only moves the sound (pan and distance), nothing else.
 Handle.speaker = guard('speaker', function(self, def)
     local addon = self and self.record
     if not addon or addons[addon.id] ~= addon then return nil, 'unknown add-on' end
@@ -434,6 +436,7 @@ Handle.speaker = guard('speaker', function(self, def)
     local anchor = def.anchor or 'player'
     if anchor ~= 'player' and anchor ~= 'vehicle' and type(anchor) ~= 'function' then return nil, 'anchor must be player, vehicle or a function' end
     if def.available ~= nil and type(def.available) ~= 'function' then return nil, 'available must be a function' end
+    if def.voiceFrom ~= nil and type(def.voiceFrom) ~= 'function' then return nil, 'voiceFrom must be a function' end
     local tiers = {1}
     if type(def.sceneTiers) == 'table' then
         tiers = {}
@@ -444,6 +447,7 @@ Handle.speaker = guard('speaker', function(self, def)
     local speaker = {addon = addon, id = def.id, key = key, name = name, anchor = anchor, available = def.available,
         talk = def.talk ~= false, group = def.group == true, minGap = number(def.minGap, 2, 600, 8),
         talkPriority = number(def.talkPriority, 0, 100, 0), sceneTiers = tiers, playThrough = def.playThrough == true,
+        voiceFrom = def.voiceFrom,
         contexts = {}, contextOrder = {}, contextTiers = {}, lastAt = nil, events = {}, warmedAt = nil, mode = nil}
     addon.speakers[def.id] = speaker
     speakers[key] = speaker
@@ -1225,6 +1229,17 @@ function M.captionName(profileKey, name)
     local speaker = speakers[profileKey]
     if not speaker or type(name) ~= 'string' or speaker.addon.values.markLines == false then return name end
     return name .. CAPTION_TAG
+end
+
+--- Where an add-on speaker's voice is heard from (its voiceFrom), for the reply that starts now (speech.lua, once per reply, never per
+--- frame). nil: the anchor, as before. The object must be attached; anything else (an error, a missing weapon) is nil.
+function M.voiceSource(profileKey, player)
+    local speaker = type(profileKey) == 'string' and speakers[profileKey] or nil
+    if not speaker or not speaker.voiceFrom or not player then return nil end
+    local ok, object = pcall(speaker.voiceFrom, player)
+    if not ok or not object then return nil end
+    local attached, yes = pcall(function() return object:IsAttached() end)
+    return attached and yes == true and object or nil
 end
 
 --- The reply of an add-on remark arrived: may it play now? (init.lua reactionCanDeliver)

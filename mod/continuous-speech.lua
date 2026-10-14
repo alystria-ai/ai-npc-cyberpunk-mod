@@ -102,11 +102,31 @@ local function gameVolume()
     volume = ok and level or nil
 end
 
+-- An add-on speaker may be heard from somewhere other than its anchor (addons.lua voiceFrom; Skippy: the gun in V's hand). That
+-- object only moves the sound. It is dropped for good, back to the anchor, the first time it is detached, unreadable or more than
+-- 3 m from the camera (a weapon that is not in V's hands any more), so a bad source costs one failed read, not one per update.
+local SOURCE_REACH = 3
+local function voicePosition(actor, origin)
+    local source = owner and owner.source
+    if source then
+        local ok, position = pcall(function()
+            if not source:IsAttached() then return nil end
+            return source:GetWorldPosition()
+        end)
+        if ok and position then
+            local dx, dy, dz = position.x-origin.x, position.y-origin.y, position.z-origin.z
+            if finite(dx) and finite(dy) and finite(dz) and dx*dx+dy*dy+dz*dz <= SOURCE_REACH*SOURCE_REACH then return position end
+        end
+        owner.source, owner.sourceDropped = nil, true
+    end
+    return actor:GetWorldPosition()
+end
+
 local function spatial(player, actor)
     -- A holocall reply comes through the phone: full level, centred, no distance (the live picture's copy is far away).
     if owner and owner.holocall then speakerDistance = 0; return volume or 0, 0 end
-    local position = actor:GetWorldPosition()
     local origin, forward = Game.GetTargetingSystem():GetCrosshairData(player)
+    local position = voicePosition(actor, origin)
     local dx, dy, dz = position.x-origin.x, position.y-origin.y, position.z-origin.z
     assert(finite(dx) and finite(dy) and finite(dz) and finite(forward.x) and finite(forward.y))
     local distance, horizontal, direction = math.sqrt(dx*dx+dy*dy+dz*dz), math.sqrt(dx*dx+dy*dy), math.sqrt(forward.x^2+forward.y^2)
@@ -133,8 +153,10 @@ function M.pause()
 end
 
 function M.status()
+    -- voiceFrom: 'source' while an add-on reply is heard from its own object, 'dropped' after it fell back to the anchor.
     return {volumeKnown=volume ~= nil,volume=volume or 0,
-        volumeReason=volume == nil and 'game-volume-unavailable' or nil}
+        volumeReason=volume == nil and 'game-volume-unavailable' or nil,
+        voiceFrom=owner and (owner.source and 'source' or owner.sourceDropped and 'dropped') or nil}
 end
 
 -- Cached numerical diagnostics only. Do not return the actor/owner, text,
@@ -150,7 +172,7 @@ function M.diagnosticCadence()
         state = previous and previous.state, wait = wait, poll = poll}
 end
 
-function M.start(context, descriptor, player, actor, paused)
+function M.start(context, descriptor, player, actor, paused, source)
     M.stop()
     if not identity(context) or type(descriptor) ~= 'table' or descriptor.version ~= 1 or not uuid(descriptor.id) then
         return false, 'Invalid continuous speech owner'
@@ -158,7 +180,8 @@ function M.start(context, descriptor, player, actor, paused)
     local ok, playerID = pcall(function() return tostring(player:GetEntityID().hash) end)
     if not ok or not bounded(playerID, 120) then return false, 'Continuous speech player unavailable' end
     owner = {id=descriptor.id,requestId=context.requestId,generation=context.generation,entity=context.entity,player=playerID,
-        voiceOnly=context.voiceOnly==true or nil,holocall=type(context.holocall)=='table' or nil}
+        voiceOnly=context.voiceOnly==true or nil,holocall=type(context.holocall)=='table' or nil,
+        source=context.voiceOnly==true and source or nil}
     poll, wait, volumePoll = 0, 0, 0
     written, faceTimeline, faceRevision, faceReadAt = nil, nil, nil, nil
     segmentCache = {}

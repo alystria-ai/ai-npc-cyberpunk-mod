@@ -498,8 +498,11 @@ registerForEvent('onInit', function()
     -- minGap 2: the main mod's Remarks setting decides how often Skippy speaks; the speaker adds no gap of its own.
     -- playThrough: the game's own Skippy lines and the scenes around them are not a reason to stay silent (the main mod keeps the
     -- game's lines off while "Replace the game's own lines" is on); a call, Johnny or a cinematic still stop him.
+    -- voiceFrom: his voice is heard from the gun in V's hand (pan and distance only; V stays the anchor for everything else). Asked
+    -- once per reply; while V is not holding him there is no reply to place.
     handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2, playThrough = true,
-        available = function() return S.holding == true end})
+        available = function() return S.holding == true end,
+        voiceFrom = function(player) return S.holding == true and ScriptedPuppet.GetActiveWeapon(player) or nil end})
     -- The game's own Skippy ("new message detected", "provocation", the beeps) is silenced while the add-on is on and the player's
     -- "Replace the game's own lines" is on (default); the quest, the mode choice and every scene behind those lines run as always.
     -- audio: the game plays his lines on the custom Wwise event vo_3d_important (SKIPPY_RESEARCH.md); the stop is not heard-tested yet

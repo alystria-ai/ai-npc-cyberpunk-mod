@@ -2502,6 +2502,8 @@ if convaiAddons then
             speechStop = not speech.requestId and speech.state or nil, speechError = not speech.requestId and speech.error or nil,
             sample = battleSample}
     end
+    -- Where an add-on voice is heard from (addons.lua voiceFrom), asked by speech.lua once per add-on reply.
+    speech.voiceSource = function(profileKey, player) return convaiAddons.live and convaiAddons.voiceSource(profileKey, player) or nil end
     -- An automatic add-on remark: the same request file, reply path and playback as every other turn.
     seams.submit = function(context, anchor)
         if active or pending or automatic or microphone.context or groupChat.round then return false end
