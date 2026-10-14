@@ -9,6 +9,10 @@
 // (beginVoice / finishVoice / heard / close), so the voice key, its states, the "Listening" notice, the 700 ms
 // minimum recording, spam safety and the live words (microphone-heard.json) all run through the unchanged code.
 import {randomUUID} from 'node:crypto';
+import {ReplyStream} from './reply-stream.mjs';
+import {TurnClock, currentClock, withClock} from './turn-clock.mjs';
+import {cancelled} from './transport-pool.mjs';
+import {sameWords} from './local-stt.mjs';
 
 export const NO_SPEECH_ERROR = 'No speech was heard';
 export const STT_UNAVAILABLE_CODE = 'local-stt-unavailable';
@@ -168,11 +172,45 @@ export class LocalSttCapture {
 //
 // finishVoice rejects with Error('No speech was heard') for an empty recording, which the bridge already turns into
 // the game's "No speech was heard" notice (microphone-state.json "no-speech").
-export function createLocalSttChannel({stt, capture, reply, now = Date.now}) {
+export function createLocalSttChannel({stt, capture, reply, now = Date.now, speculate = () => false}) {
   return () => {
     let requestId = null, closed = false, begun = false;
     const controller = new AbortController();
     const pass = chunk => { if (requestId) stt.pushAudio(chunk); };
+    // The reply on a stable live-words decode, started the moment the key is pressed (stt.stable()). Returns null when the newest decode
+    // cannot stand in for the transcript. The reply is written into a stream of its own and held back from the voice, the memory and the
+    // game's actions until the final words are known: `adopt` hands it over when they agree, `discard` throws it away when they do not.
+    const startSpeculation = (id, config, options) => {
+      if (!reply || typeof stt.stable !== 'function') return null;
+      let guess; try { guess = stt.stable(id); } catch { return null; }
+      if (!guess?.text) return null;
+      const own = new AbortController(), signal = AbortSignal.any([controller.signal, own.signal]);
+      let open, shut; const gate = new Promise((yes, no) => { open = yes; shut = no; }); gate.catch(() => {});
+      // A turn that is closed or cancelled while the reply waits for its words to be confirmed must not leave the reply hanging.
+      signal.addEventListener('abort', () => shut(cancelled('The words changed')), {once: true});
+      const real = options.stream, feed = real ? new ReplyStream({name: real.name, isTag: real.isTag, speak: real.speak, limits: real.limits}) : undefined;
+      const clock = currentClock() ? new TurnClock({origin: currentClock().origin}) : null;
+      const run = () => reply({...config, text: guess.text}, {...options, signal, ...(feed ? {stream: feed} : {}), confirmed: gate});
+      const promise = Promise.resolve().then(() => clock ? withClock(clock, run) : run());
+      let settled = null;
+      promise.then(() => { settled = 'done'; }, () => { settled = 'failed'; });
+      promise.catch(() => {});
+      return {
+        guess,
+        matches: text => sameWords(guess.text, text),
+        // The final words agree: the voice, the memory and the game see the reply from now on.
+        async adopt() {
+          open();
+          if (feed && real) feed.mirrorTo(real);
+          const turn = currentClock();
+          if (clock && turn) for (const name of clock.marks.keys()) turn.mark(name, clock.at(name));
+          return promise;
+        },
+        // The reply could not be written before the words were confirmed (it failed on its own): the turn asks again with the final words.
+        failed: () => settled === 'failed',
+        discard() { shut(cancelled('The words changed')); own.abort(cancelled('The words changed')); },
+      };
+    };
     return {
       async beginVoice(config) {
         if (closed) throw Error('Microphone connection is closed');
@@ -195,16 +233,33 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now}) {
         if (!begun || closed) throw Error('Microphone connection is not running');
         const id = requestId; begun = false;
         const started = now();
-        await capture.end();
-        const {text, seconds} = await stt.finish(id);
+        // Option B (docs/LATENCY_2026-10-14.md): the newest live-words decode may stand in for the transcript while the final decode runs.
+        let speculation = null;
+        try { speculation = reply && speculate() ? startSpeculation(id, config, options) : null; } catch { speculation = null; }
+        let text, seconds;
+        try {
+          await capture.end();
+          ({text, seconds} = await stt.finish(id));
+        } catch (error) { speculation?.discard(); throw error; }
+        if (closed || !text) { speculation?.discard(); }
         if (closed) throw Error('Microphone finish cancelled');
         if (!text) throw Error(NO_SPEECH_ERROR);
         const base = {userText: text, local: true, timing: {sttMs: now() - started, audioSeconds: seconds}};
         if (!reply) return {...base, text: ''};
         // A reply voiced while it is written (bridge/voice-key-stream.mjs) needs the transcript before the model's first sentence.
         try { options.onTranscript?.(text); } catch { /* a listener never breaks the turn */ }
-        const result = await reply({...config, text}, {...options, signal: controller.signal});
-        return {...base, ...result, userText: result?.userText ?? text};
+        let result, speculated = null;
+        if (speculation && speculation.matches(text) && !speculation.failed()) {
+          speculated = 'kept';
+          result = await speculation.adopt();
+        } else {
+          if (speculation) { speculated = speculation.failed() ? 'failed' : 'restarted'; speculation.discard(); }
+          result = await reply({...config, text}, {...options, signal: controller.signal});
+        }
+        const turn = {...base, ...result, userText: result?.userText ?? text};
+        // What the speculative start did, for the turn's record: kept (the reply began on the stable words), restarted (the final words differed).
+        if (speculated) turn.timing = {...turn.timing, speculation: speculated};
+        return turn;
       },
       heard: async () => (requestId && begun ? stt.heard(requestId) : ''),
       async close() {
@@ -224,7 +279,7 @@ export function createLocalSpeech({stt, capture}) {
   return {
     available: () => stt.availability().available,
     availability: () => stt.availability(),
-    voiceChannel: ({reply} = {}) => createLocalSttChannel({stt, capture, reply})(),
+    voiceChannel: ({reply, speculate} = {}) => createLocalSttChannel({stt, capture, reply, speculate})(),
     warm: () => stt.warm(),
     close: async () => { await capture.close?.(); await stt.close(); },
   };

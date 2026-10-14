@@ -187,12 +187,19 @@ class Worker:
         whole = self.samples()
         samples = whole[-int(PARTIAL_WINDOW * SAMPLE_RATE):]
         if len(samples) < SAMPLE_RATE // 4 or not has_speech(samples):
+            # Nothing to decode yet. Say so: the bridge keeps one live-words decode in flight at a time and would wait for this
+            # answer for the rest of the recording (a pause before the first word used to switch the live words off).
+            send({"type": "partial", "id": request_id, "text": "", "ms": 0})
             return
         text = self.engine.decode(samples)
         if request_id == self.id:
             # A partial that decoded the entire recording (up to the window) can stand as the final text when only
-            # silence follows it, so the key press does not wait for a second decode of the same words.
-            self.last_partial = (len(whole), text) if len(whole) == len(samples) else None
+            # silence follows it, so the key press does not wait for a second decode of the same words. A recording
+            # longer than the window counts too when what the window left out holds no speech (a pause before the
+            # first word): its words are all in the partial.
+            left_out = whole[: len(whole) - len(samples)]
+            covers = len(left_out) == 0 or not has_speech(left_out)
+            self.last_partial = (len(whole), text) if covers else None
             send({"type": "partial", "id": request_id, "text": text, "ms": round((time.perf_counter() - started) * 1000)})
 
     def finish(self, request_id):

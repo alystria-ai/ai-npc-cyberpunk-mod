@@ -20,6 +20,7 @@ import {spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {setPriority, constants as osConstants} from 'node:os';
+import {SpeechActivity} from './stt-activity.mjs';
 
 export const LOCAL_STT_ENGINE = 'moonshine-tiny-en-int8';
 export const MODEL_FILES = Object.freeze(['preprocess.onnx', 'encode.int8.onnx', 'uncached_decode.int8.onnx',
@@ -34,9 +35,16 @@ export const LOCAL_STT_LIMITS = Object.freeze({
   startupMs: 30_000,             // time allowed for the model to load
   finishMs: 20_000,              // time allowed for the final decode
   maxSeconds: 45,                // audio beyond this is ignored (the game finishes a recording at 30 s)
+  pauseMs: 300,                  // quiet this long after speech asks for a live-words decode at once (the pause decode), not at the next tick
+  pauseDecodes: 6,               // at most this many pause decodes in one recording
+  partialWindowSeconds: 8,       // the worker decodes the newest 8 s for a live-words decode (PARTIAL_WINDOW in the worker)
+  settleMs: 150,                 // a live decode stands in for the transcript only when it also heard this much quiet after the speech
 });
 
 const HEARD_LIMIT = 100;
+// The words of a transcript, for comparing two of them: lower case, letters and digits only (an apostrophe stays inside a word).
+export const wordsOf = text => String(text ?? '').toLowerCase().replace(/[’‘]/g, "'").replace(/[^\p{L}\p{N}']+/gu, ' ').replace(/(^|\s)'+|'+(?=\s|$)/g, ' ').trim().split(/\s+/).filter(Boolean);
+export const sameWords = (a, b) => { const x = wordsOf(a), y = wordsOf(b); return x.length === y.length && x.every((word, at) => word === y[at]); };
 // Moonshine's usual mishearings of this game's names. Applied to the final transcript only, whole-phrase and
 // case-insensitive; deliberately short. Callers can pass their own list (fixups option).
 export const DEFAULT_FIXUPS = Object.freeze([
@@ -70,11 +78,11 @@ export class LocalStt extends EventEmitter {
       startupMs = LOCAL_STT_LIMITS.startupMs, finishMs = LOCAL_STT_LIMITS.finishMs, fixups = DEFAULT_FIXUPS,
       spawnImpl = spawn, exists = existsSync, setTimer = setTimeout, clearTimer = clearTimeout,
       paths = resolveLocalSttPaths({project, environment, pythonExecutable}), lowerPriority = true,
-      priority = 'below'} = {}) {
+      priority = 'below', pausePartials = true, pauseMs = LOCAL_STT_LIMITS.pauseMs} = {}) {
     super();
     Object.assign(this, {paths, threads: Math.max(1, Math.min(LOCAL_STT_LIMITS.maxThreads, threads | 0 || 1)), partials,
       partialIntervalMs, idleMs, startupMs, finishMs, fixups, spawnImpl, exists, setTimer, clearTimer, lowerPriority,
-      priority: ['normal', 'below', 'idle'].includes(priority) ? priority : 'below'});
+      pausePartials, pauseMs, priority: ['normal', 'below', 'idle'].includes(priority) ? priority : 'below'});
     this.worker = null;       // {child, ready, readyPromise, buffer}
     this.session = null;      // {id, held[], bytes, sentBytes, partialBytes, partialBusy, text, waiter}
     this.idleTimer = null; this.partialTimer = null;
@@ -164,11 +172,19 @@ export class LocalStt extends EventEmitter {
       if (!session || session.id !== message.id) return;
       session.partialBusy = false;
       session.nextPartialAt = Date.now() + Math.max(this.partialIntervalMs, (Number(message.ms) || 0) * LOCAL_STT_LIMITS.partialDutyFactor);
+      session.pauseNotBefore = Date.now() + (Number(message.ms) || 0);   // a pause decode follows a decode after at least its own duration
       const text = typeof message.text === 'string' ? message.text : '';
+      // What this decode covered: the audio that had been sent when it was asked for (the worker decodes in order).
+      const asked = session.inflight; session.inflight = null;
+      if (text && asked) {
+        session.history.push({text: this.polish(text), coveredBytes: asked.coveredBytes, at: Date.now(), ms: Number(message.ms) || 0});
+        if (session.history.length > 8) session.history.shift();
+      }
       if (text && text !== session.text) {
         session.text = text;
         this.emit('partial', {requestId: session.id, text: this.shorten(text)});
       }
+      this.maybePausePartial(session);
     } else if (message.type === 'final') {
       const session = this.session;
       if (!session || session.id !== message.id) return;
@@ -179,7 +195,7 @@ export class LocalStt extends EventEmitter {
     } else if (message.type === 'error') {
       if (!state.ready) { this.fail(state, Error(message.message || 'Local speech recognition failed to start')); return; }
       const session = this.session;
-      if (session && (message.id === undefined || session.id === message.id)) session.partialBusy = false;
+      if (session && (message.id === undefined || session.id === message.id)) { session.partialBusy = false; session.inflight = null; }
       if (session?.waiter && message.id === session.id) {
         this.stopPartials(); this.session = null; this.armIdle();
         session.waiter.reject(Error(message.message || 'Local speech recognition failed'));
@@ -210,7 +226,8 @@ export class LocalStt extends EventEmitter {
     if (!this.worker) await readyPromise;
     const state = this.worker;
     this.session = {id: requestId, worker: state, held: [], bytes: 0, partialBytes: 0, partialBusy: false, text: '',
-      waiter: null, finishRequested: false, startedAt: Date.now()};
+      waiter: null, finishRequested: false, startedAt: Date.now(), activity: new SpeechActivity(), history: [], inflight: null,
+      pauseAskedFor: -1, pauseDecodes: 0, pauseNotBefore: 0};
     if (state.ready) this.flush(state);
     // The model loads while the device opens: do not wait for it here, finish() does.
     readyPromise.catch(() => {});
@@ -228,7 +245,54 @@ export class LocalStt extends EventEmitter {
     session.bytes += take.length;
     if (session.worker.ready) this.send(session.worker, {op: 'audio', id: session.id, pcm: Buffer.from(take).toString('base64')});
     else session.held.push(Buffer.from(take));
+    session.activity.push(take);
+    this.maybePausePartial(session);
     return true;
+  }
+
+  // The player stopped talking (quiet for pauseMs after speech) and no decode has covered the end of that speech yet: decode now
+  // instead of at the next 1.2 s tick, so by the time the key is pressed again the newest words are already read and finish() has
+  // nothing left to decode. Once per pause, never while a decode is running, never more than `pauseDecodes` times per recording.
+  maybePausePartial(session) {
+    if (!this.partials || !this.pausePartials || this.session !== session || session.finishRequested || !session.worker.ready
+        || session.partialBusy || session.pauseDecodes >= LOCAL_STT_LIMITS.pauseDecodes || Date.now() < session.pauseNotBefore) return;
+    const activity = session.activity;
+    if (!activity.heardSpeech || activity.quietMs < this.pauseMs) return;
+    const end = activity.speechEndBytes;
+    if (session.partialBytes >= end || session.pauseAskedFor === end) return;
+    session.pauseAskedFor = end; session.pauseDecodes++;
+    this.requestPartial(session);
+  }
+
+  requestPartial(session) {
+    session.partialBusy = true; session.partialBytes = session.bytes;
+    session.inflight = {coveredBytes: session.bytes, at: Date.now()};
+    this.send(session.worker, {op: 'partial', id: session.id});
+  }
+
+  /**
+   * The words of the newest live-words decode when they can stand as the transcript, for a reply that is started before the final decode
+   * is back (docs/LATENCY_2026-10-14.md, option B). Called when the key is pressed again. null unless ALL of these hold:
+   *   - the decode has words;
+   *   - the player had stopped: no speech frame came after the audio the decode covered (a decode that missed even one word is the common
+   *     way a partial differs from the final: measured, 0 of 7 such partials were the final words);
+   *   - the decode heard the quiet after the speech (`settleMs` of it): a decode cut at the last syllable can lose its end;
+   *   - the decode read the whole speech: it looks at the newest 8 s only, so a recording longer than that is fine only when the first word
+   *     is inside that window.
+   * `{text, coveredBytes, quietAfterMs, decodes, agree}`; `agree` says the decode before it had the same words (punctuation and case aside).
+   * The caller confirms the text against the final transcript and starts over when they differ.
+   */
+  stable(requestId) {
+    const session = this.session;
+    if (!session || (requestId !== undefined && session.id !== requestId) || !session.history.length) return null;
+    const newest = session.history.at(-1), before = session.history.at(-2), activity = session.activity;
+    if (!newest.text || !activity.heardSpeech || activity.speechMsAfter(newest.coveredBytes) > 0) return null;
+    const quietAfterMs = (newest.coveredBytes - activity.speechEndBytes) * 1000 / (SAMPLE_RATE * 2);
+    if (quietAfterMs < LOCAL_STT_LIMITS.settleMs) return null;
+    const windowStart = Math.max(0, newest.coveredBytes - LOCAL_STT_LIMITS.partialWindowSeconds * SAMPLE_RATE * 2);
+    if (windowStart > 0 && windowStart > activity.speechStartBytes) return null;
+    return {text: newest.text, coveredBytes: newest.coveredBytes, quietAfterMs: Math.round(quietAfterMs), decodes: session.history.length,
+      agree: !!before && sameWords(before.text, newest.text)};
   }
 
   heard(requestId) {
@@ -275,8 +339,7 @@ export class LocalStt extends EventEmitter {
       if (!session || session.finishRequested || !session.worker.ready) return;
       const fresh = session.bytes - session.partialBytes;
       if (!session.partialBusy && Date.now() >= (session.nextPartialAt ?? 0) && fresh >= LOCAL_STT_LIMITS.minPartialAudioMs * SAMPLE_RATE * 2 / 1000) {
-        session.partialBusy = true; session.partialBytes = session.bytes;
-        this.send(session.worker, {op: 'partial', id: session.id});
+        this.requestPartial(session);
       }
       this.partialTimer = this.setTimer(tick, this.partialIntervalMs);
       this.partialTimer.unref?.();
