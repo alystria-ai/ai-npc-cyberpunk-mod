@@ -667,7 +667,7 @@ end
 
 -- Mature content only works with the Local AI provider, and its replies must not go to a cloud voice. So turning it ON in the
 -- drafts also stages (as pending changes, before Apply) the Local AI provider, the Auto model and, when the companion voice is a
--- cloud voice, a local one (OmniVoice Balanced when its pack is installed, else Pocket TTS); without the Local AI pack nothing
+-- cloud voice, Pocket TTS (a local voice is left as it is); without the Local AI pack nothing
 -- else is touched. Turning it OFF puts back what that changed, unless the player changed it since. What was changed is kept in
 -- matureMemory while the drafts are pending and, once applied, in the saved settings (manager: matureRestore). All of it runs
 -- from M.update after a draft event, never in a hook, and costs nothing while no draft changes.
@@ -738,10 +738,12 @@ local function matureTurnedOn()
         local voiceNow = draftValue('voiceProvider')
         local choice = VOICE_CHOICES[voiceNow]
         if choice and CLOUD_VOICES[choice.provider] then
-            -- Multilingual conversations refuses Pocket TTS: without the OmniVoice pack there is no local voice to move to.
+            -- A local voice (Pocket, OmniVoice) is left exactly as it is; only a cloud voice moves, and it moves to Pocket TTS.
+            -- Multilingual conversations refuses Pocket TTS: then OmniVoice is the local voice to move to, and without its pack there is none.
+            local multilingual = draftValue('multilingualConversations') == true
             local omni = manager.omniPack().installed == true
-            if omni or draftValue('multilingualConversations') ~= true then
-                local target = omni and 2 or 1
+            if omni or not multilingual then
+                local target = multilingual and 2 or 1
                 if stageDraft('voiceProvider', target) then
                     record.voice = {before = voiceRecord(voiceNow), set = voiceRecord(target)}
                     local chosen = VOICE_CHOICES[target]

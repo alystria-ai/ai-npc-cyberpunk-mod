@@ -2121,9 +2121,9 @@ test('turning Mature content on stages Local AI, the uncensored model and a loca
     startFrom()
     assert(saved.voiceProvider == 'voxtral')
     user('matureContent', true)
-    assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=2', drafts())
+    assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=1', drafts())
     local changes = mcm.inspect().mature.changes
-    assert(changes and changes:find('Local AI', 1, true) and changes:find('Uncensored model', 1, true) and changes:find('OmniVoice', 1, true), changes)
+    assert(changes and changes:find('Local AI', 1, true) and changes:find('Uncensored model', 1, true) and changes:find('Pocket', 1, true), changes)
     assert(mcm.inspect().mature.notice == nil, 'there is no Mature notice any more')
     -- No notice either: MCM's own "Pending: Mature content" status stays as it is, now and a while later.
     local shown
@@ -2134,12 +2134,12 @@ test('turning Mature content on stages Local AI, the uncensored model and a loca
     assert(shown == 'Pending: Mature content', tostring(shown))
     -- Nothing is saved before Apply.
     assert(saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral' and not saved.matureContent)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
-    assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.localModel == 'mature:unc' and saved.voiceProvider == 'omni')
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 1}}).ok)
+    assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.localModel == 'mature:unc' and saved.voiceProvider == 'pocket')
     local way = saved.matureRestore
     assert(way and way.conversationProvider.before == 'mistral' and way.conversationProvider.set == 'local'
       and way.localModel.before == 'standard' and way.localModel.set == 'mature:unc'
-      and way.voice.before.provider == 'voxtral' and way.voice.set.provider == 'omni' and way.voice.set.steps == 16 and way.voice.set.reference == 'short', 'the way back was not saved')
+      and way.voice.before.provider == 'voxtral' and way.voice.set.provider == 'pocket', 'the way back was not saved')
     assert(manager.snapshot(player).settings.matureRestore.localModel.before == 'standard')
   `);
 });
@@ -2148,7 +2148,7 @@ test('turning Mature content off puts the provider, model and voice back, except
   run(`${mcmFixture}${matureFixture}
     startFrom()
     user('matureContent', true)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 1}}).ok)
     -- Off, nothing else touched: all three come back as pending changes, in one line.
     user('matureContent', false)
     assert(drafts() == 'conversationProvider=2,localModel=2,matureContent=false,voiceProvider=6', drafts())
@@ -2159,7 +2159,7 @@ test('turning Mature content off puts the provider, model and voice back, except
     assert(saved.matureRestore == nil, 'the way back stayed after Mature content was turned off')
     -- On again, the player changes the provider to Groq and the model to Qwen before turning it off: those two stay.
     user('matureContent', true)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 1}}).ok)
     assert(apply({{id = 'conversationProvider', value = 4}, {id = 'localModel', value = 1}}).ok)
     user('matureContent', false)
     assert(drafts() == 'matureContent=false,voiceProvider=6', 'only the voice was still the one Mature content chose: ' .. drafts())
@@ -2180,7 +2180,7 @@ test('Mature content turned on and off again before Apply leaves no pending chan
     pending = {}; emit(); mcm.update(player, false)
     assert(mcm.inspect().mature.staged == false)
     user('matureContent', true)
-    assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=2', drafts())
+    assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true,voiceProvider=1', drafts())
     -- The player's own later change of the provider while Mature content is on is theirs: turning it off does not undo it.
     user('conversationProvider', 4)
     user('matureContent', false)
@@ -2233,15 +2233,47 @@ test('the voice moves to Pocket TTS without the OmniVoice pack, is left when it 
   `);
 });
 
+test('Mature content on never changes a local voice (Pocket or OmniVoice, even with the OmniVoice pack installed); every cloud voice moves to Pocket TTS', () => {
+  run(`${mcmFixture}${matureFixture}
+    startFrom()
+    -- OmniVoice stays OmniVoice (any of its four choices): the voice is not staged and not named.
+    for _, index in ipairs({2, 3, 4, 5}) do
+      assert(apply({{id = 'voiceProvider', value = index}}).ok)
+      user('matureContent', true)
+      assert(drafts() == 'conversationProvider=3,localModel=3,matureContent=true', index .. ' ' .. drafts())
+      assert(not mcm.inspect().mature.changes:find('Pocket', 1, true) and not mcm.inspect().mature.changes:find('OmniVoice', 1, true), mcm.inspect().mature.changes)
+      user('matureContent', false)
+    end
+    -- Pocket stays Pocket.
+    assert(apply({{id = 'voiceProvider', value = 1}}).ok)
+    user('matureContent', true)
+    assert(not drafts():find('voiceProvider', 1, true), drafts())
+    user('matureContent', false)
+    -- The Mistral (6) and Convai (8) cloud voices go to Pocket (1), not OmniVoice, though its pack is installed.
+    for _, index in ipairs({6, 8}) do
+      assert(apply({{id = 'voiceProvider', value = index}, {id = 'expressiveEmotions', value = false}, {id = 'naturalSpeech', value = false}}).ok, tostring(index))
+      user('matureContent', true)
+      assert(drafts():find('voiceProvider=1', 1, true), index .. ' ' .. drafts())
+      assert(mcm.inspect().mature.changes:find('Pocket', 1, true) and not mcm.inspect().mature.changes:find('OmniVoice', 1, true), mcm.inspect().mature.changes)
+      user('matureContent', false)
+      assert(not drafts():find('voiceProvider', 1, true), 'turning Mature off puts the earlier voice back: ' .. drafts())
+    end
+    -- Multilingual conversations refuses Pocket TTS: with the OmniVoice pack the cloud voice moves to OmniVoice instead.
+    assert(apply({{id = 'voiceProvider', value = 8}, {id = 'multilingualConversations', value = true}}).ok)
+    user('matureContent', true)
+    assert(drafts():find('voiceProvider=2', 1, true), drafts())
+  `);
+});
+
 test('Mature content on with no uncensored model installed stages no model change and does not mention a model; turning it off leaves the model alone', () => {
   run(`${mcmFixture}${matureFixture}
     startFrom({noMature = true})
     user('matureContent', true)
-    assert(drafts() == 'conversationProvider=3,matureContent=true,voiceProvider=2', drafts())
+    assert(drafts() == 'conversationProvider=3,matureContent=true,voiceProvider=1', drafts())
     local changes = mcm.inspect().mature.changes
-    assert(changes and changes:find('Local AI', 1, true) and changes:find('OmniVoice', 1, true), changes)
+    assert(changes and changes:find('Local AI', 1, true) and changes:find('Pocket', 1, true), changes)
     assert(not changes:lower():find('model', 1, true), 'a model was named though none was staged: ' .. changes)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'voiceProvider', value = 2}}).ok)
+    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 3}, {id = 'voiceProvider', value = 1}}).ok)
     assert(saved.matureContent == true and saved.localModel == 'standard', tostring(saved.localModel))
     assert(saved.matureRestore and saved.matureRestore.localModel == nil and saved.matureRestore.conversationProvider.before == 'mistral', 'a model part was recorded')
     user('matureContent', false)
@@ -2337,11 +2369,36 @@ test('Local AI model: a row with each installed model by its name from the small
       local result = registered.applyBatch('manager', {{id = 'localModel', value = bad}})
       assert(result.ok == false and saved.localModel == 'standard', tostring(bad))
     end
-    -- A pinned model that is no longer installed stays saved (the bridge falls back to the largest model that fits, with one notice); the row shows the default.
-    assert(manager.applySettings(player, {localModel = 'gone-model'}) and saved.localModel == 'gone-model')
+    -- A model the player added that is no longer there stays saved (the bridge falls back to the largest model that fits, with one notice); the row shows the default.
+    assert(manager.applySettings(player, {localModel = 'custom:gone-model'}) and saved.localModel == 'custom:gone-model')
     loaded = registered.loadMod('manager')
     assert(row('localModel').value == 2, 'the default is selected when the saved model is gone')
-    assert(manager.applySettings(player, {followUpInterest = false}) and saved.localModel == 'gone-model', 'an Apply of something else must not change a model that is only missing')
+    assert(manager.applySettings(player, {followUpInterest = false}) and saved.localModel == 'custom:gone-model', 'an Apply of something else must not change a model that is only missing')
+    -- A saved model that left its pack is replaced and saved silently: a Mature id by the model the bridge names for Mature content, any other by the default.
+    assert(manager.applySettings(player, {localModel = 'mature:qwen3.5-9b-uncensored-hauhaucs-aggressive-q4_k_m'}))
+    assert(saved.localModel == 'mature:big', 'the Apply saved the model the bridge maps a gone Mature model to: ' .. tostring(saved.localModel))
+    assert(manager.applySettings(player, {localModel = 'gemma-4-e2b-old'}) and saved.localModel == 'standard', tostring(saved.localModel))
+    -- Without any Apply: the bridge's state is read and the saved value is repaired by itself (once; a valid choice is never touched).
+    saved.localModel = 'mature:qwen3.5-9b-old'
+    state('three-again', {provider = 'local', effective = 'local', saved = false, maturePack = true,
+      localModelDefault = 'standard', localModelMatureDefault = 'mature:big', localModels = {
+      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'mature:big', name = 'Gemma-4-E4B-uncensored', sizeMiB = 5400},
+      {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311}}})
+    loaded = registered.loadMod('manager')
+    manager.snapshot(player)
+    assert(saved.localModel == 'mature:big', 'the gone Mature model was replaced in the saved file: ' .. tostring(saved.localModel))
+    saved.localModel = 'lite'
+    manager.snapshot(player); clock = clock + 2; manager.mistral()
+    assert(saved.localModel == 'lite', 'a listed model is left alone')
+    saved.localModel = 'custom:mine'
+    manager.snapshot(player); clock = clock + 2; manager.mistral()
+    assert(saved.localModel == 'custom:mine', 'a model the player added is never replaced')
+    -- No Mature model in the list: a gone Mature id has no replacement and stays (the bridge announces it).
+    state('no-mature', {provider = 'local', effective = 'local', saved = false, localModelDefault = 'standard', localModelMatureDefault = nil, localModels = {
+      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311}}})
+    saved.localModel = 'mature:qwen3.5-9b-old'
+    manager.snapshot(player); clock = clock + 2; manager.mistral()
+    assert(saved.localModel == 'mature:qwen3.5-9b-old', tostring(saved.localModel))
     -- A saved 'auto' (an older version, or nothing chosen) is replaced by the default model's id on any Apply, silently.
     saved.localModel = 'auto'
     assert(manager.snapshot(player).settings.localModel == 'auto')

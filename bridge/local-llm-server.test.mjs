@@ -577,9 +577,17 @@ test('the model follows the choice: auto, Mature content, a pin, a missing pin a
   assert.ok(tooBig.logs.some(line => /not usable \(low-memory\)/.test(line)));
 
   // With Mature content on and an uncensored model installed, the fallback of a missing choice is the largest uncensored one that fits.
-  const missingMature = choiceHarness(t, {selected: {pin: 'gone-model', matureOn: true}});
+  // (A player's own model that is gone is announced; a saved id of a model that left the packs is not.)
+  const missingMature = choiceHarness(t, {selected: {pin: 'custom:gone-model', matureOn: true}});
   await missingMature.server.ensure();
-  assert.deepEqual([missingMature.loaded(), missingMature.fallbacks], [['big-u.gguf'], [{pin: 'gone-model', reason: 'missing', model: 'Gemma-4-E4B-uncensored'}]]);
+  assert.deepEqual([missingMature.loaded(), missingMature.fallbacks], [['big-u.gguf'], [{pin: 'custom:gone-model', reason: 'missing', model: 'Gemma-4-E4B-uncensored'}]]);
+  const stale = choiceHarness(t, {selected: {pin: 'mature:qwen3.5-9b-uncensored-hauhaucs-aggressive-q4_k_m', matureOn: true}});
+  await stale.server.ensure();
+  assert.deepEqual([stale.loaded(), stale.fallbacks, stale.server.modelId], [['big-u.gguf'], [], 'mature:good'], 'a saved Mature model that is gone maps to mature:good silently');
+  assert.ok(!stale.logs.some(line => /not usable/.test(line)));
+  const staleTight = choiceHarness(t, {selected: {pin: 'mature:qwen3.5-9b-old', matureOn: false}, freeMiB: 3000});
+  await staleTight.server.ensure();
+  assert.deepEqual([staleTight.loaded(), staleTight.fallbacks], [['small-u.gguf'], []], 'good does not fit: mature:lite, still silent');
 
   // A legacy saved `auto` is no choice at all: the default model loads and nothing is announced.
   assert.deepEqual(auto.fallbacks, []);
@@ -745,6 +753,36 @@ test('a custom model chosen by default that fails to start is skipped the same w
   const noOther = customHarness(t, {standard: false, lite: false, env: {FAKE_LLAMA_EXIT_FOR_MODEL: 'my-model'}});
   noOther.state.customModels = [noOther.entry('my', 'my-model.gguf')];
   await assert.rejects(noOther.server.ensure(), error => error instanceof LocalAiUnavailable);
+});
+
+test('buildServerArgs: an offloaded model gives no layer count and turns the fit pass on; every other start is unchanged', () => {
+  const base = {model: 'm.gguf', port: 1, keyFile: 'k', device: 'Vulkan1'};
+  const plain = buildServerArgs(base), offloaded = buildServerArgs({...base, offload: true});
+  assert.equal(plain[plain.indexOf('-fit') + 1], 'off'); assert.ok(plain.includes('-ngl'));
+  assert.equal(offloaded[offloaded.indexOf('-fit') + 1], 'on'); assert.ok(!offloaded.includes('-ngl'));
+  assert.ok(offloaded.includes('-c') && offloaded.includes('--device'), 'the context and the device are still given');
+  assert.deepEqual(buildServerArgs({...base, offload: false}), plain);
+});
+
+test('Mature content on never loads a censored model: when the Mature lite model does not fit the free memory it is loaded with layers on the CPU', async t => {
+  const tight = choiceHarness(t, {selected: {matureOn: true}, freeMiB: 1000});
+  const info = await tight.server.ensure();
+  assert.deepEqual([info.model, tight.loaded(), tight.server.modelId, tight.fallbacks], ['Qwen3.5-2B-Uncensored', ['small-u.gguf'], 'mature:lite', []]);
+  const args = tight.calls[0].args;
+  assert.ok(!args.includes('-ngl'), 'no layer count: llama-server fits the layers to the memory');
+  assert.equal(args[args.indexOf('-fit') + 1], 'on');
+  assert.ok(tight.logs.some(line => /part of its layers on the CPU/.test(line)));
+  // A pinned good model that does not fit and a lite one that does not either: lite, offloaded, with the usual notice naming it.
+  const pinned = choiceHarness(t, {selected: {matureOn: true, pin: 'mature:good'}, freeMiB: 1000});
+  await pinned.server.ensure();
+  assert.deepEqual([pinned.loaded(), pinned.fallbacks], [['small-u.gguf'], [{pin: 'mature:good', reason: 'low-memory', model: 'Qwen3.5-2B-Uncensored'}]]);
+  // Fits: the plain start (all layers on the card, fit pass off).
+  const roomy = choiceHarness(t, {selected: {matureOn: true}, freeMiB: 3000});
+  await roomy.server.ensure();
+  assert.ok(roomy.calls[0].args.includes('-ngl') && roomy.calls[0].args[roomy.calls[0].args.indexOf('-fit') + 1] === 'off');
+  // Mature content off with no room: the ordinary rule (unavailable), never an offloaded model.
+  const off = choiceHarness(t, {selected: {matureOn: false}, freeMiB: 1000});
+  await assert.rejects(off.server.ensure(), error => error.reason === 'low-memory');
 });
 
 test('buildServerArgs adds --chat-template only when one is named', () => {

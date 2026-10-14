@@ -12,7 +12,11 @@
 //             card or failed to start before.
 //   <id>      that model, whatever the setting for Mature content says. A model that is missing, that does not fit the free graphics
 //             memory (a custom one: or the card), or that failed to start, is replaced by the default (the result says why, and which
-//             model was used, so the bridge can say it once).
+//             model was used, so the bridge can say it once). Two things are silent: a saved id that names a model no longer in any
+//             pack (a Mature model of an older pack, a removed standard model; never a `custom:` one, which is the player's own file)
+//             is mapped at once, `mature:*` to `mature:good` if it fits, else `mature:lite`, any other to the default rule; and with
+//             Mature content on and a Mature model installed the fallbacks never leave the Mature pack (good, then lite): when even
+//             the lite one does not fit the free graphics memory it is loaded anyway, with part of its layers on the CPU (`offload`).
 // Pure functions: no I/O, no timers. The caller supplies the file sizes and the free memory, and runs this only when a model is about to
 // be loaded and when the settings poll sees the choice change (never per frame, never per turn).
 import {basename} from 'node:path';
@@ -94,8 +98,11 @@ function prepare({models, freeMiB, totalMiB, sizeOf}) {
     if (!known(freeMiB)) return bySize(list).at(-1);   // free memory unknown: the smallest, like the old rule that took the lite model
     return bySize(list).find(fits) ?? null;
   };
+  // The Mature pack never gives way to a censored model: the largest uncensored model that fits, else the smallest model of the Mature pack
+  // anyway (the caller offloads layers). A custom uncensored model is never forced: with none of them fitting and no pack model, null.
+  const pickMature = list => pick(list) ?? bySize(list.filter(item => item.model.matureTier)).at(-1) ?? null;
   const candidates = sized.filter(item => item.model.broken !== true && !tooLarge(item));
-  return {sized, fits, pick, uncensored: candidates.filter(item => item.model.uncensored), ordinary: candidates.filter(item => !item.model.uncensored)};
+  return {sized, fits, pick, pickMature, uncensored: candidates.filter(item => item.model.uncensored), ordinary: candidates.filter(item => !item.model.uncensored)};
 }
 
 /**
@@ -106,38 +113,59 @@ function prepare({models, freeMiB, totalMiB, sizeOf}) {
  *   freeMiB    free graphics memory, or null/NaN when unknown (the smallest model of the candidates is taken then)
  *   sizeOf     file => size in MiB (0 when unknown)
  *   totalMiB   the graphics card's total memory when known: a custom model that needs more is never chosen (by the default or a pin)
- * Returns {model, profile, sizeMiB, pinned, fellBack}: `fellBack` is null, or 'missing' / 'low-memory' / 'start-failed' when the pin could
+ * Returns {model, profile, sizeMiB, pinned, fellBack, offload}: `offload` is true when a Mature model is loaded though it does not fit the
+ * free graphics memory (some of its layers then run on the CPU); `fellBack` is null, or 'missing' / 'low-memory' / 'start-failed' when the pin could
  * not be used and the default rule chose instead (`model.broken`, set by the server, marks a custom model that failed to start). Throws
  * LocalAiUnavailable('not-installed') with no model, ('low-memory') when nothing fits.
  */
 export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = false, freeMiB = null, totalMiB = null, sizeOf = () => 0} = {}) {
   if (!models.length) throw new LocalAiUnavailable('not-installed', 'no model');
-  const {sized, fits, pick, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf});
-  let fellBack = null;
-  if (pin !== AUTO_MODEL) {
-    const item = sized.find(candidate => candidate.model.id === pin);
-    if (!item) fellBack = 'missing';
-    else if (item.model.broken === true) fellBack = 'start-failed';
-    else if (!fits(item)) fellBack = 'low-memory';
-    else return {...item, pinned: true, fellBack: null};
+  const {sized, fits, pick, pickMature, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf});
+  let fellBack = null, silent = false, want = pin;
+  if (want !== AUTO_MODEL) {
+    let item = sized.find(candidate => candidate.model.id === want);
+    if (!item && !want.startsWith('custom:')) {
+      // A saved id of a model that is gone for good (an older pack): no notice, the replacement is found here. A Mature id with no
+      // Mature model installed at all is the plain "chosen model is missing" case: it keeps its notice.
+      if (want.startsWith('mature:')) {
+        item = migratedPinItem(sized, fits);
+        silent = item !== null;
+        if (item) want = item.model.id;
+      } else { silent = true; want = AUTO_MODEL; }
+    }
+    if (want !== AUTO_MODEL) {
+      if (!item) fellBack = 'missing';
+      else if (item.model.broken === true) fellBack = 'start-failed';
+      else if (!fits(item)) fellBack = 'low-memory';
+      else return {...item, pinned: true, fellBack: null, offload: false};
+    }
   }
-  let chosen = matureOn && uncensored.length ? pick(uncensored) : null;
-  chosen ??= pick(ordinary);
+  // Mature content on with a Mature model installed: the fallback stays in the Mature pack (it never reaches a censored model).
+  const mature = matureOn && uncensored.length > 0;
+  const chosen = (mature ? pickMature(uncensored) : null) ?? pick(ordinary);
   if (!chosen) throw new LocalAiUnavailable('low-memory');
-  return {...chosen, pinned: false, fellBack};
+  // A silent migration, or the pinned model itself loaded anyway (it did not fit): nothing was replaced, so nothing is announced.
+  if (silent || chosen.model.id === pin) fellBack = null;
+  return {...chosen, pinned: false, fellBack, offload: chosen.model.uncensored && !fits(chosen)};
+}
+
+/** The installed model a saved `mature:*` id that is in no pack any more stands for: the Mature pack's good model if it fits, else its lite one; null when the pack has none. */
+function migratedPinItem(sized, fits) {
+  const good = sized.find(item => item.model.matureTier === 'good'), lite = sized.find(item => item.model.matureTier === 'lite');
+  return (good && fits(good) ? good : lite ?? good) ?? null;
 }
 
 /**
  * The models the settings page shows as selected, as ids (null when there is none):
  *   default   the model the default rule would load now (what a setting of `auto`, or of a model that is gone, gets)
- *   mature    the largest uncensored model that fits, which turning Mature content on selects; null when no uncensored model is installed
- *             or none fits
+ *   mature    the largest uncensored model that fits (else the smallest one: it is loaded with layers on the CPU), which turning Mature
+ *             content on selects; null when no uncensored model is installed
  * Same inputs as chooseLocalModel (without a pin). Never throws.
  */
 export function defaultModelIds({models = [], matureOn = false, freeMiB = null, totalMiB = null, sizeOf = () => 0} = {}) {
   if (!models.length) return {default: null, mature: null};
-  const {pick, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf});
-  const mature = uncensored.length ? pick(uncensored) : null;
+  const {pick, pickMature, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf});
+  const mature = uncensored.length ? pickMature(uncensored) : null;
   const chosen = (matureOn ? mature : null) ?? pick(ordinary) ?? mature;
   return {default: chosen?.model.id ?? null, mature: mature?.model.id ?? null};
 }
@@ -150,6 +178,8 @@ export function defaultModelIds({models = [], matureOn = false, freeMiB = null, 
 export function stillSatisfies({loadedId, models = [], pin = AUTO_MODEL, matureOn = false} = {}) {
   if (!loadedId) return false;
   if (pin !== AUTO_MODEL && models.some(model => model.id === pin)) return loadedId === pin;
+  // A saved Mature model that is gone stands for a model of the Mature pack (chooseLocalModel): any of the two satisfies it.
+  if (pin.startsWith('mature:') && models.some(model => model.matureTier)) return models.some(model => model.id === loadedId && model.matureTier);
   const wantUncensored = matureOn && models.some(model => model.uncensored);
   return models.some(model => model.id === loadedId && model.uncensored === wantUncensored);
 }

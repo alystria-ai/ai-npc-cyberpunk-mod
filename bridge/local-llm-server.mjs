@@ -63,12 +63,14 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
 
 // The llama-server command line for the chat model. Pure; the key goes in a file, never on the command line.
 // `chatTemplate` (a model the player added, bridge/custom-models.mjs) is the name of a llama.cpp built-in template: `--chat-template`.
-export function buildServerArgs({model, port, keyFile, device, contextSize = LOCAL_LLM_LIMITS.contextSize, cacheRamMiB = 1024, host = '127.0.0.1', chatTemplate = null}) {
+// `offload` (a Mature model that does not fully fit the free graphics memory, bridge/local-model-choice.mjs): no layer count is given and the fit
+// pass is on, so llama-server keeps as many layers on the card as fit and runs the rest on the CPU (the context is given, so it stays).
+export function buildServerArgs({model, port, keyFile, device, contextSize = LOCAL_LLM_LIMITS.contextSize, cacheRamMiB = 1024, host = '127.0.0.1', chatTemplate = null, offload = false}) {
   if (!model || !port || !keyFile || !device) throw TypeError('model, port, keyFile and device are required');
-  return ['-m', model, '-ngl', '99', '-fa', 'on', '-c', String(contextSize), '-np', '1', '--reasoning', 'off',
+  return ['-m', model, ...(offload ? [] : ['-ngl', '99']), '-fa', 'on', '-c', String(contextSize), '-np', '1', '--reasoning', 'off',
     // -fit off: the layers, context and device are all given, so llama-server's fit pass (which loads the model a second time to
     // measure the devices) only costs start time (see bridge/local-embed.mjs).
-    '--cache-ram', String(cacheRamMiB), '--ctx-checkpoints', '32', '-fit', 'off', '--device', device, '--no-webui',
+    '--cache-ram', String(cacheRamMiB), '--ctx-checkpoints', '32', '-fit', offload ? 'on' : 'off', '--device', device, '--no-webui',
     ...(chatTemplate ? ['--chat-template', String(chatTemplate)] : []),
     '--host', host, '--port', String(port), '--api-key-file', keyFile];
 }
@@ -529,6 +531,7 @@ export class LocalLlmServer extends EventEmitter {
       this.log('[local] the chosen model is not usable (' + choice.fellBack + '): ' + choice.model.name + ' was chosen instead');
       this.emit('model-fallback', {pin: selected.pin, reason: choice.fellBack, model: choice.model.name});
     }
+    if (choice.offload) this.log('[local] ' + choice.model.name + ' does not fit the free graphics memory: it is loaded with part of its layers on the CPU (Mature content never uses a censored model)');
     return choice;
   }
 
@@ -611,7 +614,7 @@ export class LocalLlmServer extends EventEmitter {
 
     const proc = new LlamaProcess({command: this.command, argsPrefix: this.argsPrefix, spawnImpl: this.spawnImpl, fetchImpl: this.fetchImpl,
       startupMs: this.startupMs, log: this.log, label: 'llama-server',
-      buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate}),
+      buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload: choice.offload === true}),
       ...this.processOptions});
     this.#proc = proc;
     proc.on('exit', info => this.#onExit(proc, info));

@@ -326,12 +326,16 @@ local mistralState, mistralReadAt, mistralCommand, mistralSequence = {}, nil, ni
 -- The Groq free plan (the player's own free key) is handled the same way, on its own command file and ids.
 local groqCommand, groqSequence = nil, 0
 
+-- Set further down, once the settings can be saved: replaces a saved Local AI model that left its pack (see goneLocalModelReplacement).
+local repairGoneLocalModel
+
 local function updateMistral(force)
     local clock = os.clock()
     if not force and mistralReadAt and clock - mistralReadAt < 1.5 then return end
     mistralReadAt = clock
     local value = readJSON('runtime/mistral-state.json')
     mistralState = type(value) == 'table' and value or {}
+    if repairGoneLocalModel then repairGoneLocalModel() end
 end
 
 local function sendMistralCommand(action)
@@ -554,6 +558,26 @@ local function localModelProblemList(value)
         end
     end
     return list
+end
+
+-- The model a saved Local AI choice stands for when that model left its pack (a Mature model of an older pack, a removed standard model): the
+-- bridge's own mapping (bridge/local-model-choice.mjs), `localModelMatureDefault` for a `mature:` id (the Mature pack's good model if it fits,
+-- else its lite one), `localModelDefault` for any other. nil for `auto`, a model the player added (`custom:`, announced by the bridge), a model
+-- that is listed, no list yet, or no listed replacement. Reads the raw bridge state: never errors on a malformed one.
+local function goneLocalModelReplacement(id, state)
+    if type(id) ~= 'string' or id == 'auto' or id:find('^custom:') or not validModelId(id) then return nil end
+    local list = type(state) == 'table' and state.localModels or nil
+    if type(list) ~= 'table' or #list == 0 then return nil end
+    local function listed(value)
+        if not validModelId(value) then return false end
+        for _, entry in ipairs(list) do if type(entry) == 'table' and entry.id == value then return true end end
+        return false
+    end
+    if listed(id) then return nil end
+    local target
+    if id:find('^mature:') then target = state.localModelMatureDefault else target = state.localModelDefault end
+    if listed(target) then return target end
+    return nil
 end
 
 function M.mistral()
@@ -820,6 +844,19 @@ local function saveSettings()
     end
     if existing then os.remove(backup) end
     return true
+end
+
+-- A saved Local AI model that left its pack is replaced by the one the bridge maps it to (the Mature pack's good model, else its lite one, for a
+-- Mature model; the default model otherwise) and saved at once, silently, so the page and the file agree. Runs only when the bridge's state file was
+-- read again (at most every 1.5 s, never per frame) and does nothing but compare two strings while the choice is valid; a failed save is not retried.
+local goneModelSaveFailed = false
+repairGoneLocalModel = function()
+    if goneModelSaveFailed or not settings or not settingsLoaded then return end
+    local replacement = goneLocalModelReplacement(settings.localModel, mistralState)
+    if not replacement then return end
+    local previous = settings.localModel
+    settings.localModel = replacement
+    if not saveSettings() then settings.localModel, goneModelSaveFailed = previous, true end
 end
 
 -- Generic NPC archetypes (npc-* keys) are talk-only profiles: not listed on the
@@ -1802,6 +1839,10 @@ function M.applySettings(player, values)
     if nextSettings.localModel == 'auto' then
         local default = M.localModelDefaultId()
         if default then nextSettings.localModel = default end
+    else
+        -- A model that left its pack (not one the player added): Apply saves the model the bridge maps it to, silently (see repairGoneLocalModel).
+        local replacement = goneLocalModelReplacement(nextSettings.localModel, mistralState)
+        if replacement then nextSettings.localModel = replacement end
     end
     -- The record of what Mature content changed belongs to the time it is on: turning it off drops it, and turning it on
     -- without one (nothing was changed for it) leaves none.
