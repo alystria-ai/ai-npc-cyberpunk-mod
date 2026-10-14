@@ -239,6 +239,49 @@ test('a neighbouring chair whose near edge is under 0.5 m from V is found (centr
   assert(#m.findSeats(near,m.kinds.chair,.45)==0,'a chair squeezed against V (run .45-.65, centre .55) is no seat')
 `));
 
+test('V\'s own seat is identified from the sample under it: a neighbour that starts 0.4 m away is a seat, a wide own seat is not', () => run(`
+  -- Samples start under V's own seat (0.15) and run on at 0.1 m.
+  local function profile(side,fn) local t={} for i=0,20 do local o=.15+i*.1; t[#t+1]={offset=o,h=fn(o)} end return t end
+  -- A chair beside V (own seat to .25, gap, neighbour .4-.85): found at its centre, both sides.
+  local c={[1]=profile(1,function(o) return (o<=.26 or (o>=.4 and o<=.86)) and .45 or 0 end),
+           [-1]=profile(-1,function(o) return (o<=.26 or (o>=.4 and o<=.86)) and .45 or 0 end)}
+  local seats=m.findSeats(c,m.kinds.chair,.45)
+  assert(#seats==2,'one chair each side: '..#seats)
+  assert(math.abs(math.abs(seats[1].offset)-.65)<.06,'neighbour centre '..seats[1].offset)
+  -- V off-centre on a wide armchair: the own seat runs from V's centre to 0.7 m (a run well over 0.3 m beside V). It is V's own
+  -- seat, not a seat to offer, even though it touches the first far sample.
+  local wide={[1]=profile(1,function(o) return o<=.71 and .45 or 0 end),[-1]=profile(-1,function(o) return 0 end)}
+  assert(#m.findSeats(wide,m.kinds.chair,.45)==0,'the far edge of the own wide seat is no seat')
+  local wideStool={[1]=profile(1,function(o) return o<=.71 and .75 or 0 end),[-1]=profile(-1,function(o) return 0 end)}
+  assert(#m.findSeats(wideStool,m.kinds.stool,.75)==0,'nor on a stool')
+  -- A narrow stool (0.3 m wide, near edge 0.5) beside V is a seat although its run is short.
+  local narrow={[1]=profile(1,function(o) return (o<=.2 or (o>=.5 and o<=.8)) and .75 or 0 end),[-1]=profile(-1,function(o) return 0 end)}
+  local s=m.findSeats(narrow,m.kinds.stool,.75)
+  assert(#s==1 and math.abs(s[1].offset-.65)<.06,'narrow stool: '..#s)
+  -- Nothing under V's own seat measurable (first sample is floor): the length rule still applies, as before.
+  local unknown={[1]=profile(1,function(o) return (o>=.45 and o<=.86) and .45 or 0 end),[-1]=profile(-1,function(o) return 0 end)}
+  assert(#m.findSeats(unknown,m.kinds.chair,.45)==1,'a touching run with an unknown own seat keeps the length rule')
+  -- A couch is unchanged: the own run from V's centre seats at the pitch.
+  local couchSide={[1]=profile(1,function(o) return o<=1.7 and .42 or 0 end),[-1]=profile(-1,function(o) return 0 end)}
+  local cs=m.findSeats(couchSide,m.kinds.couch,.42)
+  assert(#cs==2 and math.abs(cs[1].offset-.66)<.01 and math.abs(cs[2].offset-1.32)<.01,'couch pitch seats: '..#cs)
+`));
+
+test('V sits on a chair with another chair 0.4 m away: the real search samples under V and offers the neighbour', () => run(`
+  local function chair(x1,x2) world.boxes[#world.boxes+1]={x1=x1,x2=x2,y1=-.6,y2=.1,h=.45} end
+  chair(-.22,.24);chair(.42,.86)
+  step(1)
+  sitV('player__sit_chair__sit_around__01.workspot','sit_chair__2h_on_lap__01')
+  step(2)
+  local found=lastLog('seats-found')
+  found=found and found.fields
+  assert(found and found.kind=='chair' and found.count==1,'the neighbour is the one seat found: '..tostring(found and found.count))
+  assert(found.profile:find('%+0.15:0.45'),'the search sampled under the own seat: '..found.profile)
+  assert(count('surface')<=80,'bounded search rays: '..count('surface'))
+  local spawn=last('spawn')
+  assert(spawn and math.abs(spawn.x-.64)<.08,'device at the neighbouring chair '..tostring(spawn and spawn.x))
+`));
+
 test('V sits on a couch: the companion walks to the free seat, sits, and stands when V does', () => run(`
   couch(-.35,1.7)
   step(1)

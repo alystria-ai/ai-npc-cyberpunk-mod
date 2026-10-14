@@ -18,6 +18,7 @@ M.policy = {
     searchRadius = 8,      -- companions farther from V stay standing (live run 21:14Z: Judy stuck 7.1 m away)
     leaveDistance = 1.0,   -- V's root this far from the seat anchor: V left the seat
     minOffset = .45,       -- seat samples along the furniture, beside V
+    ownOffset = .15,       -- the first sample: still on V's own seat, so the run through it IS V's seat (findSeats)
     sampleStep = .1,
     approachTimeout = 12,
     arriveDistance = .55,
@@ -166,8 +167,15 @@ function M.findSeats(samples, kind, h0, policy)
             placed[#placed + 1] = offset
             seats[#seats + 1] = {offset = offset * side, height = height}
         end
+        -- V's own seat. A sample under V's own seat (ownOffset, nearer than minOffset) that is seat surface makes the run
+        -- through it V's seat itself: its far edge is never a seat, whatever its length, and a neighbour that starts after
+        -- a gap, even one only 0.4 m from V, is a separate seat. Without near samples (or with none on V's seat) a run
+        -- starting within minOffset is judged by its length (a touching run counts from 0.3 m).
+        local first = list[1]
+        local ownKnown = first and first.offset < policy.minOffset - 1e-6 and valid(first.h)
         for _, r in ipairs(runs) do
-            local touching = r.a <= policy.minOffset + policy.sampleStep * .5
+            local own = ownKnown and r.a <= first.offset + 1e-6
+            local touching = own or (not ownKnown and r.a <= policy.minOffset + policy.sampleStep * .5)
             local height = r.sum / r.n
             if kind.continuous or (touching and r.b - r.a >= kind.pitch) then
                 -- One surface (couch, bench, a long seat at the bar): seats at
@@ -177,11 +185,14 @@ function M.findSeats(samples, kind, h0, policy)
                     add(c, height)
                     c = c + kind.pitch
                 end
+            elseif own then
+                -- V's own seat (or its armrest) and nothing beyond it: no seat here.
             elseif r.b - r.a >= (touching and .3 or kind.width * 2) - 1e-6 and r.b - r.a <= .9 then
                 -- A separate stool or chair. A run that starts within minOffset of V used to be dropped here (it was taken for
                 -- V's own seat or one long surface), so a neighbour whose near edge is under 0.5 m from V (centres up to about
-                -- 0.7 m apart) was never found; a touching run counts as a seat once it is a seat's width long (0.3 m), which V's
-                -- own seat edge or an armrest never is.
+                -- 0.7 m apart) was never found; now V's own seat is identified from the sample under it, and without that a
+                -- touching run counts as a seat once it is a seat's width long (0.3 m), which V's own seat edge or an armrest
+                -- never is.
                 add((r.a + r.b) / 2, height)
             end
         end
@@ -640,7 +651,7 @@ function M.new(options)
             search.h0 = z and z - anchor.z or false
         end
         local side, list = search.side, {}
-        local offset = policy.minOffset
+        local offset = policy.ownOffset or policy.minOffset
         while offset <= kind.span + 1e-6 do
             local z = nat.surface(bx + rx * offset * side, by + ry * offset * side, top, bottom)
             list[#list + 1] = {offset = math.floor(offset * 100 + .5) / 100, h = z and z - anchor.z or nil}
@@ -658,7 +669,7 @@ function M.new(options)
         local profile = {}
         for _, s in ipairs({1, -1}) do
             for _, sample in ipairs(search.samples[s]) do
-                profile[#profile + 1] = string.format('%+.1f:%s', sample.offset * s, sample.h and string.format('%.2f', sample.h) or '-')
+                profile[#profile + 1] = string.format('%+.2f:%s', sample.offset * s, sample.h and string.format('%.2f', sample.h) or '-')
             end
         end
         note('seats-found', {session = session.id, kind = session.kind, h0 = search.h0 or nil, count = #session.seats,

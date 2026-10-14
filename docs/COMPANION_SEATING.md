@@ -291,8 +291,11 @@ seat and nothing else.
    0.85 x the pitch from V or from another seat (0.6 m for a chair, 0.55 m for a stool). Until 2026-10-14 a chair or stool run that
    started within 0.5 m of V was dropped as V's own seat or one long surface, so a neighbour whose near edge was under 0.5 m away
    (centres up to about 0.7 m apart) was never found; such a run now counts once it is 0.3 m long, which the edge of V's own seat or
-   an armrest never is (`bridge/companion-seating.test.mjs`; not yet seen on a real chair, the `Seating` lines show `seats-found`
-   with the sampled profile).
+   an armrest never is. Since 2026-10-14 V's own seat is identified from the sample under it: the profile starts at 0.15 m (still
+   V's own seat, `policy.ownOffset`), and the run of seat surface through that sample is V's seat, never offered whatever its length
+   (a wide armchair with V off-centre), while a run that starts after a gap is a separate seat even when its near edge is only
+   0.4 m from V or it is a narrow stool. If the sample under V is not seat surface, the 0.3 m length rule applies as before
+   (`bridge/companion-seating.test.mjs`; not yet seen on a real chair, the `Seating` lines show `seats-found` with the sampled profile).
 4. **Check a seat when it is assigned** (a few rays): no wall between V and the
    seat (a ray at 0.9 m), no other NPC within 0.45 m of it (one targeting query
    per sit, our companions excluded), and floor (not a table) at a walk-up point
@@ -506,7 +509,7 @@ Free look while seated (see above): three Observe hooks that run only when V's p
 With Developer mode on, `runtime/probe.log` gets `Seating <kind> {...}` lines:
 `player-workspot` (path, anim, kind or `unsupported`), `player-sat`,
 `seats-found` (V's seat height `h0`, count, NPCs near, and the full lateral
-profile, `+0.6:0.42` = 0.6 m to V's right, surface 0.42 m above V's feet),
+profile (offsets from +0.15, two decimals), `+0.60:0.42` = 0.6 m to V's right, surface 0.42 m above V's feet),
 `seat-rejected` (`wall between`, `occupied`, `no floor to walk up`),
 `seat-none`, `seat-assigned`, `seat-arrived`, `seat-play`, `seat-seated`,
 `seat-exit`, `seat-escalated`, `seat-finished` / `seat-abandoned` with a reason,
