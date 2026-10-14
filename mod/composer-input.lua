@@ -207,9 +207,9 @@ function M.apply(controller)
     end
     if input then
         input:SetLetterCase(textLetterCase.OriginalCase)
-        -- F6/F8 are immediately ready for typing; retain their original prompt.
-        -- SetDefaultText changes only the hint, never an existing typed draft.
-        input:SetDefaultText(text('Type your message to the character.'))
+        -- F6/F8 are immediately ready for typing. The box has no placeholder text (the dialog's own line above it keeps
+        -- the prompt). SetDefaultText changes only the hint, never an existing typed draft.
+        input:SetDefaultText('')
         M.patched = M.patched + 1
         M.lastCase = tostring(input:GetLetterCase())
         M.lastPlaceholder = input:GetDefaultText()

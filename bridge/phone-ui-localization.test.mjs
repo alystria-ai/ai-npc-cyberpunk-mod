@@ -188,12 +188,12 @@ local m=(function()${composer}end)()
 local data={title='TALK TO Judy {A}',message='Type your message to the character.'}
 local n,c,title,message=notification(data)
 m.apply(n)
-assert(title.text=='PARLER À Judy {A}' and c.placeholder==translations.fr[data.message])
+assert(title.text=='PARLER À Judy {A}' and c.placeholder=='')
 assert(message.text==translations.fr[data.message] and c.case==textLetterCase.OriginalCase)
 assert(data.title=='TALK TO Judy {A}' and data.message=='Type your message to the character.')
 assert(c.draft=='Hey Judy, mixed Case 日本語')
 language='ja';generation=2;m.apply(n)
-assert(title.text=='Judy {A}と話す' and c.placeholder==translations.ja[data.message])
+assert(title.text=='Judy {A}と話す' and c.placeholder=='')
 for _,key in ipairs(calls)do assert(key~='Judy {A}' and key~=c.draft)end
 assert(m.lastError==nil,m.lastError)
 `));
@@ -429,7 +429,7 @@ dofile=function()error('Locale not staged yet')end
 local m=(function()${composer}end)()
 local data={title='TALK TO Judy',message='Type your message to the character.'}
 local n,c,title=notification(data);m.apply(n)
-assert(title.text==data.title and c.placeholder==data.message and c.case==textLetterCase.OriginalCase)
+assert(title.text==data.title and c.placeholder=='' and c.case==textLetterCase.OriginalCase)
 local p=(function()${phone}end)()
 local _,phoneInput=popup('judy');p.input(phoneInput)
 assert(phoneInput.placeholder=='Press Enter to write  /  Esc to stop typing')

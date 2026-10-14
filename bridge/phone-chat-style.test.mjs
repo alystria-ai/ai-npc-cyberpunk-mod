@@ -176,7 +176,7 @@ assert(input.placeholder=='Press Enter to write  /  Esc to stop typing')
 assert(m.lastError==nil, m.lastError)
 `));
 
-test('world composer restores its own prompt without editing drafts or other notifications', () => runLua(setup + `
+test('world composer clears the placeholder of its own box without editing drafts or other notifications', () => runLua(setup + `
 textLetterCase={OriginalCase=3}
 local data={title='TALK TO JUDY',message='Type your message to the character.'}
 local placeholder='Press Enter to write  /  Esc to stop typing'
@@ -189,8 +189,8 @@ local notification={m_textInput=input,GetRootWidget=function() return {
   GetUserData=function() return data end} end}
 local fix=(function() ${composerSource} end)()
 fix.apply(notification)
-assert(placeholder==data.message and letterCase==textLetterCase.OriginalCase)
-assert(fix.lastPlaceholder==data.message)
+assert(placeholder=='' and letterCase==textLetterCase.OriginalCase)
+assert(fix.lastPlaceholder=='')
 data={title='Other mod',message='Type your message to the character.'}
 placeholder='Other prompt'; letterCase=1
 fix.apply(notification)
