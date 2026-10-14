@@ -20,9 +20,9 @@ The models are optional downloads, like the OmniVoice pack. There are two, and y
 | **Local AI lite** | Qwen3.5-2B | about 1.5 GB | Smaller graphics cards, or a game that already uses most of the video memory. Plainer replies; fine for ordinary NPCs |
 
 Extract each download into your Cyberpunk 2077 folder (the same way as the OmniVoice pack), then pick **Local** in Settings > Conversation provider.
-The Local AI row there shows one of: Ready, Warming up, Not installed, Not enough graphics memory, Unavailable.
+There is no status row (removed 2026-10-14). While the model is not ready, the Local AI model row's name carries a bracket, "(Warming up)", "(Not enough memory)" or "(Unavailable)", and its help starts with the loading sentence; when it is ready or not installed the row needs no words.
 
-The first start after installing takes about a minute while the graphics card prepares the model (the row says "Warming up"). After
+The first start after installing takes about a minute while the graphics card prepares the model (the row name says "(Warming up)"). After
 that the model loads in a few seconds when you start talking, and it is unloaded again after ten minutes without a conversation so the
 game gets its video memory back.
 
@@ -482,8 +482,8 @@ with Mature content on the default choice and the fallback prefer the largest on
 - Lua: the bridge publishes `maturePack` in `runtime/mistral-state.json` (`MistralControl.status`); `manager.mistral().maturePack` reads it.
   `mod/mcm.lua` always builds the "Mature content" row. Its help ends with three plain sentences: that a safety check on messages and
   replies refuses anything romantic or sexual involving minors on every model, and either "The Mature pack (uncensored models) is
-  installed." or "... is not installed. It is an optional download on the GitHub releases page of this mod.", plus "not using Local AI" while
-  another provider answers. `manager.applySettings` accepts `matureContent` whatever the pack says, and the snapshot reports the file's value.
+  installed." or "... is not installed. It is an optional download on the GitHub releases page of this mod.", plus "Choosing a cloud provider turns it off."
+  (the old "Not using Local AI right now: no effect yet." line is gone, see below). `manager.applySettings` accepts `matureContent` whatever the pack says, and the snapshot reports the file's value.
 - Distribution: the pack (the uncensored GGUF files) is distributed ONLY as an optional file on this project's GitHub release, uploaded by
   hand (`gh release upload v<version> CyberpunkConvai-Mature-<version>.zip`), never on Nexus Mods or anywhere else. `.github/workflows/
   release.yml` never builds or uploads it (the Scripts package is the only thing kept for Nexus; a test asserts the workflow does not mention
@@ -509,7 +509,9 @@ Settings > Conversation provider, right under the provider row: "Mature content"
 bridge reads it from `runtime/settings.json` when the file changes, never per turn, and drops prepared replies when it flips). It exists
 only for this provider: the layer is built in `bridge/mature-content.mjs`, and `MATURE_PROVIDERS` is `{local: true, mistral: false,
 convai: false}`. The host asks for the layer per route (`TextProviderHost#matureLevel`), so a local turn that falls back to
-the player's cloud provider is answered without it. While another provider answers, the setting's help says it applies to Local AI only.
+the player's cloud provider is answered without it. The settings page keeps it off while a cloud provider (Convai free tier, Convai API key, Mistral)
+is chosen: choosing one turns Mature content off in the drafts and puts back what turning it on changed, and load and Apply force it off (2026-10-14;
+docs/MANAGER_UI.md, "Mature content and cloud providers exclude each other").
 Turning it on shows no notice, neither on Apply nor in the status line (removed 2026-10-14); the help text (all 15 locales) says it is for adults (18+),
 that it applies to Local AI only and that some things are never allowed.
 
@@ -705,7 +707,7 @@ idle reload.
 
 ### Live checks (need the game and a GPU)
 
-1. With the dev folder set: choose Local, Apply; the Local AI row shows Warming up, then Ready; talk to a companion; the reply streams
+1. With the dev folder set: choose Local, Apply; the Local AI model row name shows (Warming up), then no bracket; talk to a companion; the reply streams
    and is spoken.
 2. First start only: the shader compile takes about a minute and shows no error notice.
 3. FPS and 1% lows in four states: baseline; model loaded and idle; 20 scripted turns; model unloaded after ten minutes. Idle must cost
