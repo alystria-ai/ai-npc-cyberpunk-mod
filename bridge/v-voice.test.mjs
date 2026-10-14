@@ -205,8 +205,10 @@ test('the setting is on unless the player turned it off, and follows runtime/set
   assert.equal(voice.update({}), true, 'a file that never stored it counts as on'); assert.equal(voice.enabled, true);
   assert.equal(voice.update({vVoice: 'yes'}), false); assert.equal(voice.enabled, true);
   assert.equal(voice.update({vVoice: true}), false);
-  assert.equal(voice.update({vVoice: false}), true); assert.equal(voice.enabled, false);
-  assert.equal(voice.update({}), true, 'no stored value is on again'); assert.equal(voice.update({vVoice: false}), true);
+  assert.equal(voice.update({vVoice: false}), false, 'a saved false the player never chose is the old default: still on'); assert.equal(voice.enabled, true);
+  assert.equal(voice.update({vVoice: false, vVoiceChosen: false}), false); assert.equal(voice.enabled, true);
+  assert.equal(voice.update({vVoice: false, vVoiceChosen: true}), true); assert.equal(voice.enabled, false, 'a chosen false is kept');
+  assert.equal(voice.update({}), true, 'no stored value is on again'); assert.equal(voice.update({vVoice: false, vVoiceChosen: true}), true);
   assert.equal(voice.update({vVoice: true}), true); assert.equal(voice.enabled, true);
 });
 
@@ -226,7 +228,7 @@ test('only a typed line of the player gets a V line: never speech, a reaction, a
   assert.equal(voice.skipReason(typed({group: {index: 1, total: 2}})), null);
   for (const extra of [{source: 'microphone'}, {reaction: {kind: 'battle'}}, {channel: 'phone'}, {addon: {id: 'x'}}, {group: {index: 2, total: 2}}])
     assert.notEqual(voice.skipReason(typed(extra)), null, JSON.stringify(extra));
-  voice.update({vVoice: false});
+  voice.update({vVoice: false, vVoiceChosen: true});
   assert.equal(voice.skipReason(typed()), 'off');
   assert.equal(voice.start(typed()), null);
 });
@@ -463,7 +465,7 @@ test('warming on the composer prepares the page and the voice that was used last
   const one = feature({voices: {male: {key: 'v-male'}}});
   one.voice.warmUp(); await sleep(5);
   assert.deepEqual(one.calls.prepare, ['v-male']);
-  const off = feature(); off.voice.update({vVoice: false}); off.voice.warmUp(); await sleep(5);
+  const off = feature(); off.voice.update({vVoice: false, vVoiceChosen: true}); off.voice.warmUp(); await sleep(5);
   assert.equal(off.calls.warm, 0);
 });
 
