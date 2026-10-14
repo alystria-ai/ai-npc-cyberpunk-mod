@@ -23,22 +23,42 @@ Measuring script: `scripts/Measure-InworldVoice.mjs`.
 | Text limit | 4,000 characters per request. The whole text is counted when the first chunk is produced, so stopping early saves nothing. |
 | Instant voice clone | `POST https://api.inworld.ai/voices/v1/voices:clone`, body `{displayName, languageCode, voiceSamples:[{audioData:<base64 wav or mp3>}], ...}`. Answers `voice.voiceId`. The clip must be 3 s at least; 10 to 30 s is best; 30 s is the limit for voices cloned after 2026-08-15; 12 MB at most. Cloning needs a key with write access. |
 | Voice list and delete | `GET /voices/v1/voices` (paged), `DELETE /voices/v1/voices/<id>`. The account's list is the source of truth for what already exists. |
-| Free plan | The pricing page says "up to 70 minutes of TTS for free" on the On-Demand plan ($0). It does not say whether that is per month or once, nor what happens afterwards (credits start at $10). Paid price: $25 per million characters for TTS-2, $15 for Flash. A commercial licence is listed. 100 custom voices, 5 generations at once. |
+| Free plan | The official pricing, billing and Portal pages all say the On-Demand plan ($0) includes "up to 70 minutes of TTS" and give **no period**: no "per month", no reset, no "trial", and nothing on what happens afterwards (extra credits start at $10; paid plans' credits are described as monthly). Researched again 2026-10-15, see "Free minutes: monthly or once?" below. Paid price: $25 per million characters for TTS-2, $15 for Flash. A commercial licence is listed. 100 custom voices, 5 generations at once. |
 | Rate limits | Cloning: 2 requests a minute on the free plan. Speech: HTTP 429 with no documented `Retry-After`. |
 | Steering | `inworld-tts-2` only. Bracketed English instructions placed before the words they apply to, lower case and without punctuation; they last until the next one or `[reset]`. A separate request-level `instruction` field exists; this adapter uses the inline form only. |
 
+### Free minutes: monthly or once? (researched 2026-10-15)
+
+**Answer: not documented. Treat the 70 minutes as a one-time allowance and tell no player it renews.**
+
+- Documented (official): the pricing page, the TTS billing page and the Portal billing page each say On-Demand includes up to 70 minutes of TTS (and 400 of STT) for free. None of them states a period or a reset. The pricing page frames it as "for testing" and as a way to "try every product before you pick a plan"; the only "each month" wording on those pages is about the paid plans' credits. The Portal billing page, which says what recurs each billing cycle, does not list the free minutes among them. That silence leans towards once, but it is not a statement.
+- Conflicting secondary sources (inferred, not authoritative): an automated pricing-change tracker records the allowance rising from 40 to 70 minutes between its 8 and 15 June 2026 captures and words the new figure as "per month", but the official pages as fetched now do not say that, so the wording looks like the tracker's own summary. A May to August 2026 review calls the free allowance a one-time trial (it still quotes the older 40 minutes), an October 2026 review says there is no permanent free plan, and one aggregator says it "resets regularly" with no source. Nothing from Inworld backs either reading.
+- Only Inworld can settle it (support, or the usage and billing view in a player's own Portal). Not tested live: the account would have to be run dry.
+- Effect on the mod: the `quota` fallback (a written reply and one "unavailable" notice) covers either case; no code depends on the answer. The mod's own text names no minutes at all (checked 2026-10-15: no locale, Lua or README line mentions the free minutes), so no player text needed correcting, and none should promise a renewal.
+
 ### Terms for a game mod
 
-Read from the Terms of Service (2025-06-11), the Acceptable Use Policy, the Service Specific Terms and the model cards:
+Read 2026-10-13 and re-read 2026-10-15: the Terms of Service (last updated 2025-06-11), the Acceptable Use Policy (last updated 2025-06-11), the voice-cloning docs and landing page, and the launch blog. Documented points first, then what is inferred.
 
-- The licence is "non-sublicensable ... solely for your internal business purposes". A mod that ships one developer key, or
-  sends every player's text through the developer's account, is not that. **So each player uses their own Inworld key and
-  account**, exactly as for the Mistral key. Nothing here puts a key into the release.
-- The Terms have no end-user rules for apps built on the API and no voice-cloning consent text. The model cards and the safety
-  page forbid impersonating a real person without consent. The reference clips are the game's own voice actors, so cloning them is
-  a risk **the player takes on their own account** and the project owner should weigh before offering it; this is the one point
-  that may need the owner's decision.
-- Limits above are as documented; they were not tested to exhaustion (free minutes are small).
+Documented:
+
+- **Licence scope.** The Terms grant a limited, non-exclusive, non-transferable, non-sublicensable licence for "internal business purposes" and as the documentation permits. Nothing about non-commercial or hobby use, or about apps built on the API. A mod that ships one developer key, or sends every player's text through the developer's account, does not fit that. **So each player uses their own Inworld key and account**, exactly as for the Mistral key. Nothing here puts a key into the release.
+- **Inputs.** The customer keeps whatever rights it holds in its inputs and warrants that it has the rights Inworld needs to process them; Inworld takes a non-exclusive licence to use them to run and improve the service, and assigns its rights in outputs to the customer, subject to the Terms.
+- **Voice cloning gate.** The Portal makes the user confirm they have the rights to clone the voice before an instant clone is made (docs and landing page). The API pages show no such step, so a clone made by API call carries the same obligation but no prompt. The docs say nothing about consent from the person whose voice it is, permitted uses, or cloning someone else's voice.
+- **Impersonation and consent.** The AUP says developers may not impersonate another individual or organisation without consent or legal right, and bars building voice or other biometric recognition databases without consent. Inworld's voice-cloning FAQ and launch post say cloning is for your own voice or one you are authorised to use, that impersonating someone without consent or legal right breaks the AUP, that generated audio carries an inaudible watermark, and that Inworld acts against malicious impersonation and fraud.
+- **Disclosure.** The AUP wants AI use disclosed where a user could take it for a person. Every companion here is plainly an AI character in a game, and the voice setting is labelled as a cloud voice.
+- **Not addressed at all:** who owns the reference audio, game or fan content, copyright in the source audio (the AUP does not mention IP infringement; the Terms and the Master Services Agreement, which were not available, may), non-commercial exemptions.
+
+Inferred (not stated by Inworld):
+
+- The reference clip is a voice actor's performance in a game owned by CD Projekt. The Inworld clauses that matter are "rights to clone the voice" and the no-impersonation rule. Whether a player has those rights for game audio is a legal question the terms do not answer. CD Projekt's fan-content guidelines allow game material in free fan content (stated by the project owner; not re-read in this pass), but they govern the fan content, not a third party's terms or the voice actor's own rights.
+- The mod's use is a companion speaking in character, not passing a clone off as the real actor to deceive anyone, which is what the AUP names. A ban for that is unlikely in practice, but this is a judgement, not a permission.
+- The risk sits with the player's account, not the mod: the clone is made on the player's own key, and the Portal tick box is theirs. The mod uploads a clip only after the player has chosen the Inworld voice and added their own key, and it deletes only voices it made.
+- Enforcement would most likely be Inworld removing a voice or suspending the player's key. Nothing in the terms limits it to that.
+
+Open for the project owner (not a blocker for the code): add one plain sentence to the Inworld key help or the pack notes saying the voices are cloned from the game's own audio on the player's own Inworld account, under Inworld's terms; or ask Inworld (the AUP gives support@inworld.ai for complaints) whether game-audio references for a free fan mod are fine. No player text was changed in this pass.
+
+Limits above are as documented; they were not tested to exhaustion (free minutes are small).
 
 ## What the player sees
 
@@ -200,12 +220,12 @@ in `E:\CyberpunkConvai-offload\work\inworld-2026-10-13\`).
 ## Limits and open points
 
 - English only, like Pocket's route.
-- Whether the free 70 minutes is monthly or once is not in the docs; what the player sees when it is gone is the `quota` fallback
+- Whether the free 70 minutes is monthly or once is not in Inworld's docs (researched 2026-10-15, see above; plan for once); what the player sees when it is gone is the `quota` fallback
   (a written reply, one "unavailable" notice) after Inworld answers 402 or a quota message. That answer was **not** seen live; the
   mapping follows the documented codes and is unit-tested only.
 - A new character's first reply may be written only if its voice is not made yet (two clones a minute on the free plan; about 9 s for
   one). Warm-up at "prepare" makes this rare.
-- Cloning game actors' voices is the player's own risk on their own account (terms above).
+- Cloning game actors' voices is the player's own risk on their own account (terms above; the terms are silent on game audio, so this is a judgement, not a permission).
 - The fallback reads a whole request text for one feeling; it cannot place a change of feeling inside a reply (only the character's own tags can).
 
 ## Live checks in game (user)
@@ -223,3 +243,26 @@ Install the committed `mod/` files and the bridge from this branch (never `mod/d
    OFF in Settings > Voices and talk again with the Inworld voice: the replies still carry emotion (`[Inworld] first audio ... 1 emotion
    tag` in the log), on Convai, Mistral and Local alike.
 8. With Natural speech on: now and then a real laugh, sigh or breath (not the word) at a natural spot; none of it in the subtitles.
+
+## Sources (read 2026-10-15 unless noted)
+
+Official Inworld:
+
+- Pricing: https://inworld.ai/pricing ("up to 70 min TTS included"; the FAQ and "Start building" text say the same; no period; On-Demand limits 100 custom voices, 5 concurrent requests, commercial licence listed)
+- TTS billing: https://docs.inworld.ai/tts/resources/billing (70 minutes, no period; credits from $10)
+- Portal billing: https://docs.inworld.ai/portal/billing (plans; paid credits monthly and rolling over 3 months; free minutes not listed as recurring)
+- Terms of Service (last updated 2025-06-11): https://inworld.ai/terms-of-service
+- Acceptable Use Policy (last updated 2025-06-11): https://inworld.ai/acceptable-use-policy
+- Voice cloning docs (rights confirmation in the Portal upload): https://docs.inworld.ai/tts/voice-cloning (a mirror turned up in search: https://dev.docs.inworld.ai/docs/tts/voice-cloning)
+- Voice cloning page (FAQ on consent and impersonation, as relayed by search; not fetched directly): https://inworld.ai/voice-cloning
+- Launch post (watermark, safeguards, as relayed by search; not fetched directly): https://inworld.ai/blog/introducing-inworld-tts
+- TTS release notes: https://docs.inworld.ai/release-notes/tts
+
+Secondary (not authoritative, and they disagree):
+
+- Pricing-change tracker, week 2026-W25 (40 to 70 minutes, worded "per month"): https://pricingsaas.com/companies/inworld/diffs/2026W25
+- Review calling it a one-time 40-minute trial (published 2026-05-20, updated 2026-08-25, internal dates inconsistent): https://texttolab.com/blog/inworld-pricing
+- Review saying there is no permanent free plan (Oct 2026): https://toolradar.com/tools/inworld-ai/pricing
+- General guidance on voice-cloning consent, context only and not about Inworld: https://magichour.ai/blog/ai-voice-cloning-laws-and-ethics
+
+Earlier pass (2026-10-13): the same terms read, plus the model cards and the safety page (not re-fetched on 2026-10-15; a search found no model-card page).
