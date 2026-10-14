@@ -4,7 +4,7 @@ import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {PACKED_PREFIX, isKeyFileText, isPackedKeyText, packKey, readKeyFileText} from './key-codec.mjs';
-import {DAILY_LIMIT, MIN_SPACING_MS, RATE_BURST, RATE_PER_MINUTE, SharedKeyGuard, TurnLimitError, UsageStore, dayOf,
+import {DAILY_LIMIT, LimitStore, sanitizeLimit, MIN_SPACING_MS, RATE_BURST, RATE_PER_MINUTE, SharedKeyGuard, TurnLimitError, UsageStore, dayOf,
   limitFromEnvironment, machineId} from './shared-key-guard.mjs';
 import {ConvaiKeys, OwnKeyControl} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
@@ -292,4 +292,59 @@ test('the settings status file carries the remaining count only while the shared
   assert.equal(new OwnKeyControl({keys, commandPath: 'cmd', publish: async () => {}}).status().daily, undefined);
   keys.applied = {source: 'player', key: 'player-fixture-key-1111111111111111'};
   assert.equal(control.status().daily, undefined, 'an own key has no daily count');
+});
+
+// ---------------------------------------------------------------- the limit the sign-in backend sets
+test('a backend limit is taken only when it is a whole number in range, and it changes what is enforced and shown', () => {
+  for (const bad of [0, -1, 10001, 2.5, '12.5', 'lots', null, undefined, NaN, Infinity, {}, []]) assert.equal(sanitizeLimit(bad), null, String(bad));
+  for (const [good, number] of [[1, 1], [150, 150], ['150', 150], [10000, 10000]]) assert.equal(sanitizeLimit(good), number);
+  const clock = clockAt(noon); const heard = [];
+  const guard = guardWith(clock, {limit: 100, onLimit: value => heard.push(value)});
+  drain(guard, clock, 60);
+  assert.equal(guard.setLimit(150), true);
+  assert.deepEqual(guard.snapshot(), {limit: 150, left: 90, blocked: false});
+  drain(guard, clock, 90);
+  assert.throws(() => guard.check(), error => error instanceof TurnLimitError && error.kind === 'daily');
+  assert.equal(guard.setLimit(200), true, 'raised by the owner: the player can go on'); clock.advance(10 * 60000);
+  guard.check();
+  assert.equal(guard.setLimit(120), true, 'lowered below what is used: blocked at once');
+  assert.throws(() => guard.check(), error => error.kind === 'daily');
+  assert.equal(guard.setLimit(120), false, 'the same value changes nothing');
+  assert.equal(guard.setLimit('junk'), false); assert.equal(guard.setLimit(0), false); assert.equal(guard.setLimit(99999), false);
+  assert.equal(guard.snapshot().limit, 120, 'a bad value keeps the last good one');
+  assert.deepEqual(heard, [150, 200, 120]);
+});
+
+test('a backend limit is ignored when the guard is off or the developer pinned the limit', () => {
+  const clock = clockAt(noon);
+  assert.equal(guardWith(clock, {limit: 0}).setLimit(50), false);
+  const pinned = guardWith(clock, {limit: 30, pinned: true});
+  assert.equal(pinned.setLimit(500), false);
+  assert.equal(pinned.snapshot().limit, 30);
+});
+
+test('the last backend limit is kept in a signed file; a damaged, edited or foreign file reads as nothing', async () => {
+  const files = new Map();
+  const make = machine => new LimitStore({path: 'daily-limit.json', machine, read: async path => { if (!files.has(path)) throw Error('missing'); return files.get(path); },
+    write: async (path, text) => { files.set(path, text); }});
+  const store = make('machine-a');
+  assert.equal(await store.load(), null, 'no file: the built-in limit applies');
+  await store.save(150);
+  assert.equal(await store.load(), 150);
+  assert.equal(await make('machine-b').load(), null, 'copied from another computer');
+  files.set('daily-limit.json', files.get('daily-limit.json').replace('150', '900'));
+  assert.equal(await store.load(), null, 'edited');
+  for (const junk of ['', 'nope', '{}', '{"v":1,"limit":150}', '{"v":1,"limit":150,"mac":"short"}']) { files.set('daily-limit.json', junk); assert.equal(await store.load(), null); }
+  files.set('daily-limit.json', 'kept');
+  await store.save('junk'); await store.save(0);
+  assert.equal(files.get('daily-limit.json'), 'kept', 'a bad value is never written');
+});
+
+test('a changed backend limit is saved once, in the background, for the next start', async () => {
+  const clock = clockAt(noon), files = new Map();
+  const limitStore = new LimitStore({path: 'l.json', machine: 'm', read: async path => files.get(path), write: async (path, text) => { files.set(path, text); }});
+  const guard = guardWith(clock, {limit: 100, limitStore});
+  guard.setLimit(175); guard.setLimit(175);
+  await guard.flush();
+  assert.equal(await limitStore.load(), 175);
 });

@@ -396,3 +396,64 @@ test('the host asks for the credential when it calls a page, so a renewed token 
   await plain.evaluateSpeech(page, 'warm', {key: SHARED, characterId: 'alex', ttsEnabled: false});
   assert.equal(seen[2].key, SHARED, 'without a credential hook the config is sent as it always was');
 });
+
+test('the daily limit the backend reports reaches the bridge with the token; bad values are ignored; a raised limit lets a blocked install through', async () => {
+  const world = createWorld({CONVAI_AUTH_DAILY_TURN_CAP: '10'});
+  const heard = [];
+  const {tokens, timers} = source(world, {onLimit: value => heard.push(value)});
+  const keys = await keysWith(tokens);
+  tokens.start(); await flush();
+  assert.deepEqual(heard, [10]);
+  assert.equal(tokens.snapshot().dailyLimit, 10);
+  // The owner changes the limit in the store (what POST /api/admin/config does) and the next token carries the new number.
+  await world.store.command(['SET', 'cfg:dailyInteractionLimit', '25']);
+  world.advance(HOUR - 9 * MINUTE);
+  await timers.fire();
+  assert.deepEqual(heard, [10, 25]);
+  assert.equal(tokens.snapshot().allowance.limit, 25);
+  // A junk stored value never reaches the bridge as junk: the backend falls back to its environment's number.
+  await world.store.command(['SET', 'cfg:dailyInteractionLimit', 'junk']);
+  world.advance(HOUR - 9 * MINUTE);
+  await timers.fire();
+  assert.equal(tokens.dailyLimit, 10);
+  // Used up, then raised: the install is let through at the next half-hourly check, not at midnight.
+  for (let turn = 0; turn < 10; turn++) tokens.noteTurn();
+  world.advance(HOUR - 9 * MINUTE);
+  await timers.fire();
+  assert.equal(tokens.snapshot().lastKind, 'daily');
+  assert.equal(tokens.snapshot().dailyLimit, 10, 'the refusal carries the limit too');
+  assert.throws(() => keys.assertAllowed(), error => error.kind === 'daily');
+  const [recheck] = timers.live;
+  assert.ok(recheck.delay <= 31 * MINUTE, 'it asks again within half an hour');
+  await world.store.command(['SET', 'cfg:dailyInteractionLimit', '40']);
+  world.advance(31 * MINUTE);
+  await timers.fire();
+  assert.equal(tokens.snapshot().lastKind, 'ok');
+  keys.assertAllowed();
+  assert.deepEqual(heard.slice(-1), [40]);
+});
+
+test('a malformed limit in an answer is ignored and the last good one stays', async () => {
+  for (const bad of [0, -4, 99999, 1.5, 'lots', null, {}]) {
+    const heard = [];
+    const timers = fakeTimers();
+    let answers = 0;
+    const tokens = new TokenSource({url: 'https://auth.example.invalid/t', secret: SIGNING_SECRET, installId: INSTALL, now: () => 0,
+      setTimer: timers.setTimer, clearTimer: timers.clearTimer, onLimit: value => heard.push(value),
+      fetchImpl: async () => Response.json({authToken: 'fake-token-xyz-' + (++answers), expiresAt: new Date(3_600_000).toISOString(),
+        ...(answers === 1 ? {dailyInteractionLimit: 150} : {dailyInteractionLimit: bad, allowance: {used: 0, limit: bad}})})});
+    tokens.start(); await flush();
+    await timers.fire();
+    assert.deepEqual(heard, [150], `${JSON.stringify(bad)} is not a limit`);
+    assert.equal(tokens.dailyLimit, 150);
+  }
+});
+
+test('an older deployment that sends only allowance.limit still sets the limit', async () => {
+  const heard = [], timers = fakeTimers();
+  const tokens = new TokenSource({url: 'https://auth.example.invalid/t', secret: SIGNING_SECRET, installId: INSTALL, now: () => 0,
+    setTimer: timers.setTimer, clearTimer: timers.clearTimer, onLimit: value => heard.push(value),
+    fetchImpl: async () => Response.json({authToken: 'fake-token-old-1', expiresAt: new Date(3_600_000).toISOString(), allowance: {used: 3, limit: 100}})});
+  tokens.start(); await flush();
+  assert.deepEqual(heard, [100]);
+});

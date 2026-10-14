@@ -1451,7 +1451,7 @@ end
 -- being checked. A paste that failed puts its message first in the row's help, and the row then says Not added. The names and the two
 -- helps are source strings (the catalogue reads them from the call); `key` is {saved, tail, checking, message}. Only the last four
 -- characters of a key are ever shown (docs/OWN_CONVAI_KEY.md): the key itself never reaches this file.
-local function keyRow(name, pasteHelp, removeHelp, id, key, paste, remove)
+local function keyRow(name, pasteHelp, removeHelp, id, key, paste, remove, lastParagraph)
     local info
     if key.checking then info = ui.t('Checking…')
     elseif key.saved then info = key.tail and ('…' .. key.tail) or ui.t('Added')
@@ -1463,6 +1463,7 @@ local function keyRow(name, pasteHelp, removeHelp, id, key, paste, remove)
         help = ui.t(pasteHelp)
     end
     if key.message then help = key.message .. '\n\n' .. help end
+    if lastParagraph then help = help .. '\n\n' .. lastParagraph end
     return action(id, ui.t(name) .. (info and (' (' .. info .. ')') or ''), key.saved and ui.t('Remove') or ui.t('Paste'), help,
         key.saved and remove or paste, nil, {label = true, value = true, description = true})
 end
@@ -1492,7 +1493,7 @@ local function ownKeyRows(snapshot)
     -- Who answers right now, as the last paragraph of the provider row's help: only what the player has to act on or could not guess
     -- (a limit, a rejected key, a wait, a fallback, the free tier's allowance). The selected provider is the row's own value, and a
     -- key is never counted against the daily allowance (bridge/shared-key-guard.mjs).
-    local note
+    local note, limitHelp
     if mistral.pending then note = ui.t('Waiting for the conversation to end')
     elseif mistral.effective == 'mistral' then
         if mistral.limit == 'rate' or mistral.limit == 'daily' then note = ui.t('Mistral: free limit reached for now')
@@ -1507,7 +1508,12 @@ local function ownKeyRows(snapshot)
     elseif own.limit == 'memory-needed' then note = ui.t('Your key: no room for memory')
     elseif own.active == 'player' and own.memoryOff then note = ui.t('Your own key, without memory')
     elseif own.active == 'player' then note = nil
-    elseif own.daily and own.daily.blocked then note = ui.t('Convai free tier: daily limit reached')
+    elseif own.daily and own.daily.blocked then
+        -- The limit is reached: the status is the provider help's last paragraph (that help is already close to the panel's height in
+        -- several languages) and what to do goes into the Mistral key row's help (the real limit comes from the sign-in backend,
+        -- bridge/shared-key-guard.mjs).
+        note = ui.t('Convai free tier: daily limit reached')
+        limitHelp = ui.t('You have used today’s {limit} turns. They come back tomorrow. To keep talking now, choose Mistral (an estimated 3,000 turns a day) or Local AI (no limit), then Apply.', {limit = own.daily.limit})
     elseif own.daily then note = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit}) end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
@@ -1599,7 +1605,7 @@ local function ownKeyRows(snapshot)
             'Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and a monthly allowance.',
             'Deletes the saved key. Conversations go back to Convai free tier.',
             'mistral-key', {saved = mistral.saved == true, tail = mistral.tail, message = mistralMessage},
-            function() return manager.pasteMistralKey() end, function() return manager.removeMistralKey() end),
+            function() return manager.pasteMistralKey() end, function() return manager.removeMistralKey() end, limitHelp),
     }
     if editor then
         rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',

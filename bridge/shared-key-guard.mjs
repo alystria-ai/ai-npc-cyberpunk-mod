@@ -18,7 +18,8 @@ import {dirname} from 'node:path';
 import {execFile} from 'node:child_process';
 import {hostname, userInfo} from 'node:os';
 
-export const DAILY_LIMIT = 100;       // turns per local day on the shared key (the one place to change it)
+export const DAILY_LIMIT = 100;       // turns per local day on the shared key until the sign-in backend says otherwise (auth-backend/ POST /api/admin/config)
+export const LIMIT_MIN = 1, LIMIT_MAX = 10_000;  // the range of a limit the backend may set; the same bounds as auth-backend/api/_lib/config.js
 export const RATE_BURST = 15;         // turns that may follow each other at once
 export const RATE_PER_MINUTE = 12;    // sustained turns per minute
 export const MIN_SPACING_MS = 250;    // shortest gap between two turns
@@ -32,6 +33,12 @@ export class TurnLimitError extends Error {
     this.name = 'TurnLimitError'; this.kind = kind;
   }
 }
+
+/** A daily limit the backend sent, as a whole number in [LIMIT_MIN, LIMIT_MAX], or null for anything else (missing, fractional, text, out of range). */
+export const sanitizeLimit = value => {
+  const number = typeof value === 'string' && /^\d{1,6}$/.test(value.trim()) ? Number(value.trim()) : value;
+  return Number.isSafeInteger(number) && number >= LIMIT_MIN && number <= LIMIT_MAX ? number : null;
+};
 
 const PEPPER = 'cyberpunk-convai/usage/v1';
 const pad = value => String(value).padStart(2, '0');
@@ -91,19 +98,54 @@ export class UsageStore {
   }
 }
 
+/** The last daily limit the backend reported, kept in one signed file so a restart (or an unreachable backend) keeps the number the
+ * player was last told. Reads never throw; a bad, unsigned or out-of-range file is ignored (the built-in DAILY_LIMIT applies). */
+export class LimitStore {
+  constructor({path, machine, read = file => readFile(file, 'utf8'), write = UsageStore.writeFile} = {}) {
+    Object.assign(this, {path, read, write});
+    this.secret = createHash('sha256').update(`${PEPPER}|limit|${machine}`).digest();
+  }
+  #mac(limit) { return createHmac('sha256', this.secret).update(`limit|${limit}`).digest('hex'); }
+  async load() {
+    try {
+      const record = JSON.parse(await this.read(this.path));
+      const limit = sanitizeLimit(record?.limit);
+      if (limit === null || record?.v !== 1 || typeof record.mac !== 'string' || record.mac.length !== 64) return null;
+      const expected = Buffer.from(this.#mac(limit), 'hex'), actual = Buffer.from(record.mac, 'hex');
+      return actual.length === expected.length && timingSafeEqual(actual, expected) ? limit : null;
+    } catch { return null; }
+  }
+  async save(limit) {
+    const value = sanitizeLimit(limit);
+    if (value === null) return;
+    await this.write(this.path, JSON.stringify({v: 1, limit: value, mac: this.#mac(value)}) + '\n').catch(() => {});
+  }
+}
+
 /**
  * The guard. `applies()` says whether the key in use is the shared one (false: nothing is counted or limited).
  * `limit` <= 0 turns the whole guard off (development). Methods are synchronous; saving is queued in the background.
  */
 export class SharedKeyGuard {
   constructor({store, limit = DAILY_LIMIT, applies = () => true, now = Date.now, burst = RATE_BURST,
-    perMinute = RATE_PER_MINUTE, spacingMs = MIN_SPACING_MS, onChange = () => {}} = {}) {
-    Object.assign(this, {store, limit, applies, now, burst, perMinute, spacingMs, onChange});
+    perMinute = RATE_PER_MINUTE, spacingMs = MIN_SPACING_MS, onChange = () => {}, onLimit = () => {}, limitStore, pinned = false} = {}) {
+    Object.assign(this, {store, limit, applies, now, burst, perMinute, spacingMs, onChange, onLimit, limitStore, pinned});
     this.day = dayOf(now()); this.count = 0; this.seen = now();
     this.tokens = burst; this.refilled = now(); this.last = -Infinity;
     this.saving = Promise.resolve();
   }
   get enabled() { return this.limit > 0; }
+  /** The backend's daily limit (docs/CONVAI_AUTH_BACKEND.md). Ignored when the guard is off or the limit is pinned by the developer's
+   * environment variable, and for a value outside the accepted range. Returns true when the limit changed. Nothing here touches the
+   * disk or the network except the queued save of the new value. */
+  setLimit(value) {
+    const next = sanitizeLimit(value);
+    if (next === null || !this.enabled || this.pinned || next === this.limit) return false;
+    this.limit = next;
+    if (this.limitStore) this.saving = this.saving.then(() => this.limitStore.save(next)).catch(() => {});
+    try { this.onLimit(next); } catch { /* an observer never stops a turn */ }
+    return true;
+  }
   /** Reads the saved count. Without a valid copy the count is 0. */
   async load() {
     const record = this.store ? await this.store.load().catch(() => null) : null;

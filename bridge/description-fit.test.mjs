@@ -87,8 +87,19 @@ const composites = {
     providerHelpLongest,
     'Convai free tier: {left} of {limit} left today',
   ],
+  // The same help while the daily limit is reached: the status only (what to do is in the Mistral key row's help, below).
+  'Conversation provider (daily limit reached)': [
+    providerHelpLongest,
+    'Convai free tier: daily limit reached',
+  ],
   // A key row that is not saved yet, after a paste that failed: the message first, then the help; and one that is saved.
+  // While the daily limit is reached the Mistral row ends with what to do (Mistral's estimate and Local AI without a limit).
   'Mistral API key (failed paste)': ['Mistral did not accept that key.', byStart('Copy your free key from Mistral first')],
+  'Mistral API key (failed paste, daily limit reached)': [
+    'Mistral did not accept that key.',
+    byStart('Copy your free key from Mistral first'),
+    'You have used today’s {limit} turns. They come back tomorrow. To keep talking now, choose Mistral (an estimated 3,000 turns a day) or Local AI (no limit), then Apply.',
+  ],
   'Inworld API key (failed paste)': ['The clipboard could not be read.', byStart('Copy your key from Inworld first.')],
   'Inworld API key (saved)': ['Mistral did not accept that key.', 'Deletes the saved key. The Inworld cloud voice stops until you add a key again.', 'Saved on this computer only. Only the last four characters are ever shown.'],
   // Developer mode adds a paragraph about the Inworld voice to these helps.
@@ -122,6 +133,7 @@ const translatePart = (part, translate) => {
       ? translate('{name} (custom, {size} GB, needs {need} GB)').replace('{name}', 'My Model').replace('{size}', '4.0').replace('{need}', '5.2') : line).join('\n');
   }
   if (part.startsWith('Not usable:')) return translate('Not usable: {models}. See the Local AI notes, "Add your own model".').replace('{models}', 'Embedder: an embedding model, not a chat model; Gone: file not found');
+  if (part.startsWith('You have used today’s {limit}')) return translate(part).replace('{limit}', '100');
   if (part.startsWith('Convai free tier: {left}')) return translate(part).replace('{left}', '87').replace('{limit}', '100');
   return translate(part);
 };

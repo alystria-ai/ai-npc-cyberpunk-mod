@@ -1,11 +1,12 @@
 # Convai token backend
 
-A small Vercel service that hands the Cyberpunk Convai mod a short-lived Convai auth token, so the project's permanent Convai key never ships on players' machines. The design and its research are in `docs/CONVAI_AUTH_BACKEND.md`; this folder is the built service. **Nothing here has been deployed or run against Convai or Upstash.** Every test uses a fake Convai and a fake Redis.
+A small Vercel service that hands the Cyberpunk Convai mod a short-lived Convai auth token, so the project's permanent Convai key never ships on players' machines. The design and its research are in `docs/CONVAI_AUTH_BACKEND.md`; this folder is the built service. **It was first deployed to Vercel on 2026-10-13** (address in the project's private notes, not here; `GET /api/healthz` answers `{"status":"ok"}`), and the bridge's backend mode is switched on per machine through `runtime/convai-auth.json`. Every test in this folder still uses a fake Convai and a fake Redis; the repository never calls the live service.
 
 ```
 auth-backend/
   api/convai/token.js       POST /api/convai/token   the only endpoint players' machines call
   api/admin/turns.js        GET  /api/admin/turns    per-install daily turn totals (admin secret)
+  api/admin/config.js       GET/POST /api/admin/config  the daily limit in force, and changing it (admin secret)
   api/healthz.js            GET  /api/healthz        always 200, touches nothing
   api/readyz.js             GET  /api/readyz         booleans: which settings are present
   api/_lib/                 the code (not deployed as functions)
@@ -47,7 +48,7 @@ The goal is **not** to make abuse impossible. Nothing a client program does can:
 | **Global mints per day** (default 500) | Bounds the worst case: after 500 Convai mints in a UTC day the answer is "busy, try later" and nothing more is minted. In `shared` mode it bounds the effect of a forced-mint flood; in `per-install` mode it bounds how many installs can get tokens. | It is a ceiling, not a filter: an attacker who reaches it also locks out honest players until the next UTC day (`shared` mode still hands out the token already minted). |
 | **Kill switch** (`CONVAI_AUTH_PAUSED=1`) | All new tokens, with a clean "service paused" answer, before any other work. | Tokens already handed out, and sessions already running, until they expire (up to an hour). The bridge obeys a pause; it does not fall back to the embedded key on one. |
 | **Minimum mod version** (`CONVAI_AUTH_MIN_VERSION`) | A compromised or abandoned old client, cut off with an "update the mod" answer. | A modified client that sends a newer version number. |
-| **Daily turn backstop** (default 100 reported turns per install per UTC day) | An install that reports its turns honestly: once its report reaches the cap it gets no new token until the next UTC day, and the bridge shows the same "daily limit reached" notice as the local gate. | **A modified client can report fewer turns than it makes, or none.** Turns happen between the player and Convai directly; this service never sees one. So for a modified client the real bounds are the per-install and per-address token limits, the global mint cap, and the one-hour life of a token, not this cap. |
+| **Daily turn backstop** (default 100 reported turns per install per UTC day, changeable at run time: see "Changing the daily limit") | An install that reports its turns honestly: once its report reaches the cap it gets no new token until the next UTC day, and the bridge shows the same "daily limit reached" notice as the local gate. | **A modified client can report fewer turns than it makes, or none.** Turns happen between the player and Convai directly; this service never sees one. So for a modified client the real bounds are the per-install and per-address token limits, the global mint cap, and the one-hour life of a token, not this cap. |
 | **Blocklist** (`CONVAI_AUTH_BLOCKED_INSTALLS`) | A named install's new tokens. | A fresh install id. |
 | **Admin list** (`/api/admin/turns`) | Nothing by itself. It lets you see heavy reporters (by hash) and block them. | Installs that under-report look quiet. |
 | **Fail closed** | If Redis cannot be reached, nobody gets a token. | Players already holding a token keep going until it expires. |
@@ -68,13 +69,13 @@ Request (`Content-Type: text/plain`, so the platform leaves the raw bytes alone)
 
 | Status | Body | Meaning |
 |---|---|---|
-| 200 | `{authToken, expiresAt, allowance:{used,limit,resetAt}, serverTime, minClient?}` | A token. |
+| 200 | `{authToken, expiresAt, allowance:{used,limit,resetAt}, dailyInteractionLimit, serverTime, minClient?}` | A token. `dailyInteractionLimit` (same number as `allowance.limit`) is the per-install daily limit in force right now; the bridge uses it for what it enforces and shows. |
 | 400 / 413 | `{error:"bad_request" \| "too_large"}` | Malformed body. |
 | 401 | `{error:"unauthorized"}` or `{error:"stale", serverTime}` | Bad signature, or a clock more than 120 s off (the bridge corrects itself from `serverTime` and retries once). |
 | 403 | `{error:"refused"}` | Blocked install. |
 | 426 | `{error:"outdated", minClient}` | Mod too old. |
 | 429 | `{error:"rate" \| "install_limit", retryAfterSeconds}` | A rate limit. |
-| 429 | `{error:"daily", allowance, resetAt}` | The install's reported turns reached the cap for the UTC day. |
+| 429 | `{error:"daily", allowance, dailyInteractionLimit, resetAt}` | The install's reported turns reached the cap for the UTC day. |
 | 502 | `{error:"convai_unavailable"}` | Convai would not mint. |
 | 503 | `{error:"paused"}`, `{error:"busy"}`, `{error:"unavailable"}`, `{error:"unconfigured"}` | Kill switch, mint budget spent, Redis down, or settings missing. |
 
@@ -102,12 +103,38 @@ Settings (all optional; defaults shown):
 | `CONVAI_AUTH_IP_PER_HOUR` | 20 | Token requests per address per hour. |
 | `CONVAI_AUTH_NEW_INSTALLS_PER_IP_PER_DAY` | 5 | New install ids per address per UTC day. |
 | `CONVAI_AUTH_MINTS_PER_DAY` | 500 | Convai mints per UTC day, whole service. Then "busy". |
-| `CONVAI_AUTH_DAILY_TURN_CAP` | 100 | Reported turns per install per UTC day before new tokens are refused. |
+| `CONVAI_AUTH_DAILY_TURN_CAP` | 100 | Reported turns per install per UTC day before new tokens are refused (1 to 10000). This is the **default**: a value stored with `POST /api/admin/config` (below) wins over it, so changing the limit needs no redeploy. |
 | `CONVAI_AUTH_REMINT_MARGIN_SECONDS` | 300 | Re-mint the cached token when this many seconds or fewer remain. |
 | `CONVAI_AUTH_BLOCKED_INSTALLS` | none | Comma-separated install hashes (from the admin list) to refuse. |
 | `CONVAI_CONNECT_URL`, `CONVAI_REVOKE_URL` | Convai's | Only for testing against a stand-in. |
 
 `/api/readyz` reports, for every variable above, only whether it is set (`true`/`false`), never a value. It touches no Redis unless called as `/api/readyz?ping=1` with the admin secret, which spends exactly one `PING`. `/api/healthz` touches nothing.
+
+## Changing the daily limit (no redeploy, no mod update)
+
+The per-install daily limit ("Convai free tier: N turns a day") lives in the store under `cfg:dailyInteractionLimit`. Both calls need `Authorization: Bearer <CONVAI_AUTH_ADMIN_SECRET>`; the secret stays in `secrets/admin.secret`, never on a command line you share:
+
+```
+# what is in force (stored value, the environment default, the accepted range 1 to 10000)
+curl -H "Authorization: Bearer $(cat secrets/admin.secret)" https://<address>/api/admin/config
+
+# set it to 150
+curl -X POST -H "Authorization: Bearer $(cat secrets/admin.secret)" -H "Content-Type: application/json" \
+     -d '{"dailyInteractionLimit": 150}' https://<address>/api/admin/config
+
+# remove the stored value: the CONVAI_AUTH_DAILY_TURN_CAP default (100 unless set) applies again
+curl -X POST -H "Authorization: Bearer $(cat secrets/admin.secret)" -H "Content-Type: application/json" \
+     -d '{"dailyInteractionLimit": null}' https://<address>/api/admin/config
+```
+
+On Windows PowerShell use `curl.exe` (not the `curl` alias) and `(Get-Content -Raw secrets\admin.secret).Trim()`. A number outside 1 to 10000, a fraction, text or a body without the field is refused with 400 and changes nothing. `GET /api/admin/turns` shows the limit in force as `dailyTurnCap`.
+
+How it takes effect:
+
+- **The server** reads the stored value inside its single admission script (no extra Redis command per request) and compares it with the install's reported turns. The new limit applies from the next token request. A value in the store that is not a whole number in range (edited by hand) is ignored and the environment default applies.
+- **Players' bridges** learn it from the next token answer (`dailyInteractionLimit`, also on a "daily" refusal), within about 50 minutes, and from then on use it for the count and the notice ("{left} of {limit} left today"). A bridge that is blocked for the day asks again every half hour, so raising the limit lets it through within about 30 minutes. The last value is kept in the bridge's state folder (`daily-limit.json`, signed per computer); with no answer yet, or the backend unreachable, the bridge uses the last value it was told, then 100. A value that is missing, not a whole number or outside 1 to 10000 is ignored.
+- **Lowering it** below what a player has already used today blocks that player at the next answer; their count is not reset.
+- **What it does not change:** enforcement is no stronger than before. The server counts only the turns an install reports, and the bridge counts its own turns locally, so a modified client can ignore either number (see the table above). Players who never switched the backend on (`convai-auth.json`) keep the built-in 100 until they do.
 
 ## Deploy steps (all from a terminal)
 
@@ -195,7 +222,8 @@ Per request:
 - `POST /api/convai/token`: one invocation. **One Redis command** (the whole admission is one script), plus one more only in `per-install` mode when a token is minted (saving it). Requests refused before the store (kill switch, bad signature, stale clock, bad body, old version, blocked install, in-instance flood guard) cost an invocation and **zero** commands.
 - `GET /api/healthz`: one invocation, zero commands, never touches Redis or Convai.
 - `GET /api/readyz`: one invocation, zero commands (one `PING` only with `?ping=1` and the admin secret). Do not point a monitor at `?ping=1` more than a few times a day.
-- `GET /api/admin/turns`: one invocation, three commands (one pipelined request). Rarely used.
+- `GET /api/admin/turns`: one invocation, four commands (one pipelined request). Rarely used.
+- `GET` or `POST /api/admin/config`: one invocation, two or three commands (set or remove, then read back). Rarely used. Reading the limit during a token request adds no command (it happens inside the admission script).
 - Every Redis key has a TTL (hours to days), so there is no cleanup job and nothing grows without bound.
 
 Per active player a day: the bridge asks once at start and renews about every 51 minutes (a token lives an hour and the bridge renews 8 to 10 minutes early). A two hour session and a game restart is about **3 requests a day** (range 2 to 6). That is 3 invocations, and 3 commands in `shared` mode or about 5.5 in `per-install` mode.
@@ -212,7 +240,7 @@ The Upstash free tier is exhausted at about 5,500 daily players in `shared` mode
 
 ## What is stored
 
-Redis holds only keyed hashes (HMAC of the install id or the address with the signing secret; the raw values are never stored or logged), counters and the day's per-install turn totals, all with TTLs (hours; install-seen markers 5 weeks). In `per-install` mode it also holds each install's token until it expires: a token is a bearer credential, so protect the Upstash console and treat it like the Vercel project. Vercel's own request logs (kept about an hour on Hobby) see addresses as every host does. No conversation text, character or audio ever reaches this service.
+Redis holds only keyed hashes (HMAC of the install id or the address with the signing secret; the raw values are never stored or logged), counters and the day's per-install turn totals, all with TTLs (the one exception is the stored daily limit, `cfg:dailyInteractionLimit`, a single number with no TTL that you set yourself) (hours; install-seen markers 5 weeks). In `per-install` mode it also holds each install's token until it expires: a token is a bearer credential, so protect the Upstash console and treat it like the Vercel project. Vercel's own request logs (kept about an hour on Hobby) see addresses as every host does. No conversation text, character or audio ever reaches this service.
 
 ## Tests
 

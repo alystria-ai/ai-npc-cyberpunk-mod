@@ -14,7 +14,7 @@
 // it); a backend that REFUSES (daily allowance used, rate limit, paused, outdated, blocked) is obeyed, never bypassed.
 import {createHmac, randomUUID} from 'node:crypto';
 import {readFile, writeFile, rename, rm} from 'node:fs/promises';
-import {TurnLimitError} from './shared-key-guard.mjs';
+import {TurnLimitError, sanitizeLimit} from './shared-key-guard.mjs';
 
 export const INSTALL_FILE = 'convai-install.json';
 export const AUTH_CONFIG_FILE = 'convai-auth.json';
@@ -89,11 +89,12 @@ export class TokenSource {
   #failures = 0; #clockOffsetMs = 0; #clockRetried = false; #announced = '';
 
   constructor({url, secret, installId, version = '0.0.0-dev', fetchImpl = globalThis.fetch, now = Date.now, setTimer = setTimeout,
-    clearTimer = clearTimeout, random = Math.random, log = () => {}, timeoutMs = 10_000, fallback = true} = {}) {
+    clearTimer = clearTimeout, random = Math.random, log = () => {}, timeoutMs = 10_000, fallback = true, onLimit = () => {}} = {}) {
     if (typeof url !== 'string' || !url || typeof secret !== 'string' || !secret || !UUID_V4.test(String(installId))
         || typeof fetchImpl !== 'function') throw Error('Invalid sign-in backend configuration');
     Object.defineProperty(this, 'secret', {value: secret}); // not enumerable: never in a snapshot or a JSON dump
-    Object.assign(this, {url, installId, version, fetchImpl, now, setTimer, clearTimer, random, log, timeoutMs, fallback});
+    Object.assign(this, {url, installId, version, fetchImpl, now, setTimer, clearTimer, random, log, timeoutMs, fallback, onLimit});
+    this.dailyLimit = null; // the per-install daily limit the backend last reported (a whole number in the accepted range), or null
     this.pending = 0; this.lastKind = undefined; this.blocked = null; this.allowance = null; this.minClient = null;
     this.attempts = 0;
   }
@@ -156,7 +157,16 @@ export class TokenSource {
   snapshot() {
     return {installTail: this.installId.slice(-4), expiresAt: this.#token?.expiresAt ?? null, lastKind: this.lastKind ?? null,
       blocked: this.blocked ? {...this.blocked} : null, allowance: this.allowance, pendingTurns: this.pending, minClient: this.minClient,
-      usingFallback: this.#usingFallback};
+      usingFallback: this.#usingFallback, dailyLimit: this.dailyLimit};
+  }
+  /** The backend's daily limit travels with every token and every daily refusal: the top-level `dailyInteractionLimit`, else the
+   * `allowance.limit` an older deployment sends. A value that is missing, not a whole number or out of range is ignored (the last
+   * good one stays). onLimit hears every good value; it never throws into the renewal. */
+  #noteLimit(data) {
+    const value = sanitizeLimit(data?.dailyInteractionLimit) ?? sanitizeLimit(data?.allowance?.limit);
+    if (value === null) return;
+    this.dailyLimit = value;
+    try { this.onLimit(value); } catch { /* an observer never stops a renewal */ }
   }
 
   #attempt() {
@@ -213,6 +223,7 @@ export class TokenSource {
     const now = this.now();
     this.lastKind = kind;
     if (typeof data?.minClient === 'string') this.minClient = data.minClient.slice(0, 20);
+    if (kind === 'ok' || kind === 'daily') this.#noteLimit(data);
     if (typeof data?.serverTime === 'number' && Number.isFinite(data.serverTime)) {
       const offset = data.serverTime * 1000 - now;
       if (kind === 'stale' || Math.abs(offset) > 30_000) this.#clockOffsetMs = offset;
@@ -245,7 +256,9 @@ export class TokenSource {
       const resets = Number.isFinite(until) && until > now ? until : (Math.floor(now / 86_400_000) + 1) * 86_400_000;
       this.blocked = {kind: 'daily', until: resets};
       this.#announce(kind, 'Sign-in backend: this installation has used today\'s allowance; no new conversation token until it resets');
-      this.#schedule(resets - now + Math.round(this.random() * MINUTE));
+      // Asked again every half hour (not only at the reset): when the owner raises the daily limit the backend stops refusing and an
+      // install that was blocked is let through without waiting for midnight. One small request per blocked install per 30 minutes.
+      this.#schedule(Math.min(resets - now, 30 * MINUTE) + Math.round(this.random() * MINUTE));
     } else if (kind === 'rate') {
       // After failed attempts the install's own retries (4 an hour are allowed) can be what the backend is limiting: that is an outage,
       // not a refusal, so the embedded key may stand in as it does for any other failure.
