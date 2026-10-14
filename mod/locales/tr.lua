@@ -271,6 +271,8 @@ return {
     ["Redscript log"] = "Redscript günlüğü",
     ["Relationships"] = "İlişkiler",
     ["Talk to ordinary NPCs"] = "Sıradan NPC'lerle konuş",
+    ["Names for passers-by"] = "Yoldan geçenler için isimler",
+    ["Pedestrians, shopkeepers and gang members the game leaves nameless get a Night City name. The scanner shows it and they tell you when you ask.\n\nThe name fits who they are: a Valentino sounds different from a corpo. Story characters and your companions keep their own names."] = "Oyunun isimsiz bıraktığı yayalar, dükkâncılar ve çete üyeleri Night City’ye yakışır bir isim alır. Tarayıcı bunu gösterir, sorarsan kendileri de söyler.\n\nİsim, kim olduklarına uyar: Bir Valentino, bir kurumsal çalışandan farklı bir isim taşır. Hikâye karakterleri ve yol arkadaşların kendi isimlerini korur.",
     ["Conversation: {name} (archetype)"] = "Sohbet: {name} (arketip)",
     ["{count} of them can talk."] = "Bunlardan {count} tanesi konuşabilir.",
     ["Releasing local voice memory"] = "Yerel ses belleği serbest bırakılıyor",

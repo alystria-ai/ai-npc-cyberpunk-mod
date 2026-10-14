@@ -1659,6 +1659,26 @@ test('the live holocall picture is on by default, offered under Conversations, a
   `);
 });
 
+test('Names for passers-by is on by default, offered under Interface, an explicit Off is kept and only a boolean is accepted', () => {
+  run(`${mcmFixture}
+    assert(manager.npcNames() == true and manager.snapshot(player).settings.npcNames == true)
+    assert(invoke('tab:settings').ok)
+    local names = assert(row('npcNames'), 'the setting is not offered')
+    assert(names.type == 'bool' and names.value == true and names.defaultValue == true and names.label == 'Names for passers-by')
+    local interface
+    for _, category in ipairs(loaded.categories) do if category.id == 'interface' then interface = category end end
+    local found = false
+    for _, item in ipairs(interface.settings) do if item.id == 'npcNames' then found = true end end
+    assert(found, 'the setting is not in the Interface section')
+    assert(registered.applyBatch('manager', {{id = 'npcNames', value = false}}).ok)
+    assert(manager.npcNames() == false and saved.npcNames == false, 'an explicit Off is kept')
+    manager.reset(); manager.configure(api, profiles)
+    assert(manager.npcNames() == false, 'Off survives a reload')
+    assert(not manager.applySettings(player, {npcNames = 'yes'}) and manager.npcNames() == false)
+    assert(registered.applyBatch('manager', {{id = 'npcNames', value = true}}).ok and manager.npcNames() == true)
+  `);
+});
+
 test('a saved live-picture false that the player never chose (the first version\'s default) becomes the new default, true', () => {
   run(`${managerFixture}
     for _, case in ipairs({{false, nil, true}, {false, false, true}, {false, true, false}, {true, true, true}, {nil, nil, true}}) do

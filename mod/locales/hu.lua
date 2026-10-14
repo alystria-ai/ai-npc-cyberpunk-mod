@@ -271,6 +271,8 @@ return {
     ["Redscript log"] = "Redscript napló",
     ["Relationships"] = "Kapcsolatok",
     ["Talk to ordinary NPCs"] = "Beszélgetés hétköznapi NPC-kkel",
+    ["Names for passers-by"] = "Nevek az járókelőknek",
+    ["Pedestrians, shopkeepers and gang members the game leaves nameless get a Night City name. The scanner shows it and they tell you when you ask.\n\nThe name fits who they are: a Valentino sounds different from a corpo. Story characters and your companions keep their own names."] = "A járókelők, boltosok és bandatagok, akiket a játék név nélkül hagy, Night City-s nevet kapnak. A szkenner megmutatja, és ők is megmondják, ha rákérdezel.\n\nA név illik hozzájuk: egy Valentino máshogy hangzik, mint egy korpó. A történet szereplői és a társaid megtartják a saját nevüket.",
     ["Conversation: {name} (archetype)"] = "Beszélgetés: {name} (archetípus)",
     ["{count} of them can talk."] = "Ebből {count} tud beszélni.",
     ["Releasing local voice memory"] = "Helyi hangmemória felszabadítása",

@@ -188,6 +188,8 @@ return {
   ["Ready · Unsaved selection"] = "준비됨 · 저장하지 않은 선택",
   ["Relationships"] = "관계",
   ["Talk to ordinary NPCs"] = "일반 NPC와 대화",
+  ["Names for passers-by"] = "행인 이름",
+  ["Pedestrians, shopkeepers and gang members the game leaves nameless get a Night City name. The scanner shows it and they tell you when you ask.\n\nThe name fits who they are: a Valentino sounds different from a corpo. Story characters and your companions keep their own names."] = "게임에서 이름이 없는 행인, 상점 주인, 갱 조직원에게 나이트 시티다운 이름이 붙습니다. 스캐너에 표시되고, 물어보면 본인도 이름을 알려 줍니다.\n\n이름은 그 사람에게 어울리게 정해집니다. 발렌티노스와 기업 사람은 이름의 느낌이 다릅니다. 스토리 캐릭터와 동료는 원래 이름을 그대로 씁니다.",
   ["Conversation: {name} (archetype)"] = "대화: {name} (아키타입)",
   ["{count} of them can talk."] = "그중 {count}명이 대화할 수 있습니다.",
   ["Releasing local voice memory"] = "로컬 음성 메모리 해제 중",

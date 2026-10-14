@@ -190,6 +190,8 @@ return {
     ["Ready · Unsaved selection"] = "Listo · Selección sin guardar",
     ["Relationships"] = "Relaciones",
     ["Talk to ordinary NPCs"] = "Hablar con PNJ comunes",
+    ["Names for passers-by"] = "Nombres para transeúntes",
+    ["Pedestrians, shopkeepers and gang members the game leaves nameless get a Night City name. The scanner shows it and they tell you when you ask.\n\nThe name fits who they are: a Valentino sounds different from a corpo. Story characters and your companions keep their own names."] = "Los peatones, tenderos y miembros de bandas que el juego deja sin nombre reciben un nombre de Night City. El escáner lo muestra y te lo dicen si preguntas.\n\nEl nombre encaja con quiénes son: un Valentino suena distinto de un corpo. Los personajes de la historia y tus acompañantes conservan sus propios nombres.",
     ["Conversation: {name} (archetype)"] = "Conversación: {name} (arquetipo)",
     ["{count} of them can talk."] = "{count} de ellos pueden hablar.",
     ["Releasing local voice memory"] = "Liberando memoria de voz local",
