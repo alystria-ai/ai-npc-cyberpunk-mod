@@ -437,9 +437,12 @@ local function speakerOf(handle, id)
     return addon.speakers[id]
 end
 
---- handle:speaker({id, name, anchor, available, talk, group, minGap, sceneTiers, talkPriority, playThrough, voiceFrom}) -> profileKey
+--- handle:speaker({id, name, anchor, available, talk, group, minGap, sceneTiers, talkPriority, playThrough, voiceFrom, showsReply}) -> profileKey
 --- voiceFrom(player) -> GameObject (optional): where the voice is heard from, when that is not the anchor (Skippy: the gun in V's
 --- hand while the anchor stays V). Asked once when a reply starts; it only moves the sound (pan and distance), nothing else.
+--- showsReply(text, event) -> boolean (optional): asked once for each remark's reply, when its text arrives and before anything is
+--- shown. true: the add-on shows the text itself (Skippy: the gun's hologram), so the main mod shows no subtitle for this remark's
+--- voice. false, nothing or an error: the subtitle is shown as always. Only remarks are asked; V's own conversation keeps its subtitle.
 Handle.speaker = guard('speaker', function(self, def)
     local addon = self and self.record
     if not addon or addons[addon.id] ~= addon then return nil, 'unknown add-on' end
@@ -452,6 +455,7 @@ Handle.speaker = guard('speaker', function(self, def)
     if anchor ~= 'player' and anchor ~= 'vehicle' and type(anchor) ~= 'function' then return nil, 'anchor must be player, vehicle or a function' end
     if def.available ~= nil and type(def.available) ~= 'function' then return nil, 'available must be a function' end
     if def.voiceFrom ~= nil and type(def.voiceFrom) ~= 'function' then return nil, 'voiceFrom must be a function' end
+    if def.showsReply ~= nil and type(def.showsReply) ~= 'function' then return nil, 'showsReply must be a function' end
     local tiers = {1}
     if type(def.sceneTiers) == 'table' then
         tiers = {}
@@ -462,7 +466,7 @@ Handle.speaker = guard('speaker', function(self, def)
     local speaker = {addon = addon, id = def.id, key = key, name = name, anchor = anchor, available = def.available,
         talk = def.talk ~= false, group = def.group == true, minGap = number(def.minGap, 2, 600, 8),
         talkPriority = number(def.talkPriority, 0, 100, 0), sceneTiers = tiers, playThrough = def.playThrough == true,
-        voiceFrom = def.voiceFrom,
+        voiceFrom = def.voiceFrom, showsReply = def.showsReply,
         contexts = {}, contextOrder = {}, contextTiers = {}, lastAt = nil, events = {}, warmedAt = nil, mode = nil}
     addon.speakers[def.id] = speaker
     speakers[key] = speaker
@@ -591,9 +595,11 @@ Handle.on = guard('on', function(self, name, fn)
     return true
 end)
 
---- handle:settings({title, description, remarkCap = true|false, items = {{id, label, kind = 'bool'|'select', default, description, elements}}})
+--- handle:settings({title, description, remarkCap = true|false, fixed = {replaceGameLines = bool, markLines = bool}, items = {{id, label, kind = 'bool'|'select', default, description, elements}}})
 --- `remarkCap = false` hides the built-in "Most remarks per fight" setting for an add-on whose remarks are not tied to fights (a ride, say):
 --- the player is not offered it, and the default count still guards the add-on's request budget.
+--- `fixed` takes the two on/off built-ins away from the player and sets them for good: `replaceGameLines = true` (the game's own lines of the
+--- character are always replaced, the toggle is not shown), `markLines = false` (the add-on's subtitles never carry " (AI)", no toggle).
 Handle.settings = guard('settings', function(self, section)
     local addon = self and self.record
     if not addon or addons[addon.id] ~= addon then return false, 'unknown add-on' end
@@ -624,7 +630,13 @@ Handle.settings = guard('settings', function(self, section)
         else return false, 'setting kind must be bool or select' end
         items[#items + 1] = entry
     end
-    addon.settingsDef = {title = title, description = trim(section.description, 300) or '', items = items, remarkCap = section.remarkCap ~= false}
+    local fixed = {}
+    if type(section.fixed) == 'table' then
+        if type(section.fixed.replaceGameLines) == 'boolean' then fixed.replaceGameLines = section.fixed.replaceGameLines end
+        if type(section.fixed.markLines) == 'boolean' then fixed.markLines = section.fixed.markLines end
+    end
+    addon.settingsDef = {title = title, description = trim(section.description, 300) or '', items = items, remarkCap = section.remarkCap ~= false,
+        fixed = fixed}
     for _, item in ipairs(items) do
         local value = addon.values[item.id]
         local valid = (item.kind == 'bool' and type(value) == 'boolean')
@@ -634,7 +646,7 @@ Handle.settings = guard('settings', function(self, section)
     return true
 end)
 
---- handle:replaceGameLines({name, match, active, audio, audioVerified}) -> true, or false and the reason.
+--- handle:replaceGameLines({name, match, active, audio, audioVerified, silence}) -> true, or false and the reason.
 --- Declares which game subtitle lines are this add-on's character's (docs/ADDON_API.md, "Replacing the game's own lines"). While the
 --- player's built-in "Replace the game's own lines" is on (default), the main mod keeps those lines off the screen and stops their voice.
 ---   match(line, context) -> bool   the add-on's own test of a game line (line.speakerName, line.speaker, line.type; context.typeName());
@@ -643,11 +655,16 @@ end)
 ---   audio = {'event', ...}         optional: Wwise events stopped on the line's speaker (the voice; at most 4, each a plain name)
 ---   audioVerified                  true once it is known (heard in the game) that the voice really stops: a patient remark then
 ---                                  barely waits for the line; otherwise it waits for the whole line, as the voice may still play
+---   silence(line, context) -> text, again   optional: the add-on's own extra way to silence a line the Wwise stop may not reach (Skippy:
+---                                  a stop on the gun, a scene interrupt). Called once for each muted line, right after the stop; `text`
+---                                  (what was done, at most 80 letters) joins the log line, and `again` (a function) is called again
+---                                  0.3, 0.8 and 1.6 s later together with the stop. Never per frame.
 Handle.replaceGameLines = guard('replaceGameLines', function(self, def)
     local addon = self and self.record
     if not addon or addons[addon.id] ~= addon then return false, 'unknown add-on' end
     if type(def) ~= 'table' or type(def.match) ~= 'function' then return false, 'match must be a function' end
     if def.active ~= nil and type(def.active) ~= 'function' then return false, 'active must be a function' end
+    if def.silence ~= nil and type(def.silence) ~= 'function' then return false, 'silence must be a function' end
     local audio = {}
     if def.audio ~= nil then
         if type(def.audio) ~= 'table' or #def.audio > 4 then return false, 'audio must be a list of at most 4 event names' end
@@ -658,11 +675,18 @@ Handle.replaceGameLines = guard('replaceGameLines', function(self, def)
     end
     if #addon.lineRules >= 4 then return false, 'too many line rules' end
     addon.lineRules[#addon.lineRules + 1] = {addon = addon, name = trim(def.name, 40) or addon.name, match = def.match,
-        active = def.active, audio = audio, audioVerified = def.audioVerified == true}
+        active = def.active, audio = audio, audioVerified = def.audioVerified == true, silence = def.silence}
     lineRulesDeclared = true
     if host and host.installLineRules then pcall(host.installLineRules) end
     return true
 end)
+
+--- A built-in on/off setting's value as it applies: the add-on's `fixed` value when it set one, else the player's choice (default on).
+local function builtIn(addon, key)
+    local fixed = addon.settingsDef and addon.settingsDef.fixed
+    if fixed and fixed[key] ~= nil then return fixed[key] end
+    return addon.values[key] ~= false
+end
 
 --- handle:setting(id) -> the current value (a boolean, or the 1-based index of a select).
 function Handle.setting(self, id)
@@ -1222,7 +1246,7 @@ function M.matchLine(line, context)
                 end
                 if active then
                     local ok, hit = pcall(rule.match, line, context)
-                    if ok and hit == true then return rule, addon.values.replaceGameLines ~= false end
+                    if ok and hit == true then return rule, builtIn(addon, 'replaceGameLines') end
                 end
             end
         end
@@ -1241,7 +1265,7 @@ function M.mutedLine(rule, info)
     rule.addon.mutedUntil = clock + seconds + 0.4
     -- A scene voice can start a moment after its subtitle line, and a Stop that came first finds nothing to stop: the same stop is sent
     -- again at STOP_REPEAT_AT seconds, on the 0.1 s tick that already runs (a few table reads, no scan, nothing per frame).
-    if type(info.repeatStop) == 'function' and #rule.audio > 0 then
+    if type(info.repeatStop) == 'function' and (#rule.audio > 0 or rule.silence ~= nil) then
         local pending = STOP_REPEAT.pending
         if #pending >= STOP_REPEAT.max then table.remove(pending, 1) end
         pending[#pending + 1] = {send = info.repeatStop, at = clock, done = 0}
@@ -1252,7 +1276,7 @@ end
 --- The speaker name for a subtitle: with "Mark our lines" on, an add-on speaker's own line carries a small tag (speech.lua, subtitles.lua).
 function M.captionName(profileKey, name)
     local speaker = speakers[profileKey]
-    if not speaker or type(name) ~= 'string' or speaker.addon.values.markLines == false then return name end
+    if not speaker or type(name) ~= 'string' or not builtIn(speaker.addon, 'markLines') then return name end
     return name .. CAPTION_TAG
 end
 
@@ -1293,6 +1317,25 @@ end
 function M.replyText(context, text)
     if not flight or type(context) ~= 'table' or flight.requestId ~= context.requestId or type(text) ~= 'string' then return end
     flight.text = trim(text, 400)
+    -- The speaker's own way to show the text (handle:speaker showsReply): when it does, this remark's voice gets no subtitle. Asked once per
+    -- remark, here, before speech.start; a refusal, an error or no such option keeps the subtitle, so a line is never lost.
+    flight.noSubtitle = nil
+    local shows = flight.speaker.showsReply
+    if shows and flight.text then
+        local ok, value = pcall(shows, flight.text, flight.event)
+        flight.noSubtitle = ok and value == true or nil
+        if not flight.noSubtitle and not flight.showsRefusedLogged then
+            flight.showsRefusedLogged = true
+            log('Remark subtitle kept: ' .. flight.speaker.key .. ' (the add-on could not show the text itself' .. (ok and '' or ': ' .. tostring(value)) .. ')')
+        end
+    end
+end
+
+--- speech.lua, once per reply: should this add-on remark's voice go without a subtitle? (The add-on said so in showsReply for this very reply.)
+function M.hideCaption(profileKey, requestId)
+    if not flight or flight.noSubtitle ~= true or flight.requestId ~= requestId then return false end
+    local speaker = speakers[profileKey]
+    return speaker ~= nil and speaker == flight.speaker
 end
 
 --- Speakers the talk keys may address now: [{npc, entity, name, bodyType, profileKey, voiceOnly}], best first.
@@ -1387,7 +1430,8 @@ function M.settingsSections()
                     description = 'How many remarks ' .. addon.name .. ' may make in one fight (outside combat: in five minutes). '
                         .. 'The last one is kept for a big moment.'}
             end
-            if #addon.lineRules > 0 then
+            local fixed = def and def.fixed or {}
+            if #addon.lineRules > 0 and fixed.replaceGameLines == nil then
                 items[#items + 1] = {mcmId = 'addon:' .. id .. ':replaceGameLines', label = 'Replace the game\'s own lines', kind = 'bool',
                     value = addon.values.replaceGameLines, default = true,
                     description = 'Silences the game\'s own voice and subtitle lines of ' .. addon.name .. ' (the ones the game plays by itself) so '
@@ -1395,10 +1439,12 @@ function M.settingsSections()
                         .. 'quest, the map and the payment behind them run as always. Where the game\'s voice cannot be stopped, ' .. addon.name
                         .. ' waits for it to end.'}
             end
-            items[#items + 1] = {mcmId = 'addon:' .. id .. ':markLines', label = 'Mark our lines in the subtitles', kind = 'bool',
-                value = addon.values.markLines, default = true,
-                description = 'Adds (AI) after ' .. addon.name .. '\'s name in the subtitles of its own lines, so you can tell them from the '
-                    .. 'game\'s own lines. Turn it off once the game\'s own lines are replaced.'}
+            if fixed.markLines == nil then
+                items[#items + 1] = {mcmId = 'addon:' .. id .. ':markLines', label = 'Mark our lines in the subtitles', kind = 'bool',
+                    value = addon.values.markLines, default = true,
+                    description = 'Adds (AI) after ' .. addon.name .. '\'s name in the subtitles of its own lines, so you can tell them from the '
+                        .. 'game\'s own lines. Turn it off once the game\'s own lines are replaced.'}
+            end
         end
         if #items > 0 or (def and #def.items > 0) then
             for _, item in ipairs(def and def.items or {}) do
@@ -1420,8 +1466,11 @@ local function settingFor(mcmId)
     if key == 'remarkCap' and next(addon.speakers) ~= nil and not (addon.settingsDef and addon.settingsDef.remarkCap == false) then
         return addon, {id = 'remarkCap', kind = 'select', elements = CAPS}
     end
-    if key == 'markLines' and next(addon.speakers) ~= nil then return addon, {id = 'markLines', kind = 'bool'} end
-    if key == 'replaceGameLines' and #addon.lineRules > 0 then return addon, {id = 'replaceGameLines', kind = 'bool'} end
+    local fixed = addon.settingsDef and addon.settingsDef.fixed or {}
+    if key == 'markLines' and next(addon.speakers) ~= nil and fixed.markLines == nil then return addon, {id = 'markLines', kind = 'bool'} end
+    if key == 'replaceGameLines' and #addon.lineRules > 0 and fixed.replaceGameLines == nil then
+        return addon, {id = 'replaceGameLines', kind = 'bool'}
+    end
     if not addon.settingsDef then return nil end
     for _, item in ipairs(addon.settingsDef.items) do if item.id == key then return addon, item end end
     return nil

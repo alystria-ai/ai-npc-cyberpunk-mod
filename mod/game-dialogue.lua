@@ -357,6 +357,19 @@ function Instance:ruleLine(line, rule, muted, seconds, measured)
     end
     local audio, again = call(N.stopAudio, line, rule.audio)
     audio = audio or 'stop-failed'
+    -- The add-on's own way to silence what the Wwise stop cannot reach (rule.silence(line, context) -> text, again): its text joins the
+    -- log line and its `again` is repeated with the stop, at the same 0.3, 0.8 and 1.6 s. A failing function changes nothing else.
+    if type(rule.silence) == 'function' then
+        local text, more = call(rule.silence, line, self:lineContext(line))
+        if type(text) == 'string' then audio = audio .. '+' .. text:sub(1, 80) end
+        if type(more) == 'function' then
+            local first = again
+            again = function()
+                if first then pcall(first) end
+                pcall(more)
+            end
+        end
+    end
     local subtitle = 'filtered'
     if self.muteInstalled ~= true then subtitle = call(N.hideLine, line) and 'hidden-after' or 'hide-failed' end
     self:count('muted', rule.name or '?')
