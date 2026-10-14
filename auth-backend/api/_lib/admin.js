@@ -1,6 +1,6 @@
-import { ENV_NAMES, readConfig, missingSettings } from './config.js';
+import { CAP_BOUNDS, CAP_KEY, ENV_NAMES, readConfig, missingSettings, validCap } from './config.js';
 import { safeEqual } from './crypto.js';
-import { headerValue, sendJson } from './http.js';
+import { headerValue, readRawBody, sendJson } from './http.js';
 import { createUpstashStore } from './store.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -42,10 +42,11 @@ export function createAdminTurnsHandler(options = {}) {
     const limit = Math.min(200, Math.max(1, Number.parseInt(query.get('limit') ?? '50', 10) || 50));
     try {
       const store = options.store ?? createUpstashStore({ url: config.storeUrl, token: config.storeToken, fetchImpl: options.fetchImpl ?? fetch });
-      const [rows, active, mints] = await store.pipeline([
+      const [rows, active, mints, stored] = await store.pipeline([
         ['ZREVRANGE', `turns:${day}`, '0', String(limit - 1), 'WITHSCORES'],
         ['ZCARD', `turns:${day}`],
         ['GET', `mint:${day}`],
+        ['GET', CAP_KEY],
       ]);
       const installs = [];
       for (let index = 0; index + 1 < (rows?.length ?? 0); index += 2) {
@@ -54,11 +55,68 @@ export function createAdminTurnsHandler(options = {}) {
       sendJson(response, 200, {
         day,
         mode: config.mode,
-        dailyTurnCap: config.dailyTurnCap,
+        dailyTurnCap: validCap(stored) ?? config.dailyTurnCap,
         installsReporting: Number(active) || 0,
         tokenMintsAttempted: Number(mints) || 0,
         top: installs,
         note: 'install is a keyed hash of the install id; add it to CONVAI_AUTH_BLOCKED_INSTALLS to refuse that install.',
+      });
+    } catch {
+      sendJson(response, 503, { error: 'unavailable' });
+    }
+  };
+}
+
+/**
+ * The per-install daily limit, changed at run time. Both need `Authorization: Bearer <CONVAI_AUTH_ADMIN_SECRET>`.
+ *   GET  /api/admin/config                                  what is in force (one Redis command)
+ *   POST /api/admin/config  {"dailyInteractionLimit": 150}  store a new limit (1 to 10000); {"dailyInteractionLimit": null} removes it,
+ *                                                           so the CONVAI_AUTH_DAILY_TURN_CAP value (default 100) applies again
+ * The token endpoint reads the stored value inside its admission script, so the change applies from the next token request and no
+ * redeploy is needed. Players' bridges learn it with their next token (within about 50 minutes) and keep the last value they were told.
+ */
+export function createAdminConfigHandler(options = {}) {
+  const getEnv = () => options.env ?? process.env;
+  return async function adminConfigHandler(request, response) {
+    if (request.method !== 'GET' && request.method !== 'POST') {
+      sendJson(response, 405, { error: 'method_not_allowed' }, { Allow: 'GET, POST' });
+      return;
+    }
+    const config = readConfig(getEnv());
+    if (config.adminSecret.length < 32) {
+      sendJson(response, 404, { error: 'not_found' });
+      return;
+    }
+    if (!authorised(request, config)) {
+      sendJson(response, 401, { error: 'unauthorized' });
+      return;
+    }
+    let change; // undefined: no change, null: remove, number: set
+    if (request.method === 'POST') {
+      const raw = await readRawBody(request, 1024);
+      let parsed = null;
+      try { parsed = JSON.parse(raw ?? ''); } catch { /* reported below */ }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !('dailyInteractionLimit' in parsed)) {
+        sendJson(response, 400, { error: 'bad_request', message: 'Send {"dailyInteractionLimit": <whole number>} or {"dailyInteractionLimit": null}.' });
+        return;
+      }
+      change = parsed.dailyInteractionLimit === null ? null : validCap(parsed.dailyInteractionLimit);
+      if (change === null && parsed.dailyInteractionLimit !== null) {
+        sendJson(response, 400, { error: 'out_of_range', min: CAP_BOUNDS.min, max: CAP_BOUNDS.max });
+        return;
+      }
+    }
+    try {
+      const store = options.store ?? createUpstashStore({ url: config.storeUrl, token: config.storeToken, fetchImpl: options.fetchImpl ?? fetch });
+      if (change === null) await store.command(['DEL', CAP_KEY]);
+      else if (change !== undefined) await store.command(['SET', CAP_KEY, String(change)]);
+      const stored = validCap(await store.command(['GET', CAP_KEY]));
+      sendJson(response, 200, {
+        dailyInteractionLimit: stored ?? config.dailyTurnCap,
+        stored,
+        environmentDefault: config.dailyTurnCap,
+        min: CAP_BOUNDS.min,
+        max: CAP_BOUNDS.max,
       });
     } catch {
       sendJson(response, 503, { error: 'unavailable' });

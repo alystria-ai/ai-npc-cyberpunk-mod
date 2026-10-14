@@ -84,7 +84,7 @@ import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryReco
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {readKeyFileText} from './key-codec.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
-import {DAILY_LIMIT, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
+import {DAILY_LIMIT, LimitStore, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
 import {MISTRAL_KEY_FILE, MistralControl, MistralProvider} from './mistral-key.mjs';
 import {TextProviderHost, attachTextProvider, isLocalUnavailable, localRoute, mistralRoute} from './text-provider-host.mjs';
 import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
@@ -227,12 +227,15 @@ await addonHost.loadJournal(stateDirectory);
 // background (never on a turn); a player's own key is untouched. If the backend cannot be reached the embedded key stands in
 // (CYBERPUNK_CONVAI_AUTH_FALLBACK=0 removes that), reported in this log only.
 const authSettings = await readAuthSettings({path: resolve(stateDirectory, AUTH_CONFIG_FILE)});
+// The backend sets the daily limit (auth-backend/, POST /api/admin/config). A value that arrives before the guard exists waits here.
+let backendDailyLimit = null, turnGuardRef = null;
 if (authSettings.problem) console.error(`[CyberpunkConvai] Sign-in backend is off: ${authSettings.problem}`);
 const modVersion = await readFile(resolve(project, 'package.json'), 'utf8').then(text => JSON.parse(text).version, () => undefined);
 const tokenSource = authSettings.enabled ? new TokenSource({url: authSettings.url, secret: authSettings.secret,
   installId: await loadInstallId({path: resolve(stateDirectory, INSTALL_FILE)}),
   version: typeof modVersion === 'string' && /^\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/.test(modVersion) ? modVersion : '0.0.0-dev',
-  fallback: authSettings.fallback, log: message => console.error('[CyberpunkConvai] ' + message)}) : null;
+  fallback: authSettings.fallback, log: message => console.error('[CyberpunkConvai] ' + message),
+  onLimit: value => { backendDailyLimit = value; if (turnGuardRef?.setLimit(value)) console.error(`[CyberpunkConvai] Shared conversation allowance changed by the sign-in backend: ${value} turns a day`); }}) : null;
 if (tokenSource) {
   console.error(`[CyberpunkConvai] Conversation sign-in: backend ${new URL(authSettings.url).host}, embedded-key fallback ${authSettings.fallback ? 'on' : 'off'}`);
   tokenSource.start(); // in the background, in parallel with the rest of start-up
@@ -316,11 +319,18 @@ const mistralMemory = await MemoryStore.open({dir: resolve(stateDirectory, 'loca
 // Daily cap and rate limit for the package's shared key; never applied to a player's own key. CYBERPUNK_CONVAI_DAILY_LIMIT
 // sets the cap (a number) or switches the guard off (off); without it only the packaged key is limited, so a development
 // checkout with a plain runtime/convai-key.txt is not. The count is saved twice (state folder, user profile), signed.
-const dailyLimit = limitFromEnvironment(process.env.CYBERPUNK_CONVAI_DAILY_LIMIT, keyFileContent.packed ? DAILY_LIMIT : 0);
-const turnGuard = await new SharedKeyGuard({limit: dailyLimit, applies: () => keys.source === 'shared',
+const dailyLimitPinned = typeof process.env.CYBERPUNK_CONVAI_DAILY_LIMIT === 'string' && process.env.CYBERPUNK_CONVAI_DAILY_LIMIT.trim() !== '';
+// With the sign-in backend on, the cap is the backend's number: the last one it told this installation (kept in daily-limit.json), else 100,
+// until the first answer arrives. Without the backend, or with the environment variable set, it stays what it was.
+const limitStore = tokenSource && !dailyLimitPinned ? new LimitStore({machine: await machineId(), path: resolve(stateDirectory, 'daily-limit.json')}) : undefined;
+const dailyLimit = limitFromEnvironment(process.env.CYBERPUNK_CONVAI_DAILY_LIMIT, keyFileContent.packed ? (await limitStore?.load() ?? DAILY_LIMIT) : 0);
+const turnGuard = await new SharedKeyGuard({limit: dailyLimit, applies: () => keys.source === 'shared', limitStore, pinned: dailyLimitPinned,
+  onLimit: () => { void ownKeyControl?.publishStatus().catch(() => {}); },
   store: dailyLimit > 0 ? new UsageStore({machine: await machineId(), paths: [resolve(stateDirectory, 'daily-usage.json'),
     resolve(process.env.LOCALAPPDATA || homedir(), 'CyberpunkConvai', 'daily-usage.json')]}) : undefined,
   onChange: () => { tokenSource?.noteTurn(); void ownKeyControl?.publishStatus().catch(() => {}); }}).load();
+turnGuardRef = turnGuard;
+if (backendDailyLimit !== null) turnGuard.setLimit(backendDailyLimit);
 // What the hosts ask before a turn: the local gate as before, plus (backend mode only) the backend's own "daily allowance used"
 // answer, shown with the same notice. Both are synchronous checks of memory; nothing here touches the network.
 const hostGuard = tokenSource ? {check: () => { turnGuard.check(); keys.assertAllowed(); }, consume: () => turnGuard.consume()} : turnGuard;
