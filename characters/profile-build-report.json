@@ -123,6 +123,31 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "alt-cunningham",
+      "claimIds": [
+        "alt-cunningham.identity.codex-netrunner-soulkiller",
+        "alt-cunningham.state.codex-altered-beyond-blackwall",
+        "alt-cunningham.self.human-alt-is-gone",
+        "alt-cunningham.self.uses-alt-engram-data",
+        "alt-cunningham.self.soulkiller-repurposed",
+        "alt-cunningham.self.black-ice-no-cage",
+        "alt-cunningham.self.netwatch-propaganda",
+        "alt-cunningham.self.not-immortal-and-dreams",
+        "alt-cunningham.self.uncertainty-not-fear"
+      ],
+      "sampleIds": [
+        "identity",
+        "uncertainty",
+        "soulkiller",
+        "cage",
+        "netwatch",
+        "mortality"
+      ],
+      "sourceContentSha256": "805330e9ac0c0466a7d5a0ef453d26e1321976888e91ab94e8c7e15c5e312b36",
+      "referencesVerified": 493,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "ana-friedman",
       "claimIds": [
         "ana-friedman.role.brazilian-intelligence-analyst",
@@ -1852,7 +1877,7 @@
     },
     {
       "key": "adam-smasher",
-      "words": 710,
+      "words": 711,
       "speakingStyleWords": 170,
       "sampleDialogueWords": 117,
       "voice": "John (Deep Calm Middle-Aged American Male)",
@@ -1861,7 +1886,7 @@
     },
     {
       "key": "alan-noel",
-      "words": 722,
+      "words": 719,
       "speakingStyleWords": 137,
       "sampleDialogueWords": 119,
       "voice": "Harry (Deep Middle-Aged British Male)",
@@ -1870,7 +1895,7 @@
     },
     {
       "key": "alex",
-      "words": 976,
+      "words": 975,
       "speakingStyleWords": 157,
       "sampleDialogueWords": 225,
       "voice": "Anna (Expressive Young-Adult American Female)",
@@ -1879,16 +1904,16 @@
     },
     {
       "key": "alt-cunningham",
-      "words": 722,
+      "words": 1368,
       "speakingStyleWords": 239,
-      "sampleDialogueWords": 162,
+      "sampleDialogueWords": 257,
       "voice": "Megan (Neutral Adult American Female)",
       "sources": 8,
-      "researchRevision": "4dcd9f38a76f14c6794b13c7f01609e76f42f44eaa2893fd5905e47a9f36e977"
+      "researchRevision": "6d15bc357f2f7162bde0d8af0ad63fbbaf0c29db7376ff98928d390f5b693ad5"
     },
     {
       "key": "ana-friedman",
-      "words": 586,
+      "words": 585,
       "speakingStyleWords": 197,
       "sampleDialogueWords": 188,
       "voice": "Anna (Expressive Young-Adult American Female)",
@@ -1897,7 +1922,7 @@
     },
     {
       "key": "arthur-jenkins",
-      "words": 575,
+      "words": 572,
       "speakingStyleWords": 175,
       "sampleDialogueWords": 151,
       "voice": "Mark (Bold Middle-Aged American Male)",
@@ -1915,7 +1940,7 @@
     },
     {
       "key": "bill-mitchell",
-      "words": 565,
+      "words": 566,
       "speakingStyleWords": 146,
       "sampleDialogueWords": 150,
       "voice": "Ethan (Calm Young-Adult American Male)",
@@ -1924,7 +1949,7 @@
     },
     {
       "key": "blue-moon",
-      "words": 702,
+      "words": 695,
       "speakingStyleWords": 158,
       "sampleDialogueWords": 177,
       "voice": "Emily (Friendly Young-Adult American Female)",
@@ -1942,8 +1967,8 @@
     },
     {
       "key": "briana-dolson",
-      "words": 593,
-      "speakingStyleWords": 152,
+      "words": 589,
+      "speakingStyleWords": 153,
       "sampleDialogueWords": 140,
       "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 3,
@@ -1978,7 +2003,7 @@
     },
     {
       "key": "claire-russell",
-      "words": 768,
+      "words": 769,
       "speakingStyleWords": 202,
       "sampleDialogueWords": 176,
       "voice": "Katie (Husky Young-Adult American Female)",
@@ -1996,7 +2021,7 @@
     },
     {
       "key": "cynthia-najarro",
-      "words": 475,
+      "words": 476,
       "speakingStyleWords": 117,
       "sampleDialogueWords": 152,
       "voice": "Emily (Friendly Young-Adult American Female)",
@@ -2005,7 +2030,7 @@
     },
     {
       "key": "dakota-smith",
-      "words": 915,
+      "words": 914,
       "speakingStyleWords": 149,
       "sampleDialogueWords": 205,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
@@ -2014,7 +2039,7 @@
     },
     {
       "key": "dennis-cranmer",
-      "words": 497,
+      "words": 498,
       "speakingStyleWords": 119,
       "sampleDialogueWords": 153,
       "voice": "Lucas (Light Middle-Aged American Male)",
@@ -2023,7 +2048,7 @@
     },
     {
       "key": "dexter-deshawn",
-      "words": 978,
+      "words": 974,
       "speakingStyleWords": 166,
       "sampleDialogueWords": 200,
       "voice": "Mark (Bold Middle-Aged American Male)",
@@ -2032,7 +2057,7 @@
     },
     {
       "key": "dino-dinovic",
-      "words": 788,
+      "words": 787,
       "speakingStyleWords": 165,
       "sampleDialogueWords": 216,
       "voice": "Ryan (Expressive Young-Adult American Male)",
@@ -2050,7 +2075,7 @@
     },
     {
       "key": "evelyn-parker",
-      "words": 921,
+      "words": 922,
       "speakingStyleWords": 206,
       "sampleDialogueWords": 224,
       "voice": "Julia (Expressive Young-Adult American Female)",
@@ -2059,7 +2084,7 @@
     },
     {
       "key": "frank-nostra",
-      "words": 632,
+      "words": 630,
       "speakingStyleWords": 160,
       "sampleDialogueWords": 169,
       "voice": "Harry (Deep Middle-Aged British Male)",
@@ -2068,7 +2093,7 @@
     },
     {
       "key": "hanako-arasaka",
-      "words": 850,
+      "words": 848,
       "speakingStyleWords": 175,
       "sampleDialogueWords": 217,
       "voice": "Freya (Authoritative Adult British Female)",
@@ -2077,7 +2102,7 @@
     },
     {
       "key": "iris-tanner",
-      "words": 663,
+      "words": 660,
       "speakingStyleWords": 140,
       "sampleDialogueWords": 152,
       "voice": "Katie (Husky Young-Adult American Female)",
@@ -2086,7 +2111,7 @@
     },
     {
       "key": "jackie-welles",
-      "words": 1169,
+      "words": 1170,
       "speakingStyleWords": 126,
       "sampleDialogueWords": 318,
       "voice": "Noah (Confident Adult American Male)",
@@ -2113,7 +2138,7 @@
     },
     {
       "key": "jesse",
-      "words": 396,
+      "words": 397,
       "speakingStyleWords": 118,
       "sampleDialogueWords": 157,
       "voice": "Ryan (Expressive Young-Adult American Male)",
@@ -2122,7 +2147,7 @@
     },
     {
       "key": "jim-jarry",
-      "words": 634,
+      "words": 632,
       "speakingStyleWords": 139,
       "sampleDialogueWords": 135,
       "voice": "Ryan (Expressive Young-Adult American Male)",
@@ -2131,7 +2156,7 @@
     },
     {
       "key": "johnny-silverhand",
-      "words": 1065,
+      "words": 1068,
       "speakingStyleWords": 168,
       "sampleDialogueWords": 232,
       "voice": "Logan (Expressive Young-Adult American Male)",
@@ -2140,7 +2165,7 @@
     },
     {
       "key": "joss-kutcher",
-      "words": 699,
+      "words": 702,
       "speakingStyleWords": 197,
       "sampleDialogueWords": 194,
       "voice": "Helen (Gentle Middle-Aged American Female)",
@@ -2149,7 +2174,7 @@
     },
     {
       "key": "judy-alvarez",
-      "words": 1264,
+      "words": 1265,
       "speakingStyleWords": 215,
       "sampleDialogueWords": 290,
       "voice": "Julia (Expressive Young-Adult American Female)",
@@ -2158,7 +2183,7 @@
     },
     {
       "key": "kerry-eurodyne",
-      "words": 975,
+      "words": 973,
       "speakingStyleWords": 161,
       "sampleDialogueWords": 239,
       "voice": "Logan (Expressive Young-Adult American Male)",
@@ -2167,7 +2192,7 @@
     },
     {
       "key": "liam-northom",
-      "words": 479,
+      "words": 482,
       "speakingStyleWords": 157,
       "sampleDialogueWords": 132,
       "voice": "Ethan (Calm Young-Adult American Male)",
@@ -2176,7 +2201,7 @@
     },
     {
       "key": "life-coach",
-      "words": 423,
+      "words": 422,
       "speakingStyleWords": 128,
       "sampleDialogueWords": 117,
       "voice": "Lucas (Light Middle-Aged American Male)",
@@ -2194,7 +2219,7 @@
     },
     {
       "key": "lizzy-wizzy",
-      "words": 805,
+      "words": 809,
       "speakingStyleWords": 155,
       "sampleDialogueWords": 184,
       "voice": "Julia (Expressive Young-Adult American Female)",
@@ -2203,7 +2228,7 @@
     },
     {
       "key": "mama-welles",
-      "words": 698,
+      "words": 701,
       "speakingStyleWords": 126,
       "sampleDialogueWords": 236,
       "voice": "Linda (Deep Middle-Aged American Female)",
@@ -2212,7 +2237,7 @@
     },
     {
       "key": "mark-bana",
-      "words": 497,
+      "words": 492,
       "speakingStyleWords": 143,
       "sampleDialogueWords": 131,
       "voice": "Arthur (Husky Middle-Aged British Male)",
@@ -2221,7 +2246,7 @@
     },
     {
       "key": "meredith-stout",
-      "words": 685,
+      "words": 683,
       "speakingStyleWords": 160,
       "sampleDialogueWords": 159,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
@@ -2230,7 +2255,7 @@
     },
     {
       "key": "misty-olszewski",
-      "words": 838,
+      "words": 843,
       "speakingStyleWords": 121,
       "sampleDialogueWords": 251,
       "voice": "Helen (Gentle Middle-Aged American Female)",
@@ -2248,7 +2273,7 @@
     },
     {
       "key": "mr-hands",
-      "words": 867,
+      "words": 866,
       "speakingStyleWords": 157,
       "sampleDialogueWords": 220,
       "voice": "Harry (Deep Middle-Aged British Male)",
@@ -2257,7 +2282,7 @@
     },
     {
       "key": "muamar-reyes",
-      "words": 978,
+      "words": 983,
       "speakingStyleWords": 169,
       "sampleDialogueWords": 262,
       "voice": "Noah (Confident Adult American Male)",
@@ -2266,7 +2291,7 @@
     },
     {
       "key": "nancy-hartley",
-      "words": 904,
+      "words": 905,
       "speakingStyleWords": 156,
       "sampleDialogueWords": 206,
       "voice": "Amelia (Expressive Young-Adult British Female)",
@@ -2275,7 +2300,7 @@
     },
     {
       "key": "nele-springer",
-      "words": 723,
+      "words": 725,
       "speakingStyleWords": 142,
       "sampleDialogueWords": 122,
       "voice": "Rachel (Neutral Adult American Female)",
@@ -2284,7 +2309,7 @@
     },
     {
       "key": "nix",
-      "words": 677,
+      "words": 680,
       "speakingStyleWords": 120,
       "sampleDialogueWords": 210,
       "voice": "Cole (Husky Middle-Aged American Male)",
@@ -2293,7 +2318,7 @@
     },
     {
       "key": "ozob-bozo",
-      "words": 783,
+      "words": 785,
       "speakingStyleWords": 123,
       "sampleDialogueWords": 203,
       "voice": "Logan (Expressive Young-Adult American Male)",
@@ -2311,7 +2336,7 @@
     },
     {
       "key": "padre-ibarra",
-      "words": 796,
+      "words": 799,
       "speakingStyleWords": 164,
       "sampleDialogueWords": 188,
       "voice": "John (Deep Calm Middle-Aged American Male)",
@@ -2329,7 +2354,7 @@
     },
     {
       "key": "pepe-najarro",
-      "words": 487,
+      "words": 492,
       "speakingStyleWords": 126,
       "sampleDialogueWords": 150,
       "voice": "Lucas (Light Middle-Aged American Male)",
@@ -2338,7 +2363,7 @@
     },
     {
       "key": "placide",
-      "words": 683,
+      "words": 681,
       "speakingStyleWords": 164,
       "sampleDialogueWords": 126,
       "voice": "John (Deep Calm Middle-Aged American Male)",
@@ -2347,7 +2372,7 @@
     },
     {
       "key": "r3n0",
-      "words": 494,
+      "words": 495,
       "speakingStyleWords": 145,
       "sampleDialogueWords": 132,
       "voice": "Emily (Friendly Young-Adult American Female)",
@@ -2356,7 +2381,7 @@
     },
     {
       "key": "rachel-casich",
-      "words": 723,
+      "words": 724,
       "speakingStyleWords": 166,
       "sampleDialogueWords": 195,
       "voice": "Julia (Expressive Young-Adult American Female)",
@@ -2365,7 +2390,7 @@
     },
     {
       "key": "regina-jones",
-      "words": 926,
+      "words": 925,
       "speakingStyleWords": 166,
       "sampleDialogueWords": 254,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
@@ -2374,7 +2399,7 @@
     },
     {
       "key": "river-ward",
-      "words": 918,
+      "words": 919,
       "speakingStyleWords": 205,
       "sampleDialogueWords": 224,
       "voice": "Ethan (Calm Young-Adult American Male)",
@@ -2383,7 +2408,7 @@
     },
     {
       "key": "robert-wilson",
-      "words": 482,
+      "words": 486,
       "speakingStyleWords": 112,
       "sampleDialogueWords": 166,
       "voice": "Lucas (Light Middle-Aged American Male)",
@@ -2392,7 +2417,7 @@
     },
     {
       "key": "rogue-amendiares",
-      "words": 996,
+      "words": 999,
       "speakingStyleWords": 154,
       "sampleDialogueWords": 212,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
@@ -2401,7 +2426,7 @@
     },
     {
       "key": "sandra-dorsett",
-      "words": 642,
+      "words": 643,
       "speakingStyleWords": 194,
       "sampleDialogueWords": 204,
       "voice": "Anna (Expressive Young-Adult American Female)",
@@ -2410,8 +2435,8 @@
     },
     {
       "key": "santiago",
-      "words": 933,
-      "speakingStyleWords": 173,
+      "words": 927,
+      "speakingStyleWords": 175,
       "sampleDialogueWords": 188,
       "voice": "Cole (Husky Middle-Aged American Male)",
       "sources": 7,
@@ -2419,7 +2444,7 @@
     },
     {
       "key": "saul-bright",
-      "words": 827,
+      "words": 830,
       "speakingStyleWords": 141,
       "sampleDialogueWords": 176,
       "voice": "Mark (Bold Middle-Aged American Male)",
@@ -2437,7 +2462,7 @@
     },
     {
       "key": "shank",
-      "words": 531,
+      "words": 535,
       "speakingStyleWords": 140,
       "sampleDialogueWords": 178,
       "voice": "Cole (Husky Middle-Aged American Male)",
@@ -2446,7 +2471,7 @@
     },
     {
       "key": "solomon-reed",
-      "words": 827,
+      "words": 828,
       "speakingStyleWords": 165,
       "sampleDialogueWords": 238,
       "voice": "John (Deep Calm Middle-Aged American Male)",
@@ -2455,7 +2480,7 @@
     },
     {
       "key": "songbird",
-      "words": 878,
+      "words": 875,
       "speakingStyleWords": 162,
       "sampleDialogueWords": 247,
       "voice": "Anna (Expressive Young-Adult American Female)",
@@ -2464,7 +2489,7 @@
     },
     {
       "key": "spider-murphy",
-      "words": 907,
+      "words": 896,
       "speakingStyleWords": 174,
       "sampleDialogueWords": 181,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
@@ -2473,7 +2498,7 @@
     },
     {
       "key": "steven-santos",
-      "words": 614,
+      "words": 613,
       "speakingStyleWords": 157,
       "sampleDialogueWords": 147,
       "voice": "Ethan (Calm Young-Adult American Male)",
@@ -2482,7 +2507,7 @@
     },
     {
       "key": "t-bug",
-      "words": 732,
+      "words": 728,
       "speakingStyleWords": 171,
       "sampleDialogueWords": 150,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
@@ -2491,7 +2516,7 @@
     },
     {
       "key": "takemura",
-      "words": 913,
+      "words": 912,
       "speakingStyleWords": 172,
       "sampleDialogueWords": 235,
       "voice": "John (Deep Calm Middle-Aged American Male)",
@@ -2500,7 +2525,7 @@
     },
     {
       "key": "thompson",
-      "words": 871,
+      "words": 869,
       "speakingStyleWords": 168,
       "sampleDialogueWords": 186,
       "voice": "Harry (Deep Middle-Aged British Male)",
@@ -2509,7 +2534,7 @@
     },
     {
       "key": "viktor-vektor",
-      "words": 836,
+      "words": 837,
       "speakingStyleWords": 122,
       "sampleDialogueWords": 233,
       "voice": "John (Deep Calm Middle-Aged American Male)",
@@ -2518,7 +2543,7 @@
     },
     {
       "key": "wakako-okada",
-      "words": 714,
+      "words": 712,
       "speakingStyleWords": 164,
       "sampleDialogueWords": 205,
       "voice": "Linda (Deep Middle-Aged American Female)",
@@ -2527,8 +2552,8 @@
     },
     {
       "key": "yorinobu-arasaka",
-      "words": 759,
-      "speakingStyleWords": 166,
+      "words": 754,
+      "speakingStyleWords": 167,
       "sampleDialogueWords": 193,
       "voice": "Mark (Bold Middle-Aged American Male)",
       "sources": 7,
@@ -2536,8 +2561,8 @@
     },
     {
       "key": "resident-male",
-      "words": 409,
-      "speakingStyleWords": 169,
+      "words": 403,
+      "speakingStyleWords": 167,
       "sampleDialogueWords": 119,
       "voice": "Ethan (Calm Young-Adult American Male)",
       "sources": 3,
@@ -2545,8 +2570,8 @@
     },
     {
       "key": "resident-female",
-      "words": 402,
-      "speakingStyleWords": 157,
+      "words": 399,
+      "speakingStyleWords": 156,
       "sampleDialogueWords": 109,
       "voice": "Emily (Friendly Young-Adult American Female)",
       "sources": 3,

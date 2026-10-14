@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "builtAt": "2026-10-13T07:43:42.483Z",
+  "builtAt": "2026-10-14T08:38:43.022Z",
   "errors": [],
-  "enabledRules": 777,
+  "enabledRules": 778,
   "citedArtifacts": 774,
   "verifiedEvidencePointers": 9263,
   "outcomesResearched": 1162,
@@ -102483,7 +102483,8 @@
       "questKey": "we-gotta-live-together",
       "outcomeKey": "completed",
       "rules": [
-        "al5.together.alt-link"
+        "al5.together.alt-link",
+        "alt-cunningham.nomad.met-v"
       ]
     },
     {
@@ -111129,6 +111130,14 @@
         "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
       },
       {
+        "ruleId": "alt-cunningham.nomad.met-v",
+        "decisionId": "aldecaldos.together.alt-link",
+        "outcomeKey": "completed",
+        "nativeTopic": "v.alt-contact-at-camp",
+        "catalogTopic": "v.alt-contact-at-camp",
+        "qualification": "exact"
+      },
+      {
         "ruleId": "cc5.blue.band-coerced",
         "decisionId": "city-contacts.blue.band-resolution",
         "outcomeKey": "coerced",
@@ -116771,7 +116780,7 @@
         "qualification": "exact"
       }
     ],
-    "exactMatches": 733,
+    "exactMatches": 734,
     "reviewedAliases": 44,
     "reviewDocuments": [
       {

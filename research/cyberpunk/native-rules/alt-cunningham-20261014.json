@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "id": "cyberpunk-native-alt-cunningham-20261014",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "alt-cunningham"
+  ],
+  "sources": [
+    {
+      "id": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: base\\journal\\cooked_journal.journal (scene-evidence/judy-river-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "al5.ev.journal.5d6e9c75441e",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective \"Talk to Dakota and Carol\" is Succeeded by q114_preparations node 36 after the q114_03c_dakota_trailer scene reaches its post-alt section (socket q114_03c_setupinitiation0ut); Dakota and Carol are the scene actors.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/5/Data/entries/1/Data/entries/16/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "dakota_carol_wrap"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/part1/q114/phases/q114_preparations.questphase.json",
+          "assetSha256": "91dd573bf2ed8396243018e1176daecc5d51fcc1e879614e917a1f5fe6393dad",
+          "jsonSha256": "3db4eb8a42d0918ed04ac576d4207e7e058f9b50a9f2303a5f69139683de0da8",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/16/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.ec75551516aa",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective \"Talk to Alt\" is Succeeded by the cyberspace_out socket of q114_cyberspace_manager inside q114_preparations (node 80), after V's meeting with Alt (q114_03d_alt_meeting).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/5/Data/entries/1/Data/entries/4/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "talk_alt"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/part1/q114/phases/q114_preparations.questphase.json",
+          "assetSha256": "91dd573bf2ed8396243018e1176daecc5d51fcc1e879614e917a1f5fe6393dad",
+          "jsonSha256": "3db4eb8a42d0918ed04ac576d4207e7e058f9b50a9f2303a5f69139683de0da8",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/33/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    }
+  ],
+  "factAllowlist": {},
+  "journalAllowlist": {
+    "al5.initiation.dakota-carol-wrap": {
+      "questKey": "we-gotta-live-together",
+      "nativePath": "quests/main_quest/act_01/q114_01_nomad_initiation/preparations/dakota_carol_wrap",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.5d6e9c75441e"
+      ]
+    },
+    "al5.initiation.talk-alt": {
+      "questKey": "we-gotta-live-together",
+      "nativePath": "quests/main_quest/act_01/q114_01_nomad_initiation/preparations/talk_alt",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.ec75551516aa"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "alt-cunningham.nomad.met-v",
+      "revision": 1,
+      "questKey": "we-gotta-live-together",
+      "topic": "v.alt-contact-at-camp",
+      "outcome": "completed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V met Alt in cyberspace during the Aldecaldo preparations, on a Net run from the camp.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.5d6e9c75441e",
+        "al5.ev.journal.ec75551516aa"
+      ],
+      "audience": {
+        "speakers": [
+          "alt-cunningham"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "alt-cunningham"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "al5.initiation.dakota-carol-wrap",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "al5.initiation.talk-alt",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.alt-link",
+          "outcomeKey": "completed"
+        }
+      ]
+    }
+  ]
+}
