@@ -5,7 +5,7 @@ import fengari from 'fengari';
 import {parseTurnContext, describeTurnContext, turnContext, turnContextDiagnostic, timeOfDay, MAX_CHARS}
   from './turn-context.mjs';
 import {parseInput, isAmbientProfile} from './protocol.mjs';
-import {conversationContext} from './quest-context.mjs';
+import {conversationContext, voiceConversationBlocks} from './quest-context.mjs';
 import {visibleGearContext} from './player-gear.mjs';
 import {buildMessages, capContext} from './mistral-prompt.mjs';
 import {turnKey} from './group-lookahead.mjs';
@@ -157,7 +157,7 @@ test('the per-turn diagnostic says whether the block was in the context, or why 
   assert.doesNotMatch(turnContextDiagnostic(input), /Judy|Watson/, 'counts only');
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /import \{turnContextDiagnostic\} from '\.\/turn-context\.mjs'/);
-  assert.match(bridge, /console\.error\(`\[TurnContext\] profile=\$\{input\.profileKey\} \$\{turnContextDiagnostic\(input, \{ambient: isAmbientProfile\(input\.profileKey\)\}\)\}`\)/);
+  assert.match(bridge, /console\.error\(`\[TurnContext\] profile=\$\{input\.profileKey\} \$\{turnContextDiagnostic\(input, \{ambient: isAmbientProfile\(input\.profileKey\), voice\}\)\}`\)/);
 });
 
 // ---------------------------------------------------------------- ordinary NPCs are strangers
@@ -851,4 +851,36 @@ test("V's voice tone passes through on its own and never reaches the model's wor
   assert.equal(parsed.gender, 'female');
   assert.equal(parseTurnContext({version: 1, status: 'ready', voice: 'robot'}).voice, undefined);
   assert.equal(describeTurnContext(parseTurnContext({version: 1, status: 'ready', voice: 'male'})).text, '');
+});
+
+// ---------------------------------------------------------------- an add-on voice with no body (persona.voiceContext)
+const CAB = 'addon-delamain-cab-delamain';
+const cabTurn = (extra = {}) => parseInput(JSON.stringify(turn({profileKey: CAB, name: 'Delamain', text: 'Where are we?', gear, journal,
+  turnContext: scene({money: 'rich', heat: 3, health: 'hurt', weather: 'rain'}), ...extra})));
+
+test('an add-on voice is not told it is with V in person, and learns no party names, lifepath, wallet, heat or health outside a group round', () => {
+  // Nothing at all outside a group round: not the clock, not the weather (a small model recited them on every turn), not the party.
+  assert.equal(turnContext(cabTurn(), {voice: true}), '');
+  assert.equal(describeTurnContext(cabTurn(), {voice: true}).parts, 0);
+  assert.match(turnContext(cabTurn(), {}), /You are with V in person[^]*Also with V: Judy and Panam/, 'the person form is what everyone else still gets');
+});
+
+test('an add-on voice hears who is with V only in a group round, and the block never reaches a reaction', () => {
+  const group = {id: 'g-1', index: 1, total: 2, audience: [CAB, 'judy-alvarez'], heard: []};
+  const grouped = turnContext(cabTurn({group}), {voice: true});
+  assert.match(grouped, /Also with V: Judy and Panam\./);
+  assert.doesNotMatch(grouped, /raining|late night|vehicle|in person|woman|Street Kid|rich|police|hurt/);
+  assert.equal(turnContext(cabTurn({reaction: {kind: 'addon'}}), {voice: true}), '');
+  assert.match(turnContextDiagnostic(cabTurn({group}), {voice: true}), /^Turn context: 1 facts, \d+ chars$/);
+  assert.equal(turnContext(cabTurn({turnContext: {version: 1, status: 'ready', gender: 'male', lifepath: 'nomad'}}), {voice: true}), '', 'nothing a voice may use');
+});
+
+test('the voice form of the context carries no journal, no gear and none of the first-person notes written for a person V looks at', () => {
+  const blocks = voiceConversationBlocks(cabTurn());
+  const text = blocks.map(block => block.text).join('\n');
+  assert.doesNotMatch(text, /Samurai Jacket|Kyubi|The Heist|journal|V is looking at you|Reply only as yourself|Right now/);
+  assert.match(voiceConversationBlocks(cabTurn({group: {id: 'g-1', index: 1, total: 2, audience: [CAB, 'judy-alvarez'], heard: []}}))[0].text, /Right now \(from the game/);
+  assert.deepEqual(blocks.map(block => block.tier), ['now', 'world', 'volatile', 'volatile']);
+  // The ordinary form for the same input still has all of it.
+  assert.match(conversationContext(cabTurn()), /Samurai Jacket/);
 });

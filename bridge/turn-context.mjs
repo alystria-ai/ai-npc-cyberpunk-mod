@@ -118,13 +118,29 @@ const placeOf = snapshot => snapshot.district
 // A holocall turn's call (bridge/protocol.mjs parseHolocall), or null.
 const holocallOf = input => plain(input.holocall) && (input.holocall.mode === 'audio' || input.holocall.mode === 'holo') ? input.holocall : null;
 
+// An add-on voice with no body (a cab's AI, docs/ADDON_API.md persona.voiceContext) is not a person standing beside V: it is never told it is
+// "with V in person", it does not learn V's lifepath, wallet, health or heat, and it is told who else is with V only in a group conversation
+// (live 2026-10-14: "Also with V: Alex" made the cab address V's companion in private talk). It gets neither the clock nor the weather
+// here either: a small model recites whatever it is given on every turn ("The rain is a minor inconvenience" in seven talk answers of ten),
+// and the add-on's own state block gives the hour and the weather when V asks about them.
+function voiceTurnContext(input, snapshot) {
+  const sentences = [];
+  const others = input.group ? (snapshot.party ?? []).filter(row => row.key !== input.profileKey) : [];
+  if (others.length) sentences.push(`Also with V: ${listOf(others.map(row => row.name))}.`);
+  if (!sentences.length) return {text: '', parts: 0, reason: 'a voice gets only who is in a group round'};
+  const prefix = 'Right now (from the game, this turn only): ';
+  const suffix = ' Background only: never recite it, and bring it up only when it fits or V asks.';
+  return {text: prefix + sentences.join(' ') + suffix, parts: sentences.length, reason: ''};
+}
+
 // The block, plus what a per-turn diagnostic needs: how many facts it states, its length, or why there is none.
-export function describeTurnContext(input, {ambient = false} = {}) {
+export function describeTurnContext(input, {ambient = false, voice = false} = {}) {
   if (!input) return {text: '', parts: 0, reason: 'no input'};
   if (input.reaction) return {text: '', parts: 0, reason: 'automatic reaction'};
   if (input.turnContext === undefined) return {text: '', parts: 0, reason: 'the game sent none'};
   const snapshot = parseTurnContext(input.turnContext);
   if (!snapshot || snapshot.status !== 'ready') return {text: '', parts: 0, reason: 'unavailable or malformed'};
+  if (voice) return voiceTurnContext(input, snapshot);
   const sentences = [];
   const call = !ambient && !input.group && input.channel !== 'phone' ? holocallOf(input) : null;
   // Remote: a phone chat or a holocall. Neither learns who is with V, V's heat or V's money.
@@ -180,11 +196,11 @@ export function describeTurnContext(input, {ambient = false} = {}) {
   return {text: prefix + sentences.join(' ') + suffix, parts: sentences.length, reason: ''};
 }
 
-export const turnContext = (input, options) => describeTurnContext(input, options).text;
+export const turnContext = (input, options) => describeTurnContext(input, options).text;   // options: {ambient, voice}
 
 // One line per reply for the bridge log (stderr): whether this turn's context carried the block, or why not. Counts only.
 export function turnContextDiagnostic(input, options) {
-  const {text, parts, reason} = describeTurnContext(input, options);
+  const {text, parts, reason} = describeTurnContext(input, options);   // `voice` in the options: the form an add-on voice gets
   const call = input && !input.group && input.channel !== 'phone' && holocallOf(input) ? ` holocall=${input.holocall.mode}` : '';
   return text ? `Turn context: ${parts} facts, ${text.length} chars${call}` : `Turn context: none (${reason})${call}`;
 }

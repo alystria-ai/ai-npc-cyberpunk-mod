@@ -51,7 +51,7 @@ test('the first-person reminder goes last (before the reply-language line), is o
   assert.match(FIRST_PERSON_REMINDER, /when V remarks on how you look, that is about you/);
   assert.ok(!/\b(?:she|he|her|his)\b/i.test(FIRST_PERSON_REMINDER) && !/[\[\]{}]/.test(FIRST_PERSON_REMINDER));
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /import \{conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder\} from '\.\/quest-context\.mjs'/);
+  assert.match(bridge, /import \{conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks\} from '\.\/quest-context\.mjs'/);
   // After the voice blocks (they pull a reply away from the base rule), before the language line, which stays last.
   assert.match(bridge, /block\('volatile', firstPersonReminder\(input\)\),\s*\/\/[^\n]*\n\s*block\('volatile', multilingual\.contextFor/);
 });

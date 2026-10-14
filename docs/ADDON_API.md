@@ -122,6 +122,7 @@ Installed path: `bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai<Name>/
 | `persona.intro` / `identityRule` | Optional. Replace the opening line ("You are X, a real person…") and the "you are a real person" rule. A voice that is not a person should set both. |
 | `persona.style` / `samples` / `rules` | Speaking style; at most 12 example exchanges (each at most 600 characters); at most 12 rules. |
 | `persona.talkWords` | Optional whole number, 8–60. The longest answer, in words, the speaker gives V when V talks to it. It replaces the main mod's own length rule ("one to three short sentences, about 15 to 40 words, longer when asked") in the output rules and in the reminder after V's words with "one or two short sentences and at most N words", even when V asks for a long answer. Without it the main mod's rule applies, as for every character. A mode may set its own `talkWords`. Remarks are not affected: they follow their own `maxWords`. |
+| `persona.voiceContext` | Optional `true`. The speaker is a voice with no body (a cab's AI). Its turns get the voice form of the main mod's context (see "Context"), so it is not told it is standing beside V and does not learn V's lifepath, wallet, heat or health, the party's names outside a group round, or the clock and weather every turn. |
 | `modes` / `defaultMode` | Optional personalities, at most 4 (see Personas and modes). `defaultMode` defaults to the first mode. |
 | `voice` | Optional. `reference`: a PCM `.wav` inside the folder, at most 8 MB and 0.1–20 s long. `transcript`: the exact words in it. `sha256`: optional checksum. Without a voice the speaker is shown as subtitles only. |
 
@@ -488,7 +489,9 @@ sentence: who, where, what V did.
 A bridge module can replace the trigger.
 
 **Context.** A speaker's prompt has:
-- the main mod's "right now" blocks (time, place, company);
+- the main mod's "right now" blocks (time, place, company). With `persona.voiceContext` they have the voice form instead: no
+  "you are with V in person", no lifepath, wallet, heat, health, journal or gear, no clock or weather, and who rides with V
+  only in a group round; the add-on's own blocks give the rest;
 - a note that it is a voice with no body;
 - its `setContext` blocks and the facts (or its module's `speakerBlocks`);
 - its memories and its recent lines.
@@ -520,8 +523,19 @@ export function speakerBlocks({speaker, event, text, facts, mode, reaction, grou
 /** Replace the trigger of a remark (return a string), or return nothing for the default. */
 export function trigger({speaker, event, text, facts, maxWords, mode, settings}) {}
 
-/** Blocks for every companion's turns (profileKey is the companion). */
+/**
+ * Blocks for every companion's turns (profileKey is the companion). `group` is true in a group round: outside one a companion
+ * talks with V only, so a note about the add-on speaker should say so (Delamain's: "you speak to the cab only in a group conversation").
+ */
 export function companionBlocks({profileKey, group, state, settings}) { return []; }
+
+/**
+ * A finished remark, before it is spoken: return a short reason (at most 120 characters) when it broke a rule of the speaker, else
+ * nothing. A remark that fails is written once more, like a near repeat (the reason goes into the second try's prompt), and
+ * dropped if the second one fails too. A reply to something V said is never checked: it streams and cannot be written again, so
+ * for those the prompt has to carry the rule. {speaker, profileKey, line, event, facts, group, reaction, state, settings}.
+ */
+export function check({line, facts, group, state}) { return /^Judy[,.]/.test(line) && !group ? 'it spoke to Judy outside a group chat' : null; }
 
 /**
  * A line the speaker just said: return a memory string to keep, or nothing. `heard` is the text the line answered (the event's

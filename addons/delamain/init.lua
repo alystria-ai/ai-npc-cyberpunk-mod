@@ -226,8 +226,8 @@ end
 
 local function companionNote()
     local ride = Delamain.ride
-    local text = 'You are riding in a Delamain cab with V. Delamain is the cab\'s AI: it drives, it can hear you and it may speak to you; '
-        .. 'you can talk to it too.'
+    local text = 'You are riding in a Delamain cab with V. Delamain is the cab\'s AI: it drives and it can hear you. It talks with V; '
+        .. 'you talk with V too, and speak to the cab only in a group conversation.'
     if ride and phaseName() == 'riding' then
         text = text .. ' The ride is under way'
         if ride.meters then text = text .. ' to a point about ' .. ride.meters .. ' metres ' .. (ride.direction and ('to the ' .. ride.direction) or 'away') end
