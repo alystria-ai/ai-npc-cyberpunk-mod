@@ -433,7 +433,10 @@ export class FaceModelStream extends FaceModelFrames {
         rows = this.text.process(count ? this.state.hidden : new Float32Array(0), audioRows, count, Boolean(final));
         if (final) this.pending = [];
       } catch {
+        // Rows the shapes pass was holding back (a few rows at most) go out first so the timeline keeps its clock.
+        const held = this.text?.releaseHeld?.();
         this.dropText('error');
+        if (held?.length && !this.pending.length) { const joined = new Float32Array(held.length + rows.length); joined.set(held); joined.set(rows, held.length); rows = joined; }
         if (this.pending.length) {
           rows = new Float32Array(this.pending.reduce((n, part) => n + part.length, 0));
           let at = 0; for (const part of this.pending) { rows.set(part, at); at += part.length; }

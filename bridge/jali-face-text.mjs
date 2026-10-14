@@ -13,6 +13,7 @@
 // Weights are game-derived (runtime/lipsync-model, ignored); the table is CMUdict (BSD-2-Clause) plus game words.
 import {gunzipSync} from 'node:zlib';
 import {layer, conv, extend} from './jali-face-model.mjs';
+import {VisemeOverlay, VISEME_CONFIG} from './face-visemes.mjs';
 
 export const FACE_TEXT_FORMAT = 'cp77-jali-text-v1';
 export const PHONES = Object.freeze(['SIL', 'AA', 'AE', 'AH', 'AO', 'AW', 'AY', 'B', 'CH', 'D', 'DH', 'EH', 'ER', 'EY', 'F',
@@ -107,7 +108,7 @@ export class TextAligner {
     this.phones = [...phones]; this.kinds = [...kinds];
     this.stay = Math.log(config.stay); this.move = Math.log(1 - config.stay);
     this.delta = null; this.back = []; this.backBase = 0; this.rows = []; this.rowBase = 0;
-    this.labels = []; this.codes = []; this.gaps = []; this.gapSum = 0; this.lost = false; this.reason = undefined;
+    this.labels = []; this.codes = []; this.margins = []; this.gaps = []; this.gapSum = 0; this.lost = false; this.reason = undefined;
   }
   get size() { return this.phones.length; }
   // Append states (growing text). Existing hypotheses keep their scores; the tail (if any) stays last.
@@ -172,17 +173,20 @@ export class TextAligner {
     const row = this.rows[j - this.rowBase], kind = this.kinds[s];
     const label = kind === PHONE_KIND || kind === SILENCE ? this.phones[s] : 0;
     let covered = (kind === PHONE_KIND || kind === SILENCE) && !this.lost;
+    // How far the audio's own best phone is above the aligned one, in nats (0 = they agree); 99 when no phone was aligned.
+    let margin = 99;
     if (covered) {
       let top = -Infinity;
       for (let p = 0; p < row.length; p++) if (row[p] > top) top = row[p];
       const gap = top - row[label], {confidenceWindow, confidenceMinRows, confidenceThreshold} = this.config;
+      margin = gap;
       this.gaps.push(gap); this.gapSum += gap;
       if (this.gaps.length > confidenceWindow) this.gapSum -= this.gaps[this.gaps.length - 1 - confidenceWindow];
       const count = Math.min(this.gaps.length, confidenceWindow);
       if (this.gaps.length >= confidenceMinRows && this.gapSum / count > confidenceThreshold) { this.lose('confidence'); covered = false; }
     }
     // 1 covered, 0 not covered (garbage / tail), 2 not covered because the alignment was given up.
-    this.labels.push(label); this.codes.push(covered ? 1 : this.lost ? 2 : 0);
+    this.labels.push(label); this.codes.push(covered ? 1 : this.lost ? 2 : 0); this.margins.push(margin);
     if (this.keep !== Infinity) while (this.rows.length > this.keep + 2) { this.rows.shift(); this.rowBase++; }
   }
   lose(reason) { if (!this.lost) { this.lost = true; this.reason = reason; } }
@@ -283,7 +287,7 @@ export class FaceText {
 }
 
 export class TextSession {
-  constructor(faceText, {mode = 'stream', text = '', complete = true, now = () => performance.now()} = {}) {
+  constructor(faceText, {mode = 'stream', text = '', complete = true, visemes = false, now = () => performance.now()} = {}) {
     if (!['stream', 'phrase'].includes(mode)) throw Error('Unknown facial text mode');
     Object.assign(this, {faceText, mode, now});
     const {model, config} = faceText;
@@ -292,6 +296,8 @@ export class TextSession {
     this.scores = []; this.hidden = []; this.stage1 = []; this.rows = 0; this.emitted = 0;
     this.weight = 0; this.step = 1 / config.blendRows; this.tokens = []; this.computeMs = 0; this.stopped = false;
     this.aligner = null; this.state2 = null; this.warmUntil = 0; this.lostReason = undefined;
+    // Text-derived shapes added to the mouth rows (bridge/face-visemes.mjs); off unless asked for.
+    this.overlay = visemes ? new VisemeOverlay({phones: PHONES, outputs: this.outputs, config: typeof visemes === 'object' ? {...VISEME_CONFIG, ...visemes} : VISEME_CONFIG}) : null;
     this.setText(text, complete);
   }
   get active() { return this.aligner !== null; }
@@ -349,9 +355,21 @@ export class TextSession {
       out = this.blendRows(hidden, stage1, total, 0);
     } else out = new Float32Array(0);
     this.rows += count;
+    if (this.overlay) {
+      const before = this.overlay.total, incoming = out;
+      try { out = this.overlay.run(incoming, this.aligner, {final}); }
+      catch {
+        // Held rows go out unchanged; this call's own rows too, unless the pass had already taken them in.
+        const held = this.overlay.release(), taken = this.overlay.total !== before;
+        out = taken ? held : Float32Array.from([...held, ...incoming]);
+        this.overlay = null; this.overlayFailed = true;
+      }
+    }
     this.computeMs += this.now() - started;
     return out;
   }
+  // Rows the shapes pass still holds back, unchanged, when the text path ends early (the caller then goes on with stage 1 alone).
+  releaseHeld() { const rows = this.overlay?.release(); this.overlay = null; return rows ?? new Float32Array(0); }
   // Stage 2 over rows [first, first + count) and the blend with stage 1.
   blendRows(hiddenRows, outputRows, count, first) {
     const {C1, P, outputs, M, net} = this, shift = this.spec.shift, scale = this.faceText.model.scale;
@@ -388,6 +406,7 @@ export class TextSession {
   }
   info() {
     return {active: this.active, mode: this.mode, lost: this.lost, reason: this.reason, rows: this.rows,
-      computeMs: Math.round(this.computeMs * 10) / 10};
+      computeMs: Math.round(this.computeMs * 10) / 10,
+      ...(this.overlay ? {visemes: this.overlay.stats()} : this.overlayFailed ? {visemes: 'failed'} : {})};
   }
 }

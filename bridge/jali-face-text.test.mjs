@@ -209,3 +209,30 @@ test('bridge client loads the text model only beside its own audio model and hon
     try { assert.equal(face.info.text, 'absent'); } finally { await face.close(); delete process.env.CYBERPUNK_CONVAI_FACE_TEXT; }
   } finally { rmSync(folder, {recursive: true, force: true}); }
 });
+
+test('text visemes (bridge/face-visemes.mjs): off by default, same row count, only adds, a failing pass hands its rows back', () => {
+  const audio = speechLike(2.5, 16000), {model, text} = setup();
+  const off = run(model, audio, 1280, text.session({text: 'no way choom hello world'}));
+  assert.equal(off.stream.text.info().visemes, undefined);
+  for (const mode of ['stream', 'phrase']) {
+    const base = run(model, audio, 1280, text.session({mode, text: 'no way choom hello world'}));
+    const on = run(model, audio, 1280, text.session({mode, text: 'no way choom hello world', visemes: true}));
+    assert.equal(on.rows.length, base.rows.length, mode);
+    assert.equal(on.stream.ready, base.stream.ready, mode);
+    assert.equal(typeof on.stream.text.info().visemes.rowsChanged, 'number');
+    const O = model.outputs;
+    for (let i = 0; i < on.rows.length; i++) {
+      const column = i % O;
+      if (![1, 2, 3, 4, 10].includes(column)) assert.equal(on.rows[i], base.rows[i], `${mode} column ${column}`);
+      else assert.ok(on.rows[i] >= base.rows[i] - 1e-6, `${mode} never lowers column ${column}`);
+    }
+  }
+  // A pass that throws releases what it held, unchanged, and the stream keeps its clock.
+  const session = text.session({text: 'no way choom hello world', visemes: true});
+  const original = session.overlay.run.bind(session.overlay); let calls = 0;
+  session.overlay.run = (...args) => { if (++calls === 4) throw Error('boom'); return original(...args); };
+  const failed = run(model, audio, 1280, session), reference = run(model, audio, 1280, text.session({text: 'no way choom hello world'}));
+  assert.equal(failed.rows.length, reference.rows.length);
+  assert.equal(failed.stream.text.info().visemes, 'failed');
+});
+

@@ -142,3 +142,99 @@ Other updated tests:
 - `bridge/speech-replay-probe.test.mjs`: the jaw at its reach.
 - `native/core/tests/fixtures/faces-frames.json`: regenerated. The C++ engine is unchanged, and only the Lua-side
   speech vector moved.
+
+## Text visemes: rounding, closures and tucks from the reply text (branch `lipsync-text-visemes`, 2026-10-15)
+
+The text-conditioned second stage of the model (`bridge/jali-face-text.mjs`, live since 2026-10-08) already turns the reply text
+into phones and aligns them to the audio with the model's own phone head (a Viterbi over the known phone sequence). So no
+second aligner was built: the phone, how far the audio's best phone is from it (the margin) and whether the alignment holds are
+decided for every 10 ms row already. The TTS providers give nothing finer (Voxtral's stream carries audio only; Pocket and Omni
+give audio and the subtitle cues), so the model's alignment is the timing source on every path (Voxtral, Pocket, Omni, Convai
+audio through the model).
+
+### What it does
+
+`bridge/face-visemes.mjs` reads those decisions and adds four shapes on top of the model's rows, in the facial worker:
+
+| Phones | Added |
+| --- | --- |
+| UW OW W (AW AO UH weaker) | funnel and purse on the vowel, with a 30 ms ramp in and out |
+| SH CH JH ZH | funnel (.20 to .22, the game's own height for them) |
+| M B P | the model's own closure is lifted towards full contact (its timing is kept; only the height changes), only where the model shows at least .3 of one |
+| F V | the model's lower-lip contact is lifted the same way (the upper lip is left alone) and the lip roll goes to .30 to .35 |
+
+Heights come from the game's authored curves by phone (6,584 lines): purse UW .25 OW .22 W .25 AW .25 AO .14 UH .11; funnel
+.21 on SH CH JH ZH and about 0 on every rounded vowel; contacts 1.0; lip roll F .39 V .32. The game rounds "oo" with purse alone.
+Funnel on the rounded vowels is therefore an addition of ours (funnel height x1.4, tuned by eye on Alex: the purse alone points the
+lips at the camera, funnel opens the round shape to the front). Purse is in model units; the Lua writer scales the model's purse by
+1.35, so UW's .30 is written at about .40.
+
+Only ever up: every control is `max(model, shape)` or `model x gain`, then capped at the playback limits (funnel and purse .5,
+contacts 1, roll .8), and never below what the model already wrote. Controls other than the shape ones are untouched (tested).
+
+Trust: a phone's weight follows the mean margin of its rows (full to .6 nats, none from 2; on held-out clones the phones were right
+90 to 95 % at the low margins and 60 to 85 % above 1). A rounded shape also needs the model's own jaw to be open (.03 to .10). A one-row
+run is not a phone. When the alignment is given up (confidence, text revised, worker behind) the rows go out at once and unchanged.
+
+Where it sits: the facial worker (`TextSession.process`), so the timeline the game receives is already finished and the game does
+no new work. `Convai`'s own blendshapes and the game's own curves are untouched; only `local-jali` timelines are affected.
+Dev switch: `CYBERPUNK_CONVAI_FACE_VISEMES=off` in the bridge's environment (bridge restart) gives the model's rows as before.
+
+### Timing
+
+Gestures peak at the centre of the aligned phone in head-row terms (checked against both the game's curves and the model's rows:
+the peak sits 58 ms before the PocketSphinx label centre in both). A stream-mode phone is decided 3 rows after its row and the ramp
+needs 3 more, so in stream mode rows are released 3 rows behind the decisions, 60 ms of face coverage while the alignment holds, and
+at once when it does not. First audio never waits on the face (the renderer buffers 400 ms before it starts). Phrase mode (Omni)
+has all decisions at the end and holds nothing extra.
+
+### Cost
+
+Warm, a 6 s reply costs about 1 ms of worker time (.13 to .35 ms per audio second; the worker warms the code at start so the first
+reply is not slower). Nothing is added in the game.
+
+### Numbers
+
+150 held-out Pocket clones with PocketSphinx labels and the game's own targets; model rows read in a 7-row window around the
+expected peak. Stream mode / phrase mode, before then after:
+
+| Measure | Game | Stream before | Stream after | Phrase before | Phrase after |
+| --- | --- | --- | --- | --- | --- |
+| M B P closures reaching .9 | .91 | .82 | .90 | .85 | .92 |
+| F V lower-lip contact reaching .8 | .91 | .81 | .85 | .88 | .88 |
+| rounded vowels, purse reaching .18 | .73 | .76 | .89 | .75 | .89 |
+| rounded vowels, funnel reaching .10 | .00 | .01 | .88 | .01 | .88 |
+| SH CH JH funnel reaching .12 | .86 | .91 | .93 | .93 | .95 |
+
+The share of rows changed is 14 %; no entry anywhere is lowered. Alignment precision at the segment level (class right): rounded .89,
+M B P .92, F V .86, SH CH JH .92 in stream mode.
+
+The test line (a Pocket clone of a Panam line, 5.9 s, replayed on Alex through `face-play`; Alex's own Voxtral audio was not kept, so
+a line with the same kinds of sounds stands in) as written by the Lua writer, speaking frames:
+
+| Control | before p95 / max | after p95 / max |
+| --- | --- | --- |
+| funnel | .068 / .225 | .267 / .307 |
+| purse | .188 / .290 | .283 / .351 |
+| lip roll (suck_dn) | .311 / .400 | .324 / .411 |
+| M B P closure peaks (min of the two contacts) | 1.0, 1.0, .98, .91 | 1.0, 1.0, .98, 1.0 |
+| F V contact peaks (lower minus upper) | .99, 1.0, .98, 1.0, .41 | .99, 1.0, .98, 1.0, .44 |
+
+That line already had SH and CH words, so its funnel was not the near-zero of Alex's Voxtral line; the rounded-vowel rows are where it
+changed. The captures (session scratchpad, `tv/panam-delta-final.png`, row 1 before, row 2 after) show UW/OW/W frames visibly rounder
+and narrower; M/B/P and F/V frames look almost the same because the model already closed them there. A stronger funnel (x1.6) looked
+good too; 1.4 is the value shipped (`funnelScale`).
+
+### Tests
+
+`bridge/face-visemes.test.mjs` (caps equal the playback limits; rounding adds funnel and purse at the vowel only; never lowers;
+nothing on a closed mouth, low trust or a one-row run; closures and tucks lift only where the model has a contact; packets equal one
+pass and rows are held back by no more than the look-ahead; lost alignment, no aligner and failure release rows unchanged; cost) and
+one case in `bridge/jali-face-text.test.mjs` (off by default, same row count, only adds, a failing pass hands its rows back).
+
+### Left for later
+
+- Alex's own Voxtral line: compare before and after on a live reply once the branch is merged and the bridge restarted.
+- The F/V lift is small (the model has no contact at all on about 10 % of them, and nothing is invented there).
+- `funnelScale` and the recipe heights are one table in `bridge/face-visemes.mjs` (`VISEME_CONFIG`, `RECIPES`).
+
