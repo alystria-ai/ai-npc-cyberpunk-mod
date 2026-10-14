@@ -172,3 +172,23 @@ test('Voxtral sends the prepared reference, tells its format and size, and falls
   const larger = await make(async bytes => ({bytes: Buffer.concat([bytes, Buffer.alloc(10)]), format: 'wav'})).reference('judy');
   assert.equal(larger.bytes, source.length, 'a "prepared" clip that is not smaller is not used');
 });
+
+test('a player without ffmpeg reads the Ogg slot the release shipped (no encode, no ffmpeg lookup) and, with no slot, falls back to the 16-bit WAV', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'voxtral-ref-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const source = clip();
+  // The release builder's side: ffmpeg present, the slot written into <voices>/prepared.
+  const shipped = createReferencePreparer({cacheDirectory: directory, ffmpeg: async () => 'ffmpeg', encode: async () => FAKE_OGG});
+  const made = await shipped(source, {key: 'judy-alvarez'});
+  assert.equal(made.format, 'ogg');
+  // The player's side: no ffmpeg anywhere, and an encoder that must never run.
+  let looked = 0;
+  const player = createReferencePreparer({cacheDirectory: directory, ffmpeg: async () => { looked++; return null; }, encode: async () => { throw Error('must not encode'); }});
+  const read = await player(source, {key: 'judy-alvarez'});
+  assert.equal(read.cached, true); assert.equal(read.format, 'ogg'); assert.deepEqual(read.bytes, FAKE_OGG);
+  assert.equal(looked, 0, 'a cache hit never looks for ffmpeg');
+  // A voice with no shipped slot (a character added later) is prepared without ffmpeg as the WAV: larger, but it works.
+  const other = await player(source, {key: 'panam-palmer'});
+  assert.equal(other.format, 'wav'); assert.equal(other.cached, false);
+  assert(other.bytes.length > read.bytes.length);
+});
