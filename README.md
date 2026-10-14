@@ -1,244 +1,1615 @@
 # Cyberpunk Convai
 
-**Development:** see [TODO.md](TODO.md) for open work, the captain's log and the standing facts (paths, protected files, credential locations, decisions).
+Talk to Night City. Cyberpunk Convai lets you speak or type to Cyberpunk 2077 characters and get answers in their own voices. Invite companions to travel with you, text them on V's phone, call them on a holocall, and watch YouTube together on V's TV.
 
-Talk with Night City characters, invite travelling companions, and keep in touch through a native phone Chat tab. Conversations use Convai for dialogue, with a choice of Pocket, OmniVoice or Convai cloud voices. The companion manager uses Cyberpunk's Mod Configuration Menu, and replies use native subtitles and facial animation.
+> **Unofficial fan mod.** Cyberpunk 2077 and everything in it belong to CD PROJEKT RED. This project is not made, endorsed or supported by CD PROJEKT RED. The conversations are written by AI models and are not the game's writing.
 
-**Development build for Cyberpunk 2077 2.31 on Windows x64.** This repository contains the working development integration. The proposed Scripts and Runtime downloads are not yet a portable release: setup still needs local dependencies, account configuration, and generated assets. Some gameplay features remain under testing.
+**Three things worth knowing first**
 
-[Features](#features) · [Requirements](#requirements) · [Install](#install-development-build) · [Controls](#controls) · [Customize](#customize) · [Support](#help-and-support) · [Limitations](#known-development-limitations) · [Remove](#remove)
+- **It can run completely locally, for free.** With the optional Local AI download and a local voice, the characters think and speak on your own PC. No account, no key and no internet connection. If your graphics card is small, there is a lite model for it.
+- **The free cloud options are essentially free.** Mistral's free plan needs only a free account and a key you paste once. Local voices cost nothing either.
+- **Convai is the more refined all-in-one cloud option.** It gives a limited amount of free usage that works without any setup. The limit is a daily one, currently 100 turns a day. When it runs out you can wait for tomorrow or switch to Mistral or Local AI.
 
-## Features
+**How this page is organised.** [Part 1](#part-1-for-players) is for players and uses plain language. [Part 2](#part-2-for-developers) is for developers and goes deep: architecture, data flow, every subsystem, the build and the tests.
 
-### Conversations in the world and on the phone
+## Contents
 
-- Private text and microphone conversations with supported nearby characters, with voiced replies, subtitles, and facial animation.
-- Group conversations with up to three distinct speakers. The person you address speaks first, and the input box shows that person's name. Additional copies of the same character do not become extra speakers.
-- Group turns retain each copy's assigned identity. Reassigning, dismissing or disabling the current speaker retires that round; changed later participants leave its audience.
-- A private reply belongs to the profile its copy had when you asked. Reassigning that copy while the reply is still being generated or spoken cancels it (voice, captions and facial animation); other copies and conversations are unaffected.
-- Characters ask questions only when their personality and the moment call for it; nothing forces a question onto a reply. In groups, earlier speakers leave the floor to the next one, and automatic comments do not ask questions.
-- A dedicated **Chat** tab beside the phone's Messages and Contacts tabs. Choose a contact to open their conversation directly, then type in the composer at the bottom.
-- Independent Chat histories and drafts that persist across launches. Contacts unlocked later become available when the phone catalog refreshes. Phone Chat works without summoning the character.
+**Part 1: For players**
 
-The catalog currently contains **80 conversation profiles**: 78 named characters and two ambient resident templates. Profiles have separate background, speaking-style instructions, and original dialogue examples without speaker-name prefixes. See [character profiles](characters/README.md), [phone Chat](docs/PHONE_CHAT.md), [holocalls](docs/HOLOCALL.md), and [group voice](docs/GROUP_VOICE.md).
+1. [What the mod does](#what-the-mod-does)
+2. [Requirements](#requirements)
+3. [Install](#install)
+4. [First five minutes](#first-five-minutes)
+5. [Choosing how your characters think](#choosing-how-your-characters-think-conversation-providers)
+6. [Choosing how they sound](#choosing-how-they-sound-voices)
+7. [Getting the best latency and FPS](#getting-the-best-latency-and-fps)
+8. [Features you can use](#features-you-can-use)
+9. [Settings reference](#settings-reference)
+10. [FAQ and troubleshooting](#faq-and-troubleshooting)
+11. [Add-ons](#add-ons)
+12. [What is still experimental](#what-is-still-experimental)
 
-### Your companions
+**Part 2: For developers**
 
-- Invite characters through **Companion Manager → Characters to invite**, or use the selected phone contact's invite control.
-- Keep several copies in your party, including invitations being prepared. **Current party** lists each copy as "Name #number" and lets you dismiss a particular one; it disappears at once.
-- Search installed character models through **Model browser**, including characters outside the phone catalog. A model can follow without an AI profile, or use a profile you assign separately.
-- Companions walk beside V, run to catch up, settle into loose positions, and respond to direct attention without reforming the whole group around camera turns. Close eye contact does not make a settled companion back away.
-- Native combat AI, post-combat holstering, and moving green companion markers on the minimap.
-- Summoned Johnny uses the game's solid appearance, including while seated and viewed up close. His story apparition remains separate.
-- Passenger boarding and seated eye/head attention. The vehicle controller also includes overflow carpooling and fast-travel recovery; their wider gameplay checks are still pending.
-- Ask a nearby companion to drive an owned car to the selected map waypoint, including a parked car restored with your save. They take the driver seat and wait for you to enter a passenger seat. You can change the waypoint during the trip; **Current party** shows its status and Stop trip.
-- Tag an enemy with the scanner (or just face one; the closest NPC hostile to V is used otherwise), then ask a companion to attack them. See [companion tactics](docs/COMPANION_TACTICS.md); not yet tested in game.
-- **Settings → Development → Developer mode** enables routine popups for the joining step, dismissals and driving status. It defaults Off; invitation progress (preparing, connecting, ready, joined; a quick summon skips preparing and connecting), failures and other important notices always show.
-- Developer mode also records movement diagnostics during gameplay, including companions beyond conversation range. Logging survives CET reloads and keeps at most two 2 MiB files.
-- Following now tries a nearer point when an intermediate stopping point is blocked, and handles small differences between an actor's feet and the game's navigation surface. Long-distance stop/run behavior is still being checked in gameplay.
+1. [Overview and repository layout](#overview-and-repository-layout)
+2. [Architecture](#architecture)
+3. [Anatomy of a turn](#anatomy-of-a-turn)
+4. [Subsystems in depth](#subsystems-in-depth)
+5. [Resource lifecycle](#resource-lifecycle-unloading)
+6. [Performance rules](#performance-rules)
+7. [Packaging and release](#packaging-and-release)
+8. [Tests](#tests)
+9. [Building and the development workflow](#building-and-the-development-workflow)
+10. [Documentation index](#documentation-index)
+11. [Status of unverified work](#status-of-unverified-work)
 
-Selecting **Invite** reserves a place and immediately prepares memory configuration, the selected voice, and the conversation connection. A talking companion appears only after preparation succeeds and you return to gameplay. Progress reports the current preparation stage. A failed attempt shows its error once and waits for cancellation or an explicit retry. This setup does not send an invented conversation or seed memories.
+[Credits and licence](#credits-and-licence)
 
-See [invitations](docs/COMPANION_INVITATIONS.md), [movement](docs/COMPANION_MOVEMENT_DESIGN.md), [combat](docs/COMPANION_COMBAT.md), and [vehicles](docs/COMPANION_VEHICLES_DESIGN.md).
+---
 
-### Voices, faces, and subtitles
+# Part 1: For players
 
-- **Companion voices** offers seven choices in this order: **Pocket · Performance (the default), OmniVoice · Balanced, OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality, Voxtral · Mistral cloud, Convai · Cloud voice**. With Developer mode on, an eighth entry, the Inworld cloud voice, is listed last. Pocket is light and fast on the CPU and starts speaking in about 0.2 s. The four OmniVoice entries need a capable GPU and the optional OmniVoice pack, sound better (especially on harder voices) and take longer to start speaking (about 1 to 2.5 s): Balanced and Quality use 16 steps with a short and a long reference voice clip, High Quality and Ultra Quality use 32 steps with a short and a long clip. Without the pack the OmniVoice entries are greyed out (the arrows skip them), the row name gains "(no Omni pack)", and Apply refuses them. The prepared development catalog has local references for **75 of 79 profiles**; characters without a prepared reference use their configured Convai voice. If the chosen voice cannot run (no CUDA GPU, OmniVoice failing to load, Pocket unavailable), a simpler voice is used (OmniVoice, then Pocket, then Convai cloud voice) and the game tells you once; choosing it again retries it. Older saved settings map to the nearest choice (Pocket stays Pocket, `hybrid` becomes OmniVoice, anything unknown becomes Pocket, and an explicitly saved 32 steps stays 32; saved OmniVoice choices gain the long reference).
-- Each local backend uses **one shared model** and original character recordings. Pocket TTS uses the six-layer student (update 5,000, raw weights) chosen after listening tests; its teacher stays in training. Neither backend needs a separate neural model or LoRA per character.
-- Pocket uses **float32 on CPU**, with four threads and no model GPU allocation. This student is trained for English and uses one sampler step. Omni uses **FP16 on CUDA**, with 16 or 32 generation steps; those choices share the same model and cached references.
-- Selecting a local voice option in Settings requests warm-up immediately. Switching backends waits for owned work and confirmed retirement of the previous worker. The selected local choice stays warm; Convai releases local model memory after the current reply.
-- Pocket and Convai use continuous PCM playback. Pocket receives the complete reply text once; Omni prepares its first native audio phrase while later phrases generate during playback. All modes keep the original Convai dialogue turn and avoid added EQ, denoising, pitch effects or audio crossfades.
-- Native lip, jaw, and facial controls follow the actual playback clock. Pocket's prepared facial path uses resident CPU phone analysis with the shared calibrated native shapes; it warms during local-voice preparation and keeps original playback samples untouched. Pocket and Omni use smoothed transitions between those shapes. Omni retains its phrase analyser, and Convai uses its supplied facial data. [Phone analysis setup and qualification](docs/RESIDENT_PHONE_ANALYSIS.md) records the remaining native visual check.
-- A light resting expression is standard behavior. Supported Convai emotional signals can adjust it, while native blinking and gaze remain available.
-- **Cinematic subtitles** (the game's dialogue HUD) are the default and the first option. **Above the speaker** is optional; conversations in vehicles use the dialogue HUD. On boarding, an overhead reply continues with its unread text rather than repeating the page already shown on foot. The game's subtitle preferences still affect native visibility.
+## What the mod does
 
-All four options still need Convai and internet access for dialogue generation. Pocket's native Windows streaming/cancellation/cache checks pass, and live voice playback is confirmed; current facial and restored four-option acceptance remain separate game checks. See [local voices](docs/LOCAL_VOICES.md), [Pocket runtime](docs/POCKET_TTS_RUNTIME.md), [voice reference activation](docs/VOICE_SOURCE_ACTIVATION.md), [streamed audio](docs/CONVAI_AUDIO_STREAMING.md), [expressions](docs/COMPANION_EXPRESSIONS.md), and [subtitles](docs/OVERHEAD_SUBTITLES.md).
-
-### Knowledge, memory, and relationships
-
-- Characters receive the tracked quest and its active, revealed objectives, plus reviewed current-game facts. Tracked objectives are not treated as completed choices, and summoning a copy does not change the story.
-- Character background and speaking direction draw on researched lore and verified game material. Major characters have more information than brief quest contacts.
-- **One persistent player identity** is shared across characters, channels, and saves. Characters build memory through actual conversations; unused characters are not sent memory-seeding requests.
-- **Settings → Memory** provides **Forget selected character** and **Forget all memories**, with confirmation. A successful reset also removes the matching phone Chat messages and drafts. It retains your player identity.
-- **Settings → Relationships** has separate **Auto / On / Off** choices for Judy, Panam, River, Kerry, and Meredith. Auto uses reviewed relationship facts from the loaded save; On makes the character's delivery affectionate; Off keeps it ordinary (she still acknowledges a confirmed relationship honestly if you ask). Each character has one Convai profile and one continuous memory: the setting only adds or omits a short affectionate-delivery note in the conversation context ([how it was measured](docs/ROMANCE_DYNAMIC_CONTEXT.md)). Meredith's affectionate delivery reflects an intimate encounter, rather than an ongoing romance. These choices do not write quest facts.
-- In a group, a character can acknowledge their own save-confirmed relationship when relevant and respond with characteristic banter. Intimate scene details and earlier private chats remain private; On alone supplies no relationship history.
-
-Quest coverage is selective: the current reviewed native pack maps **749 of 1,162 researched outcomes** through **768 rules**. Other researched branches are not automatically usable as current-save knowledge. See [quest context](docs/QUEST_CONTEXT.md), [priority character coverage](docs/QUEST_PRIORITY_COVERAGE_2026-10-04.md), [knowledge coverage](docs/CHARACTER_KNOWLEDGE_COVERAGE_2026-10-01.md), [player memory](docs/PLAYER_MEMORY.md), [Chat resets](docs/CHAT_MEMORY_RESET.md), and [relationships](docs/RELATIONSHIP_PROFILES.md).
-
-The latest development pass expands decision awareness for **Johnny, Panam, Judy, Jackie, Reed, Songbird, Takemura and Rogue** using reviewed native save and journal evidence with character-specific audience guards. Optional dialogue that leaves no durable game state remains unknown after loading an existing save. Source integration is complete; natural recall in each live branch remains separate gameplay verification.
-
-### Reactions and interface languages
-
-- Nearby companions can make a short comment when combat starts and another after it ends.
-- Collected world loot can prompt a comment after a pickup batch. Storage transfers stay silent, and newly acquired Legendary equipment has a separate cooldown.
-- After a fight, one comment covers the fight's end and the pickups collected up to then; a pickup made after that comment started is a separate comment, one after another. Manual conversations and scripted scenes take priority.
-- The interface supports English, Simplified Chinese, Traditional Chinese, Spanish, Brazilian Portuguese, French, German, Italian, Polish, Czech, Hungarian, Turkish, Russian, Ukrainian, Japanese, and Korean. Automatic follows the game's interface language; manual selection changes the mod UI independently of voice or conversation language.
-
-See [battle reactions](docs/BATTLE_REACTIONS.md), [loot reactions](docs/LOOT_REACTIONS.md), and [interface languages](docs/INTERFACE_LANGUAGES.md).
+- **Talk to characters by voice or text.** Face someone, press your talk key, and they answer out loud with subtitles, a moving mouth and facial expressions. 78 named characters have profiles of their own (Judy, Panam, Johnny, Kerry, River, Takemura, Alt Cunningham and many more), written to match the game's lore.
+- **Invite companions.** Pick a character in the Companion Manager and a copy joins you. Companions follow you, run to catch up, sit with you on couches and bar stools, ride in cars, fight, and comment on what happens.
+- **Talk to ordinary people too.** Gang members, NCPD officers, guards, ripperdocs, shopkeepers, bartenders and passers-by answer as their kind of person. Shopkeepers you come back to remember you.
+- **Phone Chat and holocalls.** A **Chat** tab sits on V's phone beside Messages and Contacts. Text any supported contact, or call them on a holocall.
+- **Group talk.** Address two or three companions at once and they take turns answering.
+- **Companions can see (Convai only).** With Convai, each line you send can carry a recent picture of your surroundings, so a companion can react to what is on screen.
+- **YouTube on V's TV.** Pick a video on the TV in V's apartment and watch it with a companion who can talk about it.
+- **V's voice.** Lines you type are also spoken in V's voice.
+- **Memory.** Characters remember your conversations, across saves. You can make one or all of them forget.
+- **Reactions.** Companions can comment when a fight starts and ends and when you collect loot (both off until you turn them on).
+- **Sixteen interface languages.**
+- **Optional adult setting.** A Mature content setting exists. It is off by default and works only with Local AI. See [Mature content](#mature-content-18).
 
 ## Requirements
 
-The current development setup targets **Cyberpunk 2077 2.31, Windows x64**, and uses these installed frameworks:
-
-| Framework | Development version |
+| You need | Details |
 |---|---|
-| Cyber Engine Tweaks (CET) | 1.37.1 |
-| RED4ext | 1.30.0 |
-| redscript | 0.5.31 |
-| Codeware | 1.20.5 |
-| TweakXL | 1.11.4 |
-| Audioware | 1.9.9 |
-| Mod Configuration Menu (MCM) | 0.10.3 |
+| Game | Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit). The mod was tested on 2.31 only. |
+| Other mods | Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu, all from Nexus Mods. RED4ext is needed because it starts the mod's background service with the game. |
+| Disk space | About 3 GB for the main mod. The optional packs add more (see the table in [Install](#install)). |
+| Internet | Needed while you talk if you use Convai, Mistral or the Voxtral voice. Not needed for Local AI with a local voice. |
+| Graphics card | Not needed for the default setup. Only OmniVoice and Local AI use your graphics card. |
 
-Conversation setup also needs internet access, a Convai API key, and character mappings for the account you use. The development bridge uses Node.js, the dependencies pinned in `package-lock.json`, and Playwright with Microsoft Edge. It runs as a hidden helper; an optional RED4ext launcher starts it with the game (step 6 below).
+The mod was developed and tested with these framework versions: Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Mod Configuration Menu 0.10.3. Newer versions may work. They have not been tested.
 
-Pocket additionally needs a prepared CPU Python environment, the approved student export, attributed reference recordings, and the local phonetic lip-sync tool. Shared weights occupy **417.74 MiB on disk**; the verified CPU benchmark peaked at about **1.69 GiB RAM** and used **no VRAM**. Dependency and reference storage are additional. Convai voices do not require the local model. [Pocket runtime setup and qualification](docs/POCKET_TTS_RUNTIME.md) distinguishes the controlled WSL benchmark, native Windows integration checks and pending game activation.
+There is no special load order to set. The mod's files live in folders of their own. When you extract the downloads, extract the Runtime package before the OmniVoice pack.
 
-Native facial assets are generated from the installed game with the project's facial builder. Generated assets, credentials, account mappings, extracted dialogue, and Python environments are not supplied by a fresh source checkout. [Packaging](docs/PACKAGING.md) records the dependencies and remaining portability work.
+## Install
 
-## Install (development build)
+Close the game first. Then extract each download into your Cyberpunk 2077 folder, the one that contains `bin`, `archive` and `r6`, and allow folders to merge.
 
-There is no finished one-click or two-ZIP installation yet. Use the following flow with a prepared development checkout:
+| # | Download | Where from | Size | Needed? |
+|---|---|---|---|---|
+| 1 | **Scripts** | Nexus Mods | small, text only | Yes |
+| 2 | **Runtime** | [GitHub Releases](https://github.com/alystria-ai/cyberpunk-convai/releases), same version number as Scripts | about 3 GB free space | Yes |
+| 3 | **OmniVoice pack** | GitHub Releases | about 15 GB free while installing, 9 GB once installed | Optional: a higher-quality voice for NVIDIA cards |
+| 4 | **Local AI standard** | GitHub Releases | about 5.3 GB, in several parts | Optional: fully local conversations, best replies |
+| 5 | **Local AI lite** | GitHub Releases | about 1.5 GB | Optional: fully local conversations on smaller cards |
+| 6 | **Mature pack** | GitHub Releases | about 8 GB | Optional, adults only. See [Mature content](#mature-content-18) |
 
-1. Install the required game frameworks and close Cyberpunk before replacing native files. Preserve other mods and your framework configuration.
-2. From the project directory, install the pinned JavaScript dependencies and set your actual game path:
+If a download comes in several parts, extract every part. If Windows reports an error while extracting, use [7-Zip](https://www.7-zip.org) instead of the built-in extractor.
 
-   ```powershell
-   npm ci
-   $gameDirectory = 'C:\Games\Cyberpunk 2077'
-   $env:CYBERPUNK_CONVAI_GAME = $gameDirectory
-   ```
+Start the game. The first start after installing takes a little longer while the service prepares itself. After the standard Local AI pack, the first start also joins the downloaded parts into one file, which takes about a minute.
 
-3. Create the ignored local file `runtime/convai-key.txt` with one line:
+**Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings are kept.
 
-   ```text
-   api-key=YOUR_CONVAI_API_KEY
-   ```
+**Uninstall.** Delete these from your Cyberpunk 2077 folder:
 
-   Configure the account's `runtime/characters.json` mapping. See [character setup](characters/README.md) and [the three-field API contract](docs/CHARACTER_API.md). `npm run profiles:plan` previews provisioning; applying the plan is an explicit account operation.
-4. Prepare the generated facial archive and speech assets. The facial builder requires its documented WolvenKit/.NET tools; [facial animation](docs/FACIAL_ANIMATION.md) describes that setup. Build the ambient-car Johnny guard from the reviewed 2.31 game resource with `python scripts/Build-AmbientJohnnyDriverGuard.py --game $gameDirectory --stage-development`; it stages a generated archive in this project. Use the explicit [Pocket voice preparation](docs/POCKET_TTS_RUNTIME.md), or select Convai in Settings. Local reference files are not automatically downloaded by the mod.
-5. With the required generated assets available, prepare the speech bank and install the development adapter:
+- `bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai` (this also deletes your conversations and settings)
+- `red4ext\plugins\CyberpunkConvai` (this also removes the OmniVoice and Local AI packs)
+- `red4ext\plugins\CyberpunkConvaiNative`
+- `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai`
+- `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
 
-   ```powershell
-   node scripts/Prepare-SpeechAudio.mjs $gameDirectory
-   .\scripts\Install-DevelopmentMod.ps1 -GameDirectory $gameDirectory
-   ```
+Keep the frameworks if other mods use them.
 
-6. Let the game start the hidden conversation bridge (once per machine), then launch Cyberpunk normally from Steam, GOG, Epic or its executable:
+## First five minutes
 
-   ```powershell
-   .\scripts\Install-BridgeAutostart.ps1 -GameDirectory $gameDirectory
-   ```
+1. **Set your keys.** Open Cyber Engine Tweaks' **Bindings** and give a key to each Cyberpunk Convai action. The mod never assigns or overwrites keys for you.
 
-   This builds and adds a small RED4ext plugin, `red4ext/plugins/CyberpunkConvaiLauncher/`. When the game starts with this mod installed, it starts `scripts/Supervise-ConversationBridge.mjs` hidden; the supervisor rebuilds the browser client, starts the bridge (or uses one that is already running), restarts it after a crash and stops it when the game exits, even after a game crash. No scheduled task, service or startup entry is created. `.\scripts\Uninstall-BridgeAutostart.ps1` removes it. Without the launcher, start the bridge by hand before playing with `.\scripts\Start-ConversationBridge.ps1`. While the service is starting, missing or failed, the talk shortcuts and Phone Chat show a short explanation instead of waiting for a reply.
+   | CET action | What it does |
+   |---|---|
+   | Cyberpunk Convai: companion manager | Opens the Companion Manager |
+   | Cyberpunk Convai: talk by text | Opens a private text conversation with the character you face |
+   | Cyberpunk Convai: talk by voice | Starts, then ends, microphone capture for a private conversation |
+   | Cyberpunk Convai: group text chat | Opens a group text conversation |
+   | Cyberpunk Convai: group voice chat | Starts, then ends, microphone capture for a group conversation |
+   | Cyberpunk Convai: YouTube on the TV | Opens the video picker, or pauses and plays, when you sit on the couch |
 
-7. Load a save. Open CET's **Bindings**, assign shortcuts to the mod actions, and save. Open **Companion Manager**, choose **Characters to invite**, invite someone, and return to gameplay after preparation.
+2. **Talk to someone.** Face a character, press **talk by text**, type, and press Enter. Or press **talk by voice**, wait for "Listening", speak, and press the same key again. The microphone never starts by itself.
+3. **Invite a companion.** Open the Companion Manager (your key, or Esc then MCM then Companion Manager), choose **Characters to invite**, and press **Invite**. Wait for the "joined" notice and return to gameplay. You can also select a contact in the phone's Contacts tab and press **J** to invite or **L** to dismiss.
+4. **Look at the settings.** In the Companion Manager choose **Settings**. The two most useful pages are **Conversation provider** and **Voices**. Every change waits until you choose **Apply**.
 
-The installed game adapter is at:
+The default setup is Convai free tier for the replies and the Pocket voice, which runs on your processor. It works without any setup.
 
-```text
-bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/
-```
+## Choosing how your characters think (conversation providers)
 
-### Planned downloads
+Open **Companion Manager > Settings > Conversation provider**. The **Conversation provider** row has four entries. A change waits until no conversation is running and until you choose **Apply**.
 
-| Release package | Contents | Hosted on |
+### The four options side by side
+
+| | **Convai free tier** (default) | **Convai API key** | **Mistral (free plan)** | **Local AI** |
+|---|---|---|---|---|
+| **Setup** | None. Works without any setup | Paste your own Convai key | Make a free Mistral account, paste its key | Download a Local AI pack |
+| **Cost** | Free, limited usage | Your Convai plan | Free | Free |
+| **Internet** | Needed | Needed | Needed | **Not needed** |
+| **Limit** | 100 turns a day (the service can change this), 12 a minute | Your Convai plan's limits | About 1 message a second and about 5,000 turns a day | None |
+| **Reply quality** | Most refined: stays in character best | Same as the free tier | Plainer. Smaller models hold a character less tightly and sometimes invent details | Standard: close to the free options. Lite: plainer |
+| **Typical reply speed** | A few seconds (2 to 3.5 s measured) | Same | Fastest cloud text: the voice can start a second or two after you send | Fast once the model is warm. The first reply after idle is slower |
+| **Memory** | Kept on Convai's servers | Kept on Convai's servers | Kept on your computer | Kept on your computer |
+| **Voice input (microphone)** | Recognised by Convai | Recognised by Convai | Recognised on your computer (English) | Recognised on your computer (English) |
+| **Voices** | Any, including Convai's cloud voice | Any, including Convai's cloud voice | Pocket, OmniVoice or Voxtral. Convai's cloud voice is replaced by Pocket | Pocket or OmniVoice |
+| **Companions can see** | Yes | Yes | No | No |
+| **Needs a graphics card** | No | No | No | Yes (NVIDIA or AMD, with Vulkan) |
+
+The numbers are the developer's measurements on one laptop. Yours will differ. In particular Mistral's allowance is Mistral's, and it can change.
+
+### Convai free tier (the default)
+
+Nothing to set up. Install, start the game, talk. This is the most refined option and the one the characters were written for. Its usage is limited so that it stays free for everyone: **100 turns a day**, 12 a minute. A turn is one reply: a typed or spoken line, a phone message, each speaker in a group round, or an automatic comment. The count resets at local midnight. Settings > Conversation provider shows how many are left today.
+
+When you reach the limit you see a notice. You can wait for tomorrow, or switch to Mistral or Local AI and keep talking. Voices keep working through the local voices.
+
+### Convai API key
+
+If you have your own Convai account, copy your key and press **Paste** on the **Convai API key** row. The key is read from the clipboard once, checked with Convai and saved on your computer. Then choose **Convai API key** as the provider and **Apply**. The daily limit of the free tier no longer applies. Your own Convai plan's limits do. Only the last four characters of the key are ever shown, and **Remove** deletes it.
+
+If you want more Convai usage than the free tier gives, you would need to subscribe to a higher Convai tier and use that plan's API key here.
+
+### Mistral (free plan)
+
+1. Make a free account at Mistral (the free plan needs phone verification) and create an API key.
+2. Copy the key, open **Settings > Conversation provider**, and press **Paste** on the **Mistral API key** row.
+3. Choose **Mistral (free plan)** as the provider and **Apply**.
+
+Mistral answers quickly and costs nothing. Its replies are plainer than Convai's. Memory stays on your computer. The microphone works through speech recognition that runs on your computer, in English. Mistral does not receive pictures, so **Companions can see** does nothing with it. With no key saved, conversations use Convai and you see one notice.
+
+### Local AI (fully local, free, no internet)
+
+Local AI runs the language model on your own graphics card. No account, no key, no internet.
+
+1. Download a Local AI pack from the GitHub release and extract it into the game folder (see [Install](#install)).
+2. Start the game and wait for the first start to finish. The **Local AI model** row shows "(Warming up)" while your card prepares the model, about a minute the first time.
+3. Choose **Local (needs Local AI pack)** as the provider and **Apply**.
+
+Pick the model that fits your card:
+
+| | **Local AI standard** | **Local AI lite** |
 |---|---|---|
-| `CyberpunkConvai-Scripts-<v>.zip` | Text only: CET Lua, redscript, JSON catalogs | Nexus Mods |
-| `CyberpunkConvai-Runtime-<v>.zip` | RED4ext launcher, bundled Node, Chrome for Testing and Python, bridge, Pocket voice, lip-sync model, voices, game archives | GitHub releases |
-| `CyberpunkConvai-OmniPack-<v>-partNofM.zip` | Optional OmniVoice GPU pack | GitHub releases |
+| Model | Gemma 4 E4B | Qwen3.5-2B |
+| Download | about 5.3 GB | about 1.5 GB |
+| Best for | Named characters and companions: stays closest to what the character knows and invents the least | Smaller cards, or a game that already uses most of your video memory. Plainer replies, fine for ordinary NPCs |
+| Free video memory it wants when it starts | about 6 GB | about 2 GB |
+| Extra video memory while running (with Pocket voice) | about 3 GB | about 1.5 GB |
+| Weaker at | | Languages other than English |
 
-Players extract the matching archives into the game directory and install nothing else. GitHub Actions builds them (`.github/workflows/release.yml`); see the [packaging document](docs/PACKAGING.md) for the pipeline, the local dry run and the install test.
+You can install neither, one or both. The **Local AI model** row lists the installed models from smallest to largest. Until you choose one, the largest that fits your free video memory is used.
 
-### Update and keep your data
+What you need: a graphics card with Vulkan support (NVIDIA or AMD), at least 16 GB of system memory (32 GB is better), and about 5 GB more than usual while it runs. Integrated graphics alone is not enough.
 
-Lua updates can be installed with `Install-DevelopmentMod.ps1 -LuaOnly`, then activated through CET's **Reload All Mods**. Loading a save does not activate new Lua code. Native scripts, archives, or plugin updates need a game restart. Bridge changes need a bridge restart: restart the game when the launcher is installed, or use `Stop-ConversationBridge.ps1` then `Start-ConversationBridge.ps1`. Both paths rebuild the browser client before launch. A bridge stopped by hand stays stopped for the rest of that game session.
+Good to know:
 
-Preserve both the project's `runtime` state and the installed mod's `runtime` state. They hold account configuration, player identity, settings, sessions, Chat history, and drafts. In particular, retain both `player-memory.json` and `player-memory.json.identity`. Installers create local rollback receipts and backups; updates should preserve CET's global bindings and other mods.
+- The model is unloaded after ten minutes without a conversation so the game gets its video memory back. The next conversation loads it again in a few seconds.
+- If your card is short of memory, the mod steps down by itself and keeps your voice before it keeps the model. Standard gives way to lite, and if lite does not fit either, the text comes from Mistral (if you saved a key) or Convai, with one notice.
+- You can add a model of your own. It needs to be a GGUF chat model. See [LOCAL_AI.md](docs/LOCAL_AI.md), "Add your own model".
 
-## Controls
+### Mature content (18+)
 
-Open **CET → Bindings**, choose a suitable key or chord for each action below, and save. The mod registers these actions but does not assign or overwrite your shortcuts. In-game microphone hints use your current binding.
+Settings > Conversation provider has a **Mature content** row. It is off by default and for adults only. It works with Local AI only: turning it on selects Local AI, and choosing a cloud provider turns it off. With the standard models it changes language and tone only, because those models refuse most adult material. An optional **Mature pack** on the GitHub release adds two models without those refusals. Fixed limits stay on for every model, with or without the pack. The details are in [the pack's own notes](packaging/MATURE_PACK_README.md).
 
-| CET action | Use |
+## Choosing how they sound (voices)
+
+Open **Companion Manager > Settings > Voices** and use the **Companion voices** row. You can always switch back. A voice that cannot run is replaced by a simpler one and the game tells you once.
+
+| Voice | Runs on | Needs | Starts speaking after | Quality | Languages |
+|---|---|---|---|---|---|
+| **Pocket · Performance** (default) | Your processor. No video memory | Nothing extra. Included in the Runtime download | About 0.15 to 0.2 s | Good. Close to OmniVoice on well-covered characters such as Johnny, Judy, Panam and Alex | English |
+| **OmniVoice** (Balanced, Quality, High Quality, Ultra Quality) | Your NVIDIA graphics card | The OmniVoice pack, an NVIDIA card with about 8 GB of video memory or more, and a current driver. About 2 GB of extra video memory while it runs | Balanced about 1.3 s, Quality about 1.45 s, High Quality about 2.1 s, Ultra Quality about 2.5 s | Richer, especially on harder voices. The higher tiers sound better and start slower. It can voice laughs and sighs | Many (needed for Multilingual conversations) |
+| **Voxtral · Mistral cloud** | Mistral's servers | A Mistral key (the same one as for the Mistral provider), internet. No local model is loaded | About 1 to 1.25 s, with an occasional slow reply | Each character's own voice, cloned in the cloud | English |
+| **Convai · Cloud voice** | Convai's servers | Convai as the provider and internet | Streams with the reply | Convai's own voice. It cannot clone, so V's typed-line voice stays silent beside it, and Natural speech and Expressive emotions are not available | Many |
+
+How the OmniVoice tiers differ: Balanced and Quality use 16 generation steps, High Quality and Ultra Quality use 32. Balanced and High Quality copy a short sample of the original voice, Quality and Ultra Quality a long one.
+
+**Setting up each voice**
+
+- **Pocket:** nothing to do.
+- **OmniVoice:** install the OmniVoice pack, restart the game, then pick an OmniVoice entry. Until the pack is installed the entries are greyed out and the row reads "(no Omni pack)". The first start of OmniVoice takes a while: allow two to three minutes, longer on a laptop in Silent power mode. Later starts reload faster. A slow first start no longer drops you to another voice. A start that fails falls back to Pocket and is retried in the background.
+- **Voxtral:** save a Mistral key (see [Mistral](#mistral-free-plan)), then pick **Voxtral · Mistral cloud**. Before a key is saved the entry reads "Voxtral · needs Mistral key".
+- **Convai voice:** choose Convai as the provider, then the Convai cloud voice.
+
+**If the voice you chose cannot run**, the fallback order is OmniVoice, then Pocket, then Convai's cloud voice. The cloud voices (Voxtral) have no local fallback: if a line cannot be voiced it is shown as text with one notice.
+
+**Other voice settings** (same page): **Voice playback** (Off means text only), **Lip sync delay (Bluetooth)** (see [FAQ](#faq-and-troubleshooting)), **Natural speech** (pauses, hesitations and, with OmniVoice, laughs and sighs; off by default), **Expressive emotions** (the face changes at the word where a feeling shifts; on by default), **Follow-up questions** (on by default) and **V's voice for typed lines** (on by default).
+
+## Getting the best latency and FPS
+
+Latency is the wait between pressing Enter (or releasing the talk key) and hearing the reply. FPS is how smoothly the game runs. They usually do not fight each other, because the mod does its heavy work in a separate background service rather than inside the game.
+
+**FPS is only something to worry about if you run large local models your PC does not have the resources for.** The default setup (Convai or Mistral for the text, Pocket for the voice) uses no graphics memory at all. Only OmniVoice and Local AI use your graphics card. If you want to stay fully local on a smaller card, use the lite model.
+
+### For the lowest latency
+
+| Do this | Why |
 |---|---|
-| **Cyberpunk Convai: companion manager** | Open the native MCM Companion Manager |
-| **Cyberpunk Convai: talk by text** | Open a private text conversation with the addressed character |
-| **Cyberpunk Convai: talk by voice** | Start or finish private microphone capture |
-| **Cyberpunk Convai: group text chat** | Open a group text conversation |
-| **Cyberpunk Convai: group voice chat** | Start or finish group microphone capture |
+| **Set Windows power mode to Balanced or Performance, not Silent.** Plug a laptop in. | Silent mode cut the speed of the Local AI model by about 40 percent in the developer's tests, slows speech recognition, and makes OmniVoice's start take about three minutes. This is the biggest single factor on a laptop. |
+| **Use the Pocket voice.** | Pocket starts speaking in about 0.15 to 0.2 s. OmniVoice takes 1.3 to 2.5 s, Voxtral about a second. |
+| **For the fastest cloud text, use Mistral.** Convai replies take a few seconds. | In the developer's tests a Mistral reply with the Pocket voice began speaking after a second or two. |
+| **Leave Auto-connect nearby characters on.** | It gets a conversation ready when you look at or walk up to someone, so they answer without a wait. |
+| **With Local AI, keep the game and the model on a card with room to spare.** | A model that has to share a nearly full card is slower. The first reply after ten idle minutes also includes loading time. |
+| **Use a headset on Auto lip sync delay if you use Bluetooth.** | It keeps lips and subtitles in step with the late audio without slowing anything down. |
 
-Face the character you want to address before opening a conversation. A group requires at least two distinct enabled nearby profiles and uses at most three. Looking at an unsupported actor reports that target rather than silently selecting a different character.
+### For the best FPS
 
-For voice input, press the assigned shortcut, wait for **Listening**, speak, then press the same shortcut again. Opening a menu cancels recording. Microphone capture never starts automatically. The microphone flow is implemented, but its live gameplay check remains deferred.
-
-The manager also appears through the game's pause-menu **MCM** entry. Use **Back** to navigate within the manager. Esc from a manager opened through the companion shortcut returns to gameplay.
-
-### Phone
-
-Open the phone through the game's assigned control (normally hold **T**). In **Contacts**, **J** invites the selected supported character and **L** dismisses one copy of the selected character (the newest; a copy speaking as another profile does not count). Custom invite/dismiss icons appear on the selected row. Their competing menu actions are consumed while the phone is open; the normal journal shortcut works after closing it.
-
-Switch to **Chat**, choose a contact, and use the phone's confirm/message action to open the conversation. **Enter** starts typing and sends; **Esc** stops typing. When you are no longer typing, use the game's normal back/close control. These phone controls are separate from CET conversation bindings.
-
-## Customize
-
-Open **Companion Manager → Settings** to change options. Memory and Relationships have their own pages with Back controls. While a setting row is focused, the game draws "A" and "D" key boxes over the ends of a selector's option text, so option texts are kept short (see docs/MANAGER_UI.md, Select labels).
-
-Conversation provider is a four-entry selector: Convai free tier (the default), Convai API key, Mistral (free plan) and Local (needs Local AI pack). The Convai and Mistral keys each have one row in Settings > Conversation provider; its button reads Paste while no key is saved and Remove once one is, and the row name shows the status in brackets, such as "Convai API key (...a1F9)" (only the last four characters are ever shown). The Inworld key row is in Settings > Development and appears only in Developer mode. Mature content and the cloud providers are mutually exclusive: choosing a cloud provider turns Mature content off, and turning Mature content on selects Local AI. Every character is allowed to talk by default.
-
-| Setting | New-user default |
+| Do this | Why |
 |---|---|
-| Companion voices | Pocket · Performance |
-| Voice playback | On |
-| Subtitles | On, Cinematic subtitles |
-| React to battles | On |
-| React to collected loot | On |
-| Interface language | Automatic |
-| Relationship choices | Auto |
-| Eye contact height | Default |
-| Head tracking strength | Gentle |
-| Body gestures (experimental) | On |
-| Expressive emotions | On (needs a local voice; choosing the Convai cloud voice keeps the voice and turns it Off) |
-| Follow-up questions | On |
-| V's voice for typed lines | On (typed lines only; works with Pocket, OmniVoice, Mistral (Voxtral) or Inworld, stays on but does nothing beside the Convai cloud voice; see docs/V_VOICE.md) |
-| Auto-connect nearby characters | On (silent) |
-| Keep prepared voices | On |
-| Conversation provider | Convai free tier |
+| **Use the default: cloud text and the Pocket voice.** | Nothing is loaded on the graphics card. Pocket runs on the processor and speaks in short bursts. |
+| **If you want fully local, use Local AI lite with Pocket.** | About 1.5 GB of extra video memory, against about 3 GB for standard. |
+| **Match the combination to your card.** See the table below. | The mod steps down by itself when memory runs short, but starting at the right level avoids the stutter of a card that is full. |
+| **Lower textures or turn off ray tracing if you want both OmniVoice and a local model.** | Ray tracing and high textures use the most video memory. |
+| **Turn off Voice playback if you only want text.** | No voice is generated and the voice models are released. |
+| **Let unused models unload.** | The Local AI model leaves memory after ten idle minutes, OmniVoice is released when voice playback is turned off, and the microphone's speech recogniser is released 90 seconds after your last recording. |
 
-Existing saved choices take precedence. Older Omni choices retain their 16/32 quality; a saved Pocket or Convai choice stays as it was; an unknown value becomes the default. The single voice selector contains Pocket · Performance, OmniVoice · Balanced, Quality, High Quality and Ultra Quality, Voxtral · Mistral cloud and Convai · Cloud voice, in that order (plus the Inworld cloud voice, last, in Developer mode; a saved Inworld choice reads as Pocket while Developer mode is off). The Relationships page offers Auto, Romantic (Casual for Meredith Stout) and Ordinary. Selecting a local voice requests preparation immediately. There is no separate quality row, per-character voice-provider selector or disappearing-message option. Exploration observations do not trigger automatic replies.
+Extra video memory each combination needs on top of what the game uses (estimates from one 12 GB card; the game's own use depends on your settings):
 
-Ordinary battle and loot reactions have independent ten-minute cooldowns. Newly acquired Legendary equipment has a separate two-minute loot cooldown. Save changes reset reaction context and cooldowns, while player identity and Chat history remain.
+| Voice | Text | Extra video memory |
+|---|---|---|
+| Pocket | Convai or Mistral | none |
+| Pocket | Local AI lite | about 1.5 GB |
+| Pocket | Local AI standard | about 3 GB |
+| OmniVoice | Convai or Mistral | about 2 GB |
+| OmniVoice | Local AI lite | about 4 GB |
+| OmniVoice | Local AI standard | about 5 GB |
 
-## Help and support
+What fits which card (lower settings means medium textures and no ray tracing):
 
-For a problem report, include the game/framework versions, the selected voice provider, the exact action you took, and what happened. State whether you restarted the game or used CET's **Reload All Mods** after installing changes. For voice issues, check the game's **Master Volume** and **Dialogue Volume**, and the Windows output mixer.
+| Your graphics card | What fits |
+|---|---|
+| 6 GB | Pocket with Convai or Mistral. Local AI lite only on lower settings. |
+| 8 GB | Pocket with Local AI lite, or OmniVoice with Convai or Mistral, both on lower settings. |
+| 12 GB | OmniVoice with Local AI lite on any settings. Pocket with Local AI standard on lower settings. |
+| 16 GB | OmniVoice with Local AI standard on lower settings, or with Local AI lite on higher settings. |
 
-Useful local diagnostics include `party-connection-state.json`, `bridge-latency.json`, `local-voice-state.json`, and `speech-state.json` in the installed mod's `runtime` directory. Bridge startup errors are in the project's `runtime/bridge.stderr.log`; start, restart and stop decisions are in `runtime/bridge-service.log`, and the launcher's own record is `red4ext/plugins/CyberpunkConvaiLauncher/launcher.log`. Adapter messages appear in CET's log. Share the relevant error and reproduction steps, keeping API keys, player/session identifiers, and private conversations out of a public report. There is no packaged sanitized support-report button yet.
+## Features you can use
 
-See the [runtime guide](bridge/README.md) for connection/playback details and the [development audit](docs/DEVELOPMENT_AUDIT_2026-09-30.md) for investigation methods. A feature change should update this README's behavior, controls, defaults, or limitations alongside its detailed document. Source checks, installed checks, and live acceptance should be recorded separately.
+### Companions that talk by voice or text
 
-## Known development limitations
+Face a character and press your **talk by text** or **talk by voice** key. For voice: press the key, wait for **Listening**, speak, and press the same key again. Opening a menu cancels a recording, and a recording stops by itself after 30 seconds. Your words appear as V's subtitle while you speak. If nothing was heard the mod says so instead of waiting.
 
-- **Companion chauffeur:** Johnny's boarding, manual passenger entry, changed-waypoint driving, arrival, exit and following afterward have user acceptance. A new report says he sometimes pauses on the approach to the driver's door until V catches up; that boarding case is under investigation. The mount-time subtitle replay correction has focused source coverage and awaits a live check. Overflow convoys and fast travel still need wider acceptance. Asking a companion to drive is the entry point; Current party exposes status and Stop trip.
-- **Vehicles and travel:** ordinary passenger boarding and seated head attention have been checked. Overflow carpooling, convoy recovery, and fast-travel restoration have implementation/test coverage but need wider live acceptance. Regular save loading does not automatically respawn the party.
-- **Special models and navigation:** different rigs, large bodies, story variants, and unusual combat behavior need individual gameplay checks. Collision/placement checks are installed, but walking around props and vehicles still needs live acceptance. A safe nearby spawn may be refused.
-- **Conversation quality:** biographies, voice references, and current-save mappings have uneven depth. Cloned speech is not guaranteed to match every original performance, and facial animation still varies by rig. Provider availability, local GPU load, and power settings affect latency.
-- **Memory:** all saves share one player identity. A remembered conversation can refer to another save; current game context takes priority. Generic resident templates share profile-level memory, rather than unique durable memory for each pedestrian.
-- **Microphone and distribution:** private/group voice input has source tests but its live check was deferred. Portable runtime/bootstrap, complete release notices, and installation on a clean machine remain unfinished.
+Characters ask a follow-up question only now and then, never on every reply and never while you are leaving, giving an order or fighting.
 
-Summoned copies do not recruit, revive, or alter story actors. They are temporary mod-owned copies, and party membership is not restored after an ordinary save reload, game restart, or CET reload.
+### Group talk
 
-## Remove
+Use **group text chat** or **group voice chat** with at least two nearby characters. Up to three speak in a round. The person you face answers first and the input box shows their name. Two copies of the same character count as one speaker. Earlier speakers leave the floor to the next one.
 
-Close Cyberpunk (with the launcher installed this also stops the bridge; otherwise stop it with `scripts/Stop-ConversationBridge.ps1`), run `scripts/Uninstall-BridgeAutostart.ps1`, and back up the runtime state if you want to retain your identity and histories. Remove only this mod's installed content:
+### Inviting and managing companions
+
+- **Companion Manager > Characters to invite** lists researched profiles. **Invite** reserves a place and prepares the voice and connection. A talking companion appears only after preparation succeeds and you return to gameplay.
+- **Current party** lists every copy as "Name #number" with **Dismiss**. You can keep several copies of the same character. There is no fixed limit on party size.
+- **Model browser** lists every character model in the game. Any of them can join you as a follower. Models without a profile follow you and do not talk.
+- Companions walk beside you, run to catch up, settle into loose positions, follow you through doors, lifts and fast travel, and fight with the game's own combat AI. Followers holster their weapons after a fight.
+- **Ask a companion to drive.** In a private conversation ask a companion to drive you to your map waypoint. They take the driver seat and wait for you to board as a passenger. **Current party** shows the trip and a **Stop trip** button. You can change the waypoint during the trip.
+- **Sit together.** When V sits on a couch, bench, chair or bar stool, nearby companions walk over and sit too, and stand again when you do or when a fight starts.
+- Only characters the mod spawns join your party. Named story characters you meet in the world are left alone, so the mod never changes the story.
+- Party membership is not restored after a save reload, a game restart or a Cyber Engine Tweaks reload.
+
+### Ordinary NPCs you can talk to
+
+With **Settings > Conversations > Talk to ordinary NPCs** on (the default), unnamed gang members, officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person. They do not know your story and forget you after a save load, except shopkeepers you come back to. Named story characters in the world are never routed to AI.
+
+### Phone Chat and holocalls
+
+- Open the phone (normally hold **T**) and switch to the **Chat** tab, the third tab. Pick a contact and press the confirm key to open the conversation. **Enter** starts typing and sends. **Esc** stops typing. Phone Chat is text only. The character does not need to be nearby.
+- Histories and drafts are kept across launches. Contacts unlocked later appear when you open the tab.
+- **Holocalls:** with a contact selected on the Chat list (or inside a conversation) press **V** to call them. A call window opens at the top left and you talk by push-to-talk or by typing. Tap the phone button to hang up. Calls end after 3 minutes of silence or 30 minutes in total. The game's own Contacts call is untouched.
+- **Live holocall picture (experimental):** shows the character live instead of a portrait. It can stay empty, in which case the call goes on with the portrait.
+
+### Companions can see (with Convai)
+
+With **Companions can see** on (the default) and Convai answering, each line you send also carries a recent picture of your surroundings, taken from the game window a few seconds before you started talking. Only the game window is captured, only while someone you can talk to is nearby, and pictures are kept in memory for a short time and never saved. It works with Convai only, and it is new: treat it as experimental.
+
+### YouTube on V's TV
+
+Turn on **Settings > Interface > YouTube on V's TV** (off by default). In V's apartments (Megabuilding H10, Northside, Japantown, Glen and Corpo Plaza) the TV gains a **YouTube** choice. On the couch, where the TV's own choices are not shown, use the **YouTube on the TV** key binding. Paste a link or video id, search, or pick one of your last eight videos. The video plays in a window over the game, so the game must run in **Windowed Borderless** or **Windowed** mode, not exclusive full screen. Your companion knows the title, channel and roughly the last thirty seconds of captions, and speaks when you speak or type. It makes no timed remarks. No account or key is needed. It is new and experimental.
+
+### V's voice
+
+With **V's voice for typed lines** on (the default), a line you type is also said aloud in the male or female V voice that matches yours, then the companion answers. Push-to-talk lines are never replayed. It works with Pocket, OmniVoice and Voxtral, and does nothing beside Convai's cloud voice.
+
+### Lip sync, faces, gestures and gaze
+
+- **Lip sync:** a model trained on the game's own dialogue lip-sync drives the mouth from the audio, with no GPU needed. Companions also blink, show a neutral resting face, and change expression where a feeling shifts.
+- **Body gestures** (on by default): companions gesture during longer replies, nod while you talk, and take idle poses beside you. They stop at once when anyone moves or a fight starts.
+- **Gaze:** eyes and head follow you. **Eye contact height** and **Head tracking strength** adjust it.
+- **Subtitles:** Cinematic subtitles (the game's dialogue HUD) are the default. **Above the speaker** is optional.
+
+### Memory and relationships
+
+- Characters remember real conversations, across saves, in a single player identity. Inviting a character creates no memory.
+- **Settings > Conversations > Memory** has **Forget selected character** and **Forget all memories**, each with a confirmation. A successful forget also removes the matching Phone Chat messages and drafts.
+- **Settings > Conversations > Relationships** has an **Auto / On / Off** choice for Judy, Panam, River, Kerry and Meredith. Auto follows the relationship in your save.
+- With Convai, memory is kept on Convai's servers. With Mistral or Local AI it stays on your computer.
+
+### Reactions
+
+**React to battles** and **React to collected loot** (both off by default) let a nearby companion make one short comment when a fight starts and ends, and after a batch of loot pickups. Each has a ten-minute cooldown.
+
+### Developer options
+
+**Settings > Development > Developer mode** is for testing and bug reports. Players do not need it. It shows routine popups, writes diagnostic traces and unlocks developer-only experiments.
+
+## Settings reference
+
+All settings live under **Companion Manager > Settings**. Defaults are for a new install, and your saved choices always take precedence.
+
+| Setting | Page | Default |
+|---|---|---|
+| Interface language | Interface | Automatic (follows the game's language) |
+| YouTube on V's TV | Interface | Off |
+| Memory, Relationships | Conversations | Auto |
+| Talk to ordinary NPCs | Conversations | On |
+| Multilingual conversations | Conversations | Off |
+| Auto-connect nearby characters | Conversations | On (silent) |
+| Continue from game dialogue | Conversations | On |
+| Live holocall picture (experimental) | Conversations | On |
+| Conversation provider | Conversation provider | Convai free tier |
+| Companions can see | Conversation provider | On (Convai only) |
+| Mature content | Conversation provider | Off |
+| Local AI model | Conversation provider | Largest installed model that fits |
+| Eye contact height | Companion behavior | Default |
+| Head tracking strength | Companion behavior | Gentle |
+| Body gestures | Companion behavior | On |
+| Voice playback | Voices | On |
+| Companion voices | Voices | Pocket · Performance |
+| Lip sync delay (Bluetooth) | Voices | Auto |
+| Natural speech | Voices | Off |
+| Expressive emotions | Voices | On (off beside Convai's cloud voice) |
+| Follow-up questions | Voices | On |
+| V's voice for typed lines | Voices | On |
+| Subtitles, Subtitle display | Subtitles | On, Cinematic subtitles |
+| React to battles, React to collected loot | Automatic reactions | Off |
+| Developer mode | Development | Off |
+
+**Multilingual conversations** lets you talk in any language and each character answers in yours. It switches the voice to OmniVoice (or Convai's cloud voice without the pack), because Pocket and Voxtral speak English only. The microphone with Convai recognises English by default, so type in other languages.
+
+## FAQ and troubleshooting
+
+**A character does not answer.** Make sure the game has been running a moment since launch: the background service starts with the game. Open **Settings > Help > Help and support**: it shows the service status. If the service is not running, restart the game. If you use Mistral, check the key row says it was accepted. If you use Local AI, check the **Local AI model** row does not read "(Warming up)", "(Not enough memory)" or "(Unavailable)".
+
+**I see "Today's turns are used" or a daily limit notice.** You have used the free tier's daily allowance. It comes back tomorrow. To keep talking now, choose **Mistral (free plan)** (with a free key) or **Local** (with a Local AI pack) as the Conversation provider and **Apply**. Voices keep working because the local voices do not use the limit. See also [Convai API key](#convai-api-key).
+
+**The microphone does nothing, or says "needs Convai for now".** Check that you gave a key to **talk by voice** in CET's Bindings. Press it, wait for **Listening**, speak, and press it again. The microphone never starts by itself. Windows must allow desktop apps to use your microphone, and your microphone should be the Windows **default** input device. With Mistral or Local AI the mod recognises your speech on your computer, which takes a moment to load the first time and works in English. If the recogniser is not ready yet you see "Speaking to companions needs Convai for now": try again in a moment, type your message, or switch to Convai. A recording with no speech in it says so.
+
+**OmniVoice takes two or three minutes the first time.** That is normal. The model is large. Use Balanced power mode, not Silent. Later starts are faster. While it loads you keep a fallback voice and a held notice reads "Preparing ...".
+
+**Voices are late, or lips run ahead of the sound.** Bluetooth audio arrives a little late. Leave **Lip sync delay (Bluetooth)** on Auto, which adds 150 ms of delay while Windows plays through Bluetooth, or pick a value that suits your headset. Check the game's Master Volume and Dialogue Volume and the Windows output mixer if you hear nothing.
+
+**The voice is Pocket when I picked OmniVoice.** Without the OmniVoice pack the entries are greyed out. With it, an OmniVoice that fails to start falls back to Pocket and is retried in the background; choosing it again also retries it.
+
+**How do I make a report?** Open **Companion Manager > Settings > Help > Help and support** and choose **Generate report**. It saves one file with versions, settings and recent log lines. It never contains your keys, voice recordings or conversation text. Send that file when you ask for help. The five newest reports are kept.
+
+**V keeps walking in one direction after I type a message.** Tap that direction (W, A, S or D) once.
+
+**Why can't a companion be summoned there?** Companions need clear space. A spawn can be refused if there is no safe spot nearby. Try a more open spot.
+
+**Does it change the story?** No. Summoned copies are temporary mod-owned copies. They do not recruit, revive or alter story characters, and story characters in the world are left alone.
+
+**Which of my data leaves my computer?** With Convai, your lines go to Convai. With Mistral, to Mistral. With Local AI nothing leaves your computer for replies. Voxtral sends the text to be spoken and a short reference clip of the character to Mistral. Pictures for **Companions can see** go to Convai only, are kept in memory for a short time and are never saved. Reports exclude keys and conversation text.
+
+## Add-ons
+
+Add-ons are separate mods that give the main mod new voices. They need the main mod, and the main mod never needs them. Each has its own Nexus page and installs like any CET mod.
+
+- **Skippy**, a talking smart pistol that comments on your fights (planned for October 20).
+- **Delamain**, the cab's voice (planned for October 25).
+
+Add-on voices use Mistral or Local AI, never Convai, and they do not count toward the daily limit. Developers can build their own: see [the add-on API](#add-on-api).
+
+## What is still experimental
+
+The mod is a first public release, and a lot of it was built faster than it could be tested in a real game. Treat these as experimental, even where they are on by default: companions can see, YouTube on V's TV, the live holocall picture, Phone Chat's holocall button, ordinary-NPC conversations, the character editor, multilingual conversations (microphone in other languages is untested), seated free-look, overflow car convoys, and fast-travel recovery. Several native speed-ups for the mod's work inside the game are switched off by default until they have been proven in the game. If something misbehaves, **Generate report** and tell us what you were doing.
+
+---
+
+# Part 2: For developers
+
+This part is the technical reference. It describes `main` as it is today. Where a design is built and unit-tested but has not been seen working in the real game, the text says so, and the [status list](#status-of-unverified-work) at the end collects those items. Many of the linked design notes under [docs/](docs/) are dated working logs: a note's own date tells you how current it is, and where a note and the code disagree, the code wins.
+
+## Overview and repository layout
+
+The mod is a set of cooperating programs, because no single one of them could do the whole job inside the game process:
+
+- **Inside the game:** a Cyber Engine Tweaks (CET) Lua mod does the sensing, the interface and the animation work, redscript adds native-looking UI and animation hooks, and a RED4ext native plugin takes the mod's heaviest per-tick work off the game's script thread.
+- **Beside the game:** a hidden Node.js service (the bridge) talks to the conversation providers, runs the voices and speech recognition, and prepares lip-sync and facial data. It is started and stopped with the game.
+- **In the cloud:** only what the player chooses: Convai, Mistral (text and the Voxtral voice) and, for the free tier's daily limit, a small sign-in backend.
 
 ```text
-red4ext/plugins/CyberpunkConvaiLauncher/
-bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/
-r6/scripts/CyberpunkConvai/
-r6/audioware/CyberpunkConvai/
-archive/pc/mod/convai_facial.archive
-archive/pc/mod/cyberpunk_convai_ambient_driver_guard.archive
+mod/                      CET Lua mod: the in-game adapter (90 files; entry point init.lua)
+  locales/                15 UI dictionaries (cs de es fr hu it ja ko pl pt-br ru tr uk zh-cn zh-tw)
+r6/scripts/CyberpunkConvai/  redscript: composer, phone, manager, face, holocall, YouTube TV (12 files; KnowledgeState.reds is retired and not shipped)
+native/
+  autostart/              RED4ext launcher plugin (C): starts the bridge with the game
+  core/                   RED4ext native core plugin (C++20, CMake): io, faces, actuator, clearance, gaze, vehicles, chauffeur, passage
+  vision/                 screen-capture helper executable for "Companions can see" (C++/WinRT)
+bridge/                   the Node bridge: ~175 modules, Python workers, the supervisor, ~288 test files
+assets/                   data the bridge and Lua read: emotion/, facial/, gestures/, v-voice/
+characters/               profile roster, ordinary-NPC archetypes, phone contacts, world-knowledge pack
+research/                 lore research, dossiers and the generators that build the knowledge packs
+auth-backend/             sign-in backend for the free tier (Vercel functions + Redis)
+addons/example/           a complete, tested reference add-on
+packaging/                the release builder, pinned toolchain config, Python hash locks, player notes
+scripts/                  install, build, measure, evaluation and training tools
+localization/             generated UI string inventory (en.json) and translation notes
+docs/                     125 design notes, one per area
+misc/                     developer launchers and benchmark records
 ```
 
-Keep CET, RED4ext, redscript, Codeware, TweakXL, Audioware, and MCM when other mods use them. The project-side runtime and extracted references remain in the development checkout unless you separately remove that checkout.
+Everything runs on Windows x64 against Cyberpunk 2077 2.31. The bridge targets Node.js 24 (the release bundles 24.21.0), the Python workers target CPython 3.12, and the native plugins build with Visual Studio 2022.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Game["Cyberpunk2077.exe"]
+    LUA["CET Lua mod<br/>mod/*.lua"]
+    RS["redscript<br/>r6/scripts/CyberpunkConvai"]
+    NC["Native core plugin<br/>CyberpunkConvaiNative.dll"]
+    AW["Audioware reply slots"]
+  end
+  subgraph Host["Hidden background service"]
+    SUP["Supervisor<br/>(started by RED4ext launcher)"]
+    BR["Bridge (Node)<br/>bridge/convai-bridge.mjs"]
+    RT["Hidden browser (Playwright)<br/>Convai SDK, PCM player, local STT capture"]
+    PY["Python workers<br/>Pocket TTS, OmniVoice, speech recognition, phone analysis"]
+    LL["llama-server (Vulkan)<br/>Local AI chat + memory embedder"]
+    VIS["Vision helper exe"]
+  end
+  subgraph Cloud["Cloud (player's choice)"]
+    CV["Convai"]
+    MI["Mistral: text, Voxtral voice"]
+    AB["Sign-in backend"]
+  end
+  LUA <-- "runtime/*.json files<br/>(atomic write, directory watch)" --> BR
+  LUA <--> RS
+  LUA <--> NC
+  LUA --> AW
+  SUP --> BR
+  BR <--> RT
+  BR <--> PY
+  BR <--> LL
+  BR <--> VIS
+  RT <--> CV
+  BR <--> MI
+  BR <--> AB
+```
+
+### The components
+
+| Component | Language and place | Job |
+|---|---|---|
+| **CET Lua mod** | Lua 5.1/LuaJIT, `mod/` | The game-facing adapter. It senses (who is near, what V looks at, the quest and journal state, gear, combat, loot), owns the Companion Manager data model and settings, spawns and steers companions, drives subtitles and facial and body animation, and exchanges JSON files with the bridge. It does no network I/O. |
+| **redscript** | `r6/scripts/CyberpunkConvai/*.reds` | Things Lua cannot do safely: the text composer and movement-key tracker, the phone's Chat tab, the native Companion Manager popup, holocalls, the YouTube TV device choice, the facial animation graph selection and the speech event owner. Wraps are narrow and always call `wrappedMethod`. |
+| **RED4ext launcher** | C, `native/autostart/` | Loaded by RED4ext, reads `launcher.ini`, starts the supervisor hidden with a pipe whose closing tells the service the game ended. |
+| **RED4ext native core** | C++20, `native/core/` | `CyberpunkConvaiNative.dll`: a plugin that registers reflection classes (RTTI only, no hooks or addresses) so that heavy mod work runs natively. Each system is separate and has a Lua fallback. See [Native plugins](#native-plugins). |
+| **Vision helper** | C++/WinRT, `native/vision/` | `CyberpunkConvaiVision.exe`: captures one frame of the game window through Windows Graphics Capture, only while it is needed. |
+| **Bridge** | Node.js ES modules, `bridge/` | The conversation service. Owns providers, memory, context assembly, the voices, speech recognition, lip-sync and facial data, playback, and every timer that must not run in the game. |
+| **Supervisor** | `bridge/bridge-supervisor.mjs`, `scripts/Supervise-ConversationBridge.mjs` | One bridge per game session, restarts after crashes with backoff, stops when the game exits, publishes `runtime/bridge-service.json` for the in-game status line. |
+| **Hidden browser** | Chrome for Testing (Edge in development) driven by Playwright | Hosts the Convai Web SDK (compiled into `realtime-client.js`), the continuous PCM player and the local speech capture page, because those need browser audio and WebRTC. |
+| **Python workers** | `bridge/*.py` | Persistent processes: Pocket TTS (CPU), OmniVoice (CUDA), local speech recognition (sherpa-onnx, CPU) and the Pocket phone analyser. Each request carries an owner token and a request id, and shutdown is pipe EOF. |
+| **llama-server** | llama.cpp (Vulkan build), `bridge/local-llm-server.mjs`, `bridge/local-embed.mjs` | The Local AI chat model and the small CPU memory embedder. |
+| **Sign-in backend** | `auth-backend/`, Vercel Node functions with an Upstash Redis store | Issues short-lived Convai session tokens per install and enforces the free tier's daily turn limit server-side. Off in the bridge unless switched on. See [Daily limit and sign-in backend](#daily-limit-and-sign-in-backend). |
+
+### How Lua and the bridge talk
+
+There are no sockets between the game and the service. The Lua mod and the bridge exchange small JSON files in `bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime/`: `last-input.json` (a turn request), `reply.json` (the answer), lease files (`reaction-lease.json`, `continuous-speech.json`, `knowledge-*.json`), command and state files (`memory-command.json`, `memory-status.json`, `own-key-command.json`, `mistral-state.json`, `speech-state.json`, `bridge-latency.json` and others). Writes are atomic (temp file then replace). The bridge wakes on a directory watcher (`bridge/file-wake.mjs`) with interval polls (50 ms for requests, 150 ms for the microphone, 500 ms for settings) kept as the fallback. When the native `io` system is loaded it replaces Lua's `io.open`/`os.rename` path for these files, because a native call costs 10 to 60 microseconds where a Lua file write costs several milliseconds under the game.
+
+Because the game never waits on the network, the Lua side stays simple: it writes a request and polls for a revision change.
+
+### Native plugins
+
+`native/core` builds one DLL, `CyberpunkConvaiNative.dll`, in `red4ext/plugins/CyberpunkConvaiNative/`. It declares game runtime 2.31 (refused after a patch), registers one RTTI class per system all-or-nothing, wraps every native body in a guard, and switches a system off for the session after three faults. There is no `.reds` file, so a missing DLL cannot block game start. The systems are in `native/core/src/systems/`:
+
+| System | What it does | Default in the release |
+|---|---|---|
+| `io` | leases, mailboxes, continuous-speech frames, logs: file I/O off the script thread | on |
+| `clearance` | body, segment, box, sight and floor queries for companion placement and walking | on |
+| `gaze` | fills the look-at request a companion's eyes and head use, in one native call instead of about thirty script calls | on |
+| `faces` | applies facial data to the rig | **off** (not yet proven in game) |
+| `actuator` | movement commands and the sensing one-liner | **off** |
+| `vehicles`, `chauffeur`, `passage` | seat sensing and mounting, the companion driver, lift (elevator) standing spots | **off** |
+
+The release ships `runtime/native-off.txt` listing exactly `actuator`, `vehicles`, `chauffeur`, `passage` and `faces`. A missing file means every system is on. A player turns a system on by deleting its line, and `runtime/native-verify.txt` runs both the native and the Lua path and logs `MISMATCH` on any difference. Lua reaches all of this through `mod/native-core.lua`, which re-reads the switch files about every half second and falls back to the Lua path when a system is off or unavailable. The plugin is built with `scripts/Build-NativeCore.ps1` (CMake, MSVC, static CRT, `/Brepro`; RED4ext.SDK at the commit pinned in `native/core/CMakeLists.txt`; yyjson vendored) and has headless tests in `native/core/tests/`. Design notes: [NATIVE_REWRITE_PLAN](docs/NATIVE_REWRITE_PLAN.md), [NATIVE_PORT_BRIEF](docs/NATIVE_PORT_BRIEF.md), [NATIVE_ACTUATOR](docs/NATIVE_ACTUATOR.md), [NATIVE_CLEARANCE](docs/NATIVE_CLEARANCE.md), [NATIVE_VEHICLES](docs/NATIVE_VEHICLES.md), [PERFORMANCE_NATIVE_PLAN](docs/PERFORMANCE_NATIVE_PLAN.md).
+
+### Startup
+
+1. RED4ext loads `CyberpunkConvai.dll` (the launcher). It checks CET and the CET mod, reads `launcher.ini` and starts `app\node\node.exe app\launcher\start-service.mjs` hidden.
+2. `start-service.mjs` prepares the player's `data/` folder (see [Packaging](#packaging-and-release)), joins any split model files (SHA-256 verified) and sets every path explicitly. It clears inherited `NODE_OPTIONS` and `PYTHONPATH`, and nothing is looked up on `PATH`.
+3. It runs the supervisor, which runs the bridge. The bridge prints a ready marker, answers the heartbeat and publishes status for the in-game Help page. While the service is starting, missing or failed, the talk keys and Phone Chat show a short explanation instead of waiting.
+
+## Anatomy of a turn
+
+A turn is one character reply. This is the path of a typed private line to a character, from the Enter key to sound.
+
+```mermaid
+sequenceDiagram
+  participant P as Player
+  participant L as Lua (game)
+  participant B as Bridge
+  participant T as Text provider
+  participant V as Voice engine
+  participant G as Game (face, audio)
+  P->>L: Enter in the composer
+  L->>L: capture turn context (quest, gear, dialogue, party)
+  L->>B: runtime/last-input.json (about 6 KB; knowledge as revision refs)
+  B->>B: admit, resolve knowledge, build prompt
+  B->>T: stream request (Convai / Mistral / Local AI)
+  T-->>B: first token ... first sentence
+  B->>V: speak the first complete sentence
+  V-->>B: first PCM audio
+  B->>B: lip-sync and expression timeline
+  B->>L: reply.json + state + face file
+  L->>G: subtitles, facial and body animation
+  B->>G: audio (browser PCM player or Audioware slot)
+```
+
+1. **Input.** Lua captures the tracked quest, recent game dialogue, gear, battle state and the party, and writes `runtime/last-input.json`. Knowledge parts go as `{part, revision}` references so the file is about 6 KB (it was 796 KB before references).
+2. **Admission.** The bridge reads the file within about 8 ms (directory watcher), parses it (`bridge/protocol.mjs`), checks ownership and the daily limit, and prepares knowledge (`bridge/world-knowledge.mjs`, `bridge/player-knowledge.mjs`). Cached parts make this about 1 ms.
+3. **Context assembly.** The turn-context block goes first, then the intrinsic and relationship blocks, follow-up, natural-speech, expressive-emotion, first-person and reply-language blocks. See [Context system](#context-system).
+4. **Memory recall** (text providers): the local embedder is asked for the best memories under a 400 ms budget, and the turn continues without them if it is late.
+5. **Provider call.** Convai: the context goes in with `updateContext({mode:'replace', run_llm:'false'})` and then the text. Mistral and Local AI: one prompt in the shared layout, streamed.
+6. **Reply streaming.** `bridge/reply-stream.mjs` judges the head of the reply. When it holds a whole sentence of 28 to 260 characters with nothing unsafe in it, the voice starts on that sentence while the model writes the rest (Mistral, Local AI, Pocket, Voxtral; OmniVoice streams its first phrase only).
+7. **Voice.** The chosen engine produces PCM. Pocket, Voxtral and Convai stream into one continuous player in the hidden browser. OmniVoice renders phrases to WAV slots in Audioware.
+8. **Face and captions.** The lip-sync model and the expression selector build a timeline from the audio. Captions are cued to silences in the heard audio.
+9. **Publish.** The bridge writes `reply.json`, the speech state and the face file. Lua polls the revision (about every 30 ms while a reply is due), starts subtitles and the face and body animation, and reads the playback cursor each frame to keep the mouth on the sound.
+
+### The latency stage clock
+
+`bridge/turn-clock.mjs` records named marks through `AsyncLocalStorage` and saves them in `runtime/bridge-latency.json` under `stages` (`marks`, `order`, `steps` that sum to `totalMs`, and `stalls` for event-loop blocks of 80 ms or more). The marks are `inputWritten`, `received`, `knowledge`, `admitted`, `transport`, `recalled`, `promptBuilt`, `llmSent`, `llmHeaders`, `firstToken`, `firstSentence`, `fullText`, `replyReturned`, `voiceStart`, `browserReady`, `playStart`, `rendererReady`, `ttsSent`, `firstPcm`, `firstPcmAccepted`, `firstFrame`, `published` and `playbackObserved`. Convai reports only its own subset.
+
+A live record of seven turns (Mistral text with the Voxtral voice, one Local AI turn; 2026-10-13, one developer laptop) measured the stages below, in milliseconds after the request was read. The right-hand column is the cost after the cuts that followed that record. Those cuts are unit-tested and merged but were not re-measured in the game.
+
+| Stage | Measured | After the cuts |
+|---|---|---|
+| Enter to file seen by the bridge | 23 to 47 | about 8 (directory watcher) |
+| Knowledge prepared | 20 to 137 | about 1 |
+| Admission and receipt | 5 to 35 | |
+| Thinking status and transport | 13 to 120 | one file write fewer |
+| Memory recall | 410 to 483 (waited for an embedder that never started) | 1 to 2 |
+| Prompt build | 1 to 15 | |
+| Mistral request to headers | 557 to 797 | |
+| First token to first sentence | 25 to 267 | |
+| First sentence to voice start | 7 to 96 | cached speech-state read |
+| Voxtral request to first PCM | 816 to 1,067 | reference upload shrunk (Ogg, about 38 KB) |
+| First PCM to published | 49 to 148 | |
+| Published to sound | 310 to 556 (150 of it the developer's Bluetooth delay) | polling 64 to 24 ms (simulated) |
+
+Whole-turn figures are in [docs/LATENCY_2026-10-12.md](docs/LATENCY_2026-10-12.md), [docs/LATENCY_2026-10-13.md](docs/LATENCY_2026-10-13.md) and [docs/LATENCY_2026-10-14.md](docs/LATENCY_2026-10-14.md). The first-audio times of the voices are in [Voices and TTS engines](#voices-and-tts-engines), and the lip-sync model's own cost is in [Lip sync and the facial pipeline](#lip-sync-and-the-facial-pipeline). Tools: `scripts/Measure-TurnLatency.mjs`, `Measure-TextLatency.mjs`, `Measure-VoxtralLatency.mjs`, `Measure-MistralCache.mjs`, `Measure-GroupGap.mjs`. The Convai route reports the marks that apply to it, and its own time (2 to 3.5 s per reply) is not split further.
+
+---
+
+## Subsystems in depth
+
+Each subsystem below says what it does, how, where the code is, the constants that matter, and which design notes go deeper.
+
+Jump to: [module map](#lua-and-redscript-module-map) · [conversation providers](#conversation-providers) · [daily limit and sign-in backend](#daily-limit-and-sign-in-backend) · [voices and TTS](#voices-and-tts-engines) · [speech recognition](#speech-recognition-and-the-microphone) · [lip sync and faces](#lip-sync-and-the-facial-pipeline) · [gestures](#gestures-and-body-animation) · [combat and behaviour](#combat-tactics-and-companion-behaviour) · [reactions](#battle-and-loot-reactions) · [gaze](#gaze-eye-contact-and-head-tracking) · [follow and movement](#follow-movement-and-recovery) · [vehicles and seating](#vehicles-seating-and-the-chauffeur) · [clearance](#clearance-and-obstruction-handling) · [inviting companions](#inviting-companions-world-companions-and-the-companion-manager-roster) · [context](#context-system) · [memory](#memory-and-relationship-systems) · [characters](#characters-ordinary-npcs-and-multilingual-profiles) · [vision](#companion-vision) · [YouTube TV](#youtube-tv-playback-and-capture) · [holocall and Phone Chat](#holocall-and-phone-chat) · [notices and subtitles](#notices-overhead-subtitles-and-follow-up-questions) · [settings and Manager](#settings-and-the-companion-manager) · [localization](#localization) · [add-on API](#add-on-api)
+
+### Lua and redscript module map
+
+The Lua side (`mod/`, loaded by `init.lua`) is deliberately thin: it reads the game on demand, applies commands, and trades small files with the bridge. Most files are one concern each.
+
+| Area | Files in `mod/` |
+|---|---|
+| Entry, bridge link, status | `init.lua` (game adapter: composers, targeted turns, party connections), `native-core.lua` (routes the mailbox files through the native plugin when loaded), `service-status.lua` (explains a missing or failed service in game), `support-report.lua` (Help, Generate report), `notices.lua` (the one place that decides which on-screen notices appear), `addons.lua` (add-on API on the Lua side) |
+| Talking and input | `talk-target.lua` (who the talk keys address when several characters are in front of V), `composer-input.lua`, `microphone.lua`, `gameplay-actions.lua` (capability leases for drive, tactic and follow offers), `auto-connect.lua`, `group-chat.lua`, `game-dialogue.lua` (recent in-game dialogue for turns), `vanilla-reactions.lua` (quiets an NPC's vanilla barks while the mod talks to it) |
+| Speech, face and subtitles | `speech.lua` (one utterance owns playback; samples the heard-audio cursor), `continuous-speech.lua` (lease for Convai's continuous PCM stream), `facial-playback.lua` (the single face writer), `subtitles.lua`, `voice-preview.lua` |
+| Context for turns | `turn-context.lua`, `player-gear.lua`, `quest-context.lua`, `world-knowledge.lua`, `knowledge-state.lua`, `knowledge-parts.lua`, `journal-history.lua`, `fact-identity.lua`, `save-identity.lua`, `relationship-state.lua` |
+| Companions | `companions.lua` (the party controller), `companion-records.lua` (private spawn records), `companion-appearance.lua`, `companion-equipment.lua`, `companion-adoption.lua`, `companion-behavior.lua`, `companion-tactics.lua`, `companion-marking.lua`, `companion-stance.lua`, `companion-locomotion.lua`, `companion-travel.lua`, `companion-space.lua`, `companion-placement.lua`, `companion-clearance.lua`, `companion-passage.lua`, `companion-reload-cleanup.lua`, `companion-tick-native.lua`, `companion-actuator.lua`, `companion-vehicles.lua`, `companion-vehicle-catalog.lua`, `companion-vehicle-native.lua`, `companion-chauffeur.lua`, `companion-chauffeur-native.lua`, `companion-seating.lua`, `seated-look.lua`, `companion-gestures.lua`, `gesture-workspot.lua`, `gesture-catalog.lua`, `gesture-selection.lua`, `invitation-readiness.lua`, `character-catalog.lua` |
+| Reactions | `battle-observer.lua`, `battle-reactions.lua`, `loot-observer.lua`, `loot-reactions.lua` |
+| Phone, holocall, TV | `phone-chat.lua`, `phone-input.lua`, `phone-layout.lua`, `phone-chat-style.lua`, `holocall.lua`, `youtube-tv.lua` |
+| Settings and UI | `mcm.lua`, `mcm-entry.lua`, `mcm-fonts.lua`, `manager.lua`, `manager-party.lua`, `character-editor.lua`, `ui-locale.lua`, `ui-fonts.lua`, `locales/` (15 language files besides English) |
+| Development only (never shipped) | `diagnostics.lua` and the probes it loads (`face-probe.lua`, `face-test.lua`, `gesture-probe.lua`, `loot-probe.lua`, `knowledge-probe.lua`, `fact-identity-probe.lua`, `save-identity-probe.lua`, `perf-probe.lua`, `speech-cadence-probe.lua`, `speech-replay-probe.lua`, `movement-log.lua`) |
+
+`r6/scripts/CyberpunkConvai/` holds the redscript, which exists only where Lua cannot reach the game's UI or native classes:
+
+| File | Role |
+|---|---|
+| `Composer.reds` | the text-box controller (the game owns the box; Lua asks it to open and collects the result) and the movement-key tracker that stops V walking on after a popup closes |
+| `Manager.reds` | the Companion Manager window (Lua owns discovery, filtering and actions; script holds one page) |
+| `PhoneChat.reds`, `PhoneChatTabs.reds`, `PhoneContacts.reds` | the Chat tab of the phone: presentation rows that never become quest journal entries, the third-tab state and the contact artwork |
+| `Holocall.reds` | holocalls with the mod's characters (the game's own call path is not used) |
+| `YouTubeTv.reds` | extra choices on V's home TVs |
+| `Speech.reds` | keeps the native Audioware event alive for a mod-owned utterance |
+| `Face.reds`, `FaceFeature.reds` | chooses the face graph at spawn (companion graph, gated crowd graph) and the generated animation feature carrying the lip-sync controls |
+| `Engagement.reds` | one civilian's temporary hold and look-at during a conversation, released together |
+| `KnowledgeState.reds` | present in the repository but retired and not shipped |
+
+### Conversation providers
+
+The provider chooses who writes a character's reply. It is `conversationProvider` in `runtime/settings.json` (`convai`, `mistral` or `local`) plus `useOwnConvaiKey`, which makes the Settings entry "Convai API key" (Convai with the player's own key). Any other saved value, including a removed provider, reads as `convai`. A change applies only when no conversation is running. The bridge polls settings every 500 ms and publishes `runtime/mistral-state.json` (`provider`, `effective`, `localAi`, `localModels`, `localModelDefault`, `maturePack`, `stt`, `limit`), which the Settings page reads.
+
+| Provider | Route in the bridge | Memory | Voice input | Vision |
+|---|---|---|---|---|
+| Convai free tier / API key | `bridge/realtime-client.mjs` in the hidden browser; Convai writes the reply, its own audio and facial data | Convai long-term memory | Convai's recognition | yes |
+| Mistral | `TextProviderHost` to `bridge/mistral-client.mjs` | local (`bridge/mistral-memory.mjs`) | local recognition | no |
+| Local AI | `TextProviderHost` to `bridge/local-llm-server.mjs` | local (embedder + files) | local recognition | no |
+
+`bridge/text-provider-host.mjs` (`TextProviderHost.reply`) sends a turn to the Mistral or the Local AI route; the stream then goes through `cleanReply`, `transformReply`, the voice and the subtitles. A failed route falls back to the other cloud route with one notice. Add-on speakers can use only Mistral or Local AI, never Convai (see [Add-on API](#add-on-api)).
+
+#### Convai
+
+Each profile is a Convai character with three separate text fields: `backstory`, `speaking_style_description` and `speaking_style_sample_dialogues` (spoken words only, no speaker labels). All mod characters use the Convai model `fast-gemma-4-31b-it`. The browser page uses `@convai/web-sdk` 1.7.0 (`realtime-api.convai.com/connect`) with an `apiKey` or an `authToken` from the sign-in backend. Each present identity keeps a private connection and up to three more serve the group audience, so a full party needs at most 11 pages. Private, phone and group audiences use separate sessions, and at most 8 characters are kept warm (`WARM_PARTY_LIMIT` in `bridge/party-connections.mjs`). Errors are classified by `bridge/convai-quota.mjs` (`convai-quota:interaction|tts|plan|daily`); only quota shows as "limit used up". The player's own key path, its plan-limit behaviour and memory-speaker handling are in [docs/OWN_CONVAI_KEY.md](docs/OWN_CONVAI_KEY.md). Character provisioning and the profile API contract are in [docs/CHARACTER_API.md](docs/CHARACTER_API.md) and [characters/README.md](characters/README.md).
+
+#### Mistral
+
+- **Models**, tried in order: `ministral-8b-latest`, `ministral-14b-latest`, `ministral-3b-latest`. The free key's allowances measured on 2026-10-11: 8b about 188 requests a minute, 14b 30 a minute, 3b 750 a minute. The Small and Medium models answered 429 with an allowance of zero and Large returned 403.
+- **Client** (`bridge/mistral-client.mjs`): server-sent-event streaming, first-byte and total timeouts, retry on 429 and 5xx, key check with `GET /v1/models`, a stable `prompt_cache_key`. The endpoint must be `https://api.mistral.ai`.
+- **Pacing** (`bridge/mistral-rate.mjs`): requests start at least 1.1 s apart, a reply goes ahead of background work (`PRIORITY.TEXT` before `TTS` before `BACKGROUND`), a 429 is retried with backoff, and a model with an allowance of zero is skipped for 10 minutes.
+- **Prompt** (`bridge/mistral-prompt.mjs`, `LIMITS`): persona up to 16,000 characters, context 20,000, summary 1,400, 8 turns, user message 1,200, reply 6 sentences and 700 characters, 600 output tokens, temperature 0.65. Layout v2, shared with Local AI: persona and rules, format notes and world or quest knowledge, summary, the "right now" block, history, then the last user message.
+- **Memory** (`bridge/mistral-memory.mjs`): the last 8 exchanges per character and channel and a summary of up to 1,400 characters, extracted only when there has been no combat for 30 s, nothing is in flight, speaking or recording, and 20 s have passed since the last turn.
+- **Companion actions** (`bridge/text-actions.mjs`): a text model has no action system, so a tiny classifier request (12 tokens, temperature 0, no retry, 8 s total, 6 s to first byte, run while memory is retrieved so it normally adds no time) answers `DRIVE`, `FIGHT`, `FOLLOW`, `DISMISSED` or `NONE` for the actions the game offers that turn. The decision models are `ministral-3b-latest`, then `ministral-8b-latest` (`DECISION_MODELS`). The bridge turns the answer into a structured packet and publishes it to `runtime/companion-actions.json`; Lua (`mod/gameplay-actions.lua`) accepts it only against a lease it captured itself, so an answer alone can never pick an actor, car or target.
+- **Failures:** 401 or 403 is "Mistral: key not accepted", 429 is "Mistral: free limit reached for now", and a model error is "Mistral: model unavailable". With Mistral chosen and no key saved, turns go to Convai with one notice.
+- **Prompt evaluation:** `scripts/Eval-MistralPrompt.mjs`, `scripts/Test-MistralPrompts.mjs`. Design: [docs/MISTRAL.md](docs/MISTRAL.md), [docs/MISTRAL_PROMPT_PASS.md](docs/MISTRAL_PROMPT_PASS.md).
+
+The Mistral key lives only in the bridge's state folder (`player-mistral-key.txt`) and in the Settings row, which shows only its last four characters.
+
+#### Local AI
+
+Local AI runs a chat model in a `llama-server` process (llama.cpp b11560, Vulkan build) supervised by `bridge/local-llm-server.mjs`.
+
+- **Packs and models:** two optional packs. *Standard* is Gemma 4 E4B QAT q4_0 (5.15 GB file, about 5.3 GB pack, split in 1 GB parts and rejoined on first start). *Lite* is Qwen3.5-2B Q4_K_M (1.28 GB, about 1.5 GB pack). Each pack also holds the server, the `granite-embedding-107m-multilingual` Q8_0 embedder, a manifest fragment (`manifest.standard.json` or `manifest.lite.json`, merged by `bridge/local-ai-pack.mjs`) and the licence texts. Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the `localAi` block of `packaging/release.config.json`.
+- **Model choice** (`bridge/local-model-choice.mjs`): `listLocalModels`, `chooseLocalModel({models, pin, matureOn, freeMiB, sizeOf})`, `defaultModelIds`. Ids are `standard`, `lite`, `mature:lite`, `mature:good` and `custom:<file>`. The default is the largest installed model whose requirement fits the free video memory (standard needs the file plus about 1.2 GB free, lite the file plus about 0.7 GB). A chosen model that is missing, does not fit or does not start is replaced by the largest that fits, with one notice naming the model used. The saved id of a model that no pack has any more maps silently to the default.
+- **Server flags:** `-ngl 99 -fa on -np 1 --reasoning off --cache-ram <N> --ctx-checkpoints 32`; offload uses `-fit on` without `-ngl`. The server listens on a random loopback port with its API key in a file, never on the command line. The context size is chosen from free video memory from the ladder 16,384, 12,288, 8,192 and read back from `/props`. `CYBERPUNK_CONVAI_LOCAL_CACHE_RAM` defaults to 4096 at 12 GB free, 2048 at 8 GB, else 1024.
+- **Prompt budget** (`bridge/prompt-budget.mjs`): the limit is the context minus a 320-token reply reserve minus the larger of 48 and 1.5 percent of the context. Characters per token start at 3.6 and are learned from usage. Near the limit, `/tokenize` decides, and an overflow retries once before failing with `PromptTooLarge`.
+- **Lifecycle:** loaded when a turn needs it (after the first-start warm-up), unloaded after 10 idle minutes (`LOCAL_LLM_LIMITS.idleMs`) and when the provider leaves Local AI. A crashed server restarts twice, then reports `failed`. A change of model reloads only at an idle boundary and never mid-reply. If OmniVoice is still loading, `beforeStart` waits up to two minutes for it to settle. Memory shortage becomes `low-memory` and then a cloud fallback for the text, with the voice kept.
+- **Embedder** (`bridge/local-embed.mjs`): `llama-server --device none -ngl 0`, one thread, about 14 ms a query, 384 dimensions. It exits 5 idle minutes after its last use (`LOCAL_EMBED_LIMITS.idleMs`, 300,000 ms) and at once when the provider returns to Convai with no add-on installed. Retrieval takes at most 4 records and 1,200 characters above a score of 0.40 (cosine plus recency, importance and a pinned bonus) within a 400 ms budget. Memory files are `<state>/local-memory/<playerId>/<profileKey>.json` (`bridge/memory-store.mjs`).
+- **Custom models** (`bridge/custom-models.mjs`): a `manifest.custom.json` next to the other manifests lists up to 16 `.gguf` chat models (`file`, `name`, `uncensored`, `family`, `contextSize`, `chatTemplate`). The scanner reads the first 2 MiB for the GGUF header, rejects encoder architectures and non-zero pooling, and marks a broken model until restart. A model that needs more than the card's total memory stays listed as too large and is never chosen.
+- **Quality measurements** (48 judged replies each, 1 to 5): Gemma 4 E4B 3.04 with the fewest invented facts, Qwen3.5-4B 3.02, Ministral 3B 2.75, Qwen3.5-2B 2.33. Model choice notes: [docs/LOCAL_MODEL_CHOICE.md](docs/LOCAL_MODEL_CHOICE.md). Design and risks: [docs/LOCAL_OPTION_DESIGN.md](docs/LOCAL_OPTION_DESIGN.md), the player and developer manual is [docs/LOCAL_AI.md](docs/LOCAL_AI.md). Only one machine (a 12 GB RTX 4080 Laptop) has been measured; AMD and Intel cards are untested, and FPS under Local AI has not been measured in the game.
+
+#### Mature content (setting and pack)
+
+`matureContent` (off by default) is part of the main mod and works with the Local AI provider only (`MATURE_PROVIDERS` in `bridge/mature-content.mjs`). Turning it on stages Local AI, the largest uncensored model that fits and a local voice (when the voice was a cloud one), and turning it off restores what it changed (`matureRestore`). The optional pack (`manifest.mature.json`, `bridge/mature-pack.mjs`) adds two uncensored models, a lite and a good one, distributed only on the GitHub release and never built by the release workflow. Hard limits are enforced for every model: an input screen before any model sees a message and an output screen on replies (`bridge/mature-guard.mjs`, with word lists for 15 languages in `bridge/mature-guard-terms.mjs`). Details and the guard's measurements: [docs/LOCAL_AI.md](docs/LOCAL_AI.md), [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md).
+
+### Daily limit and sign-in backend
+
+The free tier is limited per install, in two cooperating layers.
+
+**In the bridge** (the daily-limit guard, `bridge/shared-key-guard.mjs`): `DAILY_LIMIT` is 100 turns per local calendar day, with a token bucket of 15 turns refilled at 12 a minute and at least 250 ms between turns. Counted are typed and spoken turns, Phone Chat, each group speaker, automatic reactions and failed turns. The count is stored HMAC-signed in two places (the state folder and `%LOCALAPPDATA%\CyberpunkConvai\daily-usage.json`) and the newest valid copy wins. At the limit the player gets one `daily-limit` notice a session (two lines, nine seconds), Phone Chat shows a longer explanation, and battle and loot reactions stop silently. A key the player pasted themselves is never counted. The guard cannot be tamper-proof (the bridge is readable source) and is meant to be honest rather than secure. `CYBERPUNK_CONVAI_DAILY_LIMIT` overrides it in development.
+
+**On the server** (`auth-backend/`, Vercel Node functions with an Upstash Redis store, design in [docs/CONVAI_AUTH_BACKEND.md](docs/CONVAI_AUTH_BACKEND.md), operations in [auth-backend/README.md](auth-backend/README.md)):
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/convai/token` | issues a one-hour Convai session token for an install, after admission |
+| `GET /api/admin/turns` | usage view (admin secret) |
+| `GET/POST /api/admin/config` | reads or sets the daily limit in force (1 to 10,000, no redeploy) |
+| `GET /api/healthz`, `/api/readyz` | health |
+
+A request is JSON `{installId, modVersion, turnsSinceLast, minLifeSeconds}` with `x-convai-timestamp` and `x-convai-signature` (`v1=` plus HMAC-SHA256 of `<ts>.<body>`, 120 s skew limit). Admission runs as one Redis `EVAL` script and fails closed if Redis is down. Defaults: 4 token requests an hour per install, 20 per address, 5 new installs per address a day, 500 mints a day, and a daily turn cap of 100 reported turns per install per UTC day. The answer carries `dailyInteractionLimit`; the bridge adopts it (kept in `daily-limit.json`, signed per machine), shows "N of M left today", and a blocked bridge asks again every half hour so a raised limit takes effect within about 30 minutes. Refusals (daily, paused, outdated, rate) are obeyed; only an unreachable or failing backend falls back to the normal non-backend credential path, unless `CYBERPUNK_CONVAI_AUTH_FALLBACK=0`. No conversation text, character or audio ever reaches the backend.
+
+The bridge uses the backend only when it is switched on (`CYBERPUNK_CONVAI_AUTH_BACKEND=1`, or `enabled` in `convai-auth.json`, with the address and a secret); with it off, the guard's local limit of 100 applies on its own. The backend was deployed on 2026-10-13 and redeployed on 2026-10-15 with a server-set limit. Whether a given release build switches it on is a packaging decision (see the [status list](#status-of-unverified-work)). Tests: `node --test` in `auth-backend/test/` (the admission script runs under fengari against an in-memory Redis), `bridge/convai-credential.test.mjs` and the guard's own test file next to it.
+
+### Voices and TTS engines
+
+The voice selector (`voiceProvider`, plus `omniSteps` 16 or 32 and `omniReference` `short` or `long`) offers seven entries in this order: Pocket · Performance (default), OmniVoice · Balanced, Quality, High Quality, Ultra Quality, Voxtral · Mistral cloud, Convai · Cloud voice. With Developer mode on an eighth, an Inworld cloud voice, is listed last (an experiment, see below). Older saved values map to the nearest choice: Pocket stays Pocket, `hybrid` becomes OmniVoice with the long reference, and anything unknown becomes Pocket. Routing is in `bridge/voice-selection.mjs` (`VOICE_FALLBACK_ORDER`: OmniVoice, then Pocket, then Convai), `bridge/voice-config-paths.mjs`, `bridge/voice-utterance.mjs` (one voice per reply) and `bridge/omni-pack.mjs` (pack detection, re-checked every 30 s while missing). A failed OmniVoice retries in the background after 45 s, 3 min and 10 min.
+
+| Engine | Process and hardware | First audio (measured) | Code |
+|---|---|---|---|
+| **Pocket TTS** | persistent Python worker, CPU only (CUDA hidden), 0 VRAM, about 1.7 GiB RAM | 135 to 210 ms warm | `bridge/pocket-voice.mjs`, `pocket-voice-worker.py`, `pocket_voice_runtime.py`, `pocket-speech.mjs` |
+| **OmniVoice** | persistent Python worker, FP16 on CUDA, about 2 to 2.3 GiB VRAM warm | 1.3 s (16 steps, short), 1.45 s (16, long), 2.1 s and 2.5 s (32 steps) | `bridge/resident-voice.mjs`, `resident-voice-worker.py`, `voice-cuda-graph.py` |
+| **Voxtral** (Mistral cloud) | HTTPS to `api.mistral.ai/v1/audio/speech`, model `voxtral-mini-tts-latest` | about 1.1 to 1.25 s median, occasional 5 to 11 s server spikes | `bridge/voxtral-voice.mjs`, `voxtral-reference.mjs` |
+| **Convai voice** | Convai's own audio over the data channel | part of the reply | `bridge/convai-data-audio.mjs`, `convai-audio-stream.mjs`, `continuous-pcm-*.mjs` |
+| **Inworld** (developer experiment) | HTTPS to `api.inworld.ai`, `inworld-tts-2` | 429 to 1,344 ms over six runs | `bridge/inworld-voice.mjs`, `inworld-key.mjs`, `inworld-steering.mjs` |
+
+**Pocket TTS.** A six-layer English student distilled from a 24-layer teacher (upstream source pinned at revision `41cbc84`), run on CPU in FP32 with one decode step, temperature 0.3 and one shared model (418 MiB on disk). A cast of voices uses one model and reference audio: Pocket conditions on audio only, with an eight-entry LRU of reference states, and prepared voice states are cached on disk (`bridge/prepared-voices.mjs`, `<voice>-<24 hex>.safetensors`, a saved load takes 15 to 20 ms against 0.8 to 1.5 s to compute, cap 160 files). `PocketVoice.synthesizeStream` takes the whole reply once and yields 24 kHz mono float32 PCM in 100 ms packets, each acknowledged before the next. The worker hides CUDA, loads offline and removes cloud tokens from its environment; a synthesis error retires the process, and an unconfirmed exit blocks a replacement. The release ships the student v2 and a decoder retrained for phase agreement (Mimi decoder v2) in `models/pocket/` ([docs/DECODER_V2_2026-10-06.md](docs/DECODER_V2_2026-10-06.md)). Training and benchmark scripts are `scripts/Pocket-*.py`, `scripts/Benchmark-PocketTTS.py` and `scripts/pocket_training/`. See [docs/POCKET_TTS_RUNTIME.md](docs/POCKET_TTS_RUNTIME.md), [docs/POCKET_V2_RESULTS_2026-10-06.md](docs/POCKET_V2_RESULTS_2026-10-06.md), [docs/VOICE_TRAINING.md](docs/VOICE_TRAINING.md).
+
+**OmniVoice.** The `k2-fsa/OmniVoice` model through the VoiceStudio adapter (AGPL-3.0, pinned revision), one resident FP16 model shared across voices and step counts (changing steps does not reload; changing short or long restarts the worker). The model snapshot is 3.04 GiB. CUDA-graph replay (one stream for the process lifetime, retained allocation capped at 512 MiB, a 1 GiB free margin required for capture, opt-out `CYBERPUNK_CONVAI_CUDA_GRAPH=0`) cuts a reused render to 0.51 s at 16 steps and 1.03 s at 32. Startup is bounded by a 300 s stall window (reset by each loading frame) and 900 s overall; renders by 120 s. It warms Johnny, Judy and Panam first, keeps at most eight conditioning prompts in memory, and shares a 1,024-voice limit with variants. Replies are produced as phrases: the first of 6 to 22 words, later ones of 12 to 34, at most one playing and two prepared, over eight leased Audioware slots, with a cap of 120 s and 32 phrases (`bridge/speech-stream.mjs`, `speech-audio.mjs`). The OmniVoice weights are CC-BY-NC and its audio tokenizer has its own licence, so the model is an optional download rather than part of the Runtime package. See [docs/LOCAL_VOICES.md](docs/LOCAL_VOICES.md), [docs/VOICE_ACCELERATION.md](docs/VOICE_ACCELERATION.md), [docs/VOICE_BENCHMARKS.md](docs/VOICE_BENCHMARKS.md), [docs/SPEECH_STREAMING.md](docs/SPEECH_STREAMING.md).
+
+**Voxtral.** Each request sends the character's reference clip with the text: the bridge shrinks it (24 kHz mono, cut to about 8.5 s at the quietest point in the last 2.5 s, Ogg Vorbis quality 2 via ffmpeg, about 38 KB for Judy, against 408 KB as WAV), and the release builds the slots itself so a player needs no ffmpeg. The reply is split at 160 characters; first audio is bounded by 7 s with one retry at 10 s, with an 8 s stall limit; 429 cools down for 20 s (max 60 s) and 401 or 403 pause for 60 s. There is no local fallback: a reply that cannot be voiced is shown as text. Mistral's rate scheduler is shared with the text route. See [docs/CLOUD_VOICE_VOXTRAL.md](docs/CLOUD_VOICE_VOXTRAL.md).
+
+**Convai voice.** One request per turn. Original PCM16 audio arrives as reliable data-channel packets and plays through one continuous ring (`bridge/continuous-pcm-player.mjs` and its worklet). Playback starts at 400 ms of buffered source audio; a standby player is armed by the first packet. Convai's facial data (ARKit-61, not 52 blendshapes) is mapped to the rig and sampled from the heard-audio cursor. See [docs/CONVAI_AUDIO_STREAMING.md](docs/CONVAI_AUDIO_STREAMING.md).
+
+**Inworld (developer experiment).** A cloud voice behind Developer mode with the player's own key (`player-inworld-key.txt`), it also speaks with emotion marks. It is not offered to players. See [docs/CLOUD_VOICE_INWORLD.md](docs/CLOUD_VOICE_INWORLD.md).
+
+**Playback, level and clock.** Pocket, Voxtral and Convai play from one AudioContext chain in the hidden browser: worklet, panner, distance low-pass (open within 4 m, about 5 kHz at 30 m), gain and a limiter (`bridge/dialogue-level.mjs`; the gain default is +6 dB so companions sit at the game's dialogue loudness of about -23.6 LUFS). OmniVoice phrases are WAV files in Audioware slots with the same gain. The heard-position clock subtracts the output latency the browser reports, and `audioDelay` (Auto, Off or 50 to 250 ms) holds lips and subtitles back for Bluetooth audio (`bridge/audio-delay.mjs`, `bridge/audio-output-probe.ps1`). See [docs/DIALOGUE_LEVEL.md](docs/DIALOGUE_LEVEL.md).
+
+**Natural speech and emotion tags.** The character's own reply may carry `{joy}`, `{warm}`, `{interest}`, `{surprise}`, `{sadness}`, `{fear}`, `{anger}`, `{disgust}` and `{calm}` tags (with an optional `:strong`) that drive the face at that word (`bridge/emotion-tags.mjs`, `emotion-selector.mjs`), and, with OmniVoice, square-bracket sounds for laughs and sighs that dice in the bridge decide to offer (`bridge/natural-speech.mjs`, `natural-speech-talk.mjs`). Docs: [docs/EMOTION_TAGS.md](docs/EMOTION_TAGS.md), [docs/NATURAL_SPEECH_BLOCK_V3.md](docs/NATURAL_SPEECH_BLOCK_V3.md).
+
+**V's voice.** The typed line is spoken in a cloned male or female V voice (chosen from the character creator's voice tone) through the active engine, or through a CPU Pocket helper when the voice is OmniVoice (`bridge/v-voice.mjs`, `v-helper-voice.mjs`, `pcm-edges.mjs`). A slow V line is dropped so a reply is never delayed. [docs/V_VOICE.md](docs/V_VOICE.md).
+
+**Group voice and look-ahead.** A group round schedules the addressed character plus at most two nearby ones. The next speaker's turn is prepared while the current one speaks (`bridge/group-lookahead.mjs`, `group-prefetch.mjs`), which cut the median silence between speakers from 3.0 s to 0.78 s in five live Convai runs. [docs/GROUP_VOICE.md](docs/GROUP_VOICE.md).
+
+### Speech recognition and the microphone
+
+Two CET actions (`talk by voice`, `group voice chat`) start and finish capture; capture never starts by itself, opening a menu cancels it, and `mod/microphone.lua` finishes a recording at 30 s. Recognition depends on the route:
+
+- **Convai:** the capture goes to Convai, which recognises speech on its servers (English, `en-US`, by default).
+- **Mistral and Local AI** (and add-on voice keys on any route): the bridge records the microphone in a hidden page (`bridge/local-stt-capture.mjs`, 16 kHz mono AudioWorklet, 100 ms Int16 blocks, default input device) and recognises it on the PC with Moonshine Tiny (English, int8, 124 MB) through sherpa-onnx 1.13.6 (`bridge/local-stt.mjs`, `local-stt-worker.py`). The worker starts on the first recording (3 to 4 s to load), exits 90 s after the last one and uses about 250 MB and up to about 15 percent of a core while listening.
+
+Details: a word-error rate of 11.4 to 11.7 percent on 26 clips (game lines 22 percent, LibriSpeech 8.8 percent); the final decode takes 0.45 s at the default one thread (0.18 s with two pinned threads); words appear live while the player speaks and, when the live text already covers the recording, the final result returns in about 3 ms; an energy gate (150 ms above -52 dBFS and 9 dB over the noise floor) means silence never reaches the model; a fix-up list corrects names such as "pan am" to Panam. If the recogniser is not ready, the voice key shows "Speaking to companions needs Convai for now". `bridge/microphone-session.mjs` is the shared session that all routes use. See [docs/LOCAL_STT.md](docs/LOCAL_STT.md), [docs/GROUP_VOICE.md](docs/GROUP_VOICE.md), [docs/SPEECH_STREAMING.md](docs/SPEECH_STREAMING.md). Live microphone acceptance in the game was deferred.
+
+### Lip sync and the facial pipeline
+
+The game ships a JALI lip-sync animation for every English voice line (5,688 `.anims` files in the localisation archive). The mod trains a small model on those curves and drives the face from audio, with no game-side per-frame model work.
+
+- **Audio model (stage 1)**, `bridge/jali-face-model.mjs` on a worker thread (`jali-face-worker.mjs`, client `jali-face.mjs`): 80-band log-mel at 16 kHz with a 10 ms hop, a dilated 1-D convolution stack of six residual blocks and 160 channels (about 0.66 million weights, 670 ms receptive field, 200 ms lookahead), outputting 15 symmetric JALI controls (23 native tracks) plus brow outputs. The convolution runs in a WebAssembly SIMD kernel written into the file from named opcodes (about eight times faster than the scalar loop; `CYBERPUNK_CONVAI_FACE_WASM=off` forces the scalar path). The weights are about 2.7 MB. Training scripts are in `scripts/lipsync/`.
+- **Text conditioning (stage 2):** two small nets (about 106 thousand weights each) use the reply text as well: a stream net for Pocket and Convai, a phrase net for OmniVoice. Text alignment is an incremental fixed-lag Viterbi over a phone HMM with a confidence latch (`bridge/jali-face-text.mjs`, the CMU dictionary plus 6,553 game words pronounced with espeak-ng). The system falls back to audio-only for no text, unknown words, low confidence, a queue over 250 ms or text work over 40 percent of real time (`CYBERPUNK_CONVAI_FACE_TEXT=off`, `CYBERPUNK_CONVAI_FACE_MODEL=off` switch parts off).
+- **Fallbacks:** without the model weights, Pocket and Omni use phonetic analysis (a resident PocketSphinx allphone worker, `bridge/phone-analysis-worker.py`, or Rhubarb Lip Sync) and Convai uses its own supplied face data through a calibrated ARKit-61 to native retarget (`arkit61-native-v10`, jaw curve `0.40 x (10j / (1 + 9j)) x (1 - MouthClose)`).
+- **Writer:** one writer, `mod/facial-playback.lua`, validates the timeline (ceilings: jaw 0.7, lip contact 1.0, rolls 0.8 and 0.3, puffs 0.45 and 0.35, other mouth 0.5), applies a jaw lift with a floor on wide-lipped heads, ducks the expression layer while the jaw is open, and sends one `ConvaiFaceApply` per application. The speech layer takes over the mouth with a 0.10 s ease-in and a 0.15 s ease-out, and eases it shut over 0.12 s if the audio cursor stalls for 0.20 s. `mod/speech.lua` samples the playback cursor.
+- **Graphs and the archive:** `convai_facial.archive` (about 143 KB) holds nine companion face graphs and four crowd graphs under `cyberpunk_convai\facial\`. It replaces no base-game path, so removing it returns faces to vanilla. A `speech_owner` input and 59 lip-sync add deltas with 49 ownership nodes are added to each graph; 50 mouth, cheek, tongue and upper-face controls are described in `assets/facial/controls.json`, from which `r6/scripts/CyberpunkConvai/FaceFeature.reds` is generated. Build with `scripts/Build-FacialAssets.ps1` (WolvenKit Console 9.0.1, SHA-256 checked, .NET runtime 10.0.12), `scripts/Build-FacialGraphs.mjs` and `scripts/Verify-FacialGraphs.mjs`.
+- **Ordinary NPCs** get the same lip sync through a gated graph, chosen at spawn in `Face.reds`, that adds one `Switch` which stays closed until the mod voices that NPC. The gate excludes companions' graphs (they have their own), named roster characters, quest-bound NPCs and rigs without the 59 lip-sync tracks. `runtime/crowd-face-mode.txt` (`off`, `ungated`, `gated`) exists for FPS A/B tests. The same mechanism shows the Delamain cab's seat-back screen face for the add-on. This path is built but has not been installed or seen in the game, and its FPS A/B check has not been run.
+- **Expressions and gaze:** `bridge/emotion-selector.mjs` combines the character's own tags, Convai's `bot-emotion` label and a text lexicon into an `emotion-mix-v1` track. Blinks, a neutral resting face (rest smile 0.12 by default, 0.18 warm, 0.05 dry, 0 cold), a sad-gaze drop of 15 cm and gaze offsets are applied by the same writer. Eye contact uses the game's own look-at with a world offset, and the seated look limits are solved in car space (`mod/seated-look.lua`).
+
+Docs: [docs/GAME_LIPSYNC_MODEL.md](docs/GAME_LIPSYNC_MODEL.md), [docs/FACIAL_ANIMATION.md](docs/FACIAL_ANIMATION.md), [docs/LIPSYNC_IMPROVEMENTS_2026-10-07.md](docs/LIPSYNC_IMPROVEMENTS_2026-10-07.md), [docs/RESIDENT_PHONE_ANALYSIS.md](docs/RESIDENT_PHONE_ANALYSIS.md), [docs/NATIVE_FACIAL_RETARGET_CALIBRATION.md](docs/NATIVE_FACIAL_RETARGET_CALIBRATION.md), [docs/COMPANION_EXPRESSIONS.md](docs/COMPANION_EXPRESSIONS.md), [docs/COMPANION_GAZE.md](docs/COMPANION_GAZE.md), [docs/ORDINARY_NPC_LIPSYNC_RESEARCH_2026-10-14.md](docs/ORDINARY_NPC_LIPSYNC_RESEARCH_2026-10-14.md). The v2 lip-sync research in [docs/LIPSYNC_V2_RESEARCH_2026-10-14.md](docs/LIPSYNC_V2_RESEARCH_2026-10-14.md) failed its no-degradation gate on one check and is not installed.
+
+### Gestures and body animation
+
+Companions use the game's own conversation gestures while they speak a longer reply, nod while V talks to them, and now and then take a signature idle while they stand beside V. The **Body gestures** setting (Settings, Companion behavior) is on by default: `loadSettings` in `mod/manager.lua` sets a missing `bodyGestures` key to `true` and keeps a saved choice. The setting was off until 11 October 2026. With it off the controller does no speech lookups per tick.
+
+**Mechanism.** The body animation graph has no talk or gesture input. Its only route for authored full-body clips outside scenes is the workspot slot, so the mod plays the clips through an invisible device workspot:
+
+- The shipped archive `convai_gestures.archive` (installed to `archive/pc/mod/`, listed in `packaging/release.config.json`) holds one `cyberpunk_convai\gestures\convai_talk_<family>.workspot` per stance family (a looping idle sequence plus one sequence per clip) and `convai_gesture_device.ent`, an invisible gameObject with workspot components only: one `convai_talk_<family>` per family and one `convai_idle_<name>` per signature idle (31 idle components in `mod/gesture-catalog.lua`).
+- `mod/gesture-workspot.lua` is the only file that calls the workspot natives, each behind `pcall`. It spawns the device at the companion's feet (`DynamicEntitySystem`, tag `CyberpunkConvaiGestureDevice`, not persistent), enters with `PlayInDevice` and `DontPlayAtResourcePosition` (no slide), and picks clips with `SendJumpToAnimEnt`.
+- The controller is `mod/companion-gestures.lua`. The clip choice is `mod/gesture-selection.lua`, a pure module with no native calls (`npm run test:gestures`). The catalog `mod/gesture-catalog.lua` is generated from `assets/gestures/gestures.json` by `scripts/Build-GestureAssets.ps1` and `scripts/Build-GestureAssets.mjs`. `scripts/Verify-GestureAssets.mjs` fails the build if a shipped workspot has an entry clip, a key pose or a non-neutral facial idle. 16 families and 30 catalogued characters (all rigs `woman_base`, `man_base`, `man_big`) are defined in `gestures.json`.
+
+**Selection policy** (constants in `gesture-selection.lua`): nothing in a reply under 5 s of audio (estimated from the text at 2.6 words a second), never in the last 1.2 s, and a clip must fit 70 percent into the remaining speech. When the face timeline carries phrase timing, a clip starts only within 0.7 s of a phrase start, and each phrase start is decided once (20 percent rest unless the hands have rested 7 s). After a clip the companion holds the stance loop for 0.9 to 3.2 s (by intensity, divided by a per-character rate such as Takemura 0.7 or Johnny 1.2). About 60 percent of picks use the emotion's own clip category, and clashing categories never colour a line (a sad line gets no happy, emphatic, angry or surprise clip). Each mood caps the measured hand reach (sadness 30 cm, neutral 48, joy and anger 58). Repetition memory is 24 clips: the strict levels avoid the last 12 clips, look-alike groups in the last two picks, the previous kind and anything used in the last 75 s, and relax only when nothing fits. Threaten, middle finger, clap, thumbs-up, cheer, dance, salute, fist and similar clips are banned by name, and clips the build measured as pointing, directional, turning, sweeping or whipping the torso are excluded in the catalog (`clip.exclude`; measurements in `assets/gestures/clip-shape.json`, `clip-motion.json`, `clip-body.json`).
+
+**Talk gestures versus nodding.** A reply of 5 s or more is "speaking": the speaker plays talk clips. While V talks (the microphone's entity, `convaiFacialPlayback.listeningEntity`) the companion is "listening" and plays only `nod` clips, never the same clip twice running: the first nod 2 to 4 s in, then one every 5 to 10 s. In a group round (`group-chat.roleOf`) the other members keep the stance for the whole round and nod only inside another speaker's reply of 5 s or more (first nod 3 to 7 s in, then at most one every 8 to 16 s, two listeners never within 2 s of each other).
+
+**Signature idles.** A character with a signature idle (and the generic fallback below) takes one after being settled beside V for 1.5 s: an idle of 45 to 90 s, then a gap of 20 to 45 s, and not until 5 s after a reply ends. A character not in the catalog falls back by body type (`WomanAverage`, `ManAverage`, `ManBig`) to the rig's own talk stance and a pool of hip or folded-arms idles; fat and massive bodies and the records in `generic.never` get nothing. `policy.travellingIdles` keeps `generic_hips` out of the pool because it slid a companion 2 m while V stood still, and any idle that carries the body more than `driftExit` (0.45 m) is left at once and not picked again that session.
+
+**Movement ownership.** `mod/companions.lua` has an optional `bodyAnimation` owner. Each tick it calls `tick(player, step, rows)` once and `observe(entry, context, step)` per copy. While `observe` returns true the actuator issues no movement and the holster handoff sees "not idle". A copy taken by transport, recovery or a tactic is exited on the next tick (`unobserved`). Dismissal calls `release`, world teardown `abandon` (no native calls). The seating controller shares this owner and is observed first, so a seated companion never gets a gesture workspot ([docs/COMPANION_SEATING.md](docs/COMPANION_SEATING.md)).
+
+**Exit and wedge-repair rules.** A stance starts only for a settled, relaxed copy within 4 m of V that is autonomous, in no scene or dialogue and has no injury or ragdoll status (`nativeAllowed`), and only after she has turned to within 35 degrees of V and been settled for 1 s. It ends on combat (instant), a failed guard, V moving more than 0.75 m from the anchor or running, a non-hold decision for 0.8 s, V more than 4.5 m away, a crouching V (`crouching`, a workspot never overlaps a crouch), or the reply ending plus a 2.5 s linger. The exit is the native `SendFastExitSignal` with default arguments (instant variant for combat). After 3 s inside it calls `StopInDevice`, after 6 s it gives up and cools down for 30 s. It never calls `StopNpcInWorkspot`, which wedged the AI command queue in the first live probe (a follow command stayed Enqueued forever). After a normal exit the copy stays held for 0.4 s (`exitSettle`) while the pose blends out. If a wanted move stays only queued 1.5 s after an exit, the controller re-enters for 0.9 s and leaves with a clean fast exit (at most twice a minute); this repair was seen to work live. After an abnormal exit there is no re-entry for 4 s. The device is placed, checked against her pose (0.12 m, 8 degrees) and replaced if it does not follow within 1.5 s.
+
+**Verified in the game.** Capture and measurement sessions on Evelyn, Lizzy Wizzy, Blue Moon and the other catalogued characters (October 6 to 11) established the workspot route, that queued jumps never played (jumps are now instant), that the stance entry lurch came from vanilla entry clips (removed in the shipped archive), that a facial idle under the workspot kept the lips closed (fixed in the speech layer; the mouth was reported fine afterwards), and a clean entry and exit for 29 characters in a staged per-character check. Evelyn's floating stance was traced to a navmesh-height spawn; the fix that lowers the copy after attach (`settleOnFloor` in `mod/companions.lua`) was written after a first version failed live and its second version has tests but no recorded live result. Blue Moon was measured live with the body-type generic fallback after a CName parsing fix.
+
+**Not verified in the game.** The group-listener nods (Round 10), the `exitSettle` hold (Round 9), the crouch rule (Round 8, derived from one live log), the drift exit (Round 11, built after a live slide but not re-run), and the visual quality of the signature idles of the later additions (`generic_hold` was judged by name only). The Round 5 "body twitch" was not reproduced offline. `mod/gesture-probe.lua` is a development tool (command file `runtime/gesture-probe-request.txt`, driven by `scripts/Send-GestureProbe.ps1`) and is listed in `devOnlyLua` in `packaging/release.config.json`.
+
+Details, the round-by-round live findings and the build: [docs/COMPANION_GESTURES.md](docs/COMPANION_GESTURES.md), [docs/COMPANION_SEATING.md](docs/COMPANION_SEATING.md), [docs/FACIAL_ANIMATION.md](docs/FACIAL_ANIMATION.md).
+
+### Combat, tactics and companion behaviour
+
+**How a companion fights.** A managed companion is an ordinary game NPC with the follower role. When it enters native combat the movement controller releases every command it owns (the `combat` phase in `mod/companion-behavior.lua` emits a `release` operation) and the game's combat AI owns locomotion and shooting. The mod adds no attack logic of its own except the explicit tactic below. To make that work for characters who cannot fight in vanilla, `mod/companion-records.lua` prepares private TweakDB records before the entity is created. Johnny is cloned into `CyberpunkConvai.JohnnyCompanion` with Judy's abilities, ranged archetype and secondary equipment and a primary Malorian pool. Any other spawn record that has none of `CanShootWhileMoving`, `CanCloseCombat` or `HasChargeJump` is cloned into `CyberpunkConvai.Armed_<name>` and gains Judy's ranged set, archetype and primary and secondary equipment while keeping its own abilities. Records that already fight, or whose abilities cannot be read, are untouched, shared game records are only read, and a failed clone leaves the original record in use. Evidence: the developer confirmed in a live test that Johnny fights with his prepared record (29 September); the generalised `Armed_` clone was written after Alex ran away when V was attacked (11 October) and its effect on every affected character has not been checked one by one in the game.
+
+**Holster after combat** (`mod/companion-equipment.lua`). After combat a companion holsters with the native `AIUnequipCommand`, one occupied hand at a time, at most two attempts per hand, each bounded at 6 s. It needs relaxed autonomous AI, no scene, no player or NPC threat (the player check is `HasHostileThreat(player, false, true)`, entity threats only) and a stationary hold. With a weapon still drawn after 3 s of calm it raises `wantsStop`: a bounded request (8 s to reach the holster, 20 s before asking again) that holds her in place even while V walks on, so she holsters about 5 s after combat ends. The live result (30 September) was one `AIUnequipCommand` with Success and both hands empty.
+
+**Crouch with V** (`mod/companion-stance.lua`). When V crouches, managed copies crouch. Outside combat the stance call alone shows nothing in the Relaxed high-level state, so the module first raises Stealth (fallback Alerted), then calls the stance change 0.15 s later, reads the head slot height back, and restores Relaxed when V stands. It listens to one game event and re-checks at most every 0.5 s while a crouch is active. This was written from decompiled scripts after a live failure and has not been seen working in the game.
+
+**The tactic command (Attack Marked Target).** `mod/companion-marking.lua` picks one target when V talks to a companion privately: the nearest scanner-tagged NPC within 100 m, else the NPC under the crosshair within 30 m (needs one combat signal such as gang, police, security, cyberpsycho, drone, mech, android or a carried weapon), else the nearest NPC within 50 m that is already hostile to V. Named, quest-bound or scene-controlled characters qualify only when hostile and in combat; companions, children, vendors, invulnerable and friendly non-police NPCs never do. `mod/companion-tactics.lua` then sets agent-level hostility both ways (never the attitude group), adds a persistent hostile threat, and lets native combat AI run. Constants: approach 8 m, give up if combat has not started within 25 s, fight timeout 180 s, offer valid 125 s. When the fight starts it reads the right hand and, if empty, sends `AIEquipCommand` for `AttachmentSlots.WeaponRight` (readback at 1.5 s, one retry, then the combat AI decides). Hostility and the threat are restored on completion or cancel. One tactic runs at a time. Entering a vehicle, a vanished actor or target, a timeout or teardown cancels it. With nobody valid, the game reports `tacticUnavailable = 'no-target'` so the character declines instead of promising an attack.
+
+**Companion actions: from words to the game.** The game process captures an offer first, the model only chooses among offers, and a one-use token ties them together.
+1. `mod/gameplay-actions.lua` leases, for one manual private request (text or voice), at most one drive offer, one tactic offer, one follow offer and one leave offer (a manual group round leases a leave offer only). The lease lasts up to 125 s.
+2. The bridge (`bridge/companion-actions.mjs`, `CompanionActions.admit`) turns the offers into a token and, on the Convai route, advertises named actions (`Attack Marked Target <token>`, `Follow V`, `Leave V's Party`, `Drive To Waypoint`). On the Mistral and Local AI routes `bridge/text-actions.mjs` runs a small classifier request with no persona, which answers one of `DRIVE`, `FIGHT`, `FOLLOW`, `DISMISSED` or `NONE`; a code inside a reply is cut out and never starts anything. The reply is written with that decision in its notes.
+3. A decided action is published as a packet in `runtime/companion-actions.json` (`action` is `drive-to-waypoint`, `companion-tactic`, `companion-follow` or `companion-leave`, plus request id, generation, entity, profile key, world token, offer snapshot, 5 s delivery window).
+4. `Q.update` in `gameplay-actions.lua` accepts the packet only if every field matches the lease and the offer is byte-equal, consumes the lease before calling the native callback, and calls `companions.queueChauffeur`, `tactics.start`, or the adoption module's follow and leave queues. The game's own checks re-run at that point.
+
+`DRIVE` hands the car to the chauffeur system ([docs/COMPANION_CHAUFFEUR.md](docs/COMPANION_CHAUFFEUR.md)). `FIGHT` starts the tactic. `DISMISSED` (leave) sends a party member away; it is live. `FOLLOW` for a game-placed character is disabled: `companion-adoption.lua` offers nothing since 11 October, so only the leave half works. There is no wait, stay or sit command and the prompt says so.
+
+**Behaviour states.** `mod/companion-behavior.lua` is the per-copy state machine. Phases seen in the code: `joining`, `settled`, `approach`, `catch_up`, `alongside`, `braking`, `yield`, `waiting`, `obstructed`, `recover`, `combat`, `attend_turn`, `attend_settle`, `attend_step`, `attend`. Inputs are measured world state and native command feedback, never camera yaw. Pace is Walk, Run above 1.45 m/s or while catching up, Sprint above 3.2 m/s or when catching up from more than 5 m. A side glance applies only within 4.5 m and 110 degrees of facing. V looking at a settled companion allows one step of at most 16 cm, then a native rotation if needed.
+
+Evidence limits: the tactic command has never been run live (the design notes say so as of 13 October); a first test needs a tagged ganger, a distant tag and a civilian. The walking and facing behaviour was accepted in pieces during live sessions, but the full run, stop and look sequence has no recorded final acceptance. Details: [docs/COMPANION_COMBAT.md](docs/COMPANION_COMBAT.md), [docs/COMPANION_TACTICS.md](docs/COMPANION_TACTICS.md), [docs/COMPANION_BEHAVIOR.md](docs/COMPANION_BEHAVIOR.md), [docs/COMPANION_MOVEMENT_DESIGN.md](docs/COMPANION_MOVEMENT_DESIGN.md), [docs/WORLD_COMPANIONS.md](docs/WORLD_COMPANIONS.md), [docs/MISTRAL.md](docs/MISTRAL.md).
+
+### Battle and loot reactions
+
+A nearby companion can say one short line when a fight starts and another when it ends, and one line after V collects loot. Both are automatic, both are settings, and both are **off by default** in the code (`loadSettings` sets a missing `battleReactions` or `lootReactions` to `false`; the MCM rows are "React to battles" and "React to collected loot" under Automatic reactions). Turning the setting on mid-fight never replays an opening.
+
+**Battle encounter rules** (`mod/battle-reactions.lua`, pure policy; `mod/battle-observer.lua`, read-only sampler):
+
+| Rule | Value |
+|---|---|
+| Witness | a companion within 20 m while combat is on (at most 8 witnesses, 12 observed opponents, only hostile NPCs V is looking at) |
+| Opening | allowed 2 s to 12 s after combat starts, at most 8 words, a warning |
+| End of combat | after 4 continuous seconds without combat |
+| Closing | offered 4 s to 40 s after the confirmed end, at most 20 words |
+| Cooldown | 10 minutes of wall clock from the confirmed end of a qualifying fight |
+| Baseline | a save load or reload clears everything; loading during combat does not replay the opening |
+| Speaker | prefers a different identity from the previous automatic speaker |
+
+The observer also feeds manual conversation: ordinary text, voice, group and phone turns receive recent battle facts (kept 15 minutes of unpaused play) regardless of the setting. The prompt says opponent names are partial observations and forbids inventing numbers, kills or victory.
+
+**Loot** (`mod/loot-observer.lua`, `mod/loot-reactions.lua`). The observer hooks game events (`Inventory.OnInteractionUsed`, `PlayerPuppet.OnItemAddedToInventory`, `OnItemChangedEvent`, `OnItemBeingRemovedFromInventory`, `VendorDataManager` transfer and buy calls) and accepts only a world pickup that pairs a Loot interaction with a non-silent Added event. Storage transfers, purchases, quest grants, currency, recipes and changed-only increments stay silent. Each receipt freezes the exact companion copies who witnessed it. The policy waits 6 gameplay seconds of quiet, batches expire after 90 s, at most 128 receipts and 12 described items per batch, and the first 5 items carry their tooltip text. The ordinary cooldown is 10 minutes. Newly acquired Legendary weapons, clothing and cyberware (verified new identity, complete inventory baseline) use a separate 2-minute spacing. A standalone pickup line is at most 20 words.
+
+**One reply after a fight.** Pickups collected during the fight or before the closing request is written travel in the closing request: one speaker (preferring a witness who also saw the pickups), at most two sentences and 30 words. A closing waits for a pickup still being collected, but never beyond 14 s after combat was confirmed over (`CLOSING_LOOT_WAIT` in `mod/init.lua`). Carried pickups start the usual loot cooldowns. A pickup made after the closing request is written is a separate comment.
+
+**One speech owner and priority.** `mod/init.lua` coordinates both features through one request and playback lease. Manual text, voice, group and phone turns, scripted dialogue, dialogue choices, calls, higher scene tiers, vehicles and replacer sequences all take priority and cancel pending automatic work. The next automatic turn may follow about 2 s after the owner is released. The bridge learns a request's validity from `runtime/reaction-lease.json`, refreshed once a second and withdrawn on cancel (`reactionLeaseProblem` in `bridge/battle-context.mjs`; stale after 5 s). A request that is accepted into playback has 30 s to finish. A temporary native bark by the speaker is waited out inside the original deadline. `runtime/battle-cancellations.json` keeps the last 32 release records.
+
+**Daily limit and providers.** An automatic reaction is a turn like any other: the daily-limit guard counts it where a turn goes to Convai on the free tier (a player's own key is never counted). At the limit a reaction stops silently with no notice. A failed reaction request on Mistral also produces no notice. Reactions are never written to the speaker's conversation memory on the text routes.
+
+**Off the FPS path.** Nothing here runs per frame. The battle sampler runs every 0.5 s inside the 10 Hz companion tick (`updateBattles` in `mod/init.lua`) and holds no native references. Loot hooks are event callbacks wrapped in `pcall`; a callback failure suspends the observer rather than letting an error spread. A source callback asks the setting first and makes no native call when loot reactions are off. All timing runs on plain tables.
+
+**Verified and not verified.** Live audible acceptance: the opening and closing comments were both heard in a fight (29 September; the opening was interrupted by a native line once), and one loot comment after a prepared two-drink stack (30 September), heard by the developer. Not verified in the game: the Legendary two-minute exception, the item description read (`LocalizedDescription` resolvers), the item type read, the merged closing-plus-pickups reply, corpse loot-all (explicitly excluded) and any run of the full 10-minute cooldown. Reactions with the cloud Convai voice, Mistral and Local AI have not been compared for latency.
+
+Details: [docs/BATTLE_REACTIONS.md](docs/BATTLE_REACTIONS.md), [docs/LOOT_REACTIONS.md](docs/LOOT_REACTIONS.md), [docs/LOOT_REACTION_RESEARCH.md](docs/LOOT_REACTION_RESEARCH.md).
+
+### Gaze, eye contact and head tracking
+
+Companions look at V with a native look-at request that the controller owns exactly: one request per companion, retired and replaced as one operation, released on combat, dismissal, boarding and teardown.
+
+**Who is looked at.** `updateGaze` in `mod/init.lua` runs at 5 Hz (`gazePoll` 0.2 s) and calls `targetAtCrosshair`, which gathers native candidates within 8 m (`GetTargetParts`, `GetObjectClosestToCrosshair`, `GetLookAtObject`) plus managed copies seated in V's car. When V faces one of the mod's own companions she turns to V ("passive gaze response", for managed copies only; a game NPC is faced only when V starts a conversation). Losing the look for 1.5 s ends the focus. The movement controller then chooses a style per phase: `full` (eyes and head: soft limit 70 degrees, hard 120, head weight 0.18) when attending, `side` (45 / 100, head weight 0.05) for a glance within 4.5 m, `none` while walking fast, catching up or in combat. A mood can lower the target a little: a sad face drops the gaze up to 20 cm (`gazeDrop` in `mod/facial-playback.lua`).
+
+**The request.** `look` in `mod/companion-actuator.lua` builds a `LookAtAddEvent` aimed at V's `pla_default_tgt` slot with the `Eyes` body part, a `Head` additional part (weight 0.18 or 0.05 times the strength) and a zero-weight `Chest` part, soft, hard and back limits and a hard distance of 5 m. Eye contact height is a world-vertical offset written to the target provider's `SetWorldOffset`; at zero the setter is not called so the original request is unchanged. The request is rebuilt only when style, height, strength or the seated flag changes, never per tick.
+
+**Settings** (Companion behavior, defaults first):
+
+| Setting | Choices | Default |
+|---|---|---|
+| Eye contact height | 10 cm lower, 5 cm lower, Default, 5 cm higher, 10 cm higher | Default (0) |
+| Head tracking strength | Eyes only, Subtle, Gentle (default), Strong | Gentle (multiplier 1); the others are 0, 0.5, 1.5 |
+
+Saved values are validated against these lists in `mod/manager.lua`; a damaged value falls back to the default without touching other settings.
+
+**Native gaze.** With the optional native plugin (`red4ext/plugins/CyberpunkConvaiNative`, system `gaze`), Lua still creates, queues and removes the event, so ownership and retry rules do not change, and `ConvaiNativeGaze.Fill(event, player, style, height, strength, seated)` configures it in one native call instead of the property and method calls Lua makes (the source headers say "30-odd" in `native/core/src/systems/gaze/GazeGame.hpp` and "about 40" in `GazeCore.hpp`; the figure depends on how the calls are counted). `Fill` returns built, declined (Lua builds it) or unavailable (Lua keeps its path for the session); a `gaze` line in `runtime/native-off.txt` forces the Lua path. The pure plan is in `native/core/src/systems/gaze/core/GazeCore.cpp`, tested against the Lua arithmetic. As of the last log entries (13 October) a first run reported `gaze=lua (class LookAtAddEvent not found)`, a fix uses the native class name `entLookAtAddEvent`, and a live re-check had not been recorded: whether native gaze works in the game is **not verified**, and the release plan ships only the native systems that pass the live check by 16 October.
+
+**Seated companions.** After the mount command has finished, with the vehicle and seat matching and V mounted in another seat of the same car, a passenger gets a gaze-only update after the same seat has been eligible for 0.5 s. Seated requests are wider (full 100 / 150, narrow 60 / 120, back 150) because V sits about 90 degrees off her axis, are solved in the car's space (`calculatePositionInParentSpace`) and leave the `Chest` part out so the hand-on-knee animation is not fought. The look is `full` up to about 8 m/s, with a 2 m/s margin so a speed that hovers there does not swap the request, and `side` at any higher speed. A driver gets no social look above 0.5 m/s. The Judy passenger pose was checked live (the head turns, the arm stays natural); other vehicles and models are not covered. `mod/seated-look.lua` is V's camera widening in a car, not the companion's gaze.
+
+Details: [docs/COMPANION_GAZE.md](docs/COMPANION_GAZE.md), [docs/NATIVE_REWRITE_PLAN.md](docs/NATIVE_REWRITE_PLAN.md), [docs/NATIVE_PORT_BRIEF.md](docs/NATIVE_PORT_BRIEF.md), [docs/NATIVE_ACTUATOR.md](docs/NATIVE_ACTUATOR.md).
+
+### Follow, movement and recovery
+
+Companions are ordinary game NPCs created by the mod and driven by AI commands that Lua sends. Nothing in movement is redscript: the `.reds` files under `r6/scripts/CyberpunkConvai/` deal with the phone, the manager entry, speech and the face graph (`Face.reds` only recognises the spawn tag `CyberpunkConvaiCompanion`). One game-function observer, `mod/companion-locomotion.lua`, wraps `AIMoveToCommandHandler.UpdateCommand` and clears a stale facing target from the engine's walking arguments for commands the mod owns. It returns before any native call unless a managed copy exists (`M.active`).
+
+**Ownership by module**
+
+| Module | Job |
+|---|---|
+| `mod/companions.lua` | identity, spawn and attach (`AIFollowerRole` with `followerRef` set to `#player`), the 10 Hz loop (`M.update` returns until 0.1 s have passed), sensing, ordering, recovery rules, pace |
+| `mod/companion-travel.lua` | group travel inferred from V's measured displacement and recent path (64 points). Camera direction only orients the first party |
+| `mod/companion-space.lua` | formation places, lanes, spacing, candidate stance points. No game calls |
+| `mod/companion-behavior.lua` | one state machine per person (joining, settled, approach, braking, attend, obstructed, recover, catch up) that outputs an operation: kind, goal, gait, finish, face |
+| `mod/companion-actuator.lua` | executes one owned operation (one command handle per ticket), plans and checks routes, detours, waypoint legs, guards motion, measures completion |
+| `mod/companion-placement.lua`, `mod/companion-clearance.lua` | where a copy may stand or walk (see the clearance section) |
+| `mod/companion-passage.lua` | doors, lifts and fast-travel arrival rules |
+| `mod/companion-tick-native.lua` | optional native sensing, off in the release package |
+
+**Formation and travel.** The party has no size limit. `companion-space.lua` defines eight authored places as (side, along) offsets from V: (-1.5, 0.05), (1.5, 0.05), (-2.5, -1.0), (2.5, -1.0), (-1.2, -2.3), (1.2, -2.3), (-2.5, -3.5), (2.5, -3.5). A ninth and later member continues in staggered rows of two, 1.2 m further back each row, generated on first use. The "near group" radius is 3.5 m for places 1 and 2, 5.5 m up to place 8, and grows with later rows. `companion-travel.lua` smooths V's speed (time constant 0.22 s), treats under 0.28 m/s as still, and declares departure after more than 1.0 m of travel for 0.3 s or more than 2.2 m at once (a run above 3.2 m/s with 1.2 m of travel counts at once). A stop needs 0.6 s of stillness. Moving around a settled person is "local interaction" and does not move the group: the gathering is bounded by 4.0 m from the stop anchor and 3.4 m from a settled person, and its anchors never follow V. A sustained reversal needs more than 110 degrees for more than 0.9 m and 0.3 s. The design rule that came from live tests is that gaze is never a destination: looking back, glancing at a companion or walking up to her face does not make her retreat or turn the group.
+
+**Speeds and catch-up.** Gait comes from V's measured speed: `Sprint` above 3.2 m/s (or when catching up beyond 5 m), `Run` above 1.45 m/s, otherwise `Walk`. NPC sprint is capped by animation at about 5.4 m/s against V's roughly 8, so `companions.lua` also applies an individual time dilation under the reason `ConvaiCatchUp`: the larger of V's speed over the copy's natural gait speed and a distance ramp (1.0 at 6 m up to 1.6 at 30 m), matched within 3 m, changed at most 0.6 per second, and never applied over another effect's dilation. A clear distant route admits one native `AIFollowTargetCommand`; near or curved routes walk certified `AIMoveToCommand` legs (at most 1.8 m and 0.2 m of height per waypoint). Teleport is a backstop: a follower more than 60 m back for 2 s (`catchUp` constants) that is out of view is placed about 4 m behind V relative to the camera through `placement.find` with an out-of-view filter, using an owned `AITeleportCommand` (a transform teleport did not move an AI-driven copy), then an 8 s cooldown.
+
+**Recovery rules** (`stranded` and `catchUp` tables in `companions.lua`). A blocked follower that stays put for 8 s more than 10 m back rejoins out of view (never while V watches). With no native route at all it rejoins after 4 s beyond 6 m, or after 12 s even in view. A stance the actuator's short step cannot free (furniture beside her) rejoins after 6 s from 2.5 m. Routes that fail at a door: after 1.5 s stranded, the nearest closed door within 4 m of the line to V is opened, but only if V opened it and it is unlocked, unsealed and not a lift door. Lifts: nothing relocates while the car moves; a copy that stood in the car is carried (`companions.carry` teleports each rider with V every frame, at most 90 s, only while `companions.riders` is set), and a rider whose carry does not hold is hidden and placed in the car on arrival. Fast travel: each re-acquired copy gets a 15 s arrival window and rejoins out of view after 1 s if more than 12 m away. Each decision writes a `Companion recovery <kind>` line to `runtime/probe.log`.
+
+**Admission, never unchecked motion.** A route is admitted only with a native navigation path, an actual-foot body fit, player exclusion (0.75 m guard), and a swept box check in six collision groups; the 0.35 m step band and a shared 192-query budget per update apply. Obstructions search at most 16 local detours, refused when a stay-near detour would leave V by more than 1.5 m or add more than 6 m. Each update the loop starts at most two new route plans (`budget=2`) round-robin and services running motion guards first. Stale rejections are invalidated by geometry change: a foot displacement over 0.02 m, a changed box or V moving. Details and the transaction phases (preparing, retiring, admitting, moving, handoff, blocked) are in the recovery document.
+
+**Reload cleanup.** A CET reload can retire Lua while a companion is still a driver. `mod/companion-reload-cleanup.lua` persists cleanup authority only, in `runtime/companion-chauffeur-cleanup.json` (at most 4096 bytes, one hour, version 3 with `backend='npc'`). It names the entities, the borrowed car, the driver's mount command and the car's drive command separately. It never restores the party, never drives, and rechecks the unique tag, managed flag and seats on every pass. Retirement order: exact car command, guarded braking until stopped, retain the driver while V is seated, animated unmount, then delete only the old managed driver. The borrowed car is never deleted. Save, death or world change drops handles without native calls. There is no party restoration after a save load (spawn flags are `persistState=false`, `persistSpawn=false`, `alwaysSpawned=true`).
+
+**FPS rules.** The loop runs at 10 Hz, not per frame. The only per-frame hook is `companions.carry`, guarded by one field check outside a lift ride, and the locomotion observer, which exits on one boolean. Spatial work is budgeted (192 queries per update, deferred work resumes next update). The Developer movement trace (`runtime/movement-trace.ndjson`) samples at most twice a second, 2 MiB active plus 2 MiB previous, and makes no native queries.
+
+**Verified live versus not.** The two-person gathering, glance, close-face and post-car-exit cases were accepted by the owner (the first in-game trace logged at 02:34 to 02:46 IST on 2026-09-29, later ones on 2026-10-03). The October 5 to 13 changes (native follow for distant catch-up, AI teleport rejoin, door opening, lift boarding and the hidden ride) were each checked against traces; the lift walk-in and ride were seen working on 2026-10-08. Not verified in the game: larger parties and unusual obstacle layouts, native `AIFollowTargetCommand` gait over long sprints after the latest edits, updating an active MoveTo target in place (the doc says an ignored update falls back to fresh admission), and any current-build checks of the 2026-10-13 stairs fix. The native tick (`actuator`) caused a live follow regression on stairs on 2026-10-13 and ships switched off.
+
+Design notes: [docs/COMPANION_MOVEMENT_DESIGN.md](docs/COMPANION_MOVEMENT_DESIGN.md), [docs/COMPANION_RECOVERY_TRANSACTIONS.md](docs/COMPANION_RECOVERY_TRANSACTIONS.md), [docs/COMPANION_RELOAD_CLEANUP.md](docs/COMPANION_RELOAD_CLEANUP.md), [docs/NATIVE_ACTUATOR.md](docs/NATIVE_ACTUATOR.md).
+
+### Vehicles, seating and the chauffeur
+
+**Riding with V.** `mod/companion-vehicles.lua` (policy, no native calls) and `mod/companion-vehicle-native.lua` (mounted-seat sensing, Codeware spawn and delete, exact command handles) own a companion only between a release of walking and equipment commands and a resume callback. V's current road car gets the first free passenger seats, using the installed record's seat set plus native reservations. The driver seat of V's car is never given to a passenger. Remaining companions share extra cars, "overflow convoys": one car is created, inspected and filled before the next. A companion with a source-backed personal car (`mod/companion-vehicle-catalog.lua`: Panam and Claire's Mackinaw, Judy's van, Kerry's Aerondight, Johnny's Porsche 911, Rogue's Type-66) is preferred as that car's driver; the fallback is `Vehicle.v_standard2_archer_hella_player`. The Mackinaw record is limited to three seats (front left, front right, back left). Overflow cars are nonpersistent, tagged `CyberpunkConvaiPartyVehicle`, created only while V's car is nearly stopped, behind it, after five footprint rays and a six-group body check. The car count is a runaway guard of at least 8, growing to two plus one per four travelling.
+
+States: on foot, releasing, waiting for seat, boarding (20 s), riding, convoy, exiting (12 s), recovering. At most two mount, unmount or follow submissions per update and three attempts per operation. Mount and unmount are animated (`isInstant=false`), failsafe teleport is off, and the exact command handle is cancelled once and observed to a terminal state. A car is deleted only with its own creation receipt, the managed flag, the tag, no player and no occupants. An overflow driver must be seen in `seat_front_left` before the convoy moves. The Delamain cab (`M.isTaxi`, two record ids) is treated specially: guests take back left, front right, back right; no overflow cars are made; the exit starts at arrival. The Delamain handling and overflow convoys are unverified in the game.
+
+**Sitting beside V.** `mod/companion-seating.lua` makes nearby companions (within 8 m, `policy.searchRadius`) sit next to V on a couch, bench, chair or bar stool, always on and without a setting. V's sit (often a scene, with no readable workspot) is classified by name or from the furniture with about 12 rays, seats are found with downward rays every 0.1 m (about 80 rays over three updates), and the companion plays the game's own NPC sit workspot through the gesture device entity (`convai_sit_couch`, `convai_sit_chair`, `convai_sit_bar`, `convai_sit_stool` in `convai_gestures.archive`). She stands with the native fast exit when V gets up, instantly in combat, then steps out before following resumes. Standing cost is at most four `IsActorInWorkspot` calls a second. `mod/seated-look.lua` widens V's seated camera limits (yaw 130, pitch -65 to 60) through a delayed event. Sitting worked in live runs on 2026-10-08 to 10-10; the endless-sit archive, free look and chair or stool neighbours are not confirmed in the game.
+
+**Chauffeur.** Asking a companion to drive is a conversation action (`DRIVE`, offered by `bridge/text-actions.mjs` or Convai action config, validated by `mod/gameplay-actions.lua`). The Companion Manager shows trip status and **Stop trip**, with no start button. `mod/companion-chauffeur.lua` holds the transaction; `mod/companion-chauffeur-native.lua` does the checked game calls. The borrowed car is a live summoned car, or exactly one eligible player-owned car within 20 m (ambiguity is refused). The driver walks to the car with one animated `AIMountCommand`, V enters a passenger seat manually (up to five minutes within 40 m), and the mod never mounts, ejects or reseats V. The lead car receives `AIVehicleDriveToPointAutonomousCommand` on its vehicle AI, not AutoDrive. Production values: max speed 8 m/s, min speed -1, minimum distance to target 5 m, forced start speed -1, driver required, kinematic off, clear traffic off, no indefinite driving. Destination changes (V moves or switches the map marker) retarget through `AIDriveToPointAutonomousUpdate` at most every 0.2 s. Arrival needs native `Success`, a stopped car within 7 m of the current destination and no pending cancel. A stationary route is dropped after 35 s without progress, a trip after 30 minutes. The stop obligation (guarded braking) survives native success, and nothing is deleted while a command is nonterminal or the car moves. Fast travel and reload interrupt the trip and never resume it.
+
+Measured live: a bounded Johnny/Porsche prototype drove 175.654 m in 30 s at the 8 m/s setting, and on 2026-10-03 the owner confirmed boarding, manual passenger entry, driving, a changed waypoint, arrival and exit, and following afterwards. Not verified in the game: overflow convoys, reload retirement of a version-3 receipt in production, cancellation paths, and a driver pause at the door.
+
+**Native vehicles system (`vehicles`, `chauffeur`, `passage`).** The optional plugin (`native/core/src/systems/vehicles`, `chauffeur`, `passage`) replaces about 58 CET calls per car inspection, 80 to 120 per chauffeur sample (10 Hz during a trip) and up to 24 query units per lift boarding with one call each, with 8 compare-both-paths checks before trusting it and a Lua fallback on any fault. It is built and tested headless but has never run in the game, so `packaging/release.config.json` ships `runtime/native-off.txt` listing `actuator`, `vehicles`, `chauffeur`, `passage` and `faces`. A missing file means every system is on; a player or developer turns one on by deleting its line. The Lua paths above are what runs by default.
+
+**Lifts.** `mod/companion-passage.lua` handles lift cars (not vehicles): a standing spot found by physics rays, a straight `ignoreNavigation` walk in, the carried or hidden ride, and a walk out. Boarding gait is `Walk` up to 1.5 m, `Run` to 5 m and `Sprint` beyond.
+
+Design notes: [docs/COMPANION_VEHICLES_DESIGN.md](docs/COMPANION_VEHICLES_DESIGN.md), [docs/COMPANION_SEATING.md](docs/COMPANION_SEATING.md), [docs/COMPANION_CHAUFFEUR.md](docs/COMPANION_CHAUFFEUR.md), [docs/NATIVE_VEHICLES.md](docs/NATIVE_VEHICLES.md), [docs/COMPANION_RECOVERY_TRANSACTIONS.md](docs/COMPANION_RECOVERY_TRANSACTIONS.md).
+
+### Clearance and obstruction handling
+
+A navigation point on V's floor can still be occupied by a parked car or a prop. `mod/companion-clearance.lua` answers "is there room" with read-only physics overlap checks and is used by placement, the walking actuator, seating, lifts and the vehicle adapter.
+
+**What it checks.** A standing body is an oriented box with half extents (radius, radius, height / 2) centred at feet plus half height plus 0.1 m. Recognised roster humanoids use radius 0.4 m and height 2.1 m. Smasher variants and unknown model-browser entries use 0.9 m and 3.0 m; these are policy values, not measured mesh bounds. The box is tested through `SpatialQueriesSystem.Overlap` against six collision groups: `Static`, `Dynamic`, `Vehicle`, `Terrain`, `Collider`, `Destructible`. The Boolean result means "hit"; coordinates in the returned trace are never used. A route leg is an oriented box swept along each native navigation segment, split at 2 m of length or 0.2 m of rise (at most 64 boxes). Destinations use a 0.1 m foot band, walking legs 0.35 m. Placement tries at most 23 positions (seven around the formation place, then two rings), also requires a clear swept exit of up to 1.5 m toward V, and reserves pending copies. After spawn, `attachFollower` repeats the body and person-spacing check at the real engine position. No unchecked teleport is used when nothing fits.
+
+**Walking guards.** The actuator checks the path before and during movement: the standing body, a connector from actual feet, a clipped path prefix, and a short measured-steering probe capped at the next corner. A leaving-corridor or new obstruction stops the exact owned command. The player keeps a 0.75 m exclusion, lifted while V sprints (over 2.5 m/s) so a route past a running V is not rejected. Sweeps that leave the feet start just ahead of the occupied body, so a volume she already stands in never keeps her still. When a box blocks, a bounded search finds a local detour (see the movement section), and a cosmetic attention step that is refused is simply skipped.
+
+**How per-frame work is avoided.** Nothing runs per frame. One plain budget table (`limit` 192, `used`, `deferred`) is created at the start of each companion update by `companions.lua` and injected into every separately loaded adapter. `overlap` only starts when all six group queries fit; otherwise the check returns "deferred" and resumes at the same box next update, keeping the owned hold. Eight clear flat six-metre follow admissions fit within one budget. A rejected box is kept as a receipt and re-tested at most once a second, not rebuilt every tick.
+
+**Native clearance (on by default).** With the plugin loaded, `clearance.body`, `segment`, `recheck`, `sightClear` and `floorZ` each become one call to `ConvaiNativeClearance`, replacing 15 to 16 CET calls per box. Physics work is unchanged; only marshalling moves. Results, rejection details and the charged budget match the Lua path. The `clearance` switch is not in the shipped `native-off.txt`, so it is on. Before first use it runs a self-test (a clear speck of sky must hit nothing in any group; a 30 m box and a ray down from V must hit something) and checks box orientation against the game's quaternion for eight directions. It waits when no world is loaded (the game has no spatial queries system before a save), a missing class fails it at once, three faults or any mismatch in the first 8 verified calls keep Lua. Status codes: 0 clear, 1 blocked, 2 deferred, 3 unavailable, 4 fallback, 5 geometry. A line `clearance` in `runtime/native-off.txt` returns it to Lua within about a second. The headless cost is 0.11 microseconds for a body check plus a three-box segment; the CET saving is estimated at 0.15 to 0.9 ms per 2 m box and was not measured in the game.
+
+**Evidence.** A read-only receipt on 2026-10-02 confirmed real Boolean returns for all six groups: the Porsche centre hit `Vehicle` for both body profiles, pavement and V were clear, and a managed Judy at her feet was clear. Source gates cover parked-car spawns, blocked floors, deferral and unusual rigs. Not verified in the game: stairs and slopes, unusual rigs, and the native clearance A/B timings.
+
+Design notes: [docs/COMPANION_CLEARANCE.md](docs/COMPANION_CLEARANCE.md), [docs/NATIVE_CLEARANCE.md](docs/NATIVE_CLEARANCE.md).
+
+### Inviting companions, world companions and the Companion Manager roster
+
+**Inviting.** Four entry points share one queue, `mod/manager-party.lua` (`Q.invite`, `Q.dismiss`, `Q.flush`): the Characters page of the Companion Manager, a model-browser entry, the phone contact list (`PhoneContacts.reds`: **J** invites, **L** dismisses the selected contact, queued until the phone closes), and the conversation actions. `Q.invite(key)` creates a job with an id, reserves a place, and asks `mod/invitation-readiness.lua` to start preparation at once, even while the manager pauses the game: the bridge (`bridge/companion-invitations.mjs`) verifies memory and opens the private connection, at most 8 characters preparing together (`PREPARATION_LIMIT`). The copy is created only after a fresh receipt matching the exact world, ticket, revision, model and profile arrives, and only in gameplay (`Q.flush`). The service is considered silent after 60 s (`SERVICE_TIMEOUT`). Generic profiles (residents, archetypes) join as a model and receive their profile at attach. A raw game model with no conversation profile can join model-only and does not talk; an unknown assigned profile is an error.
+
+`companions.spawn` places the copy with `placement.find`, sets `DynamicEntitySpec` fields (`alwaysSpawned=true`, `persistState=false`, `persistSpawn=false`, tag `CyberpunkConvaiCompanion`, the selected appearance name) and calls `DynamicEntitySystem:CreateEntity`. A spawn waits at most 12 s to attach. Duplicates are allowed: each copy has its own serial, place and lane, shown as "Name #n". A copy's model and profile are separate, and copies with one profile share a prepared connection.
+
+**Dismissing.** `companions.dismiss` first checks `IsManaged` and the companion tag, releases gestures, equipment and pace, then calls `DeleteEntity`; the entry stays in a `leaving` state until the game confirms. A protected chauffeur driver cannot be dismissed mid-trip. The phone names a character, not a copy, and removes the newest match first. Current party's dismiss names `live:<serial>`.
+
+**World companions.** The rule since 2026-10-11 is that the mod never touches a character the game placed, apart from the talk path. Spawned companions get the full feature set. Ordinary world NPCs (pedestrians, vendors, gangers) get only conversation: they face V, their vanilla barks are muted and their reply and lip sync play, with no gaze response, party, car, gestures or seating. Named, story and quest characters (the real Judy, Panam, any quest-flagged or `q###`, `sq###`, `mq###` record) get nothing at all. One predicate, `convaiWorldPolicy` in `mod/init.lua` over `characterCatalog.protectedReason`, decides, read on demand and cached per entity. The "world character joins V" mechanism (a managed stand-in copy created with a non-crowd record clone, the original hidden with a visibility event, restored when V is far or looking away) is kept in `mod/companion-adoption.lua` but disabled: the file header says `offer()` reports `unavailable` and `queueFollow()` refuses unless `options.allowWorldFollow` is set, which only tests set. The leave half is live: a spawned companion asked to leave says goodbye, walks to goals chosen by a reachable-goal search (at least 12 m from V, then chained farther until out of sight or 50 m away) and is removed when V can no longer see her. Dismiss in Current party stays instant.
+
+**Appearances.** The selected template appearance is part of the spawn spec so the native face graph initialises for that outfit; `companion-records.lua` routes by the model record, never by an assigned profile. Kerry gets his clothed appearance name, Johnny the native `silverhand_riot__not_blendable` appearance with a private combat record. Existing copies must be dismissed and invited again to receive a changed appearance. The Kerry outfit is not confirmed in a fresh in-game invitation.
+
+**Party size.** In code the party has no size limit: the next free place and lane are used (`companions.lua` spawn), and formation places generate on demand. The bounds that remain scale with the party: 192 spatial queries and two route plans per update, 8 warm private connections (`WARM_PARTY_LIMIT`) inside 11 browser pages, 8 preparing invitations, three group-chat speakers per round, and party cars (at least 8). More members just take longer to plan and connect.
+
+**Companion Manager roster, data flow only.** `companions.list()` returns one row per live copy (serial, key, name, profile, record, state `spawning`, `ready`, `failed`, `missing`, `dead` or `leaving`, error, behavior phase and trace, speed, distance). `Q.list()` in `manager-party.lua` adds `id = 'live:<serial>'`, marks pending dismissals as `leaving` at once, attaches dismiss errors, and appends each queued job as a row with a state from the readiness receipt (`preparing-memory`, `connecting`, `ready-to-join`, `failed`). `mod/manager.lua` `updateParty` copies that list, compares a signature of serial, key, profile, state and error, and only then marks the page dirty and speaks a notice on a state change. `Q.flush()` deletes marked copies first, then spawns ready jobs (a budget deferral keeps the job for a later update) and posts a "joined" or failure notice. The settings and manager UI themselves are covered elsewhere.
+
+Design notes: [docs/COMPANION_INVITATIONS.md](docs/COMPANION_INVITATIONS.md), [docs/WORLD_COMPANIONS.md](docs/WORLD_COMPANIONS.md), [docs/COMPANION_APPEARANCES.md](docs/COMPANION_APPEARANCES.md), [docs/MANAGER_UI.md](docs/MANAGER_UI.md).
+
+### Context system
+
+Every conversation turn carries one string of dynamic context: what the game knows about V and the moment, the quest knowledge the character may use, and a few style notes. The character profile stays fixed; this string is rebuilt for each turn. Convai and the text providers (Mistral, Local AI) get the same blocks. The Lua side captures plain data when V sends a turn, the bridge validates it and words it, and nothing is kept as a memory.
+
+#### Where a turn's context comes from
+
+On the game side, `mod/init.lua` (`sendRequest`, text on F6), `mod/microphone.lua` (voice), `mod/group-chat.lua` (group round) and `mod/phone-chat.lua` (Phone Chat) attach a snapshot to the request: the tracked quest (`mod/quest-context.lua`), the last game dialogue (`mod/game-dialogue.lua`), V's gear (`mod/player-gear.lua`), the last battle (`mod/battle-observer.lua`), and the "right now" facts (`mod/turn-context.lua`). The large world and journal snapshots are not inside the request: `mod/knowledge-parts.lua` publishes them as `runtime/knowledge-world.json`, `knowledge-active.json` and `knowledge-history.json` once per revision, and the request names `{part, revision}`. The bridge (`bridge/knowledge-parts.mjs`) reads a part the first time a request names it, deep-freezes it and keeps the three newest revisions of each part. A request used to carry about 800 KB; the installed `last-input.json` measured about 6 KB after this change.
+
+On the bridge side, `bridge/quest-context.mjs` (`conversationContextBlocks`) builds the base blocks and `conversationBlocks` in `bridge/convai-bridge.mjs` adds the rest. Each block has a tier (`now`, `world`, `notes`, `volatile`) and a world block may carry a key. The order Convai receives them in:
+
+| Block | Source | Cap | Who gets it |
+|---|---|---|---|
+| Right now | `bridge/turn-context.mjs` | 800 characters | companions in person, ordinary NPCs (reduced), Phone Chat and holocalls (reduced), add-on voices (group only) |
+| Group round | `bridge/group-context.mjs` | none | group turns |
+| Archetype ("who you are, where you are") | `archetypeContext` in `bridge/protocol.mjs` | small | ordinary NPCs only |
+| Vendor memory | `bridge/vendor-memory.mjs` | 10 exchanges | one-shop vendors, private turns |
+| Relationship | `bridge/romance-context.mjs` | about 0.2 to 1.9 KB | Judy, Panam, River, Kerry, Meredith |
+| World facts (reviewed rules) | `bridge/world-knowledge.mjs` | 8,000 characters | named characters with a rule that names them |
+| Recent shared events | `bridge/quest-overview.mjs` | 1,900 characters (3 events) | named characters |
+| Journal history | `bridge/journal-history.mjs` | 6,000 characters | named characters, only when V's words match a quest |
+| Open jobs | `bridge/quest-overview.mjs` | 2,200 characters | named characters |
+| Tracked quest | `journalContext` | up to 8 objectives | named characters |
+| Game dialogue | `bridge/game-dialogue.mjs` | 14 lines, 1,600 characters | manual turns |
+| Battle, loot | `bridge/battle-context.mjs`, `loot-context.mjs` | small | battle and loot reactions |
+| V's gear | `bridge/player-gear.mjs` | 900 characters (420 for a stranger) | in-person manual turns, not Phone Chat |
+| Native character claims | `bridge/intrinsic-character-context.mjs` | 4,096 bytes | 10 reviewed characters |
+| Style notes | follow-up, Natural speech, Expressive emotions, first-person reminder, reply language | fixed | all turns (a reaction gets no reminder) |
+
+Automatic reactions get no game dialogue and no gear. An ordinary NPC (`isAmbientProfile`: the two residents and every `npc-*` profile) is a stranger to V: `conversationContextBlocks` gives it no journal, jobs, history, world facts or authority text, only the right-now block, its archetype block, the group and dialogue blocks, and the clothing and weapon in hand (`visibleGearContext`). An add-on voice with no body (a cab's AI, `voiceConversationBlocks`) gets neither quest nor gear nor the clock (see [Add-on API](#add-on-api)).
+
+#### The right-now block
+
+`mod/turn-context.lua` reads the moment on demand and reuses the snapshot for 5 seconds (`MAX_AGE`), so a group round or a voice start and finish reads the game once. It runs no timer, hook or file. Fields: game clock (hour and minute), district and area (`PreventionSystem:GetCurrentDistrict`), V's gender and lifepath, whether V is in or driving a vehicle, V's motion, up to 4 party members within 15 m with what each is doing (following, standing, in a fight, walking to a seat, seated, passenger, driving, and so on, from `companions.activityInputs`), and four facts added on 2026-10-14: weather (clear, cloudy, rain, heavy rain, toxic rain, fog, smog, sandstorm), V's health band (hurt 30 to 59 percent, badly hurt below 30, healthy never mentioned), the police heat stage 0 to 5, and a money band (broke below 250, low below 2,500, comfortable from 50,000, rich from 250,000; the middle band is never mentioned). The money number never leaves Lua. Every native call is in `pcall`; after three straight errors a read is skipped until the next reload or save change; `probe.log` gets one line per failure kind per session.
+
+`bridge/turn-context.mjs` words it and fits it into 800 characters, dropping whole sentences from the end (money goes first). It goes first so Mistral's cap, which keeps the head and the tail, never cuts it. What each audience hears:
+
+| Audience | Gets |
+|---|---|
+| Companion in person | "You are with V in person" plus her own activity and place, time, weather, who else is with V, vehicle, motion, health, heat, V's gender and lifepath, money, then "treat this as fact: never claim to be anywhere else" |
+| Stranger (ordinary NPC) | time, weather, its district if the archetype block had none, how many people are with V, vehicle, a visible injury ("V looks hurt"), how V looks. Never lifepath, heat, money or names |
+| Phone Chat | time, weather, V's district and what V is doing, and the plain statement that she is somewhere else and must not name a place or a task |
+| Holocall | the same, worded as a call |
+| Add-on voice | only who is with V in a group round |
+
+The wording exists because a model with no place given invents one ("finishing hardware checks in the basement"). On a blind check the share of replies that claimed another place or an unlisted activity fell from 24 to 6 percent (ministral-8b) and from 36 to 1 percent (Gemma 4 E4B), per [docs/MISTRAL_PROMPT_PASS.md](docs/MISTRAL_PROMPT_PASS.md). The weather, health, heat and money reads use CET call names that are unconfirmed in the game (the rain getters and the stat-pool and heat-stage names exist in the 2.31 script cache; the weather-state getter names do not). They have not been checked against the game.
+
+#### Quest knowledge
+
+The journal is read-only. `mod/quest-context.lua` follows the tracked entry to its quest and visits only active, revealed nodes, with the tracked objective first and at most 8 objectives (depth, node count and hash bounds apply). F6 captures at submission, a group round once at round start (all speakers share it), F7 when recording starts, Phone Chat on send. Context changes enter the preparation identity, so a prepared answer cannot be claimed with a different quest snapshot. The framing tells the character the journal is shared knowledge but not proof of eyewitness, forbids treating tracking as completion, and says an unknown fact is unknown, not a rejected choice.
+
+From 2026-10-09 a character also gets recent shared events and open jobs, ordered by `JournalManager.GetEntryTimestamp` (game seconds of an entry's last state change; the clock was checked against six autosaves). Events are up to 3, newest first, at most 2 per quest, only from rules where the character is a declared speaker; "recently" means within 2 in-game days. Jobs are grouped by the game's own type with caps (main 6, side 8, gigs 5, NCPD hustles 3) and are named by what they are about, not by journal title, using `research/cyberpunk/quest-premises.json` (reviewed hook-only premises of at most 100 characters for 272 of 290 main, side and gig quests; no outcomes). `bridge/journal-quest-types.mjs` is generated from it by `research/cyberpunk/scripts/build_journal_quest_types.mjs`. On the test save this made Judy answer "what did we do last?" with the apartment visit instead of an unrelated gig.
+
+The world facts come from the reviewed rule pack. `mod/world-knowledge.lua` reads the allowlisted quest facts (`GetFactStr`) and journal entries under a 2 ms per-frame budget with a 30 s refresh by default (code defaults; a journal change, the composer, the talk key and Phone Chat trigger a scan earlier, per [docs/QUEST_DECISIONS.md](docs/QUEST_DECISIONS.md)). A zero from `GetFactStr` is "unknown", because it also means absent, so a zero never states a refusal. `resolveKnowledge` evaluates each rule against the snapshot, filters by audience (a rule is spoken only by its declared speakers), ranks by active quest, relationship, the character's own arcs and V's words, and fits 8,000 characters.
+
+| Data file | Role |
+|---|---|
+| `characters/world-knowledge.json` (9.5 MB, loaded at bridge start, limit 16 MiB) | the reviewed pack: `rules`, `factAllowlist`, `journalAllowlist`, `evidence`, `coWitnesses`, `profileKeys` |
+| `research/cyberpunk/native-rules/*.json` (30 lane files) | pack build input; merged and hash-checked by `research/cyberpunk/scripts/build_native_pack.mjs --apply` |
+| `research/cyberpunk/decision-rows-b.json` and its dispositions | the 2026-10-14 decision rows, turned into a lane file by `decision_rows.mjs` |
+| `research/cyberpunk/native-cowitness.json` | Johnny hears V's participant, witnessed and private rules (he shares V's senses between the Relic and Mikoshi), except the early quests and some epilogues |
+| `research/cyberpunk/quest-premises.json` | plain descriptions of jobs |
+| `research/cyberpunk/native-character-claims/*.json` | per-character claims; 10 are pinned by hash in `REVIEWED_INTRINSIC_PACKS` |
+| `runtime/knowledge-*.json`, `knowledge-status.json` | the published parts and bridge status (ignored by Git) |
+
+#### Quest decisions and coverage
+
+A rule is `{condition, statement, audience, evidence}`. On current main the pack has 1,078 rules: 778 `source-verified` (executable), 21 `candidate` (never executable), 278 `unmapped` and 1 disabled, with 361 fact and 638 journal selectors. Of the 778 executable rules, 675 are category decision, 71 quest and 32 relationship; 71 characters speak at least one. The statements say what V did ("V refused to sign the contract"), and the framing says missing information is unknown. A rule that proves a choice rests on a quest fact written only by that branch, or a journal entry that only the taken branch reaches.
+
+`bridge/knowledge-decisions.mjs` flags 459 of the 768 executable rules of 2026-10-13 as branch decisions (phone reply, one of several outcomes of one decision point, or a deliberate act in the statement) and `resolveKnowledge` tells them first under "choices", with `CHOICE_SHARE = 0.95` of the room. On the test save Johnny went from 13 to 23 decisions told. Preparation per turn fell from 138 to 190 ms to 0.3 to 0.7 ms (offline, 2026-10-13) by sharing frozen parts instead of cloning them; the live value in `bridge-latency.json` had not been read back at that time.
+
+The numbers below are dated. October 5: 768 enabled rules mapped 749 of 1,162 researched outcomes; October 14 (step B, 9 verified decision rows and 21 candidates, plus a fix that lets Dex hear what V told him) raised that to 758, leaving 404 unmapped. The reasons for unmapped outcomes in the 2026-10-14 counts: no native signal 64, no one who could know 55, only a zero distinguishes the branch 46, told by V 45, ambiguous 38, shared writer 26, out of scope 11, transient 9. The 41 told-by-V rules never fire, because no disclosure receipts exist. On the test save of 2026-10-12 (game day about 108, 347 true rules) Judy was told 15, Panam 21 and Johnny 27, with 266 more for Johnny dropped by the budget. Coverage is a source and offline-save result; natural recall in the game is not claimed.
+
+#### Decision ledger (off by default)
+
+For choices the game leaves no fact for, `mod/game-dialogue.lua` can record V's picked dialogue option into `runtime/decision-ledger.json` (newest 40, text 120 characters) and the bridge adds up to 5 picks as one line of at most 1,100 characters, taken out of the 8,000-character knowledge budget. It is controlled by `decisionLedger` in `settings.json`, default false, and has no interface entry. It only keeps picks for the current world token, drops entries stamped later than the game clock (an earlier save was loaded), and with the setting off costs one function call per pick. The choice hook (`PreventionSystem.OnPlayerChoice`) had not been seen firing in a logged session when it was written (the other three dialogue hooks had), so the ledger is unproven in the game. `KnowledgeService` and `QuestMemory` (stored events, cloud sync, `fact-identity.lua`) remain in the tree from an earlier design but the running bridge builds `PlayerKnowledge` and does not use them.
+
+#### Delivery, budgets and caches
+
+- **Convai:** `updateContext` in `bridge/realtime-client.mjs` sends `{mode: 'replace', run_llm: 'false'}` with a fixed prefix plus the context before V's text, replacing the previous dynamic info wholesale. Phone Chat sends the same context over its own session. Convai ignores block order.
+- **Mistral and Local AI:** layout v2 in `bridge/mistral-prompt.mjs` places stable text first so a prefix cache works: persona and rules, format notes (3,000 characters), world (16,000, head 60 percent and tail kept), the older-talk summary (1,400), the right-now block, history, then this turn's volatile notes (6,000) and retrieved memories (1,200) and `V says`. Without `contextParts` the whole context is capped at 20,000 characters. For a small server context, `bridge/prompt-budget.mjs` trims in a fixed order: jobs, history, recent events and gear (each halved, then dropped), then retrieved memories, older history, the summary and the tracked-quest block, and last the world facts; it never touches the persona, rules, format notes, right-now block or V's words.
+- **Cadence:** tracked quest, gear, game dialogue and battle snapshot are read at turn start; the world and journal scans are paced; the relationship facts refresh every 2 s; the 0.5 s battle sample is separate.
+
+#### Dynamic-context audit (2026-10-12) and what changed
+
+The audit listed 18 inputs and six findings. Status on current main: the false "location and time" claim in the Mistral docs was corrected; ordinary NPCs no longer receive the journal or gear list (bridge gate, verified in `conversationContextBlocks`); the 796 KB per-turn payload was replaced by published parts; the audit's "two collectors every frame" finding predates the paced scan (2 ms budget, 30 s refresh) and the frame cost of the collectors has not been re-measured; the proposed first-in-context block was built as the right-now block, then extended with weather, health, heat and money; pickups still reach only battle-end reactions (not re-checked). One mismatch remains: the text-provider layout clips the right-now block at `LIMITS.now` = 700 characters while the builder allows 800.
+
+Not verified in the game: the weather, health, heat and money reads, the choice hook, the decision ledger, the ordinary-NPC context, and Phone Chat's right-now block. Design notes: [docs/QUEST_CONTEXT.md](docs/QUEST_CONTEXT.md), [docs/QUEST_DECISIONS.md](docs/QUEST_DECISIONS.md), [docs/GAME_DIALOGUE_CONTEXT.md](docs/GAME_DIALOGUE_CONTEXT.md), [docs/DYNAMIC_CONTEXT_AUDIT.md](docs/DYNAMIC_CONTEXT_AUDIT.md), [docs/PLAYER_GEAR_CONTEXT.md](docs/PLAYER_GEAR_CONTEXT.md), [docs/ROMANCE_DYNAMIC_CONTEXT.md](docs/ROMANCE_DYNAMIC_CONTEXT.md), [docs/QUEST_OUTCOME_COVERAGE_2026-10-05.md](docs/QUEST_OUTCOME_COVERAGE_2026-10-05.md), [docs/QUEST_PRIORITY_COVERAGE_2026-10-04.md](docs/QUEST_PRIORITY_COVERAGE_2026-10-04.md), [docs/CHARACTER_KNOWLEDGE_COVERAGE_2026-10-01.md](docs/CHARACTER_KNOWLEDGE_COVERAGE_2026-10-01.md) (an earlier audit; its counts are superseded).
+
+### Memory and relationship systems
+
+#### What is remembered, and where
+
+Where a character's memory lives depends on the conversation provider.
+
+| Provider | Long-term memory | Short history |
+|---|---|---|
+| Convai (free tier or the player's own key) | Convai's own long-term memory, per character and end user | Convai's session |
+| Mistral, Local AI | local, `bridge/memory-store.mjs`, one file per character under `<state>/local-memory/<player>/<profileKey>.json` | last 8 exchanges per character and channel (private, phone, group) |
+| Any provider, one-shop vendors | local, `runtime/vendor-memory.json` | last 10 exchanges per vendor |
+| Any provider, other ordinary NPCs | none | session only, per physical NPC |
+
+**Convai.** The player has one persistent `endUserId`, kept in `runtime/player-memory.json` and its `.identity` anchor (with a `.lock` file for one writer). Every named character and every channel uses it. Loading a save, reloading CET, restarting the bridge and either Forget action keep it. Memory is natural: Convai extracts it from real conversations, the runtime has no `/memory/add` call and seeds nothing. Inviting a character prepares its memory configuration and warms its connection before the copy appears, but does not create memories or add it to the contacted registry; the first real message does. An admitted automatic reply also registers the character, so Forget all covers it. Private, phone and each exact group audience have separate transient sessions per world token and reset epoch, but the provider's memory is shared for the same player and character, so session separation is not memory isolation. With the player's own Convai key, if the account has no room for the mod's id the bridge adopts an existing memory user (`player-convai-user.json`; see [docs/OWN_CONVAI_KEY.md](docs/OWN_CONVAI_KEY.md)).
+
+**Local memory** (`bridge/memory-store.mjs`, shared by Mistral and Local AI). It keeps the last 8 exchanges per channel, a summary of up to 1,400 characters of older private and phone talk (never given to a group, so private talk is not repeated there), and extracted records (fact, event, preference, relationship, promise; up to 600 per character, 220 characters each) with an embedding vector when an embedder is running (Local AI). Extraction runs in the background after 6 pending exchanges or 20 s of quiet, only when there has been no combat, nothing is in flight, speaking or recording; a new fact within cosine 0.90 of an existing one updates it. Retrieval returns at most 4 records and 1,200 characters above a score of 0.40 within 400 ms. Writes are atomic and debounced. The editor's pinned memories and a hand-written "things they always know" list are described under [Characters](#characters-ordinary-npcs-and-multilingual-profiles).
+
+**Ordinary NPCs.** All 74 archetype profiles and the two residents have Convai long-term memory off, and a session is one physical NPC in one loaded world (an NPC without an entity is refused). **Vendor memory** (`bridge/vendor-memory.mjs`) is the exception. A shopkeeper with a record of its own (`archetype.memoryKey`, matching `^[a-z0-9_]{3,64}$`, for example `wat_kab_ripperdoc_01`) remembers V across saves: after a private text or voice reply has been heard to the end, V's words and the reply are stored (each side clipped to 300 characters, 10 exchanges per vendor, 200 vendors, 2 MiB file, atomic writes, a corrupt file kept as `.corrupt`). Not stored: reactions, group rounds, Phone Chat, interrupted or unheard replies, and turns whose world or reset guard is stale. It is local because Convai memory is per character and end user and the mod has exactly one end-user id, so one shared ripperdoc character would mix every shop. The context section says old exchanges are not facts about the current game. Convai memory and vendor memory for ordinary NPCs have not been seen live.
+
+#### Forget and the Companion Manager page
+
+Settings > Memory > Manage opens its own native page ("Whose memories"): a searchable catalogue picker (18 results a page; a character can be selected without inviting it), **Forget selected character**, **Forget all memories**, inline Confirm and Cancel, and a result row. The raw player id never reaches the page. Lua (`mod/manager.lua`) writes `runtime/memory-command.json` only after Confirm and the bridge (`bridge/player-memory-control.mjs`) publishes `runtime/memory-status.json` (ready status no older than 15 s enables another clear); completion needs a matching command id, scope and profile key. A reload reads the retained command and never sends it twice.
+
+Order inside a clear: durable reset epochs fence old replies, live routes close, Forget all empties vendor memory, the local text-provider store is cleared (`quiescePlayerMemory` in `bridge/convai-bridge.mjs`), then provider memories are deleted for the contacted characters and the result is read back as an empty list. A character is a family: its ordinary profile and its Multilingual twin are cleared together. Success means an empty list was observed; Convai gives no documented flush barrier, so an earlier extraction job could still land. A partial or uncertain result stays failed and keeps the family fenced. Forget selected character does not touch vendor memory. A successful reset also removes the matching Phone Chat history and drafts (`mod/phone-chat.lua` is the only writer of `runtime/phone-history.json`; the bridge journals receipts in `runtime/memory-chat-resets.json`); a failed or uncertain reset keeps them. Request epochs mean a late reply from before a reset cannot restore anything.
+
+Verified by tests (`npm run test:memory`, offline fixtures that make no provider requests). The user confirmed that the Memory page opens and that Back to settings works. A destructive Forget, natural recall and the real provider deletion have not been checked in the game.
+
+#### Relationship profiles (Auto, On, Off)
+
+Five characters have a relationship setting: Judy, Panam, River, Kerry and Meredith. There is one Convai profile per character; until 2026-10-09 each also had an affectionate twin profile, which split Convai's memory in two and was retired. The setting, `relationshipModes` in `runtime/settings.json` (default `auto` for each), only decides whether `bridge/romance-context.mjs` adds an affectionate paragraph to the turn's context. It is the same on every provider and changes nothing about the model, voice, quests or memory.
+
+| Character | Auto requires (quest facts) |
+|---|---|
+| Judy | `sq030_judy_lover` (`sq030_11_romance`, `sq030_romance` observed; `sq030_friendship` blocks) |
+| Panam | `sq027_panzer_sex` and `sq027_panam_lover` |
+| River | `sq029_river_lover` and `sq029_done` |
+| Kerry | `sq028_kerry_relationship` (`sq028_kerry_dislike` blocks) |
+| Meredith | `q003_stout_sex_done` (a casual encounter, never a partnership) |
+
+`mod/relationship-state.lua` reads these 11 facts every 2 s and writes `runtime/relationship-state.json`; the bridge accepts a capture for the current world no older than 5 s. A zero is unknown. Missing, stale or foreign evidence gives the ordinary block for that turn and never blocks the conversation. On forces the affectionate delivery without asserting that any event happened. Off keeps the ordinary delivery but, if the save confirms the relationship, the character still acknowledges it plainly if asked. Group turns add a receipt for the speaker's own confirmed relationship only, never another companion's. The decision per character is written to `runtime/relationship-routing.json`; a change applies at the next idle conversation boundary.
+
+The block is about 1.7 to 1.9 KB when affectionate, 0.2 KB when ordinary and about 0.6 KB when ordinary but confirmed. Measured offline against the old two-profile design with 48 lines per character and about 2,000 replies, scored blind by one model: voice 3.78 against 3.58, warmth level (3.04 against 3.01), and "not forced" level (4.89 against 4.85); group turns were the soft spot. Live acceptance of Auto, On and Off, and of the group acknowledgement, is still owed.
+
+Docs: [docs/PLAYER_MEMORY.md](docs/PLAYER_MEMORY.md), [docs/PLAYER_MEMORY_UI.md](docs/PLAYER_MEMORY_UI.md), [docs/CHAT_MEMORY_RESET.md](docs/CHAT_MEMORY_RESET.md), [docs/RELATIONSHIP_PROFILES.md](docs/RELATIONSHIP_PROFILES.md), [docs/ROMANCE_DYNAMIC_CONTEXT.md](docs/ROMANCE_DYNAMIC_CONTEXT.md), [docs/LOCAL_AI.md](docs/LOCAL_AI.md), `research/cyberpunk/PLAYER_MEMORY_API.md`.
+
+### Characters, ordinary NPCs and multilingual profiles
+
+#### The roster and the profile format
+
+`characters/roster.json` holds 80 rows: 78 named characters and the two generic residents (`resident-male`, `resident-female`, kind `ambient`). A row has `key`, `name`, `gender`, `aliases`, `records` (the game's character records), the Kokoro `voice`, `model`, the three Convai text fields (`backstory`, `speakingStyleDescription`, `speakingStyleSampleDialogues`), `profileRevision`, `sources` and `uncertainty`. The source is a research dossier per character (`research/cyberpunk/dossiers/<key>.json`); `npm run build:profiles` (`scripts/Build-CharacterProfiles.mjs`, `buildProfiles` in `research/cyberpunk/scripts/build_research.mjs`) writes `roster.json`, `characters/profile-text/<key>.txt` (80 files for review) and `profile-build-report.json`. All profiles use model `fast-gemma-4-31b-it` (`profile-settings.json`, profile revision 5, verified 2026-09-28).
+
+The three fields stay separate, as the Convai API takes them (`backstory`, `speaking_style_description`, `speaking_style_sample_dialogues`; [docs/CHARACTER_API.md](docs/CHARACTER_API.md)). The sample field holds spoken words only, without speaker labels or V's side, because the model repeated a label aloud once. Examples are original writing, not transcripts of the game's lines. A summoned character establishes no quest outcome; outcomes reach the model only through the knowledge rules above.
+
+`scripts/Provision-Characters.mjs` (`--apply`, `--only key1,key2`, `--existing-style-only`) creates or updates the Convai characters: it keeps existing ids, backs up the old text, checks the ownership marker line `[CyberpunkConvai profile v2:<key>]`, reads back all three fields and the voice, and does not repeat an ambiguous create. Ids go to the ignored `runtime/characters.json`. The same text is also what Mistral and Local AI use as the persona, so one build feeds all providers.
+
+**First person.** All 80 backstories and speaking styles are written in the first person ("I'm Judy Alvarez, ..."). `characters/first-person-profiles.json` holds the first-person copy keyed by the SHA-256 of the third-person text it was written from; if a dossier changes, the build stops until that character is rewritten (`scripts/Rewrite-FirstPersonProfiles.mjs extract|check|apply|report`). The context also ends with a first-person reminder, because a question that presupposes a look the profile does not mention ("why blue hair?") with a quest block about someone else produced a narrator's third-person answer in 10 of 20 test replies; with the rule and reminder it was 0 of 20 (`scripts/Probe-ThirdPerson.mjs`, [docs/FIRST_PERSON_RULE.md](docs/FIRST_PERSON_RULE.md)).
+
+**Appearance.** `characters/appearance.json` has 80 entries; 72 carry a short second-person description ("You have green and pink hair, ...") with its source and a reference image path, and 8 are empty. `buildProfiles` appends it to the backstory as "Your appearance:", so the character can answer about its own looks. The mod's spawned copies take their initial appearance from the spawn specification (Kerry's clothed appearance is selected explicitly; [docs/COMPANION_APPEARANCES.md](docs/COMPANION_APPEARANCES.md)).
+
+**Native claims.** Ten characters (Johnny, Jackie, Judy, Panam, Kerry, Evelyn, River, Reed, Songbird, Alt Cunningham) also get claims read from game data (`REVIEWED_INTRINSIC_PACKS`, hash-pinned, 4,096 bytes of context at most). Adding a first-tier character (dossier, Convai profile and twin, knowledge `profileKeys`, auto-connect list, voices, gestures) is eight steps, written out with the Alt Cunningham example in [characters/README.md](characters/README.md).
+
+#### Ordinary NPC conversations
+
+Unnamed NPCs the game gives no story role (gang members, NCPD officers, guards, faction soldiers, vendors, pedestrians) can be talked to with the usual talk keys when Settings > Conversations > "Talk to ordinary NPCs" is on (`archetypeConversations`, default on). Each is routed to a generic **archetype** Convai character, one per kind of person and gender.
+
+**Counts.** `characters/archetypes.json` lists 37 kinds (`bases`) and 74 characters (`archetypes`, each kind in a male and a female variant, keys `npc-<kind>-male|female`); `characters/archetype-roster.json` has 74 rows, `characters/archetype-profiles/` 37 files and `characters/archetype-profile-text/` 74. The figure 44 in older docs is the first slice only (22 kinds); `docs/NPC_ARCHETYPES.md` header and body say 37 kinds and 74 characters, but some of its later sentences (and `docs/MULTILINGUAL_PROFILES.md`, which counts 124 twins) still say 44. The code and data decide: 37 kinds, 74 profiles, 154 twins in all (80 named plus 74 archetypes; `characters/multilingual-voice-map.json` has 154 assignments).
+
+The kinds are 11 gangs and factions (Maelstrom, Tyger Claws, Valentinos, 6th Street, Animals, Voodoo Boys, Scavengers, Wraiths, Mox, Aldecaldos, Barghest), NCPD, corporate security, Militech, Kang Tao, NetWatch, Trauma Team, Biotechnica, mercenaries, street goons, vendors (ripperdoc, weapons dealer, food and drink, bartender, clothing, medic, junk, melee, netrunner, market stall) and residents (corporate, street, nomad, homeless, nightlife, worker, Dogtown).
+
+**How an NPC is chosen.** `profileIdentity` in `mod/init.lua` reads plain facts of the NPC under the crosshair (affiliation, vendor type, quest flag, police and crowd flags, TweakDB record name, body type; each read guarded and cached per entity) and `mod/character-catalog.lua` (`classify`, generated detection data) applies a fixed precedence: our managed copy, named roster profile, vendor, story-bound check, police, corporate security, faction, gang, resident kind, then the generic resident. No gender, no profile; children, androids and MaxTac are never routed. The bridge gets the facts as `archetype` fields (`parseArchetype`, fixed vocabulary) and `archetypeContext` words them with the district.
+
+**Which systems apply.** One predicate, `convaiWorldPolicy` in `mod/init.lua` (`ours`, `protected`), over `characterCatalog.protectedReason`:
+
+| Who | What the mod does |
+|---|---|
+| A companion the mod spawned | the full feature set |
+| An ordinary world NPC | only the talk path: it faces V, its vanilla barks are muted for the conversation, its reply and lip-sync play; auto-connect may pre-open a connection. No gaze response, party, car, gestures or seating |
+| A named, story or quest character the game placed | nothing at all, as if the mod were not installed; only the mod's own copy of that character talks |
+
+Sessions are partitioned by the actor's entity (two Maelstrom gangers never share a conversation), Convai long-term memory is off, quest knowledge and save identity are never attached, and the bridge gives an ordinary NPC no journal or world facts (see above). Each variant has 1 to 4 local voices (`voiceCount`), chosen deterministically from the shop record or the entity id. District is per-turn context, not a separate profile. The Model browser classifies a record from TweakDB alone so an archetype copy can be invited as a model. The ordinary-NPC talk path, the classifier's TweakDB reads and the archetype voices are built but have not been seen or heard in the game (the check list is in `docs/NPC_ARCHETYPES.md`).
+
+#### Multilingual profiles and the Multilingual setting
+
+Every named character and every archetype has a twin named "<name> Multilingual" in the same Convai account (154), made by `scripts/Create-MultilingualProfiles.mjs` (default dry run, `--apply`, `--only`, `--roster named|archetypes`). A twin is a faithful clone (only the ownership marker differs: `...:multilingual`), English-only in its language list, memory as the original's, and speaks with an Azure multilingual voice chosen per character from `characters/multilingual-voice-map.json`, because Convai refuses non-English language codes on a Kokoro voice. The "Only reply in the selected languages" box must be off; the Core API cannot set it, so a signed-in browser session does it and `languageBoxOff: true` is recorded in the ignored `runtime/multilingual-profiles.json`. Alt Cunningham's twin did not have that flag set when the doc was written.
+
+`multilingualConversations` (Settings > Conversations, off by default) sends the turn to the twin (`bridge/multilingual.mjs`, `bridge/relationship-routing.mjs`; provider key `<key>-multilingual`) only when its entry is verified, its box is off and its original id matches the id in use; otherwise the original answers and one log line says so. A twin has its own Convai memory (nothing is copied) and shares the original's Forget family. Turning the setting on moves companion voices off Pocket TTS (English only) to OmniVoice or the cloud voice in the same Apply, with a notice, and refuses Pocket while it is on. The context ends with a reply-language note naming the language detected in V's message (`bridge/reply-language.mjs`), because the English context otherwise pulled "hola, como estas" into an English reply. The twin is a Convai character, so only the Convai route uses it. Known limits: the microphone is transcribed by Convai's server recognition with no language field (another language into the microphone is untested), the game font may lack glyphs (the mod picks a font family from the reply's script, unit-tested only), and lip sync uses English-shaped visemes. The Omni worker was checked offline on 2026-10-07 for six languages (en, es, ja, de, zh, ru) with one reference voice; text chat in other languages is documented as working; the microphone and the font handling have not been checked in the game.
+
+#### The character editor
+
+Settings > Edit characters > Open lets a player change a character's bio, speaking style, speaking rules, example lines and a few memories, for Mistral and Local AI only (the page says it has no effect on Convai). It is a local web page because the in-game menu has no multi-line text entry, and because an in-game editor would add a per-frame draw callback. `mod/character-editor.lua` writes `runtime/editor-command.json` (valid 30 s, translated page sentences included); the bridge (`bridge/character-editor-control.mjs`) polls it with its existing 500 ms check, starts `bridge/character-editor-server.mjs` on a random loopback port with a per-session token (Host and Origin checks, a nonce Content-Security-Policy, JSON bodies up to 128 KiB), and opens the default browser. The server stops on Close editor, after 30 minutes idle or on bridge shutdown.
+
+Edits are stored apart from the shipped data in `<state>/character-overrides/<key>.json`, only the changed fields, and `PersonaBook.persona()` merges them per turn; with no override the prompt is byte-identical. Limits (`EDIT_LIMITS`): bio 40 to 9,000 characters, style 1,800, 10 rules of 160, examples 3,000 in all, 12 memories of 200, 14,000 for the whole persona. Reset restores a field or everything; ordinary NPCs have no memories to edit. It is unit- and headless-browser tested (`npm run test:editor`) and has not been seen in the game.
+
+Docs: [docs/CHARACTER_API.md](docs/CHARACTER_API.md), [characters/README.md](characters/README.md), [docs/NPC_ARCHETYPES.md](docs/NPC_ARCHETYPES.md), [docs/WORLD_COMPANIONS.md](docs/WORLD_COMPANIONS.md), [docs/MULTILINGUAL_PROFILES.md](docs/MULTILINGUAL_PROFILES.md), [docs/CHARACTER_EDITOR.md](docs/CHARACTER_EDITOR.md), [docs/COMPANION_APPEARANCES.md](docs/COMPANION_APPEARANCES.md), [docs/FIRST_PERSON_RULE.md](docs/FIRST_PERSON_RULE.md), [docs/FULL_CAST_EXPANSION_2026-10-01.md](docs/FULL_CAST_EXPANSION_2026-10-01.md) (voice runtime and casting method for the full cast).
+
+### Companion vision
+
+"Companions can see" gives a Convai character one recent picture of V's surroundings with each conversation turn. It is Convai only: while Mistral or Local AI answers, `CompanionVision.active` is false and there is no picture, no helper process and no buffer. The setting is `companionVision` (default on) in Settings > Conversation provider, with the two developer switches `CYBERPUNK_CONVAI_VISION=off` (environment) and `visionTransport` in `runtime/settings.json`. **Status: built, unit-tested and measured against the running game for cost, but not seen working with Convai.** No live Convai turn has been made with a picture, so whether Convai accepts the image for the mod's characters is open. Every mod character uses `fast-gemma-4-31b-it`, and Convai describes its dynamic vision context as needing a vision-capable non-realtime model; an answer of `vision_not_enabled` would mean the characters must move to another model. Only a live call can settle this.
+
+**Why a rolling buffer.** When V talks to a companion, V is usually looking at her, so a picture taken then is mostly her face. The bridge instead keeps a few pictures taken before the conversation and sends one from the moment V was still looking at the place.
+
+| Piece | File | Notes |
+|---|---|---|
+| Capture helper | `native/vision/CyberpunkConvaiVision.cpp` (builds to `CyberpunkConvaiVision.exe`, `scripts/Build-VisionCapture.ps1`) | C++/WinRT, below-normal priority, 35 to 50 MiB. Protocol on stdin and stdout: `capture <maxWidth 64..2048> <quality 1..100>` and `quit`; one JSON reply per line. |
+| Helper client | `bridge/vision-capture.mjs` (`VisionCapture`) | Defaults: 768 px wide, JPEG quality 80, 2.5 s timeout, 5 s ready timeout. A capture that overruns restarts the helper. |
+| Buffer and rules | `bridge/companion-vision.mjs` (`CompanionVision`) | Driven by the bridge's existing 500 ms settings poll. |
+| Page side | `bridge/convai-vision.mjs`, bundled into `runtime/realtime-client.js` | Composes, publishes, withdraws and reads acknowledgements. |
+
+**The helper.** Each capture finds the visible window owned by `Cyberpunk2077.exe`, opens a Windows Graphics Capture session on that window only (no cursor, no border), takes one frame (up to 600 ms), closes the session, crops to the client area, scales with WIC and encodes a JPEG in memory. No session exists between pictures, the game process is never touched, nothing is injected and nothing is written to disk. A minimised window returns `minimised` and no frame is buffered. Desktop duplication was rejected because it captures the whole monitor, and a second render-to-texture camera was rejected because it is a full extra scene render per frame and script has no readback (it would break the FPS rule).
+
+**Cadence and buffer** (constants in `bridge/companion-vision.mjs`, matching the lifecycle table in [docs/RESOURCE_LIFECYCLE.md](docs/RESOURCE_LIFECYCLE.md)):
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `FRAME_INTERVAL_MS` | 3000 | One picture every 3 s while capturing. |
+| `FRAME_SLOTS` | 4 | The last 4 JPEGs (about 40 KB each) are kept, in memory only. |
+| `TAIL_MS` | 12000 | No capture for 12 s after the last sign of a conversation. |
+| `LEAD_MS` | 2500 | A turn takes the newest frame taken at least 2.5 s before the conversation began, else the newest. |
+| `MAX_FRAME_AGE_MS` | 120000 | A frame older than 2 minutes is never sent. |
+| `STAGE_RETRY_MS` | 6000 | Ahead-of-time publishing retries every 250 ms for up to 6 s. |
+
+The helper runs only while all of these hold: the setting is on, Convai answers, someone V may talk to is near (a party member, a listed nearby character or a recent partner, `isNear` in `bridge/convai-bridge.mjs`), and no conversation is running (composer open, a turn in flight, the recording, or a reply playing). Otherwise the next poll stops it (`quit` on stdin, killed after 1 s), never mid-capture. A restart costs about 0.2 to 0.4 s and is off the turn's path. Turning the setting off or leaving Convai also drops the buffer.
+
+**What is sent to Convai.** With vision on, the realtime pages connect with video enabled but publish nothing (`startWithVideoOn: false`) and a `visionInputConfig` of `sampleIntervalSecs 0.25, framesPerTurn 1, bufferFrames 2, stalenessSeconds 6, maxResolution 768`. Pictures are staged ahead of the line so Convai buffers them while V types or talks. When the composer opens, the chosen frame is published on the target's page; when the talk key is pressed, it is published on the voice page once the recording runs. A turn that was not staged (a group's next speaker) publishes at turn start and waits at most 350 ms (`VISION_READY_MS`, developer override `visionWaitMs`, 0 to 900). A failed, slow or refused picture never fails the turn. After the turn the track is unpublished so a picture never rides into a later one. One to four images (the frame plus anything queued with `companionVision.attachToNextTurn`) are composed into a single 768 px canvas (one fills it, two side by side, three or four in a 2x2 grid). The turn's context gains one sentence saying an image may be attached, that it can show the HUD, V's vehicle or the companion, and that the character should describe the place, never the interface, and should not guess when nothing is attached. The same bridge-wide cost applies as for any turn: one Convai interaction.
+
+**Phone Chat and holocalls.** Phone Chat runs on its own `RealtimeHost` that is not given the vision object, so text chats never carry pictures. The code has no special case for holocall turns; the design doc says they get none, which was not verified.
+
+**TV frames as a vision source.** While a YouTube video plays on V's TV (see [YouTube TV playback and capture](#youtube-tv-playback-and-capture)), the TV replaces the surroundings. `YouTubeTv.visionSource()` in `bridge/youtube-tv-host.mjs` grabs a 640 px JPEG (quality 60) of the TV window through a DevTools `Page.captureScreenshot`, one a second (`visionTvFps: 2` for two, developer only), and `CompanionVision.setScreenSource` feeds each near party companion's open page as one live canvas track. The pages reconnect once with `TV_VISION_INPUT_CONFIG` (`sampleIntervalSecs 1, framesPerTurn 5, bufferFrames 10, stalenessSeconds 8, maxResolution 640`), so a turn attaches about the last five seconds of the video and publishes nothing of its own. The game helper is released meanwhile. Paused or hidden video means no grabs; stopping the video, closing the TV, a provider change or nobody near unpublishes the tracks and drops the frames at the next poll.
+
+**Privacy.** Only the game window, only while someone V may talk to is near, in memory for at most about 2 minutes, never on disk. The one exception is the development variable `CYBERPUNK_CONVAI_VISION_DEBUG_DIR` (an absolute folder), which keeps a copy of each picture. A missing helper only means no picture.
+
+**Measured** (windowed 1366x768, Balanced power, game in the background, `scripts/Measure-VisionCapture.mjs` reading the mod's `perf-probe.json`): a capture takes about 104 ms median in the helper (p95 126) at the 3 s cadence, helper CPU 15.6 ms median, helper start 215 to 305 ms, 42 KB per 768x432 JPEG. FPS with captures matched FPS without in three A/B runs (for example 57.41 against 57.41 median); one run showed more slow frames in the "with" blocks, which followed the scene, not the captures. The TV grab took 13.9 ms median (14 KB JPEG), and a 4K60 video playing with one grab a second showed no measurable cost; 2 fps and seated measurements were not taken. The capture script used for development checks is separate: [docs/GAME_WINDOW_CAPTURE.md](docs/GAME_WINDOW_CAPTURE.md) covers `scripts/Capture-GameWindow.py`, a development tool that is not part of the mod.
+
+**Not verified in the game:** any Convai turn with a picture (acceptance, `vision_not_enabled`, whether the reply describes the place), typed and talk-key latency with vision on, hitches while walking with the helper running, the minimised-window turn, and the TV frames with a seated V. The 11-step live check is at the end of the design doc.
+
+Further reading: [docs/COMPANION_VISION.md](docs/COMPANION_VISION.md), [docs/RESOURCE_LIFECYCLE.md](docs/RESOURCE_LIFECYCLE.md), [docs/GAME_WINDOW_CAPTURE.md](docs/GAME_WINDOW_CAPTURE.md).
+
+### YouTube TV playback and capture
+
+In V's apartments the in-game TV can offer **YouTube** next to its own choices. A video plays in the official YouTube player in a window over the game, and the companion in the room knows what is on. The setting is **Settings > Interface > YouTube on V's TV** (`youtubeTv`, off by default). It is on main and unit-tested, and headless smoke tests played real videos through the official player and read real captions with Edge. **It has not been seen in the game**: the opening, the window placement, hiding under menus, the companion turn and the FPS A/B are all live checks still owed, and the default stays off until the FPS check passes.
+
+**Why a window.** The game has no script path from a web video into a texture (TV channels are pre-rendered `.bk2` Bink files). A transparent overlay tracking the TV in the world would need per-frame re-projection (main-thread work) and breaks the player's terms, and a native texture upload would need a render-thread hook. So the video is one fixed window composited by Windows above the game, with no tracking. Idle cost is zero (nothing exists until the player opens it). Playing, the cost is the compositor and the GPU's video engine; the doc's estimate is 0 to 2 FPS and it must be measured.
+
+**What runs where.**
+
+| Layer | File | Role |
+|---|---|---|
+| Redscript (game restart) | `r6/scripts/CyberpunkConvai/YouTubeTv.reds` | `@wrapMethod(MediaDeviceControllerPS) GetActions` runs the game's own method, then adds `ConvaiYouTubeTvAction` (open, pause or play, stop) only for a `TVControllerPS`, a direct interaction, the setting on, the game's own `ToggleON` offered and V in one of the five homes (Megabuilding H10, Northside, Japantown, the Glen, Corpo Plaza). No game action is removed or replaced. |
+| Lua | `mod/youtube-tv.lua` | Observes the hook and writes `runtime/youtube-tv-command.json`. Idle it returns at one comparison; with a video open a menu check runs four times a second. CET binding `cyberpunk_convai_youtube_tv` ("Cyberpunk Convai: YouTube on the TV") does the same on the couch, where the TV choices are scene choices that cannot be extended safely. |
+| Bridge | `bridge/youtube-tv-host.mjs` (`YouTubeTv`), `bridge/youtube-tv.mjs`, `bridge/youtube-tv-page.mjs` | One session at a time. A per-session HTTP server on `127.0.0.1:0` serves the page; Edge (development) or the packaged Chrome for Testing starts through Playwright in app mode, off-screen, with its own profile in `runtime/youtube-tv-browser`. |
+| Window helper | `bridge/youtube-tv-window.ps1` | A PowerShell Win32 helper in its own process: finds the window by its unique title, makes it topmost and non-activating, cuts Chromium's frame away with a window region, moves it only when its target changes, hides it when the game is not in front or is minimised. |
+
+**Player flow.** The picker opens over the middle of the game and takes the keyboard: paste a link or id, search on YouTube's own results page (a picked result plays on the TV page), or choose from the last 8 videos. The video then fills the largest 16:9 area in the top 78% of the game window (`youtube-tv-window.ps1`), so subtitles stay visible below. The window gives the keyboard back to the game. Controls are the TV choices **YouTube: pause or play** and **YouTube: stop**, or the key. The window hides under the pause menu, game menus, alt-tab and a minimised game; the session ends when V leaves home, a save loads, the setting is turned off or the player stops it.
+
+**Windowing requirement.** The game must run in Windowed Borderless or Windowed mode. In exclusive full screen another window minimises the game, so the open fails with a notice (`youtube-tv`, class Player in [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md)) and the game is not minimised. The setting's help text says the same.
+
+**Playback and terms.** The video plays only in the official embedded player (IFrame Player API, `enablejsapi=1`, served with `Referrer-Policy: strict-origin-when-cross-origin` because embeds fail without a referrer). It is never downloaded or opened through a media URL, nothing is drawn over the player, and YouTube's controls stay. The Data API is not used. Title and channel come from oEmbed, with no key. Description, chapters and captions are read from the TV window's own network traffic (the player's `youtubei/v1/player` answer and its `timedtext` track, each read once, at most 4 MB); if the player has not fetched a track 4 s after play starts, the page asks it through its own captions module. The doc marks this a grey zone that the owner accepted on 2026-10-15, and it may break when YouTube changes its player. History keeps only id, title, channel and time, at most 8 videos for 30 days.
+
+**Companions reacting.** Ordinary companion turns get a "Watching together" block (`watchingContext`, capped at 1300 characters): title, channel, playback position (extrapolated from the page's reports, so the time is right at the turn), the current chapter, a description excerpt (360 characters, 200 when captions are present) and the last 30 s of captions (420 characters, written captions over automatic ones, labelled "can mishear words"). Over the cap, the description drops first, then the captions. Ambient chatter, battle and loot reactions, phone chat, holocalls and add-on turns do not get it, and the mod adds no timed remarks of its own: the companion speaks when V does. With "Companions can see" on and Convai answering, the companion also gets about one frame a second (see the TV source in [Companion vision](#companion-vision)). The video ducks to 30% while a reply plays, the microphone is held or speech is active (checked every 200 ms, restored 1.2 s after quiet).
+
+**Not built or stubbed.** A couch scene choice (the key instead), a volume control in the game (YouTube's own control works), exclusive full screen, and unprompted companion remarks. The caption request path (asking the player for a track) was not seen live, and the `youtube-tv.test.mjs` suite covers the pure parts, sessions with a fake browser and the Lua under fengari.
+
+Further reading: [docs/YOUTUBE_TV.md](docs/YOUTUBE_TV.md), [docs/COMPANION_VISION.md](docs/COMPANION_VISION.md), [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md).
+
+### Holocall and Phone Chat
+
+**Phone Chat** is a third tab, beside Messages and Contacts, in the game's own phone (hold T to open it). It lists the mod's characters (the `characters/phone-contacts.json` catalog, 102 contacts) that the journal has as active contacts, whether or not they are spawned or nearby. Picking one opens a direct conversation; there is no quest-message thread selector. The composer is docked at the bottom of the native conversation canvas: Enter starts typing and sends, Escape ends typing. Text is keyboard only (controller text entry is not implemented). Replies use the game's own sent and received bubbles. Quest replies stay in the game's Messages and Contacts flows, which the mod does not alter.
+
+**How a text turn flows.**
+
+1. `mod/phone-chat.lua` stores the contact at send time (changing the view cannot redirect a reply), keeps one outstanding request, and writes `runtime/phone-chat-input.json` with a 3 s heartbeat (the bridge keeps it for 15 s). It runs on menu frames with zero simulation delta.
+2. The bridge's `PhoneChat` (`bridge/phone-chat.mjs`) accepts only catalog contacts, builds the same context as other channels (journal, battle, world and journal knowledge, game dialogue, turn context, up to 6 recent Chat rows), and sends a text-only turn with `voice: false`: no spoken audio, no NPC, no microphone and no movement. Text is at most 1200 characters.
+3. The reply goes through the phone's own `RealtimeHost` (`phoneRealtime` in `bridge/convai-bridge.mjs`), which also serves Mistral and Local AI, then to `runtime/phone-chat-output.json` as `sending`, `reply` or `error`. Failures keep the draft and show an inline status, with the daily-limit and Mistral or Local AI failures worded as in the notices; a 45 s UI timeout also preserves the draft. Late replies cannot enter a new attachment.
+4. **First-message latency** (`bridge/phone-warm.mjs`): while a contact's Chat is open, a 0.6 s dwell (`PHONE_WARM_DWELL_MS`) prepares that contact (the memory check and the text connection), with a keep-alive every 15 s for up to 5 minutes, at most 4 opens per visit. It sends nothing and writes no memory, and is skipped on a single-session plan (the player's own key), during a talk turn or reset.
+
+**Memory and quota.** History and drafts persist across launches, saves, bridge restarts and CET reloads in `runtime/phone-history.json`; there is no disappearing-message setting. Phone sessions are kept apart from in-person ones (`phone-sessions.json`), but all channels share the player's persistent identity, so a character's long-term memory is the same one used face to face. Settings > Memory resets (Forget selected character, Forget all memories) clear the matching Chat history only after the cloud reset succeeds ([docs/CHAT_MEMORY_RESET.md](docs/CHAT_MEMORY_RESET.md)). Every Chat message counts as one turn in the daily-limit guard; at the limit Phone Chat shows the long explanation on its status row instead of a popup. Phone Chat never carries a vision picture.
+
+**Redscript.** `PhoneChatTabs.reds` holds the tab navigation and the explicit Off, List, Opening, Conversation states (generation checks reject a cancelled opening). `PhoneChat.reds` holds the composer, draft handoff and bubbles; in Chat mode it bypasses the SMS setup that would activate journal entries and restores normal mode when the panel returns to Messages. `PhoneContacts.reds` (separate feature) adds J and L companion invite and dismiss actions to the Contacts tab. Styling (`mod/phone-chat-style.lua`) matches the tab grid and can be applied live.
+
+**Holocall.** V calls a mod character from the Chat tab with the game's own `call` key (V, Triangle on a pad): on a Chat list row, or inside an open conversation through a Call hint under the message box. The game's own Contacts Call is never changed, and no game call function is wrapped (`bridge/holocall.test.mjs` asserts that). The request is one contact id (`ConvaiHolocallRequest` in `Holocall.reds`); the phone closes, `mod/holocall.lua` takes it, and the game's call window opens at the top left with the character's name and portrait. The ring lasts 1.5 to 7 s (`RING_MIN`, `RING_MAX`) while the conversation warms. V then talks with the normal push-to-talk or typed keys; the character answers in the mod voice with the game's call subtitle line. No one has to be nearby. A tap of the phone button hangs up. A call also ends on combat, a scene, a disabled conversation, 180 s with no talk (`IDLE_LIMIT`), 30 minutes (`MAX_LENGTH`) or any game quest call, which always wins. Johnny Silverhand can never be called (`NEVER`), and the mod writes no quest fact, phone blackboard value or journal entry. The bridge only knows the call as `holocall = {version = 1, contact, mode}`; `bridge/turn-context.mjs` describes the speaker as remote. Notices: `holocall-refused`, `holocall-connected`, `holocall-ended`, `holocall-live-fallback`.
+
+**Live picture** (**Settings > Conversations > Live holocall picture (experimental)**, `holocallLiveImage`, on by default since 2026-10-14). For the 59 contacts the game itself stages a video holocall for (`STAGED` in `mod/holocall.lua`), dialing finds a studio spot out of V's sight (floor search by raycast, at most 11 ticks of 0.25 s), spawns a copy of the character and the game's own `holocall_camera.ent` at the game's framing (fov 35), keeps the copy animating off screen, holds a talk pose, turns her eyes to the lens and connects with `StartHolocall`. Everyone else gets the portrait voice call, as in the game. If the copy or camera is not ready when the ring ends, the call continues with the portrait and a notice says so. At hang-up the camera is switched off at once and deleted 1.5 s later (freeing a render-to-texture camera in the same frame can crash the render thread). Lighting is not solved: the copy stands under the real sky.
+
+**Not verified in the game:** the Chat-tab call button and key hints (the Chat list row icons, the bottom bar, the Call hint in a chat); the whole live picture (the first live test only ever showed the portrait because the setting was off, then the floor search found nothing; the search was widened afterwards and has not run live); the end animation; the quest-call preempt path; and whether the Holocall subtitle type shows a bottom line for the player as speaker. Redscript compiles against the real game cache.
+
+Further reading: [docs/PHONE_CHAT.md](docs/PHONE_CHAT.md), [docs/HOLOCALL.md](docs/HOLOCALL.md), [docs/CHAT_MEMORY_RESET.md](docs/CHAT_MEMORY_RESET.md).
+
+### Notices, overhead subtitles and follow-up questions
+
+**Notices.** Every popup the mod shows is the game's neutral warning line, and one gate in front of it, `mod/notices.lua`, decides what appears. Each notice id has a catalog entry with a class: **Player** (always shown; an intuitive wait, its outcome, or a real failure the player must act on; 51 entries), **Developer** (only with Settings > Development > Developer mode on; routine status such as dismissals and driving steps; 7 entries) and **Removed** (never shown; 1 entry). An unknown id is never shown. A Player notice has a repeat window (`repeatS`, for example 15 or 20 s) inside which identical text is dropped while Developer mode is off; with it on every occurrence shows. The gate costs a table lookup and a boolean, nothing per frame. `bridge/notices.test.mjs` fails when a call site uses an unknown id, when a raw `ConvaiPhoneFeedback` call appears outside the file, or when the catalog and [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) disagree. The kinds include invitations (joined, failed), service and conversation failures (`service-down`, `service-blocked`, `conversation-timeout`, `reply-error`), the quota notices, the Mistral and Local AI notices (`mistral-key`, `mistral-limit`, `local-fallback` and others), microphone states, voice fallbacks, holocalls, `youtube-tv`, `message-lost`, loading lines and `addon-notice`.
+
+**Held loading notice.** A slow load (an OmniVoice or Pocket voice, Local AI warming up, or a companion still being prepared) is announced after 1.5 s as ONE notice (`load-progress`) that stays up without blinking, written once to the game's warning blackboard line with a 90 s safety duration (`HOLD_S`), refreshed instantly every 80 s and replaced by `load-ready` or `load-failed`. A companion's wait is one line naming what blocks her ("Preparing Evelyn: waiting for the voice model to load..."). If the blackboard write fails it falls back to a repeated five-second notice. This held notice was not seen in the game at the time its doc was written.
+
+**The daily-limit notice.** When the daily-limit guard's allowance is used up and V asked for a turn (talk box, voice, group round or Phone Chat), the player gets one `daily-limit` notice per game session. It has two forced lines, "Today's {limit} Convai turns are used." above "Mistral (free, ~5,000/day) or Local AI (unlimited).", where `{limit}` is read from the settings state, and stays 9 s (`M.showS`, the only notice with a longer duration; ordinary ones ask for 5 s). Battle and loot reactions stop silently. A notice frame is drawn for one line and holds two (about 95 upper-case letters, 800 px wrap), so `bridge/daily-notice-fit.test.mjs` holds the text of all 16 languages to one frame line each. The forced line break was not confirmed in the game.
+
+**Localisation.** Every notice text goes through `ui.t('...')` and the 15 files in `mod/locales/*.lua`, extracted to `localization/en.json` by `scripts/Extract-UiCatalog.mjs`. Adding a notice means a catalog entry, a row in the notices doc and all 15 locales; the test enforces the first two.
+
+**Overhead subtitles.** Settings > Subtitles has the Subtitles switch and **Subtitle display**: *Cinematic subtitles* (default; the game's dialogue HUD) or *Above the speaker* (`subtitleStyle`). `mod/subtitles.lua` owns one reply and one exact speaker at a time. The overhead route binds the living, attached speaker and lets the game's `ChattersGameController` own fonts, range and projection. The anchor is the speaker's verified `Head` slot plus 0.25 m, falling back to 0.15 m. Overhead pages hold up to 120 Unicode code points, HUD pages 160. A missing speaker falls back to the HUD, and inside a live vehicle replies use the HUD even when Above the speaker is chosen (a reply that straddles boarding continues unread text in the HUD without replaying). A holocall reply uses `scnDialogLineType.Holocall`. Caption fonts for Japanese, Korean, Chinese and Russian are switched per reply (`mod/ui-fonts.lua`).
+
+**Timing and delay compensation.** Voiced text appears only as the heard audio position advances, the same clock the face uses. `bridge/caption-cues.mjs` splits text into sentences and aligns each to the audio from the silences in the mouth timeline; the cues ride in `runtime/continuous-speech.json` and `subtitles.lua` shows the page whose first sentence has started, never moving ahead of what is playing (a stall freezes the page). **Settings > Voices > Lip sync delay (Bluetooth)** (`audioDelay`: Auto, 0, 50 to 250 ms) holds the face and subtitle clock back by the output delay of the audio device (`bridge/audio-delay.mjs`). Auto uses 150 ms (`BLUETOOTH_DELAY_MS`) while the default output is Bluetooth, found by a hidden, below-normal PowerShell probe (`bridge/audio-output-probe.ps1`) that runs only while the delay is automatic and voice playback is on. The browser voices apply it in their own clock; native Omni phrases subtract it in `mod/speech.lua`, read once per utterance from `runtime/audio-delay.json`. Finished speech lingers 0.6 s (up to 3 s between Omni phrases), and cue timing was fixed after two live reports (a caption vanishing before the voice, and a blink at sentence ends). **Visual acceptance of the overhead layout in the game is still pending**; the evidence is fixture tests and a few previews.
+
+**Follow-up questions.** This is not a set of on-screen suggestion chips. It is a conversation setting (**Settings > Voices > Follow-up questions**, `followUpInterest`, on by default since 2026-10-11) that makes a character show interest and keep the conversation two-sided. `bridge/follow-up.mjs` (`FollowUp`) adds one paragraph (`FOLLOW_UP_TEXT`) to the context of the turn already being sent: answer first, then take the lead with one plain question or a statement that ends on a hook, in at most two extra sentences. There is no extra request, timer or second spoken line, and with the setting off the context is byte-identical to before. The bridge decides which turns get it, one decision per request id: offer rates by trait (`OFFER_RATE`: warm .60, neutral .50, dry .30, cold .20), a 25% chance (`BACK_TO_BACK`) of a second offered turn in a row, and a pity rule giving a warm or neutral character a pull at least once in `PITY_TURNS` = 5 turns. Never offered on automatic reactions, battle, group rounds, goodbyes or orders (short word lists in several languages). Measured on real Convai text turns (four characters, 1,008 replies, reader-judged): the pull rate rose from 10% to 36%, replies ending in a question from 7% to 27%, average length from 21.8 to 25.6 words, none over 75 words. Known weak spots are "X, or Y?" closers and occasional assumed details. A log line per reply reads `[FollowUp] profile=... offered=yes reason=rate ended-with-question=yes`. The first-person rule that stops the block making a character narrate is in [docs/FIRST_PERSON_RULE.md](docs/FIRST_PERSON_RULE.md).
+
+Further reading: [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md), [docs/OVERHEAD_SUBTITLES.md](docs/OVERHEAD_SUBTITLES.md), [docs/FOLLOW_UP_QUESTIONS.md](docs/FOLLOW_UP_QUESTIONS.md), [docs/FIRST_PERSON_RULE.md](docs/FIRST_PERSON_RULE.md).
+
+### Settings and the Companion Manager
+
+All saved settings live in one file, `runtime/settings.json` (`version` 2), inside the installed CET mod folder. `mod/manager.lua` owns it: `loadSettings()` validates every key and fills missing ones with the defaults below, and `saveSettings()` writes `settings.json.tmp`, moves the old file to `settings.json.previous`, renames the new one into place and deletes the backup. The loader falls back to `.previous` if the main file is unreadable. Keys the loader does not know are kept, so developer-only keys survive a save. The bridge never writes the file. It re-reads it every 500 ms in `pollSettings` (`bridge/convai-bridge.mjs`), and each bridge module reads its own keys (`bridge/voice-selection.mjs`, `bridge/natural-speech.mjs`, `bridge/follow-up.mjs`, `bridge/mature-content.mjs` and others). Lua is the only writer, the bridge is only a reader, and the bridge's own answers go back through status files such as `runtime/mistral-state.json`.
+
+The active manager is a Mod Configuration Menu (MCM 0.10.3, API v2) provider, `mod/mcm.lua` (`cyberpunk-convai`, mod `manager`), registered through `GetMod('ModConfigurationMenuAPI').providers.registerProvider`. Every control is a native MCM control; nothing is drawn with ImGui and MCM's own files and preferences are never edited. The player opens it from a CET hotkey (`cyberpunk_convai_manager`, assigned by the player) or from Esc, MCM, Companion Manager. `mod/mcm-entry.lua` walks the real pause-menu entry rather than simulating keys. The older native screen (`r6/scripts/CyberpunkConvai/Manager.reds`) is still in the tree but is not opened by anything.
+
+#### Pages
+
+One MCM page, switched in Lua (`view` in `mod/mcm.lua`). Home has four rows: Characters to invite, Current party, Model browser (18 results per page, `MODEL_PAGE_SIZE`, discovery in batches of 48) and Settings. Settings has sub-views Memory (and its character picker "Whose memories"), Relationships and Help. Every inner page ends in a Back button placed in MCM's bottom action row, with a list-row fallback. Characters, the party and the model browser queue spawns and dismissals, which run after gameplay resumes.
+
+The Settings page groups its rows in this order: Interface, Conversations, Conversation provider, Companion behavior, Voices, Subtitles, Automatic reactions, one section per installed add-on (see [Add-on API](#add-on-api)), Development, Help. Defaults below are read from `loadSettings()` and match each row's `defaultValue` in `mod/mcm.lua`.
+
+| Key | Row | Default |
+|---|---|---|
+| `uiLanguage` | Interface language | `auto` |
+| `youtubeTv` | YouTube on V's TV | off |
+| `archetypeConversations` | Talk to ordinary NPCs | on |
+| `multilingualConversations` | Multilingual conversations | off |
+| `autoConnectNearby` | Auto-connect nearby characters | on |
+| `gameDialogueContext` | Continue from game dialogue | on |
+| `holocallLiveImage` | Live holocall picture (experimental) | on |
+| `conversationProvider` / `useOwnConvaiKey` | Conversation provider (Convai free tier, Convai API key, Mistral, Local) | `convai`, key off |
+| `companionVision` | Companions can see | on |
+| `matureContent`, `localModel` | Mature content (Local AI only), Local AI model | off, `auto` |
+| `eyeContactHeight` | Eye contact height (-0.10 to +0.10 m in five steps) | 0 |
+| `headFollowStrength` | Head tracking strength (0, 0.5, 1, 1.5) | 1 (Gentle) |
+| `bodyGestures` | Body gestures | on |
+| `voice` | Voice playback | on |
+| `voiceProvider`, `omniSteps`, `omniReference` | Companion voices | `pocket`, 16, `long` |
+| `audioDelay` | Lip sync delay: auto, 0, 50, 100, 150, 200, 250 ms | `auto` |
+| `naturalSpeech` | Natural speech | off |
+| `expressiveEmotions` | Expressive emotions | on, except beside a saved Convai cloud voice |
+| `followUpInterest` | Follow-up questions | on |
+| `vVoice` | V's voice for typed lines | on |
+| `subtitles`, `subtitleStyle` | Subtitles, display (`dialogue` or `overhead`) | on, `dialogue` |
+| `battleReactions`, `lootReactions` | Automatic reactions | off, off |
+| `developerMode` | Developer mode | off |
+
+Other saved keys have no row: per-character conversation switches (`enabledByKey`, mirrored into a six-entry legacy `enabled` array), `relationshipModes` (auto, on or off for Judy, Panam, River, Kerry and Meredith), `keepPreparedVoices` (forced on), `decisionLedger` (off), and bookkeeping such as `matureRestore`, `expressiveEmotionsChosen` and `holocallLiveImageChosen`. A few bridge keys can be set by hand: `replyStreaming`, `emotionSelector` and `visionTvFps`.
+
+#### How a change applies
+
+Every row waits for Apply, even if the player turned on MCM's own Auto Apply. The provider notes the time of each draft change and refuses an `applyBatch` that arrives within 0.25 s of it (`AUTO_APPLY_WINDOW`), so MCM keeps its drafts, Revert and Defaults and its "unsaved changes" dialog. `manager.applySettings` validates the whole batch, rejects unknown keys, and saves it as one transaction. A failed save leaves the draft pending and playback unchanged. It also resolves conflicts: Mature content needs Local AI, Natural speech and Expressive emotions need a local voice (choosing the Convai cloud voice turns both off with one notice), Multilingual conversations never keeps Pocket, and a saved Inworld voice reads as Pocket when Developer mode is off. The MCM page itself does no per-frame work: `slowUpdate` runs every 0.25 s (`SLOW_PERIOD`), and a rebuild waits while drafts are open.
+
+On the bridge side a changed value takes effect at a safe boundary, not mid-reply. The provider switches when no conversation is running, a Local AI model change reloads only when idle, and every phrase of an accepted turn keeps the voice and quality it started with. Add-on settings are saved to `runtime/addon-settings.json` only after the main Apply succeeds.
+
+#### Developer mode
+
+Developer mode (`developerMode`) shows routine popups (joining steps, dismissals, driving instructions), writes `runtime/movement-trace.ndjson` and gesture logs, enables the frame probe `mod/perf-probe.lua` (see [Performance rules](#performance-rules)), speeds up the developer mailbox poll from 4 s to 1 s, lists the Inworld cloud voice (an experiment, not a release option) with its key row, and adds the setting to support reports. Preparation progress, joined notices and failures stay visible with it off.
+
+#### Help and Generate report
+
+Settings, Help, Help and support shows what to do, the service status, three buttons and the log locations (`mod/support-report.lua`, loaded behind `pcall`; without it the Help entry is simply absent). Generate report writes `runtime/report-request.json`. `bridge/support-report.mjs` polls every 500 ms, answers in `runtime/report-result.json` and writes `runtime/reports/convai-report-YYYYMMDD-HHMMSS.zip` (five newest kept, 40 MiB cap) using `bridge/zip-writer.mjs`. The zip holds `README.txt`, `summary.json` (versions, service status, settings with the per-character switches reduced to a count, party, provider per companion, recent errors, log index) and `logs/NN-<id>.txt`, the last 2,000 lines or 1 MiB of each mod, service, CET, redscript and RED4ext log. If the service is stopped, silent for 6 s (30 s once it reports building) or failed, Lua writes a shorter text report itself. Copy report path sends the path to the service, which puts it on the clipboard.
+
+Redaction is applied to every line and every structured value. Known secret values read from the key files, `Authorization` headers, key, token, secret, password and cookie assignments, `Bearer` tokens, URL token parameters, well-known key prefixes, hex runs of 32 or more characters, long token-like runs, UUIDs and provider IDs (shown as short hashes) and the Windows account name are replaced. Only named files are opened, so key files, microphone audio, voice references, model files, chat history and conversation text never enter a report. `bridge/support-report.test.mjs`, `bridge/support-report-lua.test.mjs` and `bridge/support-help-ui.test.mjs` plant fake secrets and conversation text and require that none reaches either report format.
+
+Not verified in the game: the greyed-out OmniVoice entries when the pack is missing, and the full text fit of every page in every language. Details: [docs/MANAGER_UI.md](docs/MANAGER_UI.md). [docs/SETTINGS_REVIEW_2026-10-07.md](docs/SETTINGS_REVIEW_2026-10-07.md) is a dated snapshot and several of its defaults have since changed.
+
+### Localization
+
+The interface comes in 16 languages: English, Simplified Chinese (`zh-cn`), Traditional Chinese (`zh-tw`), Spanish (`es`), Brazilian Portuguese (`pt-br`), French (`fr`), German (`de`), Italian (`it`), Polish (`pl`), Czech (`cs`), Hungarian (`hu`), Turkish (`tr`), Russian (`ru`), Ukrainian (`uk`), Japanese (`ja`) and Korean (`ko`). The list is the `languages` table in `mod/ui-locale.lua`. The selector, Settings, Interface, Interface language, shows each language by its own name and starts with Automatic, which follows the game's on-screen language (`/language`, `OnScreen`, the same variable Codeware reads). Subtitle and voice-over language never choose the interface language. The game's own codes (`it-it`, `pl-pl`, `cz-cz`, `hu-hu`, `tr-tr`, `ua-ua`) map through an alias table, and an unsupported game language such as Arabic or Thai gives English.
+
+**Storage.** English source sentences are the keys. `mod/locales/<code>.lua` returns a table of source sentence to translation, one file for each of the 15 non-English languages. `ui.t(source, {name = value})` returns the translation, or the source when an entry is missing. Named `{tokens}` keep character names and user text literal and let each language choose its word order. A dictionary entry is accepted only if its source is at most 4,096 characters, its translation at most 8,192, it has no NUL byte and it contains exactly the same tokens as the source. A file with more than 4,096 entries, or one that fails to load, is ignored and the language falls back to English. The file path comes only from the supported-language list.
+
+**Cost rule.** `ui.update` runs once per top-level CET update, polling the game language every 2 s on whichever of frame time and wall time is larger, so a paused menu still updates. Native callbacks only call cached lookups. A temporarily unavailable game setting keeps the last good language.
+
+**What is translated.** Mod-owned UI text: the Companion Manager pages, descriptions and validation messages, gameplay notices, the phone Chat tab and composer, and the F6 and F8 text box. Not translated: character names and profiles, typed text, saved history, AI replies and subtitles (they are the conversation), MCM's header, search and Apply controls, Codeware's generic dialogs, and add-on labels (add-ons write their own). Provider error text that the code does not know stays literal. The interface language does not change which language a character speaks. Multilingual conversations are a separate setting; see [Conversation providers](#conversation-providers).
+
+**Fonts.** `mod/ui-fonts.lua` picks the game's own font families for Chinese, Traditional Chinese, Japanese, Korean and Russian (Ukrainian shares the Cyrillic family). Italian, Polish, Czech, Hungarian and Turkish need only Latin Extended-A and keep the original font.
+
+**Catalog.** `localization/en.json` is a generated inventory, not a runtime file. It currently holds 804 strings, 57 dynamic templates and 36 contexts. Each of the 15 dictionaries has one entry per catalog string.
+
+**Adding a language.**
+1. Add the code and its own-language name to `languages` in `mod/ui-locale.lua`, aliases if the game uses a different code, and a font family in `mod/ui-fonts.lua` if its script needs one.
+2. Create `mod/locales/<code>.lua` with every English key and the same tokens.
+3. Add the file to `packaging/release-plan.json` (the docs say it must also be listed in the development manifest).
+4. Run `node scripts/Extract-UiCatalog.mjs --check --summary` and `npm run test:ui-languages`.
+
+**Tests.** `bridge/ui-locale.test.mjs` covers Auto polling, aliases, fallback, unsafe catalogs and literal tokens. `bridge/ui-catalog.test.mjs` executes each dictionary as Lua and checks exact keys, tokens, glyph ranges for the font and that the Latin-script files are not copies of English. `bridge/phone-ui-localization.test.mjs`, `bridge/localized-feedback.test.mjs`, `bridge/mcm-fonts.test.mjs` and `bridge/mcm-entry-exit.test.mjs` cover the surfaces.
+
+Not verified in the game: the glyphs `ї є ґ` and `İ ı ğ ş` in Ukrainian and Turkish, and the layout of long German or Russian strings. Tests prove key coverage and character ranges, not rendering. Details: [docs/INTERFACE_LANGUAGES.md](docs/INTERFACE_LANGUAGES.md), [localization/README.md](localization/README.md).
+
+### Add-on API
+
+Add-ons are separate CET mods that give the main mod new speaking voices. They depend on the main mod, and the main mod never depends on them. API version 1.0 (`M.API_VERSION` in `mod/addons.lua`, `ADDON_API_VERSION` in `bridge/addons.mjs`): an add-on asks for a version and is served when the major number is equal and its minor number is not higher than the main mod's. Otherwise it gets one notice and stays off. The API was developed on the `addon-api` branch, which is fully merged into main.
+
+Two add-ons are planned, each in its own repository with its own zip builder (`tools/build.mjs`), tests and character docs: **Skippy**, a talking smart pistol that comments on fights (`alystria-ai/cyberpunk-convai-skippy`, planned for 20 October), and the **Delamain cab** voice (`alystria-ai/cyberpunk-convai-delamain`, id `delamain-cab`, planned for 25 October). Neither is released yet. Their live checks are still open. `addons/example/` is a complete, tested add-on to copy.
+
+**Install and discovery.** An add-on installs as its own folder under `bin/x64/plugins/cyber_engine_tweaks/mods/`. The bridge finds every folder that contains `convai-addon.json`; for development, `CYBERPUNK_CONVAI_ADDONS` takes a `;`-separated folder list. The main mod's packages never include `addons/`.
+
+**Manifest** (`convai-addon.json`, schema 1). `id` (2 to 24 characters), `name`, `version`, `requires.api`, optional `bridge` module, `providers` (`mistral`, `local`, or both, the default) and up to 4 `speakers`. Each speaker has a persona (`backstory` up to 12,000 characters, optional `intro`, `identityRule`, `style`, up to 12 `samples` and 12 `rules`, `talkWords` 8 to 60, `voiceContext`), up to 4 `modes`, and an optional `voice` (a PCM `.wav` of at most 8 MB and 20 s, with its exact transcript). A `convai` field is refused. A speaker becomes the profile `addon-<addon id>-<speaker id>`. Limits are in `ADDON_LIMITS` (`bridge/addons.mjs`); the validator rejects anything outside them.
+
+**CET side.** In `onInit` the add-on calls `GetMod('CyberpunkConvai').addons.register({id, name, version, requires})` and gets a handle:
+
+| Method | Purpose |
+|---|---|
+| `speaker{...}` | adds a voice: anchor (`'player'`, `'vehicle'` or a function), `available`, talk key, group chat, `playThrough`, `voiceFrom`, screen `face` |
+| `remark(speaker, {event, text, facts, priority, ttl, maxWords, patience, hold, ...})` | asks for one automatic line |
+| `stock(speaker, key, spec)` | has the bridge write lines ahead of time on Mistral; `remark{stock = true}` uses one with no model call and falls back to a fresh line |
+| `setMode`, `remember`, `setContext`, `setCompanionContext`, `setState` | personality, memories and prompt blocks |
+| `settings{...}`, `setting(id)` | a section on the main settings page |
+| `replaceGameLines{...}` | silences the voice and subtitle of the game's own lines that the add-on claims |
+| `on(event, fn)` | `combatStarted/Ended`, `vehicleEntered/Exited`, `sceneStarted/Ended`, `companionJoined/Left`, `turn*`, `speech*`, `remark*`, `settingChanged`, `sessionStarted/Ended` |
+
+**Rules.** With no add-on installed nothing runs: `convaiAddons.live` stays false, the bridge adds no rows, files, watchers or timers, and `bridge/addons.test.mjs` and `bridge/addons-lua.test.mjs` assert it. Add-ons add no per-frame work. Everything runs on the main mod's existing 0.1 s tick and on events, and bridge hooks must be synchronous and finish in 5 ms (a hook that fails three times is switched off). A speaker has no body: no face, gaze, gestures or gameplay actions, and game dialogue and scenes always win. Remarks never overlap speech or game dialogue. The player sets the pace with "Time between remarks" (4 to 60 s, default 10 s, about 20 s on Local AI, `LOCAL_REMARK_GAP_S`) and "Most remarks per fight" (default 30).
+
+**Text route.** An add-on's text comes only from Mistral or Local AI, never from Convai. `AddonHost.routeFor` picks the player's own provider if it is Mistral or Local and working, then Mistral with a saved key, then Local AI if the pack is installed, then nothing, which shows one notice asking for a free Mistral key or the Local AI pack. Prompts use the Mistral prompt layout with the speaker's persona and mode as a stable cacheable prefix. The bridge keeps each speaker's last 12 lines and 12 memories in `addon-journal.json`, rewrites a remark that nearly repeats a recent line once, and drops it if the second try repeats too.
+
+**Voice.** The speaker's reference is checked at bridge start, copied beside the main references and merged into copies of the voice configurations; the main files are never changed. The speaker then speaks with the player's local voice engine (Pocket, Voxtral or OmniVoice). Without a voice entry, or with playback off, only subtitles show. The Convai cloud voice is never used. A voice-key press is recognised on the computer by the same recogniser the Mistral route uses (`bridge/addon-voice.mjs`, [docs/LOCAL_STT.md](docs/LOCAL_STT.md)).
+
+**Files** in `runtime/`: `addons-status.json` (bridge to game), `addon-state.json` (game to bridge, changes only), `addon-settings.json` (on Apply). A remark travels through the same request, reply and lease files as every automatic turn.
+
+**Packaging and tests.** `node packaging/build-addon.mjs <folder> --out dist/addons` builds an add-on zip. It ships only `.lua`, `.json`, `.mjs`, `.js`, `.wav`, `.txt` and `.md`, never tests or `eval/`. Tests: `bridge/addons.test.mjs`, `bridge/addons-lua.test.mjs`, `bridge/addons-quality.test.mjs`, `bridge/addon-stock.test.mjs`, `bridge/addon-stock-lua.test.mjs`, `bridge/addon-voice.test.mjs`, `packaging/addon-packaging.test.mjs` and `addons/example/example.test.mjs`; `scripts/addon-eval.mjs` scores a speaker's prompt offline and counts it ready at an average of 7 or more over three runs with no dropped repeats. The two add-on repositories run their tests against this repository's host.
+
+Not verified in the game: add-on load order (`GetMod('CyberpunkConvai')` from another mod's `onInit`), remark latency on Mistral (target under 2 s), frame time during a Local AI remark, whether a voice stop silences the game's own scene dialogue (`audioVerified`), and the Delamain screen-face and held-remark behaviour. Details: [docs/ADDON_API.md](docs/ADDON_API.md).
+
+## Resource lifecycle (unloading)
+
+The rule, set on 2026-10-14: **anything that is not being used is unloaded.** FPS and reply latency come first, and many laptops run in a power-saving mode, so a model that sits in RAM or video memory, or a process that wakes up every minute, for a feature the settings do not use is a cost with no benefit. `mod/` starts no process of its own (it reads and writes files); every process below belongs to the bridge. The full inventory, with the test that guards each row, is [docs/RESOURCE_LIFECYCLE.md](docs/RESOURCE_LIFECYCLE.md).
+
+There are two release styles. **At once** when a setting turns a feature off or another choice replaces it (there is no grace period: turning voice playback off releases the companion voice on the next settings poll). **After an idle time** for things used in bursts where a reload is cheap.
+
+| Resource | Starts when | Released when |
+|---|---|---|
+| Pocket TTS worker (Python, CPU) | Pocket is the chosen voice and playback is on, or playback is off while V's voice is on | another voice is chosen; a cloud voice is chosen; playback off (unless V's voice needs it); shutdown (exit confirmed, process tree killed if needed) |
+| OmniVoice worker (Python, GPU) | OmniVoice is chosen, the pack is installed, playback on | another voice or reference is chosen; a cloud voice is chosen; playback off at once; shutdown. A reload costs about 45 s |
+| V's helper Pocket worker (CPU) | OmniVoice is chosen, V's voice is on and V's clips exist | V's voice off; the voice is no longer OmniVoice; before any other Pocket worker starts (one work-folder lock) |
+| V's line renderer page | V's voice is on and a voice is usable | V's voice off |
+| Local AI `llama-server` (GPU) | Local AI is chosen (loaded ahead on choosing it), or an add-on remark needs it | the provider leaves Local AI; 10 idle minutes; shutdown |
+| Memory embedder `llama-server` (CPU, one thread) | first memory search or write of a text provider | 5 idle minutes; at once when the provider returns to Convai and no add-on is installed |
+| Local speech recogniser (Python, CPU) | a recording starts (nothing warms it) | 90 s after the last recording |
+| Microphone capture page | the first recording through the recogniser | with the recogniser's idle exit |
+| Hidden browser and its pages | first use (a Convai turn or warm-up, the local voice, a recording) | provider or key switch or world reset; 5 idle minutes (`BROWSER_IDLE_MS`) |
+| Facial model (worker thread, about 3.6 MB of weights plus the text model) | bridge start | playback off, at once; reloads in a fraction of a second when playback is on |
+| Phone-analysis worker (Python, CPU) | only without the facial model, with Pocket speaking and playback on | as soon as Pocket stops or playback is off |
+| Vision helper (`CyberpunkConvaiVision.exe`, about 35 to 50 MiB) and its frame buffer (at most 4 JPEGs) | only while capturing: "Companions can see" on, Convai answering, someone near, no conversation running (nor for 12 s after one); one picture every 3 s | at once on any of those stopping; frames older than 2 minutes are never sent |
+| TV frames for vision | a video plays on V's TV, "Companions can see" on, Convai answering, someone near | at once when the video stops or the TV closes |
+| Audio-output probe (hidden PowerShell, wakes every 60 s) | first turn, while the lip-sync delay is Auto | a hand-set delay, or playback off |
+| Convai connection pages | Convai is the provider and a character is warmed or speaking | a provider switch closes every page; with Mistral or Local AI none is opened |
+| Cloud voice clients (Voxtral, Inworld) | per reply, stateless HTTPS | nothing is held between replies |
+
+Rules that follow from the table:
+
+- **A cloud voice means no local voice worker at all**, not even as a backup (`targetBackend` in `bridge/voice-selection.mjs`).
+- **Playback off silences the companions, not V.** With playback off the companions' voice is released, but V's typed line is still spoken whenever V's voice is on: through the chosen Pocket worker, through V's CPU helper when the voice is OmniVoice, or as one request to the chosen cloud voice. With the Convai voice V has no line. With V's voice also off nothing voice-related stays loaded.
+- **Every release is awaited.** Pocket and V's helper retire through confirmed EOF and exit (`taskkill /T` on Windows because the virtual environment's `python.exe` is a launcher); a new Pocket worker starts only after the old one has exited. The voice service's `close()` ends OmniVoice, the phone-analysis worker and the facial thread, and `shutdown()` awaits them together with the recogniser, both model servers and the browser. Model servers also have a synchronous kill on process exit (`killSync`).
+- **Nothing here runs per frame.** Every check is a due-check on the bridge's 500 ms settings poll or a single timer. The bridge's other interval timers (50 ms request, 150 ms microphone, prefetch and phone, 60 ms look-ahead, 500 ms settings, knowledge, memory, support and editor) are single file reads that hold no model and no process. The sign-in token source renews a token about every hour with one small request.
+- **Add-ons add nothing local of their own.** An add-on speaker uses the player's chosen voice and the Mistral or Local AI text route; the add-on poll and stock timer exist only while an add-on is installed.
+
+Live checks (Task Manager, Details tab, or `runtime/bridge.stderr.log`): after quitting the game no `python.exe`, `llama-server.exe`, browser or `powershell.exe` of the bridge is left; with a text provider and playback off the hidden browser is gone after 5 idle minutes; the recogniser's `python.exe` is gone 90 s after a recording; switching back to Convai removes both `llama-server` processes at once. The tests are `bridge/resource-lifecycle.test.mjs` plus the per-component tests named in the doc.
+
+## Performance rules
+
+Frame rate and response latency are the two top priorities. A loss of even 2 to 3 FPS is not acceptable, and a slower first sound counts as much as a slower frame.
+
+**Rules.**
+- No per-frame work on the game's main thread, in Lua or redscript, unless it is unavoidable and measured. Work runs on demand, on a timer, or on an event.
+- Polling loops are not allowed in the game thread. Timers use the 0.1 s tick, the 0.25 s slow tick of `mod/mcm.lua`, or longer. Idle code paths return at once after one flag check.
+- Heavy work goes to the bridge (a separate Node process), to its child processes (voice, recognition, the local model) or to native threads. The bridge is also where files are watched, models are loaded and unloaded, and prompts are built.
+- Every per-tick workload has a cap: 192 spatial queries per update (`UPDATE_QUERY_LIMIT` in `mod/companion-clearance.lua`), two new route plans per update, 8 warm Convai connections, 8 invitations preparing at once. Work above a cap waits for the next update, and nobody is refused.
+- Each `runtime/` file has one writer, writes are atomic or in place, and a lease file has a freshness limit the reader enforces.
+- Cost is measured before and after, in Developer mode, and recorded in `TODO.md` and the matching doc.
+
+**Measured costs in this install.** One CET `io.open` costs about 3 ms, `os.rename` about 4.8 ms, `os.remove` about 1.2 ms and a native call 10 to 60 microseconds. A single file operation therefore costs as much as 150 to 300 native calls. At 44 fps, 44 ms of game-thread time per second is 1 ms per frame, about 2 FPS when the main thread is the limit ([docs/PERFORMANCE_NATIVE_PLAN.md](docs/PERFORMANCE_NATIVE_PLAN.md)).
+
+**The 2026-10-12 capture** (one companion, 94 s in game, 48.4 fps, 20.7 ms mean frame): the whole `onUpdate` callback took 179 ms/s, 3.7 ms of each frame. The knowledge collectors were the largest part (69 ms/s), file IO second (32 ms/s) and init.lua's own inline work about 34 ms/s. The Lua rounds that followed, all committed and unit-tested, are: collectors that rest between scans and send revision references instead of an 800 KB payload (expected most of the 69 ms/s), fewer file opens and in-place lease writes, an idle sleep for the face writer, a continuous face file written in segments (speech update while speaking 85 to 115 ms/s down to an expected 4 to 8), a buffered `log()`, and gated hooks. The savings in those rounds are expected values from the captures. Whether they reached the player's frame rate has not been measured in a second live capture.
+
+**FPS A/B results read in the docs.** Companion vision, a capture every 3 s: 57.41 against 57.41 FPS (median, 12 blocks of 20 s) and 55.49 against 55.47 (means, 16 blocks), with no more slow frames in capture windows. The YouTube TV picture at one frame a second showed no measurable cost, but the game sat near a 60 fps cap, which hides small costs ([docs/COMPANION_VISION.md](docs/COMPANION_VISION.md)). The ordinary-NPC lip-sync A/B (crowd face modes `off`, `ungated`, `gated`) and Local AI FPS in the game are owed live checks.
+
+**Why a native plugin exists.** CET Lua has no asynchronous file IO, so every lease, mailbox and stream read runs on the game thread at 1 to 5 ms. `native/core/` builds `CyberpunkConvaiNative.dll`, a RED4ext plugin in `red4ext/plugins/CyberpunkConvaiNative/`. It registers RTTI natives only (no hooks, no offsets), declares game runtime 2.31 so RED4ext refuses it after a patch, and has no `.reds` declaration, so a missing DLL never blocks the game. Systems: `io` (one below-normal-priority worker thread for all file IO, mutex-copy calls of 0.1 to 0.4 microseconds measured headless), `gaze`, `clearance`, `actuator`, `faces`, `vehicles`, `chauffeur` and `passage`. Every native body is guarded, three faults turn a system off for the session, and a line in `runtime/native-off.txt` (a system name or `all`) switches it off by hand. Each system keeps its Lua path as the fallback, and the actuator is proven against Lua before it is used. The first live runs on 2026-10-13 found wrong game-getter names, which were fixed; no system has a recorded full in-game pass yet (not verified in the game). See [docs/NATIVE_REWRITE_PLAN.md](docs/NATIVE_REWRITE_PLAN.md), [docs/NATIVE_PORT_BRIEF.md](docs/NATIVE_PORT_BRIEF.md), [docs/NATIVE_ACTUATOR.md](docs/NATIVE_ACTUATOR.md) and [docs/NATIVE_VEHICLES.md](docs/NATIVE_VEHICLES.md).
+
+**Latency and the stage clock.** `bridge/turn-clock.mjs` time-stamps one turn from the game writing the request to the first sound: 24 named stages (`inputWritten`, `received`, `knowledge`, `admitted`, `transport`, `recalled`, `promptBuilt`, `llmSent`, `llmHeaders`, `firstToken`, `firstSentence`, `fullText`, `voiceStart`, `ttsSent`, `firstPcm`, `published`, `playbackObserved` and others). Marks reach the clock through an `AsyncLocalStorage`, so a mark is one Map write and nothing runs per frame; a 25 ms stall watcher runs only during a turn. Every turn writes `stages` (marks, steps that add up to the total, and event-loop stalls of 80 ms or more) into `runtime/bridge-latency.json` in the installed mod folder. The measurement scripts are `scripts/Measure-TurnLatency.mjs` and its siblings.
+
+Measured and built so far: a harness with simulated provider delays put Mistral plus Voxtral at 3,009 ms to sound before the 2026-10-12 pass and about 1,550 ms after (first-sentence streaming, a warm browser, a smaller voice reference). The seven live records from 2026-10-13 showed 2.8 to 3.5 s to sound on Mistral plus Voxtral and one 28 s hung request, plus a 400 ms memory-recall wait on 6 of 7 turns, which is now gone. Other cuts: a directory watcher for the request mailboxes (about 8 ms detection against 38 to 78 ms of polling), a 30 ms reply check through the native revision number, a WebAssembly kernel for the lip-sync model, keep-alive for Mistral (about 55 ms), and on the voice-key route a stable-partial start (median time to text 264 ms down to 1 ms on a synthetic set, measured on a busy machine). Details are in [docs/LATENCY_2026-10-12.md](docs/LATENCY_2026-10-12.md), [docs/LATENCY_2026-10-13.md](docs/LATENCY_2026-10-13.md) and [docs/LATENCY_2026-10-14.md](docs/LATENCY_2026-10-14.md). None of the 10-12, 10-13 and 10-14 latency work has a live post-change record yet. The live numbers go in `runtime/bridge-latency.json` and the dated log in `TODO.md`.
+
+**Checklist before you merge.**
+1. Does anything run every frame? If yes, remove it, gate it with a dirty flag, or move it to a tick, an event or the bridge.
+2. Does it open, rename or delete a file in the game thread? Use the native `io` system or an existing lease, and never poll a file faster than its reader needs.
+3. Does it make native calls or build tables in a loop? Add a cap, cache the result, and return early when nothing is wanted (feature off, no companion, menu closed).
+4. Does it load a model, a browser page or a process? Add an unload path and a release when the setting that needs it is off.
+5. Does it add a hop to a turn? Add a stage mark, run `scripts/Measure-TurnLatency.mjs`, and state the cost.
+6. Does a new hook fire for every NPC? Filter it as early as possible, and register it lazily.
+7. Profile in Developer mode with `mod/perf-probe.lua` (`runtime/perf-probe.json`: 2 s windows, the last 150 kept, `event:onUpdate`, `init:*` and `hook:*` rows) and compare against the numbers above. A change that cannot be measured says "expected", not "measured".
+8. Run `node scripts/run-tests.mjs`. Idle-cost tests such as `bridge/lua-idle-work.test.mjs`, `bridge/knowledge-perf.test.mjs`, `bridge/companion-query-budget.test.mjs` and `bridge/perf-probe.test.mjs` must still pass.
+
+## Packaging and release
+
+The player release is built from a git commit, never from the working tree, so uncommitted work cannot slip into a release. The builder is `packaging/build-release.mjs`; the full developer notes are [docs/PACKAGING.md](docs/PACKAGING.md), and the player-facing release notes shipped in every package are [packaging/PLAYER_README.md](packaging/PLAYER_README.md).
+
+### The packages
+
+| Package | Where players get it | Contents |
+|---|---|---|
+| `CyberpunkConvai-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the JSON catalogs the Lua reads, `README.txt`, `release.json` |
+| `CyberpunkConvai-Runtime-<v>.zip` | GitHub Releases | Everything else needed to play: the RED4ext launcher and native plugin, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, the local speech model, voice references, the game archives and the Audioware reply bank |
+| `CyberpunkConvai-OmniPack-<v>-partNofM.zip` | GitHub Releases | Optional OmniVoice pack: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and its references |
+| `CyberpunkConvai-LocalAI-Standard-<v>[-partNofM].zip` | GitHub Releases | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), in 1 GB parts |
+| `CyberpunkConvai-LocalAI-Lite-<v>.zip` | GitHub Releases | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB) |
+| Mature pack (`manifest.mature.json` and two models) | GitHub Releases only, uploaded by hand | Optional uncensored models for the Mature setting ([packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md)); built only on request (`--packages mature`), not by the workflow |
+
+Why the split: Nexus scans every upload and holds flagged files for manual review, so the Nexus file is text only and is never held. The large binary runtime goes to GitHub Releases as plain zips, the way the core frameworks (RED4ext, Codeware, TweakXL, Audioware) are also distributed. The Nexus page lists the frameworks the mod needs (RED4ext, Cyber Engine Tweaks, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu) because the Runtime package's launcher and native plugin are RED4ext plugins. All packages use game-root-relative paths and merge into one install. Versions must match: `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the Runtime one.
+
+Releases are numbered `0.N` (0.1, 0.2, ...); a hotfix is `0.N.M`. The tag is `v` plus the number. The first build, `v2077.1` (2026-10-07, a private test of the pipeline), used the earlier `2077.N` scheme and the version check still accepts it. `packaging/lib/version.mjs` parses versions and `packaging/release.test.mjs` guards it.
+
+### Installed layout
+
+```text
+red4ext/plugins/CyberpunkConvai/
+  CyberpunkConvai.dll        launcher (native/autostart)
+  launcher.ini               %PLUGIN%\app\node\node.exe app\launcher\start-service.mjs
+  app/                       the application, replaced by every update
+    node/  browser/chrome-win64/  python/  pocket-tts/  bridge/  node_modules/
+    assets/  characters/  research/  models/{pocket,lipsync,stt}/
+    defaults/  launcher/  licenses/
+    omni/                    the OmniVoice pack, when installed
+    local-ai/                the Local AI pack(s), when installed
+  voices/                    reference clips (outside app/: the Omni worker requires it)
+red4ext/plugins/CyberpunkConvaiNative/CyberpunkConvaiNative.dll   native core plugin
+bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/         Lua, locales, JSON; data/ (player state); runtime/ (exchange files)
+r6/scripts/CyberpunkConvai/  redscript
+r6/audioware/CyberpunkConvai speech.yml + eight silent reply slots
+archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_ambient_driver_guard
+```
+
+RED4ext loads DLLs only from `red4ext/plugins/*.dll` and one folder deep, so the Python, torch and Chrome DLLs under `app/` are never loaded into the game. The build refuses any entry whose game-relative path would exceed 255 characters under a 70-character game folder (Windows' built-in zip extractor fails beyond 260).
+
+### How it starts
+
+1. RED4ext loads `CyberpunkConvai.dll`. It checks that Cyber Engine Tweaks and the CET mod are present, reads `launcher.ini` and starts `app\node\node.exe app\launcher\start-service.mjs` hidden, with a pipe whose closing tells the service the game ended.
+2. `start-service.mjs` prepares `data/` (generated files refreshed, managed files kept once edited, player-owned files never touched), joins split OmniVoice parts on the first start after extraction (checking each SHA-256), and sets every path explicitly. It clears inherited `NODE_OPTIONS` and `PYTHONPATH`; nothing is looked up on `PATH`, and the bundled Pythons use their `._pth` file, so a Python installed on the machine is ignored.
+3. It runs the same supervisor development uses (`bridge/bridge-supervisor.mjs`): one bridge per game session, crash restarts, the status file the Help page reads, and a graceful stop when the game exits. `--prepare-only` stops after step 2 and prints a summary.
+
+### Native plugin switches (`native-off.txt`)
+
+The Runtime package ships `runtime/native-off.txt` with exactly `actuator`, `vehicles`, `chauffeur`, `passage` and `faces`, the systems not yet proven in the real game. A **missing file means every system is on**; one name per line, `#` starts a comment, `all` switches everything off; the plugin polls the file about once a second and the Lua reads it too. The list lives in `native.off` in `packaging/release.config.json`. `--no-native` leaves the plugin out and the Lua falls back to its own path for every system (`mod/native-core.lua`).
+
+### Building
+
+- Inputs pinned in `packaging/release.config.json`: Node 24.21.0, CPython 3.12.10 and 3.11.9 embeddable, Chrome for Testing 145.0.7632.6 (matching the Playwright 1.58.2 build), pocket-tts and VoiceStudio revisions, every OmniVoice and Local AI model file with URL, revision and SHA-256. Python wheels are locked in `packaging/python/*.lock.txt` and installed with `--no-deps --require-hashes --only-binary=:all:`.
+- Trained models come from a private Hugging Face bucket (`packaging/fetch-models.py`, every file checked against its manifest) or from the developer's `runtime/` folder with `--models local`.
+- The launcher is compiled from `native/autostart` and the plugin from `native/core`, both with MSVC (static CRT, `/Brepro` so the same source gives a byte-identical DLL). `ffmpeg` is needed to pre-build the Voxtral reference slots.
+- The three game archives in `packaging/release-data/` are built from game files with WolvenKit, so CI cannot rebuild them.
+- Archives are deterministic (`packaging/lib/zip.mjs`: sorted entries, one timestamp, fixed deflate level). Each stays under 1.95 GB (GitHub's limit is 2 GiB per asset); files over 1 GB are split into `.partN` ranges with a `.parts.json`. Output goes to `dist/release/packages/` with `*.files.json`, `SHA256SUMS.txt` and `release-manifest.json`.
+- Not shipped: tests, fixtures, research and training material, benchmark audio, `misc/`, `vendor/`, developer `runtime/`, backups, keys and tokens, the development-only Lua files (`devOnlyLua` in the config; the build fails if a shipped file loads one without a guarded `pcall`), the retired `KnowledgeState.reds`, Rhubarb and the resident phone analyser.
+
+```powershell
+node packaging/build-release.mjs --version 0.2 --dry-run                          # all five packages
+node packaging/build-release.mjs --version 0.2 --dry-run --packages scripts,runtime
+node packaging/test-release-install.mjs --version 0.2 --packages dist/release/packages [--omni] [--local-ai]
+node --test packaging/release.test.mjs
+```
+
+The install test builds a stand-in game folder under `%TEMP%` (with spaces and non-ASCII characters in the path), extracts with `Expand-Archive`, checks every file, then with a `PATH` of Windows folders only it speaks with the packaged Pocket voice, recognises that speech with the packaged local speech worker, runs the lip-sync model on it (and OmniVoice with `--omni`), and loads the real launcher DLL through `native/autostart/test-host.c`, which must start the packaged service and stop it when the "game" exits. It never touches the real game folder.
+
+### GitHub Actions
+
+`.github/workflows/release.yml` runs only from Actions, Release, Run workflow, or on a pushed `v0.N` tag. Job 1 builds and install-tests Scripts and Runtime on `windows-2025`, keeps the Scripts zip as a workflow artifact (the file for Nexus) and creates the GitHub release `v0.N`. Job 2 builds the OmniVoice pack and job 3 (a matrix of `standard` and `lite`) builds the two Local AI packs; both add to the same release, so a release can briefly lack them. A new release is created with `--latest` because GitHub ranks "Latest" by version number as well as date and `v0.2` is lower than the legacy `v2077.1`. The workflow uses the built-in `GITHUB_TOKEN` with `contents: write` plus two repository secrets: a read token for the model bucket and the Convai credential for the default setup. The auth backend is deployed separately (see [Daily limit and sign-in backend](#daily-limit-and-sign-in-backend)).
+
+### Keeping the inputs current
+
+New models or voice configs go to the bucket's `final/` folder and its manifest; new character ids or rebuilt archives use `node packaging/Refresh-ReleaseData.mjs`; Python versions use `python packaging/python/lock.py <name>`; Node, Python and Chrome changes edit URL, version and SHA-256 in `release.config.json`.
+
+## Tests
+
+`npm test` runs `node scripts/run-tests.mjs`, which finds every `*.test.mjs` under `bridge/`, `packaging/`, `scripts/`, `auth-backend/` and `addons/` (skipping `node_modules` and the few files in its `EXCLUDE` list), splits them into batches under the Windows command-line limit and runs `node --test --test-concurrency=8`. A new test file is picked up without editing `package.json`.
+
+| Kind | Where | How to run |
+|---|---|---|
+| Bridge unit and integration tests (about 290 files; many load the real Lua through fengari, a Lua 5.3 VM written in JavaScript) | `bridge/*.test.mjs` | `npm test`, or one file with `node --test bridge/<name>.test.mjs` |
+| Packaging | `packaging/*.test.mjs` | `node --test packaging/release.test.mjs` (excluded from `npm test`) |
+| Sign-in backend | `auth-backend/test/*.test.mjs` | `node --test auth-backend/test/` (the admission script runs under fengari against an in-memory Redis) |
+| Add-on example | `addons/example/example.test.mjs` | `npm test` |
+| Native core | `native/core/tests/` (headless test host, `plugin_host.cpp` loads the DLL without running game code) | `scripts/Build-NativeCore.ps1` builds and runs them; CTest registers `core` and `plugin_host` |
+| Python | `scripts/test_*.py` | `npm run test:python` |
+| Focused groups | `package.json` scripts | `npm run test:streaming`, `test:knowledge`, `test:gestures`, `test:memory`, `test:ui-languages`, `test:voice-cast`, `test:profiles`, `test:archetypes` and others |
+
+Tests marked "not in the npm test list" in `scripts/run-tests.mjs` (gesture, seating, seated-look, multilingual-profile and release tests) are run through their focused `package.json` script or directly. Live-game behaviour cannot be tested here: each feature's design note lists what was and was not seen in the game, and [Status of unverified work](#status-of-unverified-work) collects the rest. Prompt and quality evaluations are scripts, not tests: `scripts/Eval-MistralPrompt.mjs`, `scripts/Eval-MatureGuard.mjs`, `scripts/Eval-MatureSamples.mjs`, `scripts/Measure-TurnLatency.mjs` and the `Measure-*.mjs` family.
+
+## Building and the development workflow
+
+Requirements: Windows, Node.js (the bridge uses ES modules, `node:test` and the `playwright` and `@convai/web-sdk` packages), the game with RED4ext, Cyber Engine Tweaks, redscript, Codeware, TweakXL and Audioware installed, Python for the workers, and for native builds Visual Studio 2022 with the C++ toolset. `npm install` installs `playwright`, `@convai/web-sdk`, `esbuild` and `fengari`.
+
+```powershell
+npm install
+npm test                                                  # whole suite
+scripts\Compile-Redscript.ps1 -GameDirectory <game>        # compile redscript in an isolated copy first
+scripts\Install-DevelopmentMod.ps1 -GameDirectory <game>   # install committed mod files (-LuaOnly for a CET reload)
+scripts\Install-BridgeAutostart.ps1 -GameDirectory <game>  # development launcher: bridge starts with the game
+scripts\Start-ConversationBridge.ps1                       # or run the bridge by hand (rebuilds the browser client first)
+scripts\Build-NativeCore.ps1                               # native core plugin + headless tests
+scripts\Build-AutostartPlugin.ps1                          # launcher DLL
+scripts\Build-VisionCapture.ps1                            # companion-vision helper exe
+```
+
+- **Dev install rule.** `scripts/Install-DevelopmentMod.ps1` copies the files listed in `scripts/development-files.json` (via `scripts/DevelopmentFiles.psm1`), backs up what it replaces under `backups/` with a receipt, and refuses to install native scripts while the game runs. Development-only Lua (the diagnostics and probe files) is never installed by the release build.
+- **Redscript** is compiled with the game's `scc.exe` against `r6/cache/final.redscripts` in an isolated copy, so a running game never sees partially installed scripts. `r6/scripts/CyberpunkConvai/FaceFeature.reds` is generated from `assets/facial/controls.json`.
+- **Browser client.** `scripts/Build-VoiceClient.mjs` bundles `bridge/realtime-client.mjs` and `@convai/web-sdk` into `runtime/realtime-client.js` with esbuild on every launch; a failed build never replaces the previous artifact and stops the launcher from starting a worker with it.
+- **State folder.** The development bridge keeps its state in `runtime/` (override with `CYBERPUNK_CONVAI_STATE`). Almost every tunable has a `CYBERPUNK_CONVAI_*` environment override named next to its constant in the bridge.
+- **Do not run two launchers.** Remove the development launcher (`scripts/Uninstall-BridgeAutostart.ps1`) before trying a release build in the real game, or both start a service.
+- **Release.** Dry-run locally, run the install test, then push a `v0.N` tag or run the workflow ([Packaging and release](#packaging-and-release)).
+- **Rules for changes.** Follow [Performance rules](#performance-rules): nothing per frame in Lua or redscript, every loader has an unload path ([Resource lifecycle](#resource-lifecycle-unloading)), game characters other than mod-spawned copies get no mod systems, and a feature that is not proven in the real game ships off or is listed under [Status of unverified work](#status-of-unverified-work).
+
+Add-ons are separate repositories built against the add-on API; [Add-on API](#add-on-api) describes the contract and `addons/example/` is the template.
+
+## Documentation index
+
+Every design note in `docs/`, grouped by area. Dated files are snapshots (research, measurements, audits) and may describe things that changed afterwards; the code and the undated notes are the reference. The root [TODO.md](TODO.md) is the living task list and dated log.
+
+**Architecture, performance and release**
+[PACKAGING](docs/PACKAGING.md) · [RESOURCE_LIFECYCLE](docs/RESOURCE_LIFECYCLE.md) · [PERFORMANCE_NATIVE_PLAN](docs/PERFORMANCE_NATIVE_PLAN.md) · [NATIVE_REWRITE_PLAN](docs/NATIVE_REWRITE_PLAN.md) · [NATIVE_PORT_BRIEF](docs/NATIVE_PORT_BRIEF.md) · [DEVELOPMENT_AUDIT_2026-09-30](docs/DEVELOPMENT_AUDIT_2026-09-30.md) · [SAVE_IDENTITY_ALTERNATIVES](docs/SAVE_IDENTITY_ALTERNATIVES.md) · [EXPLORATION_RESEARCH](docs/EXPLORATION_RESEARCH.md) (deferred feature) · [GAME_WINDOW_CAPTURE](docs/GAME_WINDOW_CAPTURE.md) (developer screenshot tool)
+
+**Native plugins**
+[NATIVE_ACTUATOR](docs/NATIVE_ACTUATOR.md) · [NATIVE_CLEARANCE](docs/NATIVE_CLEARANCE.md) · [NATIVE_VEHICLES](docs/NATIVE_VEHICLES.md) · [NATIVE_FACIAL_RETARGET_CALIBRATION](docs/NATIVE_FACIAL_RETARGET_CALIBRATION.md)
+
+**Conversation providers, accounts and latency**
+[MISTRAL](docs/MISTRAL.md) · [MISTRAL_PROMPT_PASS](docs/MISTRAL_PROMPT_PASS.md) · [LOCAL_AI](docs/LOCAL_AI.md) · [LOCAL_MODEL_CHOICE](docs/LOCAL_MODEL_CHOICE.md) · [LOCAL_OPTION_DESIGN](docs/LOCAL_OPTION_DESIGN.md) · [OWN_CONVAI_KEY](docs/OWN_CONVAI_KEY.md) · [CONVAI_AUTH_BACKEND](docs/CONVAI_AUTH_BACKEND.md) · [FREE_CLOUD_OPTION_RESEARCH](docs/FREE_CLOUD_OPTION_RESEARCH.md) · [CHARACTER_API](docs/CHARACTER_API.md) · [LATENCY_2026-10-12](docs/LATENCY_2026-10-12.md) · [LATENCY_2026-10-13](docs/LATENCY_2026-10-13.md) · [LATENCY_2026-10-14](docs/LATENCY_2026-10-14.md)
+
+**Mature setting and models**
+[MATURE_MODELS_RESEARCH](docs/MATURE_MODELS_RESEARCH.md) · [MATURE_MODELS_TEST_2026-10-13](docs/MATURE_MODELS_TEST_2026-10-13.md) · [MATURE_MODELS_V2_2026-10-14](docs/MATURE_MODELS_V2_2026-10-14.md) · [MATURE_SAMPLES_2026-10-13](docs/MATURE_SAMPLES_2026-10-13.md) · [MATURE_SAMPLES_2026-10-14](docs/MATURE_SAMPLES_2026-10-14.md) · [MATURE_SAMPLES_V3_2026-10-14](docs/MATURE_SAMPLES_V3_2026-10-14.md) · [MATURE_SAMPLES_V4_2026-10-14](docs/MATURE_SAMPLES_V4_2026-10-14.md)
+
+**Voices, speech and audio**
+[LOCAL_VOICES](docs/LOCAL_VOICES.md) · [POCKET_TTS_RUNTIME](docs/POCKET_TTS_RUNTIME.md) · [POCKET_STREAM_LIPSYNC](docs/POCKET_STREAM_LIPSYNC.md) · [POCKET_V2_RESULTS_2026-10-06](docs/POCKET_V2_RESULTS_2026-10-06.md) · [POCKET_NEXT_RUN_PLAN](docs/POCKET_NEXT_RUN_PLAN.md) · [DECODER_V2_2026-10-06](docs/DECODER_V2_2026-10-06.md) · [VOICE_ACCELERATION](docs/VOICE_ACCELERATION.md) · [VOICE_BENCHMARKS](docs/VOICE_BENCHMARKS.md) · [VOICE_ENGINE_COMPARISON](docs/VOICE_ENGINE_COMPARISON.md) · [VOICE_MODEL_RESEARCH_2026-10-03](docs/VOICE_MODEL_RESEARCH_2026-10-03.md) · [VOICESTUDIO_RESEARCH](docs/VOICESTUDIO_RESEARCH.md) · [VOICE_TRAINING](docs/VOICE_TRAINING.md) · [VOICE_PREPARATION](docs/VOICE_PREPARATION.md) · [VOICE_CAST_PREPARATION](docs/VOICE_CAST_PREPARATION.md) · [VOICE_CAST_STATUS](docs/VOICE_CAST_STATUS.md) · [VOICE_SOURCE_ACTIVATION](docs/VOICE_SOURCE_ACTIVATION.md) · [VOICE_PHONE_CLIPS_2026-10-06](docs/VOICE_PHONE_CLIPS_2026-10-06.md) · [VOICE_LIKENESS_2026-10-05](docs/VOICE_LIKENESS_2026-10-05.md) · [VOICE_LISTENING_FEEDBACK_2026-10-06](docs/VOICE_LISTENING_FEEDBACK_2026-10-06.md) · [VOICE_RT60_COLD_WARM](docs/VOICE_RT60_COLD_WARM.md) · [JOHNNY_VOICE_COMPARISON](docs/JOHNNY_VOICE_COMPARISON.md) · [GAME_VOICE_REFERENCES](docs/GAME_VOICE_REFERENCES.md) · [REFERENCE_DURATION_SEARCH_2026-10-07](docs/REFERENCE_DURATION_SEARCH_2026-10-07.md) · [CLIP_SEARCH_43_2026-10-14](docs/CLIP_SEARCH_43_2026-10-14.md) · [CLOUD_VOICE_VOXTRAL](docs/CLOUD_VOICE_VOXTRAL.md) · [CLOUD_VOICE_INWORLD](docs/CLOUD_VOICE_INWORLD.md) (developer experiment) · [CONVAI_AUDIO_STREAMING](docs/CONVAI_AUDIO_STREAMING.md) · [SPEECH_STREAMING](docs/SPEECH_STREAMING.md) · [DIALOGUE_LEVEL](docs/DIALOGUE_LEVEL.md) · [LOCAL_STT](docs/LOCAL_STT.md) · [GROUP_VOICE](docs/GROUP_VOICE.md) · [V_VOICE](docs/V_VOICE.md) · [EMOTION_TAGS](docs/EMOTION_TAGS.md) · [NATURAL_SPEECH_BLOCK_V3](docs/NATURAL_SPEECH_BLOCK_V3.md) · [NATURAL_SPEECH_CLONES](docs/NATURAL_SPEECH_CLONES.md) · [NATURAL_SPEECH_TEST_2026-10-06](docs/NATURAL_SPEECH_TEST_2026-10-06.md)
+
+**Lip sync, faces, expressions and gaze**
+[FACIAL_ANIMATION](docs/FACIAL_ANIMATION.md) · [GAME_LIPSYNC_MODEL](docs/GAME_LIPSYNC_MODEL.md) · [LIPSYNC_REFINEMENT](docs/LIPSYNC_REFINEMENT.md) · [LIPSYNC_DEEP_DIVE_2026-09-30](docs/LIPSYNC_DEEP_DIVE_2026-09-30.md) · [LIPSYNC_IMPROVEMENTS_2026-10-07](docs/LIPSYNC_IMPROVEMENTS_2026-10-07.md) · [LIPSYNC_V2_RESEARCH_2026-10-14](docs/LIPSYNC_V2_RESEARCH_2026-10-14.md) · [ORDINARY_NPC_LIPSYNC_RESEARCH_2026-10-14](docs/ORDINARY_NPC_LIPSYNC_RESEARCH_2026-10-14.md) · [RESIDENT_PHONE_ANALYSIS](docs/RESIDENT_PHONE_ANALYSIS.md) · [COMPANION_EXPRESSIONS](docs/COMPANION_EXPRESSIONS.md) · [COMPANION_GAZE](docs/COMPANION_GAZE.md) · [OVERHEAD_SUBTITLES](docs/OVERHEAD_SUBTITLES.md)
+
+**Companion behaviour, movement and reactions**
+[COMPANION_BEHAVIOR](docs/COMPANION_BEHAVIOR.md) · [COMPANION_COMBAT](docs/COMPANION_COMBAT.md) · [COMPANION_TACTICS](docs/COMPANION_TACTICS.md) · [COMPANION_GESTURES](docs/COMPANION_GESTURES.md) · [COMPANION_HOTKEY_INPUT](docs/COMPANION_HOTKEY_INPUT.md) · [COMPANION_MOVEMENT_DESIGN](docs/COMPANION_MOVEMENT_DESIGN.md) · [COMPANION_RECOVERY_TRANSACTIONS](docs/COMPANION_RECOVERY_TRANSACTIONS.md) · [COMPANION_RELOAD_CLEANUP](docs/COMPANION_RELOAD_CLEANUP.md) · [COMPANION_CLEARANCE](docs/COMPANION_CLEARANCE.md) · [COMPANION_VEHICLES_DESIGN](docs/COMPANION_VEHICLES_DESIGN.md) · [COMPANION_SEATING](docs/COMPANION_SEATING.md) · [COMPANION_CHAUFFEUR](docs/COMPANION_CHAUFFEUR.md) · [COMPANION_INVITATIONS](docs/COMPANION_INVITATIONS.md) · [WORLD_COMPANIONS](docs/WORLD_COMPANIONS.md) · [COMPANION_APPEARANCES](docs/COMPANION_APPEARANCES.md) · [COMPANION_VISION](docs/COMPANION_VISION.md) · [BATTLE_REACTIONS](docs/BATTLE_REACTIONS.md) · [LOOT_REACTIONS](docs/LOOT_REACTIONS.md) · [LOOT_REACTION_RESEARCH](docs/LOOT_REACTION_RESEARCH.md) · [FOLLOW_UP_QUESTIONS](docs/FOLLOW_UP_QUESTIONS.md)
+
+**Context, memory and characters**
+[GAME_DIALOGUE_CONTEXT](docs/GAME_DIALOGUE_CONTEXT.md) · [DYNAMIC_CONTEXT_AUDIT](docs/DYNAMIC_CONTEXT_AUDIT.md) · [PLAYER_GEAR_CONTEXT](docs/PLAYER_GEAR_CONTEXT.md) · [ROMANCE_DYNAMIC_CONTEXT](docs/ROMANCE_DYNAMIC_CONTEXT.md) · [QUEST_CONTEXT](docs/QUEST_CONTEXT.md) · [QUEST_DECISIONS](docs/QUEST_DECISIONS.md) · [QUEST_OUTCOME_COVERAGE_2026-10-05](docs/QUEST_OUTCOME_COVERAGE_2026-10-05.md) · [QUEST_PRIORITY_COVERAGE_2026-10-04](docs/QUEST_PRIORITY_COVERAGE_2026-10-04.md) · [CHARACTER_KNOWLEDGE_COVERAGE_2026-10-01](docs/CHARACTER_KNOWLEDGE_COVERAGE_2026-10-01.md) · [PLAYER_MEMORY](docs/PLAYER_MEMORY.md) · [PLAYER_MEMORY_UI](docs/PLAYER_MEMORY_UI.md) · [CHAT_MEMORY_RESET](docs/CHAT_MEMORY_RESET.md) · [RELATIONSHIP_PROFILES](docs/RELATIONSHIP_PROFILES.md) · [FIRST_PERSON_RULE](docs/FIRST_PERSON_RULE.md) · [FULL_CAST_EXPANSION_2026-10-01](docs/FULL_CAST_EXPANSION_2026-10-01.md) · [NPC_ARCHETYPES](docs/NPC_ARCHETYPES.md) · [MULTILINGUAL_PROFILES](docs/MULTILINGUAL_PROFILES.md) · [CHARACTER_EDITOR](docs/CHARACTER_EDITOR.md)
+
+**Interface and features**
+[MANAGER_UI](docs/MANAGER_UI.md) · [SETTINGS_REVIEW_2026-10-07](docs/SETTINGS_REVIEW_2026-10-07.md) · [INTERFACE_LANGUAGES](docs/INTERFACE_LANGUAGES.md) · [NOTIFICATIONS](docs/NOTIFICATIONS.md) · [PHONE_CHAT](docs/PHONE_CHAT.md) · [HOLOCALL](docs/HOLOCALL.md) · [YOUTUBE_TV](docs/YOUTUBE_TV.md) · [ADDON_API](docs/ADDON_API.md)
+
+Other documents: [packaging/PLAYER_README.md](packaging/PLAYER_README.md) (the release notes shipped with every package), [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md), [auth-backend/README.md](auth-backend/README.md), [characters/README.md](characters/README.md), [localization/README.md](localization/README.md), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Status of unverified work
+
+Everything in this README describes current `main`. Tests cover the logic; they cannot show how a feature behaves in the running game. This section lists what is built but has not been seen in the live game, what ships switched off, and where measurements are partial. Experimental features are labelled the same way in the player section ([What is still experimental](#what-is-still-experimental)).
+
+**Built, installed or installable, not yet seen in the live game**
+
+| Area | State |
+|---|---|
+| Companion vision and TV frames as a vision source | Capture helper and bridge logic are tested; the end-to-end behaviour with Convai is not confirmed live |
+| YouTube on V's TV | Built and unit-tested; not confirmed live, including the windowing requirement |
+| Holocalls: live picture and the Chat-tab call button | Built; check [docs/HOLOCALL.md](docs/HOLOCALL.md) for what was seen |
+| Ordinary-NPC conversations and their lip sync | Built; the gated crowd graph has not been installed or seen, and its FPS A/B check has not been run |
+| Character editor and the Multilingual setting (including the multilingual microphone) | Built and tested; not seen live |
+| Seated free-look, overflow convoys, fast-travel recovery | Built; not confirmed live |
+| Native `faces`, `actuator`, `vehicles`, `chauffeur`, `passage` | Ship **off** through `native-off.txt` until proven in the game; the Lua paths are the proven ones |
+| The tactic command, decision ledger | The ledger is off and has no UI; the tactic command is built but not confirmed live |
+| Add-ons (Skippy, Delamain) | Separate repositories, planned for later dates; the add-on API is the part in the main mod |
+
+**Not measured or partial**
+
+- Local AI was measured on one machine (12 GB RTX 4080 Laptop). AMD and Intel graphics cards are untested, the video-memory thresholds in the model choice are estimates, and FPS while a large local model runs has not been measured in the game.
+- The lip-sync v2 research is not installed: it failed its no-degradation gate on one check.
+- Live microphone acceptance for Local speech recognition in the game was deferred.
+- Quest-coverage numbers in the context docs are dated snapshots. Ordinary-NPC archetype counts differ between older and newer docs: the data files are the reference.
+- Whether a given release build switches the sign-in backend on is a packaging decision; the bridge's local daily limit applies on its own otherwise.
+
+**Where older notes disagree with the code**
+
+The code is the reference. These design notes still carry older statements:
+
+- `docs/SETTINGS_REVIEW_2026-10-07.md` lists nine interface languages and older defaults (reactions on, auto-connect off); the code has 16 languages, both reactions off and auto-connect on.
+- `docs/INTERFACE_LANGUAGES.md` counts 550 interface strings; `localization/en.json` holds 804.
+- `docs/MANAGER_UI.md` mentions a prepared-voices page that the code does not have.
+- `docs/COMPANION_INVITATIONS.md` speaks of an eight-copy party; the party has no size limit (eight is the preparation and warm-connection limit).
+- `docs/LOOT_REACTIONS.md` says loot reactions default on; the code defaults them off.
+- `docs/NPC_ARCHETYPES.md` and `docs/MULTILINGUAL_PROFILES.md` mix 37 and 44 archetype kinds; the data has 37 kinds and 74 archetype profiles.
+- `docs/QUEST_CONTEXT.md` and `docs/QUEST_DECISIONS.md` quote different rule counts from earlier pack revisions; `characters/world-knowledge.json` is the reference.
+- `docs/YOUTUBE_TV.md` and `TODO.md` still describe a second YouTube TV pass as unmerged; it is merged.
+- `docs/WORLD_COMPANIONS.md` describes world characters joining the party in places; that was disabled on 2026-10-11 and only mod-spawned copies join.
+
+---
+
+## Credits and licence
+
+**Cyberpunk 2077 belongs to CD PROJEKT RED.** Cyberpunk 2077, its characters, story, models, animations, audio, voice recordings and other game assets are the property of CD PROJEKT S.A. and their respective rights holders. This project is an unofficial fan mod. It is not made, endorsed or supported by CD PROJEKT RED, and nothing in this repository licenses any game asset. The reference voice clips and the game archives the mod ships are Cyberpunk 2077 material and are outside the project licence.
+
+**Licence.** The project's own source code, documentation and configuration are under the **Cyberpunk Convai Use License, version 1.1** ([LICENSE](LICENSE)): use, copy, modify and distribute, including commercially, provided that you keep the licence and notices, state significant changes, and, if you distribute a modified version with AI character conversation, offer a functional, user-selectable Convai integration as at least one provider option. Other providers, local models and self-hosted systems are allowed and any of them may be the default. It is source-available, not an OSI-approved open-source licence.
+
+**Third-party components** keep their own licences, including Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu, the Convai Web SDK, Node.js, Chrome for Testing and Chromium, Playwright, CPython, Kyutai Pocket TTS and its weights, VoiceStudio and OmniVoice (the OmniVoice weights are non-commercial), Moonshine and sherpa-onnx, llama.cpp, the Gemma, Qwen and Granite models and the CMU Pronouncing Dictionary. The exact versions and licence texts are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the optional Mature pack's two models carry their own licences, listed in [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md). Each release package also carries them as `THIRD-PARTY-NOTICES.txt`.
+
+Thanks to the authors of the frameworks the mod stands on, and to Convai and Mistral for their services.
