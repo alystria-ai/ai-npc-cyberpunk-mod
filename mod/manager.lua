@@ -31,7 +31,7 @@ local OMNI_LABELS = {
 }
 local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
 local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it in Settings > Conversation provider)'
-local INWORLD_KEY_MISSING = 'Requires an Inworld key (add it in Settings > Voices)'
+local INWORLD_KEY_MISSING = 'Requires an Inworld key (add it in Settings > Development)'
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
 -- Natural speech and Expressive emotions need a local voice (the Convai cloud voice would read their tags aloud). The
 -- pending notice, once, after an Apply that switched the voice or turned the two settings off.
@@ -406,7 +406,7 @@ local function validModelId(value)
 end
 
 -- What turning Mature content on changed, kept in the settings so that turning it off puts the player's own choices back:
---   {conversationProvider = {before = 'convai', set = 'local'}, localModel = {before = <model id>, set = <the uncensored model id>},
+--   {conversationProvider = {before = 'convai' | 'convai-key' | 'mistral', set = 'local'}, localModel = {before = <model id>, set = <the uncensored model id>},
 --    voice = {before = <voice>, set = <voice>}} where a voice is {provider = 'pocket'|'omni'|'convai'|'voxtral'|'inworld',
 --   steps = 16|32, reference = 'short'|'long'} (steps and reference for omni only). Each part is optional; anything malformed is
 -- dropped, and nil is returned when nothing is left. Returns a new table.
@@ -419,11 +419,17 @@ local function cleanMatureVoice(value)
     return {provider = provider, steps = value.steps, reference = value.reference}
 end
 
+-- A provider as the restore record names it: the three stored values, or 'convai-key' (Convai with the player's own key, which the
+-- selector lists as its own entry; stored as 'convai' plus useOwnConvaiKey).
+local function restoreProviderName(value)
+    return value == 'convai-key' and value or providerName(value)
+end
+
 local function cleanMatureRestore(value)
     if type(value) ~= 'table' then return nil end
     local result, any = {}, false
     local part = value.conversationProvider
-    if type(part) == 'table' and providerName(part.before) == part.before and providerName(part.set) == part.set then
+    if type(part) == 'table' and restoreProviderName(part.before) == part.before and restoreProviderName(part.set) == part.set then
         result.conversationProvider, any = {before = part.before, set = part.set}, true
     end
     part = value.localModel
@@ -642,8 +648,19 @@ local function loadSettings()
     -- The retired Follow-up questions setting: an old saved key is dropped (nothing reads it).
     if settings.followUpQuestions ~= nil then settings.followUpQuestions, settingsNeedSave = nil, true end
     if type(settings.developerMode) ~= 'boolean' then settings.developerMode, settingsNeedSave = false, true end
-    -- Off by default: conversations use the shared plan until the player turns their own Convai key on (bridge/convai-key.mjs).
+    -- Off by default: conversations use Convai free tier until the player chooses "Convai API key" in the Conversation provider
+    -- selector, which is this value (bridge/convai-key.mjs). There is no switch of its own any more.
     if type(settings.useOwnConvaiKey) ~= 'boolean' then settings.useOwnConvaiKey, settingsNeedSave = false, true end
+    -- The old "Use my own Convai API key" switch became that selector entry. A saved switch that is on with no key saved becomes
+    -- "Convai free tier" (once: a key status the bridge has not published yet decides nothing; with a key the choice stands as it is).
+    -- Mistral and Local stay as they were: the switch only matters again when the player goes back to Convai.
+    if settings.convaiProviderChoice ~= true then
+        local keyState = readJSON('runtime/own-key-state.json')
+        if type(keyState) == 'table' then
+            if settings.useOwnConvaiKey == true and keyState.saved ~= true then settings.useOwnConvaiKey = false end
+            settings.convaiProviderChoice, settingsNeedSave = true, true
+        end
+    end
     -- Who writes the replies: 'convai' (default), 'mistral' (the player's own Mistral key) or 'local' (the optional Local AI pack, on this
     -- computer). Any other saved value is Convai, a saved 'groq' (an option that was removed) included, as in the bridge. The bridge reads
     -- this from settings.json and applies it when no conversation is running.
@@ -670,6 +687,8 @@ local function loadSettings()
         settings.headFollowStrength, settingsNeedSave = 1, true
     end
     local provider = normalizeVoiceProvider(settings.voiceProvider)
+    -- The Inworld cloud voice is listed only in developer mode (Settings > Development); without it a saved Inworld voice is Pocket TTS.
+    if provider == 'inworld' and settings.developerMode ~= true then provider = 'pocket' end
     if provider ~= settings.voiceProvider then settings.voiceProvider, settingsNeedSave = provider, true end
     if settings.omniSteps ~= 16 and settings.omniSteps ~= 32 then
         settings.omniSteps, settingsNeedSave = DEFAULT_OMNI_STEPS, true
@@ -698,6 +717,9 @@ local function loadSettings()
     if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = true, true end
     -- Mature content (off by default): lets the Local AI provider write adult language and themes. Read by the bridge on change only.
     if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
+    -- Mature content and a cloud provider (Convai free tier, Convai API key, Mistral) exclude each other: a saved pairing (an older
+    -- save, which showed "no effect yet" for it) comes back with Mature content off.
+    if settings.matureContent == true and settings.conversationProvider ~= 'local' then settings.matureContent, settingsNeedSave = false, true end
     -- Which installed Local AI model loads: one model's id. 'auto' means none chosen yet (or a value an older version saved): the bridge then
     -- loads the largest model that fits the free graphics memory, the settings page shows that model as selected, and the next Apply saves its
     -- id. The bridge falls back to the same model, with one notice, when the chosen one is missing, does not fit or does not start.
@@ -1714,7 +1736,7 @@ function M.applySettings(player, values)
             end
             -- The Mistral cloud voice speaks with the player's Mistral key (the same one the text replies use).
             if value == 'voxtral' and not M.mistral().saved then return false, VOXTRAL_KEY_MISSING end
-            -- The Inworld cloud voice speaks with the player's own Inworld key (its own key, pasted in Settings > Voices).
+            -- The Inworld cloud voice speaks with the player's own Inworld key (its own key, pasted in Settings > Development).
             if value == 'inworld' and not (M.mistral().inworld or {}).saved then return false, INWORLD_KEY_MISSING end
             -- An OmniVoice choice cannot be saved while the optional pack is missing; the choice never takes effect.
             if value == 'omni' and not M.omniPack().installed then return false, OMNI_PACK_MISSING end
@@ -1741,6 +1763,17 @@ function M.applySettings(player, values)
             end
         else return false, ui.t('Unknown setting: {setting}',{setting=tostring(key)}) end
     end
+    -- Mature content needs Local AI: with a cloud provider in the saved result it is off (the page already stages that; this keeps
+    -- any other caller to the same rule). The Inworld voice goes with developer mode: turning that off leaves Pocket TTS.
+    -- Both change what an open page shows, so the caller is asked to reload it quietly.
+    local rulesReload = false
+    if nextSettings.matureContent == true and nextSettings.conversationProvider ~= 'local' then
+        nextSettings.matureContent, rulesReload = false, true
+    end
+    if nextSettings.voiceProvider == 'inworld' and nextSettings.developerMode ~= true then
+        nextSettings.voiceProvider, rulesReload = 'pocket', true
+    end
+    if nextSettings.developerMode ~= settings.developerMode then rulesReload = true end
     -- Natural speech and Expressive emotions need a local voice. They are judged as they will be after this Apply:
     -- choosing the cloud voice keeps it and turns both off (honourCloudVoice: one notice, only if the player had set one),
     -- while turning one on beside a saved cloud voice moves the voice to Pocket TTS with a notice. A tag setting turned on
@@ -1799,7 +1832,7 @@ function M.applySettings(player, values)
     end
     say('Settings saved.')
     -- A quiet turn-off still changes settings the open page shows: ask for a reload without a notice.
-    return true, nil, nil, cloudQuiet == true
+    return true, nil, nil, cloudQuiet == true or rulesReload
 end
 
 function M.update(player, delta)
