@@ -16,13 +16,14 @@ function run(body) {
   lua.lua_close(state); assert.equal(status,lua.LUA_OK,error+(line?'\n'+program.split('\n')[line-1]:''));
 }
 const fixture=`
-local chauffeur=(function() ${coordinator} end)()
 local catalog=(function() ${catalog} end)()
+local chauffeur
 dofile=function(name)
   if name=='companion-chauffeur.lua' then return chauffeur end
   if name=='companion-vehicle-catalog.lua' then return catalog end
   error('Unexpected module '..name)
 end
+chauffeur=(function() ${coordinator} end)()
 local transport=(function() ${controller} end)()
 local player={}
 local entry={serial=1,key='judy-alvarez',profileKey='judy-alvarez',entityID={hash='1001ULL'},npc={}}
@@ -670,4 +671,16 @@ assert(phase()=='stopping' and world.brakes==0 and fleet.chauffeur.brakeAttempts
 assert(world.disables==1 and world.enables==1 and world.unmounts==0)
 world.foreignDrive=false;tick(50,.1)
 assert(world.brakes==1 and phase()=='waiting-for-player-exit')
+`));
+
+test('a passenger-only companion (Alt Cunningham, a digital ghost) is never offered the wheel, under any chat profile',()=>run(`
+entry.key='alt-cunningham'; entry.record='Character.Alt'
+local offer=transport.chauffeurOffer(fleet,player,entry)
+assert(not offer.available and offer.code=='does-not-drive',tostring(offer.code))
+assert(not queue() and not fleet.chauffeur and world.mountsRequested==0 and world.enables==0)
+-- The model decides: her copy under another profile is still refused, another model under her profile is not.
+entry.key='alt-model-copy'; entry.profileKey='judy-alvarez'
+assert(transport.chauffeurOffer(fleet,player,entry).code=='does-not-drive')
+entry.key='judy-alvarez'; entry.record='Character.Judy'; entry.profileKey='alt-cunningham'
+assert(transport.chauffeurOffer(fleet,player,entry).available,'Judy under her profile can still drive')
 `));

@@ -109,6 +109,34 @@ The user was attacked by gangers and Alex ran away (a movement trace showed both
 
 `mod/companion-records.lua` now generalizes the Johnny adaptation. Any spawn record (after the crowd clone, if one was needed) that has none of `CanShootWhileMoving`, `CanCloseCombat` or `HasChargeJump` is cloned into `CyberpunkConvai.Armed_<name>`, keeps its own abilities and gains Judy's ranged set, archetype, primary (Chao pistol) and secondary equipment. Records that already fight, or whose abilities cannot be read, are never touched, and a clone that fails leaves the original record in use (the copy still spawns). Shared game records are only read. Existing copies need a re-invite. Which roster characters are affected depends on their base record; check the probe log for `Armed_` names after spawning.
 
+## Alt Cunningham: combat and invulnerability — October 15
+
+**Combat.** `Character.Alt` is `Alt : Quest_NPC_Base` (`secondarycharacters.tweak`): crouch and sprint only, no tags, no
+combat abilities, no weapon, so she takes the generic armed clone above (`CyberpunkConvai.Armed_Alt`, Judy's
+ranged set, archetype and Chao pistol, her own template and identity kept; logged as `Companion spawn record: ...
+(armed clone)`). The combat system has no per-character tactics: Fight (`docs/COMPANION_TACTICS.md`) is the one tactic
+and every companion runs it the same way, so there is nowhere to hang a netrunner behaviour. A netrunner archetype
+(`ArchetypeData.NetrunnerT2` exists in the game data) was considered and not used: its AI is written for hostile
+hackers, nobody has seen it run on an ally, and an unseen guess that could leave her standing still in a fight is worse
+than a human-era Alt with a sidearm. The generic clone is therefore the sane choice, and she cannot die in it (below).
+Not seen in the game; the live check is in the TODO log.
+
+**Invulnerability.** Johnny's and Alex's records carry the `Invulnerable` tag. The installed
+`cyberpunk/managers/npcManager.script` (`SetNPCImmortalityMode`, run when the puppet initialises) turns that tag into
+`GodModeSystem:AddGodMode(entity, gameGodModeType.Invulnerable, 'Default')`, and the clone inherits the tag. Alt's record
+has no tags, and writing a flat that does not exist is not safe through `TweakDB:SetFlat` in this install, so her copy
+makes the same game call itself: `companion-records.lua` `M.protect(entityID, modelRecordID)` runs once from
+`attachFollower` (source name `CyberpunkConvaiProtection`, because the script's `UnInit` clears only `'Default'`), reads
+`HasGodMode` back, and logs `Companion protection: invulnerable granted` (or `not granted (<reason>)`; a refusal never
+stops the copy joining). `deleteOwnedCopy` calls `M.unprotect` once before `DeleteEntity`, while the entity still
+exists. A fast-travel recreation attaches again and is protected again. The model record decides (`Character.Alt`), so a
+copy of her model is protected under any chat profile and no other character is. Only mod-spawned copies are touched;
+the story Alt is not. There is no per-frame work: one system call at attach, one at removal. To protect another model,
+add its record to `invulnerableModels` in `mod/companion-records.lua`.
+
+Tests: `bridge/companion-records.test.mjs` (armed clone for her record, one grant at attach, release before deletion,
+profile independence, refused/unconfirmed/missing system, fast travel).
+
 ## Scoped adaptation
 
 `mod/companion-records.lua` resolves the selected model before entity creation.
