@@ -92,7 +92,15 @@ def main():
     p.add_argument('--lr', type=float, default=2e-3)
     p.add_argument('--workers', type=int, default=6)
     p.add_argument('--clean', action='store_true')
+    # Research options (defaults = the shipped recipe)
+    p.add_argument('--var', type=float, default=0.0, help='per-sequence, per-control std matching (anti regression-to-mean)')
+    p.add_argument('--peak', type=float, default=0.0, help='MSE frame weight 1 + peak * target (targets in scale units)')
+    p.add_argument('--under', type=float, default=0.0, help='extra weight on under-prediction (asymmetric MSE)')
+    p.add_argument('--ema', type=float, default=0.0, help='export an exponential moving average of the weights (e.g. 0.999)')
+    p.add_argument('--seed', type=int, default=1)
+    p.add_argument('--init', type=Path, help='warm start from a stage-2 .pt (same shape)')
     args = p.parse_args()
+    torch.manual_seed(args.seed)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     s1, ck1 = load_stage1(args.stage1, device)
     pack = lt.Pack(args.pack)
@@ -106,6 +114,14 @@ def main():
     r1, r2 = lm.receptive_field(ck1['dilations']), lm.receptive_field(dil)
     delay = ck1['lookahead'] + args.lag
     net = Stage2(ck1['channels'], ck1['n_phones'], args.channels, dil, len(lm.OUTPUTS)).to(device)
+    if args.init:
+        net.load_state_dict(torch.load(args.init, map_location=device, weights_only=False)['state'])
+    ema = None
+    if args.ema:
+        import copy
+        ema = copy.deepcopy(net)
+        for q in ema.parameters():
+            q.requires_grad_(False)
     print(f'{len(keys)} lines ({hours:.2f} h); stage-2 {sum(p.numel() for p in net.parameters())} weights, phone delay {delay}', flush=True)
     mean_t, std_t, scale_t = (torch.tensor(ck1[k], device=device) for k in ('mean', 'std', 'scale'))
     ys = np.concatenate([pack.line(k)['y30'] for k in keys[::2]])
@@ -116,7 +132,7 @@ def main():
     steps = max(1, int(hours * 3600 / (4 * args.batch)))
     opt = torch.optim.AdamW(net.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=steps * args.epochs, pct_start=.1)
-    data = lt.Stream(args.pack, keys, [], 0, 400, r1 + r2 - 1, ck1['lookahead'], args.batch, 1, None, delay, args.jitter)
+    data = lt.Stream(args.pack, keys, [], 0, 400, r1 + r2 - 1, ck1['lookahead'], args.batch, args.seed, None, delay, args.jitter)
     it = iter(torch.utils.data.DataLoader(data, batch_size=None, num_workers=args.workers, persistent_workers=True, prefetch_factor=4))
     began = time.time()
     for epoch in range(args.epochs):
@@ -127,14 +143,30 @@ def main():
                 _, h1 = s1((x - mean_t) / std_t, None, hidden=True)
             pred = net(h1, lab_in[:, r1 - 1:])
             yt = y / scale_t
-            err = ((pred - yt).square() * 4 * weight).mean()
+            sq = (pred - yt).square() * 4
+            if args.peak:
+                sq = sq * (1 + args.peak * yt.clamp(0, 1.5))
+            if args.under:
+                sq = sq * (1 + args.under * (pred < yt).float())
+            err = (sq * weight).mean()
             dv = (pred[:, 1:] - pred[:, :-1]) - (yt[:, 1:] - yt[:, :-1])
             loss = err + (dv.square() * 16 * weight).mean()
+            if args.var:
+                # per sequence and control: match the temporal spread of the authored curve (FDD-style)
+                sd_p = pred.clamp(min=0).std(1)
+                sd_y = yt.std(1)
+                loss = loss + args.var * ((sd_p - sd_y).square() * 4 * weight).mean()
             opt.zero_grad(); loss.backward()
             torch.nn.utils.clip_grad_norm_(net.parameters(), 1.0)
             opt.step(); sched.step()
+            if ema is not None:
+                with torch.no_grad():
+                    for qe, qn in zip(ema.parameters(), net.parameters()):
+                        qe.mul_(args.ema).add_(qn.detach(), alpha=1 - args.ema)
             losses.append(float(loss.detach()))
         print(f'epoch {epoch + 1}/{args.epochs} train {np.mean(losses):.4f} ({(time.time() - began) / 60:.1f} min)', flush=True)
+    if ema is not None:
+        net = ema
     net.eval()
     P, Y = [], []
     with torch.no_grad():

@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import random
 import time
 from pathlib import Path
@@ -65,6 +66,12 @@ class Pack:
         if self.labels is not None and key in self.lab_index:
             o, n = self.lab_index[key]
             out['lab'] = np.array(self.labels[o:o + n], np.int64)
+        # Research: runtime-decided labels (lab_runlabels.py) instead of PocketSphinx, with probability LAB_TRAIN_LABEL_MIX
+        alt = os.environ.get('LAB_TRAIN_LABEL_DIR')
+        if alt and 'lab' in out and random.random() < float(os.environ.get('LAB_TRAIN_LABEL_MIX', '1')):
+            path = Path(alt) / f'{key}.npy'
+            if path.exists():
+                out['lab'] = np.load(path).astype(np.int64)
         return out
 
 
@@ -275,6 +282,8 @@ def main():
     p.add_argument('--dilations', default='1,2,4,8,16,1')
     p.add_argument('--vel', type=float, default=1.0)
     p.add_argument('--acc', type=float, default=0.0)
+    p.add_argument('--var', type=float, default=0.0, help='per-sequence, per-control std matching loss')
+    p.add_argument('--peak', type=float, default=0.0, help='MSE frame weight 1 + peak * target')
     p.add_argument('--clean', action='store_true')
     p.add_argument('--actors', default='')
     p.add_argument('--focus', default='', help='oversample these speakers to --focus-ratio of the batches (keeps the rest)')
@@ -385,10 +394,14 @@ def main():
             yt = y / scale_t
             labelled = (src != 2).float()[:, None, None]
             diff = (pred - yt).square() * 4 * labelled
+            if args.peak:
+                diff = diff * (1 + args.peak * yt.clamp(0, 1.5))
             err = (diff * weight).mean()
             dv = (pred[:, 1:] - pred[:, :-1]) - (yt[:, 1:] - yt[:, :-1])
             vel = (dv.square() * 16 * labelled * weight).mean()
             loss = err + args.vel * vel
+            if args.var:  # per sequence and control: match the authored curve's temporal spread (anti regression-to-mean)
+                loss = loss + args.var * ((pred.clamp(min=0).std(1) - yt.std(1)).square() * 4 * labelled[:, 0] * weight).mean()
             if args.acc:
                 da = (pred[:, 2:] - 2 * pred[:, 1:-1] + pred[:, :-2]) - (yt[:, 2:] - 2 * yt[:, 1:-1] + yt[:, :-2])
                 loss = loss + args.acc * (da.square() * 64 * labelled * weight).mean()
