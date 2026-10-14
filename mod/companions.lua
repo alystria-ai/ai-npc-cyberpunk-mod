@@ -363,6 +363,8 @@ local function attachFollower(entry, player)
     entry.role = role
     entry.state = 'ready'
     entry.floorFix = {at = runtimeClock + floorSettle.first, tries = 0}
+    -- Alt Cunningham's copy (companion-records.lua): invulnerable, once, no per-frame work. nil: not a protected model.
+    entry.invulnerable = spawnRecords.protect(entry.entityID, entry.modelRecordID)
     entry.motor = actuator.new(npc,entry.clearance)
     entry.equipment = equipment.new(npc)
     entry.person = behavior.new(entry.serial)
@@ -514,6 +516,11 @@ local function deleteOwnedCopy(entry)
     if not checked then return false end
     local tagged,ours=pcall(function() return entry.system:IsTagged(entry.entityID,CName.new('CyberpunkConvaiCompanion')) end)
     if not tagged or not ours then return false end
+    -- Give the protection back once, while the entity still exists (companion-records.lua).
+    if entry.invulnerable ~= nil and not entry.protectionReleased then
+        entry.protectionReleased = true
+        pcall(spawnRecords.unprotect, entry.entityID)
+    end
     -- Notify exactly once while the managed entity still exists, before its
     -- asynchronous despawn. Completion polls must not touch retired playback.
     if not entry.removalNotified then

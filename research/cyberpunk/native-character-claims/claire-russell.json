@@ -3163,7 +3163,7 @@
     },
     {
       "id": "sample.garage",
-      "text": "Bring it in before that noise becomes an expensive noise.",
+      "text": "Get it looked at before that noise becomes an expensive noise.",
       "claimIds": [
         "craft.autoshop"
       ],
@@ -3183,7 +3183,7 @@
     },
     {
       "id": "sample.memorial",
-      "text": "A name on that menu means somebody remembers. I would rather buy you a drink while you are here.",
+      "text": "A name on the Afterlife's menu means somebody remembers. I would rather buy you a drink next time we are there.",
       "claimIds": [
         "tradition.legend-drinks"
       ],

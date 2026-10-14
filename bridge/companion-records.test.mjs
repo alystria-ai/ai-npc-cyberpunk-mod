@@ -262,3 +262,79 @@ test('a failed clone is logged with its reason, and runtime/armed-clones-off dis
   assert(spawn('alex-two').spec.recordID=='Character.alex'); assert(has('armed clone failed'),'failure logged'); assert(has('using the original record'))
   TweakDB.SetFlats=apply
 `));
+
+// Alt Cunningham's copy: a quest-base record (no abilities, no tags) gets the generic armed clone and the game's own
+// invulnerable protection, asked once at attach and given back before deletion. Only her model is protected.
+const altWorld = `
+  records['Character.Alt']={abilities={'Ability.CanCrouch','Ability.CanSprint'},entityTemplatePath='alt.ent'}
+  local god={granted={},released={},fail=false,silent=false}
+  function god:AddGodMode(id,mode,source) if self.fail then error('native refused') end
+    self.granted[#self.granted+1]={id=tostring(id.hash),mode=mode,source=source} end
+  function god:HasGodMode(id,mode) if self.silent then return false end
+    for _,g in ipairs(self.granted) do if g.id==tostring(id.hash) and g.mode==mode then return true end end return false end
+  function god:RemoveGodMode(id,mode,source) self.released[#self.released+1]={id=tostring(id.hash),mode=mode,source=source} end
+  Game.GetGodModeSystem=function() return god end
+  companions.registerDefinition('alt-cunningham',{id='Character.Alt',name='Alt Cunningham',profileKey='alt-cunningham'})
+  local function has(text) for _,l in ipairs(probeLines) do if l:find(text,1,true) then return true end end return false end
+`;
+
+test('Alt Cunningham spawns from the generic armed clone and is invulnerable once attached; the game record is untouched', () => run(altWorld + `
+  local alt=spawn('alt-cunningham')
+  assert(alt.spec.recordID:find('^CyberpunkConvai%.Armed_'),tostring(alt.spec.recordID))
+  local clone=records[alt.spec.recordID]
+  assert(clone.entityTemplatePath=='alt.ent' and clone.primaryEquipment=='chaoPool' and clone.archetypeData=='ranged')
+  assert(#records['Character.Alt'].abilities==2 and not records['Character.Alt'].primaryEquipment,'the game record is untouched')
+  assert(companions.list()[1].state=='ready')
+  assert(#god.granted==1,'granted once, not per tick: '..#god.granted)
+  assert(god.granted[1].id==tostring(alt:GetEntityID().hash) and god.granted[1].mode=='Invulnerable')
+  assert(god.granted[1].source=='CyberpunkConvaiProtection')
+  tick(30); assert(#god.granted==1,'no repeated calls while she follows')
+  assert(has('Companion protection: invulnerable granted'))
+`));
+
+test('Alt Cunningham gives the protection back once, before her copy is deleted', () => run(altWorld + `
+  local alt=spawn('alt-cunningham')
+  local order={}
+  companions.onBeforeRemove=function() order[#order+1]='before-remove:'..tostring(#god.released) end
+  assert(companions.dismiss(companions.list()[1].serial))
+  assert(#god.released==1 and god.released[1].id==tostring(alt:GetEntityID().hash) and god.released[1].mode=='Invulnerable')
+  assert(order[1]=='before-remove:1','released while the entity still existed: '..tostring(order[1]))
+  assert(#companions.list()==0)
+`));
+
+test('invulnerability follows the selected model, not the chat profile, and no other character gets it', () => run(altWorld + `
+  local judy=spawn('judy-alvarez'); local johnny=spawn('johnny-silverhand'); local alex=spawn('alex')
+  companions.registerDefinition('judy-with-alt-profile',{id='Character.Judy',name='Judy',profileKey='alt-cunningham'})
+  spawn('judy-with-alt-profile')
+  assert(#god.granted==0,'only the Alt model is protected: '..#god.granted)
+  companions.registerDefinition('alt-browser-copy',{recordID='Character.Alt',name='Alt model',profileKey='judy-alvarez'})
+  local copy=spawn('alt-browser-copy')
+  assert(#god.granted==1 and god.granted[1].id==tostring(copy:GetEntityID().hash),'the Alt model is protected under any profile')
+  assert(not has('Companion protection: release'))
+`));
+
+test('a refused or unconfirmed protection is logged and never stops the copy from joining', () => run(altWorld + `
+  god.fail=true
+  local alt=spawn('alt-cunningham')
+  assert(companions.list()[1].state=='ready','she still joins')
+  assert(has('Companion protection: invulnerable not granted (') and has('native refused'))
+  god.fail=false; god.silent=true
+  local second=spawn('alt-cunningham')
+  assert(has('readback is false'),'an unconfirmed grant is reported')
+  Game.GetGodModeSystem=function() return nil end
+  local third=spawn('alt-cunningham')
+  assert(has('no god mode system') and #companions.list()==3)
+  -- Releasing is best effort: a missing system never blocks dismissal.
+  assert(companions.dismiss(companions.list()[3].serial) and #companions.list()==2)
+`));
+
+test('Alt Cunningham keeps the protection after fast travel recreates her copy', () => run(altWorld + `
+  local alt=spawn('alt-cunningham')
+  assert(companions.beginFastTravel())
+  entities[tonumber(alt.id.hash)]=nil
+  assert(companions.fastTravel())
+  tick(8)
+  local replacement=entities[sequence]
+  assert(replacement and replacement~=alt and companions.list()[1].state=='ready')
+  assert(#god.granted==2 and god.granted[2].id==tostring(replacement:GetEntityID().hash),'the new copy is protected too')
+`));

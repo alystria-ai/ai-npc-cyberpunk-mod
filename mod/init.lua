@@ -685,6 +685,25 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
         return keys
     end}) or nil
 convaiGameDialogue = gameDialogue
+
+-- Witness receipts (docs/QUEST_DECISIONS.md 4.3): off unless settings.witnessReceipts. When a world scan sees a quest fact or journal entry
+-- change, who stood within 15 m is written to runtime/witness-receipts.json. One boolean check per scan; optional like the modules above.
+do
+    local loaded, module = pcall(dofile, 'witness-receipts.lua')
+    convaiWitnessReceipts = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
+        enabled = function() return type(manager.witnessReceipts) == 'function' and manager.witnessReceipts() == true end,
+        worldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end,
+        gameTime = function() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end,
+        near = function(radius)
+            local keys = {}
+            for _, person in ipairs(companions.conversationCandidates(Game.GetPlayer(), radius)) do keys[#keys + 1] = person.profileKey end
+            return keys
+        end}) or nil
+    if convaiWitnessReceipts then
+        worldKnowledge.edgesWanted = function() return convaiWitnessReceipts:on() end
+        worldKnowledge.onEdges = function(edges) convaiWitnessReceipts:record(edges) end
+    end
+end
 local function captureGameDialogue() return gameDialogue and gameDialogue:capture() or nil end
 groupChat.captureGameDialogue = captureGameDialogue
 phoneChat.captureGameDialogue = captureGameDialogue
@@ -843,6 +862,7 @@ if playerGear then playerGear.options.log = log end
 if convaiTurnContext then convaiTurnContext.options.log = log end
 -- Continue from game dialogue: one line the first time each of its four hooks fires in a session (mod/game-dialogue.lua).
 if gameDialogue then gameDialogue.options.log = log end
+if convaiWitnessReceipts then convaiWitnessReceipts.options.log = log end
 -- Doors, lifts, fast travel and stranded followers: one line per recovery
 -- decision (companions.lua note(), throttled per kind; never per frame).
 companions.recoveryLog = function(kind, fields)
@@ -2213,8 +2233,10 @@ end
 -- keyNotice to the first reply that ran without long-term memory on a limited plan (bridge/convai-key.mjs). The text says
 -- what to do; it never names where the shared key comes from.
 -- The shared plan's daily allowance is used up (bridge/shared-key-guard.mjs). The game's warning line shows this in upper case
--- at 35 pt, wraps it at 800 px and draws a frame sized for one or two lines, so the notice is two short lines (about 95
--- letters, at most 1,460 px of upper-case Rajdhani Semi-Bold; bridge/daily-notice-fit.test.mjs) and stays 9 s (notices.showS).
+-- at 35 pt, wraps it at 800 px and draws a frame sized for one or two lines, so the notice has a forced break ("\n", which the
+-- warning text honours): the first sentence on line 1 (one rendered line, at most 770 px of upper-case Rajdhani Semi-Bold), the
+-- detailed Mistral / Local AI sentence starting on a fresh line 2, which may wrap to a third line (at most three rendered lines in
+-- all; bridge/daily-notice-fit.test.mjs); it stays 9 s (notices.showS).
 -- Phone Chat has room for the long version and keeps it (phone-chat.lua), which says where the details are.
 -- The turns used are the limit the backend set, read the way the settings page reads it (manager.ownKey().daily.limit), never a number
 -- written here; without it the line says "Today’s Convai turns". Mistral's about 5,000 a day is the conservative bound of its free
@@ -2223,9 +2245,9 @@ local function dailyLimitText()
     local ok, own = pcall(manager.ownKey)
     local limit = ok and type(own) == 'table' and type(own.daily) == 'table' and own.daily.limit or nil
     if type(limit) == 'number' then
-        return ui.t('Today’s {limit} Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {limit = limit})
+        return ui.t('Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {limit = limit})
     end
-    return ui.t('Today’s Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).')
+    return ui.t('Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).')
 end
 
 local function keyNoticeText(code)
@@ -3215,8 +3237,10 @@ registerForEvent('onUpdate', function(delta)
                             return speech.actor:ConvaiFaceReady(), speech.actor:ConvaiFaceStatus() end)
                         faceState = faceOk and (tostring(faceReady) .. '/' .. tostring(faceStatus)) or 'unavailable'
                     end
+                    -- A voice that could not start says why (speech.lua keeps the reason in speech.error), once, on the same line.
+                    local why = speech.state == 'playback-failed' and speech.error and (' why=' .. tostring(speech.error):sub(1, 160)) or ''
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil)
-                        .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState)
+                        .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState .. why)
                     if automatic and pending.requestId == automatic.requestId then
                         automatic.shown = reply.error == nil
                         if automatic.shown and (speech.requestId or subtitles.ownsUtterance()) then
@@ -3261,6 +3285,9 @@ registerForEvent('onUpdate', function(delta)
                 sent = sendRequest(context)
             end
             log('Native input captured: generation=' .. context.generation .. ' bytes=' .. #message)
+            -- What V types is V's line: shown in the cinematic subtitles as V's own (docs/V_VOICE.md, "V's subtitle"), whether or not V's
+            -- voice speaks it, and replaced by the reply's caption. Once per sent line; nothing per frame. A refused or off subtitle is silent.
+            if sent ~= false then pcall(subtitles.showTyped, message) end
             -- The request could not be written (the world changed, a save is running, the request file is locked): V must know.
             if sent == false then pcall(convaiComposerWatch.lost, player, 'request not sent', context) end
         else

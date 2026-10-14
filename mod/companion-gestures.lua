@@ -19,7 +19,14 @@ M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourA
     -- Prop idles (catalog.propIdles): one look at the hand slot propLook s after the idle began, a key whose prop did not
     -- show up propMisses times is dropped for the session, and the declared item is taken out of the slot at each
     -- propCleanup time (s) after the idle ends. propIdles = false switches every prop idle off.
-    propIdles = true, propLook = 2.5, propMisses = 2, propCleanup = {.5, 3}}
+    propIdles = true, propLook = 2.5, propMisses = 2, propCleanup = {.5, 3},
+    -- An idle whose own animation walks the body away from V while V stands still. Live 2026-10-14 (Alex, V
+    -- still): convai_idle_generic_hips slid her 0.7 m at +25 s and 2 m at +30 s (speed 1.2-2 m/s, gap 1.3 m to
+    -- 3.7 m) and ended where it left her; the other idles never moved her. 'Gestures drift' logs for it on
+    -- 2026-10-14 show the same component every time. Such idles are never picked (travellingIdles, by idle key),
+    -- and any idle that carries the body more than driftExit metres is left at once and not picked again this
+    -- session (the drifted idle is learned in self.travelling).
+    driftExit = .45, travellingIdles = {generic_hips = true}}
 
 local function distance(a, b)
     if not a or not b then return 0 end
@@ -98,6 +105,7 @@ function M.new(options)
     -- The idles a copy may take: its own signature idle, its explicit pool, and (catalog.generic.mix) the clean generic
     -- idles of its rig. Cached per row; only idles the archive has a component for.
     self.pools = self.pools or {}
+    self.travelling = self.travelling or {}
     local function poolOf(known)
         local cached = self.pools[known]
         if cached then return cached end
@@ -115,10 +123,17 @@ function M.new(options)
         self.pools[known] = pool
         return pool
     end
+    -- The pool without the idles that walk the body (policy.travellingIdles, and those learned this session).
+    local function flavourPool(known)
+        local pool, kept = poolOf(known), {}
+        for _, key in ipairs(pool) do
+            if not policy.travellingIdles[key] and not self.travelling[key] then kept[#kept + 1] = key end
+        end
+        return kept
+    end
     -- A random idle from the pool, never the one she just had when there is a choice.
     local function pickIdle(s, known, allow)
-        local pool = poolOf(known)
-        if #pool == 0 then return nil end
+        local pool = flavourPool(known)        if #pool == 0 then return nil end
         local choices = {}
         for _, key in ipairs(pool) do
             if (key ~= s.lastIdle or #pool == 1) and (not allow or allow(key)) then choices[#choices + 1] = key end
@@ -481,7 +496,14 @@ function M.new(options)
                 from = copy(s.homeAt), to = copy(s.entry.position)})
         end
         if s.prop and not s.prop.looked and s.activeAt and self.clock - s.activeAt >= policy.propLook then lookAtProp(s) end
-        if s.flavour then
+        -- An idle that carries the body away from where it began (V standing still) is left at once, so she does
+        -- not keep walking to a new spot; the idle is not picked again this session.
+        if s.flavour and s.homeAt and s.entry.position and distance(s.homeAt, s.entry.position) > policy.driftExit then
+            if s.idleKey then self.travelling[s.idleKey] = true end
+            note(s, 'drift-exit', {metres = distance(s.homeAt, s.entry.position), component = s.component,
+                after = s.activeAt and self.clock - s.activeAt})
+            requestExit(s, 'drifted', false); return
+        end        if s.flavour then
             -- Signature idle: leave when its time is up or a conversation starts
             -- (the talk stance follows from the next settled tick).
             if mode ~= nil then requestExit(s, 'conversation', false)
@@ -572,7 +594,7 @@ function M.new(options)
                 if not talking then
                     local known = characterOf(entry)
                     if mode ~= nil or not known or not known.flavour or not s.settledSince
-                        or #poolOf(known) == 0 then return end
+                        or #flavourPool(known) == 0 then return end
                     s.nextFlavourAt = s.nextFlavourAt or self.clock + between(policy.flavourFirst)
                     if self.clock - s.settledSince < policy.flavourSettled or self.clock < s.nextFlavourAt then return end
                     flavour = true

@@ -153,6 +153,33 @@ River's `Vehicle.sobchak_vehicle` uses an authored quest vehicle template and
 is not enabled as a preference. Jackie's motorcycles are not additional
 carpool cars. No original quest-world car is acquired or altered.
 
+### Alt Cunningham: a passenger, never a driver
+
+Alt Cunningham (`Character.Alt`, key `alt-cunningham`) is a digital ghost. She
+has no vehicle record in the game (no row in the vehicle database above, and
+the game gives her no car in any quest), and a ghost behind a wheel is out of
+character, so she gets no car of her own instead of the Hella. The catalog marks
+her `passengerOnly` (by managed model key or original record, like the car
+preferences, so a copy of her model keeps it under any chat profile):
+
+- She rides along in V's car. Waiting passengers who never drive are seated
+  first, so she takes a seat beside V before anyone who could drive an overflow
+  car; everyone else keeps serial order.
+- Overflow cars are driven only by a companion who drives. If she is the only
+  one still waiting, no car is created for her (a car nobody drives is useless):
+  she keeps waiting for a free seat, and the planner says
+  "Waiting for a free passenger seat: this companion does not drive."
+  A seat that frees up, or a party car that another companion drives, is hers.
+  Alone and with no seat anywhere she stays on foot and follows V as any
+  companion does when no seat exists.
+- The chauffeur never offers her the wheel: the offer is refused with code
+  `does-not-drive` before any native read (`docs/COMPANION_CHAUFFEUR.md`).
+
+Tests: `bridge/companion-vehicles.test.mjs` (catalog choice, first seat in V's
+car, seat in another companion's car, lone passenger-only companion) and
+`bridge/companion-chauffeur.test.mjs` (the refused offer under any profile).
+Not seen in the game.
+
 ## Placement and navigation limits
 
 An overflow car is created only while V's car is nearly stopped. Four bounded

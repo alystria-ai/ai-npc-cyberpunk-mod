@@ -174,7 +174,7 @@ function M.stop(reason)
         else captions.clear() end
     end
     M.streamReceipt = receipt()
-    M.captionHidden = nil
+    M.captionHidden, M.emitter = nil, nil
     M.stream, M.context, M.nativeCompleted = nil, nil, nil
     M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
     M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState, M.continuousHeardAll = nil, nil, nil, nil
@@ -212,10 +212,38 @@ function M.clearEntity(entity)
     if face.clearExpression then face.clearExpression(entity) end
 end
 
+-- An object that is always with V and is not V: the weapon in V's hands, else the chest item V wears. Audioware refuses V herself as an
+-- emitter; a sound that must come from V (a holocall, a voice anchored to V with nothing of its own) plays on this instead, within a metre
+-- or two of the camera (an emitter is at full level inside 2 m). Every call is guarded and the answer is nil when nothing is there. Read
+-- once per reply, never per frame.
+local function bodyObject(player)
+    local ok, object = pcall(function()
+        local weapon = ScriptedPuppet.GetActiveWeapon(player)
+        if weapon ~= nil and weapon:IsAttached() then return weapon end
+        local item = Game.GetTransactionSystem():GetItemInSlot(player, TweakDBID.new('AttachmentSlots.Chest'))
+        if item ~= nil and item:IsAttached() then return item end
+        return nil
+    end)
+    return ok and object or nil
+end
+
 local function beginChunk(audio, text, timeline, startSeconds)
-    -- A holocall reply is heard through the phone: the sound plays on V at full volume (the live picture's copy, which
-    -- still gets the face, is far away). Every other reply plays on its speaker.
-    local emitter = M.holocall and M.player or M.actor
+    -- Where the sound comes from: an add-on voice with its own object (voiceFrom: Skippy's gun) is heard from that object, every other
+    -- reply from its speaker, and a holocall reply (heard through the phone, not from the live picture's copy, which is far away) from V.
+    local emitter = M.emitter or (not M.holocall and M.actor) or M.player
+    -- Audioware refuses V as an emitter ("entity_id cannot be undefined or V" in its log), so what would be V's own emitter is replaced by an
+    -- object that is with V (bodyObject); when there is none the voice cannot play, and the text is shown with the reason, not a bare refusal.
+    if M.playerID then
+        local known, id = pcall(function() return tostring(emitter:GetEntityID().hash) end)
+        if known and id == M.playerID then
+            local body = bodyObject(M.player)
+            if not body then
+                M.error = 'Audioware cannot play on V and nothing of V\'s (no weapon, no chest item) was found to play on instead'
+                fallback('playback-failed', M.text); return false
+            end
+            emitter, M.emitter = body, body
+        end
+    end
     local ok, started = pcall(function() return M.player:ConvaiSpeechStart(emitter, CName.new(audio.event)) end)
     if not ok or not started then
         M.error = tostring(started)
@@ -336,6 +364,13 @@ function M.start(context, reply)
     end
     M.player, M.actor = player, actor
     M.playerID = tostring(player:GetEntityID().hash)
+    -- An add-on voice may be heard from its own object (addons.lua voiceFrom: Skippy's gun in V's hand), asked once for this reply. It is
+    -- also the emitter: a speaker anchored to V (Skippy) has no other body to play from (see beginChunk).
+    M.emitter = nil
+    if M.voiceOnly and not M.holocall and type(M.voiceSource) == 'function' then
+        local sourced, object = pcall(M.voiceSource, context.profileKey, player)
+        M.emitter = sourced and object or nil
+    end
     M.requestId, M.context = context.requestId, {requestId = context.requestId, generation = context.generation,
         entity = context.entity, name = context.name}
     if face.beginExpression then face.beginExpression(M.context,reply.expression) end
@@ -373,6 +408,7 @@ function M.abandon()
     M.faceActor, M.faceEntity, M.faceContext, facial.screenEntity = nil, nil, nil, nil
     M.faceRetry, M.faceChunk = nil, nil
     M.captionHidden = nil
+    M.emitter = nil
     M.streamReceipt = receipt()
     M.stream, M.context, M.target, M.nativeCompleted = nil, nil, nil, nil
     M.utterance = nil

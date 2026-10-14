@@ -1,6 +1,7 @@
 import {readFile, stat, mkdir} from 'node:fs/promises';
 import {readFileSync, statSync} from 'node:fs';
 import {decisionLedgerReader} from './game-dialogue.mjs';
+import {witnessReceiptsReader} from './witness-receipts.mjs';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {archetypeContext, isAmbientProfile, parseInput, profileFor} from './protocol.mjs';
@@ -387,7 +388,9 @@ const knowledgeRouter = new PlayerKnowledge({playerMemory, pack: knowledgePack, 
   isWorldCurrent: worldCurrent, getBoundary: currentBoundary,
   selectProfile: (profile, boundary) => relationshipRoutes.select(profile, boundary),
   // Off unless the game's decisionLedger setting writes the file (docs/QUEST_DECISIONS.md 4.4); one stat per turn when it does not exist.
-  decisionLedger: decisionLedgerReader(resolve(stateDirectory, 'decision-ledger.json'), {readFile: path => readFileSync(path, 'utf8'), statFile: statSync})});
+  decisionLedger: decisionLedgerReader(resolve(stateDirectory, 'decision-ledger.json'), {readFile: path => readFileSync(path, 'utf8'), statFile: statSync}),
+  // Off unless the game's witnessReceipts setting writes the file (docs/QUEST_DECISIONS.md 4.3); one stat per turn when it does not exist.
+  witnessReceipts: witnessReceiptsReader(resolve(stateDirectory, 'witness-receipts.json'), {readFile: path => readFileSync(path, 'utf8'), statFile: statSync})});
 const phoneKnowledge = new PlayerPhoneKnowledge({router: knowledgeRouter, getBoundary: currentBoundary});
 // "Natural speech": the setting, and the display text of every reply with voice tags removed (bridge/natural-speech.mjs).
 const naturalSpeech = new NaturalSpeech();

@@ -5005,13 +5005,15 @@ test('V’s voice for typed lines is on by default, a saved choice is kept, and 
     -- A case is {saved vVoice, saved voice, expected vVoice, developer mode (default off), the voice it loads as (default: as saved)}.
     for _, case in ipairs({{'missing', 'pocket', true}, {true, 'pocket', true}, {true, 'omni', true}, {true, 'voxtral', true}, {true, 'inworld', true, true},
         -- The Inworld voice is a developer-mode voice: without developer mode a saved one loads as Pocket TTS.
-        {true, 'inworld', true, false, 'pocket'}, {false, 'inworld', false, false, 'pocket'},
+        {true, 'inworld', true, false, 'pocket'}, {false, 'inworld', false, false, 'pocket', true},
         -- Only an explicit false stays off; a value that is not a boolean is the default (on).
-        {false, 'pocket', false}, {false, 'convai', false}, {'yes', 'pocket', true}, {1, 'pocket', true},
+        {false, 'pocket', false, false, nil, true}, {false, 'convai', false, false, nil, true}, {false, 'pocket', true}, {false, 'omni', true}, {false, 'convai', true},
+        {'yes', 'pocket', true}, {1, 'pocket', true},
         -- A saved pairing with the Convai cloud voice loads as it was saved: on, not switched off.
         {true, 'convai', true}, {'missing', 'convai', true}}) do
       seed = {version = 2, voiceProvider = case[2], developerMode = case[4] == true, enabledByKey = {}, future = {keep = 'unchanged'}}
       if case[1] ~= 'missing' then seed.vVoice = case[1] end
+      if case[6] then seed.vVoiceChosen = true end
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
       local loadedVoice = case[5] or case[2]
@@ -5031,7 +5033,7 @@ test('V’s voice for typed lines is on by default, a saved choice is kept, and 
     assert(ok and not err and notice == nil and manager.vVoice() and saved.vVoice == true and saved.voiceProvider == 'convai', tostring(err))
     assert(not manager.vVoiceActive() and manager.takeNaturalSpeechNotice() == nil)
     -- Turning it on or off beside the Convai cloud voice is never refused.
-    assert(manager.applySettings(player, {vVoice = false}) and not manager.vVoice() and saved.vVoice == false and saved.voiceProvider == 'convai')
+    assert(manager.applySettings(player, {vVoice = false}) and not manager.vVoice() and saved.vVoice == false and saved.vVoiceChosen == true and saved.voiceProvider == 'convai')
     assert(manager.applySettings(player, {vVoice = true}) and manager.vVoice() and saved.voiceProvider == 'convai' and not manager.vVoiceActive())
     assert(manager.takeNaturalSpeechNotice() == nil)
     -- Switching to a voice that clones makes it work at once, with no extra step.
@@ -5596,18 +5598,18 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     id, text = notice({errorCode = 'key-memory-needed'}); assert(id == 'quota-exhausted' and text:find('memory', 1, true))
     id, text = notice({errorCode = 'daily-limit', error = 'x'})
     -- The notice names today's turns (the limit the backend set, never a number written in the code) and the two ways on: Mistral with a
-    -- free key (about 5,000 a day) and Local AI (unlimited). It is two short lines in the game's warning frame (about 95 letters; the
-    -- width itself is checked in bridge/daily-notice-fit.test.mjs).
-    assert(id == 'daily-limit' and text == 'Today’s 100 Convai turns are used. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).', text)
+    -- free key (about 5,000 a day) and Local AI (unlimited). It is two lines with a forced break in the game's warning frame, the first
+    -- sentence on line 1 and the detailed choice starting on a fresh line 2 (the width itself is checked in bridge/daily-notice-fit.test.mjs).
+    assert(id == 'daily-limit' and text == 'Today’s 100 Convai turns are used.\\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).', text)
     ownKey = {daily = {limit = 150, left = 0, blocked = true}}
     id, text = notice({errorCode = 'daily-limit', error = 'x'}); assert(text:find('Today’s 150 Convai turns', 1, true), 'the limit the status reports: ' .. text)
     ownKey = {}; id, text = notice({errorCode = 'daily-limit', error = 'x'})
-    assert(text:find('Today’s Convai turns are used. Try Mistral', 1, true) and not text:find('{', 1, true), 'no limit known: ' .. text)
+    assert(text == 'Today’s Convai turns are used.\\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).' and not text:find('{', 1, true), 'no limit known: ' .. text)
     ownKey = 'error'; id, text = notice({errorCode = 'daily-limit', error = 'x'})
     assert(text:find('Today’s Convai turns are used.', 1, true), 'the status could not be read: ' .. text)
     ownKey = {daily = {limit = 100, left = 0, blocked = true}}
     id, text = notice({errorCode = 'daily-limit', error = 'x'})
-    assert(not text:lower():find('recommend', 1, true) and utf8.len(text) <= 100, 'short enough for two lines of the warning frame: ' .. utf8.len(text))
+    assert(not text:lower():find('recommend', 1, true) and utf8.len(text) <= 100 and select(2, text:gsub('\\n', '')) == 1, 'short enough for two lines of the warning frame: ' .. utf8.len(text))
     assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shared', 1, true) and not text:lower():find('project', 1, true))
     -- No own-key offer, no paid tier, no "includes voice", no "text only", no credentials wording.
     assert(not text:find('Convai API key', 1, true) and not text:find('convai.com', 1, true) and not text:find('phone verification', 1, true), text)

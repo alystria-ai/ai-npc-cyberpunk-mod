@@ -6,7 +6,12 @@ decisions") and left open by `docs/DYNAMIC_CONTEXT_AUDIT.md` section 7.
 **Status, 2026-10-14.** Step A (section 4.1, bridge only) is built and tested, not yet run in the game (a bridge restart is
 enough). Step B (section 4.2) added 9 verified and 21 unverified decision rows and the Dex audience fix (pack and Lua need an install and a CET
 reload to be seen). Step D, the decision ledger (section 4.4), is built behind `settings.decisionLedger`, OFF by default, with one
-log line that proves the choice hook. Witness receipts (step C2) are not built: section 4.3 says why. Live checks are in section 6.
+log line that proves the choice hook. Live checks are in section 6.
+
+**Update, 2026-10-15 (branch `ledger-open-items`).** Four of the 21 unverified rows were promoted after an offline check against 110 real saves
+(section 4.2a: 13 verified, 17 still candidates, each with a live-check recipe). `db.queen-friendship-hook` joined the Panam romance topic through
+a reviewed alias. Witness receipts (step C2) are now built, opt-in and default off (section 4.3). The ledger stays off: the probe log shows the
+choice hook fires every session but has never recorded a dialogue pick (section 4.4). Section 7 lists what is still the user's call.
 
 ## Answer
 
@@ -290,8 +295,9 @@ fact is set in real saves); `build_native_pack.mjs --apply` merges it, verifies 
 - Dropped as redundant: `db.dex-told-of-evelyn` (the Dex audience fix below already gives Dex the same sentence from the same
   facts) and `db.sh-orbital-envoy-takemura` (same facts and statement as the existing orbital-visitor rule). Dropped as a weak fit:
   `db.pfk-fight-broke-out` (a fight or alarm is not "took the implant").
-- `db.queen-friendship-hook` is held back as unverified: its decision already has rules under a reviewed topic alias, and the topic
+- `db.queen-friendship-hook` was held back as unverified: its decision already has rules under a reviewed topic alias, and the topic
   identity check refuses a canonical-topic rule there. Joining needs an alias entry and a review note. The signal itself is sound.
+  **Done 2026-10-15** (section 4.2a).
 - Two verified rows read facts that no real save ever shows set (`db.sandra-hired`, and the journal half of `db.ben-at-party`); they
   rest on the pack's own earlier use of the facts or on the quest graph, which is why they are the first to check live.
 - `db.brick-died-in-trap` is a draft that must not ship as it reads: `q003_brick_dead` is also set after a rescue. The usable signal
@@ -313,12 +319,78 @@ the scene exports it has one visible writer (the rooftop partner-call scene, rea
 It is still not in the pack, no real save has it set, and no unmapped outcome in these lanes asked for it, so no row was added. It
 stays a candidate to check live (probe 2).
 
-**Still open:** the candidates above, the 296 outcomes (most will stay open: nothing in the game records them), the topic alias for the
-Queen row, and the allowlists (361 of 1,024 facts, 638 of 1,024 journal entries).
+**Still open:** the candidates above, the 296 outcomes (most will stay open: nothing in the game records them), and the allowlists
+(361 of 1,024 facts, 638 of 1,024 journal entries). The Queen alias is done, see 4.2a.
 
 Tests: `bridge/decision-rows-pack.test.mjs` (rows shipped as specified, no executable row can fire on an absent fact, every fact
 is allowlisted with a hash-bound writer, an unverified row never reaches a prompt, a verified row reaches the right character only,
 the Dex fix, one disposition per outcome) and `research/cyberpunk/scripts/decision_rows.test.mjs` (the validator).
+
+### 4.2a Step B follow-up: the offline check of the 21 candidates (done 2026-10-15: 4 promoted, 17 left, each with a live recipe)
+
+**What was done.** `research/cyberpunk/scripts/decision_rows_offline_check.mjs` reads every row of the spec against the extracted game data
+and the 110 saves in the Saved Games folder (read only, `save_snapshot.mjs`), and writes `research/cyberpunk/generated/decision-rows-offline-check.json`
+(`node research/cyberpunk/scripts/decision_rows_offline_check.mjs --saves "<Saved Games dir>"`). Per row: each fact with its writers, how
+many are hash-bound, its readers, how many saves have it set; each journal entry with its state counts; how many saves satisfy the whole
+condition; a grade; and a cross-tab of the row's facts against its rivals, by save kind (the `offline.contrast` list in the spec). Grades:
+`anchored-and-seen` (selectors exist, a hash-bound writer, at least one real save satisfies it), `anchored-not-seen`, `writer-unbound`
+(the writer is in the graph but no scene export is bound), `missing-selector`, `not-executable` (the draft is known not to be exclusive).
+
+**Correction to the 2026-10-14 notes.** The fact dictionary indexes quest graphs only, so a fact written inside a scene is not in it. Earlier notes
+called such facts "never set in any save" or "missing"; that was a reading artefact. The check now counts a fact as known when it has a graph
+assignment, a hash-bound writer, or is already in the pack, and the affected `unverifiedBecause` texts were rewritten (frank-chat, frank-down,
+evelyn, dazed).
+
+**Promoted to verified (now 13 verified, 17 candidates):**
+
+| Row | Evidence |
+|---|---|
+| `db.oda-spared` | `q112_08_oda_spared` is set in real saves; it excludes `q112_oda_dead` (the killed rule shares the topic, so a contradictory snapshot tells neither) |
+| `db.royce-downed-by-militech` | `q003_militech_invades` with `q003_royce_dead`, guarded by the pickup journal so it does not fire after the boss fight |
+| `db.hearts-testimony-anonymized` | `sts_ep1_06_testimony_agree` seen in saves, exclusive to the agree option |
+| `db.queen-friendship-hook` | friendship message active in 6 saves, none with `sq027_panam_lover`; the lover fact is set in 72 saves, none with the message; disjoint in every save |
+
+**The Queen alias.** The row now has the native topic `aldecaldos.panam-basilisk-intimacy` (the topic of the existing romance rule) and a
+`topicAlias` (policy `mutually-exclusive-stance`, review note `research/cyberpunk/native-reviews/queen-friendship-alias-20261015.md`).
+`decision_rows.mjs` writes the pinned entry into `native-topic-aliases.json` (`ruleSha256` is the rule's author hash; `--check` fails if the
+entry is out of date). Romance and friendship cannot both be true in the game's own script; if a snapshot ever shows both, the resolver
+suppresses both. Tests: `bridge/decision-rows-pack.test.mjs`.
+
+**The 17 candidates left.** All are non-executable (`candidate`); nothing is allowlisted for them. Read a fact live in the CET console with
+`print(Game.GetQuestsSystem():GetFactStr("<fact>"))` (zero means unknown, never "refused"). The full recipe for each is the row's `liveCheck`
+field in `research/cyberpunk/decision-rows-b.json`.
+
+| Row | Grade (saves with it) | Why still open | Next step |
+|---|---|---|---|
+| `db.frank-chat-cut-short` | anchored-and-seen (97) | would topic-conflict with the shipped Frank "completed" rule on the common branch | build: own native topic plus a compatible-facet alias, alias the shipped rule too |
+| `db.frank-talked-down` | anchored-and-seen (1) | the end state of the sofa scene is unread | live: talk Frank down, read `mq041_var_frank_sofa` (expect 1), see whether Frank lives |
+| `db.evelyn-off-hint` | anchored-and-seen (4) | its facts are not exclusive with "disclosed" | do not promote as "withheld"; optional own facet |
+| `db.brick-died-in-trap` | not-executable (95) | `q003_brick_dead` is also set after a rescue | add objective `15_talk_to_brick5` to the journal allowlist, then live check |
+| `db.nash-declined` | anchored-not-seen (0) | never observed; the Rogue message is not in the allowlist | add the message, then decline Panam at the tunnel drive |
+| `db.iris-car-left` | not-executable (74) | superseded by the shipped `cc5.iris.car-left`; draft path wrong | retire after checking the shipped rule live |
+| `db.sandra-trojan-request` | anchored-not-seen (0) | never observed | live: refuse and accept in Sandra's scene, read `q305_sandra_task_accepted` |
+| `db.hunt-edgewood-two-farms` | anchored-not-seen (0) | never observed | live: stand for Edgewood without the deduction, read the three `sq021_*` facts |
+| `db.claire-first-call-refused` | anchored-not-seen (0) | never observed; two writers unreadable | live: refuse, accept and miss Claire's first call, read `sq024_v_said_not_interested_at_start` |
+| `db.sh-assault-companion-absent` | anchored-not-seen (0) | never observed | live: Takemura dies in the safe house, read `q112_takemura_dead` |
+| `db.sh-rogue-absent-afterlife` | anchored-not-seen (0) | never seen with the Afterlife drink | live: Rogue-dies ending, Sun epilogue drink |
+| `db.sh-yacht-intimacy-occurred` | anchored-not-seen (0) | never observed | live: [Kiss] path in Boat Drinks, read `sq028_kerry_sex` |
+| `db.dazed-schedule-hacked` | anchored-and-seen (58) | no speaker is established as knowing the hack | live: replay with [Hack schedule], see whether Lina or Hands mention it |
+| `db.shot-dante-alive-bree-shot` | anchored-not-seen (0) | never observed | live: shoot Bree at the lab standoff, then the both-dead route |
+| `db.sinnerman-joshua-killed` | writer-unbound (0) | no hash-bound writer yet | export the `sq023_hook` questphase first, then two live runs |
+| `db.lizzy-disposal-refused` | not-executable (73) | the message is not in the allowlist; never observed | add `01_lizzy_msg_no_reward`, then refuse in the finale |
+| `db.blue-op-aborted` | anchored-not-seen (0) | never observed; writers are not behind a choice | live: let Blue Moon give up the stakeout, read `mq028_aborted` |
+
+**Still without a real-save observation among the verified rows:** `db.ben-at-party` and `db.sandra-hired` (grade `anchored-not-seen`);
+they stay first in line for a live check. Recommended live order for the rest (best value first): Kerry's rooftop call
+(`q115_kerry_romance_chosen` is 0 in all 110 saves, section 4.2 "Kerry correction"), Frank's sofa, Joshua killed, then the rest.
+
+**Pack counts after this step.** 1,078 rules: 782 `source-verified`, 17 `candidate`, 278 `unmapped`, 1 `disabled`; 364 fact allowlist
+entries (was 361), 638 journal entries. Researched outcomes with a reviewed rule: 762 (unmapped 400).
+
+Tests: `research/cyberpunk/scripts/decision_rows_offline_check.test.mjs` (the condition evaluator, the grading, the selector parser and the
+cross-tab), the added `topicAlias` and `liveCheck` cases in `decision_rows.test.mjs`, and five pack tests in
+`bridge/decision-rows-pack.test.mjs` (promoted rows executable and speaker-correct, the Queen alias pinned and conflicting with the romance
+rule, Oda spared and killed exclusive, Royce not firing after the boss fight, the committed report covering every row).
 
 ### 4.3 Step C: who plausibly knows (audience), generalised
 
@@ -336,7 +408,34 @@ Today: declared speaker, plus Johnny's co-witness list. Proposed, in order of sa
    The honest alternative is the existing "V told" rule: if V says it in chat, the memory path records it.
 4. Romance and relationship rules keep their relationship gate (`romance-context.mjs`).
 
-**Witness receipts: not built (2026-10-14), and why.** The paragraph above does not yet say enough to build safely: (a) which table
+**Witness receipts: built 2026-10-15, opt-in, OFF by default (setting `witnessReceipts`).** The four open questions below were closed as
+follows.
+
+- **Who writes it (a).** The Lua world-knowledge scan (`mod/world-knowledge.lua`) already compares each value it reads with the one before. A
+  value that is known and newly changed is an *edge* (`edgesWanted` and `onEdges`, at most 48 per scan; the first tracked scan only records a
+  baseline, so a save loaded with a fact already true produces no receipt, which closes question c). `mod/witness-receipts.lua` stamps each
+  edge with who stood within 15 m (`companions.conversationCandidates`, no engine query) and rewrites `runtime/witness-receipts.json`
+  (version 1: `worldToken`, `gameTimeSeconds`, `edges` of `{type, key, t, near}`, newest 256, at most 6 names each). It runs once per scan
+  that found an edge, never per frame, and logs the first three sightings without fact names. A new world token or a CET reload starts empty.
+- **Who may hear it (b).** `resolveKnowledge({witnessReceipts})` in `bridge/world-knowledge.mjs` widens a rule only when its perspective is
+  `witnessed`, the character is not a declared speaker, V is a declared recipient, the channel allows it, and the receipt for the rule's
+  latest-edge leaf lists the character. Participant, private and told-by-v rules are never widened. This is an approximation: a rule with
+  several leaves is judged by the leaf that changed last, and the receipt is stamped at the next scan, which can be about 30 s after the
+  moment.
+- **How it reads.** A widened row gets its own `knowledgeOrigin` ("was beside V when this happened (approximate: where V's companions stood
+  at the next world scan)"), is never stored as a memory event and is not added to the `shared` list. `diagnostics.counts.receiptWitnessed`
+  appears only when receipts are passed.
+- **Off means unchanged.** With the setting off the Lua writes nothing and the bridge output is byte-identical to before (tested); with no
+  file, another world's file, a malformed file or a throwing reader the declared audience stays the floor.
+- **The remaining risk is wording.** The sentence of a `witnessed` rule is written for its declared speaker ("Jackie and T-Bug heard the
+  disclosure"). A neutral second wording for rules of other perspectives was not built; only `witnessed` rules are widened, which is why the
+  risk is small, but a live read of a widened row is still needed (probe 5).
+- To try it: set `"witnessReceipts": true` in `runtime/settings.json`, reload CET, make a decision with a spawned companion beside V, then
+  read `runtime/witness-receipts.json` and ask a bystander what they saw. Tests: `bridge/witness-receipts.test.mjs` (42: the Lua module and
+  collector through fengari, the parser and the receipt lookup, the widening and its limits, and the off case) and the receipts cases in
+  `bridge/decision-ledger.test.mjs`.
+
+The earlier reasoning, for the record: **Witness receipts: not built (2026-10-14), and why.** The paragraph above did not yet say enough to build safely: (a) which table
 holds the receipt and who writes it (the Lua scan, or the bridge from the scan's new-true edge) is open; (b) `perspective: witnessed`
 is used by few of the shipped rules, so the set a receipt could widen is small and unmeasured; (c) a receipt needs the moment the
 fact first reads true, but a fact true on load (an old save) has no moment, so every receipt would have to be marked "unknown
@@ -377,6 +476,13 @@ options=.. channel=.. present=.. chars=.. ledger=on|off)` for the first three re
 (reason)` once per skip reason (`not-dialogue`, `no-player`, `empty`, `repeated`, ...). No option text is logged. A real pick that yields
 neither line never reached the module: look for the older `hook choice fired` line to tell "hook did not fire" from "hook fired,
 module ignored it".
+
+**Evidence so far (2026-10-15, installed `probe.log`, 7 sessions).** The hook fires in every session (`hook choice fired
+(PreventionSystem.OnPlayerChoice)`), but no pick has ever been recorded: the log has 0 `choice recorded` lines and 6 `choice not recorded
+(not-dialogue)` lines. So the wrapper runs and then decides the event is not a dialogue pick; nothing has proven that a real dialogue
+option reaches it. The `not recorded` line now also carries `visualizer=<type> success=<..>` (no option text), so the next session shows
+what the hook was called with. **Recommendation: keep the ledger OFF by default** until one real dialogue pick is recorded and read back in
+a test session (probe 1b); turning on something that so far records nothing would cost the per-pick call and add nothing to prompts.
 
 **To try it.** Set `"decisionLedger": true` in `settings.json` (no UI yet, deliberately), reload CET, pick options in two or three
 conversations, then check `probe.log` and `runtime/decision-ledger.json`, and ask a companion who was present what V picked.
@@ -437,18 +543,24 @@ fact scan, paced, not in the journal lane. Check the maxima before and after (pr
    `msPerSecond` and `maxMs`), and `knowledgePreparedMs` in `bridge-latency.json`.
 4. **Wording.** With a throwaway identity (live talk tests store to the user's real Convai memory), ask Judy, Panam and Takemura "what did I choose about X" for three cases: a mapped choice, an unmapped
    one (should say it does not know) and a zero-only one (should not claim a refusal).
-5. **Witness receipts** (only if Step C2 is built): does `conversationCandidates` return the companions who were with V at
-   a vanilla scene, at the moment the fact first reads true.
+   Since 2026-10-15 each candidate has a precise recipe in the `liveCheck` field of `decision-rows-b.json`, summarised in the table in section 4.2a.
+5. **Witness receipts** (built, opt-in): with `"witnessReceipts": true`, does `conversationCandidates` return the companions who were
+   with V at a vanilla scene when the fact first reads true? Pick ten `witnessed` rules, list who stood in the scene from the quest data, and
+   compare with `runtime/witness-receipts.json`. Then ask a bystander about one widened row and judge the wording.
 
 ## 7. Decisions for the user
 
 1. ~~Build Step A (bridge only, no reload) now?~~ Done 2026-10-13 (section 4.1a); to be seen in a session after a bridge restart.
-2. ~~Which unmapped decisions matter?~~ A first batch is in (section 4.2: 9 verified rows, 21 candidates, the Dex audience fix). Open: which
-   of the 21 candidates to chase live first (suggested: Kerry's rooftop call, Oda spared, Frank's sofa, Joshua killed), and whether
-   to add the reviewed alias that lets `db.queen-friendship-hook` join its decision's topic domain.
-3. The ledger (Step D) is built and OFF. Decision: turn it on for a test session once probe 1 shows the hook fires.
-4. Witness receipts for spawned companions (Step C2): not built because the doc was underspecified (section 4.3). Decision: worth
-   the wording risk after the ten-rule comparison (probe 5), or keep the declared audience?
+2. ~~Which unmapped decisions matter?~~ Done: 13 verified rows, 17 candidates with live recipes (sections 4.2 and 4.2a), the Dex audience fix, and
+   the Queen alias (built, reviewed, pinned). Default taken: the offline check promoted what real saves and the graph support and left the
+   rest non-executable. Still the user's call: when to run the live checks. Recommended order: Kerry's rooftop call, Frank's sofa, Joshua
+   killed, then the rest of the table.
+3. The ledger (Step D) is built and OFF. Default taken: OFF. Recommendation: do not turn it on by default; the probe log shows the hook
+   fires but 0 picks recorded in 7 sessions (section 4.4). The user's call is when to run a test session with `"decisionLedger": true`; the
+   first thing to read is the `visualizer=`/`success=` detail on the `not recorded` line.
+4. Witness receipts (Step C2): built, opt-in, OFF (section 4.3). Default taken: off, only `witnessed` rules widen. The user's call: turn it
+   on after the ten-rule comparison (probe 5) and a read of one widened row, or keep the declared audience. A neutral second wording for
+   rules of other perspectives was not built; recommended only if the comparison shows many `participant` rules that bystanders should hear.
 
 ## Method and files read
 

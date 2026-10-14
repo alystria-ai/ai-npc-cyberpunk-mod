@@ -687,6 +687,8 @@ local function loadSettings()
     if type(settings.gameDialogueContext) ~= 'boolean' then settings.gameDialogueContext, settingsNeedSave = true, true end
     -- Off by default: the decision ledger (docs/QUEST_DECISIONS.md section 4.4) records V's picked dialogue options. Not proven in game; no menu entry.
     if type(settings.decisionLedger) ~= 'boolean' then settings.decisionLedger, settingsNeedSave = false, true end
+    -- Off by default: witness receipts (section 4.3) let a companion who stood beside V hear `witnessed` rules. No menu entry.
+    if type(settings.witnessReceipts) ~= 'boolean' then settings.witnessReceipts, settingsNeedSave = false, true end
     if not isChoice(settings.eyeContactHeight, eyeContactHeights) then
         settings.eyeContactHeight, settingsNeedSave = 0, true
     end
@@ -757,7 +759,10 @@ local function loadSettings()
     -- V's voice for typed lines (on by default, key vVoice): the bridge speaks what the player types in V's cloned voice. Only an
     -- explicit false (the player turned it off) is kept off. Beside the Convai cloud voice, which cannot clone, the setting simply
     -- stays on and does nothing; nothing here is switched, refused or announced for that pairing.
-    if type(settings.vVoice) ~= 'boolean' then settings.vVoice, settingsNeedSave = true, true end
+    -- The first version saved false as its default, so a saved false counts only once the player has set it themselves (an Apply that
+    -- carried it, vVoiceChosen); an unchosen false becomes the default, true (the pattern of holocallLiveImage above).
+    if type(settings.vVoiceChosen) ~= 'boolean' then settings.vVoiceChosen = false end
+    if type(settings.vVoice) ~= 'boolean' or (not settings.vVoice and not settings.vVoiceChosen) then settings.vVoice, settingsNeedSave = true, true end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -1085,6 +1090,13 @@ end
 function M.decisionLedger()
     loadSettings()
     return settings.decisionLedger == true
+end
+
+-- Off by default (settings.json `witnessReceipts`): the quest edges a world scan sees are stamped with who stood beside V and written to
+-- runtime/witness-receipts.json (mod/witness-receipts.lua).
+function M.witnessReceipts()
+    loadSettings()
+    return settings.witnessReceipts == true
 end
 
 -- Read by the ordinary companion update, never by a native menu callback.
@@ -1649,6 +1661,7 @@ function M.snapshot(player)
             youtubeTv = settings.youtubeTv == true,
             gameDialogueContext = settings.gameDialogueContext,
             decisionLedger = settings.decisionLedger,
+            witnessReceipts = settings.witnessReceipts,
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
             audioDelay = settings.audioDelay,
@@ -1707,10 +1720,11 @@ function M.applySettings(player, values)
     for key, value in pairs(values) do
         if key == 'expressiveEmotions' then nextSettings.expressiveEmotionsChosen = true end
         if key == 'holocallLiveImage' then nextSettings.holocallLiveImageChosen = true end
+        if key == 'vVoice' then nextSettings.vVoiceChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'holocallLiveImage' or key == 'youtubeTv'
-            or key == 'gameDialogueContext' or key == 'decisionLedger'
+            or key == 'gameDialogueContext' or key == 'decisionLedger' or key == 'witnessReceipts'
             or key == 'naturalSpeech' or key == 'expressiveEmotions'
             or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
             or key == 'companionVision' then

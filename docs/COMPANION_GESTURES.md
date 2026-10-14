@@ -563,9 +563,9 @@ A live capture of a gesture start is the check.
 | Takemura | `takemura__stand_ground__stand_around__01` (formal, hands at sides) | own |
 | Viktor | `ripperdoc__stand_ground_arms_crossed__talk__01` (arms crossed) | generic |
 | Mr. Hands | `bodyguard__stand_ground__2h_back__01` | generic |
-| Padre | `generic__stand_ground__stand_around__07` (hands raised and held in front; Round 11: that was judged by name, the pose is a right hand held out at belly height, and Padre now rests in `generic_front`, hands folded in front) | generic |
+| Padre | `generic__stand_ground__stand_around__07` (hands raised and held in front; Round 12: that was judged by name, the pose is a right hand held out at belly height, and Padre now rests in `generic_front`, hands folded in front) | generic |
 | Mitch | `generic__stand_ground_arms_crossed__stand_around__02` | generic |
-| Saul | `saul__stand_ground__stand_around__01` (arms crossed; the loop is the `angry` set, to be watched; Round 11: it was angry and did not fit him, he now rests in the generic hands-at-sides idle) | own |
+| Saul | `saul__stand_ground__stand_around__01` (arms crossed; the loop is the `angry` set, to be watched; Round 12: it was angry and did not fit him, he now rests in the generic hands-at-sides idle) | own |
 | Jackie | `jackie__stand_ground__stand_around__01` | own |
 | River | `q202__river__stand_ground__stand_around__01` | own workspot |
 | Reed | `ep1__reed__stand_ground__stand_around__01` | own |
@@ -817,7 +817,11 @@ To check live (Body gestures On, Developer mode for `Gestures` lines in `probe.l
 4. Group voice: while you speak, all members nod now and then, the first one 3 s or later into your speech.
 5. A fourth companion beside you who is not in the round does not take the stance, nods or exits.
 
-## Round 11 (October 15): prop idles, Johnny's flavour, Padre and Saul measured
+## Round 11 (October 15): an idle that walks the body away from a still V
+
+Live 2026-10-14 (Alex, V standing still the whole time): her idle workspot convai_idle_generic_hips (vanilla emale__stand_around__02) carried her body 0.7 m at +25 s and 2 m at +30 s into the idle (1.2 to 2 m/s, the follow command hold already Interrupted, no mod walk, no teleport); idle_alex and idle_jackie_hips never moved her. The idle scheduler (45 to 90 s idle, 20 to 45 s gap) made the slides recur. policy.travellingIdles (generic_hips) is never picked; and an idle flavour whose body moves more than policy.driftExit (0.45 m) from where the workspot began, V still, is left at once (drift-exit line, inished reason drifted) and its idle key is not picked again this session (self.travelling). 15 to 25 cm of settling stays. V walking away still ends every idle with movement.
+
+## Round 12 (October 15): prop idles, Johnny's flavour, Padre and Saul measured
 
 Phase 2 items built without the game: the cigarette cleanup, Judy and Panam prop idles, Johnny's flavour animations, a better idle for Saul, and a data check of Padre's `generic_hold`. Everything below was read from the extracted animation and workspot data (`scripts/Audit-PropIdles.mjs`, WolvenKit JSON of the workspots and the animsets they load) and from hips-frame forward kinematics of the exported clips; nothing was played in the game. The live checks at the end are what is still open.
 
@@ -867,6 +871,10 @@ Both Johnny records (`Character.Silverhand`, `CyberpunkConvai.JohnnyCompanion`) 
 ### Tests
 
 `bridge/companion-gestures.test.mjs` (fake hand slots; the existing seeded idle tests only needed Johnny's pool and Saul's choice updated): a prop idle starts with a free hand, is looked at once, and its declared item and slot are cleaned in two passes with a quiet second pass and no further native call; a busy hand gets a prop-free idle and nothing is ever cleared; empty fists are free and a foreign item found at the look is `props-other`; two misses drop a prop idle for the session and it is never picked again, with cleanup still scheduled; no natives or the kill switch means no prop idle at all; release still cleans and abandon makes no native call; the catalog declares every prop idle completely (component, source, `Items.*` records in hand slots, the right rig, never a primary idle) and Padre and Saul's rows are as described.
+
+### Together with the drift exit (Round 11)
+
+The new idles go through Round 11's drift exit like every other idle: a flavour idle that carries the body more than `policy.driftExit` (45 cm) with V still is left at once (`drift-exit`, `finished` reason `drifted`) and its key is banned for the session (`self.travelling`). A prop idle that drifts also runs its prop cleanup, because the cleanup is scheduled in `finish`, which every exit reaches (a test drives a cigarette idle through it). `policy.travellingIdles` (`generic_hips`) is filtered out of the pool before the prop and busy-hand logic, so a prop-free fallback never brings it back.
 
 ### Install
 

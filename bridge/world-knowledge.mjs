@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {classifyDecisions} from './knowledge-decisions.mjs';
 import {isParsed, markParsed, memoOf} from './parsed-snapshot.mjs';
+import {receiptWitnesses} from './witness-receipts.mjs';
 
 // observations matches mod/world-knowledge.lua CAPTURE_LIMIT: a pack whose fact
 // or journal allowlist exceeds it would disable the Lua collector at load.
@@ -412,8 +413,10 @@ function coWitnessFor(rule, prepared, profileKey) {
     && audience.recipients !== 'all' && audience.recipients.includes('v') ? policy : null;
 }
 
-function permitted(rule, snapshot, profileKey, prepared) {
-  const audience = rule.audience, coWitness = coWitnessFor(rule, prepared, profileKey);
+// `byReceipt`: the character is being tried as a witness through a witness receipt (see receiptWidens); it gets the same relaxation as a
+// co-witness, for itself only.
+function permitted(rule, snapshot, profileKey, prepared, byReceipt = false) {
+  const audience = rule.audience, coWitness = coWitnessFor(rule, prepared, profileKey) || byReceipt;
   if (audience.speakers !== 'all' && !audience.speakers.includes(profileKey) && !coWitness) return false;
   if (!audience.channels.includes(snapshot.audience.channel)) return false;
   // A co-witness may hear the rule alongside its declared recipients; every
@@ -423,6 +426,20 @@ function permitted(rule, snapshot, profileKey, prepared) {
   if (audience.perspective === 'told-by-v') return snapshot.disclosures.some(row => row.topic === rule.topic
     && row.outcome === rule.outcome && row.to.includes(profileKey));
   return true;
+}
+
+// Witness receipts (bridge/witness-receipts.mjs, opt-in): a `witnessed` rule the standard check kept out only because this character is not a
+// declared speaker is let through when the receipts say the character stood beside V when the rule became true. Never for participant,
+// private or told-by-v rules, never for a declared speaker's exclusion, and the channel and the other listeners are checked as before.
+const RECEIPT_ORIGIN = "was beside V when this happened (approximate: where V's companions stood at the next world scan)";
+function receiptWidens(row, snapshot, profileKey, prepared, witnessReceipts) {
+  const audience = row.rule.audience;
+  if (audience.perspective !== 'witnessed' || audience.speakers === 'all' || audience.speakers.includes(profileKey)
+    || audience.recipients === 'all' || !audience.recipients.includes('v') || !audience.channels.includes(snapshot.audience.channel)
+    || !permitted(row.rule, snapshot, profileKey, prepared, true)) return false;
+  const witnesses = receiptWitnesses({receipts: witnessReceipts.receipts, worldToken: witnessReceipts.worldToken,
+    gameTimeSeconds: witnessReceipts.gameTimeSeconds, evidence: row.evaluation.evidence});
+  return !!witnesses && witnesses.near.has(profileKey);
 }
 
 // Share of the room in the context budget (what the framing leaves) branch decisions may claim before the other facts are placed. Decisions win when a character has more true
@@ -507,13 +524,16 @@ function eventFor(row, snapshot, prepared, profileKey) {
 }
 
 /** Resolve only this capture. Calls are independent, so rollback cannot reuse a future outcome. */
-export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 6000} = {}) {
+export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 6000, witnessReceipts} = {}) {
   const budget = Number.isSafeInteger(maxChars) && maxChars >= 0 ? Math.min(maxChars, LIMIT.context) : 6000;
   const prepared = resolverPack(pack), current = parseWorldSnapshot(snapshot);
   const diagnostics = {status: 'ready', errors: [...prepared.errors], counts: {evaluated: 0, true: 0, false: 0,
     unknown: 0, outsideAudience: 0, conflicted: 0, selected: 0, omitted: 0}, conflicts: [],
     exclusiveGroupConflicts: [], rules: [], contextChars: 0};
   const trace = (rule, status) => { if (diagnostics.rules.length < LIMIT.traces) diagnostics.rules.push({ruleId: rule.id, status}); };
+  // Only when the caller passes receipts does the diagnostics gain a count (none otherwise: the output is as before).
+  const receiptsOn = witnessReceipts !== null && typeof witnessReceipts === 'object';
+  if (receiptsOn) diagnostics.counts.receiptWitnessed = 0;
   const invalid = reason => {
     diagnostics.status = reason;
     let context = render({version: 1, status: 'unavailable', reason, facts: []});
@@ -565,8 +585,13 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
     if (conflicts.has(row.rule.topic) || (row.rule.exclusiveGroups ?? []).some(group => conflictingGroups.has(group.id))) {
       diagnostics.counts.conflicted += 1; trace(row.rule, 'conflict'); continue;
     }
-    if (!permitted(row.rule, current, profileKey, prepared)) { diagnostics.counts.outsideAudience += 1; trace(row.rule, 'outside-audience'); continue; }
-    candidates.push({...row, score: rank(row.meta, current, profileKey, queryTerms)});
+    let byReceipt = false;
+    if (!permitted(row.rule, current, profileKey, prepared)) {
+      byReceipt = receiptsOn && receiptWidens(row, current, profileKey, prepared, witnessReceipts);
+      if (!byReceipt) { diagnostics.counts.outsideAudience += 1; trace(row.rule, 'outside-audience'); continue; }
+      diagnostics.counts.receiptWitnessed += 1;
+    }
+    candidates.push({...row, byReceipt, score: rank(row.meta, current, profileKey, queryTerms)});
   }
   candidates.sort((a, b) => b.score - a.score || (a.rule.id < b.rule.id ? -1 : a.rule.id > b.rule.id ? 1 : 0));
   // Events this character took part in (or privately shares with V), for the
@@ -574,7 +599,7 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
   const shared = [], sharedTopics = new Set();
   for (const row of candidates) {
     const rule = row.rule, coWitness = coWitnessFor(rule, prepared, profileKey);
-    if (!SHARED_PERSPECTIVES.has(rule.audience.perspective) || sharedTopics.has(rule.topic) || shared.length >= LIMIT.shared) continue;
+    if (row.byReceipt || !SHARED_PERSPECTIVES.has(rule.audience.perspective) || sharedTopics.has(rule.topic) || shared.length >= LIMIT.shared) continue;
     if (!coWitness && (rule.audience.speakers === 'all' || !rule.audience.speakers.includes(profileKey))) continue;
     const times = row.evaluation.evidence.filter(item => item.type === 'journal')
       .map(item => current.journal[item.key]?.gameTimeSeconds).filter(Number.isSafeInteger);
@@ -598,7 +623,8 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
   const entryOf = row => {
     const rule = row.rule;
     return row.entry ??= {questKey: rule.questKey, topic: rule.topic, outcome: rule.outcome,
-      knowledgeOrigin: coWitnessFor(rule, prepared, profileKey)?.origin ?? ORIGIN[rule.audience.perspective], text: rule.statement};
+      knowledgeOrigin: row.byReceipt ? RECEIPT_ORIGIN : coWitnessFor(rule, prepared, profileKey)?.origin ?? ORIGIN[rule.audience.perspective],
+      text: rule.statement};
   };
   // 'taken', 'duplicate' or 'full'; only a full one may be tried again.
   const attempt = (row, choice, capped) => {
@@ -634,7 +660,8 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
   diagnostics.counts.selected = told.length;
   diagnostics.contextChars = context.length;
   diagnostics.decisions = {true: decisions.true, selected: decisions.selected, dropped: decisions.dropped, duplicates: decisions.duplicates};
-  const eligible = current.identity.status === 'verified' ? told.filter(row => row.rule.stable) : [];
+  // A receipt is approximate, so what it let through is told for this turn only and never stored as a memory.
+  const eligible = current.identity.status === 'verified' ? told.filter(row => row.rule.stable && !row.byReceipt) : [];
   const events = eligible.slice(0, LIMIT.events).map(row => eventFor(row, current, prepared, profileKey));
   diagnostics.memory = {identity: current.identity.status, candidates: events.length,
     omitted: Math.max(0, eligible.length - LIMIT.events)};

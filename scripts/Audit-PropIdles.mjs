@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Audits vanilla idle workspots for the companion gesture system (docs/COMPANION_GESTURES.md, Round 11):
+// Audits vanilla idle workspots for the companion gesture system (docs/COMPANION_GESTURES.md, Round 12):
 // every clip a workspot can play must exist in the animsets the workspot loads for the rig, none may carry
 // motion extraction (walking), and every prop the workspot or its clips equip is listed with its item and slot,
 // so the controller knows exactly what to take off the companion afterwards.

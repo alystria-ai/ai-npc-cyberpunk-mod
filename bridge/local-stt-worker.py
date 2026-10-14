@@ -40,7 +40,9 @@ SEGMENT_LIMIT = 24.0
 FRAME = 480               # 30 ms
 GATE_DB = -52.0           # a recording whose loudest 30 ms frames never reach this holds no speech
 SPEECH_FRAMES = 5         # 150 ms above the gate
-PRE_ROLL_FRAMES = 8       # 240 ms of the quiet before the first word stay in what is decoded
+PRE_ROLL_FRAMES = 8       # 240 ms of quiet stay around each piece of sound that is decoded
+MERGE_FRAMES = 24         # sounds less than 720 ms apart are decoded together
+MAX_GROUPS = 12           # more pieces than this are joined (a noisy room), so a final stays a few decodes
 
 
 def log(message: str) -> None:
@@ -121,25 +123,44 @@ def split_points(samples):
     return pieces
 
 
-def trim_lead(samples):
-    """Drop the quiet before the first word, keeping PRE_ROLL_FRAMES of it.
+def speech_groups(samples, merge_frames=MERGE_FRAMES):
+    """The sound in a recording as separate pieces, each with PRE_ROLL_FRAMES of quiet around it: [] when there is none.
 
-    Moonshine returns NO text for most speech that follows a second or more of quiet (measured: 29 of 36 synthetic clips
-    were empty at 1.5 s of leading quiet, 6 of 36 at 1 s, none at 0.3 s). A player presses the key and then thinks for a
-    moment, so the whole recording, and a live decode of its newest 8 s, can come back empty although the words are there.
+    Moonshine returns NO text, or only a fragment, for speech that sits among a second or more of quiet, and a key click or breath
+    right before the words upsets it too (measured: 29 of 36 synthetic clips empty at 1.5 s of leading quiet; click, 8 s of quiet,
+    then the words: the live decode of the newest 8 s read them, the decode of the whole recording came back empty). A player
+    presses the key (a click in the microphone), thinks, and speaks. So every run of 3 frames above the gate is sound, sounds less
+    than `merge_frames` apart belong together, and each group is decoded on its own, never with the long quiet between groups.
     """
     import numpy as np
     levels = frame_levels(samples)
-    if levels.size < SPEECH_FRAMES:
-        return samples
+    count = levels.size
+    if count < SPEECH_FRAMES:
+        return []
     above = levels > speech_gate(levels)
-    run = 0
-    for index, flag in enumerate(above):
-        run = run + 1 if flag else 0
+    runs, run = [], 0
+    for index in range(count + 1):
+        if index < count and above[index]:
+            run += 1
+            continue
         if run >= 3:
-            start = max(0, (index - run + 1 - PRE_ROLL_FRAMES) * FRAME)
-            return samples[start:] if start > 0 else samples
-    return samples
+            runs.append((index - run, index))
+        run = 0
+    while True:
+        groups = []
+        for first, last in runs:
+            if groups and first - groups[-1][1] <= merge_frames:
+                groups[-1][1] = last
+            else:
+                groups.append([first, last])
+        if len(groups) <= MAX_GROUPS:
+            break
+        merge_frames *= 2
+    pieces = []
+    for first, last in groups:
+        end = min(count, last + PRE_ROLL_FRAMES)
+        pieces.append(samples[max(0, first - PRE_ROLL_FRAMES) * FRAME: len(samples) if end == count else end * FRAME])
+    return pieces
 
 
 def tidy(text: str) -> str:
@@ -162,9 +183,13 @@ class Engine:
             num_threads=threads,
         )
 
+    def read(self, samples) -> str:
+        """The words in a recording or its newest window: each piece of sound decoded on its own (see speech_groups)."""
+        pieces = [part for group in (speech_groups(samples) or [samples]) for part in split_points(group)]
+        return " ".join(part for part in (self.decode(piece) for piece in pieces) if part and any(c.isalnum() for c in part))
+
     def decode(self, samples) -> str:
         import numpy as np
-        samples = trim_lead(samples)
         stream = self.recognizer.create_stream()
         stream.accept_waveform(SAMPLE_RATE, samples.astype(np.float32) / 32768.0)
         self.recognizer.decode_stream(stream)
@@ -216,7 +241,7 @@ class Worker:
             # answer for the rest of the recording (a pause before the first word used to switch the live words off).
             send({"type": "partial", "id": request_id, "text": "", "ms": 0})
             return
-        text = self.engine.decode(samples)
+        text = self.engine.read(samples)
         if request_id == self.id:
             # A partial that decoded the entire recording (up to the window) can stand as the final text when only
             # silence follows it, so the key press does not wait for a second decode of the same words. A recording
@@ -225,8 +250,8 @@ class Worker:
             left_out = whole[: len(whole) - len(samples)]
             covers = len(left_out) == 0 or not has_speech(left_out)
             self.last_partial = (len(whole), text) if covers else None
-            if text and covers:
-                self.last_words = text
+            if text:
+                self.last_words = text   # kept even when it left out an early word: better than ending the turn empty
             send({"type": "partial", "id": request_id, "text": text, "ms": round((time.perf_counter() - started) * 1000)})
 
     def finish(self, request_id):
@@ -244,9 +269,10 @@ class Worker:
             if held and held[1] and tail_is_quiet(samples, held[0]):
                 text, reused = held[1], True
             else:
-                text = " ".join(part for part in (self.engine.decode(piece) for piece in split_points(samples)) if part)
+                text = self.engine.read(samples)
                 if not text and self.last_words:
                     # Speech was heard and the live words already read it: an empty full decode must not erase them.
+                    log("final decode was empty after speech; used the live words")
                     text, reused = self.last_words, True
         self.id, self.chunks, self.total, self.last_partial, self.last_words = None, [], 0, None, ""
 

@@ -2004,7 +2004,7 @@
     },
     {
       "id": "contacts",
-      "text": "People pass through. You listen, remember a face, find out who needs what.",
+      "text": "In my line, people pass through. You listen, remember a face, find out who needs what.",
       "claimIds": [
         "dino-dinovic.social.mixed-company",
         "dino-dinovic.place.bar"
@@ -2013,7 +2013,7 @@
     },
     {
       "id": "district",
-      "text": "City Center. Plenty of suits, plenty of appetites. Work does not stay quiet for long.",
+      "text": "City Center is my turf. Plenty of suits, plenty of appetites. Work does not stay quiet for long.",
       "claimIds": [
         "dino-dinovic.work.city-center",
         "dino-dinovic.work.varied-requests"

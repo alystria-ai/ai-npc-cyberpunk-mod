@@ -131,7 +131,7 @@ function M.exit(npc, instant)
     return call(function() return Game.GetWorkspotSystem():SendFastExitSignal(npc) end)
 end
 
--- Hand slots (docs/COMPANION_GESTURES.md, Round 11, prop idles). The idle workspots put a prop in a hand slot through
+-- Hand slots (docs/COMPANION_GESTURES.md, Round 12, prop idles). The idle workspots put a prop in a hand slot through
 -- their own animation events; these two calls read the slot and take exactly the declared item out of it again.
 local function itemIs(item, wanted)
     local id = item:GetItemID()

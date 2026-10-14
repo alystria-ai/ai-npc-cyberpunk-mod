@@ -596,6 +596,26 @@ function M.showLive(speaker, text)
     if shown and M.remaining then M.remaining = math.max(M.remaining, 6) end
     return shown
 end
+-- V's typed line, shown as V's own line in the cinematic subtitles while V's voice speaks it (docs/V_VOICE.md, "V's subtitle"). Like
+-- the live words it is one dialogue-HUD line that V owns, which owns no utterance and is replaced at once by the next caption
+-- (a reply's show or beginTimed clears it first), so the companion's subtitle never starts beneath it. Unlike the live words it is
+-- complete: it starts on its first page and the pages advance by the ordinary reading time (about 2.8 words a second, the pace of the
+-- spoken line, 3.5 seconds at least); a short line is gone on its own after that. It runs once, when the line is sent, and costs
+-- nothing per frame beyond what a caption already does. Returns false when subtitles are off or the text is empty.
+function M.showTyped(text)
+    if type(text) ~= 'string' then return false end
+    text = clean(text)
+    if text == '' or not M.enabled() then return false end
+    -- Never a reply's flags: speech.lua leaves the last reply's voice-only and holocall marks here.
+    M.voiceProfile, M.voiceOnly, M.holocall = nil, false, false
+    if not prepare('V', text, nil, nil) then return false end
+    M.mode, M.fallback, M.anchor, M.paginationStyle = 'dialogue', nil, nil, 'dialogue'
+    M.pages, M.pageRanges = M.split(text, 'dialogue')
+    if #M.pages == 0 then M.abandon(); return false end
+    M.live, M.liveOwner = true, Game.GetPlayer()
+    M.page = 1
+    return showPage()
+end
 function M.beginTimed(speaker, text, duration, actor, expected, captions)
     if not finite(duration) or duration <= 0 or duration > 120 then return M.show(speaker, text, actor, expected) end
     if not prepare(speaker, text, actor, expected) then return false end

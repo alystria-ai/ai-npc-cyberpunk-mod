@@ -208,7 +208,7 @@ for (const [record, known] of Object.entries(source.characters)) {
         if (!poolChecked || !poolChecked[2].split(',').includes(known.rig)) fail(`${record}: pool idle ${key} is not checked on ${known.rig}`);
     }
 }
-// Prop idles (docs/COMPANION_GESTURES.md, Round 11): each needs a workspot, a checked source and at least one declared
+// Prop idles (docs/COMPANION_GESTURES.md, Round 12): each needs a workspot, a checked source and at least one declared
 // item with a hand slot, which is what the controller takes out of the slot afterwards. The item records themselves
 // come from scripts/Audit-PropIdles.mjs (animation data); here only the shape is enforced.
 const HAND_SLOTS = new Set(['AttachmentSlots.WeaponRight', 'AttachmentSlots.WeaponLeft']);

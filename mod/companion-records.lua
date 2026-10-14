@@ -209,4 +209,46 @@ function M.resolve(source)
     return prepared, nil, johnnyCopy, johnnyAppearance
 end
 
+-- Invulnerability on the copy. Johnny and Alex carry the game's own `Invulnerable` record tag; the installed script
+-- (cyberpunk/managers/npcManager.script, SetNPCImmortalityMode) turns that tag into
+-- GodModeSystem:AddGodMode(entity, gameGodModeType.Invulnerable, 'Default') when the puppet initialises. Alt Cunningham's
+-- record has no tags, and a flat that does not exist is not safe to create through TweakDB:SetFlat in this install
+-- (docs/COMPANION_COMBAT.md). So her copy makes the same call itself, once, when the copy attaches (companions.lua
+-- attachFollower), with its own source name (the script's UnInit clears only 'Default'), reads it back, and gives it back
+-- before the copy is deleted. Nothing runs per frame. Only the mod-spawned copy is touched: the story character is not.
+-- Keyed by model record, like the other per-model adaptations here, so her copy is protected under any chat profile.
+local invulnerableModels = {'Character.Alt'}
+local protectionSource = 'CyberpunkConvaiProtection'
+function M.invulnerable(modelRecordID)
+    if modelRecordID == nil then return false end
+    for _, name in ipairs(invulnerableModels) do
+        if modelRecordID == TweakDBID.new(name) then return true end
+    end
+    return false
+end
+local function protection(entityID, grant)
+    local system = Game.GetGodModeSystem()
+    if not system then error('no god mode system') end
+    local mode = Enum.new('gameGodModeType', 'Invulnerable')
+    if grant then
+        system:AddGodMode(entityID, mode, CName.new(protectionSource))
+        if system:HasGodMode(entityID, mode) ~= true then error('readback is false') end
+    else
+        system:RemoveGodMode(entityID, mode, CName.new(protectionSource))
+    end
+end
+-- true: protected (read back); false: asked but not confirmed (logged); nil: this model is not protected.
+function M.protect(entityID, modelRecordID)
+    if not M.invulnerable(modelRecordID) then return nil end
+    local ok, err = pcall(protection, entityID, true)
+    note('Companion protection: invulnerable ' .. (ok and 'granted' or ('not granted (' .. tostring(err):sub(1, 120) .. ')')))
+    return ok
+end
+-- Called once before the copy is deleted; a failure only leaves a stale entry for an entity that is going away.
+function M.unprotect(entityID)
+    local ok, err = pcall(protection, entityID, false)
+    if not ok then note('Companion protection: release failed (' .. tostring(err):sub(1, 120) .. ')') end
+    return ok
+end
+
 return M

@@ -155,8 +155,8 @@
     "image": "appearance-images/jefferson-peralez.webp"
   },
   "jesse": {
-    "text": "",
-    "source": "unconfirmed",
+    "text": "You have a stocky, broad-shouldered build, short dark red-brown hair swept back from your forehead, and a full dark beard. You wear dark sunglasses, a gold chain, and a pink and purple striped shirt open and loose with the sleeves rolled up over a white tank top. Your shorts are very short, your ankle socks have orange bands, and you wear dark slip-on shoes. You have a cluster of dark tattoos on your right thigh.",
+    "source": "https://cyberpunk.fandom.com/wiki/Jesse_Johnson",
     "image": "appearance-images/jesse.webp"
   },
   "jim-jarry": {
@@ -184,8 +184,9 @@
     "image": "appearance-images/kerry-eurodyne.webp"
   },
   "liam-northom": {
-    "text": "",
-    "source": "none"
+    "text": "You have bleached blond hair with a faint green tint, cut short at the sides and swept up on top, with round wire-framed glasses and a small earring. You wear a beaded gold and dark necklace, a white T-shirt, and a dark jacket embossed with a gold pattern and metallic gold and teal panels.",
+    "source": "https://cyberpunk.fandom.com/ru/wiki/%D0%9B%D0%B8%D0%B0%D0%BC_%D0%9D%D0%BE%D1%80%D1%82%D0%BE%D0%BC",
+    "image": "appearance-images/liam-northom.webp"
   },
   "life-coach": {
     "text": "",
@@ -207,8 +208,9 @@
     "image": "appearance-images/mama-welles.webp"
   },
   "mark-bana": {
-    "text": "",
-    "source": "none"
+    "text": "You have a tall, sturdy build and short dark hair swept up on top and cut close at the sides, with stubble along your jaw. You have a metal implant plate across the bridge of your nose, a small implant at one temple, a dark curved line under your chin, and a dark cord necklace with a small device at the base of your throat. You wear a light V-neck shirt.",
+    "source": "https://cyberpunk.fandom.com/ru/wiki/%D0%9C%D0%B0%D1%80%D0%BA_%D0%91%D0%B0%D0%BD%D0%B0",
+    "image": "appearance-images/mark-bana.webp"
   },
   "meredith-stout": {
     "text": "You have auburn hair swept back from your forehead, with a thin cybernetic panel and circuit lines over your left temple and cheek. You wear a dark high-collared uniform jacket with grey shoulder plates and a small chest patch.",

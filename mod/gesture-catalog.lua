@@ -35011,7 +35011,7 @@ local catalog = {
         },
         generic_hold = {
             kind = "generic",
-            what = "gesture_hold: right hand held out at belly height (10 cm above the hips, 20 cm forward), left hand at the side; measured from the animation data in Round 11, so not 'hands raised'; no character uses it",
+            what = "gesture_hold: right hand held out at belly height (10 cm above the hips, 20 cm forward), left hand at the side; measured from the animation data in Round 12, so not 'hands raised'; no character uses it",
             rigs = {
                 "woman_base",
                 "man_base",
@@ -35428,7 +35428,7 @@ local catalog = {
             },
             flavour = true,
             fallback = "on_sides",
-            note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Rig from the entity's animated component (Oct 9). His own workspot loop is the angry arms-crossed set (saul__stand__arms_crossed_front__angry__01, hands crossed at the chest 29-33 cm above the hips), which did not fit him: since Round 11 he rests in the relaxed hands-at-sides idle with hands behind the back as the second.",
+            note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Rig from the entity's animated component (Oct 9). His own workspot loop is the angry arms-crossed set (saul__stand__arms_crossed_front__angry__01, hands crossed at the chest 29-33 cm above the hips), which did not fit him: since Round 12 he rests in the relaxed hands-at-sides idle with hands behind the back as the second.",
             idleSource = "generic",
         },
         ["Character.Placide"] = {
