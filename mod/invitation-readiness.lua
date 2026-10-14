@@ -87,12 +87,19 @@ function M.new(options)
         return value
     end
 
+    -- The world answer is asked for on every call, so every frame. The one validated answer is kept: a world whose token and
+    -- generation are the ones already validated is that same answer again, with no pattern match and no new table. Anything
+    -- else (a new world, a failed or malformed answer) takes the full check below, exactly as before.
+    local worldAnswer
     local function currentWorld()
         if type(options.world) ~= 'function' then return nil end
         local ok, value = pcall(options.world)
-        if not ok or type(value) ~= 'table' or not token(value.worldToken, 160)
-            or not integer(value.generation, 1) then return nil end
-        return {worldToken = value.worldToken, generation = value.generation}
+        if not ok or type(value) ~= 'table' then return nil end
+        local known = worldAnswer
+        if known and value.worldToken == known.worldToken and value.generation == known.generation then return known end
+        if not token(value.worldToken, 160) or not integer(value.generation, 1) then return nil end
+        worldAnswer = {worldToken = value.worldToken, generation = value.generation}
+        return worldAnswer
     end
 
     local function publish(target, stamp)

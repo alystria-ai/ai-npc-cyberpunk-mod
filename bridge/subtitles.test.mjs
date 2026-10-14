@@ -489,15 +489,17 @@ assert(m.line==nil and m.actor==nil and m.entity==nil)
 
 test('native root ownership survives distinct controller and widget wrappers without affecting foreign captions', () => run(setup + `
 assert(registrations==0 and overrideRegistrations==0)
-assert(m.install());assert(m.install());assert(registrations==4 and overrideRegistrations==2)
+assert(m.install());assert(m.install());assert(registrations==4 and overrideRegistrations==0,'the projection Overrides wait for the first overhead caption')
 assert(afterHooks["SubtitlesGameController.OnHideLineByData"] and afterHooks["SubtitlesGameController.OnHideLine"],"Native removals must be observed")
 local after=afterHooks['ChatterLineLogicController.SetLineData']
-local bubble=overrides['ChatterLineLogicController.IsBubble']
-assert(after and bubble)
+assert(after)
 local own,foreign,new=surface('201ULL'),surface('999ULL'),surface('202ULL')
 local delegated,target=0,{}
 local function wrapped(value)assert(value==target);delegated=delegated+1;return true end
 m.show('Judy','A rendered line.',judy,'201ULL')
+assert(overrideRegistrations==2,'the first overhead caption registers both guards')
+local bubble=overrides['ChatterLineLogicController.IsBubble']
+assert(bubble)
 local first=shown()[1]
 assert(bubble(wrapController(own),target,wrapped)==true and delegated==1,'No receipt means no controller ownership')
 after(wrapController(foreign),{id='native-foreign',text='An unrelated native subtitle'})
@@ -531,7 +533,7 @@ plain(m.status())
 `));
 
 test('reused roots, wrong actor owners and failed native receipts cannot borrow the bubble override', () => run(setup + `
-m.install()
+m.install();m.ensureProjectionGuards() -- the guards register on the first overhead caption; these tests drive them directly
 local after=afterHooks['ChatterLineLogicController.SetLineData']
 local bubble=overrides['ChatterLineLogicController.IsBubble']
 local wrapped=function()return true end
@@ -563,7 +565,7 @@ assert(bubble(wrapController(own),{},wrapped)==true,'A rebound root must lose ow
 `));
 
 test('a root tag cannot survive caption replacement, dismissal, or native-free abandon as active ownership', () => run(setup + `
-m.install()
+m.install();m.ensureProjectionGuards()
 local after=afterHooks['ChatterLineLogicController.SetLineData']
 local bubble=overrides['ChatterLineLogicController.IsBubble']
 local wrapped=function()return true end
@@ -618,7 +620,7 @@ m.clear();assert(secondRoot.offset.z==.3 and secondRoot.heightWrites==2 and m.pl
 `));
 
 test('unsupported overhead height adjustment preserves the native caption without touching other projections', () => run(setup + `
-m.install()
+m.install();m.ensureProjectionGuards()
 local after=afterHooks['ChatterLineLogicController.SetLineData']
 local bubble=overrides['ChatterLineLogicController.IsBubble']
 local owned,foreign=surface('201ULL'),surface('999ULL')
@@ -692,7 +694,7 @@ assert(hidden()[1]==id and foreign.root.visible and foreign.heightWrites==0)
 `));
 
 test('the first cached projection stays hidden and nameplate transitions cannot shift an owned caption', () => run(setup + `
-m.install()
+m.install();m.ensureProjectionGuards()
 local after=afterHooks['ChatterLineLogicController.SetLineData']
 local project=overrides['ChatterLineLogicController.UpdateProjection']
 local own,foreign=surface('201ULL'),surface('999ULL')
@@ -1387,4 +1389,41 @@ assert(m.stalledClears==1)
 -- A new utterance starts its own timer.
 assert(m.beginTimed('Judy','Next reply.',2,judy,'201ULL'))
 for _=1,28 do m.update(.25) end;assert(m.line,'the timer restarted with the new utterance')
+`));
+
+test('the chatter projection Overrides are registered by the first overhead caption, once, and by nothing else', () => run(setup + `
+assert(m.install() and overrideRegistrations==0)
+-- Dialogue-HUD captions, V's live words and a cleared caption never need them.
+style='dialogue'
+assert(m.show('Judy','A cinematic line.',judy,'201ULL'));m.clear()
+assert(m.showLive('V','Hello there.'));m.clear()
+assert(overrideRegistrations==0 and not overrides['ChatterLineLogicController.IsBubble'])
+-- An overhead style that falls back to the dialogue HUD (no body to hang the caption on) does not either.
+style='overhead'
+assert(m.show('Judy','No actor, so no overhead caption.',nil,nil) and m.status().mode=='dialogue');m.clear()
+assert(overrideRegistrations==0)
+-- The first overhead caption registers both guards before its line is posted; later ones add nothing.
+assert(m.show('Judy','The first overhead caption.',judy,'201ULL') and m.status().mode=='overhead')
+assert(overrideRegistrations==2 and overrides['ChatterLineLogicController.IsBubble'] and overrides['ChatterLineLogicController.UpdateProjection'])
+m.clear()
+assert(m.show('Judy','A second overhead caption.',judy,'201ULL'));m.clear()
+assert(m.install() and overrideRegistrations==2 and m.projectionGuardError==nil)
+-- A foreign controller still takes the native path through the lazily registered guards.
+local target,delegated={},0
+local foreign=surface('999ULL')
+assert(overrides['ChatterLineLogicController.IsBubble'](wrapController(foreign),target,function(value)assert(value==target);delegated=delegated+1;return true end)==true and delegated==1)
+`));
+
+test('without the Override API a first overhead caption still shows, and a failing registration is recorded, not thrown', () => run(setup + `
+Override=nil
+assert(m.install() and m.ensureProjectionGuards==nil)
+assert(m.show('Judy','Native placement remains usable.',judy,'201ULL') and m.status().mode=='overhead')
+m.clear()
+Override=function(class,method,callback)overrideRegistrations=overrideRegistrations+1;error('refused')end
+m.hooksVersion=nil
+assert(m.install() and m.ensureProjectionGuards~=nil)
+assert(m.show('Judy','The guard cannot register.',judy,'201ULL') and m.status().mode=='overhead')
+assert(m.projectionGuardError and m.projectionGuardError:find('refused'),tostring(m.projectionGuardError))
+local attempts=overrideRegistrations
+m.clear();assert(m.show('Judy','No second attempt.',judy,'201ULL') and overrideRegistrations==attempts)
 `));

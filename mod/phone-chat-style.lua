@@ -421,7 +421,9 @@ function M.refresh(force, player, open)
     end
     if not player or not open then
         M.wasOpen, M.replyFontAt = false, nil
-        if messageFonts then messageFonts.clear() end   -- the rows die with the popup; plain Lua, no native call
+        -- The rows die with the popup; plain Lua, no native call. Clearing an empty scope still builds a new table, and this
+        -- branch runs every frame with the phone closed, so only a scope that holds records is cleared.
+        if messageFonts and messageFonts.count() > 0 then messageFonts.clear() end
         return
     end
     local localeRevision = revision()

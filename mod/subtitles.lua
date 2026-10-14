@@ -539,7 +539,14 @@ local function prepare(speaker, text, actor, expected)
         if not M.actor then M.mode, M.fallback = 'dialogue', 'speaker-unavailable'
         elseif not ok or visible ~= true then M.mode, M.fallback = 'dialogue', 'native-overheads-disabled' end
     end
-    if M.mode == 'overhead' then M.anchor = headAnchor(M.actor) end
+    if M.mode == 'overhead' then
+        M.anchor = headAnchor(M.actor)
+        -- The projection guards (install) go in before the first owned overhead line is drawn.
+        if M.ensureProjectionGuards then
+            local guarded, guardError = pcall(M.ensureProjectionGuards)
+            if not guarded then M.projectionGuardError = tostring(guardError) end
+        end
+    end
     M.paginationStyle = M.mode
     M.pages, M.pageRanges = M.split(text, M.paginationStyle)
     if #M.pages == 0 then M.abandon(); return false end
@@ -704,7 +711,7 @@ function M.update(delta)
 end
 
 function M.install()
-    if M.hooksVersion == 10 then return true end
+    if M.hooksVersion == 11 then return true end
     if type(ObserveAfter) ~= 'function' then return false end
     local guardsProjection = type(Override) == 'function'
     ObserveAfter('ChatterLineLogicController', 'SetLineData', function(controller, line)
@@ -832,26 +839,37 @@ function M.install()
     end)
     -- Other crowd chatter can be closer to screen centre. Keep this exact
     -- owned line readable; every other controller retains the native behavior.
+    -- These two Overrides run for every visible chatter line of every NPC, every frame, and CET pays its trampoline even
+    -- when the handler passes straight through. Only an owned overhead line needs them, so they are registered when the
+    -- first overhead caption is prepared (prepare(), before its line reaches the native HUD), never at load: a session
+    -- that shows no overhead caption does not pay for them. Registered once; CET cannot withdraw a hook.
+    M.projectionGuardsInstalled = false
+    M.ensureProjectionGuards = nil
     if guardsProjection then
-        Override('ChatterLineLogicController', 'IsBubble', function(controller, target, wrapped)
-            if ownedController(controller) then
-                M.bubbleOverrides = (M.bubbleOverrides or 0) + 1
-                return false
-            end
-            return wrapped(target)
-        end)
-        Override('ChatterLineLogicController', 'UpdateProjection', function(controller, target, owner, wrapped)
-            if not ownedController(controller) then return wrapped(target, owner) end
-            M.projectionCallbacks = (M.projectionCallbacks or 0) + 1
-            local visible = projectionVisible(controller)
-            -- Native projection/viewport work must run even while initial
-            -- coordinates are unavailable or the speaker is outside the view.
-            local result = wrapped(target, owner)
-            settleProjection(controller, visible)
-            return result
-        end)
+        M.ensureProjectionGuards = function()
+            if M.projectionGuardsInstalled then return true end
+            M.projectionGuardsInstalled = true
+            Override('ChatterLineLogicController', 'IsBubble', function(controller, target, wrapped)
+                if ownedController(controller) then
+                    M.bubbleOverrides = (M.bubbleOverrides or 0) + 1
+                    return false
+                end
+                return wrapped(target)
+            end)
+            Override('ChatterLineLogicController', 'UpdateProjection', function(controller, target, owner, wrapped)
+                if not ownedController(controller) then return wrapped(target, owner) end
+                M.projectionCallbacks = (M.projectionCallbacks or 0) + 1
+                local visible = projectionVisible(controller)
+                -- Native projection/viewport work must run even while initial
+                -- coordinates are unavailable or the speaker is outside the view.
+                local result = wrapped(target, owner)
+                settleProjection(controller, visible)
+                return result
+            end)
+            return true
+        end
     end
-    M.hooksInstalled, M.hooksVersion = true, 10
+    M.hooksInstalled, M.hooksVersion = true, 11
     return true
 end
 function M.status()
@@ -864,7 +882,8 @@ function M.status()
         bubbleOverrides = M.bubbleOverrides or 0, projectionReady = M.projectionReady == true,
         projectionCallbacks = M.projectionCallbacks or 0, projectionFrames = M.projectionFrames or 0,
         textUpdates = M.textUpdates or 0, renderUpdateError = M.renderUpdateError,
-        projectionError = M.projectionError, renderVisibilityError = M.renderVisibilityError}
+        projectionError = M.projectionError, renderVisibilityError = M.renderVisibilityError,
+        projectionGuards = M.projectionGuardsInstalled == true, projectionGuardError = M.projectionGuardError}
 end
 
 -- Legacy live entry points keep the normal HUD when no exact actor is given.

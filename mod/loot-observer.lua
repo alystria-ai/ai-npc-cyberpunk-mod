@@ -2,7 +2,7 @@
 -- A positive inventory event alone is never provenance for a world pickup.
 local M = {}
 local LIMIT, INTENT_LIMIT, RECEIPT_LIMIT, WINDOW = 4096, 64, 128, 3
-local captureContext, context, owner
+local captureContext, enabledCheck, context, owner
 local owned, seen, intents, vetoes, receipts = {}, {}, {}, {}, {}
 local seenCount, epoch, serial, baselineReads = 0, 0, 0, 0
 local baselineNeeded, baselineAttempted, ownershipComplete = true, false, true
@@ -72,6 +72,16 @@ local function witnesses(value)
         end
     end
     return result
+end
+-- The setting, asked before any native call or context capture (configure's `enabled`): a source callback with Loot reactions
+-- off used to read the player, the battle sample, the blackboard and every witness first, only to find `enabled` false in the
+-- context it had just built. True only when the setting says off; with none given, or a check that fails, the full path
+-- below decides as before. What an off setting leaves behind is what that path left: pending work cleared, a new baseline
+-- due when it is turned on again (suspend).
+local function settingOff()
+    if type(enabledCheck) ~= 'function' then return false end
+    local ok, value = pcall(enabledCheck)
+    return ok and value ~= true
 end
 local function fresh(player)
     if type(captureContext) ~= 'function' then return nil end
@@ -225,6 +235,7 @@ end
 
 local function onIntent(inventory, event)
     if not event or not inventory then return end
+    if settingOff() then suspend(); return end
     local player = Game.GetPlayer()
     if not player or player:IsAttached() ~= true or player:IsDeadNoStatPool() ~= false
         or entity(event.activator) ~= entity(player) then return end
@@ -307,6 +318,8 @@ local function onRemoving(player, event)
 end
 local function onTransfer(_, source, target, data)
     if not context or context.available ~= true then return end
+    -- Off: the vetoes this would record are cleared by the next update (suspend) before anything could use them.
+    if settingOff() then return end
     local player = Game.GetPlayer()
     if not localPlayer(player) then return end
     local who = entity(player)
@@ -314,11 +327,12 @@ local function onTransfer(_, source, target, data)
     veto(data and identity(data:GetID()))
 end
 local function onPurchase(_, data)
-    if context and context.available == true then veto(data and identity(data:GetID())) end
+    if context and context.available == true and not settingOff() then veto(data and identity(data:GetID())) end
 end
 
 function M.configure(options)
     captureContext = type(options) == 'table' and options.captureContext or nil
+    enabledCheck = type(options) == 'table' and options.enabled or nil
 end
 function M.reset()
     epoch = epoch + 1

@@ -380,3 +380,30 @@ ObserveAfter=function(class,method,callback)if method=='OnItemChangedEvent'then 
 local other=(function()${source}end)();other.configure({captureContext=function()return ctx end});other.install();other.update(ctx)
 assert(not other.status().baseline.complete);other.reset();other.update(ctx);assert(not other.status().baseline.complete)
 `));
+
+test('with Loot reactions off the source callbacks make no native call and capture nothing; turned on, they work as before', () => run(fixture + `
+local reads,natives=0,0
+local on=false
+m.configure({captureContext=function(p)reads=reads+1;ctx.now=now;return ctx end,enabled=function()return on end})
+local realGetPlayer=Game.GetPlayer
+Game.GetPlayer=function()natives=natives+1;return realGetPlayer()end
+-- Off: an interaction, a transfer and a purchase touch nothing (no player read, no context capture, no witnesses).
+intent(drink,1)
+before['VendorDataManager.TransferItem']({},world,player,data(drink,1),1)
+before['VendorDataManager.BuyItemFromVendor']({},data(drink,1),1)
+assert(reads==0 and natives==0,'reads '..reads..' natives '..natives)
+assert(#m.drain()==0 and m.status().intents==0 and m.status().vetoes==0)
+-- A pickup while off records nothing as a receipt.
+added(drink,0,1,false);assert(#m.drain()==0)
+-- On again: the next update takes a new baseline and a world pickup is a receipt as it always was.
+on=true;now=1010;update()
+assert(m.status().baseline.complete)
+intent(drink,1);assert(reads==1 and natives>0)
+added(drink,1,2,false);local rows=m.drain();assert(#rows==1 and rows[1].quantity==1)
+-- A setting that fails to answer leaves the full path in charge (the captured context's own flag decides).
+m.configure({captureContext=function()reads=reads+1;return ctx end,enabled=function()error('settings unreadable')end})
+local before=reads;intent(drink,1);assert(reads==before+1)
+-- No setting given at all: unchanged.
+m.configure({captureContext=function()reads=reads+1;return ctx end})
+before=reads;intent(drink,1);assert(reads==before+1)
+`));

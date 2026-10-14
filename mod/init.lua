@@ -446,7 +446,8 @@ phoneChat.configure(profiles, manager, {
 invitations = dofile('invitation-readiness.lua').new({
     world = function()
         if not knowledgeAllowed or not knowledgeFrame or knowledgeFrame.status ~= 'ready' then return nil end
-        return {worldToken = knowledgeFrame.worldToken, generation = knowledgeFrame.generation}
+        -- The held frame itself (read for its worldToken and generation only; it is reused, not rebuilt, every frame).
+        return knowledgeFrame
     end,
     isKnown = function(key) return supportedProfiles[key] == true end})
 convaiInvitations = invitations
@@ -773,12 +774,39 @@ end
 companions.onPartyChanged = function() publishPartyConnections(true) end
 publishPartyConnections(true)
 
-local function log(line)
+-- probe.log is appended in batches (docs/PERFORMANCE_NATIVE_PLAN.md item 13): a CET io.open costs 1-3 ms of the game thread,
+-- and it used to be paid per line. Lines wait in convaiLog and go out together
+--   * at most one second after the first waiting line (convaiLogTick, from the top of onUpdate: one field read while empty),
+--   * at once when 8 KB or 64 lines are waiting,
+--   * at once for a line that reports a failure, an abandon or a shutdown (the lines a crash investigation reads first),
+--   * before a world is abandoned (the native teardown that can take the game down), and in onShutdown (CET reload and exit).
+-- Globals, so no function gains an upvalue. The console print stays immediate. Lines keep their own UTC stamps.
+convaiLog = {lines = {}, n = 0, bytes = 0, at = 0}
+convaiLogFlush = function()
+    local state = convaiLog
+    local count = state.n
+    if count == 0 then return end
+    local text = table.concat(state.lines, '', 1, count)
+    for index = count, 1, -1 do state.lines[index] = nil end
+    state.n, state.bytes = 0, 0
     local file = io.open('runtime/probe.log', 'a')
     if file then
-        file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', line, '\n')
+        file:write(text)
         file:close()
     end
+end
+convaiLogTick = function()
+    local state = convaiLog
+    if state.n > 0 and os.clock() - state.at >= 1 then convaiLogFlush() end
+end
+local function log(line)
+    local state = convaiLog
+    local entry = os.date('!%Y-%m-%dT%H:%M:%SZ') .. ' ' .. line .. '\n'
+    local count = state.n + 1
+    state.lines[count], state.n, state.bytes = entry, count, state.bytes + #entry
+    if count == 1 then state.at = os.clock() end
+    if count >= 64 or state.bytes >= 8192 or entry:find('[Ff]ail') or entry:find('[Ee]rror') or entry:find('[Aa]bandon')
+        or entry:find('[Ss]hut') or entry:find('[Cc]rash') then convaiLogFlush() end
     print('[CyberpunkConvai] ' .. line)
 end
 -- Managed companions crouch and stand with V (mod/companion-stance.lua). The hook is installed in onInit.
@@ -2541,6 +2569,8 @@ local fastTravelActive
 local function abandonSession(reason,preserveTransit)
     -- Never touch NPC/player components during native world destruction.
     -- pcall cannot catch an access violation in an already unloaded component.
+    -- Whatever was logged so far goes to disk first: a crash in the work below must not take the lines before it along.
+    if convaiLogFlush then convaiLogFlush() end
     invalidateKnowledge(reason)
     cancelAutomatic(reason, true)
     battles.reset()
@@ -2620,7 +2650,7 @@ registerForEvent('onInit', function()
     end)
     if not journalHooked then log('Journal change hook unavailable: ' .. tostring(journalHookError))
     else worldKnowledge.eventDriven, journalHistory.eventDriven = true, true end
-    lootObserver.configure({captureContext = captureLootContext})
+    lootObserver.configure({captureContext = captureLootContext, enabled = function() return manager.lootReactions() end})
     lootObserver.install()
     if convaiVanillaReactions then
         local hooked, hookError = pcall(convaiVanillaReactions.install)
@@ -2755,6 +2785,8 @@ registerForEvent('onUpdate', function(delta)
     -- Last chance for the native core plugin to bind (a global, so this closure gains no upvalue).
     if convaiNative and convaiNative.pending then pcall(convaiNative.redetect, 'onUpdate') end
     convaiHeartbeat.frame = convaiHeartbeat.frame + 1
+    -- Waiting probe.log lines go out within a second of the first (see log()); an empty buffer costs one field read.
+    if convaiLog.n > 0 then convaiLogTick() end
     -- A missing completion must not keep a stale travel intent armed for a
     -- later unrelated load. Expiration only drops receipts; it never restores.
     if fastTravelActive and not fastTravelActive.finished and os.time()-fastTravelActive.started>120 then
@@ -3211,6 +3243,7 @@ registerForEvent('onShutdown', function()
     focusMode = nil
     focusEntity = nil
     log('Game adapter shut down')
+    convaiLogFlush() -- the buffered probe.log lines (a CET reload or exit follows)
 end)
 
 -- GetMod('CyberpunkConvai') returns this table to other CET mods. `addons` is the add-on API (docs/ADDON_API.md).

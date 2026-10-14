@@ -404,3 +404,32 @@ with the next probe capture.
 Open, not done: a blocked
 face (combat or scene) cannot sleep because the native settled test also requires "not blocked" (needs a change
 under `native/`); the mailbox poll in `face-test.lua` is all of `face.beginExpressionFrame` in the dev install.
+
+## 9. The third Lua round, 2026-10-14 (`lua-perf-2`; committed and unit-tested, not installed or live)
+
+What is left in `invitations`, `relationship`, `phone style` and `auto-connect` is mostly the 2 s lease writes (an in-place
+write is one `io.open`, about 3 ms; the relationship and nearby files keep their atomic write until the native writer
+replaces it, section 5). The per-frame code around them was already a few table reads. This round removes what it still
+built or matched every frame, and the other items of section 4 step 4 that were not done:
+
+| Item | Where | Change | Expected |
+| --- | --- | --- | --- |
+| 8 invitations, world answer | `invitation-readiness.lua` `currentWorld`, `init.lua` `invitations` `world` | The validated world answer is kept; the same token and generation is the same answer (no 160-character pattern match and no two tables per frame). `init.lua` hands over the held frame instead of a fresh table | about 0.1 ms/s |
+| 8 invitations, notice board | `manager-party.lua` `B.take` (called every frame by `updatePhoneInvitationFeedback`) | Idle early-out: nothing followed, joined or failed returns at once. It used to build an in-flight table, a lines table and three burst tables, and read the clock twice, every frame | about 0.15-0.3 ms/s, about 300 tables/s less garbage |
+| 16 relationship | `relationship-state.lua` | No change. The per-frame check is a few comparisons; the 4.8 ms/s is the atomic 2 s write (open, remove, rename), which stays (the bridge acts on an empty read) | 0 |
+| 17 phone style | `phone-chat-style.lua` `refresh` | A closed phone clears the message-font scope only when it holds records (`clear()` built a new table every frame). The `manager.update` wrapper that also called `refresh` is never installed in production (`install()` has no `live`) | about 0.02 ms/s |
+| 17 auto-connect | `auto-connect.lua` `look`, `update` | An empty look table is kept instead of rebuilt (5 + 10 times a second). The heartbeat was already throttled to 4 Hz | negligible |
+| 10 chatter Overrides | `subtitles.lua` `install`, `prepare` | `ChatterLineLogicController.IsBubble` and `.UpdateProjection` (per visible chatter line, every frame, for every NPC) register when the first overhead caption is prepared, not at load, as `vanilla-reactions` does. A session with no overhead caption never pays the CET trampoline. `status().projectionGuards`/`projectionGuardError` report it | per hooked call, see the `hook:ChatterLineLogicController.*` rows of the next capture |
+| 10 loot hooks | `loot-observer.lua` `configure({enabled})`, `onIntent`, `onTransfer`, `onPurchase` | With Loot reactions off an interaction, a transfer or a purchase makes no native call and captures no context (it used to read the player, the battle sample, the blackboard and every witness, then find `enabled` false). The ownership observers (`OnItemAdded`, `Changed`, `BeingRemoved`) are unchanged: they keep the ever-owned set current | one 1-3 ms hitch per loot interaction while off |
+| 13 `log()` | `init.lua` `log`, `convaiLogTick`, `convaiLogFlush` | Lines wait in a buffer and are appended together: one second after the first, at 64 lines or 8 KB, at once for a line naming a failure, error, abandon, shutdown or crash (with everything before it), before `abandonSession`, and in `onShutdown`. The console print stays immediate. An empty buffer costs one field read per frame | about 3 ms per line saved (about 1 ms/s steady, 20-60 ms per conversation turn) |
+
+Notes:
+- Modules that append to `probe.log` themselves (the `companion-*-native.lua` diagnostics, `companion-records.lua`) do not
+  go through the buffer, so their rare lines can land up to a second ahead of buffered lines logged just before them. Every
+  line carries its own UTC stamp.
+- Not done: the gaze skip (item 11) saves nothing while a companion is out, the shared gesture catalog (item 14) and the lease
+  and heartbeat writes stay for the native layer. A persistent open handle for the in-place leases would save about 6 ms/s but
+  may keep the bridge from deleting the files on Windows; it needs the bridge checked first.
+- Tests: `bridge/lua-idle-work.test.mjs` (log buffer, idle board, world answer, phone style, auto-connect), plus the
+  subtitles and loot-observer tests. Live check: the first reply after a load still shows its overhead caption in the right
+  place (the Overrides now register then), and `probe.log` still ends with the shutdown line after a CET reload.
