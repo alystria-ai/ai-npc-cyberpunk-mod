@@ -15,7 +15,7 @@ M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourA
     -- Idle flavour (characters marked flavour in the catalog, and the generic fallback): she goes into an idle as
     -- soon as she has been settled for a moment (a copy that never talked included), for 45-90 s, then again after a
     -- gap of 20-45 s measured from the end of the last one; five seconds after a reply ends (flavourAfterTalk).
-    exitSettle = .4, driftNote = .15, flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {20, 45}, flavourLength = {45, 90}}
+    groupStagger = 2, exitSettle = .4, driftNote = .15, flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {20, 45}, flavourLength = {45, 90}}
 
 local function distance(a, b)
     if not a or not b then return 0 end
@@ -48,6 +48,8 @@ function M.new(options)
         enabled = options.enabled or function() return false end,
         speech = options.speech or function() return nil end,
         listening = options.listening or function() return nil end,
+        -- Group round membership: entity -> nil | 'recording' | 'reply', speaker entity | 'between' (group-chat.roleOf).
+        group = options.group or function() return nil end,
         thinking = options.thinking or function() return nil end,
         allowed = options.allowed or nativeAllowed, native = options.native or workspot,
         random = options.random, log = options.log or function() end, errors = {}}
@@ -184,6 +186,24 @@ function M.new(options)
                     phraseAt = phraseAt, phraseAge = phraseAt and math.max(0, (speech.at or 0) - phraseAt) or nil}
             end
             return 'short', nil
+        end
+        -- A member of a group round who is not speaking: she keeps the stance for the whole round (no
+        -- leaving and re-entering between speakers) and nods now and then while V's group utterance is
+        -- recorded or another companion's long reply is heard (selection.lua, group pacing).
+        local role, speaker = self.group(entity)
+        if role then
+            if role == 'recording' then return 'listening', {group = true} end
+            local heard = role == 'reply' and speaker ~= entity and self.speech(speaker)
+            if heard then
+                local total = math.max(heard.knownEnd or 0, self.replyEstimate(speaker, heard.requestId) or 0)
+                if total >= policy.minimumSpeech then
+                    local phraseAt = phraseStart(s, heard)
+                    return 'listening', {group = true, total = total, remaining = math.max(0, total - (heard.at or 0)),
+                        requestId = heard.requestId, phraseAt = phraseAt,
+                        phraseAge = phraseAt and math.max(0, (heard.at or 0) - phraseAt) or nil}
+                end
+            end
+            return 'thinking', nil
         end
         if self.listening() == entity then return 'listening', {} end
         if self.thinking() == entity then return 'thinking', nil end
@@ -399,15 +419,18 @@ function M.new(options)
             local pick = selection.next(s.sel, {now = self.clock, mode = mode, rig = s.rig, character = s.character,
                 family = info and info.family, scale = info and info.scale, remaining = info and info.remaining,
                 total = info and info.total, reply = info and info.requestId, phraseAt = info and info.phraseAt,
-                phraseAge = info and info.phraseAge, clips = s.family.clips,
-                busyUntil = (s.activeAt or 0) + enterBlend(s) + policy.firstClipMargin})
+                phraseAge = info and info.phraseAge, clips = s.family.clips, group = info and info.group,
+                busyUntil = math.max((s.activeAt or 0) + enterBlend(s) + policy.firstClipMargin,
+                    info and info.group and self.groupNodUntil or 0)})
             if pick then
+                -- Two listeners of one round never start a nod together.
+                if info and info.group then self.groupNodUntil = self.clock + policy.groupStagger end
                 -- Instant jump (still blended by the workspot's inertialization):
                 -- a queued jump waits for the 22-25 s idle loop to end (Oct 7 capture).
                 local ok = native.jump(npc, pick.clip.name, true)
                 if ok then
                     s.clip = {name = pick.clip.name, ends = self.clock + clipDuration(pick.clip, s.rig)}
-                    note(s, 'gesture', {clip = pick.clip.name, category = pick.clip.category})
+                    note(s, 'gesture', {clip = pick.clip.name, category = pick.clip.category, group = info and info.group or nil})
                 end
             end
         elseif not s.clip and mode ~= 'speaking' and mode ~= 'listening' then

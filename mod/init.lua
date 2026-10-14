@@ -979,6 +979,8 @@ do
         speech = speechFor,
         listening = function() return convaiFacialPlayback and convaiFacialPlayback.listeningEntity end,
         thinking = function() return convaiFacialPlayback and convaiFacialPlayback.thinkingEntity end,
+        -- Group rounds: the other members listen (nod now and then, keep the stance) while one speaks.
+        group = function(entity) return groupChat.roleOf(entity) end,
         log = function(kind, fields)
             if manager.developerMode() then
                 local ok, text = pcall(json.encode, fields)

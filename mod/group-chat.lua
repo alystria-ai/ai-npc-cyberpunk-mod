@@ -74,6 +74,26 @@ local function makeInput(r, index, generation, now, live, includePlaying)
     return input
 end
 
+-- What an entity is doing in the current round, for the body gestures (docs/COMPANION_GESTURES.md, "group listeners"):
+-- nil when there is no round or the entity is not in it; 'recording' while V is speaking the group utterance into the
+-- microphone; 'reply' with the speaker's entity while a reply is being written or heard; 'between' otherwise (the
+-- next speaker is being prepared). Reads the round's own fields only: no native calls, safe to ask every tick.
+function M.roleOf(entity)
+    local r = M.round
+    if not r or entity == nil then return nil end
+    local member = false
+    for _, person in ipairs(r.participants) do
+        if person.entity == entity and not person.voiceOnly then member = true; break end
+    end
+    if not member then return nil end
+    if r.stage == 'recording' then return 'recording' end
+    if r.stage == 'waiting' or r.stage == 'playing' then
+        local speaker = r.participants[r.index]
+        if speaker then return 'reply', speaker.entity end
+    end
+    return 'between'
+end
+
 function M.startVoice(id, participants, generation, now)
     if type(participants) ~= 'table' or #participants < 2 then return nil end
     startRound(id, participants, nil)

@@ -705,3 +705,147 @@ test('an idle workspot that moves the body is logged once as drift, with how lon
   step(1);for _,l in ipairs(logs) do if l.kind=='drift' then n=n-1 end end
   assert(n==0,'once')
 `));
+
+// Group rounds: the members who are not speaking keep the stance and nod now and then.
+const groupFixture = `
+  npc.id='77'
+  local function mk(record,serial,hash) return {serial=serial,record=record,entityID={hash=hash},npc={inside=false,id=hash},playerGap=1.8,
+    motor={kind='hold',feedback={state='AICommandState : Executing (2)'}}} end
+  local E={entry,mk('Character.Panam',2,'78'),mk('Character.Rogue',3,'79')}
+  local cat=load(catalogSource)()
+  local category={}
+  for _,family in pairs(cat.families) do for _,clip in ipairs(family.clips) do category[clip.name]=clip.category end end
+  native.play=function(d,n,component) calls[#calls+1]={name='play',component=component,who=n.id};n.entering=true;return true end
+  native.jump=function(n,clip,instant) calls[#calls+1]={name='jump',clip=clip,instant=instant==true,who=n.id,at=c.clock};return true end
+  native.exit=function(n,instant) calls[#calls+1]={name='exit',instant=instant==true,who=n.id};n.leaving=true;return true end
+  local words={}
+  for i=1,60 do words[#words+1]='word' end
+  c.replyText=function() return table.concat(words,' ') end
+  local roleOf,speakerOf={},nil
+  local asked=0
+  c.group=function(e) asked=asked+1;if roleOf[e] then return roleOf[e],speakerOf end end
+  c.speech=function(e) if speaking and e==speakerOf then return speaking end end
+  local function gstep(seconds,count)
+    for i=1,math.floor(seconds/.1+.5) do
+      local rows={}
+      for k=1,count or 3 do rows[#rows+1]={entry=E[k],transport=false} end
+      c.tick(player,.1,rows)
+      for k=1,count or 3 do
+        local n=E[k].npc
+        if n.entering then n.entering=nil;n.inside=true end
+        if n.leaving then n.leaving=nil;n.inside=false end
+      end
+      if speaking then speaking.at=math.min(speaking.knownEnd,(speaking.at or 0)+.1) end
+      for k=1,count or 3 do c.observe(E[k],context,.1) end
+    end
+  end
+  local function jumpsOf(who)
+    local list={}
+    for _,call in ipairs(calls) do if call.name=='jump' and call.who==who and category[call.clip] then list[#list+1]=call end end
+    return list
+  end
+  local function playsOf(who) local n=0 for _,call in ipairs(calls) do if call.name=='play' and call.who==who then n=n+1 end end return n end
+  local function exitsOf(who) local n=0 for _,call in ipairs(calls) do if call.name=='exit' and call.who==who then n=n+1 end end return n end
+  local function startRound(speaker)
+    speakerOf=speaker
+    for _,k in ipairs({'77','78','79'}) do roleOf[k]='reply' end
+    speaking={knownEnd=24,at=0}
+  end
+`;
+
+test('members of a group round who are not speaking keep the stance and only nod, later and rarely', () => run(groupFixture + `
+  startRound('77')
+  gstep(26)
+  for _,who in ipairs({'78','79'}) do
+    assert(playsOf(who)==1,who..' enters the stance once, not '..playsOf(who))
+    assert(exitsOf(who)==0,who..' stays in the stance while the other speaks')
+    local jumps=jumpsOf(who)
+    assert(#jumps>=1 and #jumps<=3,who..' nods '..#jumps..' times in a 24 s reply')
+    for _,call in ipairs(jumps) do assert(category[call.clip]=='nod',who..' played '..call.clip..' ('..tostring(category[call.clip])..')') end
+    for i=2,#jumps do assert(jumps[i].at-jumps[i-1].at>=8,who..' nods too close') end
+  end
+  -- the speaker gestures as ever, with more than nods
+  local others=0 for _,call in ipairs(jumpsOf('77')) do if category[call.clip]~='nod' then others=others+1 end end
+  assert(others>=2,'the speaker still gestures: '..others)
+  local log=lastLog('gesture')
+  assert(log,'logged')
+`));
+
+test('two group listeners never start a nod within two seconds of each other', () => run(groupFixture + `
+  startRound('77')
+  speaking.knownEnd=120
+  words={}
+  for i=1,320 do words[#words+1]='word' end
+  gstep(110)
+  local starts={}
+  for _,who in ipairs({'78','79'}) do for _,call in ipairs(jumpsOf(who)) do starts[#starts+1]={at=call.at,who=who} end end
+  table.sort(starts,function(a,b) return a.at<b.at end)
+  assert(#starts>=6,'enough nods to compare: '..#starts)
+  local both={}
+  for _,s in ipairs(starts) do both[s.who]=true end
+  assert(both['78'] and both['79'],'both listeners nod')
+  for i=2,#starts do
+    if starts[i].who~=starts[i-1].who then assert(starts[i].at-starts[i-1].at>=1.99,'nods '..(starts[i].at-starts[i-1].at)..' s apart') end
+  end
+`));
+
+test('a short reply in the round gives its listeners no nod and the stance is kept without a gesture', () => run(groupFixture + `
+  c.replyText=function() return 'Sure thing, V.' end
+  startRound('77')
+  speaking.knownEnd=2.5
+  gstep(8)
+  for _,who in ipairs({'78','79'}) do
+    assert(#jumpsOf(who)==0,who..' nodded into a short reply')
+    assert(exitsOf(who)==0,who..' keeps the stance for the round')
+  end
+`));
+
+test('between speakers the members keep the stance; when the round ends they leave after the linger', () => run(groupFixture + `
+  startRound('77')
+  gstep(3)
+  local plays=playsOf('78')+playsOf('79')
+  speaking=nil
+  for _,k in ipairs({'77','78','79'}) do roleOf[k]='between' end
+  speakerOf=nil
+  gstep(9)
+  assert(exitsOf('78')==0 and exitsOf('79')==0 and exitsOf('77')==0,'nobody leaves while the next speaker is prepared')
+  -- the next speaker is Panam; Judy and Rogue keep listening
+  speakerOf='78'
+  for _,k in ipairs({'77','78','79'}) do roleOf[k]='reply' end
+  speaking={knownEnd=24,at=0}
+  gstep(6)
+  assert(playsOf('78')+playsOf('79')==plays,'no re-entry between speakers')
+  assert(exitsOf('77')==0 and exitsOf('79')==0)
+  -- round over
+  speaking=nil;roleOf={}
+  gstep(6)
+  for _,who in ipairs({'77','78','79'}) do assert(exitsOf(who)==1,who..' leaves once after the round') end
+  assert(lastLog('finished').fields.reason=='reply ended')
+`));
+
+test('V speaking a group utterance: every member listens and nods, with group pacing', () => run(groupFixture + `
+  for _,k in ipairs({'77','78','79'}) do roleOf[k]='recording' end
+  gstep(30)
+  for _,who in ipairs({'77','78','79'}) do
+    local jumps=jumpsOf(who)
+    assert(#jumps>=1 and #jumps<=3,who..' nods '..#jumps..' times in 30 s')
+    assert(jumps[1].at>=3,who..' first nod at '..jumps[1].at)
+    for _,call in ipairs(jumps) do assert(category[call.clip]=='nod') end
+  end
+`));
+
+test('a copy outside the round is left alone, and with the setting off the round is never even asked about', () => run(groupFixture + `
+  startRound('77')
+  roleOf['79']=nil
+  gstep(8)
+  local talks=0
+  for _,call in ipairs(calls) do if call.name=='play' and call.who=='79' and call.component:find('convai_talk',1,true) then talks=talks+1 end end
+  assert(talks==0 and #jumpsOf('79')==0,'a copy outside the round takes no talk stance and no nod (it may idle)')
+  enabled=false
+  gstep(12) -- the running stances leave (they still look at their own state while they do, and for the 10 s health window)
+  speaking=nil;roleOf={}
+  asked=0
+  calls={}
+  gstep(5)
+  assert(asked==0,'the group lookup ran '..asked..' times with the setting off')
+`));

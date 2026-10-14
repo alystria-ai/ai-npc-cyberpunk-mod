@@ -332,3 +332,32 @@ test('recognized speech accepts the exact UTF-16 limit and a streamed first repl
   assert(group.preview(2,102,live).text==text)
   group.cancel();assert(not group.completed(first.requestId,true))
 `));
+
+test('roleOf tells the body gestures who is listening: members only, the speaker named while a reply is written or heard', () => check(`
+  assert(group.roleOf('1ULL')==nil,'no round')
+  group.start('text',{judy,panam,alex},'Hi')
+  assert(group.roleOf('1ULL')=='between' and group.roleOf('2ULL')=='between','before the first speaker')
+  assert(group.roleOf('9ULL')==nil and group.roleOf(nil)==nil,'not a member')
+  local first=group.next(1,100,live)
+  local role,speaker=group.roleOf('2ULL')
+  assert(role=='reply' and speaker=='1ULL','waiting for the first reply: '..tostring(role)..' '..tostring(speaker))
+  role,speaker=group.roleOf('1ULL');assert(role=='reply' and speaker=='1ULL')
+  assert(group.received(first.requestId,'Hello there',false,{'judy','panam','alex'}))
+  role,speaker=group.roleOf('3ULL');assert(role=='reply' and speaker=='1ULL','playing')
+  assert(group.completed(first.requestId,true))
+  assert(group.roleOf('3ULL')=='between','between speakers')
+  local second=group.next(1,101,live)
+  role,speaker=group.roleOf('3ULL');assert(role=='reply' and speaker=='2ULL','second speaker')
+  group.cancel()
+  assert(group.roleOf('1ULL')==nil,'round over')
+`));
+
+test('roleOf: recording for every member while V speaks the group utterance; an add-on voice is never a member', () => check(`
+  local addon={profileKey='addon',entity='7ULL',name='addon',voiceOnly=true}
+  local input=group.startVoice('voice',{judy,panam,addon},1,100)
+  assert(group.roleOf('1ULL')=='recording' and group.roleOf('2ULL')=='recording')
+  assert(group.roleOf('7ULL')==nil,'add-on voices have no body')
+  assert(group.voiceSubmitted(input))
+  local role,speaker=group.roleOf('2ULL')
+  assert(role=='reply' and speaker=='1ULL','after the microphone, the first speaker is waited for')
+`));
