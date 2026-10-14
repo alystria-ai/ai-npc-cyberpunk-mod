@@ -32,7 +32,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
     facesFormat: 'arkit61', facesTimebase: 'audio-seconds', timing: {audioRoute: 'convai-data-only'}};
   const selectedVoice = voiceSelection ?? {provider:'pocket',usesProfile: () => local};
   // The turn's latency marks (bridge/turn-clock.mjs) are not under test here.
-  const sandbox = {markStage: () => {}, markPublished: () => {}, turnMark: () => {}, mistral: {active: false}, remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json', keyNotice: () => ({}),
+  const sandbox = {addonHost: {usesVoiceContext: () => false}, markStage: () => {}, markPublished: () => {}, turnMark: () => {}, mistral: {active: false}, remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json', keyNotice: () => ({}),
     localVoice: selectedVoice, multilingual, planTurnVoice, replyVoice, variantSeed,
     ownedPocketFace:()=>{},lipsync:{analyse:async()=>{calls.push('rhubarb');return{mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'};}},
     jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,phraseOffsets,baselineFromSignal,

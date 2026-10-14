@@ -28,7 +28,7 @@ import {startVoiceKeyStream} from './voice-key-stream.mjs';
 import {createHash, randomUUID} from 'node:crypto';
 import {homedir} from 'node:os';
 import {conversationScope} from './group-context.mjs';
-import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder} from './quest-context.mjs';
+import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseValid} from './battle-context.mjs';
 import {GroupPrefetch, parsedInputIdentity, parsePrewarm} from './group-prefetch.mjs';
@@ -1478,9 +1478,11 @@ async function publishResult(input, profile, result, current = async () => true,
   logNaturalSpeech(input, result);
   logFollowUp(input, result);
   // One line per reply: whether this turn's context carried V's gear (bridge/player-gear.mjs), or why not. Counts only, no names.
-  try { if (!input.reaction) console.error(`[PlayerGear] profile=${input.profileKey} ${gearDiagnostic(input)}`); } catch { /* a log line never affects a reply */ }
+  // A voice with no body (persona.voiceContext) gets neither V's gear nor the person form of the block below.
+  const voice = addonHost.usesVoiceContext(input.profileKey);
+  try { if (!input.reaction) console.error(`[PlayerGear] profile=${input.profileKey} ${voice ? 'Player gear: none (voice speaker)' : gearDiagnostic(input)}`); } catch { /* a log line never affects a reply */ }
   // And whether it carried the "right now" block (clock, place, company; bridge/turn-context.mjs). Counts only.
-  try { if (!input.reaction) console.error(`[TurnContext] profile=${input.profileKey} ${turnContextDiagnostic(input, {ambient: isAmbientProfile(input.profileKey)})}`); } catch { /* a log line never affects a reply */ }
+  try { if (!input.reaction) console.error(`[TurnContext] profile=${input.profileKey} ${turnContextDiagnostic(input, {ambient: isAmbientProfile(input.profileKey), voice})}`); } catch { /* a log line never affects a reply */ }
   if (result.continuous) {
     if (!result.liveDelivery?.published || !result.liveDelivery.ended) throw Error('Continuous speech did not finish');
     // The game already received admission, live text and the consumed-sample
@@ -1974,7 +1976,10 @@ async function withTurnClock(request, run) {
 // of the speaker's recent lines is dropped silently (addon-duplicate). The voice is the speaker's local voice when there is one.
 function addonTurnConfig(input, profile) {
   noteTurn(input);
-  const blocks = [...intrinsicConversationContext.blocks(input), ...addonHost.blocks(input)];
+  // A voice with no body (a cab's AI, persona.voiceContext) gets the voice form of the main mod's context: no "with V in person", no party
+  // names outside a group round, no gear or journal (bridge/quest-context.mjs voiceConversationBlocks).
+  const base = addonHost.usesVoiceContext(input.profileKey) ? voiceConversationBlocks(input) : intrinsicConversationContext.blocks(input);
+  const blocks = [...base, ...addonHost.blocks(input)];
   return {text: input.reaction?.kind === 'addon' ? addonHost.trigger(input) : input.text, reaction: input.reaction,
     context: joinedContext(blocks), contextParts: contextPartsOf(blocks),
     local: {profileKey: input.profileKey, name: profile.name, channel: input.group ? 'group' : 'private'}};
@@ -2075,7 +2080,7 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
     const reply = made.reply;
     if (made.retried) note(input, {addonRetry: made.duplicate ? 'still-repeated' : 'new-line'});
     if (made.duplicate) {
-      console.error(`[Addons] ${profile.key}: remark dropped (it repeated a recent line${made.retried ? ' twice' : ''})`);
+      console.error(`[Addons] ${profile.key}: remark dropped (${made.rule ? `it broke a rule: ${made.rule}` : 'it repeated a recent line'}${made.retried ? ', twice' : ''})`);
       await fail('', 'addon-duplicate');
       return;
     }

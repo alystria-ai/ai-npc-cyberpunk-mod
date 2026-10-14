@@ -176,6 +176,16 @@ export function conversationContextBlocks(input) {
     {tier: 'volatile', text: followUpContext(input)}];
 }
 
+/**
+ * The context of an add-on voice with no body (persona.voiceContext, docs/ADDON_API.md), in place of the companion form above: the "right
+ * now" facts as a voice gets them (bridge/turn-context.mjs), the group round, recent game dialogue and the follow-up policy. Not the
+ * quest journal, V's gear, the world snapshot or the first-person notes written for a person V is looking at: a cab's AI does not know them.
+ */
+export function voiceConversationBlocks(input) {
+  return [{tier: 'now', text: turnContext(input, {voice: true})}, {tier: 'world', text: groupContext(input)},
+    {tier: 'volatile', text: gameDialogueContext(input)}, {tier: 'volatile', text: followUpContext(input)}];
+}
+
 export function conversationContext(input) {
   return conversationContextBlocks(input).map(block => block.text).filter(Boolean).join('\n\n');
 }

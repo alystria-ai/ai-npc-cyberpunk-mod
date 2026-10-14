@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {WORLD, runLua} from '../../bridge/addon-lua-harness.mjs';
 import {ADDON_MANIFEST, AddonHost, fixedProvider, rosterLookup, sharedMemory, validateManifest} from '../../bridge/addons.mjs';
 import {parseInput} from '../../bridge/protocol.mjs';
+import {voiceConversationBlocks} from '../../bridge/quest-context.mjs';
 import {PersonaBook, joinBlocks} from '../../bridge/mistral-prompt.mjs';
 import {TextProviderHost, mistralRoute} from '../../bridge/text-provider-host.mjs';
 import {MistralMemory} from '../../bridge/mistral-memory.mjs';
@@ -676,14 +677,17 @@ test('the bridge answers a ride-start remark: persona, the ride block with the f
   assert.match(prompt, /You are Delamain, the artificial intelligence that owns and runs Delamain/);
   assert.match(prompt, /at most 25 words/, 'the speaker sets its own talk length');
   assert.match(prompt, /no body/);
-  assert.match(prompt, /The ride right now/);
-  assert.match(prompt, /Judy Alvarez rides with V/);
-  assert.match(prompt, /Your sensors show heavy rain/);
-  assert.match(prompt, /The fare is 150 eddies/);
-  assert.match(prompt, /about 4\.2 kilometres, to the north-east|about 4\.2 kilometres from where the ride began, to the north-east/);
+  // A remark carries the facts of its own moment and at most one optional extra, never the whole list of facts.
+  assert.match(prompt, /The moment \(true, background for you/);
+  assert.doesNotMatch(prompt, /The ride right now/, 'a remark has the moment block, not the talk block');
+  assert.match(prompt, /about 4\.2 kilometres from where the ride began, to the north-east/);
   assert.match(prompt, /you must not name it/);
+  assert.doesNotMatch(prompt, /rides with V|It is [a-z ]+ in Night City \(about|The fare is 150 eddies/, 'no fact line for the hour, the company or the fare');
   assert.match(prompt, /do not invent a destination name/);
-  assert.match(prompt, /one spoken line of at most 24 words/);
+  assert.match(prompt, /one spoken line of at most 24 words, said to V and to no one else/);
+  assert.match(prompt, /Do not ask anyone a question/);
+  // Judy rides along, but this is no group chat: the cab is told to speak to V alone.
+  assert.match(prompt, /You are speaking to V, and only V\. A companion of V's rides along, but this is not a group chat/);
   assert.doesNotMatch(prompt, /Welcome aboard/i);
   assert.equal(host.review(input, reply.text).duplicate, false);
   host.afterReply(input, reply.text);
@@ -693,11 +697,12 @@ test('the bridge answers a ride-start remark: persona, the ride block with the f
 test('a talk turn gets the ride block built from the add-on state, and companions get the cab note and the ride time', async () => {
   const [request, state] = playRide('ride-start');
   const {host, input} = await bridgeFor(request, state);
-  const talk = {...input, reaction: undefined, addon: {...input.addon, event: undefined, facts: undefined, text: undefined}};
+  const talk = {...input, text: 'Who is riding with me?', reaction: undefined, addon: {...input.addon, event: undefined, facts: undefined, text: undefined}};
   const own = host.blocks(talk).find(block => block.key === 'addon:delamain-cab:ride');
   assert.ok(own, 'a conversation turn still has the ride block');
   assert.match(own.text, /The ride is under way/);
-  assert.match(own.text, /Judy Alvarez rides with V/);
+  assert.match(own.text, /Judy Alvarez rides with V/, 'the company is said when V asks about it');
+  assert.doesNotMatch(host.blocks({...talk, text: 'Where are we?'}).find(block => block.key === 'addon:delamain-cab:ride').text, /Judy Alvarez/, 'and not otherwise');
   assert.doesNotMatch(own.text, /greeted V on this ride/, 'no remark facts in a talk turn');
   const companion = host.blocks({profileKey: 'judy-alvarez', group: false});
   assert.ok(companion.some(block => block.key === 'addon:delamain-cab:ride' && /riding in a Delamain cab with V/.test(block.text)), 'the main mod passes the cab note');
@@ -741,7 +746,8 @@ test('the elapsed-time phrase and distance wording are plain', () => {
   assert.ok(lines.includes('V rides alone.'));
   assert.ok(lines.some(line => /driving for about 2 minutes/.test(line)));
   module.resetRideLog();
-  assert.deepEqual(module.speakerBlocks({state: null, facts: null}).map(block => block.key), ['ride'], 'even with no data the block says V rides alone');
+  assert.deepEqual(module.speakerBlocks({state: null, facts: null, heard: 'Who is with me?'}).map(block => block.key), ['ride'], 'asked about the company, the block says V rides alone');
+  assert.deepEqual(module.speakerBlocks({state: null, facts: null}).map(block => block.key), [], 'asked nothing, with no data there is nothing to say');
 });
 
 // ---- response quality: weather, fare, pronouns, the ride log ---------------------------------------------------------------
@@ -754,18 +760,24 @@ test('the weather goes only with the first two events of a ride, and is mentione
   const first = blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'boarded'}), 'ride');
   const second = blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'ride-start'}), 'ride');
   const third = blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'district-passed'}), 'ride');
-  assert.match(first, /Your sensors show heavy rain/);
-  assert.match(second, /Your sensors show heavy rain/);
-  assert.doesNotMatch(third, /Your sensors show/);
+  // The weather is one of the optional extras of the first two events (never a fact that is always sent); otherwise it is ruled out.
+  for (const text of [first, second]) assert.ok(/your sensors show heavy rain/.test(text) !== /Do not mention the weather in this line/.test(text), text);
+  assert.ok(module.remarkExtras({state: null, facts: RAIN, event: 'boarded', weather: true}).some(extra => extra.key === 'weather'));
+  assert.ok(!module.remarkExtras({state: null, facts: RAIN, event: 'boarded', weather: false}).some(extra => extra.key === 'weather'));
+  assert.doesNotMatch(third, /sensors show/);
   assert.match(third, /Do not mention the weather in this line/);
-  // The same event asked for again (a scene held it back) is still the same event.
-  assert.match(blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'boarded'}), 'ride'), /Your sensors show heavy rain/);
+  // The same event asked for again (a scene held it back) is still the same event, with the same extra.
+  assert.equal(blockText(module.speakerBlocks({state: null, facts: RAIN, event: 'boarded'}), 'ride'), first);
   // A talk answer later in the ride has it only as something to say if asked; the companions' note drops it too.
-  const talk = blockText(module.speakerBlocks({state: {rideNumber: 7, phase: 'riding', weather: 'heavy rain'}, facts: null}), 'ride');
-  assert.match(talk, /Outside it is heavy rain \(mention it only if V asks\)/);
+  const riding = {rideNumber: 7, phase: 'riding', weather: 'heavy rain', timeOfDay: 'night', hour: 23};
+  assert.doesNotMatch(blockText(module.speakerBlocks({state: riding, facts: null, heard: 'Where are we?'}), 'ride'), /Outside it is|It is night/, 'the small model recites what it is given');
+  assert.match(blockText(module.speakerBlocks({state: riding, facts: null, heard: 'Is it raining out there?'}), 'ride'), /Outside it is heavy rain\./);
+  assert.match(blockText(module.speakerBlocks({state: riding, facts: null, heard: 'What time is it?'}), 'ride'), /It is night in Night City \(about 23:00\)/);
+  assert.deepEqual(module.askedAbout('How much is this costing me?'), {weather: false, time: false, company: false});
   assert.doesNotMatch(module.companionBlocks({state: {rideNumber: 7, phase: 'riding', weather: 'heavy rain'}}).map(block => block.text).join(' '), /Outside/);
-  // A new ride starts again with the weather.
-  assert.match(blockText(module.speakerBlocks({state: null, facts: {...RAIN, rideNumber: 8}, event: 'ride-start'}), 'ride'), /Your sensors show heavy rain/);
+  // A new ride starts again with the weather on offer.
+  module.speakerBlocks({state: null, facts: {...RAIN, rideNumber: 8}, event: 'ride-start'});
+  assert.ok(module.remarkExtras({state: null, facts: {...RAIN, rideNumber: 8}, event: 'ride-start', weather: true}).some(extra => extra.key === 'weather'));
 });
 
 test('the arrival never gets the fare, and its instruction does not ask for it', () => {
@@ -886,4 +898,148 @@ test('teardown: the add-on hook tests the session before any game read', () => {
   const source = readFileSync(new URL('./init.lua', import.meta.url), 'utf8');
   const hook = source.slice(source.indexOf('local function hook('), source.indexOf('local function installHooks'));
   assert.ok(hook.includes('handle:live()') && hook.indexOf('handle:live()') < hook.indexOf('pcall(fn, self'));
+});
+
+// ---- natural remarks, and V alone unless group chat is on (live 2026-10-14) ---------------------------------------------------
+// Live: "Good evening, V. Alex is a valued passenger. The hour is dark and quiet." and "Alex, you find the journey agreeable?": a list of
+// facts read out, and the companion spoken to, with no group chat on. The routing was right (a private talk key reaches the cab alone,
+// a group round only in group mode); the prompt asked for both.
+
+const FULL = {rideNumber: 3, timeOfDay: 'night', hour: 22, district: 'Watson', area: 'Kabuki', weather: 'light rain', companion: 'Alex', companionCount: 1,
+  fare: 200, destinationDistanceMeters: 1800, destinationDirection: 'east', greeting: false};
+const EXTRA_KINDS = {hour: /the hour:/, company: /rides along with V/, weather: /the weather:/, regular: /returning passenger/, fare: /the fare, 200/,
+  place: /where the cab is:/, fleet: /the cab itself/, police: /police are after V/};
+
+test('a remark carries the facts of its moment and at most one optional extra, often none; never the list of hour, company, weather and fare', () => {
+  const kinds = new Set();
+  let none = 0, total = 0;
+  for (let ride = 1; ride <= 30; ride++) {
+    module.resetRideLog();
+    for (const event of ['boarded', 'ride-start', 'district-passed', 'arrival']) {
+      const text = blockText(module.speakerBlocks({state: null, facts: {...FULL, rideNumber: ride}, event}), 'ride');
+      total++;
+      const offered = text.match(/you may touch on exactly one more thing/g) ?? [];
+      assert.ok(offered.length <= 1, text);
+      if (!offered.length) { none++; assert.match(text, /Add nothing about the weather, the hour or who rides along this time/); }
+      for (const [kind, pattern] of Object.entries(EXTRA_KINDS)) if (pattern.test(text)) kinds.add(kind);
+      assert.doesNotMatch(text, /Alex rides with V|in Night City \(about|The fare is|Your sensors show|V rides alone/, text);
+      assert.ok(Object.values(EXTRA_KINDS).filter(pattern => pattern.test(text)).length <= 1, text);
+    }
+  }
+  assert.ok(none > 10 && none < total - 10, `${none} of ${total} remarks have no extra`);
+  assert.ok(kinds.size >= 5, [...kinds].join(','));
+  // The moment itself is always there.
+  module.resetRideLog();
+  assert.match(blockText(module.speakerBlocks({state: null, facts: FULL, event: 'ride-start'}), 'ride'), /about 1\.8 kilometres from where the ride began, to the east/);
+  assert.match(blockText(module.speakerBlocks({state: null, facts: {...FULL, district: 'Pacifica'}, event: 'district-passed'}), 'ride'), /crossed into Pacifica/);
+});
+
+test('an extra is kept for its event, and the police being after V is always the one taken', () => {
+  module.resetRideLog();
+  const first = blockText(module.speakerBlocks({state: null, facts: FULL, event: 'boarded'}), 'ride');
+  assert.equal(blockText(module.speakerBlocks({state: null, facts: FULL, event: 'boarded'}), 'ride'), first, 'asked again, the same angle');
+  for (const event of ['boarded', 'ride-start', 'district-passed', 'ride-interrupted']) {
+    module.resetRideLog();
+    assert.match(blockText(module.speakerBlocks({state: null, facts: {...FULL, wanted: 2}, event}), 'ride'), /the police are after V \(heat stage 2 of 5\)/, event);
+  }
+  module.resetRideLog();
+  assert.doesNotMatch(blockText(module.speakerBlocks({state: null, facts: {...FULL, wanted: 2}, event: 'arrival'}), 'ride'), /police/, 'not at the parting line');
+});
+
+test('Delamain speaks to V alone unless it is a group conversation: a companion is mentioned at most in passing, never addressed', () => {
+  module.resetRideLog();
+  const state = {phase: 'riding', rideNumber: 3, companion: 'Alex', companionCount: 1};
+  for (const [event, facts, heard] of [['boarded', FULL, null], ['arrival', FULL, null], [null, null, 'Where are we?']]) {
+    const audience = blockText(module.speakerBlocks({state, facts, event, heard}), 'audience');
+    assert.match(audience, /^You are speaking to V, and only V\. A companion of V's rides along, but this is not a group chat: /, `${event} ${heard}`);
+    assert.match(audience, /never address the companion, greet or welcome the companion, ask the companion a question or answer for the companion/);
+    assert.doesNotMatch(audience, /Alex/, 'no name in a rule of what not to do');
+  }
+  const several = blockText(module.speakerBlocks({state: {...state, companionCount: 3}, facts: null, heard: 'Hi'}), 'audience');
+  assert.match(several, /Some of V's companions ride along/);
+  assert.match(several, /never address them/);
+  // In a group conversation (the player's own choice) he answers whoever spoke last.
+  const group = blockText(module.speakerBlocks({state, facts: null, heard: 'Nice car, Delamain.', group: true}), 'audience');
+  assert.match(group, /^This is a group conversation in the cab: V and Alex are talking with you\. Answer whoever spoke last, by name when it was not V/);
+  assert.doesNotMatch(group, /only V|never address/);
+  // V alone: nothing to say about anyone.
+  assert.equal(module.speakerBlocks({state: {phase: 'riding', rideNumber: 1}, facts: {rideNumber: 1}, event: 'boarded'}).some(block => block.key === 'audience'), false);
+});
+
+test('a remark is told to speak to V and ask nobody anything; a companion outside a group chat is told to talk with V, not with the cab', () => {
+  for (const event of ['boarded', 'ride-start', 'district-passed', 'arrival', 'ride-interrupted']) {
+    const text = module.trigger({event, text: 'Game event.', maxWords: 20});
+    assert.match(text, /said to V and to no one else/, event);
+    assert.match(text, /Do not ask anyone a question/, event);
+    assert.match(text, /do not list facts and do not state the obvious \(the hour, who is aboard, that the ride is done\)/, event);
+    assert.doesNotMatch(text, /about the hour or about who rides with V|the company/, `${event}: the guidance no longer asks for the hour or the company`);
+  }
+  const state = {phase: 'riding', startedAt: Date.now() - 60_000, weather: null};
+  assert.match(module.companionBlocks({state, group: false}).map(block => block.text).join(' '), /You are talking with V, not with the cab's AI: do not address it/);
+  assert.doesNotMatch(module.companionBlocks({state, group: true}).map(block => block.text).join(' '), /not with the cab's AI/);
+  assert.match(initLua, /you talk with V too, and speak to the cab only in a group conversation/);
+  assert.doesNotMatch(initLua, /it may speak to you/);
+});
+
+test('the persona is warm and natural and speaks to V alone: no welcoming of companions, no companion addressed in a private example', () => {
+  const persona = manifestRaw.speakers[0].persona;
+  const prose = [persona.backstory, persona.style, ...persona.rules].join('\n');
+  assert.doesNotMatch(prose, /valued passengers|includes them in the conversation|welcomes V's companions/);
+  assert.match(persona.rules.join(' '), /You talk to V, and only to V, unless the context says this is a group conversation/);
+  assert.match(persona.rules.join(' '), /Never list or announce facts/);
+  assert.match(persona.style, /warm heart/);
+  assert.equal(manifestRaw.speakers[0].modes.classic.style, persona.style, 'the classic mode keeps the same voice');
+  assert.equal(persona.voiceContext, true, 'a cab\'s AI gets the voice form of the main mod\'s context');
+  let groupSamples = 0;
+  for (const sample of persona.samples) {
+    if (/^In a group conversation only/.test(sample)) { groupSamples++; continue; }
+    const spoken = sample.split('\n').filter(row => row.startsWith('Delamain:')).join(' ');
+    assert.doesNotMatch(spoken, /\b(Judy|Panam|Kerry|River|Alvarez|Palmer|Eurodyne|Ward|Alex)\b|\b(Mr|Ms|Miss|Mrs)\b/, spoken);
+  }
+  assert.equal(groupSamples, 1, 'one example of the group chat, labelled');
+  assert.ok(persona.rules.length <= 12 && persona.samples.length <= 12, 'within the manifest limits');
+  const manifest = validateManifest(manifestRaw, dir);
+  assert.equal(manifest.speakers[0].persona.voiceContext, true);
+});
+
+test('a talk turn as the bridge builds it: the voice context names nobody, and the cab\'s own blocks say V alone', async () => {
+  const [request, state] = playRide('ride-start');
+  const {host, input} = await bridgeFor(request, state);
+  assert.equal(host.usesVoiceContext(input.profileKey), true);
+  assert.equal(host.usesVoiceContext('judy-alvarez'), false);
+  const talk = {...parseInput(JSON.stringify({...JSON.parse(request), text: 'Where are we?', reaction: undefined, addon: {id: 'delamain-cab', speaker: 'delamain'},
+    turnContext: {version: 1, status: 'ready', hour: 22, minute: 5, vehicle: true, gender: 'male', lifepath: 'nomad', party: [{key: 'judy-alvarez', name: 'Judy Alvarez'}]}}))};
+  const text = [...voiceConversationBlocks(talk), ...host.blocks(talk)].map(block => block.text).join('\n');
+  assert.doesNotMatch(text, /in person|Also with V|Nomad|lifepath/);
+  assert.doesNotMatch(text, /Right now/, 'the main mod hands the voice neither the clock nor the weather; the cab\'s own state block does, when V asks');
+  assert.match(text, /You are speaking to V, and only V\. A companion of V's rides along, but this is not a group chat/);
+  assert.doesNotMatch(text, /Judy/, 'a talk turn about the distance never names the companion');
+});
+
+test('a remark that greets, addresses or questions the companion outside a group chat is thrown away and written once more', async () => {
+  const facts = {companion: 'Judy Alvarez', rideNumber: 1};
+  const bad = ['Settle in, Judy.', 'Judy, you find the journey agreeable?', 'Welcome aboard, Ms Alvarez.',
+    'Alvarez, do mind the step.'];
+  for (const line of bad) assert.match(module.check({line, facts}) ?? '', /spoke to Judy/, line);
+  const fine = ['Good evening, V. Judy made it out without a scratch.', 'A quiet ride, V. Judy seems to approve.', 'Nine hundred metres north, V.', 'Not at all, V.'];
+  for (const line of fine) assert.equal(module.check({line, facts}), null, line);
+  assert.equal(module.check({line: 'Judy, welcome.', facts, group: true}), null, 'a group conversation may address her');
+  assert.equal(module.check({line: 'Settle in, Judy.', facts: {rideNumber: 1}, state: null}), null, 'no companion, nothing to check');
+  assert.equal(module.check({line: 'Settle in, Judy.', facts: null, state: {companion: 'Judy Alvarez'}}), module.check({line: 'Settle in, Judy.', facts}), 'the state names her too');
+  // Through the host: a remark is written again with the reason, and a second failure drops it; a conversation reply is never dropped.
+  const host = new AddonHost({addons: [validateManifest(manifestRaw, dir)], startedAt: 0});
+  await host.loadModules({importModule: async () => module});
+  const input = {profileKey: 'addon-delamain-cab-delamain', text: 'x', reaction: {kind: 'addon', expiresAt: 0}, addon: {id: 'delamain-cab', speaker: 'delamain', event: 'boarded', facts}};
+  const tries = [];
+  const answers = ['Settle in, Judy.', 'The cab is ready when you are, V.'];
+  const made = await host.produce(input, async attempt => { tries.push(attempt); return {text: answers[tries.length - 1]}; });
+  assert.deepEqual([made.duplicate, made.retried, tries.length], [false, true, 2]);
+  assert.match(tries[1].addon.rule, /spoke to Judy/);
+  const hint = host.blocks(tries[1]).find(block => block.key === 'addon:delamain-cab:avoid');
+  assert.match(hint.text, /broke a rule \(it spoke to Judy, who is not in a group conversation\)/);
+  const twice = await host.produce(input, async () => ({text: 'Judy, welcome.'}));
+  assert.deepEqual([twice.duplicate, twice.retried], [true, true]);
+  assert.match(twice.rule, /spoke to/);
+  const talk = host.review({...input, reaction: undefined}, 'Judy, welcome.');
+  assert.equal(talk.duplicate, false, 'a conversation reply is never dropped');
 });

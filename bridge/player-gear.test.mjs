@@ -130,7 +130,7 @@ test('the per-turn diagnostic says whether the gear line was in the context, or 
 test('the bridge logs the diagnostic once per reply, never for a reaction', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /import \{gearDiagnostic\} from '\.\/player-gear\.mjs'/);
-  assert.match(bridge, /logFollowUp\(input, result\);\s+\/\/[^\n]*\n\s+try \{ if \(!input\.reaction\) console\.error\(`\[PlayerGear\] profile=\$\{input\.profileKey\} \$\{gearDiagnostic\(input\)\}`\)/);
+  assert.match(bridge, /logFollowUp\(input, result\);[^]*?const voice = addonHost\.usesVoiceContext\(input\.profileKey\);\s+try \{ if \(!input\.reaction\) console\.error\(`\[PlayerGear\] profile=\$\{input\.profileKey\} \$\{voice \? 'Player gear: none \(voice speaker\)' : gearDiagnostic\(input\)\}`\)/);
 });
 
 test('a recaptured snapshot never changes which group turn is which', () => {

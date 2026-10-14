@@ -102,7 +102,9 @@ function persona(value, name) {
   const result = {intro: text(source.intro, 1200), identityRule: text(source.identityRule, 1200),
     backstory: text(source.backstory, ADDON_LIMITS.persona), style: text(source.style, 3000),
     samples: lines(source.samples, ADDON_LIMITS.samples), rules: lines(source.rules, ADDON_LIMITS.rules),
-    ...talkWords(source.talkWords, `speaker ${name}: persona`)};
+    ...talkWords(source.talkWords, `speaker ${name}: persona`),
+    // persona.voiceContext: a voice with no body (a cab's AI): its turns get the main mod's "right now" facts as a voice, not as a person beside V.
+    ...(source.voiceContext === true ? {voiceContext: true} : {})};
   if (!result.backstory) throw Error(`speaker ${name}: persona.backstory is required`);
   return result;
 }
@@ -749,6 +751,9 @@ export class AddonHost {
     this.journalTimer.unref?.();
   }
 
+  /** Is this add-on speaker a voice with no body whose turns get the voice form of the main mod's context (persona.voiceContext)? */
+  usesVoiceContext(profileKey) { return this.speakers.get(profileKey)?.speaker.persona.voiceContext === true; }
+
   /** The speaker's recent lines, oldest first. */
   recentLines(profileKey) { return (this.journal.speakers[profileKey]?.lines ?? []).map(line => line.text); }
 
@@ -774,7 +779,20 @@ export class AddonHost {
   review(input, line) {
     const recent = this.recentLines(input?.profileKey).slice(-ADDON_LIMITS.recentChecked);
     const similar = recent.find(previous => isNearDuplicate(previous, line)) ?? this.#echoedSample(input?.profileKey, line);
-    return {duplicate: !!similar && input?.reaction?.kind === 'addon', similar};
+    const rule = this.#brokenRule(input, line);
+    return {duplicate: (!!similar || !!rule) && input?.reaction?.kind === 'addon', similar, ...(rule ? {rule} : {})};
+  }
+
+  // The add-on module's own check of a finished line (the optional `check` hook): a short reason when the line broke a rule of its speaker
+  // (Delamain addressing a companion outside a group chat), else null. A remark that breaks one is written once more, like a repeat.
+  #brokenRule(input, line) {
+    const owner = this.speakers.get(input?.profileKey);
+    if (!owner || typeof line !== 'string') return null;
+    const data = input.addon && input.addon.id === owner.addon.id ? input.addon : null;
+    const reason = this.#hook(owner.addon.id, 'check', {speaker: owner.speaker.id, profileKey: owner.speaker.profileKey, line, event: data?.event ?? null,
+      facts: data?.facts ?? null, group: !!input.group, reaction: input.reaction?.kind === 'addon', state: this.state.addons[owner.addon.id]?.state ?? null,
+      settings: {...(this.settings[owner.addon.id] ?? {})}});
+    return typeof reason === 'string' && reason.trim() ? reason.trim().slice(0, 120) : null;
   }
 
   // The speaker's own example lines (the active mode's and the persona's) are used up: a remark that says one again is a repeat even
@@ -807,11 +825,11 @@ export class AddonHost {
     if (!check.duplicate) return {reply, duplicate: false, similar: null, retried: false};
     const limit = input.reaction?.expiresAt;
     const late = Number.isFinite(limit) && limit > 0 && this.now() + tookMs * ADDON_LIMITS.retryShare + ADDON_LIMITS.retryMs > limit;
-    if (late) return {reply, duplicate: true, similar: check.similar, retried: false};
-    const again = {...input, addon: {...input.addon, avoid: [...new Set([check.similar, reply.text].filter(Boolean))]}};
+    if (late) return {reply, duplicate: true, similar: check.similar, rule: check.rule ?? null, retried: false};
+    const again = {...input, addon: {...input.addon, avoid: [...new Set([check.similar, reply.text].filter(Boolean))], ...(check.rule ? {rule: check.rule} : {})}};
     reply = await generate(again);
     check = this.review(input, reply.text);
-    return {reply, duplicate: check.duplicate, similar: check.similar, retried: true};
+    return {reply, duplicate: check.duplicate, similar: check.similar, rule: check.rule ?? null, retried: true};
   }
 
   /** A line was spoken: keep it for the repetition check and the prompt, and let the add-on's module turn it into a memory. */
@@ -1011,7 +1029,7 @@ export class AddonHost {
     // A second try after a near repeat (produce): name what was too close, so the new line shares no phrasing with it.
     const avoid = Array.isArray(data?.avoid) ? data.avoid.filter(item => typeof item === 'string' && item.trim()).slice(0, 3) : [];
     if (avoid.length) out.push({tier: 'volatile', key: `addon:${addon.id}:avoid`,
-      text: `Your first attempt repeated an earlier line and was thrown away. Write a completely different line now: another angle, another opening, other words. Do not reuse any phrasing from these:\n${avoid.map(item => `- ${item}`).join('\n')}`});
+      text: `Your first attempt ${typeof data?.rule === 'string' && data.rule ? `broke a rule (${data.rule.slice(0, 120)})` : 'repeated an earlier line'} and was thrown away. Write a completely different line now: another angle, another opening, other words. Do not reuse any phrasing from these:\n${avoid.map(item => `- ${item}`).join('\n')}`});
     return out;
   }
 
