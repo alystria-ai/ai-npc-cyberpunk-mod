@@ -664,6 +664,8 @@ local function loadSettings()
     if type(settings.holocallLiveImage) ~= 'boolean' or (not settings.holocallLiveImage and not settings.holocallLiveImageChosen) then
         settings.holocallLiveImage, settingsNeedSave = true, true
     end
+    -- Off by default: YouTube on V's TV (mod/youtube-tv.lua, docs/YOUTUBE_TV.md).
+    if type(settings.youtubeTv) ~= 'boolean' then settings.youtubeTv, settingsNeedSave = false, true end
     -- On by default: recent subtitled game dialogue is attached to the next manual turn (mod/game-dialogue.lua).
     if type(settings.gameDialogueContext) ~= 'boolean' then settings.gameDialogueContext, settingsNeedSave = true, true end
     -- Off by default: the decision ledger (docs/QUEST_DECISIONS.md section 4.4) records V's picked dialogue options. Not proven in game; no menu entry.
@@ -1039,6 +1041,12 @@ end
 function M.holocallLiveImage()
     loadSettings()
     return settings.holocallLiveImage == true
+end
+
+-- Off by default: the TVs in V's homes offer YouTube (mod/youtube-tv.lua, docs/YOUTUBE_TV.md).
+function M.youtubeTv()
+    loadSettings()
+    return settings.youtubeTv == true
 end
 
 -- On by default: a character addressed right after the game's own dialogue with them knows the last lines that
@@ -1613,6 +1621,7 @@ function M.snapshot(player)
             bodyGestures = settings.bodyGestures,
             autoConnectNearby = settings.autoConnectNearby,
             holocallLiveImage = settings.holocallLiveImage,
+            youtubeTv = settings.youtubeTv == true,
             gameDialogueContext = settings.gameDialogueContext,
             decisionLedger = settings.decisionLedger,
             eyeContactHeight = settings.eyeContactHeight,
@@ -1674,7 +1683,7 @@ function M.applySettings(player, values)
         if key == 'holocallLiveImage' then nextSettings.holocallLiveImageChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
-            or key == 'holocallLiveImage'
+            or key == 'holocallLiveImage' or key == 'youtubeTv'
             or key == 'gameDialogueContext' or key == 'decisionLedger'
             or key == 'naturalSpeech' or key == 'expressiveEmotions'
             or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations' then
