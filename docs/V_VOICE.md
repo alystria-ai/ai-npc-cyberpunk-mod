@@ -33,7 +33,7 @@ The voice is the one **you already chose** for companions:
 | Companion voice | How V's line is made |
 |---|---|
 | Pocket TTS | cloned by the local Pocket worker (a lazy voice entry, prepared on first use) |
-| OmniVoice | rendered whole by the local OmniVoice worker (short or long reference, as chosen), then played |
+| OmniVoice | spoken by a **Pocket worker on the CPU that loads beside OmniVoice** (see "OmniVoice companions" below); V is never rendered on OmniVoice. English only |
 | Mistral (Voxtral) | cloned by the Mistral cloud voice with the player's Mistral key; **no local voice model is loaded** |
 | Inworld | cloned (once) by the Inworld cloud voice with the player's own key; **no local voice model is loaded** |
 | Convai cloud voice | **cannot clone, so the setting stays on but is inactive beside it:** no V line plays, nothing is refused, no notice is shown at load or Apply, and nothing is switched off. The setting row shows one short note ("Works with the Pocket, OmniVoice, Voxtral or Inworld voices."). Choosing a cloning voice makes it work at once. |
@@ -63,10 +63,71 @@ Latency is as important as FPS here, so V never stands in front of anything:
 - Pocket and OmniVoice workers do one job at a time. When the companion's own text-to-speech request goes out (`ttsSent` on the
   turn's stage clock) and V's line is still waiting for its first audio, V is stopped so it is not in front of the reply's voice.
   A line that is already audible keeps going (the companion cannot be heard before it ends anyway). The cloud voices share no
-  worker, so they are not stopped this way. (OmniVoice cannot cancel a render that has started, so a long V render can still
-  occupy its one GPU worker; V's text is short and the render starts as soon as the text request is sent.)
+  worker, so they are not stopped this way, and neither is a line spoken by the OmniVoice companions' helper Pocket worker (a
+  different process on the CPU). (OmniVoice cannot cancel a render that has started, which is why V is not rendered on it at
+  all: see "OmniVoice companions".)
 - Nothing runs per frame. The game-side change is one extra read of the game's dialogue volume when a typed turn is built,
   and only while the setting is on (`mod/turn-context.lua`, cached with the rest of the turn context for 5 seconds).
+
+### OmniVoice companions (2026-10-14, branch `v-voice-omni-drop`)
+
+Live report: with an OmniVoice companion V was never heard when typing. The log (companion Dakota Smith, OmniVoice Balanced):
+
+`[VVoice] ... engine=omni result=dropped reason=reply-voice-started marks={"ttsSent":3.4,"rendererReady":81.1,"dropped":881.5}` and a second line dropped at 1064.8 ms.
+
+**Cause.** V's line was rendered whole on the OmniVoice worker (about 1.3 s to first audio for a reply at 16 steps, a little more for V's
+longer 11 to 14 s reference; the whole WAV must exist before anything is audible). The companion's text reply is ready after 0.9 to
+1.1 s and its own OmniVoice request goes out (`ttsSent` on the turn's clock), so V, still unheard, was stopped. The stop was not even
+useful: OmniVoice has one GPU worker, serves one job at a time and cannot cancel a render that has started, so the companion's render
+was queued behind V's anyway. Net effect of the old path: no V line, the reply's render started late (after V's render), a hidden
+GPU render per typed line and a new CUDA graph capture (about 0.35 s) when the text shape changes. On Pocket V is audible after
+0.2 to 0.25 s (`audible` in the live Pocket lines), well before the reply.
+
+**Options weighed.**
+- (a) Keep V on OmniVoice, play it first and queue the reply after it, with a cap. V is audible only after its whole render, 1.6 to
+  2 s (so the cap would need to be about 2.5 s), the reply then starts after V's speech, about 4 to 4.5 s after the send against about
+  2.2 s with V off. It also keeps costing GPU time (FPS) and graph captures on every typed line, and the Omni render can still
+  not be cancelled. Rejected.
+- (c) Start V's synthesis earlier. Already the case: `runInput` starts `respond` and then `vVoice.start`, in the same tick; V's voice
+  entry is sent within 3 to 7 ms (`ttsSent` in V's own marks). Nothing to gain.
+- (b) **Chosen: V is spoken by Pocket on the CPU even when the companions use OmniVoice.**
+
+**Why (b).** V is audible at about 0.25 s, before the reply in nearly every turn; OmniVoice is not touched (no GPU work, no queue in
+front of the reply's render, no graph capture); the reply starts at the later of "its own render is done" (about 2.2 s) and "V has
+ended plus the 320 ms tail" (about 2.2 to 2.5 s for a 1.5 to 2 s line), so the added latency is about 0 to 0.3 s for an ordinary
+line and the length of V's speech beyond that for a long one, and it is 0.4 to 0.9 s sooner than the old path, which delayed the
+reply for nothing. V's two voices were picked and scored on Pocket (ECAPA 0.68 male, 0.52 female), so this is the better-tested voice.
+
+**Resources.** Pocket is the CPU student: 418 MiB of weights (float32), 2 to 4 inference threads, worker below normal priority, 0 VRAM
+(`CUDA_VISIBLE_DEVICES=-1`), so VRAM is untouched and the game's main thread is not involved. It is the same worker Pocket
+companions already use during play (and Pocket plus a loading OmniVoice already coexist in the OmniVoice retry). Its start takes
+about 45 s (the Python imports, below normal priority; seen in the live log), so it loads once, in the background, **after the OmniVoice
+worker is ready** (never beside OmniVoice's own load), and stays resident (RAM about the student plus Python, roughly 1 GB; not measured
+here) while OmniVoice is the committed voice and the V setting is on. Idle it costs nothing per frame; a V line is a short burst on
+its threads. A player who wants no extra process turns the V setting off: the helper is then released.
+
+**The rule "cloud voice loads no local model" is untouched:** the helper never exists beside Mistral (Voxtral), Inworld or the Convai
+voice, nor beside the Pocket voice (V then uses the chosen worker), nor while voice playback is off.
+
+**How it works** (`bridge/v-helper-voice.mjs`, `VoiceSelection.tickVHelper`):
+- The bridge's settings poll tells the voice selection whether V is wanted (`setVHelperWanted(vVoice.enabled && vVoice.available)`).
+  The helper is due when OmniVoice is the committed, loaded voice and V is wanted; it is released the moment that stops being true.
+- It uses Pocket's configuration, which already holds V's two voices, and the prepared-voice store (a saved setup makes V's voice
+  nearly free after the first time). The composer's warm-up prepares V's voice on it, not as a hidden OmniVoice render.
+- Pocket's work folder has one lock, so the helper is released, with its exit confirmed, before any other Pocket worker starts (a
+  switch to the Pocket voice, or a Settings preview of it), and it never starts while another Pocket worker is stopping.
+- A V line that finds the helper still loading (the first typed lines after the game starts, or just after V was switched on) is
+  skipped with one log line (`V's line skipped: the Pocket helper voice is not loaded yet`); the reply never waits.
+- A failure (the worker cannot start or dies) leaves the helper off with one log line (`[VHelper] ... failed`) until V is turned
+  off and on, or the voice changes: no retry loop, and V is silent, never rendered on OmniVoice instead.
+- Pocket speaks English only: a non-English turn (Multilingual conversations) gets no V line beside OmniVoice, with one log line.
+- Order: the helper line is a V line like any other. The companion's OmniVoice request neither waits for it nor stops it (a different
+  worker); the reply, published as a whole after its render, waits in `publishResult` (`waitClear`) while V is audible and starts after
+  V's tail, so V is first, the companion second, never overlapping. If V were somehow not audible when the reply is ready it is dropped.
+- The report line reads `engine=pocket-helper`.
+
+Not measured live (no game turn was allowed): first-audio and the added reply latency above are estimates from the live Pocket V
+lines (audible 195 to 260 ms), the OmniVoice figures in `docs/LOCAL_VOICES.md` and the two dropped Omni lines. The live check is in TODO.md.
 
 ### Air at both ends (2026-10-14)
 
@@ -163,13 +224,14 @@ actor says "assumed" where the subtitle says "assume" (the audio is clear).
 | Piece | File |
 |---|---|
 | Feature, clip loading, V's line, gate | `bridge/v-voice.mjs` |
+| Helper Pocket voice beside OmniVoice | `bridge/v-helper-voice.mjs`, `bridge/voice-selection.mjs` (`tickVHelper`, `vHelper*`) |
 | Second renderer page | `bridge/realtime-host.mjs` (`playVoiceLine`, `prewarmVoiceLine`) |
 | Config merge | `bridge/addons.mjs` (`voiceConfigPaths`, `extra`) |
 | Wiring | `bridge/convai-bridge.mjs` (`vVoice`, `runInput`, `continuousSpeech` hold, `publishResult`, settings poll, composer warm-up) |
 | Stage clock listener | `bridge/turn-clock.mjs` (`on`) |
 | Dialogue volume | `mod/turn-context.lua`, `bridge/turn-context.mjs` (`dialogueVolume`) |
 | Setting | `mod/manager.lua` (`vVoice`), `mod/mcm.lua` |
-| Tests | `bridge/v-voice.test.mjs`, `bridge/manager.test.mjs`, `bridge/turn-context.test.mjs`, `bridge/addons.test.mjs` |
+| Tests | `bridge/v-voice.test.mjs`, `bridge/v-helper-voice.test.mjs`, `bridge/manager.test.mjs`, `bridge/turn-context.test.mjs`, `bridge/addons.test.mjs` |
 
 ## Live check
 
