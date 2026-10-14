@@ -45,7 +45,7 @@
     ]
   },
   "counts": {
-    "strings": 809,
+    "strings": 801,
     "dynamicTemplates": 57,
     "contexts": 36
   },
@@ -249,7 +249,6 @@
     "Deleted.": "Deleted.",
     "Deletes the saved key. Conversations go back to Convai free tier.": "Deletes the saved key. Conversations go back to Convai free tier.",
     "Deletes the saved key. The Inworld cloud voice stops until you add a key again.": "Deletes the saved key. The Inworld cloud voice stops until you add a key again.",
-    "Descriptions and chapters (optional)": "Descriptions and chapters (optional)",
     "Destination reached. Step out when ready.": "Destination reached. Step out when ready.",
     "Developer mode": "Developer mode",
     "Development": "Development",
@@ -287,7 +286,6 @@
     "Forget ({count} characters)": "Forget ({count} characters)",
     "Forget all memories": "Forget all memories",
     "Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count.": "Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count.",
-    "Forget key": "Forget key",
     "Forget memories": "Forget memories",
     "Forget selected character": "Forget selected character",
     "GAME MODELS": "GAME MODELS",
@@ -335,8 +333,6 @@
     "Keep memories": "Keep memories",
     "Keep this copy without a conversation identity": "Keep this copy without a conversation identity",
     "Kept until forgotten": "Kept until forgotten",
-    "Key forgotten.": "Key forgotten.",
-    "Key saved.": "Key saved.",
     "Last report": "Last report",
     "Launcher log": "Launcher log",
     "Lines in their voice. They show the tone only and are never said back word for word.": "Lines in their voice. They show the tone only and are never said back word for word.",
@@ -514,7 +510,6 @@
     "SELECTED": "SELECTED",
     "SETTINGS": "SETTINGS",
     "Save": "Save",
-    "Save key": "Save key",
     "Saved Chat cleanup could not be verified. Please wait for the memory service.": "Saved Chat cleanup could not be verified. Please wait for the memory service.",
     "Saved at {path}": "Saved at {path}",
     "Saved on this computer only. Only the last four characters are ever shown.": "Saved on this computer only. Only the last four characters are ever shown.",
@@ -590,7 +585,6 @@
     "That conversation profile is unavailable.": "That conversation profile is unavailable.",
     "That copy is no longer in your party.": "That copy is no longer in your party.",
     "That dismissal is no longer pending.": "That dismissal is no longer pending.",
-    "That does not look like a YouTube Data API key.": "That does not look like a YouTube Data API key.",
     "That is not a YouTube link or video id.": "That is not a YouTube link or video id.",
     "That model is no longer available.": "That model is no longer available.",
     "That setting is read-only.": "That setting is read-only.",
@@ -754,7 +748,6 @@
     "Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": "Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
     "Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": "Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
     "Whose memories": "Whose memories",
-    "With your own YouTube Data API key your companion also knows the video’s description and chapters. Without one, only the title and channel.": "With your own YouTube Data API key your companion also knows the video’s description and chapters. Without one, only the title and channel.",
     "Works with the Pocket, OmniVoice or Voxtral voices.": "Works with the Pocket, OmniVoice or Voxtral voices.",
     "Works with the Pocket, OmniVoice, Voxtral or Inworld voices.": "Works with the Pocket, OmniVoice, Voxtral or Inworld voices.",
     "Write a message...": "Write a message...",
@@ -768,7 +761,6 @@
     "You moved away from the car. The trip was cancelled.": "You moved away from the car. The trip was cancelled.",
     "You: {text}": "You: {text}",
     "YouTube": "YouTube",
-    "YouTube Data API key": "YouTube Data API key",
     "YouTube could not open on the TV. Try again.": "YouTube could not open on the TV. Try again.",
     "YouTube could not open on the TV. Use Windowed Borderless or Windowed mode and try again.": "YouTube could not open on the TV. Use Windowed Borderless or Windowed mode and try again.",
     "YouTube on V’s TV": "YouTube on V’s TV",
@@ -1546,7 +1538,6 @@
       "Delete",
       "Delete this memory?",
       "Deleted.",
-      "Descriptions and chapters (optional)",
       "Edited",
       "Everyday people",
       "Everyday people do not keep memories of your talks.",
@@ -1558,7 +1549,6 @@
       "Follow-up questions",
       "For example: V has a sister called Lena.",
       "Forget ({count} characters)",
-      "Forget key",
       "Generated reports are saved in {path}. The five newest are kept.",
       "Go back to the shipped text for {name}? All your changes to this character are removed.",
       "Go back to the shipped text for {name}? Your changes to this part are removed.",
@@ -1574,8 +1564,6 @@
       "Inworld did not accept that key.",
       "Inworld · Cloud voice",
       "Inworld · needs key",
-      "Key forgotten.",
-      "Key saved.",
       "Lines in their voice. They show the tone only and are never said back word for word.",
       "Listening - press the same voice chat shortcut again to finish",
       "Listening - press {key} again to finish",
@@ -1671,7 +1659,6 @@
       "Reset to default",
       "Running",
       "Save",
-      "Save key",
       "Saved at {path}",
       "Saved on this computer only. Only the last four characters are ever shown.",
       "Saved.",
@@ -1704,7 +1691,6 @@
       "That companion is no longer in your party.",
       "That copy is no longer in your party.",
       "That dismissal is no longer pending.",
-      "That does not look like a YouTube Data API key.",
       "That is not a YouTube link or video id.",
       "That setting is read-only.",
       "The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.",
@@ -1775,7 +1761,6 @@
       "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.",
       "Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
       "Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
-      "With your own YouTube Data API key your companion also knows the video’s description and chapters. Without one, only the title and channel.",
       "Works with the Pocket, OmniVoice or Voxtral voices.",
       "Works with the Pocket, OmniVoice, Voxtral or Inworld voices.",
       "You are already on a call.",
@@ -1783,7 +1768,6 @@
       "You have used today’s {limit} turns. They come back tomorrow. To keep talking now, choose Mistral (an estimated 3,000 turns a day) or Local AI (no limit), then Apply.",
       "You: {text}",
       "YouTube",
-      "YouTube Data API key",
       "YouTube could not open on the TV. Try again.",
       "YouTube could not open on the TV. Use Windowed Borderless or Windowed mode and try again.",
       "YouTube on the TV",
@@ -3569,14 +3553,6 @@
         "mod/mcm.lua:1618"
       ]
     },
-    "Descriptions and chapters (optional)": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/youtube-tv.lua:40"
-      ]
-    },
     "Destination reached. Step out when ready.": {
       "contexts": [
         "chauffeur.feedback"
@@ -3879,14 +3855,6 @@
       ],
       "references": [
         "mod/mcm.lua:1416"
-      ]
-    },
-    "Forget key": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/youtube-tv.lua:45"
       ]
     },
     "Forget memories": {
@@ -4276,22 +4244,6 @@
       ],
       "references": [
         "mod/mcm.lua:1444"
-      ]
-    },
-    "Key forgotten.": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/youtube-tv.lua:47"
-      ]
-    },
-    "Key saved.": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/youtube-tv.lua:46"
       ]
     },
     "Last report": {
@@ -5774,14 +5726,6 @@
         "mod/character-editor.lua:39"
       ]
     },
-    "Save key": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/youtube-tv.lua:44"
-      ]
-    },
     "Saved Chat cleanup could not be verified. Please wait for the memory service.": {
       "contexts": [
         "phone.chat"
@@ -6409,14 +6353,6 @@
       ],
       "references": [
         "mod/manager-party.lua:654"
-      ]
-    },
-    "That does not look like a YouTube Data API key.": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/youtube-tv.lua:48"
       ]
     },
     "That is not a YouTube link or video id.": {
@@ -7785,14 +7721,6 @@
         "mod/mcm.lua:1855"
       ]
     },
-    "With your own YouTube Data API key your companion also knows the video’s description and chapters. Without one, only the title and channel.": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/youtube-tv.lua:42"
-      ]
-    },
     "Works with the Pocket, OmniVoice or Voxtral voices.": {
       "contexts": [
         "ui.localized"
@@ -7897,15 +7825,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/youtube-tv.lua:91"
-      ]
-    },
-    "YouTube Data API key": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/youtube-tv.lua:43"
+        "mod/youtube-tv.lua:82"
       ]
     },
     "YouTube could not open on the TV. Try again.": {
@@ -7913,7 +7833,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/youtube-tv.lua:103"
+        "mod/youtube-tv.lua:94"
       ]
     },
     "YouTube could not open on the TV. Use Windowed Borderless or Windowed mode and try again.": {
@@ -7921,7 +7841,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/youtube-tv.lua:182"
+        "mod/youtube-tv.lua:173"
       ]
     },
     "YouTube on V’s TV": {
@@ -7945,7 +7865,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/youtube-tv.lua:181"
+        "mod/youtube-tv.lua:172"
       ]
     },
     "YouTube on the TV works in V's apartments.": {
@@ -7953,7 +7873,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/youtube-tv.lua:138"
+        "mod/youtube-tv.lua:129"
       ]
     },
     "YouTube: pause or play": {
@@ -7961,7 +7881,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/youtube-tv.lua:91"
+        "mod/youtube-tv.lua:82"
       ]
     },
     "YouTube: stop": {
@@ -7969,7 +7889,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/youtube-tv.lua:91"
+        "mod/youtube-tv.lua:82"
       ]
     },
     "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.": {

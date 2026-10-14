@@ -37,15 +37,6 @@ local function pageStrings()
     put('Loading…', ui.t('Loading…'))
     put('Pick a video, then click back into the game. Use the TV to pause or stop it.',
         ui.t('Pick a video, then click back into the game. Use the TV to pause or stop it.'))
-    put('Descriptions and chapters (optional)', ui.t('Descriptions and chapters (optional)'))
-    put('With your own YouTube Data API key your companion also knows the video’s description and chapters. Without one, only the title and channel.',
-        ui.t('With your own YouTube Data API key your companion also knows the video’s description and chapters. Without one, only the title and channel.'))
-    put('YouTube Data API key', ui.t('YouTube Data API key'))
-    put('Save key', ui.t('Save key'))
-    put('Forget key', ui.t('Forget key'))
-    put('Key saved.', ui.t('Key saved.'))
-    put('Key forgotten.', ui.t('Key forgotten.'))
-    put('That does not look like a YouTube Data API key.', ui.t('That does not look like a YouTube Data API key.'))
     return strings
 end
 local function clock() return env.clock and env.clock() or os.clock() end
