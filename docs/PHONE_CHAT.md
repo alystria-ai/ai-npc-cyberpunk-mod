@@ -80,13 +80,20 @@ replies. No API keys or session IDs enter game widgets or test output.
 - `phone-chat.lua`: persistent local transcript, drafts, confirmed reset receipts and one outstanding
   text request. It runs on menu frames with zero simulation delta. Contact identity
   is captured on send; changing the view cannot redirect a reply.
-- `phone-chat-style.lua`: matches Chat to the native tab grid and resolved palette,
+- `phone-chat-style.lua`: matches Chat to the native tab grid and the game's own tab colours,
   hides the reused quest-reply section only in Chat, and restores its previous
   visibility for Messages. An activation guard also rejects stale quest-reply
   events in Chat. The composer uses readable cyan text and an inline Enter/Esc
   placeholder; its separate hint row is used only for service/error status.
   Widget state belongs to the current native tree; no native handles are retained
   across a phone close or save load. The module can be applied live without restarting.
+- Tab colours (branch `holocall-face`, 2026-10-15): Chat binds the same style properties as the game's
+  Messages and Contacts tabs (`new_phone.inkwidget`, style `hub_menu_style.inkstyle` on the tab panel): icon and
+  label `MenuLabel.MainColor` and `MenuLabel.MainOpacity`, the 7-unit underline `MainColors.PanelRed`. The tab's state
+  (`Default`, or `Selected` while Chat is shown; set in `PhoneChatTabs.reds` `UpdateHightlight` and by the styler) picks
+  red or the active blue, as the game's `UpdateLabelsStates` does for its tabs; the moving active-blue line marks the
+  selected tab. No tint is copied. The earlier tint copy walked the icon's children, but the icon is an image with no
+  children, so the error stopped it before the underline was coloured, which left it white.
 - `phone-chat.mjs`: catalog-authorized text-only Convai calls and persistent phone
   sessions. No NPC, microphone, local TTS, movement or speech playback is needed.
 - `chat-memory-resets.mjs`: reconciles explicit memory-reset intents and results

@@ -29,6 +29,10 @@ public class ConvaiPhoneChatReadyEvent extends Event {
 // Native speech-bubble glyph (the game's "talk" map icon), drawn like the phone's
 // own Messages/Contacts tab icons: an atlas image tinted from the shared palette.
 // Messages uses 41x28 (fit to content) and Contacts a 32x32 box; this sits between.
+// Its colour is the game's own tab colour: it binds the hub menu style's MenuLabel.MainColor and MainOpacity, as the
+// Messages and Contacts icons and labels do, and the tab's state (Default or Selected, set in UpdateHightlight as the
+// game's UpdateLabelsStates does for its tabs) picks red and dimmed or the active blue. The style is the one the game's
+// tab panel carries (hub_menu_style.inkstyle), inherited because the tab sits inside that panel.
 public class ConvaiChatTabArtwork {
     public static func Create() -> ref<inkImage> {
         let icon = new inkImage();
@@ -40,14 +44,9 @@ public class ConvaiChatTabArtwork {
         icon.SetHAlign(inkEHorizontalAlign.Center);
         icon.SetVAlign(inkEVerticalAlign.Center);
         icon.SetInteractive(false);
-        icon.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
-        icon.BindProperty(n"tintColor", n"MainColors.Red");
+        icon.BindProperty(n"tintColor", n"MenuLabel.MainColor");
+        icon.BindProperty(n"opacity", n"MenuLabel.MainOpacity");
         return icon;
-    }
-    public static func Select(icon: wref<inkWidget>, selected: Bool) -> Void {
-        if IsDefined(icon) {
-            icon.BindProperty(n"tintColor", selected ? n"MainColors.Blue" : n"MainColors.Red");
-        };
     }
 }
 
@@ -370,6 +369,7 @@ public func SetupWidgets() -> Void {
     tab.SetMargin(new inkMargin(40.0, 0.0, 20.0, 0.0));
     tab.SetInteractive(true);
     tab.SetAffectsLayoutWhenHidden(false);
+    tab.SetState(n"Default");
     tab.Reparent(inkCompoundRef.Get(this.m_container) as inkCompoundWidget);
     let icon = ConvaiChatTabArtwork.Create();
     icon.Reparent(tab);
@@ -382,8 +382,8 @@ public func SetupWidgets() -> Void {
     label.SetFitToContent(true);
     label.SetVAlign(inkEVerticalAlign.Center);
     label.SetMargin(new inkMargin(10.0, 0.0, 0.0, 0.0));
-    label.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
-    label.BindProperty(n"tintColor", n"MainColors.Red");
+    label.BindProperty(n"tintColor", n"MenuLabel.MainColor");
+    label.BindProperty(n"opacity", n"MenuLabel.MainOpacity");
     label.Reparent(tab);
     tab.RegisterToCallback(n"OnRelease", this, n"OnConvaiChatTabClick");
     this.m_convaiChatTab = tab;
@@ -429,9 +429,8 @@ private cb func OnConvaiContactsTabClick(evt: ref<inkPointerEvent>) -> Bool {
 
 @wrapMethod(PhoneDialerSelectionController)
 protected func UpdateHightlight(index: Int32, opt instant: Bool) -> Void {
-    if IsDefined(this.m_convaiChatLabel) {
-        this.m_convaiChatLabel.BindProperty(n"tintColor", index == 4 ? n"MainColors.Blue" : n"MainColors.Red");
-        ConvaiChatTabArtwork.Select(this.m_convaiChatGlyph, index == 4);
+    if IsDefined(this.m_convaiChatTab) {
+        this.m_convaiChatTab.SetState(index == 4 ? n"Selected" : n"Default");
     };
     if index != 4 { wrappedMethod(index, instant); return; };
     for controller in this.m_widgetsControllers {

@@ -74,26 +74,35 @@ public class ConvaiFaceService extends ScriptableService {
     // These wrappers expose this builder's extracted component clones, not
     // shared .ent/.app definitions. They also cover appearance-only rebuilds.
     let npc = dynamic.GetEntity(builder.GetEntityID()) as NPCPuppet;
+    // A holocall's live-picture copy (mod/holocall.lua) is filmed far from V's camera, where the game stops animating a
+    // face (measured: it moves at 8 and 11 m, it is frozen at 16 m and beyond). Its animated components are asked to stay
+    // at full detail before they attach, as runtime changes are ignored. Only that one copy, for the call's length.
+    let holocall = dynamic.IsTagged(builder.GetEntityID(), n"CyberpunkConvaiHolocall");
     if builder.HasEntity() {
       let template = builder.GetTemplate();
       if !IsDefined(npc) { npc = template.GetEntity() as NPCPuppet; };
-      this.PrepareExtractedComponents(template.GetComponents(), npc);
+      this.PrepareExtractedComponents(template.GetComponents(), npc, holocall);
     };
     if builder.HasAppearance() {
-      this.PrepareExtractedComponents(builder.GetAppearance().GetComponents(), npc);
+      this.PrepareExtractedComponents(builder.GetAppearance().GetComponents(), npc, holocall);
     };
     let appearances = builder.GetCustomAppearances();
     let i = 0;
     while i < ArraySize(appearances) {
-      this.PrepareExtractedComponents(appearances[i].GetComponents(), npc);
+      this.PrepareExtractedComponents(appearances[i].GetComponents(), npc, holocall);
       i += 1;
     };
   }
 
-  private func PrepareExtractedComponents(components: array<ref<IComponent>>, npc: ref<NPCPuppet>) -> Void {
+  private func PrepareExtractedComponents(components: array<ref<IComponent>>, npc: ref<NPCPuppet>, holocall: Bool) -> Void {
     let i = 0;
     while i < ArraySize(components) {
       let face = components[i] as AnimatedComponent;
+      if holocall && IsDefined(face) {
+        face.clientForcedLod = 0;
+        face.clientForcedVisibility = true;
+        face.useLongRangeVisibility = true;
+      };
       if IsDefined(face) && Equals(face.GetName(), n"face_rig") {
         let status = this.PrepareFaceComponent(face);
         if IsDefined(npc) {

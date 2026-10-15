@@ -376,7 +376,10 @@ test('a staged character gets the live picture: a hidden floor above V, the copy
   game.requests = {'judy'}; holocall.drain(player); tick(0.1)
   assert(logged('state=dialing contact=judy profile=judy%-alvarez mode=holo cast=video hud=ok'))
   assert(#created == 0, 'nothing is spawned before a floor is found')
-  tick(0.2)
+  -- The nine near columns (a floor within 10 m of V's feet) find nothing first, three per step.
+  tick(0.8)
+  assert(#created == 0 and logged('state=dialing'), 'the near columns come first')
+  tick(0.3)
   assert(#created == 5, 'a copy, a camera and three lamps are created once the floor above V is found')
   local copy, camera = created[1], created[2]
   -- The copy stands on the roof 20 m above V, out of V's sight, with her own record.
@@ -387,7 +390,7 @@ test('a staged character gets the live picture: a hidden floor above V, the copy
   assert(camera.templatePath == 'base\\\\cinematics\\\\cameras\\\\holocall_camera.ent' and camera.tags[1] == 'CyberpunkConvaiHolocall')
   assert(near(camera.position.x, 9.72362) and near(camera.position.y, 20.74317) and near(camera.position.z, 51.6), camera.position.x .. ' ' .. camera.position.y)
   assert(near(camera.orientation.yaw, 200.4) and camera.orientation.pitch == 0)
-  assert(logged('holo spawn contact=judy record=Character.Judy floor=%+20.0m yaw=0 lens=0.79m'))
+  assert(logged('holo spawn contact=judy record=Character.Judy floor=%+20.0m away=20.0m yaw=0 lens=0.79m'))
   -- The light rig, as the game lights its studio actor: a warm key in front and above on the camera's side, a weaker
   -- fill on the other side, a cool rim behind, all round her at the game's own lamp, tagged and transient.
   local key, fill, rim = created[3], created[4], created[5]
@@ -407,11 +410,13 @@ test('a staged character gets the live picture: a hidden floor above V, the copy
   assert(logged('lights=3/3'))
   assert(forced[1] == '9000ULL:true', 'the copy keeps animating off screen')
   assert(played[1] == 'convai_talk_judy' and toggles[1] == 'camera:true')
-  -- Her eyes go to the lens (the camera entity), eyes leading, at the game's holocall look speed.
+  -- She looks into the lens (the camera entity) as the game's holocall scenes aim their caller: eyes leading, the head
+  -- and the chest turned with it (chest weight 2), nothing suppressed, at the game's holocall look speed.
   local look = looks[1]
   assert(look and look.npc == 'copy' and look.event.target.name == 'camera' and look.event.bodyPart == 'Eyes')
-  assert(look.event.request.transitionSpeed == 80 and look.event.parts[1].partName == 'Eyes' and look.event.parts[1].weight == 1)
-  assert(look.event.parts[2].partName == 'Head' and look.event.parts[2].suppress == 1)
+  assert(look.event.request.transitionSpeed == 80 and #look.event.parts == 2)
+  assert(look.event.parts[1].partName == 'Head' and look.event.parts[1].weight == 0.3 and look.event.parts[1].suppress == 0)
+  assert(look.event.parts[2].partName == 'Chest' and look.event.parts[2].weight == 2 and look.event.parts[2].suppress == 0)
   assert(logged('holo ready contact=judy held=yes camera=on animated=true look=true'))
   assert(holocall.connected() and game.connects[#game.connects] == true and logged('state=connected contact=judy mode=holo window=holocall'))
   local caller = holocall.partner(player, false)
@@ -450,13 +455,13 @@ test('the live picture falls back to the portrait when the copy moves, when ther
   assert(holocall.partner(player, false).entity == '7ULL')
   tick(2); assert(deleted[5] == '9001ULL', 'the camera is deleted after its delay, the call still on')
   holocall.finish(player, 'hangup')
-  -- Open sky above, around and below V: nothing to stand on, so the portrait, after three candidates per tick (33
+  -- Open sky above, around and below V: nothing to stand on, so the portrait, after three candidates per tick (42
   -- columns), with the count of reasons in the log.
   roof = false; created = {}
-  game.requests = {'judy'}; holocall.drain(player); tick(2.4)
-  assert(#created == 0 and holocall.call.state == 'dialing', 'thirty-three candidates, three per tick')
+  game.requests = {'judy'}; holocall.drain(player); tick(3.3)
+  assert(#created == 0 and holocall.call.state == 'dialing', 'forty-two candidates, three per tick')
   tick(1.2)
-  assert(logged('reason=no%-studio%-spot %(no%-floor=33%)') and holocall.connected() and holocall.call.mode == 'audio')
+  assert(logged('reason=no%-studio%-spot %(no%-floor=42%)') and holocall.connected() and holocall.call.mode == 'audio')
   holocall.finish(player, 'hangup'); roof = true
   -- A record the game does not have: never spawned (it would crash), the portrait instead.
   records['Character.Judy'] = nil
@@ -475,8 +480,10 @@ test('with nothing above V (a high apartment) the copy is placed on the ground b
   -- No roof above; ground 10 m below V's feet level; a wall at x = 11 between V (x = 10) and everything east of it.
   roof = false; ground = 20; wall = 11
   game.requests = {'judy'}; holocall.drain(player); tick(0.3)
-  assert(#created == 0, 'the nine columns above find nothing; three candidates per tick')
-  tick(0.8)
+  assert(#created == 0, 'the near and the above columns find nothing; three candidates per tick')
+  -- The near ring behind the wall has floor, but 11.2 m from V (5 m round, 10 m down): past FACE_RANGE, where the game
+  -- stops animating a face, so it is skipped for the farther search.
+  tick(1.8)
   assert(#created == 5, 'the first hidden ring column behind the wall gets the copy, the camera and the lamps')
   local copy = created[1]
   assert(copy.recordID == 'Character.Judy' and near(copy.position.x, 22) and near(copy.position.y, 20) and near(copy.position.z, 20), copy.position.x .. ' ' .. copy.position.z)
@@ -485,8 +492,17 @@ test('with nothing above V (a high apartment) the copy is placed on the ground b
   assert(holocall.connected() and holocall.call.mode == 'holo' and game.connects[#game.connects] == true)
   -- A ring column in plain view of V is never used: without the wall every spot is seen.
   holocall.finish(player, 'hangup'); wall = nil; created = {}
-  game.requests = {'judy'}; holocall.drain(player); tick(4)
-  assert(#created == 0 and logged('no%-studio%-spot %(in%-view=24, no%-floor=9%)') and holocall.call.mode == 'audio')
+  game.requests = {'judy'}; holocall.drain(player); tick(4.5)
+  assert(#created == 0 and logged('no%-studio%-spot %(in%-view=33, no%-floor=9%)') and holocall.call.mode == 'audio')
+  holocall.finish(player, 'hangup')
+  -- A floor 5 m below V behind the wall: the near ring finds it 7.1 m from V, close enough for her face to move, and it
+  -- is taken before any farther column is tried.
+  ground = 25; wall = 11; created = {}
+  game.requests = {'judy'}; holocall.drain(player); tick(0.8)
+  assert(#created == 5, 'the near ring column behind the wall is used at once')
+  copy = created[1]
+  assert(near(copy.position.x, 14.61940) and near(copy.position.y, 21.91342) and near(copy.position.z, 25), copy.position.x .. ' ' .. copy.position.y)
+  assert(logged('floor=%-5.0m away=7.1m'))
 `));
 
 test('a character the game has no holocall setup for gets the portrait voice call, as in the game, with nothing spawned', () => run(world + `
