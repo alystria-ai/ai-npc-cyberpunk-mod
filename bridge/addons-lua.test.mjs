@@ -1575,3 +1575,96 @@ test('replaces: the speaker\'s gap does not refuse a line that stands in for the
     assert(#submitted == 2 and submitted[2].context.addon.event == 'ride-start', 'and it is sent in the gap too')
   `);
 });
+
+test('handle:after: runs a function once on the add-on tick, bounded to eight pending, forgotten by a reset, an error is logged and harms nothing', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'cab', name = 'Delamain', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'voice', name = 'Delamain', anchor = 'vehicle'})
+    local ran = {}
+    assert(select(2, handle:after(1, 'no')) == 'fn must be a function')
+    assert(handle:after(2, function() ran[#ran + 1] = 'two' end))
+    assert(handle:after(0.5, function() ran[#ran + 1] = 'half' end))
+    assert(handle:after(0.5, function() error('boom') end))
+    assert(handle:after(0.5, function() ran[#ran + 1] = 'after-error' end))
+    tick(0.3)
+    assert(#ran == 0, 'not before its time')
+    tick(0.3)
+    assert(table.concat(ran, ',') == 'half,after-error', table.concat(ran, ','))
+    local failed = false
+    for _, line in ipairs(logs) do if line:find('after() callback of cab failed', 1, true) then failed = true end end
+    assert(failed, 'the error is logged')
+    tick(0.3); tick(1.5)
+    assert(table.concat(ran, ',') == 'half,after-error,two', 'once, in its turn')
+    tick(5)
+    assert(#ran == 3, 'never again')
+    for index = 1, 8 do assert(handle:after(5, function() ran[#ran + 1] = 'x' end), tostring(index)) end
+    local ok, why = handle:after(5, function() end)
+    assert(ok == false and why == 'too-many', tostring(why))
+    M.reset('load')
+    tick(10)
+    assert(#ran == 3, 'a session reset forgets the pending ones')
+  `);
+});
+
+const UNLESS_LINE = `${WORLD}${CAB}
+    player.vehicle = car
+    tick()
+    handle:replaceGameLines({name = 'Delamain', match = function(line) return line.speakerName == 'Delamain' end, audio = {'vo_3d'}, audioVerified = false})
+    local rule = M.matchLine({speakerName = 'Delamain'}, {})
+    local function muted(id) M.mutedLine(rule, {seconds = 2, measured = true, id = id, subtitle = 'filtered', audio = 'stop-sent(vo_3d)'}) end
+`;
+
+test('unlessGameLine: a muted game line whose voice stop is not verified counts as heard; the remark asked after it is refused, one asked within 3 s too, one asked later is not', () => {
+  run(`${UNLESS_LINE}
+    muted('000009')
+    local ok, why = handle:remark('voice', {event = 'arrival', priority = 5, ttl = 12, replaces = true, unlessGameLine = true})
+    assert(ok == false and why == 'game-line', tostring(why))
+    -- Without the option the same remark is made as before.
+    assert(handle:remark('voice', {event = 'plain', priority = 5, ttl = 12, replaces = true}))
+    M._test.queue()[1] = nil
+    tick(2.9)
+    ok, why = handle:remark('voice', {event = 'arrival', priority = 5, ttl = 12, replaces = true, unlessGameLine = true})
+    assert(ok == false and why == 'game-line', 'still inside the look-back: ' .. tostring(why))
+    tick(0.3)
+    assert(handle:remark('voice', {event = 'arrival', priority = 5, ttl = 12, replaces = true, unlessGameLine = true}), 'a later moment has its own line')
+  `);
+});
+
+test('unlessGameLine: the line seen while the remark waits or is written drops it; the remark that already plays is not cut; a verified stop never counts', () => {
+  run(`${UNLESS_LINE}
+    -- Queued, not sent yet: dropped when the line is seen.
+    state.automatic = true
+    assert(handle:remark('voice', {event = 'ride-start', priority = 4, ttl = 12, replaces = true, unlessGameLine = true}))
+    assert(#M._test.queue() == 1)
+    muted('000005')
+    assert(#M._test.queue() == 0 and events[1] == 'remarkDropped:game-line-heard', tostring(events[1]))
+    state.automatic = false
+    tick(5)
+    -- Being written: released unheard, nothing is spoken.
+    assert(handle:remark('voice', {event = 'arrival', priority = 5, ttl = 12, replaces = true, unlessGameLine = true})); tick()
+    assert(#submitted == 1 and M._test.flight().stage == 'pending')
+    muted('000009')
+    assert(M._test.flight() == nil, 'taken back before a word')
+    assert(events[#events] == 'remarkFinished:game-line-heard:false', tostring(events[#events]))
+    tick(5)
+    -- Playing already: left to finish.
+    assert(handle:remark('voice', {event = 'ride-start', priority = 4, ttl = 12, replaces = true, unlessGameLine = true})); tick()
+    local context = submitted[#submitted].context
+    state.pendingId, state.speechId = nil, context.requestId
+    tick(); tick()
+    assert(M._test.flight().stage == 'playing')
+    muted('000010')
+    assert(M._test.flight() ~= nil and M._test.flight().stage == 'playing', 'a line that has started is not cut')
+  `);
+  run(`${WORLD}${CAB}
+    player.vehicle = car
+    tick()
+    handle:replaceGameLines({name = 'Delamain', match = function() return true end, audio = {'vo_3d'}, audioVerified = true})
+    local rule = M.matchLine({speakerName = 'Delamain'}, {})
+    M.mutedLine(rule, {seconds = 2, measured = true, id = '000001', subtitle = 'filtered', audio = 'stop-sent(vo_3d)'})
+    assert(handle:remark('voice', {event = 'arrival', priority = 5, ttl = 12, replaces = true, unlessGameLine = true}), 'the voice really stopped: ours may play')
+    M.mutedLine(rule, {seconds = 2, measured = true, id = '000002', subtitle = 'filtered', audio = 'stop-sent(vo_3d)'})
+    assert(#M._test.queue() == 1, 'and a later muted line does not take it back')
+  `);
+});
