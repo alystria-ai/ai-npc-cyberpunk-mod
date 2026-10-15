@@ -2315,7 +2315,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:176",
-        "mod/phone-chat-style.lua:244",
+        "mod/phone-chat-style.lua:250",
         "r6/scripts/CyberpunkConvai/PhoneChat.reds:451",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:378"
       ]
@@ -2507,7 +2507,7 @@
         "phone.native"
       ],
       "references": [
-        "mod/phone-chat-style.lua:227",
+        "mod/phone-chat-style.lua:233",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:331"
       ]
     },
@@ -5366,7 +5366,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:319"
+        "mod/phone-chat-style.lua:325"
       ]
     },
     "Press your Group voice chat shortcut to finish recording.": {
@@ -5877,7 +5877,8 @@
         "mod/mcm.lua:1843",
         "mod/phone-chat-style.lua:140",
         "mod/phone-chat-style.lua:143",
-        "mod/phone-chat-style.lua:190"
+        "mod/phone-chat-style.lua:190",
+        "mod/phone-chat-style.lua:199"
       ]
     },
     "Selected character": {
@@ -7764,7 +7765,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:318"
+        "mod/phone-chat-style.lua:324"
       ]
     },
     "YOUR PARTY": {
