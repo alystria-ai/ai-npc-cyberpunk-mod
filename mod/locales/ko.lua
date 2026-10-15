@@ -565,7 +565,7 @@ return {
     ["Deletes the saved key. Conversations go back to Convai free tier."] = "저장된 키를 삭제합니다. 대화는 다시 Convai (무료 플랜)을 사용합니다.",
     ["Mistral (free plan)"] = "Mistral (무료 플랜)",
     ["Mistral did not accept that key."] = "Mistral이 해당 키를 허용하지 않았습니다.",
-    ["Mistral API key"] = "Mistral API 키",
+    ["Mistral free API key"] = "Mistral 무료 API 키",
     ["Mistral replies are spoken by a local voice instead of the Convai cloud voice."] = "Mistral의 응답은 Convai 클라우드 음성 대신 로컬 음성으로 읽힙니다.",
     ["Mistral: free limit reached for now"] = "Mistral: 무료 한도에 일시적으로 도달함",
     ["Mistral: key not accepted"] = "Mistral: 키가 허용되지 않음",

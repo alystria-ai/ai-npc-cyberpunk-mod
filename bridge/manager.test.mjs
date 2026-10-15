@@ -5436,7 +5436,7 @@ test('Settings sections: Conversation provider sits after Conversations and befo
         end
       end
     end
-    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'companionVision', 'matureContent', 'localModel', 'own-key', 'mistral-key'}, ','),
+    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'companionVision', 'matureContent', 'localModel', 'mistral-key', 'own-key'}, ','),
       table.concat(idsOf('conversation-provider'), ','))
     assert(table.concat(idsOf('development'), ',') == 'developerMode', table.concat(idsOf('development'), ','))
     local voices = idsOf('voices')
@@ -5677,7 +5677,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(provider.description:find('local voice', 1, true) and provider.description:find('until no conversation is running', 1, true))
     assert(provider.description:find('not available yet', 1, true), 'without local speech recognition the help says so')
     local mistral = row('mistral-key')
-    assert(mistral and mistral.type == 'action' and mistral.label == 'Mistral API key' and mistral.value == 'Paste', mistral.label)
+    assert(mistral and mistral.type == 'action' and mistral.label == 'Mistral free API key' and mistral.value == 'Paste', mistral.label)
     assert(mistral.description:find('phone verification', 1, true) and mistral.description:find('player-mistral-key.txt', 1, true) and mistral.description:find('monthly cap', 1, true) and mistral.description:find('about 5,000 turns a day', 1, true))
     assert(row('local-ai-status') == nil and row('own-key-using') == nil and row('mistral-key-status') == nil, 'the status rows are gone')
     assert(lastParagraph(provider.description) == lastParagraph(row('conversationProvider').description))
@@ -5686,7 +5686,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     for _, category in ipairs(loaded.categories) do
       if category.id == 'conversation-provider' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
     end
-    assert(table.concat(order, ',') == 'conversationProvider,companionVision,matureContent,localModel,own-key,mistral-key', table.concat(order, ','))
+    assert(table.concat(order, ',') == 'conversationProvider,companionVision,matureContent,localModel,mistral-key,own-key', table.concat(order, ','))
     local function refresh() clock = clock + 2; manager.snapshot(player); loaded = registered.loadMod('manager') end
     local function answer(tag, state)
       jsonFixtures['or-state-' .. tag] = state
@@ -5703,7 +5703,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     local function id(number) return (command.id:gsub(':1$', ':' .. number)) end
     answer('invalid', {version = 1, provider = 'convai', effective = 'convai', saved = false, result = {id = id(1), state = 'invalid'}})
     mistral = row('mistral-key')
-    assert(mistral.label == 'Mistral API key (Not added)' and mistral.value == 'Paste' and firstParagraph(mistral.description) == 'Mistral did not accept that key.', mistral.label)
+    assert(mistral.label == 'Mistral free API key (Not added)' and mistral.value == 'Paste' and firstParagraph(mistral.description) == 'Mistral did not accept that key.', mistral.label)
     answer('unreadable', {provider = 'convai', effective = 'convai', saved = false, result = {id = id(1), state = 'unreadable'}})
     assert(firstParagraph(row('mistral-key').description) == 'The clipboard could not be read.')
     answer('failed', {provider = 'convai', effective = 'convai', saved = false, result = {id = id(1), state = 'failed'}})
@@ -5712,19 +5712,19 @@ test('The Conversation provider section offers the provider, Mature content, the
     answer('saved', {version = 1, provider = 'mistral', effective = 'mistral', saved = true, tail = 'abcd', stt = false,
       model = 'mistral-small-latest', result = {id = id(2), state = 'saved'}})
     mistral = row('mistral-key')
-    assert(mistral.label == 'Mistral API key (…abcd)' and mistral.value == 'Remove', mistral.label)
+    assert(mistral.label == 'Mistral free API key (…abcd)' and mistral.value == 'Remove', mistral.label)
     assert(mistral.description:find('Deletes the saved key', 1, true) and mistral.description:find('last four characters', 1, true))
     assert(not mistral.description:find('Mistral did not accept', 1, true))
     answer('no-tail', {provider = 'mistral', effective = 'mistral', saved = true})
-    assert(row('mistral-key').label == 'Mistral API key (Added)' and row('mistral-key').value == 'Remove')
+    assert(row('mistral-key').label == 'Mistral free API key (Added)' and row('mistral-key').value == 'Remove')
     -- An answer to an older command is not shown, a damaged status reads as Convai without a key.
     answer('old', {provider = 'mistral', effective = 'mistral', saved = true, tail = 'abcd', result = {id = 'x:mkey:9', state = 'invalid'}})
-    assert(row('mistral-key').label == 'Mistral API key (…abcd)' and not row('mistral-key').description:find('Mistral did not accept', 1, true))
+    assert(row('mistral-key').label == 'Mistral free API key (…abcd)' and not row('mistral-key').description:find('Mistral did not accept', 1, true))
     answer('garbled', {provider = 7, effective = {}, saved = 'yes', tail = 5, limit = 'sometimes', stt = 'yes', model = 12})
     local state = manager.mistral()
     assert(state.provider == 'convai' and state.effective == 'convai' and state.saved == false and state.tail == nil
       and state.limit == nil and state.stt == false and state.model == nil and state.result == nil)
-    assert(row('mistral-key').label == 'Mistral API key' and row('mistral-key').value == 'Paste')
+    assert(row('mistral-key').label == 'Mistral free API key' and row('mistral-key').value == 'Paste')
     -- Limits and the waiting state are told in the last paragraph of the provider row's help.
     for limit, text in pairs({rate = 'Mistral: free limit reached for now', daily = 'Mistral: free limit reached for now',
       invalid = 'Mistral: key not accepted', model = 'Mistral: model unavailable'}) do

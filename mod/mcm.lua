@@ -1619,20 +1619,22 @@ local function ownKeyRows(snapshot)
             'With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only.'),
         matureRow,
         modelRow,
+        keyRow('Mistral free API key',
+            'Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day. It sets its own monthly cap, estimated at about 150,000 turns.',
+            'Deletes the saved key. Conversations go back to Convai free tier.',
+            'mistral-key', {saved = mistral.saved == true, tail = mistral.tail, message = mistralMessage},
+            function() return manager.pasteMistralKey() end, function() return manager.removeMistralKey() end, limitHelp),
         keyRow('Convai API key',
             'Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.',
             'Deletes the saved key. Conversations go back to Convai free tier.',
             'own-key', {saved = own.saved, tail = own.tail, checking = result == 'checking', message = ownMessage},
             function() return manager.pasteOwnKey() end, function() return manager.removeOwnKey() end),
-        keyRow('Mistral API key',
-            'Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day. It sets its own monthly cap, estimated at about 150,000 turns.',
-            'Deletes the saved key. Conversations go back to Convai free tier.',
-            'mistral-key', {saved = mistral.saved == true, tail = mistral.tail, message = mistralMessage},
-            function() return manager.pasteMistralKey() end, function() return manager.removeMistralKey() end, limitHelp),
     }
     -- Convai paid tier: right under the Convai API key row, whose key a plan is bought for.
     if paidTier then
-        table.insert(rows, 6, action('paid-tier', 'Convai paid tier', 'Open',
+        local at = #rows + 1
+        for index, item in ipairs(rows) do if item.id == 'own-key' then at = index + 1 end end
+        table.insert(rows, at, action('paid-tier', 'Convai paid tier', 'Open',
             'Convai’s plans for this mod: more Convai conversations on your own Convai API key. Opens a page with the plans and their prices.',
             function(context)
                 paidTier.request('refresh')
@@ -1701,7 +1703,8 @@ local function paidTierRows(snapshot)
             or ui.t('{plan}, {price} a month', {plan = plan.name, price = plan.price})
         -- What the plan gives that this mod uses: its monthly interactions. (Its concurrent connections are not named: on a player's own key
         -- the mod keeps one conversation connection at a time, docs/OWN_CONVAI_KEY.md.)
-        local gives = plan.interactions and (ui.t('{count} Convai interactions a month.', {count = plan.interactions}) .. ' ') or ''
+        local quota = paidTier.quota(plan)
+        local gives = quota and (ui.t('{count} Convai interactions a month.', {count = quota}) .. ' ') or ''
         local billed = plan.period == 'yearly' and ui.t('Billed once a year.') or ui.t('Billed every month.')
         local help = gives .. billed .. '\n\n'
             .. ui.t('Opens Convai’s payment page (Stripe) in your browser. You pay Convai directly; the mod never sees your card. Your plan is active about 15 seconds after you pay, and conversations then use your Convai API key.')

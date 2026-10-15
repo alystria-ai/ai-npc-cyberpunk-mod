@@ -161,7 +161,7 @@ If you want more Convai usage than the free tier gives, **Convai paid tier**, ri
 ### Mistral (free plan)
 
 1. Make a free account at Mistral (the free plan needs phone verification) and create an API key.
-2. Copy the key, open **Settings > Conversation provider**, and press **Paste** on the **Mistral API key** row.
+2. Copy the key, open **Settings > Conversation provider**, and press **Paste** on the **Mistral free API key** row.
 3. Choose **Mistral (free plan)** as the provider and **Apply**.
 
 Mistral answers quickly and costs nothing. Its replies are plainer than Convai's. Memory stays on your computer. The microphone works through speech recognition that runs on your computer, in English. Mistral does not receive pictures, so **Companions can see** does nothing with it. With no key saved, conversations use Convai and you see one notice.

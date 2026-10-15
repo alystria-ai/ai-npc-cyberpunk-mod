@@ -565,7 +565,7 @@ return {
     ["Deletes the saved key. Conversations go back to Convai free tier."] = "刪除已儲存的金鑰。對話將改回使用 Convai（免費方案）。",
     ["Mistral (free plan)"] = "Mistral（免費方案）",
     ["Mistral did not accept that key."] = "Mistral 不接受該金鑰。",
-    ["Mistral API key"] = "Mistral API 金鑰",
+    ["Mistral free API key"] = "Mistral 免費 API 金鑰",
     ["Mistral replies are spoken by a local voice instead of the Convai cloud voice."] = "Mistral 的回覆由本地語音朗讀，而不是 Convai 雲端語音。",
     ["Mistral: free limit reached for now"] = "Mistral：免費額度暫時已用完",
     ["Mistral: key not accepted"] = "Mistral：金鑰未被接受",

@@ -50,6 +50,11 @@ local PLAN_NAMES = {
     ['GamerProPlanV2-Monthly'] = {'Gamer Pro', 'monthly'}, ['GamerProPlanV2-Yearly'] = {'Gamer Pro', 'yearly'},
 }
 
+-- Interactions a month of the two plan families Convai made for this mod (from the user, 2026-10-16). The page shows these, not the number the
+-- running service published: a conversation service older than this file (a CET reload without a service restart) still sends the earlier
+-- figures. A plan family this table does not know shows the number the service sent, if any.
+local QUOTAS = {Gamer = 500, ['Gamer Pro'] = 1000}
+
 function M.new(options)
     options = options or {}
     local ui = options.ui
@@ -103,6 +108,9 @@ function M.new(options)
         if name == 'GamerProPlanV2-Yearly' then return ui.t('Gamer Pro, yearly') end
         return name
     end
+
+    -- Interactions a month of `plan` (one of state.plans), or nil when unknown.
+    function self.quota(plan) return QUOTAS[plan.name] or plan.interactions end
 
     -- Whether `plan` (one of state.plans) is the plan the key has now.
     function self.isCurrent(state, plan)

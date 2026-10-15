@@ -565,7 +565,7 @@ return {
     ["Deletes the saved key. Conversations go back to Convai free tier."] = "Törli a mentett kulcsot. A beszélgetések visszatérnek a Convai (ingyenes csomag) szolgáltatáshoz.",
     ["Mistral (free plan)"] = "Mistral (ingyenes csomag)",
     ["Mistral did not accept that key."] = "A Mistral nem fogadta el ezt a kulcsot.",
-    ["Mistral API key"] = "Mistral API-kulcs",
+    ["Mistral free API key"] = "Ingyenes Mistral API-kulcs",
     ["Mistral replies are spoken by a local voice instead of the Convai cloud voice."] = "A Mistral válaszait helyi hang mondja fel, nem a Convai felhős hangja.",
     ["Mistral: free limit reached for now"] = "Mistral: az ingyenes keret egyelőre betelt",
     ["Mistral: key not accepted"] = "Mistral: a kulcs nem elfogadott",

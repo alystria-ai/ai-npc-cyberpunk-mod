@@ -448,3 +448,45 @@ test('the status line waits at most seven minutes for an answer that never comes
   advance(430); pump(false, 4)
   assert(not mcm.inspect().paidStatusPending, 'gave up looking after seven minutes')
 `));
+
+test('each of the four plan rows shows its own quota, whatever the running service sent: Gamer 500, Gamer Pro 1000', () => run(`${paidFixture}
+  jsonFile('runtime/own-key-state.json', {version = 1, saved = true, tail = 'abcd', active = 'shared'})
+  local function quotas()
+    local seen = {}
+    for _, id in ipairs({'gamer-monthly', 'gamer-yearly', 'pro-monthly', 'pro-yearly'}) do
+      local item = row('paid:buy:' .. id) or row('paid:current:' .. id)
+      local number = item.description:match('^(%d+) Convai interactions a month%.')
+      seen[#seen + 1] = id .. '=' .. tostring(number)
+    end
+    return table.concat(seen, ' ')
+  end
+  local want = 'gamer-monthly=500 gamer-yearly=500 pro-monthly=1000 pro-yearly=1000'
+  service({plan = {name = 'Free', paid = false}})
+  openPage()
+  assert(quotas() == want, quotas())
+  -- A service started before this file changed still sends 1000 for Gamer and nothing for Gamer Pro.
+  jsonFile('runtime/paid-tier-state.json', {version = 1, updated = clockNow * 1000.0, keySaved = true, plan = {name = 'Free', paid = false}, plans = {
+    {id = 'gamer-monthly', name = 'Gamer', period = 'monthly', price = '$4', interactions = 1000, concurrency = 6},
+    {id = 'gamer-yearly', name = 'Gamer', period = 'yearly', price = '$32', interactions = 1000, concurrency = 6},
+    {id = 'pro-monthly', name = 'Gamer Pro', period = 'monthly', price = '$8'},
+    {id = 'pro-yearly', name = 'Gamer Pro', period = 'yearly', price = '$64'}}})
+  pump(false, 4); loaded = registered.loadMod('manager')
+  assert(quotas() == want, 'stale service: ' .. quotas())
+  -- The current plan's row and a plan family the page does not know.
+  service({plan = {name = 'GamerProPlanV2-Monthly', paid = true}})
+  pump(false, 4); loaded = registered.loadMod('manager')
+  assert(quotas() == want, 'current plan: ' .. quotas())
+`));
+
+test('Conversation provider: the Mistral free API key row sits above the Convai API key row, the paid tier entry right under the Convai key', () => run(`${paidFixture}
+  jsonFile('runtime/own-key-state.json', {version = 1, saved = false, active = 'shared'})
+  service({keySaved = false})
+  assert(invoke('tab:settings').ok)
+  local at = {}
+  for index, item in ipairs(category('conversation-provider').settings) do at[item.id] = index end
+  assert(at['mistral-key'] and at['own-key'] and at['paid-tier'], 'all three rows are there')
+  assert(at['mistral-key'] < at['own-key'] and at['paid-tier'] == at['own-key'] + 1, 'Mistral, then Convai, then the paid tier entry')
+  assert(row('mistral-key').label == 'Mistral free API key', row('mistral-key').label)
+  assert(row('own-key').label == 'Convai API key')
+  assert(not (row('mistral-key').label .. row('mistral-key').description):lower():find('recommend'))
+`));

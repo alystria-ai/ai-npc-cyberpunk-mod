@@ -565,7 +565,7 @@ return {
     ["Deletes the saved key. Conversations go back to Convai free tier."] = "Borra la clave guardada. Las conversaciones vuelven a Convai (plan gratuito).",
     ["Mistral (free plan)"] = "Mistral (plan gratuito)",
     ["Mistral did not accept that key."] = "Mistral no aceptó esa clave.",
-    ["Mistral API key"] = "Clave de API de Mistral",
+    ["Mistral free API key"] = "Clave de API gratuita de Mistral",
     ["Mistral replies are spoken by a local voice instead of the Convai cloud voice."] = "Las respuestas de Mistral las dice una voz local en lugar de la voz en la nube de Convai.",
     ["Mistral: free limit reached for now"] = "Mistral: límite gratuito alcanzado por ahora",
     ["Mistral: key not accepted"] = "Mistral: clave no aceptada",
