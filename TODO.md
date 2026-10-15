@@ -15,6 +15,7 @@ Install state: `main` 328d6b51 is installed in the game (103 `mod/` files and th
 - Timing facts: about 35 new Cyberpunk mods a day, so a new one stays on page 1 of New for 12 to 14 hours; trending ranks mods first published in its window by endorsements; Steam peaks about 13:00 to 14:00 UTC and Sundays run 10 to 20% above weekdays.
 
 ### Needs the user (decisions and approvals)
+- **Convai paid tier (branch `convai-paid-tier`): review, merge, then approve the backend deploy.** The plan-list override (`GET /api/convai/plans`, `paidPlans` in `/api/admin/config`) only works after `vercel deploy --prod` from `auth-backend/`. Without it, the built-in plans apply. Not seen in the game yet. Questions for Convai are in `docs/CONVAI_PAID_TIER.md`, "What is left open".
 - ~~**Backend redeploy for the server-set daily limit.**~~ Done 2026-10-15: `vercel deploy --prod` from `auth-backend/` (46 tests pass); `GET /api/admin/config` answers `{"dailyInteractionLimit":100,"stored":null,...}`. Change the limit with the README section "Changing the daily limit".
 - **Remind the user on 2026-10-17 to make the GitHub repository `alystria-ai/cyberpunk-convai` public.** Releases publish there and players need it public.
 - **Push `main` and the add-on repositories (approval needed).** `main` is 37 commits ahead of `alystria/main` (pushed up to 3e1e7b2f); Skippy has 2 unpushed commits (`52892f8`, `8a55e3d`), Delamain 3 (`7684bdd`, `29fdfb6`, `d55dea3`). Push as the `alystria-ai` gh account, then switch back to `AkshitIreddy`.
@@ -143,6 +144,8 @@ All run on what is installed. Detail: the doc or log entry named; the shortened 
 - Lip sync for vendors and ordinary NPCs by an appearance hop (2026-10-10): superseded by the gated crowd face graph (live check above).
 
 ## Captain's log
+
+**2026-10-15 (branch `convai-paid-tier`, from main 00cd8757; unit-tested, NOT merged, NOT installed, backend change NOT deployed): Convai paid tier.** Settings > Conversation provider > **Convai paid tier** opens a page with Convai's four Gamer plans for this mod (Gamer $4/month or $32/year, 1000 interactions a month; Gamer Pro $8/$64). Buy asks `https://payment.convai.com/new-transaction` with the player's own key and the plan's prod price id, then opens Stripe's checkout with the existing opener. The bridge follows the plan (every 6 s for a minute, then every 20 s, five minutes at most). On confirmation it switches the provider to Convai API key and shows one notice. Manage or cancel plan opens convai.com/management/billing, where Convai's own Churnkey flow runs. The mod has no Convai sign-in: the key still comes from Paste. Price ids are built in, and the plan list can be overridden from the backend (`cfg:paidPlans`, `GET /api/convai/plans`, needs a deploy). All 15 locales translated; README's one spot updated; `docs/CONVAI_PAID_TIER.md`. Tests: 17 bridge, 5 Lua UI, 4 backend (all endpoints mocked; no checkout, no payment, no live turn). Open items: Pro quota numbers, the V2 `plan_name` values, the final get-user-details path (unauthenticated e-mail lookup on Convai's side), and whether paid keys lift single-session or multilingual.
 
 **2026-10-15:** Alt Cunningham live check closed by the user ("it will probably work for alt, mark as done"); not seen live.
 

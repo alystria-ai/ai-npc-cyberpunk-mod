@@ -113,7 +113,7 @@ test('the admin config sets, shows and removes the daily limit, and the token en
   const world = createWorld({ CONVAI_AUTH_DAILY_TURN_CAP: '100' });
   const handler = createAdminConfigHandler({ env: world.env, store: world.store });
   const shown = await call(handler, { url: '/api/admin/config', headers: asAdmin });
-  assert.deepEqual(shown.json, { dailyInteractionLimit: 100, stored: null, environmentDefault: 100, min: 1, max: 10000 });
+  assert.deepEqual(shown.json, { dailyInteractionLimit: 100, stored: null, environmentDefault: 100, min: 1, max: 10000, paidPlans: null });
   const set = await callWithBody(handler, { method: 'POST', headers: asAdmin, body: JSON.stringify({ dailyInteractionLimit: 150 }) });
   assert.equal(set.statusCode, 200);
   assert.equal(set.json.dailyInteractionLimit, 150);
@@ -132,7 +132,7 @@ test('the admin config sets, shows and removes the daily limit, and the token en
   assert.equal(refused.statusCode, 429, 'a lowered limit applies to the next request');
   assert.equal(refused.json.allowance.limit, 20);
   const removed = await callWithBody(handler, { method: 'POST', headers: asAdmin, body: JSON.stringify({ dailyInteractionLimit: null }) });
-  assert.deepEqual(removed.json, { dailyInteractionLimit: 100, stored: null, environmentDefault: 100, min: 1, max: 10000 });
+  assert.deepEqual(removed.json, { dailyInteractionLimit: 100, stored: null, environmentDefault: 100, min: 1, max: 10000, paidPlans: null });
   const back = await world.send({ installId: randomUUID(), turns: 50 });
   assert.equal(back.json.allowance.limit, 100);
   const turns = await call(createAdminTurnsHandler({ env: world.env, store: world.store, now: () => world.clock.now }), { headers: asAdmin });

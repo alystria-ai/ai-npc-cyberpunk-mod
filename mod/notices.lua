@@ -40,6 +40,9 @@ M.catalog = {
     ['key-memory'] = {class = PLAYER, repeatS = 86400},   -- a player's Convai plan has no room for conversation memory: companions go on without it
     ['quota-exhausted'] = {class = PLAYER, repeatS = 86400}, -- the plan is used up or the player's own key is refused: once per game session
     ['daily-limit'] = {class = PLAYER, repeatS = 86400},     -- the shared plan's daily allowance is used up: once per game session, only for a turn V asked for
+    -- Convai paid tier (mod/convai-paid-tier.lua, docs/CONVAI_PAID_TIER.md): the outcome of a plan bought on the settings page
+    ['paid-tier-active'] = {class = PLAYER, repeatS = 60},   -- Convai confirmed the plan; conversations moved to the player's own key
+    ['paid-tier-pending'] = {class = PLAYER, repeatS = 60},  -- five minutes after the payment page opened, Convai still showed no new plan
     -- Mistral as the conversation provider: a turn V asked for fails (an automatic reaction just stops), and two one-time notices
     ['mistral-key'] = {class = PLAYER, repeatS = 60},       -- Mistral did not accept the saved key
     ['mistral-limit'] = {class = PLAYER, repeatS = 60},     -- Mistral's free limit (about one message a second, plus a monthly allowance) is reached

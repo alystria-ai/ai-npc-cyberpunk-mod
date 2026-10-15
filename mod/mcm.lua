@@ -88,6 +88,10 @@ local supportLoaded, supportFactory = pcall(dofile, 'support-report.lua')
 -- Edit characters: opens the character editor page in the player's browser. Optional like Help: without it the row is not shown.
 local editor
 local editorLoaded, editorFactory = pcall(dofile, 'character-editor.lua')
+-- Convai paid tier (docs/CONVAI_PAID_TIER.md): its own page under Settings > Conversation provider. Optional like Help: without the file
+-- the entry is not shown. paidNotice: the notice of a confirmed (or unconfirmed) purchase, held until gameplay.
+local paidTier, paidNotice
+local paidTierLoaded, paidTierFactory = pcall(dofile, 'convai-paid-tier.lua')
 local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); file:close() end
@@ -1610,6 +1614,15 @@ local function ownKeyRows(snapshot)
             'mistral-key', {saved = mistral.saved == true, tail = mistral.tail, message = mistralMessage},
             function() return manager.pasteMistralKey() end, function() return manager.removeMistralKey() end, limitHelp),
     }
+    -- Convai paid tier: right under the Convai API key row, whose key a plan is bought for.
+    if paidTier then
+        table.insert(rows, 6, action('paid-tier', 'Convai paid tier', 'Open',
+            'Convai’s plans for this mod: more Convai conversations on your own Convai API key. Opens a page with the plans and their prices.',
+            function(context)
+                paidTier.request('refresh')
+                return navigate('paid-tier', context)
+            end))
+    end
     if editor then
         rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
             'Edit a character’s bio, speaking style, speaking rules and memories in your browser.\n\nWorks with Mistral and Local, not Convai. Changes apply from the next reply.',
@@ -1622,6 +1635,76 @@ local function ownKeyRows(snapshot)
         'inworld-key', {saved = inworld.saved == true, tail = inworld.tail, message = inworldMessage},
         function() return manager.pasteInworldKey() end, function() return manager.removeInworldKey() end)
     return rows, inworldRow
+end
+
+-- Settings > Conversation provider > Convai paid tier (docs/CONVAI_PAID_TIER.md): the player's plan, the Convai API key row (a plan is
+-- bought for that key), one row per plan, a check and the Convai billing page. Prices and plans come from the conversation service
+-- (bridge/convai-paid-tier.mjs), which also does every request; this page only sends commands through mod/convai-paid-tier.lua.
+local function paidTierRows(snapshot)
+    local state, own = paidTier.state(), snapshot.ownKey
+    local keySaved = own.saved == true
+    local rows = {action('paid-tier:back', 'Back to settings', 'Back', 'Return to conversation settings.',
+        function(context) return navigate('settings', context) end)}
+    if not state.available then
+        rows[#rows + 1] = readonly('paid-unavailable', 'Convai paid tier', 'Unavailable',
+            'The conversation service is not running, so plans cannot be shown. Restart the game.')
+        return {category('paid-tier', 'Convai paid tier', rows)}
+    end
+    local planValue, planHelp
+    if not keySaved then planValue, planHelp = ui.t('No key added'), ui.t('Add your Convai API key below to see and buy a plan.')
+    elseif state.plan and state.plan.name then
+        planValue = state.plan.name
+        planHelp = state.plan.paid and ui.t('Conversations with Convai API key chosen as the provider use this plan.')
+            or ui.t('This key has no paid plan. Choose a plan below.')
+    else planValue, planHelp = ui.t('Not checked yet'), ui.t('Choose Check my plan to ask Convai.') end
+    local message = paidTier.message(state)
+    if message then planHelp = message .. '\n\n' .. planHelp end
+    rows[#rows + 1] = readonly('paid-plan', 'Your Convai plan', planValue, planHelp, {value = true, description = true})
+    if not keySaved then
+        rows[#rows + 1] = action('paid:key-page', 'Get your Convai API key', 'Open',
+            'Opens convai.com in your browser. Sign in or make a free account, copy your API key, then come back and choose Paste below.',
+            function() return paidTier.request('key-page') end)
+    end
+    local ownMessage = own.result == 'empty' and ui.t('The clipboard is empty. Copy your key first.')
+        or own.result == 'not-a-key' and ui.t('The clipboard does not hold a Convai API key.')
+        or own.result == 'invalid' and ui.t('Convai did not accept that key.')
+        or own.result == 'clipboard' and ui.t('The clipboard could not be read.')
+        or own.result == 'failed' and ui.t('The key could not be saved.') or nil
+    rows[#rows + 1] = keyRow('Convai API key',
+        'Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.',
+        'Deletes the saved key. Conversations go back to Convai free tier.',
+        'paid-own-key', {saved = keySaved, tail = own.tail, checking = own.result == 'checking', message = ownMessage},
+        function() return manager.pasteOwnKey() end, function() return manager.removeOwnKey() end)
+    local plans = {}
+    for _, plan in ipairs(state.plans) do
+        local label = plan.period == 'yearly' and ui.t('{plan}, {price} a year', {plan = plan.name, price = plan.price})
+            or ui.t('{plan}, {price} a month', {plan = plan.name, price = plan.price})
+        -- What the plan gives that this mod uses: its monthly interactions. (Its concurrent connections are not named: on a player's own key
+        -- the mod keeps one conversation connection at a time, docs/OWN_CONVAI_KEY.md.)
+        local gives = plan.interactions and ui.t('{count} Convai interactions a month.', {count = plan.interactions})
+            or ui.t('More Convai interactions a month than Gamer.')
+        local billed = plan.period == 'yearly' and ui.t('Billed once a year.') or ui.t('Billed every month.')
+        local help = gives .. ' ' .. billed .. '\n\n'
+            .. ui.t('Opens Convai’s payment page (Stripe) in your browser. You pay Convai directly; the mod never sees your card. Your plan is active about 15 seconds after you pay, and conversations then use your Convai API key.')
+        if not keySaved then help = ui.t('Add your Convai API key first.') .. '\n\n' .. help end
+        local id = plan.id
+        plans[#plans + 1] = action('paid:buy:' .. id, label, 'Buy', help, function()
+            if not keySaved then return false, 'Add your Convai API key first.' end
+            return paidTier.request('buy', id)
+        end, keySaved, {label = true, description = true})
+    end
+    plans[#plans + 1] = action('paid:check', 'Check my plan', 'Check',
+        'Asks Convai which plan your key has now. After paying, it can take about 15 seconds.',
+        function()
+            if not keySaved then return false, 'Add your Convai API key first.' end
+            return paidTier.request('check')
+        end, keySaved)
+    plans[#plans + 1] = action('paid:manage', 'Manage or cancel plan', 'Open',
+        'Opens your Convai billing page in your browser. Sign in with the same Convai account to change or cancel your plan.',
+        function() return paidTier.request('manage') end)
+    return {category('paid-tier', 'Convai paid tier', rows,
+            'Plans Convai made for this mod. They give your own Convai API key more conversations; the free tier stays as it is.'),
+        category('paid-plans', 'Plans', plans, 'Prices in US dollars. You can cancel at any time on Convai’s billing page.')}
 end
 
 -- What the current page shows that can change without the player touching it, as one string: the page is drawn again only
@@ -1660,6 +1743,10 @@ local function pageSignature(snapshot)
         add(tostring(snapshot.scan.finished))
     end
     if support and view == 'help' then add('help:' .. support.signature() .. '|' .. support.serviceState()) end
+    if paidTier and view == 'paid-tier' then
+        local own = snapshot.ownKey
+        add(table.concat({'paid', tostring(own.saved), own.tail or '', own.result or '', paidTier.signature()}, '|'))
+    end
     if view == 'settings' then
         -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears. The voice status line
@@ -1914,6 +2001,8 @@ local function schema()
             readonly('help-log-reports', 'Saved reports', files.reports,
                 ui.t('Generated reports are saved in {path}. The five newest are kept.', {path = where.reports}), rawRow),
         }, 'Send the generated report rather than raw log files. Open these locations only if the developer asks for a specific file.')
+    elseif view == 'paid-tier' and paidTier then
+        for _, section in ipairs(paidTierRows(snapshot)) do categories[#categories + 1] = section end
     elseif view == 'settings' then
         -- The Inworld cloud voice is a developer-mode voice (Settings > Development): its name appears in the help of a setting only
         -- while developer mode is on, as one more paragraph after the help that holds for everybody.
@@ -2108,6 +2197,10 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
         local created, instance = pcall(editorFactory.new, {ui = ui,
             serviceState = function() return support and support.serviceState() or 'unknown' end})
         if created and type(instance) == 'table' then editor = instance end
+    end
+    if paidTierLoaded and type(paidTierFactory) == 'table' and type(paidTierFactory.new) == 'function' then
+        local created, instance = pcall(paidTierFactory.new, {ui = ui})
+        if created and type(instance) == 'table' then paidTier = instance end
     end
     provider = {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
@@ -2597,6 +2690,24 @@ function M.activeCheck() return active() and true or false end
 -- is at most 0.25 s later than the per-frame version, never lost: every producer
 -- keeps its own queue until it is taken. The perf probe 2026-10-13 had this part at
 -- 7-9 ms/s with the menu closed, nearly all of it per-frame no-ops.
+-- What a confirmed purchase does: the Conversation provider becomes "Convai API key" (saved at once, as an Apply would) unless it already
+-- is, and the notice to show. 'timeout': the service stopped looking without Convai confirming the plan.
+local function paidTierOutcome(event, currentPlayer)
+    if event == 'timeout' then
+        return {id = 'paid-tier-pending', text = ui.t('Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.')}
+    end
+    local settings = manager.snapshot(currentPlayer).settings
+    if settings.conversationProvider == 'convai' and settings.useOwnConvaiKey == true then
+        return {id = 'paid-tier-active', text = ui.t('Your Convai plan is active.')}
+    end
+    local ok, saved = pcall(manager.applySettings, currentPlayer, {conversationProvider = 'convai', useOwnConvaiKey = true})
+    if ok and saved then
+        refreshQueued = true
+        return {id = 'paid-tier-active', text = ui.t('Your Convai plan is active. Conversations now use your Convai API key.')}
+    end
+    return {id = 'paid-tier-active', text = ui.t('Your Convai plan is active. Choose Convai API key in Settings > Conversation provider.')}
+end
+
 function M.slowUpdate(currentPlayer, worldReady)
     local currentOwner = identity(currentPlayer)
     local messages = {}
@@ -2619,6 +2730,17 @@ function M.slowUpdate(currentPlayer, worldReady)
         -- A finished report is announced once, in gameplay (a paused menu hides popups).
         local reportOk, reportNotice = pcall(support.update, worldReady == true)
         if reportOk and reportNotice then messages[#messages + 1] = {id = 'support-report-saved', text = reportNotice} end
+    end
+    -- Convai paid tier: once Convai confirms a plan bought (or checked) on the page, conversations move to the player's own key through the
+    -- Conversation provider's "Convai API key" entry, and one notice says so in gameplay. Costs nothing while no purchase is followed.
+    if paidTier and paidTier.following() then
+        local followed, event = pcall(paidTier.update)
+        if followed and event then paidNotice = paidTierOutcome(event, currentPlayer) end
+    end
+    if worldReady and paidNotice then
+        log(paidNotice.text)
+        messages[#messages + 1] = paidNotice
+        paidNotice = nil
     end
     if worldReady then
         -- A voice that could not run is announced once, in gameplay.

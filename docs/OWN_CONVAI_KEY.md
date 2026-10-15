@@ -18,6 +18,8 @@ Found in the first live test (October 10, bridge log): the first conversation on
 
 Plan facts used by the design: Free is 100 interactions a month with one concurrent connection and no multilingual support. The Gamer plan is 4000 interactions a month with one concurrent connection and a long-term-memory speaker limit of 5.
 
+The Gamer plans Convai made for this mod (2026-10-15, bought from Settings > Convai paid tier, docs/CONVAI_PAID_TIER.md) differ: Gamer V2 is 1000 interactions a month with 6 concurrent connections, Gamer Pro gives more. A player's own key still keeps the single-session rule below on these plans, so look-ahead and warm-up turns do not spend the player's interactions.
+
 ## What Convai returns when a plan is used up
 
 - At session start and every 15 seconds the service checks the quota. When it is used up it sends one data-channel message inside a server message, then closes the session:

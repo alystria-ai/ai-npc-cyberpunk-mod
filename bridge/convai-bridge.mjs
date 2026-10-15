@@ -72,6 +72,7 @@ import {CharacterOverrides} from './character-overrides.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {EditorControl} from './character-editor-control.mjs';
+import {PaidTierControl, plansUrlFor} from './convai-paid-tier.mjs';
 import {YouTubeTv} from './youtube-tv-host.mjs';
 import {PlayerKnowledge} from './player-knowledge.mjs';
 import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowledge.mjs';
@@ -2734,6 +2735,12 @@ async function pollSettings(checkShutdown = true) {
 const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, commandPath: resolve(runtime, 'own-key-command.json'),
   publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
 quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
+// Settings > Convai paid tier (docs/CONVAI_PAID_TIER.md): Convai's plans for this mod, bought with the player's own key (the one above).
+// Idle until the settings page writes a command; the plan list may come from the sign-in backend (CYBERPUNK_CONVAI_PLANS_URL overrides).
+const paidTierControl = await new PaidTierControl({keys, commandPath: resolve(runtime, 'paid-tier-command.json'),
+  plansUrl: process.env.CYBERPUNK_CONVAI_PLANS_URL?.trim() || (authSettings.enabled ? plansUrlFor(authSettings.url) : null),
+  publish: value => atomic(resolve(runtime, 'paid-tier-state.json'), JSON.stringify(value)),
+  log: message => console.error('[CyberpunkConvai] ' + message)}).open();
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
   inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
@@ -2795,6 +2802,7 @@ function logKnowledgePoll(error) {
 const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(logKnowledgePoll); }, 500);
 const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error => console.error('[CyberpunkConvai] Memory control:', error.message)); }, 500);
 const supportTimer = setInterval(() => { void supportReport.poll().catch(error => console.error('[CyberpunkConvai] Support report:', error.message)); }, 500);
+const paidTierTimer = setInterval(() => { void paidTierControl.poll().catch(error => console.error('[CyberpunkConvai] Paid tier:', error.message)); }, 500);
 // The same polls run a few milliseconds after the game replaces their file (bridge/file-wake.mjs): a typed or spoken turn and a
 // phone message no longer wait half an interval (25 ms for the request, 75 ms for the microphone and the phone) to be seen.
 // The intervals above stay as the fallback. The watcher never keeps the process alive.
@@ -2821,6 +2829,7 @@ async function shutdown() {
   clearInterval(knowledgeTimer);
   clearInterval(memoryTimer);
   clearInterval(supportTimer); supportReport.close();
+  clearInterval(paidTierTimer); paidTierControl.close();
   clearInterval(editorTimer); await editorControl.close().catch(() => {});
   clearInterval(youtubeTimer); await youtubeTv.close().catch(() => {});
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
