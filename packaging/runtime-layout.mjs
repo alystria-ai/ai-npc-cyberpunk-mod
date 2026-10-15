@@ -166,6 +166,7 @@ export const BRIDGE_MODULES = Object.freeze([
 export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   'bridge/jali-face-worker.mjs',
   'bridge/jali-face-text.mjs', // imported only by the worker
+  'bridge/face-visemes.mjs', // imported only by the worker
   'bridge/resident-voice-worker.py',
   'bridge/voice-cuda-graph.py',
   'bridge/pocket-voice-worker.py',

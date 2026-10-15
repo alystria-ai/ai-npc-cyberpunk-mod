@@ -698,6 +698,7 @@
             "bridge/zip-writer.mjs",
             "bridge/jali-face-worker.mjs",
             "bridge/jali-face-text.mjs",
+            "bridge/face-visemes.mjs",
             "bridge/resident-voice-worker.py",
             "bridge/voice-cuda-graph.py",
             "bridge/pocket-voice-worker.py",
