@@ -19,12 +19,6 @@
 // opens, stageVoice when the talk key is pressed), so Convai's acceptance of the frame overlaps typing or talking instead of the
 // turn. The unload rule (docs/RESOURCE_LIFECYCLE.md): the helper process exists only while it is capturing: setting on, Convai
 // answering, someone near, and no conversation running.
-//
-// The TV (YouTube on V's TV, setScreenSource): while a video is on, the TV replaces the surroundings. About one frame of the video
-// a second is grabbed from our own TV window (no game capture, the helper is released) and fed to the near companions' pages as a
-// live video track, so Convai always holds the video's last few seconds and attaches several frames to a turn. The pages reconnect
-// with the TV's vision settings when the source changes, between conversations. Nothing is grabbed or published while no video
-// plays, the setting is off, another provider answers or nobody is near.
 import {writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
@@ -37,7 +31,7 @@ export const LEAD_MS = 2500;
 // After the last sign of a conversation (composer, turn, microphone, reply playing) the view is probably still on the companion.
 export const TAIL_MS = 12000;
 // An older frame is never sent: V walks 4 to 7 m a second, so 15 s is a door, a corridor and a lift, and the place a picture shows
-// must still be the place they are in (the TV's frames use the same limit).
+// must still be the place they are in.
 export const MAX_FRAME_AGE_MS = 15000;
 // A frame this young is used as it is; an older one makes the turn take a new picture first (twice the 3 s buffer cadence, so a
 // walk with the buffer running normally needs no extra capture).
@@ -51,13 +45,6 @@ export const STAGE_RETRY_MS = 6000;
 const STAGE_RETRY_EVERY_MS = 250;
 const STAGE_ATTEMPTS = Math.ceil(STAGE_RETRY_MS / STAGE_RETRY_EVERY_MS);
 const TURN_MEMORY = 32;
-// The TV: one frame a second (settings.json "visionTvFps" 1 or 2), the last few kept for a turn whose page has no live track.
-export const TV_FRAME_MS = 1000;
-export const TV_SLOTS = 4;
-export const TV_MAX_FRAME_AGE_MS = 15000;
-// A page still connected for the surroundings is reconnected for the TV at most this often.
-const TV_REFRESH_RETRY_MS = 10000;
-const pageId = config => `${config?.characterId ?? ''}|${config?.scope ?? ''}|${config?.endUserId ?? ''}`;
 
 export const visionDisabledByEnv = (env = process.env) => /^(0|off|false|no)$/i.test(String(env.CYBERPUNK_CONVAI_VISION ?? '').trim());
 
@@ -66,44 +53,34 @@ export class CompanionVision {
   // isNear(): a party member or a character V may talk to is around. isConversing(): a composer, turn, recording or reply is running.
   // stageVoice(images): hands pictures to the running microphone turn ({staged, reason}). stagePage(config, images) / unstagePage(config):
   // publish or withdraw a picture on an idle conversation page ahead of the turn ({staged, reason}).
-  // The TV: livePages() -> the page configs of the companions near V (fed while a video plays); feedPage(config, image|null) -> {fed,
-  // reason} shows one frame on that page's live track (null stops it); refreshPage(config) reconnects an idle page with the current
-  // vision settings. All optional; none may throw far.
   constructor({capture, isConvai = () => true, isNear = () => true, isConversing = () => false,
     stageVoice = async () => ({staged: false}), stagePage = async () => ({staged: false}), unstagePage = async () => {},
-    livePages = () => [], feedPage = async () => ({fed: false}), refreshPage = async () => false,
     log = () => {}, now = () => Date.now(), env = process.env,
     debugDirectory = absoluteRuntimeOverride(env.CYBERPUNK_CONVAI_VISION_DEBUG_DIR || undefined, 'CYBERPUNK_CONVAI_VISION_DEBUG_DIR'),
     lastSentPath = null,
     writeDebug = (path, bytes) => writeFile(path, bytes), sleep = ms => new Promise(done => setTimeout(done, ms))} = {}) {
-    Object.assign(this, {capture, isConvai, isNear, isConversing, stageVoice, stagePage, unstagePage, livePages, feedPage, refreshPage,
+    Object.assign(this, {capture, isConvai, isNear, isConversing, stageVoice, stagePage, unstagePage,
       log, now, debugDirectory, lastSentPath, writeDebug, sleep});
     this.envOff = visionDisabledByEnv(env);
     // Development only: keep the last picture handed to Convai (and a line about it) in lastSentPath, to look at what the model saw.
     this.debugLast = /^(1|on|true|yes)$/i.test(String(env.CYBERPUNK_CONVAI_VISION_DEBUG_LAST ?? '').trim());
     this.turnCapture = null; this.stagedFrame = null; this.newestTakenAt = null;
-    this.enabled = !this.envOff; this.transport = 'video'; this.waitMs = null; this.tvFrameMs = TV_FRAME_MS;
+    this.enabled = !this.envOff; this.transport = 'video'; this.waitMs = null;
     this.frames = []; this.lastCaptureAt = -Infinity; this.busy = 0; this.frameSerial = 0;
     this.conversing = false; this.conversationStart = null; this.lastConversationAt = -Infinity;
     this.queue = []; this.voice = new Map(); this.answered = new Map(); this.staged = new Map(); this.stageRound = 0;
-    this.screen = null; this.mode = 'still'; this.tvFrames = []; this.lastTvAt = -Infinity; this.tvBusy = false; this.live = new Map(); this.refreshed = new Map();
     this.counters = {captures: 0, failed: 0, minimised: 0, queued: 0, turnsWithPicture: 0, turnsWithoutFrame: 0, turnCaptures: 0,
-      prestaged: 0, helperStarts: 0, helperReleases: 0, tvFrames: 0, tvFailed: 0, liveFed: 0, liveRefreshes: 0, sourceSwitches: 0};
+      prestaged: 0, helperStarts: 0, helperReleases: 0};
   }
   get active() {
     try { return this.enabled && this.isConvai() === true; } catch { return false; }
   }
   // True while the helper may run: it is capturing frames.
   get capturing() {
-    if (!this.active || this.mode === 'tv' || this.conversing || this.now() - this.lastConversationAt < TAIL_MS) return false;
+    if (!this.active || this.conversing || this.now() - this.lastConversationAt < TAIL_MS) return false;
     return this.near;
   }
   get near() { try { return this.isNear() === true; } catch { return false; } }
-  // A video is on the TV (playing, paused or ended) and vision is active: the TV is the source.
-  get screenWanted() {
-    if (!this.active || !this.screen) return false;
-    try { return this.screen.present() === true; } catch { return false; }
-  }
 
   // ---- the 500 ms settings poll ----------------------------------------------------------------------------------------------
   // Reads the settings (a missing object changes nothing) and runs one cheap tick: conversation state, the helper's lifetime and,
@@ -117,30 +94,24 @@ export class CompanionVision {
       changed = enabled !== this.enabled || transport !== this.transport;
       this.enabled = enabled; this.transport = transport;
       this.waitMs = Number.isFinite(wait) ? Math.max(0, Math.min(900, Math.round(wait))) : null;
-      this.tvFrameMs = Number(settings.visionTvFps) >= 2 ? TV_FRAME_MS / 2 : TV_FRAME_MS;
       if (settings.visionDebugLastSent === true) this.debugLast = true;
       if (changed && !enabled) this.forget();
     }
     this.tick();
     return changed;
   }
-  forget() { this.frames = []; this.stagedFrame = null; this.queue = []; this.voice.clear(); this.answered.clear(); this.closeComposer(); this.endLive(); this.tvFrames = []; }
+  forget() { this.frames = []; this.stagedFrame = null; this.queue = []; this.voice.clear(); this.answered.clear(); this.closeComposer(); }
   tick() {
     let conversing = false;
     try { conversing = this.isConversing() === true; } catch {}
     if (conversing) this.markConversation(); else this.conversing = false;
     if (!this.active) this.frames = [];
     else if (this.frames.length) { const now = this.now(); this.frames = this.frames.filter(frame => now - frame.at <= MAX_FRAME_AGE_MS); }
-    // The source changes between conversations only (the pages reconnect for it); leaving the TV is never held back while vision
-    // is off, so nothing stays published.
-    const source = this.screenWanted ? 'tv' : 'still';
-    if (source !== this.mode && (!this.conversing || !this.active)) this.switchSource(source);
-    if (this.mode === 'tv') this.tickScreen();
     const running = this.capture?.running === true;
     if (!this.capturing) {
       if (running && this.busy === 0) {
         this.capture.stop(); this.counters.helperReleases++;
-        this.log(`helper released (${!this.active ? 'setting off or another provider' : this.mode === 'tv' ? 'the TV is the source'
+        this.log(`helper released (${!this.active ? 'setting off or another provider'
           : this.conversing || this.now() - this.lastConversationAt < TAIL_MS ? 'conversation' : 'nobody near'})`);
       }
       return;
@@ -176,7 +147,7 @@ export class CompanionVision {
   // throws; null when it fails or vision is off.
   captureForTurn(trigger) {
     if (this.turnCapture) return this.turnCapture;
-    if (!this.active || !this.capture || this.mode === 'tv') return Promise.resolve(null);
+    if (!this.active || !this.capture) return Promise.resolve(null);
     if (this.capture.running !== true) this.counters.helperStarts++;
     this.busy++;
     const run = (async () => {
@@ -192,14 +163,12 @@ export class CompanionVision {
     return run;
   }
   // True when the picture a turn would take is missing or older than FRESH_FRAME_AGE_MS (and a new one can be taken).
-  wantsFresh(frame) { return this.mode !== 'tv' && (!frame || this.now() - frame.at > FRESH_FRAME_AGE_MS); }
+  wantsFresh(frame) { return !frame || this.now() - frame.at > FRESH_FRAME_AGE_MS; }
   // The frame a turn sends, never older than MAX_FRAME_AGE_MS (null when there is none): a young one taken before the conversation
   // started and at least LEAD_MS earlier (V turning to talk, so it shows the place and not her face); else the newest of all
   // (a picture taken when the turn began may show her, and is fresh).
   frame() {
     const now = this.now();
-    // The TV: its newest frame (used only by a page without the live track, e.g. a group's page).
-    if (this.mode === 'tv') return this.tvFrames.filter(frame => now - frame.at <= TV_MAX_FRAME_AGE_MS).at(-1) ?? null;
     const fresh = this.frames.filter(frame => now - frame.at <= MAX_FRAME_AGE_MS);
     if (!fresh.length) return null;
     const start = this.conversationStart ?? now;
@@ -215,7 +184,7 @@ export class CompanionVision {
   // TURN_CAPTURE_WAIT_MS (a turn is never slowed to replace a 7 s old picture with a 1 s old one). Never throws.
   async freshFrame() {
     const have = this.frame();
-    if (have || this.mode === 'tv') return have;
+    if (have) return have;
     await Promise.race([this.captureForTurn('turn'), this.sleep(TURN_CAPTURE_WAIT_MS)]).catch(() => {});
     return this.frame() ?? null;
   }
@@ -229,84 +198,16 @@ export class CompanionVision {
   noteSent(frame, how) {
     if (!this.debugLast || !this.lastSentPath || !frame?.base64) return;
     const note = {sentAt: new Date(this.now()).toISOString(), how, takenAt: new Date(frame.at ?? this.now()).toISOString(),
-      ageMs: frame.at ? this.now() - frame.at : null, takenForTurn: frame.turn === true, source: this.mode,
+      ageMs: frame.at ? this.now() - frame.at : null, takenForTurn: frame.turn === true,
       width: frame.width ?? null, height: frame.height ?? null, bytes: frame.bytes ?? null};
     this.writeDebug(this.lastSentPath, Buffer.from(frame.base64, 'base64')).catch(() => {});
     this.writeDebug(this.lastSentPath.replace(/\.jpe?g$/i, '') + '.json', JSON.stringify(note, null, 1)).catch(() => {});
   }
-  connectConfig() { return this.active ? {transport: this.transport, ...(this.mode === 'tv' ? {mode: 'tv'} : {})} : null; }
+  connectConfig() { return this.active ? {transport: this.transport} : null; }
   turnWaitMs() { return this.waitMs; }
 
-  // ---- the TV as the source (bridge/youtube-tv-host.mjs visionSource) ----------------------------------------------------------
-  // source: {present() -> a video is on the TV, playing() -> it is playing and visible now, grab() -> {mime, base64} | null}, or
-  // null. Read on each tick; nothing is grabbed unless present, playing, vision active and someone near.
-  setScreenSource(source) {
-    this.screen = source && typeof source.present === 'function' && typeof source.grab === 'function' ? source : null;
-    this.tick();
-  }
-  pages() {
-    try { const list = this.livePages(); return Array.isArray(list) ? list.filter(config => config && typeof config === 'object').slice(0, 3) : []; }
-    catch { return []; }
-  }
-  switchSource(next) {
-    const previous = this.mode;
-    this.mode = next; this.counters.sourceSwitches++;
-    if (previous === 'tv') { this.endLive(); this.tvFrames = []; }
-    this.log(`source: ${next === 'tv' ? 'the TV' : 'the surroundings'}`);
-    if (!this.active) return;
-    // The near companions' open pages reconnect now with the matching vision settings, so no turn pays for it.
-    for (const config of this.pages()) this.refresh(config);
-  }
-  refresh(config) {
-    this.counters.liveRefreshes++;
-    this.remember(this.refreshed, pageId(config), this.now());
-    void Promise.resolve().then(() => this.refreshPage(config)).catch(() => false);
-  }
-  tickScreen() {
-    if (!this.screenWanted || !this.near) { this.endLive(); if (!this.screenWanted) this.tvFrames = []; return; }
-    let playing = false;
-    try { playing = this.screen.playing() === true; } catch {}
-    if (!playing || this.tvBusy || this.now() - this.lastTvAt < this.tvFrameMs) return;
-    void this.collectScreen();
-  }
-  async collectScreen() {
-    this.tvBusy = true; this.lastTvAt = this.now();
-    try {
-      let shot = null;
-      try { shot = await this.screen.grab(); } catch {}
-      const [image] = validImages(shot ? [shot] : []);
-      if (!image) { this.counters.tvFailed++; return; }
-      if (this.mode !== 'tv' || !this.screenWanted) return;
-      this.counters.tvFrames++;
-      this.tvFrames.push({...image, at: this.lastTvAt});
-      while (this.tvFrames.length > TV_SLOTS) this.tvFrames.shift();
-      for (const config of this.pages()) this.feed(config, image);
-    } finally { this.tvBusy = false; }
-  }
-  // One frame to one page; a page still answering the previous frame skips this one.
-  feed(config, image) {
-    const key = pageId(config);
-    const live = this.live.get(key) ?? {config, pending: false, fed: false};
-    if (live.pending) return;
-    live.pending = true; live.config = config; this.live.set(key, live);
-    void Promise.resolve().then(() => this.feedPage(config, image)).catch(() => ({fed: false, reason: 'failed'})).then(result => {
-      live.pending = false;
-      if (this.live.get(key) !== live) { if (result?.fed) void Promise.resolve().then(() => this.feedPage(config, null)).catch(() => {}); return; }
-      if (result?.fed) { live.fed = true; this.counters.liveFed++; return; }
-      // Connected for the surroundings (opened before the video started): reconnect it for the TV, between conversations.
-      if (result?.reason === 'wrong-mode' && !this.conversing && this.now() - (this.refreshed.get(key) ?? -Infinity) >= TV_REFRESH_RETRY_MS) {
-        this.refresh(config);
-      }
-    });
-  }
-  // Stops every page's live track (the video stopped, nobody is near, vision went off). Never throws.
-  endLive() {
-    for (const live of this.live.values()) if (live.fed) void Promise.resolve().then(() => this.feedPage(live.config, null)).catch(() => {});
-    this.live.clear();
-  }
-
   // ---- public API for other features ------------------------------------------------------------------------------------------
-  // Sends `images` with the next conversation turn, e.g. frames of a TV the companion is watching. images: up to 4 of
+  // Sends `images` with the next conversation turn, for a feature that already has pictures to show. images: up to 4 of
   // {mime: 'image/jpeg' | 'image/png' | 'image/webp', base64}; each at most 4 MB. They are composed into one picture with the
   // surroundings frame. Options: characterId (only a turn with that Convai character takes them), ttlMs (default 20 s).
   // Returns {queued: n} or {queued: 0, reason}. Nothing is sent while the setting is off or another provider answers.
@@ -420,7 +321,7 @@ export class CompanionVision {
     }
     // The frame staged while V typed, else a young frame, else one capture (at most TURN_CAPTURE_WAIT_MS): never one past the limit.
     const frame = this.stagedYoung() ?? await this.freshFrame();
-    const usable = frame && this.mode === 'tv' ? frame : frame && this.now() - frame.at <= MAX_FRAME_AGE_MS ? frame : null;
+    const usable = frame && this.now() - frame.at <= MAX_FRAME_AGE_MS ? frame : null;
     if (!usable) this.counters.turnsWithoutFrame++;
     if (usable) this.noteSent(usable, 'sent with the turn');
     const images = [...(usable ? [{mime: usable.mime, base64: usable.base64}] : []), ...queued].slice(0, MAX_IMAGES);
@@ -467,10 +368,9 @@ export class CompanionVision {
   }
   diagnostics() {
     const newest = this.frames.at(-1);
-    return {enabled: this.enabled, active: this.active, transport: this.transport, source: this.mode, frames: this.frames.length,
+    return {enabled: this.enabled, active: this.active, transport: this.transport, frames: this.frames.length,
       newestFrameAgeMs: newest ? this.now() - newest.at : null, capturing: this.capturing, helperRunning: this.capture?.running === true,
-      tvFrames: this.tvFrames.length, livePages: [...this.live.values()].filter(live => live.fed).length,
       queued: this.queue.length, ...this.counters};
   }
-  stop() { this.stageRound++; this.endLive(); this.capture?.stop?.(); }
+  stop() { this.stageRound++; this.capture?.stop?.(); }
 }

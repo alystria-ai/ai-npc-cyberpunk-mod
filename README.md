@@ -1,6 +1,6 @@
 # Cyberpunk Convai
 
-Talk to Night City. Cyberpunk Convai lets you speak or type to Cyberpunk 2077 characters and get answers in their own voices. Invite companions to travel with you, text them on V's phone, call them on a holocall, and watch YouTube together on V's TV.
+Talk to Night City. Cyberpunk Convai lets you speak or type to Cyberpunk 2077 characters and get answers in their own voices. Invite companions to travel with you, text them on V's phone, and call them on a holocall.
 
 > **Unofficial fan mod.** Cyberpunk 2077 and everything in it belong to CD PROJEKT RED. This project is not made, endorsed or supported by CD PROJEKT RED. The conversations are written by AI models and are not the game's writing.
 
@@ -57,7 +57,6 @@ Talk to Night City. Cyberpunk Convai lets you speak or type to Cyberpunk 2077 ch
 - **Phone Chat and holocalls.** A **Chat** tab sits on V's phone beside Messages and Contacts. Text any supported contact, or call them on a holocall.
 - **Group talk.** Address two or three companions at once and they take turns answering.
 - **Companions can see (Convai only).** With Convai, each line you send can carry a recent picture of your surroundings, so a companion can react to what is on screen.
-- **YouTube on V's TV.** Pick a video on the TV in V's apartment and watch it with a companion who can talk about it.
 - **V's voice.** Lines you type are also spoken in V's voice.
 - **Memory.** Characters remember your conversations, across saves. You can make one or all of them forget.
 - **Reactions.** Companions can comment when a fight starts and ends and when you collect loot (both off until you turn them on).
@@ -310,9 +309,6 @@ With **Settings > Conversations > Talk to ordinary NPCs** on (the default), unna
 
 With **Companions can see** on (the default) and Convai answering, each line you send also carries a recent picture of your surroundings, taken from the game window a few seconds before you started talking. Only the game window is captured, only while someone you can talk to is nearby, and pictures are kept in memory for a short time and never saved. It works with Convai only, and it is new: treat it as experimental.
 
-### YouTube on V's TV
-
-Turn on **Settings > Interface > YouTube on V's TV** (off by default). In V's apartments (Megabuilding H10, Northside, Japantown, Glen and Corpo Plaza) the TV gains a **YouTube** choice. On the couch, where the game shows only its own scene choices, use the **YouTube on the TV** key binding. Paste a link or video id, search, or pick one of your last eight videos. The video plays in a window over the game, so the game must run in **Windowed Borderless** or **Windowed** mode, not exclusive full screen. Your companion knows the title, channel and roughly the last thirty seconds of captions, and speaks when you speak or type. It makes no timed remarks. No account or key is needed. It is new and experimental.
 
 ### V's voice
 
@@ -347,7 +343,6 @@ All settings live under **Companion Manager > Settings**. Defaults are for a new
 | Setting | Page | Default |
 |---|---|---|
 | Interface language | Interface | Automatic (follows the game's language) |
-| YouTube on V's TV | Interface | Off |
 | Memory, Relationships | Conversations | Auto |
 | Talk to ordinary NPCs | Conversations | On |
 | Multilingual conversations | Conversations | Off |
@@ -409,7 +404,7 @@ Add-on voices use Mistral or Local AI, never Convai, and they do not count towar
 
 ## What is still experimental
 
-The mod is a first public release, and a lot of it was built faster than it could be tested in a real game. Treat these as experimental, even where they are on by default: companions can see, YouTube on V's TV, the live holocall picture, Phone Chat's holocall button, ordinary-NPC conversations, the character editor, multilingual conversations (microphone in other languages is untested), seated free-look, overflow car convoys, and fast-travel recovery. Several native speed-ups for the mod's work inside the game are switched off by default until they have been proven in the game. If something misbehaves, **Generate report** and tell us what you were doing.
+The mod is a first public release, and a lot of it was built faster than it could be tested in a real game. Treat these as experimental, even where they are on by default: companions can see, the live holocall picture, Phone Chat's holocall button, ordinary-NPC conversations, the character editor, multilingual conversations (microphone in other languages is untested), seated free-look, overflow car convoys, and fast-travel recovery. Several native speed-ups for the mod's work inside the game are switched off by default until they have been proven in the game. If something misbehaves, **Generate report** and tell us what you were doing.
 
 ---
 
@@ -428,7 +423,7 @@ The mod is a set of cooperating programs, because no single one of them could do
 ```text
 mod/                      CET Lua mod: the in-game adapter (90 files; entry point init.lua)
   locales/                15 UI dictionaries (cs de es fr hu it ja ko pl pt-br ru tr uk zh-cn zh-tw)
-r6/scripts/CyberpunkConvai/  redscript: composer, phone, manager, face, holocall, YouTube TV (12 files; KnowledgeState.reds is retired and not shipped)
+r6/scripts/CyberpunkConvai/  redscript: composer, phone, manager, face, holocall (11 files; KnowledgeState.reds is retired and not shipped)
 native/
   autostart/              RED4ext launcher plugin (C): starts the bridge with the game
   core/                   RED4ext native core plugin (C++20, CMake): io, faces, actuator, clearance, gaze, vehicles, chauffeur, passage
@@ -490,7 +485,7 @@ flowchart LR
 | Component | Language and place | Job |
 |---|---|---|
 | **CET Lua mod** | Lua 5.1/LuaJIT, `mod/` | The game-facing adapter. It senses (who is near, what V looks at, the quest and journal state, gear, combat, loot), owns the Companion Manager data model and settings, spawns and steers companions, drives subtitles and facial and body animation, and exchanges JSON files with the bridge. It does no network I/O. |
-| **redscript** | `r6/scripts/CyberpunkConvai/*.reds` | Things Lua cannot do safely: the text composer and movement-key tracker, the phone's Chat tab, the native Companion Manager popup, holocalls, the YouTube TV device choice, the facial animation graph selection and the speech event owner. Wraps are narrow and always call `wrappedMethod`. |
+| **redscript** | `r6/scripts/CyberpunkConvai/*.reds` | Things Lua cannot do safely: the text composer and movement-key tracker, the phone's Chat tab, the native Companion Manager popup, holocalls, the facial animation graph selection and the speech event owner. Wraps are narrow and always call `wrappedMethod`. |
 | **RED4ext launcher** | C, `native/autostart/` | Loaded by RED4ext, reads `launcher.ini`, starts the supervisor hidden with a pipe whose closing tells the service the game ended. |
 | **RED4ext native core** | C++20, `native/core/` | `CyberpunkConvaiNative.dll`: a plugin that registers reflection classes (RTTI only, no hooks or addresses) so that heavy mod work runs natively. Each system is separate and has a Lua fallback. See [Native plugins](#native-plugins). |
 | **Vision helper** | C++/WinRT, `native/vision/` | `CyberpunkConvaiVision.exe`: captures one frame of the game window through Windows Graphics Capture, only while it is needed. |
@@ -593,7 +588,7 @@ Whole-turn figures are in [docs/LATENCY_2026-10-12.md](docs/LATENCY_2026-10-12.m
 
 Each subsystem below says what it does, how, where the code is, the constants that matter, and which design notes go deeper.
 
-Jump to: [module map](#lua-and-redscript-module-map) · [conversation providers](#conversation-providers) · [daily limit and sign-in backend](#daily-limit-and-sign-in-backend) · [voices and TTS](#voices-and-tts-engines) · [speech recognition](#speech-recognition-and-the-microphone) · [lip sync and faces](#lip-sync-and-the-facial-pipeline) · [gestures](#gestures-and-body-animation) · [combat and behaviour](#combat-tactics-and-companion-behaviour) · [reactions](#battle-and-loot-reactions) · [gaze](#gaze-eye-contact-and-head-tracking) · [follow and movement](#follow-movement-and-recovery) · [vehicles and seating](#vehicles-seating-and-the-chauffeur) · [clearance](#clearance-and-obstruction-handling) · [inviting companions](#inviting-companions-world-companions-and-the-companion-manager-roster) · [context](#context-system) · [memory](#memory-and-relationship-systems) · [characters](#characters-ordinary-npcs-and-multilingual-profiles) · [vision](#companion-vision) · [YouTube TV](#youtube-tv-playback-and-capture) · [holocall and Phone Chat](#holocall-and-phone-chat) · [notices and subtitles](#notices-overhead-subtitles-and-follow-up-questions) · [settings and Manager](#settings-and-the-companion-manager) · [localization](#localization) · [add-on API](#add-on-api)
+Jump to: [module map](#lua-and-redscript-module-map) · [conversation providers](#conversation-providers) · [daily limit and sign-in backend](#daily-limit-and-sign-in-backend) · [voices and TTS](#voices-and-tts-engines) · [speech recognition](#speech-recognition-and-the-microphone) · [lip sync and faces](#lip-sync-and-the-facial-pipeline) · [gestures](#gestures-and-body-animation) · [combat and behaviour](#combat-tactics-and-companion-behaviour) · [reactions](#battle-and-loot-reactions) · [gaze](#gaze-eye-contact-and-head-tracking) · [follow and movement](#follow-movement-and-recovery) · [vehicles and seating](#vehicles-seating-and-the-chauffeur) · [clearance](#clearance-and-obstruction-handling) · [inviting companions](#inviting-companions-world-companions-and-the-companion-manager-roster) · [context](#context-system) · [memory](#memory-and-relationship-systems) · [characters](#characters-ordinary-npcs-and-multilingual-profiles) · [vision](#companion-vision) · [holocall and Phone Chat](#holocall-and-phone-chat) · [notices and subtitles](#notices-overhead-subtitles-and-follow-up-questions) · [settings and Manager](#settings-and-the-companion-manager) · [localization](#localization) · [add-on API](#add-on-api)
 
 ### Lua and redscript module map
 
@@ -607,7 +602,7 @@ The Lua side (`mod/`, loaded by `init.lua`) is deliberately thin: it reads the g
 | Context for turns | `turn-context.lua`, `player-gear.lua`, `quest-context.lua`, `world-knowledge.lua`, `knowledge-state.lua`, `knowledge-parts.lua`, `journal-history.lua`, `fact-identity.lua`, `save-identity.lua`, `relationship-state.lua` |
 | Companions | `companions.lua` (the party controller), `companion-records.lua` (private spawn records), `companion-appearance.lua`, `companion-equipment.lua`, `companion-adoption.lua`, `companion-behavior.lua`, `companion-tactics.lua`, `companion-marking.lua`, `companion-stance.lua`, `companion-locomotion.lua`, `companion-travel.lua`, `companion-space.lua`, `companion-placement.lua`, `companion-clearance.lua`, `companion-passage.lua`, `companion-reload-cleanup.lua`, `companion-tick-native.lua`, `companion-actuator.lua`, `companion-vehicles.lua`, `companion-vehicle-catalog.lua`, `companion-vehicle-native.lua`, `companion-chauffeur.lua`, `companion-chauffeur-native.lua`, `companion-seating.lua`, `seated-look.lua`, `companion-gestures.lua`, `gesture-workspot.lua`, `gesture-catalog.lua`, `gesture-selection.lua`, `invitation-readiness.lua`, `character-catalog.lua` |
 | Reactions | `battle-observer.lua`, `battle-reactions.lua`, `loot-observer.lua`, `loot-reactions.lua` |
-| Phone, holocall, TV | `phone-chat.lua`, `phone-input.lua`, `phone-layout.lua`, `phone-chat-style.lua`, `holocall.lua`, `youtube-tv.lua` |
+| Phone and holocall | `phone-chat.lua`, `phone-input.lua`, `phone-layout.lua`, `phone-chat-style.lua`, `holocall.lua` |
 | Settings and UI | `mcm.lua`, `mcm-entry.lua`, `mcm-fonts.lua`, `manager.lua`, `manager-party.lua`, `character-editor.lua`, `ui-locale.lua`, `ui-fonts.lua`, `locales/` (15 language files besides English) |
 | Development only (never shipped) | `diagnostics.lua` and the probes it loads (`face-probe.lua`, `face-test.lua`, `gesture-probe.lua`, `loot-probe.lua`, `knowledge-probe.lua`, `fact-identity-probe.lua`, `save-identity-probe.lua`, `perf-probe.lua`, `speech-cadence-probe.lua`, `speech-replay-probe.lua`, `movement-log.lua`) |
 
@@ -619,7 +614,6 @@ The Lua side (`mod/`, loaded by `init.lua`) is deliberately thin: it reads the g
 | `Manager.reds` | the Companion Manager window (Lua owns discovery, filtering and actions; script holds one page) |
 | `PhoneChat.reds`, `PhoneChatTabs.reds`, `PhoneContacts.reds` | the Chat tab of the phone: presentation rows that never become quest journal entries, the third-tab state and the contact artwork |
 | `Holocall.reds` | holocalls with the mod's characters (the game's own call path is not used) |
-| `YouTubeTv.reds` | extra choices on V's home TVs |
 | `Speech.reds` | keeps the native Audioware event alive for a mod-owned utterance |
 | `Face.reds`, `FaceFeature.reds` | chooses the face graph at spawn (companion graph, gated crowd graph) and the generated animation feature carrying the lip-sync controls |
 | `Engagement.reds` | one civilian's temporary hold and look-at during a conversation, released together |
@@ -1146,42 +1140,13 @@ The helper runs only while all of these hold: the setting is on, Convai answers,
 
 **Phone Chat and holocalls.** Phone Chat runs on its own `RealtimeHost` that is not given the vision object, so text chats never carry pictures. The code has no special case for holocall turns; the design doc says they get none, which was not verified.
 
-**TV frames as a vision source.** While a YouTube video plays on V's TV (see [YouTube TV playback and capture](#youtube-tv-playback-and-capture)), the TV replaces the surroundings. `YouTubeTv.visionSource()` in `bridge/youtube-tv-host.mjs` grabs a 640 px JPEG (quality 60) of the TV window through a DevTools `Page.captureScreenshot`, one a second (`visionTvFps: 2` for two, developer only), and `CompanionVision.setScreenSource` feeds each near party companion's open page as one live canvas track. The pages reconnect once with `TV_VISION_INPUT_CONFIG` (`sampleIntervalSecs 1, framesPerTurn 5, bufferFrames 10, stalenessSeconds 8, maxResolution 640`), so a turn attaches about the last five seconds of the video and publishes nothing of its own. The game helper is released meanwhile. Paused or hidden video means no grabs; stopping the video, closing the TV, a provider change or nobody near unpublishes the tracks and drops the frames at the next poll.
-
 **Privacy.** Only the game window, only while someone V may talk to is near, in memory for at most about 2 minutes, never on disk. The one exception is the development variable `CYBERPUNK_CONVAI_VISION_DEBUG_DIR` (an absolute folder), which keeps a copy of each picture. A missing helper only means no picture.
 
-**Measured** (windowed 1366x768, Balanced power, game in the background, `scripts/Measure-VisionCapture.mjs` reading the mod's `perf-probe.json`): a capture takes about 104 ms median in the helper (p95 126) at the 3 s cadence, helper CPU 15.6 ms median, helper start 215 to 305 ms, 42 KB per 768x432 JPEG. FPS with captures matched FPS without in three A/B runs (for example 57.41 against 57.41 median); one run showed more slow frames in the "with" blocks, which followed the scene, not the captures. The TV grab took 13.9 ms median (14 KB JPEG), and a 4K60 video playing with one grab a second showed no measurable cost; 2 fps and seated measurements were not taken. The capture script used for development checks is separate: [docs/GAME_WINDOW_CAPTURE.md](docs/GAME_WINDOW_CAPTURE.md) covers `scripts/Capture-GameWindow.py`, a development tool that is not part of the mod.
+**Measured** (windowed 1366x768, Balanced power, game in the background, `scripts/Measure-VisionCapture.mjs` reading the mod's `perf-probe.json`): a capture takes about 104 ms median in the helper (p95 126) at the 3 s cadence, helper CPU 15.6 ms median, helper start 215 to 305 ms, 42 KB per 768x432 JPEG. FPS with captures matched FPS without in three A/B runs (for example 57.41 against 57.41 median); one run showed more slow frames in the "with" blocks, which followed the scene, not the captures. Seated measurements were not taken. The capture script used for development checks is separate: [docs/GAME_WINDOW_CAPTURE.md](docs/GAME_WINDOW_CAPTURE.md) covers `scripts/Capture-GameWindow.py`, a development tool that is not part of the mod.
 
-**Not verified in the game:** any Convai turn with a picture (acceptance, `vision_not_enabled`, whether the reply describes the place), typed and talk-key latency with vision on, hitches while walking with the helper running, the minimised-window turn, and the TV frames with a seated V. The 11-step live check is at the end of the design doc.
+**Not verified in the game:** any Convai turn with a picture (acceptance, `vision_not_enabled`, whether the reply describes the place), typed and talk-key latency with vision on, hitches while walking with the helper running, and the minimised-window turn. The 10-step live check is at the end of the design doc.
 
 Further reading: [docs/COMPANION_VISION.md](docs/COMPANION_VISION.md), [docs/RESOURCE_LIFECYCLE.md](docs/RESOURCE_LIFECYCLE.md), [docs/GAME_WINDOW_CAPTURE.md](docs/GAME_WINDOW_CAPTURE.md).
-
-### YouTube TV playback and capture
-
-In V's apartments the in-game TV can offer **YouTube** next to its own choices. A video plays in the official YouTube player in a window over the game, and the companion in the room knows what is on. The setting is **Settings > Interface > YouTube on V's TV** (`youtubeTv`, off by default). It is on main and unit-tested, and headless smoke tests played real videos through the official player and read real captions with Edge. **It has not been seen in the game**: the opening, the window placement, hiding under menus, the companion turn and the FPS A/B are all live checks still owed, and the default stays off until the FPS check passes.
-
-**Why a window.** The game has no script path from a web video into a texture (TV channels are pre-rendered `.bk2` Bink files). A transparent overlay tracking the TV in the world would need per-frame re-projection (main-thread work) and breaks the player's terms, and a native texture upload would need a render-thread hook. So the video is one fixed window composited by Windows above the game, with no tracking. Idle cost is zero (nothing exists until the player opens it). Playing, the cost is the compositor and the GPU's video engine; the doc's estimate is 0 to 2 FPS and it must be measured.
-
-**What runs where.**
-
-| Layer | File | Role |
-|---|---|---|
-| Redscript (game restart) | `r6/scripts/CyberpunkConvai/YouTubeTv.reds` | `@wrapMethod(MediaDeviceControllerPS) GetActions` runs the game's own method, then adds `ConvaiYouTubeTvAction` (open, pause or play, stop) only for a `TVControllerPS`, a direct interaction, the setting on, the game's own `ToggleON` offered and V in one of the five homes (Megabuilding H10, Northside, Japantown, the Glen, Corpo Plaza). No game action is removed or replaced. |
-| Lua | `mod/youtube-tv.lua` | Observes the hook and writes `runtime/youtube-tv-command.json`. Idle it returns at one comparison; with a video open a menu check runs four times a second. CET binding `cyberpunk_convai_youtube_tv` ("Cyberpunk Convai: YouTube on the TV") does the same on the couch, where the TV rows are scene dialogue choices that scripts cannot extend. V's home is read from the game's whole district stack (the top district alone is wrong after a load inside a flat), on demand only. |
-| Bridge | `bridge/youtube-tv-host.mjs` (`YouTubeTv`), `bridge/youtube-tv.mjs`, `bridge/youtube-tv-page.mjs` | One session at a time. A per-session HTTP server on `127.0.0.1:0` serves the page; Edge (development) or the packaged Chrome for Testing starts through Playwright in app mode, off-screen, with its own profile in `runtime/youtube-tv-browser`. |
-| Window helper | `bridge/youtube-tv-window.ps1` | A PowerShell Win32 helper in its own process: finds the window by its unique title, makes it topmost and non-activating, cuts Chromium's frame away with a window region, moves it only when its target changes, hides it when the game is not in front or is minimised. |
-
-**Player flow.** The picker opens over the middle of the game and takes the keyboard: paste a link or id, search on YouTube's own results page (a picked result plays on the TV page), or choose from the last 8 videos. The video then fills the largest 16:9 area in the top 78% of the game window (`youtube-tv-window.ps1`), so subtitles stay visible below. The window gives the keyboard back to the game. Controls are the TV choices **YouTube: pause or play** and **YouTube: stop**, or the key. The window hides under the pause menu, game menus, alt-tab and a minimised game; the session ends when V leaves home, a save loads, the setting is turned off or the player stops it.
-
-**Windowing requirement.** The game must run in Windowed Borderless or Windowed mode. In exclusive full screen another window minimises the game, so the open fails with a notice (`youtube-tv`, class Player in [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md)) and the game is not minimised. The setting's help text says the same.
-
-**Playback and terms.** The video plays only in the official embedded player (IFrame Player API, `enablejsapi=1`, served with `Referrer-Policy: strict-origin-when-cross-origin` because embeds fail without a referrer). It is never downloaded or opened through a media URL, nothing is drawn over the player, and YouTube's controls stay. The Data API is not used. Title and channel come from oEmbed, with no key. Description, chapters and captions are read from the TV window's own network traffic (the player's `youtubei/v1/player` answer and its `timedtext` track, each read once, at most 4 MB); if the player has not fetched a track 4 s after play starts, the page asks it through its own captions module. The doc marks this a grey zone that the owner accepted on 2026-10-15, and it may break when YouTube changes its player. History keeps only id, title, channel and time, at most 8 videos for 30 days.
-
-**Companions reacting.** Ordinary companion turns get a "Watching together" block (`watchingContext`, capped at 1300 characters): title, channel, playback position (extrapolated from the page's reports, so the time is right at the turn), the current chapter, a description excerpt (360 characters, 200 when captions are present) and the last 30 s of captions (420 characters, written captions over automatic ones, labelled "can mishear words"). Over the cap, the description drops first, then the captions. Ambient chatter, battle and loot reactions, phone chat, holocalls and add-on turns do not get it, and the mod adds no timed remarks of its own: the companion speaks when V does. With "Companions can see" on and Convai answering, the companion also gets about one frame a second (see the TV source in [Companion vision](#companion-vision)). The video ducks to 30% while a reply plays, the microphone is held or speech is active (checked every 200 ms, restored 1.2 s after quiet).
-
-**Not built or stubbed.** A couch scene choice (the key instead), a volume control in the game (YouTube's own control works), exclusive full screen, and unprompted companion remarks. The caption request path (asking the player for a track) was not seen live, and the `youtube-tv.test.mjs` suite covers the pure parts, sessions with a fake browser and the Lua under fengari.
-
-Further reading: [docs/YOUTUBE_TV.md](docs/YOUTUBE_TV.md), [docs/COMPANION_VISION.md](docs/COMPANION_VISION.md), [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md).
 
 ### Holocall and Phone Chat
 
@@ -1208,7 +1173,7 @@ Further reading: [docs/PHONE_CHAT.md](docs/PHONE_CHAT.md), [docs/HOLOCALL.md](do
 
 ### Notices, overhead subtitles and follow-up questions
 
-**Notices.** Every popup the mod shows is the game's neutral warning line, and one gate in front of it, `mod/notices.lua`, decides what appears. Each notice id has a catalog entry with a class: **Player** (always shown; an intuitive wait, its outcome, or a real failure the player must act on; 51 entries), **Developer** (only with Settings > Development > Developer mode on; routine status such as dismissals and driving steps; 7 entries) and **Removed** (never shown; 1 entry). An unknown id is never shown. A Player notice has a repeat window (`repeatS`, for example 15 or 20 s) inside which identical text is dropped while Developer mode is off; with it on every occurrence shows. The gate costs a table lookup and a boolean, nothing per frame. `bridge/notices.test.mjs` fails when a call site uses an unknown id, when a raw `ConvaiPhoneFeedback` call appears outside the file, or when the catalog and [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) disagree. The kinds include invitations (joined, failed), service and conversation failures (`service-down`, `service-blocked`, `conversation-timeout`, `reply-error`), the quota notices, the Mistral and Local AI notices (`mistral-key`, `mistral-limit`, `local-fallback` and others), microphone states, voice fallbacks, holocalls, `youtube-tv`, `message-lost`, loading lines and `addon-notice`.
+**Notices.** Every popup the mod shows is the game's neutral warning line, and one gate in front of it, `mod/notices.lua`, decides what appears. Each notice id has a catalog entry with a class: **Player** (always shown; an intuitive wait, its outcome, or a real failure the player must act on; 51 entries), **Developer** (only with Settings > Development > Developer mode on; routine status such as dismissals and driving steps; 7 entries) and **Removed** (never shown; 1 entry). An unknown id is never shown. A Player notice has a repeat window (`repeatS`, for example 15 or 20 s) inside which identical text is dropped while Developer mode is off; with it on every occurrence shows. The gate costs a table lookup and a boolean, nothing per frame. `bridge/notices.test.mjs` fails when a call site uses an unknown id, when a raw `ConvaiPhoneFeedback` call appears outside the file, or when the catalog and [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) disagree. The kinds include invitations (joined, failed), service and conversation failures (`service-down`, `service-blocked`, `conversation-timeout`, `reply-error`), the quota notices, the Mistral and Local AI notices (`mistral-key`, `mistral-limit`, `local-fallback` and others), microphone states, voice fallbacks, holocalls, `message-lost`, loading lines and `addon-notice`.
 
 **Held loading notice.** A slow load (an OmniVoice or Pocket voice, Local AI warming up, or a companion still being prepared) is announced after 1.5 s as ONE notice (`load-progress`) that stays up without blinking, written once to the game's warning blackboard line with a 90 s safety duration (`HOLD_S`), refreshed instantly every 80 s and replaced by `load-ready` or `load-failed`. A companion's wait is one line naming what blocks her ("Preparing Evelyn: waiting for the voice model to load..."). If the blackboard write fails it falls back to a repeated five-second notice. This held notice was not seen in the game at the time its doc was written.
 
@@ -1239,7 +1204,6 @@ The Settings page groups its rows in this order: Interface, Conversations, Conve
 | Key | Row | Default |
 |---|---|---|
 | `uiLanguage` | Interface language | `auto` |
-| `youtubeTv` | YouTube on V's TV | off |
 | `archetypeConversations` | Talk to ordinary NPCs | on |
 | `multilingualConversations` | Multilingual conversations | off |
 | `autoConnectNearby` | Auto-connect nearby characters | on |
@@ -1360,7 +1324,6 @@ There are two release styles. **At once** when a setting turns a feature off or 
 | Facial model (worker thread, about 3.6 MB of weights plus the text model) | bridge start | playback off, at once; reloads in a fraction of a second when playback is on |
 | Phone-analysis worker (Python, CPU) | only without the facial model, with Pocket speaking and playback on | as soon as Pocket stops or playback is off |
 | Vision helper (`CyberpunkConvaiVision.exe`, about 35 to 50 MiB) and its frame buffer (at most 4 JPEGs) | only while capturing: "Companions can see" on, Convai answering, someone near, no conversation running (nor for 12 s after one); one picture every 3 s | at once on any of those stopping; frames older than 2 minutes are never sent |
-| TV frames for vision | a video plays on V's TV, "Companions can see" on, Convai answering, someone near | at once when the video stops or the TV closes |
 | Audio-output probe (hidden PowerShell, wakes every 60 s) | first turn, while the lip-sync delay is Auto | a hand-set delay, or playback off |
 | Convai connection pages | Convai is the provider and a character is warmed or speaking | a provider switch closes every page; with Mistral or Local AI none is opened |
 | Cloud voice clients (Voxtral, Inworld) | per reply, stateless HTTPS | nothing is held between replies |
@@ -1391,7 +1354,7 @@ Frame rate and response latency are the two top priorities. A loss of even 2 to 
 
 **The 2026-10-12 capture** (one companion, 94 s in game, 48.4 fps, 20.7 ms mean frame): the whole `onUpdate` callback took 179 ms/s, 3.7 ms of each frame. The knowledge collectors were the largest part (69 ms/s), file IO second (32 ms/s) and init.lua's own inline work about 34 ms/s. The Lua rounds that followed, all committed and unit-tested, are: collectors that rest between scans and send revision references instead of an 800 KB payload (expected most of the 69 ms/s), fewer file opens and in-place lease writes, an idle sleep for the face writer, a continuous face file written in segments (speech update while speaking 85 to 115 ms/s down to an expected 4 to 8), a buffered `log()`, and gated hooks. The savings in those rounds are expected values from the captures. Whether they reached the player's frame rate has not been measured in a second live capture.
 
-**FPS A/B results read in the docs.** Companion vision, a capture every 3 s: 57.41 against 57.41 FPS (median, 12 blocks of 20 s) and 55.49 against 55.47 (means, 16 blocks), with no more slow frames in capture windows. The YouTube TV picture at one frame a second showed no measurable cost, but the game sat near a 60 fps cap, which hides small costs ([docs/COMPANION_VISION.md](docs/COMPANION_VISION.md)). The ordinary-NPC lip-sync A/B (crowd face modes `off`, `ungated`, `gated`) and Local AI FPS in the game are owed live checks.
+**FPS A/B results read in the docs.** Companion vision, a capture every 3 s: 57.41 against 57.41 FPS (median, 12 blocks of 20 s) and 55.49 against 55.47 (means, 16 blocks), with no more slow frames in capture windows. The ordinary-NPC lip-sync A/B (crowd face modes `off`, `ungated`, `gated`) and Local AI FPS in the game are owed live checks.
 
 **Why a native plugin exists.** CET Lua has no asynchronous file IO, so every lease, mailbox and stream read runs on the game thread at 1 to 5 ms. `native/core/` builds `CyberpunkConvaiNative.dll`, a RED4ext plugin in `red4ext/plugins/CyberpunkConvaiNative/`. It registers RTTI natives only (no hooks, no offsets), declares game runtime 2.31 so RED4ext refuses it after a patch, and has no `.reds` declaration, so a missing DLL never blocks the game. Systems: `io` (one below-normal-priority worker thread for all file IO, mutex-copy calls of 0.1 to 0.4 microseconds measured headless), `gaze`, `clearance`, `actuator`, `faces`, `vehicles`, `chauffeur` and `passage`. Every native body is guarded, three faults turn a system off for the session, and a line in `runtime/native-off.txt` (a system name or `all`) switches it off by hand. Each system keeps its Lua path as the fallback, and the actuator is proven against Lua before it is used. The first live runs on 2026-10-13 found wrong game-getter names, which were fixed; no system has a recorded full in-game pass yet (not verified in the game). See [docs/NATIVE_REWRITE_PLAN.md](docs/NATIVE_REWRITE_PLAN.md), [docs/NATIVE_PORT_BRIEF.md](docs/NATIVE_PORT_BRIEF.md), [docs/NATIVE_ACTUATOR.md](docs/NATIVE_ACTUATOR.md) and [docs/NATIVE_VEHICLES.md](docs/NATIVE_VEHICLES.md).
 
@@ -1557,7 +1520,7 @@ Every design note in `docs/`, grouped by area. Dated files are snapshots (resear
 [GAME_DIALOGUE_CONTEXT](docs/GAME_DIALOGUE_CONTEXT.md) · [DYNAMIC_CONTEXT_AUDIT](docs/DYNAMIC_CONTEXT_AUDIT.md) · [PLAYER_GEAR_CONTEXT](docs/PLAYER_GEAR_CONTEXT.md) · [ROMANCE_DYNAMIC_CONTEXT](docs/ROMANCE_DYNAMIC_CONTEXT.md) · [QUEST_CONTEXT](docs/QUEST_CONTEXT.md) · [QUEST_DECISIONS](docs/QUEST_DECISIONS.md) · [QUEST_OUTCOME_COVERAGE_2026-10-05](docs/QUEST_OUTCOME_COVERAGE_2026-10-05.md) · [QUEST_PRIORITY_COVERAGE_2026-10-04](docs/QUEST_PRIORITY_COVERAGE_2026-10-04.md) · [CHARACTER_KNOWLEDGE_COVERAGE_2026-10-01](docs/CHARACTER_KNOWLEDGE_COVERAGE_2026-10-01.md) · [PLAYER_MEMORY](docs/PLAYER_MEMORY.md) · [PLAYER_MEMORY_UI](docs/PLAYER_MEMORY_UI.md) · [CHAT_MEMORY_RESET](docs/CHAT_MEMORY_RESET.md) · [RELATIONSHIP_PROFILES](docs/RELATIONSHIP_PROFILES.md) · [FIRST_PERSON_RULE](docs/FIRST_PERSON_RULE.md) · [FULL_CAST_EXPANSION_2026-10-01](docs/FULL_CAST_EXPANSION_2026-10-01.md) · [NPC_ARCHETYPES](docs/NPC_ARCHETYPES.md) · [MULTILINGUAL_PROFILES](docs/MULTILINGUAL_PROFILES.md) · [CHARACTER_EDITOR](docs/CHARACTER_EDITOR.md)
 
 **Interface and features**
-[MANAGER_UI](docs/MANAGER_UI.md) · [SETTINGS_REVIEW_2026-10-07](docs/SETTINGS_REVIEW_2026-10-07.md) · [INTERFACE_LANGUAGES](docs/INTERFACE_LANGUAGES.md) · [NOTIFICATIONS](docs/NOTIFICATIONS.md) · [PHONE_CHAT](docs/PHONE_CHAT.md) · [HOLOCALL](docs/HOLOCALL.md) · [YOUTUBE_TV](docs/YOUTUBE_TV.md) · [ADDON_API](docs/ADDON_API.md)
+[MANAGER_UI](docs/MANAGER_UI.md) · [SETTINGS_REVIEW_2026-10-07](docs/SETTINGS_REVIEW_2026-10-07.md) · [INTERFACE_LANGUAGES](docs/INTERFACE_LANGUAGES.md) · [NOTIFICATIONS](docs/NOTIFICATIONS.md) · [PHONE_CHAT](docs/PHONE_CHAT.md) · [HOLOCALL](docs/HOLOCALL.md) · [ADDON_API](docs/ADDON_API.md)
 
 Other documents: [packaging/PLAYER_README.md](packaging/PLAYER_README.md) (the release notes shipped with every package), [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md), [auth-backend/README.md](auth-backend/README.md), [characters/README.md](characters/README.md), [localization/README.md](localization/README.md), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
@@ -1569,8 +1532,7 @@ Everything in this README describes current `main`. Tests cover the logic; they 
 
 | Area | State |
 |---|---|
-| Companion vision and TV frames as a vision source | Capture helper and bridge logic are tested; the end-to-end behaviour with Convai is not confirmed live |
-| YouTube on V's TV | Built and unit-tested; not confirmed live, including the windowing requirement |
+| Companion vision | Capture helper and bridge logic are tested; the end-to-end behaviour with Convai is not confirmed live |
 | Holocalls: live picture and the Chat-tab call button | Built; check [docs/HOLOCALL.md](docs/HOLOCALL.md) for what was seen |
 | Ordinary-NPC conversations and their lip sync | Built; the gated crowd graph has not been installed or seen, and its FPS A/B check has not been run |
 | Character editor and the Multilingual setting (including the multilingual microphone) | Built and tested; not seen live |
@@ -1597,7 +1559,6 @@ The code is the reference. These design notes still carry older statements:
 - `docs/COMPANION_INVITATIONS.md` speaks of an eight-copy party; the party has no size limit (eight is the preparation and warm-connection limit).
 - `docs/NPC_ARCHETYPES.md` and `docs/MULTILINGUAL_PROFILES.md` mix 37 and 44 archetype kinds; the data has 37 kinds and 74 archetype profiles.
 - `docs/QUEST_CONTEXT.md` and `docs/QUEST_DECISIONS.md` quote different rule counts from earlier pack revisions; `characters/world-knowledge.json` is the reference.
-- `docs/YOUTUBE_TV.md` and `TODO.md` still describe a second YouTube TV pass as unmerged; it is merged.
 - `docs/WORLD_COMPANIONS.md` describes world characters joining the party in places; that was disabled on 2026-10-11 and only mod-spawned copies join.
 
 ---

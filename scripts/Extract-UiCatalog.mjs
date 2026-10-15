@@ -13,7 +13,7 @@ const files = [
   'mod/companions.lua', 'mod/companion-vehicles.lua', 'mod/companion-vehicle-native.lua', 'mod/companion-chauffeur.lua',
   'mod/companion-chauffeur-native.lua', 'mod/gameplay-actions.lua', 'mod/companion-adoption.lua',
   'mod/companion-clearance.lua', 'mod/companion-placement.lua',
-  'mod/phone-chat.lua', 'mod/phone-chat-style.lua', 'mod/phone-input.lua', 'mod/holocall.lua', 'mod/youtube-tv.lua',
+  'mod/phone-chat.lua', 'mod/phone-chat-style.lua', 'mod/phone-input.lua', 'mod/holocall.lua',
   'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua', 'mod/support-report.lua', 'mod/character-editor.lua',
   'r6/scripts/CyberpunkConvai/Composer.reds',
   'r6/scripts/CyberpunkConvai/PhoneContacts.reds',
