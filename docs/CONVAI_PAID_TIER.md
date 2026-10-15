@@ -15,6 +15,7 @@ Convai made "Gamer" plans for this mod. A player who wants more Convai conversat
   - **Check my plan:** asks Convai now.
   - **Manage or cancel plan:** opens the player's Convai billing page.
 - **After Buy:** Stripe's checkout page opens in the browser. Once Convai reports the new plan, the Conversation provider becomes **Convai API key**, saved at once as an Apply would. One notice then says so in gameplay (`paid-tier-active`). If Convai has not confirmed the plan five minutes after the page opened, one notice points to **Check my plan** (`paid-tier-pending`). A later check that finds the plan makes the same switch.
+- **On a paid plan** several companions can talk and generate at once (up to six connections); see "Conversations at once" below.
 - **Wording rules:** no option is called recommended. The text never mentions a shared or embedded key, or Inworld. The README mentions the paid tier in one spot only: its Convai API key section.
 
 ## Convai's endpoints (from the private `Conv-AI/Convai_Payments` repository, read 2026-10-15)
@@ -43,6 +44,12 @@ Prod base: `https://payment.convai.com`, the address Convai's own dashboard uses
   - `mod/convai-paid-tier.lua` writes the command (temporary file and rename) and reads the state, at most every 1.5 s while the page asks.
   - After a Buy or a Check it reads the state every 2 s until the outcome is known, for seven minutes at most. Reopening the page does not end an open purchase.
   - `mod/mcm.lua` builds the page (view `paid-tier`, its own redraw signature). Its slow tick (4 Hz, already there) calls `paidTier.update()`, which returns at once while nothing is followed. On `active` it calls `manager.applySettings(player, {conversationProvider = 'convai', useOwnConvaiKey = true})`, the same path as the selector's Apply. Mature content goes off by the existing rule. The notice waits for gameplay.
+- **Conversations at once:**
+  - A player's key on a confirmed paid plan may hold up to `PAID_CONNECTIONS` (6) conversation connections at once, so several companions can talk and generate together. A free, unknown or unread plan keeps one, as before.
+  - **Where:** `exclusive.limit()` in `bridge/realtime-host.mjs`. Before a request, idle connections in the phone and party hosts are closed, least recently used first, until the request fits under the limit. A busy connection is never closed. A "Concurrency limit reached" answer is still retried once after 1.5 s.
+  - **Source:** the bridge's `connectionLimit()` asks `PaidTierControl.connectionLimit()`, which is memory-only and runs before each request. It is 6 only when the last plan answer was for this very key, says paid (not free or trial), has not expired and is at most 12 hours old. With Mistral active it is 1.
+  - **When the plan is read:** only while the player's key is in use (`wantPlan`). The control's 500 ms poll starts one background read when there is no answer yet, the answer was for another key, or it is more than 6 hours old. A page check and a purchase update it too. A failed read forgets the answer, so the key falls back to one connection, and it retries after 10 minutes (`PLAN_TIMING`). One log line marks each change.
+  - **What stays off:** look-ahead, prefetch, pre-opened party, phone and ambient connections all stay off for any player key, paid or not (`singleSession()` in the bridge is unchanged). That saves the player's monthly interactions. Multilingual conversations also stay off on a player's key.
 - **Performance:** nothing runs per frame and nothing is loaded. While the page is closed and no purchase is followed, the Lua side does no work and the bridge does one small file read every half second.
 
 ## Price ids and where they can change
@@ -61,19 +68,25 @@ Prod base: `https://payment.convai.com`, the address Convai's own dashboard uses
 - **Server override (no mod update):**
   - Set with `POST /api/admin/config {"paidPlans": {...}}` on `auth-backend/`, read publicly at `GET /api/convai/plans`. See `auth-backend/README.md`, "Changing the Convai paid tier's plans".
   - A bridge uses it when it knows the backend address: backend mode on in `convai-auth.json`, or `CYBERPUNK_CONVAI_PLANS_URL`. Every other bridge uses the built-in list.
-  - **Needs a backend deploy, which needs the user's approval:** the endpoint and the admin field are on this branch only. Until it is deployed the URL answers 404 and the built-in list applies.
+  - **Not deployed, by the user's decision (2026-10-15):** the release uses the built-in list. The endpoint and the admin field stay on this branch for later. Until a deploy, the URL answers 404 and the built-in list applies.
 
 ## What is left open
 
-- **Convai Connect sign-in:** the mod has no Convai login. The player's key comes from the clipboard, through the existing Paste row. The page's **Get your Convai API key** row opens convai.com so the player can sign in there and copy it. A real Convai Connect flow, sign-in that hands the key to the app, needs Convai's documentation for it. None was found in the payments repository or the public docs.
+- **Convai sign-in:** the release keeps paste-your-key (the user's decision, 2026-10-15). The page's **Get your Convai API key** row opens convai.com, where the player copies the key, then Paste. The user is asking Convai for a login endpoint that returns the key.
+  - **The seam:** `PaidTierControl`'s `signIn` option, `async () => key or null`, wired next to `saveKey` in `bridge/convai-bridge.mjs`.
+  - When it is passed, the `key-page` action calls it first. A key it returns is saved through `saveKey`, the same path as Paste: the key file, the quota reset and the own-key status. The page shows the saved key, with result `saved`.
+  - When it gives nothing or throws, the key page opens as now.
+  - No Lua change and no new strings are needed.
 - **Cancellation (Churnkey):** handled by opening Convai's billing page, where Convai's own Churnkey flow runs inside the player's convai.com session. No Churnkey key or snippet is needed in the mod. If Convai wants the flow inside the game, they need to give a client-usable token (the current one is encrypted with their server key) and confirm the app id.
 - **Gamer Pro numbers:** Convai only said "more". The page says "More Convai interactions a month than Gamer" until a number is set (built in or through `interactions` in the server list).
-- **Concurrency:** the Gamer plan's 6 concurrent connections are not used. A player's own key keeps the single-session rule (`ConvaiKeys.singleSession`, docs/OWN_CONVAI_KEY.md). That rule also stops look-ahead and warm-up turns from spending the player's 1000 monthly interactions. The page therefore does not advertise concurrency. Lifting the rule for paid keys is a separate decision.
+- **Plan names:** the paid check treats every plan name that is not empty, `-1`, `none`, or containing "free" or "trial" as paid. The exact `plan_name` values of the V2 plans are still to confirm with Convai.
 - **Multilingual conversations** stay off on a player's key (free plans have no multilingual support). Whether the Gamer plans include it is unknown.
 - **`get-user-details`:** on `main` of the payments repository it is unauthenticated and answers by e-mail address as well as by key. That is worth raising with Convai. Its branch `fix/beta-router-auth` puts a secret on the `/beta` admin routes; if that ever covers `get-user-details`, the plan check returns "could not be read" and the purchase still works. The mod tries `/get-user-details` first, then `/beta/get-user-details`.
 
 ## Tests
 
 - `bridge/convai-paid-tier.test.mjs`: endpoint shapes, failures mapped to reasons, only Stripe or Convai pages opened, key and price ids never in the status file, polling cadence and five-minute stop, baseline comparison, duplicate price ids, server override limits, stale commands.
+- `bridge/convai-paid-tier.test.mjs`, connections: the plan is read only while the key is in use, once, and refreshed after six hours; a paid plan gives six and a free one gives one; a failed read gives one and retries after ten minutes; another key, an expired plan or an answer older than 12 hours gives one; the key never reaches the state file; the sign-in seam saves the key or falls back to the key page.
+- `bridge/realtime-single-session.test.mjs`: with a limit of six only the excess idle connections close, oldest first, across both hosts; a busy one never closes; a broken limit means one.
 - `bridge/convai-paid-tier-ui.test.mjs`: the real `mcm.lua` and `manager.lua` in fengari. Covers the row position, the plan rows and their wording, no purchase without a key, the provider switch and one notice after a confirmed purchase, the timeout notice, a later check, and a refused checkout.
 - `auth-backend/test/plans.test.mjs`: admin set, show and remove; the public read with its one-minute cache; refusal of duplicate prices or foreign hosts; a store that is down.

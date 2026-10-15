@@ -340,9 +340,14 @@ if (backendDailyLimit !== null) turnGuard.setLimit(backendDailyLimit);
 const hostGuard = tokenSource ? {check: () => { turnGuard.check(); keys.assertAllowed(); }, consume: () => turnGuard.consume()} : turnGuard;
 if (dailyLimit > 0) console.error(`[CyberpunkConvai] Shared conversation allowance: ${dailyLimit} turns a day, ${turnGuard.snapshot()?.left ?? dailyLimit} left today`);
 const currentKey = () => keys.current();
-// A player's key is a free plan with one conversation connection at a time: no look-ahead, no pre-opened connections.
+// A player's key saves its plan's interactions: no look-ahead, no pre-opened connections, on a free or a paid plan alike.
 // With Mistral there is no Convai connection to pre-open or to speculate on either.
 const singleSession = () => keys.singleSession || mistral.active;
+// How many conversation connections a player's key may hold at once: one on a free, unknown or unread plan; Convai's six on a
+// confirmed paid Gamer plan (docs/CONVAI_PAID_TIER.md), so several companions can talk and generate together. Memory-only;
+// set once the paid tier service exists (further down), one until then.
+let playerConnectionLimit = () => 1;
+const connectionLimit = () => mistral.active ? 1 : playerConnectionLimit();
 const keyNotice = () => {
   const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'});
   // The fallback notice names the model that was used instead.
@@ -434,7 +439,7 @@ function memoryBlocked() {
   console.error('[CyberpunkConvai] The key\'s plan has no room for another memory user: conversations continue without long-term memory');
   void ownKeyControl.publishStatus().catch(() => {});
 }
-const keyHostOptions = peers => ({exclusive: {enabled: singleSession, peers, retryMs: 1500},
+const keyHostOptions = peers => ({exclusive: {enabled: singleSession, limit: connectionLimit, peers, retryMs: 1500},
   // The backend token replaces the key in the config sent to Convai (unchanged without backend mode or with a player's own key).
   credential: config => keys.credentialFor(config),
   onFailure: error => {
@@ -2729,7 +2734,13 @@ quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
 const paidTierControl = await new PaidTierControl({keys, commandPath: resolve(runtime, 'paid-tier-command.json'),
   plansUrl: process.env.CYBERPUNK_CONVAI_PLANS_URL?.trim() || (authSettings.enabled ? plansUrlFor(authSettings.url) : null),
   publish: value => atomic(resolve(runtime, 'paid-tier-state.json'), JSON.stringify(value)),
+  // The plan is read only while the player's key is the one in use (its answer sets the connection limit above).
+  wantPlan: () => keys.singleSession && !mistral.active,
+  // signIn: the seam for a Convai sign-in that returns the player's key (none exists yet; the key comes from Paste). When it
+  // exists, pass it here: saveKey below stores its key exactly as Paste does.
+  saveKey: async key => { await keys.save(key); quota.clear(); await ownKeyControl.publishStatus().catch(() => {}); },
   log: message => console.error('[CyberpunkConvai] ' + message)}).open();
+playerConnectionLimit = () => paidTierControl.connectionLimit();
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
   inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });

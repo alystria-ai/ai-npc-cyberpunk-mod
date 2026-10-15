@@ -95,9 +95,10 @@ export async function installCompanionActionBinding(page, {isCurrent, onAction})
 
 export class RealtimeHost {
   // transformReply: optional, applied to every finished reply (Natural speech removes voice tags from the display text).
-  // exclusive: {enabled(), peers(), retryMs}. While enabled the plan allows one conversation connection at a time (a
-  // player's own free Convai key), so a request first closes every other idle connection, here and in the peer hosts,
-  // and a "Concurrency limit reached" answer is retried once after retryMs while the old session is released.
+  // exclusive: {enabled(), limit(), peers(), retryMs}. While enabled the plan caps how many conversation connections may be
+  // open at once (a player's own Convai key): limit() of them, one when absent (a free plan; a paid Gamer plan allows six).
+  // A request first closes idle connections, here and in the peer hosts, least recently used first, until it fits under
+  // the cap, and a "Concurrency limit reached" answer is retried once after retryMs while an old session is released.
   // onFailure(error) / onSuccess(): observers of a finished request (the bridge reads plan-limit failures from them).
   // recover(error, config): may return a changed config for one more attempt (a player's key whose plan has no room for
   // another memory user retries with the account's existing memory user, or without an identity), or nothing. It may be async.
@@ -172,16 +173,24 @@ export class RealtimeHost {
         ? window.convaiRealtime.stageVision(images) : {staged: false, reason: 'old-voice-client'}, images);
     } catch { return {staged: false, reason: 'failed'}; }
   }
-  // Single-session plans: close the idle connections of this host (except `key`) and of its peers.
+  // Plans with a connection cap: close idle connections of this host (never `key`) and of its peers, least recently used
+  // first, until `key` fits under the cap. A busy connection is never closed.
   async yieldOtherSessions(key) {
     if (!this.exclusive?.enabled?.()) return;
+    let cap = 1;
+    try { const value = Math.floor(Number(this.exclusive.limit?.() ?? 1)); cap = Number.isFinite(value) && value > 1 ? value : 1; } catch { cap = 1; }
+    const others = [];
     for (const host of [this, ...(this.exclusive.peers?.() ?? [])]) {
       const pool = host?.pool;
       if (!pool) continue;
-      for (const entry of [...pool.entries.values()]) {
-        if (host === this && entry.key === key) continue;
-        await pool.discardIdle(entry.key).catch(() => {});
-      }
+      for (const entry of [...pool.entries.values()]) if (!(host === this && entry.key === key)) others.push({pool, entry});
+    }
+    let excess = others.length - (cap - 1);
+    if (excess <= 0) return;
+    others.sort((a, b) => (a.entry.used ?? 0) - (b.entry.used ?? 0));
+    for (const {pool, entry} of others) {
+      if (excess <= 0) break;
+      if (await pool.discardIdle(entry.key).catch(() => false) !== false) excess--;
     }
   }
   // A finished reply proves the key works; opening a connection or a microphone does not (a used-up plan can still connect).

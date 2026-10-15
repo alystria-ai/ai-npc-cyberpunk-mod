@@ -187,20 +187,64 @@ export function parsePaidTierCommand(raw, now = Date.now()) {
 // and Convai activates the plan about 15 s after the payment.
 export const WATCH = Object.freeze({fastMs: 6000, fastForMs: 60_000, slowMs: 20_000, totalMs: 300_000});
 
+// Conversation connections a player's own key may hold at once on a paid Gamer plan (Convai: 6). A free, unknown or unread plan has one.
+export const PAID_CONNECTIONS = 6;
+// The plan behind a player's key in use: read on demand (when the key is in use and the last answer is missing, for another key,
+// or older than six hours), never per frame. A failed read retries after ten minutes; an answer older than twelve hours is not trusted.
+export const PLAN_TIMING = Object.freeze({refreshMs: 6 * 3600_000, trustMs: 12 * 3600_000, retryMs: 600_000});
+
 /** File IPC between the settings page (mod/convai-paid-tier.lua) and Convai. The key never enters either file. */
 export class PaidTierControl {
   /**
    *   keys         ConvaiKeys (bridge/convai-key.mjs): its saved player key is the one used; the shared key is never touched
    *   commandPath  runtime/paid-tier-command.json      publish  (value) => Promise, writes runtime/paid-tier-state.json
    *   plansUrl     the backend's GET /api/convai/plans, or null (the built-in plans)
+   *   wantPlan     () => boolean: the player's key is the one in use, so its plan decides how many connections it may hold
+   *   signIn       the seam for a Convai sign-in that hands back the player's key (none exists yet): async () => key string or null.
+   *                Absent, or giving nothing, "Get your Convai API key" opens the key page and the player pastes the key.
+   *   saveKey      async (key) => void, saves a key from signIn the way Paste does (the bridge passes the own-key path)
    */
   constructor({keys, commandPath, publish, plansUrl = null, openBrowser = openInBrowser, fetchImpl = globalThis.fetch, read = path => readFile(path, 'utf8'),
-    now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, watch = WATCH, log = () => {}} = {}) {
+    now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, watch = WATCH, planTiming = PLAN_TIMING, wantPlan = () => false,
+    signIn = null, saveKey = null, log = () => {}} = {}) {
     if (!keys || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid paid tier configuration');
-    Object.assign(this, {keys, commandPath, publish, plansUrl, openBrowser, fetchImpl, read, now, setTimer, clearTimer, watchTiming: watch, log});
+    Object.assign(this, {keys, commandPath, publish, plansUrl, openBrowser, fetchImpl, read, now, setTimer, clearTimer, watchTiming: watch,
+      planTiming, wantPlan, signIn: typeof signIn === 'function' ? signIn : null, saveKey: typeof saveKey === 'function' ? saveKey : null, log});
     this.config = resolvePaidTier();
     this.overrideAt = null; this.observed = ''; this.busy = false; this.closed = false; this.writing = Promise.resolve();
-    this.result = null; this.plan = null; this.planAt = null; this.watch = null; this.timer = null;
+    this.result = null; this.plan = null; this.planAt = null; this.planFor = null; this.watch = null; this.timer = null;
+    this.planReading = null; this.planRetryAt = 0; this.wasPaid = false;
+  }
+  /**
+   * Whether the player's saved key is on a paid plan now: the last answer was for this very key, says paid, has not expired and is
+   * at most twelve hours old. Synchronous and memory-only (asked before each conversation request). Anything else: false.
+   */
+  paidPlanActive() {
+    const key = this.keys.player, plan = this.plan, now = this.now();
+    if (!key || !plan?.paid || this.planFor !== key || this.planAt === null || now - this.planAt > this.planTiming.trustMs) return false;
+    return !plan.expiresAt || Date.parse(plan.expiresAt) > now;
+  }
+  /** Connections the player's key may hold at once: PAID_CONNECTIONS on a confirmed paid plan, else one. */
+  connectionLimit() { return this.paidPlanActive() ? PAID_CONNECTIONS : 1; }
+  #planDue() {
+    if (this.closed || this.planReading || !this.keys.player || this.now() < this.planRetryAt) return false;
+    let wanted = false; try { wanted = !!this.wantPlan(); } catch { wanted = false; }
+    return wanted && (this.planFor !== this.keys.player || this.planAt === null || this.now() - this.planAt > this.planTiming.refreshMs);
+  }
+  #notePaid() {
+    const paid = this.paidPlanActive();
+    if (paid !== this.wasPaid) this.log(paid ? `paid Convai plan: up to ${PAID_CONNECTIONS} conversations at once` : 'Convai plan: one conversation at a time');
+    this.wasPaid = paid;
+  }
+  // Starts one background plan read when one is due. Never awaited by the caller's tick.
+  #readPlanIfDue() {
+    if (!this.#planDue()) return;
+    this.planReading = this.#readPlan()
+      .then(state => { this.planRetryAt = state ? 0 : this.now() + this.planTiming.retryMs; })
+      .catch(() => { this.planRetryAt = this.now() + this.planTiming.retryMs; })
+      .then(() => { this.#notePaid(); return this.publishStatus(); })
+      .catch(() => {})
+      .finally(() => { this.planReading = null; });
   }
   async open() {
     this.observed = await this.read(this.commandPath).catch(() => '');
@@ -219,7 +263,9 @@ export class PaidTierControl {
     return this.writing;
   }
   async poll() {
-    if (this.busy || this.closed) return;
+    if (this.closed) return;
+    this.#readPlanIfDue();
+    if (this.busy) return;
     const raw = await this.read(this.commandPath).catch(() => '');
     if (raw === this.observed) return;
     this.observed = raw;
@@ -246,7 +292,10 @@ export class PaidTierControl {
     const key = this.keys.player;
     if (!key) { this.plan = null; this.planAt = null; return null; }
     const state = await readPlanState({key, config: this.config, fetchImpl: this.fetchImpl, now: this.now});
-    if (state) { this.plan = state; this.planAt = this.now(); }
+    // A read that failed forgets the last answer: the key falls back to one conversation at a time until a read succeeds.
+    if (state) { this.plan = state; this.planAt = this.now(); this.planFor = key; }
+    else { this.plan = null; this.planAt = null; this.planFor = null; }
+    this.#notePaid();
     return state;
   }
   async run(command) {
@@ -255,7 +304,7 @@ export class PaidTierControl {
         await this.#loadOverride();
         // The plan is read when the page opens, at most once a minute.
         if (this.keys.player && (this.planAt === null || this.now() - this.planAt > 60_000)) await this.#readPlan();
-        else if (!this.keys.player) { this.plan = null; this.planAt = null; }
+        else if (!this.keys.player) { this.plan = null; this.planAt = null; this.planFor = null; this.#notePaid(); }
         return 'ready';
       }
       case 'check': {
@@ -266,10 +315,22 @@ export class PaidTierControl {
         return state.paid ? 'active' : 'not-yet';
       }
       case 'manage': return await this.#openPage(this.config.manageUrl);
-      case 'key-page': return await this.#openPage(this.config.keyPageUrl);
+      case 'key-page': return await this.#signInOrKeyPage();
       case 'buy': return await this.#buy(command.plan);
       default: return 'failed';
     }
+  }
+  // A future Convai sign-in that returns the player's key saves it like Paste ('saved'); without one, or when it gives nothing,
+  // the key page opens so the player can copy the key.
+  async #signInOrKeyPage() {
+    if (this.signIn && this.saveKey) {
+      let key = null;
+      try { key = await this.signIn(); } catch { key = null; }
+      if (typeof key === 'string' && key.trim()) {
+        try { await this.saveKey(key.trim()); return 'saved'; } catch { /* fall back to the key page */ }
+      }
+    }
+    return await this.#openPage(this.config.keyPageUrl);
   }
   async #openPage(url) {
     const safe = convaiUrl(url);

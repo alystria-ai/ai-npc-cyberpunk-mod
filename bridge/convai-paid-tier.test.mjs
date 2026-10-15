@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, readFile, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {DEFAULT_PAID_TIER, PaidTierControl, WATCH, isFreePlan, parsePaidTierCommand, parsePlans, plansUrlFor, readPlanState,
+import {DEFAULT_PAID_TIER, PAID_CONNECTIONS, PLAN_TIMING, PaidTierControl, WATCH, isFreePlan, parsePaidTierCommand, parsePlans, plansUrlFor, readPlanState,
   requestCheckout, resolvePaidTier, safeCheckoutUrl} from './convai-paid-tier.mjs';
 
 const KEY = 'player-test-key-0123456789abcdef';
@@ -122,7 +122,7 @@ test('commands: fresh, well formed, a known action, a plan id for buy', () => {
 });
 
 /** A control over a temporary runtime folder, a fake clock and timers that run only when the test says so. */
-async function harness({routes = {}, key = KEY, plansUrl = null} = {}) {
+async function harness({routes = {}, key = KEY, plansUrl = null, options = {}} = {}) {
   const folder = await mkdtemp(join(tmpdir(), 'paid-tier-'));
   const commandPath = join(folder, 'paid-tier-command.json');
   const published = [], opened = [], timers = [];
@@ -133,7 +133,7 @@ async function harness({routes = {}, key = KEY, plansUrl = null} = {}) {
     publish: async value => { published.push(JSON.parse(JSON.stringify(value))); },
     openBrowser: async url => { opened.push(url); },
     setTimer: (fn, ms) => { const timer = {fn, ms, cleared: false}; timers.push(timer); return timer; },
-    clearTimer: timer => { timer.cleared = true; }}).open();
+    clearTimer: timer => { timer.cleared = true; }, ...options}).open();
   let sequence = 0;
   const send = async (action, extra = {}) => {
     sequence += 1;
@@ -280,4 +280,104 @@ test('an old command left in the file is not replayed at start, and close leaves
     assert.equal(again.result, null);
     again.close();
   } finally { await world.cleanup(); }
+});
+
+// Connections on a paid plan (docs/CONVAI_PAID_TIER.md, "Conversations at once"): six on a confirmed paid Gamer plan, one otherwise.
+const DETAILS = 'POST https://payment.convai.com/get-user-details';
+const tick = async world => { await world.control.poll(); await world.control.planReading; };
+
+test('the plan is read only while the player key is in use, once, and a paid plan allows six connections', async () => {
+  let inUse = false, plan = 'GamerPlanV2';
+  const world = await harness({routes: {[DETAILS]: () => detailsAnswer(plan)}, options: {wantPlan: () => inUse}});
+  try {
+    await tick(world);
+    assert.equal(world.calls.length, 0, 'the shared key is in use: no plan read');
+    assert.equal(world.control.connectionLimit(), 1);
+    inUse = true;
+    await tick(world);
+    assert.equal(world.calls.length, 1);
+    assert.equal(world.control.connectionLimit(), PAID_CONNECTIONS);
+    assert.equal(PAID_CONNECTIONS, 6);
+    for (let index = 0; index < 20; index++) await tick(world);
+    assert.equal(world.calls.length, 1, 'polling does not read the plan again');
+    world.advance(PLAN_TIMING.refreshMs + 1);
+    plan = 'Free';
+    await tick(world);
+    assert.equal(world.calls.length, 2, 'refreshed after six hours');
+    assert.equal(world.control.connectionLimit(), 1, 'a free plan has one connection');
+  } finally { await world.cleanup(); }
+});
+
+test('a failed plan read falls back to one connection and retries after ten minutes, not before', async () => {
+  let fail = false;
+  const world = await harness({routes: {[DETAILS]: () => fail ? {status: 500, json: {ERROR: 'down'}} : detailsAnswer('GamerPlanV2')},
+    options: {wantPlan: () => true}});
+  try {
+    await tick(world);
+    assert.equal(world.control.connectionLimit(), 6);
+    fail = true;
+    world.advance(PLAN_TIMING.refreshMs + 1);
+    await tick(world);
+    assert.equal(world.calls.length, 2);
+    assert.equal(world.control.connectionLimit(), 1, 'an unread plan counts as free');
+    world.advance(PLAN_TIMING.retryMs - 1000);
+    await tick(world);
+    assert.equal(world.calls.length, 2, 'no retry inside ten minutes');
+    fail = false;
+    world.advance(2000);
+    await tick(world);
+    assert.equal(world.calls.length, 3);
+    assert.equal(world.control.connectionLimit(), 6);
+  } finally { await world.cleanup(); }
+});
+
+test('another key, an expired plan or an old answer is one connection until the plan is read again', async () => {
+  const world = await harness({routes: {[DETAILS]: () => detailsAnswer('GamerPlanV2', '2026-10-15T13:00:00')}, options: {wantPlan: () => false}});
+  try {
+    await world.send('check');
+    assert.equal(world.control.connectionLimit(), 6, 'a page check counts too');
+    world.keys.player = 'player-other-key-0123456789abcdef';
+    assert.equal(world.control.connectionLimit(), 1, 'the answer was for another key');
+    world.keys.player = KEY;
+    assert.equal(world.control.connectionLimit(), 6);
+    world.advance(3600_000 + 1);
+    assert.equal(world.control.connectionLimit(), 1, 'the plan expired');
+    world.keys.player = null;
+    assert.equal(world.control.connectionLimit(), 1);
+  } finally { await world.cleanup(); }
+  const old = await harness({routes: {[DETAILS]: () => detailsAnswer('GamerPlanV2')}});
+  try {
+    await old.send('check');
+    assert.equal(old.control.connectionLimit(), 6);
+    old.advance(PLAN_TIMING.trustMs + 1);
+    assert.equal(old.control.connectionLimit(), 1, 'an answer older than twelve hours is not trusted');
+  } finally { await old.cleanup(); }
+});
+
+test('the plan state file never carries the key, even with the plan read in the background', async () => {
+  const world = await harness({routes: {[DETAILS]: () => detailsAnswer('GamerPlanV2')}, options: {wantPlan: () => true}});
+  try {
+    await tick(world);
+    const last = world.published.at(-1);
+    assert.equal(last.plan.paid, true);
+    assert.ok(!JSON.stringify(world.published).includes(KEY));
+    assert.ok(!JSON.stringify(world.published).includes('player@example.com'));
+  } finally { await world.cleanup(); }
+});
+
+test('sign-in seam: a key from a future Convai sign-in is saved like Paste; without one, or on failure, the key page opens', async () => {
+  const saved = [];
+  const world = await harness({key: null, options: {signIn: async () => ' player-signed-in-key-0123456789 ', saveKey: async key => { saved.push(key); }}});
+  try {
+    assert.equal((await world.send('key-page')).result.state, 'saved');
+    assert.deepEqual(saved, ['player-signed-in-key-0123456789']);
+    assert.equal(world.opened.length, 0);
+  } finally { await world.cleanup(); }
+  for (const signIn of [async () => null, async () => { throw Error('cancelled'); }]) {
+    const fallback = await harness({key: null, options: {signIn, saveKey: async () => { throw Error('never'); }}});
+    try {
+      assert.equal((await fallback.send('key-page')).result.state, 'opened');
+      assert.deepEqual(fallback.opened, ['https://convai.com']);
+    } finally { await fallback.cleanup(); }
+  }
 });

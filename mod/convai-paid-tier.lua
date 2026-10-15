@@ -125,7 +125,8 @@ function M.new(options)
         if result == 'active' then return ui.t('Your Convai plan is active.') end
         if result == 'not-yet' then return ui.t('Convai does not show a paid plan for your key yet.') end
         if result == 'unknown' then return ui.t('Your plan could not be read right now. Try again in a moment.') end
-        if result == 'ready' then return nil end
+        -- 'saved': a Convai sign-in (when one exists) saved the key; the key row shows it.
+        if result == 'ready' or result == 'saved' then return nil end
         return ui.t('Convai could not start the payment. Try again later.')
     end
 
