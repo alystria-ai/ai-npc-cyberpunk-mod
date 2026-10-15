@@ -263,7 +263,6 @@ end
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- The service: caches, the vendor file, the scanner hook.
---   options.enabled()           the setting "Names for passers-by"
 --   options.entity(npc)         the stable id string of the NPC (nil: no name)
 --   options.inspect(npc, mode)  traits of an ORDINARY NPC, or nil and a reason; mode is 'scan' or 'talk'.
 --                               traits = {gender, base, category, affiliation, appearance, recordName, memoryKey}
@@ -293,9 +292,6 @@ function M.new(options)
         if ok and type(loaded) == 'table' and type(loaded.cultures) == 'table' then pools = loaded end
         return pools
     end
-    -- Releases the pools (about 120 kB of strings) when the feature is off; the next use loads them again.
-    function N.release() if not options.pools then pools = nil end; byEntity, cached, refused, refusedCount = {}, 0, {}, 0 end
-
     local function readStore()
         if store then return store end
         store = {names = {}, order = {}}
@@ -345,11 +341,6 @@ function M.new(options)
 
     -- The generated name for an ordinary NPC, or nil and a reason. mode: 'scan' or 'talk'.
     function N.nameFor(npc, mode)
-        if not (options.enabled and options.enabled()) then
-            -- Turned off: nothing stays loaded for it (the pools and the caches go; the vendor file stays on disk).
-            if pools and not options.pools then N.release() end
-            return nil, 'off'
-        end
         if not npc then return nil, 'no-npc' end
         local entity = options.entity(npc)
         if type(entity) ~= 'string' or entity == '' then return nil, 'no-entity' end

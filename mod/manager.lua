@@ -709,8 +709,6 @@ local function loadSettings()
     if settings.keepPreparedVoices ~= true then settings.keepPreparedVoices, settingsNeedSave = true, true end
     -- On by default: unnamed gang members, police, vendors and residents can be talked to (docs/NPC_ARCHETYPES.md).
     if type(settings.archetypeConversations) ~= 'boolean' then settings.archetypeConversations, settingsNeedSave = true, true end
-    -- On by default: a nameless ordinary NPC gets a Night City name in the scanner and in conversation (docs/NPC_NAMES.md).
-    if type(settings.npcNames) ~= 'boolean' then settings.npcNames, settingsNeedSave = true, true end
     -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the cloud voice is kept (it is the
     -- player's voice) and the setting is turned off below.
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
@@ -834,12 +832,6 @@ end
 function M.archetypeConversations()
     loadSettings()
     return settings.archetypeConversations ~= false
-end
-
--- On by default: "Names for passers-by" (mod/npc-names.lua). Read when the scanner asks for an NPC or a conversation starts.
-function M.npcNames()
-    loadSettings()
-    return settings.npcNames ~= false
 end
 
 function M.profileEnabled(key)
@@ -1688,7 +1680,6 @@ function M.snapshot(player)
             localModel = validModelId(settings.localModel) and settings.localModel or 'auto',
             multilingualConversations = settings.multilingualConversations,
             archetypeConversations = settings.archetypeConversations,
-            npcNames = settings.npcNames ~= false,
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         ownKey = M.ownKey(),
@@ -1732,7 +1723,7 @@ function M.applySettings(player, values)
         if key == 'vVoice' then nextSettings.vVoiceChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
-            or key == 'holocallLiveImage' or key == 'youtubeTv' or key == 'npcNames'
+            or key == 'holocallLiveImage' or key == 'youtubeTv'
             or key == 'gameDialogueContext' or key == 'decisionLedger' or key == 'witnessReceipts'
             or key == 'naturalSpeech' or key == 'expressiveEmotions'
             or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'

@@ -842,7 +842,6 @@ do
     local loaded, module = pcall(dofile, 'npc-names.lua')
     if loaded and type(module) == 'table' and type(module.new) == 'function' then
         local built, service = pcall(module.new, {
-            enabled = function() return type(manager.npcNames) == 'function' and manager.npcNames() == true end,
             entity = function(npc)
                 local ok, id = pcall(function() return tostring(npc:GetEntityID().hash) end)
                 return ok and id or nil
