@@ -187,6 +187,16 @@ bool DecodeControl(const double* aControl, std::size_t aControlCount, const doub
     aOut.upperLower = aControl[ctl::kUpperLower];
     aOut.blinkBase = aControl[ctl::kBlink];
     aOut.owned = aControl[ctl::kOwned];
+    aOut.smileShape = 0;
+    if (aControlCount > static_cast<std::size_t>(ctl::kSmileShape))
+    {
+        const double shape = aControl[ctl::kSmileShape];
+        if (!std::isfinite(shape))
+        {
+            return false;
+        }
+        aOut.smileShape = std::max(0.0, shape);
+    }
     aOut.speech = aSpeech;
     aOut.speechCount = aSpeechCount;
     return true;
