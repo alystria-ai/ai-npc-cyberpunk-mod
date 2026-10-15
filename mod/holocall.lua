@@ -45,6 +45,12 @@ M.STUDIO_MIN, M.STUDIO_TOP, M.STUDIO_RADIUS = 10, 90, 30
 -- of the nine columns above), the search goes level with and below V: floors from 10 m above to 80 m below V's feet,
 -- on rings round V, still out of V's sight. A candidate costs about 22 raycasts, so the search takes a few per tick.
 M.LOW_TOP, M.LOW_BOTTOM, M.LOW_RADII = 10, -80, {12, 24, 40}
+-- Near first. The game animates a face only near V's own camera: a copy filmed 8 or 11 m from V moves its mouth, blinks
+-- and turns its eyes; at 16 m and beyond its face is frozen (live, 2026-10-15; the body still moves). So the search first
+-- tries a floor within FACE_RANGE metres of V (straight above or below V, then a ring NEAR_RADIUS round V, floors from
+-- NEAR_TOP above to NEAR_BOTTOM below V's feet, still out of V's sight), and only then the farther columns, where the
+-- picture still works with a still face.
+M.FACE_RANGE, M.NEAR_RADIUS, M.NEAR_TOP, M.NEAR_BOTTOM = 11, 5, 10, -10
 M.SEARCH_PER_TICK = 3
 -- The copy may drift this far from its place before the picture is given up.
 M.HOLO_DRIFT = 1.5
@@ -54,6 +60,8 @@ M.LENS_DELAY = 1.5
 -- The look at the lens is asked for again this often (the game drops a stale look request). The light rig is checked
 -- on the same beat.
 M.LOOK_REFRESH = 5
+-- The look's extra parts (see holoLook): head and chest weights.
+M.LOOK_HEAD, M.LOOK_CHEST = 0.3, 2
 -- The light rig. The game lights a holocall caller with lights of its own: the studio prefab #holocalls_studio_lighting
 -- holds small spot and area lights (radius 1-5 m, 5-150 lm, no shadows, autoHideDistance 5 m) right round the actor, and
 -- each call's scene switches on that character's variant (e.g. judy_holocall_lights): a warm key in front and above,
@@ -280,12 +288,20 @@ function M.studioAt(origin, x, y, range)
     return nil, 'no-lens-room'
 end
 
--- The columns searched, in order: straight above V, eight around at STUDIO_RADIUS (both with a floor above V), then
--- rings round V at LOW_RADII with a floor level with or below V. Each: {x, y, range}.
+-- The columns searched, in order: the near ones (straight above or below V and eight round V at NEAR_RADIUS, a floor
+-- within NEAR_TOP/NEAR_BOTTOM, kept only within FACE_RANGE of V), straight above V, eight around at STUDIO_RADIUS (both
+-- with a floor above V), then rings round V at LOW_RADII with a floor level with or below V. Each: {x, y, range, near}.
 local function columns(origin)
     local above = {top = M.STUDIO_TOP, bottom = M.STUDIO_MIN}
     local low = {top = M.LOW_TOP, bottom = M.LOW_BOTTOM}
-    local list = {{x = origin.x, y = origin.y, range = above}}
+    local near = {top = M.NEAR_TOP, bottom = M.NEAR_BOTTOM}
+    local list = {{x = origin.x, y = origin.y, range = near, near = true}}
+    for i = 0, 7 do
+        local a = math.rad(i * 45 + 22.5)
+        list[#list + 1] = {x = origin.x + math.cos(a) * M.NEAR_RADIUS, y = origin.y + math.sin(a) * M.NEAR_RADIUS,
+            range = near, near = true}
+    end
+    list[#list + 1] = {x = origin.x, y = origin.y, range = above}
     for i = 0, 7 do
         local a = math.rad(i * 45)
         list[#list + 1] = {x = origin.x + math.cos(a) * M.STUDIO_RADIUS, y = origin.y + math.sin(a) * M.STUDIO_RADIUS, range = above}
@@ -448,8 +464,9 @@ local function holoSpawn(call, holo)
     if not ok then holoFail(call, 'spawn: ' .. tostring(err)) return end
     holoLightsSpawn(holo, spot)
     holo.stage = 'spawn'
-    log(string.format('holo spawn contact=%s record=%s floor=%+.1fm yaw=%d lens=%.2fm', call.contact, call.record,
-        spot.z - holo.origin.z, spot.yaw, holo.lens.dist))
+    local o = holo.origin
+    log(string.format('holo spawn contact=%s record=%s floor=%+.1fm away=%.1fm yaw=%d lens=%.2fm', call.contact, call.record,
+        spot.z - o.z, math.sqrt((spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2), spot.yaw, holo.lens.dist))
 end
 
 
@@ -461,8 +478,10 @@ local function drift(holo)
     return ok and distance or math.huge
 end
 
--- The copy looks into the lens, eyes first, as the game's holocall look does (transition speed 80). Any earlier
--- request of ours is retired first so only one is ever live.
+-- The copy looks into the lens as the game's holocall scenes aim their caller (judy_holocall.scene, scnLookAtEvent
+-- preset "Eyes & Head": eyes leading, the chest turned with weight 2, transition speed 80, nothing suppressed), with the
+-- head a little stronger than the game's 0.1 (M.LOOK_HEAD): this camera stands 20.4 degrees round and the game's 0.1 left
+-- her face visibly short of the lens. Any earlier request of ours is retired first so only one is ever live.
 local function holoLook(holo)
     if not holo.npc or not holo.camera then return false end
     local ok = pcall(function()
@@ -479,11 +498,11 @@ local function holoLook(holo)
         event.request.limits.hardLimitDegrees = 270
         event.request.limits.backLimitDegrees = 210
         event.request.limits.hardLimitDistance = 1000000
-        local eyes = LookAtPartRequest.new()
-        eyes.partName, eyes.weight, eyes.suppress, eyes.mode = CName.new('Eyes'), 1, 1, 0
         local head = LookAtPartRequest.new()
-        head.partName, head.weight, head.suppress, head.mode = CName.new('Head'), 0.05, 1, 0
-        event:SetAdditionalPartsArray({eyes, head})
+        head.partName, head.weight, head.suppress, head.mode = CName.new('Head'), M.LOOK_HEAD, 0, 0
+        local chest = LookAtPartRequest.new()
+        chest.partName, chest.weight, chest.suppress, chest.mode = CName.new('Chest'), M.LOOK_CHEST, 0, 0
+        event:SetAdditionalPartsArray({head, chest})
         holo.look = event
         holo.npc:QueueEvent(event)
     end)
@@ -503,6 +522,10 @@ local function holoStep(call, dt)
             if not column then holoFail(call, 'no-studio-spot (' .. reasonSummary(holo.reasons) .. ')'); return end
             holo.column = holo.column + 1
             local spot, reason = M.studioAt(holo.origin, column.x, column.y, column.range)
+            if spot and column.near then
+                local o = holo.origin
+                if (spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2 > M.FACE_RANGE^2 then spot, reason = nil, 'far' end
+            end
             if spot then
                 holo.spot = spot
                 holoSpawn(call, holo)
