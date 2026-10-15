@@ -51,17 +51,38 @@ public final func ConvaiYouTubeTvLabel(index: Int32, fallback: String) -> String
 @addMethod(PlayerPuppet)
 public final func ConvaiYouTubeTvChoice(choice: String) -> Void {}
 
-// V's homes: the district record the game reports while V is inside one of them (gamedataDistrict names, final.redscripts 2.3).
-public static func ConvaiYouTubeTvAtHome(game: GameInstance) -> Bool {
-    let prevention = GameInstance.GetScriptableSystemsContainer(game).Get(n"PreventionSystem") as PreventionSystem;
-    if !IsDefined(prevention) { return false; };
-    let district = prevention.GetCurrentDistrict();
-    if !IsDefined(district) { return false; };
-    let record = TweakDBInterface.GetDistrictRecord(district.GetDistrictID());
-    if !IsDefined(record) { return false; };
-    let name = record.EnumName();
+// V's homes: the district records the game gives each of V's flats (gamedataDistrict names, final.redscripts 2.3).
+public static func ConvaiYouTubeTvIsHomeDistrict(name: String) -> Bool {
     return Equals(name, "LittleChina_VApartment") || Equals(name, "Northside_Apartment") || Equals(name, "JapanTown_Apartment")
         || Equals(name, "Glen_Apartment") || Equals(name, "CorpoPlaza_Apartment");
+}
+
+// The game keeps the districts V is inside as a stack: a trigger volume pushes its district when V enters it and pops it when V
+// leaves, and PreventionSystem.GetCurrentDistrict() answers only the top. The stack is not saved, so after a load inside a flat the
+// events can arrive in any order and the top can be the street district (seen in the Corpo Plaza flat: Downtown). The apartment's
+// own entry is still somewhere in the stack, so the whole stack is read: the name of V's home district, or "" outside V's homes.
+@addMethod(DistrictManager)
+public final func ConvaiHomeDistrict() -> String {
+    let i = ArraySize(this.m_stack) - 1;
+    while i >= 0 {
+        let district = this.m_stack[i];
+        let record = IsDefined(district) ? district.GetDistrictRecord() : null;
+        if IsDefined(record) && ConvaiYouTubeTvIsHomeDistrict(record.EnumName()) { return record.EnumName(); };
+        i -= 1;
+    };
+    return "";
+}
+
+// Read on demand only (a TV's choices being built, the once-a-second check while a video is open); never per frame.
+@addMethod(PreventionSystem)
+public final func ConvaiHomeDistrict() -> String {
+    if !IsDefined(this.m_districtManager) { return ""; };
+    return this.m_districtManager.ConvaiHomeDistrict();
+}
+
+public static func ConvaiYouTubeTvAtHome(game: GameInstance) -> Bool {
+    let prevention = GameInstance.GetScriptableSystemsContainer(game).Get(n"PreventionSystem") as PreventionSystem;
+    return IsDefined(prevention) && StrLen(prevention.ConvaiHomeDistrict()) > 0;
 }
 
 public class ConvaiYouTubeTvAction extends ActionBool {
