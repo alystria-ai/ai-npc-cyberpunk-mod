@@ -1371,6 +1371,7 @@ atural-speech\`). Pause numbers from silence detection only (no Whisper). Script
 - Computer use can see the game, but can't drive it reliably. The user does the playing; I launch the game and ask what they saw.
 
 ## Standing facts
+- Never run `Build-AutobestConfigs.mjs` without `--dry-run` (its outputs are the live autobest files), and `collect.py` rewrites `autobest-sets.json`, which would drop Alt Cunningham's row.
 
 - Never let a test, harness or script play sound on the user's machine (a hidden voice-page browser caused a headphone hum on 2026-10-12). `RealtimeHost` mutes itself under `node --test`. Any other script that starts it must set `CYBERPUNK_CONVAI_MUTE_BROWSER=1` or pass `muteBrowser: true`.
 
