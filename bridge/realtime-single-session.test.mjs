@@ -22,6 +22,38 @@ test('while single-session, a request first closes the other idle connections he
   await new RealtimeHost({}).yieldOtherSessions('x');
 });
 
+// A paid Gamer plan on the player's key allows six connections (docs/CONVAI_PAID_TIER.md): only the excess is closed,
+// least recently used first, never a busy connection, never the requested one.
+const timedPool = rows => {
+  const discarded = [];
+  return {discarded, entries: new Map(rows.map(([key, used, busy = false]) => [key, {key, used, busy}])),
+    discardIdle: async key => { const entry = rows.find(row => row[0] === key); if (entry?.[2]) return false; discarded.push(key); return true; }};
+};
+
+test('with a limit of six, a request closes only the idle connections beyond the cap, oldest first', async () => {
+  const peer = new RealtimeHost({}); peer.pool = timedPool([['peer-a', 1], ['peer-b', 7]]);
+  let limit = 6;
+  const host = new RealtimeHost({exclusive: {enabled: () => true, limit: () => limit, peers: () => [peer], retryMs: 1}});
+  host.pool = timedPool([['mine', 0], ['b', 3, true], ['c', 4], ['d', 5]]);
+  await host.yieldOtherSessions('mine');
+  assert.deepEqual([...host.pool.discarded, ...peer.pool.discarded], [], 'mine plus five others fit under six');
+  host.pool.entries.set('f', {key: 'f', used: 8});
+  await host.yieldOtherSessions('mine');
+  assert.deepEqual(peer.pool.discarded, ['peer-a'], 'the least recently used idle connection goes');
+  assert.deepEqual(host.pool.discarded, []);
+  limit = 3;
+  peer.pool.entries.delete('peer-a');
+  await host.yieldOtherSessions('mine');
+  assert.deepEqual(host.pool.discarded, ['c', 'd'], 'the busy one stays even when it is the oldest');
+  assert.deepEqual(peer.pool.discarded, ['peer-a', 'peer-b'], 'peers count toward the same cap');
+  for (const broken of [() => { throw Error('plan'); }, () => NaN, () => 0]) {
+    const one = new RealtimeHost({exclusive: {enabled: () => true, limit: broken, peers: () => [], retryMs: 1}});
+    one.pool = timedPool([['mine', 0], ['x', 1], ['y', 2]]);
+    await one.yieldOtherSessions('mine');
+    assert.deepEqual(one.pool.discarded, ['x', 'y'], 'a broken limit means one connection');
+  }
+});
+
 test('a concurrency-limit answer is retried once while single-session, never otherwise', async () => {
   for (const [single, expectedCalls] of [[true, 2], [false, 1]]) {
     let calls = 0;

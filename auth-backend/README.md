@@ -6,7 +6,8 @@ A small Vercel service that hands the Cyberpunk Convai mod a short-lived Convai 
 auth-backend/
   api/convai/token.js       POST /api/convai/token   the only endpoint players' machines call
   api/admin/turns.js        GET  /api/admin/turns    per-install daily turn totals (admin secret)
-  api/admin/config.js       GET/POST /api/admin/config  the daily limit in force, and changing it (admin secret)
+  api/admin/config.js       GET/POST /api/admin/config  the daily limit and the paid tier's plans in force, and changing them (admin secret)
+  api/convai/plans.js       GET  /api/convai/plans   public: the paid tier's plan list, or null (the mod's built-in list applies)
   api/healthz.js            GET  /api/healthz        always 200, touches nothing
   api/readyz.js             GET  /api/readyz         booleans: which settings are present
   api/_lib/                 the code (not deployed as functions)
@@ -135,6 +136,25 @@ How it takes effect:
 - **Players' bridges** learn it from the next token answer (`dailyInteractionLimit`, also on a "daily" refusal), within about 50 minutes, and from then on use it for the count and the notice ("{left} of {limit} left today"). A bridge that is blocked for the day asks again every half hour, so raising the limit lets it through within about 30 minutes. The last value is kept in the bridge's state folder (`daily-limit.json`, signed per computer); with no answer yet, or the backend unreachable, the bridge uses the last value it was told, then 100. A value that is missing, not a whole number or outside 1 to 10000 is ignored.
 - **Lowering it** below what a player has already used today blocks that player at the next answer; their count is not reset.
 - **What it does not change:** enforcement is no stronger than before. The server counts only the turns an install reports, and the bridge counts its own turns locally, so a modified client can ignore either number (see the table above). Players who never switched the backend on (`convai-auth.json`) keep the built-in 100 until they do.
+
+## Changing the Convai paid tier's plans (no redeploy, no mod update)
+
+The mod's Settings > Convai paid tier page (docs/CONVAI_PAID_TIER.md) has the plans built in (`DEFAULT_PAID_TIER` in `bridge/convai-paid-tier.mjs`). A list stored here under `cfg:paidPlans` replaces them for bridges that know this backend's address (backend mode on, or `CYBERPUNK_CONVAI_PLANS_URL`), read when the page opens, at most every ten minutes. Only public data: plan names, prices and Stripe *price* ids. Never a key or a secret.
+
+```
+# store a list (1 to 8 plans; ids and price ids must each be unique, or the whole list is refused)
+curl -X POST -H "Authorization: Bearer $(cat secrets/admin.secret)" -H "Content-Type: application/json" \
+     -d '{"paidPlans": {"plans": [
+           {"id": "gamer-monthly", "name": "Gamer", "period": "monthly", "price": "$4", "priceId": "price_...", "interactions": 1000, "concurrency": 6},
+           {"id": "pro-yearly", "name": "Gamer Pro", "period": "yearly", "price": "$64", "priceId": "price_..."}]}}' \
+     https://<address>/api/admin/config
+
+# remove it: the list built into the mod applies again
+curl -X POST -H "Authorization: Bearer $(cat secrets/admin.secret)" -H "Content-Type: application/json" \
+     -d '{"paidPlans": null}' https://<address>/api/admin/config
+```
+
+Optional fields beside `plans`: `manageUrl`, `keyPageUrl`, `paymentBase`, `successUrl`, `cancelUrl` (https on convai.com only), `checkoutPath`, `detailsPaths`. Anything else is dropped. `GET /api/admin/config` shows the stored list as `paidPlans`. `GET /api/convai/plans` is public and costs at most one Redis command per warm instance a minute; with no store, or the store down, it answers `{"config": null}`. The bridge checks every field again and never sends a player's key anywhere but a convai.com host.
 
 ## Deploy steps (all from a terminal)
 

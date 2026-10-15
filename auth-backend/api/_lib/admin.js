@@ -2,6 +2,7 @@ import { CAP_BOUNDS, CAP_KEY, ENV_NAMES, readConfig, missingSettings, validCap }
 import { safeEqual } from './crypto.js';
 import { headerValue, readRawBody, sendJson } from './http.js';
 import { createUpstashStore } from './store.js';
+import { PLANS_KEY, storedPaidPlans, validPaidPlans } from './plans.js';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -68,10 +69,13 @@ export function createAdminTurnsHandler(options = {}) {
 }
 
 /**
- * The per-install daily limit, changed at run time. Both need `Authorization: Bearer <CONVAI_AUTH_ADMIN_SECRET>`.
- *   GET  /api/admin/config                                  what is in force (one Redis command)
+ * The per-install daily limit and the Convai paid tier's plan list, changed at run time. Both need
+ * `Authorization: Bearer <CONVAI_AUTH_ADMIN_SECRET>`.
+ *   GET  /api/admin/config                                  what is in force (one pipelined request, two Redis commands)
  *   POST /api/admin/config  {"dailyInteractionLimit": 150}  store a new limit (1 to 10000); {"dailyInteractionLimit": null} removes it,
  *                                                           so the CONVAI_AUTH_DAILY_TURN_CAP value (default 100) applies again
+ *   POST /api/admin/config  {"paidPlans": {"plans": [...]}} store the paid tier's plans (plans.js says what is accepted); null removes
+ *                                                           them, so the list built into the mod applies again. Both keys may be sent together.
  * The token endpoint reads the stored value inside its admission script, so the change applies from the next token request and no
  * redeploy is needed. Players' bridges learn it with their next token (within about 50 minutes) and keep the last value they were told.
  */
@@ -92,31 +96,45 @@ export function createAdminConfigHandler(options = {}) {
       return;
     }
     let change; // undefined: no change, null: remove, number: set
+    let plansChange; // undefined: no change, null: remove, object: set
     if (request.method === 'POST') {
-      const raw = await readRawBody(request, 1024);
+      const raw = await readRawBody(request, 8192);
       let parsed = null;
       try { parsed = JSON.parse(raw ?? ''); } catch { /* reported below */ }
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !('dailyInteractionLimit' in parsed)) {
-        sendJson(response, 400, { error: 'bad_request', message: 'Send {"dailyInteractionLimit": <whole number>} or {"dailyInteractionLimit": null}.' });
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !('dailyInteractionLimit' in parsed || 'paidPlans' in parsed)) {
+        sendJson(response, 400, { error: 'bad_request', message: 'Send {"dailyInteractionLimit": <whole number> | null} and/or {"paidPlans": {"plans": [...]} | null}.' });
         return;
       }
-      change = parsed.dailyInteractionLimit === null ? null : validCap(parsed.dailyInteractionLimit);
-      if (change === null && parsed.dailyInteractionLimit !== null) {
-        sendJson(response, 400, { error: 'out_of_range', min: CAP_BOUNDS.min, max: CAP_BOUNDS.max });
-        return;
+      if ('dailyInteractionLimit' in parsed) {
+        change = parsed.dailyInteractionLimit === null ? null : validCap(parsed.dailyInteractionLimit);
+        if (change === null && parsed.dailyInteractionLimit !== null) {
+          sendJson(response, 400, { error: 'out_of_range', min: CAP_BOUNDS.min, max: CAP_BOUNDS.max });
+          return;
+        }
+      }
+      if ('paidPlans' in parsed) {
+        plansChange = parsed.paidPlans === null ? null : validPaidPlans(parsed.paidPlans);
+        if (plansChange === null && parsed.paidPlans !== null) {
+          sendJson(response, 400, { error: 'bad_plans', message: '1 to 8 plans, each {id, name, period: monthly|yearly, price, priceId: price_...}, ids and price ids unique; addresses https on convai.com.' });
+          return;
+        }
       }
     }
     try {
       const store = options.store ?? createUpstashStore({ url: config.storeUrl, token: config.storeToken, fetchImpl: options.fetchImpl ?? fetch });
       if (change === null) await store.command(['DEL', CAP_KEY]);
       else if (change !== undefined) await store.command(['SET', CAP_KEY, String(change)]);
-      const stored = validCap(await store.command(['GET', CAP_KEY]));
+      if (plansChange === null) await store.command(['DEL', PLANS_KEY]);
+      else if (plansChange !== undefined) await store.command(['SET', PLANS_KEY, JSON.stringify(plansChange)]);
+      const [cap, plans] = await store.pipeline([['GET', CAP_KEY], ['GET', PLANS_KEY]]);
+      const stored = validCap(cap);
       sendJson(response, 200, {
         dailyInteractionLimit: stored ?? config.dailyTurnCap,
         stored,
         environmentDefault: config.dailyTurnCap,
         min: CAP_BOUNDS.min,
         max: CAP_BOUNDS.max,
+        paidPlans: storedPaidPlans(plans),
       });
     } catch {
       sendJson(response, 503, { error: 'unavailable' });

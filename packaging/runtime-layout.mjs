@@ -36,6 +36,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/convai-continuous-speech.mjs',
   'bridge/convai-credential.mjs',
   'bridge/convai-key.mjs',
+  'bridge/convai-paid-tier.mjs',
   'bridge/convai-quota.mjs',
   'bridge/convai-vision.mjs',
   'bridge/conversation-style.mjs',

@@ -156,7 +156,7 @@ When you reach the limit you see a notice. You can wait for tomorrow, or switch 
 
 If you have your own Convai account, copy your key and press **Paste** on the **Convai API key** row. The key is read from the clipboard once, checked with Convai and saved on your computer. Then choose **Convai API key** as the provider and **Apply**. The daily limit of the free tier no longer applies. Your own Convai plan's limits do. Only the last four characters of the key are ever shown, and **Remove** deletes it.
 
-If you want more Convai usage than the free tier gives, you would need to subscribe to a higher Convai tier and use that plan's API key here.
+If you want more Convai usage than the free tier gives, **Convai paid tier**, right under the **Convai API key** row, lists the plans Convai made for this mod: Gamer at $4 a month or $32 a year (1,000 Convai interactions a month) and Gamer Pro at $8 a month or $64 a year (more). Paste your key first, then choose a plan: Convai's own payment page (Stripe) opens in your browser, and the mod never sees your card. About 15 seconds after you pay, the plan is active and the mod switches the provider to **Convai API key** for you. On a paid plan several companions can talk at once. **Manage or cancel plan** opens your Convai billing page.
 
 ### Mistral (free plan)
 
