@@ -9,8 +9,13 @@
 //   - the Badlands say "outdoors";
 //   - a plain neighbourhood says only the neighbourhood, and (when the game can say) whether V is in a building or out in the open.
 // The record names below were read from the game's own gamedataDistrict enum (final.redscripts, 2026-10-15).
-import {HOME_PLACES} from './youtube-tv.mjs';
 import {placeName} from './protocol.mjs';
+
+// V's homes (gamedataDistrict names the game reports for the apartment interiors; checked in final.redscripts 2026-10-14).
+export const HOME_PLACES = Object.freeze({
+  LittleChina_VApartment: "V's apartment in Megabuilding H10", Northside_Apartment: "V's apartment in Northside",
+  JapanTown_Apartment: "V's apartment in Japantown", Glen_Apartment: "V's apartment in the Glen",
+  CorpoPlaza_Apartment: "V's apartment at Corpo Plaza"});
 
 const PLACE = /^[A-Za-z0-9][A-Za-z0-9 _.'-]{0,63}$/;
 

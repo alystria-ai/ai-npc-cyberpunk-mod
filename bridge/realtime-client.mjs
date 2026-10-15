@@ -5,7 +5,7 @@ import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';
 import {AnalysisPcm} from './analysis-pcm.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
-import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE, VISION_NOTE_TV} from './convai-vision.mjs';
+import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE} from './convai-vision.mjs';
 
 let client, identity, turn, micTimer, verifiedProvider, audioParticipant, admitting;
 // "Companions can see" (docs/COMPANION_VISION.md): the current connection's picture handler, null without vision.
@@ -251,7 +251,7 @@ async function connect(config) {
     respondModes: {contextUpdate: 'silent', ...(config.vision === true ? {vision: 'silent'} : {})},
     ...visionConnectOptions(config),
     blendshapeConfig: {format: 'arkit', output_fps: 30}});
-  vision = config.vision === true ? new ConvaiVision(connection, {transport: config.visionTransport, mode: config.visionMode}) : null;
+  vision = config.vision === true ? new ConvaiVision(connection, {transport: config.visionTransport}) : null;
   const currentConnection = () => epoch === connectionEpoch && client === connection;
   let transportError;
   const rejectTransport = reason => {
@@ -734,14 +734,13 @@ async function reply(config) {
 }
 
 // "Companions can see": puts this turn's picture (config.visionImages) on the session, unless the same picture was staged ahead
-// (prestageVision while V typed, stageVision while V talked). True when a picture is on the session for this turn, including the
-// TV's live track (liveVision), which needs nothing staged.
+// (prestageVision while V typed, stageVision while V talked). True when a picture is on the session for this turn.
 async function stageTurnVision(config) {
   const own = vision;
   if (!own) return false;
   if (Array.isArray(config?.visionImages) && config.visionImages.length) await own.stage(config.visionImages);
   else own.claim();
-  return own === vision && (!!own.staged || !!own.live?.handle) && !own.notEnabled;
+  return own === vision && !!own.staged && !own.notEnabled;
 }
 // Waits until Convai has buffered the staged picture, at most visionWaitMs (default VISION_READY_MS). A picture staged ahead is
 // usually buffered already, so this returns at once. Out of time, the line goes anyway and the picture stays published for the
@@ -778,12 +777,6 @@ async function prestageVision(images) {
   } catch { return {staged: false, reason: 'failed'}; }
 }
 async function unstageVision() { if (!turn && !admitting) await retireVision(); }
-// YouTube on V's TV: one more frame of the video on this page's live track (image null stops it). Works on a page connected for
-// the TV (visionMode 'tv'), during a turn too; returns {fed, reason?} ('wrong-mode' asks the bridge to reconnect it). Never throws.
-async function liveVision(image) {
-  if (!vision) return image ? {fed: false, reason: client ? 'vision-off' : 'no-page'} : {fed: false, reason: 'stopped'};
-  try { return await vision.liveFrame(image ?? null); } catch { return {fed: false, reason: 'failed'}; }
-}
 
 async function disableMic() {
   clearTimeout(micTimer);
@@ -830,7 +823,7 @@ async function updateContext(config, allowActions = false, seen = false) {
     text: 'You are speaking to V in Night City. Reply briefly without stage directions. '
       + 'Use only explicitly supplied current-save facts for quest progress and relationships. '
       + 'Any relationship state not explicitly supplied is unknown; do not infer it from character presence or past sessions. '
-      + (config.context || 'This is a private conversation with V.') + (seen ? (vision?.mode === 'tv' ? VISION_NOTE_TV : VISION_NOTE) : '')};
+      + (config.context || 'This is a private conversation with V.') + (seen ? VISION_NOTE : '')};
   const baseContext = context.text;
   const manual = allowActions && !config.reaction && !config.freshSession && typeof config.endUserId === 'string';
   const privateManual = manual && /^private(?::|$)/.test(config.scope || '');
@@ -918,6 +911,6 @@ function readLateEmotion(token) {
   return !held.closed && !held.emotion.ambiguous && performance.now() - held.at < LATE_EMOTION_MS ? {pending: true} : {};
 }
 
-window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close, diagnostics, stageVision, prestageVision, unstageVision, liveVision,
+window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close, diagnostics, stageVision, prestageVision, unstageVision,
   heard: () => heardText(turn),
   continuousSnapshot, continuousControl, lateEmotion: readLateEmotion};

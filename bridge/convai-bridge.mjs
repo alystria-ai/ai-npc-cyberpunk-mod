@@ -73,7 +73,6 @@ import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {EditorControl} from './character-editor-control.mjs';
 import {PaidTierControl, plansUrlFor} from './convai-paid-tier.mjs';
-import {YouTubeTv} from './youtube-tv-host.mjs';
 import {PlayerKnowledge} from './player-knowledge.mjs';
 import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowledge.mjs';
 import {atomicFile as atomic} from './guarded-file.mjs';
@@ -628,10 +627,6 @@ const companionVision = new CompanionVision({capture: new VisionCapture({log: vi
   isConversing: () => !!(active || mic.current || micPolling || connections.composer) || Date.now() - speechPlayingAt < 1500,
   stageVoice: images => realtime.stageVoiceVision(images),
   stagePage: (config, images) => realtime.prestageVision(config, images), unstagePage: config => realtime.unstageVision(config),
-  // YouTube on V's TV (setScreenSource below): the party's private pages get the video's frames while it plays.
-  livePages: () => connections.stale ? [] : connections.profiles.filter(profile => connections.isKnown(profile)).slice(0, 3)
-    .map(profile => connections.configFor(profile, 'private')),
-  feedPage: (config, image) => realtime.liveVision(config, image), refreshPage: config => realtime.refreshVision(config),
   log: visionLog});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
   transformReply: cleanReply, guard: hostGuard, vision: companionVision, ...keyHostOptions(() => [phoneRealtime])});
@@ -892,8 +887,6 @@ const vendorMemoryContext = prepared => {
 // The blocks of a turn's context in the order Convai gets them, each tagged by how often it changes (see conversationContextBlocks in
 // bridge/quest-context.mjs). Convai gets them joined in this order; the text providers (Mistral, local) lay them out stable to
 // volatile (bridge/mistral-prompt.mjs, layout v2) so a prefix cache keeps working.
-// YouTube on V's TV (docs/YOUTUBE_TV.md): set up with the other settings controls below; null until then.
-let youtubeTv = null;
 const conversationBlocks = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
   const block = (tier, text) => ({tier, text});
@@ -901,9 +894,6 @@ const conversationBlocks = input => {
     block('world', admitted ? vendorMemoryContext(prepared) : ''),
     // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
     ...addonHost.blocks(input),
-    // YouTube on V's TV: while a video is open, a companion with V in person knows what they are watching (bridge/youtube-tv.mjs).
-    block('volatile', youtubeTv ? youtubeTv.contextFor(input, {ambient: isAmbientProfile(input.profileKey),
-      voice: addonHost.usesVoiceContext(input.profileKey)}) : ''),
     block('world', admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
@@ -2673,7 +2663,6 @@ async function pollSettings(checkShutdown = true) {
       }
     }
     if (settings) { audioDelaySetting = settingDelay(settings); await applyAudioDelay(); }
-    if (settings) youtubeTv?.setEnabled(settings.youtubeTv === true);
     // Dialogue level match (docs/DIALOGUE_LEVEL.md): makeup gain for every voice.
     if (updateDialogueLevel(await readFile(resolve(runtime, 'dialogue-level.json'), 'utf8').catch(() => '')))
       console.error(`Dialogue level: ${JSON.stringify(dialogueLevel())}`);
@@ -2759,13 +2748,6 @@ const characterEditor = new CharacterEditor({personas: personaBook, overrides: c
 const editorControl = await EditorControl.open({server: new EditorServer({editor: characterEditor, log: message => console.error('[Editor] ' + message)}),
   commandPath: resolve(runtime, 'editor-command.json'), statusPath: resolve(runtime, 'editor-status.json'),
   log: message => console.error('[Editor] ' + message)});
-// YouTube on V's TV: nothing starts until the player picks YouTube on a TV in V's home (runtime/youtube-tv-command.json).
-// While a video plays it ducks for the conversation: a turn running, the microphone open or a reply being spoken.
-youtubeTv = await new YouTubeTv({runtime, stateDirectory, browserExecutable: process.env.CYBERPUNK_CONVAI_BROWSER,
-  audible: async () => !!(active || mic.current) || ((await readSpeechStateCached().catch(() => ({})))?.state ?? 'idle') !== 'idle',
-  log: message => console.error('[YouTubeTv] ' + message)}).start();
-// While a video is on, the TV is what companions see (about a frame a second, docs/COMPANION_VISION.md "The TV").
-companionVision.setScreenSource(youtubeTv.visionSource());
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
@@ -2812,12 +2794,10 @@ watchFiles(runtime, {
   'phone-chat-input.json': () => pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)),
   // The game's playback lease releases the first sound: the playback pump polls the moment it is written (docs/LATENCY_2026-10-13.md, 4.2).
   'continuous-control.json': () => leaseWake.fire(),
-  'youtube-tv-command.json': () => youtubeTv.poll().catch(error => console.error('[YouTubeTv] Command poll:', error.message)),
   // The add-on state and settings the game writes (docs/ADDON_API.md); no entries without add-ons.
   ...addonHost.watchHandlers(runtime),
 }, {log: message => console.error('[CyberpunkConvai] ' + message)});
 const editorTimer = setInterval(() => { void editorControl.poll().catch(error => console.error('[CyberpunkConvai] Character editor:', error.message)); }, 500);
-const youtubeTimer = setInterval(() => { void youtubeTv.poll().catch(error => console.error('[YouTubeTv] Command poll:', error.message)); }, 500);
 async function shutdown() {
   if (stopped) return;
   await companionActions.revoke();
@@ -2831,7 +2811,6 @@ async function shutdown() {
   clearInterval(supportTimer); supportReport.close();
   clearInterval(paidTierTimer); paidTierControl.close();
   clearInterval(editorTimer); await editorControl.close().catch(() => {});
-  clearInterval(youtubeTimer); await youtubeTv.close().catch(() => {});
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
   if (stockTimer) { clearInterval(stockTimer); stockTimer = null; }
   stockCancel?.();
