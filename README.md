@@ -1596,7 +1596,6 @@ The code is the reference. These design notes still carry older statements:
 - `docs/INTERFACE_LANGUAGES.md` counts 550 interface strings; `localization/en.json` holds 804.
 - `docs/MANAGER_UI.md` mentions a prepared-voices page that the code does not have.
 - `docs/COMPANION_INVITATIONS.md` speaks of an eight-copy party; the party has no size limit (eight is the preparation and warm-connection limit).
-- `docs/LOOT_REACTIONS.md` says loot reactions default on; the code defaults them off.
 - `docs/NPC_ARCHETYPES.md` and `docs/MULTILINGUAL_PROFILES.md` mix 37 and 44 archetype kinds; the data has 37 kinds and 74 archetype profiles.
 - `docs/QUEST_CONTEXT.md` and `docs/QUEST_DECISIONS.md` quote different rule counts from earlier pack revisions; `characters/world-knowledge.json` is the reference.
 - `docs/YOUTUBE_TV.md` and `TODO.md` still describe a second YouTube TV pass as unmerged; it is merged.

@@ -1,8 +1,9 @@
 # Companion loot reactions
 
-MCM **Settings → React to collected loot** defaults On. A nearby companion can
-comment once after V finishes a batch of confirmed world pickups. This setting
-is independent of battle reactions. Disabling it discards pending loot comments.
+MCM **Settings → React to collected loot** is off by default; turn it on there.
+A nearby companion can comment once after V finishes a batch of confirmed world
+pickups. This setting is independent of battle reactions. Turning it off discards
+pending loot comments.
 
 ## Collection and ownership
 
