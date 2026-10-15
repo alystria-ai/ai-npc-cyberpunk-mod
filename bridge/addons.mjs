@@ -258,6 +258,7 @@ export function parseAddonInput(value) {
   const blocks = cleanBlocks(value.blocks, ADDON_LIMITS.blocks, ADDON_LIMITS.blocksTotal);
   if (blocks.length) result.blocks = blocks;
   if (value.stock === true) result.stock = true;
+  if (value.repeatOk === true) result.repeatOk = true;
   return result;
 }
 
@@ -384,14 +385,17 @@ const words = line => String(line ?? '').replace(/[\u2018\u2019\u201b\u02bc\u006
 
 // Words that carry no joke on their own: function words, auxiliaries, number words and units (a fare or a distance is a fact value).
 // A run of four words made of these and at most one other word is a stock phrase ("I shall continue to", "hundred metres to the",
-// "three hundred and fifty eddies"), not a reused line.
+// "three hundred and fifty eddies"), not a reused line. Greeting and farewell words are on the list too: "Good evening, V. The ..." and
+// "Welcome back, V. The ..." are how a welcome opens, not a joke (live 2026-10-16: the cab's welcome was dropped twice as a repeat
+// of such an opener, and V heard no welcome at all).
 const COMMON = new Set(`a an the and or but nor so yet if then than that this these those there here it its i me my mine we us our ours you your
   yours he she him her his they them their theirs is am are was were be been being do does did done have has had will would shall should can could may
   might must not no to of in on at by for from with as into onto over under up out off about just very quite rather also too still now only more most
   much many some any all each every one two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty sixty hundred thousand
   eddies eddy metres metre meters meter kilometres kilometre kilometers kilometer km minutes minute seconds second hours hour let who whom which what
   when where why how i'm i've i'll i'd you're you've you'll you'd we're we've we'll we'd he's she's it's that's there's what's let's they're they've
-  don't doesn't didn't isn't aren't wasn't weren't won't wouldn't can't couldn't shouldn't haven't hasn't v`.split(/\s+/));
+  don't doesn't didn't isn't aren't wasn't weren't won't wouldn't can't couldn't shouldn't haven't hasn't v
+  welcome back again hello hi hey good evening morning afternoon night day goodbye farewell thank thanks please pleasure`.split(/\s+/));
 const common = word => COMMON.has(word) || /^\d/.test(word);
 
 /** 0..1: how much two lines share (word sets, Jaccard). Cheap: a few dozen words, no model. */
@@ -828,11 +832,14 @@ export class AddonHost {
     if (!check.duplicate) return {reply, duplicate: false, similar: null, retried: false};
     const limit = input.reaction?.expiresAt;
     const late = Number.isFinite(limit) && limit > 0 && this.now() + tookMs * ADDON_LIMITS.retryShare + ADDON_LIMITS.retryMs > limit;
-    if (late) return {reply, duplicate: true, similar: check.similar, rule: check.rule ?? null, retried: false};
+    // A remark the add-on marked repeatOk (a welcome that replaces the game's own, say) is said even when it repeats: V missing the
+    // line altogether is worse than hearing familiar words. A line that broke a rule of its speaker is never said.
+    const keep = () => input.addon?.repeatOk === true && !check.rule;
+    if (late) return {reply, duplicate: !keep(), kept: keep(), similar: check.similar, rule: check.rule ?? null, retried: false};
     const again = {...input, addon: {...input.addon, avoid: [...new Set([check.similar, reply.text].filter(Boolean))], ...(check.rule ? {rule: check.rule} : {})}};
     reply = await generate(again);
     check = this.review(input, reply.text);
-    return {reply, duplicate: check.duplicate, similar: check.similar, rule: check.rule ?? null, retried: true};
+    return {reply, duplicate: check.duplicate && !keep(), kept: check.duplicate && keep(), similar: check.similar, rule: check.rule ?? null, retried: true};
   }
 
   /** A line was spoken: keep it for the repetition check and the prompt, and let the add-on's module turn it into a memory. */

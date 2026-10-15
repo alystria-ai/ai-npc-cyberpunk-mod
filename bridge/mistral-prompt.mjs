@@ -300,6 +300,8 @@ export function cleanReply(raw, {name = '', isTag = () => false} = {}) {
   // A closing think tag with no opening one (the uncensored Qwen3.5 models emit it with reasoning off): what follows it is the answer; when
   // nothing follows, the tag is a stray at the end of the answer and only the tag goes.
   if (STRAY_THINK.test(text)) { const parts = text.split(STRAY_THINK); text = (parts.at(-1).trim() || parts.slice(0, -1).join(' ')).trim(); }
+  // A model that writes V's side of the talk as well keeps only its own lines (speakerTurn).
+  text = speakerTurn(text, name);
   // A leading "Name:" or "**Name:**" label, and a leading "V:" echo.
   const label = name ? name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : null;
   if (label) text = text.replace(new RegExp(`^[\\W_]*${label}[*_]{0,2}\\s*[:\\-–—]\\s*[*_]{0,2}\\s*`, 'i'), '');
@@ -322,6 +324,58 @@ export function cleanReply(raw, {name = '', isTag = () => false} = {}) {
   return text.replace(/[ \t]+/g, ' ').replace(/\s*\n\s*/g, ' ').replace(/([—–])\s*[—–]/g, '$1')
     .replace(/\s*[—–]\s*(?=\S)/g, (match, at, whole) => /\d/.test(whole[at - 1] ?? '') && /\d/.test(whole[at + match.length] ?? '') ? match : ', ')
     .replace(/,\s*,/g, ',').replace(/,\s*([.!?;:])/g, '$1').replace(/\s+([,.!?;:])/g, '$1').replace(/^[,\s]+/, '').trim();
+}
+
+// ---- V's own words inside a reply ---------------------------------------------------------------------------------------------
+
+const echoWordsOf = line => String(line ?? '').replace(/[‘’‛ʼ`´]/g, "'").toLowerCase()
+  .replace(/[^\p{L}\p{N}' ]+/gu, ' ').split(/\s+/).map(word => word.replace(/^'+|'+$/g, '')).filter(Boolean);
+
+/**
+ * A reply that opens by saying V's own line again, as if V were still talking ("thanks del" answered with "Thanks, Del. A short
+ * drive is still a drive..."): the echo is cut and the answer stays. The words match without case, punctuation or quotation marks. A V line
+ * of one word is cut only when the reply asks it back ("Really?"): "Yes." answering "yes" is an answer. A reply that is only the echo stays
+ * whole. While the reply is still being written (`streaming`) a reply that so far only agrees with the start of V's line, or is just the echo,
+ * is held back (''), so the voice never starts on V's words; as soon as it differs it is shown as it is.
+ */
+export function stripPlayerEcho(reply, said, {streaming = false} = {}) {
+  const text = String(reply ?? '');
+  const spoken = echoWordsOf(said);
+  if (!spoken.length || !text.trim()) return text;
+  let next = 0, end = 0, asked = false;
+  for (const token of text.matchAll(/\S+/g)) {
+    const word = echoWordsOf(token[0]);
+    if (!word.length) { if (next > 0) end = token.index + token[0].length; continue; }
+    if (word.length === 1 && word[0] !== spoken[next] && streaming && token.index + token[0].length === text.length && spoken[next].startsWith(word[0])) return '';   // a word of V's line still being written
+    if (word.length !== 1 || word[0] !== spoken[next]) return text;
+    next++; end = token.index + token[0].length;
+    if (next === spoken.length) { asked = /\?["”')\]]*$/.test(token[0]); break; }
+  }
+  if (next < spoken.length) return streaming ? '' : text;
+  const rest = text.slice(end).replace(/^[\s,.;:!?…"”')\]\-–—]+/, '');
+  if (!rest) return streaming ? '' : text;
+  if (spoken.length < 2 && !asked) return text;
+  return rest;
+}
+
+/**
+ * A model that writes the talk as a script ("V: Thanks, Del. Delamain: A short drive..."): only what the speaker says is the reply. With the
+ * speaker's label present, the text after its first label up to the next label; with a V or You label and none of the speaker's, the text
+ * before the V label. Unchanged without a V or You label. `streaming`: a reply that begins with V's label and has not reached the
+ * speaker's yet is held back ('') for its first 240 characters, so the voice never speaks V's line.
+ */
+export function speakerTurn(text, name, {streaming = false} = {}) {
+  const raw = String(text ?? '');
+  if (!name || !/(?:^|\s)[*_]{0,2}(?:V|You)[*_]{0,2}\s*:/.test(raw)) return raw;
+  const label = new RegExp(`(?:^|\\s)[*_]{0,2}(V|You|${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})[*_]{0,2}\\s*:[*_]{0,2}\\s*`, 'gi');
+  const marks = [...raw.matchAll(label)].map(match => ({
+    speaker: match[1].toLowerCase() === name.toLowerCase(), who: match[1], at: match.index, after: match.index + match[0].length}))
+    .filter(mark => mark.speaker || mark.who === 'V' || mark.who === 'You');
+  const own = marks.findIndex(mark => mark.speaker);
+  if (own >= 0) return raw.slice(marks[own].after, marks[own + 1]?.at ?? raw.length).trim();
+  if (!marks.length) return raw;
+  if (!raw.slice(0, marks[0].at).trim()) return streaming && raw.length < 240 ? '' : raw;
+  return raw.slice(0, marks[0].at).trim();
 }
 
 const SENTENCE_END = /([.!?…]+["”')\]]*)(\s+|$)/g;

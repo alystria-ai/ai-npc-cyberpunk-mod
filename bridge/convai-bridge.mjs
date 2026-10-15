@@ -699,6 +699,8 @@ function addonTextHost(route, profileKey) {
       routes: {[route]: textRoutes[route], ...(allowsMistral ? {mistral: textRoutes.mistral} : {})}, transformReply: cleanReply, gate: memoryQuiet,
       // The hard-limit guard (never the crude Mature persona layer) for an add-on speaker too: with the Mature setting on or an uncensored model loaded.
       matureContent, guardOnly: true,
+      // An add-on speaker never says V's words: a reply that opens with V's own line (or writes V's side of the talk) loses them before the voice hears them.
+      stripPlayerEcho: true,
       log: message => console.error('[Addons] ' + message)});
     addonTextHosts.set(cacheKey, host);
   }
@@ -2174,8 +2176,10 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
       : {reply: first ?? await generate(input), duplicate: false, retried: false};
     const reply = made.reply;
     if (made.retried) note(input, {addonRetry: made.duplicate ? 'still-repeated' : 'new-line'});
+    // The words are logged (like every spoken line in this log) so a drop can be judged: the line, and what it was taken to repeat.
+    if (made.kept) console.error(`[Addons] ${profile.key}: remark ${input.addon?.event ?? '?'} repeats a recent line${made.retried ? ' even after a second try' : ''}; said anyway (repeatOk): "${reply.text}" ~ "${made.similar ?? ''}"`);
     if (made.duplicate) {
-      console.error(`[Addons] ${profile.key}: remark dropped (${made.rule ? `it broke a rule: ${made.rule}` : 'it repeated a recent line'}${made.retried ? ', twice' : ''})`);
+      console.error(`[Addons] ${profile.key}: remark dropped (${made.rule ? `it broke a rule: ${made.rule}` : 'it repeated a recent line'}${made.retried ? ', twice' : ''}): "${reply.text}"${made.similar ? ` ~ "${made.similar}"` : ''}`);
       await fail('', 'addon-duplicate');
       return;
     }
