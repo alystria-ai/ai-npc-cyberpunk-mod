@@ -186,6 +186,8 @@ function player:ConvaiHolocallEnd() game.ends = game.ends + 1 end
 function player:ConvaiHolocallTakeEvent() return table.remove(game.events, 1) or '' end
 function player:ConvaiHolocallHasBacking() if game.noBacking then error('no such method') end return true end
 local enabled, busy, live = {['judy-alvarez'] = true, ['johnny-silverhand'] = true}, false, false
+-- The bridge's readiness of each character's conversation (nil: every one is ready).
+local readyKeys = nil
 local open = {available = true, combat = false, tier = 1, dialogue = false, choices = false, call = false, replacer = false}
 local function sample(extra) local s = {} for k, v in pairs(open) do s[k] = v end for k, v in pairs(extra or {}) do s[k] = v end return s end
 local function tick(seconds, s) local left = seconds; while left > 0 do holocall.update(player, 0.1, true, s or open); left = left - 0.1 end end
@@ -203,6 +205,7 @@ holocall.configure({
   warm = function(key, entity) warmed[#warmed + 1] = key .. '@' .. tostring(entity) end,
   liveImage = function() return live end,
   busy = function() return busy end,
+  ready = function(key) return readyKeys == nil or readyKeys[key] == true end,
   onConnected = function(call) connected[#connected + 1] = call.contact end,
   onEnded = function(call, reason) ended[#ended + 1] = call.contact .. ':' .. reason end,
 })
@@ -300,7 +303,7 @@ test('calling the same character again hangs up; a load forgets the call without
 // (an x) a wall plane that blocks any segment crossing it. Entities spawn at once; every native call is recorded.
 const world = `
   local created, deleted, toggles, played, forced, looks, removed, lamps = {}, {}, {}, {}, {}, {}, {}, {}
-  local entities, roof, ground, wall, records = {}, true, nil, nil, {['Character.Judy'] = true, ['Character.wat_lch_melee_01'] = true}
+  local entities, roof, ground, wall, lower, records = {}, true, nil, nil, nil, {['Character.Judy'] = true, ['Character.wat_lch_melee_01'] = true}
   local function entity(id, name, spec)
     local p = spec.position
     local e = {id = id, name = name, attached = true, position = {x = p.x, y = p.y, z = p.z}}
@@ -355,6 +358,7 @@ const world = `
     end
     if roof then horizontal(50, true) end
     if ground then horizontal(ground, false) end
+    if lower then horizontal(lower, false) end
     if wall and (a.x - wall) * (b.x - wall) < 0 then
       local t = (a.x - wall) / (a.x - b.x)
       consider(t, {x = wall, y = a.y + (b.y - a.y) * t, z = a.z + (b.z - a.z) * t})
@@ -401,10 +405,11 @@ test('a staged character gets the live picture: a hidden floor above V, the copy
   game.requests = {'judy'}; holocall.drain(player); tick(0.1)
   assert(logged('state=dialing contact=judy profile=judy%-alvarez mode=holo cast=video hud=ok'))
   assert(#created == 0, 'nothing is spawned before a floor is found')
-  -- The nine near columns (a floor within 10 m of V's feet) find nothing first, three per step.
-  tick(0.8)
+  -- The seventeen near columns (straight above or below V and two rings round V, a floor within 10 m of V's feet) find
+  -- nothing first, three per step.
+  tick(1.3)
   assert(#created == 0 and logged('state=dialing'), 'the near columns come first')
-  tick(0.3)
+  tick(0.5)
   assert(#created == 5, 'a copy, a camera and three lamps are created once the floor above V is found')
   local copy, camera = created[1], created[2]
   -- The copy stands on the roof 20 m above V, out of V's sight, with her own record.
@@ -496,13 +501,13 @@ test('the live picture falls back to the portrait when the copy moves, when ther
   assert(holocall.partner(player, false).entity == '7ULL')
   tick(2); assert(deleted[5] == '9001ULL', 'the camera is deleted after its delay, the call still on')
   holocall.finish(player, 'hangup')
-  -- Open sky above, around and below V: nothing to stand on, so the portrait, after three candidates per tick (42
+  -- Open sky above, around and below V: nothing to stand on, so the portrait, after three candidates per tick (50
   -- columns), with the count of reasons in the log.
   roof = false; created = {}
-  game.requests = {'judy'}; holocall.drain(player); tick(3.3)
-  assert(#created == 0 and holocall.call.state == 'dialing', 'forty-two candidates, three per tick')
-  tick(1.2)
-  assert(logged('reason=no%-studio%-spot %(no%-floor=42%)') and holocall.connected() and holocall.call.mode == 'audio')
+  game.requests = {'judy'}; holocall.drain(player); tick(4.5)
+  assert(#created == 0 and holocall.call.state == 'dialing', 'fifty candidates, three per tick')
+  tick(0.9)
+  assert(logged('reason=no%-studio%-spot %(no%-floor=50%)') and holocall.connected() and holocall.call.mode == 'audio')
   holocall.finish(player, 'hangup'); roof = true
   -- A record the game does not have: never spawned (it would crash), the portrait instead.
   records['Character.Judy'] = nil
@@ -512,7 +517,7 @@ test('the live picture falls back to the portrait when the copy moves, when ther
   -- No catalogue talk pose: the portrait.
   dofile = function(path) if path == 'gesture-workspot.lua' then return false end; return {families = {}} end
   holocall.workspot, holocall.gestures = nil, nil
-  game.requests = {'judy'}; holocall.drain(player); tick(2)
+  game.requests = {'judy'}; holocall.drain(player); tick(2.5)
   assert(holocall.connected() and holocall.call.mode == 'audio' and logged('reason=no%-talk%-pose'))
 `));
 
@@ -522,9 +527,9 @@ test('with nothing above V (a high apartment) the copy is placed on the ground b
   roof = false; ground = 20; wall = 11
   game.requests = {'judy'}; holocall.drain(player); tick(0.3)
   assert(#created == 0, 'the near and the above columns find nothing; three candidates per tick')
-  -- The near ring behind the wall has floor, but 11.2 m from V (5 m round, 10 m down): past FACE_RANGE, where the game
-  -- stops animating a face, so it is skipped for the farther search.
-  tick(1.8)
+  -- The near rings behind the wall have floor, but 11.2 and 12.8 m from V (5 and 8 m round, 10 m down): past FACE_RANGE,
+  -- where the game stops animating a face, so they are skipped for the farther search.
+  tick(2.5)
   assert(#created == 5, 'the first hidden ring column behind the wall gets the copy, the camera and the lamps')
   local copy = created[1]
   assert(copy.recordID == 'Character.Judy' and near(copy.position.x, 22) and near(copy.position.y, 20) and near(copy.position.z, 20), copy.position.x .. ' ' .. copy.position.z)
@@ -533,8 +538,8 @@ test('with nothing above V (a high apartment) the copy is placed on the ground b
   assert(holocall.connected() and holocall.call.mode == 'holo' and game.connects[#game.connects] == true)
   -- A ring column in plain view of V is never used: without the wall every spot is seen.
   holocall.finish(player, 'hangup'); wall = nil; created = {}
-  game.requests = {'judy'}; holocall.drain(player); tick(4.5)
-  assert(#created == 0 and logged('no%-studio%-spot %(in%-view=33, no%-floor=9%)') and holocall.call.mode == 'audio')
+  game.requests = {'judy'}; holocall.drain(player); tick(5.4)
+  assert(#created == 0 and logged('no%-studio%-spot %(in%-view=41, no%-floor=9%)') and holocall.call.mode == 'audio')
   holocall.finish(player, 'hangup')
   -- A floor 5 m below V behind the wall: the near ring finds it 7.1 m from V, close enough for her face to move, and it
   -- is taken before any farther column is tried.
@@ -553,6 +558,54 @@ test('with nothing above V (a high apartment) the copy is placed on the ground b
   assert(holocall.faceRow() == row and holocall.ownsFace(row.npc) and not holocall.ownsFace(player))
   holocall.finish(player, 'hangup')
   assert(holocall.faceRow() == nil and not holocall.ownsFace(row.npc), 'gone at the hang-up')
+`));
+
+test('on a terrace (V\'s own floor all round, in view) the storey under V\'s floor is tried, so her face is within range', () => run(world + `
+  game.window = 'holocall'
+  -- No roof; V stands on an open floor at z = 30 that runs everywhere (in view from V); a storey under it at z = 26.5.
+  roof = false; ground = 30; lower = 26.5
+  game.requests = {'judy'}; holocall.drain(player); tick(0.3)
+  -- Straight below V: V's own floor (in view), then the floor under it, hidden by V's floor, 3.5 m from V.
+  assert(#created == 5, 'the floor under V is used at once')
+  local copy = created[1]
+  assert(near(copy.position.x, 10) and near(copy.position.y, 20) and near(copy.position.z, 26.5), copy.position.x .. ' ' .. copy.position.z)
+  assert(logged('floor=%-3.5m away=3.5m'))
+  tick(2)
+  assert(holocall.connected() and holocall.call.mode == 'holo' and holocall.faceRow() ~= nil, 'near enough for the face row')
+  holocall.finish(player, 'hangup')
+  -- Without the storey under V, each near column finds V's own floor (in view) and nothing under it (two candidates
+  -- each), and the search goes on outward; a column's reason is the floor that was judged, not the empty rest.
+  lower = nil; created = {}
+  game.requests = {'judy'}; holocall.drain(player); tick(6.6)
+  assert(#created == 0 and holocall.call.state == 'dialing', 'sixty-seven candidates, three per tick')
+  tick(0.6)
+  assert(#created == 0 and logged('no%-studio%-spot %(in%-view=41, no%-floor=9%)'), logs[#logs])
+  holocall.finish(player, 'hangup')
+`));
+
+test('the call rings until the caller\'s conversation is ready, then connects; after READY_MAX it connects anyway', () => run(world + `
+  game.window = 'holocall'
+  readyKeys = {}
+  game.requests = {'judy'}; holocall.drain(player); tick(2.4)
+  -- The picture is ready (the floor above V), but her conversation is not: still ringing, nothing answers.
+  assert(#created == 5 and holocall.call.holo.ready and holocall.call.state == 'dialing' and not holocall.connected())
+  assert(holocall.partner(player, false) == nil and holocall.faceRow() == nil)
+  tick(3)
+  assert(holocall.call.state == 'dialing', 'still ringing while she is not ready')
+  readyKeys['judy-alvarez'] = true; tick(0.3)
+  assert(holocall.connected() and holocall.call.mode == 'holo' and logged('state=connected contact=judy mode=holo window=holocall ready=yes ring='))
+  holocall.finish(player, 'hangup')
+  -- Never ready: the call connects at READY_MAX seconds of ringing, and says so.
+  readyKeys = {}; logs = {}
+  game.requests = {'judy'}; holocall.drain(player); tick(holocall.READY_MAX - 0.6)
+  assert(holocall.call.state == 'dialing')
+  tick(0.9)
+  assert(holocall.connected() and logged('ready=timeout ring=1[78]%.%ds'), logs[#logs])
+  holocall.finish(player, 'hangup')
+  -- A hang-up while it rings ends it as usual.
+  game.requests = {'judy'}; holocall.drain(player); tick(3)
+  game.events = {'hangup'}; tick(0.3)
+  assert(holocall.call == nil and logged('state=ended contact=judy reason=hangup'))
 `));
 
 test('a character the game has no holocall setup for gets the portrait voice call, as in the game, with nothing spawned', () => run(world + `

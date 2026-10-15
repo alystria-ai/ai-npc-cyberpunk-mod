@@ -83,9 +83,21 @@ export class PartyConnections {
     // An ambient private target arrives with its exact route (hint.config), like a submitted request.
     const config = hint?.config && hint.scope === 'private' ? exactRoute(hint.config) : undefined;
     this.composer = hint ? {scope: hint.scope, audience: [...hint.audience],
-      ...(config ? {profile: hint.audience[0], config} : {})} : null;
+      ...(config ? {profile: hint.audience[0], config} : {}), ...(hint.call === true && hint.scope === 'private' ? {call: true} : {})} : null;
     this.request = null; this.revision++;
-    return this.reconcile();
+    return this.reconcile().then(() => { this.openCall(); });
+  }
+  // A holocall's caller (a composer hint marked `call`): her private page is opened now, not when V first talks, and on a
+  // plan that pre-opens nothing (deferWarm) too, as an invitation opens its companion's page there (warmSingle). The call
+  // rings until the page is ready (mod/holocall.lua), so the first reply does not wait for it.
+  callEntry() {
+    const focus = this.composer;
+    return focus?.call ? this.entries.get(connectionKey(focus.profile || focus.audience[0], 'private')) || null : null;
+  }
+  openCall() {
+    const entry = this.callEntry();
+    if (!entry || !(entry.state === 'waiting' || (['retrying', 'cooldown'].includes(entry.state) && this.now() >= entry.retryAt))) return null;
+    return this.startWarm(entry, {explicit: true});
   }
   // Nearby world characters to keep a private connection ready for. They rank
   // below every party member, invitation and the composer/request target, and
@@ -246,8 +258,10 @@ export class PartyConnections {
     const entry = this.plan().map(spec => this.entries.get(connectionKey(spec.profile, spec.scope)))
       .find(row => !this.retiring.has(row.profile) && !this.needsRetirement(row.profile)
         && (row.state === 'waiting' || (['retrying', 'cooldown'].includes(row.state) && now >= row.retryAt)));
-    if (!entry) return;
-    if (!this.canWarm() || this.deferWarm()) return;
+    if (!entry) { if (this.deferWarm()) this.openCall(); return; }
+    if (!this.canWarm()) return;
+    // A plan that pre-opens nothing still opens a holocall caller's page (openCall), and only hers.
+    if (this.deferWarm()) { this.openCall(); return; }
     this.startWarm(entry);
   }
   // explicit: an invitation opening its own companion's connection, allowed on a single-session plan (warmSingle).

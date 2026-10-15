@@ -16,6 +16,11 @@ test('composer warming accepts only bounded configured audience hints and separa
   // A private hint may name the addressed NPC's entity (an ambient resident's connection needs its body); a group never.
   assert.equal(parsePrewarm({nonce: 'open-3', group: false, audience: ['judy'], entity: '10107044ULL'}, ids).entity, '10107044ULL');
   assert.equal(parsePrewarm({nonce: 'open-4', group: false, audience: ['judy'], entity: 'x1'}, ids).entity, undefined);
+  // A holocall caller's hint is marked as a call (opened at once); a group hint or any other value is not.
+  assert.equal(parsePrewarm({nonce: 'call-1', group: false, audience: ['judy'], call: true}, ids).call, true);
+  assert.equal(parsePrewarm({nonce: 'call-2', group: false, audience: ['judy'], call: 'yes'}, ids).call, undefined);
+  assert.equal(parsePrewarm({nonce: 'call-3', group: true, audience: ['panam', 'judy'], call: true}, ids).call, undefined);
+  assert.equal(parsePrewarm({nonce: 'call-4', group: false, audience: ['judy']}, ids).call, undefined);
   assert.equal(parsePrewarm({nonce: 'open-5', group: true, audience: ['panam', 'judy'], entity: '1ULL'}, ids).entity, undefined);
   for (const hint of [{}, {nonce: '', group: true, audience: ['judy']},
     {nonce: 'x', group: false, audience: ['judy', 'panam']}, {nonce: 'x', group: true, audience: ['unknown']},

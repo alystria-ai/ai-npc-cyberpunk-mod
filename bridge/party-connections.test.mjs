@@ -491,6 +491,31 @@ test('with a single-session plan background maintenance pre-opens nothing', asyn
   await f.connections.clear();
 });
 
+test('with a single-session plan a holocall caller (a composer hint marked call) is opened at once, and only her', async () => {
+  let canWarm = true;
+  const f = fixture({deferWarm: () => true, canWarm: () => canWarm});
+  f.heartbeat(['alex']);
+  // An ordinary composer hint opens nothing on this plan (the page opens when V talks).
+  await f.connections.setComposer({scope: 'private', audience: ['panam']}); await flush(); await f.step(500);
+  assert.equal(f.calls.length, 0, 'an ordinary composer hint pre-opens nothing');
+  // The call's hint: her page opens now, and nobody else's (not the party member).
+  await f.connections.setComposer({scope: 'private', audience: ['judy'], call: true}); await flush(); await flush();
+  assert.deepEqual(f.calls.map(call => call.profile), ['judy']);
+  assert.equal(f.connections.entries.get(connectionKey('judy', 'private')).state, 'ready');
+  assert.ok(f.connections.diagnostic().connections.some(row => row.profile === 'judy' && row.scope === 'private' && row.state === 'ready'),
+    'the state the game reads says she is ready');
+  await f.step(500); await f.step(500);
+  assert.deepEqual(f.calls.map(call => call.profile), ['judy'], 'maintenance still opens nothing else');
+  // Gated when the hint arrives (a turn in flight): maintenance opens her once it may.
+  await f.connections.setComposer(null);
+  canWarm = false;
+  await f.connections.setComposer({scope: 'private', audience: ['panam'], call: true}); await flush();
+  assert.equal(f.calls.filter(call => call.profile === 'panam').length, 0);
+  canWarm = true; await f.step(500); await flush();
+  assert.equal(f.connections.entries.get(connectionKey('panam', 'private')).state, 'ready', 'opened by maintenance');
+  await f.connections.clear();
+});
+
 test('with a single-session plan an invitation opens the joining companion connection before she is ready', async () => {
   const f = fixture({deferWarm: () => true});
   await f.connections.setInvitations(['judy']);
