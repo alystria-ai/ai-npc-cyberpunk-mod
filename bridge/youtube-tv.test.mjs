@@ -462,7 +462,8 @@ test('V\'s homes are the same five places in the redscript, the Lua and the brid
   assert(read('../scripts/Extract-UiCatalog.mjs').includes("'mod/youtube-tv.lua'"));
   const catalog = JSON.parse(read('../localization/en.json')).strings;
   for (const [, text] of pairs) assert(catalog[text], `${text} is not in localization/en.json`);
-  for (const text of ['YouTube', 'YouTube: pause or play', 'YouTube: stop', "YouTube on the TV works in V's apartments."]) assert(catalog[text], text);
+  for (const text of ['YouTube', 'YouTube: pause or play', 'YouTube: stop']) assert(catalog[text], text);
+  assert(!catalog["YouTube on the TV works in V's apartments."], 'the key binding and its notice are gone');
 });
 
 test('the redscript adds choices only on a TV, on a direct interaction, where the game offers its own, in V\'s home, with the setting on', () => {
@@ -471,6 +472,12 @@ test('the redscript adds choices only on a TV, on a direct interaction, where th
   assert.match(reds, /let result = wrappedMethod\(actions, context\);/);
   assert.match(reds, /if !result \|\| !IsDefined\(tv\) \|\| NotEquals\(context\.requestType, gamedeviceRequestType\.Direct\) \{ return result; \};/);
   assert.match(reds, /if mode == 0 \|\| !ToggleON\.IsDefaultConditionMet\(this, context\) \|\| !ConvaiYouTubeTvAtHome\(game\) \{ return result; \};/);
+  // Home is read from the whole district stack on demand, not from the top district alone (found live 2026-10-15: after a load the
+  // top was Downtown in the Corpo Plaza flat), and by no hook that runs every frame.
+  assert.match(reds, /@addMethod\(DistrictManager\)\npublic final func ConvaiHomeDistrict\(\) -> String \{\n    let i = ArraySize\(this\.m_stack\) - 1;/);
+  assert.match(reds, /@addMethod\(PreventionSystem\)\npublic final func ConvaiHomeDistrict\(\) -> String \{/);
+  assert(!/GetCurrentDistrict\(\)\s*;/.test(reds.replace(/\/\/.*$/gm, '')), 'the top district alone is not used');
+  assert(!/OnUpdate|OnGameAttached|GetDelaySystem/.test(reds), 'no per-frame or timer work');
   // The game's own actions are never removed or replaced.
   assert(!/ArrayErase|ArrayClear\(actions|ArrayRemove|@replaceMethod/.test(reds));
   assert.match(reds, /public final func ConvaiYouTubeTvChoice\(choice: String\) -> Void \{\}/);
@@ -488,7 +495,9 @@ test('the bridge, settings and install wiring', () => {
   assert.match(manager, /or key == 'holocallLiveImage' or key == 'youtubeTv'/);
   assert.match(mcm, /setting\('youtubeTv', 'YouTube on V’s TV', 'bool', snapshot\.settings\.youtubeTv == true, false,/);
   assert.match(mcm, /key == 'youtubeTv'/);
-  assert.match(init, /registerHotkey\('cyberpunk_convai_youtube_tv', 'Cyberpunk Convai: YouTube on the TV'/);
+  // The couch shows the TV's own device choices too (seen live 2026-10-15), so there is no key binding for YouTube.
+  assert.doesNotMatch(init, /cyberpunk_convai_youtube_tv|convaiYouTubeTv\.hotkey/);
+  assert.match(init, /system:ConvaiHomeDistrict\(\)/);
   assert.match(init, /pcall\(convaiInstallYouTubeTv\)/);
   assert.match(init, /if youtube\.active then pcall\(youtube\.update, player, worldReady\) end/);
   const files = JSON.parse(read('../scripts/development-files.json')).files.map(file => file.source);
@@ -520,12 +529,14 @@ local player = {
 }
 Game = {GetPlayer = function() return player end}
 local NOW = 100
-local ENABLED, AREA, MENU = true, 'LittleChina_VApartment', false
+local ENABLED, AREA, MENU, HOME = true, 'LittleChina_VApartment', false, nil
 local M = (function()
 ${read('../mod/youtube-tv.lua')}
 end)()
 assert(M.install({log = function() end, ui = {t = function(text) return text end, current = function() return 'en' end},
-  enabled = function() return ENABLED end, place = function() return {district = 'Watson', area = AREA} end,
+  enabled = function() return ENABLED end,
+  home = function() if HOME == 'missing' then error('no such method') end return HOME end,
+  place = function() return {district = 'Watson', area = AREA} end,
   inMenu = function() return MENU end, clock = function() return NOW end}))
 ${body}
 `;
@@ -589,16 +600,40 @@ assert(not M.active, 'the player closed the window')
 `);
 });
 
-test('Lua: the key binding opens at home, toggles while open, and says where it works elsewhere; a load resets', () => {
+test('Lua: V is at home when ANY district in the game\'s stack is one of V\'s flats, not only the top one', () => {
   runLua(`
-AREA = 'Watson'
-M.hotkey(); assert(#writes == 0 and notices[1] == "youtube-tv:YouTube on the TV works in V's apartments.", tostring(notices[1]))
-AREA = 'Northside_Apartment'
-M.hotkey(); assert(M.active and writes[1].action == 'open')
-M.hotkey(); assert(writes[2].action == 'toggle')
-MENU = true; M.hotkey(); assert(#writes == 2, 'not from a menu')
-M.reset('world'); assert(not M.active and writes[3].action == 'stop' and writes[3].reason == 'world')
-ENABLED = false; MENU = false; M.hotkey(); assert(#writes == 3)
+-- The Corpo Plaza flat after a load (seen live): the stack is CorpoPlaza_Apartment, CityCenter, Downtown, so the top says Downtown.
+AREA, HOME = 'Downtown', 'CorpoPlaza_Apartment'
+local home, name = M.atHome(); assert(home == true and name == 'CorpoPlaza_Apartment', tostring(name))
+observed['PlayerPuppet.ConvaiYouTubeTvChoice'](player, 'open')
+assert(M.active and writes[1].action == 'open' and writes[1].place == 'CorpoPlaza_Apartment', 'opens in the flat the stack names')
+M.finish(player, 'test')
+-- Outside every home the game's answer is empty, whatever the top says.
+M.reset('world'); HOME, AREA = '', 'Downtown'
+home, name = M.atHome(); assert(home == false and name == 'Downtown')
+local before = #writes
+observed['PlayerPuppet.ConvaiYouTubeTvChoice'](player, 'open'); assert(#writes == before and not M.active)
+-- All five flats, by the stack.
+for _, flat in ipairs({'LittleChina_VApartment', 'Northside_Apartment', 'JapanTown_Apartment', 'Glen_Apartment', 'CorpoPlaza_Apartment'}) do
+  HOME, AREA = flat, 'Watson'; assert(M.atHome() == true, flat)
+end
+-- A flat that is not V's.
+HOME, AREA = 'Kabuki_JudysApartment', 'Kabuki_JudysApartment'; assert(M.atHome() == false)
+-- The redscript is not compiled in yet (the call fails): the top district alone decides, as before.
+HOME, AREA = 'missing', 'Glen_Apartment'; assert(M.atHome() == true)
+AREA = 'Downtown'; assert(M.atHome() == false)
+-- The session ends once the stack no longer holds a home.
+HOME, AREA = 'Glen_Apartment', 'Downtown'; M.open(player, 'tv'); assert(M.active)
+HOME = ''; NOW = NOW + 1.1; M.update(player, true)
+assert(writes[#writes].action == 'stop' and writes[#writes].reason == 'left-home' and not M.active)
+`);
+});
+
+test('Lua: there is no key binding any more, and a load resets the session', () => {
+  runLua(`
+assert(M.hotkey == nil, 'the key binding is gone')
+HOME = 'Northside_Apartment'; M.open(player, 'tv'); assert(M.active and writes[1].action == 'open')
+M.reset('world'); assert(not M.active and writes[2].action == 'stop' and writes[2].reason == 'world')
 `);
 });
 

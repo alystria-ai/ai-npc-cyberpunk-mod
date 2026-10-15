@@ -10,7 +10,7 @@
 local M = {version = 1, active = false}
 
 local COMMAND, STATE = 'runtime/youtube-tv-command.json', 'runtime/youtube-tv-state.json'
--- V's homes: the district the game reports inside each apartment (gamedataDistrict; the same list is in YouTubeTv.reds).
+-- V's homes: the district records the game gives each flat (gamedataDistrict; the same list is in YouTubeTv.reds).
 M.HOMES = {LittleChina_VApartment = true, Northside_Apartment = true, JapanTown_Apartment = true, Glen_Apartment = true,
     CorpoPlaza_Apartment = true}
 local env = {}
@@ -49,11 +49,27 @@ local function notice(player, text)
     if convaiNotices and player then pcall(function() convaiNotices.send(player, 'youtube-tv', text) end) end
 end
 
--- The place V is in (init.lua's currentDistrict): true inside one of V's homes.
+-- Is V inside one of V's homes? Returns true or false and the district name (the home's, or the street district the game gave).
+-- The game keeps the districts V is in as a stack (the apartment's own district is pushed when V steps through the door), and its
+-- GetCurrentDistrict answers only the top. After a load inside a flat the top can be the street (Downtown in the Corpo Plaza flat),
+-- so env.home asks YouTubeTv.reds, which reads the whole stack (PreventionSystem:ConvaiHomeDistrict): the home district's name, or ''.
+-- Where that method is not compiled in yet, the top district alone (env.place, init.lua's currentDistrict) is used, as before.
+-- Read on demand only: when a TV's choices are built and once a second while a video is open.
 function M.atHome()
-    if not env.place then return false end
-    local ok, place = pcall(env.place)
-    return ok and type(place) == 'table' and M.HOMES[place.area or ''] == true, ok and type(place) == 'table' and place.area or nil
+    local function top()
+        if not env.place then return nil end
+        local ok, place = pcall(env.place)
+        return ok and type(place) == 'table' and place.area or nil
+    end
+    if env.home then
+        local ok, name = pcall(env.home)
+        if ok and type(name) == 'string' then
+            if M.HOMES[name] == true then return true, name end
+            return false, top()
+        end
+    end
+    local area = top()
+    return M.HOMES[area or ''] == true, area
 end
 
 local function write(command)
@@ -118,18 +134,6 @@ function M.choice(player, choice)
     return false
 end
 
--- The key binding "YouTube on the TV": on the couch the game shows the apartment's own scene choices, not the TV's device choices,
--- so the same thing is offered on a key. With no video open it opens the picker; with one open it pauses or plays.
-function M.hotkey()
-    local player = Game.GetPlayer()
-    if not player then return end
-    if not enabled() then return end
-    if env.inMenu then local ok, inMenu = pcall(env.inMenu); if ok and inMenu then return end end
-    if M.active then M.command('toggle') else
-        if not M.open(player, 'key') then notice(player, ui.t("YouTube on the TV works in V's apartments.")) end
-    end
-end
-
 function M.finish(player, why)
     if not M.active then return end
     M.active, hidden, lastState = false, false, nil
@@ -178,7 +182,7 @@ function M.update(player, worldReady)
     end
 end
 
--- Called once from init.lua's onInit. options: log, ui, enabled(), place(), inMenu(), clock().
+-- Called once from init.lua's onInit. options: log, ui, enabled(), home(), place(), inMenu(), clock().
 function M.install(options)
     env = options or {}
     local ok, problem = pcall(function()

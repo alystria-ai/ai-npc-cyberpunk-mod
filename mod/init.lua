@@ -2722,15 +2722,15 @@ end
 registerInput('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice', function(isDown) voiceKeyEdge('voice', false, isDown) end)
 registerInput('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat', function(isDown) voiceKeyEdge('group_voice', true, isDown) end)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
--- On the couch the game shows the apartment's own scene choices, not the TV's, so YouTube is also on a key (mod/youtube-tv.lua).
-registerHotkey('cyberpunk_convai_youtube_tv', 'Cyberpunk Convai: YouTube on the TV', function()
-    if convaiYouTubeTv then pcall(convaiYouTubeTv.hotkey) end
-end)
 -- Global so onInit gains no upvalue (LuaJIT limits upvalues).
 function convaiInstallYouTubeTv()
     if not convaiYouTubeTv then return end
     convaiYouTubeTv.install({log = log, ui = ui,
         enabled = function() return type(manager.youtubeTv) == 'function' and manager.youtubeTv() end,
+        home = function()
+            local system = Game.GetScriptableSystemsContainer():Get('PreventionSystem')
+            return system and system:ConvaiHomeDistrict() or nil
+        end,
         place = currentDistrict, inMenu = function() return convaiInMenu ~= nil and convaiInMenu() end})
 end
 
