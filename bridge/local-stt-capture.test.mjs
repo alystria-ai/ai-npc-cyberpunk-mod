@@ -5,7 +5,7 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import {MicrophoneSession} from './microphone-session.mjs';
-import {createLocalSttChannel, createLocalSpeech, LocalSttCapture, NO_SPEECH_ERROR, STT_UNAVAILABLE_CODE} from './local-stt-capture.mjs';
+import {createLocalSttChannel, createLocalSpeech, LocalSttCapture, NO_SPEECH_ERROR, SILENT_INPUT_CODE, STT_UNAVAILABLE_CODE} from './local-stt-capture.mjs';
 import {LocalStt} from './local-stt.mjs';
 
 const tick = (ms = 5) => new Promise(done => setTimeout(done, ms));
@@ -266,7 +266,7 @@ test('words held back as not speech are logged with what they were and why, and 
 
 test('a silent recording names the likely cause: a nearly silent input device', async () => {
   const quiet = await recordingLog({stt: fakeStt({text: '', extra: {peakDb: -84.2, soundMs: 0, voicedMs: 0}}), capture: fakeCapture()});
-  assert.equal(quiet.outcome, NO_SPEECH_ERROR);
+  assert.equal(quiet.outcome, 'The microphone "Fake microphone" sends no sound', 'the turn ends naming the device (the game says which input to check)');
   assert.match(quiet.lines[1], /no words; the input is almost silent, check the Windows input device$/);
   const empty = await recordingLog({stt: fakeStt({text: '', extra: {peakDb: -30, soundMs: 600, voicedMs: 300}}), capture: fakeCapture()});
   assert.match(empty.lines[1], /no words$/, 'a normal level with no words does not blame the device');
@@ -279,4 +279,47 @@ test('a log hook that throws never breaks a recording', async () => {
   await channel.beginVoice(config);
   const result = await channel.finishVoice(config);
   assert.equal(result.userText, 'hello');
+});
+
+// mic-fix-4 (2026-10-15): a silent device is named, and the stop key closes the device at once.
+test('a recording from a device that sends no sound fails with the device named (code MIC_SILENT), not as a generic empty recording', async () => {
+  const info = {device: 'Default - Headset (realme Buds Air7 Hands-Free)', sampleRate: 16000, inputs: [], settings: {}};
+  const channel = createLocalSttChannel({stt: fakeStt({text: '', extra: {peakDb: -84.2, soundMs: 0, voicedMs: 0}}), capture: fakeCapture({info})})();
+  await channel.beginVoice(config);
+  const error = await channel.finishVoice(config).then(() => null, e => e);
+  assert.equal(error.code, SILENT_INPUT_CODE);
+  assert.equal(error.device, 'Default - Headset (realme Buds Air7 Hands-Free)');
+  assert.match(error.message, /sends no sound/);
+  // the edge: a quiet room with no words is the ordinary notice
+  for (const peakDb of [-54, -30]) {
+    const quiet = await recordingLog({stt: fakeStt({text: '', extra: {peakDb, soundMs: 0, voicedMs: 0}}), capture: fakeCapture()});
+    assert.equal(quiet.outcome, NO_SPEECH_ERROR);
+  }
+  // levels that are unknown never blame the device
+  const unknown = await recordingLog({stt: fakeStt({text: ''}), capture: fakeCapture()});
+  assert.equal(unknown.outcome, NO_SPEECH_ERROR);
+});
+
+test('the stop key ends capture at once: the device closes when the stop arrives, before the context refresh and the minimum-length wait', async () => {
+  const stt = fakeStt({text: 'Hey Judy'}), capture = fakeCapture();
+  const f = session({stt, capture, minRecordMs: 300});
+  await f.mic.start(input, config);
+  assert.deepEqual(f.states, ['starting', 'recording']);
+  const ran = await f.mic.stopCapture(input.requestId);
+  assert.ok(ran >= 0 && ran < 200, 'the recording ran only a few ms');
+  assert.deepEqual(capture.log, ['begin', 'end'], 'the device is closed before finish was asked for');
+  // finish after the early stop does not close it a second time, and the words still arrive
+  await f.mic.finish(input.requestId);
+  assert.equal(f.replies[0].userText, 'Hey Judy');
+  assert.equal(capture.log.filter(entry => entry === 'end').length, 1);
+});
+
+test('a stop for another recording or before the device opened does nothing', async () => {
+  const capture = fakeCapture();
+  const f = session({stt: fakeStt(), capture});
+  assert.equal(await f.mic.stopCapture('nothing-running'), null);
+  await f.mic.start(input, config);
+  assert.equal(await f.mic.stopCapture('someone-else'), null);
+  assert.deepEqual(capture.log, ['begin']);
+  await f.mic.cancel();
 });

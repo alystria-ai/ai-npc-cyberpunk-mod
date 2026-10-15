@@ -159,6 +159,7 @@ return {
   ["No settings were supplied."] = "설정이 전달되지 않았습니다.",
   ["You: {text}"] = "당신: {text}",
   ["No speech was heard. Wait for Listening, then speak before you finish."] = "음성이 들리지 않았습니다 - '듣는 중'이 될 때까지 기다린 뒤, 끝내기 전에 말하세요",
+    ["The microphone {name} sends no sound. Check your Windows input device."] = "마이크 {name}에서 소리가 전달되지 않습니다. Windows 입력 장치를 확인하세요.",
   ["Not configured"] = "미설정",
   ["Off"] = "꺼짐",
   ["On"] = "켜짐",

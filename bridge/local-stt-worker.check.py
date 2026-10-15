@@ -259,6 +259,8 @@ for name, parts in (("a breath", (quiet(500), breath(600), quiet(500))), ("a cli
     check(last("partial")["text"] == "" and last("partial").get("rejected"), "%s: the live words are never shown (%s)" % (name, last("partial")))
     check(done["text"] == "" and done.get("rejected"), "%s: the final is empty and says why: %s" % (name, done))
     check(recognizer.decodes == 0, "%s: sound that cannot be a voice is not even decoded" % name)
+    # the level reported is what the input gave, not -120: a loud non-voice must never be reported as a silent device
+    check(done["peakDb"] > -55, "%s: a recording that held sound reports its level, not silence: %s" % (name, done))
 # a dead input: nothing reaches the gate, the model is never asked, and the level is reported for the log
 recognizer.decodes = 0
 done = recording(quiet(1500), (speech(900) * 0.0004).astype(np.int16), quiet(500))
@@ -287,4 +289,15 @@ recognizer.always = None
 done = recording(quiet(300), speech(1200), quiet(400))
 check(done["text"] == WORDS and "rejected" not in done and done["voicedMs"] >= 300 and done["soundMs"] >= 900 and -40 < done["peakDb"] < 0,
       "a normal final reports its levels: %s" % done)
+# live record 2026-10-15 (a Bluetooth hands-free microphone, ~7 s of sound, ~2 s of it voiced): both decodes were loops of one word
+good = {"peakDb": -9.0, "soundMs": 5000, "spanMs": 6000, "voicedMs": 3600}
+for text in ("Destiny, destiny, destiny, What fear I will defeat", "Interesting. Just into the stenny. One tooth tooth on tooth tooth.",
+             "go go go go go", "see you see you see you", "tooth on tooth tooth and tooth"):
+    check(w.judge(text, good) == "repeating", "a looping decode is dropped: %s" % text)
+for text in ("no no no", "Go to the market and buy the red one", "I said no, no, never again", "very very good", "yeah yeah okay"):
+    check(w.judge(text, good) is None, "ordinary words stand: %s" % text)
+# a long piece of sound that is mostly not voiced (a headset's hiss with a few vowels in it) is not speech; the same length of speech is
+hiss = {"peakDb": -9.0, "soundMs": 7000, "spanMs": 9000, "voicedMs": 2200}
+check(w.judge("Interesting just into the", hiss) == "not-voiced" and w.acoustic(hiss) == "not-voiced", "7 s of sound with 2.2 s voiced is not speech")
+check(w.judge("Interesting just into the", {**hiss, "voicedMs": 4300}) is None, "7 s of sound with 4.3 s voiced is speech")
 print("ok")

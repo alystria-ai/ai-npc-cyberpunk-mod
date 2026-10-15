@@ -159,6 +159,7 @@ return {
     ["No settings were supplied."] = "Настройки не переданы.",
     ["You: {text}"] = "Ты: {text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Речь не услышана — дождитесь появления «Запись», затем говорите до завершения.",
+    ["The microphone {name} sends no sound. Check your Windows input device."] = "Микрофон {name} не передаёт звук. Проверь устройство ввода в Windows.",
     ["Not configured"] = "Не настроено",
     ["Off"] = "Выкл.",
     ["On"] = "Вкл.",

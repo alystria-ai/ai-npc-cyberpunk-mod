@@ -102,6 +102,7 @@ end
 print = function(value) stats.logs[#stats.logs + 1] = tostring(value) end
 registerForEvent = function(name, callback) assert(not events[name]); events[name] = callback end
 registerHotkey = function(name, _, callback) hotkeys[name] = callback end
+registerInput = function(name, _, callback) hotkeys[name] = function() callback(true); callback(false) end end -- one tap: the down, then the up
 ObserveBefore = function(class, method, callback) before[class .. '.' .. method] = callback end
 ObserveAfter = function(class, method, callback) after[class .. '.' .. method] = callback end
 

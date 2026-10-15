@@ -15,6 +15,9 @@ import {cancelled} from './transport-pool.mjs';
 import {sameWords} from './local-stt.mjs';
 
 export const NO_SPEECH_ERROR = 'No speech was heard';
+// A recording whose loudest moment is below this sent no sound at all: the Windows input is muted, dead or the wrong device.
+export const SILENT_PEAK_DB = -55;
+export const SILENT_INPUT_CODE = 'MIC_SILENT';
 export const STT_UNAVAILABLE_CODE = 'local-stt-unavailable';
 const CAPTURE_PATH = '/local-stt';
 const SAMPLE_RATE = 16000;
@@ -200,7 +203,7 @@ export function describeRecording(heard, device) {
 // the game's "No speech was heard" notice (microphone-state.json "no-speech").
 export function createLocalSttChannel({stt, capture, reply, now = Date.now, speculate = () => false, log = () => {}}) {
   return () => {
-    let requestId = null, closed = false, begun = false, device = '';
+    let requestId = null, closed = false, begun = false, device = '', ending = null;
     const controller = new AbortController();
     const pass = chunk => { if (requestId) stt.pushAudio(chunk); };
     // The reply on a stable live-words decode, started the moment the key is pressed (stt.stable()). Returns null when the newest decode
@@ -245,7 +248,7 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
           const error = Error('Local speech recognition is not installed (' + availability.reason + ')');
           error.code = STT_UNAVAILABLE_CODE; error.reason = availability.reason; throw error;
         }
-        requestId = config?.requestId ?? randomUUID();
+        requestId = config?.requestId ?? randomUUID(); ending = null;
         // The model loads while the device opens; chunks are held until it is ready.
         await stt.start(requestId);
         let info;
@@ -266,14 +269,20 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
         try { speculation = reply && speculate() ? startSpeculation(id, config, options) : null; } catch { speculation = null; }
         let text, seconds, heard;
         try {
-          await capture.end();
+          await (ending ?? (ending = capture.end()));
           heard = await stt.finish(id);
           ({text, seconds} = heard);
         } catch (error) { speculation?.discard(); throw error; }
         try { log(describeRecording(heard, device)); } catch { /* a log line never breaks a recording */ }
         if (closed || !text) { speculation?.discard(); }
         if (closed) throw Error('Microphone finish cancelled');
-        if (!text) throw Error(NO_SPEECH_ERROR);
+        if (!text) {
+          // Nothing but silence came from the device: name it, so the game can say which input to check instead of "no speech was heard".
+          if (Number.isFinite(heard?.peakDb) && heard.peakDb < SILENT_PEAK_DB) {
+            throw Object.assign(Error('The microphone "' + clip(device || 'unknown', 80) + '" sends no sound'), {code: SILENT_INPUT_CODE, device: clip(device, 80)});
+          }
+          throw Error(NO_SPEECH_ERROR);
+        }
         const base = {userText: text, local: true, timing: {sttMs: now() - started, audioSeconds: seconds}};
         if (!reply) return {...base, text: ''};
         // A reply voiced while it is written (bridge/voice-key-stream.mjs) needs the transcript before the model's first sentence.
@@ -290,6 +299,14 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
         // What the speculative start did, for the turn's record: kept (the reply began on the stable words), restarted (the final words differed).
         if (speculated) turn.timing = {...turn.timing, speculation: speculated};
         return turn;
+      },
+      // The stop key was pressed: the device closes and the last audio is flushed now, not after the context refresh and the minimum-length
+      // wait that come before finishVoice. Nothing said after the key is recorded, and the microphone light goes off at once.
+      endCapture() {
+        if (!begun || closed || ending) return ending ?? Promise.resolve();
+        ending = capture.end();
+        ending.catch(() => {}); // finishVoice awaits the same promise and reports the failure
+        return ending;
       },
       heard: async () => (requestId && begun ? stt.heard(requestId) : ''),
       async close() {

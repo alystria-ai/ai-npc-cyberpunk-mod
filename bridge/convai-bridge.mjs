@@ -1737,7 +1737,10 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
     if (!await current()) return;
     // A recording that held no speech is not a device fault: the game says so instead of blaming the microphone.
     const noSpeech = /No speech was heard/.test(error?.message || '');
-    await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: noSpeech ? 'no-speech' : 'error', requestId: input.requestId, updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
+    // A device that sends no sound at all is named, so the player knows which Windows input to look at.
+    const silent = error?.code === 'MIC_SILENT';
+    await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: silent ? 'silent' : noSpeech ? 'no-speech' : 'error', requestId: input.requestId,
+      ...(silent ? {device: String(error.device ?? '').slice(0, 80)} : {}), updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
       entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...keyFailure(error, input)}), {isCurrent: current, isCurrentSync: current.sync});
   },
@@ -1853,6 +1856,18 @@ async function pollMicrophone() {
       const input = parseInput(JSON.stringify(command.input));
       if (!input || !['start', 'finish', 'cancel'].includes(command.action)) return;
       micObserved = raw;
+      // Every command is logged with where it came from (the game's key press, key release, 30 s cap...) and how far into the recording
+      // it arrived, so a recording that does not stop shows whether the stop ever got here.
+      const ranMs = mic.current?.requestId === input.requestId && mic.current.opened ? Date.now() - mic.current.opened : null;
+      console.error('[CyberpunkConvai] Microphone: ' + command.action + ' command, source ' + String(command.source ?? 'unknown').replace(/[^\w.-]/g, '').slice(0, 24)
+        + (ranMs === null ? '' : ', ' + ranMs + ' ms into the recording'));
+      if (command.action === 'finish') {
+        // The stop is the moment the recording ends: close the device now, not after the context refresh below.
+        const stopAt = Date.now();
+        void mic.stopCapture(input.requestId).then(ran => {
+          if (ran !== null) console.error('[CyberpunkConvai] Microphone: capture closed ' + (Date.now() - stopAt) + ' ms after the stop command (recording ran ' + ran + ' ms)');
+        }).catch(() => {});
+      }
       if (command.action === 'cancel') {
         if (mic.current?.requestId === input.requestId) await cancelMicrophone();
       }

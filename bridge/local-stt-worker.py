@@ -47,11 +47,14 @@ MIN_SOUND_MS = 150        # fewer 30 ms frames of sound than this (5) are a clic
 MIN_VOICED_MS = 60        # and at least 2 of them must carry a voice pitch
 VOICED_LAG_MIN, VOICED_LAG_MAX = 40, 230   # 400 Hz down to 70 Hz at 16 kHz
 VOICED_LEVEL = 0.4
+LONG_SOUND_MS = 3000      # a piece of sound this long is speech only if a good share of it is voiced
+MIN_VOICED_SHARE = 0.35   # speech measured 0.51 and up (clean, -30 dB, loud room, 150-level noise); a hands-free headset's hiss and a fan far less
 MAX_WORDS_PER_SECOND = 7.5
 # What a speech model says on sound that holds no speech, whatever the model (heard from Whisper, Moonshine and the like).
 HALLUCINATIONS = frozenset(["you", "thank you", "thanks for watching", "thank you for watching", "thank you very much", "bye",
                             "bye bye", "so", "the", "i", "uh", "um", "hmm", "mm", "mhm", "oh", "ah", "huh"])
-MAX_GROUPS = 12          # more pieces than this are joined (a noisy room), so a final stays a few decodes
+FILLER = frozenset(["the", "a", "an", "and", "to", "of", "i", "you", "it", "is", "in", "that", "this", "we", "my", "me", "so", "but", "or", "on"])
+MAX_GROUPS = 12         # more pieces than this are joined (a noisy room), so a final stays a few decodes
 
 
 def log(message: str) -> None:
@@ -140,7 +143,27 @@ def acoustic(proof: dict):
         return "short"
     if proof["voicedMs"] < MIN_VOICED_MS:
         return "not-voiced"
+    if proof["soundMs"] >= LONG_SOUND_MS and proof["voicedMs"] < proof["soundMs"] * MIN_VOICED_SHARE:
+        return "not-voiced"
     return None
+
+
+def looping(words) -> bool:
+    """A decoder stuck in a loop: one word three times in a row among others, a 2-3 word chunk three times in a row, or one word
+    making up much of a longer text ("tooth tooth on tooth tooth"). A person saying "no no no" or "very very good" is not caught."""
+    count = len(words)
+    for size in (1, 2, 3):
+        for start in range(0, count - size * 3 + 1):
+            chunk = words[start: start + size]
+            if not all(words[start + size * i: start + size * (i + 1)] == chunk for i in range(3)):
+                continue
+            if size > 1 or count >= 5:
+                return True
+    if count >= 6:
+        best = max((words.count(word) for word in set(words) - FILLER), default=0)
+        if best >= 4 and best * 3 >= count:
+            return True
+    return False
 
 
 def judge(text: str, proof: dict):
@@ -154,11 +177,8 @@ def judge(text: str, proof: dict):
         return why
     if proof["spanMs"] and len(words) * 1000 / proof["spanMs"] > MAX_WORDS_PER_SECOND and len(words) > 3:
         return "too-many-words"
-    for size in (1, 2, 3):
-        for start in range(0, len(words) - size * 4 + 1):
-            chunk = words[start: start + size]
-            if all(words[start + size * i: start + size * (i + 1)] == chunk for i in range(4)):
-                return "repeating"
+    if looping(words):
+        return "repeating"
     if " ".join(words) in HALLUCINATIONS and (proof["voicedMs"] < 240 or proof["peakDb"] < -36.0):
         return "stock-phrase"
     return None
@@ -256,9 +276,10 @@ class Engine:
         speech_groups). A piece that cannot be a person speaking (a click, a breath, a dead input) is not even decoded; `why` says what
         kept the words back (judge, acoustic), and the words are then ''. `proof` is the sound that was read."""
         pieces = [part for group in (speech_groups(samples) or [samples]) for part in split_points(group)]
-        kept, texts, blocked, decoded = [], [], None, 0
+        kept, texts, blocked, decoded, peaks = [], [], None, 0, []
         for piece in pieces:
             proof = evidence(piece)
+            peaks.append(proof["peakDb"])
             why = acoustic(proof)
             if why:
                 blocked = blocked or why
@@ -268,7 +289,8 @@ class Engine:
             if text and any(c.isalnum() for c in text):
                 kept.append(proof)
                 texts.append(text)
-        total = {"peakDb": max((p["peakDb"] for p in kept), default=-120.0), "soundMs": sum(p["soundMs"] for p in kept),
+        # Nothing kept: the level is still what the input gave (a quiet recording is a dead or wrong device, a loud one is not), not -120.
+        total = {"peakDb": max((p["peakDb"] for p in kept), default=max(peaks, default=-120.0)), "soundMs": sum(p["soundMs"] for p in kept),
                  "spanMs": sum(p["spanMs"] for p in kept), "voicedMs": sum(p["voicedMs"] for p in kept)}
         text = " ".join(texts)
         # Nothing passed the acoustic test: that is the reason. Something was decoded and came back empty: no reason, just no words.
