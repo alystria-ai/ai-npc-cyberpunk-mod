@@ -604,7 +604,7 @@ The Lua side (`mod/`, loaded by `init.lua`) is deliberately thin: it reads the g
 | Reactions | `battle-observer.lua`, `battle-reactions.lua`, `loot-observer.lua`, `loot-reactions.lua` |
 | Phone and holocall | `phone-chat.lua`, `phone-input.lua`, `phone-layout.lua`, `phone-chat-style.lua`, `holocall.lua` |
 | Settings and UI | `mcm.lua`, `mcm-entry.lua`, `mcm-fonts.lua`, `manager.lua`, `manager-party.lua`, `character-editor.lua`, `ui-locale.lua`, `ui-fonts.lua`, `locales/` (15 language files besides English) |
-| Development only (never shipped) | `diagnostics.lua` and the probes it loads (`face-probe.lua`, `face-test.lua`, `gesture-probe.lua`, `loot-probe.lua`, `knowledge-probe.lua`, `fact-identity-probe.lua`, `save-identity-probe.lua`, `perf-probe.lua`, `speech-cadence-probe.lua`, `speech-replay-probe.lua`, `movement-log.lua`) |
+| Development only (never shipped) | `diagnostics.lua` and the probes it loads (`face-probe.lua`, `face-test.lua`, `gesture-probe.lua`, `loot-probe.lua`, `knowledge-probe.lua`, `fact-identity-probe.lua`, `save-identity-probe.lua`, `speech-cadence-probe.lua`, `speech-replay-probe.lua`). `perf-probe.lua` and `movement-log.lua` do ship: `init.lua` loads the movement log, and Developer mode uses the performance probe. |
 
 `r6/scripts/CyberpunkConvai/` holds the redscript, which exists only where Lua cannot reach the game's UI or native classes:
 
