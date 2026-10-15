@@ -287,6 +287,37 @@ mouth clear. Same replay with the boost: resting corners .19, the joy phrase .22
 where her face is about 60 px tall); if not, the next levers are a larger boost or letting part of the smile through
 the speaking mouth budget on calls.
 
+The user still saw no feeling with the boost (holocall-expr-3, 2026-10-16). A bold A/B on Alex's call copy at full
+window resolution (forced poses held 3-4 s, through the real writer's Lua path, a direct write that bypasses it, and
+the native path's emotion inputs) settled where it stops: **every control reaches the rendered face**. The jaw, the
+corners, the brows and the widened eyes all visibly move. So the face graph, the component and the workspot are not
+the cause. Two things made the feelings invisible at that size:
+
+- Corners up alone, even forced to 1 (or 2-3, which looks like 1), only widen her mouth a little.
+- The lower-lid squint, which is half of the smile and of the narrowed eyes, does not move at all on Alex's head, even
+  at 3. The upper-lid and inner squints don't either. On Judy's rig they do (October 9 captures).
+
+What reads is the corner stretch plus the upper-lip raise (the teeth show), with a little lip stretch. The expression
+policy never wrote those, because they are lip-sync controls. So the face row also carries `smileShape`
+(`M.SMILE_SHAPE` = 1). `facial-playback.lua` (and the native core, `ctl[32]`) derives three values from the corners up
+that the frame wrote, after the eases, the mood hold and the mouth budget have shaped them:
+
+- corner stretch = 1 x the corners;
+- upper-lip raise = .8 x the corners;
+- lip stretch = .5 x the corners.
+
+Each is capped at .8. While she speaks, the lip sync's own value wins where it is larger. The calibration was done on
+Alex at joy's .74 corners: an upper-lip raise of .33 was still subtle, while .6 showed the teeth. Checked on Alex, Judy
+and Panam (`runtime/holocall-expressions-compare.png`): the joy is now visible on all three, most clearly on Judy. The
+facial idle under the workspot still closes the lips at moments, so frames vary.
+
+Sad and angry already use controls that render: the inner and lowered brows, the brows' lateral pull, the held lid
+droop, and the chin. They read only faintly at 60 px, so the render-texture resolution is the lever left for them.
+The squints stay in, because they render on Judy and cost nothing where they don't.
+
+The native core reads `ctl[32]` only when Lua sends it. An older plugin ignores it, so the shape needs the rebuilt
+`CyberpunkConvaiNative.dll` (a game restart) on the native path. The Lua path has it at once.
+
 ### Gaze (branch `holocall-face`, 2026-10-15)
 
 The game's holocall scene aims its caller with one `scnLookAtEvent` (preset "Eyes & Head"): the eyes lead, with
