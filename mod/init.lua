@@ -741,6 +741,12 @@ end
 -- entity: the addressed character's ID ("<hash>ULL") for a private conversation. A generic resident or archetype
 -- has no connection without its body, so the bridge opens that NPC's own route while V types or speaks.
 local function warmConversation(participants, key, entity)
+    -- A holocall that rings or is connected keeps its caller's connection asked for (a closed text box or a cancelled
+    -- recording would otherwise drop it), and marks the hint as a call, which the bridge opens at once even on a plan
+    -- that pre-opens nothing (bridge/party-connections.mjs): the call rings until it is open (mod/holocall.lua).
+    local call = not participants and convaiHolocall and convaiHolocall.call or nil
+    if call and not key then key, entity = call.key, call.entity end
+    call = call ~= nil and key == call.key
     local f = io.open('runtime/conversation-prewarm.json.tmp', 'wb')
     if not f then return end
     local hint = '{}'
@@ -758,7 +764,7 @@ local function warmConversation(participants, key, entity)
         else audience[1] = key end
         hint = json.encode({nonce = 'composer-' .. tostring(os.time()) .. '-' .. tostring(generation),
             audience = audience, group = participants ~= nil,
-            entity = participants == nil and type(entity) == 'string' and entity or nil})
+            entity = participants == nil and type(entity) == 'string' and entity or nil, call = call or nil})
     end
     f:write(hint); f:close()
     os.remove('runtime/conversation-prewarm.json')
@@ -1942,6 +1948,8 @@ if convaiHolocall then
         profileEnabled = function(key) return manager.profileEnabled(key) end,
         -- The caller's connection warms while the call rings, like the text box warms it on opening.
         warm = function(key, entity) generation = generation + 1; warmConversation(nil, key, entity) end,
+        -- The caller's conversation is ready: the same check as the "Preparing connection" notice (mod/auto-connect.lua).
+        ready = function(key) return autoConnect == nil or autoConnect.ready(key) end,
         liveImage = function() return type(manager.holocallLiveImage) == 'function' and manager.holocallLiveImage() end,
         -- A turn with the caller is being typed, recorded, answered or spoken: the call is not idle.
         busy = function()

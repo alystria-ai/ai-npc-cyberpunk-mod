@@ -26,8 +26,9 @@ export function parsePrewarm(value, ids) {
       || new Set(value.audience).size !== value.audience.length) return null;
   // A private hint may name the addressed NPC's entity (an ambient profile has no route without it).
   const entity = !value.group && typeof value.entity === 'string' && /^\d{1,24}ULL$/.test(value.entity) ? value.entity : undefined;
+  // A private hint for a holocall's caller (mod/holocall.lua) is opened at once, even on a plan that pre-opens nothing.
   return {nonce: value.nonce, audience: value.audience, scope: value.group ? 'group:' + [...value.audience].sort().join(',') : 'private',
-    ...(entity ? {entity} : {})};
+    ...(entity ? {entity} : {}), ...(!value.group && value.call === true ? {call: true} : {})};
 }
 
 export function validatePrefetch(command, source) {

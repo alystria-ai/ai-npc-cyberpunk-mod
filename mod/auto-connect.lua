@@ -251,6 +251,9 @@ function M.new(options)
         return ui.t('Preparing connection to {name}…', {name = name})
     end
 
+    -- Is this character's conversation connection ready (the notice above would not show)? A holocall rings until it is.
+    function A.ready(key) return key ~= nil and ready(key) == true end
+
     -- Every frame, also while a menu pauses the game: keeps the list fresh for
     -- the bridge, which drops a list that stops being refreshed.
     function A.heartbeat()

@@ -31,8 +31,13 @@ M.CAMERA = 'base\\cinematics\\cameras\\holocall_camera.ent'
 M.CAMERA_COMPONENT = 'RenderToTextureCamera'
 M.TICK = 0.25
 -- The call rings at least RING_MIN seconds (the character's connection warms meanwhile), and waits for the live
--- picture at most RING_MAX seconds (the game's own call failsafe is 8 s).
-M.RING_MIN, M.RING_MAX = 1.5, 7
+-- picture at most RING_MAX seconds (the game's own call failsafe is 8 s; the floor search, tried floor by floor near V,
+-- can take about 7 s where nothing near is hidden, and the call may ring longer anyway, see READY_MAX).
+M.RING_MIN, M.RING_MAX = 1.5, 10
+-- It also rings until the character's conversation is ready (env.ready: the bridge reports her private connection
+-- open, the same signal the "Preparing connection" notice reads), so the first reply does not wait on it; after
+-- READY_MAX seconds of ringing it connects anyway (live, 2026-10-16: the first reply on a call said "Preparing").
+M.READY_MAX = 18
 -- No turn and no speech for this long hangs up; no call is longer than MAX_LENGTH (seconds of play, pauses excluded).
 M.IDLE_LIMIT, M.MAX_LENGTH = 180, 1800
 -- The shot. The game's own rig (the holocall studio's camera node against its actor spot): 0.675 m in front, the lens
@@ -57,10 +62,16 @@ M.STUDIO_MIN, M.STUDIO_TOP, M.STUDIO_RADIUS = 10, 90, 30
 M.LOW_TOP, M.LOW_BOTTOM, M.LOW_RADII = 10, -80, {12, 24, 40}
 -- Near first. The game animates a face only near V's own camera: a copy filmed 8 or 11 m from V moves its mouth, blinks
 -- and turns its eyes; at 16 m and beyond its face is frozen (live, 2026-10-15; the body still moves). So the search first
--- tries a floor within FACE_RANGE metres of V (straight above or below V, then a ring NEAR_RADIUS round V, floors from
+-- tries a floor within FACE_RANGE metres of V (straight above or below V, then rings NEAR_RADII round V, floors from
 -- NEAR_TOP above to NEAR_BOTTOM below V's feet, still out of V's sight), and only then the farther columns, where the
 -- picture still works with a still face.
-M.FACE_RANGE, M.NEAR_RADIUS, M.NEAR_TOP, M.NEAR_BOTTOM = 11, 5, 10, -10
+M.FACE_RANGE, M.NEAR_RADII, M.NEAR_TOP, M.NEAR_BOTTOM = 11, {5, 8}, 10, -10
+-- A near column is tried floor by floor: when the first floor down a column will not do (V's own floor, in plain view),
+-- the next one under it is tried, up to NEAR_LAYERS floors (live, 2026-10-16: on a terrace every near column's first
+-- floor was V's own, in view, while the storey under it, 2 to 5 m below V and hidden by V's floor, was never looked at;
+-- the studio landed 20.7 m away, where her face cannot move).
+M.NEAR_LAYERS = 4
+-- Floor candidates (one floor of one column) searched per tick.
 M.SEARCH_PER_TICK = 3
 -- The copy may drift this far from its place before the picture is given up.
 M.HOLO_DRIFT = 1.5
@@ -266,27 +277,29 @@ end
 local function clear(a, b) return trace(a, b) == false end
 
 -- Is the column (x, y) a studio: a level floor between `range.bottom` and `range.top` (offsets from V's z; STUDIO_MIN to
--- STUDIO_TOP above V when absent) with headroom, out of V's sight, with room for the camera on one side? The spot
--- {x, y, z, yaw}, or nil and why not.
-function M.studioAt(origin, x, y, range)
-    local top = origin.z + (range and range.top or M.STUDIO_TOP)
+-- STUDIO_TOP above V when absent) with headroom, out of V's sight, with room for the camera on one side? `below` (an
+-- absolute z, optional) looks only under it: the next floor down, under one that would not do. The spot {x, y, z, yaw},
+-- or nil, why not and the z of the floor that was judged (nil when there was none).
+function M.studioAt(origin, x, y, range, below)
+    local top = below or origin.z + (range and range.top or M.STUDIO_TOP)
     local bottom = origin.z + (range and range.bottom or M.STUDIO_MIN)
+    if top <= bottom then return nil, 'no-floor' end
     local floor = trace({x = x, y = y, z = top}, {x = x, y = y, z = bottom})
     if floor == nil then return nil, 'no-answer' end
     if not floor then return nil, 'no-floor' end
     local z = floor.z
     -- A hit where the ray starts is the inside of something, not a floor.
-    if z > top - 0.5 then return nil, 'inside' end
-    if not clear({x = x, y = y, z = z + 0.2}, {x = x, y = y, z = z + 2.5}) then return nil, 'no-headroom' end
+    if z > top - 0.5 then return nil, 'inside', z end
+    if not clear({x = x, y = y, z = z + 0.2}, {x = x, y = y, z = z + 2.5}) then return nil, 'no-headroom', z end
     for _, d in ipairs({{0.35, 0}, {-0.35, 0}, {0, 0.35}, {0, -0.35}}) do
         local under = trace({x = x + d[1], y = y + d[2], z = z + 0.5}, {x = x + d[1], y = y + d[2], z = z - 0.5})
-        if not under or math.abs(under.z - z) > 0.2 then return nil, 'not-level' end
+        if not under or math.abs(under.z - z) > 0.2 then return nil, 'not-level', z end
     end
     -- V must not see the copy: something solid between V's eyes and its chest.
     local eyes = {x = origin.x, y = origin.y, z = origin.z + 1.6}
     local cover = trace(eyes, {x = x, y = y, z = z + 1.2})
     if cover == nil then return nil, 'no-answer' end
-    if cover == false then return nil, 'in-view' end
+    if cover == false then return nil, 'in-view', z end
     -- The first facing whose camera spot (a little beyond it, too) is open from the copy's face.
     for _, yaw in ipairs({0, 90, 180, 270}) do
         local lens = M.rig({x = x, y = y, z = z}, yaw)
@@ -295,21 +308,24 @@ function M.studioAt(origin, x, y, range)
         local beyond = {x = x + (lens.x - x) * scale, y = y + (lens.y - y) * scale, z = lens.z}
         if clear(face, beyond) then return {x = x, y = y, z = z, yaw = yaw} end
     end
-    return nil, 'no-lens-room'
+    return nil, 'no-lens-room', z
 end
 
--- The columns searched, in order: the near ones (straight above or below V and eight round V at NEAR_RADIUS, a floor
--- within NEAR_TOP/NEAR_BOTTOM, kept only within FACE_RANGE of V), straight above V, eight around at STUDIO_RADIUS (both
--- with a floor above V), then rings round V at LOW_RADII with a floor level with or below V. Each: {x, y, range, near}.
+-- The columns searched, in order: the near ones (straight above or below V and eight round V on each of NEAR_RADII, a
+-- floor within NEAR_TOP/NEAR_BOTTOM, tried floor by floor, kept only within FACE_RANGE of V), straight above V, eight
+-- around at STUDIO_RADIUS (both with a floor above V), then rings round V at LOW_RADII with a floor level with or below
+-- V. Each: {x, y, range, near}.
 local function columns(origin)
     local above = {top = M.STUDIO_TOP, bottom = M.STUDIO_MIN}
     local low = {top = M.LOW_TOP, bottom = M.LOW_BOTTOM}
     local near = {top = M.NEAR_TOP, bottom = M.NEAR_BOTTOM}
     local list = {{x = origin.x, y = origin.y, range = near, near = true}}
-    for i = 0, 7 do
-        local a = math.rad(i * 45 + 22.5)
-        list[#list + 1] = {x = origin.x + math.cos(a) * M.NEAR_RADIUS, y = origin.y + math.sin(a) * M.NEAR_RADIUS,
-            range = near, near = true}
+    for ring, radius in ipairs(M.NEAR_RADII) do
+        for i = 0, 7 do
+            local a = math.rad(i * 45 + (ring % 2 == 1 and 22.5 or 0))
+            list[#list + 1] = {x = origin.x + math.cos(a) * radius, y = origin.y + math.sin(a) * radius,
+                range = near, near = true}
+        end
     end
     list[#list + 1] = {x = origin.x, y = origin.y, range = above}
     for i = 0, 7 do
@@ -533,8 +549,7 @@ local function holoStep(call, dt)
         for _ = 1, M.SEARCH_PER_TICK do
             local column = holo.columns[holo.column]
             if not column then holoFail(call, 'no-studio-spot (' .. reasonSummary(holo.reasons) .. ')'); return end
-            holo.column = holo.column + 1
-            local spot, reason = M.studioAt(holo.origin, column.x, column.y, column.range)
+            local spot, reason, floor = M.studioAt(holo.origin, column.x, column.y, column.range, holo.below)
             if spot and column.near then
                 local o = holo.origin
                 if (spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2 > M.FACE_RANGE^2 then spot, reason = nil, 'far' end
@@ -544,7 +559,17 @@ local function holoStep(call, dt)
                 holoSpawn(call, holo)
                 return
             end
-            holo.reasons[reason] = (holo.reasons[reason] or 0) + 1
+            -- A near column goes on with the floor under this one (while that is still within its range); any other
+            -- column, or the last floor, is done. A column's reason is its last floor's that says more than no-floor.
+            if reason ~= 'no-floor' or not holo.why then holo.why = reason end
+            holo.layer = (holo.layer or 1) + 1
+            local below = floor and floor - 0.3
+            if column.near and below and below > holo.origin.z + column.range.bottom and holo.layer <= M.NEAR_LAYERS then
+                holo.below = below
+            else
+                holo.reasons[holo.why] = (holo.reasons[holo.why] or 0) + 1
+                holo.column, holo.below, holo.layer, holo.why = holo.column + 1, nil, 1, nil
+            end
         end
         return
     end
@@ -734,7 +759,8 @@ local function connect(call, player)
     window = ok and type(window) == 'string' and window or 'ended'
     if window == 'ended' then return M.finish(player, 'hud-lost') end
     call.state, call.mode, call.window, call.idle = 'connected', live and 'holo' or 'audio', window, 0
-    log('state=connected contact=' .. call.contact .. ' mode=' .. call.mode .. ' window=' .. window)
+    log('state=connected contact=' .. call.contact .. ' mode=' .. call.mode .. ' window=' .. window .. ' ready='
+        .. tostring(call.ready or 'n/a') .. string.format(' ring=%.1fs', call.ring))
     convaiNotices.send(player, 'holocall-connected', ui.t('Holocall with {name}. Tap the phone button to hang up.', {name = call.name}))
     if type(M.env.onConnected) == 'function' then pcall(M.env.onConnected, call) end
 end
@@ -755,7 +781,15 @@ local function step(call, player, dt, sample)
         call.ring = call.ring + dt
         if call.wantLive then holoStep(call, dt) end
         local settled = not call.wantLive or not call.holo or call.holo.ready or call.holo.failed
-        if call.ring >= M.RING_MIN and (settled or call.ring >= M.RING_MAX) then connect(call, player) end
+        if call.ring >= M.RING_MIN and (settled or call.ring >= M.RING_MAX) then
+            -- Her conversation is ready (asked at most once per tick, only once the picture has settled), or the
+            -- ring has waited long enough.
+            if call.ready == nil and (type(M.env.ready) ~= 'function' or M.env.ready(call.key) == true) then
+                call.ready = 'yes'
+            end
+            if not call.ready and call.ring >= M.READY_MAX then call.ready = 'timeout' end
+            if call.ready then connect(call, player) end
+        end
         return
     end
     if call.mode == 'holo' and not holoValid(call) then

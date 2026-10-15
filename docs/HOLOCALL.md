@@ -185,11 +185,13 @@ With the setting on, dialing a staged character does the following (one step per
 
 1. **Finds a studio** out of V's sight: a level floor with 2.3 m of headroom, hidden from V's eyes by something
    solid, with open space for the camera on one side. Candidates in order: **near first**, a floor 10 m above to
-   10 m below V's feet straight over or under V and at eight points 5 m round V, kept only when it is within 11 m of V
-   (`FACE_RANGE`; see "Face" below); then the first floor 10 to 90 m above V, straight up and at eight points 30 m
-   away; then, when nothing stands above V (a high apartment, open ground), floors from 10 m above to 80 m below V's
-   feet on rings of 12, 24 and 40 m round V (24 columns). Three candidates per tick (about 22 raycasts each), so the
-   whole search is at most 14 ticks (3.5 s), once per call and nothing afterwards. No floor: `holo failed ... reason=no-studio-spot (<reason>=<count>, ...)` and the portrait. The
+   10 m below V's feet straight over or under V and at eight points on each of two rings, 5 and 8 m round V, kept only
+   when it is within 11 m of V (`FACE_RANGE`; see "Face" below), each near column tried **floor by floor** (when the
+   first floor down will not do, the one under it, up to four: see "Ready and near" below); then the first floor 10 to
+   90 m above V, straight up and at eight points 30 m away; then, when nothing stands above V (a high apartment, open
+   ground), floors from 10 m above to 80 m below V's feet on rings of 12, 24 and 40 m round V (24 columns). Three
+   candidates (one floor of one column, up to about 22 raycasts) per tick: once per call and nothing afterwards; where
+   nothing near is hidden the whole search is about 23 ticks (the picture waits up to `RING_MAX`, 10 s). No floor: `holo failed ... reason=no-studio-spot (<reason>=<count>, ...)` and the portrait. The
    vanilla studio has a floor too: a copy in mid-air falls.
 2. **Spawns the copy** there with the character's own record (checked to be a real character record first: a
    record that does not resolve would crash), tagged `CyberpunkConvaiCompanion` (speech face layer) and
@@ -370,6 +372,36 @@ behind her where the game's own holocalls stand against black.
   `bg2.png` (a red background colour: still see-through; no cut), `bg3-back/crop.png` (the cut with the black
   rectangle: Judy against black).
 
+### Ready and near (branch `holocall-ready`, 2026-10-16)
+
+The user's first real call (alex, from the Chat tab, V on a Vista Del Rey terrace): no lip sync, no expressions, and
+the first reply said "Preparing connection".
+
+**Why no face.** `holo spawn ... floor=-16.8m away=20.7m`: the studio was a low-ring column 12 m out and 16.8 m down,
+past `FACE_RANGE`, so no face row and a frozen face (the speech face was written: `face=true/prepared`). The probe
+`runtime/holo-scan.lua` (read-only) showed why: every near column's first floor was V's own terrace, in plain view, or
+open air; the search took only the first floor down each column. `runtime/holo-layers.lua` listed what was under it:
+surfaces 2 to 5 m below V's feet in most columns. This also settles `Face.reds`'s full-detail request: the real call
+wrote the face at 20.7 m and the user saw it frozen, so it does not keep a far face moving.
+Now a near column goes on to the floor under one that will not do (`studioAt`'s `below`, up to `NEAR_LAYERS` = 4
+floors), and a second near ring at 8 m. The search still takes three candidates per tick; a column ends without
+spending one when the next floor would be past its range. Run against V's spot (`runtime/holo-next.lua`, the branch's
+`holocall.lua` loaded beside the live one): a floor 6.6 m from V, 4.3 m under V's terrace, on the 11th candidate.
+
+**Why "Preparing".** The call warmed her connection while it rang (`env.warm`, a composer hint), but with the player's
+own key the bridge pre-opens nothing (`keys.singleSession`, also on a paid plan: `PartyConnections.deferWarm`), so her
+page stayed `waiting` until the first turn opened it. The stage clock of that turn: `connectionWarm.state=waiting`, 22 s
+after dialing; 8.7 s to the voice start, then 7.8 s more for a Voxtral timeout and retry (a separate cloud hiccup).
+The second turn: `ready`, 3.7 s. Now:
+- the ring-time hint is marked `call` (`init.lua warmConversation`), and kept while the call lives (a closed text box
+  or a cancelled recording would otherwise drop it);
+- the bridge opens that caller's page at once (`PartyConnections.openCall`, as an invitation's `warmSingle` does on a
+  single-session plan), and maintenance retries it if it was gated; nothing else is pre-opened on that plan;
+- the call rings until `env.ready` (the same check as the "Preparing connection" notice: her private connection
+  `ready` in `runtime/party-connection-state.json`, read at most once a second) or `READY_MAX` (18 s), asked once per
+  0.25 s tick while it rings. The connect line says `ready=yes|timeout ring=<s>s`.
+With Mistral or the local AI the warm resolves at once, so the call connects as soon as the picture is up.
+
 ### Bridge
 
 - `bridge/protocol.mjs` `parseHolocall`: version 1, contact `[A-Za-z0-9_]{1,64}`, mode `audio` or `holo`.
@@ -391,7 +423,7 @@ holo spawn contact=<id> record=<record> floor=+<m>m away=<m>m yaw=<deg> lens=<m>
 holo ready contact=<id> held=yes camera=on animated=true|false look=true|false drift=<m> lights=<n>/3 (live picture only)
 holo lit contact=<id> lights=3/3                                                         (a late lamp, live picture only)
 holo failed contact=<id> reason=<r> fallback=audio                                       (live picture only)
-state=connected contact=<id> mode=audio|holo window=audiocall|holocall|pending
+state=connected contact=<id> mode=audio|holo window=audiocall|holocall|pending ready=yes|timeout ring=<s>s
 window=<w> contact=<id>                                       (a pending window appeared)
 state=ended contact=<id> reason=<r> length=<n>s
 refused contact=<id> reason=<r>
@@ -422,6 +454,8 @@ The bridge turn-context diagnostic ends with `holocall=audio` or `holocall=holo`
   blinks and a replayed talking timeline moves her mouth; with the head and chest look she faces the lens. Not seen yet:
   her lips following a real reply's voice (no talk turn was made), and whether `Face.reds`'s full-detail request keeps a
   face moving at a far studio (needs the game restart).
+- (holocall-ready) The call ringing until her connection is open and the first reply without "Preparing" (needs the
+  bridge change: the bridge runs from the main checkout, so after the merge and a bridge restart).
 - The live picture elsewhere: the floor search and the light rig in other places (a street, the Badlands, at
   night, a spot inside a building), how often a near floor exists there, other characters and heights in the framing,
   and a call placed by the player from the Chat tab rather than by the probe.
