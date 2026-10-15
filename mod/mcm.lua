@@ -1933,7 +1933,7 @@ local function schema()
                 languageElements, {elements=true}),
             -- YouTube on V's TV (mod/youtube-tv.lua, docs/YOUTUBE_TV.md); its only setting.
             setting('youtubeTv', 'YouTube on V’s TV', 'bool', snapshot.settings.youtubeTv == true, false,
-                'In V’s apartments the TV offers YouTube: pick a video and watch it with your companion, who can talk about it.\n\nThe video plays in a window over the game, so use Windowed Borderless or Windowed mode.'),
+                'In V’s apartments the TV offers YouTube: pick a video and watch it with your companion, who can talk about it.\n\nThe video plays in a window over the game, so use Windowed Borderless or Windowed mode. On the couch, use the key binding YouTube on the TV (Cyberpunk Convai, in the CET bindings).'),
         })
         categories[#categories + 1] = category('conversation-controls', 'Conversations', {
             action('memory', 'Memory', 'Manage',

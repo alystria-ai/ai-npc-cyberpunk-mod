@@ -1,6 +1,6 @@
 # YouTube on V's TV
 
-Status (2026-10-15): the first version is on main (branch `youtube-tv`). The second pass, on branch `youtube-tv-2`, adds captions read from the player's page and removes the optional key box, following the user's decisions of 2026-10-15. A third pass, branch `youtube-home`, fixes V's-home detection and removes the key binding (see "V's homes" and "The couch" below). All are unit-tested, and headless smoke tests played a real video through the official player; the second one also read its captions. It is behind a setting that is off by default until the FPS check passes. It has not been seen playing in the game yet; the live checks are at the end.
+Status (2026-10-15): the first version is on main (branch `youtube-tv`). The second pass, on branch `youtube-tv-2`, adds captions read from the player's page and removes the optional key box, following the user's decisions of 2026-10-15. A third pass, branches `youtube-home` and `youtube-home-2`, fixes V's-home detection (see "V's homes"), makes the row read "YouTube" on the TV, and keeps the key binding for the couch (see "The couch"). All are unit-tested, and headless smoke tests played a real video through the official player; the second one also read its captions. It is behind a setting that is off by default until the FPS check passes. It has not been seen playing in the game yet; the live checks are at the end.
 
 In V's apartments the TV offers **YouTube** next to its own On/Off and channel choices. The player picks a video, it plays in the official YouTube player over the game, and the companion in the room knows what is on: the title, channel, playback position, current chapter, description, and what was said in the last half minute (from the video's captions, when it has any). The companion can talk about it when the player speaks or types. The video ducks while anyone talks.
 
@@ -8,7 +8,7 @@ In V's apartments the TV offers **YouTube** next to its own On/Off and channel c
 
 1. Settings > Interface > **YouTube on V's TV** (off by default). The description tells the player to use Windowed Borderless or Windowed mode.
 2. In Megabuilding H10 or one of the four apartments V can buy, look at the TV. Its choices gain **YouTube** under the game's own. While a video is open they also gain **YouTube: pause or play** and **YouTube: stop**.
-3. On the couch, the TV's own choices show too (seen live 2026-10-15: a COUCH group with Stand, and a TV group with Turn off and the two channel choices), so **YouTube**, and while a video is open **YouTube: pause or play** and **YouTube: stop**, appear there exactly as at the TV. There is no key binding for it any more.
+3. Standing, the TV's choices show when V looks at it from a spot where the couch's own "Sit" prompt is not showing (the Sit prompt takes the focus near the couch). **On the couch**, the game shows the TV's rows as the scene's own dialogue choices, which scripts cannot extend (see "The couch"), so the same thing is on a key: CET bindings > Cyberpunk Convai: **YouTube on the TV**. With nothing open it opens the picker; with a video open it pauses or plays. Outside V's homes it says where it works.
 4. The picker window opens over the middle of the game and takes the keyboard. The player can:
    - paste a link or a video id;
    - search on YouTube's own results page (a picked result plays on the TV);
@@ -40,8 +40,9 @@ Also used: [NativeDB `TVControllerPS`](https://nativedb.red4ext.com/TVController
   - **Why.** `DistrictManager` (`districtManager.script`) keeps the districts V is inside as a **stack**. A district trigger volume sends `DistrictEnteredEvent`; `PushDistrict` pushes on enter, `PopDistrict` removes on leave, and `GetCurrentDistrict()` returns only the top. The stack is not saved. A read-only observer on `PreventionSystem.OnDistrictAreaEntered` logged: walking out of the flat's door and back gave `entered=false CorpoPlaza_Apartment` then `entered=true CorpoPlaza_Apartment`, and the district then read `CorpoPlaza_Apartment` (parents `CorpoPlaza`, `CityCenter`). After a quick save and load inside the flat the game pushed `CorpoPlaza_Apartment`, then `CityCenter`, then `Downtown` in one frame, so the street district ended on top.
   - **The rule now.** V is at home when ANY district in the stack is one of the five. `YouTubeTv.reds` adds `DistrictManager.ConvaiHomeDistrict()` (walks `m_stack`) and `PreventionSystem.ConvaiHomeDistrict()`, which return the home district's name or an empty string. The TV choices call it when they are built; Lua calls the same method (`env.home`, `M.atHome()`) when a video opens and once a second while one is open. Both read on demand only; nothing runs per frame. CET cannot read the private stack (`m_districtManager` reads as nil from Lua), which is why the read is in redscript.
   - **Fallback.** Until the redscript is compiled in (the call fails), Lua uses the top district alone, as before.
+  - **The row's text (fixed on `youtube-home-2`).** The choice borrows the TV's own `Next` interaction record for its input and layout, and the UI prints the record's caption. A first version added a text part and the hub data read `LocKey#252 YouTube`, but the button drew only `Next`. The row's label is now set after the UI has drawn it: a `@wrapMethod(interactionItemLogicController) SetData` replaces the label of a row that carries our action with the translated caption Lua gave it. No TweakDB record of our own and no TweakXL file are needed.
   - **Known limit.** An entry can only be removed by its leave event. If a teleport out of a flat sends no leave event, a TV elsewhere could still offer YouTube until the stack is rebuilt by a load. Not seen; listed in the live checks.
-- **The couch.** Sitting on V's couch (a scene, the tier 3 sit noted in `mod/seated-look.lua`) shows two groups: the scene's own **COUCH** group (Stand) and the TV's own device group (key F: Turn off, Switch to next channel, Switch to previous channel), seen live 2026-10-15 in the Corpo Plaza flat. The device choices come from the same `TVControllerPS.GetActions` the redscript wraps, so the YouTube choices appear there with no extra work. The earlier belief that couch choices are scene hub choices that cannot be extended was wrong for the TV group. The dialogue-style group is display-only to scripts (`dialogWidgetGameController` and `interactionWidgetGameController` only render blackboard data; choosing is native), so the scene's own COUCH group could not be extended, and does not need to be.
+- **The couch (seen live 2026-10-15, Corpo Plaza flat, with read-only probes and window captures).** Sitting on V's couch runs a scene (scene tier 3, noted in `mod/seated-look.lua`). The UI then shows two **dialogue hubs**: a "TV" hub with `[Turn off]`, `[Switch to next channel]` and `[Switch to previous channel]`, and a COUCH hub with `[Stand]`, none with an input action. The TV's own device hub (the one `YouTubeTv.reds` adds to, which has our row) is inactive while V sits. Scripts only draw dialogue hubs (`dialogWidgetGameController` renders blackboard data); scrolling and applying are native and stop at the scene's own rows, so a fourth row could be drawn but never selected, and one of the game's rows must not be taken over. A real extra row would mean editing the scene file in an archive, which is fragile and touches story content, so it is not done. **The way in from the couch is the key binding** `cyberpunk_convai_youtube_tv`, which keeps its id so a key the player already set stays. Standing near the couch, the "Sit" dialogue hub is the active one and hides the TV hub; YouTube shows from where that prompt is gone.
 
 ### How to show the video, and the FPS cost of each way
 
@@ -126,7 +127,8 @@ The companion gets a block in its turn context, built by `watchingContext` in `b
 - **Cost.** Nothing runs per frame:
   - idle, `update` returns at its first comparison, and `sync` pushes the mode to the player at most every 2 s, only when it changed;
   - with a video open, a menu check runs four times a second and the state file and V's place are read once a second.
-- **Notices.** One catalogued id, `youtube-tv` (Player class, `docs/NOTIFICATIONS.md`): could not open (with the hint about the display mode), or turned off in the settings.
+- **The key binding** `cyberpunk_convai_youtube_tv` (init.lua) calls `M.hotkey()`: it opens the picker, or pauses and plays while a video is open. The home rule is the stack read, so it works seated, where the top district is the street.
+- **Notices.** One catalogued id, `youtube-tv` (Player class, `docs/NOTIFICATIONS.md`): could not open (with the hint about the display mode), turned off in the settings, and works only in V's apartments.
 - **Translation.** Every text goes through `ui.t('…')`; the page's 11 sentences are sent with the open command in the player's language.
 
 ### Bridge (`bridge/youtube-tv*.mjs`, `bridge/youtube-tv-window.ps1`, bridge restart)
@@ -157,11 +159,11 @@ The companion gets a block in its turn context, built by `watchingContext` in `b
 
 **Works (unit-tested, headless smoke-tested):**
 - the setting;
-- the TV choices;
+- the TV choices and the key;
 - the picker: paste, YouTube search, recent list;
 - the official player with origin and referrer;
 - unplayable videos returning to the picker;
-- pause, play and stop from the TV choices;
+- pause, play and stop from the TV choices and the key;
 - hide under menus and alt-tab;
 - stop when V leaves home, on a load, or when the setting is turned off;
 - ducking during conversation;
@@ -179,7 +181,7 @@ The companion gets a block in its turn context, built by `watchingContext` in `b
 
 1. **Captions from the player's page: yes** (grey zone accepted). Built as above, as cheaply as possible: no per-frame work and no fetch of our own. Falls back to title, channel, chapter and description.
 2. **Own Data API key box: removed**, with its strings in all locales. The description and chapters now come from the player's own answer instead, so they did not disappear with the key.
-3. **The couch key binding: removed** (2026-10-15, later). The TV's choices show on the couch, so YouTube is offered there and the key is not needed.
+3. **The couch key binding: kept** (user, 2026-10-15, later). A first version of the fix removed it on the belief that the couch shows the TV's device choices; the probes showed the seated rows are scene dialogue choices, which cannot be extended, so the key stays and works from the couch with the stack home rule.
 4. **The setting stays off by default** until the FPS check passes.
 5. **Frames to companion vision: yes** (2026-10-15, later the same day): about one frame a second while a video plays, through Convai's dynamic vision context under "Companions can see" (`docs/COMPANION_VISION.md`).
 6. **Downloads:** none. The dev install uses the installed Microsoft Edge, and packages use the Chrome for Testing they already bundle.
@@ -191,13 +193,13 @@ Install: the Lua (`mod/youtube-tv.lua`, `init.lua`, `manager.lua`, `mcm.lua`, `n
 1. **Setting.** Settings > Interface > YouTube on V's TV is off. Look at the H10 TV: only the game's own choices. Turn it on and Apply; within 2 s the TV shows **YouTube** under them.
 2. **Open.** Choose YouTube. The game channel goes off, and a picker opens in the middle of the game window, with no browser frame, address bar or info bar. Time from the choice to the picker; about 1 to 2 s is expected.
 3. **Pick.** Paste a link and press Play. The video fills the top of the screen at 16:9, subtitles stay visible below it, and sound plays. Click back into the game: V moves and the window stays on top. Also search on YouTube and click a result: it plays on the TV page, not on youtube.com.
-4. **Controls.** At the TV or from the couch, the YouTube choice, then YouTube: pause or play and YouTube: stop. There is no key binding.
+4. **Controls.** At the TV, YouTube: pause or play, then YouTube: stop. On the couch, the key binding opens, then pauses or plays. Away from home the key says "works in V's apartments".
 5. **Hiding.** Esc menu, map, inventory, alt-tab, minimise: the window hides each time and comes back after. Leaving the apartment stops it. Loading a save stops it.
 6. **Companion.** With a companion in the room, type or say "what do you think of this?". The answer knows the title, channel and roughly where in the video it is, and the video ducks while either of you speaks. `probe.log` `Turn context:` shows the "Watching together" block.
 6b. **Captions.** Play a talk or tutorial with captions. Within a few seconds the bridge log shows `[YouTubeTv] player answer ...` and `[YouTubeTv] captions ... cues=N`. Ask "what did they just say?": the answer matches the last half minute. Check whether captions flash on the video for a moment; that happens when the player had to be asked for a track, which the smoke test video did not need. That request path has not been seen live yet. A music video without captions gives `no captions` or no `captions` line, and the companion still knows the title, chapter and description.
 7. **FPS A/B (pass or fail).** Same save, V seated, 120 s of `perf-probe.json` with no video, then 120 s with a 1080p video playing, twice each. Pass: within 2 FPS and no more frames over 25 ms. If it fails, keep the setting off and try the smaller area.
 8. **Other homes.** Northside, Japantown, the Glen and Corpo Plaza: the choice appears on each apartment's TV. A TV outside V's homes, such as a bar, never shows it. After a save load inside a flat, and after walking in from the street, the choice must appear in both cases (the first was the bug). Also fast-travel out of a flat, then look at a TV in the street or a bar: it must not offer YouTube.
-8b. **Couch.** Sit on the couch facing the TV: the TV group (key F) lists **YouTube** below the game's own choices; with a video open, also pause or play and stop.
+8b. **Couch.** Sit on the couch facing the TV and press the key (F2 for this user): the picker opens; with a video open the key pauses and plays. 8c. **Row text.** Stand about 2 m in front of the TV, away from the couch's Sit prompt: the TV buttons show the game's own three and a fourth that reads **YouTube** (the first version read the borrowed record's caption, "Next"); with a video open also **YouTube: pause or play** and **YouTube: stop**.
 9. **Exclusive full screen.** The open fails with the notice about Windowed Borderless, and the game is not minimised.
 10. **Packaged build** (later): the Chrome for Testing window shows no "for testing" bar inside the cut region, and the video plays.
 

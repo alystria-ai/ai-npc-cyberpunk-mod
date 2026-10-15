@@ -2722,6 +2722,11 @@ end
 registerInput('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice', function(isDown) voiceKeyEdge('voice', false, isDown) end)
 registerInput('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat', function(isDown) voiceKeyEdge('group_voice', true, isDown) end)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
+-- On the couch the game shows the apartment's own scene choices (dialogue hubs, which scripts cannot extend), not the TV's device
+-- choices, so YouTube is also on a key (mod/youtube-tv.lua). The binding keeps its id, so a key the player already set stays.
+registerHotkey('cyberpunk_convai_youtube_tv', 'Cyberpunk Convai: YouTube on the TV', function()
+    if convaiYouTubeTv then pcall(convaiYouTubeTv.hotkey) end
+end)
 -- Global so onInit gains no upvalue (LuaJIT limits upvalues).
 function convaiInstallYouTubeTv()
     if not convaiYouTubeTv then return end
