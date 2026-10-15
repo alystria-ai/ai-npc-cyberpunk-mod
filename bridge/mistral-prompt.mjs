@@ -359,6 +359,31 @@ export function stripPlayerEcho(reply, said, {streaming = false} = {}) {
 }
 
 /**
+ * Is a reply that is still being written (or complete) only the start of a line the speaker already said, or that line with more after it?
+ * The streamed first sentence is held back while it is (the voice must not speak a line that then turns out to be a repeat: live 2026-10-16,
+ * V asked about the district remark and the cab said "Ah, Arroyo. Where the factories hum..." again, its short first sentence already in
+ * the voice). It is released the moment the words differ. Only lines of at least `minWords` words count; the reply's last word may be half
+ * written. Words match without case, punctuation or quotation marks.
+ */
+export function startsLikeLine(soFar, lines, {minWords = 6, streaming = true} = {}) {
+  const have = echoWordsOf(soFar);
+  if (!have.length) return false;
+  const half = streaming && !/[s.,;:!?"”')]]$/.test(String(soFar ?? ''));
+  for (const line of lines ?? []) {
+    const there = echoWordsOf(line);
+    if (there.length < minWords) continue;
+    const count = Math.min(have.length, there.length);
+    let same = true;
+    for (let i = 0; i < count && same; i++) {
+      if (have[i] === there[i]) continue;
+      same = half && i === have.length - 1 && there[i].startsWith(have[i]);
+    }
+    if (same) return true;
+  }
+  return false;
+}
+
+/**
  * A model that writes the talk as a script ("V: Thanks, Del. Delamain: A short drive..."): only what the speaker says is the reply. With the
  * speaker's label present, the text after its first label up to the next label; with a V or You label and none of the speaker's, the text
  * before the V label. Unchanged without a V or You label. `streaming`: a reply that begins with V's label and has not reached the

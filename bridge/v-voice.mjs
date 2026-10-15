@@ -341,10 +341,14 @@ export class VVoice {
 
   once(key, line) { if (this.logged.has(key)) return; this.logged.add(key); this.log(line); }
 
-  /** Why this turn does not get a V line, or null when it does. Typed lines only: a spoken line is never replayed. */
+  /**
+   * Why this turn does not get a V line, or null when it does. Typed lines only: a spoken line is never replayed. A line typed to an
+   * add-on's voice (a cab, a gun: input.addon names the speaker, input.reaction is not set) is a typed line like any other and gets V's
+   * voice (live 2026-10-16: V was silent in the Delamain cab); an add-on remark carries a reaction and never does.
+   */
   skipReason(input) {
     if (!this.enabled) return 'off';
-    if (!input || input.reaction || input.source !== undefined || input.channel === 'phone' || input.addon) return 'not-typed';
+    if (!input || input.reaction || input.source !== undefined || input.channel === 'phone') return 'not-typed';
     if (input.group && input.group.index !== 1) return 'later-group-speaker';
     if (!this.available) return 'no-clips';
     return null;

@@ -905,7 +905,7 @@ test('init.lua: every call into the add-on API is skipped until an add-on is liv
   assert.match(init, /speech\.hideCaption = function\(profileKey, requestId\) return convaiAddons\.live and convaiAddons\.hideCaption\(profileKey, requestId\) or false end/);
   // The game-line notice runs only for a live add-on: the dialogue module asks first (one function call per game subtitle line).
   assert.match(init, /onGameLineWanted = function\(\) return convaiAddons ~= nil and convaiAddons\.live == true end,\s+onGameLine = function\(seconds, kind, measured\) convaiAddons\.gameLine\(seconds, kind, measured\) end/);
-  assert.match(init, /if key and not participants and convaiAddons and convaiAddons\.live and convaiAddons\.isSpeaker\(key\) then key = nil end/);
+  assert.match(init, /if key and not participants and convaiAddons and convaiAddons\.live and convaiAddons\.isSpeaker\(key\) then key, voiceOnly = nil, true end/);
   assert.match(init, /if type\(reply\.errorCode\) == 'string' and reply\.errorCode:find\('\^addon%-'\) then\s+if convaiAddons and convaiAddons\.live then convaiAddons\.replyError\(pending, reply, player\) end\s+elseif keyId == 'key-memory'/);
   // The voice key addresses an add-on voice only on a computer that can recognise speech (asked on the key press); otherwise typed
   // messages only. No Convai warm-up or connect note is made for one.
@@ -1510,5 +1510,68 @@ test('repeatOk: a remark may be said although it repeats a recent line; the opti
     assert(submitted[2].context.addon.repeatOk == nil, 'an ordinary remark is dropped for a repeat, as before')
     assert(handle:remark('gun', {event = 'other', text = 'Something.', priority = 4, repeatOk = 'yes'}) ~= nil)
     assert(M._test.queue()[1] == nil or M._test.queue()[1].event.repeatOk == false)
+  `);
+});
+
+test('replaces: a remark standing in for a muted game line is written while that line plays, kept silent until it is over, and plays right after it', () => {
+  run(`${WORLD}${CAB}
+    player.vehicle = cab
+    tick()
+    -- The game's line is muted (its voice cannot be stopped): five seconds of it still play.
+    local rule = {name = 'Delamain', audio = {'vo_3d'}, audioVerified = false, addon = M._test.addonOf and M._test.addonOf('cab') or nil}
+    M.gameLine(5, 'Delamain', true)
+    assert(handle:remark('voice', {event = 'arrival', priority = 5, ttl = 12, patience = 25, replaces = true, repeatOk = true})); tick()
+    assert(#submitted == 1, 'asked for at once, not after the game line')
+    local context = submitted[1].context
+    assert(holds[1] == context.requestId, 'kept silent while the game line plays')
+    state.pendingId, state.speechId = nil, context.requestId
+    tick(); tick(2)
+    assert(M._test.flight().stage == 'held' and #events == 0, 'voiced, not heard')
+    tick(2.5)
+    assert(M._test.flight().stage == 'held', 'the line is still playing (plus the short gap)')
+    tick(0.6)
+    assert(holds[#holds] == 'nil', 'released a moment after the game line')
+    tick()
+    assert(events[1] == 'remarkStarted:arrival', tostring(events[1]))
+    -- Without replaces the same remark waits for the line first and is written only after it (as before).
+    state.speechId = nil; tick(); tick(30)
+    M.gameLine(5, 'Delamain', true)
+    assert(handle:remark('voice', {event = 'plain', priority = 5, ttl = 12, patience = 25})); tick()
+    assert(#submitted == 1, 'an ordinary patient remark is not written before the line is over')
+  `);
+});
+
+test('replaces: asked for before the game line was seen, the remark in flight is kept silent as soon as the line is seen', () => {
+  run(`${WORLD}${CAB}
+    player.vehicle = cab
+    tick()
+    assert(handle:remark('voice', {event = 'ride-start', priority = 4, ttl = 12, patience = 20, replaces = true})); tick()
+    assert(#submitted == 1 and holds[1] == nil, 'no game line seen yet: nothing to hold for')
+    local id = submitted[1].context.requestId
+    M.gameLine(3, 'Delamain', true)
+    tick()
+    assert(holds[1] == id, 'held from the moment the line is seen')
+    state.pendingId, state.speechId = nil, id
+    tick(); assert(M._test.flight().stage == 'held')
+    tick(3.5)
+    assert(holds[#holds] == 'nil')
+    tick()
+    assert(events[1] == 'remarkStarted:ride-start', tostring(events[1]))
+  `);
+});
+
+test('replaces: the speaker\'s gap does not refuse a line that stands in for the game\'s own; an ordinary remark is still refused inside it', () => {
+  run(`${WORLD}${CAB}
+    player.vehicle = cab
+    tick()
+    assert(handle:remark('voice', {event = 'first', priority = 4, ttl = 12})); tick()
+    state.pendingId, state.speechId = nil, submitted[1].context.requestId
+    tick(); state.speechId = nil; tick()
+    local ok, why = handle:remark('voice', {event = 'plain', priority = 4})
+    assert(ok == false and why == 'speaker-cooldown', tostring(why))
+    local made, reason = handle:remark('voice', {event = 'ride-start', priority = 4, ttl = 12, replaces = true})
+    assert(made, 'inside the gap: ' .. tostring(reason))
+    tick(); tick(3)
+    assert(#submitted == 2 and submitted[2].context.addon.event == 'ride-start', 'and it is sent in the gap too')
   `);
 });

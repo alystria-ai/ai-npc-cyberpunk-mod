@@ -439,3 +439,65 @@ test('the host polls never call hold(): only a frame with audio may decide (a V 
   assert.equal(stream.options.wake(), stream.woken);
   assert.equal(holdCalls, 0);
 });
+
+// ---- A cloud voice that broke buffers a longer lead for its next lines (live 2026-10-16: Delamain's voice broke) ----------------------
+
+import {SpeechPace} from './speech-pace.mjs';
+
+test('SpeechPace: no extra wait until a recent line broke, then a lead, then none again after whole lines', () => {
+  const pace = new SpeechPace({keep: 3, lead: 1.2, maxWaitMs: 1500});
+  assert.equal(pace.lead, 0); assert.equal(pace.holds(0.1, 0), false);
+  pace.note(0); assert.equal(pace.lead, 0);
+  pace.note(2); assert.equal(pace.lead, 1.2);
+  assert.equal(pace.holds(0.5, 100), true, 'under the lead');
+  assert.equal(pace.holds(1.3, 100), false, 'enough audio');
+  assert.equal(pace.holds(0.5, 1600), false, 'never waits past maxWaitMs');
+  assert.equal(pace.holds(0.5, 100, {complete: true}), false, 'the whole line is here');
+  pace.note(0); pace.note(0); assert.equal(pace.lead, 1.2, 'the break is still among the last three');
+  pace.note(0); assert.equal(pace.lead, 0, 'three whole lines in a row');
+  pace.note(-1); pace.note(1.5); pace.note('x'); assert.equal(pace.lead, 0, 'bad values are ignored');
+});
+
+test('a line after a broken one stays silent (nothing published) until the lead is buffered, then goes as usual', async () => {
+  const pace = new SpeechPace({keep: 3, lead: 1.2, maxWaitMs: 1500});
+  pace.note(1);
+  const f = fixture(owner, {pace});
+  f.control();
+  assert.deepEqual(await f.stream.frame(f.snapshot({receivedFrames: 4800})), QUIET, '0.2 s of audio: held');
+  assert.equal(f.replies.length, 0); assert.equal(f.states.length, 0);
+  f.now += 400;
+  assert.deepEqual(await f.stream.frame(f.snapshot({receivedFrames: 14400})), QUIET, '0.6 s: still held');
+  assert.equal(f.replies.length, 0);
+  f.now += 400;
+  await f.stream.frame(f.snapshot({receivedFrames: 31200}));
+  assert.equal(f.replies.length, 1, '1.3 s buffered: published');
+});
+
+test('the held line goes after maxWaitMs even if the audio is slow, and a normal voice is never held', async () => {
+  const pace = new SpeechPace({keep: 3, lead: 1.2, maxWaitMs: 1500});
+  pace.note(3);
+  const f = fixture(owner, {pace});
+  f.control();
+  await f.stream.frame(f.snapshot({receivedFrames: 2400}));
+  assert.equal(f.replies.length, 0);
+  f.now += 1600;
+  await f.stream.frame(f.snapshot({receivedFrames: 4800}));
+  assert.equal(f.replies.length, 1, 'waited long enough');
+  const calm = fixture(owner, {pace: new SpeechPace()});
+  calm.control();
+  await calm.stream.frame(calm.snapshot({receivedFrames: 2400}));
+  assert.equal(calm.replies.length, 1, 'no break in its history: published at once, as before');
+});
+
+test('the end of a line reports its underruns and teaches the pace', async () => {
+  const pace = new SpeechPace(), ended = [];
+  const f = fixture(owner, {pace, onEnded: info => ended.push(info)});
+  f.control();
+  const whole = f.snapshot({receivedFrames: 24000, sourceComplete: true, textComplete: true});
+  await f.stream.frame(whole);
+  f.now += 500; await f.stream.frame({...whole, positionSeconds: .2});
+  f.now += 900; await f.stream.frame({...whole, positionSeconds: 1, ended: true, underruns: 2});
+  assert.equal(ended.length, 1);
+  assert.equal(ended[0].underruns, 2); assert.equal(ended[0].seconds, 1);
+  assert.equal(pace.lead, 1.2, 'the next lines buffer first');
+});

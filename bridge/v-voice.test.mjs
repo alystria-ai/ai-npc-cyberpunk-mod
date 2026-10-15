@@ -222,11 +222,13 @@ test('beside a voice that cannot clone (the Convai cloud voice) the setting stay
   assert.equal(voice.enabled, true, 'still on');
 });
 
-test('only a typed line of the player gets a V line: never speech, a reaction, a phone chat, an add-on or a later group speaker', () => {
+test('only a typed line of the player gets a V line: never speech, a reaction, an add-on remark, a phone chat or a later group speaker', () => {
   const {voice} = feature();
   assert.equal(voice.skipReason(typed()), null);
   assert.equal(voice.skipReason(typed({group: {index: 1, total: 2}})), null);
-  for (const extra of [{source: 'microphone'}, {reaction: {kind: 'battle'}}, {channel: 'phone'}, {addon: {id: 'x'}}, {group: {index: 2, total: 2}}])
+  // A line typed to an add-on's voice (the Delamain cab, Skippy) is a typed line: V is heard (live 2026-10-16: silent in the cab).
+  assert.equal(voice.skipReason(typed({addon: {id: 'delamain-cab', speaker: 'delamain'}})), null);
+  for (const extra of [{source: 'microphone'}, {reaction: {kind: 'battle'}}, {reaction: {kind: 'addon'}, addon: {id: 'x'}}, {channel: 'phone'}, {group: {index: 2, total: 2}}])
     assert.notEqual(voice.skipReason(typed(extra)), null, JSON.stringify(extra));
   voice.update({vVoice: false, vVoiceChosen: true});
   assert.equal(voice.skipReason(typed()), 'off');
@@ -774,4 +776,20 @@ test('a Pocket line is padded end to end: the renderer host receives lead-in, li
   assert.equal(emitted.reduce((sum, item) => sum + item.frames, 0), 3840 + 9600 + 7680);
   assert.equal(made.line.state, 'done');
   for (const item of emitted) ownedLocalPcmPacket(item, {token: 'v-x', frames: item.offsetFrames, index: item.index - 1});
+});
+
+// ---- V's voice in an add-on conversation (live 2026-10-16: V typed to the Delamain cab and was never heard) ------------------------
+
+test('an add-on conversation starts V\'s line beside the reply, never for a remark, and the composer warms V\'s voice for it', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  const body = bridge.slice(bridge.indexOf('async function runAddonTurn'), bridge.indexOf('async function runInput'));
+  assert.match(body, /current\.vLine = \(\) => vLine;/, 'the reply\'s voice waits for V (continuousSpeech hold, publishResult waitClear)');
+  assert.match(body, /if \(!remark && !ahead && !vLine\) vLine = vVoice\.start\(input,/, 'a conversation only');
+  // The line starts after the text request is under way, on both paths.
+  assert(body.indexOf('host.reply(config, {signal, stream})') < body.indexOf('startV();'), 'streamed path: the text request first');
+  assert(body.indexOf('const making = ') < body.lastIndexOf('startV();'), 'whole-reply path: the text request first');
+  // A composer opened for an add-on's voice leaves a voice-only hint; the bridge warms V's voice page for it (no connection is opened).
+  const lua = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.match(lua, /voiceOnly = true\}\)/);
+  assert.match(bridge, /JSON\.parse\(hintRaw\)\?\.voiceOnly === true\) vVoice\.warmUp\(\)/);
 });

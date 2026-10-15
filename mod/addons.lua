@@ -71,6 +71,7 @@ end
 local MUTED_HOLD = 0.6       -- seconds a patient remark still waits for a game line whose voice is known to be stopped
 local DEFAULT_TTL = 3         -- a remark that cannot be heard within about 3 s of its moment is dropped
 local SCENE_GAP = 1.2         -- seconds of quiet after a game scene or line before a remark that waited for it starts
+local REPLACE_GAP = 0.3       -- the same, for a remark that replaces a muted game line: it is ready by then and follows the line at once
 local HARD_TIER = 4           -- scene tiers from here on are cinematics: a speaker with playThrough is still stopped by them
 local PATIENCE_MAX = 60       -- the longest a remark may wait for a game scene (seconds)
 local STALE_GRACE = 2         -- seconds past its ttl that a request with no reply yet is given up (its reply could not be played any more)
@@ -255,6 +256,20 @@ end
 -- The reasons a patient remark waits out (it is not dropped for them).
 local function holdable(why) return why == 'scene' or why == 'scene-tier' or why == 'game-line' end
 
+-- Does a game dialogue line that the add-on mutes still play (plus REPLACE_GAP), for a remark that replaces such a line (handle:remark `replaces`)?
+local function replacedLinePlays(entry)
+    return entry.replaces == true and watch.gameLineUntil ~= nil and clock < watch.gameLineUntil + REPLACE_GAP
+end
+
+-- Is this held remark still to be kept silent: its own hold() says so, or the game line it replaces still plays.
+local function holdNow(entry)
+    if entry.hold then
+        local ok, wait = pcall(entry.hold)
+        if ok and wait == true then return true end
+    end
+    return replacedLinePlays(entry)
+end
+
 local function relevantNow(entry)
     if type(entry.relevant) ~= 'function' then return true end
     local ok, value = pcall(entry.relevant)
@@ -372,12 +387,15 @@ local function episodeOf(addon)
 end
 
 -- nil when the add-on may make a remark of this priority now, else why not.
-local function rateBlocked(addon, priority)
+-- `replaces`: a remark that stands in for a muted game line (handle:remark) is not held back by the add-on's time between remarks: V
+-- would hear nothing in its place (the game line it replaces is muted, and the speaker's welcome had just ended, live 2026-10-16).
+local function rateBlocked(addon, priority, replaces)
     if addon.quietUntil and clock < addon.quietUntil then return 'no-provider' end
     if addon.paceUntil and clock < addon.paceUntil then return 'addon-gap' end
     local cap, episode = capOf(addon), episodeOf(addon)
     if episode.count >= cap then return 'episode-budget' end
     if episode.count == cap - 1 and priority < 4 then return 'episode-budget' end
+    if replaces then return nil end
     local gap = priority >= 5 and gapOf(addon) / 2 or gapOf(addon)
     -- The bridge spaces remarks written by the Local AI (LOCAL_REMARK_GAP_S) unless the player chose a gap; once it has said so, wait that
     -- long here instead of asking and being refused (a refused moment is lost). Priority 5 is never held by it.
@@ -511,7 +529,7 @@ Handle.speaker = guard('speaker', function(self, def)
     return key
 end)
 
---- handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus, repeatOk})
+--- handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus, repeatOk, replaces})
 --- -> true, or false and the reason.
 --- hold() -> bool (optional): the remark is written and voiced as soon as it can be, but kept silent while hold() is true (checked on
 --- the 0.1 s tick; handle:releaseHold plays it at once). For a line that must start the instant something happens (Delamain's welcome
@@ -524,6 +542,10 @@ end)
 --- repeatOk = true (optional): the bridge says the line even when it nearly repeats one of the speaker's recent lines (after its one second try)
 --- instead of dropping it. For a line V would miss altogether, such as a welcome that replaces the game's own; a line that breaks a rule of its
 --- speaker is still dropped.
+--- replaces = true (optional): this remark stands in for a game line the add-on mutes (handle:replaceGameLines: the cab's "your wish is my command",
+--- its arrival announcement). It is asked for inside the speaker's gap (the game line it replaces would have played there), it is written and voiced
+--- while that game line still plays (a line whose voice cannot be stopped is only waited out, not waited for before the text is made), kept silent
+--- until the line is over, then plays REPLACE_GAP seconds after it, instead of being written only after the line (about 5 s later live, 2026-10-16).
 Handle.remark = guard('remark', function(self, speakerId, event)
     local speaker = speakerOf(self, speakerId)
     if not speaker then return false, 'unknown speaker' end
@@ -538,14 +560,15 @@ Handle.remark = guard('remark', function(self, speakerId, event)
         if not text or #text > LIMITS.facts then return false, 'facts are too large' end
         facts = event.facts
     end
-    if speaker.lastAt and clock - speaker.lastAt < speaker.minGap then return false, 'speaker-cooldown' end
-    local blocked = rateBlocked(speaker.addon, math.floor(number(event.priority, 1, 5, 2)))
+    if speaker.lastAt and clock - speaker.lastAt < speaker.minGap and event.replaces ~= true then return false, 'speaker-cooldown' end
+    local blocked = rateBlocked(speaker.addon, math.floor(number(event.priority, 1, 5, 2)), event.replaces == true)
     if blocked then return false, blocked end
     local cooldown = number(event.cooldown, 0, 3600, 0)
     if cooldown > 0 and speaker.events[event.event] and clock - speaker.events[event.event] < cooldown then return false, 'event-cooldown' end
     local entry = {speaker = speaker, at = clock, event = {event = event.event, text = trim(event.text, LIMITS.eventText), facts = facts,
         priority = math.floor(number(event.priority, 1, 5, 2)), maxWords = math.floor(number(event.maxWords, 3, 60, 14)),
         interrupt = event.interrupt == true, cooldown = cooldown, stock = event.stock == true, repeatOk = event.repeatOk == true}}
+    entry.replaces = event.replaces == true
     entry.ttl = number(event.ttl, 1, 30, DEFAULT_TTL)
     entry.expires = clock + entry.ttl
     -- patience (seconds, 0 = none): the remark waits for a game scene or dialogue line instead of being dropped for it, then goes after
@@ -1124,6 +1147,14 @@ end
 local function trackFlight(player, state)
     if not flight then return end
     local id = flight.requestId
+    -- A remark that replaces a muted game line, asked for before that line was seen (the scene's subtitle comes a tick after its state
+    -- change): kept silent from now on, if it has not started to play. Its text and voice are made meanwhile.
+    if flight.entry and flight.entry.replaces and not flight.holding and not flight.momentAt and flight.stage ~= 'playing'
+        and flight.stage ~= 'captions' and replacedLinePlays(flight.entry) then
+        flight.holding, flight.holdSince = true, clock
+        setHold(id)
+        log('Remark kept silent until the game line it replaces is over: ' .. flight.speaker.key .. ' event=' .. flight.event)
+    end
     if state.pendingId == id then
         flight.stage = 'pending'
     elseif state.speechId == id and flight.holding then
@@ -1165,7 +1196,7 @@ local function trackFlight(player, state)
     local entry = flight.entry
     if flight.holding then
         local come = flight.momentAt ~= nil
-        if not come then local ok, wait = pcall(entry.hold); come = ok and wait ~= true end
+        if not come then come = not holdNow(entry) end
         if come then momentCame()
         elseif clock - flight.holdSince > entry.holdMax then release('hold-expired', true); return end
     end
@@ -1216,7 +1247,7 @@ local function schedule(player, state, worldReady)
         -- A patient remark waits out a game scene or dialogue line (it is not dropped for one): its clock stops running down until the
         -- scene is over and a short gap has passed. Only while it waits is any of this evaluated, and only on the add-on tick.
         if entry.patient and entry.speaker.addon.enabled then
-            local blocked, why, detail = sceneBlocked(state.sample, entry.speaker, entry.patient == true)
+            local blocked, why, detail = sceneBlocked(state.sample, entry.speaker, entry.patient == true and not entry.replaces)
             if blocked and holdable(why) and clock <= entry.patienceEnd then
                 if not entry.sceneAt then
                     entry.heldAt = entry.heldAt or clock
@@ -1252,7 +1283,7 @@ local function schedule(player, state, worldReady)
     while #queue > 0 do
         local entry = table.remove(queue, 1)
         local speaker = entry.speaker
-        local blocked, why = sceneBlocked(state.sample, speaker, entry.patient == true)
+        local blocked, why = sceneBlocked(state.sample, speaker, entry.patient == true and not entry.replaces)
         local object, entity = nil, nil
         if not blocked and speakerAvailable(speaker, player) then object, entity = anchorFor(speaker, player, entry) end
         if blocked and entry.patient and holdable(why) and clock <= entry.patienceEnd then keep[#keep + 1] = entry
@@ -1263,8 +1294,8 @@ local function schedule(player, state, worldReady)
             keep[#keep + 1] = entry
         elseif entry.relevant and not relevantNow(entry) then keep[#keep + 1] = entry
         elseif not entity then drop(entry, 'speaker-unavailable')
-        elseif speaker.lastAt and clock - speaker.lastAt < speaker.minGap then drop(entry, 'speaker-cooldown')
-        elseif rateBlocked(speaker.addon, entry.event.priority) then drop(entry, rateBlocked(speaker.addon, entry.event.priority))
+        elseif speaker.lastAt and clock - speaker.lastAt < speaker.minGap and not entry.replaces then drop(entry, 'speaker-cooldown')
+        elseif rateBlocked(speaker.addon, entry.event.priority, entry.replaces) then drop(entry, rateBlocked(speaker.addon, entry.event.priority, entry.replaces))
         else
             local generation = host.nextGeneration()
             local now = os.time()
@@ -1288,9 +1319,8 @@ local function schedule(player, state, worldReady)
                 stage = 'pending', entity = entity, episode = episode, episodeStart = episode.start, at = entry.at, ttl = entry.ttl or DEFAULT_TTL,
                 entry = entry}
             -- A remark with hold whose moment has not come yet is voiced silent (speech.lua holds it) until hold() says go.
-            if entry.hold then
-                local okHold, wait = pcall(entry.hold)
-                if okHold and wait == true then flight.holding, flight.holdSince = true, clock; setHold(context.requestId) end
+            if entry.hold or entry.replaces then
+                if holdNow(entry) then flight.holding, flight.holdSince = true, clock; setHold(context.requestId) end
             end
             if entry.menus then setMenus(context.requestId) end
             local ok, sent = false, false

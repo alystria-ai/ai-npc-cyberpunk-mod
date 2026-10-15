@@ -183,7 +183,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 | Method | What it does |
 |---|---|
 | `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers, playThrough, voiceFrom, showsReply, approach, face}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
-| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus, repeatOk})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
+| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus, repeatOk, replaces})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
 | `handle:setMode(speakerId, modeId)` | Switches the speaker's personality (a mode in the manifest). It is sent with every turn and in `runtime/addon-state.json`. |
 | `handle:remember(speakerId, text)` | Keeps a memory the speaker can call back to later, for example "V spared the Tyger Claw who begged." At most 300 characters; a repeat is ignored. The bridge keeps the last 12 per speaker across game sessions. |
 | `handle:setContext(speakerId, key, text, tier)` | Adds a prompt block to every turn of this speaker until it is cleared with `text = nil`. At most 8 blocks of 1,500 characters. `tier` is `'world'` (default; changes rarely), `'volatile'` (changes every turn) or `'notes'`. |
@@ -270,6 +270,13 @@ handle:remark('delamain', {event = 'boarded', priority = 4, ttl = 20, maxWords =
   names the lines to avoid). With `repeatOk` such a remark is said anyway: for a line V would miss altogether, like the cab's welcome that replaces the
   game's own. A line that breaks a rule of its speaker (the add-on's `check` hook) is still dropped. The log says `remark <event> repeats a recent line ...; said anyway (repeatOk)`.
   The repeat check also takes greeting and farewell words ("good evening", "welcome back", "thank you") as common, so a welcome that opens the way welcomes do is not a repeat of another.
+- **`replaces = true` (default false)**: this remark stands in for a game line the add-on mutes (`handle:replaceGameLines`: the cab's "your wish is my
+  command", its arrival announcement). (1) It is asked for inside the speaker's `minGap` and the add-on's time between remarks (the game line it replaces
+  would have played there, and V would hear nothing); the provider, the fight budget and the local AI's pace still apply. (2) It is written and voiced
+  while the game line still plays, kept silent until that line is over (`gameLineUntil`), and starts REPLACE_GAP (0.3 s) after it, instead of being
+  written only after the line (live 2026-10-16: the arrival line came about 10 s after the arrival, of which 5 s were the game's line and 3 s the
+  writing). A remark asked for before the line was seen is kept silent as soon as it is seen, if it has not started to play. The log says `Remark kept
+  silent until the game line it replaces is over`. A game line is waited out, not stopped: the Wwise stop of a scene voice is still unverified.
 - **`menus = true | function() -> bool`**: while the remark plays (or is held), an open game menu does not pause it: speech.lua
   compares the request id once per frame, as it already reads the menu flag. The function form runs on the 0.1 s tick. Without it a
   menu pauses the line and it resumes afterwards, as always.

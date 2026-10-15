@@ -46,3 +46,19 @@ test('a model that writes the talk as a script keeps only the speaker\'s own lin
   assert.equal(cleanReply('Delamain: Of course, V.', {name: 'Delamain'}), 'Of course, V.', 'the old label cleaning is unchanged');
   assert.equal(cleanReply('V: hello there', {name: 'Judy'}), 'hello there', 'and so is the old leading V label cleaning');
 });
+
+// ---- startsLikeLine: what the voice must not speak yet because it may be a line already said ----------------------------------------
+
+import {startsLikeLine} from './mistral-prompt.mjs';
+
+test('startsLikeLine holds a reply that so far only repeats the start of a recent line, half-written word included', () => {
+  const lines = ['Ah, Arroyo. Where the factories hum and the air tastes of oil.', 'Short one.'];
+  assert.equal(startsLikeLine('Ah, Ar', lines), true);
+  assert.equal(startsLikeLine('Ah, Arroyo.', lines), true);
+  assert.equal(startsLikeLine('Ah, Arroyo. Where the factories hum and the air tastes of oil.', lines), true, 'the whole line');
+  assert.equal(startsLikeLine('Ah, Arroyo. Where the factories hum and the air tastes of oil. More.', lines), true, 'the line and more');
+  assert.equal(startsLikeLine('Ah, Arroyo. It is', lines), false, 'moved on');
+  assert.equal(startsLikeLine('Awful', lines), false);
+  assert.equal(startsLikeLine('Short one.', lines), false, 'lines under six words are not tracked');
+  assert.equal(startsLikeLine('', lines), false);
+});
