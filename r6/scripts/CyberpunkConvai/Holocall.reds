@@ -96,6 +96,12 @@ public final func ConvaiHolocallEnd() -> Void {
     if IsDefined(hud) { hud.ConvaiCallEnd(); };
 }
 
+// mod/holocall.lua asks this before it cuts the world out of the live picture: the black backing below exists.
+@addMethod(PlayerPuppet)
+public final func ConvaiHolocallHasBacking() -> Bool {
+    return true;
+}
+
 @addMethod(PlayerPuppet)
 public final func ConvaiHolocallActive() -> Bool {
     let hud = this.m_convaiHolocallHud;
@@ -217,6 +223,7 @@ public final func ConvaiCallEnd() -> Void {
         let avatar = this.m_convaiCallContact.GetAvatarID(this.m_journalMgr);
         let name = this.m_convaiCallContact.GetLocalizedName(this.m_journalMgr);
         this.m_CurrentFunction = EHudPhoneFunction.Inactive;
+        this.m_holoAudioCallLogicController.ConvaiHolocallBacking(false);
         // Disconnecting, then the window hides and OnHoloAudioCallFinished removes it, as after a game call.
         this.m_holoAudioCallLogicController.ShowEndCallContact(avatar, name);
     };
@@ -258,7 +265,49 @@ private final func ConvaiCallShow() -> Void {
             return;
     };
     this.m_CurrentFunction = this.m_convaiCallWanted;
+    this.m_holoAudioCallLogicController.ConvaiHolocallBacking(Equals(this.m_convaiCallWanted, EHudPhoneFunction.Holocall));
     this.m_holoAudioCallLogicController.Show();
+}
+
+// The live picture's backdrop. The game films its callers in a black room. mod/holocall.lua has the call camera draw
+// nothing beyond a little behind the copy (its depthCutDistance); the cut part of the picture is transparent, so the
+// window would show the game behind it. A black rectangle the size of the window's holocall image, just behind it,
+// makes that part black, as the game's studio is. Shown only while the mod's own holocall is on.
+@addMethod(HoloAudioCallLogicController)
+public final func ConvaiHolocallBacking(visible: Bool) -> Void {
+    if IsDefined(this.m_AvatarController) { this.m_AvatarController.ConvaiHolocallBacking(visible); };
+}
+
+@addMethod(HudPhoneAvatarController)
+public final func ConvaiHolocallBacking(visible: Bool) -> Void {
+    let image = inkImageRef.Get(this.m_HolocallRenderTexture);
+    if !IsDefined(image) { return; };
+    let parent = image.GetParentWidget() as inkCompoundWidget;
+    if !IsDefined(parent) { return; };
+    let backing: wref<inkWidget>;
+    let index = -1;
+    let i = 0;
+    while i < parent.GetNumChildren() {
+        let child = parent.GetWidgetByIndex(i);
+        if Equals(child.GetName(), n"convaiHolocallBacking") { backing = child; };
+        if child == image { index = i; };
+        i += 1;
+    };
+    if !IsDefined(backing) {
+        if !visible || index < 0 { return; };
+        let rect = new inkRectangle();
+        rect.SetName(n"convaiHolocallBacking");
+        rect.SetInteractive(false);
+        rect.SetHAlign(inkEHorizontalAlign.Left);
+        rect.SetVAlign(inkEVerticalAlign.Top);
+        rect.SetTintColor(new HDRColor(0.0, 0.0, 0.0, 1.0));
+        rect.Reparent(parent, index);
+        backing = rect;
+    };
+    backing.SetSize(image.GetSize());
+    backing.SetMargin(image.GetMargin());
+    backing.SetOpacity(image.GetOpacity());
+    backing.SetVisible(visible);
 }
 
 @wrapMethod(NewHudPhoneGameController)
@@ -282,6 +331,7 @@ protected cb func OnPhoneCall(value: Variant) -> Bool {
             this.m_audioSystem.Play(n"ui_phone_initiation_call_stop");
         };
         this.m_CurrentFunction = EHudPhoneFunction.Inactive;
+        if IsDefined(this.m_holoAudioCallLogicController) { this.m_holoAudioCallLogicController.ConvaiHolocallBacking(false); };
         if IsDefined(this.m_player) { this.m_player.ConvaiHolocallEvent("quest-call"); };
         return wrappedMethod(value);
     };
@@ -293,8 +343,13 @@ protected cb func OnPhoneCall(value: Variant) -> Bool {
     return result;
 }
 
-// Hang up: a tap of the phone button (PhoneInteract released without the hold that opens the phone), or the hold that
-// rejects a call (PhoneReject). The game's handler always runs: with no game call ringing these do nothing there.
+// Hang up: a tap of the phone button (PhoneInteract released without the hold that opens the phone), or a hold of it.
+// The phone button (T, D-pad down) is both PhoneInteract and PhoneReject, each with a 0.5 s hold (inputContexts.xml).
+// The game opens the phone on PhoneInteract's hold (UsePhoneRequest) unless a call is ringing, so a hold that hung up
+// also left the phone open on its menu. During the mod's call that hold only hangs up: it is consumed and the game's
+// handler does not see it, so the call ends and control goes back to the game, as when a game call ends. Every other
+// action, and the release after the hold, still reaches the game's handler (which does nothing there without a game
+// call ringing, and clears its D-pad hint on the release).
 @wrapMethod(NewHudPhoneGameController)
 protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsumer) -> Bool {
     if this.m_convaiCallActive && !this.m_convaiCallPreempted && IsDefined(this.m_player)
@@ -308,6 +363,9 @@ protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsu
             } else {
                 if Equals(type, gameinputActionType.BUTTON_HOLD_COMPLETE) {
                     this.m_convaiCallHeld = true;
+                    this.m_player.ConvaiHolocallEvent("hangup");
+                    ListenerActionConsumer.Consume(consumer);
+                    return true;
                 } else {
                     if Equals(type, gameinputActionType.BUTTON_RELEASED) {
                         if this.m_convaiCallPressed && !this.m_convaiCallHeld {
@@ -342,8 +400,8 @@ public final func ConvaiChatHolocall() -> Void {
 }
 
 // On the Chat list the Call key (the game's `call` action: V on a keyboard, Triangle on a pad; PhoneChatTabs.reds
-// registers the listener and shows the hint) starts a holocall with the selected character. Accept (F, Enter, click)
-// and the secondary action (R, the envelope on the row) open the text chat.
+// registers the listener and shows the hint) starts a holocall with the selected character. Accept (F, Enter, click;
+// the envelope on the row shows it) and the secondary action (R) open the text chat.
 @addMethod(NewHudPhoneGameController)
 public final func ConvaiChatListHolocall(contact: wref<ContactData>) -> Void {
     if !IsDefined(contact) || !contact.convaiChat || !IsDefined(this.m_player) { return; };
