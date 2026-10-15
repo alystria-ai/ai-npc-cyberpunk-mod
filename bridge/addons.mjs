@@ -1039,7 +1039,7 @@ export class AddonHost {
     const talking = input.reaction?.kind !== 'addon';
     if (recent.length) out.push({tier: 'volatile', key: `addon:${addon.id}:recent`,
       text: talking
-        ? `What you recently said to V aloud, oldest first (V heard it all). If V asks about one of these lines or reacts to it, answer V's actual question in new words; never say a line again:\n${recent.map(item => `- ${item}`).join('\n')}`
+        ? `What you recently said to V aloud, oldest first (V heard it all). If V asks about one of these lines or reacts to it, answer V's actual question in new words. Never say a line again and never reuse its opening, its phrases or its numbers, whatever V says:\n${recent.map(item => `- ${item}`).join('\n')}`
         : `Your most recent lines (never repeat one, its joke or its wording; find a new angle):\n${recent.map(item => `- ${item}`).join('\n')}`});
     // A second try after a near repeat (produce): name what was too close, so the new line shares no phrasing with it.
     const avoid = Array.isArray(data?.avoid) ? data.avoid.filter(item => typeof item === 'string' && item.trim()).slice(0, 3) : [];

@@ -183,7 +183,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 | Method | What it does |
 |---|---|
 | `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers, playThrough, voiceFrom, showsReply, approach, face}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
-| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus, repeatOk, replaces})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
+| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus, repeatOk, replaces, unlessGameLine})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full`, `game-line` or `add-on disabled`. |
 | `handle:setMode(speakerId, modeId)` | Switches the speaker's personality (a mode in the manifest). It is sent with every turn and in `runtime/addon-state.json`. |
 | `handle:remember(speakerId, text)` | Keeps a memory the speaker can call back to later, for example "V spared the Tyger Claw who begged." At most 300 characters; a repeat is ignored. The bridge keeps the last 12 per speaker across game sessions. |
 | `handle:setContext(speakerId, key, text, tier)` | Adds a prompt block to every turn of this speaker until it is cleared with `text = nil`. At most 8 blocks of 1,500 characters. `tier` is `'world'` (default; changes rarely), `'volatile'` (changes every turn) or `'notes'`. |
@@ -195,6 +195,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 | `handle:prepare(speakerId)` | Warms the speaker's text route (opens the Mistral connection, or loads its prompt into the local AI). Call it when the speaker becomes available, for example when a fight starts or V gets into the cab. At most once every 20 s. A speaker with an `approach` object is warmed while that object is there, before V is in it (the Delamain cab parks near V). |
 | `handle:cancel(speakerId)` | Drops the speaker's waiting remarks and stops its remark that is playing. |
 | `handle:releaseHold(speakerId)` | The speaker's held remark (`hold`) plays now, without waiting for the next tick (with `faceWait`, as soon as the speaker's screen face is ready). `true` when one was held. See "Held remarks and menus". |
+| `handle:after(seconds, fn)` | Runs `fn` once, `seconds` (0.1 to 30) from now, on the add-on tick that already runs (0.1 s; never per frame, no timer of the add-on's own). For a cap on something the add-on holds back, such as the Delamain cab's destination map that waits for the welcome line. At most 8 are pending in all; a session reset forgets them. `true`, or `false, reason` (`too-many`). |
 | `handle:watchFace(speakerId, on)` | Starts or ends the watch of the speaker's screen face (`face`). See "A face on a screen". |
 | `handle:notify(text)` | One on-screen notice (at most 200 characters; a repeat within 10 s is dropped). |
 | `handle:state()` | `{worldReady, combat, vehicle, scene, speaking, conversation, remark}`, read from the last tick. It costs nothing. |
@@ -277,6 +278,12 @@ handle:remark('delamain', {event = 'boarded', priority = 4, ttl = 20, maxWords =
   written only after the line (live 2026-10-16: the arrival line came about 10 s after the arrival, of which 5 s were the game's line and 3 s the
   writing). A remark asked for before the line was seen is kept silent as soon as it is seen, if it has not started to play. The log says `Remark kept
   silent until the game line it replaces is over`. A game line is waited out, not stopped: the Wwise stop of a scene voice is still unverified.
+- **`unlessGameLine = true` (default false; with `replaces`)**: the line is said only when the game's own line it stands in for did not play. The
+  voice stop of a scene line is not verified (`audioVerified` false; live 2026-10-15 the cab's goodbye was heard in full and then ours, one
+  ending twice), so a muted game line counts as **heard** when it was seen up to 3 s before the ask, or while the remark waits, is written or is
+  held: the remark is then refused (`handle:remark` returns `false, 'game-line'`), dropped (`remarkDropped` / `remarkFinished` `game-line-heard`)
+  or taken back before a word is spoken, and the game's line is the line V hears. A remark that already plays is not cut. A rule whose
+  `audioVerified` is `true` never counts. Log: `Remark dropped: ... reason=game-line-heard` or `Remark released: ... reason=game-line-heard spoken=false`.
 - **`menus = true | function() -> bool`**: while the remark plays (or is held), an open game menu does not pause it: speech.lua
   compares the request id once per frame, as it already reads the menu flag. The function form runs on the 0.1 s tick. Without it a
   menu pauses the line and it resumes afterwards, as always.
@@ -368,7 +375,7 @@ handle:replaceGameLines({name = 'Skippy',
 | `turnStarted` / `turnEnded` | `{requestId, profileKey, reaction, addon}` for any conversation turn |
 | `speechStarted` / `speechEnded` | `{requestId, name}` / `{requestId}` |
 | `remarkStarted` | `{speaker, event, text}`: the remark is heard (or its caption is shown). `text` is the reply's text (plain, at most 400 letters; nil from a main mod older than this field, so an add-on that shows it elsewhere keeps working without it) |
-| `remarkFinished` | `{speaker, event, reason, spoken, requeued}` (`requeued` is true when a remark with `patience` was taken back at a scene and waits to be written again). A remark that is playing finishes even when its speaker stops being `available` (V steps out of the cab while it ends); only a scene, a conversation V starts, `handle:cancel` or the add-on being switched off cut it. One still waiting to be heard is given up after 2.5 s without its speaker. `reason` is one of `finished`, `not-delivered`, `stale`, `manual-priority`, `scene`, `scene-tier`, `game-line`, `speaker-unavailable`, `interrupted`, `cancelled`, `add-on-disabled`, `anchor-changed` or `hold-expired` |
+| `remarkFinished` | `{speaker, event, reason, spoken, requeued}` (`requeued` is true when a remark with `patience` was taken back at a scene and waits to be written again). A remark that is playing finishes even when its speaker stops being `available` (V steps out of the cab while it ends); only a scene, a conversation V starts, `handle:cancel` or the add-on being switched off cut it. One still waiting to be heard is given up after 2.5 s without its speaker. `reason` is one of `finished`, `not-delivered`, `stale`, `manual-priority`, `scene`, `scene-tier`, `game-line`, `speaker-unavailable`, `interrupted`, `cancelled`, `add-on-disabled`, `anchor-changed`, `game-line-heard` or `hold-expired` |
 | `remarkDropped` | `{speaker, event, reason}`: the remark was never sent. `reason` is one of `replaced`, `expired`, `irrelevant`, `scene`, `game-line`, `speaker-unavailable`, `speaker-cooldown`, `addon-gap`, `episode-budget` or `request-write-failed` |
 | `settingChanged` | `{id, value}`, sent on the tick after Apply (never inside the menu) |
 

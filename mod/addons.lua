@@ -68,6 +68,7 @@ function STOP_REPEAT.run()
         if entry.done >= #STOP_REPEAT.at then table.remove(pending, index) else index = index + 1 end
     end
 end
+local LINE_LOOKBACK = 3.0     -- seconds: a muted game line seen this long before a remark that yields to it (`unlessGameLine`) counts as its moment's line
 local MUTED_HOLD = 0.6       -- seconds a patient remark still waits for a game line whose voice is known to be stopped
 local DEFAULT_TTL = 3         -- a remark that cannot be heard within about 3 s of its moment is dropped
 local SCENE_GAP = 1.2         -- seconds of quiet after a game scene or line before a remark that waited for it starts
@@ -88,6 +89,20 @@ local EVENTS = {sessionStarted = true, sessionEnded = true, combatStarted = true
 local function log(message)
     message = '[Addons] ' .. tostring(message)
     if host and host.log then pcall(host.log, message) else pcall(print, '[CyberpunkConvai] ' .. message) end
+end
+
+-- handle:after(seconds, fn): a few one-shot callbacks run on the 0.1 s tick that already runs (no timer of the add-on's own, nothing per frame).
+local AFTER = {max = 8, pending = {}}
+function AFTER.run()
+    local pending, index = AFTER.pending, 1
+    while index <= #pending do
+        local entry = pending[index]
+        if clock >= entry.due then
+            table.remove(pending, index)
+            local ok, err = pcall(entry.fn)
+            if not ok then log('after() callback of ' .. entry.addon .. ' failed: ' .. tostring(err)) end
+        else index = index + 1 end
+    end
 end
 
 local function trim(value, limit)
@@ -372,6 +387,24 @@ local function drop(entry, reason)
     emitTo(entry.speaker.addon, 'remarkDropped', {speaker = entry.speaker.id, event = entry.event.event, reason = reason})
 end
 
+-- A muted game line of an add-on whose rule's voice stop is not verified is still heard: a remark with `unlessGameLine` yields to it.
+local function heardGameLine(addon)
+    return addon.heardLineAt ~= nil and clock - addon.heardLineAt <= LINE_LOOKBACK
+end
+
+-- The game line was seen: this add-on's remarks that yield to it and have not been heard are given up (waiting, being written or held).
+-- A remark that already plays is left to finish.
+local function yieldToLine(addon)
+    for index = #queue, 1, -1 do
+        local entry = queue[index]
+        if entry.unlessLine and entry.speaker.addon == addon then table.remove(queue, index); drop(entry, 'game-line-heard') end
+    end
+    if flight and flight.entry and flight.entry.unlessLine and flight.speaker.addon == addon
+        and flight.stage ~= 'playing' and flight.stage ~= 'captions' then
+        release('game-line-heard', true)
+    end
+end
+
 -- ---- How often an add-on speaks -------------------------------------------------------------------------------------------
 
 local function choice(list, value, default)
@@ -529,7 +562,7 @@ Handle.speaker = guard('speaker', function(self, def)
     return key
 end)
 
---- handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus, repeatOk, replaces})
+--- handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus, repeatOk, replaces, unlessGameLine})
 --- -> true, or false and the reason.
 --- hold() -> bool (optional): the remark is written and voiced as soon as it can be, but kept silent while hold() is true (checked on
 --- the 0.1 s tick; handle:releaseHold plays it at once). For a line that must start the instant something happens (Delamain's welcome
@@ -546,6 +579,11 @@ end)
 --- its arrival announcement). It is asked for inside the speaker's gap (the game line it replaces would have played there), it is written and voiced
 --- while that game line still plays (a line whose voice cannot be stopped is only waited out, not waited for before the text is made), kept silent
 --- until the line is over, then plays REPLACE_GAP seconds after it, instead of being written only after the line (about 5 s later live, 2026-10-16).
+--- unlessGameLine = true (optional; with `replaces`): the line is only said when the game's own line it stands in for did not play. The mute
+--- of a scene voice is not known to work (a rule with audioVerified false: live 2026-10-16 the cab's goodbye was heard in full and then ours),
+--- so the game's line counts as heard when its muted subtitle line was seen (up to LINE_LOOKBACK s before the ask, or after it while the remark waits,
+--- is written or is held): the remark is then refused (`game-line`), dropped (`game-line-heard`) or taken back before a word is spoken. One that
+--- already plays is not cut. A rule whose audioVerified is true never counts.
 Handle.remark = guard('remark', function(self, speakerId, event)
     local speaker = speakerOf(self, speakerId)
     if not speaker then return false, 'unknown speaker' end
@@ -560,6 +598,7 @@ Handle.remark = guard('remark', function(self, speakerId, event)
         if not text or #text > LIMITS.facts then return false, 'facts are too large' end
         facts = event.facts
     end
+    if event.unlessGameLine == true and heardGameLine(speaker.addon) then return false, 'game-line' end
     if speaker.lastAt and clock - speaker.lastAt < speaker.minGap and event.replaces ~= true then return false, 'speaker-cooldown' end
     local blocked = rateBlocked(speaker.addon, math.floor(number(event.priority, 1, 5, 2)), event.replaces == true)
     if blocked then return false, blocked end
@@ -569,6 +608,7 @@ Handle.remark = guard('remark', function(self, speakerId, event)
         priority = math.floor(number(event.priority, 1, 5, 2)), maxWords = math.floor(number(event.maxWords, 3, 60, 14)),
         interrupt = event.interrupt == true, cooldown = cooldown, stock = event.stock == true, repeatOk = event.repeatOk == true}}
     entry.replaces = event.replaces == true
+    entry.unlessLine = event.unlessGameLine == true
     entry.ttl = number(event.ttl, 1, 30, DEFAULT_TTL)
     entry.expires = clock + entry.ttl
     -- patience (seconds, 0 = none): the remark waits for a game scene or dialogue line instead of being dropped for it, then goes after
@@ -836,6 +876,18 @@ Handle.releaseHold = guard('releaseHold', function(self, speakerId)
     if not speaker then return false, 'unknown speaker' end
     if not flight or flight.speaker ~= speaker or not flight.holding then return false end
     momentCame()
+    return true
+end)
+
+--- handle:after(seconds, fn) : runs fn once, `seconds` (0.1 to 30) from now, on the add-on tick that already runs (the 0.1 s tick; never per frame).
+--- For a cap on something the add-on holds back (the Delamain cab's destination map waits for the welcome line, at most so long).
+--- At most 8 are pending in all; a session reset forgets them. true, or false and the reason.
+Handle.after = guard('after', function(self, seconds, fn)
+    local addon = self and self.record
+    if not addon or addons[addon.id] ~= addon then return false, 'unknown add-on' end
+    if type(fn) ~= 'function' then return false, 'fn must be a function' end
+    if #AFTER.pending >= AFTER.max then return false, 'too-many' end
+    AFTER.pending[#AFTER.pending + 1] = {due = clock + number(seconds, 0.1, 30, 1), fn = fn, addon = addon.id}
     return true
 end)
 
@@ -1366,6 +1418,7 @@ function M.tick(player, elapsed, worldReady)
     clock = clock + (tonumber(elapsed) or 0)
     if not host then return end
     if #STOP_REPEAT.pending > 0 then STOP_REPEAT.run() end
+    if #AFTER.pending > 0 then AFTER.run() end
     if worldReady and not bridgeStatusRead then pcall(readBridgeStatus) end
     if worldReady and player and #pendingNotices > 0 and host.notify then
         for _, text in ipairs(pendingNotices) do pcall(host.notify, player, text) end
@@ -1450,6 +1503,11 @@ function M.mutedLine(rule, info)
         pending[#pending + 1] = {send = info.repeatStop, at = clock, done = 0}
     end
     M.gameLine(rule.audioVerified and math.min(seconds, MUTED_HOLD) or seconds, rule.name, info.measured)
+    -- A voice stop that is not verified may not have silenced the line: it counts as heard (see handle:remark `unlessGameLine`).
+    if not rule.audioVerified then
+        rule.addon.heardLineAt = clock
+        yieldToLine(rule.addon)
+    end
 end
 
 --- The speaker name for a subtitle: with "Mark our lines" on, an add-on speaker's own line carries a small tag (speech.lua, subtitles.lua).
@@ -1729,6 +1787,7 @@ function M.reset(reason)
     watch, partyKnown, partyDirty = {}, nil, true
     outputsCache = nil
     STOP_REPEAT.pending = {}           -- repeated voice stops hold entity ids of a world that is going away
+    AFTER.pending = {}                 -- an add-on's pending callbacks belong to the world that is going away
     local had = false
     for _, id in ipairs(order) do
         local addon = addons[id]
@@ -1736,7 +1795,7 @@ function M.reset(reason)
         if #addon.companionOrder > 0 or addon.state ~= nil or hadStock then had = true end
         addon.companion, addon.companionOrder, addon.state = {}, {}, nil
         addon.episode, addon.lastRemarkAt, addon.quietUntil, addon.paceUntil = {start = clock, count = 0}, nil, nil, nil
-        addon.mutedUntil = nil
+        addon.mutedUntil, addon.heardLineAt = nil, nil
         for _, speaker in pairs(addon.speakers) do
             if speaker.faceWatched then unwatchFaces[speaker.faceRig] = true; speaker.faceWatched = false end
         end
