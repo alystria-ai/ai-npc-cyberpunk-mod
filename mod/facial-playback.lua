@@ -74,9 +74,11 @@ local function speaker(actor, entity)
     return actor and tostring(actor:GetEntityID().hash) == (entity or M.entity)
         and actor:IsAttached() and not actor:IsDeadNoStatPool() and actor:ConvaiFaceReady()
 end
--- Idle, thinking and listening faces stay on managed companions only.
+-- Idle, thinking and listening faces stay on managed companions, and on a holocall's live-picture copy while its picture
+-- is up (mod/holocall.lua ownsFace).
 local function owns(actor, entity)
-    return actor and convaiCompanions and convaiCompanions.owns(actor) and speaker(actor, entity)
+    return actor and ((convaiCompanions and convaiCompanions.owns(actor))
+        or (convaiHolocall and convaiHolocall.ownsFace and convaiHolocall.ownsFace(actor))) and speaker(actor, entity)
 end
 -- Speech and expressions share this one native writer. These per-copy entries
 -- retain primitives and feature values only, never actors or world components.

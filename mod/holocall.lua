@@ -475,6 +475,8 @@ local function holoSpawn(call, holo)
     holoLightsSpawn(holo, spot)
     holo.stage = 'spawn'
     local o = holo.origin
+    -- The face animates only this near V (M.FACE_RANGE): only then does the copy get the companions' face (M.faceRow).
+    holo.faceNear = (spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2 <= M.FACE_RANGE^2
     log(string.format('holo spawn contact=%s record=%s floor=%+.1fm away=%.1fm yaw=%d body=%.1f lens=%.2fm', call.contact,
         call.record, spot.z - o.z, math.sqrt((spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2), spot.yaw,
         M.bodyYaw(spot), holo.lens.dist))
@@ -827,6 +829,32 @@ end
 
 function M.connected()
     return M.call ~= nil and M.call.state == 'connected'
+end
+
+-- The live picture's copy as a row of the face layer (companions.expressionActors appends it, at its 0.1 s rebuild):
+-- she gets the mod characters' own face, as a spawned companion does: the resting smile, the reply's emotion lingering
+-- after it, the mood hold after a sad or angry turn, and blinks (mod/facial-playback.lua). Only while the picture is live
+-- and the studio is within FACE_RANGE of V (a farther face does not animate). One table per call, built on first use.
+function M.faceRow()
+    local call = M.call
+    local holo = call and call.mode == 'holo' and call.holo
+    if not holo or not holo.ready or holo.failed or holo.cleaned or not holo.faceNear or not holo.npc or not holo.entity then
+        return nil
+    end
+    local row = holo.faceRow
+    if not row then
+        row = {npc = holo.npc, entity = holo.entity, profileKey = call.key, name = call.name}
+        holo.faceRow = row
+    end
+    return row
+end
+
+-- Is this actor the live picture's copy, with its face row on (the face layer's ownership check)?
+function M.ownsFace(actor)
+    local row = M.faceRow()
+    if not row or not actor then return false end
+    local ok, id = pcall(function() return tostring(actor:GetEntityID().hash) end)
+    return ok and id == row.entity
 end
 
 -- A turn was sent to the call's character: the idle timer starts again.

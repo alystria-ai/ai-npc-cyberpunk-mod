@@ -228,6 +228,8 @@ test('idle costs nothing, and a phone request rings, connects as a voice call an
   assert(logged('state=connected contact=judy mode=audio window=audiocall'))
   assert(lastNotice().id == 'holocall-connected' and lastNotice().text == 'Holocall with Judy Alvarez. Tap the phone button to hang up.')
   assert(connected[1] == 'judy')
+  -- 20 m away her face would not move: no face row for this studio.
+  assert(holocall.faceRow() == nil)
   local caller = holocall.partner(player, false)
   assert(caller.npc == player and caller.entity == '7ULL' and caller.profileKey == 'judy-alvarez' and caller.voiceOnly == true)
   assert(caller.name == 'Judy Alvarez' and caller.holocall.version == 1 and caller.holocall.contact == 'judy' and caller.holocall.mode == 'audio')
@@ -542,6 +544,15 @@ test('with nothing above V (a high apartment) the copy is placed on the ground b
   copy = created[1]
   assert(near(copy.position.x, 14.61940) and near(copy.position.y, 21.91342) and near(copy.position.z, 25), copy.position.x .. ' ' .. copy.position.y)
   assert(logged('floor=%-5.0m away=7.1m'))
+  -- Within the face range, the connected copy is a row of the face layer (the companions' idle face and emotions), one
+  -- table for the call, and the face layer's ownership check knows her.
+  assert(holocall.faceRow() == nil, 'no face row while the call rings')
+  tick(2)
+  local row = holocall.faceRow()
+  assert(row and row.entity == entities[row.entity].id and row.npc == entities[row.entity] and row.profileKey == 'judy-alvarez' and row.name == 'Judy Alvarez')
+  assert(holocall.faceRow() == row and holocall.ownsFace(row.npc) and not holocall.ownsFace(player))
+  holocall.finish(player, 'hangup')
+  assert(holocall.faceRow() == nil and not holocall.ownsFace(row.npc), 'gone at the hang-up')
 `));
 
 test('a character the game has no holocall setup for gets the portrait voice call, as in the game, with nothing spawned', () => run(world + `
