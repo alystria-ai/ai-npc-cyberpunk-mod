@@ -699,7 +699,6 @@ return {
     ["Calls are not available right now."] = "目前無法通話。",
     ["Holocall ended: combat started."] = "全像通話已結束：戰鬥開始。",
     ["Holocall with {name} ended."] = "與{name}的全像通話已結束。",
-    ["Holocall with {name}. Tap the phone button to hang up."] = "與{name}的全像通話。點按電話按鈕掛斷。",
     ["Live holocall picture"] = "全像通話即時畫面",
     ["Live picture unavailable. The call continues with the portrait."] = "即時畫面無法使用。通話將以肖像繼續。",
     ["This contact cannot take a holocall."] = "此聯絡人無法接受全像通話。",

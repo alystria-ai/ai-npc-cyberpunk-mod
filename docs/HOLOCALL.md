@@ -33,8 +33,8 @@ has not yet been tested in game; an open chat no longer shows a Call hint (2026-
     did before holocalls; a first build had turned R into Call and lost that shortcut.
   - The message box has no placeholder text.
   - Calling is refused (the game's own blocked-action notice) while the game has turned calls off.
-- The call starts once the phone has closed. The window rings for 1.5 to 7 s, then connects. A notice
-  says "Holocall with {name}. Tap the phone button to hang up."
+- The call starts once the phone has closed. The window rings for 1.5 to 7 s, then connects, with no
+  notice (the call window is the cue).
 - Talk with the normal push-to-talk or typed-text keys. No one has to be nearby, because the call is the
   conversation partner.
 - **Hang up:** tap or hold the phone button (T, D-pad down). Calling the same person again from the phone also hangs

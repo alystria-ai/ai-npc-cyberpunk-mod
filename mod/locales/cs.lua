@@ -699,7 +699,6 @@ return {
     ["Calls are not available right now."] = "Hovory teď nejsou k dispozici.",
     ["Holocall ended: combat started."] = "Holohovor skončil: začal boj.",
     ["Holocall with {name} ended."] = "Holohovor s {name} skončil.",
-    ["Holocall with {name}. Tap the phone button to hang up."] = "Holohovor s {name}. Pro ukončení klepni na tlačítko telefonu.",
     ["Live holocall picture"] = "Živý obraz z holohovoru",
     ["Live picture unavailable. The call continues with the portrait."] = "Živý obraz není k dispozici. Hovor pokračuje s portrétem.",
     ["This contact cannot take a holocall."] = "Tento kontakt nemůže přijmout holohovor.",

@@ -45,7 +45,7 @@
     ]
   },
   "counts": {
-    "strings": 841,
+    "strings": 840,
     "dynamicTemplates": 57,
     "contexts": 36
   },
@@ -331,7 +331,6 @@
     "Help and support": "Help and support",
     "Holocall ended: combat started.": "Holocall ended: combat started.",
     "Holocall with {name} ended.": "Holocall with {name} ended.",
-    "Holocall with {name}. Tap the phone button to hang up.": "Holocall with {name}. Tap the phone button to hang up.",
     "How they sound: pace, attitude, favourite habits of speech.": "How they sound: pace, attitude, favourite habits of speech.",
     "INVITE QUEUED - CLOSE PHONE": "INVITE QUEUED - CLOSE PHONE",
     "If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.": "If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.",
@@ -1633,7 +1632,6 @@
       "Group chat needs two characters nearby. Use {key} for one person.",
       "Holocall ended: combat started.",
       "Holocall with {name} ended.",
-      "Holocall with {name}. Tap the phone button to hang up.",
       "How they sound: pace, attitude, favourite habits of speech.",
       "In your party: {count}",
       "Invite characters, manage your group, browse game models and configure conversations.",
@@ -1933,7 +1931,6 @@
       "Connecting microphone - wait for Listening",
       "Face a nearby character to talk.",
       "Group chat needs two characters nearby. Use {key} for one person.",
-      "Holocall with {name}. Tap the phone button to hang up.",
       "Live picture unavailable. The call continues with the portrait.",
       "Player unavailable",
       "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.",
@@ -4315,15 +4312,6 @@
         "mod/holocall.lua:670"
       ]
     },
-    "Holocall with {name}. Tap the phone button to hang up.": {
-      "contexts": [
-        "ui.localized",
-        "world.conversation"
-      ],
-      "references": [
-        "mod/holocall.lua:764"
-      ]
-    },
     "How they sound: pace, attitude, favourite habits of speech.": {
       "contexts": [
         "ui.localized"
@@ -4620,7 +4608,7 @@
       ],
       "references": [
         "mod/holocall.lua:755",
-        "mod/holocall.lua:803"
+        "mod/holocall.lua:802"
       ]
     },
     "Load a save before inviting a companion.": {

@@ -699,7 +699,6 @@ return {
     ["Calls are not available right now."] = "As chamadas não estão disponíveis no momento.",
     ["Holocall ended: combat started."] = "Holochamada encerrada: o combate começou.",
     ["Holocall with {name} ended."] = "Holochamada com {name} encerrada.",
-    ["Holocall with {name}. Tap the phone button to hang up."] = "Holochamada com {name}. Toque no botão do telefone para desligar.",
     ["Live holocall picture"] = "Imagem ao vivo na holochamada",
     ["Live picture unavailable. The call continues with the portrait."] = "Imagem ao vivo indisponível. A chamada continua com o retrato.",
     ["This contact cannot take a holocall."] = "Este contato não pode receber uma holochamada.",

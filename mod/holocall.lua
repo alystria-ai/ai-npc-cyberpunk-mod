@@ -761,7 +761,6 @@ local function connect(call, player)
     call.state, call.mode, call.window, call.idle = 'connected', live and 'holo' or 'audio', window, 0
     log('state=connected contact=' .. call.contact .. ' mode=' .. call.mode .. ' window=' .. window .. ' ready='
         .. tostring(call.ready or 'n/a') .. string.format(' ring=%.1fs', call.ring))
-    convaiNotices.send(player, 'holocall-connected', ui.t('Holocall with {name}. Tap the phone button to hang up.', {name = call.name}))
     if type(M.env.onConnected) == 'function' then pcall(M.env.onConnected, call) end
 end
 

@@ -60,7 +60,6 @@ M.catalog = {
     ['talk-connecting'] = {class = PLAYER, repeatS = 10},
     -- Holocalls (mod/holocall.lua, docs/HOLOCALL.md)
     ['holocall-refused'] = {class = PLAYER, repeatS = 10},      -- a holocall could not start (a game call, combat, a scene, calls blocked)
-    ['holocall-connected'] = {class = PLAYER},                  -- the call connected: how to hang up
     ['holocall-ended'] = {class = PLAYER},                      -- the call ended for a reason other than V hanging up
     ['holocall-live-fallback'] = {class = PLAYER, repeatS = 60}, -- the experimental live picture could not be shown: the portrait is used
     ['message-lost'] = {class = PLAYER, repeatS = 5},         -- a typed message was dropped (empty text box confirmed, box closed without a result, request not written)

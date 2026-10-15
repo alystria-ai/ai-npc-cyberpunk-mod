@@ -229,7 +229,7 @@ test('idle costs nothing, and a phone request rings, connects as a voice call an
   tick(1.6)
   assert(holocall.connected() and game.connects[1] == false)
   assert(logged('state=connected contact=judy mode=audio window=audiocall'))
-  assert(lastNotice().id == 'holocall-connected' and lastNotice().text == 'Holocall with Judy Alvarez. Tap the phone button to hang up.')
+  assert(#notices == 0, 'a connected call shows no notice: its window is the cue')
   assert(connected[1] == 'judy')
   -- 20 m away her face would not move: no face row for this studio.
   assert(holocall.faceRow() == nil)
@@ -245,10 +245,10 @@ test('hanging up, a game call, combat, a scene and a quiet while each end the ca
   local function call() game.requests = {'judy'}; holocall.drain(player); tick(2); assert(holocall.connected()) end
   call(); game.events = {'hangup'}; tick(0.3)
   assert(holocall.call == nil and game.ends == 1 and ended[1] == 'judy:hangup' and logged('state=ended contact=judy reason=hangup'))
-  assert(lastNotice().id == 'holocall-connected', 'V hanging up shows no notice')
+  assert(#notices == 0, 'V hanging up shows no notice')
   assert(not holocall.partnerValid({entity = '7ULL', holocall = {contact = 'judy', mode = 'audio'}}))
   call(); game.events = {'quest-call'}; tick(0.3)
-  assert(ended[2] == 'judy:quest-call' and lastNotice().id == 'holocall-connected', 'the game call shows its own window')
+  assert(ended[2] == 'judy:quest-call' and #notices == 0, 'the game call shows its own window')
   call(); tick(0.3, sample({combat = true}))
   assert(ended[3] == 'judy:combat' and lastNotice().id == 'holocall-ended' and lastNotice().text == 'Holocall ended: combat started.')
   call(); tick(0.3, sample({tier = 3}))
@@ -616,7 +616,7 @@ test('a character the game has no holocall setup for gets the portrait voice cal
   game.requests = {'trainer_fred'}; holocall.drain(player); tick(2)
   assert(logged('state=dialing contact=trainer_fred profile=judy%-alvarez mode=audio cast=voice hud=ok'))
   assert(holocall.connected() and holocall.call.mode == 'audio' and game.connects[1] == false)
-  assert(#created == 0 and spatial.rays == 0 and lastNotice().id == 'holocall-connected', 'no spawn, no search, no fallback notice')
+  assert(#created == 0 and spatial.rays == 0 and #notices == 0, 'no spawn, no search, no fallback notice')
   holocall.finish(player, 'hangup')
   -- With the setting off a staged character is a voice call too.
   live = false

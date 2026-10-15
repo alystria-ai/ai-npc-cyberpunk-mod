@@ -699,7 +699,6 @@ return {
     ["Calls are not available right now."] = "Most nem érhetők el a hívások.",
     ["Holocall ended: combat started."] = "A holohívás véget ért: harc kezdődött.",
     ["Holocall with {name} ended."] = "Véget ért a holohívás ({name}).",
-    ["Holocall with {name}. Tap the phone button to hang up."] = "Holohívás: {name}. A leteszeshez koppints a telefon gombra.",
     ["Live holocall picture"] = "Élő kép a holohíváshoz",
     ["Live picture unavailable. The call continues with the portrait."] = "Az élő kép nem elérhető. A hívás a portréval folytatódik.",
     ["This contact cannot take a holocall."] = "Ez a névjegy nem fogadhat holohívást.",

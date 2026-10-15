@@ -699,7 +699,6 @@ return {
     ["Calls are not available right now."] = "Дзвінки зараз недоступні.",
     ["Holocall ended: combat started."] = "Голодзвінок завершено: почався бій.",
     ["Holocall with {name} ended."] = "Голодзвінок з {name} завершено.",
-    ["Holocall with {name}. Tap the phone button to hang up."] = "Голодзвінок з {name}. Натисніть кнопку телефона, щоб завершити.",
     ["Live holocall picture"] = "Живе зображення в голодзвінку",
     ["Live picture unavailable. The call continues with the portrait."] = "Живе зображення недоступне. Дзвінок триває з портретом.",
     ["This contact cannot take a holocall."] = "Цей контакт не може прийняти голодзвінок.",
