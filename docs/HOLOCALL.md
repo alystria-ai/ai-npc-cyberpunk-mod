@@ -246,6 +246,29 @@ animated components for full detail before they attach (`clientForcedLod 0`, `cl
 `useLongRangeVisibility`), since runtime changes are ignored; whether that alone keeps a far face moving is checked
 after the next game restart (see "Not verified yet").
 
+### Expressions (branch `holocall-expressions`, 2026-10-16)
+
+The user: "would be nice if [they] smiled though and had the expression support ... like we do normally for our mod
+characters". The speech writer already drew a reply's emotion on her while she spoke (the reply's expression receipt
+and tracks reach any speaker), but the idle face writer (`mod/facial-playback.lua` `updateExpressions`) works only on
+the face layer's actor rows, which were the party's copies (`companions.expressionActors`), and its ownership check
+(`owns`) asked `convaiCompanions.owns`. So the holocall copy had no resting smile, no blinks or thinking and listening
+face between replies, no lingering reaction and no mood hold, and her expression slot was dropped the frame after each
+reply ended (with a plain face reset instead of the hand-over to the idle face).
+
+Now `holocall.lua` `M.faceRow()` gives the face layer a row for her (`entity`, `npc`, her profile key, so her own
+traits apply: Judy's warmth .12 and corner gain 1.6, for example) while the live picture is connected and the studio is
+within `FACE_RANGE` (11 m: a farther face does not animate, so it gets no row); `companions.expressionActors` appends it
+at its 0.1 s rebuild, and `owns` also accepts the copy `holocall.lua` `M.ownsFace` names. One row table per call. When
+the call ends the row is gone at the next rebuild and the slot is released with no native call. Lip sync is unchanged;
+the end of a reply now hands her face to the idle writer as for a companion. Nothing runs per frame beyond what one
+more companion costs (an idle face sleeps once settled).
+
+**Seen live (probe call, Judy, studio forced near V).** Owned, idle, not blocked; resting pose lip corners up .19 with
+a slight lower-lid squint (a visible soft smile); a forced Joy raised the corners to .50 with squint .43 and outer brows
+.30 (a clear smile); a forced Sadness showed raised inner brows and lowered corners. At a spot whose studio was 20.7 m
+away she got no row, as intended. Not yet seen: a real reply's emotion tag on the call (needs a talk turn).
+
 ### Gaze (branch `holocall-face`, 2026-10-15)
 
 The game's holocall scene aims its caller with one `scnLookAtEvent` (preset "Eyes & Head"): the eyes lead, with
