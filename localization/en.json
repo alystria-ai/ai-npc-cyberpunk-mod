@@ -2487,7 +2487,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:678"
+        "mod/holocall.lua:692"
       ]
     },
     "Calls are not available right now.": {
@@ -2495,8 +2495,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:679",
-        "mod/holocall.lua:692"
+        "mod/holocall.lua:693",
+        "mod/holocall.lua:706"
       ]
     },
     "Cancel": {
@@ -3517,7 +3517,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:674",
+        "mod/holocall.lua:688",
         "mod/phone-chat-style.lua:43",
         "mod/phone-chat.lua:507"
       ]
@@ -4243,7 +4243,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:628"
+        "mod/holocall.lua:642"
       ]
     },
     "Holocall with {name} ended.": {
@@ -4251,7 +4251,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:629"
+        "mod/holocall.lua:643"
       ]
     },
     "Holocall with {name}. Tap the phone button to hang up.": {
@@ -4260,7 +4260,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/holocall.lua:721"
+        "mod/holocall.lua:736"
       ]
     },
     "How they sound: pace, attitude, favourite habits of speech.": {
@@ -4558,8 +4558,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/holocall.lua:713",
-        "mod/holocall.lua:752"
+        "mod/holocall.lua:728",
+        "mod/holocall.lua:767"
       ]
     },
     "Load a save before inviting a companion.": {
@@ -7393,9 +7393,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:669",
-        "mod/holocall.lua:671",
-        "mod/holocall.lua:691"
+        "mod/holocall.lua:683",
+        "mod/holocall.lua:685",
+        "mod/holocall.lua:705"
       ]
     },
     "This contact has no companion mapping yet.": {
@@ -8139,8 +8139,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:679",
-        "mod/holocall.lua:690"
+        "mod/holocall.lua:693",
+        "mod/holocall.lua:704"
       ]
     },
     "You are driving. The companion trip was cancelled.": {

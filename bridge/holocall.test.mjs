@@ -80,7 +80,19 @@ test('Holocall.reds drives only the call window: no quest call, quest fact or ca
   assert.match(onPhoneCall, /this\.m_convaiCallPreempted = true;[^]*ConvaiHolocallEvent\("quest-call"\)[^]*return wrappedMethod\(value\);/);
   const onAction = /protected cb func OnAction\(action: ListenerAction, consumer: ListenerActionConsumer\) -> Bool \{([^]*?)\n\}/.exec(code)[1];
   assert.match(onAction, /return wrappedMethod\(action, consumer\);\s*$/);
-  assert.ok(!/Consume\(/.test(onAction), 'hang-up must not consume the phone button');
+  // Only the phone button's hold during the mod's own call is kept from the game (it would open the phone on its menu
+  // after hanging up); it hangs up. Every other action reaches the game's handler.
+  const consumed = [...onAction.matchAll(/ListenerActionConsumer\.Consume\(consumer\);/g)];
+  assert.equal(consumed.length, 1, 'one consumed action');
+  assert.match(onAction, /if Equals\(type, gameinputActionType\.BUTTON_HOLD_COMPLETE\) \{\s*this\.m_convaiCallHeld = true;\s*this\.m_player\.ConvaiHolocallEvent\("hangup"\);\s*ListenerActionConsumer\.Consume\(consumer\);\s*return true;/);
+  assert.match(onAction, /^\s*if this\.m_convaiCallActive && !this\.m_convaiCallPreempted && IsDefined\(this\.m_player\)\s*&& !IsDefined\(this\.m_contactListLogicController\) \{\s*let name[^]*?if Equals\(name, n"PhoneInteract"\)/);
+  // The live picture's black backing sits behind the window's holocall image only while the mod's holocall shows, and
+  // goes when the call ends or a game call takes the window.
+  assert.match(code, /ConvaiHolocallBacking\(Equals\(this\.m_convaiCallWanted, EHudPhoneFunction\.Holocall\)\);\s*this\.m_holoAudioCallLogicController\.Show\(\);/);
+  assert.match(code, /public final func ConvaiCallEnd\(\) -> Void \{[^]*?ConvaiHolocallBacking\(false\);[^]*?ShowEndCallContact/);
+  assert.match(onPhoneCall, /this\.m_convaiCallPreempted = true;[^]*ConvaiHolocallBacking\(false\)/);
+  assert.match(code, /rect\.Reparent\(parent, index\);/);
+  assert.match(code, /public final func ConvaiHolocallHasBacking\(\) -> Bool \{\s*return true;/);
   // A call never starts while the game has one or blocks calls.
   assert.match(code, /if this\.ConvaiCallGameBusy\(\) \{ return "quest-call"; \};/);
   assert.match(code, /IsCallingEnabled\(\)/);
@@ -110,7 +122,13 @@ test('the game\'s own phone is untouched; a holocall starts only from the mod\'s
   assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_callInputHint\), n"call"\)/);
   assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_callInputHint\), this\.m_convaiCallHintAction\)/);
   assert.match(tabs, /SetLocalizedTextScript\(this\.m_action2ButtonLabel, "LocKey#22196"\);\s*inkWidgetRef\.SetVisible\(this\.m_action2ButtonWidget, true\);/);
-  // The row shows both icons: call and chat (R and the envelope), with the separator.
+  // The row's chat hint (the envelope) shows the key the bottom bar's Chat hint shows (`proceed`: F, Enter, Cross), and
+  // goes back to the game's action on any other row.
+  assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_chatInputHint\), n"proceed"\)/);
+  assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_chatInputHint\), this\.m_convaiChatHintAction\)/);
+  // F opens the chat on the list: its `click` reaches AcceptAction, which opens the chat while the Chat tab shows.
+  assert.match(tabs, /public func AcceptAction\(\) -> Void \{\s*if NotEquals\(this\.m_convaiChatState, ConvaiPhoneChatState\.Off\) \{\s*this\.ConvaiOpenChat/);
+  // The row shows both icons: call and chat (the envelope), with the separator.
   assert.match(tabs, /SetVisible\(this\.m_callInputHint, true\);\s*inkWidgetRef\.SetVisible\(this\.m_chatInputHint, true\);\s*inkWidgetRef\.SetVisible\(this\.m_separtor, true\);/);
   // The conversation shows no Call hint (the user's live test: it spoiled the composer layout); the game's own hint
   // stays hidden too. The Call key still starts the call while the chat has focus.
@@ -166,6 +184,7 @@ function player:ConvaiHolocallBegin(contact) game.began = contact; return game.b
 function player:ConvaiHolocallConnect(live) game.connects[#game.connects + 1] = live; return game.window end
 function player:ConvaiHolocallEnd() game.ends = game.ends + 1 end
 function player:ConvaiHolocallTakeEvent() return table.remove(game.events, 1) or '' end
+function player:ConvaiHolocallHasBacking() if game.noBacking then error('no such method') end return true end
 local enabled, busy, live = {['judy-alvarez'] = true, ['johnny-silverhand'] = true}, false, false
 local open = {available = true, combat = false, tier = 1, dialogue = false, choices = false, call = false, replacer = false}
 local function sample(extra) local s = {} for k, v in pairs(open) do s[k] = v end for k, v in pairs(extra or {}) do s[k] = v end return s end
@@ -288,7 +307,11 @@ const world = `
     function e:GetWorldPosition() return self.position end
     function e:ConvaiFaceRequest() self.face = true; return 'managed' end
     function e:QueueEvent(event) looks[#looks + 1] = {npc = name, event = event}; return true end
-    function e:FindComponentByName() return {Toggle = function(_, on) toggles[#toggles + 1] = name .. ':' .. tostring(on) end} end
+    function e:FindComponentByName()
+      e.component = e.component or {Toggle = function(self, on)
+        toggles[#toggles + 1] = name .. ':' .. tostring(on); self.cutWhenOn = self.cutWhenOn or (on and self.depthCutDistance) end}
+      return e.component
+    end
     if name == 'lamp' then
       -- The game's corridor light: a mesh, a collider and a point light driven by its script API.
       local lamp = {id = id, mesh = true, collider = true, on = false}
@@ -384,13 +407,15 @@ test('a staged character gets the live picture: a hidden floor above V, the copy
   local copy, camera = created[1], created[2]
   -- The copy stands on the roof 20 m above V, out of V's sight, with her own record.
   assert(copy.recordID == 'Character.Judy' and near(copy.position.x, 10) and near(copy.position.y, 20) and near(copy.position.z, 50))
-  assert(copy.persistState == false and copy.persistSpawn == false and copy.alwaysSpawned == true and copy.orientation.yaw == 0)
+  assert(copy.persistState == false and copy.persistSpawn == false and copy.alwaysSpawned == true)
+  -- Her body faces the camera squarely: the spot faces yaw 0 and the camera stands 20.4 degrees round it.
+  assert(near(copy.orientation.yaw, 20.4), copy.orientation.yaw)
   assert(copy.tags[1] == 'CyberpunkConvaiCompanion' and copy.tags[2] == 'CyberpunkConvaiHolocall')
   -- The game's own holocall camera, at the game's framing: 0.79 m in front, 20.4 degrees round, 1.6 m up, level, looking back.
   assert(camera.templatePath == 'base\\\\cinematics\\\\cameras\\\\holocall_camera.ent' and camera.tags[1] == 'CyberpunkConvaiHolocall')
   assert(near(camera.position.x, 9.72362) and near(camera.position.y, 20.74317) and near(camera.position.z, 51.6), camera.position.x .. ' ' .. camera.position.y)
   assert(near(camera.orientation.yaw, 200.4) and camera.orientation.pitch == 0)
-  assert(logged('holo spawn contact=judy record=Character.Judy floor=%+20.0m away=20.0m yaw=0 lens=0.79m'))
+  assert(logged('holo spawn contact=judy record=Character.Judy floor=%+20.0m away=20.0m yaw=0 body=20.4 lens=0.79m'))
   -- The light rig, as the game lights its studio actor: a warm key in front and above on the camera's side, a weaker
   -- fill on the other side, a cool rim behind, all round her at the game's own lamp, tagged and transient.
   local key, fill, rim = created[3], created[4], created[5]
@@ -410,6 +435,11 @@ test('a staged character gets the live picture: a hidden floor above V, the copy
   assert(logged('lights=3/3'))
   assert(forced[1] == '9000ULL:true', 'the copy keeps animating off screen')
   assert(played[1] == 'convai_talk_judy' and toggles[1] == 'camera:true')
+  -- The black backdrop: before the camera is switched on, it is told to draw nothing beyond 0.9 m behind her (the
+  -- window's black backing shows there).
+  local lens = entities['9001ULL'].component
+  assert(near(lens.cutWhenOn, 0.25 / math.tan(math.rad(17.5)) + 0.9), tostring(lens.cutWhenOn))
+  assert(logged('backdrop=true'))
   -- She looks into the lens (the camera entity) as the game's holocall scenes aim their caller: eyes leading, the head
   -- and the chest turned with it (chest weight 2), nothing suppressed, at the game's holocall look speed.
   local look = looks[1]
@@ -439,6 +469,15 @@ test('a staged character gets the live picture: a hidden floor above V, the copy
   tick(1.0); assert(#deleted == 4, 'the switched-off camera is not freed in the next frames')
   tick(0.6); assert(#deleted == 5 and deleted[5] == '9001ULL' and holocall.lenses == nil)
   tick(1); assert(spatial.rays == rays, 'nothing runs after the call')
+`));
+
+test('without the black backing in the window (an older Holocall.reds) the camera cuts nothing out of the picture', () => run(world + `
+  game.window = 'holocall'; game.noBacking = true
+  game.requests = {'judy'}; holocall.drain(player); tick(2.5)
+  assert(holocall.connected() and holocall.call.mode == 'holo')
+  local lens = entities['9001ULL'].component
+  assert(lens.depthCutDistance == nil and lens.cutWhenOn == nil and logged('backdrop=false'))
+  holocall.finish(player, 'hangup')
 `));
 
 test('the live picture falls back to the portrait when the copy moves, when there is no floor, and for an unknown record', () => run(world + `

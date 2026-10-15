@@ -211,8 +211,8 @@ public func AcceptAction() -> Void {
     };
     wrappedMethod();
 }
-// On the Chat list both the accept action (F, Enter, click) and the secondary action (the game's Messages key, R, the
-// envelope on the row) open the text chat. The call has its own key, `call` (V, Triangle), handled in OnContactListAction.
+// On the Chat list both the accept action (F, Enter, click; the envelope's hint on the row shows it) and the secondary
+// action (the game's Messages key, R) open the text chat. The call has its own key, `call` (V, Triangle), handled in OnContactListAction.
 @wrapMethod(NewHudPhoneGameController)
 public func AlternativeAcceptAction() -> Void {
     if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.Off) {
@@ -331,8 +331,8 @@ private func RefreshInputHints(contactData: wref<ContactData>) -> Void {
         inkTextRef.SetText(this.m_acceptButtonLabel, "Chat");
         inkWidgetRef.SetVisible(this.m_acceptButtonWidget, true);
         // The second bottom hint (the game's Messages hint, R) is the Call hint here: the game's own key hint rebound to
-        // the `call` action, so it shows the real key (V, Triangle), with the game's own translated Call label. R itself
-        // still opens the chat; its envelope is on the row.
+        // the `call` action, so it shows the real key (V, Triangle), with the game's own translated Call label. R still
+        // opens the chat too, and the row's envelope shows F, as the Chat hint does.
         if !this.m_convaiCallHintBound {
             let previous = ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_action2ButtonWidget), n"call");
             if NotEquals(previous, n"") { this.m_convaiCallHintAction = previous; this.m_convaiCallHintBound = true; };
@@ -457,13 +457,23 @@ public final func ConvaiShowChatLabel(visible: Bool) -> Void {
 private let m_convaiCallHintBound: Bool;
 @addField(PhoneContactItemVirtualController)
 private let m_convaiCallHintAction: CName;
+@addField(PhoneContactItemVirtualController)
+private let m_convaiChatHintBound: Bool;
+@addField(PhoneContactItemVirtualController)
+private let m_convaiChatHintAction: CName;
 
 @wrapMethod(PhoneContactItemVirtualController)
 protected cb func OnDataChanged(value: Variant) -> Bool {
     let result = wrappedMethod(value);
     if IsDefined(this.m_contactData) && this.m_contactData.convaiChat {
-        // A Chat row has two icons on the selected row: the game's own chat hint (R and the envelope: opens the chat) and
-        // the game's own call hint (a key box and the phone) rebound to `call`, so it shows the real call key (V, Triangle).
+        // A Chat row has two icons on the selected row: the game's own chat hint (the envelope) and the game's own call
+        // hint (the phone), each rebound to the key that does it here. The chat hint shows `proceed`, the action the
+        // bottom bar's Chat hint shows (F, Enter, Cross), which opens the chat (its `click` reaches AcceptAction); the game
+        // binds it to `secondaryAction` (R). The call hint shows `call`, the real call key (V, Triangle).
+        if !this.m_convaiChatHintBound {
+            let previous = ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_chatInputHint), n"proceed");
+            if NotEquals(previous, n"") { this.m_convaiChatHintAction = previous; this.m_convaiChatHintBound = true; };
+        };
         if !this.m_convaiCallHintBound {
             let previous = ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_callInputHint), n"call");
             if NotEquals(previous, n"") { this.m_convaiCallHintAction = previous; this.m_convaiCallHintBound = true; };
@@ -472,7 +482,11 @@ protected cb func OnDataChanged(value: Variant) -> Bool {
         inkWidgetRef.SetVisible(this.m_chatInputHint, true);
         inkWidgetRef.SetVisible(this.m_separtor, true);
     } else {
-        // This row view is recycled by the game's own lists: any other contact gets the game's hint back as it was.
+        // This row view is recycled by the game's own lists: any other contact gets the game's hints back as they were.
+        if this.m_convaiChatHintBound {
+            ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_chatInputHint), this.m_convaiChatHintAction);
+            this.m_convaiChatHintBound = false;
+        };
         if this.m_convaiCallHintBound {
             ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_callInputHint), this.m_convaiCallHintAction);
             this.m_convaiCallHintBound = false;

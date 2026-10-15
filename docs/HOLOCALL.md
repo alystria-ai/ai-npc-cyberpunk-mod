@@ -16,11 +16,12 @@ has not yet been tested in game; an open chat no longer shows a Call hint (2026-
   that wrap, `CallSelectedContact`, is gone.)
 - **Phone > Chat tab (the mod's own tab), two places to call, one key: V (Triangle on a pad), the game's own `call`
   action, the key the game's message window uses for Call:**
-  - **On the Chat list,** the selected row shows two icons: the chat one (**R** and the envelope, as always: R opens the
-    chat) and, beside it, a call one (a key box with the call key and a phone). The bottom bar reads **Call** (V),
-    **Chat** (F) and Close. These are the game's own key hints, the row's call hint and the bottom bar's second hint
-    rebound to the `call` action while a Chat row is shown and put back, from the action they held, for any other
-    row or tab, so the glyphs always show the real key. V starts a call with the selected character. (On a pad
+  - **On the Chat list,** the selected row shows two icons: the chat one (**F** and the envelope) and, beside it, a
+    call one (a key box with the call key and a phone). The bottom bar reads **Call** (V), **Chat** (F) and Close.
+    These are the game's own key hints, the row's call hint and the bottom bar's second hint rebound to the `call`
+    action, and the row's chat hint (the game's is `secondaryAction`, R) rebound to `proceed`, the action the bottom
+    bar's Chat hint shows (branch `holocall-polish`, 2026-10-16: the row read R while the bar read F), while a Chat row
+    is shown, and put back, from the action they held, for any other row or tab, so the glyphs always show the real key. V starts a call with the selected character. (On a pad
     Triangle is also `showAll`, which means nothing on this tab and is swallowed there.)
   - **Inside an open conversation** no Call hint is shown (2026-10-15, branch `holocall-light`: the user's live test
     found the spawned "V  Call" hint beside the Enter/Esc line spoiled the composer layout, so it and its plain-text
@@ -36,9 +37,13 @@ has not yet been tested in game; an open chat no longer shows a Call hint (2026-
   says "Holocall with {name}. Tap the phone button to hang up."
 - Talk with the normal push-to-talk or typed-text keys. No one has to be nearby, because the call is the
   conversation partner.
-- **Hang up:** tap the phone button (PhoneInteract pressed and released without a hold), or hold the
-  reject button. Calling the same person again from the phone also hangs up. Calling someone else
-  replaces the call.
+- **Hang up:** tap or hold the phone button (T, D-pad down). Calling the same person again from the phone also hangs
+  up. Calling someone else replaces the call. Either way the phone stays closed and control goes back to the game, as
+  when a game call ends. The phone button is both `PhoneInteract` and `PhoneReject`, each with a 0.5 s hold
+  (`r6\config\inputContexts.xml`), and the game opens the phone on `PhoneInteract`'s hold (`UsePhoneRequest`) unless a
+  call is ringing; a hold that hung up the mod's call used to open the phone on its menu as well (live, 2026-10-16).
+  During the mod's call that hold is consumed in `OnAction` and only hangs up. The game's own call end
+  (`SetPhoneFunction(Inactive)`, the window's disconnect) never opens or closes the phone, so nothing else is needed.
 
 Only mod characters in `characters/phone-contacts.json` with a conversation profile can take a
 holocall (the Chat tab lists only them). Johnny Silverhand never can; his ids are excluded in `mod/holocall.lua` (`NEVER`). Game
@@ -310,14 +315,37 @@ Frames (scratchpad `holo/`): `lampA.png` (unlit, then a 3000 lm lamp), `rigB.png
 - **Range.** The lamp's `autoHideDistance` (30 m) did not hide it with V 43 m away: the hide distance is measured
   from the view that renders the light, here the call camera 0.8 m off.
 - **The spot.** Any spot now renders lit, at night, underground or under cover, because the rig is self-contained and
-  shadowless. The street behind her still shows (the game's studio is black); it reads darker now because the
-  camera's exposure settles on her lit face.
+  shadowless. The world behind her is cut out (see "Backdrop and body" below).
 - **Cost.** The three lamps exist only between the spawn and the hang-up (switched off, then deleted with the copy;
   the reload sweep clears tagged leftovers). Lighting them is one check per pending lamp on the call's 0.25 s step;
   once all are lit, `IsOn` is checked on the look's 5 s beat and a lamp the game switched off is lit again. Nothing
   runs per frame. The render cost is three small unshadowed point lights during a call.
 - Probe lines: `holo ready ... lights=3/3`, and `holo lit contact=<id> lights=3/3` when a lamp came up after the
   picture was ready.
+
+### Backdrop and body (branch `holocall-polish`, 2026-10-16)
+
+The user's round on 2026-10-16: every body was turned to one side while the eyes found the lens, and the world showed
+behind her where the game's own holocalls stand against black.
+
+- **Body.** The game's studio films its actor 20.4 degrees round from her facing (a three-quarter view), and the copy
+  was placed the same way. Now her body is spawned facing the camera squarely (`M.bodyYaw`: the spot's facing plus
+  `SHOT.orbit`), once; the camera and the lamps keep their places round the spot's facing, so the framing and the
+  light are unchanged, and the look at the lens still runs. Probe line: `holo spawn ... yaw=0 body=20.4`.
+- **Backdrop.** The call camera's own component has a `depthCutDistance`: the camera draws nothing farther than that.
+  Set (live probe, 2026-10-16) to the lens distance plus 0.9 m (`M.BACKDROP`), it removes everything behind her and
+  leaves her and anything within 0.9 m behind her. The cut part of the picture is transparent: the camera's
+  `backgroundColor` with `overrideBackgroundColor` is not drawn (tried black and red, opaque), and the window showed
+  its own frame dots and the game behind it. So the call window gets a black rectangle the size of its holocall image
+  (`holocallRenderTexture`, 450 x 450, opacity 0.93), inserted just behind the image in its holder
+  (`Holocall.reds`, `HudPhoneAvatarController.ConvaiHolocallBacking`), shown only while the mod's holocall shows and
+  hidden when it ends or a game call takes the window. Nothing is spawned, nothing runs per frame: the cut is set
+  once before the camera is switched on, the backing on the window's state changes. Lua makes the cut only when
+  `PlayerPuppet.ConvaiHolocallHasBacking()` exists, so an older redscript keeps the world behind her rather than a
+  see-through hole. Probe line: `holo ready ... backdrop=true`. Frames (scratchpad `holo/`): `bg1.png` (before, the
+  cut with the background colour set: no change until the camera is switched off and on, then see-through),
+  `bg2.png` (a red background colour: still see-through; no cut), `bg3-back/crop.png` (the cut with the black
+  rectangle: Judy against black).
 
 ### Bridge
 
@@ -363,7 +391,9 @@ The bridge turn-context diagnostic ends with `holocall=audio` or `holocall=holo`
   Call hint) and that V there still starts the call (and V typed into a message does not); that the vanilla Contacts
   Call (F) for Judy, Panam and others opens the game's own call again, untouched.
 - That a tap of the phone button reaches the HUD controller as PRESSED then RELEASED on keyboard and
-  pad, and does not also open the phone.
+  pad, and that neither a tap nor a hold leaves the phone open after hanging up (branch `holocall-polish`).
+- The black backing drawn by `Holocall.reds` itself (the look was checked with a probe-made rectangle), and the
+  row's chat hint showing F (needs the game restart).
 - The Holocall subtitle type showing a bottom line for the player as speaker.
 - **Seen 2026-10-15 (holocall-face, window capture, probe calls):** with the studio within 11 m her jaw opens, she
   blinks and a replayed talking timeline moves her mouth; with the head and chest look she faces the lens. Not seen yet:

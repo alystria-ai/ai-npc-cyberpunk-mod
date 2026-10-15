@@ -39,6 +39,16 @@ M.IDLE_LIMIT, M.MAX_LENGTH = 180, 1800
 -- 1.65 m above the feet, 20.4 degrees round from the actor's facing, level, fov 35 (the camera's own). The frame here is
 -- a little taller (0.5 m, which solves to 0.79 m at fov 35) so a shorter or taller character still has the face in it.
 M.SHOT = {frameH = 0.5, aimZ = 1.6, orbit = 20.4, fov = 35}
+-- The copy's body faces the camera squarely (live, 2026-10-16: at the game's 20.4 degree three-quarter turn every
+-- body read as turned to one side while the eyes found the lens). The camera and the lamps keep their places round the
+-- spot's facing; only the body turns, once, at spawn.
+function M.bodyYaw(spot) return spot.yaw + M.SHOT.orbit end
+-- The backdrop. The game films its callers in a black room; here the call camera itself draws nothing farther than
+-- BACKDROP metres behind the copy (its own depthCutDistance), so the world behind her is gone from the picture and
+-- nothing has to be spawned. The cut part is transparent (the camera's backgroundColor is not drawn: live, 2026-10-16),
+-- so the call window puts a black rectangle behind its holocall image (Holocall.reds ConvaiHolocallBacking); the cut is
+-- made only where that backing exists. Set once, before the camera is switched on.
+M.BACKDROP = 0.9
 -- The studio: a floor 10 to 90 m above V, straight up or within 30 m, out of V's sight.
 M.STUDIO_MIN, M.STUDIO_TOP, M.STUDIO_RADIUS = 10, 90, 30
 -- When nothing stands above V (a high apartment, open ground, the Badlands: the first live test found no floor in any
@@ -442,7 +452,7 @@ local function holoSpawn(call, holo)
         local copy = NewObject('DynamicEntitySpec')
         copy.recordID = TweakDBID.new(call.record)
         copy.position = Vector4.new(spot.x, spot.y, spot.z, 1)
-        copy.orientation = EulerAngles.new(0, 0, spot.yaw):ToQuat()
+        copy.orientation = EulerAngles.new(0, 0, M.bodyYaw(spot)):ToQuat()
         copy.persistState, copy.persistSpawn = false, false
         copy.alwaysSpawned, copy.spawnInView, copy.active = true, true, true
         -- The companion tag gives the copy the speech face layer (Face.reds) before it attaches.
@@ -465,8 +475,9 @@ local function holoSpawn(call, holo)
     holoLightsSpawn(holo, spot)
     holo.stage = 'spawn'
     local o = holo.origin
-    log(string.format('holo spawn contact=%s record=%s floor=%+.1fm away=%.1fm yaw=%d lens=%.2fm', call.contact, call.record,
-        spot.z - o.z, math.sqrt((spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2), spot.yaw, holo.lens.dist))
+    log(string.format('holo spawn contact=%s record=%s floor=%+.1fm away=%.1fm yaw=%d body=%.1f lens=%.2fm', call.contact,
+        call.record, spot.z - o.z, math.sqrt((spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2), spot.yaw,
+        M.bodyYaw(spot), holo.lens.dist))
 end
 
 
@@ -566,6 +577,9 @@ local function holoStep(call, dt)
     local switched, err = pcall(function()
         local component = camera:FindComponentByName(CName.new(M.CAMERA_COMPONENT))
         assert(component, 'no ' .. M.CAMERA_COMPONENT .. ' component')
+        -- The black backdrop (M.BACKDROP); without the window's backing, or a camera without the field, she is filmed
+        -- with the world behind her as before.
+        holo.backdrop = call.backing == true and pcall(function() component.depthCutDistance = holo.lens.dist + M.BACKDROP end)
         component:Toggle(true)
     end)
     if not switched then holoFail(call, 'camera: ' .. tostring(err)); return end
@@ -577,7 +591,7 @@ local function holoStep(call, dt)
     holo.ready = true
     log('holo ready contact=' .. call.contact .. ' held=' .. tostring(holo.held) .. ' camera=on animated='
         .. tostring(holo.forced == true) .. ' look=' .. tostring(looked) .. string.format(' drift=%.2f', drift(holo))
-        .. ' lights=' .. tostring(holo.lit or 0) .. '/' .. #(holo.lights or {}))
+        .. ' lights=' .. tostring(holo.lit or 0) .. '/' .. #(holo.lights or {}) .. ' backdrop=' .. tostring(holo.backdrop == true))
 end
 
 local function holoValid(call)
@@ -692,12 +706,13 @@ function M.start(player, contact, sample)
             or ui.t('Calls are not available right now.'))
     end
     local identity, entity = pcall(function() return tostring(player:GetEntityID().hash) end)
+    local backed, backing = pcall(function() return player:ConvaiHolocallHasBacking() end)
     M.serial = M.serial + 1
     -- A video holocall for the characters the game stages one for; the portrait voice call for everyone else.
     local cast = M.STAGED[contact] and entry.record and 'video' or 'voice'
     local call = {serial = M.serial, contact = contact, key = entry.key, name = entry.name, record = entry.record,
         state = 'dialing', mode = 'audio', entity = identity and entity or nil, ring = 0, age = 0, idle = 0, tick = 0,
-        cast = cast, wantLive = cast == 'video' and type(M.env.liveImage) == 'function' and M.env.liveImage() == true}
+        cast = cast, backing = backed and backing == true, wantLive = cast == 'video' and type(M.env.liveImage) == 'function' and M.env.liveImage() == true}
     M.call = call
     if type(M.env.warm) == 'function' then pcall(M.env.warm, call.key, call.entity) end
     log('state=dialing contact=' .. contact .. ' profile=' .. call.key .. ' mode=' .. (call.wantLive and 'holo' or 'audio')
