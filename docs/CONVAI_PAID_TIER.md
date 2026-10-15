@@ -9,7 +9,8 @@ Convai made "Gamer" plans for this mod. A player who wants more Convai conversat
 - **Settings > Conversation provider** has a new row, **Convai paid tier** (Open), right under the **Convai API key** row.
 - The page it opens has these rows:
   - **Your Convai plan:** the plan Convai reports for the saved key, "No key added", or "Not checked yet". The result of the latest action is the first paragraph of its help.
-  - **Get your Convai API key** (only while no key is saved): opens convai.com in the browser.
+  - **Sign in with Convai** (Sign in; only while no key is saved): opens Convai's login page in the browser. After the player signs in (or makes a free account), the key is saved as Paste saves it. See "Sign in with Convai" below.
+  - **Get your Convai API key** (only while no key is saved): opens convai.com in the browser, for copying the key by hand.
   - **The Convai API key row:** the same Paste / Remove row as on the provider page.
   - **One row per plan:** "Gamer, $4 a month", "Gamer, $32 a year", "Gamer Pro, $8 a month" and "Gamer Pro, $64 a year", each with a **Buy** button. The help says what the plan gives (Gamer: 1000 Convai interactions a month; Gamer Pro: more), how it is billed, and that the payment happens on Convai's Stripe page. The buttons are greyed out until a key is saved.
   - **Check my plan:** asks Convai now.
@@ -52,6 +53,39 @@ Prod base: `https://payment.convai.com`, the address Convai's own dashboard uses
   - **What stays off:** look-ahead, prefetch, pre-opened party, phone and ambient connections all stay off for any player key, paid or not (`singleSession()` in the bridge is unchanged). That saves the player's monthly interactions. Multilingual conversations also stay off on a player's key.
 - **Performance:** nothing runs per frame and nothing is loaded. While the page is closed and no purchase is followed, the Lua side does no work and the bridge does one small file read every half second.
 
+## Sign in with Convai
+
+Built 2026-10-15 on branch `convai-signin`. Unit-tested with Convai's login page and decrypt route mocked. Not yet tried against the live login page and not seen in the game.
+
+**Where the flow comes from.** Convai's login page (`login.convai.com`, private repository `Conv-AI/ConvAI-Authentication`, `frontend/src/components/AuthHandler.tsx` on its `prod` branch, read 2026-10-15) already has a desktop hand-back that Convai's own Unreal Engine plugin uses (`Conv-AI/Convai-UnrealEngine-Auth`). The mod uses the same flow, so no Convai, Firebase, Vercel or backend setting changes:
+
+1. The bridge opens a listener on a free loopback port: `127.0.0.1`, plus `::1` on the same port when the computer has IPv6 loopback. A port whose `::1` side another program holds is never used.
+2. It opens `https://login.convai.com/?ue=true&port=<port>` in the system browser (the same opener as the other pages, no shell).
+3. The player signs in on Convai's page (Google, e-mail, or a new account). If they are already signed in to convai.com, this step is skipped.
+4. Convai's page sends the browser to `http://localhost:<port>/control?api_key=<encrypted key>&user_info=<encrypted account>`. Both values are Convai's AES-encrypted login cookies (`CONVAI_API_KEY`, `CONVAI_AUTH`), not the key itself.
+5. The listener answers at once with a redirect to `/done`, so the encrypted values leave the address bar. It reads the values raw (a `+` stays a `+`; Convai's route decodes them once itself).
+6. `POST https://login.convai.com/api/decrypt` with `{"data": <encrypted key>}` answers `{"decryptedData": <key>}`. If that gives no plausible key, the account value is decrypted the same way; its JSON carries `apiKey` (and the e-mail address, plan and so on, which are dropped at once).
+7. The key is checked with Convai (`validateKey`, the same check Paste uses: `POST https://api.convai.com/character/list`, no interaction used). A refused key is not saved. Otherwise it goes through `saveKey`, the same path as Paste: the key file, the quota reset and the own-key status. A sign-in alone changes no setting, as with Paste.
+8. `/done` shows "Signed in" or "Sign-in did not finish" and the listener closes.
+
+**The pieces.**
+- `bridge/convai-signin.mjs`: the listener, the hand-back and the decrypt call. `startConvaiSignIn()` returns `{opened, key, cancel}`.
+- `PaidTierControl` (`bridge/convai-paid-tier.mjs`): a new command action `sign-in`. It answers `signing-in` as soon as Convai's page was asked to open, so other commands are not held up while the player signs in. The outcome comes later as the same command's result: `saved`, `invalid-key`, `signin-timeout`, `signin-failed` or `open-failed`. A new sign-in cancels one still waiting, and so does the service stopping. Without a sign-in function, `sign-in` opens the key page. `key-page` now only opens the key page.
+- `mod/convai-paid-tier.lua` and `mod/mcm.lua`: the **Sign in with Convai** row and one message per outcome, shown in the help of **Your Convai plan**. No new polling: the page reads the state file as before (at most every 1.5 s while it is open).
+
+**Guarantees.**
+- Nothing runs until the player chooses Sign in. Nothing runs per frame. The listener exists only while a sign-in waits: at most five minutes (long enough to make an account and confirm the e-mail address), then it closes. One sign-in per listener; the first good `/control` request wins and later ones get 404.
+- The listener answers only on loopback, only `GET`, only with a `Host` of `localhost`, `127.0.0.1` or `[::1]` on its port (a guard against DNS rebinding). Its pages are `no-store`, `no-referrer`, with a CSP that allows no script.
+- The key and the encrypted values are never logged, never put in a URL by the mod, and never written anywhere except through `saveKey`. The encrypted values go only to `https://login.convai.com` (any other decrypt address is refused).
+- Latency: one decrypt call (two at most) and one key check after the browser comes back, a second or less.
+
+**What remains (Convai's design, not changeable from the mod).**
+- The encrypted values travel in the loopback URL, so they can stay in the browser's history. Convai's decrypt route answers any caller that does not send a browser `Origin` (its CORS list only limits browsers), so an encrypted value is as good as the key to whoever reads it. The mod cannot change this; it is a question for Convai below.
+- The hand-back carries no `state` value, so a page on the same computer could in principle send the browser to the listener with someone else's encrypted key during the five minutes. The worst outcome is that the player's mod gets another account's working key; the random port, the one-shot listener and the short window keep this unlikely.
+- The flow depends on the login page keeping its `ue=true&port=` parameters. Convai's own Unreal plugin depends on them too.
+
+**Fallback if Convai ever closes this flow.** A page of our own (on the Vercel backend) can sign in against Convai's Firebase project and exchange the Firebase ID token for the key with `POST {Convai user service}/user/login` (header `IdToken: <Firebase ID token>`, body `{"email": ...}`; the answer has `api_key`, `plan_name` and more). That is what Convai's login service itself does (`backend/internal/convaiHelpers/login.go`). It needs outside changes (our domain added to the Firebase project's authorized domains, the Firebase web config, and Convai's agreement that `/user/login` may be called this way), so it was not built.
+
 ## Price ids and where they can change
 
 - **Built in:** `DEFAULT_PAID_TIER` in `bridge/convai-paid-tier.mjs` (prod, from Convai 2026-10-15):
@@ -72,11 +106,11 @@ Prod base: `https://payment.convai.com`, the address Convai's own dashboard uses
 
 ## What is left open
 
-- **Convai sign-in:** the release keeps paste-your-key (the user's decision, 2026-10-15). The page's **Get your Convai API key** row opens convai.com, where the player copies the key, then Paste. The user is asking Convai for a login endpoint that returns the key.
-  - **The seam:** `PaidTierControl`'s `signIn` option, `async () => key or null`, wired next to `saveKey` in `bridge/convai-bridge.mjs`.
-  - When it is passed, the `key-page` action calls it first. A key it returns is saved through `saveKey`, the same path as Paste: the key file, the quota reset and the own-key status. The page shows the saved key, with result `saved`.
-  - When it gives nothing or throws, the key page opens as now.
-  - No Lua change and no new strings are needed.
+- **Sign in with Convai** (branch `convai-signin`): built and unit-tested, not yet tried against the live login page. Questions for Convai:
+  - May the mod use the login page's `ue=true&port=` hand-back, and will it stay?
+  - Could the hand-back carry a `state` value we pass in, and hand back a short-lived one-time code (exchanged server to server) instead of the encrypted cookies in the URL?
+  - `/api/decrypt` decrypts for any non-browser caller. Is that intended? If it ever needs a secret or an allowlist, the sign-in stops working.
+  - Can the plan check (`get-user-details`) and conversations accept something narrower than the permanent key, for example the personal access tokens or OAuth tokens the login service has started to issue?
 - **Cancellation (Churnkey):** handled by opening Convai's billing page, where Convai's own Churnkey flow runs inside the player's convai.com session. No Churnkey key or snippet is needed in the mod. If Convai wants the flow inside the game, they need to give a client-usable token (the current one is encrypted with their server key) and confirm the app id.
 - **Gamer Pro numbers:** Convai only said "more". The page says "More Convai interactions a month than Gamer" until a number is set (built in or through `interactions` in the server list).
 - **Plan names:** the paid check treats every plan name that is not empty, `-1`, `none`, or containing "free" or "trial" as paid. The exact `plan_name` values of the V2 plans are still to confirm with Convai.
@@ -86,7 +120,10 @@ Prod base: `https://payment.convai.com`, the address Convai's own dashboard uses
 ## Tests
 
 - `bridge/convai-paid-tier.test.mjs`: endpoint shapes, failures mapped to reasons, only Stripe or Convai pages opened, key and price ids never in the status file, polling cadence and five-minute stop, baseline comparison, duplicate price ids, server override limits, stale commands.
-- `bridge/convai-paid-tier.test.mjs`, connections: the plan is read only while the key is in use, once, and refreshed after six hours; a paid plan gives six and a free one gives one; a failed read gives one and retries after ten minutes; another key, an expired plan or an answer older than 12 hours gives one; the key never reaches the state file; the sign-in seam saves the key or falls back to the key page.
+- `bridge/convai-paid-tier.test.mjs`, connections: the plan is read only while the key is in use, once, and refreshed after six hours; a paid plan gives six and a free one gives one; a failed read gives one and retries after ten minutes; another key, an expired plan or an answer older than 12 hours gives one; the key never reaches the state file; and the old sign-in seam test is replaced by the sign-in tests below.
 - `bridge/realtime-single-session.test.mjs`: with a limit of six only the excess idle connections close, oldest first, across both hosts; a busy one never closes; a broken limit means one.
 - `bridge/convai-paid-tier-ui.test.mjs`: the real `mcm.lua` and `manager.lua` in fengari. Covers the row position, the plan rows and their wording, no purchase without a key, the provider switch and one notice after a confirmed purchase, the timeout notice, a later check, and a refused checkout.
+- `bridge/convai-signin.test.mjs`: the login page address and port; a real loopback listener receiving Convai's hand-back; the encrypted value passed on unchanged (with `+`); the account value as the fallback; a bad answer; the timeout and cancel closing the listener; wrong Host, wrong path, empty or malformed values and a second hand-back refused; a browser that will not open; a port whose `::1` side is taken; decrypt errors mapped to reasons; a decrypt address off convai.com refused.
+- `bridge/convai-paid-tier.test.mjs`, sign-in: `signing-in` at once, then `saved` through the Paste path with the key checked first; `invalid-key`, `signin-timeout`, `signin-failed`, `open-failed`; a new sign-in or shutdown cancels the waiting one; without a sign-in the key page opens. The key never reaches the state file.
+- `bridge/convai-paid-tier-ui.test.mjs`, sign-in: the row sends `sign-in`, each outcome is worded on the page, and the row goes once a key is saved.
 - `auth-backend/test/plans.test.mjs`: admin set, show and remove; the public read with its one-minute cache; refusal of duplicate prices or foreign hosts; a store that is down.

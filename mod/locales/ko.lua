@@ -827,4 +827,12 @@ return {
     ["{count} Convai interactions a month."] = "월 {count}회 Convai 상호작용.",
     ["{plan}, {price} a month"] = "{plan}, 월 {price}",
     ["{plan}, {price} a year"] = "{plan}, 연 {price}",
+    ["Sign in with Convai"] = "Convai로 로그인",
+    ["Sign in"] = "로그인",
+    ["Opens Convai’s sign-in page in your browser.\n\nSign in or make a free account, and your Convai API key is saved on this computer, the same as Paste. You have five minutes."] = "브라우저에서 Convai 로그인 페이지를 엽니다.\n\n로그인하거나 무료 계정을 만들면, '붙여넣기'와 같은 방식으로 Convai API 키가 이 컴퓨터에 저장됩니다. 제한 시간은 5분입니다.",
+    ["Opening Convai’s sign-in page in your browser…"] = "브라우저에서 Convai 로그인 페이지를 여는 중…",
+    ["Sign in on the Convai page in your browser. Your key is saved here when you finish."] = "브라우저에서 Convai 페이지로 로그인하세요. 완료하면 키가 여기에 저장됩니다.",
+    ["Signed in. Your Convai API key is saved."] = "로그인되었습니다. Convai API 키가 저장되었습니다.",
+    ["The sign-in took too long. Choose Sign in with Convai to try again."] = "로그인에 너무 오래 걸렸습니다. 다시 시도하려면 'Convai로 로그인'을 선택하세요.",
+    ["The sign-in did not finish. Try again, or copy your key from convai.com and choose Paste."] = "로그인이 완료되지 않았습니다. 다시 시도하거나, convai.com에서 키를 복사한 뒤 '붙여넣기'를 선택하세요.",
 }

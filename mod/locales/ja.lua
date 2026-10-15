@@ -827,4 +827,12 @@ return {
     ["{count} Convai interactions a month."] = "月 {count} 回の Convai インタラクション。",
     ["{plan}, {price} a month"] = "{plan}、月額 {price}",
     ["{plan}, {price} a year"] = "{plan}、年額 {price}",
+    ["Sign in with Convai"] = "Convai でサインイン",
+    ["Sign in"] = "サインイン",
+    ["Opens Convai’s sign-in page in your browser.\n\nSign in or make a free account, and your Convai API key is saved on this computer, the same as Paste. You have five minutes."] = "ブラウザで Convai のサインインページを開きます。\n\nサインインまたは無料アカウントの作成を行うと、「貼り付け」と同じく Convai APIキーがこのコンピューターに保存されます。制限時間は5分です。",
+    ["Opening Convai’s sign-in page in your browser…"] = "ブラウザで Convai のサインインページを開いています…",
+    ["Sign in on the Convai page in your browser. Your key is saved here when you finish."] = "ブラウザで Convai のページからサインインしてください。完了すると、キーはここに保存されます。",
+    ["Signed in. Your Convai API key is saved."] = "サインインしました。Convai APIキーが保存されました。",
+    ["The sign-in took too long. Choose Sign in with Convai to try again."] = "サインインに時間がかかりすぎました。もう一度試すには「Convai でサインイン」を選んでください。",
+    ["The sign-in did not finish. Try again, or copy your key from convai.com and choose Paste."] = "サインインが完了しませんでした。もう一度試すか、convai.com でキーをコピーしてから「貼り付け」を選んでください。",
 }

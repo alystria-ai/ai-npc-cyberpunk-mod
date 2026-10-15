@@ -38,6 +38,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/convai-key.mjs',
   'bridge/convai-paid-tier.mjs',
   'bridge/convai-quota.mjs',
+  'bridge/convai-signin.mjs',
   'bridge/convai-vision.mjs',
   'bridge/conversation-style.mjs',
   'bridge/custom-models.mjs',

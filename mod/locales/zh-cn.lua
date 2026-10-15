@@ -827,4 +827,12 @@ return {
     ["{count} Convai interactions a month."] = "每月 {count} 次 Convai 互动。",
     ["{plan}, {price} a month"] = "{plan}，每月 {price}",
     ["{plan}, {price} a year"] = "{plan}，每年 {price}",
+    ["Sign in with Convai"] = "使用 Convai 登录",
+    ["Sign in"] = "登录",
+    ["Opens Convai’s sign-in page in your browser.\n\nSign in or make a free account, and your Convai API key is saved on this computer, the same as Paste. You have five minutes."] = "在浏览器中打开 Convai 的登录页面。\n\n登录或注册免费账户后，你的 Convai API 密钥会像“粘贴”一样保存在这台电脑上。你有五分钟时间。",
+    ["Opening Convai’s sign-in page in your browser…"] = "正在浏览器中打开 Convai 的登录页面…",
+    ["Sign in on the Convai page in your browser. Your key is saved here when you finish."] = "请在浏览器中的 Convai 页面登录。完成后，密钥会保存在这里。",
+    ["Signed in. Your Convai API key is saved."] = "已登录。你的 Convai API 密钥已保存。",
+    ["The sign-in took too long. Choose Sign in with Convai to try again."] = "登录耗时太长。请选择“使用 Convai 登录”重试。",
+    ["The sign-in did not finish. Try again, or copy your key from convai.com and choose Paste."] = "登录未完成。请重试，或从 convai.com 复制密钥并选择“粘贴”。",
 }
