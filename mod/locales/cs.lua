@@ -224,6 +224,7 @@ return {
     ["No settings were supplied."] = "Nebyla zadána žádná nastavení.",
     ["You: {text}"] = "Ty: {text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Nebyla zachycena žádná řeč - počkej na stav Poslouchání, pak mluv, než dokončíš.",
+    ["The microphone {name} sends no sound. Check your Windows input device."] = "Mikrofon {name} neposílá žádný zvuk. Zkontroluj vstupní zařízení ve Windows.",
     ["None yet"] = "Zatím žádné",
     ["Not configured"] = "Nenastaveno",
     ["Not running"] = "Neběží",

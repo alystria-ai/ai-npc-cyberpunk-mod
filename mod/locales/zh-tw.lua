@@ -159,6 +159,7 @@ return {
     ["No settings were supplied."] = "未提供任何設定。",
     ["You: {text}"] = "你：{text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "沒有聽到語音，請等待「正在聆聽」後再說話，結束前要開口。",
+    ["The microphone {name} sends no sound. Check your Windows input device."] = "麥克風 {name} 沒有傳出任何聲音。請檢查你的 Windows 輸入裝置。",
     ["Not configured"] = "未設定",
     ["Off"] = "關",
     ["On"] = "開",

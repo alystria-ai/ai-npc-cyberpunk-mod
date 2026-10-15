@@ -834,6 +834,7 @@ local function log(line)
         or entry:find('[Ss]hut') or entry:find('[Cc]rash') then convaiLogFlush() end
     print('[CyberpunkConvai] ' .. line)
 end
+microphone.log = log
 -- Names for nameless ordinary NPCs (docs/NPC_NAMES.md, mod/npc-names.lua). One generator serves the scanner and the talk path.
 -- The gate is the rule above: not ours, not protected (named, quest-bound, story record), a resolved ordinary profile (an archetype
 -- or the two residents), an adult human. Read on demand (a scan, a conversation start), never per frame.
@@ -1746,7 +1747,9 @@ function convaiTalkGate.update(delta, worldReady)
     beginTextNow(waiting.group, waiting.waited)
 end
 
-local function toggleVoice(groupMode)
+-- source: 'press' (the key went down: begin, or finish a recording) or 'release' (the key came back up after a hold: finish only).
+local function toggleVoice(groupMode, source)
+    source = source or 'press'
     local player = Game.GetPlayer()
     if not player then return end
     local ok, err = pcall(function()
@@ -1754,6 +1757,7 @@ local function toggleVoice(groupMode)
         if microphone.context then
             local recordingMode = microphone.context.group and 'group' or 'private'
             if recordingMode ~= mode then
+                if source == 'release' then return end
                 local shortcut = ui.boundKey(recordingMode == 'group'
                     and 'cyberpunk_convai_group_voice' or 'cyberpunk_convai_voice')
                 convaiNotices.send(player, 'mic-finish-hint', shortcut
@@ -1764,6 +1768,13 @@ local function toggleVoice(groupMode)
                 return
             end
             local press = microphone.press()
+            if source == 'release' then
+                -- A held key that began this recording ends it when let go. Anything else about the recording is left alone.
+                if press == 'finish' and gameplayCanAcquire(player) and not (microphone.targetValid and not microphone.targetValid(microphone.context)) then
+                    acceptVoiceSubmission(microphone.finish(mode, 'release'))
+                end
+                return
+            end
             if press ~= 'retry' then
                 -- Spamming the key is safe: a press while the device is still opening, right after
                 -- "Listening", or while a reply is on its way changes nothing (mod/microphone.lua press).
@@ -1773,13 +1784,14 @@ local function toggleVoice(groupMode)
                     if not gameplayCanAcquire(player) or (microphone.targetValid and not microphone.targetValid(microphone.context)) then
                         cancelVoice('microphone-unavailable'); return
                     end
-                    acceptVoiceSubmission(microphone.finish(mode))
+                    acceptVoiceSubmission(microphone.finish(mode, 'press'))
                 end
                 return
             end
             -- The reply is overdue: drop it and fall through to begin a fresh recording.
             cancelVoice('voice-retry')
         end
+        if source == 'release' then return end
         -- Mistral cannot take a spoken message until this computer can recognise speech: say so instead of recording into nothing. One cheap
         -- boolean, asked only here, when the voice key is pressed.
         if manager.voiceNeedsConvai() then
@@ -1826,7 +1838,7 @@ local function toggleVoice(groupMode)
             if primary.voiceOnly then return convaiAddons ~= nil and convaiAddons.participantLive(primary, Game.GetPlayer()) end
             return voiceTargetValid(npc, context)
         end
-        if microphone.begin(context, targetValid) then
+        if microphone.begin(context, targetValid, 'press') then
             if not primary.voiceOnly and not primary.holocall then beginFocus(player, npc) end
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
             local micNote = ui.t('Connecting microphone - wait for Listening')
@@ -2669,8 +2681,47 @@ end
 
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', function() beginText(false) end)
 registerHotkey('cyberpunk_convai_group_text', 'Cyberpunk Convai: group text chat', function() beginText(true) end)
-registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice', function() toggleVoice(false) end)
-registerHotkey('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat', function() toggleVoice(true) end)
+-- The talk keys are inputs, not hotkeys: a hotkey runs its function only when the key comes back UP (docs/COMPANION_HOTKEY_INPUT.md), so a held
+-- key did nothing until it was let go, and a press meant to stop a recording was only seen a moment late. An input reports both edges:
+--   tap (up within HOLD_S)  toggles: the press began the recording, the next press finishes it
+--   hold (up after HOLD_S)  when this very press began the recording, letting go finishes it (hold to talk)
+-- Every edge and what it did is logged.
+local HOLD_S = 0.3
+local voiceKeys = {}
+local function voiceKeyEdge(id, groupMode, isDown)
+    local now = os.clock()
+    local ok, err = pcall(function()
+        local key = voiceKeys[id]
+        if isDown then
+            -- Key repeat while held repeats the down; a release that never came (focus lost) is forgotten after a quiet moment.
+            if key and now - key.seen < 3 then key.seen = now; return end
+            key = {at = now, seen = now}
+            voiceKeys[id] = key
+            local before = microphone.context and tostring(microphone.state) or 'idle'
+            toggleVoice(groupMode, 'press')
+            local after = microphone.context and tostring(microphone.state) or 'idle'
+            key.began = before ~= 'starting' and after == 'starting'
+            log('Voice key ' .. id .. ' down: recording ' .. before .. ' -> ' .. after .. (key.began and ' (this press began it)' or ''))
+        else
+            if not key then log('Voice key ' .. id .. ' up without a down'); return end
+            voiceKeys[id] = nil
+            local held = now - key.at
+            local result = 'tap'
+            if held >= HOLD_S and key.began then
+                if microphone.context and microphone.state == 'recording' then
+                    toggleVoice(groupMode, 'release')
+                    result = 'hold: finish'
+                else
+                    result = 'hold: the device is still opening, press again to finish'
+                end
+            end
+            log(string.format('Voice key %s up after %d ms: %s', id, math.floor(held * 1000 + 0.5), result))
+        end
+    end)
+    if not ok then log('Voice key ' .. id .. ' failed: ' .. tostring(err)) end
+end
+registerInput('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice', function(isDown) voiceKeyEdge('voice', false, isDown) end)
+registerInput('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat', function(isDown) voiceKeyEdge('group_voice', true, isDown) end)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
 -- On the couch the game shows the apartment's own scene choices, not the TV's, so YouTube is also on a key (mod/youtube-tv.lua).
 registerHotkey('cyberpunk_convai_youtube_tv', 'Cyberpunk Convai: YouTube on the TV', function()

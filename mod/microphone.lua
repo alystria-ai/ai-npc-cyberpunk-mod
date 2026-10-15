@@ -31,24 +31,28 @@ local function currentOwner()
     return true
 end
 
-local function command(action, context)
+-- `source` says what caused the command (press, release, cap, pending, cancel...). The bridge logs it, so a recording that does not
+-- stop shows whether the stop reached it.
+local function command(action, context, source)
     local f = io.open('runtime/microphone-command.json', 'wb')
     if not f then return false end
-    f:write(json.encode({nonce = tostring(os.time()) .. ':' .. tostring(os.clock()), action = action, input = context}))
+    f:write(json.encode({nonce = tostring(os.time()) .. ':' .. tostring(os.clock()), action = action, source = source or 'unknown', input = context}))
     f:close()
-    M.lastCommand = {action = action, requestId = context.requestId}
+    M.lastCommand = {action = action, requestId = context.requestId, source = source}
+    if type(M.log) == 'function' then pcall(M.log, 'Microphone command: ' .. action .. ' source=' .. tostring(source or 'unknown')) end
     return true
 end
 
 local function clear()
     M.context, M.state, M.started, M.knowledgeOwner, M.finishPending = nil, nil, nil, nil, nil
+    M.finishPendingSource = nil
     M.targetValid, M.recordingAt, M.finishedAt = nil, nil, nil
     M.heardRaw, M.heardAt = nil, nil
 end
 
 function M.cancel(reason)
     local context = M.context
-    if context then command('cancel', context) end
+    if context then command('cancel', context, reason or 'cancel') end
     clear()
     if context and type(M.onCancelled) == 'function' then M.onCancelled(context, reason or 'cancelled') end
 end
@@ -61,7 +65,7 @@ function M.revoke(context)
     if not context or M.context == context then return false end
     local last = M.lastCommand
     if not last or last.requestId ~= context.requestId or last.action == 'cancel' then return false end
-    return command('cancel', context)
+    return command('cancel', context, 'revoke')
 end
 
 function M.received(requestId)
@@ -88,7 +92,7 @@ function M.press()
     return 'finish'
 end
 
-function M.begin(context, targetValid)
+function M.begin(context, targetValid, source)
     M.cancel('replaced')
     if not capture(context) then return false end
     context.journal = M.captureJournal and M.captureJournal()
@@ -104,7 +108,7 @@ function M.begin(context, targetValid)
         local captured = pcall(M.captureActions, context)
         if not captured then context.chauffeurOffer = nil end
     end
-    if not command('start', context) then
+    if not command('start', context, source or 'press') then
         M.knowledgeOwner = nil
         if type(M.onCancelled) == 'function' then M.onCancelled(context, 'start-write-failed') end
         return false
@@ -114,12 +118,12 @@ function M.begin(context, targetValid)
     return true
 end
 
-function M.finish(mode)
+function M.finish(mode, source)
     local context = M.context
     if not context or M.state == 'reply' or (mode and mode ~= (context.group and 'group' or 'private')) then return nil end
     local captured, reason = capture(context, M.knowledgeOwner)
     if not captured then
-        if reason == 'save-in-progress' then M.finishPending = true else M.cancel() end
+        if reason == 'save-in-progress' then M.finishPending = true; M.finishPendingSource = M.finishPendingSource or source else M.cancel() end
         return nil
     end
     M.finishPending = nil
@@ -132,10 +136,11 @@ function M.finish(mode)
     if M.context ~= context then return nil end
     local current, problem = currentOwner()
     if not current then
-        if problem == 'save-in-progress' then M.finishPending = true else M.cancel() end
+        if problem == 'save-in-progress' then M.finishPending = true; M.finishPendingSource = M.finishPendingSource or source else M.cancel() end
         return nil
     end
-    if not command('finish', context) then M.cancel('finish-write-failed'); return nil end
+    if not command('finish', context, M.finishPendingSource and (M.finishPendingSource .. '-delayed') or source or 'press') then M.cancel('finish-write-failed'); return nil end
+    M.finishPendingSource = nil
     M.state, M.finishedAt = 'reply', os.time()
     return context
 end
@@ -193,6 +198,11 @@ function M.update(player)
             elseif value.state == 'no-speech' then
                 convaiNotices.send(player, 'mic-no-speech', ui.t('No speech was heard. Wait for Listening, then speak before you finish.'))
                 M.cancel('no-speech')
+            elseif value.state == 'silent' then
+                -- The device sent no sound at all (a muted, dead or wrong Windows input): name it instead of "no speech".
+                local name = type(value.device) == 'string' and value.device ~= '' and value.device:sub(1, 80) or '?'
+                convaiNotices.send(player, 'mic-silent', ui.t('The microphone {name} sends no sound. Check your Windows input device.', {name = name}))
+                M.cancel('microphone-silent')
             elseif value.state == 'error' then
                 convaiNotices.send(player, 'mic-error', ui.t('Microphone unavailable. Check your Windows input device.'))
                 M.cancel('microphone-error')
@@ -200,8 +210,8 @@ function M.update(player)
         end
     end
     if M.context and (M.state == 'recording' or M.state == 'reply') then showHeard(player) end
-    if M.context and M.finishPending then return M.finish() end
-    if M.context and M.state == 'recording' and os.time() - M.started >= 30 then return M.finish() end
+    if M.context and M.finishPending then return M.finish(nil, 'pending') end
+    if M.context and M.state == 'recording' and os.time() - M.started >= 30 then return M.finish(nil, 'cap') end
     if M.context and M.state == 'starting' and os.time() - M.started >= 35 then
         M.cancel(); convaiNotices.send(player, 'mic-timeout', ui.t('Microphone connection timed out. Please try again.'))
     end

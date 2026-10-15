@@ -105,6 +105,8 @@ Game['TSF_NPC;']=function()return 'NPC'end
 TargetSearchQuery={new=function()return {}end}
 registerForEvent=function(key,fn)events[key]=fn end
 registerHotkey=function(key,label,fn)hotkeys[key]=fn;hotkeyLabels[key]=label end
+rawInputs={}
+registerInput=function(key,label,fn)rawInputs[key]=fn;hotkeys[key]=function()fn(true);fn(false)end;hotkeyLabels[key]=label end -- hotkeys[key]() is one tap: the down, then the up
 ObserveBefore=function(_,key,fn)hooks[key]=fn end
 ObserveAfter=ObserveBefore
 local phoneOptions,worldOptions,historyOptions
@@ -519,6 +521,42 @@ test('real group voice hotkey freezes three distinct speakers, uses the first mi
  respond(third);tick();speech.requestId=nil;tick()
  assert(#playbacks==3 and group.round==nil and #commands==2)
  assertHotkeyClean()
+`));
+
+test('the talk key is an input with press and release: a tap toggles, a hold records until it is let go, every edge is logged with its source', () => run(`
+ start();looked=judy;people={judy,alex}
+ local checks=0;local function A(ok,message)checks=checks+1;if not ok then error('check '..checks..': '..tostring(message),2)end end
+ local key=rawInputs.cyberpunk_convai_voice;A(key,'the talk key reports its press and release')
+ local function lastCommand()return commands[#commands]end
+ -- a tap begins the recording; the key coming up quickly changes nothing
+ key(true);A(microphone.context and microphone.state=='starting' and lastCommand().action=='start' and lastCommand().source=='press')
+ now=now+0.1;key(false);A(microphone.context and microphone.state=='starting' and #commands==1)
+ micState('recording');tick();A(microphone.state=='recording')
+ -- the second tap finishes on its PRESS, at once (not on its release); the release afterwards does nothing
+ now=now+2;key(true)
+ A(#commands==2 and lastCommand().action=='finish' and lastCommand().source=='press','the stop reached the command file on the press: '..tostring(#commands))
+ A(microphone.state=='reply');now=now+0.1;key(false);A(#commands==2)
+ respond(microphone.context);tick();A(not microphone.context)
+ -- a hold that began the recording ends it on release
+ now=now+3;key(true);A(microphone.state=='starting' and #commands==3)
+ micState('recording');tick();now=now+2.5;key(false)
+ A(#commands==4 and lastCommand().action=='finish' and lastCommand().source=='release','releasing a hold finished it')
+ respond(microphone.context);tick();A(not microphone.context)
+ -- a hold released while the device is still opening cannot finish an empty recording: it stays a toggle, the next press finishes
+ now=now+3;key(true);A(microphone.state=='starting' and #commands==5)
+ now=now+1.5;key(false);A(microphone.state=='starting' and #commands==5,'no finish while the device opens')
+ micState('recording');tick();now=now+1;key(true);key(false)
+ A(#commands==6 and lastCommand().action=='finish' and lastCommand().source=='press')
+ respond(microphone.context);tick()
+ -- key repeat while held is one press; a release without a press is harmless
+ now=now+3;key(true);key(true);key(true);A(#commands==7 and lastCommand().action=='start')
+ now=now+0.05;key(false);key(false)
+ micState('recording');tick();now=now+1;key(true);key(false);A(lastCommand().action=='finish')
+ local logged=table.concat(logs,' | ')
+ A(logged:find('Voice key voice down: recording idle -> starting (this press began it)',1,true))
+ A(logged:find('Voice key voice up after 2500 ms: hold: finish',1,true),logged)
+ A(logged:find('Voice key voice up after 1500 ms: hold: the device is still opening',1,true))
+ A(logged:find('Microphone command: finish source=release',1,true))
 `));
 
 test('registered action names and recording hints respect arbitrary live CET chords', () => run(`

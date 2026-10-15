@@ -224,6 +224,7 @@ return {
     ["No settings were supplied."] = "Non sono state fornite impostazioni.",
     ["You: {text}"] = "Tu: {text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Nessuna voce rilevata - attendi “In ascolto”, poi parla prima di terminare.",
+    ["The microphone {name} sends no sound. Check your Windows input device."] = "Il microfono {name} non invia alcun suono. Controlla il dispositivo di ingresso di Windows.",
     ["None yet"] = "Ancora nessuno",
     ["Not configured"] = "Non configurato",
     ["Not running"] = "Non in esecuzione",

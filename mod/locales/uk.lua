@@ -224,6 +224,7 @@ return {
     ["No settings were supplied."] = "Налаштування не надано.",
     ["You: {text}"] = "Ти: {text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Мовлення не почуто — зачекай, поки з’явиться «Слухаю», і говори, доки не завершиш.",
+    ["The microphone {name} sends no sound. Check your Windows input device."] = "Мікрофон {name} не передає звук. Перевір пристрій введення у Windows.",
     ["None yet"] = "Поки немає",
     ["Not configured"] = "Не налаштовано",
     ["Not running"] = "Не запущено",

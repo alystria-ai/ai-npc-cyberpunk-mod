@@ -159,6 +159,7 @@ return {
     ["No settings were supplied."] = "Aucun paramètre fourni.",
     ["You: {text}"] = "Toi: {text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Aucune parole entendue — attendez Écoute, puis parlez avant de terminer.",
+    ["The microphone {name} sends no sound. Check your Windows input device."] = "Le microphone {name} n'envoie aucun son. Vérifie ton périphérique d'entrée Windows.",
     ["Not configured"] = "Non configuré",
     ["Off"] = "Désactivé",
     ["On"] = "Activé",

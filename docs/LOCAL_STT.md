@@ -102,7 +102,7 @@ words (`microphone-heard.json` from `mic.heard()`) all run through unchanged cod
   reach either. The worker measures the sound itself (`evidence`: loudest sound in dBFS, ms of sound, ms of it voiced, meaning a 70-400 Hz
   pitch repeating inside the 30 ms frame, which vowels have and noise does not) and refuses words (`judge`) when: no sound reached -50 dBFS
   (`quiet`), less than 150 ms of sound (`short`), less than 60 ms of it voiced (`not-voiced`), more than 7.5 words a second
-  (`too-many-words`), the same 1-3 words four times over (`repeating`), or a stock phrase (Thank you., you, bye, so ...) on a weak sound
+  (`too-many-words`), a loop (`repeating`: one word three times in a row among others, a 2-3 word chunk three times in a row, or one content word making up a third or more of a text of six words or more, which caught "Destiny, destiny, destiny, ..." and "tooth tooth on tooth tooth" on 2026-10-15), a long piece of sound that is mostly not voiced (3 s or more of sound with under 35% of it voiced: `not-voiced`; speech measured 51% and up, a headset's hiss with a few vowels in it about 30%), or a stock phrase (Thank you., you, bye, so ...) on a weak sound
   (under 240 ms voiced or quieter than -36 dBFS: `stock-phrase`). A piece of sound that cannot be a voice is not decoded at all. Refused
   live words are sent as an empty partial with `rejected`, a refused final is empty with `rejected` and `ignored` (the words that were held
   back), and the turn ends as "No speech was heard". Moonshine itself gives no confidence scores (`ys_log_probs` is empty) and does not
@@ -113,6 +113,21 @@ words (`microphone-heard.json` from `mic.heard()`) all run through unchanged cod
   sound and ms voiced, and the words (`heard "..."`), the words that were ignored and why, or `no words` (with "the input is almost
   silent, check the Windows input device" below -55 dBFS). A wrong or muted device shows as a label that is not the headset or laptop
   microphone in use, or a near-silent peak.
+- A device that sends no sound (loudest moment under -55 dBFS, measured on the whole recording, not only on pieces that were decoded): the turn ends
+  with `error.code === 'MIC_SILENT'` and the device's name, the bridge writes the state `silent` with `device`, and the game shows "The microphone
+  {name} sends no sound. Check your Windows input device." (notice `mic-silent`) instead of "No speech was heard". A quiet room with no words,
+  or a breath, still gets the ordinary notice.
+- The talk key (live record 2026-10-15: "when I press F8 it doesn't stop recording", two recordings ran to the 30 s cap on a Bluetooth headset
+  microphone). F8 and the group key are CET inputs (`registerInput`), not hotkeys: a hotkey runs only when the key comes back UP, so a held key
+  did nothing until it was let go and a stop press was seen late or lost behind the 2 s a Bluetooth microphone takes to open. Now the key reports
+  both edges (`mod/init.lua voiceKeyEdge`): a press that finds a recording finishes it on the press itself; a press that begins one is a tap if the
+  key is up within 300 ms (the next press finishes) or a hold (letting go finishes it, source `release`), except when the device is still opening
+  (it stays a toggle). Every edge, its recording state and the command source (`press`, `release`, `cap`, `*-delayed`, or the cancel reason) are logged
+  in the game's log, and the bridge logs each command with its source and how many ms into the recording it arrived, then "capture closed N ms after
+  the stop command": the device is closed the moment the stop arrives (`MicrophoneSession.stopCapture`, `channel.endCapture`), before the context
+  refresh and the 700 ms minimum that come before the final decode. Nothing the mod speaks plays into a recording: the key stops all voices and clears the
+  subtitle before the device opens, and automatic add-on remarks and battle/loot reactions wait while a recording is open. The game's own sound and
+  the headset's own sidetone cannot be controlled from the mod.
 - Not installed (Python, worker, model or sherpa-onnx missing): `availability()` says which; `beginVoice` rejects before the microphone
   opens with `error.code === 'local-stt-unavailable'` and `error.reason`.
 - Spam, cancel, supersede: a new `start` cancels the open recording; late audio for an old id is dropped; cancel releases the device

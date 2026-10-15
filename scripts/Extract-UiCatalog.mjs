@@ -435,7 +435,7 @@ for (const [file, tokens] of tokenByFile) {
         }
       }
     }
-    if (file === 'mod/init.lua' && token.value === 'registerHotkey' && tokens[index + 1]?.value === '(') {
+    if (file === 'mod/init.lua' && (token.value === 'registerHotkey' || token.value === 'registerInput') && tokens[index + 1]?.value === '(') {
       const args = argumentsAt(tokens, index + 1), key = staticText(args[0]), label = staticText(args[1]);
       if (key && !key.includes('diagnostic') && label) add(label, 'cet.bindings', [`${file}:${token.line}`]);
     }

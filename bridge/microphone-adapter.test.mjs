@@ -167,6 +167,65 @@ test('a recording with no speech says so, retires the turn and leaves no stuck s
  assert(mic.press()=='idle' and mic.begin(input(false)) and mic.state=='starting')
 `));
 
+test('every command carries what caused it, so a stop that never arrives can be told from a stop that was ignored', () => check(`
+ local logged={};mic.log=function(line)logged[#logged+1]=line end
+ local context=input(false);assert(mic.begin(context,nil,'press') and commands[1].source=='press')
+ state('recording');mic.update(player);now=now+3
+ assert(mic.finish('private','release')==context and commands[2].action=='finish' and commands[2].source=='release')
+ mic.received('voice-1')
+ assert(mic.begin(input(false)) and commands[3].source=='press','a start without a source is a press')
+ state('recording');mic.update(player);now=now+31
+ assert(mic.update(player)~=nil and commands[4].action=='finish' and commands[4].source=='cap','the 30 s limit says so')
+ mic.cancel('menu');assert(commands[5].action=='cancel' and commands[5].source=='menu')
+ -- a finish held back by a save in progress keeps its cause, and says it was delayed
+ local c=input(false);c.requestId='saving';assert(mic.begin(c));state('recording','saving');mic.update(player);now=now+3
+ local saving=true;local capture=mic.captureKnowledge
+ mic.captureKnowledge=function(context)if saving then return false,'save-in-progress' end return capture(context)end
+ assert(mic.finish('private','press')==nil and mic.finishPending and #commands==6)
+ saving=false;assert(mic.update(player)==c and commands[#commands].source=='press-delayed',commands[#commands].source)
+ local text=table.concat(logged,'|')
+ assert(text:find('Microphone command: start source=press',1,true) and text:find('Microphone command: finish source=release',1,true))
+`));
+
+test('a device that sends no sound is named in the game; an ordinary empty recording keeps the generic notice', () => check(`
+ local context=input(false);assert(mic.begin(context))
+ state('recording');mic.update(player);now=now+3;assert(mic.finish('private')==context)
+ files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='silent',device='Default - Headset (realme Buds Air7 Hands-Free)'})
+ assert(mic.update(player)==nil)
+ assert(feedback[#feedback]=='The microphone Default - Headset (realme Buds Air7 Hands-Free) sends no sound. Check your Windows input device.',feedback[#feedback])
+ assert(not mic.context and cancellations[#cancellations].reason=='microphone-silent')
+ -- a state with no name still reads as a sentence and never errors
+ assert(mic.begin(input(false)));state('recording');mic.update(player);now=now+3;assert(mic.finish('private'))
+ files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='silent'})
+ assert(mic.update(player)==nil and feedback[#feedback]:find('The microphone ? sends no sound',1,true))
+`));
+
+test('nothing the mod speaks can play into a recording: the voice key silences it, and automatic, add-on and reaction turns wait', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  // a recording begins by stopping every voice and clearing the subtitle (the hands-free headset microphone would hear it)
+  assert.match(init, /cancelAutomatic\('microphone'\)[^]*?speech\.stop\('microphone'\); subtitles\.clear\(\)[^]*?microphone\.begin\(context, targetValid, 'press'\)/);
+  // while it runs: no automatic add-on remark, and no battle or loot reaction, may start a voice
+  assert.match(init, /seams\.submit = function\(context, anchor\)\n\s+if active or pending or automatic or microphone\.context or groupChat\.round then return false end/);
+  assert.match(init, /local manual = active ~= nil or groupChat\.round ~= nil\n\s+or \(microphone\.context ~= nil and microphone\.state ~= 'reply'\)/);
+  assert.match(init, /microphone = microphone\.context ~= nil and microphone\.state ~= 'reply'/);
+});
+
+test('the talk keys are registered as inputs (press and release), never as release-only hotkeys', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.match(init, /registerInput\('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice'/);
+  assert.match(init, /registerInput\('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat'/);
+  assert.doesNotMatch(init, /registerHotkey\('cyberpunk_convai_(group_)?voice'/);
+});
+
+test('the bridge names a silent input and logs where each microphone command came from', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /error\?\.code === 'MIC_SILENT'/);
+  assert.match(bridge, /silent \? 'silent' : noSpeech \? 'no-speech' : 'error'/);
+  assert.match(bridge, /Microphone: ' \+ command\.action \+ ' command, source '/);
+  assert.match(bridge, /mic\.stopCapture\(input\.requestId\)/);
+  assert.match(source, /value\.state == 'silent'/);
+});
+
 test('the bridge reports a no-speech recording to the game as its own microphone state', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   const client = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8');

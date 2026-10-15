@@ -89,6 +89,18 @@ export class MicrophoneSession {
       if (this.current === session) { this.current = null; await this.onState('off', session.input); }
     }
   }
+  // The stop key was pressed for this recording: close the device now (when the host can), before the finish waits for the context
+  // refresh and the minimum length. Returns the milliseconds since the device opened (null when it is not open yet or this is not
+  // the current recording) so the bridge can log how long the recording ran.
+  async stopCapture(requestId) {
+    const session = this.current;
+    if (!session || session.requestId !== requestId || session.intent === 'cancel' || !session.opened) return null;
+    const ran = Date.now() - session.opened;
+    if (typeof session.host.endCapture === 'function') {
+      try { await session.host.endCapture(); } catch { /* finishVoice reports it */ }
+    }
+    return ran;
+  }
   // The words recognised so far in the open recording, or '' (read-only; touches no state).
   async heard() {
     const session = this.current;
