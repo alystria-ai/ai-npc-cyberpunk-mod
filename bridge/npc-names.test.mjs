@@ -319,12 +319,11 @@ const serviceFixture = `${helpers}
   local function copy(v) if type(v) ~= 'table' then return v end local o = {}; for k, c in pairs(v) do o[k] = copy(c) end; return o end
   local fakeJson = {encode = function(v) tokens = tokens + 1; registry['t' .. tokens] = copy(v); return 't' .. tokens end,
     decode = function(t) return copy(assert(registry[t])) end}
-  local enabled, inCombat = true, {}
+  local inCombat = {}
   local inspected, applied, logs = 0, {}, {}
   local ordinary = {}   -- entity -> traits; absent = refused as 'protected'
   local function make(extra)
     local options = {pools = POOLS, json = fakeJson, io = fakeIo, storePath = 'npc-names.json',
-      enabled = function() return enabled end,
       entity = function(npc) return npc.id end,
       inCombat = function(npc) return inCombat[npc.id] == true end,
       inspect = function(npc) inspected = inspected + 1; local t = ordinary[npc.id]; if t then return t end; return nil, 'protected' end,
@@ -365,25 +364,6 @@ test('the scanner leaves story, named, companion, combat and unprofiled NPCs alo
     N.onScan(nil)
     RESULT = first .. '|' .. #applied .. '|' .. (N.stats.refused.protected or 0)`);
   assert.equal(out, '1|2|1');
-});
-
-test('the setting off: no name, no work, nothing stays loaded', () => {
-  const out = run(`${serviceFixture}
-    ordinary['5ULL'] = {base = 'street-resident', category = 'resident', gender = 'MALE', recordName = 'Character.a'}
-    local loads = 0
-    local N = make({pools = false, loadPools = function() loads = loads + 1; return POOLS end})
-    local on = N.nameFor({id = '5ULL'}, 'talk')
-    enabled = false
-    local off, reason = N.nameFor({id = '5ULL'}, 'talk')
-    N.onScan({id = '5ULL'})
-    local before = inspected
-    N.nameFor({id = '6ULL'}, 'talk')
-    local idle = before == inspected
-    enabled = true
-    local back = N.nameFor({id = '5ULL'}, 'talk')
-    RESULT = tostring(on ~= nil) .. '|' .. tostring(off) .. '|' .. reason .. '|' .. #applied .. '|' .. (idle and 'idle' or 'worked') .. '|' .. loads .. '|' .. tostring(back == on)`);
-  // loads: once at first use, released when switched off, loaded again on the next use; the name itself is unchanged.
-  assert.equal(out, 'true|nil|off|0|idle|2|true');
 });
 
 test('the scanner hook is installed once on NPCPuppet.CompileScannerChunks', () => {
@@ -522,24 +502,19 @@ test('the redscript touches only the scanner name chunk, and only when Lua calls
 });
 
 // -------------------------------------------------------------------------------------------------------------- the setting
-test('Names for passers-by: on by default, in Interface, all locales, shipped in the install lists', () => {
-  assert.match(managerSource, /if type\(settings\.npcNames\) ~= 'boolean' then settings\.npcNames, settingsNeedSave = true, true end/);
-  assert.match(managerSource, /function M\.npcNames\(\)\r?\n    loadSettings\(\)\r?\n    return settings\.npcNames ~= false\r?\nend/);
-  assert.match(managerSource, /or key == 'holocallLiveImage' or key == 'youtubeTv' or key == 'npcNames'/);
-  assert.match(mcmSource, /setting\('npcNames', 'Names for passers-by', 'bool', snapshot\.settings\.npcNames ~= false, true,/);
-  assert.match(mcmSource, /key == 'npcNames'/);
-  const interfaceAt = mcmSource.indexOf("category('interface', 'Interface'"), conversationsAt = mcmSource.indexOf("category('conversation-controls'");
-  const settingAt = mcmSource.indexOf("setting('npcNames'");
-  assert.ok(interfaceAt > 0 && settingAt > interfaceAt && settingAt < conversationsAt, 'the setting sits in the Interface section');
+test('Names for passers-by: always on, no setting, no menu row, no gate, shipped in the install lists', () => {
+  assert.doesNotMatch(managerSource, /npcNames/);
+  assert.doesNotMatch(mcmSource, /npcNames|Names for passers-by/);
+  assert.doesNotMatch(initSource, /npcNames/);
+  assert.doesNotMatch(read('../mod/npc-names.lua'), /options\.enabled|'off'/);
   const locales = readdirSync(new URL('../mod/locales', import.meta.url)).filter(file => file.endsWith('.lua'));
   assert.equal(locales.length, 15);
   for (const file of locales) {
     const text = read(`../mod/locales/${file}`);
-    assert.match(text, /\["Names for passers-by"\] = "[^"]+",/, file);
-    assert.match(text, /\["Pedestrians, shopkeepers and gang members the game leaves nameless[^\]]*\] = "[^"]+\\n\\n[^"]+",/, file);
+    assert.doesNotMatch(text, /Names for passers-by|Pedestrians, shopkeepers and gang members the game leaves nameless/, file);
   }
   const catalog = JSON.parse(read('../localization/en.json'));
-  assert.ok(catalog.strings['Names for passers-by']);
+  assert.equal(catalog.strings['Names for passers-by'], undefined);
   const plan = read('../packaging/release-plan.json'), development = read('../scripts/development-files.json');
   for (const file of ['mod/npc-names.lua', 'mod/npc-name-pools.lua', 'r6/scripts/CyberpunkConvai/NpcNames.reds']) {
     assert.ok(plan.includes(`"source": "${file}"`), `${file} in the release plan`);

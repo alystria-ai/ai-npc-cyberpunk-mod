@@ -2,7 +2,7 @@
 
 2026-10-15, branch `npc-names`. A nameless ordinary NPC (a crowd ped, a gang member, a guard, a shopkeeper the game gives no name) gets a Night City name made from what they are.
 The scanner shows it instead of the generic label ("NC Resident", "Pedestrian"), the conversation tells the NPC "Your name is ...", and the subtitle and composer caption use it.
-Setting: Settings > Interface > **Names for passers-by**, on by default. Built and unit-tested; not seen in the game (checks at the end).
+Always on: there is no setting and no menu row (a saved `npcNames` value from an earlier build is ignored). Built and unit-tested; not seen in the game (checks at the end).
 
 ## What counts as ordinary (the gate)
 
@@ -78,9 +78,9 @@ Valentinos: Javier Soto, Marisol Soto, Nallely Portillo. Tyger Claws: Naoki Goto
 | `characters/npc-name-pools.json` | Source of the pools and the blocked names. |
 | `scripts/Build-NpcNamePools.mjs` | Validates the data, writes the Lua, `--check`. |
 | `r6/scripts/CyberpunkConvai/NpcNames.reds` | `NPCPuppet.ConvaiApplyScannerName` (needs a game restart). |
-| `mod/init.lua`, `mod/manager.lua`, `mod/mcm.lua`, `mod/locales/*.lua` | Wiring, the `npcNames` setting (on by default), the Interface row and its 15 translations. |
+| `mod/init.lua`, `mod/manager.lua`, `mod/mcm.lua`, `mod/locales/*.lua` | Wiring (`convaiNpcNames`, the scanner observer, the talk-path name); no setting, no menu row, no strings. |
 | `bridge/protocol.mjs` | `npcName` parsing and the context lines. |
-| `bridge/npc-names.test.mjs` | 25 tests: pools, determinism, trait mapping, no repeats in 500, no named-character names in 12,000, the gate, the service, scanner hook, vendor file and cap, context line, setting. |
+| `bridge/npc-names.test.mjs` | 25 tests: pools, determinism, trait mapping, no repeats in 500, no named-character names in 12,000, the gate, the service, scanner hook, vendor file and cap, context line, the setting gone. |
 
 ## Install
 
@@ -93,5 +93,5 @@ Valentinos: Javier Soto, Marisol Soto, Nallely Portillo. Tyger Claws: Naoki Goto
 3. Scan a gang member (Valentinos, Tyger Claws, Voodoo Boys, nomad): the name fits the faction. If the culture looks wrong for a record, the `probe.log` line shows the appearance name and culture; tune `TOKENS`.
 4. Scan a story or named character (Judy, a quest NPC), a companion, a vehicle, an enemy in combat: the game's own label, unchanged.
 5. A shopkeeper (a one-shop ripperdoc or vendor): the name is the same after a restart of the game. `npc-names.json` appears next to the CET mod files.
-6. Interface > Names for passers-by off: scanner and conversation go back to the generic label; on again: the same names return.
+6. Settings > Interface: there is no "Names for passers-by" row; names are always on.
 7. `NPCPuppet.CompileScannerChunks` observer: if scanning shows no name and `probe.log` says "the scanner chunk was not changed", the chunk has no `ScannerName` for that NPC (the preset hides names) or CET could not hook the function; the log line says which answer came back.

@@ -272,8 +272,6 @@ return {
     ["Redscript log"] = "Журнал Redscript",
     ["Relationships"] = "Стосунки",
     ["Talk to ordinary NPCs"] = "Розмови зі звичайними NPC",
-    ["Names for passers-by"] = "Імена для перехожих",
-    ["Pedestrians, shopkeepers and gang members the game leaves nameless get a Night City name. The scanner shows it and they tell you when you ask.\n\nThe name fits who they are: a Valentino sounds different from a corpo. Story characters and your companions keep their own names."] = "Перехожі, торговці та члени банд, яких гра лишає без імені, отримують ім’я з Найт-Сіті. Сканер показує його, і вони назвуть його, якщо спитаєш.\n\nІм’я пасує тому, хто вони такі: Валентіно звучить інакше, ніж корпо. Сюжетні персонажі та твої супутники зберігають свої імена.",
     ["Conversation: {name} (archetype)"] = "Розмова: {name} (архетип)",
     ["{count} of them can talk."] = "З них можуть говорити: {count}.",
     ["Releasing local voice memory"] = "Вивільнення пам’яті локального голосу",
