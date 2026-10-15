@@ -555,6 +555,7 @@ test('with nothing above V (a high apartment) the copy is placed on the ground b
   tick(2)
   local row = holocall.faceRow()
   assert(row and row.entity == entities[row.entity].id and row.npc == entities[row.entity] and row.profileKey == 'judy-alvarez' and row.name == 'Judy Alvarez')
+  assert(row.expressionBoost == holocall.FACE_BOOST and holocall.FACE_BOOST > 1, 'her feelings are drawn stronger in the small picture')
   assert(holocall.faceRow() == row and holocall.ownsFace(row.npc) and not holocall.ownsFace(player))
   holocall.finish(player, 'hangup')
   assert(holocall.faceRow() == nil and not holocall.ownsFace(row.npc), 'gone at the hang-up')
