@@ -72,8 +72,8 @@ M.FACE_RANGE, M.NEAR_RADII, M.NEAR_TOP, M.NEAR_BOTTOM = 11, {5, 8}, 10, -10
 M.FACE_BOOST = 1.6
 -- ... and her smile is drawn with its full shape (facial-playback.lua shapeStretch): live, 2026-10-16, forced poses on
 -- Alex's call copy at full window resolution showed every control reaching the face, but corners up alone (even at 1)
--- barely widened her mouth and the lower-lid squint never moved; the corner stretch and upper-lip raise that follow
--- the corners make the smile read.
+-- barely widened her mouth and the lower-lid squint never moved; the corner stretch, upper-lip raise and lip stretch
+-- that follow the corners make the smile read.
 M.SMILE_SHAPE = 1
 -- A near column is tried floor by floor: when the first floor down a column will not do (V's own floor, in plain view),
 -- the next one under it is tried, up to NEAR_LAYERS floors (live, 2026-10-16: on a terrace every near column's first

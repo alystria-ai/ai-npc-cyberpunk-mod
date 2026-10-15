@@ -230,16 +230,19 @@ local function boostScale(scale,boost) if scale and boost>1 then return math.min
 -- The smile shape (live, 2026-10-16, Alex's call picture, forced poses at full window resolution): every control reaches
 -- the call copy's face (jaw, corners, brows, widened eyes all move), but corners up alone, even at 1, only widen her
 -- mouth a little at that size, and the lower-lid squint does not move at all on her head, so a reply's joy looked like
--- no expression. Corners up with the corner stretch and the upper-lip raise read as a smile at once. A row's
--- smileShape (holocall faceRow) derives both from the corners up this frame wrote, after the eases, the mood hold and
--- the mouth budget shaped them: corner stretch = corner up x shapeStretch x shape, upper-lip raise = corner up x
--- shapeUpper x shape, each at most shapeCap. While she speaks the lip sync's own value wins where it is larger. It
+-- no expression. Corners up with the corner stretch, the upper-lip raise and a little lip stretch read as a smile at
+-- once (captures at joy's corners .74: upper-lip raise .33 still subtle, .6 shows the teeth; lip stretch .4 widens it).
+-- A row's smileShape (holocall faceRow) derives them from the corners up this frame wrote, after the eases, the mood
+-- hold and the mouth budget shaped them: corner stretch = corner up x shapeStretch, upper-lip raise = x shapeUpper, lip
+-- stretch = x shapeWide (each times the shape, at most shapeCap). While she speaks the lip sync's own value wins where
+-- it is larger. It
 -- costs a few multiplies inside the frame the writer applies anyway. nil (0) for everyone else. Mirrored in the native
 -- core (native/core/src/systems/faces/core/FacesPose.cpp, ctl[32]).
-local shapeStretch,shapeUpper,shapeCap=1,.45,.8
+local shapeStretch,shapeUpper,shapeWide,shapeCap=1,.8,.5,.8
 local shapeFields={{'lips_l_corner_stretch','lips_l_corner_up',shapeStretch},{'lips_r_corner_stretch','lips_r_corner_up',shapeStretch},
-    {'lips_l_upper_raise','lips_l_corner_up',shapeUpper},{'lips_r_upper_raise','lips_r_corner_up',shapeUpper}}
-M.smileShapeGains={stretch=shapeStretch,upper=shapeUpper,cap=shapeCap}
+    {'lips_l_upper_raise','lips_l_corner_up',shapeUpper},{'lips_r_upper_raise','lips_r_corner_up',shapeUpper},
+    {'lips_l_stretch','lips_l_corner_up',shapeWide},{'lips_r_stretch','lips_r_corner_up',shapeWide}}
+M.smileShapeGains={stretch=shapeStretch,upper=shapeUpper,wide=shapeWide,cap=shapeCap}
 local speechMouthFactor=.85
 -- The jaw weight (as written) from which a speaking, jaw-lifted head carries no chin raise / no corner depressors.
 local chinDuckJaw,cornerDuckJaw=.10,.20
