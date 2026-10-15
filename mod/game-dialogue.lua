@@ -375,7 +375,11 @@ function Instance:ruleLine(line, rule, muted, seconds, measured)
     self:count('muted', rule.name or '?')
     if type(options.onMuted) == 'function' then
         local number = call(N.lineNumber, line)
-        pcall(options.onMuted, rule, {seconds = seconds, measured = measured, audio = audio, subtitle = subtitle,
+        -- What kind of line it is and what plays it, for the log: the Wwise stop is a guess for a scene voice (the Delamain cab's goodbye was heard
+        -- through it live, 2026-10-16), and these two say which event family to try next.
+        local kind = call(N.lineType, line.type)
+        local class = call(function() return tostring(line.speaker:GetClassName()) end)
+        pcall(options.onMuted, rule, {seconds = seconds, measured = measured, audio = audio, subtitle = subtitle, kind = kind, speakerClass = class,
             repeatStop = type(again) == 'function' and again or nil,
             id = number and string.format('%06d', number % 1000000) or '?'})
     end

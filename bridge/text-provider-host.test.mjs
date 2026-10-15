@@ -515,3 +515,47 @@ test('a stream that goes quiet after the first sentence ends with that sentence 
     assert.ok(logs.some(line => line.includes('that sentence is the reply')), logs.join('|'));
   } finally { host.close(); server.http.closeAllConnections?.(); await new Promise(done => server.http.close(done)); }
 });
+
+// ---- An add-on speaker never says V's words (live 2026-10-16: the cab said "Thanks, Del." after V's "thanks del") -----------------------
+
+test('an add-on host cuts V\'s own line off the front of a reply, in the voice\'s stream and in the finished text', async () => {
+  const {ReplyStream} = await import('./reply-stream.mjs');
+  const echo = 'Thanks, Del. A short drive is still a drive, and I will make it smooth. Nine hundred metres is nothing to me.';
+  const {host, close} = await harness(() => echo, {host: {stripPlayerEcho: true}});
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    const heads = [];
+    stream.onChange(() => { if (stream.head !== null) heads.push(stream.head); });
+    const result = await host.reply(turn('thanks del'), {stream});
+    assert.equal(result.text, 'A short drive is still a drive, and I will make it smooth. Nine hundred metres is nothing to me.');
+    assert.equal(stream.head, 'A short drive is still a drive, and I will make it smooth.', 'the voice started on the answer, never on V\'s words');
+    assert(!heads.some(head => /thanks/i.test(head)));
+    assert.doesNotMatch(stream.text, /Thanks, Del/);
+  } finally { await close(); }
+});
+
+test('without the option a host leaves a reply as the model wrote it (the main companions are unchanged)', async () => {
+  const {host, close} = await harness(() => 'Thanks, Del. A short drive is still a drive, and I will make it smooth.');
+  try {
+    const result = await host.reply(turn('thanks del'));
+    assert.match(result.text, /^Thanks, Del\. A short drive/);
+  } finally { await close(); }
+});
+
+test('an add-on host keeps only its own lines when the model writes V\'s side of the talk as a script', async () => {
+  const {host, close} = await harness(() => 'V: Thanks, Del.\nJudy Alvarez: A short drive is still a drive, and I will make it smooth.\nV: Really?', {host: {stripPlayerEcho: true}});
+  try {
+    const result = await host.reply(turn('thanks del'));
+    assert.equal(result.text, 'A short drive is still a drive, and I will make it smooth.');
+  } finally { await close(); }
+});
+
+test('an add-on host shows the model its own earlier replies without V\'s words at their start', async () => {
+  const {server, host, memory, close} = await harness(() => 'The route is optimal.', {host: {stripPlayerEcho: true}});
+  try {
+    memory.record({profileKey: 'judy-alvarez', v: 'thanks del', r: 'Thanks, Del. A short drive is still a drive.'});
+    await host.reply(turn('yes'));
+    const sent = server.requests.at(-1).body.messages.filter(message => message.role === 'assistant').map(message => message.content);
+    assert(!sent.some(content => /^Thanks, Del/.test(content)));
+  } finally { await close(); }
+});

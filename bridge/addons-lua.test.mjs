@@ -1493,3 +1493,22 @@ test('Face.reds: the screen-face watch is checked only while a rig is watched, b
   assert.match(reds, /ArraySize\(this\.m_screenRigs\) < 4 && StrEndsWith\(rig, "\.rig"\)/);
   assert.match(reds, /public func ScreenFace\(rig: String\) -> EntityID/);
 });
+
+test('repeatOk: a remark may be said although it repeats a recent line; the option reaches the bridge request and nothing else changes', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 0})
+    assert(handle:remark('gun', {event = 'welcome', text = 'V sat down.', priority = 4, maxWords = 20, repeatOk = true}))
+    assert(M._test.queue()[1].event.repeatOk == true)
+    tick()
+    assert(submitted[1].context.addon.repeatOk == true, 'the request carries it')
+    state.pendingId, state.speechId = nil, submitted[1].context.requestId
+    tick(); state.speechId = nil; tick(); now = now + 30; tick(30)
+    assert(handle:remark('gun', {event = 'plain', text = 'Something.', priority = 4, maxWords = 20}))
+    tick()
+    assert(submitted[2].context.addon.repeatOk == nil, 'an ordinary remark is dropped for a repeat, as before')
+    assert(handle:remark('gun', {event = 'other', text = 'Something.', priority = 4, repeatOk = 'yes'}) ~= nil)
+    assert(M._test.queue()[1] == nil or M._test.queue()[1].event.repeatOk == false)
+  `);
+});

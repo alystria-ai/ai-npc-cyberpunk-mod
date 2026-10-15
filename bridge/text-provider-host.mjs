@@ -10,7 +10,7 @@
 // failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind} from './mistral-client.mjs';
-import {PersonaBook, buildMessages, cleanReply, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
+import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, speakerTurn, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
 import {actionMenu, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
@@ -165,11 +165,13 @@ export class TextProviderHost {
    * matureContent  the Mature setting (bridge/mature-content.mjs); the hard-limit guard runs for a turn on the local AI when it is on or when the loaded
    *                model is an uncensored one (the guard follows the model that answers, not only the setting)
    * guardOnly      true for an add-on's host: the guard (input screen, output screen, adults-only and hard-limit lines) but never the crude Mature persona layer
+   * stripPlayerEcho  true for an add-on's host: a conversation reply that opens by saying V's own line again (or writes V's side of the talk as a
+   *                script) loses those words, in the text the voice is given as it streams and in the finished reply (stripPlayerEcho in mistral-prompt.mjs)
    */
   constructor({provider, memory, personas = new PersonaBook(), routes = {}, transformReply = result => result, now = () => performance.now(),
-    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, matureContent = null, matureGuard = new MatureGuard(), guardOnly = false} = {}) {
+    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, matureContent = null, matureGuard = new MatureGuard(), guardOnly = false, stripPlayerEcho: echoCut = false} = {}) {
     if (!provider) throw Error('Text provider required');
-    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, matureContent, matureGuard, guardOnly});
+    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, matureContent, matureGuard, guardOnly, echoCut});
     this.summaries = new Set();
     this.matureLogged = new Set();
     this.holdingTurns = 0;
@@ -436,7 +438,10 @@ export class TextProviderHost {
     const guard = mature ? true : await this.#guardOn(route, signal);
     // This turn's action notes go last in the prompt, after everything that can be cached.
     let notes = actionNotes;
-    const build = nudge => buildMessages({persona, memory: recalled.summary, history: recalled.turns,
+    const cutEcho = this.echoCut && !reaction;
+    // An earlier reply of the speaker that opened with V's words (stored before this was cut) is shown to the model without them: a model copies the pattern of its own history.
+    const history = cutEcho ? recalled.turns.map(turn => ({...turn, r: stripPlayerEcho(turn.r, turn.v)})) : recalled.turns;
+    const build = nudge => buildMessages({persona, memory: recalled.summary, history,
       context: notes && !config.contextParts ? joinBlocks([config.context, notes]) : config.context,
       contextParts: notes && config.contextParts ? {...config.contextParts, volatile: joinBlocks([config.contextParts.volatile, notes])} : config.contextParts,
       remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})});
@@ -449,7 +454,11 @@ export class TextProviderHost {
       else { spec.missed = true; notes = speculation.notesFor(decided); spec.controller.abort(); }
     });
     // An action code ("[DRIVE]") is never part of the reply: the voice, the subtitles and the memory see the text without it.
-    const visible = soFar => splitActions(soFar, {streaming: true}).text;
+    // An add-on speaker never says V's words: a reply that starts with V's line (or V's label) is held back from the voice until it moves on.
+    const visible = soFar => {
+      const shown = splitActions(soFar, {streaming: true}).text;
+      return cutEcho ? stripPlayerEcho(speakerTurn(shown, persona.name, {streaming: true}), text, {streaming: true}) : shown;
+    };
     // A remark with a word limit (reaction.maxWords, an add-on's) also stops the stream at that limit plus a little, is asked for few
     // tokens, and is cut at its last sentence end. Ordinary replies and battle barks carry no such limit and are unchanged.
     const wordLimit = reaction && Number.isInteger(config.reaction?.maxWords) && config.reaction.maxWords > 0 ? config.reaction.maxWords : 0;
@@ -470,6 +479,7 @@ export class TextProviderHost {
       markStage('fullText');
       const {text: spoken} = splitActions(response.text);
       let cleaned = cleanReply(spoken, {name: persona.name, isTag});
+      if (cutEcho) cleaned = stripPlayerEcho(cleaned, text);
       if (response.finishReason === 'length') cleaned = trimUnfinished(cleaned);
       let reply = capReply(cleaned, this.limits);
       if (wordLimit) reply = capWords(reply, wordLimit);

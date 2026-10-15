@@ -511,7 +511,7 @@ Handle.speaker = guard('speaker', function(self, def)
     return key
 end)
 
---- handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus})
+--- handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus, repeatOk})
 --- -> true, or false and the reason.
 --- hold() -> bool (optional): the remark is written and voiced as soon as it can be, but kept silent while hold() is true (checked on
 --- the 0.1 s tick; handle:releaseHold plays it at once). For a line that must start the instant something happens (Delamain's welcome
@@ -521,6 +521,9 @@ end)
 --- first words move the face. Past it the remark plays and the face joins when it appears (speech.lua).
 --- menus = true | function() -> bool (optional): while the remark plays (or is held), an open game menu (the cab's destination map)
 --- does not pause it. The function form is checked on the 0.1 s tick.
+--- repeatOk = true (optional): the bridge says the line even when it nearly repeats one of the speaker's recent lines (after its one second try)
+--- instead of dropping it. For a line V would miss altogether, such as a welcome that replaces the game's own; a line that breaks a rule of its
+--- speaker is still dropped.
 Handle.remark = guard('remark', function(self, speakerId, event)
     local speaker = speakerOf(self, speakerId)
     if not speaker then return false, 'unknown speaker' end
@@ -542,7 +545,7 @@ Handle.remark = guard('remark', function(self, speakerId, event)
     if cooldown > 0 and speaker.events[event.event] and clock - speaker.events[event.event] < cooldown then return false, 'event-cooldown' end
     local entry = {speaker = speaker, at = clock, event = {event = event.event, text = trim(event.text, LIMITS.eventText), facts = facts,
         priority = math.floor(number(event.priority, 1, 5, 2)), maxWords = math.floor(number(event.maxWords, 3, 60, 14)),
-        interrupt = event.interrupt == true, cooldown = cooldown, stock = event.stock == true}}
+        interrupt = event.interrupt == true, cooldown = cooldown, stock = event.stock == true, repeatOk = event.repeatOk == true}}
     entry.ttl = number(event.ttl, 1, 30, DEFAULT_TTL)
     entry.expires = clock + entry.ttl
     -- patience (seconds, 0 = none): the remark waits for a game scene or dialogue line instead of being dropped for it, then goes after
@@ -841,6 +844,8 @@ Handle.prepare = guard('prepare', function(self, speakerId)
     local player = host.player and host.player()
     if not speakerAvailable(speaker, player) then return false, 'speaker-unavailable' end
     local _, entity = resolveAnchor(speaker, player)
+    -- A speaker with an `approach` object (the cab V is walking up to) is warmed before V is in it: warming is a stamp for the bridge, not a line.
+    if not entity and speaker.approach then _, entity = resolveAnchor({anchor = speaker.approach}, player) end
     if not entity then return false, 'anchor-unavailable' end
     speaker.warmedAt = clock
     -- The bridge warms the speaker's text route (a Mistral connection, or its prompt in the local AI) when it sees the stamp.
@@ -1276,7 +1281,7 @@ local function schedule(player, state, worldReady)
                     priority = event.priority, expiresAt = math.floor((now + 1 + math.max(1, entry.expires - clock)) * 1000)},
                 addon = {id = speaker.addon.id, speaker = speaker.id, event = event.event, text = event.text,
                     facts = event.facts, maxWords = event.maxWords, mode = speaker.mode, blocks = speakerBlocks(speaker),
-                    stock = event.stock or nil}}
+                    stock = event.stock or nil, repeatOk = event.repeatOk or nil}}
             context.requestId = tostring(now) .. '-' .. tostring(generation) .. '-' .. entity
             local episode = episodeOf(speaker.addon)
             flight = {requestId = context.requestId, speaker = speaker, event = event.event, priority = event.priority,
@@ -1403,8 +1408,9 @@ end
 function M.mutedLine(rule, info)
     if type(rule) ~= 'table' or type(info) ~= 'table' then return end
     local seconds = number(info.seconds, 0.5, 15, 3)
-    log(string.format('muted game line: %s %s (subtitle=%s audio=%s %.1fs)', tostring(rule.name), tostring(info.id),
-        tostring(info.subtitle), tostring(info.audio), seconds))
+    log(string.format('muted game line: %s %s (subtitle=%s audio=%s %.1fs%s)', tostring(rule.name), tostring(info.id),
+        tostring(info.subtitle), tostring(info.audio), seconds,
+        (info.kind and (' type=' .. tostring(info.kind)) or '') .. (info.speakerClass and (' speaker=' .. tostring(info.speakerClass)) or '')))
     rule.addon.mutedUntil = clock + seconds + 0.4
     -- A scene voice can start a moment after its subtitle line, and a Stop that came first finds nothing to stop: the same stop is sent
     -- again at STOP_REPEAT_AT seconds, on the 0.1 s tick that already runs (a few table reads, no scan, nothing per frame).

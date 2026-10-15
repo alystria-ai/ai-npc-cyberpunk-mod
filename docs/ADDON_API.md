@@ -183,7 +183,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 | Method | What it does |
 |---|---|
 | `handle:speaker{id, name, anchor, available, talk, group, minGap, talkPriority, sceneTiers, playThrough, voiceFrom, showsReply, approach, face}` | Adds a voice and returns its profile key. `id` and `name` must match the manifest. The options are described below this table. |
-| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
+| `handle:remark(speakerId, {event, text, facts, priority, ttl, maxWords, interrupt, cooldown, patience, relevant, hold, holdMax, faceWait, menus, repeatOk})` | Asks for one automatic line. See Remarks. Returns `true` when the remark is queued, or `false, reason` with one of `speaker-cooldown`, `addon-gap`, `episode-budget`, `no-provider`, `event-cooldown`, `busy`, `queue-full` or `add-on disabled`. |
 | `handle:setMode(speakerId, modeId)` | Switches the speaker's personality (a mode in the manifest). It is sent with every turn and in `runtime/addon-state.json`. |
 | `handle:remember(speakerId, text)` | Keeps a memory the speaker can call back to later, for example "V spared the Tyger Claw who begged." At most 300 characters; a repeat is ignored. The bridge keeps the last 12 per speaker across game sessions. |
 | `handle:setContext(speakerId, key, text, tier)` | Adds a prompt block to every turn of this speaker until it is cleared with `text = nil`. At most 8 blocks of 1,500 characters. `tier` is `'world'` (default; changes rarely), `'volatile'` (changes every turn) or `'notes'`. |
@@ -192,7 +192,7 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
 | `handle:on(event, fn)` / events | See Events. |
 | `handle:settings{title, description, remarkCap, fixed, items}` / `handle:setting(id)` | A section on the main settings page. See Settings. |
 | `handle:setEnabled(bool)` | A disabled add-on is never offered for talk and makes no remarks. Its waiting remarks are dropped. |
-| `handle:prepare(speakerId)` | Warms the speaker's text route (opens the Mistral connection, or loads its prompt into the local AI). Call it when the speaker becomes available, for example when a fight starts or V gets into the cab. At most once every 20 s. |
+| `handle:prepare(speakerId)` | Warms the speaker's text route (opens the Mistral connection, or loads its prompt into the local AI). Call it when the speaker becomes available, for example when a fight starts or V gets into the cab. At most once every 20 s. A speaker with an `approach` object is warmed while that object is there, before V is in it (the Delamain cab parks near V). |
 | `handle:cancel(speakerId)` | Drops the speaker's waiting remarks and stops its remark that is playing. |
 | `handle:releaseHold(speakerId)` | The speaker's held remark (`hold`) plays now, without waiting for the next tick (with `faceWait`, as soon as the speaker's screen face is ready). `true` when one was held. See "Held remarks and menus". |
 | `handle:watchFace(speakerId, on)` | Starts or ends the watch of the speaker's screen face (`face`). See "A face on a screen". |
@@ -266,6 +266,10 @@ handle:remark('delamain', {event = 'boarded', priority = 4, ttl = 20, maxWords =
   at most `faceWait` seconds; then it plays anyway and the face joins when it appears. The Delamain cab's screen NPC is spawned by the
   game's scene as V sits, after the welcome was voiced (live test 2026-10-15: the welcome's face stayed still, the later lines moved it),
   so the welcome waits up to 1.5 s for it.
+- **`repeatOk = true` (default false)**: the bridge normally drops a remark that nearly repeats one of the speaker's recent lines (after one second try that
+  names the lines to avoid). With `repeatOk` such a remark is said anyway: for a line V would miss altogether, like the cab's welcome that replaces the
+  game's own. A line that breaks a rule of its speaker (the add-on's `check` hook) is still dropped. The log says `remark <event> repeats a recent line ...; said anyway (repeatOk)`.
+  The repeat check also takes greeting and farewell words ("good evening", "welcome back", "thank you") as common, so a welcome that opens the way welcomes do is not a repeat of another.
 - **`menus = true | function() -> bool`**: while the remark plays (or is held), an open game menu does not pause it: speech.lua
   compares the request id once per frame, as it already reads the menu flag. The function form runs on the 0.1 s tick. Without it a
   menu pauses the line and it resumes afterwards, as always.

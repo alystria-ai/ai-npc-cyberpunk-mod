@@ -137,3 +137,29 @@ test('characterInfo: the roster tells a bridge module who a companion is, by key
   assert.equal(host.characterInfo('Nobody'), null);
   assert.equal(host.characterInfo(42), null);
 });
+
+test('repeat check: a welcome that opens like another welcome is not a repeat, and a repeatOk remark is said even when it is one (live 2026-10-16)', async () => {
+  // The cab's welcome was dropped twice as "a repeat of a recent line" because "Good evening, V. The ..." and "Welcome back, V. The ..." share a run of four words.
+  assert.equal(isNearDuplicate('Good evening, V. The last tip has been forgiven, if not forgotten.', 'Good evening, V. The Heywood air is no excuse for a late start.'), false);
+  assert.equal(isNearDuplicate('Welcome back, V. The Glen is quiet enough for a new start.', 'Welcome back, V. The upholstery has missed you.'), false);
+  assert.equal(isNearDuplicate('Thank you, V. The fare is settled.', 'Thank you, V. The cab is spotless.'), false);
+  // Real reuse still counts.
+  assert.equal(isNearDuplicate('Welcome back, V. The Glen is quiet enough for a new start.', 'Welcome back, V. The Glen is quiet enough for a fresh start.'), true);
+  const {host} = hostFor();
+  host.afterReply(remark(), 'The rain suits the paintwork, V.');
+  const again = async () => ({text: 'The rain suits the paintwork, V.'});
+  const plain = await host.produce(remark(), again);
+  assert.deepEqual([plain.duplicate, plain.kept], [true, false], 'without the option it is dropped');
+  const ok = {...remark(), addon: {...remark().addon, repeatOk: true}};
+  let calls = 0;
+  const kept = await host.produce(ok, async () => { calls++; return {text: 'The rain suits the paintwork, V.'}; });
+  assert.equal(calls, 2, 'it still gets its second try first');
+  assert.deepEqual([kept.duplicate, kept.kept, kept.retried], [false, true, true]);
+  assert.equal(kept.reply.text, 'The rain suits the paintwork, V.');
+  // Too late for a second try: kept too. A line that broke a rule of its speaker is never said.
+  const late = await host.produce({...ok, reaction: {...ok.reaction, expiresAt: 1}}, again);
+  assert.deepEqual([late.duplicate, late.kept, late.retried], [false, true, false]);
+  const {parseAddonInput} = await import('./addons.mjs');
+  assert.equal(parseAddonInput({id: 'cab', speaker: 'driver', repeatOk: true}).repeatOk, true);
+  assert.equal(parseAddonInput({id: 'cab', speaker: 'driver', repeatOk: 'yes'}).repeatOk, undefined);
+});
