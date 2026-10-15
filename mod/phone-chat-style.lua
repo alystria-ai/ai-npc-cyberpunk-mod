@@ -187,12 +187,18 @@ function M.header(controller, index)
     -- binds MainColors.PanelRed; the tab's state picks the label colour, set as the game's UpdateLabelsStates does. (The
     -- old copy of the lines' tints walked the icon's children, and the icon is an image with none: the error stopped the
     -- function before the underline was tinted, which left it white.)
-    tab:SetState(CName.new(index == 4 and 'Selected' or 'Default'))
-    for _, part in ipairs({icon, label}) do
-        part:BindProperty(CName.new('tintColor'), CName.new('MenuLabel.MainColor'))
-        part:BindProperty(CName.new('opacity'), CName.new('MenuLabel.MainOpacity'))
+    local state = CName.new(index == 4 and 'Selected' or 'Default')
+    if created then
+        for _, part in ipairs({icon, label}) do
+            part:BindProperty(CName.new('tintColor'), CName.new('MenuLabel.MainColor'))
+            part:BindProperty(CName.new('opacity'), CName.new('MenuLabel.MainOpacity'))
+        end
+        line:BindProperty(CName.new('tintColor'), CName.new('MainColors.PanelRed'))
+        -- A state-dependent binding is only resolved on a state change: the new tab is already 'Default', so setting
+        -- that again left the icon and label white when the phone first opened. Pass through the other state once.
+        tab:SetState(CName.new(index == 4 and 'Default' or 'Selected'))
     end
-    line:BindProperty(CName.new('tintColor'), CName.new('MainColors.PanelRed'))
+    tab:SetState(state)
     if index == 4 and (created or not M.headerPatched) then controller:ScrollTo(4, true) end
     M.headerIndex = index
     M.headerPatched = true

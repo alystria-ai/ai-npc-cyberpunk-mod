@@ -76,7 +76,7 @@ local function widget(name)
   function w:GetController()return self.controller end
   function w:IsA(class)return self.fontText and class=='inkTextWidget'end
   function w:GetState()return self.state end
-  function w:SetState(value)self.state=value end
+  function w:SetState(value)self.state=value;self.states=self.states or {};self.states[#self.states+1]=value.source end
   function w:GetText()return self.text end
   function w:SetText(value)self.text=value end
   function w:GetTintColor()return self.tint end
@@ -420,6 +420,13 @@ for _,part in ipairs({icon,label})do
   assert(part.tint.Red==1 and part.tint.Green==0,'no tint is written')
 end
 assert(tab.state==CName.new('Default'),'default state')
+-- The new tab is already 'Default', and the binding only resolves on a state change, so the build passes through
+-- 'Selected' once (the label was white when the phone first opened). Later calls only set the state.
+assert(table.concat(tab.states,',')=='Selected,Default','build re-applies the state: '..table.concat(tab.states,','))
+local binds=icon.bound;icon.bound=nil
+m.header(c,0)
+assert(table.concat(tab.states,',')=='Selected,Default,Default' and icon.bound==nil,'later calls do not rebind or toggle')
+icon.bound=binds
 m.header(c,4)
 assert(tab.state==CName.new('Selected') and m.lastError==nil,'selected state '..tostring(m.lastError))
 m.header(c,1)

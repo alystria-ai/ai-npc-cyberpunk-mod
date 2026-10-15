@@ -94,6 +94,10 @@ replies. No API keys or session IDs enter game widgets or test output.
   red or the active blue, as the game's `UpdateLabelsStates` does for its tabs; the moving active-blue line marks the
   selected tab. No tint is copied. The earlier tint copy walked the icon's children, but the icon is an image with no
   children, so the error stopped it before the underline was coloured, which left it white.
+  The bindings are made once, when the styler builds the tab, and a state-dependent binding is only resolved on a state
+  change (branch `chat-label`): the new tab is already `Default`, so the icon and label stayed white when the phone first
+  opened and turned red only after Chat had been selected once. The build now passes the tab through the other state
+  once and then sets the real one.
 - `phone-chat.mjs`: catalog-authorized text-only Convai calls and persistent phone
   sessions. No NPC, microphone, local TTS, movement or speech playback is needed.
 - `chat-memory-resets.mjs`: reconciles explicit memory-reset intents and results
