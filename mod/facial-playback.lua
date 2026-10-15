@@ -221,6 +221,12 @@ traitTable['alt-cunningham']={warmth=.05,gain=1,smile=defaultSmile,squint=defaul
 -- later turn was calm, and the ease back to the resting smile.
 local moodHoldSeconds,moodCalmSeconds,moodEaseSeconds,moodThreshold=60,10,5,.2
 local function traitFor(profile) return traitTable[profile] or traitTable.default end
+-- A face filmed smaller than in person (the holocall picture: mod/holocall.lua faceRow's expressionBoost) carries its
+-- feelings stronger, or they do not read at all (live, 2026-10-16: a real call reply wrote squint .22, brows .22, corners
+-- .36 at peak, and the call window looked the same with and without them). The boost scales the reply's emotion mix
+-- (capped at 1), raises a reply-level label one step, and scales the resting smile; the mouth budget still keeps a
+-- speaking mouth clear. The same inputs go to the native and the Lua path. 1 (nil) for everyone else.
+local function boostScale(scale,boost) if scale and boost>1 then return math.min(3,scale+1) end return scale end
 local speechMouthFactor=.85
 -- The jaw weight (as written) from which a speaking, jaw-lifted head carries no chin raise / no corner depressors.
 local chinDuckJaw,cornerDuckJaw=.10,.20
@@ -524,7 +530,7 @@ function M.beginExpressionFrame(delta,context)
     if actors then
         for _,row in ipairs(actors) do
             local known=type(row)=='table' and M.expressions[row.entity]
-            if known then known.profile=row.profileKey end
+            if known then known.profile,known.boost=row.profileKey,row.expressionBoost end
         end
     end
     if not M.expressionPaused and finite(delta) then M.expressionClock=M.expressionClock+math.max(0,delta) end
@@ -731,7 +737,8 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     -- and after speech (until the usual expiry), so gaps never jump to another pose.
     if mix then slot.holdMix=mix end
     local weights=mix or slot.holdMix
-    local family,strength=slot.family,scaleStrength[slot.scale or 1]
+    local rawWeights=weights
+    local family,strength=slot.family,scaleStrength[boostScale(slot.scale,slot.boost or 1) or 1]
     -- Surprise and Interest are momentary: a brow flick at the start of the feeling
     -- (full for 1 s, gone by 2 s), never a sustained raise. Other feelings hold
     -- through their phrase and release after speech (see browExpiry).
@@ -740,7 +747,8 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     if weights then
         -- A copy (the flicks scale two of its entries), in a reused table.
         local copy=poseWeights
-        for index=1,#weights do copy[index]=weights[index] end
+        local boost=slot.boost or 1
+        for index=1,#weights do copy[index]=math.min(1,weights[index]*boost) end
         for index=#weights+1,#copy do copy[index]=nil end
         weights=copy
         surpriseFlick,interestFlick=momentary(slot,'surprise',weights[7] or 0),momentary(slot,'anticipation',weights[8] or 0)
@@ -751,12 +759,12 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
         if family=='surprise' then strength=strength*surpriseFlick elseif family=='anticipation' then strength=strength*interestFlick end
     end
     local trait=traitFor(slot.profile)
-    local warmth,gain=trait.warmth,trait.gain
-    -- This turn's strongest negative feeling (track mix or reply-level label) sets the mood hold.
+    local warmth,gain=trait.warmth*(slot.boost or 1),trait.gain
+    -- This turn's strongest negative feeling (track mix or reply-level label, as felt: never boosted) sets the mood hold.
     if slot.active and not slot.awaitingAudio then
         local worst=0
-        if weights then for index=3,6 do worst=math.max(worst,weights[index] or 0) end
-        elseif negative[family] then worst=strength end
+        if rawWeights then for index=3,6 do worst=math.max(worst,rawWeights[index] or 0) end
+        elseif negative[family] then worst=scaleStrength[slot.scale or 1] end
         slot.turnNegative=math.max(slot.turnNegative or 0,worst)
     end
     if slot.moodUntil then
@@ -967,7 +975,8 @@ local function applyNative(actor,feature,entity,phase,provider,upper,mix,boundar
     local weights=mix or slot.holdMix
     local family=slot.family
     local trait=traitFor(slot.profile)
-    local warmth=trait.warmth
+    local boost=slot.boost or 1
+    local warmth=trait.warmth*boost
     -- This turn's strongest negative feeling (track mix or reply-level label) sets the mood hold.
     if slot.active and not slot.awaitingAudio then
         local worst=0
@@ -991,7 +1000,7 @@ local function applyNative(actor,feature,entity,phase,provider,upper,mix,boundar
     local flags=0
     if speaking then flags=flags+1 end
     if blocked then flags=flags+2 end
-    if weights then flags=flags+4;for index=1,8 do ctl[10+index]=weights[index] or 0 end end
+    if weights then flags=flags+4;for index=1,8 do ctl[10+index]=math.min(1,(weights[index] or 0)*boost) end end
     if provider then flags=flags+8;for index=1,9 do ctl[18+index]=provider[index] or 0 end end
     if upper then flags=flags+16;ctl[28],ctl[29]=upper.raise,upper.lower end
     if slot.browExpiry and clock>=slot.browExpiry then flags=flags+32 end
@@ -1002,7 +1011,7 @@ local function applyNative(actor,feature,entity,phase,provider,upper,mix,boundar
     if writeOwner then flags=flags+1024 end
     if slot.blinkStart and clock-slot.blinkStart<blinkLength then flags=flags+2048 end
     ctl[1],ctl[2],ctl[3]=clock,delta,flags
-    ctl[4],ctl[5]=FAMILY[family] or 0,slot.scale or 0
+    ctl[4],ctl[5]=FAMILY[family] or 0,boostScale(slot.scale,boost) or 0
     ctl[6],ctl[7],ctl[8],ctl[9],ctl[10]=warmth,trait.gain,trait.smile or 1,trait.squint or 1,trait.browDown or 1
     ctl[30],ctl[31]=blink,owned
     local vec=EMPTY
@@ -1190,7 +1199,7 @@ local seenRows={}
 local function idleFrame(row,entity,actor)
     if not owns(actor,entity) then forget(entity);return end
     local slot=expressionSlot(entity)
-    slot.profile=row.profileKey
+    slot.profile,slot.boost=row.profileKey,row.expressionBoost
     -- Speech owns the face from its first HEARD frame. Before that (a reply prepared, a stream
     -- buffering, an Omni phrase loading) this idle writer keeps her idle face (October 9).
     if slot.written==M.expressionFrame or (M.active and M.entity==entity and M.heardRequest==M.requestId and M.state~='paused' and M.state~='releasing') then return end
