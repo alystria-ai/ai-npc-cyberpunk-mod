@@ -700,7 +700,7 @@ return {
     ["Holocall ended: combat started."] = "Голозвонок завершён: начался бой.",
     ["Holocall with {name} ended."] = "Голозвонок с {name} завершён.",
     ["Holocall with {name}. Tap the phone button to hang up."] = "Голозвонок с {name}. Нажмите кнопку телефона, чтобы завершить.",
-    ["Live holocall picture (experimental)"] = "Живое изображение в голозвонке (экспериментально)",
+    ["Live holocall picture"] = "Живое изображение в голозвонке",
     ["Live picture unavailable. The call continues with the portrait."] = "Живое изображение недоступно. Звонок продолжится с портретом.",
     ["This contact cannot take a holocall."] = "Этот контакт не может принять голозвонок.",
     ["You are already on a call."] = "Вы уже в звонке.",

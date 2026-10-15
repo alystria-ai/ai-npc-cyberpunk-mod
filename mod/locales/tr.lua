@@ -700,7 +700,7 @@ return {
     ["Holocall ended: combat started."] = "Holo arama sona erdi: çatışma başladı.",
     ["Holocall with {name} ended."] = "{name} ile holo arama sona erdi.",
     ["Holocall with {name}. Tap the phone button to hang up."] = "{name} ile holo arama. Kapatmak için telefon düğmesine dokunun.",
-    ["Live holocall picture (experimental)"] = "Holo aramada canlı görüntü (deneysel)",
+    ["Live holocall picture"] = "Holo aramada canlı görüntü",
     ["Live picture unavailable. The call continues with the portrait."] = "Canlı görüntü kullanılamıyor. Arama portreyle devam ediyor.",
     ["This contact cannot take a holocall."] = "Bu kişi holo aramayı kabul edemez.",
     ["You are already on a call."] = "Zaten bir aramadasın.",

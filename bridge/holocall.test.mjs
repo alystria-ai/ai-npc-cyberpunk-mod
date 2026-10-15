@@ -133,7 +133,7 @@ test('the live picture setting is a Conversations setting, not a developer one',
   const mcm = read('../mod/mcm.lua');
   const conversations = mcm.slice(mcm.indexOf("category('conversation-controls'"), mcm.indexOf("category('companion-behavior'"));
   const development = mcm.slice(mcm.indexOf("category('development'"), mcm.indexOf("category('help', 'Help'"));
-  assert.match(conversations, /setting\('holocallLiveImage', 'Live holocall picture \(experimental\)'/);
+  assert.match(conversations, /setting\('holocallLiveImage', 'Live holocall picture'/);
   assert.doesNotMatch(development, /holocall/i);
   assert.match(mcm, /key == 'holocallLiveImage'/);
 });

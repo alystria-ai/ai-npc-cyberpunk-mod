@@ -700,7 +700,7 @@ return {
     ["Holocall ended: combat started."] = "Holorozmowa zakończona: rozpoczęła się walka.",
     ["Holocall with {name} ended."] = "Holorozmowa z {name} zakończona.",
     ["Holocall with {name}. Tap the phone button to hang up."] = "Holorozmowa z {name}. Stuknij przycisk telefonu, aby się rozłączyć.",
-    ["Live holocall picture (experimental)"] = "Żywy obraz w holorozmowie (eksperymentalne)",
+    ["Live holocall picture"] = "Żywy obraz w holorozmowie",
     ["Live picture unavailable. The call continues with the portrait."] = "Obraz na żywo jest niedostępny. Rozmowa toczy się dalej z portretem.",
     ["This contact cannot take a holocall."] = "Ten kontakt nie może odebrać holorozmowy.",
     ["You are already on a call."] = "Już trwa rozmowa.",

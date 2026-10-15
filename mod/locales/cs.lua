@@ -700,7 +700,7 @@ return {
     ["Holocall ended: combat started."] = "Holohovor skončil: začal boj.",
     ["Holocall with {name} ended."] = "Holohovor s {name} skončil.",
     ["Holocall with {name}. Tap the phone button to hang up."] = "Holohovor s {name}. Pro ukončení klepni na tlačítko telefonu.",
-    ["Live holocall picture (experimental)"] = "Živý obraz z holohovoru (experimentální)",
+    ["Live holocall picture"] = "Živý obraz z holohovoru",
     ["Live picture unavailable. The call continues with the portrait."] = "Živý obraz není k dispozici. Hovor pokračuje s portrétem.",
     ["This contact cannot take a holocall."] = "Tento kontakt nemůže přijmout holohovor.",
     ["You are already on a call."] = "Už probíhá hovor.",

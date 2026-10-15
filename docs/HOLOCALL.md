@@ -160,7 +160,7 @@ and story characters are not touched.
 
 ### Live picture (setting, on by default)
 
-**Companion Manager > Settings > Conversations > Live holocall picture (experimental).** (It was in
+**Companion Manager > Settings > Conversations > Live holocall picture.** (It was in
 Development until 2026-10-14; it is the only holocall setting.)
 
 **On by default since 2026-10-14.** It was off by default at first, and the first version wrote that `false` into

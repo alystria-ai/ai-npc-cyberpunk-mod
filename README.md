@@ -303,7 +303,7 @@ With **Settings > Conversations > Talk to ordinary NPCs** on (the default), unna
 - Open the phone (normally hold **T**) and switch to the **Chat** tab, the third tab. Pick a contact and press the confirm key to open the conversation. **Enter** starts typing and sends. **Esc** stops typing. Phone Chat is text only. The character does not need to be nearby.
 - Histories and drafts are kept across launches. Contacts unlocked later appear when you open the tab.
 - **Holocalls:** with a contact selected on the Chat list (or inside a conversation) press **V** to call them. A call window opens at the top left and you talk by push-to-talk or by typing. Tap the phone button to hang up. Calls end after 3 minutes of silence or 30 minutes in total. The game's own Contacts call is untouched.
-- **Live holocall picture (experimental):** shows the character live instead of a portrait. It can stay empty, in which case the call goes on with the portrait.
+- **Live holocall picture:** shows the character live instead of a portrait. It can stay empty, in which case the call goes on with the portrait.
 
 ### Companions can see (with Convai)
 
@@ -348,7 +348,7 @@ All settings live under **Companion Manager > Settings**. Defaults are for a new
 | Multilingual conversations | Conversations | Off |
 | Auto-connect nearby characters | Conversations | On (silent) |
 | Continue from game dialogue | Conversations | On |
-| Live holocall picture (experimental) | Conversations | On |
+| Live holocall picture | Conversations | On |
 | Conversation provider | Conversation provider | Convai free tier |
 | Companions can see | Conversation provider | On (Convai only) |
 | Mature content | Conversation provider | Off |
@@ -1165,7 +1165,7 @@ Further reading: [docs/COMPANION_VISION.md](docs/COMPANION_VISION.md), [docs/RES
 
 **Holocall.** V calls a mod character from the Chat tab with the game's own `call` key (V, Triangle on a pad): on a Chat list row (its call icon and the bottom bar's Call), or inside an open conversation (no hint is shown there). The game's own Contacts Call is never changed, and no game call function is wrapped (`bridge/holocall.test.mjs` asserts that). The request is one contact id (`ConvaiHolocallRequest` in `Holocall.reds`); the phone closes, `mod/holocall.lua` takes it, and the game's call window opens at the top left with the character's name and portrait. The ring lasts 1.5 to 7 s (`RING_MIN`, `RING_MAX`) while the conversation warms. V then talks with the normal push-to-talk or typed keys; the character answers in the mod voice with the game's call subtitle line. No one has to be nearby. A tap of the phone button hangs up. A call also ends on combat, a scene, a disabled conversation, 180 s with no talk (`IDLE_LIMIT`), 30 minutes (`MAX_LENGTH`) or any game quest call, which always wins. Johnny Silverhand can never be called (`NEVER`), and the mod writes no quest fact, phone blackboard value or journal entry. The bridge only knows the call as `holocall = {version = 1, contact, mode}`; `bridge/turn-context.mjs` describes the speaker as remote. Notices: `holocall-refused`, `holocall-connected`, `holocall-ended`, `holocall-live-fallback`.
 
-**Live picture** (**Settings > Conversations > Live holocall picture (experimental)**, `holocallLiveImage`, on by default since 2026-10-14). For the 59 contacts the game itself stages a video holocall for (`STAGED` in `mod/holocall.lua`), dialing finds a studio spot out of V's sight (floor search by raycast, at most 11 ticks of 0.25 s), spawns a copy of the character and the game's own `holocall_camera.ent` at the game's framing (fov 35), keeps the copy animating off screen, holds a talk pose, turns her eyes to the lens and connects with `StartHolocall`. Everyone else gets the portrait voice call, as in the game. If the copy or camera is not ready when the ring ends, the call continues with the portrait and a notice says so. At hang-up the camera is switched off at once and deleted 1.5 s later (freeing a render-to-texture camera in the same frame can crash the render thread). The copy is lit by a three-lamp rig, as the game lights its studio actor with lights of its own (a warm key, a weaker fill, a cool rim; the game's corridor light with its fixture hidden, shadows off), which exists only during the call.
+**Live picture** (**Settings > Conversations > Live holocall picture**, `holocallLiveImage`, on by default since 2026-10-14). For the 59 contacts the game itself stages a video holocall for (`STAGED` in `mod/holocall.lua`), dialing finds a studio spot out of V's sight (floor search by raycast, at most 11 ticks of 0.25 s), spawns a copy of the character and the game's own `holocall_camera.ent` at the game's framing (fov 35), keeps the copy animating off screen, holds a talk pose, turns her eyes to the lens and connects with `StartHolocall`. Everyone else gets the portrait voice call, as in the game. If the copy or camera is not ready when the ring ends, the call continues with the portrait and a notice says so. At hang-up the camera is switched off at once and deleted 1.5 s later (freeing a render-to-texture camera in the same frame can crash the render thread). The copy is lit by a three-lamp rig, as the game lights its studio actor with lights of its own (a warm key, a weaker fill, a cool rim; the game's corridor light with its fixture hidden, shadows off), which exists only during the call.
 
 **Not verified in the game:** the Chat-tab call button and key hints (the Chat list row icons, the bottom bar); the live picture away from one spot (seen lit, by window capture, in one place on 2026-10-15); the end animation; the quest-call preempt path; and whether the Holocall subtitle type shows a bottom line for the player as speaker. Redscript compiles against the real game cache.
 
@@ -1208,7 +1208,7 @@ The Settings page groups its rows in this order: Interface, Conversations, Conve
 | `multilingualConversations` | Multilingual conversations | off |
 | `autoConnectNearby` | Auto-connect nearby characters | on |
 | `gameDialogueContext` | Continue from game dialogue | on |
-| `holocallLiveImage` | Live holocall picture (experimental) | on |
+| `holocallLiveImage` | Live holocall picture | on |
 | `conversationProvider` / `useOwnConvaiKey` | Conversation provider (Convai free tier, Convai API key, Mistral, Local) | `convai`, key off |
 | `companionVision` | Companions can see | on |
 | `matureContent`, `localModel` | Mature content (Local AI only), Local AI model | off, `auto` |

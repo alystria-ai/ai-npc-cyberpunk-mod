@@ -360,7 +360,7 @@
     "Lip sync delay (Bluetooth)": "Lip sync delay (Bluetooth)",
     "Listening - press the same voice chat shortcut again to finish": "Listening - press the same voice chat shortcut again to finish",
     "Listening - press {key} again to finish": "Listening - press {key} again to finish",
-    "Live holocall picture (experimental)": "Live holocall picture (experimental)",
+    "Live holocall picture": "Live holocall picture",
     "Live picture unavailable. The call continues with the portrait.": "Live picture unavailable. The call continues with the portrait.",
     "Load a save before inviting a companion.": "Load a save before inviting a companion.",
     "Loading": "Loading",
@@ -1330,7 +1330,7 @@
       "Head tracking strength",
       "Interface language",
       "Lip sync delay (Bluetooth)",
-      "Live holocall picture (experimental)",
+      "Live holocall picture",
       "Mature content",
       "Multilingual conversations",
       "Natural speech",
@@ -4544,7 +4544,7 @@
         "mod/microphone.lua:196"
       ]
     },
-    "Live holocall picture (experimental)": {
+    "Live holocall picture": {
       "contexts": [
         "mcm.setting"
       ],

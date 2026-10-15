@@ -700,7 +700,7 @@ return {
     ["Holocall ended: combat started."] = "홀로콜 종료: 전투가 시작되었습니다.",
     ["Holocall with {name} ended."] = "{name}과(와)의 홀로콜이 종료되었습니다.",
     ["Holocall with {name}. Tap the phone button to hang up."] = "{name}과(와) 홀로콜 중입니다. 전화 버튼을 눌러 끊으세요.",
-    ["Live holocall picture (experimental)"] = "홀로콜 실시간 화면 (실험적)",
+    ["Live holocall picture"] = "홀로콜 실시간 화면",
     ["Live picture unavailable. The call continues with the portrait."] = "실시간 화면을 사용할 수 없습니다. 초상화로 통화를 계속합니다.",
     ["This contact cannot take a holocall."] = "이 연락처는 홀로콜을 받을 수 없습니다.",
     ["You are already on a call."] = "이미 통화 중입니다.",

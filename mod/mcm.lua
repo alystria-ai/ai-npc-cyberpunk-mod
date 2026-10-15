@@ -2042,7 +2042,7 @@ local function schema()
             setting('gameDialogueContext', 'Continue from game dialogue', 'bool', snapshot.settings.gameDialogueContext, true,
                 'Right after the game’s own dialogue with a character, they know its last few lines, including your chosen replies and your phone calls with them.\n\nOnly the last few minutes count, and none of it is saved to memory.'),
             -- Holocalls start from the mod's Chat tab (docs/HOLOCALL.md); this is their only setting.
-            setting('holocallLiveImage', 'Live holocall picture (experimental)', 'bool', snapshot.settings.holocallLiveImage == true, true,
+            setting('holocallLiveImage', 'Live holocall picture', 'bool', snapshot.settings.holocallLiveImage == true, true,
                 'Shows the character live in a holocall instead of their portrait.\n\nExperimental: the picture can stay empty. If she cannot be shown, the call goes on with the portrait.'),
         })
         -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys (the Inworld key is in
