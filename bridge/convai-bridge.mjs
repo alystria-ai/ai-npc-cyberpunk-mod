@@ -619,7 +619,10 @@ const companionActions = new CompanionActions({createToken: () => 'drive-' + ran
 // something (e.g. a TV picture).
 const visionLog = message => console.error('[Vision] ' + message);
 let speechPlayingAt = 0;
+// Development: CYBERPUNK_CONVAI_VISION_DEBUG_LAST=1 (or "visionDebugLastSent": true in settings.json) keeps the last picture handed to
+// Convai in runtime/vision-last-sent.jpg, with runtime/vision-last-sent.json saying when it was taken and how it was sent.
 const companionVision = new CompanionVision({capture: new VisionCapture({log: visionLog}), isConvai: () => !mistral.active,
+  lastSentPath: resolve(runtime, 'vision-last-sent.jpg'),
   isNear: () => !connections.stale && (connections.profiles.length > 0 || connections.nearby.length > 0 || connections.partners.length > 0),
   isConversing: () => !!(active || mic.current || micPolling || connections.composer) || Date.now() - speechPlayingAt < 1500,
   stageVoice: images => realtime.stageVoiceVision(images),

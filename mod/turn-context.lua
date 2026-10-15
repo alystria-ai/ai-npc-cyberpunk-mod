@@ -298,22 +298,27 @@ local function nativeAdapter()
         if moneyId == nil then moneyId = ItemID.FromTDBID(TweakDBID.new('Items.money')) end
         return Game.GetTransactionSystem():GetItemQuantity(player, moneyId)
     end
-    -- Whether V stands inside a building: the scene system's IsEntityInInteriorArea (the method exists in final.redscripts next to
-    -- IsEntityInScene; its argument type, an entity or an entity id, and what the game counts as an interior area are NOT confirmed in
-    -- game, see TODO.md "Live checks"). Both argument forms are tried and the working one is remembered. Plain boolean only.
-    local interiorForm
+    -- Whether V stands inside an interior area. A GLOBAL native function, not a method of the scene system (the first version called
+    -- SceneSystemInterface:IsEntityInInteriorArea and failed live 2026-10-15 with "a nil value"; a probe compiled against the 2.31
+    -- script cache confirms SceneSystemInterface has no such method). Source: REDmod scripts core/entity/gameEntity.script line 5,
+    -- `import function IsEntityInInteriorArea( entity : weak< Entity > ) : Bool;`. The game itself calls it in
+    -- cyberpunk/player/psm/weaponTransitions.script (`IsEntityInInteriorArea( GetPlayer( gameInstance ) )`: a gunshot carries 25 m
+    -- indoors instead of the weapon's range) and in reactionComponent.script (a safe area AND an interior area). The flag is the level
+    -- designers' own interior volumes, so a building V can walk into counts; a bare roof or an overpass is not claimed. One native call,
+    -- read only when the turn context is built (never per frame). Plain boolean only: anything else is an error, which the caller logs
+    -- once and treats as "not given". CET exposes script globals under Game.; a bare global is the second try.
+    local interiorCall
     function N.interior(player)
-        local scene = Game.GetSceneSystem():GetScriptInterface()
-        if scene == nil then return nil end
-        local forms = {entity = function() return scene:IsEntityInInteriorArea(player) end,
-            id = function() return scene:IsEntityInInteriorArea(player:GetEntityID()) end}
-        local lastError
-        for _, form in ipairs(interiorForm and {interiorForm} or {'entity', 'id'}) do
-            local ok, value = pcall(forms[form])
-            if ok and type(value) == 'boolean' then interiorForm = form; return value, 'IsEntityInInteriorArea(' .. form .. ')' end
-            if not ok then lastError = value end
+        if interiorCall == nil then   -- a found function is remembered; "not found" is looked up again on the next read
+            local viaGame = Game ~= nil and Game.IsEntityInInteriorArea
+            interiorCall = type(viaGame) == 'function' and function(who) return Game.IsEntityInInteriorArea(who) end
+                or type(rawget(_G, 'IsEntityInInteriorArea')) == 'function' and function(who) return IsEntityInInteriorArea(who) end
+                or nil
         end
-        error(lastError or 'IsEntityInInteriorArea answered no boolean', 0)
+        if interiorCall == nil then error('IsEntityInInteriorArea is not exposed by this CET build', 0) end
+        local value = interiorCall(player)
+        if type(value) ~= 'boolean' then error('IsEntityInInteriorArea answered no boolean', 0) end
+        return value, 'IsEntityInInteriorArea'
     end
     return N
 end
@@ -458,6 +463,8 @@ function Instance:read()
         if type(inside) == 'boolean' then
             snapshot.indoors = inside
             extras[#extras + 1] = string.format('indoors=%s(%s)', tostring(inside), tostring(insideSource))
+        elseif type(self.native.interior) == 'function' then
+            extras[#extras + 1] = 'indoors=unknown'   -- no claim either way: with vision on the picture decides (bridge/convai-vision.mjs VISION_NOTE)
         end
     end
     local eddies = self:optional('money', player)

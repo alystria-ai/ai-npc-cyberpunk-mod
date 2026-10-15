@@ -4,7 +4,7 @@ import {createRequire} from 'node:module';
 import {dirname, join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {ConvaiVision, VISION_INPUT_CONFIG, visionConnectOptions, visionIdentity, validImages, layout, readAck,
-  MAX_IMAGES, VISION_NOTE, VISION_NOTE_TV, TV_VISION_INPUT_CONFIG} from './convai-vision.mjs';
+  MAX_IMAGES, VISION_NOTE, VISION_NOTE_TV, TV_VISION_INPUT_CONFIG, gammaFor, meanLuma, applyGamma, MIN_GAMMA, TARGET_MEAN} from './convai-vision.mjs';
 
 // The SDK's own serializer (the installed @convai/web-sdk, read only): its dist uses bundler-style imports, so the one
 // dependency-free file is loaded directly.
@@ -23,7 +23,7 @@ test('a vision session connects with video and the documented vision_input_confi
   assert.equal(options.startWithVideoOn, false, 'no camera, ever');
   const wire = serializeVisionInputConfig(resolveVisionInputConfig(options));
   assert.deepEqual(wire, {enabled: true, sample_interval_secs: 0.25, frames_per_turn: 1, buffer_frames: 2,
-    staleness_seconds: 6, max_resolution: 768, replace_previous_vision_context: true});
+    staleness_seconds: 6, max_resolution: 1024, replace_previous_vision_context: true});
   // Ranges from Convai's "Dynamic vision context" page.
   assert.ok(wire.sample_interval_secs >= 0.1 && wire.sample_interval_secs <= 60);
   assert.ok(wire.frames_per_turn >= 1 && wire.frames_per_turn <= 20);
@@ -51,10 +51,10 @@ test('only well-formed images of an allowed type and size are accepted, at most 
 });
 
 test('one to four images always make one picture: full, side by side, or a 2x2 grid', () => {
-  assert.deepEqual(layout(1), {columns: 1, rows: 1, cell: 768});
-  assert.deepEqual(layout(2), {columns: 2, rows: 1, cell: 384});
-  assert.deepEqual(layout(3), {columns: 2, rows: 2, cell: 384});
-  assert.deepEqual(layout(4), {columns: 2, rows: 2, cell: 384});
+  assert.deepEqual(layout(1), {columns: 1, rows: 1, cell: 1024});
+  assert.deepEqual(layout(2), {columns: 2, rows: 1, cell: 512});
+  assert.deepEqual(layout(3), {columns: 2, rows: 2, cell: 512});
+  assert.deepEqual(layout(4), {columns: 2, rows: 2, cell: 512});
 });
 
 test('server acknowledgements are read from either nesting', () => {
@@ -208,11 +208,59 @@ test('a picture staged ahead that no turn takes is withdrawn after its time', as
   assert.deepEqual(connection.calls.map(call => call[0]), ['publish', 'unpublish']);
 });
 
-test('the context note says the picture shows the surroundings from before the conversation and to ignore the interface', () => {
+test('the context note says the picture shows the surroundings from just before this message and to ignore the interface', () => {
   assert.match(VISION_NOTE, /surroundings/);
-  assert.match(VISION_NOTE, /before this conversation/);
+  assert.match(VISION_NOTE, /before this message/);
   assert.match(VISION_NOTE, /never the interface/);
   assert.doesNotMatch(VISION_NOTE, /screenshot|key|free|recommended/i);
+});
+
+test('indoors or outdoors: the game\'s word when the text gives one, else the picture, never the district\'s name; no picture means say so', () => {
+  assert.match(VISION_NOTE, /if the text above says so, that is fact/);
+  assert.match(VISION_NOTE, /if it does not, judge it from the image/);
+  assert.match(VISION_NOTE, /never from the name of the district/);
+  assert.match(VISION_NOTE, /If no image is attached or it does not show what V asks about, say so plainly instead of guessing/);
+});
+
+test('a dim picture is lifted with a gamma curve, a normal or black one is left alone', () => {
+  const frame = (r, g, b, pixels = 64) => Uint8ClampedArray.from(Array.from({length: pixels}, () => [r, g, b, 255]).flat());
+  assert.equal(gammaFor(meanLuma(frame(200, 200, 200))), null, 'a bright frame');
+  assert.equal(gammaFor(meanLuma(frame(70, 70, 70))), null, 'at the threshold');
+  assert.equal(gammaFor(meanLuma(frame(1, 1, 1))), null, 'a black or loading screen has nothing to lift');
+  const dim = frame(55, 55, 55), mean = meanLuma(dim);
+  assert.ok(Math.abs(mean - 55) < 1, 'luma of grey is the grey');
+  const gamma = gammaFor(mean);
+  assert.ok(gamma > MIN_GAMMA && gamma < 1, 'gamma ' + gamma);
+  applyGamma(dim, gamma);
+  assert.ok(Math.abs(meanLuma(dim) - TARGET_MEAN) < 6, 'lifted to about the target: ' + meanLuma(dim));
+  assert.equal(dim[3], 255, 'alpha is untouched');
+  // Very dark: the lift is capped, so noise is not blown up.
+  assert.equal(gammaFor(6), MIN_GAMMA);
+  const white = frame(255, 255, 255); applyGamma(white, 0.6);
+  assert.deepEqual([...white.slice(0, 4)], [255, 255, 255, 255], 'highlights (the HUD) stay put');
+});
+
+test('a dim game picture is lifted on its canvas; a bright one, a multi-picture canvas and the TV are not touched; no pixel access is harmless', async () => {
+  const run = async (grey, {images = 1, width, adjust} = {}) => {
+    const puts = [];
+    const ctx = {fillStyle: '', fillRect() {}, drawImage() {}, getImageData: (x, y, w, h) => ({data: Uint8ClampedArray.from(Array.from({length: 16}, () => [grey, grey, grey, 255]).flat())}),
+      putImageData: (data) => puts.push(data.data[0])};
+    const {env} = fakeEnv();
+    env.document = {createElement: () => ({width: 0, height: 0, getContext: () => ctx})};
+    const vision = new ConvaiVision(fakeConnection().connection, {env});
+    await vision.compose(Array.from({length: images}, () => image()), width, adjust === undefined ? undefined : {adjust});
+    return {puts, vision};
+  };
+  const dim = await run(30);
+  assert.equal(dim.puts.length, 1);
+  assert.ok(dim.puts[0] > 30, 'lifted');
+  assert.ok(dim.vision.diagnostics().lastGamma < 1 && dim.vision.diagnostics().lastMean === 30);
+  assert.equal((await run(160)).puts.length, 0, 'bright: untouched');
+  assert.equal((await run(30, {images: 2})).puts.length, 0, 'two pictures: untouched');
+  assert.equal((await run(30, {width: 640, adjust: false})).puts.length, 0, 'the TV: untouched');
+  const noPixels = new ConvaiVision(fakeConnection().connection, {env: {...fakeEnv().env, document: {createElement: () => ({width: 0, height: 0,
+    getContext: () => ({fillStyle: '', fillRect() {}, drawImage() {}})})}}});
+  assert.ok(await noPixels.compose([image()]), 'a canvas without getImageData still composes');
 });
 
 // ---- the TV (YouTube on V's TV) -----------------------------------------------------------------------------------------------
