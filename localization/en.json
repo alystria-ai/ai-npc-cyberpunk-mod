@@ -2499,7 +2499,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:692"
+        "mod/holocall.lua:694"
       ]
     },
     "Calls are not available right now.": {
@@ -2507,8 +2507,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:693",
-        "mod/holocall.lua:706"
+        "mod/holocall.lua:695",
+        "mod/holocall.lua:708"
       ]
     },
     "Cancel": {
@@ -2833,8 +2833,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1008",
-        "mod/companions.lua:1014"
+        "mod/companions.lua:1011",
+        "mod/companions.lua:1017"
       ]
     },
     "Choose a short or a long voice reference.": {
@@ -3530,7 +3530,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:688",
+        "mod/holocall.lua:690",
         "mod/phone-chat-style.lua:43",
         "mod/phone-chat.lua:507"
       ]
@@ -4304,7 +4304,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:642"
+        "mod/holocall.lua:644"
       ]
     },
     "Holocall with {name} ended.": {
@@ -4312,7 +4312,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:643"
+        "mod/holocall.lua:645"
       ]
     },
     "Holocall with {name}. Tap the phone button to hang up.": {
@@ -4321,7 +4321,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/holocall.lua:736"
+        "mod/holocall.lua:738"
       ]
     },
     "How they sound: pace, attitude, favourite habits of speech.": {
@@ -4619,8 +4619,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/holocall.lua:728",
-        "mod/holocall.lua:767"
+        "mod/holocall.lua:730",
+        "mod/holocall.lua:769"
       ]
     },
     "Load a save before inviting a companion.": {
@@ -6483,8 +6483,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1005",
-        "mod/companions.lua:1013"
+        "mod/companions.lua:1008",
+        "mod/companions.lua:1016"
       ]
     },
     "Step out before starting a new companion trip.": {
@@ -6700,7 +6700,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1016"
+        "mod/companions.lua:1019"
       ]
     },
     "That confirmation is no longer active.": {
@@ -7446,9 +7446,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:683",
         "mod/holocall.lua:685",
-        "mod/holocall.lua:705"
+        "mod/holocall.lua:687",
+        "mod/holocall.lua:707"
       ]
     },
     "This contact has no companion mapping yet.": {
@@ -8200,8 +8200,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:693",
-        "mod/holocall.lua:704"
+        "mod/holocall.lua:695",
+        "mod/holocall.lua:706"
       ]
     },
     "You are driving. The companion trip was cancelled.": {

@@ -85,6 +85,17 @@ test('managed idle copies receive one subtle native expression each and retain n
  tick(.1);assert(#a.frames==2 and #b.frames==2)
 `));
 
+test('a holocall live-picture copy (not a party member) gets the same idle face while the holocall claims it',()=>run(`
+ local holo=actor('holo-copy');holo.owned=false
+ local holoRows={{entity=holo.id,npc=holo,profileKey='judy-alvarez'}}
+ tick(.1,{actors=holoRows});assert(#holo.frames==0,'an unowned copy gets no idle face')
+ local claimed=true
+ convaiHolocall={ownsFace=function(actor) return claimed and actor==holo end}
+ tick(.1,{actors=holoRows});assert(#holo.frames==1 and last(holo).lips_l_corner_up>0,'the resting smile')
+ claimed=false;tick(.1,{actors=holoRows});assert(#holo.frames==1 and face.expressions[holo.id]==nil,'released with the picture')
+ convaiHolocall=nil
+`));
+
 test('Lua expression policy matches the pure policy and stops its clock while paused',()=>{
   const smoother=new ExpressionSmoother();const expected=smoother.update(expressionTarget(),.1);
   run(`tick(.1);local expected=${literal(expected)};for key,value in pairs(expected) do assert(math.abs(last(a)[key]-value)<1e-12,key) end

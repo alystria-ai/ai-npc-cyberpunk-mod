@@ -525,6 +525,21 @@ test('the face writer\'s actor rows are rebuilt at most every 0.1 s, and at once
   companions.conversationCandidates=scan
 `));
 
+test('the live-picture copy of a holocall joins the face writer rows at the 0.1 s rebuild while its picture is up', () => run(`
+  local first=spawn()
+  for _,npc in pairs(entities) do function npc:GetBodyType() return 'Female' end end
+  local clock=120
+  os.clock=function() return clock end
+  local live={npc={}, entity='9000ULL', profileKey='judy-alvarez', name='Judy'}
+  convaiHolocall={faceRow=function() return live end}
+  local rows=companions.expressionActors(player)
+  assert(#rows==2 and rows[2]==live, 'the copy is the last row')
+  live=nil; clock=clock+.11
+  rows=companions.expressionActors(player)
+  assert(#rows==1, 'gone with the picture')
+  convaiHolocall=nil
+`));
+
 test('teardown: abandoning the session drops the cached actor rows (they hold NPC handles), whatever the clock says', () => run(`
   local first=spawn()
   for _,npc in pairs(entities) do function npc:GetBodyType() return 'Female' end end
