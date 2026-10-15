@@ -804,5 +804,4 @@ return {
     ["Paste"] = "Colar",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "Funciona com as vozes Pocket, OmniVoice ou Voxtral.",
     ["no Omni pack"] = "sem pacote OmniVoice",
-    ["V  Call"] = "V  Ligar",
 }

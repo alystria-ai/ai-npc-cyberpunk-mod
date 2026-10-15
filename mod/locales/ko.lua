@@ -804,5 +804,4 @@ return {
     ["Paste"] = "붙여넣기",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "Pocket, OmniVoice 또는 Voxtral 음성과 함께 작동합니다.",
     ["no Omni pack"] = "Omni 팩 없음",
-    ["V  Call"] = "V  통화",
 }

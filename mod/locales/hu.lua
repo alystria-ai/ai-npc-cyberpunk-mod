@@ -804,5 +804,4 @@ return {
     ["Paste"] = "Beillesztés",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "A Pocket, OmniVoice vagy Voxtral hangokkal működik.",
     ["no Omni pack"] = "nincs Omni-csomag",
-    ["V  Call"] = "V  Hívás",
 }

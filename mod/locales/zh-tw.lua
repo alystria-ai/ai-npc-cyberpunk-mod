@@ -804,5 +804,4 @@ return {
     ["Paste"] = "貼上",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "適用於 Pocket、OmniVoice 或 Voxtral 語音。",
     ["no Omni pack"] = "無 Omni 擴充包",
-    ["V  Call"] = "V  通話",
 }

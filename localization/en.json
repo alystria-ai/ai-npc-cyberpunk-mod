@@ -45,7 +45,7 @@
     ]
   },
   "counts": {
-    "strings": 805,
+    "strings": 804,
     "dynamicTemplates": 57,
     "contexts": 36
   },
@@ -707,7 +707,6 @@
     "Use profile": "Use profile",
     "Use this conversation profile": "Use this conversation profile",
     "Use {key} to finish this recording.": "Use {key} to finish this recording.",
-    "V  Call": "V  Call",
     "V changed seats or vehicles.": "V changed seats or vehicles.",
     "V left the passenger seat.": "V left the passenger seat.",
     "V or a scene has taken vehicle control.": "V or a scene has taken vehicle control.",
@@ -1439,7 +1438,6 @@
       "No speech was heard. Wait for Listening, then speak before you finish.",
       "The microphone {name} sends no sound. Check your Windows input device.",
       "This contact has no companion mapping yet.",
-      "V  Call",
       "You: {text}"
     ],
     "phone.native-feedback": [
@@ -2322,7 +2320,7 @@
       "references": [
         "mod/phone-chat-style.lua:178",
         "mod/phone-chat-style.lua:239",
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:502",
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:451",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:378"
       ]
     },
@@ -2357,7 +2355,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:558"
+        "mod/holocall.lua:655"
       ]
     },
     "Calls are not available right now.": {
@@ -2365,8 +2363,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:559",
-        "mod/holocall.lua:572"
+        "mod/holocall.lua:656",
+        "mod/holocall.lua:669"
       ]
     },
     "Cancel": {
@@ -3284,7 +3282,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:554",
+        "mod/holocall.lua:651",
         "mod/phone-chat-style.lua:43",
         "mod/phone-chat.lua:507"
       ]
@@ -3645,7 +3643,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:374"
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:336"
       ]
     },
     "ENTER  Write message   /   ESC  Stop typing": {
@@ -4000,7 +3998,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:508"
+        "mod/holocall.lua:605"
       ]
     },
     "Holocall with {name} ended.": {
@@ -4008,7 +4006,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:509"
+        "mod/holocall.lua:606"
       ]
     },
     "Holocall with {name}. Tap the phone button to hang up.": {
@@ -4017,7 +4015,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/holocall.lua:601"
+        "mod/holocall.lua:698"
       ]
     },
     "How they sound: pace, attitude, favourite habits of speech.": {
@@ -4323,8 +4321,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/holocall.lua:593",
-        "mod/holocall.lua:632"
+        "mod/holocall.lua:690",
+        "mod/holocall.lua:729"
       ]
     },
     "Load a save before inviting a companion.": {
@@ -7057,9 +7055,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:549",
-        "mod/holocall.lua:551",
-        "mod/holocall.lua:571"
+        "mod/holocall.lua:646",
+        "mod/holocall.lua:648",
+        "mod/holocall.lua:668"
       ]
     },
     "This contact has no companion mapping yet.": {
@@ -7380,14 +7378,6 @@
       ],
       "references": [
         "mod/init.lua:1764"
-      ]
-    },
-    "V  Call": {
-      "contexts": [
-        "phone.native"
-      ],
-      "references": [
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:287"
       ]
     },
     "V changed seats or vehicles.": {
@@ -7809,8 +7799,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/holocall.lua:559",
-        "mod/holocall.lua:570"
+        "mod/holocall.lua:656",
+        "mod/holocall.lua:667"
       ]
     },
     "You are driving. The companion trip was cancelled.": {
