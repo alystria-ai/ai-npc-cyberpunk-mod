@@ -198,10 +198,6 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/holocall.lua"
     },
     {
-      "source": "r6/scripts/CyberpunkConvai/YouTubeTv.reds",
-      "target": "r6/scripts/CyberpunkConvai/YouTubeTv.reds"
-    },
-    {
       "source": "r6/scripts/CyberpunkConvai/NpcNames.reds",
       "target": "r6/scripts/CyberpunkConvai/NpcNames.reds"
     },
@@ -212,10 +208,6 @@
     {
       "source": "mod/npc-name-pools.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/npc-name-pools.lua"
-    },
-    {
-      "source": "mod/youtube-tv.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/youtube-tv.lua"
     },
     {
       "source": "mod/phone-chat-style.lua",

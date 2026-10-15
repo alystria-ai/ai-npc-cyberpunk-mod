@@ -4,7 +4,7 @@ import {createRequire} from 'node:module';
 import {dirname, join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {ConvaiVision, VISION_INPUT_CONFIG, visionConnectOptions, visionIdentity, validImages, layout, readAck,
-  MAX_IMAGES, VISION_NOTE, VISION_NOTE_TV, TV_VISION_INPUT_CONFIG, gammaFor, meanLuma, applyGamma, MIN_GAMMA, TARGET_MEAN} from './convai-vision.mjs';
+  MAX_IMAGES, VISION_NOTE, gammaFor, meanLuma, applyGamma, MIN_GAMMA, TARGET_MEAN} from './convai-vision.mjs';
 
 // The SDK's own serializer (the installed @convai/web-sdk, read only): its dist uses bundler-style imports, so the one
 // dependency-free file is loaded directly.
@@ -240,15 +240,15 @@ test('a dim picture is lifted with a gamma curve, a normal or black one is left 
   assert.deepEqual([...white.slice(0, 4)], [255, 255, 255, 255], 'highlights (the HUD) stay put');
 });
 
-test('a dim game picture is lifted on its canvas; a bright one, a multi-picture canvas and the TV are not touched; no pixel access is harmless', async () => {
-  const run = async (grey, {images = 1, width, adjust} = {}) => {
+test('a dim game picture is lifted on its canvas; a bright one, a multi-picture canvas is not touched; no pixel access is harmless', async () => {
+  const run = async (grey, {images = 1} = {}) => {
     const puts = [];
     const ctx = {fillStyle: '', fillRect() {}, drawImage() {}, getImageData: (x, y, w, h) => ({data: Uint8ClampedArray.from(Array.from({length: 16}, () => [grey, grey, grey, 255]).flat())}),
       putImageData: (data) => puts.push(data.data[0])};
     const {env} = fakeEnv();
     env.document = {createElement: () => ({width: 0, height: 0, getContext: () => ctx})};
     const vision = new ConvaiVision(fakeConnection().connection, {env});
-    await vision.compose(Array.from({length: images}, () => image()), width, adjust === undefined ? undefined : {adjust});
+    await vision.compose(Array.from({length: images}, () => image()));
     return {puts, vision};
   };
   const dim = await run(30);
@@ -257,56 +257,7 @@ test('a dim game picture is lifted on its canvas; a bright one, a multi-picture 
   assert.ok(dim.vision.diagnostics().lastGamma < 1 && dim.vision.diagnostics().lastMean === 30);
   assert.equal((await run(160)).puts.length, 0, 'bright: untouched');
   assert.equal((await run(30, {images: 2})).puts.length, 0, 'two pictures: untouched');
-  assert.equal((await run(30, {width: 640, adjust: false})).puts.length, 0, 'the TV: untouched');
   const noPixels = new ConvaiVision(fakeConnection().connection, {env: {...fakeEnv().env, document: {createElement: () => ({width: 0, height: 0,
     getContext: () => ({fillStyle: '', fillRect() {}, drawImage() {}})})}}});
   assert.ok(await noPixels.compose([image()]), 'a canvas without getImageData still composes');
-});
-
-// ---- the TV (YouTube on V's TV) -----------------------------------------------------------------------------------------------
-test('a page connected for the TV asks for several frames a turn, within the documented ranges, and is a different session', () => {
-  const wire = serializeVisionInputConfig(resolveVisionInputConfig(visionConnectOptions({vision: true, visionMode: 'tv'})));
-  assert.deepEqual(wire, {enabled: true, sample_interval_secs: 1, frames_per_turn: 5, buffer_frames: 10,
-    staleness_seconds: 8, max_resolution: 640, replace_previous_vision_context: true});
-  assert.ok(wire.frames_per_turn <= 20 && wire.buffer_frames >= wire.frames_per_turn && wire.buffer_frames <= 120);
-  assert.ok(Object.isFrozen(TV_VISION_INPUT_CONFIG));
-  assert.equal(visionIdentity('k', {vision: true, visionMode: 'tv'}), 'k|vision-tv');
-  assert.notEqual(visionIdentity('k', {vision: true, visionMode: 'tv'}), visionIdentity('k', {vision: true}));
-  assert.equal(visionIdentity('k', {visionMode: 'tv'}), 'k', 'no vision, no TV');
-  assert.match(VISION_NOTE_TV, /video playing on the TV/);
-  assert.match(VISION_NOTE_TV, /never describe/);
-  assert.doesNotMatch(VISION_NOTE_TV, /screenshot|key|free|recommended/i);
-});
-
-test('the TV frames stay on one live track: published once, repainted with each frame, a turn publishes nothing and waits for nothing', async () => {
-  const {env, timers, drawn} = fakeEnv();
-  const connection = fakeConnection();
-  const vision = new ConvaiVision(connection, {env, mode: 'tv'});
-  assert.deepEqual(await vision.liveFrame(image()), {fed: true});
-  assert.deepEqual(connection.calls, [['publish', {source: 'canvas', name: 'tv-view', fps: 2, stopTrackOnUnpublish: true}]]);
-  assert.ok([...timers.values()].some(timer => timer.every), 'repainted between frames');
-  const before = drawn.length;
-  assert.deepEqual(await vision.liveFrame(image('image/png')), {fed: true});
-  assert.ok(drawn.length > before, 'the new frame is drawn');
-  assert.equal(connection.calls.length, 1, 'no second publish');
-  assert.deepEqual(await vision.stage([image()]), {staged: true, live: true});
-  const ready = await vision.ready(0);
-  assert.equal(ready.attached, true); assert.equal(ready.outcome, 'live'); assert.equal(ready.waitedMs, 0);
-  await vision.retire();
-  assert.equal(connection.calls.length, 1, 'the end of a turn leaves the TV track alone');
-  assert.equal(vision.diagnostics().live, true);
-  assert.equal(vision.diagnostics().liveFrames, 2);
-  assert.deepEqual(await vision.liveFrame(null), {fed: false, reason: 'stopped'});
-  assert.deepEqual(connection.calls.at(-1), ['unpublish']);
-  assert.ok(![...timers.values()].some(timer => timer.every), 'the repaint stops with the video');
-});
-
-test('a page connected for the surroundings, an audio-only page or a refused session takes no TV frame', async () => {
-  const {env} = fakeEnv();
-  assert.deepEqual(await new ConvaiVision(fakeConnection(), {env}).liveFrame(image()), {fed: false, reason: 'wrong-mode'});
-  assert.deepEqual(await new ConvaiVision(fakeConnection({video: false}), {env, mode: 'tv'}).liveFrame(image()), {fed: false, reason: 'no-video-session'});
-  const refused = new ConvaiVision(fakeConnection(), {env, mode: 'tv'});
-  refused.notEnabled = true;
-  assert.deepEqual(await refused.liveFrame(image()), {fed: false, reason: 'vision-not-enabled'});
-  assert.deepEqual(await new ConvaiVision(fakeConnection(), {env, mode: 'tv'}).liveFrame(image('image/gif')), {fed: false, reason: 'no-valid-image'});
 });
