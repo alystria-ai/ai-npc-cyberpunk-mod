@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
-import {CompanionVision, FRAME_INTERVAL_MS, LEAD_MS, TAIL_MS, MAX_FRAME_AGE_MS, FRAME_SLOTS, visionDisabledByEnv} from './companion-vision.mjs';
-import {VisionCapture, normalise, helperCandidates} from './vision-capture.mjs';
+import {CompanionVision, FRAME_INTERVAL_MS, LEAD_MS, TAIL_MS, MAX_FRAME_AGE_MS, FRESH_FRAME_AGE_MS, FRAME_SLOTS, visionDisabledByEnv} from './companion-vision.mjs';
+import {VisionCapture, normalise, helperCandidates, CAPTURE_DEFAULTS} from './vision-capture.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 
 const TV = Buffer.from('tv frame').toString('base64');
@@ -100,15 +100,73 @@ test('a turn takes the newest frame from at least LEAD_MS before the conversatio
   assert.equal(await vision.imagesForTurn({visionTurn: 't3', reaction: {kind: 'battle'}}), null, 'reactions carry none');
 });
 
-test('a long conversation keeps the frame from before it; one older than MAX_FRAME_AGE_MS is not sent', async () => {
-  const {vision, state, run} = scene();
+test('the age limit is 15 s: the frame from before a conversation is sent while it is within it, never after', async () => {
+  assert.equal(MAX_FRAME_AGE_MS, 15000);
+  const logs = [];
+  const {vision, state, run, capture} = scene({log: line => logs.push(line)});
   await run(FRAME_INTERVAL_MS * 3);
   state.conversing = true;
-  await run(60000);
-  assert.ok(await vision.imagesForTurn({visionTurn: 'a'}), 'a minute in: still the frame from before');
-  await run(MAX_FRAME_AGE_MS);
-  assert.equal(await vision.imagesForTurn({visionTurn: 'b'}), null, 'too old');
-  assert.equal(vision.diagnostics().turnsWithoutFrame, 1);
+  await run(8000);   // the frames taken before the conversation are now 8 to 14 s old
+  const callsBefore = capture.calls;
+  const young = await vision.imagesForTurn({visionTurn: 'a'});
+  assert.ok(young, 'a frame within the limit is sent as it is');
+  assert.equal(capture.calls, callsBefore, 'and no capture is taken to replace a frame that is merely not brand new');
+  assert.match(logs.at(-1), /turn \w+: 1 image\(s\), frame \d+ s old/);
+  assert.ok(Number(/frame (\d+) s old/.exec(logs.at(-1))[1]) <= 15);
+});
+
+test('a stale buffer is never sent: the turn takes one capture (at most TURN_CAPTURE_WAIT_MS), and with none it goes without a picture and logs why', async () => {
+  const logs = [];
+  const {vision, state, run, capture} = scene({log: line => logs.push(line)});
+  await run(FRAME_INTERVAL_MS * 3);
+  state.conversing = true;
+  await run(60000);   // a long conversation: the helper is released, the buffered frames are 1 minute old
+  assert.equal(vision.frames.length, 0, 'frames past the limit are dropped');
+  assert.equal(capture.running, false, 'the helper stays released during the conversation');
+  const callsBefore = capture.calls;
+  const images = await vision.imagesForTurn({visionTurn: 'b'});
+  assert.equal(capture.calls, callsBefore + 1, 'one capture for the turn');
+  assert.equal(images.length, 1);
+  assert.equal(images[0].base64, shotOf(capture.calls), 'the new picture, not a stale one');
+  assert.match(logs.at(-1), /1 image\(s\), frame 0 s old/);
+  await run(1000);
+  assert.equal(capture.running, false, 'the helper is released again by the next polls');
+  assert.equal(vision.diagnostics().turnCaptures, 1);
+  // The capture fails (a minimised game): no picture, never a stale one, and the log says so.
+  const failing = scene({capture: fakeCapture({fail: 'minimised'}), log: line => logs.push(line)});
+  await failing.run(FRAME_INTERVAL_MS);
+  failing.state.conversing = true;
+  await failing.run(30000);
+  assert.equal(await failing.vision.imagesForTurn({visionTurn: 'c'}), null);
+  assert.match(logs.at(-1), /turn \w+: no frame yet/);
+  assert.equal(failing.vision.diagnostics().turnsWithoutFrame, 1);
+});
+
+test('a turn that finds only an old frame says how old it was in the log', async () => {
+  const logs = [];
+  const capture = fakeCapture();
+  const {vision, state, run} = scene({capture, log: line => logs.push(line)});
+  await run(FRAME_INTERVAL_MS * 2);
+  state.conversing = true;
+  await run(52000);
+  capture.capture = async () => ({ok: false, reason: 'failed'});
+  assert.equal(await vision.imagesForTurn({visionTurn: 'late'}), null);
+  assert.match(logs.at(-1), /no fresh frame \(newest 5\d s old, limit 15 s\)/);
+});
+
+test('a slow capture does not hold a turn for more than TURN_CAPTURE_WAIT_MS', async () => {
+  let release;
+  const capture = fakeCapture();
+  const slow = {...capture, get running() { return capture.running; }, start: capture.start, stop: capture.stop,
+    capture: () => new Promise(done => { release = () => done({ok: true, mime: 'image/jpeg', base64: shotOf(7), width: 1, height: 1, bytes: 1, ms: {}}); })};
+  let waited = 0;
+  const vision = new CompanionVision({capture: slow, now: () => 1000, env: {}, sleep: ms => { waited = ms; return new Promise(done => setImmediate(done)); }});
+  const images = await vision.imagesForTurn({visionTurn: 'x'});
+  assert.equal(images, null);
+  assert.equal(waited, 450);
+  release();   // it lands in the buffer for the next turn
+  await new Promise(done => setImmediate(done)); await new Promise(done => setImmediate(done));
+  assert.equal(vision.frames.length, 1);
 });
 
 test('a picture finished after a conversation began is dropped', async () => {
@@ -145,6 +203,70 @@ test('typed line: the frame is staged on the target pages when the composer open
   assert.equal(vision.openComposer([]), false);
 });
 
+test('typed line: with no young frame a picture is taken as the composer opens and staged; with a young one no capture is taken', async () => {
+  const staged = [];
+  const {vision, state, run, capture} = scene({stagePage: async (config, images) => { staged.push(images[0].base64); return {staged: true}; }});
+  await run(FRAME_INTERVAL_MS * 2);
+  state.conversing = true;
+  await run(30000);   // the buffer is gone: only a picture taken now can be sent
+  assert.equal(vision.frames.length, 0);
+  const before = capture.calls;
+  assert.equal(vision.openComposer([{characterId: 'alex'}]), true);
+  for (let i = 0; i < 6; i++) await new Promise(done => setImmediate(done));
+  assert.equal(capture.calls, before + 1, 'one capture at the composer');
+  assert.deepEqual(staged, [shotOf(capture.calls)], 'the new picture is the one staged');
+  assert.equal(vision.stagedFrame.turn, true);
+  // The send: the staged frame goes, no second capture.
+  assert.deepEqual(await vision.imagesForTurn({visionTurn: 'typed'}), pictureOf(shotOf(capture.calls)));
+  assert.equal(capture.calls, before + 1);
+  // A young buffered frame needs no capture at all.
+  const fresh = scene({stagePage: async () => ({staged: true})});
+  await fresh.run(FRAME_INTERVAL_MS * 3);
+  const calls = fresh.capture.calls;
+  fresh.vision.openComposer([{characterId: 'alex'}]);
+  for (let i = 0; i < 4; i++) await new Promise(done => setImmediate(done));
+  assert.equal(fresh.capture.calls, calls, 'a frame under FRESH_FRAME_AGE_MS is used as it is');
+  assert.ok(FRESH_FRAME_AGE_MS < MAX_FRAME_AGE_MS);
+});
+
+test('a long typed line: a frame staged more than 15 s ago is replaced by a new capture at the send', async () => {
+  const {vision, state, run, capture} = scene({stagePage: async () => ({staged: true})});
+  await run(FRAME_INTERVAL_MS * 2);
+  state.conversing = true;
+  vision.openComposer([{characterId: 'alex'}]);
+  for (let i = 0; i < 4; i++) await new Promise(done => setImmediate(done));
+  const stagedShot = vision.stagedFrame.base64;
+  await run(20000);   // V types for 20 s
+  const calls = capture.calls;
+  const images = await vision.imagesForTurn({visionTurn: 'slow-typist'});
+  assert.equal(capture.calls, calls + 1);
+  assert.notEqual(images[0].base64, stagedShot, 'not the staged picture, which is past the limit');
+});
+
+test('debug: the last picture sent is kept only when a developer turns it on, with a line about it', async () => {
+  const writes = [];
+  const path = 'C:\\runtime\\vision-last-sent.jpg';
+  const off = scene({lastSentPath: path, writeDebug: async (target, bytes) => writes.push([target, bytes])});
+  await off.run(FRAME_INTERVAL_MS * 2);
+  await off.vision.imagesForTurn({visionTurn: 'a'});
+  assert.equal(writes.length, 0, 'off by default');
+  const on = scene({lastSentPath: path, env: {CYBERPUNK_CONVAI_VISION_DEBUG_LAST: '1'}, writeDebug: async (target, bytes) => writes.push([target, bytes])});
+  await on.run(FRAME_INTERVAL_MS * 2);
+  await on.vision.imagesForTurn({visionTurn: 'b'});
+  assert.equal(writes.length, 2);
+  assert.equal(writes[0][0], path);
+  assert.match(writes[0][1].toString(), /^frame \d+$/);
+  const note = JSON.parse(writes[1][1]);
+  assert.equal(writes[1][0], 'C:\\runtime\\vision-last-sent.json');
+  assert.equal(note.how, 'sent with the turn');
+  assert.equal(note.width, 768);
+  assert.ok(note.ageMs >= 0 && note.ageMs <= MAX_FRAME_AGE_MS);
+  // The setting in settings.json does the same.
+  const viaSettings = scene({lastSentPath: path, writeDebug: async (target, bytes) => writes.push([target, bytes])});
+  await viaSettings.tick({visionDebugLastSent: true});
+  assert.equal(viaSettings.vision.debugLast, true);
+});
+
 test('talk key: the frame is staged on the recording as soon as it runs; the finish sends nothing more', async () => {
   const staged = [];
   let recording = false;
@@ -163,6 +285,32 @@ test('talk key: the frame is staged on the recording as soon as it runs; the fin
   vision.attachToNextTurn(pictureOf(TV));
   const both = await vision.imagesForTurn({visionTurn: 'mic-2'}, {phase: 'reply'});
   assert.equal(both.length, 2, 'a queued picture joins the frame');
+});
+
+test('talk key: with no young frame a picture is taken as the key is pressed and staged; a recording longer than 15 s gets a new picture at the end', async () => {
+  const staged = [];
+  const logs = [];
+  const {vision, state, run, capture} = scene({stageVoice: async images => { staged.push(images[0].base64); return {staged: true}; }, log: line => logs.push(line)});
+  await run(FRAME_INTERVAL_MS * 2);
+  state.conversing = true;
+  await run(40000);
+  assert.equal(vision.frames.length, 0);
+  const before = capture.calls;
+  assert.equal(vision.beginVoice('mic-stale'), true);
+  await vision.voice.get('mic-stale').done;
+  assert.equal(capture.calls, before + 1);
+  assert.deepEqual(staged, [shotOf(capture.calls)]);
+  assert.equal(await vision.imagesForTurn({visionTurn: 'mic-stale'}, {phase: 'finish'}), null, 'staged while talking: nothing more');
+  assert.match(logs.at(-1), /staged while talking \(frame \d+ s old\)/);
+  // A long monologue: the staged picture is past the limit by the time the key is released.
+  vision.beginVoice('mic-long');
+  await vision.voice.get('mic-long').done;
+  const stale = capture.calls;
+  await run(20000);
+  const replaced = await vision.imagesForTurn({visionTurn: 'mic-long'}, {phase: 'finish'});
+  assert.equal(capture.calls, stale + 1);
+  assert.equal(replaced[0].base64, shotOf(capture.calls), 'a new picture goes with the finish');
+  assert.match(logs.at(-1), /the staged one was 2\d s old/);
 });
 
 test('attachToNextTurn: queued pictures follow the frame, filtered by character, expire, and never exceed four', async () => {
@@ -220,7 +368,8 @@ test('the helper client asks for one bounded picture and returns it', async () =
   assert.equal(result.ok, true);
   assert.equal(result.base64, TV);
   assert.equal(capture.running, true);
-  assert.deepEqual(child.lines, ['capture 2048 80\n'], 'width is clamped; quality falls back to the default');
+  assert.deepEqual(child.lines, ['capture 2048 88\n'], 'width is clamped; quality falls back to the default (1024 px, quality 88 when nothing is asked)');
+  assert.equal(CAPTURE_DEFAULTS.maxWidth, 1024);
   capture.stop();
   assert.equal(child.lines.at(-1), 'quit\n');
   assert.equal(capture.running, false);

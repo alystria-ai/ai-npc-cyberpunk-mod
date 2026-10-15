@@ -18,7 +18,9 @@ export function helperCandidates({env = process.env, projectDirectory = project}
     .filter(Boolean);
 }
 
-export const CAPTURE_DEFAULTS = Object.freeze({maxWidth: 768, quality: 80, timeoutMs: 2500, readyTimeoutMs: 5000});
+// 1024 px at JPEG quality 88 (was 768 at 80). Measured against the running game: the capture takes the same time, because it is the
+// compositor's next frame that is waited for, not the scaling or the encoding (docs/COMPANION_VISION.md, section 4).
+export const CAPTURE_DEFAULTS = Object.freeze({maxWidth: 1024, quality: 88, timeoutMs: 2500, readyTimeoutMs: 5000});
 const REASONS = new Set(['no-window', 'minimised', 'unsupported', 'no-frame', 'failed', 'bad-request']);
 
 export class VisionCapture {

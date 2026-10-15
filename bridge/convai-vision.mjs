@@ -21,9 +21,12 @@
 export const MAX_IMAGES = 4;
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 export const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-export const COMPOSED_WIDTH = 768;
+// 1024 px wide (was 768, 2026-10-15: "vision wasn't great"): Convai accepts max_resolution 64 to 2048, the game window is usually
+// 1366 or wider, and a model reading signs, furniture and a ceiling does better with the extra detail. The picture is published
+// ahead of the line, so the larger frame costs a little more upload and image tokens but no waiting (docs/COMPANION_VISION.md).
+export const COMPOSED_WIDTH = 1024;
 // Connect-time vision settings. One frame per turn, a 0.25 s sampling interval so a just-published picture is buffered quickly,
-// a short staleness window so a picture never rides along into a later turn, and Convai's 768 px resolution cap.
+// a short staleness window so a picture never rides along into a later turn, and the same 1024 px resolution cap.
 export const VISION_INPUT_CONFIG = Object.freeze({enabled: true, sampleIntervalSecs: 0.25, framesPerTurn: 1, bufferFrames: 2,
   stalenessSeconds: 6, maxResolution: COMPOSED_WIDTH, replacePreviousVisionContext: true});
 // Connect-time vision settings while the TV is the source: one frame a second into a buffer of 10, the last 5 attached to a
@@ -31,12 +34,38 @@ export const VISION_INPUT_CONFIG = Object.freeze({enabled: true, sampleIntervalS
 export const TV_FRAME_WIDTH = 640;
 export const TV_VISION_INPUT_CONFIG = Object.freeze({enabled: true, sampleIntervalSecs: 1, framesPerTurn: 5, bufferFrames: 10,
   stalenessSeconds: 8, maxResolution: TV_FRAME_WIDTH, replacePreviousVisionContext: true});
-// The note added to the turn's context when a picture is handed over: V's view of the surroundings from a few seconds before the
-// conversation (bridge/companion-vision.mjs), a game screenshot that may include the HUD.
-export const VISION_NOTE = ' An image of your surroundings may be attached: V\'s view from a few seconds before this conversation. '
+// The note added to the turn's context when a picture is handed over: V's view of the surroundings from a few seconds before this
+// message (bridge/companion-vision.mjs), a game screenshot that may include the HUD. It also settles who wins when the text and the
+// picture disagree about being indoors or outdoors: the game's own word, when it gives one, else the picture, never a guess from
+// the district's name (live 2026-10-15: a companion indoors said they were out in the street).
+export const VISION_NOTE = ' An image of your surroundings may be attached: V\'s view from a few seconds before this message. '
   + 'It can include the game\'s HUD, map, subtitles or menus, V\'s vehicle, or you. Treat it as what you both can see around you: '
-  + 'mention it only when it fits or when V asks, describe the place and people in your own words, never the interface, '
-  + 'and if no image is attached or it does not show what V asks about, say so plainly instead of guessing.';
+  + 'mention it only when it fits or when V asks, describe the place and people in your own words, never the interface. '
+  + 'Whether you are indoors or outdoors: if the text above says so, that is fact; if it does not, judge it from the image '
+  + '(walls, ceiling, windows, furniture, sky) and never from the name of the district. '
+  + 'If no image is attached or it does not show what V asks about, say so plainly instead of guessing.';
+// Interior frames are often dim. A frame whose average brightness is below DARK_MEAN (0 to 255) is lifted with a gamma curve that
+// aims at TARGET_MEAN, never past MIN_GAMMA (a black or loading screen is left alone: below BLACK_MEAN there is nothing to lift), and
+// only a single game picture, so a bright frame and the TV's frames are untouched. Runs in the hidden browser, never in the game.
+export const DARK_MEAN = 70, TARGET_MEAN = 95, MIN_GAMMA = 0.55, BLACK_MEAN = 4;
+// The average luma (0 to 255) of RGBA pixel data, sampling every `stride`th pixel.
+export function meanLuma(data, stride = 1) {
+  let sum = 0, count = 0;
+  for (let i = 0; i + 2 < data.length; i += 4 * stride) { sum += (data[i] * 54 + data[i + 1] * 183 + data[i + 2] * 19) / 256; count++; }
+  return count ? sum / count : 0;
+}
+// The gamma that lifts a frame of this average brightness to about TARGET_MEAN, or null when it needs none.
+export function gammaFor(mean) {
+  if (!Number.isFinite(mean) || mean >= DARK_MEAN || mean < BLACK_MEAN) return null;
+  return Math.min(1, Math.max(MIN_GAMMA, Math.log(TARGET_MEAN / 255) / Math.log(mean / 255)));
+}
+// Applies out = 255 * (in / 255) ^ gamma to the colour channels in place (alpha untouched).
+export function applyGamma(data, gamma) {
+  const table = new Uint8ClampedArray(256);
+  for (let i = 0; i < 256; i++) table[i] = Math.round(255 * Math.pow(i / 255, gamma));
+  for (let i = 0; i + 2 < data.length; i += 4) { data[i] = table[data[i]]; data[i + 1] = table[data[i + 1]]; data[i + 2] = table[data[i + 2]]; }
+  return data;
+}
 // The note while the TV is the source.
 export const VISION_NOTE_TV = ' Images of the video playing on the TV you and V are watching together may be attached: its last '
   + 'few seconds, oldest first. Talk about what is on screen when it fits or when V asks, in your own words; never describe the '
@@ -118,7 +147,7 @@ export class ConvaiVision {
     this.env = env;
     this.staged = null; this.live = null; this.notEnabled = false;
     this.stats = {staged: 0, attached: 0, skipped: 0, lastOutcome: null, lastReadyMs: null, lastImageTokens: null, lastReason: null,
-      liveFrames: 0};
+      liveFrames: 0, lastMean: null, lastGamma: null};
     this.unsubscribe = typeof connection?.on === 'function' ? connection.on('serverResponse', response => this.onServerResponse(response)) : null;
     this.waiters = new Set();
   }
@@ -166,7 +195,7 @@ export class ConvaiVision {
     const staged = this.staged;
     if (staged?.expiry) { this.env.clearTimeout(staged.expiry); staged.expiry = null; }
   }
-  async compose(images, width = COMPOSED_WIDTH) {
+  async compose(images, width = COMPOSED_WIDTH, {adjust = true} = {}) {
     const {document, createImageBitmap} = this.env;
     const bitmaps = [];
     try {
@@ -185,8 +214,21 @@ export class ConvaiVision {
         const fit = Math.min(cell / bitmap.width, cellHeight / bitmap.height), w = bitmap.width * fit, h = bitmap.height * fit;
         context.drawImage(bitmap, x + (cell - w) / 2, y + (cellHeight - h) / 2, w, h);
       });
+      if (single && adjust) this.brighten(context, canvas);
       return canvas;
     } finally { for (const bitmap of bitmaps) bitmap.close?.(); }
+  }
+  // A dim picture (an interior at night) is lifted; a normal one is left as it is. Never throws: a browser without pixel access only
+  // means no adjustment.
+  brighten(context, canvas) {
+    try {
+      const stride = 4, sample = context.getImageData(0, 0, canvas.width, canvas.height);
+      const mean = meanLuma(sample.data, stride), gamma = gammaFor(mean);
+      this.stats.lastMean = Math.round(mean); this.stats.lastGamma = gamma === null ? null : Math.round(gamma * 100) / 100;
+      if (gamma === null) return;
+      applyGamma(sample.data, gamma);
+      context.putImageData(sample, 0, 0);
+    } catch { /* no pixel access: the picture goes as it is */ }
   }
   async publish(staged) {
     const handle = await this.connection.videoControls.publishCanvas(staged.canvas, {source: 'canvas', name: 'game-view', fps: 5,
@@ -275,7 +317,7 @@ export class ConvaiVision {
       if (!this.live) {
         await this.retire();   // a still picture staged for a turn gives way to the TV
         const live = this.live = {canvas: null, handle: null, timer: null, ready: null};
-        live.canvas = await this.compose([valid], TV_FRAME_WIDTH);
+        live.canvas = await this.compose([valid], TV_FRAME_WIDTH, {adjust: false});
         if (this.live !== live) return {fed: false, reason: 'superseded'};
         live.ready = this.connection.videoControls.publishCanvas(live.canvas, {source: 'canvas', name: 'tv-view', fps: 2,
           stopTrackOnUnpublish: true}).then(async handle => {
