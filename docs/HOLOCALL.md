@@ -271,6 +271,22 @@ a slight lower-lid squint (a visible soft smile); a forced Joy raised the corner
 .30 (a clear smile); a forced Sadness showed raised inner brows and lowered corners. At a spot whose studio was 20.7 m
 away she got no row, as intended. Not yet seen: a real reply's emotion tag on the call (needs a talk turn).
 
+**A real call (2026-10-16, Alex at the terrace, branch `holocall-expr-2`): "expressions don't".** The writer had done
+its part: the second reply's turn record (`speech-state.json` face.expressions.lastSpeech) was on the copy's entity,
+emotion Trust scale 2, not blocked, 542 frames, peaks corners .36, brows .22, squint .22 (the bridge timeline: joy .51,
+trust .8, anticipation .2; the first reply was Calm, nothing to show). Replayed silently on the copy through the real
+writer (`runtime/holo-replay.lua`, the reply's face from `continuous-face.json` flattened, with and without its
+expression), the call window looked the same at every captured moment, and so did the resting smile (.12). While she
+speaks the mouth budget keeps most of a smile off the lips (the joy phrase's corner target of about .38 was written as
+.02), and the upper face stayed under what reads (about .3 for squint and corners, .5 for brows, docs/COMPANION_EXPRESSIONS.md).
+So the copy's face row carries `expressionBoost` (`M.FACE_BOOST` = 1.6): `facial-playback.lua` scales her emotion mix by it
+(capped at 1), raises a reply-level label one step and scales the resting smile, on the native path (its control inputs)
+and the Lua path alike; the mood hold still judges the feeling unboosted, and the mouth budget still keeps a speaking
+mouth clear. Same replay with the boost: resting corners .19, the joy phrase .22 (was .02), the trust phrase .46 (was
+.23), squint .27. Whether that reads at the player's resolution is the user's call (the window capture runs at 1370x815,
+where her face is about 60 px tall); if not, the next levers are a larger boost or letting part of the smile through
+the speaking mouth budget on calls.
+
 ### Gaze (branch `holocall-face`, 2026-10-15)
 
 The game's holocall scene aims its caller with one `scnLookAtEvent` (preset "Eyes & Head"): the eyes lead, with
