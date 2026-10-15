@@ -415,8 +415,12 @@ export class VoxtralVoice {
   async stream({key, text, apiKey, reference, signal, onPcm, queued, fail, continuation = false, firstAudioMs}) {
     const parts = splitReply(text, this.limits);
     const id = ++this.sequence, started = this.now();
-    let delivered = 0, chunks = 0, firstEmitAt = null;
+    let delivered = 0, chunks = 0, firstEmitAt = null, lastEmitAt = null, maxGapMs = 0;
     const emit = async samples => {
+      // How steadily the service delivers: the longest wait between two packets of this line (a voice that breaks shows it here).
+      const arrived = this.now();
+      if (lastEmitAt !== null) maxGapMs = Math.max(maxGapMs, arrived - lastEmitAt);
+      lastEmitAt = arrived;
       const packet = {version: 1, engine: 'pocket-tts', profile: key, owner: this.owner, id, index: chunks + 1,
         sampleRate: VOXTRAL_RATE, channels: 1, pcm: samples, format: 'f32le', offsetFrames: delivered,
         frames: samples.length, timebase: 'audio-seconds', startSeconds: delivered / VOXTRAL_RATE,
@@ -437,7 +441,8 @@ export class VoxtralVoice {
         timing: {voiceProvider: 'pocket', voiceEngine: 'voxtral', voiceCloud: true, voiceWarm: true,
           voiceFirstPcmReceivedMs: first.firstMs, voiceGenerationMs: this.now() - started, voiceRoundTripMs: this.now() - started,
           voiceQueueMs: first.sentAt - queued, voiceReferenceBytes: reference.bytes, voiceReferenceSource: reference.source, voiceReferenceFormat: reference.format,
-          voiceRequests: parts.length, ...(truncated ? {voiceTruncated: true} : {})}};
+          voiceRequests: parts.length, voicePackets: chunks, voiceMaxGapMs: Math.round(maxGapMs), voiceAudioSeconds: Math.round(delivered / VOXTRAL_RATE * 100) / 100,
+          ...(truncated ? {voiceTruncated: true} : {})}};
     };
     const logFirst = first => this.log(`first audio ${Math.round(first.firstMs)}ms, chars ${text.length}`
       + (parts.length > 1 ? ` (first request ${parts[0].length} chars, second ${parts[1].length})` : ''));

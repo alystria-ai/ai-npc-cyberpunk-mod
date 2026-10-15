@@ -750,8 +750,11 @@ local function warmConversation(participants, key, entity)
     local f = io.open('runtime/conversation-prewarm.json.tmp', 'wb')
     if not f then return end
     local hint = '{}'
-    -- An add-on voice never has a Convai connection to warm (docs/ADDON_API.md: Mistral or the local AI only).
-    if key and not participants and convaiAddons and convaiAddons.live and convaiAddons.isSpeaker(key) then key = nil end
+    -- An add-on voice never has a Convai connection to warm (docs/ADDON_API.md: Mistral or the local AI only). The hint still says a
+    -- typed line may follow, so the bridge warms V's voice for it (docs/V_VOICE.md); it opens no connection for it.
+    local voiceOnly = false
+    if key and not participants and convaiAddons and convaiAddons.live and convaiAddons.isSpeaker(key) then key, voiceOnly = nil, true end
+    if voiceOnly then hint = json.encode({nonce = 'composer-' .. tostring(os.time()) .. '-' .. tostring(generation), voiceOnly = true}) end
     if key then
         local audience = {}
         if participants then

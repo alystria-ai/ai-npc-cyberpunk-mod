@@ -127,6 +127,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/runtime-paths.mjs',
   'bridge/shared-key-guard.mjs',
   'bridge/speech-audio.mjs',
+  'bridge/speech-pace.mjs',
   'bridge/speech-state-cache.mjs',
   'bridge/speech-stream.mjs',
   'bridge/stt-activity.mjs',

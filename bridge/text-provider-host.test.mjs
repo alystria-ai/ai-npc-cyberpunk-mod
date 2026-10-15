@@ -559,3 +559,39 @@ test('an add-on host shows the model its own earlier replies without V\'s words 
     assert(!sent.some(content => /^Thanks, Del/.test(content)));
   } finally { await close(); }
 });
+
+// ---- An add-on speaker asked about its own remark does not say the remark again (live 2026-10-16, the district line in the cab) -------------
+
+const DISTRICT_LINE = 'Ah, Arroyo. Where the factories hum and the air tastes of oil.';
+
+test('an add-on host holds a reply that starts like its own recent remark away from the voice, and writes it again in new words', async () => {
+  const {ReplyStream} = await import('./reply-stream.mjs');
+  const {server, host, logs, close} = await harness((body, count) => count === 1 ? DISTRICT_LINE : 'Awful is a strong word, V. I only notice the smog when the windows are down.',
+    {host: {stripPlayerEcho: true, spokenLines: () => [DISTRICT_LINE]}});
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    const heads = [];
+    stream.onChange(() => { if (stream.head !== null) heads.push(stream.head); });
+    const result = await host.reply(turn('tat must be awful'), {stream});
+    assert.equal(server.requests.length, 2, 'asked once more');
+    assert.equal(result.text, 'Awful is a strong word, V. I only notice the smog when the windows are down.');
+    assert(!heads.some(head => /arroyo/i.test(head)), `the voice never started on the repeat: ${heads.join('|')}`);
+    assert(logs.some(line => line.includes('reply repeated a line; asking once more')), logs.join('|'));
+  } finally { await close(); }
+});
+
+test('without spokenLines the same host does not know the remark, so it cannot catch the repeat (the cause of the live repeat)', async () => {
+  const {host, close} = await harness(() => DISTRICT_LINE, {host: {stripPlayerEcho: true}});
+  try { assert.equal((await host.reply(turn('tat must be awful'))).text, DISTRICT_LINE); } finally { await close(); }
+});
+
+test('a reply that merely opens like a recent line for a word or two is shown as soon as it moves on', async () => {
+  const {ReplyStream} = await import('./reply-stream.mjs');
+  const {host, close} = await harness(() => 'Ah, Arroyo. It is not so bad once you are used to the smell, V.', {host: {stripPlayerEcho: true, spokenLines: () => [DISTRICT_LINE]}});
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    const result = await host.reply(turn('is it bad'), {stream});
+    assert.equal(result.text, 'Ah, Arroyo. It is not so bad once you are used to the smell, V.');
+    assert.match(stream.text ?? '', /^Ah, Arroyo. It is not so bad/, 'shown as written once it moved on');
+  } finally { await close(); }
+});
