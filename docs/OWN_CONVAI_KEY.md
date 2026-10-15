@@ -18,7 +18,7 @@ Found in the first live test (October 10, bridge log): the first conversation on
 
 Plan facts used by the design: Free is 100 interactions a month with one concurrent connection and no multilingual support. The Gamer plan is 4000 interactions a month with one concurrent connection and a long-term-memory speaker limit of 5.
 
-The Gamer plans Convai made for this mod (2026-10-15, bought from Settings > Convai paid tier, docs/CONVAI_PAID_TIER.md) differ: Gamer V2 is 1000 interactions a month with 6 concurrent connections, Gamer Pro gives more. On a confirmed paid plan a player's key may hold up to six conversation connections at once, so several companions can talk and generate together; look-ahead and warm-up turns stay off, so they do not spend the player's interactions. A free, unknown or unread plan keeps the single-session rule below.
+The Gamer plans Convai made for this mod (2026-10-15, bought from Settings > Convai paid tier, docs/CONVAI_PAID_TIER.md) differ: Gamer V2 is 500 interactions a month with 6 concurrent connections, Gamer Pro V2 is 1000 a month (Convai's figures, from the user, 2026-10-16). On a confirmed paid plan a player's key may hold up to six conversation connections at once, so several companions can talk and generate together; look-ahead and warm-up turns stay off, so they do not spend the player's interactions. A free, unknown or unread plan keeps the single-session rule below.
 
 ## What Convai returns when a plan is used up
 

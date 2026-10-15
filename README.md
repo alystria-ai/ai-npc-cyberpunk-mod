@@ -156,12 +156,12 @@ When you reach the limit you see a notice. You can wait for tomorrow, or switch 
 
 If you have your own Convai account, copy your key and press **Paste** on the **Convai API key** row. The key is read from the clipboard once, checked with Convai and saved on your computer. Then choose **Convai API key** as the provider and **Apply**. The daily limit of the free tier no longer applies. Your own Convai plan's limits do. Only the last four characters of the key are ever shown, and **Remove** deletes it.
 
-If you want more Convai usage than the free tier gives, **Convai paid tier**, right under the **Convai API key** row, lists the plans Convai made for this mod: Gamer at $4 a month or $32 a year (1,000 Convai interactions a month) and Gamer Pro at $8 a month or $64 a year (more). Paste your key first, then choose a plan: Convai's own payment page (Stripe) opens in your browser, and the mod never sees your card. About 15 seconds after you pay, the plan is active and the mod switches the provider to **Convai API key** for you. On a paid plan several companions can talk at once. **Manage or cancel plan** opens your Convai billing page.
+If you want more Convai usage than the free tier gives, **Convai paid tier**, right under the **Convai API key** row, lists the plans Convai made for this mod: Gamer at $4 a month or $32 a year (500 Convai interactions a month) and Gamer Pro at $8 a month or $64 a year (1,000 a month). Paste your key first, then choose a plan: Convai's own payment page (Stripe) opens in your browser, and the mod never sees your card. About 15 seconds after you pay, the plan is active and the mod switches the provider to **Convai API key** for you. On a paid plan several companions can talk at once. **Manage or cancel plan** opens your Convai billing page.
 
 ### Mistral (free plan)
 
 1. Make a free account at Mistral (the free plan needs phone verification) and create an API key.
-2. Copy the key, open **Settings > Conversation provider**, and press **Paste** on the **Mistral API key** row.
+2. Copy the key, open **Settings > Conversation provider**, and press **Paste** on the **Mistral free API key** row.
 3. Choose **Mistral (free plan)** as the provider and **Apply**.
 
 Mistral answers quickly and costs nothing. Its replies are plainer than Convai's. Memory stays on your computer. The microphone works through speech recognition that runs on your computer, in English. Mistral does not receive pictures, so **Companions can see** does nothing with it. With no key saved, conversations use Convai and you see one notice.

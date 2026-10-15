@@ -641,7 +641,7 @@ Order on the Settings tab: Interface, Conversations, **Conversation provider**, 
 add-on sections, Development, Help.
 
 - **Conversation provider** (new): the provider selector (four entries: Convai free tier (default), Convai API key, Mistral (free plan), Local (needs
-  Local AI pack)), Mature content, Local AI model, the Convai key row (always listed, also with Mistral or Local chosen), the Mistral key row, Edit characters.
+  Local AI pack)), Mature content, Local AI model, the **Mistral free API key** row (above the Convai one), the Convai key row (always listed, also with Mistral or Local chosen), the Convai paid tier entry, Edit characters.
   Everything that decides who answers is here. The old rows "Use my own Convai API key", "Conversations use" and the Local AI status row are gone
   (see "One key button per key" and "Where the status went" below).
 - **Voices**: Voice playback, Companion voices, **Voice status** (moved up to sit right under Companion voices), Lip sync delay, Natural speech,

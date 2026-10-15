@@ -34,10 +34,10 @@ export const DEFAULT_PAID_TIER = Object.freeze({
   successUrl: null,
   cancelUrl: null,
   plans: Object.freeze([
-    Object.freeze({id: 'gamer-monthly', name: 'Gamer', period: 'monthly', price: '$4', priceId: 'price_1UQj9YHC9LzXKZDPTHUfkDuj', interactions: 1000, concurrency: 6}),
-    Object.freeze({id: 'gamer-yearly', name: 'Gamer', period: 'yearly', price: '$32', priceId: 'price_1UQjA5HC9LzXKZDPPqOe4ji3', interactions: 1000, concurrency: 6}),
-    Object.freeze({id: 'pro-monthly', name: 'Gamer Pro', period: 'monthly', price: '$8', priceId: 'price_1UQjPvHC9LzXKZDP2lrHSw6j'}),
-    Object.freeze({id: 'pro-yearly', name: 'Gamer Pro', period: 'yearly', price: '$64', priceId: 'price_1UQjPvHC9LzXKZDPXqfCGpP0'}),
+    Object.freeze({id: 'gamer-monthly', name: 'Gamer', period: 'monthly', price: '$4', priceId: 'price_1UQj9YHC9LzXKZDPTHUfkDuj', interactions: 500, concurrency: 6}),
+    Object.freeze({id: 'gamer-yearly', name: 'Gamer', period: 'yearly', price: '$32', priceId: 'price_1UQjA5HC9LzXKZDPPqOe4ji3', interactions: 500, concurrency: 6}),
+    Object.freeze({id: 'pro-monthly', name: 'Gamer Pro', period: 'monthly', price: '$8', priceId: 'price_1UQjPvHC9LzXKZDP2lrHSw6j', interactions: 1000}),
+    Object.freeze({id: 'pro-yearly', name: 'Gamer Pro', period: 'yearly', price: '$64', priceId: 'price_1UQjPvHC9LzXKZDPXqfCGpP0', interactions: 1000}),
   ]),
 });
 
@@ -108,6 +108,14 @@ export function isFreePlan(name) {
   return typeof name !== 'string' || !name.trim() || name.trim() === '-1' || /^none$/i.test(name.trim()) || /free|trial/i.test(name);
 }
 
+// The plan_name values of the four plans Convai made for this mod (confirmed on a live purchase of GamerPlanV2-Monthly, 2026-10-16).
+export const KNOWN_PAID_PLANS = Object.freeze(['GamerPlanV2-Monthly', 'GamerPlanV2-Yearly', 'GamerProPlanV2-Monthly', 'GamerProPlanV2-Yearly']);
+
+/** A plan name that means a paid plan: one of the four known names, or (a name this list does not know yet) anything that is not free. */
+export function isPaidPlanName(name) {
+  return typeof name === 'string' && (KNOWN_PAID_PLANS.includes(name.trim()) || !isFreePlan(name));
+}
+
 async function closeBody(response) { try { await response.body?.cancel(); } catch { /* already closed */ } }
 
 async function postJson(fetchImpl, url, {headers = {}, body, timeoutMs}) {
@@ -159,7 +167,7 @@ export async function readPlanState({key, config = resolvePaidTier(), fetchImpl 
     const expiry = rawExpiry && /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(rawExpiry) ? rawExpiry.replace(' ', 'T') + 'Z' : rawExpiry;
     const expiresAt = expiry && Number.isFinite(Date.parse(expiry)) ? new Date(Date.parse(expiry)).toISOString() : null;
     const current = !expiresAt || Date.parse(expiresAt) > now();
-    return {plan: plan || null, expiresAt, paid: !isFreePlan(plan) && current};
+    return {plan: plan || null, expiresAt, paid: isPaidPlanName(plan) && current};
   }
   return null;
 }

@@ -94,8 +94,8 @@ const composites = {
   ],
   // A key row that is not saved yet, after a paste that failed: the message first, then the help; and one that is saved.
   // While the daily limit is reached the Mistral row ends with what to do (Mistral's estimate and Local AI without a limit).
-  'Mistral API key (failed paste)': ['Mistral did not accept that key.', byStart('Copy your free key from Mistral first')],
-  'Mistral API key (failed paste, daily limit reached)': [
+  'Mistral free API key (failed paste)': ['Mistral did not accept that key.', byStart('Copy your free key from Mistral first')],
+  'Mistral free API key (failed paste, daily limit reached)': [
     'Mistral did not accept that key.',
     byStart('Copy your free key from Mistral first'),
     'You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited), then Apply.',

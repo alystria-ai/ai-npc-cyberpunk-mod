@@ -43,6 +43,18 @@ local function cleanPlans(value)
     return plans
 end
 
+-- Convai's plan_name for each plan made for this mod (seen on a live purchase of GamerPlanV2-Monthly, 2026-10-16): the plan's name and
+-- period as the page lists it.
+local PLAN_NAMES = {
+    ['GamerPlanV2-Monthly'] = {'Gamer', 'monthly'}, ['GamerPlanV2-Yearly'] = {'Gamer', 'yearly'},
+    ['GamerProPlanV2-Monthly'] = {'Gamer Pro', 'monthly'}, ['GamerProPlanV2-Yearly'] = {'Gamer Pro', 'yearly'},
+}
+
+-- Interactions a month of the two plan families Convai made for this mod (from the user, 2026-10-16). The page shows these, not the number the
+-- running service published: a conversation service older than this file (a CET reload without a service restart) still sends the earlier
+-- figures. A plan family this table does not know shows the number the service sent, if any.
+local QUOTAS = {Gamer = 500, ['Gamer Pro'] = 1000}
+
 function M.new(options)
     options = options or {}
     local ui = options.ui
@@ -84,6 +96,29 @@ function M.new(options)
             watch = watch, result = result, action = sent and sent.action or nil}
     end
 
+    -- The plan as the player reads it: "Gamer, monthly" for GamerPlanV2-Monthly and so on, "Free" for a free, trial or used-up plan, an
+    -- unknown paid name as Convai wrote it. `plan` is state.plan.
+    function self.planLabel(plan)
+        if type(plan) ~= 'table' then return nil end
+        if not plan.paid then return ui.t('Free') end
+        local name = plan.name
+        if name == 'GamerPlanV2-Monthly' then return ui.t('Gamer, monthly') end
+        if name == 'GamerPlanV2-Yearly' then return ui.t('Gamer, yearly') end
+        if name == 'GamerProPlanV2-Monthly' then return ui.t('Gamer Pro, monthly') end
+        if name == 'GamerProPlanV2-Yearly' then return ui.t('Gamer Pro, yearly') end
+        return name
+    end
+
+    -- Interactions a month of `plan` (one of state.plans), or nil when unknown.
+    function self.quota(plan) return QUOTAS[plan.name] or plan.interactions end
+
+    -- Whether `plan` (one of state.plans) is the plan the key has now.
+    function self.isCurrent(state, plan)
+        local have = state and state.plan
+        local known = have and have.paid and PLAN_NAMES[have.name] or nil
+        return known ~= nil and known[1] == plan.name and known[2] == plan.period
+    end
+
     -- One line for the settings page's redraw check.
     function self.signature()
         local state = self.state()
@@ -122,6 +157,10 @@ function M.new(options)
         if result == 'signin-timeout' then return ui.t('The sign-in took too long. Choose Sign in with Convai to try again.') end
         if result == 'signin-failed' then return ui.t('The sign-in did not finish. Try again, or copy your key from convai.com and choose Paste.') end
         if result == 'opened' and action == 'buy' then
+            -- The plan being followed after the payment page opened: confirmed, or not confirmed in time.
+            local watch = state.watch and state.watch.state
+            if watch == 'active' then return ui.t('Your Convai plan is active.') end
+            if watch == 'timeout' then return ui.t('Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.') end
             return ui.t('Convai’s payment page is open in your browser. Your plan is active about 15 seconds after you pay.')
         end
         if result == 'opened' then return ui.t('Opened in your browser.') end
@@ -134,6 +173,18 @@ function M.new(options)
         if result == 'unknown' then return ui.t('Your plan could not be read right now. Try again in a moment.') end
         if result == 'ready' or result == 'saved' then return nil end
         return ui.t('Convai could not start the payment. Try again later.')
+    end
+
+    -- Whether the latest result is final, so a page that follows it can stop looking: false while the service works, while a sign-in waits
+    -- and while a purchase it opened is still being followed.
+    function self.settled(state)
+        local result = state.result
+        if not result or result == 'working' or result == 'signing-in' then return false end
+        if result == 'opened' and state.action == 'buy' then
+            local watch = state.watch and state.watch.state
+            return watch == 'active' or watch == 'timeout'
+        end
+        return true
     end
 
     -- Called by the settings module's slow tick. Returns 'active' once Convai confirms the plan after a purchase or a check, 'timeout'
