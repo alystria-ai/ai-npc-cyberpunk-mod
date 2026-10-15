@@ -5,7 +5,7 @@ character's name and portrait. V talks by push-to-talk or typed text, and the ch
 voice with call-style subtitles. Hanging up ends the call. Built 2026-10-14 on branch `holocall`. The entry point
 moved to the game's Contacts list (branch `holocall-contacts`), and after the first live test moved again, to the
 mod's own Chat tab (branch `holocall-chat-button`): the game's own phone is never changed. The Chat-tab call button
-has not yet been tested in game.
+has not yet been tested in game; an open chat no longer shows a Call hint (2026-10-15).
 
 ## Player flow
 
@@ -22,11 +22,11 @@ has not yet been tested in game.
     rebound to the `call` action while a Chat row is shown and put back, from the action they held, for any other
     row or tab, so the glyphs always show the real key. V starts a call with the selected character. (On a pad
     Triangle is also `showAll`, which means nothing on this tab and is swallowed there.)
-  - **Inside an open conversation,** a Call hint (the game's key hint for `call`, with the game's own translated Call
-    label) sits under the message box, beside the Enter/Esc line. V or a click on it starts the call. The key is only
-    live while that conversation has the focus, and not while a message is being typed (V is then an ordinary
-    letter). The game's own Call hint in that window stays hidden: the first test showed no call button there, most
-    likely covered by the composer panel, so the hint now lives in that panel.
+  - **Inside an open conversation** no Call hint is shown (2026-10-15, branch `holocall-light`: the user's live test
+    found the spawned "V  Call" hint beside the Enter/Esc line spoiled the composer layout, so it and its plain-text
+    fallback were removed). V still starts the call there, only while that conversation has the focus and not while a
+    message is being typed (V is then an ordinary letter). The game's own Call hint in that window stays hidden: it is
+    the game's quest call, and the composer panel covers where it sits.
   - **F is not the Call key.** F is the game's confirm (`click`, with Enter and the left mouse button), so on the Chat
     list it opens the text chat, and inside a chat it does nothing. R (`secondaryAction`) opens the chat too, as it
     did before holocalls; a first build had turned R into Call and lost that shortcut.
@@ -98,8 +98,8 @@ and story characters are not touched.
   `OnPhoneCall`, `OnAction`) all reach `wrappedMethod` and change nothing unless a mod call is active.
   `bridge/holocall.test.mjs` asserts that no game call function is wrapped or redefined.
 - **Two entry points, both in the Chat tab,** both event-driven (a key press or a click), no per-frame work:
-  `PhoneMessagePopupGameController.ConvaiChatHolocall` (the Call key `call` while the conversation has the focus, or
-  a click on the Call hint; `PhoneChat.reds`) and `NewHudPhoneGameController.ConvaiChatListHolocall` (the `call` key on a Chat row, listened for with the list's own
+  `PhoneMessagePopupGameController.ConvaiChatHolocall` (the Call key `call` while the conversation has the focus;
+  `PhoneChat.reds`) and `NewHudPhoneGameController.ConvaiChatListHolocall` (the `call` key on a Chat row, listened for with the list's own
   inputs, `PhoneChatTabs.reds`). Each checks that calling is enabled (else the game's blocked
   notice) and ends in `ConvaiHolocallRequest(contact)`, which accepts only a contact registered for AI chat
   (`ConvaiPhoneChatHasContact`).
@@ -191,17 +191,18 @@ With the setting on, dialing a staged character does the following (one step per
 3. **Spawns the game's camera** (`holocall_camera.ent`) at the game's framing: 20.4 degrees round from her facing,
    level, fov 35, at a 0.5 m frame (0.79 m away, lens 1.6 m above her feet; the game's own is 0.675 m and 1.65 m,
    a slightly tighter face shot that a taller or shorter character can fall out of).
-4. **Keeps the copy animating** off screen (`AnimationSystem.SetForcedVisible(id, true)`; without it an unseen body
+4. **Spawns the light rig** round the copy: three of the game's corridor lights (see "Light" below).
+5. **Keeps the copy animating** off screen (`AnimationSystem.SetForcedVisible(id, true)`; without it an unseen body
    is culled and stands frozen with a still face), holds her in her talk pose (gesture device workspot, her talk
    family from `gesture-catalog.lua`), switches the camera on (`Toggle(true)`), and turns her eyes to the lens
    (`LookAtAddEvent` on the camera entity, eyes leading, transition speed 80 as the game's holocall look),
    renewed every 5 s.
-5. The call connects with `StartHolocall`: the window shows the holocall image instead of the portrait.
+6. The call connects with `StartHolocall`: the window shows the holocall image instead of the portrait.
 
 If the copy or camera is not ready when the ring ends (6 s at most; the game's own failsafe is 8 s), or the copy
 drifts more than 1.5 m, the call continues with the portrait. In that case the mod logs `holo failed ...
 fallback=audio` and shows the notice "Live picture unavailable. The call continues with the portrait." At hang-up
-the look is retired, the forced animation cleared, the pose left, the copy deleted, and the camera switched off at
+the look is retired, the forced animation cleared, the lamps switched off and deleted, the pose left, the copy deleted, and the camera switched off at
 once but deleted 1.5 s later: freeing a render-to-texture camera in the frame it is switched off can crash the
 render thread. A sweep also clears tagged leftovers after a reload; a load forgets everything without native calls.
 
@@ -215,9 +216,73 @@ placed 40 m straight up in mid-air, so it fell out of frame while its talk pose 
 a tall building or megabuilding that spot is inside walls); nothing kept an unseen copy's animation running; the
 camera stood dead in front at 0.9 m with no look at the lens.
 
-**Not solved: light.** The game's studio is a black box lit by its own lights; the mod's copy stands under the
-real sky, so the picture has the city behind it and at night may be dark. Spawned lights are a further step
-(a light component added at entity assembly, or a baked light sector in an archive).
+### Light (branch `holocall-light`, 2026-10-15)
+
+**What the user saw.** The first lit-up live picture (Judy, V in a high apartment at 7 pm in fog) showed her as a
+black silhouette: the search had put the copy 41 m below V, at street level under an overhang, and the camera saw her
+against the bright open street behind her, with no light on her face. Frames: scratchpad `holo/before-1`.
+
+**How the game lights a holocall.** Evidence: `base\quest\holocalls\judy\judy_holocall.scene`, the studio sector
+`base\worlds\03_night_city\_compiled\default\quest_ec82d0423d8f1435.streamingsector` and
+`base\cinematics\cameras\holocall_camera.ent`, extracted with WolvenKit 9.0.1 from `basegame_4_gamedata` and
+`basegame_3_nightcity`.
+
+- The camera is the same one the mod spawns: `gameuiHolocallCameraComponent` `RenderToTextureCamera`, fov 35, a
+  256 x 256 `RGBA_Uint8_SRGB` dynamic texture, `farPlaneOverride` 1000, no `env` override, `features.localShadows` 0,
+  and a `DistantFogAreaSettings` block of its own. Nothing about the render target is special: no render plane, no
+  light channel, no scene layer other than `Default`. The cameras placed in the studio override nothing relevant.
+- The light is in the **world**, not in the camera. The studio (`$/03_night_city/ne2/#holocalls_studio`, near
+  5894, 6135, out of bounds) is a black box of editor boxes and `q110_black_box` meshes, with **270
+  `worldStaticLightNode`s** in prefab variants, one reflection probe (`envprobe_002`,
+  `holocalls_studio_026069e7.envprobe`) and one light-channel volume (`LC_Channel1`). The scene switches the lighting
+  per character: `questTogglePrefabVariant` on `#holocalls_studio_lighting`, variant `judy_holocall_lights`, shown at
+  the start and hidden at the end (together with `#judy_holocall_setup`), and
+  `questEntityManagerToggleComponent` `RenderToTextureCamera` on `#judy_holocall_camera`. A quest holocall is
+  `questCallContact` plus that scene; the actor is the `#judy_holo` community entry on a workspot.
+- A lighting variant is 3 to 6 small lights within 0.5 to 1.1 m of the face, 1.4 to 2.3 m up, aimed at 1.4 to 1.8 m:
+  spot lights of 5 to 150 lm and area lights of 50 to 100 nit, radius 0.5 to 5 m, no local shadows,
+  `autoHideDistance` 5 m (a few have 10 to 30 m), light channel 0 (29 of the 270 are `LC_Character`). Typically a
+  warm or white key in front and above, and coloured accents (blue, cyan, green, orange) at the side and behind. The
+  blue-cyan holo look is the call window's overlay; the lights themselves are ordinary. A third-party write-up
+  measured the same (github.com/blackpotoftea/cyberpunk_docs, `holo_studio/`).
+
+**Why the mod cannot copy it directly.** World light nodes and prefab variants are quest data, and script cannot
+toggle a prefab variant. A light component added to an already attached entity at run time (Codeware
+`Entity.AddComponent` from CET) is listed but never lights: tried, no change even at 100 times the intensity. A new
+`entLightComponent` defaults to light channel 511 (`LC_Channel1` to `8` plus `LC_ChannelWorld`), a 100 lm point light,
+radius 5, `autoHideDistance` 15.
+
+**The fix: the game's own lamp, three times.** `M.LIGHTS` in `mod/holocall.lua` spawns
+`base\gameplay\devices\lighting\residential\corridor_light\corridor_light_a.ent` (a light device: a point
+`gameLightComponent`, a fixture mesh and a collider) at three places round the copy, tagged and transient like the
+copy, in the same spawn step as the camera. Once a lamp has spawned its mesh and collider are switched off and its
+light is driven by the light's own script API (`ToggleLight(true)`, `SetIntensity`, `SetRadius`, `SetColor`):
+
+| role | bearing from her facing | distance | height | lumen | colour |
+|---|---|---|---|---|---|
+| key | 55 degrees (the camera's side, further round) | 0.85 m | 2.0 m | 110 | warm white 255, 238, 220 |
+| fill | -50 degrees | 0.9 m | 1.45 m | 28 | cool white 220, 232, 255 |
+| rim | 170 degrees (behind) | 0.75 m | 2.05 m | 75 | blue-cyan 110, 200, 255 |
+
+Radius 2.5 m, and shadows off as in the game's studio, so a lamp that lands inside a wall still lights her and the
+light does not reach far. They are point lights rather than spots because the device's light is a point light; at
+these distances a point light carries the same rig. The lumens were tuned live against the call window: 3000 lm blew
+the face out (the user's "too much" was this test), 250/60/150 was still bright, 120/30/80 looked naturally lit and
+60/15/40 started to go dim, so 110/28/75 is used. The fill is a quarter of the key so the face keeps its modelling.
+Frames (scratchpad `holo/`): `lampA.png` (unlit, then a 3000 lm lamp), `rigB.png` (no rig, 250, 120, 60),
+`final1.png` (before, the shipped rig at 10 s and at 40 s, after hang-up).
+
+- **Range.** The lamp's `autoHideDistance` (30 m) did not hide it with V 43 m away: the hide distance is measured
+  from the view that renders the light, here the call camera 0.8 m off.
+- **The spot.** Any spot now renders lit, at night, underground or under cover, because the rig is self-contained and
+  shadowless. The street behind her still shows (the game's studio is black); it reads darker now because the
+  camera's exposure settles on her lit face.
+- **Cost.** The three lamps exist only between the spawn and the hang-up (switched off, then deleted with the copy;
+  the reload sweep clears tagged leftovers). Lighting them is one check per pending lamp on the call's 0.25 s step;
+  once all are lit, `IsOn` is checked on the look's 5 s beat and a lamp the game switched off is lit again. Nothing
+  runs per frame. The render cost is three small unshadowed point lights during a call.
+- Probe lines: `holo ready ... lights=3/3`, and `holo lit contact=<id> lights=3/3` when a lamp came up after the
+  picture was ready.
 
 ### Bridge
 
@@ -237,7 +302,8 @@ real sky, so the picture has the city behind it and at night may be dark. Spawne
 requested contact=<id>
 state=dialing contact=<id> profile=<key> mode=audio|holo cast=video|voice hud=ok
 holo spawn contact=<id> record=<record> floor=+<m>m yaw=<deg> lens=<m>m                (live picture only)
-holo ready contact=<id> held=yes camera=on animated=true|false look=true|false drift=<m> (live picture only)
+holo ready contact=<id> held=yes camera=on animated=true|false look=true|false drift=<m> lights=<n>/3 (live picture only)
+holo lit contact=<id> lights=3/3                                                         (a late lamp, live picture only)
 holo failed contact=<id> reason=<r> fallback=audio                                       (live picture only)
 state=connected contact=<id> mode=audio|holo window=audiocall|holocall|pending
 window=<w> contact=<id>                                       (a pending window appeared)
@@ -250,29 +316,29 @@ The bridge turn-context diagnostic ends with `holocall=audio` or `holocall=holo`
 
 ## Not verified yet
 
-- The window in game: the ring, the portrait, the connect, and the end animation drawn by
-  `ShowEndCallContact`. The redscript compiles in the isolated check (2026-10-14).
+- **Seen 2026-10-15 (window capture, call started with the dev probe, V in a high apartment at about 7 pm):** the
+  ring, the connect into the holocall window, the live picture of Judy (`holo spawn ... floor=-41.1m`, `holo ready`),
+  the silhouette before the light rig, the naturally lit face with it (still lit after 40 s), and the window and every
+  spawned entity gone after the hang-up.
+- The end animation drawn by `ShowEndCallContact`. The redscript compiles in the isolated check (2026-10-15).
 - That the Chat list's selected row shows the chat icon (R, envelope) and the call icon (a key box with V, a phone)
   with the separator, that the bottom bar reads Call (V), Chat (F), Close, and that V starts the call there while R
   and F open the chat; that the rebinding of the game's key hints leaves the Contacts and Messages tabs showing their
-  own keys (F and R, Z) afterwards; that the Call hint under the message box in an open chat shows (the spawned
-  `inputDisplayLabelFlex` item, or the plain "V  Call" text if the game's item could not be built), and that V and
-  a click on it start the call (and that V typed into a message does not); that the vanilla Contacts Call (F) for
-  Judy, Panam and others opens the game's own call again, untouched.
-- That the live picture now finds a place: `holo spawn ... floor=...m` (negative when below V), then `holo ready`,
-  and everything after it (the copy, the camera, the pose, the look), none of which has run in the game yet.
+  own keys (F and R, Z) afterwards; that an open chat now shows only the Enter/Esc line under the message box (no
+  Call hint) and that V there still starts the call (and V typed into a message does not); that the vanilla Contacts
+  Call (F) for Judy, Panam and others opens the game's own call again, untouched.
 - That a tap of the phone button reaches the HUD controller as PRESSED then RELEASED on keyboard and
   pad, and does not also open the phone.
 - The Holocall subtitle type showing a bottom line for the player as speaker.
-- Everything about the live picture: whether the floor search finds a roof in typical places (V's apartment,
-  a street, the Badlands), whether the window's holocall image shows the copy, how dark it is at night, the
-  framing, whether her lips move with the mod voice and her eyes find the lens.
+- The live picture elsewhere: the floor search and the light rig in other places (a street, the Badlands, at
+  night, a spot inside a building), other characters and heights in the framing, whether her lips move with the mod
+  voice and her eyes find the lens, and a call placed by the player from the Chat tab rather than by the probe.
 - What happens when a real quest call arrives during a mod call: the preempt path.
 
 ## Files
 
 - `r6/scripts/CyberpunkConvai/Holocall.reds` (new)
-- `PhoneChatTabs.reds` and `PhoneChat.reds` (the Chat tab's call entry points: the Call hint in a chat, the Call action on the list)
+- `PhoneChatTabs.reds` and `PhoneChat.reds` (the Chat tab's call entry points: the Call key in a chat, the Call action and hints on the list)
 - `mod/holocall.lua` (new)
 - `mod/init.lua`, `speech.lua`, `continuous-speech.lua`, `subtitles.lua`, `manager.lua`, `mcm.lua`,
   `notices.lua`

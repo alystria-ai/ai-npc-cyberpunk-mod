@@ -15,7 +15,8 @@
 -- ep1\quest\holocalls\<name>\, STAGED below); every other call is a voice call with the portrait. This file does the
 -- same without the quest path: for a STAGED character (and the setting on) it finds a floor out of V's sight above V,
 -- places a copy of the character there (the character's own record) held in a talk pose and kept animating, and points
--- the game's own holocall camera at it with the game's own framing. Anything that does not work out (no floor, the copy
+-- the game's own holocall camera at it with the game's own framing, lit by three of the game's own lamps as the game lights
+-- its studio actor with lights of its own (M.LIGHTS). Anything that does not work out (no floor, the copy
 -- or camera not ready in time, the copy moving) falls back to the portrait voice call.
 --
 -- Cost: idle, update() is one nil check and drain() runs only on the phone's own request drain. A call ticks every
@@ -50,8 +51,26 @@ M.HOLO_DRIFT = 1.5
 -- The camera is switched off at once and deleted this many seconds later: the render thread may still hold its
 -- target for some frames after the switch, and freeing it in the same frame crashes.
 M.LENS_DELAY = 1.5
--- The look at the lens is asked for again this often (the game drops a stale look request).
+-- The look at the lens is asked for again this often (the game drops a stale look request). The light rig is checked
+-- on the same beat.
 M.LOOK_REFRESH = 5
+-- The light rig. The game lights a holocall caller with lights of its own: the studio prefab #holocalls_studio_lighting
+-- holds small spot and area lights (radius 1-5 m, 5-150 lm, no shadows, autoHideDistance 5 m) right round the actor, and
+-- each call's scene switches on that character's variant (e.g. judy_holocall_lights): a warm key in front and above,
+-- coloured accents at the side and behind, in a black room. The copy here stands wherever the search found a floor, lit
+-- only by the world, and against a bright street it reads as a silhouette. So three of the game's own lamps go with her:
+-- the residential corridor light (a light device: a point gameLightComponent, a mesh and a collider), the mesh and the
+-- collider switched off, the light driven by its own script API. Positions are round the copy as the camera's are
+-- (bearing from her facing in degrees, ground distance and height in metres); lumens tuned in game against the call
+-- window to look naturally lit (2026-10-15), not stage lit. Shadows are off, as in the game's studio, so a lamp that
+-- lands inside a wall still lights her. Each lamp exists only during the call.
+M.LIGHT_TEMPLATE = 'base\\gameplay\\devices\\lighting\\residential\\corridor_light\\corridor_light_a.ent'
+M.LIGHT_RADIUS = 2.5
+M.LIGHTS = {
+    {role = 'key', bearing = 55, dist = 0.85, height = 2.0, lumen = 110, color = {255, 238, 220}},
+    {role = 'fill', bearing = -50, dist = 0.9, height = 1.45, lumen = 28, color = {220, 232, 255}},
+    {role = 'rim', bearing = 170, dist = 0.75, height = 2.05, lumen = 75, color = {110, 200, 255}},
+}
 -- Never on a holocall, whatever a catalogue says.
 M.NEVER = {johnny = true, ['johnny-silverhand'] = true, silverhand = true}
 -- The contacts the game itself stages a video holocall for: phone contact id -> the game's holocall setup
@@ -319,6 +338,84 @@ local function holoBegin(call, player)
     holo.origin, holo.columns = origin, columns(origin)
 end
 
+local function spawned(id)
+    local dynamic = system()
+    if not dynamic or not id then return nil end
+    local ok, entity = pcall(function()
+        if not dynamic:IsSpawned(id) then return nil end
+        return Game.FindEntityByID(id)
+    end)
+    return ok and entity or nil
+end
+
+-- Where a lamp of the rig stands for a copy whose feet are at `feet` facing `yaw` (the same convention as M.rig).
+function M.lightAt(feet, yaw, light)
+    local radians = math.rad(yaw + light.bearing)
+    return {x = feet.x - math.sin(radians) * light.dist, y = feet.y + math.cos(radians) * light.dist, z = feet.z + light.height}
+end
+
+-- The rig's lamps, tagged and transient like the copy. A lamp that cannot be created is left out: the picture goes on.
+local function holoLightsSpawn(holo, spot)
+    holo.lights = {}
+    local dynamic = system()
+    if not dynamic then return end
+    for _, light in ipairs(M.LIGHTS) do
+        pcall(function()
+            local at = M.lightAt(spot, spot.yaw, light)
+            local spec = NewObject('DynamicEntitySpec')
+            if not pcall(function() spec.templatePath = M.LIGHT_TEMPLATE end) then spec.templatePath = ResRef.FromString(M.LIGHT_TEMPLATE) end
+            spec.position = Vector4.new(at.x, at.y, at.z, 1)
+            spec.orientation = EulerAngles.new(0, 0, spot.yaw):ToQuat()
+            spec.persistState, spec.persistSpawn = false, false
+            spec.alwaysSpawned, spec.spawnInView, spec.active = true, true, true
+            spec.tags = {CName.new(M.TAG)}
+            local id = dynamic:CreateEntity(spec)
+            if id and not tostring(id.hash):match('^0+[uUlL]*$') then holo.lights[#holo.lights + 1] = {light = light, id = id} end
+        end)
+    end
+end
+
+-- Switch one lamp on with its role's settings: its mesh and collider off, its light on. True once the light is on.
+local function lightOn(lamp, entity)
+    local ok = pcall(function()
+        local spec = lamp.light
+        for _, component in ipairs(entity:GetComponents() or {}) do
+            local class = NameToString(component:GetClassName())
+            if class == 'entMeshComponent' or class == 'entColliderComponent' then
+                component:Toggle(false)
+            elseif class == 'gameLightComponent' then
+                component:ToggleLight(true)
+                component:SetIntensity(spec.lumen)
+                component:SetRadius(M.LIGHT_RADIUS)
+                component:SetColor(Color.new({Red = spec.color[1], Green = spec.color[2], Blue = spec.color[3], Alpha = 255}))
+                lamp.component = component
+            end
+        end
+    end)
+    if not ok or not lamp.component then return false end
+    local on, value = pcall(function() return lamp.component:IsOn() end)
+    return not on or value ~= false
+end
+
+-- Light every lamp that has spawned and is not lit yet; with `check`, also relight a lit one the game switched off. The
+-- number lit. Runs only from the call's 0.25 s step, and once all are lit only every LOOK_REFRESH seconds.
+local function holoLight(holo, check)
+    local lit = 0
+    for _, lamp in ipairs(holo.lights or {}) do
+        if lamp.lit and check then
+            local ok, on = pcall(function() return lamp.component:IsOn() end)
+            if ok and on == false then lamp.lit = false end
+        end
+        if not lamp.lit then
+            local entity = spawned(lamp.id)
+            if entity then lamp.lit = lightOn(lamp, entity) end
+        end
+        if lamp.lit then lit = lit + 1 end
+    end
+    holo.lit = lit
+    return lit
+end
+
 -- Spawn the copy at the studio spot and the camera at its rig, both tagged and transient.
 local function holoSpawn(call, holo)
     local spot = holo.spot
@@ -349,20 +446,12 @@ local function holoSpawn(call, holo)
         assert(holo.cameraId and not tostring(holo.cameraId.hash):match('^0+[uUlL]*$'), 'camera was not created')
     end)
     if not ok then holoFail(call, 'spawn: ' .. tostring(err)) return end
+    holoLightsSpawn(holo, spot)
     holo.stage = 'spawn'
     log(string.format('holo spawn contact=%s record=%s floor=%+.1fm yaw=%d lens=%.2fm', call.contact, call.record,
         spot.z - holo.origin.z, spot.yaw, holo.lens.dist))
 end
 
-local function spawned(id)
-    local dynamic = system()
-    if not dynamic or not id then return nil end
-    local ok, entity = pcall(function()
-        if not dynamic:IsSpawned(id) then return nil end
-        return Game.FindEntityByID(id)
-    end)
-    return ok and entity or nil
-end
 
 local function drift(holo)
     local ok, distance = pcall(function()
@@ -431,6 +520,7 @@ local function holoStep(call, dt)
         -- Asked once; cleanup clears it again before the copy is deleted.
         holo.forced = pcall(function() Game.GetAnimationSystem():SetForcedVisible(holo.copyId, true) end)
     end
+    holoLight(holo)
     if not holo.npc or not holo.camera then return end
     if not holo.held then
         local spots = workspot()
@@ -463,7 +553,8 @@ local function holoStep(call, dt)
     local looked = holoLook(holo)
     holo.ready = true
     log('holo ready contact=' .. call.contact .. ' held=' .. tostring(holo.held) .. ' camera=on animated='
-        .. tostring(holo.forced == true) .. ' look=' .. tostring(looked) .. string.format(' drift=%.2f', drift(holo)))
+        .. tostring(holo.forced == true) .. ' look=' .. tostring(looked) .. string.format(' drift=%.2f', drift(holo))
+        .. ' lights=' .. tostring(holo.lit or 0) .. '/' .. #(holo.lights or {}))
 end
 
 local function holoValid(call)
@@ -474,8 +565,8 @@ local function holoValid(call)
     return drift(holo) <= M.HOLO_DRIFT
 end
 
--- Undo everything the live picture did, in order: the look, the forced animation, the pose, then the camera (switched
--- off now, deleted LENS_DELAY later) and the copy.
+-- Undo everything the live picture did, in order: the look, the forced animation, the lamps, the pose, then the camera
+-- (switched off now, deleted LENS_DELAY later) and the copy.
 local function holoCleanup(holo)
     if not holo or holo.cleaned then return end
     holo.cleaned = true
@@ -487,6 +578,12 @@ local function holoCleanup(holo)
         pcall(function() Game.GetAnimationSystem():SetForcedVisible(holo.copyId, false) end)
         holo.forced = false
     end
+    -- The lamps go out now and are deleted with the copy (they hold no render target).
+    for _, lamp in ipairs(holo.lights or {}) do
+        if lamp.component then pcall(function() lamp.component:ToggleLight(false) end) end
+        deleteTagged(lamp.id)
+    end
+    holo.lights = nil
     local spots = holo.held and workspot()
     if spots and holo.npc then pcall(spots.exit, holo.npc, true) end
     if spots and holo.deviceId then pcall(spots.deleteDevice, holo.deviceId) end
@@ -635,7 +732,17 @@ local function step(call, player, dt, sample)
     if call.mode == 'holo' then
         local holo = call.holo
         holo.lookAge = (holo.lookAge or 0) + dt
-        if holo.lookAge >= M.LOOK_REFRESH then holoLook(holo) end
+        local refresh = holo.lookAge >= M.LOOK_REFRESH
+        if refresh then holoLook(holo) end
+        -- A lamp that spawned after the picture was ready is lit on the next step; a lit rig is only checked on the
+        -- look's beat (relit if the game switched a lamp off).
+        local lights = #(holo.lights or {})
+        if lights > 0 and ((holo.lit or 0) < lights or refresh) then
+            local before = holo.lit or 0
+            if holoLight(holo, refresh) == lights and before < lights then
+                log('holo lit contact=' .. call.contact .. ' lights=' .. lights .. '/' .. lights)
+            end
+        end
     end
     if call.window == 'pending' then
         -- The window was still being created when the call connected: show it once it exists.

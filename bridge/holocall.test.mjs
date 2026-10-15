@@ -112,15 +112,12 @@ test('the game\'s own phone is untouched; a holocall starts only from the mod\'s
   assert.match(tabs, /SetLocalizedTextScript\(this\.m_action2ButtonLabel, "LocKey#22196"\);\s*inkWidgetRef\.SetVisible\(this\.m_action2ButtonWidget, true\);/);
   // The row shows both icons: call and chat (R and the envelope), with the separator.
   assert.match(tabs, /SetVisible\(this\.m_callInputHint, true\);\s*inkWidgetRef\.SetVisible\(this\.m_chatInputHint, true\);\s*inkWidgetRef\.SetVisible\(this\.m_separtor, true\);/);
-  // The conversation: the mod's own Call hint (the game's key hint for `call`) sits in the composer panel, clickable;
-  // the Call key starts the call only while the chat has focus.
+  // The conversation shows no Call hint (the user's live test: it spoiled the composer layout); the game's own hint
+  // stays hidden too. The Call key still starts the call while the chat has focus.
   const chat = read('../r6/scripts/CyberpunkConvai/PhoneChat.reds');
   assert.match(chat, /inkWidgetRef\.SetVisible\(this\.m_hintCall, false\);/);
-  assert.match(chat, /SpawnFromExternal\(row, r"base[^"]*base_buttons\.inkwidget", n"inputDisplayLabelFlex"\)/);
-  assert.match(chat, /label\.SetInputActionLabel\(n"call", GetLocalizedText\("LocKey#22196"\)\)/);
-  assert.match(chat, /widget\.RegisterToCallback\(n"OnRelease", this, n"OnConvaiChatCallClick"\)/);
+  assert.doesNotMatch(chat, /inputDisplayLabelFlex|ConvaiChatCallHint|OnConvaiChatCallClick|"V  Call"/);
   assert.match(chat, /Equals\(ListenerAction\.GetName\(action\), n"call"\) && this\.m_isFocused\s*&& Equals\(ListenerAction\.GetType\(action\), gameinputActionType\.BUTTON_PRESSED\) \{\s*this\.ConvaiChatHolocall\(\);\s*\};\s*ListenerActionConsumer\.Consume\(consumer\);\s*return false;/);
-  assert.match(chat, /OnConvaiChatCallClick[^]*?evt\.IsAction\(n"click"\)[^]*?this\.m_isFocused[^]*?ConvaiChatHolocall\(\)/);
   // Typing swallows the key first: a V typed into the message never calls.
   assert.match(chat, /if this\.ConvaiChatTyping\(\) \{\s*if this\.ConvaiChatSwallowsAction\(action\)/);
   // The message box has no placeholder text.
@@ -281,7 +278,7 @@ test('calling the same character again hangs up; a load forgets the call without
 // raycasts hit the slab's plane inside its bounds (Static only). `ground` (a z) adds an unbounded floor plane and `wall`
 // (an x) a wall plane that blocks any segment crossing it. Entities spawn at once; every native call is recorded.
 const world = `
-  local created, deleted, toggles, played, forced, looks, removed = {}, {}, {}, {}, {}, {}, {}
+  local created, deleted, toggles, played, forced, looks, removed, lamps = {}, {}, {}, {}, {}, {}, {}, {}
   local entities, roof, ground, wall, records = {}, true, nil, nil, {['Character.Judy'] = true, ['Character.wat_lch_melee_01'] = true}
   local function entity(id, name, spec)
     local p = spec.position
@@ -292,12 +289,27 @@ const world = `
     function e:ConvaiFaceRequest() self.face = true; return 'managed' end
     function e:QueueEvent(event) looks[#looks + 1] = {npc = name, event = event}; return true end
     function e:FindComponentByName() return {Toggle = function(_, on) toggles[#toggles + 1] = name .. ':' .. tostring(on) end} end
+    if name == 'lamp' then
+      -- The game's corridor light: a mesh, a collider and a point light driven by its script API.
+      local lamp = {id = id, mesh = true, collider = true, on = false}
+      lamps[#lamps + 1] = lamp
+      local function part(class, fields) fields.GetClassName = function() return class end; return fields end
+      e.parts = {
+        part('entMeshComponent', {Toggle = function(_, on) lamp.mesh = on end}),
+        part('entColliderComponent', {Toggle = function(_, on) lamp.collider = on end}),
+        part('gameLightComponent', {ToggleLight = function(_, on) lamp.on = on end, SetIntensity = function(_, v) lamp.lumen = v end,
+          SetRadius = function(_, v) lamp.radius = v end, SetColor = function(_, c) lamp.color = c end,
+          IsOn = function() return lamp.on end}),
+      }
+      function e:GetComponents() return self.parts end
+    end
     return e
   end
   local dynamic = {}
   function dynamic:IsReady() return true end
   function dynamic:CreateEntity(spec) local id = tostring(9000 + #created) .. 'ULL'; created[#created + 1] = spec
-    entities[id] = entity(id, spec.recordID and 'copy' or 'camera', spec); return {hash = id, id = id} end
+    local kind = spec.recordID and 'copy' or (tostring(spec.templatePath):find('corridor_light', 1, true) and 'lamp' or 'camera')
+    entities[id] = entity(id, kind, spec); return {hash = id, id = id} end
   function dynamic:IsSpawned(id) return entities[id.id] ~= nil end
   function dynamic:IsManaged() return true end
   function dynamic:IsTagged() return true end
@@ -331,6 +343,8 @@ const world = `
     GetSpatialQueriesSystem = function() return spatial end, GetAnimationSystem = function() return animation end}
   TweakDB = {GetRecord = function(_, id) if records[id] then return {IsA = function(_, class) return class == 'gamedataCharacter_Record' end} end end}
   CName = {new = function(v) return v end}
+  NameToString = function(v) return v end
+  Color = {new = function(t) return t end}
   Enum = {new = function(_, v) return v end}
   NewObject = function() return {} end
   TweakDBID = {new = function(v) return v end}
@@ -363,7 +377,7 @@ test('a staged character gets the live picture: a hidden floor above V, the copy
   assert(logged('state=dialing contact=judy profile=judy%-alvarez mode=holo cast=video hud=ok'))
   assert(#created == 0, 'nothing is spawned before a floor is found')
   tick(0.2)
-  assert(#created == 2, 'a copy and a camera are created once the floor above V is found')
+  assert(#created == 5, 'a copy, a camera and three lamps are created once the floor above V is found')
   local copy, camera = created[1], created[2]
   -- The copy stands on the roof 20 m above V, out of V's sight, with her own record.
   assert(copy.recordID == 'Character.Judy' and near(copy.position.x, 10) and near(copy.position.y, 20) and near(copy.position.z, 50))
@@ -374,7 +388,23 @@ test('a staged character gets the live picture: a hidden floor above V, the copy
   assert(near(camera.position.x, 9.72362) and near(camera.position.y, 20.74317) and near(camera.position.z, 51.6), camera.position.x .. ' ' .. camera.position.y)
   assert(near(camera.orientation.yaw, 200.4) and camera.orientation.pitch == 0)
   assert(logged('holo spawn contact=judy record=Character.Judy floor=%+20.0m yaw=0 lens=0.79m'))
+  -- The light rig, as the game lights its studio actor: a warm key in front and above on the camera's side, a weaker
+  -- fill on the other side, a cool rim behind, all round her at the game's own lamp, tagged and transient.
+  local key, fill, rim = created[3], created[4], created[5]
+  for _, lamp in ipairs({key, fill, rim}) do
+    assert(lamp.templatePath == 'base\\\\gameplay\\\\devices\\\\lighting\\\\residential\\\\corridor_light\\\\corridor_light_a.ent')
+    assert(lamp.tags[1] == 'CyberpunkConvaiHolocall' and lamp.persistState == false and lamp.alwaysSpawned == true)
+  end
+  -- Yaw 0 faces +y; bearing 55 puts the key to her front left (x < 10), the fill front right, the rim behind (y < 20).
+  assert(key.position.x < 10 and key.position.y > 20 and near(key.position.z, 52), key.position.x .. ' ' .. key.position.y)
+  assert(fill.position.x > 10 and fill.position.y > 20 and near(fill.position.z, 51.45))
+  assert(rim.position.y < 20 and near(rim.position.z, 52.05))
   tick(2)
+  -- Each lamp is switched on with its role's settings, its fixture mesh and collider off; the key is strongest.
+  assert(#lamps == 3)
+  for _, lamp in ipairs(lamps) do assert(lamp.on and not lamp.mesh and not lamp.collider and lamp.radius == 2.5 and lamp.color.Alpha == 255) end
+  assert(lamps[1].lumen > lamps[3].lumen and lamps[3].lumen > lamps[2].lumen, 'key, then rim, then fill')
+  assert(logged('lights=3/3'))
   assert(forced[1] == '9000ULL:true', 'the copy keeps animating off screen')
   assert(played[1] == 'convai_talk_judy' and toggles[1] == 'camera:true')
   -- Her eyes go to the lens (the camera entity), eyes leading, at the game's holocall look speed.
@@ -387,18 +417,22 @@ test('a staged character gets the live picture: a hidden floor above V, the copy
   local caller = holocall.partner(player, false)
   assert(caller.entity == '9000ULL' and caller.voiceOnly == nil and caller.holocall.mode == 'holo' and caller.npc.face)
   assert(holocall.partnerValid({entity = '9000ULL', holocall = {contact = 'judy', mode = 'holo'}}))
-  -- The look is asked for again every few seconds, the old one retired first.
+  -- The look is asked for again every few seconds, the old one retired first; a lamp the game switched off is relit then.
   local before = #looks
+  lamps[2].on = false
   tick(5.1)
   assert(#looks == before + 1 and removed[#removed] == looks[before].event)
+  assert(lamps[2].on, 'the rig is checked on the look beat')
   -- Hang up: look retired, animation released, camera off at once and deleted only after a delay, copy deleted.
   local rays = spatial.rays
   holocall.finish(player, 'hangup')
   assert(forced[#forced] == '9000ULL:false' and toggles[#toggles] == 'camera:false' and removed[#removed] == looks[#looks].event)
-  assert(#deleted == 1 and deleted[1] == '9000ULL', 'the copy goes now; the camera waits')
+  -- The lamps go out and are deleted with the copy; the camera waits.
+  for _, lamp in ipairs(lamps) do assert(not lamp.on) end
+  assert(#deleted == 4 and deleted[1] == '9002ULL' and deleted[2] == '9003ULL' and deleted[3] == '9004ULL' and deleted[4] == '9000ULL')
   assert(holocall.lenses and #holocall.lenses == 1)
-  tick(1.0); assert(#deleted == 1, 'the switched-off camera is not freed in the next frames')
-  tick(0.6); assert(#deleted == 2 and deleted[2] == '9001ULL' and holocall.lenses == nil)
+  tick(1.0); assert(#deleted == 4, 'the switched-off camera is not freed in the next frames')
+  tick(0.6); assert(#deleted == 5 and deleted[5] == '9001ULL' and holocall.lenses == nil)
   tick(1); assert(spatial.rays == rays, 'nothing runs after the call')
 `));
 
@@ -411,9 +445,10 @@ test('the live picture falls back to the portrait when the copy moves, when ther
   game.window = 'audiocall'; tick(0.3)
   assert(holocall.connected() and holocall.call.mode == 'audio' and game.connects[#game.connects] == false)
   assert(logged('holo failed contact=judy reason=copy%-lost fallback=audio') and lastNotice().id == 'holocall-live-fallback')
-  assert(deleted[1] == '9000ULL' and toggles[#toggles] == 'camera:false' and forced[#forced] == '9000ULL:false')
+  assert(deleted[4] == '9000ULL' and toggles[#toggles] == 'camera:false' and forced[#forced] == '9000ULL:false')
+  assert(deleted[1] == '9002ULL' and not lamps[1].on, 'the lamps go with the picture')
   assert(holocall.partner(player, false).entity == '7ULL')
-  tick(2); assert(deleted[2] == '9001ULL', 'the camera is deleted after its delay, the call still on')
+  tick(2); assert(deleted[5] == '9001ULL', 'the camera is deleted after its delay, the call still on')
   holocall.finish(player, 'hangup')
   -- Open sky above, around and below V: nothing to stand on, so the portrait, after three candidates per tick (33
   -- columns), with the count of reasons in the log.
@@ -442,7 +477,7 @@ test('with nothing above V (a high apartment) the copy is placed on the ground b
   game.requests = {'judy'}; holocall.drain(player); tick(0.3)
   assert(#created == 0, 'the nine columns above find nothing; three candidates per tick')
   tick(0.8)
-  assert(#created == 2, 'the first hidden ring column behind the wall gets the copy and the camera')
+  assert(#created == 5, 'the first hidden ring column behind the wall gets the copy, the camera and the lamps')
   local copy = created[1]
   assert(copy.recordID == 'Character.Judy' and near(copy.position.x, 22) and near(copy.position.y, 20) and near(copy.position.z, 20), copy.position.x .. ' ' .. copy.position.z)
   assert(logged('holo spawn contact=judy record=Character.Judy floor=%-10.0m'))

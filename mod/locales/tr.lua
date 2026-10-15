@@ -803,5 +803,4 @@ return {
     ["Paste"] = "Yapıştır",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "Pocket, OmniVoice veya Voxtral seslerle çalışır.",
     ["no Omni pack"] = "Omni paketi yok",
-    ["V  Call"] = "V  Ara",
 }

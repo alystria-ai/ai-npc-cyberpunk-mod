@@ -803,5 +803,4 @@ return {
     ["Paste"] = "貼り付け",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "Pocket、OmniVoice、Voxtral の音声で使えます。",
     ["no Omni pack"] = "Omni パックなし",
-    ["V  Call"] = "V  通話",
 }

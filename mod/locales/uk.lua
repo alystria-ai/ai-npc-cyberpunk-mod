@@ -803,5 +803,4 @@ return {
     ["Paste"] = "Вставити",
     ["Works with the Pocket, OmniVoice or Voxtral voices."] = "Працює з голосами Pocket, OmniVoice або Voxtral.",
     ["no Omni pack"] = "без пакета Omni",
-    ["V  Call"] = "V  Подзвонити",
 }

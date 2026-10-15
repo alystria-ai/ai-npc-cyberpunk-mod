@@ -8,8 +8,8 @@ and press the normal confirm action. The
 conversation opens directly; there is no quest-message thread selector.
 On the Chat list the confirm key (F, Enter) and the secondary action (R, the envelope on the row) open the
 chat; the Call key (V, Triangle; a phone icon beside the envelope and a Call hint in the bottom bar) starts a
-holocall with the selected person, and inside a conversation the Call hint under the message box (V, or a click)
-does the same (see [HOLOCALL.md](HOLOCALL.md)). The game's own Contacts Call is unchanged.
+holocall with the selected person (see [HOLOCALL.md](HOLOCALL.md)). An open conversation shows no Call hint (removed
+2026-10-15: it spoiled the composer layout); V still calls from there. The game's own Contacts Call is unchanged.
 Pointer callbacks are provided for the tabs and contact rows where a pointer is
 available; the game's ordinary phone navigation remains the primary input.
 
