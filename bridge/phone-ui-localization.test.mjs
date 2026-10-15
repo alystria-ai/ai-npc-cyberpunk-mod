@@ -81,6 +81,7 @@ local function widget(name)
   function w:SetText(value)self.text=value end
   function w:GetTintColor()return self.tint end
   function w:SetTintColor(value)self.tint=value end
+  function w:BindProperty(property,path)self.bound=self.bound or {};self.bound[type(property)=='table' and property.source or property]=path end
   function w:SetOpacity(value)self.opacity=value end
   function w:IsVisible()return self.visible end
   function w:SetVisible(value)self.visible=value end
@@ -404,9 +405,25 @@ local base=widget('line');base:Reparent(contacts)
 local activePanel,active=widget('linePanel'),widget('line');activePanel:Reparent(root);active:Reparent(activePanel)
 active.tint={Red=0,Green=1,Blue=1}
 local icon,label=widget('glyph'),widget('label');icon:Reparent(tab);label:Reparent(tab)
+-- The glyph is an image: a leaf widget with no children API (walking its children used to stop the function).
+icon.GetNumChildren,icon.GetWidgetByIndex=nil,nil
 local c={GetRootWidget=function()return root end,ScrollTo=function()error('Localization navigated the phone')end}
 m.header(c,0)
+assert(m.lastError==nil,m.lastError)
 assert(label.text=='DISCUSSION' and label.name==CName.new('convaiChatTabLabel'))
+-- Colours are the game's own tab style: the label and icon bind MenuLabel.MainColor/MainOpacity, the underline binds
+-- MainColors.PanelRed, and the tab's state says whether it is selected. No tint is copied.
+local line=tab.children[1].children[3]
+assert(line.name==CName.new('convaiChatTabUnderline') and line.bound.tintColor==CName.new('MainColors.PanelRed'),'underline binding')
+for _,part in ipairs({icon,label})do
+  assert(part.bound.tintColor==CName.new('MenuLabel.MainColor') and part.bound.opacity==CName.new('MenuLabel.MainOpacity'),'label binding')
+  assert(part.tint.Red==1 and part.tint.Green==0,'no tint is written')
+end
+assert(tab.state==CName.new('Default'),'default state')
+m.header(c,4)
+assert(tab.state==CName.new('Selected') and m.lastError==nil,'selected state '..tostring(m.lastError))
+m.header(c,1)
+assert(tab.state==CName.new('Default'),'back to default')
 assert(tab.name==CName.new('convaiChatTab') and messages.text=='Native messages' and contacts.text=='Native contacts')
 language='ja';generation=2;m.header(c,0)
 assert(label.text=='チャット' and m.headerIndex==0 and #tab.children==1)

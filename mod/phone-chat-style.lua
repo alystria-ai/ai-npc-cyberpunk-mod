@@ -140,9 +140,7 @@ function M.header(controller, index)
             if child and child:GetState() == CName.new('Selected') then index = i; break end
         end
         if index == nil then
-            local label = find(tab, 'convaiChatTabLabel', 2) or tab:GetWidgetByIndex(1)
-            local tint = label and label:GetTintColor()
-            index = tab:IsVisible() and tint and tint.Green > tint.Red and tint.Blue > tint.Red and 4 or 0
+            index = tab:IsVisible() and tab:GetState() == CName.new('Selected') and 4 or 0
         end
     end
 
@@ -184,10 +182,17 @@ function M.header(controller, index)
     line:SetVAlign(inkEVerticalAlign.Top)
     line:SetSize(size(200, 7))
     line:SetMargin(margin(0, 87, 0, 0))
-    local tint = index == 4 and activeLine:GetTintColor() or baseLine:GetTintColor()
-    label:SetTintColor(tint)
-    for i = 0, icon:GetNumChildren() - 1 do icon:GetWidgetByIndex(i):SetTintColor(tint) end
-    line:SetTintColor(baseLine:GetTintColor())
+    -- Colours come from the game's own tab style, as on Messages and Contacts (new_phone.inkwidget): the icon and label
+    -- bind MenuLabel.MainColor and MainOpacity (red and dimmed in Default, the active blue in Selected) and the underline
+    -- binds MainColors.PanelRed; the tab's state picks the label colour, set as the game's UpdateLabelsStates does. (The
+    -- old copy of the lines' tints walked the icon's children, and the icon is an image with none: the error stopped the
+    -- function before the underline was tinted, which left it white.)
+    tab:SetState(CName.new(index == 4 and 'Selected' or 'Default'))
+    for _, part in ipairs({icon, label}) do
+        part:BindProperty(CName.new('tintColor'), CName.new('MenuLabel.MainColor'))
+        part:BindProperty(CName.new('opacity'), CName.new('MenuLabel.MainOpacity'))
+    end
+    line:BindProperty(CName.new('tintColor'), CName.new('MainColors.PanelRed'))
     if index == 4 and (created or not M.headerPatched) then controller:ScrollTo(4, true) end
     M.headerIndex = index
     M.headerPatched = true

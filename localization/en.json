@@ -2318,10 +2318,10 @@
         "phone.native"
       ],
       "references": [
-        "mod/phone-chat-style.lua:178",
-        "mod/phone-chat-style.lua:239",
+        "mod/phone-chat-style.lua:176",
+        "mod/phone-chat-style.lua:244",
         "r6/scripts/CyberpunkConvai/PhoneChat.reds:451",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:386"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:378"
       ]
     },
     "CLOSE PHONE TO CONTINUE": {
@@ -2511,8 +2511,8 @@
         "phone.native"
       ],
       "references": [
-        "mod/phone-chat-style.lua:222",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:328"
+        "mod/phone-chat-style.lua:227",
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:331"
       ]
     },
     "Chat history stays available across game launches.\n\nForgetting a character also clears their saved Chat messages and drafts. Forgetting all memories clears all saved chats.": {
@@ -5386,7 +5386,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:314"
+        "mod/phone-chat-style.lua:319"
       ]
     },
     "Press your Group voice chat shortcut to finish recording.": {
@@ -5895,7 +5895,9 @@
       ],
       "references": [
         "mod/mcm.lua:1843",
-        "mod/phone-chat-style.lua:140"
+        "mod/phone-chat-style.lua:140",
+        "mod/phone-chat-style.lua:143",
+        "mod/phone-chat-style.lua:190"
       ]
     },
     "Selected character": {
@@ -7782,7 +7784,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:313"
+        "mod/phone-chat-style.lua:318"
       ]
     },
     "YOUR PARTY": {

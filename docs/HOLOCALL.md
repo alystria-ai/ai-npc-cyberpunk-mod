@@ -179,11 +179,12 @@ and no notice. The probe line says `cast=video` or `cast=voice`.
 With the setting on, dialing a staged character does the following (one step per 0.25 s call tick):
 
 1. **Finds a studio** out of V's sight: a level floor with 2.3 m of headroom, hidden from V's eyes by something
-   solid, with open space for the camera on one side. Candidates in order: the first floor 10 to 90 m above V,
-   straight up and at eight points 30 m away; then, when nothing stands above V (a high apartment, open ground),
-   floors from 10 m above to 80 m below V's feet on rings of 12, 24 and 40 m round V (24 columns). Three candidates
-   per tick (about 22 raycasts each), so the whole search is at most 11 ticks (2.75 s), once per call and nothing
-   afterwards. No floor: `holo failed ... reason=no-studio-spot (<reason>=<count>, ...)` and the portrait. The
+   solid, with open space for the camera on one side. Candidates in order: **near first**, a floor 10 m above to
+   10 m below V's feet straight over or under V and at eight points 5 m round V, kept only when it is within 11 m of V
+   (`FACE_RANGE`; see "Face" below); then the first floor 10 to 90 m above V, straight up and at eight points 30 m
+   away; then, when nothing stands above V (a high apartment, open ground), floors from 10 m above to 80 m below V's
+   feet on rings of 12, 24 and 40 m round V (24 columns). Three candidates per tick (about 22 raycasts each), so the
+   whole search is at most 14 ticks (3.5 s), once per call and nothing afterwards. No floor: `holo failed ... reason=no-studio-spot (<reason>=<count>, ...)` and the portrait. The
    vanilla studio has a floor too: a copy in mid-air falls.
 2. **Spawns the copy** there with the character's own record (checked to be a real character record first: a
    record that does not resolve would crash), tagged `CyberpunkConvaiCompanion` (speech face layer) and
@@ -194,9 +195,8 @@ With the setting on, dialing a staged character does the following (one step per
 4. **Spawns the light rig** round the copy: three of the game's corridor lights (see "Light" below).
 5. **Keeps the copy animating** off screen (`AnimationSystem.SetForcedVisible(id, true)`; without it an unseen body
    is culled and stands frozen with a still face), holds her in her talk pose (gesture device workspot, her talk
-   family from `gesture-catalog.lua`), switches the camera on (`Toggle(true)`), and turns her eyes to the lens
-   (`LookAtAddEvent` on the camera entity, eyes leading, transition speed 80 as the game's holocall look),
-   renewed every 5 s.
+   family from `gesture-catalog.lua`), switches the camera on (`Toggle(true)`), and turns her to the lens
+   (`LookAtAddEvent` on the camera entity, see "Gaze" below), renewed every 5 s.
 6. The call connects with `StartHolocall`: the window shows the holocall image instead of the portrait.
 
 If the copy or camera is not ready when the ring ends (6 s at most; the game's own failsafe is 8 s), or the copy
@@ -215,6 +215,41 @@ and the window were fine. The search now also looks level with and below V (abov
 placed 40 m straight up in mid-air, so it fell out of frame while its talk pose was still being set up (and inside
 a tall building or megabuilding that spot is inside walls); nothing kept an unseen copy's animation running; the
 camera stood dead in front at 0.9 m with no look at the lens.
+
+### Face (branch `holocall-face`, 2026-10-15)
+
+**Why her face did not move.** The speech path was right all along: a holocall reply's face goes to the copy (speech
+target `holo.npc`, `facial-playback.lua` `start`/`sync` on it, its graph prepared through the companion tag; the
+CET log's last holocall turn showed 387 written frames, jaw peak 0.58, `blocked=false`). The game simply does not
+animate a face far from V's own camera. Measured live with one `ConvaiFaceApply` (jaw 0.9, then blink 1) on the call's
+copy, the studio forced to chosen floors (probe `runtime/holo-face.lua`):
+
+| Copy from V | Jaw / blink seen through the call camera |
+|---|---|
+| 2.5 m, 5 m, 7.8 m, 11.2 m | yes |
+| 15.8 m, 19.2 m, 42.5 m | no (frozen face, body still animated; at 19 m and beyond the face mesh is also coarser) |
+
+Setting `clientForcedLod 0`, `clientForcedVisibility` and `useLongRangeVisibility` on the copy's `face_rig` at
+runtime, with or without toggling the component off and on, changed nothing at 42 m. The game's own holocall actor
+is spawned with `forceMaxVisibility` (judy_holocall.scene, `spawnSetParams`); there is no script call for it.
+
+**Fix.** The studio search tries near floors first (step 1 above), so a picture within 11 m of V is used whenever there
+is one; the probe line's `away=<m>` says how far she is. From V's Corpo Plaza apartment the search found a floor 5.1 m
+above V and the picture showed the jaw, the blink and a replayed talking timeline (`face-play` through the real writer)
+moving. A farther studio still gives the picture, with a still face. Also, `Face.reds` asks the holocall copy's
+animated components for full detail before they attach (`clientForcedLod 0`, `clientForcedVisibility`,
+`useLongRangeVisibility`), since runtime changes are ignored; whether that alone keeps a far face moving is checked
+after the next game restart (see "Not verified yet").
+
+### Gaze (branch `holocall-face`, 2026-10-15)
+
+The game's holocall scene aims its caller with one `scnLookAtEvent` (preset "Eyes & Head"): the eyes lead, with
+additional parts Head (weight 0.1) and Chest (weight 2), nothing suppressed, transition speed 80, at a look-at entity
+just behind the camera. The copy now gets the same request on the camera entity, with the head at 0.3
+(`M.LOOK_HEAD`): her camera stands 20.4 degrees round, and at the game's 0.1 her face stayed visibly short of the lens.
+Before, the request turned only the eyes (head 0.05, suppressed) and the frozen far face could not turn even those, so
+she looked past the camera to the viewer's left. It is sent once when the picture is ready and renewed on the
+existing 5 s beat (the game drops a stale look request), nothing per frame.
 
 ### Light (branch `holocall-light`, 2026-10-15)
 
@@ -301,7 +336,7 @@ Frames (scratchpad `holo/`): `lampA.png` (unlit, then a 3000 lm lamp), `rigB.png
 ```
 requested contact=<id>
 state=dialing contact=<id> profile=<key> mode=audio|holo cast=video|voice hud=ok
-holo spawn contact=<id> record=<record> floor=+<m>m yaw=<deg> lens=<m>m                (live picture only)
+holo spawn contact=<id> record=<record> floor=+<m>m away=<m>m yaw=<deg> lens=<m>m        (live picture only)
 holo ready contact=<id> held=yes camera=on animated=true|false look=true|false drift=<m> lights=<n>/3 (live picture only)
 holo lit contact=<id> lights=3/3                                                         (a late lamp, live picture only)
 holo failed contact=<id> reason=<r> fallback=audio                                       (live picture only)
@@ -330,9 +365,13 @@ The bridge turn-context diagnostic ends with `holocall=audio` or `holocall=holo`
 - That a tap of the phone button reaches the HUD controller as PRESSED then RELEASED on keyboard and
   pad, and does not also open the phone.
 - The Holocall subtitle type showing a bottom line for the player as speaker.
+- **Seen 2026-10-15 (holocall-face, window capture, probe calls):** with the studio within 11 m her jaw opens, she
+  blinks and a replayed talking timeline moves her mouth; with the head and chest look she faces the lens. Not seen yet:
+  her lips following a real reply's voice (no talk turn was made), and whether `Face.reds`'s full-detail request keeps a
+  face moving at a far studio (needs the game restart).
 - The live picture elsewhere: the floor search and the light rig in other places (a street, the Badlands, at
-  night, a spot inside a building), other characters and heights in the framing, whether her lips move with the mod
-  voice and her eyes find the lens, and a call placed by the player from the Chat tab rather than by the probe.
+  night, a spot inside a building), how often a near floor exists there, other characters and heights in the framing,
+  and a call placed by the player from the Chat tab rather than by the probe.
 - What happens when a real quest call arrives during a mod call: the preempt path.
 
 ## Files
