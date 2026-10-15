@@ -755,7 +755,7 @@ test('Lua: the new reads are optional: an adapter without them (an older one) st
 const weatherGame = `${fakeGame}
 local calls = {}
 local fake = {state = 'getWeatherState', stateValue = {name = '24h_weather_toxic_rain'}, rainType = 'HeavyRain', rain = 0.8,
-  heat = 3, heatName = 'GetHeatStageAsInt', percent = 41, eddies = 78000, noPercent = false, interior = true, interiorForm = 'id'}
+  heat = 3, heatName = 'GetHeatStageAsInt', percent = 41, eddies = 78000, noPercent = false, interior = true}
 local function counted(name, fn) return function(...) calls[name] = (calls[name] or 0) + 1; return fn(...) end end
 local player = Game.GetPlayer()
 Game.GetPlayer = function() return {IsAttached = function() return true end, IsDeadNoStatPool = function() return false end,
@@ -784,10 +784,11 @@ Game.GetScriptableSystemsContainer = function() return {Get = function(self, nam
 end} end
 Game.GetTransactionSystem = function() return {GetItemQuantity = counted('money', function(self, who, id)
   assert(id == 'item:Items.money', tostring(id)); return fake.eddies end)} end
-Game.GetSceneSystem = function() return {GetScriptInterface = function() return {
-  IsEntityInInteriorArea = counted('interior', function(self, who)
-    if fake.interiorForm == 'id' and who ~= 'v-id' then error('this build takes an entity id') end
-    return fake.interior end)} end} end
+-- A global script function (REDmod scripts core/entity/gameEntity.script: import function IsEntityInInteriorArea( entity : weak< Entity > ) : Bool),
+-- exposed by CET as Game.IsEntityInInteriorArea(entity). It takes the entity, never an id; the game would raise on anything else.
+Game.IsEntityInInteriorArea = counted('interior', function(who)
+  assert(type(who) == 'table' and who.GetEntityID() == 'v-id', 'the entity is the argument')
+  return fake.interior end)
 ItemID = {FromTDBID = function(id) return 'item:' .. id end}
 TweakDBID = {new = function(name) return name end}
 `;
@@ -804,15 +805,15 @@ test('the default adapter reads the weather, health, heat and money from the gam
   assert(lines[1]:find('health=hurt%(41%%|GetStatPoolValue%(percent%)%)') and lines[1]:find('heat=3%(GetHeatStageAsInt%)') and lines[1]:find('money=comfortable%(78000%)'), lines[1])
   assert(lines[1]:find('weather=toxic%-rain%(') and lines[1]:find('GetWeatherState%+GetRainIntensityType'), lines[1])
   assert(calls.pool == 1 and calls.heat == 1 and calls.money == 1 and calls.rainType == 1 and calls.weatherState == 1)
-  -- The indoor flag: the entity form raised, the id form answered, and the log says which.
-  assert(snap.indoors == true and calls.interior == 2 and lines[1]:find('indoors=true%(IsEntityInInteriorArea%(id%)%)'), tostring(snap.indoors) .. tostring(calls.interior))
+  -- The indoor flag: one call of the global function with V's entity, and the log says which read answered.
+  assert(snap.indoors == true and calls.interior == 1 and lines[1]:find('indoors=true%(IsEntityInInteriorArea%)'), tostring(snap.indoors) .. tostring(calls.interior))
   for i = 1, 10 do ctx:capture() end
   assert(calls.pool == 1 and calls.money == 1, 'cached for the window')
   -- The remembered getter is called directly on the next read; the other names are not tried again.
   local before = calls.weatherState
   ctx:reset('test'); ctx:capture()
   assert(calls.weatherState == before + 1 and calls.heat == 2)
-  assert(calls.interior == 3, 'the form that worked is called directly: ' .. calls.interior)
+  assert(calls.interior == 2, 'one call per real read: ' .. calls.interior)
 `));
 
 test('the default adapter falls back: another state getter name, the value over the maximum, the second heat name, rain-only weather, an enum heat', () => runLua(`${weatherGame}
@@ -957,10 +958,11 @@ test('Lua: the indoor reading is optional, guarded, logged with its source and n
   assert(lines[1]:find(' indoors=false%(IsEntityInInteriorArea%(entity%)%)'), lines[1])
   state.interior = {true, 'IsEntityInInteriorArea(id)'}; now = now + api.MAX_AGE
   assert(ctx:capture().indoors == true)
-  -- A failing read drops only that field and is logged once.
+  -- A failing read drops only that field, is logged once, and the Turn context line says the value is unknown.
   state.failures = {interior = true}; now = now + api.MAX_AGE
   local failed = ctx:capture()
   assert(failed.indoors == nil and failed.weather == 'rain' and failed.district == 'Watson', 'the rest of the block is kept')
+  assert(lines[#lines]:find(' indoors=unknown'), lines[#lines])
   local logged = 0; for _, line in ipairs(lines) do if line:find('interior read failed') then logged = logged + 1 end end
   assert(logged == 1, logged)
   for i = 1, 5 do now = now + api.MAX_AGE; ctx:capture() end
@@ -972,9 +974,33 @@ test('Lua: the indoor reading is optional, guarded, logged with its source and n
   assert(ctx:capture().indoors == nil)
 `));
 
-test('Lua: the native adapter reads the indoor flag only through the scene system, in two argument forms, on demand', () => {
+test('Lua: the native adapter reads the indoor flag through the global script function, not the scene system, on demand only', () => {
   const code = source.split(/\r?\n/).map(row => row.replace(/--.*$/, '')).join('\n');
-  assert.equal((code.match(/IsEntityInInteriorArea/g) ?? []).length, 4, 'one method, two argument forms, one source label, one error text');
+  assert.match(code, /Game\.IsEntityInInteriorArea\(who\)/);
+  assert.doesNotMatch(code, /GetSceneSystem|GetScriptInterface|:IsEntityInInteriorArea/, 'SceneSystemInterface has no such method (it failed live 2026-10-15)');
   assert.match(code, /self:optional\('interior', player\)/);
   assert.doesNotMatch(code, /registerForEvent|onUpdate|Observe\(/);
 });
+
+test('Lua: the indoor flag falls back to a bare global, says so when CET exposes neither, and refuses anything but a boolean', () => lua$(`${weatherGame}
+  local lines = {}
+  local function line() return lines[#lines] end
+  local ctx = api.new({place = function() return {district = 'Watson'} end})
+  ctx.options.log = function(text) lines[#lines + 1] = text end
+  -- Neither a Game function nor a bare global: not given, logged once, the rest of the block kept.
+  Game.IsEntityInInteriorArea = nil
+  local snap = ctx:capture()
+  assert(snap.indoors == nil and snap.weather == 'toxic-rain' and snap.district == 'Watson')
+  assert(line():find(' indoors=unknown', 1, true))
+  local n = 0; for _, text in ipairs(lines) do if text:find('interior read failed (IsEntityInInteriorArea is not exposed by this CET build)', 1, true) then n = n + 1 end end
+  assert(n == 1, table.concat(lines, ' | '))
+  -- A bare global works when Game has none.
+  ctx:reset('test'); _G.IsEntityInInteriorArea = function(who) assert(who.GetEntityID() == 'v-id'); return false end
+  snap = ctx:capture()
+  assert(snap.indoors == false and line():find('indoors=false(IsEntityInInteriorArea)', 1, true), tostring(snap.indoors))
+  -- Anything that is not a boolean is an error, never indoors or outdoors.
+  _G.IsEntityInInteriorArea = nil; Game.IsEntityInInteriorArea = function() return 1 end
+  ctx = api.new({place = function() return {district = 'Watson'} end}); ctx.options.log = function(text) lines[#lines + 1] = text end
+  snap = ctx:capture()
+  assert(snap.indoors == nil and line():find(' indoors=unknown', 1, true))
+`));
