@@ -211,10 +211,10 @@ const paidFixture = `
   end
   local function command() return jsonFixtures[files['runtime/paid-tier-command.json']] end
   local PLANS = {
-    {id = 'gamer-monthly', name = 'Gamer', period = 'monthly', price = '$4', interactions = 1000, concurrency = 6},
-    {id = 'gamer-yearly', name = 'Gamer', period = 'yearly', price = '$32', interactions = 1000, concurrency = 6},
-    {id = 'pro-monthly', name = 'Gamer Pro', period = 'monthly', price = '$8'},
-    {id = 'pro-yearly', name = 'Gamer Pro', period = 'yearly', price = '$64'}}
+    {id = 'gamer-monthly', name = 'Gamer', period = 'monthly', price = '$4', interactions = 500, concurrency = 6},
+    {id = 'gamer-yearly', name = 'Gamer', period = 'yearly', price = '$32', interactions = 500, concurrency = 6},
+    {id = 'pro-monthly', name = 'Gamer Pro', period = 'monthly', price = '$8', interactions = 1000},
+    {id = 'pro-yearly', name = 'Gamer Pro', period = 'yearly', price = '$64', interactions = 1000}}
   local function service(extra)
     local value = {version = 1, updated = clockNow * 1000.0, keySaved = true, plans = PLANS}
     for key, item in pairs(extra or {}) do value[key] = item end
@@ -251,9 +251,10 @@ test('Settings lists Convai paid tier under the Convai API key row; the page sho
   for _, plan in ipairs(category('paid-plans').settings) do labels[#labels + 1] = plan.label end
   assert(table.concat(labels, '|') == 'Gamer, $4 a month|Gamer, $32 a year|Gamer Pro, $8 a month|Gamer Pro, $64 a year|Check my plan|Manage or cancel plan',
     table.concat(labels, '|'))
-  assert(row('paid:buy:gamer-monthly').description:find('1000 Convai interactions a month.', 1, true))
+  assert(row('paid:buy:gamer-monthly').description:find('500 Convai interactions a month.', 1, true))
   assert(row('paid:buy:pro-yearly').description:find('Billed once a year.', 1, true))
-  assert(row('paid:buy:pro-monthly').description:find('More Convai interactions a month than Gamer.', 1, true))
+  assert(row('paid:buy:pro-monthly').description:find('1000 Convai interactions a month.', 1, true))
+  assert(not row('paid:buy:pro-monthly').description:find('More Convai', 1, true), 'no vague more wording')
   assert(not invoke('paid:buy:gamer-monthly').ok, 'no purchase without a key')
   assert(command().action == 'refresh', 'a refused purchase sends nothing')
   assert(invoke('paid:manage').ok and command().action == 'manage')
@@ -357,4 +358,93 @@ test('a refused checkout is worded on the page and follows nothing', () => run(`
   loaded = registered.loadMod('manager')
   assert(row('paid-plan').description:find('Convai did not accept your API key.', 1, true))
   assert(#popups == 0 and (saved == nil or saved.useOwnConvaiKey ~= true))
+`));
+
+test('the plan row names the plan in plain words: the four V2 names, Free for a free or trial plan, an unknown name as written', () => run(`${paidFixture}
+  jsonFile('runtime/own-key-state.json', {version = 1, saved = true, tail = 'abcd', active = 'shared'})
+  local cases = {
+    {'GamerPlanV2-Monthly', true, 'Gamer, monthly'}, {'GamerPlanV2-Yearly', true, 'Gamer, yearly'},
+    {'GamerProPlanV2-Monthly', true, 'Gamer Pro, monthly'}, {'GamerProPlanV2-Yearly', true, 'Gamer Pro, yearly'},
+    {'Free', false, 'Free'}, {'trial', false, 'Free'}, {'SomethingNew', true, 'SomethingNew'}}
+  service({plan = {name = 'Free', paid = false}})
+  openPage()
+  for _, case in ipairs(cases) do
+    service({plan = {name = case[1], paid = case[2]}})
+    pump(false, 4); loaded = registered.loadMod('manager')
+    assert(row('paid-plan').value == case[3], case[1] .. ' shows ' .. tostring(row('paid-plan').value))
+  end
+`));
+
+test('the row of the current plan says Current plan and buys nothing; the other plans stay buyable', () => run(`${paidFixture}
+  jsonFile('runtime/own-key-state.json', {version = 1, saved = true, tail = 'abcd', active = 'shared'})
+  service({plan = {name = 'GamerPlanV2-Monthly', paid = true}})
+  openPage()
+  local current = row('paid:current:gamer-monthly')
+  assert(current and current.value == 'Current plan' and current.disabled == true and current.capabilities.action == false)
+  assert(not row('paid:buy:gamer-monthly'), 'no Buy on the current plan')
+  assert(current.description:find('500 Convai interactions a month.', 1, true) and current.description:find('your current plan', 1, true))
+  local before = command().id
+  assert(invoke('paid:current:gamer-monthly').ok and command().id == before, 'choosing it sends nothing')
+  for _, id in ipairs({'gamer-yearly', 'pro-monthly', 'pro-yearly'}) do
+    assert(row('paid:buy:' .. id) and row('paid:buy:' .. id).value == 'Buy' and not row('paid:buy:' .. id).disabled, id)
+  end
+  -- A free plan, an expired one or another plan of the same tier is not the current plan.
+  service({plan = {name = 'GamerPlanV2-Monthly', paid = false}})
+  pump(false, 4); loaded = registered.loadMod('manager')
+  assert(row('paid:buy:gamer-monthly') and not row('paid:current:gamer-monthly'))
+  service({plan = {name = 'GamerProPlanV2-Yearly', paid = true}})
+  pump(false, 4); loaded = registered.loadMod('manager')
+  assert(row('paid:current:pro-yearly') and row('paid:buy:pro-monthly') and row('paid:buy:gamer-monthly') and not row('paid:current:gamer-monthly'))
+`));
+
+test('the status line follows the answer: payment page opened, plan confirmed, a check, a refusal; and stops looking once it is final', () => run(`${paidFixture}
+  jsonFile('runtime/own-key-state.json', {version = 1, saved = true, tail = 'abcd', active = 'shared'})
+  service({plan = {name = 'Free', paid = false}})
+  openPage()
+  assert(mcm.inspect().paidStatus == nil and not mcm.inspect().paidStatusPending, 'nothing pending before a paid action')
+  assert(invoke('paid:buy:gamer-monthly').ok)
+  assert(mcm.inspect().paidStatus == 'Asking Convai for the payment page…' and mcm.inspect().paidStatusPending)
+  service({plan = {name = 'Free', paid = false}, result = {id = command().id, state = 'working'}})
+  pump(false, 6)
+  assert(mcm.inspect().paidStatus == 'Contacting Convai…', tostring(mcm.inspect().paidStatus))
+  service({plan = {name = 'Free', paid = false}, result = {id = command().id, state = 'opened'}, watch = {state = 'watching', plan = 'gamer-monthly'}})
+  pump(false, 6)
+  assert(mcm.inspect().paidStatus:find('payment page is open in your browser', 1, true), tostring(mcm.inspect().paidStatus))
+  assert(mcm.inspect().paidStatusPending, 'still following the purchase')
+  service({plan = {name = 'GamerPlanV2-Monthly', paid = true}, result = {id = command().id, state = 'opened'}, watch = {state = 'active', plan = 'gamer-monthly'}})
+  pump(false, 6)
+  assert(mcm.inspect().paidStatus == 'Your Convai plan is active.', tostring(mcm.inspect().paidStatus))
+  assert(not mcm.inspect().paidStatusPending, 'final: no more looking')
+  -- A check: "Checking your plan…", then the answer.
+  assert(invoke('paid:check').ok)
+  assert(mcm.inspect().paidStatus == 'Checking your plan…')
+  service({plan = {name = 'Free', paid = false}, result = {id = command().id, state = 'not-yet'}})
+  pump(false, 6)
+  assert(mcm.inspect().paidStatus == 'Convai does not show a paid plan for your key yet.', tostring(mcm.inspect().paidStatus))
+  assert(not mcm.inspect().paidStatusPending)
+  -- A purchase Convai did not confirm in time, and a refused checkout.
+  assert(invoke('paid:buy:pro-monthly').ok)
+  service({result = {id = command().id, state = 'opened'}, watch = {state = 'timeout', plan = 'pro-monthly'}})
+  pump(false, 6)
+  assert(mcm.inspect().paidStatus:find('has not confirmed your plan yet', 1, true))
+  assert(not mcm.inspect().paidStatusPending)
+  assert(invoke('paid:buy:pro-yearly').ok)
+  service({result = {id = command().id, state = 'invalid-key'}})
+  pump(false, 6)
+  assert(mcm.inspect().paidStatus == 'Convai did not accept your API key.')
+  -- Leaving the page drops the line.
+  assert(invoke('paid-tier:back').ok)
+  pump(false, 4)
+  assert(mcm.inspect().paidStatus == nil)
+`));
+
+test('the status line waits at most seven minutes for an answer that never comes, and reads nothing once it stopped', () => run(`${paidFixture}
+  jsonFile('runtime/own-key-state.json', {version = 1, saved = true, tail = 'abcd', active = 'shared'})
+  service({})
+  openPage()
+  assert(invoke('paid:check').ok)
+  pump(false, 40)
+  assert(mcm.inspect().paidStatus == 'Checking your plan…' and mcm.inspect().paidStatusPending, 'no answer yet: the first sentence stays')
+  advance(430); pump(false, 4)
+  assert(not mcm.inspect().paidStatusPending, 'gave up looking after seven minutes')
 `));

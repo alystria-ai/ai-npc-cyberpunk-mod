@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, readFile, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {DEFAULT_PAID_TIER, PAID_CONNECTIONS, PLAN_TIMING, PaidTierControl, WATCH, isFreePlan, parsePaidTierCommand, parsePlans, plansUrlFor, readPlanState,
+import {DEFAULT_PAID_TIER, KNOWN_PAID_PLANS, PAID_CONNECTIONS, PLAN_TIMING, PaidTierControl, WATCH, isFreePlan, isPaidPlanName, parsePaidTierCommand, parsePlans, plansUrlFor, readPlanState,
   requestCheckout, resolvePaidTier, safeCheckoutUrl} from './convai-paid-tier.mjs';
 
 const KEY = 'player-test-key-0123456789abcdef';
@@ -437,4 +437,42 @@ test('Sign in with Convai: a new sign-in or the service stopping cancels the one
     assert.equal((await plain.send('sign-in')).result.state, 'opened');
     assert.deepEqual(plain.opened, ['https://convai.com']);
   } finally { await plain.cleanup(); }
+});
+
+// The plan_name values of Convai's V2 plans, seen on a live purchase of GamerPlanV2-Monthly (2026-10-16).
+test('the four V2 plan names are paid by name; free, trial and empty names are not; an unknown name that is not free is still paid', async () => {
+  assert.deepEqual(KNOWN_PAID_PLANS, ['GamerPlanV2-Monthly', 'GamerPlanV2-Yearly', 'GamerProPlanV2-Monthly', 'GamerProPlanV2-Yearly']);
+  for (const name of KNOWN_PAID_PLANS) assert.equal(isPaidPlanName(name), true, name);
+  for (const name of ['Free', 'FreePlanV2', 'trial', '-1', 'none', '', null, undefined, 42]) assert.equal(isPaidPlanName(name), false, String(name));
+  assert.equal(isPaidPlanName('SomeFuturePlan'), true, 'the fallback: not free or trial means paid');
+  for (const name of KNOWN_PAID_PLANS) {
+    const fetched = fakeFetch({[DETAILS]: () => detailsAnswer(name)});
+    const state = await readPlanState({key: KEY, fetchImpl: fetched.fetchImpl, now: () => Date.UTC(2026, 9, 16)});
+    assert.equal(state.paid, true, name);
+    assert.equal(state.plan, name);
+  }
+});
+
+test('the quotas of the built-in plans: Gamer 500 interactions a month, Gamer Pro 1000', () => {
+  const quota = Object.fromEntries(resolvePaidTier().plans.map(plan => [plan.id, plan.interactions]));
+  assert.deepEqual(quota, {'gamer-monthly': 500, 'gamer-yearly': 500, 'pro-monthly': 1000, 'pro-yearly': 1000});
+});
+
+test('a key on GamerPlanV2-Monthly switches the limit from one to six and logs one line for each change', async () => {
+  let plan = 'GamerPlanV2-Monthly';
+  const lines = [];
+  const world = await harness({routes: {[DETAILS]: () => detailsAnswer(plan)}, options: {wantPlan: () => true, log: line => lines.push(line)}});
+  try {
+    assert.equal(world.control.connectionLimit(), 1, 'one before the plan is read');
+    await tick(world);
+    assert.equal(world.control.connectionLimit(), PAID_CONNECTIONS);
+    assert.deepEqual(lines, ['paid Convai plan: up to 6 conversations at once']);
+    for (let index = 0; index < 5; index++) await tick(world);
+    assert.equal(lines.length, 1, 'no repeat while nothing changes');
+    world.advance(PLAN_TIMING.refreshMs + 1);
+    plan = 'Free';
+    await tick(world);
+    assert.equal(world.control.connectionLimit(), 1);
+    assert.deepEqual(lines, ['paid Convai plan: up to 6 conversations at once', 'Convai plan: one conversation at a time']);
+  } finally { await world.cleanup(); }
 });

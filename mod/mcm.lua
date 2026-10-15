@@ -91,6 +91,9 @@ local editorLoaded, editorFactory = pcall(dofile, 'character-editor.lua')
 -- Convai paid tier (docs/CONVAI_PAID_TIER.md): its own page under Settings > Conversation provider. Optional like Help: without the file
 -- the entry is not shown. paidNotice: the notice of a confirmed (or unconfirmed) purchase, held until gameplay.
 local paidTier, paidNotice
+-- The status line of the paid tier page (the text under the mod list). `paidStatus` is the text of the latest paid tier action, kept up to
+-- date while that action's answer is awaited (`paidStatusUntil`: the os.clock() time it stops looking, at most seven minutes), then left.
+local paidStatus, paidStatusUntil
 local paidTierLoaded, paidTierFactory = pcall(dofile, 'convai-paid-tier.lua')
 local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
@@ -933,11 +936,24 @@ local function samplePreparationFeedback()
     end
 end
 
+-- Called by the 1 s look in M.update. While a paid tier action awaits its answer (the payment page, a plan check, a sign-in), takes the
+-- sentence for the latest result as the status text, which updatePreparationBanner puts on the line in place. Nothing is read once the
+-- answer is final, when the page is left, or after seven minutes.
+local function followPaidStatus()
+    if not paidStatusUntil then return end
+    if view ~= 'paid-tier' or not paidTier or os.clock() > paidStatusUntil then paidStatus, paidStatusUntil = nil, nil; return end
+    local state = paidTier.state()
+    local message = paidTier.message(state)
+    if message and message ~= paidStatus then paidStatus, actionFeedback = message, message end
+    if paidTier.settled(state) then paidStatusUntil = nil end
+end
+
 local function updatePreparationBanner()
     if not presentation.active or not presentation.statusAllowed or not presentation.statusWidget then return end
     local current = preparationStatus
     local text, signature
     if current then text, signature = current.message, current.signature
+    elseif paidStatus and view == 'paid-tier' then text, signature = paidStatus, ''
     elseif presentation.preparationApplied then text, signature = actionFeedback or presentation.statusRestore or '', ''
     else return end
     if text ~= presentation.statusText or signature ~= presentation.preparationSignature then
@@ -1652,8 +1668,8 @@ local function paidTierRows(snapshot)
     end
     local planValue, planHelp
     if not keySaved then planValue, planHelp = ui.t('No key added'), ui.t('Add your Convai API key below to see and buy a plan.')
-    elseif state.plan and state.plan.name then
-        planValue = state.plan.name
+    elseif state.plan and (state.plan.name or not state.plan.paid) then
+        planValue = paidTier.planLabel(state.plan)
         planHelp = state.plan.paid and ui.t('Conversations with Convai API key chosen as the provider use this plan.')
             or ui.t('This key has no paid plan. Choose a plan below.')
     else planValue, planHelp = ui.t('Not checked yet'), ui.t('Choose Check my plan to ask Convai.') end
@@ -1685,17 +1701,24 @@ local function paidTierRows(snapshot)
             or ui.t('{plan}, {price} a month', {plan = plan.name, price = plan.price})
         -- What the plan gives that this mod uses: its monthly interactions. (Its concurrent connections are not named: on a player's own key
         -- the mod keeps one conversation connection at a time, docs/OWN_CONVAI_KEY.md.)
-        local gives = plan.interactions and ui.t('{count} Convai interactions a month.', {count = plan.interactions})
-            or ui.t('More Convai interactions a month than Gamer.')
+        local gives = plan.interactions and (ui.t('{count} Convai interactions a month.', {count = plan.interactions}) .. ' ') or ''
         local billed = plan.period == 'yearly' and ui.t('Billed once a year.') or ui.t('Billed every month.')
-        local help = gives .. ' ' .. billed .. '\n\n'
+        local help = gives .. billed .. '\n\n'
             .. ui.t('Opens Convai’s payment page (Stripe) in your browser. You pay Convai directly; the mod never sees your card. Your plan is active about 15 seconds after you pay, and conversations then use your Convai API key.')
         if not keySaved then help = ui.t('Add your Convai API key first.') .. '\n\n' .. help end
         local id = plan.id
-        plans[#plans + 1] = action('paid:buy:' .. id, label, 'Buy', help, function()
-            if not keySaved then return false, 'Add your Convai API key first.' end
-            return paidTier.request('buy', id)
-        end, keySaved, {label = true, description = true})
+        if paidTier.isCurrent(state, plan) then
+            -- The plan the key has now: nothing to buy. The other plans stay buyable (an upgrade or a change).
+            help = gives .. billed .. '\n\n'
+                .. ui.t('This is your current plan. To change or cancel it, choose Manage or cancel plan below.')
+            plans[#plans + 1] = action('paid:current:' .. id, label, 'Current plan', help, function() return true end, false,
+                {label = true, description = true})
+        else
+            plans[#plans + 1] = action('paid:buy:' .. id, label, 'Buy', help, function()
+                if not keySaved then return false, 'Add your Convai API key first.' end
+                return paidTier.request('buy', id)
+            end, keySaved, {label = true, description = true})
+        end
     end
     plans[#plans + 1] = action('paid:check', 'Check my plan', 'Check',
         'Asks Convai which plan your key has now. After paying, it can take about 15 seconds.',
@@ -2228,6 +2251,12 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
             local ok, reason, invitationId = actions[actionId](context)
             actionFeedback = ok == true and ui.t(reason) or nil
             preparationActionFeedback = false
+            -- A paid tier action's text stays on the status line and follows the answer (followPaidStatus), not the redraw of the page.
+            if actionId:match('^paid:') and ok == true and actionFeedback then
+                paidStatus, paidStatusUntil = actionFeedback, os.clock() + 420
+            else
+                paidStatus, paidStatusUntil = nil, nil
+            end
             if actionId:match('^invite:') and type(invitationId) == 'string' then
                 local board = invitationBoard()
                 if board then board.track(invitationId, 'manager') end
@@ -2860,6 +2889,8 @@ function M.update(currentPlayer, worldReady)
                 actionFeedback = support.banner() or actionFeedback
             end
         end
+        local followed, followError = pcall(followPaidStatus)
+        if not followed then lastError = 'Paid tier status: ' .. tostring(followError); paidStatus, paidStatusUntil = nil, nil end
         lastSignature = pageSignature(snapshot)
     end
     -- A page is drawn again when something forces it, or when what it shows has changed since it was built. A change that
@@ -2890,6 +2921,7 @@ function M.inspect()
         mature = {changes = matureChanges, staged = matureMemory ~= nil},
         entryDetails = entry.inspect and entry.inspect() or nil,
         back = currentBack and {id = currentBack.id, label = currentBack.label} or nil, backMode = backMode,
+        paidStatus = paidStatus, paidStatusPending = paidStatusUntil ~= nil,
         party = queue.list(), feedback = queue.message(), error = lastError,
         voicePreview = voicePreview.inspect(),
         fonts = fontPresentation.inspect(),
@@ -2908,6 +2940,7 @@ function M.resetSession()
     -- Widget handles of the old settings screen: drop them without the native restore (restoreStatusLine, releaseStaleHold).
     statusOriginal, contentHold = nil, nil
     actionFeedback = nil
+    paidStatus, paidStatusUntil = nil, nil
     memoryActionCommand = nil
     preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
     owner, lastSignature, renderedSignature, refreshQueued = nil, '', '', true
