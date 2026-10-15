@@ -10,6 +10,7 @@ import {audioReady, prepareSpeech} from './speech-audio.mjs';
 import {createSpeechStateReader, audioAvailable} from './speech-state-cache.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
+import {SpeechPace} from './speech-pace.mjs';
 import {encodeSegmentedFace} from './continuous-face-file.mjs';
 import {timelineRecord, TIMELINE_PREFIX} from './expression-timeline.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
@@ -701,6 +702,8 @@ function addonTextHost(route, profileKey) {
       matureContent, guardOnly: true,
       // An add-on speaker never says V's words: a reply that opens with V's own line (or writes V's side of the talk) loses them before the voice hears them.
       stripPlayerEcho: true,
+      // What the speaker said on its own (a district remark) is not in the conversation memory: V's question about it must not be answered with it again.
+      spokenLines: key => addonHost.recentLines(key),
       log: message => console.error('[Addons] ' + message)});
     addonTextHosts.set(cacheKey, host);
   }
@@ -1375,6 +1378,8 @@ async function status(state, detail = '') {
   return job;
 }
 
+// What the cloud voice's recent lines taught: after one that broke, the next ones buffer a longer lead before their first sound.
+const cloudPace = new SpeechPace();
 function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false, marks,
   {player = input.text, late} = {}) {
   const options = {signal, isCurrent: current, isCurrentSync: current.sync};
@@ -1390,6 +1395,13 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     hold: () => ahead?.isHeld() === true || current.vLine?.()?.holds() === true,
     holdPeek: () => ahead?.isHeld() === true || current.vLine?.()?.blocking === true,
     onHeld: (bufferedSeconds, textComplete) => { if (bufferedSeconds >= 0.4 && textComplete) ahead?.markReady(); },
+    pace: local && localVoice.cloudActive ? cloudPace : null,
+    // One record per line of how it played (underruns: how often its audio ran dry), and one log line when it broke.
+    onEnded: info => {
+      void measure(input, {playback: info}).catch(() => {});
+      if (info.underruns > 0) console.error(`[Speech] profile=${input.profileKey} the voice broke ${info.underruns} time(s): ${info.seconds.toFixed(1)} s of audio`
+        + (info.playedMs ? ` played over ${(info.playedMs / 1000).toFixed(1)} s` : '') + `; the next lines buffer ${cloudPace.leadSeconds} s first`);
+    },
     onText: (text, userText) => {
       if (typeof userText === 'string') noteKnowledgeTurn(receiptPrepared, {userText});
       lookahead.setSource({input, text, userText, current: current.sourceValid || current});
@@ -2161,19 +2173,30 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
   const voiced = localVoice.playbackEnabled !== false && turnUsesLocal(input) && audioAvailable(await readSpeechStateCached());
   throwIfCancelled(signal);
   let result;
+  // V's voice for a line typed to an add-on's voice (docs/V_VOICE.md): started only after the text request is under way, like a companion's,
+  // so it runs beside the reply and never in front of it; the reply's voice waits for it (current.vLine) or drops it. V's own words are
+  // never part of the add-on speaker's reply (the text host cuts them, text-provider-host.mjs) and V is spoken by V's own voice page.
+  let vLine = null;
+  vVoice.noteGender(input);
+  current.vLine = () => vLine;
+  const startV = () => { if (!remark && !ahead && !vLine) vLine = vVoice.start(input, {signal, clock}); };
   if (voiced && !remark && replyStreaming && !ahead) {
     // A conversation streams its first sentence to the voice, like any text-provider turn.
     const stream = newReplyStream(config, profile);
     const final = Promise.resolve(host.reply(config, {signal, stream})).then(reply => ({...reply, transport: 'realtime'}));
     final.catch(() => {});
+    startV();
     result = await voiceStreamedReply(input, profile, {signal, current, stream, final, config, userText: () => userText});
   } else {
     const generate = async attempt => ({...await host.reply(attempt === input ? config : addonTurnConfig(attempt, profile), {signal}), transport: 'realtime'});
     const first = stocked ? {text: stocked, model: 'stock', finishReason: 'stop', transport: 'realtime'} : null;
     // A remark is checked against the speaker's recent lines before anything is spoken. One that nearly repeats a recent line is written
     // once more (with those lines named), unless that could not arrive before the remark goes stale; a conversation reply is never checked.
-    const made = remark ? await addonHost.produce(input, generate, {first})
-      : {reply: first ?? await generate(input), duplicate: false, retried: false};
+    const making = remark ? addonHost.produce(input, generate, {first})
+      : Promise.resolve(first ?? generate(input)).then(reply => ({reply, duplicate: false, retried: false}));
+    making.catch(() => {});
+    startV();
+    const made = await making;
     const reply = made.reply;
     if (made.retried) note(input, {addonRetry: made.duplicate ? 'still-repeated' : 'new-line'});
     // The words are logged (like every spoken line in this log) so a drop can be judged: the line, and what it was taken to repeat.
@@ -2365,7 +2388,11 @@ async function pollPrefetch() {
     if (hintRaw !== prewarmObserved && !active && !mic.current && !micPolling) {
       prewarmObserved = hintRaw;
       let hint; try { hint = parsePrewarm(JSON.parse(hintRaw), ids); } catch {}
-      if (!hint) { companionVision.closeComposer(); await connections.setComposer(null); }
+      if (!hint) {
+        companionVision.closeComposer(); await connections.setComposer(null);
+        // The composer of an add-on's voice (a cab, a gun) opens no connection, but V's typed line to it is spoken: warm V's voice page.
+        try { if (JSON.parse(hintRaw)?.voiceOnly === true) vVoice.warmUp(); } catch { /* an unreadable hint warms nothing */ }
+      }
       else if (await audioReady(runtime)) {
         if (mic.current || micPolling || stopped) { prewarmObserved = ''; return; }
         // A private hint for an ambient NPC carries its entity: open that NPC's own route now, while V types.

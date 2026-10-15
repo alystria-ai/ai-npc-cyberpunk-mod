@@ -341,3 +341,18 @@ scheduler is paused or slowed.
   16.59s` although the long set has an entry). Clips extracted for a character, the last resort, show as `-`.
 - The Characters sidebar names "Mistral cloud voice (Voxtral)" for every character routed locally while the voice is active,
   including any that have no clip (their replies are written only).
+
+## A voice that breaks (2026-10-16, the Delamain cab)
+
+Live: Delamain's typed answers "sometimes break". From `runtime/bridge-latency.json` of that ride: three of six lines took 6.8 to 9.6 s to play audio
+of about 4.6 to 6.2 s (the two lines that were whole took exactly their length), and the Voxtral generation of those lines took 4.5 to 7.9 s for
+the same audio. The service delivers a line at varying speed, sometimes in bursts with gaps; playback starts after 0.4 s of audio, so when a gap
+outlasts the buffer the renderer waits for 0.4 s again (an underrun) and speech resumes. Nothing was logged for it (the renderer's count of
+underruns reached only the one state file of the last line).
+
+What changed (no cost while lines play whole): the bridge records, per Voxtral line, `voicePackets`, `voiceMaxGapMs` (the longest wait between two
+packets) and `voiceAudioSeconds` in the reply's `timing`, and, per line, `playback: {underruns, seconds, playedMs}` in `bridge-latency.json`;
+a line that broke logs `[Speech] profile=... the voice broke N time(s): X s of audio played over Y s`. `SpeechPace` (bridge/speech-pace.mjs)
+learns from that: after a line that broke, the next lines of the cloud voice stay silent (nothing is published; the renderer keeps buffering)
+until 1.2 s of audio is in, the stream is complete, or 1.5 s have passed, so they have room to ride out the same gaps; three whole lines in a row
+bring it back to the renderer's own 0.4 s. A line that breaks costs the next one at most about 0.8 s of extra wait.

@@ -10,7 +10,7 @@
 // failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind} from './mistral-client.mjs';
-import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, speakerTurn, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
+import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
 import {actionMenu, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
@@ -165,13 +165,15 @@ export class TextProviderHost {
    * matureContent  the Mature setting (bridge/mature-content.mjs); the hard-limit guard runs for a turn on the local AI when it is on or when the loaded
    *                model is an uncensored one (the guard follows the model that answers, not only the setting)
    * guardOnly      true for an add-on's host: the guard (input screen, output screen, adults-only and hard-limit lines) but never the crude Mature persona layer
+   * spokenLines  (profileKey) => the speaker's own recent lines (an add-on's journal, remarks included): a conversation reply that says one
+   *                again is held back from the voice while it matches and is written once more when it is one
    * stripPlayerEcho  true for an add-on's host: a conversation reply that opens by saying V's own line again (or writes V's side of the talk as a
    *                script) loses those words, in the text the voice is given as it streams and in the finished reply (stripPlayerEcho in mistral-prompt.mjs)
    */
   constructor({provider, memory, personas = new PersonaBook(), routes = {}, transformReply = result => result, now = () => performance.now(),
-    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, matureContent = null, matureGuard = new MatureGuard(), guardOnly = false, stripPlayerEcho: echoCut = false} = {}) {
+    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, matureContent = null, matureGuard = new MatureGuard(), guardOnly = false, stripPlayerEcho: echoCut = false, spokenLines = null} = {}) {
     if (!provider) throw Error('Text provider required');
-    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, matureContent, matureGuard, guardOnly, echoCut});
+    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, matureContent, matureGuard, guardOnly, echoCut, spokenLines});
     this.summaries = new Set();
     this.matureLogged = new Set();
     this.holdingTurns = 0;
@@ -455,9 +457,15 @@ export class TextProviderHost {
     });
     // An action code ("[DRIVE]") is never part of the reply: the voice, the subtitles and the memory see the text without it.
     // An add-on speaker never says V's words: a reply that starts with V's line (or V's label) is held back from the voice until it moves on.
+    // An add-on speaker's own recent lines (its remarks as well as its replies, which the conversation memory does not hold): a reply that
+    // says one again is held back from the voice while it still matches, and is written once more if it turns out to be one.
+    let recentSpoken = [];
+    if (!reaction && this.spokenLines) { try { recentSpoken = this.spokenLines(profileKey) ?? []; } catch { recentSpoken = []; } }
     const visible = soFar => {
       const shown = splitActions(soFar, {streaming: true}).text;
-      return cutEcho ? stripPlayerEcho(speakerTurn(shown, persona.name, {streaming: true}), text, {streaming: true}) : shown;
+      if (!cutEcho) return shown;
+      const own = stripPlayerEcho(speakerTurn(shown, persona.name, {streaming: true}), text, {streaming: true});
+      return recentSpoken.length && startsLikeLine(own, recentSpoken) ? '' : own;
     };
     // A remark with a word limit (reaction.maxWords, an add-on's) also stops the stream at that limit plus a little, is asked for few
     // tokens, and is cut at its last sentence end. Ordinary replies and battle barks carry no such limit and are unchanged.
@@ -498,7 +506,7 @@ export class TextProviderHost {
       return {response, reply};
     };
     // The lines this character must not say again: its profile's example lines and its own earlier replies (not for a battle or loot bark).
-    const said = reaction ? [] : [...persona.samples, ...recalled.turns.map(turn => turn.r)];
+    const said = reaction ? [] : [...persona.samples, ...recalled.turns.map(turn => turn.r), ...recentSpoken];
     // V trying to make the character say it is an AI or a script: the reply must not take those words up, even to deny them.
     const provoked = !reaction && provokesAiTalk(text);
     const refuseHead = said.length || provoked ? head => repeatsLine(head, said) || (provoked && takesUpAiTalk(head)) : null;

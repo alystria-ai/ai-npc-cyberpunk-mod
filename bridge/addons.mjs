@@ -1032,10 +1032,15 @@ export class AddonHost {
     const memories = this.memories(speaker.profileKey).slice(-ADDON_LIMITS.memoriesShown);
     if (memories.length) out.push({tier: 'world', key: `addon:${addon.id}:memories`,
       text: `Earlier moments you shared with V (true; now and then refer back to one in a few words when it fits, never list them):\n${memories.map(item => `- ${item}`).join('\n')}`});
-    // Anti-repetition: the speaker's own recent lines, so it never says the same thing twice.
+    // Anti-repetition: the speaker's own recent lines, so it never says the same thing twice. When V is talking to the speaker the same lines
+    // are what it said a moment ago, which V heard and may ask about: a question about one is answered, in new words (live 2026-10-16: "that
+    // must be awful" after the district remark got the remark again, word for word).
     const recent = this.recentLines(speaker.profileKey).slice(-ADDON_LIMITS.recentShown);
+    const talking = input.reaction?.kind !== 'addon';
     if (recent.length) out.push({tier: 'volatile', key: `addon:${addon.id}:recent`,
-      text: `Your most recent lines (never repeat one, its joke or its wording; find a new angle):\n${recent.map(item => `- ${item}`).join('\n')}`});
+      text: talking
+        ? `What you recently said to V aloud, oldest first (V heard it all). If V asks about one of these lines or reacts to it, answer V's actual question in new words; never say a line again:\n${recent.map(item => `- ${item}`).join('\n')}`
+        : `Your most recent lines (never repeat one, its joke or its wording; find a new angle):\n${recent.map(item => `- ${item}`).join('\n')}`});
     // A second try after a near repeat (produce): name what was too close, so the new line shares no phrasing with it.
     const avoid = Array.isArray(data?.avoid) ? data.avoid.filter(item => typeof item === 'string' && item.trim()).slice(0, 3) : [];
     if (avoid.length) out.push({tier: 'volatile', key: `addon:${addon.id}:avoid`,

@@ -36,6 +36,9 @@ export class ConvaiContinuousSpeech {
     // hold(): true while this turn is a look-ahead that must keep buffering and
     // publish nothing. onText(text, userText): the complete reply text is known.
     hold = () => false, onHeld = () => {}, onText = () => {},
+    // pace: a SpeechPace (bridge/speech-pace.mjs), for a cloud voice only. After a line of the voice broke, the next ones wait for a longer
+    // lead of audio before their first sound. onEnded({underruns, seconds, playedMs}): once, when the line has played to its end.
+    pace = null, onEnded = () => {},
     // holdPeek(): the same question without side effects. The host's pollMs/wake run on every poll from the stream's start, before any
     // audio exists; hold() may drop a V line that is still being synthesized (bridge/v-voice.mjs), so only frame() may call it.
     holdPeek = undefined,
@@ -49,6 +52,7 @@ export class ConvaiContinuousSpeech {
     this.readControl = readControl; this.writeState = writeState; this.writeReply = writeReply;
     this.writeFace = writeFace; this.faceFile = faceFile; this.faceRevision = 0; this.faceWritten = 0;
     this.onPublished = onPublished; this.onStarted = onStarted; this.onGenerated = onGenerated; this.onAudio = onAudio; this.audioSeen = false;
+    this.pace = pace; this.onEnded = onEnded;
     this.hold = hold; this.holdPeek = holdPeek || hold; this.onHeld = onHeld; this.onText = onText; this.textAnnounced = false;
     this.woken = new Promise(resolve => { this.resolveWake = resolve; });
     this.faceBuilder = faceBuilder || ((snapshot, input, jali) => buildProviderFacialTimeline(snapshot, input, jali));
@@ -179,6 +183,11 @@ export class ConvaiContinuousSpeech {
     // nothing is audible, and no state, reply or receipt is published until the
     // game has submitted this exact turn. The facial model keeps analysing.
     if (this.hold()) { this.feedModel(snapshot); this.onHeld(duration, snapshot.textComplete); return quiet(); }
+    // A cloud voice whose last lines broke: a longer lead of audio is buffered (silently, nothing published) before the first sound.
+    if (this.pace && !this.published) {
+      this.paceSince ??= this.now();
+      if (this.pace.holds(duration, this.now() - this.paceSince, {complete: snapshot.sourceComplete})) { this.feedModel(snapshot); return quiet(); }
+    }
     // Admission needs validated PCM and reply text, not a 400 ms prefix: the
     // renderer itself withholds sound until 400 ms is buffered (or EOF). The
     // game's lease round trip therefore overlaps buffering instead of following it.
@@ -268,7 +277,7 @@ export class ConvaiContinuousSpeech {
       if (this.splitFace) await this.commitFace();
     }
     if (!this.started && this.position > 0) {
-      this.started = true;
+      this.started = true; this.startedAt = this.now();
       await this.onStarted({continuousPlaybackFirstObservedAt: this.now(),
         continuousPlaybackPositionSeconds: this.position,
         continuousPlaybackStartEstimateAt: this.now() - this.position * 1000});
@@ -278,7 +287,14 @@ export class ConvaiContinuousSpeech {
       this.reportTimeline(snapshot);
     }
     this.last = document;
-    if (snapshot.ended) { this.ended = true; this.model?.close(); return quiet(); }
+    if (snapshot.ended) {
+      this.ended = true; this.model?.close();
+      try {
+        this.pace?.note(snapshot.underruns);
+        this.onEnded({underruns: snapshot.underruns, seconds: duration, playedMs: this.startedAt ? this.now() - this.startedAt : undefined});
+      } catch { /* a report never affects playback */ }
+      return quiet();
+    }
     if (!await this.valid()) throw Error('Continuous speech owner changed');
     return this.control();
   }
