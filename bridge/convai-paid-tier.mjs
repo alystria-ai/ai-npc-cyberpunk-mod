@@ -16,6 +16,8 @@
 //     settings actions). After a purchase the plan is read a few times (every 6 s for a minute, then every 20 s up to five minutes)
 //     and the check stops at the first confirmation. No timer is left running otherwise.
 //   - Only a Stripe or Convai https page is ever opened in the browser, whatever a server answers.
+//   - Sign in with Convai (bridge/convai-signin.mjs) runs only when the player chooses it; its key is checked with Convai and saved
+//     through saveKey, the same path as Paste.
 //   - Prices and price ids live in DEFAULT_PAID_TIER below; the sign-in backend can replace them (GET /api/convai/plans, set with
 //     POST /api/admin/config {"paidPlans": ...}) so they change without a mod update. A plan whose price id repeats an earlier
 //     plan's is dropped, so a copy error can never put two prices on one charge.
@@ -46,7 +48,7 @@ const NAME = /^[A-Za-z0-9][A-Za-z0-9 .+-]{0,31}$/;
 const PATH = /^\/[A-Za-z0-9/_-]{1,80}$/;
 const COMMAND_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/;
 const COMMAND_MAX_BYTES = 4096, COMMAND_MAX_AGE_MS = 30_000;
-const ACTIONS = new Set(['refresh', 'buy', 'check', 'manage', 'key-page']);
+const ACTIONS = new Set(['refresh', 'buy', 'check', 'manage', 'key-page', 'sign-in']);
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const hostOf = value => { try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password ? url.hostname.toLowerCase() : null; } catch { return null; } };
@@ -200,20 +202,23 @@ export class PaidTierControl {
    *   commandPath  runtime/paid-tier-command.json      publish  (value) => Promise, writes runtime/paid-tier-state.json
    *   plansUrl     the backend's GET /api/convai/plans, or null (the built-in plans)
    *   wantPlan     () => boolean: the player's key is the one in use, so its plan decides how many connections it may hold
-   *   signIn       the seam for a Convai sign-in that hands back the player's key (none exists yet): async () => key string or null.
-   *                Absent, or giving nothing, "Get your Convai API key" opens the key page and the player pastes the key.
+   *   signIn       Sign in with Convai (bridge/convai-signin.mjs): () => {opened, key, cancel}. `opened` settles once Convai's login
+   *                page was asked to open, `key` with the player's key when the sign-in ends (or a SignInError code), `cancel` ends it.
+   *                Absent, "Sign in with Convai" opens the key page instead and the player pastes the key.
    *   saveKey      async (key) => void, saves a key from signIn the way Paste does (the bridge passes the own-key path)
+   *   validate     async (key) => 'valid' | 'invalid' | 'unknown' (convai-key.mjs validateKey); a key Convai refuses is not saved
    */
   constructor({keys, commandPath, publish, plansUrl = null, openBrowser = openInBrowser, fetchImpl = globalThis.fetch, read = path => readFile(path, 'utf8'),
     now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, watch = WATCH, planTiming = PLAN_TIMING, wantPlan = () => false,
-    signIn = null, saveKey = null, log = () => {}} = {}) {
+    signIn = null, saveKey = null, validate = null, log = () => {}} = {}) {
     if (!keys || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid paid tier configuration');
     Object.assign(this, {keys, commandPath, publish, plansUrl, openBrowser, fetchImpl, read, now, setTimer, clearTimer, watchTiming: watch,
-      planTiming, wantPlan, signIn: typeof signIn === 'function' ? signIn : null, saveKey: typeof saveKey === 'function' ? saveKey : null, log});
+      planTiming, wantPlan, signIn: typeof signIn === 'function' ? signIn : null, saveKey: typeof saveKey === 'function' ? saveKey : null,
+      validate: typeof validate === 'function' ? validate : null, log});
     this.config = resolvePaidTier();
     this.overrideAt = null; this.observed = ''; this.busy = false; this.closed = false; this.writing = Promise.resolve();
     this.result = null; this.plan = null; this.planAt = null; this.planFor = null; this.watch = null; this.timer = null;
-    this.planReading = null; this.planRetryAt = 0; this.wasPaid = false;
+    this.planReading = null; this.planRetryAt = 0; this.wasPaid = false; this.signInSession = null;
   }
   /**
    * Whether the player's saved key is on a paid plan now: the last answer was for this very key, says paid, has not expired and is
@@ -275,7 +280,9 @@ export class PaidTierControl {
     try {
       this.result = {id: command.id, state: 'working'};
       await this.publishStatus();
-      this.result = {id: command.id, state: await this.run(command)};
+      const state = await this.run(command);
+      // A sign-in that already ended (its outcome came in while this command finished) keeps that outcome.
+      if (this.result?.id !== command.id || this.result.state === 'working') this.result = {id: command.id, state};
     } catch (error) {
       this.log('paid tier: ' + (error?.code ?? 'error'));
       this.result = {id: command.id, state: 'failed'};
@@ -315,22 +322,48 @@ export class PaidTierControl {
         return state.paid ? 'active' : 'not-yet';
       }
       case 'manage': return await this.#openPage(this.config.manageUrl);
-      case 'key-page': return await this.#signInOrKeyPage();
+      case 'key-page': return await this.#openPage(this.config.keyPageUrl);
+      case 'sign-in': return await this.#startSignIn(command.id);
       case 'buy': return await this.#buy(command.plan);
       default: return 'failed';
     }
   }
-  // A future Convai sign-in that returns the player's key saves it like Paste ('saved'); without one, or when it gives nothing,
-  // the key page opens so the player can copy the key.
-  async #signInOrKeyPage() {
-    if (this.signIn && this.saveKey) {
-      let key = null;
-      try { key = await this.signIn(); } catch { key = null; }
-      if (typeof key === 'string' && key.trim()) {
-        try { await this.saveKey(key.trim()); return 'saved'; } catch { /* fall back to the key page */ }
-      }
+  // Sign in with Convai: opens Convai's login page and returns 'signing-in' at once, so other commands are not held up while the player
+  // signs in. The outcome arrives later as this command's result: 'saved' (the key went through saveKey, the same path as Paste),
+  // 'invalid-key', 'signin-timeout' or 'signin-failed'. A new sign-in cancels one still waiting. Without a sign-in, the key page opens.
+  async #startSignIn(id) {
+    if (!this.signIn || !this.saveKey) return await this.#openPage(this.config.keyPageUrl);
+    this.#cancelSignIn();
+    let session;
+    try { session = this.signIn(); } catch { return 'signin-failed'; }
+    if (!session || typeof session.then === 'function' || !session.opened || !session.key) return 'signin-failed';
+    this.signInSession = session;
+    try { await session.opened; } catch (error) {
+      if (this.signInSession === session) this.signInSession = null;
+      return error?.code === 'open-failed' ? 'open-failed' : 'signin-failed';
     }
-    return await this.#openPage(this.config.keyPageUrl);
+    session.key.then(async key => {
+      const verdict = this.validate ? await this.validate(key).catch(() => 'unknown') : 'unknown';
+      if (verdict === 'invalid') return 'invalid-key';
+      await this.saveKey(key);
+      return 'saved';
+    }, error => error?.code === 'cancelled' ? null : error?.code === 'timeout' ? 'signin-timeout' : 'signin-failed')
+      .catch(() => 'signin-failed')
+      .then(state => {
+        if (this.signInSession !== session) return;
+        this.signInSession = null;
+        if (!state || this.closed) return;
+        this.log(state === 'saved' ? 'Convai sign-in: key saved' : 'Convai sign-in: ' + state);
+        // Only this command's own result is replaced: a later command (the page reopening) keeps its answer.
+        if (!this.result || this.result.id === id) this.result = {id, state};
+        void this.publishStatus().catch(() => {});
+      });
+    return 'signing-in';
+  }
+  #cancelSignIn() {
+    const session = this.signInSession;
+    this.signInSession = null;
+    try { session?.cancel?.(); } catch { /* already over */ }
   }
   async #openPage(url) {
     const safe = convaiUrl(url);
@@ -379,7 +412,7 @@ export class PaidTierControl {
   }
   #stopTimer() { if (this.timer) { this.clearTimer(this.timer); this.timer = null; } }
   /** Service shutdown: no timer survives it. */
-  close() { this.closed = true; this.#stopTimer(); }
+  close() { this.closed = true; this.#stopTimer(); this.#cancelSignIn(); }
 }
 
 /** The backend's plan list address for a sign-in backend token URL (…/api/convai/token -> …/api/convai/plans), or null. */

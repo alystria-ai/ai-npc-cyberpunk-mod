@@ -827,4 +827,12 @@ return {
     ["{count} Convai interactions a month."] = "{count} interactions Convai par mois.",
     ["{plan}, {price} a month"] = "{plan}, {price} par mois",
     ["{plan}, {price} a year"] = "{plan}, {price} par an",
+    ["Sign in with Convai"] = "Se connecter avec Convai",
+    ["Sign in"] = "Se connecter",
+    ["Opens Convai’s sign-in page in your browser.\n\nSign in or make a free account, and your Convai API key is saved on this computer, the same as Paste. You have five minutes."] = "Ouvre la page de connexion de Convai dans votre navigateur.\n\nConnectez-vous ou créez un compte gratuit : votre clé d'API Convai est alors enregistrée sur cet ordinateur, comme avec Coller. Vous avez cinq minutes.",
+    ["Opening Convai’s sign-in page in your browser…"] = "Ouverture de la page de connexion de Convai dans votre navigateur…",
+    ["Sign in on the Convai page in your browser. Your key is saved here when you finish."] = "Connectez-vous sur la page Convai dans votre navigateur. Votre clé sera enregistrée ici une fois la procédure terminée.",
+    ["Signed in. Your Convai API key is saved."] = "Connexion réussie. Votre clé d'API Convai est enregistrée.",
+    ["The sign-in took too long. Choose Sign in with Convai to try again."] = "La connexion a pris trop de temps. Choisissez Se connecter avec Convai pour réessayer.",
+    ["The sign-in did not finish. Try again, or copy your key from convai.com and choose Paste."] = "La connexion n'a pas abouti. Réessayez, ou copiez votre clé depuis convai.com et choisissez Coller.",
 }

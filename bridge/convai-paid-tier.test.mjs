@@ -365,19 +365,76 @@ test('the plan state file never carries the key, even with the plan read in the 
   } finally { await world.cleanup(); }
 });
 
-test('sign-in seam: a key from a future Convai sign-in is saved like Paste; without one, or on failure, the key page opens', async () => {
-  const saved = [];
-  const world = await harness({key: null, options: {signIn: async () => ' player-signed-in-key-0123456789 ', saveKey: async key => { saved.push(key); }}});
+/** A fake Sign in with Convai session: settle it from the test. */
+function fakeSession() {
+  const session = {cancelled: false};
+  session.opened = new Promise((resolve, reject) => { session.open = resolve; session.failOpen = reject; });
+  session.key = new Promise((resolve, reject) => { session.give = resolve; session.fail = reject; });
+  session.key.catch(() => {});
+  session.cancel = () => { session.cancelled = true; session.fail(Object.assign(Error('cancelled'), {code: 'cancelled'})); };
+  return session;
+}
+const settle = async world => { for (let i = 0; i < 5; i += 1) await new Promise(resolve => setImmediate(resolve)); await world.control.writing; };
+
+test('Sign in with Convai: the page gets "signing-in" at once, then the key is checked and saved like Paste ("saved")', async () => {
+  const saved = [], checked = [], sessions = [];
+  const signIn = () => { const session = fakeSession(); sessions.push(session); session.open(); return session; };
+  const world = await harness({key: null, options: {signIn, saveKey: async key => { saved.push(key); world.keys.player = key; },
+    validate: async key => { checked.push(key); return 'valid'; }}});
   try {
-    assert.equal((await world.send('key-page')).result.state, 'saved');
+    assert.deepEqual((await world.send('sign-in')).result, {id: 'c1', state: 'signing-in'});
+    assert.equal(world.opened.length, 0, 'the sign-in opens its own page, not the key page');
+    sessions[0].give('player-signed-in-key-0123456789');
+    await settle(world);
+    const last = world.published.at(-1);
+    assert.deepEqual(last.result, {id: 'c1', state: 'saved'});
+    assert.equal(last.keySaved, true);
     assert.deepEqual(saved, ['player-signed-in-key-0123456789']);
-    assert.equal(world.opened.length, 0);
-  } finally { await world.cleanup(); }
-  for (const signIn of [async () => null, async () => { throw Error('cancelled'); }]) {
-    const fallback = await harness({key: null, options: {signIn, saveKey: async () => { throw Error('never'); }}});
+    assert.deepEqual(checked, saved);
+    assert.ok(!JSON.stringify(world.published).includes('player-signed-in-key'), 'the key never reaches the state file');
+  } finally { world.control.close(); await world.cleanup(); }
+});
+
+test('Sign in with Convai: a refused key, a timeout, a failure and a browser that will not open each have their own result', async () => {
+  const cases = [
+    {act: session => { session.open(); session.give('player-signed-in-key-0123456789'); }, validate: 'invalid', state: 'invalid-key'},
+    {act: session => { session.open(); session.fail(Object.assign(Error('t'), {code: 'timeout'})); }, state: 'signin-timeout'},
+    {act: session => { session.open(); session.fail(Object.assign(Error('x'), {code: 'unavailable'})); }, state: 'signin-failed'},
+  ];
+  for (const item of cases) {
+    const saved = [];
+    const world = await harness({key: null, options: {signIn: () => { const session = fakeSession(); queueMicrotask(() => item.act(session)); return session; },
+      saveKey: async key => { saved.push(key); }, validate: async () => item.validate ?? 'valid'}});
     try {
-      assert.equal((await fallback.send('key-page')).result.state, 'opened');
-      assert.deepEqual(fallback.opened, ['https://convai.com']);
-    } finally { await fallback.cleanup(); }
+      await world.send('sign-in');
+      await settle(world);
+      assert.equal(world.published.at(-1).result.state, item.state, item.state);
+      assert.deepEqual(saved, [], 'nothing saved');
+    } finally { world.control.close(); await world.cleanup(); }
   }
+  const world = await harness({key: null, options: {signIn: () => { const session = fakeSession(); session.failOpen(Object.assign(Error('o'), {code: 'open-failed'})); return session; },
+    saveKey: async () => { throw Error('never'); }}});
+  try { assert.equal((await world.send('sign-in')).result.state, 'open-failed'); } finally { await world.cleanup(); }
+});
+
+test('Sign in with Convai: a new sign-in or the service stopping cancels the one waiting; without a sign-in the key page opens', async () => {
+  const sessions = [];
+  const world = await harness({key: null, options: {signIn: () => { const session = fakeSession(); session.open(); sessions.push(session); return session; },
+    saveKey: async () => { throw Error('never'); }}});
+  try {
+    await world.send('sign-in');
+    await world.send('sign-in');
+    assert.equal(sessions[0].cancelled, true);
+    assert.equal(sessions[1].cancelled, false);
+    await settle(world);
+    assert.deepEqual(world.published.at(-1).result, {id: 'c2', state: 'signing-in'}, 'the cancelled one publishes nothing');
+    assert.equal((await world.send('key-page')).result.state, 'opened', 'Get your Convai API key still just opens the page');
+    world.control.close();
+    assert.equal(sessions[1].cancelled, true);
+  } finally { await world.cleanup(); }
+  const plain = await harness({key: null});
+  try {
+    assert.equal((await plain.send('sign-in')).result.state, 'opened');
+    assert.deepEqual(plain.opened, ['https://convai.com']);
+  } finally { await plain.cleanup(); }
 });

@@ -827,4 +827,12 @@ return {
     ["{count} Convai interactions a month."] = "{count} взаємодій Convai на місяць.",
     ["{plan}, {price} a month"] = "{plan}, {price} на місяць",
     ["{plan}, {price} a year"] = "{plan}, {price} на рік",
+    ["Sign in with Convai"] = "Увійти через Convai",
+    ["Sign in"] = "Увійти",
+    ["Opens Convai’s sign-in page in your browser.\n\nSign in or make a free account, and your Convai API key is saved on this computer, the same as Paste. You have five minutes."] = "Відкриває сторінку входу Convai у браузері.\n\nУвійди або створи безкоштовний обліковий запис, і твій API-ключ Convai збережеться на цьому комп’ютері, так само як при «Вставити». У тебе є п’ять хвилин.",
+    ["Opening Convai’s sign-in page in your browser…"] = "Відкриваємо сторінку входу Convai у браузері…",
+    ["Sign in on the Convai page in your browser. Your key is saved here when you finish."] = "Увійди на сторінці Convai у браузері. Коли завершиш, ключ збережеться тут.",
+    ["Signed in. Your Convai API key is saved."] = "Вхід виконано. Твій API-ключ Convai збережено.",
+    ["The sign-in took too long. Choose Sign in with Convai to try again."] = "Вхід тривав занадто довго. Вибери «Увійти через Convai», щоб спробувати знову.",
+    ["The sign-in did not finish. Try again, or copy your key from convai.com and choose Paste."] = "Вхід не завершено. Спробуй ще раз або скопіюй ключ з convai.com і вибери «Вставити».",
 }

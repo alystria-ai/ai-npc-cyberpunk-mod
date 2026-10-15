@@ -827,4 +827,12 @@ return {
     ["{count} Convai interactions a month."] = "{count} Convai-interakció havonta.",
     ["{plan}, {price} a month"] = "{plan}, {price} havonta",
     ["{plan}, {price} a year"] = "{plan}, {price} évente",
+    ["Sign in with Convai"] = "Bejelentkezés Convai-val",
+    ["Sign in"] = "Bejelentkezés",
+    ["Opens Convai’s sign-in page in your browser.\n\nSign in or make a free account, and your Convai API key is saved on this computer, the same as Paste. You have five minutes."] = "Megnyitja a Convai bejelentkezési oldalát a böngészőben.\n\nJelentkezz be, vagy hozz létre ingyenes fiókot, a Convai API-kulcsod pedig ezen a számítógépen kerül mentésre, ugyanúgy, mint a Beillesztés esetén. Öt perced van.",
+    ["Opening Convai’s sign-in page in your browser…"] = "A Convai bejelentkezési oldalának megnyitása a böngészőben…",
+    ["Sign in on the Convai page in your browser. Your key is saved here when you finish."] = "Jelentkezz be a Convai oldalán a böngészőben. A kulcsod itt kerül mentésre, amikor végeztél.",
+    ["Signed in. Your Convai API key is saved."] = "Sikeres bejelentkezés. A Convai API-kulcsod mentve.",
+    ["The sign-in took too long. Choose Sign in with Convai to try again."] = "A bejelentkezés túl sokáig tartott. Válaszd a Bejelentkezés Convai-val lehetőséget az újrapróbálkozáshoz.",
+    ["The sign-in did not finish. Try again, or copy your key from convai.com and choose Paste."] = "A bejelentkezés nem fejeződött be. Próbáld újra, vagy másold ki a kulcsodat a convai.com oldalról, és válaszd a Beillesztés lehetőséget.",
 }

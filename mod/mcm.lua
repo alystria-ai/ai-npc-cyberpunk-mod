@@ -1661,6 +1661,10 @@ local function paidTierRows(snapshot)
     if message then planHelp = message .. '\n\n' .. planHelp end
     rows[#rows + 1] = readonly('paid-plan', 'Your Convai plan', planValue, planHelp, {value = true, description = true})
     if not keySaved then
+        -- Sign in with Convai (bridge/convai-signin.mjs): Convai's login page hands the key back to the conversation service.
+        rows[#rows + 1] = action('paid:sign-in', 'Sign in with Convai', 'Sign in',
+            'Opens Convai’s sign-in page in your browser.\n\nSign in or make a free account, and your Convai API key is saved on this computer, the same as Paste. You have five minutes.',
+            function() return paidTier.request('sign-in') end)
         rows[#rows + 1] = action('paid:key-page', 'Get your Convai API key', 'Open',
             'Opens convai.com in your browser. Sign in or make a free account, copy your API key, then come back and choose Paste below.',
             function() return paidTier.request('key-page') end)

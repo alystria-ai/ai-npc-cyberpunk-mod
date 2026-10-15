@@ -73,6 +73,7 @@ import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {EditorControl} from './character-editor-control.mjs';
 import {PaidTierControl, plansUrlFor} from './convai-paid-tier.mjs';
+import {startConvaiSignIn} from './convai-signin.mjs';
 import {PlayerKnowledge} from './player-knowledge.mjs';
 import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowledge.mjs';
 import {atomicFile as atomic} from './guarded-file.mjs';
@@ -84,7 +85,7 @@ import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
-import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, withoutIdentity} from './convai-key.mjs';
+import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, validateKey, withoutIdentity} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {readKeyFileText} from './key-codec.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
@@ -2736,8 +2737,10 @@ const paidTierControl = await new PaidTierControl({keys, commandPath: resolve(ru
   publish: value => atomic(resolve(runtime, 'paid-tier-state.json'), JSON.stringify(value)),
   // The plan is read only while the player's key is the one in use (its answer sets the connection limit above).
   wantPlan: () => keys.singleSession && !mistral.active,
-  // signIn: the seam for a Convai sign-in that returns the player's key (none exists yet; the key comes from Paste). When it
-  // exists, pass it here: saveKey below stores its key exactly as Paste does.
+  // Sign in with Convai (bridge/convai-signin.mjs): Convai's login page hands the player's key back to a loopback listener that is open
+  // only while a sign-in waits. The key is checked with Convai and saved exactly as Paste saves it.
+  signIn: () => startConvaiSignIn(),
+  validate: key => validateKey(key),
   saveKey: async key => { await keys.save(key); quota.clear(); await ownKeyControl.publishStatus().catch(() => {}); },
   log: message => console.error('[CyberpunkConvai] ' + message)}).open();
 playerConnectionLimit = () => paidTierControl.connectionLimit();

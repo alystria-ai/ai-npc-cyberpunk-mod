@@ -246,7 +246,7 @@ test('Settings lists Convai paid tier under the Convai API key row; the page sho
   loaded = registered.loadMod('manager')
   assert(mcm.inspect().back.id == 'paid-tier:back')
   assert(row('paid-plan').value == 'No key added')
-  assert(row('paid:key-page') and row('paid-own-key') and row('paid-own-key').value == 'Paste')
+  assert(row('paid:sign-in') and row('paid:sign-in').value == 'Sign in' and row('paid:key-page') and row('paid-own-key') and row('paid-own-key').value == 'Paste')
   local labels = {}
   for _, plan in ipairs(category('paid-plans').settings) do labels[#labels + 1] = plan.label end
   assert(table.concat(labels, '|') == 'Gamer, $4 a month|Gamer, $32 a year|Gamer Pro, $8 a month|Gamer Pro, $64 a year|Check my plan|Manage or cancel plan',
@@ -315,6 +315,36 @@ test('a purchase Convai does not confirm in time leaves the settings alone; a la
   pump(true, 8)
   assert(saved and saved.useOwnConvaiKey == true)
   assert(#popups == 2 and popups[2]:find('Your Convai plan is active.', 1, true), tostring(popups[2]))
+`));
+
+test('Sign in with Convai: the row sends a sign-in, the page words each outcome, and the row goes once a key is saved', () => run(`${paidFixture}
+  jsonFile('runtime/own-key-state.json', {version = 1, saved = false, active = 'shared'})
+  service({keySaved = false})
+  openPage()
+  local result = invoke('paid:sign-in')
+  assert(result.ok and command().action == 'sign-in', 'the row sends a sign-in')
+  service({keySaved = false, result = {id = command().id, state = 'signing-in'}})
+  pump(false, 4)
+  loaded = registered.loadMod('manager')
+  assert(row('paid-plan').description:find('Sign in on the Convai page in your browser.', 1, true), row('paid-plan').description)
+  service({keySaved = false, result = {id = command().id, state = 'signin-timeout'}})
+  pump(false, 4)
+  loaded = registered.loadMod('manager')
+  assert(row('paid-plan').description:find('The sign-in took too long.', 1, true))
+  assert(invoke('paid:sign-in').ok)
+  service({keySaved = false, result = {id = command().id, state = 'signin-failed'}})
+  pump(false, 4)
+  loaded = registered.loadMod('manager')
+  assert(row('paid-plan').description:find('copy your key from convai.com and choose Paste', 1, true))
+  assert(invoke('paid:sign-in').ok)
+  jsonFile('runtime/own-key-state.json', {version = 1, saved = true, tail = 'cdef', active = 'shared'})
+  service({keySaved = true, result = {id = command().id, state = 'saved'}})
+  pump(false, 4)
+  loaded = registered.loadMod('manager')
+  assert(row('paid-plan').description:find('Signed in. Your Convai API key is saved.', 1, true))
+  assert(not row('paid:sign-in') and not row('paid:key-page'), 'with a key saved the sign-in and key page rows go')
+  assert(row('paid-own-key').value == 'Remove' and row('paid-own-key').label:find('cdef', 1, true), 'the key row shows the saved key')
+  assert(#popups == 0 and (saved == nil or saved.useOwnConvaiKey ~= true), 'a sign-in alone changes no setting, as Paste')
 `));
 
 test('a refused checkout is worded on the page and follows nothing', () => run(`${paidFixture}

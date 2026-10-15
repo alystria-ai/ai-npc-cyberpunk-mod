@@ -827,4 +827,12 @@ return {
     ["{count} Convai interactions a month."] = "Ayda {count} Convai etkileşimi.",
     ["{plan}, {price} a month"] = "{plan}, ayda {price}",
     ["{plan}, {price} a year"] = "{plan}, yılda {price}",
+    ["Sign in with Convai"] = "Convai ile oturum aç",
+    ["Sign in"] = "Oturum aç",
+    ["Opens Convai’s sign-in page in your browser.\n\nSign in or make a free account, and your Convai API key is saved on this computer, the same as Paste. You have five minutes."] = "Convai'nin oturum açma sayfasını tarayıcında açar.\n\nOturum aç veya ücretsiz hesap oluştur; Convai API anahtarın, Yapıştır ile olduğu gibi bu bilgisayara kaydedilir. Beş dakikan var.",
+    ["Opening Convai’s sign-in page in your browser…"] = "Convai'nin oturum açma sayfası tarayıcında açılıyor…",
+    ["Sign in on the Convai page in your browser. Your key is saved here when you finish."] = "Tarayıcında Convai sayfasında oturum aç. İşlemi bitirdiğinde anahtarın burada kaydedilir.",
+    ["Signed in. Your Convai API key is saved."] = "Oturum açıldı. Convai API anahtarın kaydedildi.",
+    ["The sign-in took too long. Choose Sign in with Convai to try again."] = "Oturum açma çok uzun sürdü. Yeniden denemek için Convai ile oturum aç seçeneğini seç.",
+    ["The sign-in did not finish. Try again, or copy your key from convai.com and choose Paste."] = "Oturum açma tamamlanamadı. Yeniden dene ya da anahtarı convai.com'dan kopyalayıp Yapıştır'ı seç.",
 }

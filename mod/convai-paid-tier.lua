@@ -92,7 +92,8 @@ function M.new(options)
             state.watch and tostring(state.watch.state) or '', state.result or ''}, '|')
     end
 
-    -- Sends one command: 'refresh' (the page opened), 'buy' (with a plan id), 'check', 'manage' or 'key-page'. Returns ok, message.
+    -- Sends one command: 'refresh' (the page opened), 'buy' (with a plan id), 'check', 'manage', 'key-page' or 'sign-in'. Returns ok,
+    -- message.
     function self.request(action, plan)
         counter = counter + 1
         local id = 'p' .. tostring(os.time()) .. '-' .. tostring(counter)
@@ -106,6 +107,7 @@ function M.new(options)
         if action == 'buy' then return true, ui.t('Asking Convai for the payment page…') end
         if action == 'check' then return true, ui.t('Checking your plan…') end
         if action == 'refresh' then return true end
+        if action == 'sign-in' then return true, ui.t('Opening Convai’s sign-in page in your browser…') end
         return true, ui.t('Opening the page in your browser…')
     end
 
@@ -114,6 +116,11 @@ function M.new(options)
         local result, action = state.result, state.action
         if not result then return nil end
         if result == 'working' then return ui.t('Contacting Convai…') end
+        -- Sign in with Convai: the service waits for Convai's page to hand the key back, then saves it as Paste does.
+        if result == 'signing-in' then return ui.t('Sign in on the Convai page in your browser. Your key is saved here when you finish.') end
+        if result == 'saved' and action == 'sign-in' then return ui.t('Signed in. Your Convai API key is saved.') end
+        if result == 'signin-timeout' then return ui.t('The sign-in took too long. Choose Sign in with Convai to try again.') end
+        if result == 'signin-failed' then return ui.t('The sign-in did not finish. Try again, or copy your key from convai.com and choose Paste.') end
         if result == 'opened' and action == 'buy' then
             return ui.t('Convai’s payment page is open in your browser. Your plan is active about 15 seconds after you pay.')
         end
@@ -125,7 +132,6 @@ function M.new(options)
         if result == 'active' then return ui.t('Your Convai plan is active.') end
         if result == 'not-yet' then return ui.t('Convai does not show a paid plan for your key yet.') end
         if result == 'unknown' then return ui.t('Your plan could not be read right now. Try again in a moment.') end
-        -- 'saved': a Convai sign-in (when one exists) saved the key; the key row shows it.
         if result == 'ready' or result == 'saved' then return nil end
         return ui.t('Convai could not start the payment. Try again later.')
     end
