@@ -21,6 +21,14 @@ constexpr double kBudgetRise = .18;
 constexpr double kDuckFall = .07;
 constexpr double kDuckRise = .18;
 constexpr double kSleepDelta = 1e-4;
+// The smile shape (Lua shapeStretch, shapeUpper, shapeCap and shapeFields).
+constexpr double kShapeStretch = 1;
+constexpr double kShapeUpper = .45;
+constexpr double kShapeCap = .8;
+constexpr int kFieldLCornerStretch = 14;
+constexpr int kFieldRCornerStretch = 15;
+constexpr int kFieldLUpperRaise = 20;
+constexpr int kFieldRUpperRaise = 21;
 
 double Clamp(double aValue, double aMaximum = 1.0) noexcept
 {
@@ -454,6 +462,33 @@ void ComputeFrame(SlotState& aSlot, const FrameInput& aIn, FrameOutput& aOut)
                 aOut.value[field] = Sane(field < static_cast<int>(aIn.speechCount) ? aIn.speech[field] : 0.0);
             }
         }
+    }
+    // The smile shape: corner stretch and upper-lip raise derived from the corners up just written. While speaking the
+    // speech value (already in aOut) wins where it is larger; idle frames write the shape alone, and once more at 0
+    // after the shape goes away. The speech vector itself is never changed.
+    const double shape = blocked ? 0.0 : aIn.smileShape;
+    if (shape > 0 || s.shapeWritten)
+    {
+        const struct
+        {
+            int field;
+            int track;
+            double gain;
+        } shapes[4] = {{kFieldLCornerStretch, LCornerUp, kShapeStretch},
+                       {kFieldRCornerStretch, RCornerUp, kShapeStretch},
+                       {kFieldLUpperRaise, LCornerUp, kShapeUpper},
+                       {kFieldRUpperRaise, RCornerUp, kShapeUpper}};
+        for (const auto& entry : shapes)
+        {
+            double value = std::min(kShapeCap, s.written[entry.track] * entry.gain * shape);
+            if (aIn.speaking && aOut.write[entry.field])
+            {
+                value = std::max(static_cast<double>(aOut.value[entry.field]), value);
+            }
+            aOut.write[entry.field] = true;
+            aOut.value[entry.field] = Sane(value);
+        }
+        s.shapeWritten = shape > 0;
     }
 }
 

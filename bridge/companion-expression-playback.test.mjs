@@ -121,6 +121,24 @@ test('a face row with an expressionBoost (the holocall picture) rests and reacts
  assert(face.expressions[a.id].moodUntil~=nil,'sadness .4 sets the mood hold as before')
 `));
 
+test('a face row with a smileShape (the holocall picture) draws its smile with corner stretch and upper-lip raise from the written corners',()=>run(`
+ local shaped={{entity=a.id,npc=a,expressionBoost=1.6,smileShape=1},{entity=b.id,npc=b}}
+ for _=1,40 do tick(.1,{actors=shaped}) end
+ local up=last(a).lips_l_corner_up
+ assert(math.abs(last(a).lips_l_corner_stretch-up)<.002 and math.abs(last(a).lips_r_corner_stretch-up)<.002,'resting stretch follows the corners: '..last(a).lips_l_corner_stretch..' vs '..up)
+ assert(math.abs(last(a).lips_l_upper_raise-up*.45)<.002,'resting upper-lip raise .45 of the corners: '..last(a).lips_l_upper_raise)
+ assert((last(b).lips_l_corner_stretch or 0)==0 and (last(b).lips_l_upper_raise or 0)==0,'an ordinary row writes no shape')
+ face.beginExpression(context,${literal(receipt('Joy',3,0))});face.expressionHeard(context);face.endExpression(context,true)
+ for _=1,15 do tick(.1,{actors=shaped}) end
+ local joy=last(a).lips_l_corner_up
+ assert(joy>up+.2,'joy lifts the corners: '..joy)
+ assert(math.abs(last(a).lips_l_corner_stretch-math.min(.8,joy))<.002,'joy stretch follows: '..last(a).lips_l_corner_stretch)
+ assert(math.abs(last(a).lips_l_upper_raise-math.min(.8,joy*.45))<.002,'joy upper-lip raise follows: '..last(a).lips_l_upper_raise)
+ -- The shape goes away with the row's smileShape: one more frame writes it back to 0.
+ for _=1,5 do tick(.1,{actors={{entity=a.id,npc=a},{entity=b.id,npc=b}}}) end
+ assert(last(a).lips_l_corner_stretch==0 and last(a).lips_l_upper_raise==0,'shape handed back to 0')
+`));
+
 test('Lua expression policy matches the pure policy and stops its clock while paused',()=>{
   const smoother=new ExpressionSmoother();const expected=smoother.update(expressionTarget(),.1);
   run(`tick(.1);local expected=${literal(expected)};for key,value in pairs(expected) do assert(math.abs(last(a)[key]-value)<1e-12,key) end

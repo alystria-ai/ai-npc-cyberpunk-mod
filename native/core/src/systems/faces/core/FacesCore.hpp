@@ -109,6 +109,8 @@ inline constexpr int kUpperLower = 28;
 inline constexpr int kBlink = 29; // blinkWeight(...) of this frame (before the droop is merged in)
 inline constexpr int kOwned = 30; // ownerLevel(...) of this frame, 0 when the field is absent
 inline constexpr int kCount = 31;
+// Optional (a Lua that sends 32 values): the row's smileShape, 0 when absent or blocked (Lua shapeStretch).
+inline constexpr int kSmileShape = 31;
 } // namespace ctl
 
 namespace flag
@@ -174,6 +176,7 @@ struct FrameInput
     double upperLower = 0;
     double blinkBase = 0;
     double owned = 0;
+    double smileShape = 0; // ctl::kSmileShape, 0 when the Lua sent the 31 base values
     // The speech values by feature field index (dense, kFieldCount entries) while speaking; empty
     // otherwise. Speech fields are written only on speaking frames.
     const double* speech = nullptr;
@@ -204,6 +207,7 @@ struct SlotState
     double voiceBrowReady = 0; // slot.voiceBrowReady
     bool hasVoiceBrowReady = false;
     bool blinkWritten = false; // slot.blinkWritten
+    bool shapeWritten = false; // slot.shapeWritten (the smile shape was written last frame)
     // Speech turn tallies (Lua's lastSpeechExpression.peak, .jawPeak, .openFrames).
     double peak[kTracks]{};
     double jawPeak = 0;
