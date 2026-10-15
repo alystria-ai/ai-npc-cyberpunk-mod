@@ -56,7 +56,7 @@ end
 -- 1-based here) and the empty speech vector of idle frames. Reused: no table is built per frame. Both cross as
 -- array:Float (CET converts a Lua table of numbers straight to the array; this game has no array:Double, so a Double
 -- array would keep the whole system on Lua). Every entry is a number, never nil.
-local ctl={};for i=1,32 do ctl[i]=0 end
+local ctl={};for i=1,31 do ctl[i]=0 end
 local EMPTY={}
 local FAMILY={joy=1,trust=2,sadness=3,anger=4,fear=5,disgust=6,surprise=7,anticipation=8,neutral=9,unknown=10}
 local slotsNative=false
@@ -221,28 +221,6 @@ traitTable['alt-cunningham']={warmth=.05,gain=1,smile=defaultSmile,squint=defaul
 -- later turn was calm, and the ease back to the resting smile.
 local moodHoldSeconds,moodCalmSeconds,moodEaseSeconds,moodThreshold=60,10,5,.2
 local function traitFor(profile) return traitTable[profile] or traitTable.default end
--- A face filmed smaller than in person (the holocall picture: mod/holocall.lua faceRow's expressionBoost) carries its
--- feelings stronger, or they do not read at all (live, 2026-10-16: a real call reply wrote squint .22, brows .22, corners
--- .36 at peak, and the call window looked the same with and without them). The boost scales the reply's emotion mix
--- (capped at 1), raises a reply-level label one step, and scales the resting smile; the mouth budget still keeps a
--- speaking mouth clear. The same inputs go to the native and the Lua path. 1 (nil) for everyone else.
-local function boostScale(scale,boost) if scale and boost>1 then return math.min(3,scale+1) end return scale end
--- The smile shape (live, 2026-10-16, Alex's call picture, forced poses at full window resolution): every control reaches
--- the call copy's face (jaw, corners, brows, widened eyes all move), but corners up alone, even at 1, only widen her
--- mouth a little at that size, and the lower-lid squint does not move at all on her head, so a reply's joy looked like
--- no expression. Corners up with the corner stretch, the upper-lip raise and a little lip stretch read as a smile at
--- once (captures at joy's corners .74: upper-lip raise .33 still subtle, .6 shows the teeth; lip stretch .4 widens it).
--- A row's smileShape (holocall faceRow) derives them from the corners up this frame wrote, after the eases, the mood
--- hold and the mouth budget shaped them: corner stretch = corner up x shapeStretch, upper-lip raise = x shapeUpper, lip
--- stretch = x shapeWide (each times the shape, at most shapeCap). While she speaks the lip sync's own value wins where
--- it is larger. It
--- costs a few multiplies inside the frame the writer applies anyway. nil (0) for everyone else. Mirrored in the native
--- core (native/core/src/systems/faces/core/FacesPose.cpp, ctl[32]).
-local shapeStretch,shapeUpper,shapeWide,shapeCap=1,.8,.5,.8
-local shapeFields={{'lips_l_corner_stretch','lips_l_corner_up',shapeStretch},{'lips_r_corner_stretch','lips_r_corner_up',shapeStretch},
-    {'lips_l_upper_raise','lips_l_corner_up',shapeUpper},{'lips_r_upper_raise','lips_r_corner_up',shapeUpper},
-    {'lips_l_stretch','lips_l_corner_up',shapeWide},{'lips_r_stretch','lips_r_corner_up',shapeWide}}
-M.smileShapeGains={stretch=shapeStretch,upper=shapeUpper,wide=shapeWide,cap=shapeCap}
 local speechMouthFactor=.85
 -- The jaw weight (as written) from which a speaking, jaw-lifted head carries no chin raise / no corner depressors.
 local chinDuckJaw,cornerDuckJaw=.10,.20
@@ -546,7 +524,7 @@ function M.beginExpressionFrame(delta,context)
     if actors then
         for _,row in ipairs(actors) do
             local known=type(row)=='table' and M.expressions[row.entity]
-            if known then known.profile,known.boost,known.shape=row.profileKey,row.expressionBoost,row.smileShape end
+            if known then known.profile=row.profileKey end
         end
     end
     if not M.expressionPaused and finite(delta) then M.expressionClock=M.expressionClock+math.max(0,delta) end
@@ -753,8 +731,7 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     -- and after speech (until the usual expiry), so gaps never jump to another pose.
     if mix then slot.holdMix=mix end
     local weights=mix or slot.holdMix
-    local rawWeights=weights
-    local family,strength=slot.family,scaleStrength[boostScale(slot.scale,slot.boost or 1) or 1]
+    local family,strength=slot.family,scaleStrength[slot.scale or 1]
     -- Surprise and Interest are momentary: a brow flick at the start of the feeling
     -- (full for 1 s, gone by 2 s), never a sustained raise. Other feelings hold
     -- through their phrase and release after speech (see browExpiry).
@@ -763,8 +740,7 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     if weights then
         -- A copy (the flicks scale two of its entries), in a reused table.
         local copy=poseWeights
-        local boost=slot.boost or 1
-        for index=1,#weights do copy[index]=math.min(1,weights[index]*boost) end
+        for index=1,#weights do copy[index]=weights[index] end
         for index=#weights+1,#copy do copy[index]=nil end
         weights=copy
         surpriseFlick,interestFlick=momentary(slot,'surprise',weights[7] or 0),momentary(slot,'anticipation',weights[8] or 0)
@@ -775,12 +751,12 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
         if family=='surprise' then strength=strength*surpriseFlick elseif family=='anticipation' then strength=strength*interestFlick end
     end
     local trait=traitFor(slot.profile)
-    local warmth,gain=trait.warmth*(slot.boost or 1),trait.gain
-    -- This turn's strongest negative feeling (track mix or reply-level label, as felt: never boosted) sets the mood hold.
+    local warmth,gain=trait.warmth,trait.gain
+    -- This turn's strongest negative feeling (track mix or reply-level label) sets the mood hold.
     if slot.active and not slot.awaitingAudio then
         local worst=0
-        if rawWeights then for index=3,6 do worst=math.max(worst,rawWeights[index] or 0) end
-        elseif negative[family] then worst=scaleStrength[slot.scale or 1] end
+        if weights then for index=3,6 do worst=math.max(worst,weights[index] or 0) end
+        elseif negative[family] then worst=strength end
         slot.turnNegative=math.max(slot.turnNegative or 0,worst)
     end
     if slot.moodUntil then
@@ -991,8 +967,7 @@ local function applyNative(actor,feature,entity,phase,provider,upper,mix,boundar
     local weights=mix or slot.holdMix
     local family=slot.family
     local trait=traitFor(slot.profile)
-    local boost=slot.boost or 1
-    local warmth=trait.warmth*boost
+    local warmth=trait.warmth
     -- This turn's strongest negative feeling (track mix or reply-level label) sets the mood hold.
     if slot.active and not slot.awaitingAudio then
         local worst=0
@@ -1016,7 +991,7 @@ local function applyNative(actor,feature,entity,phase,provider,upper,mix,boundar
     local flags=0
     if speaking then flags=flags+1 end
     if blocked then flags=flags+2 end
-    if weights then flags=flags+4;for index=1,8 do ctl[10+index]=math.min(1,(weights[index] or 0)*boost) end end
+    if weights then flags=flags+4;for index=1,8 do ctl[10+index]=weights[index] or 0 end end
     if provider then flags=flags+8;for index=1,9 do ctl[18+index]=provider[index] or 0 end end
     if upper then flags=flags+16;ctl[28],ctl[29]=upper.raise,upper.lower end
     if slot.browExpiry and clock>=slot.browExpiry then flags=flags+32 end
@@ -1027,9 +1002,9 @@ local function applyNative(actor,feature,entity,phase,provider,upper,mix,boundar
     if writeOwner then flags=flags+1024 end
     if slot.blinkStart and clock-slot.blinkStart<blinkLength then flags=flags+2048 end
     ctl[1],ctl[2],ctl[3]=clock,delta,flags
-    ctl[4],ctl[5]=FAMILY[family] or 0,boostScale(slot.scale,boost) or 0
+    ctl[4],ctl[5]=FAMILY[family] or 0,slot.scale or 0
     ctl[6],ctl[7],ctl[8],ctl[9],ctl[10]=warmth,trait.gain,trait.smile or 1,trait.squint or 1,trait.browDown or 1
-    ctl[30],ctl[31],ctl[32]=blink,owned,blocked and 0 or (slot.shape or 0)
+    ctl[30],ctl[31]=blink,owned
     local vec=EMPTY
     if speaking then
         vec=M.speechVec
@@ -1097,26 +1072,6 @@ local function applyFeature(actor,feature,entity,phase,provider,upper,mix,bounda
         owned=ownerLevel(slot,phase,blocked)
         -- Speaking frames always write it (a reused feature never keeps a stale 1); other phases only to hand it back.
         if phase=='speaking' or owned>0 or slot.ownWritten then feature.speech_owner=owned;slot.ownWritten=owned>0 end
-    end
-    -- The smile shape (see shapeStretch): derived from the corners just written. While speaking, the speech value of
-    -- each field is the base (a field the timeline does not write keeps the base this layer saw last, so the max never
-    -- ratchets); idle frames write the shape alone, and once more at 0 after the shape goes away.
-    local shape=blocked and 0 or (slot.shape or 0)
-    if shape>0 or slot.shapeWritten then
-        local speaking=phase=='speaking'
-        local base,last=slot.shapeBase or {},slot.shapeLast or {}
-        for _,entry in ipairs(shapeFields) do
-            local field=entry[1]
-            local value=math.min(shapeCap,(written[entry[2]] or 0)*entry[3]*shape)
-            if speaking then
-                local now=feature[field] or 0
-                if last[field]==nil or math.abs(now-last[field])>1e-5 then base[field]=now end
-                value=math.max(base[field] or 0,value)
-            else base[field]=nil end
-            feature[field]=value
-            last[field]=feature[field]
-        end
-        slot.shapeBase,slot.shapeLast,slot.shapeWritten=base,last,shape>0
     end
     if faceTest then
         local ok,skip=pcall(faceTest.post,entity,feature,phase,blocked)
@@ -1227,7 +1182,7 @@ local function asleep(slot,entity,row,busy)
         or (slot.ownLevel or 0)~=0 or (slot.browExpiry and clock<slot.browExpiry) then return false end
     if M.active and M.entity==entity then return false end
     return slot.sleepPhase==idlePhase(slot,entity) and slot.sleepBlocked==M.expressionBlocked
-        and slot.sleepProfile==row.profileKey and slot.sleepShape==row.smileShape and slot.sleepBoost==row.expressionBoost
+        and slot.sleepProfile==row.profileKey
 end
 -- Rows seen this frame (reused; cleared at the start of each update).
 local seenRows={}
@@ -1235,7 +1190,7 @@ local seenRows={}
 local function idleFrame(row,entity,actor)
     if not owns(actor,entity) then forget(entity);return end
     local slot=expressionSlot(entity)
-    slot.profile,slot.boost,slot.shape=row.profileKey,row.expressionBoost,row.smileShape
+    slot.profile=row.profileKey
     -- Speech owns the face from its first HEARD frame. Before that (a reply prepared, a stream
     -- buffering, an Omni phrase loading) this idle writer keeps her idle face (October 9).
     if slot.written==M.expressionFrame or (M.active and M.entity==entity and M.heardRequest==M.requestId and M.state~='paused' and M.state~='releasing') then return end
@@ -1248,7 +1203,6 @@ local function idleFrame(row,entity,actor)
     if slot.settled and slot.written==M.expressionFrame then
         slot.sleepAt=M.expressionClock
         slot.sleepPhase,slot.sleepBlocked,slot.sleepProfile=phase,M.expressionBlocked,row.profileKey
-        slot.sleepShape,slot.sleepBoost=row.smileShape,row.expressionBoost
     end
 end
 function M.updateExpressions(context)

@@ -271,52 +271,28 @@ a slight lower-lid squint (a visible soft smile); a forced Joy raised the corner
 .30 (a clear smile); a forced Sadness showed raised inner brows and lowered corners. At a spot whose studio was 20.7 m
 away she got no row, as intended. Not yet seen: a real reply's emotion tag on the call (needs a talk turn).
 
-**A real call (2026-10-16, Alex at the terrace, branch `holocall-expr-2`): "expressions don't".** The writer had done
-its part: the second reply's turn record (`speech-state.json` face.expressions.lastSpeech) was on the copy's entity,
-emotion Trust scale 2, not blocked, 542 frames, peaks corners .36, brows .22, squint .22 (the bridge timeline: joy .51,
-trust .8, anticipation .2; the first reply was Calm, nothing to show). Replayed silently on the copy through the real
-writer (`runtime/holo-replay.lua`, the reply's face from `continuous-face.json` flattened, with and without its
-expression), the call window looked the same at every captured moment, and so did the resting smile (.12). While she
-speaks the mouth budget keeps most of a smile off the lips (the joy phrase's corner target of about .38 was written as
-.02), and the upper face stayed under what reads (about .3 for squint and corners, .5 for brows, docs/COMPANION_EXPRESSIONS.md).
-So the copy's face row carries `expressionBoost` (`M.FACE_BOOST` = 1.6): `facial-playback.lua` scales her emotion mix by it
-(capped at 1), raises a reply-level label one step and scales the resting smile, on the native path (its control inputs)
-and the Lua path alike; the mood hold still judges the feeling unboosted, and the mouth budget still keeps a speaking
-mouth clear. Same replay with the boost: resting corners .19, the joy phrase .22 (was .02), the trust phrase .46 (was
-.23), squint .27. Whether that reads at the player's resolution is the user's call (the window capture runs at 1370x815,
-where her face is about 60 px tall); if not, the next levers are a larger boost or letting part of the smile through
-the speaking mouth budget on calls.
+**The call face mirrors her face in the world, with no boost, by design (2026-10-16).** The face row carries only her
+entity, actor, profile key and name, so the copy's face is driven exactly as a mod-spawned copy's is in the world: the
+same traits, emotion policy, caps, mouth budget and resting smile. There is no call-only scaling or reshaping.
 
-The user still saw no feeling with the boost (holocall-expr-3, 2026-10-16). A bold A/B on Alex's call copy at full
-window resolution (forced poses held 3-4 s, through the real writer's Lua path, a direct write that bypasses it, and
-the native path's emotion inputs) settled where it stops: **every control reaches the rendered face**. The jaw, the
-corners, the brows and the widened eyes all visibly move. So the face graph, the component and the workspot are not
-the cause. Two things made the feelings invisible at that size:
+For the record, two call-only layers were tried and removed:
 
-- Corners up alone, even forced to 1 (or 2-3, which looks like 1), only widen her mouth a little.
-- The lower-lid squint, which is half of the smile and of the narrowed eyes, does not move at all on Alex's head, even
-  at 3. The upper-lid and inner squints don't either. On Judy's rig they do (October 9 captures).
+- **`holocall-expr-2`: an expression boost.** The emotion mix x1.6, a reply label raised one step, and the resting smile
+  x1.6.
+- **`holocall-expr-3`: a smile shape.** Corner stretch, upper-lip raise and lip stretch derived from the written corners,
+  on the Lua path and in the native core.
 
-What reads is the corner stretch plus the upper-lip raise (the teeth show), with a little lip stretch. The expression
-policy never wrote those, because they are lip-sync controls. So the face row also carries `smileShape`
-(`M.SMILE_SHAPE` = 1). `facial-playback.lua` (and the native core, `ctl[32]`) derives three values from the corners up
-that the frame wrote, after the eases, the mood hold and the mouth budget have shaped them:
+The user saw the smile live and found it too much: "dont over push emotions actually, just let it copy how the character
+look in game with our mod".
 
-- corner stretch = 1 x the corners;
-- upper-lip raise = .8 x the corners;
-- lip stretch = .5 x the corners.
+What the bold A/B on Alex's call copy established, at full window resolution with forced poses held 3-4 s:
 
-Each is capped at .8. While she speaks, the lip sync's own value wins where it is larger. The calibration was done on
-Alex at joy's .74 corners: an upper-lip raise of .33 was still subtle, while .6 showed the teeth. Checked on Alex, Judy
-and Panam (`runtime/holocall-expressions-compare.png`): the joy is now visible on all three, most clearly on Judy. The
-facial idle under the workspot still closes the lips at moments, so frames vary.
+- Every control the writer sends reaches the rendered face: jaw, corners, brows and widened eyes.
+- So the face graph, the component, the talk pose and the writer are not at fault.
+- At the call picture's size (her face is about 60 px in a 1366x768 game), corners up alone read weakly.
+- The lower-lid, upper-lid and inner squints do not move on Alex's crowd head even at 3. They do on Judy's rig.
 
-Sad and angry already use controls that render: the inner and lowered brows, the brows' lateral pull, the held lid
-droop, and the chin. They read only faintly at 60 px, so the render-texture resolution is the lever left for them.
-The squints stay in, because they render on Judy and cost nothing where they don't.
-
-The native core reads `ctl[32]` only when Lua sends it. An older plugin ignores it, so the shape needs the rebuilt
-`CyberpunkConvaiNative.dll` (a game restart) on the native path. The Lua path has it at once.
+The capture sheet is `runtime/holocall-expressions-compare.png` (not in git).
 
 ### Gaze (branch `holocall-face`, 2026-10-15)
 

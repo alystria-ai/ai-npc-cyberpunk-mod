@@ -96,50 +96,6 @@ test('a holocall live-picture copy (not a party member) gets the same idle face 
  convaiHolocall=nil
 `));
 
-test('a face row with an expressionBoost (the holocall picture) rests and reacts stronger; the mood hold judges the feeling unboosted',()=>run(`
- local boosted={{entity=a.id,npc=a,expressionBoost=1.6},{entity=b.id,npc=b}}
- for _=1,40 do tick(.1,{actors=boosted}) end
- assert(math.abs(last(a).lips_l_corner_up-.192)<.005,'boosted resting smile: '..last(a).lips_l_corner_up)
- assert(math.abs(last(b).lips_l_corner_up-.12)<.005,'an ordinary row keeps its resting smile: '..last(b).lips_l_corner_up)
- -- One reply-level Joy at scale 2: the boosted face shows it as scale 3 would.
- face.beginExpression(context,${literal(receipt('Joy',2,0))});face.expressionHeard(context);face.endExpression(context,true)
- for _=1,15 do tick(.1) end
- local plain=last(a).lips_l_corner_up
- for _=1,80 do tick(.1) end
- face.beginExpression(context,${literal(receipt('Joy',2,1))});face.expressionHeard(context);face.endExpression(context,true)
- for _=1,15 do tick(.1,{actors=boosted}) end
- local strong=last(a).lips_l_corner_up
- assert(strong>plain+.05,'boosted joy '..strong..' over plain '..plain)
- for _=1,80 do tick(.1,{actors=boosted}) end
- face.beginExpression(context,${literal(receipt('Joy',3,2))});face.expressionHeard(context);face.endExpression(context,true)
- for _=1,15 do tick(.1) end
- assert(math.abs(last(a).lips_l_corner_up-strong)<.01,'scale 2 boosted reads as scale 3: '..strong..' vs '..last(a).lips_l_corner_up)
- -- The mood hold after a sad turn still follows the feeling itself (scale 1 sadness, .4).
- for _=1,80 do tick(.1,{actors=boosted}) end
- face.beginExpression(context,${literal(receipt('Sadness',1,3))});face.expressionHeard(context)
- tick(.1,{actors=boosted});face.endExpression(context,true)
- assert(face.expressions[a.id].moodUntil~=nil,'sadness .4 sets the mood hold as before')
-`));
-
-test('a face row with a smileShape (the holocall picture) draws its smile with corner stretch, upper-lip raise and lip stretch from the written corners',()=>run(`
- local shaped={{entity=a.id,npc=a,expressionBoost=1.6,smileShape=1},{entity=b.id,npc=b}}
- for _=1,40 do tick(.1,{actors=shaped}) end
- local up=last(a).lips_l_corner_up
- assert(math.abs(last(a).lips_l_corner_stretch-up)<.002 and math.abs(last(a).lips_r_corner_stretch-up)<.002,'resting stretch follows the corners: '..last(a).lips_l_corner_stretch..' vs '..up)
- assert(math.abs(last(a).lips_l_upper_raise-up*.8)<.002,'resting upper-lip raise .8 of the corners: '..last(a).lips_l_upper_raise)
- assert(math.abs(last(a).lips_l_stretch-up*.5)<.002,'resting lip stretch .5 of the corners: '..last(a).lips_l_stretch)
- assert((last(b).lips_l_corner_stretch or 0)==0 and (last(b).lips_l_upper_raise or 0)==0,'an ordinary row writes no shape')
- face.beginExpression(context,${literal(receipt('Joy',3,0))});face.expressionHeard(context);face.endExpression(context,true)
- for _=1,15 do tick(.1,{actors=shaped}) end
- local joy=last(a).lips_l_corner_up
- assert(joy>up+.2,'joy lifts the corners: '..joy)
- assert(math.abs(last(a).lips_l_corner_stretch-math.min(.8,joy))<.002,'joy stretch follows: '..last(a).lips_l_corner_stretch)
- assert(math.abs(last(a).lips_l_upper_raise-math.min(.8,joy*.8))<.002,'joy upper-lip raise follows: '..last(a).lips_l_upper_raise)
- -- The shape goes away with the row's smileShape: one more frame writes it back to 0.
- for _=1,5 do tick(.1,{actors={{entity=a.id,npc=a},{entity=b.id,npc=b}}}) end
- assert(last(a).lips_l_corner_stretch==0 and last(a).lips_l_upper_raise==0 and last(a).lips_l_stretch==0,'shape handed back to 0')
-`));
-
 test('Lua expression policy matches the pure policy and stops its clock while paused',()=>{
   const smoother=new ExpressionSmoother();const expected=smoother.update(expressionTarget(),.1);
   run(`tick(.1);local expected=${literal(expected)};for key,value in pairs(expected) do assert(math.abs(last(a)[key]-value)<1e-12,key) end

@@ -173,8 +173,8 @@ if MODE~='lua' then
    assert(e,'more native frames than the Lua path applied: '..callIndex)
    assert(e.actor==actor.id,'call '..callIndex..' is for '..actor.id..', the Lua path applied '..e.actor)
    assert(e.feature==featureSerial[feature],'call '..callIndex..' used another feature object')
-   assert(#c==32,'control array length '..#c)
-   for i=1,32 do assert(type(c[i])=='number' and c[i]==c[i] and c[i]~=math.huge and c[i]~=-math.huge,'control '..i..' at call '..callIndex) end
+   assert(#c==31,'control array length '..#c)
+   for i=1,31 do assert(type(c[i])=='number' and c[i]==c[i] and c[i]~=math.huge and c[i]~=-math.huge,'control '..i..' at call '..callIndex) end
    local flags=c[3]
    assert((flags%2>=1)==(e.phase=='speaking'),'speaking flag at call '..callIndex)
    assert((flags%4>=2)==e.blocked,'blocked flag at call '..callIndex)
@@ -329,7 +329,6 @@ const mainScenario = () => {
   const r4 = reply({id: 'r4', entity: 'copy-a', who: 'a', source: 'audio-envelope', duration: 3, emotion: 'Surprise', scale: 2, upper: true, phase: 3.3});
   const r5 = reply({id: 'r5', entity: 'copy-b', who: 'b', source: 'local-jali', duration: 2, emotion: 'Fear', scale: 3, phase: 4.4,
     mix: mixKeys([[0, 0, 0, 0, 0, .8], [1, .1, 0, .2, 0, .7, .2], [2, 0, 0, .3, .4]])});
-  const r7 = reply({id: 'r7', entity: 'copy-a', who: 'a', source: 'convai-arkit61', duration: 2.2, emotion: 'Joy', scale: 2, provider: true, phase: 6.1});
   return `
  for _=1,25 do step(.1) end
  checkpoint('idle')
@@ -365,14 +364,6 @@ const mainScenario = () => {
  end
  ${play(r5)}
  checkpoint('fear reply with a mix, trait of Judy')
- rows[1].expressionBoost,rows[1].smileShape=1.6,1 -- the call picture: boosted, with the smile shape
- for _=1,20 do step(.1) end
- checkpoint('call picture rest with the smile shape')
- ${play(r7)}
- checkpoint('call picture joy reply with the smile shape')
- rows[1].expressionBoost,rows[1].smileShape=nil,nil
- for _=1,10 do step(.1) end
- checkpoint('smile shape handed back')
  a.ready=false;for _=1,3 do step(.1) end;a.ready=true;for _=1,3 do step(.1) end
  speech.clearEntity(b.id)
  for _=1,10 do step(.1) end
