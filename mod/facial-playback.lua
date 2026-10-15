@@ -1224,7 +1224,7 @@ local function asleep(slot,entity,row,busy)
         or (slot.ownLevel or 0)~=0 or (slot.browExpiry and clock<slot.browExpiry) then return false end
     if M.active and M.entity==entity then return false end
     return slot.sleepPhase==idlePhase(slot,entity) and slot.sleepBlocked==M.expressionBlocked
-        and slot.sleepProfile==row.profileKey
+        and slot.sleepProfile==row.profileKey and slot.sleepShape==row.smileShape and slot.sleepBoost==row.expressionBoost
 end
 -- Rows seen this frame (reused; cleared at the start of each update).
 local seenRows={}
@@ -1245,6 +1245,7 @@ local function idleFrame(row,entity,actor)
     if slot.settled and slot.written==M.expressionFrame then
         slot.sleepAt=M.expressionClock
         slot.sleepPhase,slot.sleepBlocked,slot.sleepProfile=phase,M.expressionBlocked,row.profileKey
+        slot.sleepShape,slot.sleepBoost=row.smileShape,row.expressionBoost
     end
 end
 function M.updateExpressions(context)
