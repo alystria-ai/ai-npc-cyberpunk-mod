@@ -462,8 +462,7 @@ test('V\'s homes are the same five places in the redscript, the Lua and the brid
   assert(read('../scripts/Extract-UiCatalog.mjs').includes("'mod/youtube-tv.lua'"));
   const catalog = JSON.parse(read('../localization/en.json')).strings;
   for (const [, text] of pairs) assert(catalog[text], `${text} is not in localization/en.json`);
-  for (const text of ['YouTube', 'YouTube: pause or play', 'YouTube: stop']) assert(catalog[text], text);
-  assert(!catalog["YouTube on the TV works in V's apartments."], 'the key binding and its notice are gone');
+  for (const text of ['YouTube', 'YouTube: pause or play', 'YouTube: stop', "YouTube on the TV works in V's apartments.", 'Cyberpunk Convai: YouTube on the TV']) assert(catalog[text], text);
 });
 
 test('the redscript adds choices only on a TV, on a direct interaction, where the game offers its own, in V\'s home, with the setting on', () => {
@@ -478,6 +477,10 @@ test('the redscript adds choices only on a TV, on a direct interaction, where th
   assert.match(reds, /@addMethod\(PreventionSystem\)\npublic final func ConvaiHomeDistrict\(\) -> String \{/);
   assert(!/GetCurrentDistrict\(\)\s*;/.test(reds.replace(/\/\/.*$/gm, '')), 'the top district alone is not used');
   assert(!/OnUpdate|OnGameAttached|GetDelaySystem/.test(reds), 'no per-frame or timer work');
+  // The row's text: the game's UI prints the borrowed record's caption, so our own text is set after the row is drawn.
+  assert.match(reds, /@wrapMethod\(interactionItemLogicController\)\npublic func SetData\(data: script_ref<InteractionChoiceData>, opt skillCheck: UIInteractionSkillCheck, opt isItemBroken: Bool\) -> Void \{\n    wrappedMethod\(data, skillCheck, isItemBroken\);/);
+  assert.match(reds, /public let m_convaiCaption: String;/);
+  assert.match(reds, /inkTextRef\.SetText\(this\.m_label, action\.m_convaiCaption\);/);
   // The game's own actions are never removed or replaced.
   assert(!/ArrayErase|ArrayClear\(actions|ArrayRemove|@replaceMethod/.test(reds));
   assert.match(reds, /public final func ConvaiYouTubeTvChoice\(choice: String\) -> Void \{\}/);
@@ -495,8 +498,9 @@ test('the bridge, settings and install wiring', () => {
   assert.match(manager, /or key == 'holocallLiveImage' or key == 'youtubeTv'/);
   assert.match(mcm, /setting\('youtubeTv', 'YouTube on V’s TV', 'bool', snapshot\.settings\.youtubeTv == true, false,/);
   assert.match(mcm, /key == 'youtubeTv'/);
-  // The couch shows the TV's own device choices too (seen live 2026-10-15), so there is no key binding for YouTube.
-  assert.doesNotMatch(init, /cyberpunk_convai_youtube_tv|convaiYouTubeTv\.hotkey/);
+  // Seated, the TV rows are the scene's dialogue choices, which scripts cannot extend (seen live 2026-10-15), so YouTube is on a key
+  // there. The binding keeps its id so a key the player already set stays.
+  assert.match(init, /registerHotkey\('cyberpunk_convai_youtube_tv', 'Cyberpunk Convai: YouTube on the TV', function\(\)\n    if convaiYouTubeTv then pcall\(convaiYouTubeTv\.hotkey\) end/);
   assert.match(init, /system:ConvaiHomeDistrict\(\)/);
   assert.match(init, /pcall\(convaiInstallYouTubeTv\)/);
   assert.match(init, /if youtube\.active then pcall\(youtube\.update, player, worldReady\) end/);
@@ -629,11 +633,18 @@ assert(writes[#writes].action == 'stop' and writes[#writes].reason == 'left-home
 `);
 });
 
-test('Lua: there is no key binding any more, and a load resets the session', () => {
+test('Lua: the key binding opens at home (also seated, where the top district is the street), toggles while open, and says where it works elsewhere; a load resets', () => {
   runLua(`
-assert(M.hotkey == nil, 'the key binding is gone')
-HOME = 'Northside_Apartment'; M.open(player, 'tv'); assert(M.active and writes[1].action == 'open')
-M.reset('world'); assert(not M.active and writes[2].action == 'stop' and writes[2].reason == 'world')
+-- Outside V's homes: the game's answer is empty, so the notice says where it works.
+HOME, AREA = '', 'Watson'
+M.hotkey(); assert(#writes == 0 and notices[1] == "youtube-tv:YouTube on the TV works in V's apartments.", tostring(notices[1]))
+-- On the couch of the Corpo Plaza flat after a load: the top district is Downtown, the stack still holds the flat.
+HOME, AREA = 'CorpoPlaza_Apartment', 'Downtown'
+M.hotkey(); assert(M.active and writes[1].action == 'open' and writes[1].place == 'CorpoPlaza_Apartment')
+M.hotkey(); assert(writes[2].action == 'toggle')
+MENU = true; M.hotkey(); assert(#writes == 2, 'not from a menu')
+M.reset('world'); assert(not M.active and writes[3].action == 'stop' and writes[3].reason == 'world')
+ENABLED = false; MENU = false; M.hotkey(); assert(#writes == 3, 'nothing while the setting is off')
 `);
 });
 

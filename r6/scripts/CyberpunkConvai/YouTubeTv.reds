@@ -88,6 +88,8 @@ public static func ConvaiYouTubeTvAtHome(game: GameInstance) -> Bool {
 public class ConvaiYouTubeTvAction extends ActionBool {
     // "open", "toggle" or "stop".
     public let m_convaiChoice: String;
+    // The text the row shows (translated by mod/youtube-tv.lua).
+    public let m_convaiCaption: String;
 
     public final func SetProperties(choice: String) -> Void {
         this.m_convaiChoice = choice;
@@ -95,16 +97,33 @@ public class ConvaiYouTubeTvAction extends ActionBool {
         this.prop = DeviceActionPropertyFunctions.SetUpProperty_Bool(this.actionName, true, this.actionName, this.actionName);
     }
 
-    // An existing interaction record of the TV (its own "Next" choice) gives the choice its input and layout; the caption is ours.
+    // An existing interaction record of the TV (its own "Next" choice) gives the choice its input and layout. The record's own caption
+    // is what the game's UI would print (seen live 2026-10-15: the row read "Next"), so the label is set after the UI has drawn it
+    // (the wrap on interactionItemLogicController below), which needs no TweakDB record of our own and no TweakXL file.
     public func GetTweakDBChoiceRecord() -> String {
         return "Next";
     }
 
     public final func SetConvaiCaption(caption: String) -> Void {
+        this.m_convaiCaption = caption;
         this.interactionChoice.caption = caption;
         InteractionChoiceCaption.Clear(this.interactionChoice.captionParts);
         InteractionChoiceCaption.AddTextPart(this.interactionChoice.captionParts, caption);
     }
+}
+
+// The device choice buttons (the inline hub shown when V looks at a device) take their text from the interaction record of the choice.
+// After the game has drawn a row, a row that carries our action gets our own text instead. Runs only when the hub redraws; every
+// other row costs one array size check.
+@wrapMethod(interactionItemLogicController)
+public func SetData(data: script_ref<InteractionChoiceData>, opt skillCheck: UIInteractionSkillCheck, opt isItemBroken: Bool) -> Void {
+    wrappedMethod(data, skillCheck, isItemBroken);
+    if ArraySize(Deref(data).data) == 0 { return; };
+    let action = FromVariant<ref<IScriptable>>(Deref(data).data[0]) as ConvaiYouTubeTvAction;
+    if IsDefined(action) && StrLen(action.m_convaiCaption) > 0 {
+        inkTextRef.SetText(this.m_label, action.m_convaiCaption);
+        inkTextRef.SetText(this.m_labelFail, action.m_convaiCaption);
+    };
 }
 
 @addMethod(TVControllerPS)

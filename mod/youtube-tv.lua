@@ -134,6 +134,18 @@ function M.choice(player, choice)
     return false
 end
 
+-- The key binding "YouTube on the TV": on the couch the game shows the apartment's own scene choices (dialogue hubs), not the TV's
+-- device choices, so the same thing is offered on a key. With no video open it opens the picker; with one open it pauses or plays.
+function M.hotkey()
+    local player = Game.GetPlayer()
+    if not player then return end
+    if not enabled() then return end
+    if env.inMenu then local ok, inMenu = pcall(env.inMenu); if ok and inMenu then return end end
+    if M.active then M.command('toggle') else
+        if not M.open(player, 'key') then notice(player, ui.t("YouTube on the TV works in V's apartments.")) end
+    end
+end
+
 function M.finish(player, why)
     if not M.active then return end
     M.active, hidden, lastState = false, false, nil

@@ -45,7 +45,7 @@
     ]
   },
   "counts": {
-    "strings": 800,
+    "strings": 802,
     "dynamicTemplates": 57,
     "contexts": 36
   },
@@ -236,6 +236,7 @@
     "Custom models are ones you added; they join the default choice by size.": "Custom models are ones you added; they join the default choice by size.",
     "Cyber Engine Tweaks logs": "Cyber Engine Tweaks logs",
     "Cyber Engine Tweaks writes cyber_engine_tweaks.log and scripting.log in {path}": "Cyber Engine Tweaks writes cyber_engine_tweaks.log and scripting.log in {path}",
+    "Cyberpunk Convai: YouTube on the TV": "Cyberpunk Convai: YouTube on the TV",
     "Cyberpunk Convai: companion manager": "Cyberpunk Convai: companion manager",
     "Cyberpunk Convai: group text chat": "Cyberpunk Convai: group text chat",
     "Cyberpunk Convai: group voice chat": "Cyberpunk Convai: group voice chat",
@@ -308,7 +309,7 @@
     "INVITE QUEUED - CLOSE PHONE": "INVITE QUEUED - CLOSE PHONE",
     "If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.": "If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.",
     "If something goes wrong": "If something goes wrong",
-    "In V’s apartments the TV offers YouTube: pick a video and watch it with your companion, who can talk about it.\n\nThe video plays in a window over the game, so use Windowed Borderless or Windowed mode.": "In V’s apartments the TV offers YouTube: pick a video and watch it with your companion, who can talk about it.\n\nThe video plays in a window over the game, so use Windowed Borderless or Windowed mode.",
+    "In V’s apartments the TV offers YouTube: pick a video and watch it with your companion, who can talk about it.\n\nThe video plays in a window over the game, so use Windowed Borderless or Windowed mode. On the couch, use the key binding YouTube on the TV (Cyberpunk Convai, in the CET bindings).": "In V’s apartments the TV offers YouTube: pick a video and watch it with your companion, who can talk about it.\n\nThe video plays in a window over the game, so use Windowed Borderless or Windowed mode. On the couch, use the key binding YouTube on the TV (Cyberpunk Convai, in the CET bindings).",
     "In your party: {count}": "In your party: {count}",
     "Installed character models": "Installed character models",
     "Interface": "Interface",
@@ -767,6 +768,7 @@
     "YouTube on V’s TV": "YouTube on V’s TV",
     "YouTube on the TV": "YouTube on the TV",
     "YouTube on the TV is turned off in the settings.": "YouTube on the TV is turned off in the settings.",
+    "YouTube on the TV works in V's apartments.": "YouTube on the TV works in V's apartments.",
     "YouTube: pause or play": "YouTube: pause or play",
     "YouTube: stop": "YouTube: stop",
     "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.": "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.",
@@ -853,6 +855,7 @@
   },
   "contexts": {
     "cet.bindings": [
+      "Cyberpunk Convai: YouTube on the TV",
       "Cyberpunk Convai: companion manager",
       "Cyberpunk Convai: group text chat",
       "Cyberpunk Convai: group voice chat",
@@ -1272,7 +1275,7 @@
       "Gang members, NCPD officers, guards, ripperdocs, shopkeepers, bartenders and passers-by answer as their kind of person.\n\nThey do not know your story and forget you after a save load, except shopkeepers you come back to.\n\nNamed characters are not affected.",
       "Gets a conversation ready when you look at, approach or have just talked to a character, so they answer without a wait. Paused in combat and scenes.\n\nLimits: two characters ready at once, a new one every 3 s, released after 40 s unused. A crowd never adds up.",
       "Head tracking strength",
-      "In V’s apartments the TV offers YouTube: pick a video and watch it with your companion, who can talk about it.\n\nThe video plays in a window over the game, so use Windowed Borderless or Windowed mode.",
+      "In V’s apartments the TV offers YouTube: pick a video and watch it with your companion, who can talk about it.\n\nThe video plays in a window over the game, so use Windowed Borderless or Windowed mode. On the couch, use the key binding YouTube on the TV (Cyberpunk Convai, in the CET bindings).",
       "Interface language",
       "Lip sync delay (Bluetooth)",
       "Live holocall picture (experimental)",
@@ -1770,6 +1773,7 @@
       "YouTube could not open on the TV. Use Windowed Borderless or Windowed mode and try again.",
       "YouTube on the TV",
       "YouTube on the TV is turned off in the settings.",
+      "YouTube on the TV works in V's apartments.",
       "YouTube: pause or play",
       "YouTube: stop",
       "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.",
@@ -3443,6 +3447,14 @@
         "mod/mcm.lua:1909"
       ]
     },
+    "Cyberpunk Convai: YouTube on the TV": {
+      "contexts": [
+        "cet.bindings"
+      ],
+      "references": [
+        "mod/init.lua:2727"
+      ]
+    },
     "Cyberpunk Convai: companion manager": {
       "contexts": [
         "cet.bindings"
@@ -4035,7 +4047,7 @@
         "mod/mcm.lua:1891"
       ]
     },
-    "In V’s apartments the TV offers YouTube: pick a video and watch it with your companion, who can talk about it.\n\nThe video plays in a window over the game, so use Windowed Borderless or Windowed mode.": {
+    "In V’s apartments the TV offers YouTube: pick a video and watch it with your companion, who can talk about it.\n\nThe video plays in a window over the game, so use Windowed Borderless or Windowed mode. On the couch, use the key binding YouTube on the TV (Cyberpunk Convai, in the CET bindings).": {
       "contexts": [
         "mcm.setting"
       ],
@@ -4875,7 +4887,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3251"
+        "mod/init.lua:3256"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -7843,7 +7855,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/youtube-tv.lua:177"
+        "mod/youtube-tv.lua:189"
       ]
     },
     "YouTube on V’s TV": {
@@ -7867,7 +7879,15 @@
         "ui.localized"
       ],
       "references": [
-        "mod/youtube-tv.lua:176"
+        "mod/youtube-tv.lua:188"
+      ]
+    },
+    "YouTube on the TV works in V's apartments.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/youtube-tv.lua:145"
       ]
     },
     "YouTube: pause or play": {
