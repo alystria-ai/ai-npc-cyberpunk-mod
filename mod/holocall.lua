@@ -66,15 +66,6 @@ M.LOW_TOP, M.LOW_BOTTOM, M.LOW_RADII = 10, -80, {12, 24, 40}
 -- NEAR_TOP above to NEAR_BOTTOM below V's feet, still out of V's sight), and only then the farther columns, where the
 -- picture still works with a still face.
 M.FACE_RANGE, M.NEAR_RADII, M.NEAR_TOP, M.NEAR_BOTTOM = 11, {5, 8}, 10, -10
--- The call picture shows her face smaller than V sees a companion's in person, so her feelings are drawn stronger
--- (facial-playback.lua boostScale): live, 2026-10-16, a real reply's expression (squint .22, brows .22, corners .36 at
--- peak) looked the same in the call window as no expression at all.
-M.FACE_BOOST = 1.6
--- ... and her smile is drawn with its full shape (facial-playback.lua shapeStretch): live, 2026-10-16, forced poses on
--- Alex's call copy at full window resolution showed every control reaching the face, but corners up alone (even at 1)
--- barely widened her mouth and the lower-lid squint never moved; the corner stretch, upper-lip raise and lip stretch
--- that follow the corners make the smile read.
-M.SMILE_SHAPE = 1
 -- A near column is tried floor by floor: when the first floor down a column will not do (V's own floor, in plain view),
 -- the next one under it is tried, up to NEAR_LAYERS floors (live, 2026-10-16: on a terrace every near column's first
 -- floor was V's own, in view, while the storey under it, 2 to 5 m below V and hidden by V's floor, was never looked at;
@@ -886,8 +877,7 @@ function M.faceRow()
     end
     local row = holo.faceRow
     if not row then
-        row = {npc = holo.npc, entity = holo.entity, profileKey = call.key, name = call.name, expressionBoost = M.FACE_BOOST,
-            smileShape = M.SMILE_SHAPE}
+        row = {npc = holo.npc, entity = holo.entity, profileKey = call.key, name = call.name}
         holo.faceRow = row
     end
     return row
