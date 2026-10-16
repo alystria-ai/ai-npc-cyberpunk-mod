@@ -404,7 +404,7 @@ flowchart LR
 | **Hidden browser** | Chrome for Testing (Edge in development) driven by Playwright | Hosts the Convai Web SDK (compiled into `realtime-client.js`), the continuous PCM player and the local speech capture page, because those need browser audio and WebRTC. |
 | **Python workers** | `bridge/*.py` | Persistent processes: Pocket TTS (CPU), OmniVoice (CUDA), local speech recognition (sherpa-onnx, CPU) and the Pocket phone analyser. Each request carries an owner token and a request id, and shutdown is pipe EOF. |
 | **llama-server** | llama.cpp (Vulkan build), `bridge/local-llm-server.mjs`, `bridge/local-embed.mjs` | The Local AI chat model and the small CPU memory embedder. |
-| **Sign-in backend** | `auth-backend/`, Vercel Node functions with an Upstash Redis store | Issues short-lived Convai session tokens per install and enforces the free tier's daily turn limit server-side. Off in the bridge unless switched on. See [Daily limit and sign-in backend](#daily-limit-and-sign-in-backend). |
+| **Sign-in backend** | `auth-backend/`, Vercel Node functions with an Upstash Redis store | Keeps the free tier's daily limit fair across installs. See [Daily limit](#daily-limit). |
 
 ### How Lua and the bridge talk
 
@@ -498,7 +498,7 @@ Whole-turn figures are in [docs/LATENCY_2026-10-12.md](docs/LATENCY_2026-10-12.m
 
 Each subsystem below says what it does, how, where the code is, the constants that matter, and which design notes go deeper.
 
-Jump to: [module map](#lua-and-redscript-module-map) · [conversation providers](#conversation-providers) · [daily limit and sign-in backend](#daily-limit-and-sign-in-backend) · [voices and TTS](#voices-and-tts-engines) · [speech recognition](#speech-recognition-and-the-microphone) · [lip sync and faces](#lip-sync-and-the-facial-pipeline) · [gestures](#gestures-and-body-animation) · [combat and behaviour](#combat-tactics-and-companion-behaviour) · [reactions](#battle-and-loot-reactions) · [gaze](#gaze-eye-contact-and-head-tracking) · [follow and movement](#follow-movement-and-recovery) · [vehicles and seating](#vehicles-seating-and-the-chauffeur) · [clearance](#clearance-and-obstruction-handling) · [inviting companions](#inviting-companions-world-companions-and-the-companion-manager-roster) · [context](#context-system) · [memory](#memory-and-relationship-systems) · [characters](#characters-ordinary-npcs-and-multilingual-profiles) · [vision](#companion-vision) · [holocall and Phone Chat](#holocall-and-phone-chat) · [notices and subtitles](#notices-overhead-subtitles-and-follow-up-questions) · [settings and Manager](#settings-and-the-companion-manager) · [localization](#localization) · [add-on API](#add-on-api)
+Jump to: [module map](#lua-and-redscript-module-map) · [conversation providers](#conversation-providers) · [daily limit](#daily-limit) · [voices and TTS](#voices-and-tts-engines) · [speech recognition](#speech-recognition-and-the-microphone) · [lip sync and faces](#lip-sync-and-the-facial-pipeline) · [gestures](#gestures-and-body-animation) · [combat and behaviour](#combat-tactics-and-companion-behaviour) · [reactions](#battle-and-loot-reactions) · [gaze](#gaze-eye-contact-and-head-tracking) · [follow and movement](#follow-movement-and-recovery) · [vehicles and seating](#vehicles-seating-and-the-chauffeur) · [clearance](#clearance-and-obstruction-handling) · [inviting companions](#inviting-companions-world-companions-and-the-companion-manager-roster) · [context](#context-system) · [memory](#memory-and-relationship-systems) · [characters](#characters-ordinary-npcs-and-multilingual-profiles) · [vision](#companion-vision) · [holocall and Phone Chat](#holocall-and-phone-chat) · [notices and subtitles](#notices-overhead-subtitles-and-follow-up-questions) · [settings and Manager](#settings-and-the-companion-manager) · [localization](#localization) · [add-on API](#add-on-api)
 
 ### Lua and redscript module map
 
@@ -575,24 +575,9 @@ Local AI runs a chat model in a `llama-server` process (llama.cpp b11560, Vulkan
 
 `matureContent` (off by default) is part of the main mod and works with the Local AI provider only (`MATURE_PROVIDERS` in `bridge/mature-content.mjs`). Turning it on stages Local AI, the largest uncensored model that fits and a local voice (when the voice was a cloud one), and turning it off restores what it changed (`matureRestore`). The optional pack (`manifest.mature.json`, `bridge/mature-pack.mjs`) adds two uncensored models, a lite and a good one, distributed only on the GitHub release and never built by the release workflow. Hard limits are enforced for every model: an input screen before any model sees a message and an output screen on replies (`bridge/mature-guard.mjs`, with word lists for 15 languages in `bridge/mature-guard-terms.mjs`). Details and the guard's measurements: [docs/LOCAL_AI.md](docs/LOCAL_AI.md), [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md).
 
-### Daily limit and sign-in backend
+### Daily limit
 
-The free tier is limited per install, in two cooperating layers.
-
-**In the bridge** (the daily-limit guard, `bridge/shared-key-guard.mjs`): `DAILY_LIMIT` is 100 turns per local calendar day, with a token bucket of 15 turns refilled at 12 a minute and at least 250 ms between turns. Counted are typed and spoken turns, Phone Chat, each group speaker, automatic reactions and failed turns. The count is stored HMAC-signed in two places (the state folder and `%LOCALAPPDATA%\CyberpunkConvai\daily-usage.json`) and the newest valid copy wins. At the limit the player gets one `daily-limit` notice a session (two lines, nine seconds), Phone Chat shows a longer explanation, and battle and loot reactions stop silently. A key the player pasted themselves is never counted. The guard cannot be tamper-proof (the bridge is readable source) and is meant to be honest rather than secure. `CYBERPUNK_CONVAI_DAILY_LIMIT` overrides it in development.
-
-**On the server** (`auth-backend/`, Vercel Node functions with an Upstash Redis store, design in [docs/CONVAI_AUTH_BACKEND.md](docs/CONVAI_AUTH_BACKEND.md), operations in [auth-backend/README.md](auth-backend/README.md)):
-
-| Endpoint | Purpose |
-|---|---|
-| `POST /api/convai/token` | issues a one-hour Convai session token for an install, after admission |
-| `GET /api/admin/turns` | usage view (admin secret) |
-| `GET/POST /api/admin/config` | reads or sets the daily limit in force (1 to 10,000, no redeploy) |
-| `GET /api/healthz`, `/api/readyz` | health |
-
-A request is JSON `{installId, modVersion, turnsSinceLast, minLifeSeconds}` with `x-convai-timestamp` and `x-convai-signature` (`v1=` plus HMAC-SHA256 of `<ts>.<body>`, 120 s skew limit). Admission runs as one Redis `EVAL` script and fails closed if Redis is down. Defaults: 4 token requests an hour per install, 20 per address, 5 new installs per address a day, 500 mints a day, and a daily turn cap of 100 reported turns per install per UTC day. The answer carries `dailyInteractionLimit`; the bridge adopts it (kept in `daily-limit.json`, signed per machine), shows "N of M left today", and a blocked bridge asks again every half hour so a raised limit takes effect within about 30 minutes. Refusals (daily, paused, outdated, rate) are obeyed; only an unreachable or failing backend falls back to the normal non-backend credential path, unless `CYBERPUNK_CONVAI_AUTH_FALLBACK=0`. No conversation text, character or audio ever reaches the backend.
-
-The bridge uses the backend only when it is switched on (`CYBERPUNK_CONVAI_AUTH_BACKEND=1`, or `enabled` in `convai-auth.json`, with the address and a secret); with it off, the guard's local limit of 100 applies on its own. The backend was deployed on 2026-10-13 and redeployed on 2026-10-15 with a server-set limit. Whether a given release build switches it on is a packaging decision (see the [status list](#status-of-unverified-work)). Tests: `node --test` in `auth-backend/test/` (the admission script runs under fengari against an in-memory Redis), `bridge/convai-credential.test.mjs` and the guard's own test file next to it.
+The Convai free tier allows 100 turns a day per install. The in-game notice shows what is left, and choosing Mistral, Local AI or your own Convai key lifts the limit.
 
 ### Voices and TTS engines
 
@@ -1354,7 +1339,7 @@ The install test builds a stand-in game folder under `%TEMP%` (with spaces and n
 
 ### GitHub Actions
 
-`.github/workflows/release.yml` runs only from Actions, Release, Run workflow, or on a pushed `v0.N` tag. Job 1 builds and install-tests Scripts and Runtime on `windows-2025`, keeps the Scripts zip as a workflow artifact (the file for Nexus) and creates the GitHub release `v0.N`. Job 2 builds the OmniVoice pack and job 3 (a matrix of `standard` and `lite`) builds the two Local AI packs; both add to the same release, so a release can briefly lack them. A new release is created with `--latest` because GitHub ranks "Latest" by version number as well as date and `v0.2` is lower than the legacy `v2077.1`. The workflow uses the built-in `GITHUB_TOKEN` with `contents: write` plus two repository secrets: a read token for the model bucket and the Convai credential for the default setup. The auth backend is deployed separately (see [Daily limit and sign-in backend](#daily-limit-and-sign-in-backend)).
+`.github/workflows/release.yml` runs only from Actions, Release, Run workflow, or on a pushed `v0.N` tag. Job 1 builds and install-tests Scripts and Runtime on `windows-2025`, keeps the Scripts zip as a workflow artifact (the file for Nexus) and creates the GitHub release `v0.N`. Job 2 builds the OmniVoice pack and job 3 (a matrix of `standard` and `lite`) builds the two Local AI packs; both add to the same release, so a release can briefly lack them. A new release is created with `--latest` because GitHub ranks "Latest" by version number as well as date and `v0.2` is lower than the legacy `v2077.1`. The workflow uses the built-in `GITHUB_TOKEN` with `contents: write` plus repository secrets for the model bucket and the build. The auth backend is deployed separately (see [Daily limit](#daily-limit)).
 
 ### Keeping the inputs current
 
