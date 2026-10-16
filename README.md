@@ -1,102 +1,90 @@
-# Cyberpunk Convai
+<h1 align="center">CYBERPUNK CONVAI</h1>
 
-Talk to Night City. Cyberpunk Convai lets you speak or type to Cyberpunk 2077 characters and get answers in their own voices. Invite companions to travel with you, text them on V's phone, and call them on a holocall.
+<p align="center"><b>Night City talks back.</b><br>
+Speak to Cyberpunk 2077's characters in your own voice and hear them answer in theirs.</p>
 
-> **Unofficial fan mod.** Cyberpunk 2077 and everything in it belong to CD PROJEKT RED. This project is not made, endorsed or supported by CD PROJEKT RED. The conversations are written by AI models and are not the game's writing.
+<p align="center">
+  <a href="https://github.com/alystria-ai/cyberpunk-convai/releases"><img alt="Version 0.2" src="https://img.shields.io/badge/VERSION-0.2-FCEE0A?style=for-the-badge&labelColor=000000"></a>
+  <a href="#requirements"><img alt="Cyberpunk 2077 2.31" src="https://img.shields.io/badge/CYBERPUNK_2077-2.31-FCEE0A?style=for-the-badge&labelColor=000000"></a>
+  <a href="#requirements"><img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/PLATFORM-WINDOWS_10_%7C_11-00F0FF?style=for-the-badge&labelColor=000000"></a>
+  <a href="LICENSE"><img alt="Cyberpunk Convai Use License 1.1" src="https://img.shields.io/badge/LICENCE-USE_LICENSE_1.1-00F0FF?style=for-the-badge&labelColor=000000"></a>
+</p>
 
-**Three things worth knowing first**
-
-- **It can run completely locally, for free.** With the optional Local AI download and a local voice, the characters think and speak on your own PC. No account, no key and no internet connection. If your graphics card is small, there is a lite model for it.
-- **The free cloud options are essentially free.** Mistral's free plan needs only a free account and a key you paste once. Local voices cost nothing either.
-- **Convai is the more refined all-in-one cloud option.** It gives a limited amount of free usage that works without any setup. The limit is a daily one, currently 100 turns a day. When it runs out you can wait for tomorrow or switch to Mistral or Local AI.
-
-**How this page is organised.** [Part 1](#part-1-for-players) is for players and uses plain language. [Part 2](#part-2-for-developers) is for developers and goes deep: architecture, data flow, every subsystem, the build and the tests.
-
-## Contents
-
-**Part 1: For players**
-
-1. [What the mod does](#what-the-mod-does)
-2. [Requirements](#requirements)
-3. [Install](#install)
-4. [First five minutes](#first-five-minutes)
-5. [Choosing how your characters think](#choosing-how-your-characters-think-conversation-providers)
-6. [Choosing how they sound](#choosing-how-they-sound-voices)
-7. [Getting the best latency and FPS](#getting-the-best-latency-and-fps)
-8. [Features you can use](#features-you-can-use)
-9. [Settings reference](#settings-reference)
-10. [FAQ and troubleshooting](#faq-and-troubleshooting)
-11. [Add-ons](#add-ons)
-12. [What is still experimental](#what-is-still-experimental)
-
-**Part 2: For developers**
-
-1. [Overview and repository layout](#overview-and-repository-layout)
-2. [Architecture](#architecture)
-3. [Anatomy of a turn](#anatomy-of-a-turn)
-4. [Subsystems in depth](#subsystems-in-depth)
-5. [Resource lifecycle](#resource-lifecycle-unloading)
-6. [Performance rules](#performance-rules)
-7. [Packaging and release](#packaging-and-release)
-8. [Tests](#tests)
-9. [Building and the development workflow](#building-and-the-development-workflow)
-10. [Documentation index](#documentation-index)
-11. [Status of unverified work](#status-of-unverified-work)
-
-[Credits and licence](#credits-and-licence)
+<p align="center">
+  <a href="#install"><img alt="Install" src="https://img.shields.io/badge/%E2%96%B6_INSTALL-FCEE0A?style=for-the-badge"></a>
+  <a href="#what-you-can-do"><img alt="Features" src="https://img.shields.io/badge/FEATURES-000000?style=for-the-badge"></a>
+  <a href="#settings"><img alt="Settings" src="https://img.shields.io/badge/SETTINGS-000000?style=for-the-badge"></a>
+  <a href="#troubleshooting"><img alt="Troubleshooting" src="https://img.shields.io/badge/TROUBLESHOOTING-FF003C?style=for-the-badge"></a>
+  <a href="#for-developers"><img alt="For developers" src="https://img.shields.io/badge/FOR_DEVELOPERS-00F0FF?style=for-the-badge"></a>
+</p>
 
 ---
 
-# Part 1: For players
+Invite Judy along and she walks at your shoulder through Night City. Ask her something out loud, into your own microphone, and she answers in her own voice: lips moving with the words, eyes on you, hands talking when the story runs long. Sit down on a couch and she sits beside you. Get in the car and she rides along, or takes the wheel if you ask. Later, text her from V's phone, or ring her on a holocall and watch her pick up.
 
-## What the mod does
+Cyberpunk Convai gives 78 of the game's named characters, from Panam and Johnny to Takemura, Kerry, River and Alt Cunningham, personalities researched from the game's own lore, memories that last, and voices modelled on the originals. And the street answers too: the ganger on the corner, the NCPD officer, the ripperdoc and the bartender each talk back as their kind of person.
 
-- **Talk to characters by voice or text.** Face someone, press your talk key, and they answer out loud with subtitles, a moving mouth and facial expressions. 78 named characters have profiles of their own (Judy, Panam, Johnny, Kerry, River, Takemura, Alt Cunningham and many more), written to match the game's lore.
-- **Invite companions.** Pick a character in the Companion Manager and a copy joins you. Companions follow you, run to catch up, sit with you on couches and bar stools, ride in cars, fight, and comment on what happens.
-- **Talk to ordinary people too.** Gang members, NCPD officers, guards, ripperdocs, shopkeepers, bartenders and passers-by answer as their kind of person. Shopkeepers you come back to remember you.
-- **Phone Chat and holocalls.** A **Chat** tab sits on V's phone beside Messages and Contacts. Text any supported contact, or call them on a holocall.
-- **Group talk.** Address two or three companions at once and they take turns answering.
-- **Companions can see (Convai only).** With Convai, each line you send can carry a recent picture of your surroundings, so a companion can react to what is on screen.
-- **V's voice.** Lines you type are also spoken in V's voice.
-- **Memory.** Characters remember your conversations, across saves. You can make one or all of them forget.
-- **Reactions.** Companions can comment when a fight starts and ends and when you collect loot (both off until you turn them on).
-- **Sixteen interface languages.**
-- **Optional adult setting.** A Mature content setting exists. It is off by default and works only with Local AI. See [Mature content](#mature-content-18).
+## Free, three ways
+
+- **Convai free tier, the default.** Install, start the game, talk. No account, no key, nothing to set up. It is the most refined option and the one the characters were written for, with 100 turns a day.
+- **Mistral free plan.** Make a free Mistral account, paste its key once, and get the fastest cloud replies, about 5,000 turns a day.
+- **Local AI.** Download a Local AI pack and your characters think and speak entirely on your own PC: no account, no key, no internet, no limit. A lite model keeps smaller graphics cards in the game.
+
+The default voice runs on your processor and costs nothing either, so a fresh install plays free from the first line.
+
+**On this page:** [What you can do](#what-you-can-do) · [Requirements](#requirements) · [Install](#install) · [First run](#first-run) · [Controls](#controls) · [Conversation providers](#pick-a-brain-conversation-providers) · [Voices](#pick-a-voice) · [Latency and FPS](#smooth-frames-fast-replies) · [Settings](#settings) · [Troubleshooting](#troubleshooting) · [Add-ons](#add-ons) · [For developers](#for-developers) · [Credits and licence](#credits-and-licence)
+
+---
+
+## What you can do
+
+- **Talk by voice or text.** Face someone, press your talk key, and speak or type. They answer out loud with subtitles, a moving mouth, and a face that changes at the very word where the feeling shifts.
+- **Bring a crew.** Invite companions from the Companion Manager. They walk beside you, run to catch up, follow you through doors, lifts and fast travel, sit with you on couches and bar stools, ride in your car and fight with the game's own combat AI. Ask one to drive and they take you to your waypoint. The Model browser lists every character model in the game, and any of them can tag along as a follower.
+- **They see what you see.** With Convai, each line you send carries a fresh glimpse of the game window, so a companion can talk about the place you are actually standing in.
+- **The whole street talks.** Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person. Shopkeepers you keep coming back to remember you.
+- **Group conversations.** Address two or three companions at once and they take turns, picking up from each other.
+- **Phone Chat and holocalls.** A **Chat** tab sits on V's phone beside Messages and Contacts. Text any supported contact, wherever they are, or call them and they pick up on a holocall, live on screen for the contacts the game itself stages video calls for.
+- **V speaks too.** Lines you type are voiced in the V voice that matches yours, then the companion answers.
+- **They remember.** Conversations stay with a character across saves. You can make one character forget, or all of them.
+- **Relationships that follow your save.** Judy, Panam, River, Kerry and Meredith know where things stand with V.
+- **Make them yours.** Edit a character's bio, speaking style and memories in your browser (with Mistral or Local AI).
+- **Sixteen interface languages,** and a Multilingual setting that lets you talk in any language.
+- **An optional Mature setting** for adults. It is off by default and works with Local AI only. See [Mature content](#mature-content-18).
+
+Only characters the mod spawns join your party. Story characters you meet in the world are left alone, so the story plays out exactly as written.
 
 ## Requirements
 
 | You need | Details |
 |---|---|
 | Game | Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit). The mod was tested on 2.31 only. |
-| Other mods | Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu, all from Nexus Mods. RED4ext is needed because it starts the mod's background service with the game. |
-| Disk space | About 3 GB for the main mod. The optional packs add more (see the table in [Install](#install)). |
-| Internet | Needed while you talk if you use Convai, Mistral or the Voxtral voice. Not needed for Local AI with a local voice. |
-| Graphics card | Not needed for the default setup. Only OmniVoice and Local AI use your graphics card. |
+| Other mods | Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu, all from Nexus Mods. RED4ext starts the mod's background service with the game. |
+| Disk space | About 3 GB for the main mod. The optional packs add more (see [Install](#install)). |
+| Internet | Needed while you talk with Convai, Mistral or the Voxtral voice. Not needed for Local AI with a local voice. |
+| Graphics card | Not needed for the default setup. Only OmniVoice and Local AI use it. |
 
-The mod was developed and tested with these framework versions: Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Mod Configuration Menu 0.10.3. Newer versions may work. They have not been tested.
-
-There is no special load order to set. The mod's files live in folders of their own. When you extract the downloads, extract the Runtime package before the OmniVoice pack.
+Developed and tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Mod Configuration Menu 0.10.3. Newer versions may work. There is no load order to set: the mod's files live in folders of their own.
 
 ## Install
 
-Close the game first. Then extract each download into your Cyberpunk 2077 folder, the one that contains `bin`, `archive` and `r6`, and allow folders to merge.
+Close the game. Extract each download into your Cyberpunk 2077 folder (the one with `bin`, `archive` and `r6`) and let the folders merge.
 
 | # | Download | Where from | Size | Needed? |
 |---|---|---|---|---|
 | 1 | **Scripts** | Nexus Mods | small, text only | Yes |
-| 2 | **Runtime** | [GitHub Releases](https://github.com/alystria-ai/cyberpunk-convai/releases), same version number as Scripts | about 3 GB free space | Yes |
-| 3 | **OmniVoice pack** | GitHub Releases | about 15 GB free while installing, 9 GB once installed | Optional: a higher-quality voice for NVIDIA cards |
+| 2 | **Runtime** | [GitHub Releases](https://github.com/alystria-ai/cyberpunk-convai/releases), same version as Scripts | about 3 GB free space | Yes |
+| 3 | **OmniVoice pack** | GitHub Releases | about 15 GB free while installing, 9 GB installed | Optional: a richer voice for NVIDIA cards |
 | 4 | **Local AI standard** | GitHub Releases | about 5.3 GB, in several parts | Optional: fully local conversations, best replies |
 | 5 | **Local AI lite** | GitHub Releases | about 1.5 GB | Optional: fully local conversations on smaller cards |
 | 6 | **Mature pack** | GitHub Releases | about 8 GB | Optional, adults only. See [Mature content](#mature-content-18) |
 
-If a download comes in several parts, extract every part. If Windows reports an error while extracting, use [7-Zip](https://www.7-zip.org) instead of the built-in extractor.
+Extract every part of a download that comes in parts, and extract the Runtime before the OmniVoice pack. If Windows' built-in extractor complains, use [7-Zip](https://www.7-zip.org).
 
-Start the game. The first start after installing takes a little longer while the service prepares itself. After the standard Local AI pack, the first start also joins the downloaded parts into one file, which takes about a minute.
+The first start after installing takes a little longer while the service prepares itself. After the standard Local AI pack it also joins the downloaded parts into one file, about a minute.
 
-**Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings are kept.
+**Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings stay.
 
-**Uninstall.** Delete these from your Cyberpunk 2077 folder:
+**Uninstall.** Delete these from your Cyberpunk 2077 folder, and keep the frameworks if other mods use them:
 
 - `bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai` (this also deletes your conversations and settings)
 - `red4ext\plugins\CyberpunkConvai` (this also removes the OmniVoice and Local AI packs)
@@ -104,154 +92,138 @@ Start the game. The first start after installing takes a little longer while the
 - `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai`
 - `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
 
-Keep the frameworks if other mods use them.
+## First run
 
-## First five minutes
+1. **Bind your keys.** Open Cyber Engine Tweaks' **Bindings** and give a key to each Cyberpunk Convai action (see [Controls](#controls)). The mod never assigns or overwrites keys for you.
+2. **Say something.** Face a character, press **talk by text**, type, press Enter. Or press **talk by voice**, wait for "Listening", speak, and press the same key again.
+3. **Invite a companion.** Open the Companion Manager (your key, or Esc, then MCM, then Companion Manager), choose **Characters to invite** and press **Invite**. When the "joined" notice appears, go back to the game and she is there.
+4. **Make it yours.** In the Companion Manager choose **Settings**. **Conversation provider** and **Voices** are the two pages that change the most. Every change waits for **Apply**.
 
-1. **Set your keys.** Open Cyber Engine Tweaks' **Bindings** and give a key to each Cyberpunk Convai action. The mod never assigns or overwrites keys for you.
+Out of the box you get Convai free tier for the replies and the Pocket voice, which runs on your processor.
 
-   | CET action | What it does |
-   |---|---|
-   | Cyberpunk Convai: companion manager | Opens the Companion Manager |
-   | Cyberpunk Convai: talk by text | Opens a private text conversation with the character you face |
-   | Cyberpunk Convai: talk by voice | Starts, then ends, microphone capture for a private conversation |
-   | Cyberpunk Convai: group text chat | Opens a group text conversation |
-   | Cyberpunk Convai: group voice chat | Starts, then ends, microphone capture for a group conversation |
+## Controls
 
-2. **Talk to someone.** Face a character, press **talk by text**, type, and press Enter. Or press **talk by voice**, wait for "Listening", speak, and press the same key again. The microphone never starts by itself.
-3. **Invite a companion.** Open the Companion Manager (your key, or Esc then MCM then Companion Manager), choose **Characters to invite**, and press **Invite**. Wait for the "joined" notice and return to gameplay. You can also select a contact in the phone's Contacts tab and press **J** to invite or **L** to dismiss.
-4. **Look at the settings.** In the Companion Manager choose **Settings**. The two most useful pages are **Conversation provider** and **Voices**. Every change waits until you choose **Apply**.
+| Key | What it does |
+|---|---|
+| **Cyberpunk Convai: talk by text** (CET binding) | Opens a private text conversation with the character you face |
+| **Cyberpunk Convai: talk by voice** (CET binding) | Starts, then ends, the microphone for a private conversation |
+| **Cyberpunk Convai: group text chat** (CET binding) | Opens a text conversation with two or three nearby characters |
+| **Cyberpunk Convai: group voice chat** (CET binding) | Starts, then ends, the microphone for a group conversation |
+| **Cyberpunk Convai: companion manager** (CET binding) | Opens the Companion Manager |
+| Hold **T**, then the **Chat** tab | Phone Chat: pick a contact and press the confirm key. **Enter** starts typing and sends, **Esc** stops typing |
+| **V** (the game's call key) on a Chat contact or inside a chat | Starts a holocall. Tap the phone button to hang up |
+| **J** / **L** on a contact in the phone's Contacts tab | Invites or dismisses that companion |
 
-The default setup is Convai free tier for the replies and the Pocket voice, which runs on your processor. It works without any setup.
+The microphone only ever starts when you press the key. A recording stops by itself after 30 seconds, and opening a menu cancels it. If you see V keep walking after typing a message, tap that direction key (W, A, S or D) once.
 
-## Choosing how your characters think (conversation providers)
+## Pick a brain: conversation providers
 
-Open **Companion Manager > Settings > Conversation provider**. The **Conversation provider** row has four entries. A change waits until no conversation is running and until you choose **Apply**.
-
-### The four options side by side
+**Companion Manager > Settings > Conversation provider** chooses who writes your characters' replies. A change waits until no conversation is running and you choose **Apply**.
 
 | | **Convai free tier** (default) | **Convai API key** | **Mistral (free plan)** | **Local AI** |
 |---|---|---|---|---|
-| **Setup** | None. Works without any setup | Paste your own Convai key | Make a free Mistral account, paste its key | Download a Local AI pack |
-| **Cost** | Free, limited usage | Your Convai plan | Free | Free |
+| **Setup** | None | Paste your own Convai key | Free Mistral account, paste its key | Download a Local AI pack |
+| **Cost** | Free | Your Convai plan | Free | Free |
 | **Internet** | Needed | Needed | Needed | **Not needed** |
-| **Limit** | 100 turns a day (the service can change this), 12 a minute | Your Convai plan's limits | About 1 message a second and about 5,000 turns a day | None |
-| **Reply quality** | Most refined: stays in character best | Same as the free tier | Plainer. Smaller models hold a character less tightly and sometimes invent details | Standard: close to the free options. Lite: plainer |
-| **Typical reply speed** | A few seconds (2 to 3.5 s measured) | Same | Fastest cloud text: the voice can start a second or two after you send | Fast once the model is warm. The first reply after idle is slower |
-| **Memory** | Kept on Convai's servers | Kept on Convai's servers | Kept on your computer | Kept on your computer |
-| **Voice input (microphone)** | Recognised by Convai | Recognised by Convai | Recognised on your computer (English) | Recognised on your computer (English) |
-| **Voices** | Any, including Convai's cloud voice | Any, including Convai's cloud voice | Pocket, OmniVoice or Voxtral. Convai's cloud voice is replaced by Pocket | Pocket or OmniVoice |
-| **Companions can see** | Yes | Yes | No | No |
-| **Needs a graphics card** | No | No | No | Yes (NVIDIA or AMD, with Vulkan) |
+| **Limit** | 100 turns a day (the service can change this), 12 a minute | Your Convai plan's limits | About 1 message a second, about 5,000 turns a day | None |
+| **Replies** | Most refined: stays in character best | Same as the free tier | Plainer. Smaller models hold a character less tightly and sometimes invent details | Standard: close to the free options. Lite: plainer |
+| **Reply speed** | A few seconds (2 to 3.5 s measured) | Same | Fastest cloud text: the voice can start a second or two after you send | Fast once the model is warm. The first reply after idle is slower |
+| **Memory kept** | On Convai's servers | On Convai's servers | On your computer | On your computer |
+| **Microphone** | Recognised by Convai | Recognised by Convai | Recognised on your computer (English) | Recognised on your computer (English) |
+| **Voices** | Any, including Convai's cloud voice | Any, including Convai's cloud voice | Pocket, OmniVoice or Voxtral | Pocket or OmniVoice |
+| **Sees your surroundings** | Yes | Yes | No | No |
+| **Graphics card** | Not needed | Not needed | Not needed | Needed (NVIDIA or AMD, with Vulkan) |
 
-The numbers are the developer's measurements on one laptop. Yours will differ. In particular Mistral's allowance is Mistral's, and it can change.
+Measured on one laptop; yours will differ, and Mistral's allowance is Mistral's to change.
 
-### Convai free tier (the default)
+### Convai free tier
 
-Nothing to set up. Install, start the game, talk. This is the most refined option and the one the characters were written for. Its usage is limited so that it stays free for everyone: **100 turns a day**, 12 a minute. A turn is one reply: a typed or spoken line, a phone message, each speaker in a group round, or an automatic comment. The count resets at local midnight. Settings > Conversation provider shows how many are left today.
-
-When you reach the limit you see a notice. You can wait for tomorrow, or switch to Mistral or Local AI and keep talking. Voices keep working through the local voices.
+Nothing to set up: this is what you get the moment you install. A turn is one reply: a typed or spoken line, a phone message, each speaker in a group round, or an automatic comment. The 100 a day reset at local midnight, and **Settings > Conversation provider** shows how many are left. When they run out a notice says so. Wait for tomorrow, or switch to Mistral or Local AI and keep going. The local voices never count against it.
 
 ### Convai API key
 
-If you have your own Convai account, copy your key and press **Paste** on the **Convai API key** row. The key is read from the clipboard once, checked with Convai and saved on your computer. Then choose **Convai API key** as the provider and **Apply**. The daily limit of the free tier no longer applies. Your own Convai plan's limits do. Only the last four characters of the key are ever shown, and **Remove** deletes it.
+With your own Convai account, copy your key and press **Paste** on the **Convai API key** row. The key is read from the clipboard once, checked with Convai and saved on your computer. Choose **Convai API key** as the provider and **Apply**, and your own plan's limits apply instead of the daily ones. Only the last four characters are ever shown, and **Remove** deletes the key.
 
-If you want more Convai usage than the free tier gives, **Convai paid tier**, right under the **Convai API key** row, lists the plans Convai made for this mod: Gamer at $4 a month or $32 a year (500 Convai interactions a month) and Gamer Pro at $8 a month or $64 a year (1,000 a month). Paste your key first, then choose a plan: Convai's own payment page (Stripe) opens in your browser, and the mod never sees your card. About 15 seconds after you pay, the plan is active and the mod switches the provider to **Convai API key** for you. On a paid plan several companions can talk at once. **Manage or cancel plan** opens your Convai billing page.
+For more Convai than the free tier gives, the **Convai paid tier** row right below opens the plans Convai made for this mod: Gamer at $4 a month or $32 a year (500 Convai interactions a month) and Gamer Pro at $8 a month or $64 a year (1,000 a month). **Sign in with Convai** there saves your key without copying it by hand. Choosing a plan opens Convai's own payment page (Stripe) in your browser; the mod never sees your card. About 15 seconds after you pay, the plan is active and the provider switches to **Convai API key** for you. On a paid plan several companions can talk at once, and **Manage or cancel plan** opens your Convai billing page.
 
 ### Mistral (free plan)
 
-1. Make a free account at Mistral (the free plan needs phone verification) and create an API key.
-2. Copy the key, open **Settings > Conversation provider**, and press **Paste** on the **Mistral free API key** row.
+1. Make a free account at Mistral (it asks for phone verification) and create an API key.
+2. Copy it, open **Settings > Conversation provider** and press **Paste** on the **Mistral free API key** row.
 3. Choose **Mistral (free plan)** as the provider and **Apply**.
 
-Mistral answers quickly and costs nothing. Its replies are plainer than Convai's. Memory stays on your computer. The microphone works through speech recognition that runs on your computer, in English. Mistral does not receive pictures, so **Companions can see** does not apply to it. With no key saved, conversations use Convai and you see one notice.
+Quick and free, with plainer replies than Convai's. Memory stays on your computer, and the microphone is recognised on your computer, in English. With Mistral chosen but no key saved, conversations use Convai and you see one notice.
 
-### Local AI (fully local, free, no internet)
+### Local AI
 
-Local AI runs the language model on your own graphics card. No account, no key, no internet.
+The language model runs on your own graphics card. No account, no key, no internet.
 
-1. Download a Local AI pack from the GitHub release and extract it into the game folder (see [Install](#install)).
-2. Start the game and wait for the first start to finish. The **Local AI model** row shows "(Warming up)" while your card prepares the model, about a minute the first time.
+1. Download a Local AI pack from the GitHub release and extract it into the game folder ([Install](#install)).
+2. Start the game. The **Local AI model** row shows "(Warming up)" while your card prepares the model, about a minute the first time.
 3. Choose **Local (needs Local AI pack)** as the provider and **Apply**.
-
-Pick the model that fits your card:
 
 | | **Local AI standard** | **Local AI lite** |
 |---|---|---|
 | Model | Gemma 4 E4B | Qwen3.5-2B |
 | Download | about 5.3 GB | about 1.5 GB |
-| Best for | Named characters and companions: stays closest to what the character knows and invents the least | Smaller cards, or a game that already uses most of your video memory. Plainer replies, fine for ordinary NPCs |
-| Free video memory it wants when it starts | about 6 GB | about 2 GB |
-| Extra video memory while running (with Pocket voice) | about 3 GB | about 1.5 GB |
+| Best for | Named characters and companions: closest to what the character knows, invents the least | Smaller cards, or a game already using most of your video memory. Plainer replies, fine for ordinary NPCs |
+| Free video memory it wants to start | about 6 GB | about 2 GB |
+| Extra video memory while running (with Pocket) | about 3 GB | about 1.5 GB |
 | Weaker at | | Languages other than English |
 
-You can install neither, one or both. The **Local AI model** row lists the installed models from smallest to largest. Until you choose one, the largest that fits your free video memory is used.
+Install neither, one or both. The **Local AI model** row lists what is installed, smallest first; until you pick one, the largest that fits your free video memory is used. You need a Vulkan graphics card (NVIDIA or AMD), at least 16 GB of system memory (32 GB is better), and about 5 GB more than usual while it runs. Integrated graphics alone is not enough.
 
-What you need: a graphics card with Vulkan support (NVIDIA or AMD), at least 16 GB of system memory (32 GB is better), and about 5 GB more than usual while it runs. Integrated graphics alone is not enough.
-
-Good to know:
-
-- The model is unloaded after ten minutes without a conversation so the game gets its video memory back. The next conversation loads it again in a few seconds.
-- If your card is short of memory, the mod steps down by itself and keeps your voice before it keeps the model. Standard gives way to lite, and if lite does not fit either, the text comes from Mistral (if you saved a key) or Convai, with one notice.
-- You can add a model of your own. It needs to be a GGUF chat model. See [LOCAL_AI.md](docs/LOCAL_AI.md), "Add your own model".
+- The model unloads after ten quiet minutes so the game gets its video memory back, and reloads in a few seconds when you talk again.
+- Short on memory, the mod steps down by itself and keeps your voice before the model: standard gives way to lite, and if lite does not fit either, the text comes from Mistral (with a saved key) or Convai, with one notice.
+- You can add a GGUF chat model of your own: see "Add your own model" in [LOCAL_AI.md](docs/LOCAL_AI.md).
 
 ### Mature content (18+)
 
-Settings > Conversation provider has a **Mature content** row. It is off by default and for adults only. It works with Local AI only: turning it on selects Local AI, and choosing a cloud provider turns it off. With the standard models it changes language and tone only, because those models refuse most adult material. An optional **Mature pack** on the GitHub release adds two models without those refusals. Fixed limits stay on for every model, with or without the pack. The details are in [the pack's own notes](packaging/MATURE_PACK_README.md).
+**Settings > Conversation provider > Mature content** is off by default and for adults only. It works with Local AI only: turning it on selects Local AI, and choosing a cloud provider turns it off. With the standard models it changes language and tone, because those models refuse most adult material. The optional **Mature pack** on the GitHub release adds two models without those refusals. Fixed limits stay on for every model, with or without the pack. Details are in [the pack's notes](packaging/MATURE_PACK_README.md).
 
-## Choosing how they sound (voices)
+## Pick a voice
 
-Open **Companion Manager > Settings > Voices** and use the **Companion voices** row. You can always switch back. A voice that cannot run is replaced by a simpler one and the game tells you once.
+**Companion Manager > Settings > Voices > Companion voices.** Switch any time. A voice that cannot run is replaced by a simpler one and the game tells you once.
 
-| Voice | Runs on | Needs | Starts speaking after | Quality | Languages |
+| Voice | Runs on | Needs | Starts speaking after | Sound | Languages |
 |---|---|---|---|---|---|
-| **Pocket · Performance** (default) | Your processor. No video memory | Nothing extra. Included in the Runtime download | About 0.15 to 0.2 s | Good. Close to OmniVoice on well-covered characters such as Johnny, Judy, Panam and Alex | English |
-| **OmniVoice** (Balanced, Quality, High Quality, Ultra Quality) | Your NVIDIA graphics card | The OmniVoice pack, an NVIDIA card with about 8 GB of video memory or more, and a current driver. About 2 GB of extra video memory while it runs | Balanced about 1.3 s, Quality about 1.45 s, High Quality about 2.1 s, Ultra Quality about 2.5 s | Richer, especially on harder voices. The higher tiers sound better and start slower. It can voice laughs and sighs | Many (needed for Multilingual conversations) |
-| **Voxtral · Mistral cloud** | Mistral's servers | A Mistral key (the same one as for the Mistral provider), internet. No local model is loaded | About 1 to 1.25 s, with an occasional slow reply | Each character's own voice, cloned in the cloud | English |
-| **Convai · Cloud voice** | Convai's servers | Convai as the provider and internet | Streams with the reply | Convai's own voice. It cannot clone, so V's typed-line voice stays silent beside it, and Natural speech and Expressive emotions are not available | Many |
+| **Pocket · Performance** (default) | Your processor, no video memory | Nothing extra: it comes with the Runtime | About 0.15 to 0.2 s | Good, and close to OmniVoice on well-covered characters such as Johnny, Judy, Panam and Alex | English |
+| **OmniVoice** (Balanced, Quality, High Quality, Ultra Quality) | Your NVIDIA graphics card | The OmniVoice pack, about 8 GB of video memory or more and a current driver. About 2 GB extra while it runs | Balanced about 1.3 s, Quality 1.45 s, High Quality 2.1 s, Ultra Quality 2.5 s | Richer, especially on harder voices, and it can laugh and sigh. Higher tiers sound better and start slower | Many (needed for Multilingual conversations) |
+| **Voxtral · Mistral cloud** | Mistral's servers | Your Mistral key and internet. No local model is loaded | About 1 to 1.25 s, with an occasional slow reply | Each character's own voice, cloned in the cloud | English |
+| **Convai · Cloud voice** | Convai's servers | Convai as the provider and internet | Streams with the reply | Convai's own voice. It cannot clone, so V's typed-line voice stays silent beside it, and Natural speech and Expressive emotions are off | Many |
 
-How the OmniVoice tiers differ: Balanced and Quality use 16 generation steps, High Quality and Ultra Quality use 32. Balanced and High Quality copy a short sample of the original voice, Quality and Ultra Quality a long one.
-
-**Setting up each voice**
+Balanced and Quality use 16 generation steps, High Quality and Ultra Quality 32. Balanced and High Quality copy a short sample of the original voice, Quality and Ultra Quality a long one.
 
 - **Pocket:** nothing to do.
-- **OmniVoice:** install the OmniVoice pack, restart the game, then pick an OmniVoice entry. Until the pack is installed the entries are greyed out and the row reads "(no Omni pack)". The first start of OmniVoice takes a while: allow two to three minutes, longer on a laptop in Silent power mode. Later starts reload faster. A slow first start no longer drops you to another voice. A start that fails falls back to Pocket and is retried in the background.
-- **Voxtral:** save a Mistral key (see [Mistral](#mistral-free-plan)), then pick **Voxtral · Mistral cloud**. Before a key is saved the entry reads "Voxtral · needs Mistral key".
+- **OmniVoice:** install the pack, restart the game, pick an OmniVoice entry. Without the pack the entries are greyed out and the row reads "(no Omni pack)". The very first start takes two to three minutes (longer on a laptop in Silent power mode) while you keep a fallback voice; later starts are faster. A start that fails falls back to Pocket and retries in the background.
+- **Voxtral:** save a Mistral key ([Mistral](#mistral-free-plan)), then pick **Voxtral · Mistral cloud**. Until then it reads "Voxtral · needs Mistral key".
 - **Convai voice:** choose Convai as the provider, then the Convai cloud voice.
 
-**If the voice you chose cannot run**, the fallback order is OmniVoice, then Pocket, then Convai's cloud voice. The cloud voices (Voxtral) have no local fallback: if a line cannot be voiced it is shown as text with one notice.
+If your voice cannot run, the order is OmniVoice, then Pocket, then Convai's cloud voice. Voxtral has no local fallback: a line it cannot voice is shown as text, with one notice.
 
-**Other voice settings** (same page): **Voice playback** (Off means text only), **Lip sync delay (Bluetooth)** (see [FAQ](#faq-and-troubleshooting)), **Natural speech** (pauses, hesitations and, with OmniVoice, laughs and sighs; off by default), **Expressive emotions** (the face changes at the word where a feeling shifts; on by default), **Follow-up questions** (on by default) and **V's voice for typed lines** (on by default).
+The same page also holds **Voice playback** (Off means text only), **Lip sync delay (Bluetooth)**, **Natural speech** (pauses, hesitations and, with OmniVoice, laughs and sighs; off by default), **Expressive emotions**, **Follow-up questions** and **V's voice for typed lines** (all three on by default).
 
-## Getting the best latency and FPS
+## Smooth frames, fast replies
 
-Latency is the wait between pressing Enter (or releasing the talk key) and hearing the reply. FPS is how smoothly the game runs. They usually do not fight each other, because the mod does its heavy work in a separate background service rather than inside the game.
+The heavy lifting happens in a separate background service, not inside the game, so the default setup (Convai or Mistral for text, Pocket for the voice) uses no video memory at all. Only OmniVoice and Local AI touch your graphics card, and the lite model keeps fully local play light.
 
-**FPS is only something to worry about if you run large local models your PC does not have the resources for.** The default setup (Convai or Mistral for the text, Pocket for the voice) uses no graphics memory at all. Only OmniVoice and Local AI use your graphics card. If you want to stay fully local on a smaller card, use the lite model.
+**For the fastest replies**
 
-### For the lowest latency
+- **Set Windows power mode to Balanced or Performance, and plug a laptop in.** Silent mode cut Local AI's speed by about 40 percent in testing, slows speech recognition and stretches OmniVoice's first start to about three minutes. On a laptop it is the biggest single factor.
+- **Use Pocket.** It starts speaking in 0.15 to 0.2 s, against 1.3 to 2.5 s for OmniVoice and about a second for Voxtral.
+- **For the fastest cloud text, use Mistral.** With Pocket, a reply began speaking a second or two after sending.
+- **Leave Auto-connect nearby characters on.** It readies a conversation as you look at or walk up to someone.
+- **Give Local AI room.** A model squeezed onto a nearly full card is slower, and the first reply after ten idle minutes includes loading time.
 
-| Do this | Why |
-|---|---|
-| **Set Windows power mode to Balanced or Performance, not Silent.** Plug a laptop in. | Silent mode cut the speed of the Local AI model by about 40 percent in the developer's tests, slows speech recognition, and makes OmniVoice's start take about three minutes. This is the biggest single factor on a laptop. |
-| **Use the Pocket voice.** | Pocket starts speaking in about 0.15 to 0.2 s. OmniVoice takes 1.3 to 2.5 s, Voxtral about a second. |
-| **For the fastest cloud text, use Mistral.** Convai replies take a few seconds. | In the developer's tests a Mistral reply with the Pocket voice began speaking after a second or two. |
-| **Leave Auto-connect nearby characters on.** | It gets a conversation ready when you look at or walk up to someone, so they answer without a wait. |
-| **With Local AI, keep the game and the model on a card with room to spare.** | A model that has to share a nearly full card is slower. The first reply after ten idle minutes also includes loading time. |
-| **Use a headset on Auto lip sync delay if you use Bluetooth.** | It keeps lips and subtitles in step with the late audio without slowing anything down. |
+**For the smoothest frames**
 
-### For the best FPS
+- **Stay on the default** (cloud text and Pocket): nothing is loaded on the graphics card.
+- **For fully local, use Local AI lite with Pocket:** about 1.5 GB of extra video memory, against about 3 GB for standard.
+- **Want OmniVoice and a local model together?** Lower textures or turn off ray tracing; they use the most video memory.
+- **Text only?** Turn off Voice playback and the voice models are released.
+- Unused models leave on their own: Local AI after ten idle minutes, OmniVoice when playback is off, the microphone's recogniser 90 seconds after your last recording.
 
-| Do this | Why |
-|---|---|
-| **Use the default: cloud text and the Pocket voice.** | Nothing is loaded on the graphics card. Pocket runs on the processor and speaks in short bursts. |
-| **If you want fully local, use Local AI lite with Pocket.** | About 1.5 GB of extra video memory, against about 3 GB for standard. |
-| **Match the combination to your card.** See the table below. | The mod steps down by itself when memory runs short, but starting at the right level avoids the stutter of a card that is full. |
-| **Lower textures or turn off ray tracing if you want both OmniVoice and a local model.** | Ray tracing and high textures use the most video memory. |
-| **Turn off Voice playback if you only want text.** | No voice is generated and the voice models are released. |
-| **Let unused models unload.** | The Local AI model leaves memory after ten idle minutes, OmniVoice is released when voice playback is turned off, and the microphone's speech recogniser is released 90 seconds after your last recording. |
-
-Extra video memory each combination needs on top of what the game uses (estimates from one 12 GB card; the game's own use depends on your settings):
+Extra video memory on top of the game's own (estimates from one 12 GB card):
 
 | Voice | Text | Extra video memory |
 |---|---|---|
@@ -262,87 +234,20 @@ Extra video memory each combination needs on top of what the game uses (estimate
 | OmniVoice | Local AI lite | about 4 GB |
 | OmniVoice | Local AI standard | about 5 GB |
 
-What fits which card (lower settings means medium textures and no ray tracing):
-
-| Your graphics card | What fits |
+| Your graphics card | What fits (lower settings: medium textures, no ray tracing) |
 |---|---|
-| 6 GB | Pocket with Convai or Mistral. Local AI lite only on lower settings. |
+| 6 GB | Pocket with Convai or Mistral. Local AI lite on lower settings. |
 | 8 GB | Pocket with Local AI lite, or OmniVoice with Convai or Mistral, both on lower settings. |
 | 12 GB | OmniVoice with Local AI lite on any settings. Pocket with Local AI standard on lower settings. |
 | 16 GB | OmniVoice with Local AI standard on lower settings, or with Local AI lite on higher settings. |
 
-## Features you can use
+## Settings
 
-### Companions that talk by voice or text
-
-Face a character and press your **talk by text** or **talk by voice** key. For voice: press the key, wait for **Listening**, speak, and press the same key again. Opening a menu cancels a recording, and a recording stops by itself after 30 seconds. Your words appear as V's subtitle while you speak. If nothing was heard the mod says so instead of waiting.
-
-Characters ask a follow-up question only now and then, never on every reply and never while you are leaving, giving an order or fighting.
-
-### Group talk
-
-Use **group text chat** or **group voice chat** with at least two nearby characters. Up to three speak in a round. The person you face answers first and the input box shows their name. Two copies of the same character count as one speaker. Earlier speakers leave the floor to the next one.
-
-### Inviting and managing companions
-
-- **Companion Manager > Characters to invite** lists researched profiles. **Invite** reserves a place and prepares the voice and connection. A talking companion appears only after preparation succeeds and you return to gameplay.
-- **Current party** lists every copy as "Name #number" with **Dismiss**. You can keep several copies of the same character. There is no fixed limit on party size.
-- **Model browser** lists every character model in the game. Any of them can join you as a follower. Models without a profile follow you and do not talk.
-- Companions walk beside you, run to catch up, settle into loose positions, follow you through doors, lifts and fast travel, and fight with the game's own combat AI. Followers holster their weapons after a fight.
-- **Ask a companion to drive.** In a private conversation ask a companion to drive you to your map waypoint. They take the driver seat and wait for you to board as a passenger. **Current party** shows the trip and a **Stop trip** button. You can change the waypoint during the trip.
-- **Sit together.** When V sits on a couch, bench, chair or bar stool, nearby companions walk over and sit too, and stand again when you do or when a fight starts.
-- Only characters the mod spawns join your party. Named story characters you meet in the world are left alone, so the mod never changes the story.
-- Party membership is not restored after a save reload, a game restart or a Cyber Engine Tweaks reload.
-
-### Ordinary NPCs you can talk to
-
-With **Settings > Conversations > Talk to ordinary NPCs** on (the default), unnamed gang members, officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person. They do not know your story and forget you after a save load, except shopkeepers you come back to. Named story characters in the world are never routed to AI.
-
-### Phone Chat and holocalls
-
-- Open the phone (normally hold **T**) and switch to the **Chat** tab, the third tab. Pick a contact and press the confirm key to open the conversation. **Enter** starts typing and sends. **Esc** stops typing. Phone Chat is text only. The character does not need to be nearby.
-- Histories and drafts are kept across launches. Contacts unlocked later appear when you open the tab.
-- **Holocalls:** with a contact selected on the Chat list (or inside a conversation) press **V** to call them. A call window opens at the top left and you talk by push-to-talk or by typing. Tap the phone button to hang up. Calls end after 3 minutes of silence or 30 minutes in total. The game's own Contacts call is untouched.
-- **Live holocall picture:** shows the character live instead of a portrait. If she cannot be shown, the call goes on with the portrait.
-
-### Companions can see (with Convai)
-
-With Convai answering, **Companions can see** is always on: each line you send also carries a recent picture of your surroundings, taken from the game window a few seconds before you started talking. Only the game window is captured, only while someone you can talk to is nearby, and pictures are kept in memory for a short time and never saved. It works with Convai only, and it is new: treat it as experimental.
-
-
-### V's voice
-
-With **V's voice for typed lines** on (the default), a line you type is also said aloud in the male or female V voice that matches yours, then the companion answers. Push-to-talk lines are never replayed. It works with Pocket, OmniVoice and Voxtral, and does nothing beside Convai's cloud voice.
-
-### Lip sync, faces, gestures and gaze
-
-- **Lip sync:** a model trained on the game's own dialogue lip-sync drives the mouth from the audio, with no GPU needed. Companions also blink, show a neutral resting face, and change expression where a feeling shifts.
-- **Body gestures** (on by default): companions gesture during longer replies, nod while you talk, and take idle poses beside you. They stop at once when anyone moves or a fight starts.
-- **Gaze:** eyes and head follow you. **Eye contact height** and **Head tracking strength** adjust it.
-- **Subtitles:** Cinematic subtitles (the game's dialogue HUD) are the default. **Above the speaker** is optional.
-
-### Memory and relationships
-
-- Characters remember real conversations, across saves, in a single player identity. Inviting a character creates no memory.
-- **Settings > Conversations > Memory** has **Forget selected character** and **Forget all memories**, each with a confirmation. A successful forget also removes the matching Phone Chat messages and drafts.
-- **Settings > Conversations > Relationships** has an **Auto / On / Off** choice for Judy, Panam, River, Kerry and Meredith. Auto follows the relationship in your save.
-- With Convai, memory is kept on Convai's servers. With Mistral or Local AI it stays on your computer.
-
-### Reactions
-
-**React to battles** and **React to collected loot** (both off by default) let a nearby companion make one short comment when a fight starts and ends, and after a batch of loot pickups. Each has a ten-minute cooldown.
-
-### Developer options
-
-**Settings > Development > Developer mode** is for testing and bug reports. Players do not need it. It shows routine popups, writes diagnostic traces and unlocks developer-only experiments.
-
-## Settings reference
-
-All settings live under **Companion Manager > Settings**. Defaults are for a new install, and your saved choices always take precedence.
+Everything lives under **Companion Manager > Settings**. Defaults are for a new install; your saved choices always win.
 
 | Setting | Page | Default |
 |---|---|---|
-| Interface language | Interface | Automatic (follows the game's language) |
+| Interface language | Interface | Automatic (follows the game) |
 | Memory, Relationships | Conversations | Auto |
 | Talk to ordinary NPCs | Conversations | On |
 | Multilingual conversations | Conversations | Off |
@@ -366,50 +271,56 @@ All settings live under **Companion Manager > Settings**. Defaults are for a new
 | React to battles, React to collected loot | Automatic reactions | Off |
 | Developer mode | Development | Off |
 
-**Multilingual conversations** lets you talk in any language and each character answers in yours. It switches the voice to OmniVoice (or Convai's cloud voice without the pack), because Pocket and Voxtral speak English only. The microphone with Convai recognises English by default, so type in other languages.
+A few worth knowing:
 
-## FAQ and troubleshooting
+- **Talk to ordinary NPCs:** passers-by, vendors and the rest answer as their kind of person. They do not know your story and forget you after a save load, except shopkeepers you come back to.
+- **Live holocall picture:** the character appears live in the call window instead of a portrait. If she cannot be shown, the call goes on with the portrait. Calls end after 3 minutes of silence or 30 minutes in total, and the game's own Contacts call is untouched.
+- **Memory:** **Forget selected character** and **Forget all memories**, each with a confirmation. A forget also clears the matching Phone Chat messages. **Relationships** has Auto, On or Off for Judy, Panam, River, Kerry and Meredith; Auto follows your save.
+- **Multilingual conversations:** talk in any language and each character answers in yours. It switches the voice to OmniVoice (or Convai's cloud voice without the pack), because Pocket and Voxtral speak English only. The microphone with Convai expects English, so type in other languages.
+- **Follow-up questions:** now and then a character asks something back. Never on every reply, and never while you are leaving, giving an order or fighting.
+- **Body gestures, Eye contact height, Head tracking strength:** companions gesture through longer replies, nod while you talk and hold idle poses beside you, and their eyes and head follow you. Gestures stop the moment anyone moves or a fight starts.
+- **Subtitle display:** Cinematic subtitles use the game's dialogue line; **Above the speaker** floats them over the character.
+- **React to battles / collected loot:** a nearby companion makes one short comment when a fight starts and ends, or after a run of loot pickups, at most once every ten minutes each.
+- **Developer mode** is for testing and bug reports: routine popups, diagnostic traces and developer-only experiments. You will not need it to play.
 
-**A character does not answer.** Make sure the game has been running a moment since launch: the background service starts with the game. Open **Settings > Help > Help and support**: it shows the service status. If the service is not running, restart the game. If you use Mistral, check the key row says it was accepted. If you use Local AI, check the **Local AI model** row does not read "(Warming up)", "(Not enough memory)" or "(Unavailable)".
+## Troubleshooting
 
-**I see "Today's turns are used" or a daily limit notice.** You have used the free tier's daily allowance. It comes back tomorrow. To keep talking now, choose **Mistral (free plan)** (with a free key) or **Local** (with a Local AI pack) as the Conversation provider and **Apply**. Voices keep working because the local voices do not use the limit. See also [Convai API key](#convai-api-key).
+**A character does not answer.** Give the game a moment after launch: the background service starts with it. **Settings > Help > Help and support** shows the service status; if it is not running, restart the game. With Mistral, check that the key row says it was accepted. With Local AI, check that the **Local AI model** row does not read "(Warming up)", "(Not enough memory)" or "(Unavailable)".
 
-**The microphone does nothing, or says "needs Convai for now".** Check that you gave a key to **talk by voice** in CET's Bindings. Press it, wait for **Listening**, speak, and press it again. The microphone never starts by itself. Windows must allow desktop apps to use your microphone, and your microphone should be the Windows **default** input device. With Mistral or Local AI the mod recognises your speech on your computer, which takes a moment to load the first time and works in English. If the recogniser is not ready yet you see "Speaking to companions needs Convai for now": try again in a moment, type your message, or switch to Convai. A recording with no speech in it says so.
+**"Today's turns are used."** The free tier's daily turns are spent and come back tomorrow. To keep talking now, choose **Mistral (free plan)** (with a free key) or **Local** (with a Local AI pack) as the Conversation provider and **Apply**. Voices keep working, because the local voices do not count. A [Convai API key](#convai-api-key) of your own also works.
 
-**OmniVoice takes two or three minutes the first time.** That is normal. The model is large. Use Balanced power mode, not Silent. Later starts are faster. While it loads you keep a fallback voice and a held notice reads "Preparing ...".
+**The microphone does nothing, or says "needs Convai for now".** Check that **talk by voice** has a key in CET's Bindings. Press it, wait for **Listening**, speak, press it again. Windows must let desktop apps use the microphone, and yours should be the Windows **default** input device. With Mistral or Local AI your speech is recognised on your computer, in English, and the recogniser takes a moment to load the first time: if it is not ready yet you see "Speaking to companions needs Convai for now". Try again in a moment, type, or switch to Convai.
 
-**Voices are late, or lips run ahead of the sound.** Bluetooth audio arrives a little late. Leave **Lip sync delay (Bluetooth)** on Auto, which adds 150 ms of delay while Windows plays through Bluetooth, or pick a value that suits your headset. Check the game's Master Volume and Dialogue Volume and the Windows output mixer if you hear nothing.
+**OmniVoice takes two or three minutes the first time.** That is normal for a model this size. Use Balanced power mode, not Silent. You keep a fallback voice meanwhile, a held notice reads "Preparing ...", and later starts are faster.
 
-**The voice is Pocket when I picked OmniVoice.** Without the OmniVoice pack the entries are greyed out. With it, an OmniVoice that fails to start falls back to Pocket and is retried in the background; choosing it again also retries it.
+**The voice is Pocket when I picked OmniVoice.** Without the pack the OmniVoice entries are greyed out. With it, an OmniVoice that fails to start falls back to Pocket and retries in the background; choosing it again also retries.
 
-**How do I make a report?** Open **Companion Manager > Settings > Help > Help and support** and choose **Generate report**. It saves one file with versions, settings and recent log lines. It never contains your keys, voice recordings or conversation text. Send that file when you ask for help. The five newest reports are kept.
+**Lips run ahead of the sound.** Bluetooth audio arrives a little late. Leave **Lip sync delay (Bluetooth)** on Auto, which adds 150 ms while Windows plays through Bluetooth, or pick a value that suits your headset. Hearing nothing at all? Check the game's Master and Dialogue Volume and the Windows mixer.
 
-**V keeps walking in one direction after I type a message.** Tap that direction (W, A, S or D) once.
+**A companion cannot be summoned there.** Companions need clear space, and a spawn is refused when there is no safe spot nearby. Try somewhere more open. Party membership is not restored after a save reload, a game restart or a Cyber Engine Tweaks reload.
 
-**Why can't a companion be summoned there?** Companions need clear space. A spawn can be refused if there is no safe spot nearby. Try a more open spot.
+**Does it change the story?** No. Companions are temporary copies that the mod owns. They never recruit, revive or alter story characters, and story characters in the world are left alone.
 
-**Does it change the story?** No. Summoned copies are temporary mod-owned copies. They do not recruit, revive or alter story characters, and story characters in the world are left alone.
+**Which of my data leaves my computer?** With Convai your lines go to Convai, along with a recent picture of the game window, taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral your lines go to Mistral. With Local AI nothing leaves your computer for replies. Voxtral sends the text to be spoken and a short reference clip of the character to Mistral.
 
-**Which of my data leaves my computer?** With Convai, your lines go to Convai. With Mistral, to Mistral. With Local AI nothing leaves your computer for replies. Voxtral sends the text to be spoken and a short reference clip of the character to Mistral. Pictures for **Companions can see** go to Convai only, are kept in memory for a short time and are never saved. Reports exclude keys and conversation text.
+**Something else looks off?** This is the first public release, and reports help it grow fast. Open **Companion Manager > Settings > Help > Help and support** and choose **Generate report**. It saves one file with versions, settings and recent log lines, never your keys, voice recordings or conversation text. Send that file along with what you were doing. The five newest reports are kept.
 
 ## Add-ons
 
-Add-ons are separate mods that give the main mod new voices. They need the main mod, and the main mod never needs them. Each has its own Nexus page and installs like any CET mod.
+Add-ons are separate mods that bring new voices into the main mod. They need the main mod (the main mod never needs them), and each has its own Nexus page and installs like any CET mod.
 
-- **Skippy**, a talking smart pistol that comments on your fights (planned for October 20).
-- **Delamain**, the cab's voice (planned for October 25).
+- **Skippy**, the talking smart pistol, with remarks on your fights (planned for October 20).
+- **Delamain**, the cab's voice, for your rides (planned for October 25).
 
-Add-on voices use Mistral or Local AI, never Convai, and they do not count toward the daily limit. Developers can build their own: see [the add-on API](#add-on-api).
-
-## What is still experimental
-
-The mod is a first public release, and a lot of it was built faster than it could be tested in a real game. Treat these as experimental, even where they are on by default: companions can see, the live holocall picture, Phone Chat's holocall button, ordinary-NPC conversations, the character editor, multilingual conversations (microphone in other languages is untested), seated free-look, overflow car convoys, and fast-travel recovery. Several native speed-ups for the mod's work inside the game are switched off by default until they have been proven in the game. If something misbehaves, **Generate report** and tell us what you were doing.
+Add-on voices use Mistral or Local AI, never Convai, and never touch the daily turns. Developers can build their own with [the add-on API](#add-on-api).
 
 ---
 
-# Part 2: For developers
+# For developers
 
-This part is the technical reference. It describes `main` as it is today. Where a design is built and unit-tested but has not been seen working in the real game, the text says so, and the [status list](#status-of-unverified-work) at the end collects those items. Many of the linked design notes under [docs/](docs/) are dated working logs: a note's own date tells you how current it is, and where a note and the code disagree, the code wins.
+Under the hood this is a small distributed system squeezed in beside a triple-A game: a Lua mod and redscript inside Cyberpunk 2077, a native RED4ext plugin, and a hidden Node service running the voices, speech recognition, lip sync and three conversation providers, all held to one rule: never cost the player a frame. This part is the technical reference for `main` as it is today. Where something is built and unit-tested but not yet seen in the real game, the text says so, and the [status list](#status-of-unverified-work) collects those items. Many design notes under [docs/](docs/) are dated working logs; where a note and the code disagree, the code wins.
+
+**Contents:** [Repository layout](#overview-and-repository-layout) · [Architecture](#architecture) · [Anatomy of a turn](#anatomy-of-a-turn) · [Subsystems](#subsystems-in-depth) · [Resource lifecycle](#resource-lifecycle-unloading) · [Performance rules](#performance-rules) · [Packaging](#packaging-and-release) · [Tests](#tests) · [Development workflow](#building-and-the-development-workflow) · [Documentation index](#documentation-index) · [Unverified work](#status-of-unverified-work)
 
 ## Overview and repository layout
 
@@ -426,7 +337,7 @@ r6/scripts/CyberpunkConvai/  redscript: composer, phone, manager, face, holocall
 native/
   autostart/              RED4ext launcher plugin (C): starts the bridge with the game
   core/                   RED4ext native core plugin (C++20, CMake): io, faces, actuator, clearance, gaze, vehicles, chauffeur, passage
-  vision/                 screen-capture helper executable for "Companions can see" (C++/WinRT)
+  vision/                 screen-capture helper executable for companion vision (C++/WinRT)
 bridge/                   the Node bridge: ~175 modules, Python workers, the supervisor, ~288 test files
 assets/                   data the bridge and Lua read: emotion/, facial/, gestures/, v-voice/
 characters/               profile roster, ordinary-NPC archetypes, phone contacts, world-knowledge pack
@@ -1109,41 +1020,43 @@ Docs: [docs/CHARACTER_API.md](docs/CHARACTER_API.md), [characters/README.md](cha
 
 ### Companion vision
 
-"Companions can see" gives a Convai character one recent picture of V's surroundings with each conversation turn. It is Convai only: while Mistral or Local AI answers, `CompanionVision.active` is false and there is no picture, no helper process and no buffer. There is no player setting: it is always on with Convai (a saved `companionVision` key from an older install is dropped on the next load and ignored by the bridge). The two developer switches are `CYBERPUNK_CONVAI_VISION=off` (environment) and `visionTransport` in `runtime/settings.json`. **Status: built, unit-tested and measured against the running game for cost, but not seen working with Convai.** No live Convai turn has been made with a picture, so whether Convai accepts the image for the mod's characters is open. Every mod character uses `fast-gemma-4-31b-it`, and Convai describes its dynamic vision context as needing a vision-capable non-realtime model; an answer of `vision_not_enabled` would mean the characters must move to another model. Only a live call can settle this.
+Companion vision gives a Convai character one recent picture of V's surroundings with each conversation turn. It is Convai only: while Mistral or Local AI answers, `CompanionVision.active` is false and there is no picture, no helper process and no buffer. There is no player setting: it is always on with Convai (a saved `companionVision` key from an older install is dropped on the next load and ignored by the bridge). The developer switches are `CYBERPUNK_CONVAI_VISION=off` (environment) and `visionTransport` in `runtime/settings.json` (`video`, the default dynamic vision context, or `upload`). **Status:** pictures reached Convai and shaped replies in live turns on 2026-10-15 (the freshness rules below came from one of them: a companion indoors described the street from a 52 s old frame). Every mod character uses `fast-gemma-4-31b-it`.
 
-**Why a rolling buffer.** When V talks to a companion, V is usually looking at her, so a picture taken then is mostly her face. The bridge instead keeps a few pictures taken before the conversation and sends one from the moment V was still looking at the place.
+**Why a rolling buffer.** When V talks to a companion, V is usually looking at her, so a picture taken then is mostly her face. The bridge keeps a few pictures from before the conversation and prefers one from the moment V was still looking at the place, as long as it is fresh.
 
 | Piece | File | Notes |
 |---|---|---|
 | Capture helper | `native/vision/CyberpunkConvaiVision.cpp` (builds to `CyberpunkConvaiVision.exe`, `scripts/Build-VisionCapture.ps1`) | C++/WinRT, below-normal priority, 35 to 50 MiB. Protocol on stdin and stdout: `capture <maxWidth 64..2048> <quality 1..100>` and `quit`; one JSON reply per line. |
-| Helper client | `bridge/vision-capture.mjs` (`VisionCapture`) | Defaults: 768 px wide, JPEG quality 80, 2.5 s timeout, 5 s ready timeout. A capture that overruns restarts the helper. |
+| Helper client | `bridge/vision-capture.mjs` (`VisionCapture`) | Defaults: 1024 px wide, JPEG quality 88, 2.5 s timeout, 5 s ready timeout. A capture that overruns restarts the helper. |
 | Buffer and rules | `bridge/companion-vision.mjs` (`CompanionVision`) | Driven by the bridge's existing 500 ms settings poll. |
-| Page side | `bridge/convai-vision.mjs`, bundled into `runtime/realtime-client.js` | Composes, publishes, withdraws and reads acknowledgements. |
+| Page side | `bridge/convai-vision.mjs`, bundled into `runtime/realtime-client.js` | Composes, brightens dim frames, publishes, withdraws and reads acknowledgements. |
 
 **The helper.** Each capture finds the visible window owned by `Cyberpunk2077.exe`, opens a Windows Graphics Capture session on that window only (no cursor, no border), takes one frame (up to 600 ms), closes the session, crops to the client area, scales with WIC and encodes a JPEG in memory. No session exists between pictures, the game process is never touched, nothing is injected and nothing is written to disk. A minimised window returns `minimised` and no frame is buffered. Desktop duplication was rejected because it captures the whole monitor, and a second render-to-texture camera was rejected because it is a full extra scene render per frame and script has no readback (it would break the FPS rule).
 
-**Cadence and buffer** (constants in `bridge/companion-vision.mjs`, matching the lifecycle table in [docs/RESOURCE_LIFECYCLE.md](docs/RESOURCE_LIFECYCLE.md)):
+**Cadence, buffer and freshness** (constants in `bridge/companion-vision.mjs`, matching the lifecycle table in [docs/RESOURCE_LIFECYCLE.md](docs/RESOURCE_LIFECYCLE.md)):
 
 | Constant | Value | Meaning |
 |---|---|---|
 | `FRAME_INTERVAL_MS` | 3000 | One picture every 3 s while capturing. |
-| `FRAME_SLOTS` | 4 | The last 4 JPEGs (about 40 KB each) are kept, in memory only. |
-| `TAIL_MS` | 12000 | No capture for 12 s after the last sign of a conversation. |
-| `LEAD_MS` | 2500 | A turn takes the newest frame taken at least 2.5 s before the conversation began, else the newest. |
-| `MAX_FRAME_AGE_MS` | 120000 | A frame older than 2 minutes is never sent. |
+| `FRAME_SLOTS` | 5 | The last 5 JPEGs are kept, in memory only. |
+| `LEAD_MS` | 2500 | A frame this close before the conversation began may already be the companion's face. |
+| `TAIL_MS` | 12000 | No buffer capture for 12 s after the last sign of a conversation. |
+| `MAX_FRAME_AGE_MS` | 15000 | A frame older than 15 s is never sent (V walks 4 to 7 m a second). |
+| `FRESH_FRAME_AGE_MS` | 6000 | With no frame this young, the turn takes one new picture when the composer opens or the talk key is pressed. |
+| `TURN_CAPTURE_WAIT_MS` | 450 | The longest a turn that was not staged ahead waits for that capture; after that it goes without a picture. |
 | `STAGE_RETRY_MS` | 6000 | Ahead-of-time publishing retries every 250 ms for up to 6 s. |
 
-The helper runs only while all of these hold: the setting is on, Convai answers, someone V may talk to is near (a party member, a listed nearby character or a recent partner, `isNear` in `bridge/convai-bridge.mjs`), and no conversation is running (composer open, a turn in flight, the recording, or a reply playing). Otherwise the next poll stops it (`quit` on stdin, killed after 1 s), never mid-capture. A restart costs about 0.2 to 0.4 s and is off the turn's path. Turning the setting off or leaving Convai also drops the buffer.
+The buffer runs only while Convai answers, someone V may talk to is near (a party member, a listed nearby character or a recent partner, `isNear` in `bridge/convai-bridge.mjs`), and no conversation is running (composer open, a turn in flight, the recording, or a reply playing). Otherwise the next poll stops the helper (`quit` on stdin, killed after 1 s), never mid-capture. A restart costs about 0.2 to 0.4 s and is off the turn's path. A turn-start capture starts the helper for one frame, and the next poll releases it again. Leaving Convai drops the buffer and reconnects the pages audio-only.
 
-**What is sent to Convai.** With vision on, the realtime pages connect with video enabled but publish nothing (`startWithVideoOn: false`) and a `visionInputConfig` of `sampleIntervalSecs 0.25, framesPerTurn 1, bufferFrames 2, stalenessSeconds 6, maxResolution 768`. Pictures are staged ahead of the line so Convai buffers them while V types or talks. When the composer opens, the chosen frame is published on the target's page; when the talk key is pressed, it is published on the voice page once the recording runs. A turn that was not staged (a group's next speaker) publishes at turn start and waits at most 350 ms (`VISION_READY_MS`, developer override `visionWaitMs`, 0 to 900). A failed, slow or refused picture never fails the turn. After the turn the track is unpublished so a picture never rides into a later one. One to four images (the frame plus anything queued with `companionVision.attachToNextTurn`) are composed into a single 768 px canvas (one fills it, two side by side, three or four in a 2x2 grid). The turn's context gains one sentence saying an image may be attached, that it can show the HUD, V's vehicle or the companion, and that the character should describe the place, never the interface, and should not guess when nothing is attached. The same bridge-wide cost applies as for any turn: one Convai interaction.
+**What is sent to Convai.** The realtime pages connect with video enabled but publish nothing (`startWithVideoOn: false`) and a `visionInputConfig` of `sampleIntervalSecs 0.25, framesPerTurn 1, bufferFrames 2, stalenessSeconds 6, maxResolution 1024`. Pictures are staged ahead of the line so Convai buffers them while V types or talks: when the composer opens, the chosen frame is published on the target's page; when the talk key is pressed, on the voice page once the recording runs. A frame staged more than 15 s before the line is sent is replaced by a new capture at the send or the key release. A turn that was not staged (a group's next speaker) publishes at turn start and waits at most 350 ms for Convai (`VISION_READY_MS`, developer override `visionWaitMs`, 0 to 900). A failed, slow or refused picture never fails the turn, and after the turn the track is unpublished so a picture never rides into a later one. One to four images (the frame plus anything queued with `companionVision.attachToNextTurn`) are composed into a single 1024 px canvas (one fills it, two side by side, three or four in a 2x2 grid); a single dim frame is lifted with a gamma curve first (`DARK_MEAN` in `bridge/convai-vision.mjs`). The turn's context gains a short note (`VISION_NOTE`): an image of V's view may be attached, it can show the HUD, V's vehicle or the companion, the character describes the place and never the interface, the game's own indoors or outdoors word beats the picture, and with no useful image the character says so instead of guessing. The cost is the same as any turn: one Convai interaction.
 
 **Phone Chat and holocalls.** Phone Chat runs on its own `RealtimeHost` that is not given the vision object, so text chats never carry pictures. The code has no special case for holocall turns; the design doc says they get none, which was not verified.
 
-**Privacy.** Only the game window, only while someone V may talk to is near, in memory for at most about 2 minutes, never on disk. The one exception is the development variable `CYBERPUNK_CONVAI_VISION_DEBUG_DIR` (an absolute folder), which keeps a copy of each picture. A missing helper only means no picture.
+**Privacy.** Only the game window, only while someone V may talk to is near or a turn starts, in memory for at most 15 s, never on disk. Development-only exceptions: `CYBERPUNK_CONVAI_VISION_DEBUG_DIR` (an absolute folder) keeps a copy of each picture, and `CYBERPUNK_CONVAI_VISION_DEBUG_LAST=1` (or `"visionDebugLastSent": true`) keeps the last picture sent in `runtime/vision-last-sent.jpg`. A missing helper only means no picture.
 
-**Measured** (windowed 1366x768, Balanced power, game in the background, `scripts/Measure-VisionCapture.mjs` reading the mod's `perf-probe.json`): a capture takes about 104 ms median in the helper (p95 126) at the 3 s cadence, helper CPU 15.6 ms median, helper start 215 to 305 ms, 42 KB per 768x432 JPEG. FPS with captures matched FPS without in three A/B runs (for example 57.41 against 57.41 median); one run showed more slow frames in the "with" blocks, which followed the scene, not the captures. Seated measurements were not taken. The capture script used for development checks is separate: [docs/GAME_WINDOW_CAPTURE.md](docs/GAME_WINDOW_CAPTURE.md) covers `scripts/Capture-GameWindow.py`, a development tool that is not part of the mod.
+**Measured** (windowed 1366x768, Balanced power, game in the background, `scripts/Measure-VisionCapture.mjs` reading the mod's `perf-probe.json`): a capture takes about 104 ms median in the helper (p95 126) at the 3 s cadence, helper CPU 15.6 ms median, helper start 215 to 305 ms. Moving from 768 px at quality 80 to 1024 px at quality 88 kept the capture time (109 against 112 ms median) and grew a frame from about 48 to about 103 KB. FPS with captures matched FPS without in three A/B runs (for example 57.41 against 57.41 median); one run showed more slow frames in the "with" blocks, which followed the scene, not the captures. Seated measurements were not taken. [docs/GAME_WINDOW_CAPTURE.md](docs/GAME_WINDOW_CAPTURE.md) covers `scripts/Capture-GameWindow.py`, a separate development tool that is not part of the mod.
 
-**Not verified in the game:** any Convai turn with a picture (acceptance, `vision_not_enabled`, whether the reply describes the place), typed and talk-key latency with vision on, hitches while walking with the helper running, and the minimised-window turn. The 10-step live check is at the end of the design doc.
+**Not verified in the game:** typed and talk-key latency with vision on against off, hitches while walking with the helper running, and the minimised-window turn. The live check list is section 8 of the design doc.
 
 Further reading: [docs/COMPANION_VISION.md](docs/COMPANION_VISION.md), [docs/RESOURCE_LIFECYCLE.md](docs/RESOURCE_LIFECYCLE.md), [docs/GAME_WINDOW_CAPTURE.md](docs/GAME_WINDOW_CAPTURE.md).
 
@@ -1162,11 +1075,11 @@ Further reading: [docs/COMPANION_VISION.md](docs/COMPANION_VISION.md), [docs/RES
 
 **Redscript.** `PhoneChatTabs.reds` holds the tab navigation and the explicit Off, List, Opening, Conversation states (generation checks reject a cancelled opening). `PhoneChat.reds` holds the composer, draft handoff and bubbles; in Chat mode it bypasses the SMS setup that would activate journal entries and restores normal mode when the panel returns to Messages. `PhoneContacts.reds` (separate feature) adds J and L companion invite and dismiss actions to the Contacts tab. Styling (`mod/phone-chat-style.lua`) matches the tab grid and can be applied live.
 
-**Holocall.** V calls a mod character from the Chat tab with the game's own `call` key (V, Triangle on a pad): on a Chat list row (its call icon and the bottom bar's Call), or inside an open conversation (no hint is shown there). The game's own Contacts Call is never changed, and no game call function is wrapped (`bridge/holocall.test.mjs` asserts that). The request is one contact id (`ConvaiHolocallRequest` in `Holocall.reds`); the phone closes, `mod/holocall.lua` takes it, and the game's call window opens at the top left with the character's name and portrait. The ring lasts 1.5 to 7 s (`RING_MIN`, `RING_MAX`) while the conversation warms. V then talks with the normal push-to-talk or typed keys; the character answers in the mod voice with the game's call subtitle line. No one has to be nearby. A tap of the phone button hangs up. A call also ends on combat, a scene, a disabled conversation, 180 s with no talk (`IDLE_LIMIT`), 30 minutes (`MAX_LENGTH`) or any game quest call, which always wins. Johnny Silverhand can never be called (`NEVER`), and the mod writes no quest fact, phone blackboard value or journal entry. The bridge only knows the call as `holocall = {version = 1, contact, mode}`; `bridge/turn-context.mjs` describes the speaker as remote. Notices: `holocall-refused`, `holocall-connected`, `holocall-ended`, `holocall-live-fallback`.
+**Holocall.** V calls a mod character from the Chat tab with the game's own `call` key (V, Triangle on a pad): on a Chat list row (its call icon and the bottom bar's Call), or inside an open conversation (no hint is shown there). The game's own Contacts Call is never changed, and no game call function is wrapped (`bridge/holocall.test.mjs` asserts that). The request is one contact id (`ConvaiHolocallRequest` in `Holocall.reds`); the phone closes, `mod/holocall.lua` takes it, and the game's call window opens at the top left with the character's name and portrait. The ring lasts at least 1.5 s while the conversation warms and waits at most 10 s for the live picture (`RING_MIN`, `RING_MAX`). V then talks with the normal push-to-talk or typed keys; the character answers in the mod voice with the game's call subtitle line. No one has to be nearby. A tap of the phone button hangs up. A call also ends on combat, a scene, a disabled conversation, 180 s with no talk (`IDLE_LIMIT`), 30 minutes (`MAX_LENGTH`) or any game quest call, which always wins. Johnny Silverhand can never be called (`NEVER`), and the mod writes no quest fact, phone blackboard value or journal entry. The bridge only knows the call as `holocall = {version = 1, contact, mode}`; `bridge/turn-context.mjs` describes the speaker as remote. Notices: `holocall-refused`, `holocall-ended`, `holocall-live-fallback` (no notice on connecting: the call window is the cue).
 
 **Live picture** (**Settings > Conversations > Live holocall picture**, `holocallLiveImage`, on by default since 2026-10-14). For the 59 contacts the game itself stages a video holocall for (`STAGED` in `mod/holocall.lua`), dialing finds a studio spot out of V's sight (floor search by raycast, at most 11 ticks of 0.25 s), spawns a copy of the character and the game's own `holocall_camera.ent` at the game's framing (fov 35), keeps the copy animating off screen, holds a talk pose, turns her eyes to the lens and connects with `StartHolocall`. Everyone else gets the portrait voice call, as in the game. If the copy or camera is not ready when the ring ends, the call continues with the portrait and a notice says so. At hang-up the camera is switched off at once and deleted 1.5 s later (freeing a render-to-texture camera in the same frame can crash the render thread). The copy is lit by a three-lamp rig, as the game lights its studio actor with lights of its own (a warm key, a weaker fill, a cool rim; the game's corridor light with its fixture hidden, shadows off), which exists only during the call.
 
-**Not verified in the game:** the Chat-tab call button and key hints (the Chat list row icons, the bottom bar); the live picture away from one spot (seen lit, by window capture, in one place on 2026-10-15); the end animation; the quest-call preempt path; and whether the Holocall subtitle type shows a bottom line for the player as speaker. Redscript compiles against the real game cache.
+**Seen live (2026-10-15 and 16):** calling from the Chat tab with V, the lit live picture with a moving face looking at the lens, the call face driven exactly like a mod copy's face in the world, and hang-up by tap and hold. **Not verified in the game:** the Chat list row icons and bottom-bar hints; the live picture for a contact far from V (a high apartment, outdoors, at night); combat ending a call; the end animation; the quest-call preempt path; and whether the Holocall subtitle type shows a bottom line for the player as speaker. Redscript compiles against the real game cache.
 
 Further reading: [docs/PHONE_CHAT.md](docs/PHONE_CHAT.md), [docs/HOLOCALL.md](docs/HOLOCALL.md), [docs/CHAT_MEMORY_RESET.md](docs/CHAT_MEMORY_RESET.md).
 
@@ -1524,14 +1437,14 @@ Other documents: [packaging/PLAYER_README.md](packaging/PLAYER_README.md) (the r
 
 ## Status of unverified work
 
-Everything in this README describes current `main`. Tests cover the logic; they cannot show how a feature behaves in the running game. This section lists what is built but has not been seen in the live game, what ships switched off, and where measurements are partial. Experimental features are labelled the same way in the player section ([What is still experimental](#what-is-still-experimental)).
+Everything in this README describes current `main`. Tests cover the logic; they cannot show how a feature behaves in the running game. This section lists what is built but has not been seen in the live game, what ships switched off, and where measurements are partial.
 
-**Built, installed or installable, not yet seen in the live game**
+**Built, installed or installable, with parts not yet seen in the live game**
 
 | Area | State |
 |---|---|
-| Companion vision | Capture helper and bridge logic are tested; the end-to-end behaviour with Convai is not confirmed live |
-| Holocalls: live picture and the Chat-tab call button | Built; check [docs/HOLOCALL.md](docs/HOLOCALL.md) for what was seen |
+| Companion vision | Seen working with Convai live (2026-10-15); latency with vision on, walking hitches and the minimised-window turn are still to measure |
+| Holocalls | Calling from the Chat tab and the live picture seen live; the leftovers are listed in [Holocall and Phone Chat](#holocall-and-phone-chat) and [docs/HOLOCALL.md](docs/HOLOCALL.md) |
 | Ordinary-NPC conversations and their lip sync | Built; the gated crowd graph has not been installed or seen, and its FPS A/B check has not been run |
 | Character editor and the Multilingual setting (including the multilingual microphone) | Built and tested; not seen live |
 | Seated free-look, overflow convoys, fast-travel recovery | Built; not confirmed live |
@@ -1563,10 +1476,10 @@ The code is the reference. These design notes still carry older statements:
 
 ## Credits and licence
 
-**Cyberpunk 2077 belongs to CD PROJEKT RED.** Cyberpunk 2077, its characters, story, models, animations, audio, voice recordings and other game assets are the property of CD PROJEKT S.A. and their respective rights holders. This project is an unofficial fan mod. It is not made, endorsed or supported by CD PROJEKT RED, and nothing in this repository licenses any game asset. The reference voice clips and the game archives the mod ships are Cyberpunk 2077 material and are outside the project licence.
-
 **Licence.** The project's own source code, documentation and configuration are under the **Cyberpunk Convai Use License, version 1.1** ([LICENSE](LICENSE)): use, copy, modify and distribute, including commercially, provided that you keep the licence and notices, state significant changes, and, if you distribute a modified version with AI character conversation, offer a functional, user-selectable Convai integration as at least one provider option. Other providers, local models and self-hosted systems are allowed and any of them may be the default. It is source-available, not an OSI-approved open-source licence.
 
 **Third-party components** keep their own licences, including Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu, the Convai Web SDK, Node.js, Chrome for Testing and Chromium, Playwright, CPython, Kyutai Pocket TTS and its weights, VoiceStudio and OmniVoice (the OmniVoice weights are non-commercial), Moonshine and sherpa-onnx, llama.cpp, the Gemma, Qwen and Granite models and the CMU Pronouncing Dictionary. The exact versions and licence texts are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the optional Mature pack's two models carry their own licences, listed in [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md). Each release package also carries them as `THIRD-PARTY-NOTICES.txt`.
 
 Thanks to the authors of the frameworks the mod stands on, and to Convai and Mistral for their services.
+
+<sub>Cyberpunk 2077 and its characters, voices and assets belong to CD PROJEKT RED; the game clips and archives the mod ships are theirs and sit outside the project licence.</sub>
