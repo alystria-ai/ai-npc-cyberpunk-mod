@@ -715,9 +715,20 @@ async function localAiPackage(source, config, tierKey) {
   return pkg;
 }
 
-// The Mature pack (docs/LOCAL_AI.md, "Mature content"): a separate download, distributed only as a file on the GitHub release (uploaded by hand, never by the workflow, never to Nexus). It carries the uncensored
+// The Mature pack (docs/LOCAL_AI.md, "Mature content"): a separate download, distributed only as a file on the GitHub release (built by the release workflow's opt-in `mature` job from the private bucket's mirror, or by hand; never on a tag push, never to Nexus). It carries the uncensored
 // model files in the Local AI folder's models/ and the marker the main mod looks for (manifest.mature.json, read by bridge/mature-pack.mjs;
 // the Local AI detector never reads it), plus its own README and licence files under mature/. Nothing of it is in the Runtime package.
+// With --models hf, the Mature models come from the private bucket's mirror (packaging/fetch-models.py --mature: same token, same
+// download helper, SHA-256 checked against the pins). It returns the cached local path of each model the mirror has, keyed by file name;
+// a model it lacks is downloaded from its pinned public Hugging Face URL by localAiFile.
+async function matureMirror(source) {
+  const report = resolve(out, 'mature-mirror.json');
+  log('Fetching the Mature models from the private Hugging Face bucket mirror.');
+  await run(hostPython, [resolve(source.root, 'packaging/fetch-models.py'), '--config', resolve(source.root, 'packaging/release.config.json'),
+    '--cache', resolve(cache, 'models'), '--report', report, '--mature']);
+  return new Map(Object.entries((await readJson(report)).files));
+}
+
 async function maturePackage(source, config) {
   const spec = config.maturePack;
   // Exactly two models, like the Local AI packs' two tiers: lite and good (bridge/mature-pack.mjs, MATURE_TIERS).
@@ -731,7 +742,8 @@ async function maturePackage(source, config) {
   const pkg = new Package('mature');
   const root = config.layout.localAiDirectory;
   const huggingFace = item => `https://huggingface.co/${item.repository}/resolve/${item.revision}/${item.remote ?? item.file}`;
-  for (const model of tiers) pkg.file(`${root}/models/${model.file}`, await localAiFile(model, huggingFace(model), model.file));
+  const mirrored = modelSource === 'hf' ? await matureMirror(source) : new Map();
+  for (const model of tiers) pkg.file(`${root}/models/${model.file}`, mirrored.get(model.file) ?? await localAiFile(model, huggingFace(model), model.file));
   const entry = model => ({file: `models/${model.file}`, name: model.name, family: model.family});
   pkg.json(`${root}/${spec.marker}`, {version: 1, pack: 'mature', lite: entry(tiers[0]), good: entry(tiers[1])});
   pkg.text(`${root}/${spec.directory}/README.md`, await readFile(resolve(source.root, spec.readme), 'utf8'));

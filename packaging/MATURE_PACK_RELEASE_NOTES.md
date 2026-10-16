@@ -1,6 +1,6 @@
 # GitHub release notes: Cyberpunk Convai: Mature pack (18+)
 
-Where it goes: only as an optional file on this project's GitHub release, beside the Local AI packs, uploaded by hand (`gh release upload v<version> CyberpunkConvai-Mature-<version>.zip`). Never on Nexus Mods or any other site. The release workflow does not build or upload it.
+Where it goes: only as an optional file on this project's GitHub release, beside the Local AI packs, uploaded either by the release workflow's opt-in `mature` job (Actions > Release > Run workflow, tick `mature`; it builds from the private bucket's mirror and never runs on a tag push) or by hand (`gh release upload v<version> CyberpunkConvai-Mature-<version>.zip`). Never on Nexus Mods or any other site.
 
 ## Short description
 

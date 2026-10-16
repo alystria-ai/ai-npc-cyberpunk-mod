@@ -350,14 +350,48 @@ test('the build writes the manifest fragments the detector reads, and ships both
   assert.match(workflow, /SHA256SUMS-localai-/);
 });
 
+// ---------------------------------------------------------------- the Mature pack in the release workflow
+test('the release workflow builds the Mature pack only in an opt-in job: off by default, never on a tag push, never Nexus, from the bucket mirror', async () => {
+  const workflow = (await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8')).replaceAll('\r\n', '\n');
+  const input = /\n      mature:\n([\s\S]*?)\n      \w+:\n/.exec(workflow)?.[1] ?? '';
+  assert.match(input, /type: boolean/, 'a boolean workflow_dispatch input named mature');
+  assert.match(input, /default: false/, 'the input is off by default');
+  assert.match(input, /Mature pack \(GitHub release only\)/);
+  const job = /\n  mature:\n([\s\S]*?)(?=\n  [a-z][\w-]*:\n|$)/.exec(workflow)?.[1];
+  assert(job, 'the workflow has a mature job');
+  assert.match(job, /needs: runtime/);
+  assert.match(job, /\n    if: inputs\.mature\n/, 'the job runs only when the input is ticked');
+  assert.doesNotMatch(job, /ref_type|startsWith\(github\.ref|refs\/tags/, 'its condition never mentions a tag push');
+  assert.match(job, /--packages mature `\s*\n\s*--models hf/, 'it builds the pack from the bucket mirror');
+  assert.match(job, /HF_TOKEN: \$\{\{ secrets\.HF_TOKEN \}\}/);
+  assert.match(job, /gh release upload \$tag --repo \$env:GITHUB_REPOSITORY --clobber/);
+  assert.doesNotMatch(job, /nexus/i, 'GitHub release only');
+  // The tag filters sit in the push trigger, which has no input: the mature input is false there, so the job is skipped.
+  const trigger = workflow.slice(workflow.indexOf('\non:'), workflow.indexOf('\npermissions:'));
+  assert(trigger.includes('tags:') && !/mature/.test(trigger.slice(trigger.indexOf('push:'))), 'the push trigger knows nothing of it');
+  // The other jobs never build it.
+  for (const [name, body] of [['runtime', workflow.slice(workflow.indexOf('\n  runtime:'), workflow.indexOf('\n  omni:'))],
+    ['omni', workflow.slice(workflow.indexOf('\n  omni:'), workflow.indexOf('\n  # The optional Mature pack'))],
+    ['localai', workflow.slice(workflow.indexOf('\n  localai:'))]]) {
+    assert.doesNotMatch(body, /--packages[^\n]*mature/, `${name} does not build the Mature pack`);
+  }
+  // The builder reads the models from the mirror with --models hf and falls back to the pinned public URL.
+  const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
+  assert.match(builder, /modelSource === 'hf' \? await matureMirror\(source\)/);
+  assert.match(builder, /mirrored\.get\(model\.file\) \?\? await localAiFile\(/, 'a model the mirror lacks comes from the pinned public URL');
+  const config = JSON.parse(await readFile(resolve(project, 'packaging/release.config.json'), 'utf8'));
+  assert.equal(config.maturePack.mirror.bucket, 'mature/', 'the mirror sits outside final/');
+  assert.equal(config.maturePack.mirror.manifest, 'mature/MANIFEST.json');
+  assert(!config.maturePack.mirror.bucket.startsWith('final/'));
+});
+
 // ---------------------------------------------------------------- the Mature pack (docs/LOCAL_AI.md, "Mature content")
 test('the Mature pack is its own package: built only on request, never in the default set, and nothing of it in the Runtime package or the main page text', async () => {
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
   assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'localai-lite', 'mature'\]/, 'it is a package id beside the Local AI packs');
   assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => id !== 'mature'\)/, 'the default set leaves it out');
   assert.match(builder, /value\('--packages', DEFAULT_PACKAGE_IDS\.join\(','\)\)/, 'a plain build uses the default set');
-  // The release workflow builds the Local AI tiers only; the Mature pack is never produced by it.
-  assert.doesNotMatch(await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8'), /\bmature\b/i);
+  // The release workflow produces the Mature pack only in its own opt-in job (see the workflow test below).
   // Nothing in the release plan or the runtime layout (the Runtime package) is the pack's marker, README, release notes or models.
   const plan = await readFile(resolve(project, 'packaging/release-plan.json'), 'utf8');
   assert.doesNotMatch(plan, /manifest\.mature|MATURE_PACK|mature\/|uncensored|abliterat|heretic|hauhau/i);

@@ -185,6 +185,10 @@ into a release. Inputs:
   (`--native PATH` supplies a prebuilt DLL, `--no-native` omits it).
 - `ffmpeg`, for the pre-built Mistral voice references.
 - The Local AI files, downloaded from their pinned URLs (no secret needed).
+- The optional Mature pack's two models (`--packages mature`, never in the default set), from the private bucket's `mature/` mirror
+  (`packaging/fetch-models.py --mature`, SHA-256 checked against `maturePack.tiers`, so a takedown of the community repositories cannot break a build), or from
+  their pinned public Hugging Face URLs when the mirror lacks them. `--models local` reads the developer folder instead. `mature/` is outside `final/`, so the
+  trained-model fetch never downloads it.
 
 Archives are deterministic (`packaging/lib/zip.mjs`): sorted entries, one timestamp (the commit
 time), fixed deflate level, weights stored. Each archive stays under 1.95 GB (GitHub's limit is
@@ -233,6 +237,8 @@ package, because it is built by the second job, so a release can briefly lack it
 already exists, the workflow only re-uploads (`--clobber`) and leaves its title and notes alone.
 A new release is created with `--latest`, so the newest build is always marked Latest whatever GitHub's own ranking says.
 
+The optional Mature pack is built by a fourth job, `mature`, that runs only when the manual run's `mature` input is ticked (default off; never on a tag push, never uploaded to Nexus). It builds with `--packages mature --models hf` from the bucket mirror and uploads the zip to the same release with `--clobber` (GitHub release only). It can also be built and uploaded by hand: `node packaging/build-release.mjs --version 0.N --packages mature` then `gh release upload`.
+
 Permissions and secrets: the workflow uses the built-in `GITHUB_TOKEN` with `contents: write`
 (no separate releases repository or token). Repository secrets: `HF_TOKEN` (bucket read) and
 `CONVAI_API_KEY`. GitHub masks secrets in logs; the builder also masks the parsed key and never
@@ -241,6 +247,7 @@ permission can stay read-only.
 
 ## Keeping the inputs current
 
+- Mature pack models: mirrored under `mature/` in the bucket with a `mature/MANIFEST.json` (path, size, SHA-256); re-mirror them if `maturePack.tiers` changes.
 - New models or voice configs: upload them to the bucket's `final/` and update
   `final/MANIFEST.json` (the build only accepts files listed there). `--models local` builds from
   `runtime/` before that.

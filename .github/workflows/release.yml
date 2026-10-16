@@ -11,7 +11,8 @@
 # artifact for uploading to Nexus Mods. The Runtime package carries the native plugin, which the
 # build compiles with MSVC and CMake (both are on the Windows runner; the RED4ext SDK is fetched by
 # CMake at the commit pinned in native/core/CMakeLists.txt). The OmniVoice pack and the two Local AI
-# packs are built by their own jobs and added to the same release as separate downloads. See docs/PACKAGING.md.
+# packs are built by their own jobs and added to the same release as separate downloads. The optional Mature pack has an
+# opt-in job (the `mature` input, off by default, never on a tag push, GitHub release only). See docs/PACKAGING.md.
 name: Release
 
 on:
@@ -28,6 +29,10 @@ on:
         description: Also build the two optional Local AI packs (standard and lite)
         type: boolean
         default: true
+      mature:
+        description: Also build the optional Mature pack (GitHub release only)
+        type: boolean
+        default: false
       publish:
         description: Create the GitHub release and upload the packages to it
         type: boolean
@@ -205,6 +210,52 @@ jobs:
           $files = @(Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName)
           gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-omni.txt"
           if ($LASTEXITCODE -ne 0) { throw 'Uploading the OmniVoice pack failed.' }
+
+  # The optional Mature pack (packaging/MATURE_PACK_README.md): opt-in only (the `mature` input, default off), so never on a tag push,
+  # and a GitHub release download only, never Nexus. Its two models come from the private bucket's mirror (HF_TOKEN), with the pinned public URL as fallback.
+  mature:
+    name: Mature pack
+    needs: runtime
+    if: inputs.mature
+    runs-on: windows-2025
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Build tools
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
+          npm ci --no-audit --no-fund
+
+      - name: Build the Mature pack
+        shell: pwsh
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+          node packaging/build-release.mjs --version "${{ needs.runtime.outputs.version }}" --packages mature `
+            --models hf --out $env:OUT --cache $env:CACHE
+          Remove-Item -Recurse -Force "$env:OUT\stage" -ErrorAction SilentlyContinue
+          Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+
+      - name: Add the Mature pack to the release
+        if: inputs.publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'v${{ needs.runtime.outputs.version }}'
+          Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-mature.txt"
+          $files = @(Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName)
+          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-mature.txt"
+          if ($LASTEXITCODE -ne 0) { throw 'Uploading the Mature pack failed.' }
 
   localai:
     name: Local AI pack (${{ matrix.tier }})
