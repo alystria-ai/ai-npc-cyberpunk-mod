@@ -753,7 +753,7 @@ return {
     ["Clear memories about you for every character you have talked to.\n\nYour player identity stays. A confirmation comes first."] = "会話したことのある全キャラクターの、あなたについての記憶を消去します。\n\nプレイヤーIDは保持されます。先に確認が表示されます。",
     ["Saves a report file you can send to the developer.\n\nAPI keys, tokens, IDs, microphone audio and conversation text are left out. Without the conversation service, a shorter report is made from the files the game can read."] = "開発者に送れるレポートファイルを保存します。\n\nAPIキー、トークン、ID、マイク音声、会話テキストは除外されます。会話サービスが動作していない場合は、ゲームが読み取れるファイルから短いレポートが作成されます。",
     ["The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: installed."] = "Mature pack の無検閲モデルで完全効果。標準モデルは大半が性行為を拒否。パック：導入済み。",
-    ["The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s GitHub page)."] = "Mature pack の無検閲モデルで完全効果。標準モデルは大半が性行為を拒否。パック：未導入（任意、本modのGitHub）。",
+    ["The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page)."] = "Mature pack の無検閲モデルで完全効果。標準モデルは大半が性行為を拒否。パック：未導入（任意、本modのHugging Face）。",
     ["Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice."] = "未選択時は、空きグラフィックスメモリに収まる最大モデルをローカル AI が読み込む。\n\n同時に読み込むのは1モデルのみ。変更は次回読み込み時に反映。欠落・過大・失敗したモデルは、収まる最大モデルに置き換え、通知は1回。",
     ["Body gestures"] = "身振り",
     ["Convai did not accept your API key. Check it in Settings > Conversation provider."] = "Convai が APIキーを受け付けませんでした。設定 > 会話プロバイダーで確認してください。",

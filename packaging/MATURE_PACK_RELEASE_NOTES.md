@@ -1,43 +1,43 @@
-# GitHub release notes: Cyberpunk Convai: Mature pack (18+)
+# Hugging Face page text: Cyberpunk Convai: Mature packs (18+)
 
-Where it goes: only as an optional file on this project's GitHub release, beside the Local AI packs, uploaded either by the release workflow's opt-in `mature` job (Actions > Release > Run workflow, tick `mature`; it builds from the private bucket's mirror and never runs on a tag push) or by hand (`gh release upload v<version> CyberpunkConvai-Mature-<version>.zip`). Never on Nexus Mods or any other site.
+Where it goes: only as optional files on this project's Hugging Face page (https://huggingface.co/akshitireddy/cyberpunk-convai-packs, in the folder of the version), beside the Local AI packs. There are two packs, Mature lite (`CyberpunkConvai-Mature-Lite-<version>.zip`) and Mature good (`CyberpunkConvai-Mature-Good-<version>.zip`), each one zip with no parts, uploaded either by the release workflow's opt-in `mature` job (Actions > Release > Run workflow, tick `mature`; it builds each pack from the private bucket's mirror in its own job, uploads it with its `SHA256SUMS-mature-<tier>.txt`, and never runs on a tag push) or by hand (`python packaging/upload-packs.py --version <version> --pack mature-lite --packages <folder>`). Never on Nexus Mods and not on the GitHub release.
 
 ## Short description
 
-Optional 18+ models for Cyberpunk Convai. Replaces the Local AI models' built-in refusals with uncensored models, so that the main mod's **Mature content** setting has its full effect: companions can swear, talk about violence, drugs and dark themes, and flirt or be intimate with V, in character and in the game's adult tone. Hard limits always stay on (nothing involving minors, nothing without consent, nothing about real people, no real-world harm instructions, no hate).
+Optional 18+ models for Cyberpunk Convai, in two packs (Mature lite and Mature good, each works alone). They replace the Local AI models' built-in refusals with uncensored models, so that the main mod's **Mature content** setting has its full effect: companions can swear, talk about violence, drugs and dark themes, and flirt or be intimate with V, in character and in the game's adult tone. Hard limits always stay on (nothing involving minors, nothing without consent, nothing about real people, no real-world harm instructions, no hate).
 
 ## Description
 
 **For adults only (18+).**
 
-The main mod has a **Mature content** setting (Settings > Conversation provider, under the provider). It is off by default, applies to Local AI only, and its help text says it is for adults (18+). With the standard Local AI models it already changes language, violence and tone, but those models are trained to refuse most adult content. This pack is an optional download that adds uncensored models, so the setting has its full effect.
+The main mod has a **Mature content** setting (Settings > Conversation provider, under the provider). It is off by default, applies to Local AI only, and its help text says it is for adults (18+). With the standard Local AI models it already changes language, violence and tone, but those models are trained to refuse most adult content. These packs are optional downloads that add uncensored models, so the setting has its full effect.
 
 **What it adds**
 
-- Two uncensored models for **Local AI**, a lite one (about 2.7 GB) and a good one (about 5.3 GB), running on your own graphics card.
+- Two packs, each one zip with one uncensored model for **Local AI**: **Mature lite** (about 2.7 GB) and **Mature good** (about 5.3 GB), running on your own graphics card. Install either one, or both.
 - With Mature content on: strong language, graphic violence, drug and cyberware-abuse talk, dark and morally grey themes, crude humour, and flirting, romance and sexual content between consenting adults.
 
 **What does not change**
 
 - Characters stay themselves: their voices, personalities and orientations decide how they flirt and talk about sex, not whether they do. They are direct and explicit; your relationship with them sets the tone (a partner is the most forward).
-- The **hard limits are always on**, on every model, with or without this pack: no sexual content involving minors or anyone who seems under 18, none without consent, no bestiality or incest, nothing sexual about real people, no real-world instructions for weapons, explosives or drug synthesis, no hateful content about real protected groups. The mod holds them in a rule at the start of every conversation, in a check on your messages before any model sees them, and in a check on every reply sentence before it is spoken.
+- The **hard limits are always on**, on every model, with or without these packs: no sexual content involving minors or anyone who seems under 18, none without consent, no bestiality or incest, nothing sexual about real people, no real-world instructions for weapons, explosives or drug synthesis, no hateful content about real protected groups. The mod holds them in a rule at the start of every conversation, in a check on your messages before any model sees them, and in a check on every reply sentence before it is spoken.
 - It applies to **Local AI only**. Convai and Mistral never get it: choosing either turns the setting off.
 
 **Requirements**
 
 - You are 18 or older.
 - Cyberpunk Convai (the main mod, Scripts and Runtime, same version) and its requirements.
-- A Local AI pack (standard or lite) from this release page, working on your computer.
-- About 8 GB of free disk space.
+- A Local AI pack (standard or lite) from this page, working on your computer.
+- Free disk space: about 2.7 GB for Mature lite, about 5.3 GB for Mature good.
 
 **Install**
 
 1. Close the game.
-2. Extract every part of this pack into your Cyberpunk 2077 folder, allowing folders to merge.
+2. Extract the zip into your Cyberpunk 2077 folder, allowing folders to merge.
 3. Start the game, open the Companion Manager, then Settings > Conversation provider.
 4. Choose Local in Conversation provider and Apply, then turn on Mature content and Apply.
 
-To turn it off, switch the setting off. To remove the pack, delete `manifest.mature.json` from the Local AI folder (and the model files listed in `mature/THIRD-PARTY-NOTICES.txt`); the setting stays, and the standard models are used.
+To turn it off, switch the setting off. To remove a pack, delete its marker (`manifest.mature-lite.json` or `manifest.mature-good.json`) from the Local AI folder (and the model file listed in `mature/THIRD-PARTY-NOTICES-lite.txt` or `-good.txt`); the setting stays, and the standard models are used.
 
 **Credits and licences**
 

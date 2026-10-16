@@ -3,26 +3,34 @@
 How the player release is built, what it contains and how it starts. Players read
 `packaging/PLAYER_README.md` instead (it ships in every package and is the release notes).
 
-## The five packages
+## The packages
 
 | Package | Where players get it | Contents |
 |---|---|---|
 | `CyberpunkConvai-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, `README.txt` and `release.json`. |
-| `CyberpunkConvai-Runtime-<v>.zip` | GitHub Releases of this repository | Everything else needed to play: the RED4ext launcher, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
-| `CyberpunkConvai-OmniPack-<v>-partNofM.zip` | GitHub | Optional OmniVoice pack: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
-| `CyberpunkConvai-LocalAI-Standard-<v>[-partNofM].zip` | GitHub | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB): the llama-server Vulkan build, the embedding model and the chat model, in 1 GB parts. |
-| `CyberpunkConvai-LocalAI-Lite-<v>.zip` | GitHub | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB), the same server and embedding model. |
+| `CyberpunkConvai-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
+| `CyberpunkConvai-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
+| `CyberpunkConvai-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the llama-server Vulkan build, the embedding model and the chat model, whole. |
+| `CyberpunkConvai-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB), the same server and embedding model. |
+| `CyberpunkConvai-Mature-Lite-<v>.zip`, `CyberpunkConvai-Mature-Good-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-good.json`) so either works alone. |
+
+The optional packs are hosted in one Hugging Face model repository, `akshitireddy/cyberpunk-convai-packs`, in a folder per
+version (`0.2/CyberpunkConvai-OmniPack-0.2.zip`, with `0.2/SHA256SUMS-omni.txt` beside it). Each pack is ONE zip: no `-partNofM` zips
+and no `.partN` files inside. GitHub's 2 GiB per-file limit was the only reason for parts, and Hugging Face has no such limit. A model
+over 4 GiB (the standard Local AI model, the good Mature model) sits whole in a ZIP64 zip (`packaging/lib/zip.mjs` writes ZIP64 only
+where an entry or the archive needs it; Windows Explorer, PowerShell's Expand-Archive, 7-Zip and tar read it). The repository is private
+until release day, when it goes public with the GitHub repository. The players' links are in the README's Install section.
 
 Why this split: Nexus Mods scans every upload and holds files that its scanners flag for manual
 review (help.nexusmods.com articles 128 and 117); it has no blanket rule against DLLs or
 executables, but a text-only file never needs that review and is never quarantined. The Nexus page
 must list RED4ext among the requirements (with CET, redscript, Codeware, TweakXL, Audioware and
 Mod Configuration Menu): the Runtime package's launcher and native plugin are RED4ext plugins. The large,
-binary runtime goes to GitHub Releases as plain zips, which is how the core frameworks
+binary runtime goes to the GitHub release as plain zips, which is how the core frameworks
 (RED4ext, Codeware, TweakXL, Audioware) are distributed too; RED4ext also builds in Actions and
 publishes SHA-256 values with each release, which this pipeline does as well.
 
-All five use game-root-relative paths and merge into one install. Versions must match;
+All of them use game-root-relative paths and merge into one install. Versions must match;
 `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the
 Runtime one.
 
@@ -89,8 +97,8 @@ entry whose game-relative path would exceed 255 characters under a 70-character 
 1. RED4ext loads `CyberpunkConvai.dll`. It checks that CET and the CET mod are present, reads
    `launcher.ini` and starts `app\node\node.exe app\launcher\start-service.mjs` hidden, with a pipe
    whose closing tells the service that the game ended.
-2. `start-service.mjs` prepares `data/` (below), joins split OmniVoice files on the first start
-   after extraction (verifying their SHA-256), and sets every path explicitly:
+2. `start-service.mjs` prepares `data/` (below), joins split files left by an earlier release on the first start
+   (verifying their SHA-256; current packs have none), and sets every path explicitly:
    `CYBERPUNK_CONVAI_BROWSER`, `CYBERPUNK_CONVAI_CLIENT_ASSETS`, the four `CYBERPUNK_CONVAI_OMNI_*`
    paths and `CYBERPUNK_CONVAI_PYTHON` when the pack is installed, the key file and state folder.
    It clears inherited `NODE_OPTIONS`, `PYTHONPATH` and similar overrides. Nothing is looked up on PATH.
@@ -122,8 +130,8 @@ Two optional downloads (`docs/LOCAL_AI.md`): `localai-standard` (Gemma 4 E4B) an
 `llama-server` Vulkan build b11560 (only the server and its DLLs), the granite embedding model, one chat model, a manifest fragment
 (`manifest.standard.json` or `manifest.lite.json`, merged by `bridge/local-ai-pack.mjs`), the licence texts and the notices, under
 `red4ext/plugins/CyberpunkConvai/app/local-ai/`. The two packs repeat the shared server, embedding and notice files byte for byte, so
-extracting both only overwrites identical bytes. The standard model file is over the size limit, so it is split into 1 GB parts and
-joined (and hash-checked) by `assemble-parts.mjs` on the first start. Every file is the unmodified upstream file, pinned in the
+extracting both only overwrites identical bytes. The chat model ships whole (no parts): `bridge/local-ai-pack.mjs` finds the model file directly, and
+`assemble-parts.mjs` only joins parts that an earlier release left behind (it finds no `.parts.json` in a current install and does nothing). Every file is the unmodified upstream file, pinned in the
 `localAi` block of `release.config.json` by URL, revision and SHA-256; a developer folder can stand in with `--models local`.
 Licences (all redistributable with the licence text, which the packs carry): llama.cpp MIT, the LLVM OpenMP runtime Apache-2.0 with
 LLVM exceptions, Gemma 4 E4B Apache-2.0 (Google also publishes a prohibited use policy), Qwen3.5-2B Apache-2.0, granite-embedding
@@ -185,15 +193,16 @@ into a release. Inputs:
   (`--native PATH` supplies a prebuilt DLL, `--no-native` omits it).
 - `ffmpeg`, for the pre-built Mistral voice references.
 - The Local AI files, downloaded from their pinned URLs (no secret needed).
-- The optional Mature pack's two models (`--packages mature`, never in the default set), from the private bucket's `mature/` mirror
-  (`packaging/fetch-models.py --mature`, SHA-256 checked against `maturePack.tiers`, so a takedown of the community repositories cannot break a build), or from
+- The optional Mature packs' models (`--packages mature-lite` or `mature-good`, never in the default set; only the model of the pack being built), from the private bucket's `mature/` mirror
+  (`packaging/fetch-models.py --mature --tier lite|good`, SHA-256 checked against `maturePack.tiers`, so a takedown of the community repositories cannot break a build), or from
   their pinned public Hugging Face URLs when the mirror lacks them. `--models local` reads the developer folder instead. `mature/` is outside `final/`, so the
   trained-model fetch never downloads it.
 
 Archives are deterministic (`packaging/lib/zip.mjs`): sorted entries, one timestamp (the commit
-time), fixed deflate level, weights stored. Each archive stays under 1.95 GB (GitHub's limit is
-2 GiB per asset) and 65,535 entries; files over 1 GB (only OmniVoice's 2.45 GB `model.safetensors`)
-are split into `.partN` byte ranges with a `.parts.json`, joined on first start. Output:
+time), fixed deflate level, weights stored. The Scripts and Runtime archives each stay under 1.95 GB (GitHub's limit is
+2 GiB per asset), a Runtime archive that would pass it rolls over to a `-partNofM` zip, and a single file over that limit stops the build
+(nothing is split inside a file any more). The optional packs are always one zip each, written as ZIP64 where needed (`--packages omni`,
+`localai-standard`, `localai-lite`, `mature-lite`, `mature-good`). Output:
 `dist/release/packages/` with the zips, `*.files.json` (every file's size and SHA-256),
 `SHA256SUMS.txt` and `release-manifest.json`.
 
@@ -225,29 +234,31 @@ To try a build in the real game, remove the development launcher first
 `.github/workflows/release.yml` runs only from Actions > Release > Run workflow or on a pushed
 `v0.N` tag. Job 1 builds and install-tests Scripts + Runtime on `windows-2022` (Visual Studio 2022; `windows-2025` moved to Visual Studio 2026), keeps the Scripts
 zip as a workflow artifact (for Nexus), and creates the GitHub release `v0.N` in this same
-repository, uploading the packages to it. Job 2 builds the OmniVoice pack and adds it to the same
-release; job 3 (a matrix of `standard` and `lite`) builds the two Local AI packs and adds them too. Large packages are not stored as workflow artifacts (private-repository artifact storage
+repository, uploading the packages to it. Job 2 builds the OmniVoice pack and job 3 (a matrix of `standard` and `lite`) the two Local AI
+packs; each uploads its zip to the Hugging Face repository `akshitireddy/cyberpunk-convai-packs` (below), not to the GitHub release. Large packages are not stored as workflow artifacts (private-repository artifact storage
 is small).
 
 The release is published immediately, not left as a draft (the manual run has a `publish` switch
 to skip release creation). While the repository is private, only collaborators can see the release
 and its downloads; it becomes visible to everyone when the repository is made public. A manual run
-tags the commit it was started from. The OmniVoice pack arrives a while after the Runtime
-package, because it is built by the second job, so a release can briefly lack it. If `v0.N`
+tags the commit it was started from. The optional packs arrive on Hugging Face a while after the Runtime
+package is released, because they are built by later jobs. If `v0.N`
 already exists, the workflow only re-uploads (`--clobber`) and leaves its title and notes alone.
 A new release is created with `--latest`, so the newest build is always marked Latest whatever GitHub's own ranking says.
 
-The optional Mature pack is built by a fourth job, `mature`, that runs only when the manual run's `mature` input is ticked (default off; never on a tag push, never uploaded to Nexus). It builds with `--packages mature --models hf` from the bucket mirror and uploads the zip to the same release with `--clobber` (GitHub release only). It can also be built and uploaded by hand: `node packaging/build-release.mjs --version 0.N --packages mature` then `gh release upload`.
+**Hugging Face upload.** The omni, localai and mature jobs install `huggingface_hub`, check first (`packaging/upload-packs.py --check`) that the `HF_TOKEN` secret can write to the repository, build their pack, and upload it with `packaging/upload-packs.py --version V --pack NAME --packages DIR` (`HfApi.upload_file`, retried, then checked against the local size). The zip goes to `V/<file>.zip` and the build's checksums to `V/SHA256SUMS-NAME.txt` in the same folder. A token that cannot write fails with a message naming the repository and saying the `HF_TOKEN` secret needs write access to it. The uploader refuses a build with more than one zip. The `publish` input also gates these uploads on a manual run (a tag run always uploads).
+
+The optional Mature packs are built by the `mature` job, a matrix of `lite` and `good` (one runner each), that runs only when the manual run's `mature` input is ticked (default off; never on a tag push, never uploaded to Nexus or to the GitHub release). Each builds with `--packages mature-lite` or `mature-good` `--models hf` from the bucket mirror and uploads its zip to Hugging Face. They can also be built and uploaded by hand: `node packaging/build-release.mjs --version 0.N --packages mature-lite` then `python packaging/upload-packs.py --version 0.N --pack mature-lite --packages dist/release/packages`.
 
 Permissions and secrets: the workflow uses the built-in `GITHUB_TOKEN` with `contents: write`
-(no separate releases repository or token). Repository secrets: `HF_TOKEN` (bucket read) and
+(no separate releases repository or token). Repository secrets: `HF_TOKEN` (bucket read, and write access to the pack repository) and
 `CONVAI_API_KEY`. GitHub masks secrets in logs; the builder also masks the parsed key and never
 prints it. The workflow requests `contents: write` itself, so the repository's default workflow
 permission can stay read-only.
 
 ## Keeping the inputs current
 
-- Mature pack models: mirrored under `mature/` in the bucket with a `mature/MANIFEST.json` (path, size, SHA-256); re-mirror them if `maturePack.tiers` changes.
+- Mature pack models (lite and good): mirrored under `mature/` in the bucket with a `mature/MANIFEST.json` (path, size, SHA-256); re-mirror them if `maturePack.tiers` changes.
 - New models or voice configs: upload them to the bucket's `final/` and update
   `final/MANIFEST.json` (the build only accepts files listed there). `--models local` builds from
   `runtime/` before that.

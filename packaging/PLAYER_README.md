@@ -27,7 +27,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - Install these from Nexus Mods first: Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu
 - An internet connection while you talk with Convai, Mistral or the Voxtral voice (Local AI with a local voice needs none)
 - About 3 GB of free disk space (about 15 GB more while installing the optional OmniVoice pack, 9 GB once installed)
-- Optional Local AI packs: about 5.3 GB for standard and about 1.5 GB for lite (about 11 GB free while installing the standard one)
+- Optional Local AI packs: about 5.3 GB for standard and about 1.5 GB for lite (about 11 GB free while installing the standard one, which counts the downloaded zip)
 
 RED4ext is needed because it starts the voice service with the game and loads the plugin that comes with the Runtime download.
 
@@ -38,12 +38,15 @@ You do not need to install anything else. The voice service, its voices and mode
 Close the game, then extract each download into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge.
 
 1. **Scripts**: from Nexus Mods, with Vortex or by hand.
-2. **Runtime**: from the Releases page of https://github.com/alystria-ai/cyberpunk-convai. Use the same version number as the Scripts. If it comes in several parts, extract every part.
-3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download every part from the same release page and extract them all. Then choose an OmniVoice option in Settings > Voices.
+2. **Runtime**: from the Releases page of https://github.com/alystria-ai/cyberpunk-convai. Use the same version number as the Scripts.
 
-4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB, in several parts) for the best replies, and **Local AI lite** (Qwen3.5-2B, about 1.5 GB) for smaller graphics cards. Download every part from the same release page and extract them all. Then choose Local as the Conversation provider in Settings > Conversation provider. See "Local AI" below to pick a combination.
+The optional packs are on the mod's Hugging Face page, https://huggingface.co/akshitireddy/cyberpunk-convai-packs, in a folder per version. Each pack is one zip file, so there is nothing to join, and each works on its own. Use the same version number as the Scripts and Runtime.
 
-Start the game. The first start after installing takes a little longer while the voice service prepares itself. After the standard Local AI pack, the first start also joins the downloaded parts into one file, which takes about a minute; the Local AI model row reads "No model installed" until that is done.
+3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download https://huggingface.co/akshitireddy/cyberpunk-convai-packs/resolve/main/0.2/CyberpunkConvai-OmniPack-0.2.zip and extract it. Then choose an OmniVoice option in Settings > Voices.
+
+4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB) for the best replies, and **Local AI lite** (Qwen3.5-2B, about 1.5 GB) for smaller graphics cards. Download https://huggingface.co/akshitireddy/cyberpunk-convai-packs/resolve/main/0.2/CyberpunkConvai-LocalAI-Standard-0.2.zip and https://huggingface.co/akshitireddy/cyberpunk-convai-packs/resolve/main/0.2/CyberpunkConvai-LocalAI-Lite-0.2.zip (one or both) and extract each. Then choose Local as the Conversation provider in Settings > Conversation provider. See "Local AI" below to pick a combination.
+
+Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 
 If Windows reports an error while extracting, use 7-Zip (https://www.7-zip.org) instead of the built-in extractor.
 
@@ -77,7 +80,7 @@ Which combination fits your card. Lower settings means medium textures and no ra
 
 ## Update
 
-Close the game and extract the new Scripts and Runtime (and OmniVoice pack, if you use it) over the old ones. Your conversations, memories and settings are kept.
+Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings are kept.
 
 ## Uninstall
 
