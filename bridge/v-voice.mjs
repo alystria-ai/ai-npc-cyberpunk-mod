@@ -26,6 +26,7 @@ import {resolve} from 'node:path';
 import {inspectReference} from './addons.mjs';
 import {PcmEdges} from './pcm-edges.mjs';
 import {readPcmWav} from './speech-audio.mjs';
+import {voiceVolumeDb} from './dialogue-level.mjs';
 import {TurnClock, withClock} from './turn-clock.mjs';
 
 export const V_VOICE_KEYS = Object.freeze({male: 'v-male', female: 'v-female'});
@@ -231,8 +232,10 @@ export class VLine {
       this.clock.mark('ended');
       this.settle();
     }
-    // The renderer is told what the game's dialogue volume is; nothing else is asked of the game.
-    return {allow: true, paused: false, volume: this.volume, pan: 0};
+    // The renderer is told what the game's dialogue volume is; nothing else is asked of the game. The Voice volume setting rides in
+    // makeupDb, left out at 100% so the control is then exactly the previous one; V has no dialogue-level makeup of its own.
+    const makeupDb = voiceVolumeDb();
+    return {allow: true, paused: false, volume: this.volume, pan: 0, ...(makeupDb ? {makeupDb} : {})};
   }
 
   run() {

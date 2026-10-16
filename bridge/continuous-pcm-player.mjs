@@ -205,8 +205,8 @@ export class ContinuousPcmPlayer {
     this.gain.connect(this.context.destination); this.limited = false;
   }
 
-  // Route the gain stage through the limiter only while makeup is active, so
-  // matching turned off is bit-for-bit the previous unity path.
+  // Route the gain stage through the limiter only while a level change is active (makeup above or below 0), so
+  // matching turned off at 100% voice volume is bit-for-bit the previous unity path.
   setLimited(limited) {
     if (!this.limiter || this.limited === limited) return;
     try {
@@ -230,8 +230,9 @@ export class ContinuousPcmPlayer {
     // a separate node before that reader receives its pause would silently
     // discard a few consumed samples. Already-rendered device audio can drain.
     const makeup = this.stopped ? 0 : this.admission.makeupDb || 0;
-    this.setLimited(makeup > 0);
-    const level = this.limited ? Math.pow(10, (makeup - LIMITER.makeupDb) / 20) : 1;
+    this.setLimited(makeup !== 0);
+    // Without a limiter node (a browser that could not build one) a boost is skipped, as before, but a lower Voice volume is plain gain.
+    const level = this.limited ? Math.pow(10, (makeup - LIMITER.makeupDb) / 20) : makeup < 0 ? Math.pow(10, makeup / 20) : 1;
     const volume = this.stopped ? 0 : this.admission.volume * level;
     if (this.appliedVolume !== volume) {
       this.setParam(this.gain.gain, volume, this.appliedVolume === undefined || this.stopped);

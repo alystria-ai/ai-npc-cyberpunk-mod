@@ -72,7 +72,7 @@ test('playback control accepts the level fields and rejects nonsense', () => {
   assert.deepEqual(playbackControl({allow: true, paused: false, volume: .5, pan: 0}),
     {allow: true, paused: false, volume: .5, pan: 0, makeupDb: 0, distance: null, delayMs: 0});
   assert.equal(playbackControl({allow: true, paused: false, makeupDb: 6, distance: 3.5}).distance, 3.5);
-  for (const bad of [{makeupDb: -1}, {makeupDb: 13}, {makeupDb: NaN}, {distance: -1}, {distance: Infinity}])
+  for (const bad of [{makeupDb: -7}, {makeupDb: 19}, {makeupDb: NaN}, {distance: -1}, {distance: Infinity}])
     assert.throws(() => playbackControl({allow: true, paused: false, ...bad}));
   assert.equal(airCutoff(2, 12000), 12000);
   assert.ok(Math.abs(airCutoff(30, 24000) - 5000) < 1);

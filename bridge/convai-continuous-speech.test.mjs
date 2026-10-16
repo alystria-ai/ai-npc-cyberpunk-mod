@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
-import {DIALOGUE_MAKEUP_DB as MAKEUP} from './dialogue-level.mjs';
+import {DIALOGUE_MAKEUP_DB as MAKEUP, updateDialogueLevel, updateVoiceVolume} from './dialogue-level.mjs';
 
 const QUIET = {allow: false, paused: true, volume: 0, pan: 0};
 const owner = {requestId: 'reply-1', entity: 'judy-copy-2', generation: 7};
@@ -30,6 +30,22 @@ function fixture(input = owner, extra = {}) {
   };
   return f;
 }
+
+test('the companion renderer control carries the Voice volume on top of the dialogue level, live between polls', async () => {
+  try {
+    const f = fixture(); f.control({distance: 6});
+    assert.equal((await f.stream.frame(f.snapshot({receivedFrames: 1920}))).makeupDb, MAKEUP, '100% is the dialogue level alone');
+    updateVoiceVolume({voiceVolume: 200});
+    const doubled = await f.stream.frame(f.snapshot({receivedFrames: 1920 * 2}));
+    assert.ok(Math.abs(doubled.makeupDb - (MAKEUP + 6.0206)) < 1e-3, `${doubled.makeupDb}`);
+    updateVoiceVolume({voiceVolume: 50});
+    assert.ok(Math.abs((await f.stream.frame(f.snapshot({receivedFrames: 1920 * 3}))).makeupDb - (MAKEUP - 6.0206)) < 1e-3);
+    // Level matching off keeps the distance low-pass open, whatever the volume does to the gain.
+    updateDialogueLevel('{"enabled": false}');
+    const off = await f.stream.frame(f.snapshot({receivedFrames: 1920 * 4}));
+    assert.equal(off.distance, null); assert.ok(Math.abs(off.makeupDb + 6.0206) < 1e-3);
+  } finally { updateVoiceVolume({}); updateDialogueLevel(''); }
+});
 
 test('F9 waits for its recognized prompt then includes it in the single admission descriptor', async () => {
   const f = fixture({...owner, source: 'microphone', group: {index: 1}});
