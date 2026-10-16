@@ -249,7 +249,7 @@ test('release versions follow 0.N with 0.N.M hotfixes (legacy 2077.N still accep
   const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');
   assert(workflow.includes("- 'v[0-9]+.[0-9]+'") && workflow.includes("- 'v[0-9]+.[0-9]+.[0-9]+'"), 'tag filters for v0.2 and v0.2.1');
   assert(workflow.includes(String.raw`'^\d+(\.\d+){1,3}([-+][0-9A-Za-z.-]+)?$'`), 'the workflow version check matches lib/version.mjs');
-  // v0.2 sorts below the legacy v2077.1 by version number, so a publish must say it is the latest release.
+  // A publish always marks the newest build as the latest release.
   assert(/'--latest'/.test(workflow), 'the workflow marks the published release as Latest');
 });
 

@@ -4,26 +4,28 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 
 ## What's new in 0.2
 
+- **Three ways to talk, all free**: Convai free tier out of the box (100 turns a day), Mistral with a free account (about 5,000 a day), or Local AI on your own graphics card with no account and no internet. Choose in Settings > Conversation provider.
+- **Holocalls**: call a character from the phone's Chat tab and they pick up live on screen.
+- **Voxtral voices**: the same free Mistral account gives every character their own voice made in the cloud, so nothing runs on your PC. The default Pocket TTS voices still run on your processor with no setup.
+- **V speaks too**: lines you type are heard in V's own voice before the reply (Settings > Voices).
+- **Voice volume**: one slider from 50 to 200 percent for every mod voice.
+- **Hold to talk**: hold the talk-by-voice button while you speak and let go, or tap to start and tap again to send. Your words show as V's subtitle while you speak.
+- **Companions see Night City**: with Convai, companions can talk about what is around you. The picture of the game window is taken only while someone you can talk to is near and is never saved.
+- **Sign in with Convai** connects your own Convai account in a few clicks.
 - **Alt Cunningham** joins the cast as a companion you can talk to, with her own voice and look.
 - **Many more people to talk to**: ordinary NPCs, vendors and faction members talk through character profiles of their own kind, with several voices each, and shopkeepers you return to remember you. The party has no size limit; only characters the mod spawns join it, and named story characters in the world are left alone.
 - **Companions sit with you** on couches, benches, chairs and bar stools, and you can look around freely while seated.
-- **Body gestures** are rebuilt: calmer, timed to the phrase, with no repeats and no pointing, and every companion has talking gestures and idles.
-- **Faces and lip sync**: whole-face emotions, a neutral resting face and a smoother mouth for the local voices.
-- **Voices**: Natural speech and Expressive emotions are improved, a Lip sync delay setting helps with Bluetooth audio, and a slow OmniVoice start no longer drops you to the Pocket voice.
-- **Conversation**: characters can continue from the game's own dialogue, speak in the first person, remember what you did together and ask you questions. Each character shows the settings in effect for them in the Companion Manager.
-- **Talking by voice**: your words show as V's subtitle while you speak, and a recording with no speech says so instead of waiting.
-- **Aware of your gear**: companions know what V is wearing and carrying, and mention it only when it matters or you ask.
+- **Body and face**: calmer talking gestures timed to the phrase, varied idles with props (a cigarette, a cup, a pair of shades) that ease in and out, whole-face emotions and a smoother mouth.
+- **Conversation**: characters can continue from the game's own dialogue, speak in the first person, remember what you did together, ask you questions and know what V is wearing and carrying.
 - **Phone chat**: the first reply arrives in a second or two when you wait a moment after opening a chat.
 - **Fewer notices**: you only see when a companion has joined or when something fails.
-- **Free option when the daily conversation limit is reached**: choose Mistral as the Conversation provider in Settings > Conversation provider (it needs a free Mistral account). Voices keep working through the local voices. The optional Local AI packs (see Local AI below) work without any account.
-- **Local AI**: two optional downloads let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection.
 - **Smoother game**: the Runtime download includes a small RED4ext plugin that takes some of the mod's work off the game's script thread. If it cannot load, the mod runs from its scripts as before.
 
 ## Requirements
 
 - Cyberpunk 2077 2.31 on Windows 10 or 11 (64-bit)
 - Install these from Nexus Mods first: Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu
-- An internet connection while you talk
+- An internet connection while you talk with Convai, Mistral or the Voxtral voice (Local AI with a local voice needs none)
 - About 3 GB of free disk space (about 15 GB more while installing the optional OmniVoice pack, 9 GB once installed)
 - Optional Local AI packs: about 5.3 GB for standard and about 1.5 GB for lite (about 11 GB free while installing the standard one)
 
@@ -39,7 +41,7 @@ Close the game, then extract each download into your Cyberpunk 2077 folder (the 
 2. **Runtime**: from the Releases page of https://github.com/alystria-ai/cyberpunk-convai. Use the same version number as the Scripts. If it comes in several parts, extract every part.
 3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download every part from the same release page and extract them all. Then choose an OmniVoice option in Settings > Voices.
 
-4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB, in several parts) for the best replies, and **Local AI lite** (Qwen3.5-2B, about 1.5 GB) for smaller graphics cards. Download every part from the same release page and extract them all. Then choose Local as the Conversation provider in Settings > Development. See "Local AI" below to pick a combination.
+4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB, in several parts) for the best replies, and **Local AI lite** (Qwen3.5-2B, about 1.5 GB) for smaller graphics cards. Download every part from the same release page and extract them all. Then choose Local as the Conversation provider in Settings > Conversation provider. See "Local AI" below to pick a combination.
 
 Start the game. The first start after installing takes a little longer while the voice service prepares itself. After the standard Local AI pack, the first start also joins the downloaded parts into one file, which takes about a minute; the Local AI model row reads "No model installed" until that is done.
 
@@ -47,7 +49,7 @@ If Windows reports an error while extracting, use 7-Zip (https://www.7-zip.org) 
 
 ## Local AI
 
-Convai free tier works out of the box with no setup and gives better quality responses. Local AI is for playing without an account or without the internet. It needs a separate graphics card that supports Vulkan (NVIDIA or AMD), at least 16 GB of system memory (32 GB is better) and about 5 GB more than usual while it runs. The first start after installing takes about a minute while your graphics card prepares the model; Settings > Development shows "Warming up" and then "Ready". The model is unloaded after ten minutes without a conversation.
+Convai free tier works out of the box with no setup and gives better quality responses. Local AI is for playing without an account or without the internet. It needs a separate graphics card that supports Vulkan (NVIDIA or AMD), at least 16 GB of system memory (32 GB is better) and about 5 GB more than usual while it runs. The first start after installing takes about a minute while your graphics card prepares the model; the Local AI model row in Settings > Conversation provider shows "Warming up" and then "Ready". The model is unloaded after ten minutes without a conversation.
 
 **Your own model (advanced, optional).** You can add a chat model of your own: put its `.gguf` file in a `custom` folder inside the Local AI folder (`red4ext\plugins\CyberpunkConvai\app\local-ai\`), list it in a small `manifest.custom.json` next to the other manifests, and it appears in the **Local AI model** row marked "(custom)". It is listed with the others from the smallest model to the largest and takes part in the default choice by its size. It must be a GGUF instruct or chat model that llama.cpp supports (Q4_K_M is a good choice), and it needs about its file size plus 1 GB of free graphics memory; one too large for your card is shown as such and never used. If it does not show up, the reason is in `bridge.stderr.log` (in the mod's `data` folder), on lines with `[custom models]`. The full steps and an example are in `docs/LOCAL_AI.md`, "Add your own model".
 

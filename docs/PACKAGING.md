@@ -29,8 +29,8 @@ Runtime one.
 ## Version numbers
 
 Releases are numbered `0.N`: 0.1, 0.2, 0.3, ..., and a hotfix of one release is `0.N.M` (0.2.1).
-The first build, `v2077.1` (2026-10-07, a private-repository test of the pipeline), used the earlier
-`2077.N` scheme and stays as it is; the version check still accepts that form. The tag is `v` + the
+The first build (2026-10-07, a private-repository test of the pipeline) was made as `2077.1` and
+renamed to `v0.1` on 2026-10-16 (title, tag and file names; the files inside were not rebuilt); the version check still accepts the old `2077.N` form. The tag is `v` + the
 number (`v0.2`) and the workflow accepts both forms (`v0.2`, `v0.2.1`); a manual run takes the number
 without the `v`. The same string goes into the package file names (`CyberpunkConvai-Scripts-0.2.zip`), the release title, both
 `release.json` files and the OmniVoice `omni-pack.json`. The only version check at run time is
@@ -231,7 +231,7 @@ and its downloads; it becomes visible to everyone when the repository is made pu
 tags the commit it was started from. The OmniVoice pack arrives a while after the Runtime
 package, because it is built by the second job, so a release can briefly lack it. If `v0.N`
 already exists, the workflow only re-uploads (`--clobber`) and leaves its title and notes alone.
-A new release is created with `--latest`: GitHub otherwise ranks "Latest" by version number as well as date, and `v0.2` is lower than the legacy `v2077.1`.
+A new release is created with `--latest`, so the newest build is always marked Latest whatever GitHub's own ranking says.
 
 Permissions and secrets: the workflow uses the built-in `GITHUB_TOKEN` with `contents: write`
 (no separate releases repository or token). Repository secrets: `HF_TOKEN` (bucket read) and

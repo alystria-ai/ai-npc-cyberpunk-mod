@@ -1290,7 +1290,7 @@ The player release is built from a git commit, never from the working tree, so u
 
 Why the split: Nexus scans every upload and holds flagged files for manual review, so the Nexus file is text only and is never held. The large binary runtime goes to GitHub Releases as plain zips, the way the core frameworks (RED4ext, Codeware, TweakXL, Audioware) are also distributed. The Nexus page lists the frameworks the mod needs (RED4ext, Cyber Engine Tweaks, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu) because the Runtime package's launcher and native plugin are RED4ext plugins. All packages use game-root-relative paths and merge into one install. Versions must match: `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the Runtime one.
 
-Releases are numbered `0.N` (0.1, 0.2, ...); a hotfix is `0.N.M`. The tag is `v` plus the number. The first build, `v2077.1` (2026-10-07, a private test of the pipeline), used the earlier `2077.N` scheme and the version check still accepts it. `packaging/lib/version.mjs` parses versions and `packaging/release.test.mjs` guards it.
+Releases are numbered `0.N` (0.1, 0.2, ...); a hotfix is `0.N.M`. The tag is `v` plus the number. The first build (2026-10-07, a private test of the pipeline) was made as `2077.1` and renamed to `v0.1`; the version check still accepts the old `2077.N` form. `packaging/lib/version.mjs` parses versions and `packaging/release.test.mjs` guards it.
 
 ### Installed layout
 
@@ -1344,7 +1344,7 @@ The install test builds a stand-in game folder under `%TEMP%` (with spaces and n
 
 ### GitHub Actions
 
-`.github/workflows/release.yml` runs only from Actions, Release, Run workflow, or on a pushed `v0.N` tag. Job 1 builds and install-tests Scripts and Runtime on `windows-2025`, keeps the Scripts zip as a workflow artifact (the file for Nexus) and creates the GitHub release `v0.N`. Job 2 builds the OmniVoice pack and job 3 (a matrix of `standard` and `lite`) builds the two Local AI packs; both add to the same release, so a release can briefly lack them. A new release is created with `--latest` because GitHub ranks "Latest" by version number as well as date and `v0.2` is lower than the legacy `v2077.1`. The workflow uses the built-in `GITHUB_TOKEN` with `contents: write` plus repository secrets for the model bucket and the build. The auth backend is deployed separately (see [Daily limit](#daily-limit)).
+`.github/workflows/release.yml` runs only from Actions, Release, Run workflow, or on a pushed `v0.N` tag. Job 1 builds and install-tests Scripts and Runtime on `windows-2025`, keeps the Scripts zip as a workflow artifact (the file for Nexus) and creates the GitHub release `v0.N`. Job 2 builds the OmniVoice pack and job 3 (a matrix of `standard` and `lite`) builds the two Local AI packs; both add to the same release, so a release can briefly lack them. A new release is created with `--latest`, so the newest build is always marked Latest. The workflow uses the built-in `GITHUB_TOKEN` with `contents: write` plus repository secrets for the model bucket and the build. The auth backend is deployed separately (see [Daily limit](#daily-limit)).
 
 ### Keeping the inputs current
 
