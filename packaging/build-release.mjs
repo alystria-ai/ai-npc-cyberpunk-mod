@@ -14,7 +14,7 @@
 //   CyberpunkConvai-LocalAI-Lite-<v>.zip   optional Local AI pack, Qwen3.5-2B
 //   CyberpunkConvai-Mature-Lite-<v>.zip    optional Mature lite pack, one uncensored model (Qwen3.5-4B); only with --packages mature-lite,
 //                                          never in the default set, never Nexus; it carries its own marker, so it works alone
-//   CyberpunkConvai-Mature-Good-<v>.zip    optional Mature good pack, one uncensored model (Gemma 4 E4B); only with --packages mature-good
+//   CyberpunkConvai-Mature-Standard-<v>.zip    optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard
 // Only the Scripts (Nexus) and Runtime (GitHub release) packages may still be split into several zips (writeArchives).
 // plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
 // (red4ext/plugins/CyberpunkConvaiNative) and runtime/native-off.txt. See docs/PACKAGING.md.
@@ -23,7 +23,7 @@
 //   --version V        release version, 2077.N or 2077.N.M (required)
 //   --dry-run          local build: models from the developer runtime/ folder, no key embedded
 //   --models local|hf  where trained models come from (default: hf, or local with --dry-run)
-//   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite,mature-lite,mature-good (default: the first five)
+//   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite,mature-lite,mature-standard (default: the first five)
 //   --source REF       git ref to package (default HEAD); --worktree packages the working tree instead
 //   --key-env NAME     embed the Convai key from this environment variable (never printed)
 //   --key-file PATH    embed the Convai key from this file (local testing only)
@@ -62,11 +62,11 @@ if (!isReleaseVersion(version)) {
 }
 const dryRun = flag('--dry-run');
 const modelSource = value('--models', dryRun ? 'local' : 'hf');
-// 'mature-lite' and 'mature-good' are the two separate adult-flagged Mature packs (packaging/MATURE_PACK_README.md), one model each: built only
+// 'mature-lite' and 'mature-standard' are the two separate adult-flagged Mature packs (packaging/MATURE_PACK_README.md), one model each: built only
 // when asked for, never in the default set. The optional packs (OPTIONAL_PACKAGE_IDS) are hosted on Hugging Face as one zip each.
-const PACKAGE_IDS = ['scripts', 'runtime', 'omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-good'];
+const PACKAGE_IDS = ['scripts', 'runtime', 'omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard'];
 const DEFAULT_PACKAGE_IDS = PACKAGE_IDS.filter(id => !id.startsWith('mature'));
-const OPTIONAL_PACKAGE_IDS = new Set(['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-good']);
+const OPTIONAL_PACKAGE_IDS = new Set(['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard']);
 const packages = new Set(value('--packages', DEFAULT_PACKAGE_IDS.join(',')).split(',').map(item => item.trim()).filter(Boolean));
 const localAiSource = value('--local-ai-source', process.env.CYBERPUNK_CONVAI_LOCAL_AI_DEV);
 const out = resolve(value('--out', resolve(project, 'dist/release')));
@@ -723,8 +723,8 @@ async function localAiPackage(source, config, tierKey) {
 
 // A Mature pack (docs/LOCAL_AI.md, "Mature content"): a separate download, hosted on Hugging Face with the other optional packs (built by the release
 // workflow's opt-in `mature` job from the private bucket's mirror, or by hand; never on a tag push, never to Nexus). There are two, Mature lite and
-// Mature good, one model each, and each works alone: a pack carries its own uncensored model file in the Local AI folder's models/ and its own marker
-// (manifest.mature-lite.json or manifest.mature-good.json, read by bridge/mature-pack.mjs; the Local AI detector never reads them), plus the
+// Mature standard, one model each, and each works alone: a pack carries its own uncensored model file in the Local AI folder's models/ and its own marker
+// (manifest.mature-lite.json or manifest.mature-standard.json, read by bridge/mature-pack.mjs; the Local AI detector never reads them), plus the
 // shared README and licence files and its own notices under mature/. Nothing of them is in the Runtime package.
 // With --models hf, the model comes from the private bucket's mirror (packaging/fetch-models.py --mature --tier: same token, same
 // download helper, SHA-256 checked against the pin), only the tier being built. It returns the cached local path of the model when the mirror has
@@ -746,7 +746,9 @@ async function maturePackage(source, config, tierKey) {
     throw Error(`The Mature ${tierKey} model is missing or a placeholder in packaging/release.config.json, maturePack.tiers.`);
   }
   if (model.license !== 'Apache-2.0') throw Error(`${model.name}: the Mature packs ship Apache-2.0 base models only.`);
-  const pkg = new Package(`mature-${tierKey}`);
+  // The pack and its files are named lite and standard (like the Local AI packs); the model's tier key stays `good` (ids mature:good).
+  const packKey = tierKey === 'good' ? 'standard' : tierKey;
+  const pkg = new Package(`mature-${packKey}`);
   const root = config.layout.localAiDirectory;
   const huggingFace = item => `https://huggingface.co/${item.repository}/resolve/${item.revision}/${item.remote ?? item.file}`;
   const mirrored = modelSource === 'hf' ? await matureMirror(source, tierKey) : new Map();
@@ -755,10 +757,10 @@ async function maturePackage(source, config, tierKey) {
   pkg.json(`${root}/${spec.markers[tierKey]}`, {version: 1, pack: 'mature', [tierKey]: {file: `models/${model.file}`, name: model.name, family: model.family}});
   pkg.text(`${root}/${spec.directory}/README.md`, await readFile(resolve(source.root, spec.readme), 'utf8'));
   for (const licence of spec.licenceFiles) pkg.file(`${root}/${spec.directory}/licenses/${basename(licence)}`, resolve(source.root, licence));
-  pkg.text(`${root}/${spec.directory}/THIRD-PARTY-NOTICES-${tierKey}.txt`, [`Cyberpunk Convai Mature ${tierKey} pack - third-party components`, '',
+  pkg.text(`${root}/${spec.directory}/THIRD-PARTY-NOTICES-${packKey}.txt`, [`Cyberpunk Convai Mature ${packKey} pack - third-party components`, '',
     `- ${model.name} (${model.key}; GGUF file ${model.file}; base model ${model.baseModel}) - ${model.license}: ${spec.directory}/licenses/Apache-2.0.txt - https://huggingface.co/${model.repository}`,
     '- The model is a community fine-tune of the Apache-2.0 base model named above. The pack needs the Cyberpunk Convai main mod and a Local AI pack (llama-server).', ''].join('\r\n'));
-  pkg.json(`${root}/${spec.directory}/mature-pack-${tierKey}.json`, {product: config.product, package: `mature-${tierKey}`, version, commit: '' + source.commit,
+  pkg.json(`${root}/${spec.directory}/mature-pack-${packKey}.json`, {product: config.product, package: `mature-${packKey}`, version, commit: '' + source.commit,
     models: [{tier: model.key, repository: model.repository, revision: model.revision, file: model.remote ?? model.file, sha256: model.sha256}]});
   return pkg;
 }
@@ -829,9 +831,9 @@ async function main() {
     'localai-standard': () => localAiPackage(source, config, 'standard'),
     'localai-lite': () => localAiPackage(source, config, 'lite'),
     'mature-lite': () => maturePackage(source, config, 'lite'),
-    'mature-good': () => maturePackage(source, config, 'good'),
+    'mature-standard': () => maturePackage(source, config, 'good'),
   };
-  const titles = {scripts: 'Scripts', runtime: 'Runtime', omni: 'OmniPack', 'localai-standard': 'LocalAI-Standard', 'localai-lite': 'LocalAI-Lite', 'mature-lite': 'Mature-Lite', 'mature-good': 'Mature-Good'};
+  const titles = {scripts: 'Scripts', runtime: 'Runtime', omni: 'OmniPack', 'localai-standard': 'LocalAI-Standard', 'localai-lite': 'LocalAI-Lite', 'mature-lite': 'Mature-Lite', 'mature-standard': 'Mature-Standard'};
   for (const id of PACKAGE_IDS) {
     if (!packages.has(id)) continue;
     log(`Staging the ${titles[id]} package.`);

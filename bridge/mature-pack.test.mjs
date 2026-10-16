@@ -1,4 +1,4 @@
-// The Mature pack markers: a Mature pack (lite, good or both) is installed when a valid marker (manifest.mature-lite.json, manifest.mature-good.json,
+// The Mature pack markers: a Mature pack (lite, good or both) is installed when a valid marker (manifest.mature-lite.json, manifest.mature-standard.json,
 // or the earlier combined manifest.mature.json) sits in the Local AI folder, and only then.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
@@ -114,11 +114,11 @@ const goodMarker = {version: 1, pack: 'mature', good: {file: 'models/b.gguf', na
 const litePath = resolve(root, MATURE_MARKERS.lite), goodPath = resolve(root, MATURE_MARKERS.good);
 
 test('each Mature pack has its own marker, so the two never overwrite each other', () => {
-  assert.deepEqual(MATURE_MARKERS, {lite: 'manifest.mature-lite.json', good: 'manifest.mature-good.json'});
+  assert.deepEqual(MATURE_MARKERS, {lite: 'manifest.mature-lite.json', good: 'manifest.mature-standard.json'});
   assert.equal(new Set([MATURE_MARKER, ...Object.values(MATURE_MARKERS), 'manifest.standard.json', 'manifest.lite.json']).size, 5);
 });
 
-test('Mature lite alone, Mature good alone, and both are each detected', () => {
+test('Mature lite alone, Mature standard alone, and both are each detected', () => {
   const only = markers => detectMaturePack({project: 'C:/game', environment: {}, ...memory(markers)});
   const lite = only({[litePath]: JSON.stringify(liteMarker), [resolve(root, 'models/a.gguf')]: ''});
   assert.equal(lite.installed, true);

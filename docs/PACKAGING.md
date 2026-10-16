@@ -12,7 +12,7 @@ How the player release is built, what it contains and how it starts. Players rea
 | `CyberpunkConvai-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
 | `CyberpunkConvai-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the llama-server Vulkan build, the embedding model and the chat model, whole. |
 | `CyberpunkConvai-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB), the same server and embedding model. |
-| `CyberpunkConvai-Mature-Lite-<v>.zip`, `CyberpunkConvai-Mature-Good-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-good.json`) so either works alone. |
+| `CyberpunkConvai-Mature-Lite-<v>.zip`, `CyberpunkConvai-Mature-Standard-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-standard.json`) so either works alone. |
 
 The optional packs are hosted in one Hugging Face model repository, `akshitireddy/cyberpunk-convai-packs`, in a folder per
 version (`0.2/CyberpunkConvai-OmniPack-0.2.zip`, with `0.2/SHA256SUMS-omni.txt` beside it). Each pack is ONE zip: no `-partNofM` zips
@@ -193,7 +193,7 @@ into a release. Inputs:
   (`--native PATH` supplies a prebuilt DLL, `--no-native` omits it).
 - `ffmpeg`, for the pre-built Mistral voice references.
 - The Local AI files, downloaded from their pinned URLs (no secret needed).
-- The optional Mature packs' models (`--packages mature-lite` or `mature-good`, never in the default set; only the model of the pack being built), from the private bucket's `mature/` mirror
+- The optional Mature packs' models (`--packages mature-lite` or `mature-standard`, never in the default set; only the model of the pack being built), from the private bucket's `mature/` mirror
   (`packaging/fetch-models.py --mature --tier lite|good`, SHA-256 checked against `maturePack.tiers`, so a takedown of the community repositories cannot break a build), or from
   their pinned public Hugging Face URLs when the mirror lacks them. `--models local` reads the developer folder instead. `mature/` is outside `final/`, so the
   trained-model fetch never downloads it.
@@ -202,7 +202,7 @@ Archives are deterministic (`packaging/lib/zip.mjs`): sorted entries, one timest
 time), fixed deflate level, weights stored. The Scripts and Runtime archives each stay under 1.95 GB (GitHub's limit is
 2 GiB per asset), a Runtime archive that would pass it rolls over to a `-partNofM` zip, and a single file over that limit stops the build
 (nothing is split inside a file any more). The optional packs are always one zip each, written as ZIP64 where needed (`--packages omni`,
-`localai-standard`, `localai-lite`, `mature-lite`, `mature-good`). Output:
+`localai-standard`, `localai-lite`, `mature-lite`, `mature-standard`). Output:
 `dist/release/packages/` with the zips, `*.files.json` (every file's size and SHA-256),
 `SHA256SUMS.txt` and `release-manifest.json`.
 
@@ -248,7 +248,7 @@ A new release is created with `--latest`, so the newest build is always marked L
 
 **Hugging Face upload.** The omni, localai and mature jobs install `huggingface_hub`, check first (`packaging/upload-packs.py --check`) that the `HF_TOKEN` secret can write to the repository, build their pack, and upload it with `packaging/upload-packs.py --version V --pack NAME --packages DIR` (`HfApi.upload_file`, retried, then checked against the local size). The zip goes to `V/<file>.zip` and the build's checksums to `V/SHA256SUMS-NAME.txt` in the same folder. A token that cannot write fails with a message naming the repository and saying the `HF_TOKEN` secret needs write access to it. The uploader refuses a build with more than one zip. The `publish` input also gates these uploads on a manual run (a tag run always uploads).
 
-The optional Mature packs are built by the `mature` job, a matrix of `lite` and `good` (one runner each), that runs only when the manual run's `mature` input is ticked (default off; never on a tag push, never uploaded to Nexus or to the GitHub release). Each builds with `--packages mature-lite` or `mature-good` `--models hf` from the bucket mirror and uploads its zip to Hugging Face. They can also be built and uploaded by hand: `node packaging/build-release.mjs --version 0.N --packages mature-lite` then `python packaging/upload-packs.py --version 0.N --pack mature-lite --packages dist/release/packages`.
+The optional Mature packs are built by the `mature` job, a matrix of `lite` and `standard` (one runner each; the standard pack carries the model whose tier key is `good`), that runs only when the manual run's `mature` input is ticked (default off; never on a tag push, never uploaded to Nexus or to the GitHub release). Each builds with `--packages mature-lite` or `mature-standard` `--models hf` from the bucket mirror and uploads its zip to Hugging Face. They can also be built and uploaded by hand: `node packaging/build-release.mjs --version 0.N --packages mature-lite` then `python packaging/upload-packs.py --version 0.N --pack mature-lite --packages dist/release/packages`.
 
 Permissions and secrets: the workflow uses the built-in `GITHUB_TOKEN` with `contents: write`
 (no separate releases repository or token). Repository secrets: `HF_TOKEN` (bucket read, and write access to the pack repository) and

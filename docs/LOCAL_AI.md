@@ -52,7 +52,7 @@ no "Auto" entry: the row always shows one concrete model as selected. Only one m
   the good one if it is installed and fits, else the lite one; and your own models marked `"uncensored": true`), and the ordinary models are used when none of them fits. With Mature content off, the
   default never picks an uncensored model.
 - **Turning Mature content on** selects, in the same pending changes as Local AI itself (waiting for Apply), the largest uncensored
-  model that fits (the Mature good model if it is installed and fits, else the Mature lite one), if one is installed, and says so ("Uncensored model"). With no uncensored model installed (or none that fits) it
+  model that fits (the Mature standard model if it is installed and fits, else the Mature lite one), if one is installed, and says so ("Uncensored model"). With no uncensored model installed (or none that fits) it
   leaves the model alone. Turning Mature content off puts the earlier model back, as it does the other choices.
 - **Choosing a model** uses exactly that model, whatever fits better and whatever Mature content says (an uncensored model with
   Mature content off simply runs without the Mature rules).
@@ -465,10 +465,10 @@ and a one-word answer, not yet timed on the player's hardware), so on a slow GPU
 
 The setting is part of the main mod. It is visible and usable without any other download, off by default, Local AI only, and turning it on
 shows no notice (the user removed the 18+ notice on 2026-10-14; the help text says it is for adults, 18+). With the stock Local AI models it mostly changes language, violence and tone: those models are trained to refuse most
-sexual content, so the full effect needs the uncensored models of the optional Mature packs (Mature lite and Mature good, one model each, either alone). The packs no longer gate anything (it did until
+sexual content, so the full effect needs the uncensored models of the optional Mature packs (Mature lite and Mature standard, one model each, either alone). The packs no longer gate anything (it did until
 2026-10-14). It changes the setting's help text, and since 2026-10-13 its models are loaded: they appear in the Local AI model row, and
 with Mature content on the default choice and the fallback prefer the largest one that fits (see "Choosing the model"):
-- Detection: `bridge/mature-pack.mjs` (`detectMaturePack`) looks for the markers `manifest.mature-lite.json` and `manifest.mature-good.json` (one per pack, so either pack alone is detected and the two never overwrite each other; the earlier combined `manifest.mature.json` is still read) in the Local AI folder, beside
+- Detection: `bridge/mature-pack.mjs` (`detectMaturePack`) looks for the markers `manifest.mature-lite.json` and `manifest.mature-standard.json` (one per pack, so either pack alone is detected and the two never overwrite each other; the earlier combined `manifest.mature.json` is still read) in the Local AI folder, beside
   `manifest.standard.json` and `manifest.lite.json` (same root: `<project>/local-ai`, or `CYBERPUNK_CONVAI_LOCAL_AI`, which the packaged
   service points at `app/local-ai`). A marker is `{version: 1, pack: 'mature', lite: {file, name, family}}` or `{... good: {...}}` (the combined one names both; at most two models come out, like the Local AI
   packs' two tiers, and the first marker that names a tier wins; since 2026-10-14 the old `models` list is no longer read, so a marker with only that is "installed" with no model to offer); a valid marker is
@@ -485,8 +485,8 @@ with Mature content on the default choice and the fallback prefer the largest on
   installed." or "... is not installed. It is an optional download on the Hugging Face page of this mod.", plus "Choosing a cloud provider turns it off."
   (the old "Not using Local AI right now: no effect yet." line is gone, see below). `manager.applySettings` accepts `matureContent` whatever the pack says, and the snapshot reports the file's value.
 - Distribution: the packs (one uncensored GGUF each) are distributed ONLY as optional files on this project's Hugging Face repository
-  (`akshitireddy/cyberpunk-convai-packs`, `0.N/CyberpunkConvai-Mature-Lite-0.N.zip` and `...-Mature-Good-0.N.zip`, each one zip, no parts), never on Nexus Mods and not on the
-  GitHub release. `.github/workflows/release.yml` builds and uploads them only in its opt-in `mature` job (a matrix of `lite` and `good`; the `mature` input is off by default and a tag push never runs it), and `packaging/build-release.mjs` builds each only with `--packages mature-lite` or `mature-good`, never in the default set. Nothing of it is in the
+  (`akshitireddy/cyberpunk-convai-packs`, `0.N/CyberpunkConvai-Mature-Lite-0.N.zip` and `...-Mature-Standard-0.N.zip`, each one zip, no parts), never on Nexus Mods and not on the
+  GitHub release. `.github/workflows/release.yml` builds and uploads them only in its opt-in `mature` job (a matrix of `lite` and `standard`; the `mature` input is off by default and a tag push never runs it), and `packaging/build-release.mjs` builds each only with `--packages mature-lite` or `mature-standard`, never in the default set. Nothing of it is in the
   Runtime package or `release-plan.json`; its marker, README, release notes and models are not read by the runtime builder (tested). The
   main mod's own files (the bridge modules `mature-content`, `mature-guard`, `mature-guard-terms` and `mature-pack`, the Lua and locale
   strings) are in the Runtime and Scripts packages.
@@ -578,7 +578,7 @@ the vocative words last and tells the model to vary, which halves that (7 of 72)
 
 #### Models of the Mature packs (2026-10-14)
 
-Two models, one per pack (Mature lite and Mature good, each its own zip and marker; the normal Local AI packs likewise have `standard` and `lite`): `lite` and `good` (marker, ids `mature:lite` / `mature:good`, picker sorted small to large, the good one
+Two models, one per pack (Mature lite and Mature standard, each its own zip and marker; the normal Local AI packs likewise have `standard` and `lite`): `lite` and `good` (marker, ids `mature:lite` / `mature:good`, picker sorted small to large, the good one
 preselected when it fits). The research and the picks are in `docs/MATURE_MODELS_V2_2026-10-14.md`. The old four-model test set (three Qwen3.5
 "Uncensored HauhauCS Aggressive" sizes and the Gemma 4 heretic) is dropped except the HauhauCS 4B: community data says those remove refusals but add no erotic
 skill, yet with the always-on crude prompt (round 3, `docs/MATURE_SAMPLES_V3_2026-10-14.md`) the 4B was the crudest light model measured, so it is the lite one.

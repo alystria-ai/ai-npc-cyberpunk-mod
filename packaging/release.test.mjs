@@ -355,7 +355,7 @@ const jobOf = (workflow, name) => new RegExp(`\\n  ${name}:\\n([\\s\\S]*?)(?=\\n
 
 test('optional packs are one zip each with no parts: the builder never splits a file or a pack, and says which packs are optional', async () => {
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
-  assert.match(builder, /const OPTIONAL_PACKAGE_IDS = new Set\(\['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-good'\]\)/);
+  assert.match(builder, /const OPTIONAL_PACKAGE_IDS = new Set\(\['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard'\]\)/);
   assert.doesNotMatch(builder, /splitLargeFiles|\.part\$\{index\}|\.parts\.json|splitPartBytes|splitFileBytes/, 'no file is split into .partN files and no .parts.json is written');
   assert.match(builder, /writeArchives\(pkg, [^\n]*\{single: OPTIONAL_PACKAGE_IDS\.has\(id\)\}\)/, 'an optional pack is written as a single zip');
   assert.match(builder, /if \(!single && writer\.count && /, 'only a non-optional package may roll over to a next zip');
@@ -458,13 +458,13 @@ test('the release workflow builds the Mature packs only in an opt-in job: off by
   const input = /\n      mature:\n([\s\S]*?)\n      \w+:\n/.exec(workflow)?.[1] ?? '';
   assert.match(input, /type: boolean/, 'a boolean workflow_dispatch input named mature');
   assert.match(input, /default: false/, 'the input is off by default');
-  assert.match(input, /Mature packs, lite and good \(uploaded to Hugging Face\)/);
+  assert.match(input, /Mature packs, lite and standard \(uploaded to Hugging Face\)/);
   const job = jobOf(workflow, 'mature');
   assert(job, 'the workflow has a mature job');
   assert.match(job, /needs: runtime/);
   assert.match(job, /\n    if: inputs\.mature\n/, 'the job runs only when the input is ticked');
   assert.doesNotMatch(job, /ref_type|startsWith\(github\.ref|refs\/tags/, 'its condition never mentions a tag push');
-  assert.match(job, /\n      matrix:\n        tier: \[lite, good\]\n/, 'a matrix of the two packs');
+  assert.match(job, /\n      matrix:\n        tier: \[lite, standard\]\n/, 'a matrix of the two packs');
   assert.match(job, /fail-fast: false/);
   assert.match(job, /--packages "mature-\$\{\{ matrix\.tier \}\}" `\s*\n\s*--models hf/, 'it builds the pack of its tier from the bucket mirror');
   assert.match(job, /--pack "mature-\$\{\{ matrix\.tier \}\}"/, 'and uploads that pack under its own name');
@@ -492,7 +492,7 @@ test('the release workflow builds the Mature packs only in an opt-in job: off by
 // ---------------------------------------------------------------- the Mature pack (docs/LOCAL_AI.md, "Mature content")
 test('the Mature packs are their own packages: built only on request, never in the default set, and nothing of it in the Runtime package or the main page text', async () => {
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
-  assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'localai-lite', 'mature-lite', 'mature-good'\]/, 'the two Mature packs are package ids beside the Local AI packs');
+  assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'localai-lite', 'mature-lite', 'mature-standard'\]/, 'the two Mature packs are package ids beside the Local AI packs');
   assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => !id\.startsWith\('mature'\)\)/, 'the default set leaves them out');
   assert.match(builder, /value\('--packages', DEFAULT_PACKAGE_IDS\.join\(','\)\)/, 'a plain build uses the default set');
   // The release workflow produces the Mature pack only in its own opt-in job (see the workflow test below).
@@ -513,7 +513,7 @@ test('the Mature packs are their own packages: built only on request, never in t
 test('the Mature packs definition: one marker each, README, Hugging Face page text and Apache-2.0 licences, exactly two pinned models (lite and good, one per pack), and the build refusing anything else', async () => {
   const spec = config.maturePack;
   const {MATURE_MARKERS, MATURE_TIERS} = await import('../bridge/mature-pack.mjs');
-  assert.deepEqual(spec.markers, {lite: 'manifest.mature-lite.json', good: 'manifest.mature-good.json'});
+  assert.deepEqual(spec.markers, {lite: 'manifest.mature-lite.json', good: 'manifest.mature-standard.json'});
   assert.deepEqual(spec.markers, MATURE_MARKERS, 'the build writes the file names the bridge looks for');
   assert.equal(spec.marker, undefined, 'no single marker: each pack carries its own');
   assert.equal(new Set(Object.values(spec.markers)).size, 2, 'the two packs never overwrite each other');
@@ -546,8 +546,8 @@ test('the Mature packs definition: one marker each, README, Hugging Face page te
   assert.match(builder, /the Mature packs ship Apache-2\.0 base models only/);
   assert.match(builder, /lite and good, one model each/);
   assert.match(builder, /pkg\.json\(`\$\{root\}\/\$\{spec\.markers\[tierKey\]\}`, \{version: 1, pack: 'mature', \[tierKey\]: \{file: /, 'each pack writes its own marker with its own model only');
-  assert.match(builder, /THIRD-PARTY-NOTICES-\$\{tierKey\}\.txt/, 'the notices of the two packs have different names, so extracting both keeps both');
-  assert.match(builder, /mature-pack-\$\{tierKey\}\.json/);
+  assert.match(builder, /THIRD-PARTY-NOTICES-\$\{packKey\}\.txt/, 'the notices of the two packs have different names, so extracting both keeps both');
+  assert.match(builder, /mature-pack-\$\{packKey\}\.json/);
   // A marker of that shape, for each pinned model, is what the detector accepts alone, and it is not the Local AI pack.
   const {detectMaturePack} = await import('../bridge/mature-pack.mjs');
   const {detectLocalAiPack} = await import('../bridge/local-ai-pack.mjs');
@@ -559,7 +559,7 @@ test('the Mature packs definition: one marker each, README, Hugging Face page te
   const goodOnly = new Map([[resolve(root, spec.markers.good), markerOf('good')]]);
   const both = new Map([...liteOnly, ...goodOnly]);
   assert.deepEqual(detect(liteOnly).models.map(model => model.tier), ['lite'], 'Mature lite alone is detected');
-  assert.deepEqual(detect(goodOnly).models.map(model => model.tier), ['good'], 'Mature good alone is detected');
+  assert.deepEqual(detect(goodOnly).models.map(model => model.tier), ['good'], 'Mature standard alone is detected');
   assert.deepEqual(detect(both).models.map(model => model.tier), ['lite', 'good'], 'both together');
   for (const files of [liteOnly, goodOnly, both]) {
     assert.equal(detect(files).installed, true);
@@ -594,7 +594,7 @@ test('the README and the release notes send players to Hugging Face for every op
   const hf = 'https://huggingface.co/akshitireddy/cyberpunk-convai-packs';
   const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
   const player = (await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8')).replaceAll('\r\n', '\n');
-  const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Good'].map(name => `CyberpunkConvai-${name}-0.2.zip`);
+  const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Standard'].map(name => `CyberpunkConvai-${name}-0.2.zip`);
   for (const file of files) assert(readme.includes(hf + '/resolve/main/0.2/' + file), 'the README links ' + file);
   for (const file of files.filter(name => !/Mature/.test(name))) assert(player.includes(hf + '/resolve/main/0.2/' + file), 'the release notes link ' + file);
   assert(readme.includes(hf + ')'), 'and the repository page');

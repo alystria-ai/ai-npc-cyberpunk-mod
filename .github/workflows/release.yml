@@ -32,7 +32,7 @@ on:
         type: boolean
         default: true
       mature:
-        description: Also build the two optional Mature packs, lite and good (uploaded to Hugging Face)
+        description: Also build the two optional Mature packs, lite and standard (uploaded to Hugging Face)
         type: boolean
         default: false
       publish:
@@ -224,7 +224,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Uploading the OmniVoice pack to Hugging Face failed (the HF_TOKEN secret needs write access to $env:HF_PACKS_REPO)." }
 
   # The optional Mature packs (packaging/MATURE_PACK_README.md): opt-in only (the `mature` input, default off), so never on a tag push.
-  # Two packs, lite and good, one model each, built and uploaded by one job each; they live on Hugging Face only, never Nexus and not the
+  # Two packs, lite and standard, one model each, built and uploaded by one job each; they live on Hugging Face only, never Nexus and not the
   # GitHub release. Each model comes from the private bucket's mirror (HF_TOKEN), with the pinned public URL as fallback.
   mature:
     name: Mature pack (${{ matrix.tier }})
@@ -235,7 +235,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tier: [lite, good]
+        tier: [lite, standard]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -23,7 +23,7 @@ import time
 from pathlib import Path
 
 REPOSITORY = "akshitireddy/cyberpunk-convai-packs"
-PACKS = ("omni", "localai-standard", "localai-lite", "mature-lite", "mature-good")
+PACKS = ("omni", "localai-standard", "localai-lite", "mature-lite", "mature-standard")
 
 
 def no_write_message(repository: str, detail: str = "") -> str:
