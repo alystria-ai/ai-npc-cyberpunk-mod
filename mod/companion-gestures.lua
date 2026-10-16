@@ -20,6 +20,15 @@ M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourA
     -- tune). No warm-up, unlock gate or forced order. Oct 16 live: the signature idles looked late; the pick was uniform over
     -- seven idles of which two were plain, and the cadence was about 105 s per idle (gap 20-45 + length 45-90), so a given
     -- one took ten minutes on average.
+    -- Round 15 (cycle holds): an idle holds for whole cycles of its own loop clip (catalog.idleCycles, seconds per rig, measured
+    -- from the workspot data) and is left at a cycle end, so a short clip is not replayed over and over (Johnny's aggressive
+    -- idle, a 25.5 s loop, looped inside a random 40-75 s hold). One cycle for a clip of shortCycle s or more; a shorter one
+    -- runs two cycles or the whole cycles that reach cycleMinimum s. Prop idles, idles with no measured cycle and a hold
+    -- beyond flavourLength[2] keep the random length. cycleLead is the exit signal's head start (the workspot leaves 0.1 s
+    -- after it). cycleHold = false switches this off. With exactly two idles in the pool (a drifted one is dropped for the
+    -- session, so a three-idle pool shrinks to two) the last idle may come again with chance repeatChance, never a prop idle;
+    -- with three or more it never repeats.
+    cycleHold = true, shortCycle = 12, cycleMinimum = 15, cycleLead = .15, repeatChance = .3,
     groupStagger = 2, exitSettle = .4, driftNote = .15, flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {8, 20}, flavourLength = {40, 75},
     -- A conversation is one stance, not one stance per reply. The talk stance is kept for conversationHold s after the last
     -- speech, listening or thinking (V reads and answers within that), and a signature, flavour or prop idle may start
@@ -157,8 +166,15 @@ function M.new(options)
     -- a prop idle. Interesting idles carry policy.interestingBonus times a plain idle's weight, so they come up early and
     -- often by chance; nothing is forced and nothing is gated.
     local function pickIdle(s, known, allow)
-        local pool = flavourPool(known)        if #pool == 0 then return nil end
+        local pool = flavourPool(known)
+        if #pool == 0 then return nil end
         local afterProp = s.lastIdle and propOf(s.lastIdle) ~= nil
+        -- Two idles only: strict no-repeat is A-B-A-B for hours (Oct 16 live, Alex: alex and jackie_hips for ten minutes). The
+        -- last idle comes again with probability policy.repeatChance (one draw); never a prop idle, and only when allowed.
+        if #pool == 2 and s.lastIdle and not afterProp and (not allow or allow(s.lastIdle)) and (pool[1] == s.lastIdle or pool[2] == s.lastIdle)
+            and ((self.random or math.random)()) < policy.repeatChance then
+            return s.lastIdle
+        end
         local choices, weights, total = {}, {}, 0
         for pass = 1, 2 do
             for _, key in ipairs(pool) do
@@ -413,6 +429,18 @@ function M.new(options)
         end
     end
 
+    -- Seconds this idle holds on this rig, from whole cycles of its loop clip (policy comment), or nil to keep the random length.
+    local function cycleHold(key, rig)
+        if policy.cycleHold == false or not key or propOf(key) then return nil end
+        local row = self.catalog.idleCycles and self.catalog.idleCycles[key]
+        local cycle = row and tonumber(row[rig])
+        if not cycle or cycle <= 0 then return nil end
+        local cycles = cycle >= policy.shortCycle and 1 or math.max(2, math.ceil(policy.cycleMinimum / cycle))
+        local hold = cycle * cycles
+        if hold > policy.flavourLength[2] then return nil end
+        return hold, cycles
+    end
+
     local function begin(s, known, family, recovery, flavour, familyKey)
         s.phase, s.since = recovery and 'recovering' or 'spawning', self.clock
         s.flavour = flavour == true
@@ -428,11 +456,15 @@ function M.new(options)
         end
         s.lastIdle = s.idleKey or s.lastIdle
         s.component = flavour and s.idleKey and self.catalog.idleComponents[s.idleKey] or family.component
-        s.flavourUntil = flavour and self.clock + between(policy.flavourLength) or nil
+        -- The hold counts from the play call (the loop clip starts with the workspot); until then a margin keeps it from hanging.
+        s.cycleHold, s.cycles = nil, nil
+        if flavour then s.cycleHold, s.cycles = cycleHold(s.idleKey, known.rig) end
+        s.flavourUntil = flavour and self.clock + (s.cycleHold and s.cycleHold + 5 or between(policy.flavourLength)) or nil
         s.known, s.family, s.rig, s.character, s.familyKey = known, family, known.rig, known.key, familyKey
         s.deviceMoved, s.clip, s.exitAt, s.playerAnchor, s.unsettledSince = false, nil, nil, copy(self.playerPosition), nil
         s.recovery, s.playAt = recovery == true, nil
-        note(s, recovery and 'recovery-begin' or (flavour and 'flavour-begin') or 'begin', {family = known.talk, component = s.component})
+        note(s, recovery and 'recovery-begin' or (flavour and 'flavour-begin') or 'begin',
+            {family = known.talk, component = s.component, hold = s.cycleHold, cycles = s.cycles})
     end
     local function finish(s, reason)
         if s.prop then scheduleCleanup(s, s.prop, s.entry.npc); s.prop = nil end
@@ -502,6 +534,7 @@ function M.new(options)
                 fail(s, 'play: ' .. tostring(result)); return
             end
             s.playAt = self.clock
+            if s.flavour and s.cycleHold then s.flavourUntil = self.clock + s.cycleHold - policy.cycleLead end
             if s.phase == 'spawning' then s.phase = 'starting' end
             note(s, 'play', {component = s.component})
             return

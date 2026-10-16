@@ -1,0 +1,609 @@
+{
+  "note": "Measured by scripts/Measure-IdleCycles.mjs from the extracted workspots and the animsets they load (Round 15). cycle: seconds of the idle loop clip (the idleAnim of the workspot main sequence) per rig; the controller holds an idle for whole cycles. breaks: the random break list of that sequence (clips per run min-max, pause between clips = first +- second). An idle or rig that is missing here keeps the random hold.",
+  "idles": {
+    "judy": {
+      "loop": "dirt__stand__2h_on_hip__01",
+      "cycle": {
+        "woman_base": 10
+      },
+      "breaks": {
+        "clips": [
+          3,
+          3
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 4
+      }
+    },
+    "johnny": {
+      "loop": "johnny__stand__lh_pocket__01",
+      "cycle": {
+        "woman_base": 25.47,
+        "man_base": 25.47
+      },
+      "breaks": {
+        "clips": [
+          3,
+          5
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 3
+      }
+    },
+    "panam": {
+      "loop": "stand__rh_on_hip__01",
+      "cycle": {
+        "woman_base": 18.5,
+        "man_base": 10,
+        "man_big": 10
+      },
+      "breaks": {
+        "clips": [
+          6,
+          9
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 29
+      }
+    },
+    "kerry": {
+      "loop": "kerry__stand__2h_on_hip__01",
+      "cycle": {
+        "man_base": 10
+      },
+      "breaks": {
+        "clips": [
+          3,
+          5
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 4
+      }
+    },
+    "takemura": {
+      "loop": "takemura__stand__2h_on_sides__01",
+      "cycle": {
+        "man_base": 25.47
+      },
+      "breaks": {
+        "clips": [
+          2,
+          2
+        ],
+        "pause": [
+          6,
+          2
+        ],
+        "count": 2
+      }
+    },
+    "jackie": {
+      "loop": "stand__relaxed__01",
+      "cycle": {
+        "man_big": 11.07
+      },
+      "breaks": {
+        "clips": [
+          4,
+          8
+        ],
+        "pause": [
+          3,
+          1.5
+        ],
+        "count": 2
+      }
+    },
+    "generic": {
+      "loop": "stand__2h_on_sides__01",
+      "cycle": {
+        "woman_base": 34.8,
+        "man_base": 25.47,
+        "man_big": 25.47
+      },
+      "breaks": {
+        "clips": [
+          6,
+          9
+        ],
+        "pause": [
+          3,
+          1
+        ],
+        "count": 9
+      }
+    },
+    "johnny_smoke": {
+      "loop": "johnny__stand__lh_cigarette__aggressive__01",
+      "cycle": {
+        "man_base": 11
+      },
+      "breaks": {
+        "clips": [
+          4,
+          7
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 0
+      }
+    },
+    "misty": {
+      "loop": "misty__stand__2h_hold__01",
+      "cycle": {
+        "woman_base": 8.83
+      },
+      "breaks": {
+        "clips": [
+          3,
+          5
+        ],
+        "pause": [
+          6,
+          2.5
+        ],
+        "count": 2
+      }
+    },
+    "river": {
+      "loop": "stand__2h_on_sides__03",
+      "cycle": {
+        "woman_base": 10.1,
+        "man_base": 10.1,
+        "man_big": 25.47
+      },
+      "breaks": {
+        "clips": [
+          2,
+          3
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 2
+      }
+    },
+    "rogue": {
+      "loop": "stand__arms_crossed_front__03",
+      "cycle": {
+        "woman_base": 13.77
+      },
+      "breaks": {
+        "clips": [
+          3,
+          5
+        ],
+        "pause": [
+          7,
+          5
+        ],
+        "count": 2
+      }
+    },
+    "hanako": {
+      "loop": "hanako__stand__2h_front__01",
+      "cycle": {
+        "woman_base": 11.37
+      },
+      "breaks": {
+        "clips": [
+          3,
+          5
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 5
+      }
+    },
+    "saul": {
+      "loop": "saul__stand__arms_crossed_front__angry__01",
+      "cycle": {
+        "man_base": 4.17
+      },
+      "breaks": {
+        "clips": [
+          3,
+          5
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 1
+      }
+    },
+    "reed": {
+      "loop": "reed__stand__2h_on_sides__01",
+      "cycle": {
+        "man_big": 25.47
+      },
+      "breaks": {
+        "clips": [
+          3,
+          4
+        ],
+        "pause": [
+          6,
+          3
+        ],
+        "count": 4
+      }
+    },
+    "placide": {
+      "loop": "placide__stand__2h_on_sides__01",
+      "cycle": {
+        "man_big": 13.37
+      },
+      "breaks": {
+        "clips": [
+          8,
+          10
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 8
+      }
+    },
+    "alex": {
+      "loop": "stand__arms_crossed_front__01",
+      "cycle": {
+        "woman_base": 22,
+        "man_base": 21.97,
+        "man_big": 22
+      }
+    },
+    "songbird": {
+      "loop": "stand__arms_crossed_front__01",
+      "cycle": {
+        "woman_base": 22,
+        "man_base": 21.97,
+        "man_big": 22
+      },
+      "breaks": {
+        "clips": [
+          3,
+          5
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 2
+      }
+    },
+    "generic_arms_crossed": {
+      "loop": "stand__arms_crossed_front__01",
+      "cycle": {
+        "woman_base": 22,
+        "man_base": 21.97,
+        "man_big": 22
+      },
+      "breaks": {
+        "clips": [
+          5,
+          7
+        ],
+        "pause": [
+          6,
+          1
+        ],
+        "count": 7
+      }
+    },
+    "generic_hip": {
+      "loop": "stand__rh_on_hip__01",
+      "cycle": {
+        "woman_base": 18.5,
+        "man_base": 10,
+        "man_big": 10
+      },
+      "breaks": {
+        "clips": [
+          4,
+          6
+        ],
+        "pause": [
+          3,
+          1.5
+        ],
+        "count": 3
+      }
+    },
+    "generic_hips": {
+      "loop": "stand__2h_on_hip__02",
+      "cycle": {
+        "woman_base": 10,
+        "man_big": 10
+      },
+      "breaks": {
+        "clips": [
+          3,
+          5
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 18
+      }
+    },
+    "generic_hips_big": {
+      "loop": "stand__2h_on_hip__01",
+      "cycle": {
+        "woman_base": 10,
+        "man_base": 10,
+        "man_big": 20.1
+      },
+      "breaks": {
+        "clips": [
+          4,
+          6
+        ],
+        "pause": [
+          1,
+          0
+        ],
+        "count": 9
+      }
+    },
+    "generic_back": {
+      "loop": "stand__2h_back__01",
+      "cycle": {
+        "woman_base": 9.73,
+        "man_base": 9.73,
+        "man_big": 9.73
+      },
+      "breaks": {
+        "clips": [
+          5,
+          7
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 6
+      }
+    },
+    "alt": {
+      "loop": "alt__stand__2h_on_sides__02",
+      "cycle": {
+        "woman_base": 34.8
+      }
+    },
+    "jackie_hips": {
+      "loop": "stand__2h_on_hip__01",
+      "cycle": {
+        "woman_base": 10,
+        "man_base": 10,
+        "man_big": 20.1
+      }
+    },
+    "panam_hips": {
+      "loop": "stand__2h_on_hip__02",
+      "cycle": {
+        "woman_base": 10,
+        "man_big": 10
+      },
+      "breaks": {
+        "clips": [
+          5,
+          8
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 20
+      }
+    },
+    "bodyguard_front": {
+      "loop": "stand__2h_front__01",
+      "cycle": {
+        "woman_base": 10,
+        "man_base": 10,
+        "man_big": 10
+      }
+    },
+    "bodyguard_back": {
+      "loop": "stand__2h_back__01",
+      "cycle": {
+        "woman_base": 9.73,
+        "man_base": 9.73,
+        "man_big": 9.73
+      }
+    },
+    "generic_hold": {
+      "loop": "stand__2h_on_sides__01__gesture_hold__01",
+      "cycle": {
+        "woman_base": 16,
+        "man_base": 16,
+        "man_big": 16
+      },
+      "breaks": {
+        "clips": [
+          7,
+          10
+        ],
+        "pause": [
+          1.5,
+          0.5
+        ],
+        "count": 5
+      }
+    },
+    "ripperdoc_arms": {
+      "loop": "stand__arms_crossed_front__01",
+      "cycle": {
+        "woman_base": 22,
+        "man_base": 21.97,
+        "man_big": 22
+      }
+    },
+    "generic_arms_crossed_b": {
+      "loop": "stand__arms_crossed_front__01",
+      "cycle": {
+        "woman_base": 22,
+        "man_base": 21.97,
+        "man_big": 22
+      },
+      "breaks": {
+        "clips": [
+          6,
+          8
+        ],
+        "pause": [
+          8,
+          2.5
+        ],
+        "count": 8
+      }
+    },
+    "uscracks_cute": {
+      "loop": "dirt__stand__2h_on_hip__01",
+      "cycle": {
+        "woman_base": 10,
+        "man_base": 10
+      },
+      "breaks": {
+        "clips": [
+          6,
+          7
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 6
+      }
+    },
+    "johnny_crossed": {
+      "loop": "johnny__stand__arms_crossed_front__01",
+      "cycle": {
+        "man_base": 22
+      },
+      "breaks": {
+        "clips": [
+          3,
+          5
+        ],
+        "pause": [
+          7,
+          4
+        ],
+        "count": 4
+      }
+    },
+    "johnny_aggressive": {
+      "loop": "johnny__stand__2h_on_sides__aggressive__01",
+      "cycle": {
+        "woman_base": 25.47,
+        "man_base": 25.47
+      },
+      "breaks": {
+        "clips": [
+          3,
+          5
+        ],
+        "pause": [
+          7,
+          4
+        ],
+        "count": 6
+      }
+    },
+    "johnny_shades": {
+      "loop": "johnny__stand__rh_glasses__01",
+      "cycle": {
+        "man_base": 10
+      },
+      "breaks": {
+        "clips": [
+          3,
+          5
+        ],
+        "pause": [
+          4,
+          1
+        ],
+        "count": 3
+      }
+    },
+    "judy_coffee": {
+      "loop": "stand__rh_cup__01",
+      "cycle": {
+        "woman_base": 10,
+        "man_base": 10,
+        "man_big": 10
+      },
+      "breaks": {
+        "clips": [
+          3,
+          4
+        ],
+        "pause": [
+          2,
+          1
+        ],
+        "count": 3
+      }
+    },
+    "panam_beer": {
+      "loop": "stand__rh_bottle__01",
+      "cycle": {
+        "woman_base": 3.83,
+        "man_base": 5.3,
+        "man_big": 3.83
+      },
+      "breaks": {
+        "clips": [
+          5,
+          7
+        ],
+        "pause": [
+          0,
+          0
+        ],
+        "count": 2
+      }
+    },
+    "generic_front": {
+      "loop": "stand__2h_front__01",
+      "cycle": {
+        "woman_base": 10,
+        "man_base": 10,
+        "man_big": 10
+      },
+      "breaks": {
+        "clips": [
+          3,
+          5
+        ],
+        "pause": [
+          4.0999999,
+          1
+        ],
+        "count": 12
+      }
+    }
+  }
+}
