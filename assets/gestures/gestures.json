@@ -743,7 +743,7 @@
     "generic_front": "base\\workspots\\common\\ground\\generic__stand_ground__stand_around__04.workspot"
   },
   "propIdles": {
-    "note": "Idle workspots whose clips put a prop in the companion's hand (the engine does it: a workEquipItemToSlotAction in a clip's WorkspotItem event or in the workspot's initialActions; the item is despawned by the workspot's own item policy). The controller only starts one when the hand slot is free, looks once at the slot after the idle began, and takes the declared item out of the slot when the idle is over (mod/companion-gestures.lua, mod/gesture-workspot.lua clearSlot). 'items' is read from the animation data by scripts/Audit-PropIdles.mjs (item record and slot, the clip event that equips it); the build only checks the shape. johnny_smoke was the 'experimental' idle of Round 4 (prop cleanup unverified); it is a prop idle with a cleanup now.",
+    "note": "Idle workspots whose clips put a prop in the companion's hand (the engine does it: a workEquipItemToSlotAction in a clip's WorkspotItem event or in the workspot's initialActions; the item is despawned by the workspot's own item policy). The controller only starts one when the hand slot is free, looks once at the slot after the idle began, and takes the declared item out of the slot when the idle is over (mod/companion-gestures.lua, mod/gesture-workspot.lua clearSlot). 'items' is read from the animation data by scripts/Audit-PropIdles.mjs (item record and slot, the clip event that equips it); the build only checks the shape. johnny_smoke was the 'experimental' idle of Round 4 (prop cleanup unverified); it is a prop idle with a cleanup now. 'hideComponents' (optional, a list of plain substrings of the copy's visual component names) hides worn visuals while the idle plays and shows them again when it ends by any route (Round 14: Johnny holds his aviators while still wearing them; the appearance silverhand.app riot__not_blendable has the worn pair as the mesh component h1_001_ma_specs__silverhand3152, which riot__no_glasses lacks).",
     "johnny_smoke": {
       "prop": "cigarette",
       "items": [{ "item": "Items.crowd_cigarette_i_stick", "slot": "AttachmentSlots.WeaponLeft" }],
@@ -752,6 +752,7 @@
     "johnny_shades": {
       "prop": "sunglasses",
       "items": [{ "item": "Items.crowd_int_apparel_002__h0_001_ma_specs__silverhand", "slot": "AttachmentSlots.WeaponRight" }],
+      "hideComponents": ["ma_specs__silverhand"],
       "equip": "johnny__stand__rh_glasses__01 frame 0 (glasses_equip)"
     },
     "judy_coffee": {

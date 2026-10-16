@@ -13,9 +13,14 @@ M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourA
     nearStart = 4.0, nearKeep = 4.5, socialPhases = {settled = true, attend = true}, faceWithin = 35, deviceSettle = 1.5, deviceRetry = .4,
     wedgeAfter = 1.5, healthWindow = 10, recoveryHold = .9, recoveryLimit = 2, failureCooldown = 30, minimumSpeech = 5,
     -- Idle flavour (characters marked flavour in the catalog, and the generic fallback): she goes into an idle as
-    -- soon as she has been settled for a moment (a copy that never talked included), for 45-90 s, then again after a
-    -- gap of 20-45 s measured from the end of the last one; five seconds after a reply ends (flavourAfterTalk).
-    groupStagger = 2, exitSettle = .4, driftNote = .15, flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {20, 45}, flavourLength = {45, 90},
+    -- soon as she has been settled for a moment (a copy that never talked included), for 40-75 s, then again after a
+    -- gap of 8-20 s measured from the end of the last one; five seconds after a reply ends (flavourAfterTalk).
+    -- Which idle: a weighted random pick from her pool, never the one she just had and never a prop idle after a prop idle.
+    -- Interesting idles (signature, own workspot, prop) weigh interestingBonus times a plain generic idle (one constant to
+    -- tune). No warm-up, unlock gate or forced order. Oct 16 live: the signature idles looked late; the pick was uniform over
+    -- seven idles of which two were plain, and the cadence was about 105 s per idle (gap 20-45 + length 45-90), so a given
+    -- one took ten minutes on average.
+    groupStagger = 2, exitSettle = .4, driftNote = .15, flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {8, 20}, flavourLength = {40, 75},
     -- A conversation is one stance, not one stance per reply. The talk stance is kept for conversationHold s after the last
     -- speech, listening or thinking (V reads and answers within that), and a signature, flavour or prop idle may start
     -- only conversationHold + flavourAfterTalk s after the last conversation activity, so between turns she neither
@@ -23,7 +28,7 @@ M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourA
     -- Prop idles (catalog.propIdles): one look at the hand slot propLook s after the idle began, a key whose prop did not
     -- show up propMisses times is dropped for the session, and the declared item is taken out of the slot at each
     -- propCleanup time (s) after the idle ends. propIdles = false switches every prop idle off.
-    propIdles = true, propLook = 2.5, propMisses = 2, propCleanup = {.5, 3},
+    propIdles = true, hideComponents = true, interestingBonus = 2.75, propLook = 2.5, propMisses = 2, propCleanup = {.5, 3},
     -- An idle whose own animation walks the body away from V while V stands still. Live 2026-10-14 (Alex, V
     -- still): convai_idle_generic_hips slid her 0.7 m at +25 s and 2 m at +30 s (speed 1.2-2 m/s, gap 1.3 m to
     -- 3.7 m) and ended where it left her; the other idles never moved her. 'Gestures drift' logs for it on
@@ -135,15 +140,42 @@ function M.new(options)
         end
         return kept
     end
-    -- A random idle from the pool, never the one she just had when there is a choice.
+    -- Interesting idles: a prop idle (catalog.propIdles), or one that is not a generic stance and is not one of the rig's
+    -- generic mix (a signature idle, a character's own workspot). Everything else in the pool is a plain idle.
+    local function interesting(known, key)
+        if self.catalog.propIdles and self.catalog.propIdles[key] then return true end
+        local source = self.catalog.idleSources and self.catalog.idleSources[key]
+        if not source or source.kind == 'generic' then return false end
+        local config = self.catalog.generic
+        local row = config and config.rigs and config.rigs[known.rig]
+        for _, plain in ipairs(row and row.idles or {}) do if plain == key then return false end end
+        return true
+    end
+    -- A random idle from the pool, never the one she just had when there is a choice, and never a prop idle straight after
+    -- a prop idle. Interesting idles carry policy.interestingBonus times a plain idle's weight, so they come up early and
+    -- often by chance; nothing is forced and nothing is gated.
     local function pickIdle(s, known, allow)
         local pool = flavourPool(known)        if #pool == 0 then return nil end
-        local choices = {}
-        for _, key in ipairs(pool) do
-            if (key ~= s.lastIdle or #pool == 1) and (not allow or allow(key)) then choices[#choices + 1] = key end
+        local afterProp = s.lastIdle and propOf(s.lastIdle) ~= nil
+        local choices, weights, total = {}, {}, 0
+        for pass = 1, 2 do
+            for _, key in ipairs(pool) do
+                if (key ~= s.lastIdle or #pool == 1) and (not allow or allow(key))
+                    and (pass == 2 or not (afterProp and propOf(key))) then
+                    local weight = interesting(known, key) and policy.interestingBonus or 1
+                    choices[#choices + 1], weights[#choices] = key, weight
+                    total = total + weight
+                end
+            end
+            if #choices > 0 then break end
         end
-        local key = choices[math.min(#choices, math.floor(((self.random or math.random)()) * #choices) + 1)]
-        return key
+        if #choices == 0 then return nil end
+        local at = ((self.random or math.random)()) * total
+        for i, key in ipairs(choices) do
+            at = at - weights[i]
+            if at < 0 then return key end
+        end
+        return choices[#choices]
     end
     local function characterOf(entry)
         local known = self.catalog.characters and self.catalog.characters[entry.record] or genericOf(entry)
@@ -315,7 +347,35 @@ function M.new(options)
             self.cleanups[self.cleanupSerial] = {npc = npc, prop = prop, due = self.clock + after, pass = pass, serial = s.serial, key = s.idleKey}
         end
     end
+    -- Worn visuals hidden while an idle plays (catalog.propIdles.<key>.hideComponents, plain substrings of component names,
+    -- Round 14: Johnny's aviators while his idle holds them in the hand). Hidden once when the idle becomes active, shown
+    -- again by every way out of it (finish, fail, release, a copy that left the rows) at once and again at the cleanup
+    -- times. Never per frame. A despawned or abandoned copy needs nothing: a new copy starts with its visuals on.
+    local function hideWorn(s)
+        local row = propOf(s.idleKey)
+        local names = row and row.hideComponents
+        local npc = s.entry and s.entry.npc
+        if s.hidden or not names or #names == 0 or not npc or policy.hideComponents == false or not native.setComponentsVisible then return end
+        s.hidden = {npc = npc, names = names, key = s.idleKey}
+        local ok, count = native.setComponentsVisible(npc, names, false)
+        note(s, 'worn-hidden', {key = s.idleKey, ok = ok == true, count = ok and count or nil, error = (not ok) and tostring(count) or nil})
+    end
+    local function showWorn(s, scheduled)
+        local hidden = s.hidden
+        if not hidden then return end
+        s.hidden = nil
+        pcall(native.setComponentsVisible, hidden.npc, hidden.names, true)
+        if scheduled == false then return end
+        for pass, after in ipairs(policy.propCleanup) do
+            self.cleanupSerial = self.cleanupSerial + 1
+            self.cleanups[self.cleanupSerial] = {npc = hidden.npc, show = hidden.names, due = self.clock + after, pass = pass, serial = s.serial, key = hidden.key}
+        end
+    end
     local function runCleanup(job)
+        if job.show then
+            native.setComponentsVisible(job.npc, job.show, true)
+            return
+        end
         for _, row in ipairs(job.prop.items) do
             local ok, state = native.clearSlot(job.npc, row.slot, row.item)
             -- The engine's own despawn normally leaves the slot empty already: only a removal or trouble is logged.
@@ -374,6 +434,7 @@ function M.new(options)
     end
     local function finish(s, reason)
         if s.prop then scheduleCleanup(s, s.prop, s.entry.npc); s.prop = nil end
+        showWorn(s)
         note(s, 'finished', {reason = reason, exitLatency = s.exitAt and self.clock - s.exitAt})
         -- The workspot is left a tenth of a second after the exit signal, but the pose blends out for
         -- about half a second more (forced exit blend). Movement waits for that blend (observe keeps
@@ -394,6 +455,7 @@ function M.new(options)
     end
     local function fail(s, reason)
         if s.prop then scheduleCleanup(s, s.prop, s.entry.npc); s.prop = nil end
+        showWorn(s)
         note(s, 'failed', {reason = reason})
         s.phase, s.clip, s.exitAt = 'off', nil, nil
         s.cooldownUntil = self.clock + policy.failureCooldown
@@ -456,6 +518,7 @@ function M.new(options)
                 s.phase, s.activeAt = 'active', self.clock
                 s.homeAt, s.driftNoted = copy(s.entry.position), nil
                 note(s, 'active', {})
+                if s.flavour then hideWorn(s) end
             elseif self.clock - s.playAt > 3 then
                 if not s.flavour and s.familyKey and s.known.fallback and s.familyKey ~= s.known.fallback then
                     self.missingFamilies[s.familyKey] = true
@@ -658,6 +721,7 @@ function M.new(options)
         for serial, s in pairs(self.states) do
             local row = present[serial]
             if not row then
+                showWorn(s)
                 if s.deviceID then native.deleteDevice(s.deviceID) end
                 self.states[serial] = nil
             else
@@ -675,6 +739,7 @@ function M.new(options)
         if not s then return end
         if HOLDING[s.phase] and entry.npc then native.exit(entry.npc, true) end
         if s.prop and HOLDING[s.phase] then scheduleCleanup(s, s.prop, entry.npc) end
+        showWorn(s)
         if s.deviceID then native.deleteDevice(s.deviceID) end
         self.states[entry.serial] = nil
         self.log('released', {serial = entry.serial, reason = reason})

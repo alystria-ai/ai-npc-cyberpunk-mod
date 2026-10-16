@@ -35110,6 +35110,9 @@ local catalog = {
                     slot = "AttachmentSlots.WeaponRight",
                 },
             },
+            hideComponents = {
+                "ma_specs__silverhand",
+            },
         },
         judy_coffee = {
             prop = "paper cup",
