@@ -115,7 +115,7 @@
 +    result = next((item for item in reversed(events)
 +                   if isinstance(item, dict) and item.get("event") == "remote_checkpoint_available"), None)
 +    if (not result or result.get("step") != step
-+            or result.get("bucket_id") != "akshitireddy/cyberpunk-pocket-rolling-checkpoints"
++            or result.get("bucket_id") != "alystria-ai/cyberpunk-pocket-rolling-checkpoints"
 +            or type(result.get("slot")) is not int or result["slot"] not in (0, 1, 2)
 +            or result.get("path_in_bucket") != f"runs/{run_id}/slot-{result['slot']}"
 +            or not re.fullmatch(r"[0-9a-f]{64}", result.get("snapshot_id", ""))

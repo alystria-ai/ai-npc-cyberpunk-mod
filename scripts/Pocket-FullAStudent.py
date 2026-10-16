@@ -21,7 +21,7 @@ FROZEN = ROOT / "runtime/voice-data-expansion-20261004/a-continuation-candidate-
 DEST = ROOT / "runtime/voice-data-expansion-20261005/full-a-student"
 PURPOSE = "full_a_student_observable"
 PREFIX = "cp2077-full-a-student-"
-BUCKET = "akshitireddy/cyberpunk-pocket-rolling-checkpoints"
+BUCKET = "alystria-ai/cyberpunk-pocket-rolling-checkpoints"
 CORE_PATH = ROOT / "scripts/Pocket-ObservableKaggle.py"
 EXPORT_HELPER = ROOT / "scripts/pocket_training/selected_teacher_export.py"
 module = importlib.util.spec_from_file_location("observable_job_io", CORE_PATH)
@@ -116,7 +116,7 @@ def prepare(candidate):
     original_source = original_source.split('\nif __name__ == "__main__":', 1)[0]
     original_source = original_source.replace("def main():", "def full_original_main():", 1)
     original_source = original_source.replace('"__FULL_A_BINDINGS_JSON__"', repr(json.dumps(binding)), 1)
-    token = (ROOT / "runtime/huggingface-checkpoint-token.txt").read_text().strip()
+    token = (ROOT / "runtime/huggingface-alystria-token.txt").read_text().strip()
     if not token.startswith("hf_"):
         raise ValueError("Private checkpoint credential missing")
     adapter = (ROOT / "scripts/pocket_training/full_a_live_bootstrap.py").read_text(encoding="utf-8")

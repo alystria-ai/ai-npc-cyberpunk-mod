@@ -5,7 +5,7 @@ Usage: vendor/pocket-tts-env/Scripts/python.exe scripts/Upload-VoiceReferences.p
 What it uploads: every WAV under runtime/voice-references/picked/autobest/ and the voice configs named below, but only the files whose
 size or SHA-256 differs from the manifest entry (or that have none). Existing remote files are never deleted. Before it writes anything it
 checks that every ready reference in the four autobest configs exists locally, matches its descriptor hash, and is listed in the manifest
-afterwards. The manifest is uploaded last. The token is read from RUNTIME_DIR/huggingface-checkpoint-token.txt and never printed.
+afterwards. The manifest is uploaded last. The token is read from RUNTIME_DIR/huggingface-alystria-token.txt and never printed.
 The report lists every replaced remote file with its old and new size and hash.
 """
 from __future__ import annotations
@@ -42,7 +42,7 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     runtime = args.runtime.resolve()
-    token = (runtime / "huggingface-checkpoint-token.txt").read_text(encoding="utf-8").strip()
+    token = (runtime / "huggingface-alystria-token.txt").read_text(encoding="utf-8").strip()
     api = HfApi(token=token)
     bucket = CONFIG["bucket"]
     refs_remote = CONFIG["references"]["bucket"]

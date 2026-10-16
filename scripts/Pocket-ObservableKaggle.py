@@ -120,7 +120,7 @@ def prepare():
     uploader = ROOT / "scripts/pocket_training/remote_checkpoints.py"
     # The user explicitly authorized this credential in the private generated
     # notebook. The token file and generated notebook are both Git ignored.
-    private_token = (ROOT / "runtime/huggingface-checkpoint-token.txt").read_text().strip()
+    private_token = (ROOT / "runtime/huggingface-alystria-token.txt").read_text().strip()
     if not re.fullmatch(r"hf_[A-Za-z0-9]+", private_token):
         raise ValueError("Checkpoint credential is missing or malformed")
     # Preserve the frozen long-run source and corpus. This new notebook is a

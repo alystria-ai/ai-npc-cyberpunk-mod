@@ -10,8 +10,8 @@ import time
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
-REPO = "akshitireddy/cyberpunk-pocket-training-checkpoints"
-BUCKET = "akshitireddy/cyberpunk-pocket-rolling-checkpoints"
+REPO = "alystria-ai/cyberpunk-pocket-training-checkpoints"
+BUCKET = "alystria-ai/cyberpunk-pocket-rolling-checkpoints"
 PROBE_ROOT = ROOT / "runtime/voice-data-expansion-20261005/observable-probes"
 FULL_TEACHER_ROOT = ROOT / "runtime/voice-data-expansion-20261005/full-a-live"
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
@@ -182,9 +182,9 @@ def main():
         prefix = f"runs/{run_id}/step-{args.step:06d}"
     os.environ.update(HF_HUB_OFFLINE="0", HF_HUB_DISABLE_PROGRESS_BARS="1", HF_HUB_DISABLE_TELEMETRY="1")
     from huggingface_hub import HfApi, hf_hub_download
-    token = (ROOT / "runtime/huggingface-checkpoint-token.txt").read_text().strip()
+    token = (ROOT / "runtime/huggingface-alystria-token.txt").read_text().strip()
     api = HfApi(token=token)
-    if str(api.whoami()["name"]).casefold() != "akshitireddy":
+    if str(api.whoami()["name"]).casefold() != "alystria-ai":
         raise ValueError("Wrong checkpoint account")
     if not 0 <= args.wait_seconds <= 1800:
         raise ValueError("Checkpoint wait must be bounded to at most thirty minutes")

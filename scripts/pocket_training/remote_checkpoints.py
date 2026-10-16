@@ -22,7 +22,7 @@ import sys
 from typing import Any, Callable, Mapping
 
 
-DEFAULT_REPO_ID = "akshitireddy/cyberpunk-pocket-training-checkpoints"
+DEFAULT_REPO_ID = "alystria-ai/cyberpunk-pocket-training-checkpoints"
 SCHEMA = "private_pocket_checkpoint_v1"
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
 _OID = re.compile(r"[0-9a-f]{40}\Z")
@@ -90,7 +90,7 @@ def _check_private(api: Any, repo_id: str, token: str, *, revision: str | None =
 
 def _check_account(api: Any, token: str) -> None:
     identity = api.whoami(token=token)
-    if not isinstance(identity, dict) or str(identity.get("name", "")).casefold() != "akshitireddy":
+    if not isinstance(identity, dict) or str(identity.get("name", "")).casefold() != "alystria-ai":
         raise RuntimeError("Checkpoint token belongs to a different Hugging Face account")
 
 

@@ -185,7 +185,7 @@ into a release. Inputs:
   launchers, `__pycache__`, torch headers, link libraries and CMake files are left out.
 - `packaging/release-data/`: the default character-ID mappings and the three game archives
   (built from game files with WolvenKit, so CI cannot make them).
-- Trained models from the private HF bucket `akshitireddy/cyberpunk-pocket-rolling-checkpoints`,
+- Trained models from the private HF bucket `alystria-ai/cyberpunk-pocket-rolling-checkpoints`,
   `final/` (`packaging/fetch-models.py`, every file checked against `final/MANIFEST.json`), or from
   the developer `runtime/` folder with `--models local`. The Pocket export is also checked against
   the hashes in its voice config, and every reference clip against its descriptor.

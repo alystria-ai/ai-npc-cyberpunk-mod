@@ -6,7 +6,7 @@ Reads the plan (default: the 2026-10-07 plan on E:), re-lists the bucket,
 prints every prefix it would delete with live file counts and sizes, refuses
 to touch anything under a keep prefix or in any other bucket, and asks for one
 typed "yes" before deleting. The token is read from
-runtime/huggingface-checkpoint-token.txt and never printed.
+runtime/huggingface-alystria-token.txt and never printed.
 """
 import json
 import sys
@@ -16,7 +16,7 @@ from huggingface_hub import HfApi
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PLAN = Path(r"E:\CyberpunkConvai-offload\backups\hf-bucket-prune-plan-2026-10-07.json")
-TOKEN_FILE = ROOT / "runtime" / "huggingface-checkpoint-token.txt"
+TOKEN_FILE = ROOT / "runtime" / "huggingface-alystria-token.txt"
 BATCH = 100
 
 
@@ -35,7 +35,7 @@ def main():
     plan_path = Path(args[0]) if args else DEFAULT_PLAN
     plan = json.loads(plan_path.read_text(encoding="utf-8"))
     bucket = plan["bucket"]
-    if bucket != "akshitireddy/cyberpunk-pocket-rolling-checkpoints":
+    if bucket != "alystria-ai/cyberpunk-pocket-rolling-checkpoints":
         sys.exit(f"Refusing: plan targets unexpected bucket {bucket}")
     delete_prefixes = [d["prefix"] for d in plan["delete"]]
     keep_prefixes = [k["prefix"] for k in plan["keep"]]

@@ -18,7 +18,7 @@ import sys
 import uuid
 from typing import Any, Mapping
 
-BUCKET_ID = "akshitireddy/cyberpunk-pocket-rolling-checkpoints"
+BUCKET_ID = "alystria-ai/cyberpunk-pocket-rolling-checkpoints"
 SCHEMA = "private_pocket_rolling_checkpoint_v1"
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
 _RUN = re.compile(r"[a-z0-9][a-z0-9-]{0,63}\Z")
@@ -85,7 +85,7 @@ def _credential(explicit: str | None) -> str:
 def _private_owner(api: Any, token: str) -> None:
     account = api.whoami(token=token)
     info = api.bucket_info(BUCKET_ID, token=token)
-    if (not isinstance(account, dict) or str(account.get("name", "")).casefold() != "akshitireddy"
+    if (not isinstance(account, dict) or str(account.get("name", "")).casefold() != "alystria-ai"
             or getattr(info, "id", None) != BUCKET_ID or getattr(info, "private", None) is not True):
         raise RuntimeError("Checkpoint bucket/account is not the verified private target")
 

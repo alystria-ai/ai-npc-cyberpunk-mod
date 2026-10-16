@@ -32,7 +32,7 @@ from typing import Any
 from . import v2_data
 from .v2_eval import PanelEvaluator, paired
 
-BUCKET = "akshitireddy/cyberpunk-pocket-rolling-checkpoints"
+BUCKET = "alystria-ai/cyberpunk-pocket-rolling-checkpoints"
 POLICIES = {"teacher": "pocket_crossref_teacher_v1", "student": "pocket_voice_guided_distill_v1"}
 SPOT_VOICES = ("johnny-silverhand", "judy-alvarez", "panam-palmer", "takemura")
 

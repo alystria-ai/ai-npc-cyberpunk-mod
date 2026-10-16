@@ -64,12 +64,12 @@ def prepare(candidate, resume=None):
                    resume=resume["descriptor"] if resume else None,
                    remote_checkpoint_run_id=experiment,
                    remote_checkpoint_max_keep=3,
-                   checkpoint_bucket="akshitireddy/cyberpunk-pocket-rolling-checkpoints")
+                   checkpoint_bucket="alystria-ai/cyberpunk-pocket-rolling-checkpoints")
     original_source = (LAUNCH / "kernel-template.py").read_text(encoding="utf-8")
     original_source = original_source.split('\nif __name__ == "__main__":', 1)[0]
     original_source = original_source.replace("def main():", "def full_original_main():", 1)
     original_source = original_source.replace('"__FULL_A_BINDINGS_JSON__"', repr(json.dumps(binding)), 1)
-    token = (ROOT / "runtime/huggingface-checkpoint-token.txt").read_text().strip()
+    token = (ROOT / "runtime/huggingface-alystria-token.txt").read_text().strip()
     if not token.startswith("hf_"):
         raise ValueError("Private checkpoint credential missing")
     adapter = (ROOT / "scripts/pocket_training/full_a_live_bootstrap.py").read_text(encoding="utf-8")

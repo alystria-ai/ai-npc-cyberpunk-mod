@@ -17,7 +17,7 @@ import shutil
 import sys
 
 PINNED_REVISION = "41cbc84af539ea78a804ffca5f9c6edc1a22ce44"
-BUCKET_ID = "akshitireddy/cyberpunk-pocket-rolling-checkpoints"
+BUCKET_ID = "alystria-ai/cyberpunk-pocket-rolling-checkpoints"
 
 
 def sha256_file(path: Path) -> str:

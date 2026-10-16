@@ -6,7 +6,7 @@ Source: runtime/stt-model/moonshine-tiny-en-int8/ (Moonshine Tiny English int8 a
 https://huggingface.co/csukuangfj/sherpa-onnx-moonshine-tiny-en-int8, MIT, plus the licence text).
 Target: final/stt-model/moonshine-tiny-en-int8/ in the bucket named by packaging/release.config.json. The release build
 (packaging/fetch-models.py) downloads exactly the files listed there and checks each against MANIFEST.json.
-The token is read from runtime/huggingface-checkpoint-token.txt and never printed. Re-running is safe: files whose size and
+The token is read from runtime/huggingface-alystria-token.txt and never printed. Re-running is safe: files whose size and
 SHA-256 already match the manifest are left alone, and manifest entries are replaced, not duplicated.
 """
 from __future__ import annotations
@@ -20,7 +20,7 @@ from pathlib import Path
 from huggingface_hub import HfApi
 
 ROOT = Path(__file__).resolve().parent.parent
-TOKEN_FILE = ROOT / "runtime" / "huggingface-checkpoint-token.txt"
+TOKEN_FILE = ROOT / "runtime" / "huggingface-alystria-token.txt"
 CONFIG = json.loads((ROOT / "packaging" / "release.config.json").read_text(encoding="utf-8"))["models"]
 GROUP = next(group for group in CONFIG["groups"] if group["target"] == "app/models/stt/moonshine-tiny-en-int8/")
 SOURCE = ROOT / GROUP["local"]
