@@ -278,6 +278,12 @@ export class ContinuousPcmPlayer {
     return Math.max(0, context.currentTime - latency - 128 / this.sampleRate);
   }
 
+  // What the graph is doing right now, for the bridge's one log line per reply (Voice volume): the makeup the last control asked for, the
+  // gain node's value, whether the limiter is in the path and whether it could be built at all.
+  level() {
+    return {makeupDb: this.admission.makeupDb || 0, gain: this.stopped ? 0 : this.appliedVolume ?? 0, limited: this.limited === true, limiter: !!this.limiter};
+  }
+
   snapshot() {
     if (!this.stopped && this.opened) {
       try {

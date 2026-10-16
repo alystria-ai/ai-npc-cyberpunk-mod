@@ -83,7 +83,7 @@ export class LocalPcmClient {
 
   snapshot(token) {
     const turn = this.owned(token), state = turn.player.snapshot();
-    return {...state, version: 1, token, engine: 'pocket-tts', voiceProvider: 'pocket',
+    return {...state, version: 1, token, engine: 'pocket-tts', voiceProvider: 'pocket', level: turn.player.level?.(),
       text: turn.text, textComplete: true, sourceComplete: turn.sourceComplete,
       ...(turn.userText !== undefined ? {userText: turn.userText} : {}),
       ...(turn.expressionSignal !== undefined ? {expressionSignal: turn.expressionSignal} : {})};
