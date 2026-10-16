@@ -1659,6 +1659,55 @@ test('the live holocall picture is on by default, offered under Conversations, a
   `);
 });
 
+test('Companions can see has no setting any more: no row, an old saved companionVision (even false) is dropped on load, and an Apply for it is refused', () => {
+  run(`${managerFixture}
+    seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'convai', omniSteps = 16, enabledByKey = {}, companionVision = false}
+    for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.reset(); manager.configure(api, profiles)
+    assert(manager.snapshot(player).settings.companionVision == nil, 'the retired key is still in the snapshot')
+    assert(saved and saved.companionVision == nil, 'the retired key was not dropped from settings.json')
+    assert(not manager.applySettings(player, {companionVision = true}) and manager.snapshot(player).settings.companionVision == nil)
+  `);
+  run(`${mcmFixture}
+    assert(invoke('tab:settings').ok)
+    assert(row('companionVision') == nil, 'the setting is still offered')
+    for _, category in ipairs(loaded.categories) do
+      for _, item in ipairs(category.settings or {}) do assert(item.label ~= 'Companions can see' and item.id ~= 'companionVision') end
+    end
+    local result = registered.applyBatch('manager', {{id = 'companionVision', value = false}})
+    assert(result.ok == false, 'an Apply for the removed row was accepted')
+  `);
+});
+
+test('Voice status names the voice that speaks: Voxtral and Inworld say so, only the Convai voice says Convai voices', () => {
+  run(`${mcmFixture}
+    local clock = 1000
+    os.time = function() return clock end
+    local n = 0
+    local function status(state)
+      clock, n = clock + 20, n + 1
+      state.updated = clock * 1000
+      jsonFixtures['voice-status-' .. n] = state
+      files['runtime/local-voice-state.json'] = 'voice-status-' .. n
+      manager.snapshot(player)
+      loaded = registered.loadMod('manager')
+      return row('voice-status').value
+    end
+    assert(invoke('tab:settings').ok)
+    assert(status({state = 'remote', provider = 'convai', requestedProvider = 'convai'}) == 'Convai voices · Local model unloaded')
+    assert(status({state = 'remote', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = 'voxtral'}) == 'Voxtral cloud voice · Local model unloaded')
+    assert(status({state = 'remote', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = 'inworld'}) == 'Inworld cloud voice · Local model unloaded')
+    -- Switching between the two cloud voices changes only cloudVoice: the row must still follow.
+    assert(status({state = 'remote', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = 'voxtral'}) == 'Voxtral cloud voice · Local model unloaded')
+    -- A cloud voice that fell back to Convai is the Convai voice speaking.
+    local fell = status({state = 'remote', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = 'voxtral',
+      fallback = {from = 'voxtral', to = 'convai', temporary = false, reason = 'no-key'}})
+    assert(fell:find('Using', 1, true) and fell:find('Convai', 1, true) and not fell:find('Voxtral cloud voice', 1, true), fell)
+    assert(status({state = 'ready', provider = 'pocket', requestedProvider = 'pocket'}) == 'Ready')
+  `);
+});
+
 test('Names for passers-by has no setting any more: it is not offered, and a saved npcNames value is ignored', () => {
   run(`${mcmFixture}
     assert(manager.npcNames == nil and manager.snapshot(player).settings.npcNames == nil)
@@ -5436,7 +5485,7 @@ test('Settings sections: Conversation provider sits after Conversations and befo
         end
       end
     end
-    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'companionVision', 'matureContent', 'localModel', 'mistral-key', 'own-key'}, ','),
+    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'matureContent', 'localModel', 'mistral-key', 'own-key'}, ','),
       table.concat(idsOf('conversation-provider'), ','))
     assert(table.concat(idsOf('development'), ',') == 'developerMode', table.concat(idsOf('development'), ','))
     local voices = idsOf('voices')
@@ -5686,7 +5735,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     for _, category in ipairs(loaded.categories) do
       if category.id == 'conversation-provider' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
     end
-    assert(table.concat(order, ',') == 'conversationProvider,companionVision,matureContent,localModel,mistral-key,own-key', table.concat(order, ','))
+    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,mistral-key,own-key', table.concat(order, ','))
     local function refresh() clock = clock + 2; manager.snapshot(player); loaded = registered.loadMod('manager') end
     local function answer(tag, state)
       jsonFixtures['or-state-' .. tag] = state

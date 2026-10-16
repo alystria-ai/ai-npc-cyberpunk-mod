@@ -133,6 +133,7 @@ const reviewed = {
     'Convai voice', 'On', 'Off', 'Ready', 'Loading', 'Preparing voices', 'Preparing a reply',
     'Unavailable', 'Waiting for voice service', 'Not configured', 'Stopped',
     'Releasing local voice memory', 'Convai voices · Local model unloaded',
+    'Voxtral cloud voice · Local model unloaded', 'Inworld cloud voice · Local model unloaded',
     'Changing after the current reply', 'Ready · Unsaved selection',
     'OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality',
   ],

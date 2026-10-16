@@ -69,7 +69,7 @@ no longer open it.
   pending ("Apply or revert pending changes before running this action"). A person's Apply
   arrives later and commits everything in one atomic `applyBatch`. Nothing is saved, written
   for the service, or prepared before that: no `settings.json` write and no voice-preview
-  lease. While a different voice is pending, the voice status row reads "Pending: <voice>".
+  lease. While a different voice is pending, the voice status row reads "Pending: <voice>". With a voice that loads no local model the bridge reports state `remote`; the row names the voice from `cloudVoice` ("Voxtral cloud voice · Local model unloaded", "Inworld cloud voice · Local model unloaded", otherwise "Convai voices · Local model unloaded"). Before 2026-10-16 every cloud voice read "Convai voices".
   **Leaving with pending changes.** MCM's own dialog is tied to its `cancel` key handler, which
   the live Esc did not reach (the page closed without asking). The provider therefore overrides
   `SettingsMainGameController.RequestClose`, the one call that Esc, the pause menu's back and F4

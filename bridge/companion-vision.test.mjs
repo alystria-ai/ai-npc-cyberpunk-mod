@@ -33,14 +33,13 @@ function scene(options = {}) {
 }
 const pictureOf = base64 => [{mime: 'image/jpeg', base64}];
 
-test('on by default with Convai; settings.json false or CYBERPUNK_CONVAI_VISION=off turns it off; Mistral and Local get nothing', async () => {
+test('always on with Convai (a saved companionVision false from an older install is ignored); CYBERPUNK_CONVAI_VISION=off turns it off; Mistral and Local get nothing', async () => {
   const {vision, state, tick} = scene();
   assert.equal(vision.active, true);
   assert.deepEqual(vision.connectConfig(), {transport: 'video'});
   await tick({companionVision: false});
-  assert.equal(vision.active, false);
-  assert.equal(vision.connectConfig(), null);
-  assert.deepEqual(vision.attachToNextTurn(pictureOf(QUEUED)), {queued: 0, reason: 'off'});
+  assert.equal(vision.active, true, 'the retired setting no longer turns vision off');
+  assert.deepEqual(vision.connectConfig(), {transport: 'video'});
   await tick({});
   assert.equal(vision.active, true, 'a missing key is on');
   state.convai = false;
@@ -49,8 +48,8 @@ test('on by default with Convai; settings.json false or CYBERPUNK_CONVAI_VISION=
   assert.equal(visionDisabledByEnv({CYBERPUNK_CONVAI_VISION: 'off'}), true);
   assert.equal(visionDisabledByEnv({}), false);
   const off = new CompanionVision({capture: fakeCapture(), env: {CYBERPUNK_CONVAI_VISION: '0'}});
-  off.update({companionVision: true});
-  assert.equal(off.active, false, 'the environment switch wins');
+  off.update({});
+  assert.equal(off.active, false, 'the environment switch is the only off switch');
 });
 
 test('the buffer captures every FRAME_INTERVAL_MS while someone is near and nobody talks, and keeps FRAME_SLOTS frames in memory', async () => {
@@ -61,13 +60,12 @@ test('the buffer captures every FRAME_INTERVAL_MS while someone is near and nobo
   assert.equal(vision.diagnostics().helperRunning, true);
 });
 
-test('unload rule: no helper when the setting is off, under another provider, with nobody near, or during a conversation', async () => {
+test('unload rule: no helper under another provider, with nobody near, or during a conversation', async () => {
   const {vision, capture, state, run, tick} = scene();
   await run(1000);
   assert.equal(capture.running, true);
   await tick({companionVision: false});
-  assert.equal(capture.running, false, 'setting off: released at once');
-  assert.equal(vision.frames.length, 0, 'and the buffer is dropped');
+  assert.equal(capture.running, true, 'an old saved false does not release it');
   await run(4000, {}); assert.equal(capture.running, true);
   state.convai = false; await tick();
   assert.equal(capture.running, false, 'Mistral or Local AI: released at once');

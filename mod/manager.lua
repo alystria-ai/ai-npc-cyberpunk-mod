@@ -722,9 +722,9 @@ local function loadSettings()
     -- Follow-up questions (on by default, key followUpInterest: the retired followUpQuestions key above is a different, dropped
     -- setting): characters sometimes show interest in the player. Works with any voice.
     if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = true, true end
-    -- Companions can see (on by default, Convai only, docs/COMPANION_VISION.md): each conversation turn carries a recent picture of
-    -- V's surroundings. The bridge does all the work out of process; nothing in the game runs for it.
-    if type(settings.companionVision) ~= 'boolean' then settings.companionVision, settingsNeedSave = true, true end
+    -- The retired Companions can see setting (docs/COMPANION_VISION.md): vision is always on with Convai now. An old saved key is
+    -- dropped; the bridge ignores it either way.
+    if settings.companionVision ~= nil then settings.companionVision, settingsNeedSave = nil, true end
     -- Mature content (off by default): lets the Local AI provider write adult language and themes. Read by the bridge on change only.
     if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
     -- Mature content and a cloud provider (Convai free tier, Convai API key, Mistral) exclude each other: a saved pairing (an older
@@ -1202,8 +1202,9 @@ local function updateLocalVoice()
     for _, key in ipairs(state.routedProfiles or {}) do
         if type(key) == 'string' and byKey[key] then localVoices[key] = true end
     end
+    -- cloudVoice is in it: Voxtral and Inworld both report 'remote' on the Pocket route, and the status row names which one speaks.
     local signature = tostring(state.provider) .. ':' .. tostring(state.state) .. ':' .. tostring(state.steps)
-        .. ':' .. tostring(state.routeRevision)
+        .. ':' .. tostring(state.routeRevision) .. ':' .. tostring(state.cloudVoice)
     -- The bridge reports a fallback only after it committed the lower voice.
     -- Tell the player once per fallback; the mark clears when the fallback ends.
     local fallback = state.fallback
@@ -1663,7 +1664,6 @@ function M.snapshot(player)
             naturalSpeech = settings.naturalSpeech,
             expressiveEmotions = settings.expressiveEmotions,
             followUpInterest = settings.followUpInterest,
-            companionVision = settings.companionVision ~= false,
             vVoice = settings.vVoice == true,
             -- Part of the main mod: off by default, Local AI only. The optional Mature pack (uncensored models) only changes the help text.
             matureContent = settings.matureContent == true,
@@ -1717,8 +1717,7 @@ function M.applySettings(player, values)
             or key == 'holocallLiveImage'
             or key == 'gameDialogueContext' or key == 'decisionLedger' or key == 'witnessReceipts'
             or key == 'naturalSpeech' or key == 'expressiveEmotions'
-            or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
-            or key == 'companionVision' then
+            or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'matureContent' then
