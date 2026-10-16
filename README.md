@@ -1344,7 +1344,7 @@ The install test builds a stand-in game folder under `%TEMP%` (with spaces and n
 
 ### GitHub Actions
 
-`.github/workflows/release.yml` runs only from Actions, Release, Run workflow, or on a pushed `v0.N` tag. Job 1 builds and install-tests Scripts and Runtime on `windows-2025`, keeps the Scripts zip as a workflow artifact (the file for Nexus) and creates the GitHub release `v0.N`. Job 2 builds the OmniVoice pack and job 3 (a matrix of `standard` and `lite`) builds the two Local AI packs; both add to the same release, so a release can briefly lack them. A new release is created with `--latest`, so the newest build is always marked Latest. The workflow uses the built-in `GITHUB_TOKEN` with `contents: write` plus repository secrets for the model bucket and the build. The auth backend is deployed separately (see [Daily limit](#daily-limit)).
+`.github/workflows/release.yml` runs only from Actions, Release, Run workflow, or on a pushed `v0.N` tag. Job 1 builds and install-tests Scripts and Runtime on `windows-2022` (it needs Visual Studio 2022), keeps the Scripts zip as a workflow artifact (the file for Nexus) and creates the GitHub release `v0.N`. Job 2 builds the OmniVoice pack and job 3 (a matrix of `standard` and `lite`) builds the two Local AI packs; both add to the same release, so a release can briefly lack them. A new release is created with `--latest`, so the newest build is always marked Latest. The workflow uses the built-in `GITHUB_TOKEN` with `contents: write` plus repository secrets for the model bucket and the build. The auth backend is deployed separately (see [Daily limit](#daily-limit)).
 
 ### Keeping the inputs current
 

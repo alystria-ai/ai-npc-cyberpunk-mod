@@ -57,7 +57,9 @@ env:
 jobs:
   runtime:
     name: Scripts and Runtime
-    runs-on: windows-2025
+    # windows-2022 carries Visual Studio 2022; windows-2025 moved to Visual Studio 2026 (MSVC 14.51), which the native
+    # plugin's CMake generator and the vision helper's /await coroutines do not build with yet.
+    runs-on: windows-2022
     timeout-minutes: 120
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -101,8 +103,9 @@ jobs:
         run: |
           cmake --version | Select-Object -First 1
           $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-          & $vswhere -version '[17.0,18.0)' -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property displayName
-          if ($LASTEXITCODE -ne 0) { throw 'Visual Studio 2022 with the C++ tools is required to build the native plugin.' }
+          $vs = & $vswhere -version '[17.0,18.0)' -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property displayName
+          if ($LASTEXITCODE -ne 0 -or -not $vs) { throw 'Visual Studio 2022 with the C++ tools is required to build the native plugin.' }
+          $vs
 
       - name: Build Scripts and Runtime
         shell: pwsh

@@ -219,7 +219,7 @@ To try a build in the real game, remove the development launcher first
 ## GitHub Actions
 
 `.github/workflows/release.yml` runs only from Actions > Release > Run workflow or on a pushed
-`v0.N` tag. Job 1 builds and install-tests Scripts + Runtime on `windows-2025`, keeps the Scripts
+`v0.N` tag. Job 1 builds and install-tests Scripts + Runtime on `windows-2022` (Visual Studio 2022; `windows-2025` moved to Visual Studio 2026), keeps the Scripts
 zip as a workflow artifact (for Nexus), and creates the GitHub release `v0.N` in this same
 repository, uploading the packages to it. Job 2 builds the OmniVoice pack and adds it to the same
 release; job 3 (a matrix of `standard` and `lite`) builds the two Local AI packs and adds them too. Large packages are not stored as workflow artifacts (private-repository artifact storage
