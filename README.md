@@ -20,9 +20,9 @@ Speak to Cyberpunk 2077's characters in your own voice and hear them answer in t
 
 ---
 
-Invite Judy along and she walks at your shoulder through Night City. Ask her something out loud, into your own microphone, and she answers in her own voice: lips moving with the words, eyes on you, hands talking when the story runs long. Sit down on a couch and she sits beside you. Get in the car and she rides along, or takes the wheel if you ask. Later, text her from V's phone, or ring her on a holocall and watch her pick up.
+Invite a character along and they walk at your shoulder through Night City. Ask them something out loud, into your own microphone, and they answer in their own voice: lips moving with the words, eyes on you, hands talking when the story runs long. Sit down on a couch and they sit beside you. Get in the car and they ride along, or take the wheel if you ask. Later, text them from V's phone, or ring them on a holocall and watch them pick up.
 
-Cyberpunk Convai gives 78 of the game's named characters, from Panam and Johnny to Takemura, Kerry, River and Alt Cunningham, personalities researched from the game's own lore, memories that last, and voices that sound like the characters you know. And the street answers too: the ganger on the corner, the NCPD officer, the ripperdoc and the bartender each talk back as their kind of person.
+Cyberpunk Convai gives the game's named characters, from Panam and Johnny to Takemura, Kerry, River and Alt Cunningham, personalities researched from the game's own lore, memories that last, and voices that sound like the characters you know. And the street answers too: the ganger on the corner, the NCPD officer, the ripperdoc and the bartender each talk back as their kind of person.
 
 ## Free, three ways
 
